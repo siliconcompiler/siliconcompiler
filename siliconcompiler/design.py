@@ -3,7 +3,7 @@ import io
 import os.path
 from pathlib import Path
 
-from typing import List, Set, Union, Tuple, Dict, Optional, Iterable
+from typing import List, Set, Union, Tuple, Dict, Optional, Iterable, TYPE_CHECKING
 
 from siliconcompiler import utils
 
@@ -13,6 +13,9 @@ from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema
+
+if TYPE_CHECKING:
+    from siliconcompiler.schema_support.patch import Patch
 
 
 ###########################################################################
@@ -586,6 +589,34 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         """
         fs = self.__get_filesetobj(fileset)
         return fs.get_depfileset()
+    
+    ###############################################
+    def add_patch(self,
+                  patch_name: str,
+                  file: Union[str, Path],
+                  diff: str,
+                  fileset: Optional[str] = None,
+                  dataroot: Optional[str] = None) -> "Patch":
+        """Adds a patch to a fileset.
+
+        Args:
+            patch_name (str): Name of the patch.
+            file (str): File to apply the patch to.
+            diff (str): Unified diff text.
+            fileset (str, optional): Fileset name. If not provided, the active
+                fileset is used.
+            dataroot (str, optional): Data root directory. If not provided, the default
+                data root is used.
+        """
+        fs = self.__get_filesetobj(fileset)
+        patch = fs.make_patch(patch_name)
+
+        dataroot = self._get_active_dataroot(dataroot)
+        with self.active_dataroot(dataroot):
+            patch.set("file", file)
+        patch.set("diff", diff)
+
+        return patch
 
     def __write_flist(self,
                       filename: str,

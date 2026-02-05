@@ -1,21 +1,24 @@
 import os
+
 import difflib
 import shutil
 import logging
 
-from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+import os.path
 
+from datetime import datetime
+from typing import Set, Tuple, Optional, TYPE_CHECKING
+
+from siliconcompiler.schema_support.pathschema import PathSchemaSimpleBase
 from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 from siliconcompiler.utils import sc_open
 
 if TYPE_CHECKING:
-    from siliconcompiler.schema import BaseSchema
     from siliconcompiler import Design
 
 
-class Patch(NamedSchema):
+class Patch(NamedSchema, PathSchemaSimpleBase):
     '''
     Schema for a 'patch'.
     '''
@@ -32,20 +35,11 @@ class Patch(NamedSchema):
         schema.insert(
             'file',
             Parameter(
-                'str',
+                'file',
                 scope=Scope.GLOBAL,
+                copy=True,
                 shorthelp="File to patch",
-                help=trim("""
-            File to apply a patch to. The path is relative to the fileset root.""")))
-
-        schema.insert(
-            'dataroot',
-            Parameter(
-                'str',
-                scope=Scope.GLOBAL,
-                shorthelp="Data root for file to patch",
-                help=trim("""
-            The data root where the file to patch is located. This is typically the fileset root.""")))
+                help="""File to apply a patch to."""))
 
         schema.insert(
             'diff',
@@ -66,13 +60,10 @@ class Patch(NamedSchema):
             You can generate this diff text using the `create_from_files()`
             method.""")))
 
-    def apply(self, file_to_patch: str) -> None:
+    def apply(self, logger: Optional[logging.Logger] = None) -> None:
         """
         Applies a unified diff patch to a file.
         This avoids dependencies on external command-line tools.
-
-        Args:
-            file_to_patch (str): The path to the file to be patched.
 
         Raises:
             FileNotFoundError: If the file to patch does not exist.
@@ -83,19 +74,25 @@ class Patch(NamedSchema):
         if not diff_text:
             raise ValueError("No diff text found for this patch.")
 
-        if not os.path.exists(file_to_patch):
-            raise FileNotFoundError(f"File to patch does not exist: {file_to_patch}")
+        file_to_patch = self.find_files('file')
+        if logger:
+            logger.info(f"Applying patch ({self.name}) to file: {self.get('file')}")
+
+        original_mtime = None
 
         # Create a backup
-        if not os.path.exists(f"{file_to_patch}.orig"):
+        if not os.path.exists(f"{file_to_patch}.sc_orig_patch"):
+            original_mtime = os.path.getmtime(file_to_patch)
             try:
-                shutil.copy(file_to_patch, f"{file_to_patch}.orig")
+                shutil.copy(file_to_patch, f"{file_to_patch}.sc_orig_patch")
             except Exception as e:
                 raise IOError(f"Could not create backup for {file_to_patch}: {e}")
+        else:
+            original_mtime = os.path.getmtime(f"{file_to_patch}.sc_orig_patch")
 
         # Read the original file
         try:
-            with open(f"{file_to_patch}.orig", 'r', newline='') as f:
+            with sc_open(f"{file_to_patch}.sc_orig_patch", newline='') as f:
                 original_lines = f.readlines()
         except Exception as e:
             raise IOError(f"Could not read file to patch: {file_to_patch} - {e}")
@@ -110,41 +107,44 @@ class Patch(NamedSchema):
         try:
             with open(file_to_patch, 'w', newline='') as f:
                 f.writelines(patched_lines)
+            # Restore original modification time
+            if original_mtime is not None:
+                os.utime(file_to_patch, (original_mtime, original_mtime))
         except Exception as e:
             raise IOError(f"Could not write patched file: {file_to_patch} - {e}")
 
     def _apply_unified_diff(self, original_lines: list, diff_text: str) -> list:
         """
         Apply a unified diff to the original lines.
-        
+
         Args:
             original_lines: List of lines from the original file
             diff_text: Unified diff text
-            
+
         Returns:
             List of lines after applying the patch
         """
         result = []
         diff_lines = diff_text.splitlines(keepends=True)
-        
+
         i = 0  # Index into original_lines (0-based)
         d = 0  # Index into diff_lines
-        
+
         # Skip header lines (---, +++, etc.) until we find the first hunk
         while d < len(diff_lines):
             line = diff_lines[d]
             if line.startswith('@@'):
                 break
             d += 1
-        
+
         if d >= len(diff_lines):
             # No hunks found, return original
             return original_lines
-        
+
         # Process hunks
         while d < len(diff_lines):
             line = diff_lines[d]
-            
+
             if line.startswith('@@'):
                 # Parse hunk header: @@ -old_start,old_count +new_start,new_count @@
                 # Format: @@ -old_start,old_count +new_start,new_count @@
@@ -160,7 +160,7 @@ class Patch(NamedSchema):
                             i += 1
                 d += 1
                 continue
-            
+
             if line.startswith('-'):
                 # Line removed from original - skip it in original, don't add to result
                 i += 1
@@ -180,12 +180,12 @@ class Patch(NamedSchema):
             else:
                 # Unknown line type, skip
                 d += 1
-        
+
         # Copy any remaining lines from original
         while i < len(original_lines):
             result.append(original_lines[i])
             i += 1
-        
+
         return result
 
     def create_from_files(self, original_file: str, modified_file: str) -> None:
@@ -202,7 +202,7 @@ class Patch(NamedSchema):
         with sc_open(modified_file) as f:
             modified_lines = f.readlines()
             modified_file_time = os.path.getmtime(modified_file)
-        
+
         timeformat = '%Y-%m-%d %H:%M:%S'
 
         self.set('diff', ''.join(
@@ -212,59 +212,8 @@ class Patch(NamedSchema):
                 fromfiledate=datetime.fromtimestamp(original_file_time).strftime(timeformat),
                 tofiledate=datetime.fromtimestamp(modified_file_time).strftime(timeformat))))
 
-    def ensure_copy_for_file(self, file_param: "BaseSchema") -> None:
-        """
-        Ensures the copy flag is set on a file parameter that needs to be patched.
-        
-        This method sets the 'copy' field to True on the provided file parameter,
-        ensuring it will be collected before patching occurs.
-        
-        Args:
-            file_param: The Parameter object representing the file to be patched.
-        """
-        try:
-            file_param.set(field='copy', value=True)
-        except Exception as e:
-            raise ValueError(f"Failed to set copy flag on patch file: {e}")
-
-    def apply_with_timestamps(self, file_to_patch: str, preserve_timestamps: bool = True) -> None:
-        """
-        Applies the patch to a file and optionally corrects file timestamps.
-        
-        This is a convenience method that applies the patch and then optionally
-        updates the file's modification time to match the original file's timestamp
-        (before patching). This helps ensure consistent build artifacts.
-        
-        Args:
-            file_to_patch (str): The path to the file to be patched.
-            preserve_timestamps (bool): If True, set the patched file's mtime to
-                                       match the original file's mtime. Defaults to True.
-        
-        Raises:
-            FileNotFoundError: If the file to patch does not exist.
-            ValueError: If no diff text is found for this patch.
-            IOError: If the patched file could not be written or patch could not be applied.
-        """
-        # Store original modification time before applying patch
-        if preserve_timestamps and os.path.exists(file_to_patch):
-            original_mtime = os.path.getmtime(file_to_patch)
-        else:
-            original_mtime = None
-        
-        # Apply the patch
-        self.apply(file_to_patch)
-        
-        # Restore the original file's modification time
-        if original_mtime is not None:
-            try:
-                os.utime(file_to_patch, (original_mtime, original_mtime))
-            except Exception as e:
-                # Log warning but don't fail - patching succeeded even if timestamp update failed
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Could not update timestamp on patched file {file_to_patch}: {e}")
-
     @staticmethod
-    def mark_patches_for_collection(design: "Design", fileset: str, logger=None) -> bool:
+    def mark_patches_for_collection(design: "Design") -> bool:
         """
         Mark all files with patches in a fileset for collection.
 
@@ -273,130 +222,62 @@ class Patch(NamedSchema):
 
         Args:
             design: The Design object containing the patches.
-            fileset: The fileset name containing the patches.
-            logger: Optional logger for debug messages.
 
         Returns:
             bool: True if any files were marked for collection, False otherwise.
         """
-        if logger is None:
-            logger = logging.getLogger(__name__)
-
         marked_any = False
-        patch_keys = design.getkeys("fileset", fileset, "patch")
-        
-        for patch_key in patch_keys:
-            patch_obj = design.get("fileset", fileset, "patch", patch_key, field="schema")
-            if not patch_obj:
-                continue
-            
-            patch_file = patch_obj.get('file')
-            if not patch_file:
-                continue
-            
-            try:
-                # Find the actual file parameter
-                filetypes = design.getkeys('fileset', fileset, 'file')
-                for filetype in filetypes:
-                    files_param = design.get('fileset', fileset, 'file', filetype, field=None)
-                    if isinstance(files_param, list) and patch_file in files_param:
-                        # Set copy flag on the file parameter
-                        patch_obj.ensure_copy_for_file(files_param)
+
+        patch_files: Set[Tuple[Optional[str], str]] = set()
+
+        for fileset in design.getkeys('fileset'):
+            for patch_key in design.getkeys("fileset", fileset, "patch"):
+                patch_obj = design.get("fileset", fileset, "patch", patch_key, field="schema")
+
+                patch_file = patch_obj.get('file')
+                if not patch_file:
+                    continue
+
+                file_dataroot = patch_obj.get('file', field='dataroot')
+                patch_files.add((file_dataroot, patch_file))
+
+        if not patch_files:
+            return False
+
+        # Search filesets for files matching the patches
+        for fileset in design.getkeys('fileset'):
+            for filetype in design.getkeys('fileset', fileset, 'file'):
+                files = design.get('fileset', fileset, 'file', filetype)
+                if not files:
+                    continue
+
+                file_dataroots = design.get('fileset', fileset, 'file', filetype,
+                                           field='dataroot')
+
+                for file_dataroot, file_name in zip(file_dataroots, files):
+                    if (file_dataroot, file_name) in patch_files:
+                        # Mark this file for collection
+                        design.set('fileset', fileset, 'file', filetype, True, field="copy")
                         marked_any = True
-                        logger.debug(f"Marked {patch_file} for collection (patch: {patch_key})")
                         break
-            except Exception as e:
-                logger.warning(f"Could not mark file for patch {patch_key}: {e}")
-        
+
+            for dirkey in ('libdir', 'idir'):
+                dirs = design.get('fileset', fileset, dirkey)
+                dir_dataroots = design.get('fileset', fileset, dirkey, field='dataroot')
+                for dir_dataroot, dir_name in zip(dir_dataroots, dirs):
+                    for patch_dataroot, patch_file in patch_files:
+                        if patch_dataroot is not None and patch_dataroot != dir_dataroot:
+                            continue
+                        if patch_file.startswith(dir_name):
+                            # Mark this directory for collection
+                            design.set('fileset', fileset, dirkey, True, field="copy")
+                            marked_any = True
+                            break
+
         return marked_any
 
     @staticmethod
-    def restore_removed_patches(design: "Design", fileset: str, collection_dir: str,
-                               logger=None) -> bool:
-        """
-        Restore files that had patches but no longer do.
-
-        When patches are removed from a design, this method restores the original
-        files from their .orig backups in the collection directory, enabling
-        patch removal to trigger rebuilds.
-
-        Args:
-            design: The Design object (current state without the removed patches).
-            fileset: The fileset name to check.
-            collection_dir: The collection directory where .orig backups are stored.
-            logger: Optional logger for debug messages.
-
-        Returns:
-            bool: True if any files were restored, False otherwise.
-        """
-        if logger is None:
-            logger = logging.getLogger(__name__)
-
-        if not os.path.exists(collection_dir):
-            return False
-
-        restored_any = False
-        filetypes = design.getkeys('fileset', fileset, 'file')
-        
-        for filetype in filetypes:
-            files = design.get('fileset', fileset, 'file', filetype)
-            if not files:
-                continue
-
-            file_dataroots = design.get('fileset', fileset, 'file', filetype,
-                                       field='dataroot')
-            param = design.get('fileset', fileset, 'file', filetype, field=None)
-
-            for file_idx, file_name in enumerate(files):
-                file_dataroot = file_dataroots[file_idx] if file_dataroots else None
-
-                # Get the hashed filename
-                from siliconcompiler.schema.parametervalue import NodeListValue
-                for node_val, _, _ in param.getvalues(return_values=False):
-                    if isinstance(node_val, NodeListValue):
-                        values_list = node_val.values
-                    else:
-                        values_list = [node_val]
-
-                    if file_idx >= len(values_list):
-                        continue
-
-                    value = values_list[file_idx]
-                    hashed_filename = value.get_hashed_filename()
-                    file_path = os.path.join(collection_dir, hashed_filename)
-                    orig_path = f"{file_path}.orig"
-
-                    # Check if .orig exists but there's no patch for this file
-                    if os.path.exists(orig_path) and os.path.exists(file_path):
-                        # Check if there's a patch for this file
-                        patch_keys = design.getkeys("fileset", fileset, "patch")
-                        has_patch = False
-                        
-                        for patch_key in patch_keys:
-                            patch_obj = design.get("fileset", fileset, "patch",
-                                                  patch_key, field="schema")
-                            if not patch_obj:
-                                continue
-                            patch_file = patch_obj.get('file')
-                            patch_dataroot = patch_obj.get('dataroot')
-
-                            if patch_file == file_name:
-                                if patch_dataroot is None or patch_dataroot == file_dataroot:
-                                    has_patch = True
-                                    break
-
-                        # Restore from backup if patch was removed
-                        if not has_patch:
-                            shutil.copy2(orig_path, file_path)
-                            logger.debug(f"Restored {file_name} from backup (patch was removed)")
-                            restored_any = True
-                    break
-        
-        return restored_any
-
-    @staticmethod
-    def apply_all_patches(design: "Design", fileset: str, collection_dir: str,
-                         logger=None) -> None:
+    def apply_all_patches(design: "Design", logger: logging.Logger) -> None:
         """
         Apply all patches in a fileset to their target files in the collection directory.
 
@@ -414,79 +295,9 @@ class Patch(NamedSchema):
         Raises:
             Various exceptions if patch application fails (logged and re-raised).
         """
-        if logger is None:
-            logger = logging.getLogger(__name__)
-
-        if not os.path.exists(collection_dir):
-            return
-
-        patch_keys = design.getkeys("fileset", fileset, "patch")
-        
-        for patch_key in patch_keys:
-            patch_obj = design.get("fileset", fileset, "patch", patch_key, field="schema")
-            if not patch_obj:
-                continue
-            
-            patch_file = patch_obj.get('file')
-            patch_dataroot = patch_obj.get('dataroot')
-            patch_diff = patch_obj.get('diff')
-            
-            if not patch_file or not patch_diff:
-                continue
-            
-            # Find the file in the fileset
-            filetypes = design.getkeys('fileset', fileset, 'file')
-            for filetype in filetypes:
-                files = design.get('fileset', fileset, 'file', filetype)
-                if not files or patch_file not in files:
+        for fileset in design.getkeys('fileset'):
+            for patch_key in design.getkeys("fileset", fileset, "patch"):
+                patch_obj = design.get("fileset", fileset, "patch", patch_key, field="schema")
+                if patch_obj.get("file") is None:
                     continue
-                
-                file_dataroots = design.get('fileset', fileset, 'file', filetype,
-                                           field='dataroot')
-                file_index = files.index(patch_file)
-                file_dataroot = file_dataroots[file_index] if file_dataroots else None
-                
-                # Skip if patch dataroot specified doesn't match file's dataroot
-                if patch_dataroot and file_dataroot != patch_dataroot:
-                    continue
-                
-                # Get the hashed filename
-                param = design.get('fileset', fileset, 'file', filetype, field=None)
-                from siliconcompiler.schema.parametervalue import NodeListValue
-                
-                for node_val, _, _ in param.getvalues(return_values=False):
-                    if isinstance(node_val, NodeListValue):
-                        values_list = node_val.values
-                    else:
-                        values_list = [node_val]
-                    
-                    if file_index >= len(values_list):
-                        continue
-                    
-                    value = values_list[file_index]
-                    hashed_filename = value.get_hashed_filename()
-                    file_path = os.path.join(collection_dir, hashed_filename)
-                    
-                    if not os.path.exists(file_path):
-                        logger.warning(f"Patch target file not found in collection: {file_path}")
-                        continue
-                    
-                    # Create .orig as unpatched version if it doesn't exist
-                    orig_path = f"{file_path}.orig"
-                    if not os.path.exists(orig_path):
-                        shutil.copy2(file_path, orig_path)
-                        logger.debug(f"Created unpatched backup: {orig_path}")
-                    
-                    # Copy .orig to target and apply patch with timestamp preservation
-                    try:
-                        shutil.copy2(orig_path, file_path)
-                        patch_obj.apply_with_timestamps(file_path, preserve_timestamps=True)
-                        logger.info(f"Applied patch {design.name}/{fileset}/{patch_key} "
-                                  f"to {patch_file}")
-                    except Exception as e:
-                        logger.error(f"Failed to apply patch {design.name}/{fileset}/"
-                                   f"{patch_key}: {e}")
-                        raise
-                    
-                    break
-                break
+                patch_obj.apply(logger)
