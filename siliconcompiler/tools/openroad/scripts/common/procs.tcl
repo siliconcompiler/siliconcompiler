@@ -110,7 +110,7 @@ proc sc_detailed_placement { args } {
         -left $dpl_padding \
         -right $dpl_padding
 
-    set incremental_route [expr { [sc_check_version 20073] && [grt::have_routes] }]
+    set incremental_route [expr { [sc_check_version 24 3 4486] && [grt::have_routes] }]
 
     if { $incremental_route } {
         global_route -start_incremental
@@ -397,7 +397,7 @@ proc sc_save_image { title path { gif -1 } { pixels 1000 } } {
 
     if { $gif >= 0 } {
         set gif_args []
-        if { [sc_check_version 26866] } {
+        if { [sc_check_version 24 3 11279] } {
             lappend gif_args -key $gif
         }
         save_animated_gif -add \
@@ -472,7 +472,7 @@ proc sc_image_setup_default { } {
     gui::set_display_controls "Misc/Scale bar" visible true
     gui::set_display_controls "Misc/Highlight selected" visible true
     gui::set_display_controls "Misc/Detailed view" visible true
-    if { [sc_check_version 21574] } {
+    if { [sc_check_version 24 3 5987] } {
         gui::set_display_controls "Misc/Labels" visible true
     }
 }
@@ -613,7 +613,7 @@ proc sc_setup_sta { } {
         set_timing_derate -late $sta_late_timing_derate
     }
 
-    if { [sc_check_version 19370] } {
+    if { [sc_check_version 24 3 3783] } {
         # Create path groups
         if {
             [sc_cfg_tool_task_get var sta_define_path_groups] &&
@@ -753,17 +753,45 @@ proc sc_insert_fillers { } {
     global_connect
 }
 
-proc sc_check_version { min_required } {
+proc sc_check_version { min_major min_minor min_patch } {
     set version [split [ord::openroad_version] "-"]
-    if { [lindex $version 0] != "v2.0" } {
-        return false
+    if { [lindex $version 0] == "v2.0" } {
+        if { [lindex $version 1] >= 27801 } {
+            set ord_major 26
+            set ord_minor 1
+            set ord_patch [expr { [lindex $version 1] - 27801 }]
+        } else {
+            set ord_major 24
+            set ord_minor 3
+            set ord_patch [expr { [lindex $version 1] - 15587 }]
+        }
+    } elseif { [string index [lindex $version 0] 2] == "Q" } {
+        set ord_major [string range [lindex $version 0] 0 1]
+        set ord_minor [string index [lindex $version 0] 3]
+        set ord_patch [string range [lindex $version 0] 5 end]
+    } else {
+        utl::error FLW 1 "Unknown OpenROAD version format: [ord::openroad_version]"
     }
 
-    return [expr { [lindex $version 1] >= $min_required }]
+    if { $ord_major > $min_major } {
+        return true
+    }
+    if { $ord_major == $min_major } {
+        if { $ord_minor > $min_minor } {
+            return true
+        }
+        if { $ord_minor == $min_minor } {
+            if { $ord_patch >= $min_patch } {
+                return true
+            }
+        }
+    }
+
+    return false
 }
 
 proc sc_set_gui_title { } {
-    if { ![sc_check_version 17650] } {
+    if { ![sc_check_version 24 3 2063] } {
         return
     }
 
@@ -796,7 +824,7 @@ proc sc_set_dont_use { args } {
 
     global sc_mainlib
 
-    if { [sc_check_version 18171] } {
+    if { [sc_check_version 24 3 2584] } {
         reset_dont_use
     }
 

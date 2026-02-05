@@ -23,22 +23,6 @@ cd openroad
 git checkout $(python3 ${src_path}/_tools.py --tool openroad --field git-commit)
 git submodule update --init --recursive
 
-git apply - <<EOF
-diff --git a/CMakeLists.txt b/CMakeLists.txt
-index de6a3cb472..c68d47da4e 100644
---- a/CMakeLists.txt
-+++ b/CMakeLists.txt
-@@ -62,7 +62,7 @@ list(APPEND CMAKE_MODULE_PATH "\${CMAKE_CURRENT_SOURCE_DIR}/cmake")
- # Get version string in OPENROAD_VERSION
- if(NOT OPENROAD_VERSION)
-   include(GetGitRevisionDescription)
--  git_describe(OPENROAD_VERSION)
-+  git_describe(OPENROAD_VERSION --match "v[0-9]*")
-   string(FIND \${OPENROAD_VERSION} "NOTFOUND" GIT_DESCRIBE_NOTFOUND)
-   if(\${GIT_DESCRIBE_NOTFOUND} GREATER -1)
-     message(WARNING "OpenROAD git describe failed, using sha1 instead")
-EOF
-
 deps_args=""
 if [ ! -z ${PREFIX} ]; then
     deps_args="-prefix=$PREFIX"

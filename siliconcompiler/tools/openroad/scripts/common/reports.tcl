@@ -28,7 +28,7 @@ if { [sc_cfg_tool_task_check_in_list setup var reports] } {
         "report_tns"
     report_tns_metric -setup
 
-    if { [sc_check_version 19519] && [llength [all_clocks]] > 0 } {
+    if { [sc_check_version 24 3 3932] && [llength [all_clocks]] > 0 } {
         tee -quiet -file reports/timing/setup.histogram.rpt \
             "report_timing_histogram -num_bins 20 -setup"
     }
@@ -48,7 +48,7 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
 
     report_tns_metric -hold
 
-    if { [sc_check_version 19519] && [llength [all_clocks]] > 0 } {
+    if { [sc_check_version 24 3 3932] && [llength [all_clocks]] > 0 } {
         tee -quiet -file reports/timing/hold.histogram.rpt \
             "report_timing_histogram -num_bins 20 -hold"
     }
@@ -87,7 +87,7 @@ puts "$PREFIX floating nets"
 puts "Reporting floating nets: reports/floating_nets.rpt"
 tee -quiet -file reports/floating_nets.rpt \
     "report_floating_nets -verbose"
-if { [sc_check_version 19048] } {
+if { [sc_check_version 24 3 3461] } {
     puts "$PREFIX overdriven nets"
     puts "Reporting overdriven nets: reports/overdriven_nets.rpt"
     tee -quiet -file reports/overdriven_nets.rpt \

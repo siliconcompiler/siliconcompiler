@@ -49,7 +49,7 @@ lappend drt_arguments -drc_report_iter_step [sc_cfg_tool_task_get var drt_report
 set sc_minmetal [sc_get_layer_name [sc_cfg_get library $sc_pdk pdk minlayer]]
 set sc_maxmetal [sc_get_layer_name [sc_cfg_get library $sc_pdk pdk maxlayer]]
 
-if { [sc_check_version 23235] } {
+if { [sc_check_version 24 3 7648] } {
     set_routing_layers -signal "${sc_minmetal}-${sc_maxmetal}"
 } else {
     lappend drt_arguments -bottom_routing_layer $sc_minmetal

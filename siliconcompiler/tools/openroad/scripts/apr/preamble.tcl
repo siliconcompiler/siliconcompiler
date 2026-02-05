@@ -89,7 +89,7 @@ if { [llength $openroad_dont_touch] > 0 } {
 tee -quiet -file reports/dont_touch.start.rpt {report_dont_touch}
 tee -quiet -file reports/dont_use.start.rpt {report_dont_use}
 tee -file reports/global_connections.start.rpt {report_global_connect}
-if { [sc_cfg_tool_task_check_in_list report_buffers var reports] && [sc_check_version 23264] } {
+if { [sc_cfg_tool_task_check_in_list report_buffers var reports] && [sc_check_version 24 3 7677] } {
     tee -quiet -file reports/report_buffers.rpt {report_buffers -filtered}
 }
 tee -quiet -file reports/report_units.rpt {report_units}
