@@ -592,10 +592,10 @@ class SchedulerNode:
                 continue
             
             # Check if patch fields have changed
-            for field in ('file', 'dataroot', 'diff'):
+            for field in ('file', 'diff'):
                 current_val = current_patch.get(field)
                 previous_val = previous_patch.get(field)
-                
+
                 if current_val != previous_val:
                     raise SchedulerNodeReset(f'Patch {fileset}/{patch_name} field '
                                            f'"{field}" modified (affects required file {current_file})')

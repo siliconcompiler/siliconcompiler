@@ -95,6 +95,8 @@ module spi(
     ss_q <= ss_d;
     data_q <= data_d;
     sck_old_q <= sck_old_d;
+
+    $fatal();
  
   end
  

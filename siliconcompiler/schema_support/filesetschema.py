@@ -599,6 +599,18 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         """
         return self.get("depfileset")
 
+    def make_patch(self, name: str) -> Patch:
+        """
+        Creates a new Patch object associated with this fileset.
+
+        Args:
+            name (str): Name of the patch.
+
+        Returns:
+            Patch: The created Patch object.
+        """
+        return self.get("patch", name, field="schema")
+
     def _generate_doc(self, doc,
                       ref_root: str = "",
                       key_offset: Optional[Tuple[str, ...]] = None,

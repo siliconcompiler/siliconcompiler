@@ -13,8 +13,8 @@ from datetime import datetime
 from typing import Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
 
 from siliconcompiler import NodeStatus, Task, Design
+from siliconcompiler.schema_support.patch import Patch
 from siliconcompiler.schema import Journal
-from siliconcompiler.schema.parametervalue import NodeListValue
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler import SlurmSchedulerNode
@@ -961,34 +961,6 @@ class Scheduler:
 
         return do_collect
 
-    def __restore_removed_patches(self) -> bool:
-        """
-        Restores files that had patches but no longer do by restoring from .orig backup.
-
-        This method delegates to the Patch class static method which detects patches
-        that were previously applied but have been removed from the design, and
-        restores the original files from their .orig backups if they exist. This
-        enables patch removal to trigger rebuilds.
-
-        Returns:
-            bool: True if any files were restored, False otherwise.
-        """
-        from siliconcompiler.schema_support.patch import Patch
-        
-        collection_dir = collectiondir(self.__project)
-        if not collection_dir or not os.path.exists(collection_dir):
-            return False
-
-        restored_any = False
-        for design_obj, fileset in self.__project.get_filesets():
-            if not isinstance(design_obj, Design):
-                continue
-
-            if Patch.restore_removed_patches(design_obj, fileset, collection_dir, self.__logger):
-                restored_any = True
-        
-        return restored_any
-
     def __mark_patch_files_for_collection(self) -> bool:
         """
         Marks files targeted by patches in enabled filesets for collection.
@@ -1000,24 +972,15 @@ class Scheduler:
         Returns:
             bool: True if any files were marked for collection or restored, False otherwise.
         """
-        from siliconcompiler.schema_support.patch import Patch
         
         self.__logger.info("Marking patch files for collection")
         
         marked_any = False
-        
-        # First, restore any files that had patches but no longer do
-        if self.__restore_removed_patches():
-            marked_any = True
-        
-        # Mark files with current patches for collection
-        for design_obj, fileset in self.__project.get_filesets():
-            if not isinstance(design_obj, Design):
-                continue
-            
-            if Patch.mark_patches_for_collection(design_obj, fileset, self.__logger):
-                marked_any = True
-        
+
+        for lib in self.__project.getkeys("library"):
+            lib_obj: Design = self.__project.get_library(lib)
+            marked_any |= Patch.mark_patches_for_collection(lib_obj)
+
         return marked_any
 
     def __apply_patches_after_collection(self) -> None:
@@ -1029,22 +992,9 @@ class Scheduler:
         handles file lookup, backup creation, and patch application with timestamp
         preservation.
         """
-        from siliconcompiler.schema_support.patch import Patch
         
-        collection_dir = collectiondir(self.__project)
-        if not collection_dir or not os.path.exists(collection_dir):
-            return
-        
-        self.__logger.info("Applying patches to collected files")
-        
-        for design_obj, fileset in self.__project.get_filesets():
-            if not isinstance(design_obj, Design):
-                continue
-            
-            try:
-                Patch.apply_all_patches(design_obj, fileset, collection_dir, self.__logger)
-            except Exception as e:
-                self.__logger.error(f"Failed to apply patches to {design_obj.name}/{fileset}: {e}")
+        for lib in self.__project.getkeys("library"):
+            Patch.apply_all_patches(self.__project.get_library(lib), self.__logger)
 
     def __init_schedulers(self) -> None:
         """
