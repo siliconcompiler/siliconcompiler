@@ -1,6 +1,5 @@
 
 from siliconcompiler import Design, ASIC
-from siliconcompiler.schema_support.patch import Patch
 from siliconcompiler.targets import asap7_demo
 
 
