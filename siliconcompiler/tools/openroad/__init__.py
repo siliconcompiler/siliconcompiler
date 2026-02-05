@@ -443,7 +443,7 @@ class OpenROADTask(ASICTask):
 
                 # Convert v2.0-1234 to 2.0.1234
                 return version[0] + '.' + version[1]
-            return version.lstrip('v')
+            return version[0]
         elif len(version) > 3 and version[2] == 'Q':
             # Convert 26Q1-1234 to 26.1.1234
             year = version[0:2]
