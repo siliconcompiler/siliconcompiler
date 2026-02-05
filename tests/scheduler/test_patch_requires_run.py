@@ -62,7 +62,7 @@ def add_patch(design, filename, patch_name="fix1"):
     
     patch = design.get("fileset", "rtl", "patch", patch_name, field="schema")
     patch.set('file', filename)
-    patch.set('dataroot', 'src')
+    patch.set('file', 'src', field='dataroot')
     patch.set('diff', patch_text)
 
 
@@ -153,7 +153,7 @@ def test_patch_change_not_in_required_files(tmp_path, monkeypatch):
     
     patch_tb = design.get("fileset", "tb", "patch", "fix1", field="schema")
     patch_tb.set('file', 'testbench.v')
-    patch_tb.set('dataroot', 'tb')
+    patch_tb.set('file', 'tb', field='dataroot')
     patch_tb.set('diff', patch_text)
     
     proj, node = setup_node_with_manifests(design, tmp_path)
@@ -249,7 +249,7 @@ def test_patch_added_not_required(tmp_path, monkeypatch):
     
     patch_tb = design.get("fileset", "tb", "patch", "fix1", field="schema")
     patch_tb.set('file', 'testbench.v')
-    patch_tb.set('dataroot', 'tb')
+    patch_tb.set('file', 'tb', field='dataroot')
     patch_tb.set('diff', patch_text)
     
     # Create new node
@@ -313,7 +313,7 @@ def test_patch_removed_not_required(tmp_path, monkeypatch):
     
     patch_tb = design.get("fileset", "tb", "patch", "fix1", field="schema")
     patch_tb.set('file', 'testbench.v')
-    patch_tb.set('dataroot', 'tb')
+    patch_tb.set('file', 'tb', field='dataroot')
     patch_tb.set('diff', patch_text)
     
     proj, node = setup_node_with_manifests(design, tmp_path)

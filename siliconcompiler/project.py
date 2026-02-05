@@ -513,7 +513,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                         
                         patch_file = patch_obj.get('file')
                         patch_diff = patch_obj.get('diff')
-                        patch_dataroot = patch_obj.get('dataroot')
+                        patch_dataroot = patch_obj.get('file', field='dataroot')
                         
                         # Check that file field is set
                         if not patch_file:

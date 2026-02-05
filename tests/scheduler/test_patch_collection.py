@@ -35,12 +35,12 @@ def design_with_patches(tmp_path):
         # Create patches
         patch1 = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch1.set('file', 'module1.v')
-        patch1.set('dataroot', 'src')
+        patch1.set('file', 'src', field='dataroot')
         patch1.set('diff', '--- a/module1.v\n+++ b/module1.v\n@@ -1,3 +1,3 @@\n module test1;\n-  wire a;\n+  wire a, c;\n endmodule\n')
         
         patch2 = design.get("fileset", "rtl", "patch", "fix2", field="schema")
         patch2.set('file', 'module2.v')
-        patch2.set('dataroot', 'src')
+        patch2.set('file', 'src', field='dataroot')
         patch2.set('diff', '--- a/module2.v\n+++ b/module2.v\n@@ -1,3 +1,3 @@\n module test2;\n-  wire b;\n+  wire b, d;\n endmodule\n')
     
     return design
@@ -203,7 +203,7 @@ def test_patch_only_marks_matching_dataroot(tmp_path):
         # Create patch for file1 with root1
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'file1.v')
-        patch.set('dataroot', 'root1')
+        patch.set('file', 'root1', field='dataroot')
         patch.set('diff', '--- a/file1.v\n+++ b/file1.v\n@@ -1,1 +1,1 @@\n line1\n')
     
     flow = Flowgraph("testflow")
@@ -294,7 +294,7 @@ def test_multiple_collection_runs_no_double_patching(design_with_patches, tmp_pa
     curation.collect(proj, verbose=False)
     scheduler._Scheduler__apply_patches_after_collection()
     
-    # Get collection directory and verify .orig files exist
+    # Get collection directory and verify .sc_orig_patch files exist
     coll_dir = collectiondir(proj)
     design = proj.design
     param = design.get('fileset', 'rtl', 'file', 'verilog', field=None)
@@ -311,9 +311,9 @@ def test_multiple_collection_runs_no_double_patching(design_with_patches, tmp_pa
         value1 = values_list[idx1]
         hashed1 = value1.get_hashed_filename()
         file1_path = os.path.join(coll_dir, hashed1)
-        orig1_path = f"{file1_path}.orig"
+        orig1_path = f"{file1_path}.sc_orig_patch"
         
-        # Verify .orig exists
+        # Verify .sc_orig_patch exists
         assert os.path.exists(orig1_path), "Original file backup should exist"
         
         # Get content after first patch
@@ -404,7 +404,7 @@ def test_patch_diff_change_applied_correctly(design_with_patches, tmp_path, monk
 
 
 def test_source_file_change_handled_correctly(tmp_path, monkeypatch):
-    """Test that when source file changes, collection updates .orig and patch still works."""
+    """Test that when source file changes, collection updates .sc_orig_patch and patch still works."""
     from siliconcompiler.scheduler import Scheduler
     from siliconcompiler.utils import curation
     import logging
@@ -426,7 +426,7 @@ def test_source_file_change_handled_correctly(tmp_path, monkeypatch):
         # Create patch
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('dataroot', 'src')
+        patch.set('file', 'src', field='dataroot')
         patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,3 +1,3 @@\n module test;\n-  wire a;\n+  wire a, c;\n endmodule\n')
     
     flow = Flowgraph("testflow")
@@ -481,7 +481,7 @@ def test_source_file_change_handled_correctly(tmp_path, monkeypatch):
         patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,3 +1,3 @@\n module test;\n-  wire a, b;\n+  wire a, b, c;\n endmodule\n')
         
         # Run collection and patching again
-        # Mark restores .orig files, collection sees changed source and updates files
+        # Mark restores .sc_orig_patch files, collection sees changed source and updates files
         scheduler._Scheduler__mark_patch_files_for_collection()
         curation.collect(proj, verbose=False)
         scheduler._Scheduler__apply_patches_after_collection()
@@ -540,7 +540,7 @@ def test_patch_preserves_timestamp(design_with_patches, tmp_path, monkeypatch):
         value1 = values_list[idx1]
         hashed1 = value1.get_hashed_filename()
         file1_path = os.path.join(coll_dir, hashed1)
-        orig1_path = f"{file1_path}.orig"
+        orig1_path = f"{file1_path}.sc_orig_patch"
         
         # Get timestamp before patching
         timestamp_before = os.path.getmtime(file1_path)
@@ -555,9 +555,9 @@ def test_patch_preserves_timestamp(design_with_patches, tmp_path, monkeypatch):
         timestamp_after = os.path.getmtime(file1_path)
         timestamp_orig = os.path.getmtime(orig1_path)
         
-        # Verify timestamp is preserved (should match .orig timestamp)
+        # Verify timestamp is preserved (should match .sc_orig_patch timestamp)
         assert timestamp_after == timestamp_orig, \
-            "Patched file should have same timestamp as .orig file"
+            "Patched file should have same timestamp as .sc_orig_patch file"
         assert timestamp_after == timestamp_before, \
             "Patched file should preserve original timestamp"
         
@@ -672,7 +672,7 @@ def test_timestamp_updated_when_source_changes(tmp_path, monkeypatch):
         # Create patch
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('dataroot', 'src')
+        patch.set('file', 'src', field='dataroot')
         patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,3 +1,3 @@\n module test;\n-  wire a;\n+  wire a, c;\n endmodule\n')
     
     flow = Flowgraph("testflow")
@@ -714,7 +714,7 @@ def test_timestamp_updated_when_source_changes(tmp_path, monkeypatch):
         value = values_list[idx]
         hashed = value.get_hashed_filename()
         file_path = os.path.join(coll_dir, hashed)
-        orig_path = f"{file_path}.orig"
+        orig_path = f"{file_path}.sc_orig_patch"
         
         # Get initial timestamp
         timestamp_first = os.path.getmtime(file_path)
@@ -729,7 +729,7 @@ def test_timestamp_updated_when_source_changes(tmp_path, monkeypatch):
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,3 +1,3 @@\n module test;\n-  wire a, b;\n+  wire a, b, c;\n endmodule\n')
         
-        # Mark restores .orig, collection detects source change and updates files
+        # Mark restores .sc_orig_patch, collection detects source change and updates files
         scheduler._Scheduler__mark_patch_files_for_collection()
         curation.collect(proj, verbose=False)
         scheduler._Scheduler__apply_patches_after_collection()
@@ -749,7 +749,7 @@ def test_timestamp_updated_when_source_changes(tmp_path, monkeypatch):
 
 
 def test_orig_timestamp_matches_collected_file(design_with_patches, tmp_path, monkeypatch):
-    """Test that .orig file timestamp matches the originally collected file."""
+    """Test that .sc_orig_patch file timestamp matches the originally collected file."""
     from siliconcompiler.scheduler import Scheduler
     from siliconcompiler.utils import curation
     import logging
@@ -793,20 +793,20 @@ def test_orig_timestamp_matches_collected_file(design_with_patches, tmp_path, mo
         value1 = values_list[idx1]
         hashed1 = value1.get_hashed_filename()
         file1_path = os.path.join(coll_dir, hashed1)
-        orig1_path = f"{file1_path}.orig"
+        orig1_path = f"{file1_path}.sc_orig_patch"
         
         # Get timestamp right after collection (before patching)
         timestamp_collected = os.path.getmtime(file1_path)
         
-        # Apply patches (creates .orig)
+        # Apply patches (creates .sc_orig_patch)
         scheduler._Scheduler__apply_patches_after_collection()
         
-        # Get .orig timestamp
+        # Get .sc_orig_patch timestamp
         timestamp_orig = os.path.getmtime(orig1_path)
         
-        # .orig should have same timestamp as originally collected file
+        # .sc_orig_patch should have same timestamp as originally collected file
         assert timestamp_orig == timestamp_collected, \
-            ".orig file should preserve the timestamp from collection"
+            ".sc_orig_patch file should preserve the timestamp from collection"
         
         # Patched file should also have same timestamp
         timestamp_patched = os.path.getmtime(file1_path)
@@ -829,7 +829,7 @@ def test_multiple_patches_timestamp_consistency(design_with_patches, tmp_path, m
     with design.active_fileset("rtl"):
         patch3 = design.get("fileset", "rtl", "patch", "fix3", field="schema")
         patch3.set('file', 'module1.v')
-        patch3.set('dataroot', 'src')
+        patch3.set('file', 'src', field='dataroot')
         patch3.set('diff', '--- a/module1.v\n+++ b/module1.v\n@@ -1,3 +1,3 @@\n module test1;\n-  wire a, c;\n+  wire a, c, e;\n endmodule\n')
     
     flow = Flowgraph("testflow")

@@ -25,7 +25,6 @@ def test_design_keys():
         ('fileset', 'default', 'param', 'default'),
         ('fileset', 'default', 'depfileset'),
         ('fileset', 'default', 'patch', 'default', 'file'),
-        ('fileset', 'default', 'patch', 'default', 'dataroot'),
         ('fileset', 'default', 'patch', 'default', 'diff'),
         ('dataroot', 'default', 'path'),
         ('dataroot', 'default', 'tag'),
@@ -1636,11 +1635,11 @@ def test_patch_with_dataroot():
     with design.active_fileset("rtl"):
         patch = design.get("fileset", "rtl", "patch", "mypatch", field="schema")
         patch.set('file', 'test.v')
-        patch.set('dataroot', '/path/to/fileset')
+        patch.set('file', '/path/to/fileset', field='dataroot')
         patch.set('diff', '--- a/test.v\n+++ b/test.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     retrieved_patch = design.get("fileset", "rtl", "patch", "mypatch", field="schema")
-    assert retrieved_patch.get('dataroot') == '/path/to/fileset'
+    assert retrieved_patch.get('file', field='dataroot') == '/path/to/fileset'
 
 
 def test_empty_patch_name():

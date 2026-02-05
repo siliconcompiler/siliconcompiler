@@ -41,10 +41,11 @@ def test_apply_patch_success(tmpdir):
 
     # Create a Patch object and set the diff
     patch = Patch('testpatch')
+    patch.set('file', file_to_patch)
     patch.set('diff', diff_text)
 
     # Apply the patch
-    patch.apply(file_to_patch)
+    patch.apply()
 
     # Check the patched file
     with open(file_to_patch, "r") as f:
@@ -54,7 +55,7 @@ def test_apply_patch_success(tmpdir):
     assert patched_content == expected_content
 
     # Check the backup file
-    backup_file = f"{file_to_patch}.orig"
+    backup_file = f"{file_to_patch}.sc_orig_patch"
     assert os.path.exists(backup_file)
     with open(backup_file, "r") as f:
         backup_content = f.read()
@@ -73,11 +74,12 @@ def test_apply_patch_no_diff():
 def test_apply_patch_file_not_found():
     """Test patch application when file doesn't exist."""
     patch = Patch('testpatch')
+    patch.set('file', '/nonexistent/file.txt')
     patch.set('diff', "--- a/file.txt\n+++ b/file.txt\n@@ -1,2 +1,2 @@\n line 1\n-line 2\n+line two\n")
     
     # File doesn't exist, should raise FileNotFoundError
-    with pytest.raises(FileNotFoundError, match="File to patch does not exist"):
-        patch.apply("/nonexistent/file.txt")
+    with pytest.raises(FileNotFoundError, match="Could not find"):
+        patch.apply()
 
 
 def test_apply_patch_backup_failure(tmpdir, monkeypatch):
@@ -88,19 +90,20 @@ def test_apply_patch_backup_failure(tmpdir, monkeypatch):
         f.write("line 1\nline 2\n")
     
     patch = Patch('testpatch')
+    patch.set('file', file_to_patch)
     patch.set('diff', "--- a/test.txt\n+++ b/test.txt\n@@ -1,2 +1,2 @@\n line 1\n-line 2\n+line two\n")
     
-    # Mock shutil.copy to raise an exception
+    # Mock shutil.copy2 to raise an exception
     import shutil
-    original_copy = shutil.copy
-    def mock_copy(*args, **kwargs):
+    original_copy2 = shutil.copy2
+    def mock_copy2(*args, **kwargs):
         raise PermissionError("Mocked permission error")
     
-    monkeypatch.setattr(shutil, 'copy', mock_copy)
+    monkeypatch.setattr(shutil, 'copy2', mock_copy2)
     
     # Should raise IOError
     with pytest.raises(IOError, match="Could not create backup"):
-        patch.apply(file_to_patch)
+        patch.apply()
 
 
 def test_apply_patch_write_failure(tmpdir, monkeypatch):
@@ -111,6 +114,7 @@ def test_apply_patch_write_failure(tmpdir, monkeypatch):
         f.write("line 1\nline 2\n")
     
     patch = Patch('testpatch')
+    patch.set('file', file_to_patch)
     patch.set('diff', "--- a/test.txt\n+++ b/test.txt\n@@ -1,2 +1,2 @@\n line 1\n-line 2\n+line two\n")
     
     # Mock the file write to fail - we need to let backup succeed but file write fail
@@ -119,7 +123,7 @@ def test_apply_patch_write_failure(tmpdir, monkeypatch):
     
     def mock_open(path, *args, **kwargs):
         if 'w' in str(args[0] if args else kwargs.get('mode', '')):
-            # First write is backup (.orig), let it succeed
+            # First write is backup (.sc_orig_patch), let it succeed
             # Second write is the actual patch file, make it fail
             call_count[0] += 1
             if call_count[0] == 2:
@@ -130,7 +134,7 @@ def test_apply_patch_write_failure(tmpdir, monkeypatch):
     
     # Should raise IOError
     with pytest.raises(IOError, match="Could not write patched file"):
-        patch.apply(file_to_patch)
+        patch.apply()
 
 
 def test_create_from_files(tmpdir):
@@ -180,7 +184,8 @@ def test_create_from_files_and_apply(tmpdir):
     with open(target_file, "w") as f:
         f.write(original_content)
     
-    patch.apply(target_file)
+    patch.set('file', target_file)
+    patch.apply()
     
     # Verify the result matches the modified file
     with open(target_file, "r") as f:
@@ -201,8 +206,9 @@ def test_apply_patch_multiline_change(tmpdir):
     diff_text = "--- a/test.txt\n+++ b/test.txt\n@@ -1,5 +1,4 @@\n line 1\n-line 2\n-line 3\n+line two and three\n line 4\n line 5\n"
 
     patch = Patch('testpatch')
+    patch.set('file', file_to_patch)
     patch.set('diff', diff_text)
-    patch.apply(file_to_patch)
+    patch.apply()
 
     # Check the patched file
     with open(file_to_patch, "r") as f:
@@ -223,8 +229,9 @@ def test_apply_patch_empty_file(tmpdir):
     diff_text = "--- a/empty.txt\n+++ b/empty.txt\n@@ -0,0 +1 @@\n+new line\n"
 
     patch = Patch('testpatch')
+    patch.set('file', file_to_patch)
     patch.set('diff', diff_text)
-    patch.apply(file_to_patch)
+    patch.apply()
 
     # Check the patched file
     with open(file_to_patch, "r") as f:
@@ -313,10 +320,11 @@ endmodule
     ))
     
     patch = Patch('spi_fix')
+    patch.set('file', spi_file)
     patch.set('diff', patch_text)
     
     # Apply the patch
-    patch.apply(spi_file)
+    patch.apply()
     
     # Verify the patch was applied
     with open(spi_file, "r") as f:
@@ -341,8 +349,9 @@ def test_patch_with_tabs(tmpdir):
     patch_text = "--- test.txt\t2026-01-17 10:12:34\n+++ test_new.txt\t2026-01-17 10:12:49\n@@ -1,3 +1,3 @@\n line1\n-line2\n+line TWO\n line3\n"
     
     patch = Patch('tab_test')
+    patch.set('file', test_file)
     patch.set('diff', patch_text)
-    patch.apply(test_file)
+    patch.apply()
     
     with open(test_file, "r") as f:
         result = f.read()
@@ -378,8 +387,9 @@ line 7
 """
     
     patch = Patch('context_test')
+    patch.set('file', test_file)
     patch.set('diff', patch_text)
-    patch.apply(test_file)
+    patch.apply()
     
     with open(test_file, "r") as f:
         result = f.read()
@@ -429,8 +439,9 @@ line 10
 """
     
     patch = Patch('multi_hunk')
+    patch.set('file', test_file)
     patch.set('diff', patch_text)
-    patch.apply(test_file)
+    patch.apply()
     
     with open(test_file, "r") as f:
         result = f.read()

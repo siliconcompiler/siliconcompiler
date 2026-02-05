@@ -2521,12 +2521,12 @@ def test_check_manifest_patch_wrong_dataroot(tmp_path):
     with design.active_fileset("rtl"), design.active_dataroot("dataroot1"):
         design.set_topmodule("top")
         design.add_file("module.v")
-        
-        # Create patch with wrong dataroot
-        patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
-        patch.set('file', 'module.v')
-        patch.set('dataroot', 'dataroot2')  # File has dataroot1
-        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
+    
+    # Create patch with wrong dataroot (outside active context)
+    patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
+    patch.set('file', 'module.v')
+    patch.set('file', 'dataroot2', field='dataroot')  # File has dataroot1
+    patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2548,12 +2548,12 @@ def test_check_manifest_patch_nonexistent_dataroot(tmp_path):
     with design.active_fileset("rtl"), design.active_dataroot("test"):
         design.set_topmodule("top")
         design.add_file("module.v")
-        
-        # Create patch with nonexistent dataroot
-        patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
-        patch.set('file', 'module.v')
-        patch.set('dataroot', 'nonexistent')
-        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
+    
+    # Create patch with nonexistent dataroot (outside active context)
+    patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
+    patch.set('file', 'module.v')
+    patch.set('file', 'nonexistent', field='dataroot')
+    patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2579,7 +2579,7 @@ def test_check_manifest_patch_matching_dataroot(tmp_path):
         # Create patch with matching dataroot
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('dataroot', 'test')
+        patch.set('file', 'test', field='dataroot')
         patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)

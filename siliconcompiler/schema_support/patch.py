@@ -84,7 +84,7 @@ class Patch(NamedSchema, PathSchemaSimpleBase):
         if not os.path.exists(f"{file_to_patch}.sc_orig_patch"):
             original_mtime = os.path.getmtime(file_to_patch)
             try:
-                shutil.copy(file_to_patch, f"{file_to_patch}.sc_orig_patch")
+                shutil.copy2(file_to_patch, f"{file_to_patch}.sc_orig_patch")
             except Exception as e:
                 raise IOError(f"Could not create backup for {file_to_patch}: {e}")
         else:

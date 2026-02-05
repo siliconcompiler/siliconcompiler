@@ -39,7 +39,9 @@ def test_allkeys_tool_library():
         ('fileset', 'default', 'idir'),
         ('fileset', 'default', 'lib'),
         ('fileset', 'default', 'depfileset'),
-        ('fileset', 'default', 'undefine')
+        ('fileset', 'default', 'undefine'),
+        ('fileset', 'default', 'patch', 'default', 'file'),
+        ('fileset', 'default', 'patch', 'default', 'diff')
     ])
     assert lib.allkeys("tool") == set()
 
