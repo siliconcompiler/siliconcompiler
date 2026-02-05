@@ -112,7 +112,7 @@ proc sc_image_irdrop { net corner } {
     }
     set analyze_args []
     lappend analyze_args -source_type STRAPS
-    if { [sc_check_version 18074] } {
+    if { [sc_check_version 24 3 2487] } {
         lappend analyze_args -allow_reuse
     }
     set failed [catch { analyze_power_grid -net $net -corner $corner {*}$analyze_args } err]
@@ -125,7 +125,7 @@ proc sc_image_irdrop { net corner } {
     }
 
     set gif -1
-    if { [sc_check_version 21574] } {
+    if { [sc_check_version 24 3 5987] } {
         set gif [save_animated_gif -start "reports/images/heatmap/irdrop/${net}.${corner}.gif"]
         if { $gif == "" } {
             set gif 0
@@ -143,7 +143,7 @@ proc sc_image_irdrop { net corner } {
         gui::set_heatmap IRDrop rebuild
 
         set label ""
-        if { [sc_check_version 21574] } {
+        if { [sc_check_version 24 3 5987] } {
             set box [[ord::get_db_block] getDieArea]
             set x [ord::dbu_to_microns [$box xMax]]
             set y [ord::dbu_to_microns [$box yMin]]
@@ -161,7 +161,7 @@ proc sc_image_irdrop { net corner } {
         }
     }
     if { $gif >= 0 } {
-        if { [sc_check_version 26866] } {
+        if { [sc_check_version 24 3 11279] } {
             save_animated_gif -end -key $gif
         } else {
             save_animated_gif -end
@@ -317,7 +317,7 @@ proc sc_image_clocktree { } {
 
         if { [info commands gui::select_clockviewer_clock] != "" } {
             set select_clk_args []
-            if { [sc_check_version 23008] } {
+            if { [sc_check_version 24 3 7421] } {
                 lappend select_clk_args 2
             }
             gui::select_clockviewer_clock ${clock_name} {*}$select_clk_args
@@ -339,7 +339,7 @@ proc sc_image_clocktree { } {
 }
 
 proc sc_image_timing_histograms { } {
-    if { ![sc_check_version 19526] } {
+    if { ![sc_check_version 24 3 3939] } {
         return
     }
     file mkdir reports/images/timing
