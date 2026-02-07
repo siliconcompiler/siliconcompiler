@@ -52,7 +52,8 @@ def map_constraints(logger,
                 design_pin_constraint_assignment = (
                     constraints_map[design_pin_assignment]['x'],
                     constraints_map[design_pin_assignment]['y'],
-                    constraints_map[design_pin_assignment]['subtile'])
+                    constraints_map[design_pin_assignment]['subtile'],
+                    constraints_map[design_pin_assignment]['block_type'])
 
                 design_constraints[named_design_pin] = design_pin_constraint_assignment
 
