@@ -97,22 +97,22 @@ class ASICPinConstraint(NamedSchema):
                 Pin metal layer constraint specified on a per pin basis.
                 Metal names should either be the PDK specific metal stack name or
                 an integer with '1' being the lowest routing layer."""))
-
+        
+        """ 
+        Changed 'side' to 'edge' and updated example + help 
+        """
         schema.insert(
-            'side',
+            'edge',
             Parameter(
                 'int',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
-                shorthelp="Constraint: pin side",
-                example=["api: asic.set('constraint', 'pin', 'nreset', 'side', 1)"],
-                help="""
-                Side of block where the named pin should be placed. Sides are
-                enumerated as integers with '1' being the lower left side,
-                with the side index incremented on right turn in a clock wise
-                fashion. In case of conflict between 'lower' and 'left',
-                'left' has precedence. The side option and order option are
-                orthogonal to the placement option."""))
+                shorthelp="Constraint: pin edge",
+                example=["api: asic.set('constraint', 'pin', 'nreset', 'edge', 1)"],
+                help="""Edge/face values of the 3D block where pins should be
+                placed. Values 1-4 represent the vertical sides (Clockwise)
+                while 5-6 represent top and bottom faces.
+                """))
 
         schema.insert(
             'order',
@@ -289,56 +289,66 @@ class ASICPinConstraint(NamedSchema):
             str: The metal layer of the pin.
         """
         return self.get("layer", step=step, index=index)
+   
+    
 
-    def set_side(self, side: Union[int, str],
+    """
+    new set_edge and get_edge functions 
+    """
+    def set_edge(self, edge: Union[int, str],
                  step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
-        Sets the side constraint for the pin, indicating where it should be placed.
+        Sets the edge/face constraint for the pin.
 
         Args:
-            side (Union[int, str]): The side of the block where the pin should be placed.
-                                    Can be an integer or a string ('left', 'west', 'top',
-                                    'north', 'right', 'east', 'bottom', 'south').
-            step (str, optional): step name.
-            index (str, optional): index name.
-
-        Raises:
-            TypeError: If `side` is not an int or string.
-            ValueError: If `side` is an unrecognized string value or a non-positive integer.
+            edge (Union[int, str]): The edge or face of the block (1-6).
+                                    1: south/bottom-edge, 2: east/right-edge,
+                                    3: north/top-edge, 4: west/left-edge,
+                                    5: top-face, 6: bottom-face.
         """
-        if isinstance(side, str):
-            side = side.lower()
-            if side in ("left", "west"):
-                side = 1
-            elif side in ("top", "north"):
-                side = 2
-            elif side in ("right", "east"):
-                side = 3
-            elif side in ("bottom", "south"):
-                side = 4
+        if isinstance(edge, str):
+            edge = edge.lower()
+            if edge in ("south", "bottom"): # Bottom edge in 2D
+                edge = 1
+            elif edge in ("east", "right"):
+                edge = 2
+            elif edge in ("north", "top"): # Top edge in 2D
+                edge = 3
+            elif edge in ("west", "left"):
+                edge = 4
+            elif edge in ("up", "top-face"):
+                edge = 5
+            elif edge in ("down", "bottom-face"):
+                edge = 6
             else:
-                raise ValueError(f"{side} is a not a recognized side")
+                raise ValueError(f"{edge} is not a recognized edge")
 
-        if not isinstance(side, int):
-            raise TypeError("side must be an integer")
+        if not isinstance(edge, int):
+            raise TypeError("edge must be an integer")
 
-        if side <= 0:
-            raise ValueError("side must be a positive integer")
+        if not (1 <= edge <= 6):
+            raise ValueError("edge must be an integer between 1 and 6")
 
-        return self.set("side", side, step=step, index=index)
+        return self.set("edge", edge, step=step, index=index)
+    
+    def get_edge(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> int:
+        """Retrieves the current edge constraint."""
+        return self.get("edge", step=step, index=index)
+
+
+    """
+    now deprecated, still want to preserve to prevent breaking old code
+    """ 
+    def set_side(self, side: Union[int, str],
+                 step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """Deprecated: Use set_edge instead."""
+        return self.set_edge(side, step=step, index=index)
 
     def get_side(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> int:
-        """
-        Retrieves the current side constraint of the pin.
+        """Deprecated: Use get_edge instead."""
+        return self.get_edge(step=step, index=index)
 
-        Args:
-            step (str, optional): step name.
-            index (str, optional): index name.
 
-        Returns:
-            int: The integer representation of the side (1 for lower left, etc.).
-        """
-        return self.get("side", step=step, index=index)
 
     def set_order(self, order: int,
                   step: Optional[str] = None, index: Optional[Union[str, int]] = None):
