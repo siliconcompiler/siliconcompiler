@@ -131,11 +131,11 @@ def test_wildebeest_is_run(heartbeat_design):
 @pytest.mark.timeout(300)
 def test_memory_init_files(datadir):
     """Test that .hex and .mem files are properly registered in synthesis."""
-    design = Design("memory_test")
+    design = Design("memory_init_test")
 
     with design.active_fileset("rtl"):
-        design.set_topmodule("memory_test")
-        design.add_file(os.path.join(datadir, "memory_init", "memory_test.v"))
+        design.set_topmodule("memory_init_test")
+        design.add_file(os.path.join(datadir, "memory_init", "memory_init_test.v"))
         design.add_file(os.path.join(datadir, "memory_init", "init.hex"))
         design.add_file(os.path.join(datadir, "memory_init", "init.mem"))
 

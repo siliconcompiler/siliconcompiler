@@ -1,4 +1,4 @@
-module memory_test (
+module memory_init_test (
     input clk,
     input [3:0] addr,
     output reg [7:0] data_hex,
