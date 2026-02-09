@@ -6,9 +6,28 @@ import os.path
 from siliconcompiler.targets import freepdk45_demo
 
 from siliconcompiler import ASIC, Design, Flowgraph
+from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.keplerformal.lec import LECTask
 
 from tools.inputimporter import ImporterTask
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_version(gcd_design):
+    proj = ASIC(gcd_design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("testflow")
+    flow.node("version", LECTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.check_exe_version(node.task.get_exe_version()) is True
 
 
 @pytest.mark.eda

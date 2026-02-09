@@ -212,7 +212,7 @@ def sim(N: str = None, tool: str = "verilator"):
 
     if tool == "verilator":
         # Add trace to verilator
-        CompileTask.find_task(project).set("var", "trace", True)
+        CompileTask.find_task(project).set_verilator_trace(True)
 
     # Run the simulation.
     project.run()

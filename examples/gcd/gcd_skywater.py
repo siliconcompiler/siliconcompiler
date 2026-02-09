@@ -45,7 +45,7 @@ def main():
     skywater130_demo(project)
 
     # Set a unique name for this job run.
-    project.set("option", "jobname", "rtl2gds")
+    project.option.set_jobname("rtl2gds")
 
     # --- Execution & Analysis ---
     # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).
@@ -73,7 +73,7 @@ def main():
     project.set_flow(SignoffFlow())
 
     # Set a unique name for this job run.
-    project.set("option", "jobname", "signoff")
+    project.option.set_jobname("signoff")
 
     # Execute the signoff flow.
     project.run()

@@ -17,7 +17,7 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. sctool::
   :root: siliconcompiler.tools.builtin
-  :tasks: join/JoinTask maximum/MaximumTask minimum/MinimumTask mux/MuxTask nop/NOPTask verify/VerifyTask importfiles/ImportFilesTask filter/FilterTask
+  :tasks: join/JoinTask maximum/MaximumTask minimum/MinimumTask mux/MuxTask nop/NOPTask verify/VerifyTask importfiles/ImportFilesTask filter/FilterTask wait/Wait
 
 .. sctool::
   :root: siliconcompiler.tools.chisel
@@ -57,7 +57,7 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. sctool::
   :root: siliconcompiler.tools.klayout
-  :tasks: convert_drc_db/ConvertDRCDBTask drc/DRCTask export/ExportTask operations/OperationsTask screenshot/ScreenshotTask show/ShowTask
+  :tasks: convert_drc_db/ConvertDRCDBTask drc/DRCTask export/ExportTask merge/Merge operations/OperationsTask screenshot/ScreenshotTask show/ShowTask
 
 .. sctool::
   :root: siliconcompiler.tools.magic

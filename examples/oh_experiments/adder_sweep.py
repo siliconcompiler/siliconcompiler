@@ -65,7 +65,7 @@ def main():
         proj.add_fileset(f"rtl.{n}", clobber=True)
         # Set a unique jobname for each run. This helps in organizing the results
         # and retrieving metrics from the correct run later.
-        proj.set("option", "jobname", f"N{n}")
+        proj.option.set_jobname(f"N{n}")
 
         # Execute the synthesis flow.
         proj.run()

@@ -62,27 +62,27 @@ def echo_project():
 
 
 def test_init_invalid_step(project):
-    with pytest.raises(TypeError, match="^step must be a string with a value$"):
+    with pytest.raises(TypeError, match=r"^step must be a string with a value$"):
         SchedulerNode(project, None, "0")
 
 
 def test_init_invalid_step_empty(project):
-    with pytest.raises(TypeError, match="^step must be a string with a value$"):
+    with pytest.raises(TypeError, match=r"^step must be a string with a value$"):
         SchedulerNode(project, "", "0")
 
 
 def test_init_invalid_index(project):
-    with pytest.raises(TypeError, match="^index must be a string with a value$"):
+    with pytest.raises(TypeError, match=r"^index must be a string with a value$"):
         SchedulerNode(project, "step", None)
 
 
 def test_init_invalid_index_int(project):
-    with pytest.raises(TypeError, match="^index must be a string with a value$"):
+    with pytest.raises(TypeError, match=r"^index must be a string with a value$"):
         SchedulerNode(project, "step", 0)
 
 
 def test_init_invalid_index_empty(project):
-    with pytest.raises(TypeError, match="^index must be a string with a value$"):
+    with pytest.raises(TypeError, match=r"^index must be a string with a value$"):
         SchedulerNode(project, "step", "")
 
 
@@ -213,7 +213,7 @@ def test_get_log(project, type, expect_name):
 
 def test_get_log_invalid(project):
     node = SchedulerNode(project, "steptwo", "0")
-    with pytest.raises(ValueError, match="^invalid is not a log$"):
+    with pytest.raises(ValueError, match=r"^invalid is not a log$"):
         node.get_log("invalid")
 
 
@@ -255,7 +255,7 @@ def test_setup_error(project, monkeypatch, caplog):
     monkeypatch.setattr(node.task, "setup", dummy_setup)
 
     with node.runtime():
-        with pytest.raises(ValueError, match="^Find this$"):
+        with pytest.raises(ValueError, match=r"^Find this$"):
             node.setup()
     assert "Failed to run setup() for steptwo/0 with builtin/nop" in caplog.text
 
@@ -325,7 +325,7 @@ def test_get_check_changed_keys_with_invalid_require(project):
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        with pytest.raises(KeyError, match="^'\\[this,key\\] not found'$"):
+        with pytest.raises(KeyError, match=r"^'\[this,key\] not found'$"):
             node.get_check_changed_keys()
 
 
@@ -1708,8 +1708,7 @@ def test_check_previous_run_status_tool_change_returns_false(project):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        with pytest.raises(SchedulerNodeResetSilent,
-                           match=r"^Tool name changed$"):
+        with pytest.raises(SchedulerNodeResetSilent, match=r"^Tool name changed$"):
             node.check_previous_run_status(node_other)
 
 

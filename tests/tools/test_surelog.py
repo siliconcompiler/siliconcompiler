@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import pytest
 
 import os.path
@@ -113,3 +114,65 @@ def test_github_issue_1789(datadir):
     o_file_data = "\n".join(o_file_data.splitlines()[3:-4])
 
     assert i_file_data == o_file_data
+
+
+def test_runtime_args(gcd_design):
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("elaborate", ElaborateTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "elaborate", "0")
+    with node.runtime():
+        with patch("siliconcompiler.utils.get_cores") as get_cores:
+            get_cores.return_value = 2
+            assert node.setup() is True
+            get_cores.assert_called_once()
+        arguments = node.task.get_runtime_arguments()
+        assert arguments == [
+            '-nocache',
+            '--threads', '2',
+            '-parse',
+            '-nouhdm',
+            '+libext+.sv+.v',
+            *gcd_design.get_file("rtl", "verilog"),
+            '-top', 'gcd'
+        ]
+
+
+def test_surelog_parameter_enable_lowmem():
+    task = ElaborateTask()
+    task.set_surelog_enablelowmem(True)
+    assert task.get("var", "enable_lowmem") is True
+    task.set_surelog_enablelowmem(False, step='parse', index='1')
+    assert task.get("var", "enable_lowmem", step='parse', index='1') is False
+    assert task.get("var", "enable_lowmem") is True
+
+
+def test_surelog_parameter_disable_write_cache():
+    task = ElaborateTask()
+    task.set_surelog_disablewritecache(True)
+    assert task.get("var", "disable_write_cache") is True
+    task.set_surelog_disablewritecache(False, step='parse', index='1')
+    assert task.get("var", "disable_write_cache", step='parse', index='1') is False
+    assert task.get("var", "disable_write_cache") is True
+
+
+def test_surelog_parameter_disable_info():
+    task = ElaborateTask()
+    task.set_surelog_disableinfo(True)
+    assert task.get("var", "disable_info") is True
+    task.set_surelog_disableinfo(False, step='parse', index='1')
+    assert task.get("var", "disable_info", step='parse', index='1') is False
+    assert task.get("var", "disable_info") is True
+
+
+def test_surelog_parameter_disable_note():
+    task = ElaborateTask()
+    task.set_surelog_disablenote(True)
+    assert task.get("var", "disable_note") is True
+    task.set_surelog_disablenote(False, step='parse', index='1')
+    assert task.get("var", "disable_note", step='parse', index='1') is False
+    assert task.get("var", "disable_note") is True

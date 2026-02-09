@@ -96,7 +96,7 @@ foreach net [sc_psm_check_nets] {
 
     set check_args []
     if {
-        [sc_check_version 18610] &&
+        [sc_check_version 24 3 3023] &&
         [sc_cfg_tool_task_check_in_list $net var psm_allow_missing_terminal_nets]
     } {
         lappend check_args -dont_require_terminals

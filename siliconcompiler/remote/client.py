@@ -18,6 +18,7 @@ from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import Scheduler
+from siliconcompiler.scheduler.error import SCRuntimeError
 from siliconcompiler.schema import Journal, Parameter
 from siliconcompiler.package import PythonPathResolver, FileResolver, KeyPathResolver
 
@@ -490,7 +491,12 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             get_console_formatter(self.__project, True, self.STEP_NAME, None))
 
         # Ask the remote server to start processing the requested step.
-        self.__request_run()
+        try:
+            self.__request_run()
+        except KeyboardInterrupt:
+            return
+        except Exception as e:
+            raise SCRuntimeError(str(e)) from None
 
         # Run the main 'check_progress' loop to monitor job status until it finishes.
         try:
@@ -609,14 +615,14 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Wrapper to allow for capturing of Ctrl+C
         try:
             self.__run_loop()
-        except KeyboardInterrupt as e:
+        except KeyboardInterrupt:
             manifest_path = self.remote_manifest()
             reconnect_cmd = f'sc-remote -cfg {manifest_path} -reconnect'
             cancel_cmd = f'sc-remote -cfg {manifest_path} -cancel'
             self.__logger.info('Disconnecting from remote job')
             self.__logger.info(f'To reconnect to this job use: {reconnect_cmd}')
             self.__logger.info(f'To cancel this job use: {cancel_cmd}')
-            raise e
+            raise
 
     def __import_run_manifests(self, starttimes):
         if not self.__setup_information_loaded:

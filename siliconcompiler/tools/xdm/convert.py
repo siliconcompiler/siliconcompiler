@@ -2,6 +2,7 @@ import shutil
 
 import os.path
 
+from typing import Optional
 from siliconcompiler import Task
 
 
@@ -13,6 +14,19 @@ class ConvertTask(Task):
                            "true/false: indicate whether to rename the output file to match "
                            "the naming scheme for siliconcompiler",
                            defvalue=True)
+
+    def set_xdm_rename(self, enable: bool,
+                       step: Optional[str] = None,
+                       index: Optional[str] = None):
+        """
+        Enables or disables renaming the output file.
+
+        Args:
+            enable (bool): Whether to rename the output file.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rename", enable, step=step, index=index)
 
     def tool(self):
         return "xdm"

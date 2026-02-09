@@ -257,7 +257,7 @@ class VPRTask(Task):
         super().setup()
 
         self.set_exe("vpr", vswitch="--version")
-        self.add_version(">=v8.0.0-12677")
+        self.add_version(">=v8.0.0-15021")
 
         self.add_regex("warnings", "^Warning")
         self.add_regex("errors", "^Error")
@@ -273,7 +273,7 @@ class VPRTask(Task):
                 self.add_required_key(lib, "fileset", fileset, "file", "sdc")
                 self.set("var", "enable_timing_analysis", True)
 
-        fpga = self.project.get("library", self.project.get("fpga", "device"), field="schema")
+        fpga = self.project.get_library(self.project.get("fpga", "device"))
         self.add_required_key(fpga, "tool", "vpr", "devicecode")
         self.add_required_key(fpga, "tool", "vpr", "clock_model")
         self.add_required_key(fpga, "tool", "vpr", "archfile")
@@ -287,7 +287,7 @@ class VPRTask(Task):
     def runtime_options(self):
         options = super().runtime_options()
 
-        fpga = self.project.get("library", self.project.get("fpga", "device"), field="schema")
+        fpga = self.project.get_library(self.project.get("fpga", "device"))
 
         options.extend(["--device", fpga.get("tool", "vpr", "devicecode")])
 
@@ -393,17 +393,17 @@ class VPRTask(Task):
         for report in glob.glob("*.rpt"):
             shutil.move(report, 'reports')
 
-        fpga = self.project.get("fpga", "device")
+        fpga = self.project.get_library(self.project.get("fpga", "device"))
 
         dff_cells = []
-        if self.project.valid("library", fpga, "tool", "yosys", "registers"):
-            dff_cells = self.project.get("library", fpga, "tool", "yosys", "registers")
+        if fpga.valid("tool", "yosys", "registers"):
+            dff_cells = fpga.get("tool", "yosys", "registers")
         brams_cells = []
-        if self.project.valid("library", fpga, "tool", "yosys", "brams"):
-            brams_cells = self.project.get("library", fpga, "tool", "yosys", "brams")
+        if fpga.valid("tool", "yosys", "brams"):
+            brams_cells = fpga.get("tool", "yosys", "brams")
         dsps_cells = []
-        if self.project.valid("library", fpga, "tool", "yosys", "dsps"):
-            dsps_cells = self.project.get("library", fpga, "tool", "yosys", "dsps")
+        if fpga.valid("tool", "yosys", "dsps"):
+            dsps_cells = fpga.get("tool", "yosys", "dsps")
 
         stat_extract = re.compile(r'  \s*(.*)\s*:\s*([0-9]+)')
         lut_match = re.compile(r'([0-9]+)-LUT')

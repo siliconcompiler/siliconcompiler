@@ -98,7 +98,7 @@ def test_getdict_type():
 @pytest.mark.parametrize("type", [1, None])
 def test_set_mainlib_invalid(type):
     with pytest.raises(TypeError,
-                       match="^main library must be string or standard cell library object$"):
+                       match=r"^main library must be string or standard cell library object$"):
         ASIC().set_mainlib(type)
 
 
@@ -123,7 +123,7 @@ def test_set_mainlib_obj():
 @pytest.mark.parametrize("type", [1, None])
 def test_set_pdk_invalid(type):
     with pytest.raises(TypeError,
-                       match="^pdk must be string or PDK object$"):
+                       match=r"^pdk must be string or PDK object$"):
         ASIC().set_pdk(type)
 
 
@@ -148,7 +148,7 @@ def test_set_pdk_obj():
 @pytest.mark.parametrize("type", [1, None])
 def test_add_asiclib_invalid(type):
     with pytest.raises(TypeError,
-                       match="^asic library must be string or standard cell library object$"):
+                       match=r"^asic library must be string or standard cell library object$"):
         ASIC().add_asiclib(type)
 
 
@@ -468,7 +468,7 @@ def test_asic_mainlib_not_loaded(running_node):
     project.set("asic", "mainlib", "testlib")
 
     with ASICTask().runtime(running_node) as runtool:
-        with pytest.raises(LookupError, match="^testlib has not been loaded$"):
+        with pytest.raises(LookupError, match=r"^testlib has not been loaded$"):
             runtool.mainlib
 
 
@@ -506,7 +506,7 @@ def test_asic_pdk_not_loaded(running_node):
     lib.set("asic", "pdk", "testpdk")
 
     with ASICTask().runtime(running_node) as runtool:
-        with pytest.raises(LookupError, match="^testpdk has not been loaded$"):
+        with pytest.raises(LookupError, match=r"^testpdk has not been loaded$"):
             runtool.pdk
 
 

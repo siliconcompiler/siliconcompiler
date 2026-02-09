@@ -51,6 +51,8 @@ class OpenROADPDK(PDK):
                                    "router and only uses the specified tech vias")
         self.define_tool_parameter("openroad", "drt_repair_pdn_vias", "str",
                                    "Via layer to repair after detailed routing")
+        self.define_tool_parameter("openroad", "drt_via_in_pin_layers", "(str,str)",
+                                   "Tuple of layers for vias in pin layers")
 
     def set_openroad_rclayers(self, signal: str = None, clock: str = None):
         """
@@ -154,6 +156,15 @@ class OpenROADPDK(PDK):
             layer (str): The name of the via layer to repair.
         """
         self.set("tool", "openroad", "drt_repair_pdn_vias", layer)
+
+    def set_openroad_detailedrouteviainpinlayers(self, layer1: str, layer2: str):
+        """Sets the via layers used in pin layers during detailed routing.
+
+        Args:
+            layer1 (str): The first layer for vias in pin layers.
+            layer2 (str): The second layer for vias in pin layers.
+        """
+        self.set("tool", "openroad", "drt_via_in_pin_layers", (layer1, layer2))
 
 
 class OpenROADStdCellLibrary(StdCellLibrary):
@@ -385,7 +396,7 @@ class OpenROADTask(ASICTask):
         super().setup()
 
         self.set_exe("openroad", vswitch="-version", format="tcl")
-        self.add_version(">=v2.0-17598")
+        self.add_version(">=24Q3-2011")
 
         self.set_dataroot("openroad-ref", __file__)
         with self.active_dataroot("openroad-ref"):
@@ -406,6 +417,7 @@ class OpenROADTask(ASICTask):
         # - 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd
         # - 1 v2.0-880-gd1c7001ad
         # - v2.0-1862-g0d785bd84
+        # - 26Q1-1234-gabcdef0
 
         # strip off the "1" prefix if it's there
         version = stdout.split()[-1]
@@ -418,8 +430,26 @@ class OpenROADTask(ASICTask):
             return pieces[0]
 
     def normalize_version(self, version):
-        if '.' in version:
-            return version.lstrip('v')
+        if version.startswith('v'):
+            # Return fake version matching old versions
+            version = version[1:].split('-')
+            if len(version) > 1:
+                if int(version[1]) >= 27801:
+                    # 26Q1 is v2.0-27801
+                    return f"26.1.{int(version[1])-27801}"
+                elif int(version[1]) >= 15587:
+                    # 24Q3 is v2.0-15587
+                    return f"24.3.{int(version[1])-15587}"
+
+                # Convert v2.0-1234 to 2.0.1234
+                return version[0] + '.' + version[1]
+            return version[0]
+        elif len(version) > 3 and version[2] == 'Q':
+            # Convert 26Q1-1234 to 26.1.1234
+            year = version[0:2]
+            quarter = version[3]
+            build = version[5:] if len(version) > 5 else '0'
+            return f"{year}.{quarter}.{build}"
         else:
             return '0'
 

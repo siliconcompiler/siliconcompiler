@@ -43,8 +43,24 @@ if { [sc_cfg_tool_task_get var write_cdl] } {
 }
 
 ###############################
+# Generate LVS Verilog
+###############################
+set remove_cells []
+foreach lib [sc_cfg_get asic asiclib] {
+    lappend remove_cells {*}[sc_cfg_get library $lib asic cells physicalonly]
+}
+write_verilog -include_pwr_gnd -remove_cells $remove_cells "outputs/${sc_topmodule}.lvs.vg"
+
+###############################
 # Generate SPEF
 ###############################
+
+set estimate_parasitics_args []
+if { [sc_has_routing] || [sc_has_global_routing] } {
+    lappend estimate_parasitics_args -global_routing
+} else {
+    lappend estimate_parasitics_args -placement
+}
 
 if { [sc_cfg_tool_task_get var write_spef] } {
     set pexfileset [sc_cfg_get library $sc_pdk pdk pexmodelfileset openroad]
@@ -75,11 +91,11 @@ if { [sc_cfg_tool_task_get var write_spef] } {
         }
     } else {
         # estimate for metrics
-        estimate_parasitics -global_routing
+        estimate_parasitics {*}$estimate_parasitics_args
     }
 } else {
     # estimate for metrics
-    estimate_parasitics -global_routing
+    estimate_parasitics {*}$estimate_parasitics_args
 }
 
 ###############################

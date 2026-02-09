@@ -8,6 +8,70 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.36.5 (2026-02-02)
+=========================================
+
+**Minor:**
+
+ * Fixed dashboard line wrapping to correctly account for the width of the terminal.
+ * Reworked error handling to ensure backtrace is available when running with the dashboard.
+
+
+SiliconCompiler 0.36.4 (2026-01-31)
+=========================================
+
+**Minor:**
+
+ * Fixed commandline handling of `sc-issue` when `-cfg` is missing.
+ * Added support for `-jobs` to `sc-install` to control number of build jobs.
+ * Updated detection of editable python installs.
+ * Fixed json serialization bug when journal is active.
+
+ * Tools:
+
+  * yosys: removed default use of kogge-stone techmap pass.
+  * openroad: correctly include lefs in floorplanning required keys.
+  * icarus, verilator: added support for cocotb plugins.
+
+
+SiliconCompiler 0.36.3 (2026-01-21)
+=========================================
+
+**Minor:**
+
+ * Tools:
+
+  * builtin: added wait task to better handle stalling flow progress
+  * klayout: added merge task to provide a simple interface for merging multiple GDSs
+  * pyslang: updated to v10.0.0
+
+
+SiliconCompiler 0.36.2 (2026-01-16)
+=========================================
+
+**Minor:**
+
+ * Corrected auto dataroot behavior when setting abs paths.
+ * Corrected logging during check_filepaths on design objects to ensure errors are printed.
+ * Added `.get_library` to Project to allow access to imported libraries.
+
+ * Tools:
+
+  * openroad: added option to bypass SDC loading.
+
+
+SiliconCompiler 0.36.1 (2026-01-10)
+=========================================
+
+**Minor:**
+
+ * Expanded parameter setters for tasks.
+
+ * Tools:
+
+  * openroad: fixed pin constraints handling, added support for editing halos.
+
+
 SiliconCompiler 0.36.0 (2026-01-06)
 =========================================
 

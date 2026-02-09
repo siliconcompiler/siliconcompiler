@@ -30,7 +30,39 @@ class FPGASynthesis(YosysTask):
 
     def set_yosys_useslang(self, enable: bool,
                            step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables using the slang frontend.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
         self.set("var", "use_slang", enable, step=step, index=index)
+
+    def set_yosys_synthoptmode(self, mode: str,
+                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the optimization mode for synthesis.
+
+        Args:
+            mode (str): The optimization mode ('none', 'delay', 'area').
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "synth_opt_mode", mode, step=step, index=index)
+
+    def set_yosys_synthinsertbuffers(self, enable: bool,
+                                     step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables buffer insertion during synthesis.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "synth_insert_buffers", enable, step=step, index=index)
 
     def task(self):
         return "syn_fpga"
@@ -66,7 +98,7 @@ class FPGASynthesis(YosysTask):
 
         self._synthesis_post_process()
 
-        fpga = self.project.get("fpga", "device")
+        fpga = self.project.get_library(self.project.get("fpga", "device"))
 
         with sc_open("reports/stat.json") as f:
             metrics = json.load(f)
@@ -81,15 +113,14 @@ class FPGASynthesis(YosysTask):
                 return
 
             dff_cells = []
-            if self.project.valid("library", fpga, "tool", "yosys", "registers"):
-                dff_cells = self.project.get("library", fpga, "tool", "yosys", "registers")
+            if fpga.valid("tool", "yosys", "registers"):
+                dff_cells = fpga.get("tool", "yosys", "registers")
             brams_cells = []
-            if self.project.valid("library", fpga, "tool", "yosys", "brams"):
-                brams_cells = self.project.get("library", fpga, "tool", "yosys", "brams")
+            if fpga.valid("tool", "yosys", "brams"):
+                brams_cells = fpga.get("tool", "yosys", "brams")
             dsps_cells = []
-            if self.project.valid("library", fpga, "tool", "yosys", "dsps"):
-                dsps_cells = self.project.get("library", fpga, "tool", "yosys", "dsps")
-
+            if fpga.valid("tool", "yosys", "dsps"):
+                dsps_cells = fpga.get("tool", "yosys", "dsps")
             data = {
                 "registers": 0,
                 "luts": 0,

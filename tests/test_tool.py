@@ -2,6 +2,8 @@ import copy
 import hashlib
 import logging
 import pathlib
+import re
+import sys
 import pytest
 import os
 import time
@@ -31,6 +33,35 @@ from siliconcompiler.tool import subprocess as imported_subprocess
 from siliconcompiler.tool import os as imported_os
 from siliconcompiler.tool import psutil as imported_psutil
 from siliconcompiler.tool import resource as imported_resource
+
+
+# Define a custom task that prints to stdout and stderr
+class PythonOnlyTask(Task):
+    def tool(self):
+        return "testtool"
+
+    def task(self):
+        return "testtask"
+
+    def run(self):
+        print("STDOUT_MESSAGE")
+        print("STDERR_MESSAGE", file=sys.stderr)
+        return 0
+
+
+# Define a custom task that prints to logger
+class PythonOnlyTaskLogger(Task):
+    def tool(self):
+        return "testtool"
+
+    def task(self):
+        return "testtasklogger"
+
+    def run(self):
+        self.logger.info("INFO_MESSAGE")
+        self.logger.warning("WARNING_MESSAGE")
+        self.logger.error("ERROR_MESSAGE")
+        return 0
 
 
 @pytest.fixture
@@ -145,13 +176,13 @@ def test_init():
 
 def test_tool():
     with pytest.raises(NotImplementedError,
-                       match="^tool name must be implemented by the child class$"):
+                       match=r"^tool name must be implemented by the child class$"):
         Task().tool()
 
 
 def test_task():
     with pytest.raises(NotImplementedError,
-                       match="^task name must be implemented by the child class$"):
+                       match=r"^task name must be implemented by the child class$"):
         Task().task()
 
 
@@ -165,26 +196,26 @@ def test_task_name():
 
 
 def test_runtime_invalid_type():
-    with pytest.raises(TypeError, match="^node must be a scheduler node$"):
+    with pytest.raises(TypeError, match=r"^node must be a scheduler node$"):
         with Task().runtime(BaseSchema()):
             pass
 
 
 def test_runtime_step_override(running_project):
-    with pytest.raises(RuntimeError, match="^step and index cannot be provided with node$"):
+    with pytest.raises(RuntimeError, match=r"^step and index cannot be provided with node$"):
         with Task().runtime(SchedulerNode(running_project, "step", "index"), step="step"):
             pass
 
 
 def test_runtime_index_override(running_project):
-    with pytest.raises(RuntimeError, match="^step and index cannot be provided with node$"):
+    with pytest.raises(RuntimeError, match=r"^step and index cannot be provided with node$"):
         with Task().runtime(SchedulerNode(running_project, "step", "index"), index="index"):
             pass
 
 
 def test_set_runtime_invalid_flow(running_node):
     running_node.project.unset('option', 'flow')
-    with pytest.raises(RuntimeError, match="^flow not specified$"):
+    with pytest.raises(RuntimeError, match=r"^flow not specified$"):
         with Task().runtime(running_node):
             pass
 
@@ -366,7 +397,7 @@ def test_get_exe_not_found(running_node):
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
     with running_node.task.runtime(running_node) as runtool:
         with patch("siliconcompiler.Task._exe_not_found_handler") as exe_not_found_handler:
-            with pytest.raises(TaskExecutableNotFound, match="^testexe could not be found$"):
+            with pytest.raises(TaskExecutableNotFound, match=r"^testexe could not be found$"):
                 runtool.get_exe()
             exe_not_found_handler.assert_called_once()
 
@@ -379,7 +410,7 @@ def test_get_exe_not_found_suggestion(running_node, monkeypatch, caplog):
     with running_node.task.runtime(running_node) as runtool:
         with patch("json.load") as load:
             load.return_value = {"builtin": {}}
-            with pytest.raises(TaskExecutableNotFound, match="^testexe could not be found$"):
+            with pytest.raises(TaskExecutableNotFound, match=r"^testexe could not be found$"):
                 runtool.get_exe()
             load.assert_called_once()
     assert "Missing tool can be installed via: \"sc-install builtin\"" in caplog.text
@@ -393,7 +424,7 @@ def test_get_exe_not_found_no_suggestion(running_node, monkeypatch, caplog):
     with running_node.task.runtime(running_node) as runtool:
         with patch("json.load") as load:
             load.return_value = {"nothis": {}}
-            with pytest.raises(TaskExecutableNotFound, match="^testexe could not be found$"):
+            with pytest.raises(TaskExecutableNotFound, match=r"^testexe could not be found$"):
                 runtool.get_exe()
             load.assert_called_once()
     assert caplog.text == ""
@@ -563,7 +594,7 @@ def test_get_exe_version_internal_error(running_node, monkeypatch, caplog):
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match="^look for this match$"):
+        with pytest.raises(ValueError, match=r"^look for this match$"):
             runtool.get_exe_version()
 
     assert "builtin/nop failed to parse version string: myversion" in caplog.text
@@ -647,7 +678,7 @@ def test_check_exe_version_normalize_error(running_node, monkeypatch, caplog):
 
     assert running_node.project.set("tool", "builtin", 'task', 'nop', 'version', '==1.0.0')
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match="^match this error$"):
+        with pytest.raises(ValueError, match=r"^match this error$"):
             runtool.check_exe_version('myversion')
     assert "Unable to normalize version for builtin/nop: myversion" in caplog.text
 
@@ -672,7 +703,7 @@ def test_check_exe_version_normalize_error_spec(running_node, monkeypatch, caplo
 
     assert running_node.project.set("tool", "builtin", 'task', 'nop', 'version', '==1.0.0')
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match="^match this error$"):
+        with pytest.raises(ValueError, match=r"^match this error$"):
             runtool.check_exe_version('myversion')
     assert "Unable to normalize versions for builtin/nop: ==1.0.0" in caplog.text
 
@@ -895,7 +926,7 @@ def test_get_runtime_arguments_error(running_node, monkeypatch, caplog):
         def runtime_options():
             raise ValueError("match this error")
         monkeypatch.setattr(runtool, 'runtime_options', runtime_options)
-        with pytest.raises(ValueError, match="^match this error$"):
+        with pytest.raises(ValueError, match=r"^match this error$"):
             runtool.get_runtime_arguments()
 
     assert "Failed to get runtime options for builtin/nop" in caplog.text
@@ -909,7 +940,7 @@ def test_get_output_files(running_node):
 
 def test_parse_version_not_implemented():
     with pytest.raises(NotImplementedError,
-                       match="^must be implemented by the implementation class$"):
+                       match=r"^must be implemented by the implementation class$"):
         Task().parse_version("nothing")
 
 
@@ -969,7 +1000,7 @@ def test_runtime_options_with_aruments_with_refdir(running_node):
 
 def test_run_not_implemented():
     with pytest.raises(NotImplementedError,
-                       match="^must be implemented by the implementation class$"):
+                       match=r"^must be implemented by the implementation class$"):
         Task().run()
 
 
@@ -1241,7 +1272,7 @@ def test_run_task_failed_popen(running_node, monkeypatch):
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(TaskError, match="^Unable to start found/exe: something bad happened$"):
+        with pytest.raises(TaskError, match=r"^Unable to start found/exe: something bad happened$"):
             runtool.run_task('.', False, False, None, None)
 
 
@@ -1303,7 +1334,7 @@ def test_run_task_timeout(running_node, monkeypatch, patch_psutil):
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(TaskTimeout, match="^$"):
+        with pytest.raises(TaskTimeout, match=r"^$"):
             runtool.run_task('.', False, False, None, 2)
 
 
@@ -1408,7 +1439,7 @@ def test_run_task_contl_c(running_node, monkeypatch, patch_psutil, caplog):
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(TaskError, match="^$"):
+        with pytest.raises(TaskError, match=r"^$"):
             runtool.run_task('.', False, False, None, None)
 
     assert "Received ctrl-c." in caplog.text
@@ -1493,7 +1524,7 @@ def test_run_task_run_error(running_node):
     assert isinstance(running_node.task, RunTool)
 
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match="^run error$"):
+        with pytest.raises(ValueError, match=r"^run error$"):
             runtool.run_task('.', False, True, None, None)
         assert runtool.call_count == 1
 
@@ -1710,7 +1741,7 @@ def test_add_required_key_not_tool(running_node):
 
 def test_add_required_key_invalid(running_node):
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match="^key can only contain strings$"):
+        with pytest.raises(ValueError, match=r"^key can only contain strings$"):
             runtool.add_required_key("this", None, "is", "required")
 
 
@@ -1876,7 +1907,7 @@ def test_add_commandline_option(running_node):
 
 def test_add_input_file_invalid(running_node):
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match="^only file or ext can be specified$"):
+        with pytest.raises(ValueError, match=r"^only file or ext can be specified$"):
             runtool.add_input_file(file="this.v", ext="v")
 
 
@@ -1904,7 +1935,7 @@ def test_add_input_file_clobber(running_node):
 
 def test_add_output_file_invalid(running_node):
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match="^only file or ext can be specified$"):
+        with pytest.raises(ValueError, match=r"^only file or ext can be specified$"):
             runtool.add_output_file(file="this.v", ext="v")
 
 
@@ -1938,7 +1969,7 @@ def test_get_logpath(running_node):
 
 def test_get_logpath_fail(running_node):
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match="^notvalid is not a log$"):
+        with pytest.raises(ValueError, match=r"^notvalid is not a log$"):
             runtool.get_logpath("notvalid")
 
 
@@ -2107,7 +2138,7 @@ def test_get_fileset_file_keys(running_node):
 
 def test_get_fileset_file_keys_invalid(running_node):
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(TypeError, match="^filetype must be a string$"):
+        with pytest.raises(TypeError, match=r"^filetype must be a string$"):
             runtool.get_fileset_file_keys(["verilog"])
 
 
@@ -2138,7 +2169,7 @@ def test_show_check_task_invalid():
     class Test(ShowTask):
         pass
 
-    with pytest.raises(TypeError, match="^class must be ShowTask or ScreenshotTask$"):
+    with pytest.raises(TypeError, match=r"^class must be ShowTask or ScreenshotTask$"):
         Test._ShowTask__check_task(None)
 
 
@@ -2162,7 +2193,7 @@ def test_show_register_task_invalid():
     class Test:
         pass
 
-    with pytest.raises(TypeError, match="^task must be a subclass of ShowTask$"):
+    with pytest.raises(TypeError, match=r"^task must be a subclass of ShowTask$"):
         ShowTask.register_task(Test)
 
 
@@ -2186,8 +2217,8 @@ def test_show_get_task_show_called():
 @pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
 def test_show_get_supported_show_extentions(cls):
     with pytest.raises(NotImplementedError,
-                       match="^get_supported_show_extentions must be "
-                             "implemented by the child class$"):
+                       match=r"^get_supported_show_extentions must be "
+                             r"implemented by the child class$"):
         cls().get_supported_show_extentions() == {}
 
 
@@ -2385,3 +2416,197 @@ def test_showtask_specific_task_preference():
         assert task.tool() == "toolc"
         assert task.task() == "view_mode_2"
         assert isinstance(task, ToolCTask2)
+
+
+def test_task_py_logging_output_different_files(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "log", "out")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "log", "err")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 1
+    assert content.count("STDERR_MESSAGE") == 1
+    assert re.match(r"^\| INFO .* \| STDOUT_MESSAGE$", content.splitlines()[-3])
+    assert re.match(r"^\| ERROR .* \| STDERR_MESSAGE$", content.splitlines()[-2])
+
+    assert pathlib.Path("build/gcd/job0/step/0/step.out").read_text() == "STDOUT_MESSAGE\n"
+    assert pathlib.Path("build/gcd/job0/step/0/step.err").read_text() == "STDERR_MESSAGE\n"
+
+
+def test_task_py_logging_output_same_files(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "log", "out")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "log", "out")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 1
+    assert content.count("STDERR_MESSAGE") == 1
+    assert re.match(r"^\| INFO .* \| STDOUT_MESSAGE$", content.splitlines()[-3])
+    assert re.match(r"^\| INFO .* \| STDERR_MESSAGE$", content.splitlines()[-2])
+
+    assert pathlib.Path("build/gcd/job0/step/0/step.out").read_text() == \
+        "STDOUT_MESSAGE\nSTDERR_MESSAGE\n"
+
+
+def test_task_py_logging_output_different_files_output(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "output", "out")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "output", "err")
+    PythonOnlyTask.find_task(project).add_output_file("gcd.out", step="step", index="0")
+    PythonOnlyTask.find_task(project).add_output_file("gcd.err", step="step", index="0")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 0
+    assert content.count("STDERR_MESSAGE") == 0
+
+    assert pathlib.Path("build/gcd/job0/step/0/outputs/gcd.out").read_text() == "STDOUT_MESSAGE\n"
+    assert pathlib.Path("build/gcd/job0/step/0/outputs/gcd.err").read_text() == "STDERR_MESSAGE\n"
+
+
+def test_task_py_logging_output_same_files_output(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "output", "out")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "output", "out")
+    PythonOnlyTask.find_task(project).add_output_file("gcd.out", step="step", index="0")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 0
+    assert content.count("STDERR_MESSAGE") == 0
+
+    assert pathlib.Path("build/gcd/job0/step/0/outputs/gcd.out").read_text() == \
+        "STDOUT_MESSAGE\nSTDERR_MESSAGE\n"
+
+
+def test_task_py_logging_output_none_files(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "none")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "none")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 0
+    assert content.count("STDERR_MESSAGE") == 0
+
+
+def test_task_py_logging_output_tologger(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTaskLogger)
+
+    project.set_flow(flow)
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("INFO_MESSAGE") == 1
+    assert content.count("WARNING_MESSAGE") == 1
+    assert content.count("ERROR_MESSAGE") == 1
+    assert re.match(r"^\| INFO .* \| INFO_MESSAGE$", content.splitlines()[-4])
+    assert re.match(r"^\| WARNING .* \| WARNING_MESSAGE$", content.splitlines()[-3])
+    assert re.match(r"^\| ERROR .* \| ERROR_MESSAGE$", content.splitlines()[-2])

@@ -31,6 +31,6 @@ if [ ! -z ${PREFIX} ]; then
 fi
 
 ./configure --with-llvm-config $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 cd -

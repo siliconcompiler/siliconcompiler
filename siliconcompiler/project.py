@@ -1,11 +1,10 @@
 import logging
 import os
-import sys
 import uuid
 
 import os.path
 
-from typing import Union, List, Tuple, TextIO, Optional, Dict, Set
+from typing import Type, Union, List, Tuple, TextIO, Optional, Dict, Set, TypeVar
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
     __version__ as schema_version, \
@@ -20,7 +19,6 @@ from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler import Task
 from siliconcompiler import ShowTask, ScreenshotTask
 from siliconcompiler.schema_support.option import OptionSchema
-from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
@@ -28,11 +26,13 @@ from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.scheduler import Scheduler, SCRuntimeError
-from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
+from siliconcompiler.utils.logging import get_stream_handler
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.flows.showflow import ShowFlow
+
+TProject = TypeVar("TProject", bound="Project")
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -143,12 +143,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         self.__logger = MPManager.logger().getChild(f"project_{uuid.uuid4().hex}")
         self.__logger.setLevel(logging.INFO)
 
-        self._logger_console = logging.StreamHandler(stream=sys.stdout)
-        if SCColorLoggerFormatter.supports_color(sys.stdout):
-            self._logger_console.setFormatter(SCColorLoggerFormatter(SCLoggerFormatter()))
-        else:
-            self._logger_console.setFormatter(SCLoggerFormatter())
-
+        self._logger_console = get_stream_handler(self, in_run=False, step=None, index=None)
         self.__logger.addHandler(self._logger_console)
 
     def __init_dashboard(self):
@@ -225,7 +220,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if not self.valid("library", design_name):
             raise KeyError(f"{design_name} design has not been loaded")
 
-        return self.get("library", design_name, field="schema")
+        return self.get_library(design_name)
 
     @property
     def option(self) -> OptionSchema:
@@ -242,7 +237,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         return self.get("option", field="schema")
 
     @classmethod
-    def convert(cls, obj: "Project") -> "Project":
+    def convert(cls: Type[TProject], obj: "Project") -> TProject:
         """
         Converts a project from one type to another (e.g., Project to Sim).
 
@@ -323,7 +318,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def add_dep(self, obj):
         """
-        Adds a dependency object (e.g., a Design, Flowgraph, LibrarySchema,
+        Adds a dependency object (e.g., a Design, Flowgraph,
         or Checklist) to the project.
 
         This method intelligently adds various types of schema objects to the
@@ -331,7 +326,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         dependencies if the added object itself is a `DependencySchema`.
 
         Args:
-            obj (Union[Design, Flowgraph, LibrarySchema, Checklist, List, Set, Tuple]):
+            obj (Union[Design, Flowgraph, Checklist, List, Set, Tuple]):
                 The dependency object(s) to add. Can be a single schema object
                 or a collection (list, set, tuple) of schema objects.
 
@@ -348,9 +343,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Flowgraph):
             self.__import_flow(obj)
-        elif isinstance(obj, LibrarySchema):
-            if not self._has_library(obj.name):
-                EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Checklist):
             if obj.name not in self.getkeys("checklist"):
                 EditableSchema(self).insert("checklist", obj.name, obj)
@@ -373,7 +365,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         if isinstance(obj, DependencySchema):
             for dep in obj.get_dep():
-                if isinstance(dep, (Design, LibrarySchema)):
+                if isinstance(dep, Design):
                     if self._has_library(dep.name):
                         continue
                 self.add_dep(dep)
@@ -482,7 +474,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             if not self._has_library(src_lib):
                 continue
 
-            if not self.get("library", src_lib, field="schema").has_fileset(src_fileset):
+            if not self.get_library(src_lib).has_fileset(src_fileset):
                 self.logger.error(f"{src_fileset} is not a valid fileset in {src_lib}")
                 error = True
                 continue
@@ -496,7 +488,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 continue
 
             if dst_fileset and \
-                    not self.get("library", dst_lib, field="schema").has_fileset(dst_fileset):
+                    not self.get_library(dst_lib).has_fileset(dst_fileset):
                 self.logger.error(f"{dst_fileset} is not a valid fileset in {dst_lib}")
                 error = True
                 continue
@@ -532,7 +524,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                                  f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
                 self.__dashboard.stop()
 
-    def run(self) -> "Project":
+    def run(self) -> TProject:
         '''
         Executes the compilation flow defined in the project's flowgraph.
 
@@ -574,7 +566,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self.logger.error(f"Run failed: {e.msg}")
             if scheduler and scheduler.log:
                 self.logger.error(f"Job log: {os.path.abspath(scheduler.log)}")
-            raise RuntimeError(f"Run failed: {e.msg}")
+            raise RuntimeError(f"Run failed: {e.msg}") from None
         finally:
             if self.__dashboard:
                 # Update dashboard
@@ -715,7 +707,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             if dst_lib:
                 if not self._has_library(dst_lib):
                     raise KeyError(f"{dst_lib} is not a loaded library")
-                dst_obj = self.get("library", dst_lib, field="schema")
+                dst_obj = self.get_library(dst_lib)
             else:
                 dst_obj = None
             if not dst_fileset:
@@ -844,7 +836,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         if isinstance(src_dep, str):
             if self._has_library(src_dep):
-                src_dep = self.get("library", src_dep, field="schema")
+                src_dep = self.get_library(src_dep)
             else:
                 src_dep_name = src_dep
                 src_dep = None
@@ -875,7 +867,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 if not self._has_library(alias_dep):
                     raise KeyError(f"{alias_dep} has not been loaded")
 
-                alias_dep = self.get("library", alias_dep, field="schema")
+                alias_dep = self.get_library(alias_dep)
 
         if alias_dep is not None:
             if isinstance(alias_dep, Design):
@@ -893,6 +885,28 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return self.set("option", "alias", alias)
         else:
             return self.add("option", "alias", alias)
+
+    def get_library(self, library: str) -> NamedSchema:
+        """
+        Retrieves a library by name from the project.
+
+        Args:
+            library (str): The name of the library to retrieve.
+
+        Returns:
+            NamedSchema: The `NamedSchema` object representing the library.
+
+        Raises:
+            KeyError: If the specified library is not found in the project.
+            TypeError: If the provided `library` is not a string.
+        """
+        if not isinstance(library, str):
+            raise TypeError("library must be a string")
+
+        if not self._has_library(library):
+            raise KeyError(f"{library} is not a valid library")
+
+        return self.get("library", library, field="schema")
 
     def _has_library(self, library: Union[str, NamedSchema]) -> bool:
         """
@@ -1222,7 +1236,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return None
 
         # Create copy of project to avoid changing user project
-        proj: Project = self.copy()
+        proj = self.copy()
         proj.set_flow(ShowFlow(task))
 
         # Setup options:

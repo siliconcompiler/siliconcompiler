@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "263b7a9261e92eaa0000bcf33f948c36e5160d31",
+    "git-commit": "9909fea941eecf2785de39de0912647c269a0149",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -17,7 +17,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "6a8ffcd898cee0ee4524d456ec1ee790925fb4aa",
+    "git-commit": "cde32a15722b5d63736c5c448167cce605f37547",
     "auto-update": true
   },
   "netgen": {
@@ -76,7 +76,7 @@
   },
   "vpr": {
     "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
-    "git-commit": "7f476dbf780b845d07a7642366552e799df02c93",
+    "git-commit": "fe77ace273b3f0558763e0e91d409b2d13344eff",
     "auto-update": false
   },
   "icepack": {
@@ -101,7 +101,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "v0.60",
+    "git-commit": "v0.62",
     "version-prefix": "",
     "auto-update": true
   },
@@ -145,7 +145,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "64b44616a3798f07453b14ea03e4ac8a16b77313",
+    "git-commit": "16826dd6babadb8ab88a8d138e7586bd76a98fbf",
     "docker-depends": "yosys",
     "auto-update": true
   },
@@ -168,7 +168,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "ea6b0ce62f6f8fd2327e79913a07c74a3210551d",
+    "git-commit": "d647673f3b3960256069a79e8d92d36a3b89d9a4",
     "auto-update": false
   }
 }

@@ -1,48 +1,12 @@
 import pytest
 
 from siliconcompiler import PDK
-from siliconcompiler.library import LibrarySchema, ToolLibrarySchema, StdCellLibrary
+from siliconcompiler.library import ToolLibrarySchema, StdCellLibrary
 from siliconcompiler.schema import PerNode, Scope
-from siliconcompiler.schema_support.packageschema import PackageSchema
-
-
-def test_allkeys():
-    lib = LibrarySchema("test")
-    assert lib.allkeys() == set([
-        ('dataroot', 'default', 'path'),
-        ('dataroot', 'default', 'tag'),
-        ('fileset', 'default', 'file', 'default'),
-        ('package', 'version'),
-        ('package', 'doc', 'userguide'),
-        ('package', 'doc', 'quickstart'),
-        ('package', 'author', 'default', 'email'),
-        ('package', 'licensefile'),
-        ('package', 'license'),
-        ('package', 'doc', 'reference'),
-        ('package', 'doc', 'tutorial'),
-        ('package', 'doc', 'signoff'),
-        ('package', 'doc', 'datasheet'),
-        ('package', 'doc', 'releasenotes'),
-        ('package', 'author', 'default', 'organization'),
-        ('package', 'doc', 'testplan'),
-        ('package', 'description'),
-        ('package', 'vendor'),
-        ('package', 'author', 'default', 'name')
-    ])
-
-
-def test_getdict_type():
-    assert LibrarySchema._getdict_type() == "LibrarySchema"
 
 
 def test_toollib_getdict_type():
     assert ToolLibrarySchema._getdict_type() == "ToolLibrarySchema"
-
-
-def test_package_access():
-    lib = LibrarySchema()
-    assert lib.get("package", field="schema") is lib.package
-    assert isinstance(lib.package, PackageSchema)
 
 
 def test_allkeys_tool_library():
@@ -66,7 +30,16 @@ def test_allkeys_tool_library():
         ('package', 'doc', 'testplan'),
         ('package', 'description'),
         ('package', 'vendor'),
-        ('package', 'author', 'default', 'name')
+        ('package', 'author', 'default', 'name'),
+        ('fileset', 'default', 'topmodule'),
+        ('fileset', 'default', 'define'),
+        ('fileset', 'default', 'libdir'),
+        ('fileset', 'default', 'param', 'default'),
+        ('deps',),
+        ('fileset', 'default', 'idir'),
+        ('fileset', 'default', 'lib'),
+        ('fileset', 'default', 'depfileset'),
+        ('fileset', 'default', 'undefine')
     ])
     assert lib.allkeys("tool") == set()
 
@@ -163,7 +136,7 @@ def test_define_tool_parameter_override_illegal():
 
 
 def test_define_tool_parameter_invalid_help():
-    with pytest.raises(TypeError, match="^help must be a string$"):
+    with pytest.raises(TypeError, match=r"^help must be a string$"):
         ToolLibrarySchema("test").define_tool_parameter(
             "yosys",
             "timingcorner",
@@ -173,7 +146,7 @@ def test_define_tool_parameter_invalid_help():
 
 
 def test_define_tool_parameter_empty_help():
-    with pytest.raises(ValueError, match="^help is required$"):
+    with pytest.raises(ValueError, match=r"^help is required$"):
         ToolLibrarySchema("test").define_tool_parameter(
             "yosys",
             "timingcorner",
@@ -329,17 +302,17 @@ def test_add_asic_libcornerfileset_without_active():
 
 
 def test_add_asic_libcornerfileset_missing_fileset():
-    with pytest.raises(LookupError, match="^models is not defined in lib$"):
+    with pytest.raises(LookupError, match=r"^models is not defined in lib$"):
         StdCellLibrary("lib").add_asic_libcornerfileset("slow", "nldm", "models")
 
 
 def test_add_asic_libcornerfileset_invalid_model():
-    with pytest.raises(TypeError, match="^model must be a string$"):
+    with pytest.raises(TypeError, match=r"^model must be a string$"):
         StdCellLibrary("lib").add_asic_libcornerfileset("slow", 8, "models")
 
 
 def test_add_asic_libcornerfileset_invalid_fileset():
-    with pytest.raises(TypeError, match="^fileset must be a string$"):
+    with pytest.raises(TypeError, match=r"^fileset must be a string$"):
         StdCellLibrary("lib").add_asic_libcornerfileset("slow", "nldm", 8)
 
 
@@ -371,12 +344,12 @@ def test_add_asic_pexcornerfileset_without_active():
 
 
 def test_add_asic_pexcornerfileset_missing_fileset():
-    with pytest.raises(LookupError, match="^models is not defined in lib$"):
+    with pytest.raises(LookupError, match=r"^models is not defined in lib$"):
         StdCellLibrary("lib").add_asic_pexcornerfileset("slow", "models")
 
 
 def test_add_asic_pexcornerfileset_invalid_fileset():
-    with pytest.raises(TypeError, match="^fileset must be a string$"):
+    with pytest.raises(TypeError, match=r"^fileset must be a string$"):
         StdCellLibrary("lib").add_asic_pexcornerfileset("slow", 8)
 
 
@@ -408,12 +381,12 @@ def test_add_asic_aprfileset_without_active():
 
 
 def test_add_asic_aprfileset_missing_fileset():
-    with pytest.raises(LookupError, match="^models is not defined in lib$"):
+    with pytest.raises(LookupError, match=r"^models is not defined in lib$"):
         StdCellLibrary("lib").add_asic_aprfileset("models")
 
 
 def test_add_asic_aprfileset_invalid_fileset():
-    with pytest.raises(TypeError, match="^fileset must be a string$"):
+    with pytest.raises(TypeError, match=r"^fileset must be a string$"):
         StdCellLibrary("lib").add_asic_aprfileset(8)
 
 
@@ -454,14 +427,14 @@ def test_add_asic_pdk_string():
 
 def test_add_asic_pdk_string_not_default():
     lib = StdCellLibrary("lib")
-    with pytest.raises(TypeError, match="^pdk must be a PDK object$"):
+    with pytest.raises(TypeError, match=r"^pdk must be a PDK object$"):
         lib.add_asic_pdk("test", default=False)
     assert lib.get("asic", "pdk") is None
 
 
 def test_add_asic_pdk_string_invalid():
     lib = StdCellLibrary("lib")
-    with pytest.raises(TypeError, match="^pdk must be a PDK object or string$"):
+    with pytest.raises(TypeError, match=r"^pdk must be a PDK object or string$"):
         lib.add_asic_pdk(1)
 
 

@@ -73,10 +73,10 @@ def main():
 
     # Configure the DRC task. We specify that it should use the 'minimal'
     # DRC ruleset, which is defined by the IHP 130nm target.
-    DRCTask.find_task(project).set("var", "drc_name", "minimal")
+    DRCTask.find_task(project).set_klayout_drcname("drc")
 
     # Set a new jobname for this run to keep the output directories separate.
-    project.set("option", "jobname", "drc")
+    project.option.set_jobname("drc")
 
     # Execute the DRC-only flow.
     project.run()

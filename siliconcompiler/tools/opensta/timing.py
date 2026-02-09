@@ -29,8 +29,43 @@ class TimingTaskBase(OpenSTATask):
                            defvalue="tools/_common/sdc/sc_constraints.sdc",
                            dataroot="siliconcompiler")
 
-    def set_timing_mode(self, mode: str, step: Optional[str] = None, index: Optional[str] = None):
-        return self.set("var", "timing_mode", mode, step=step, index=index)
+    def set_opensta_topnpaths(self, n: int,
+                              step: Optional[str] = None,
+                              index: Optional[str] = None):
+        """
+        Sets the number of paths to report timing for.
+
+        Args:
+            n (int): The number of paths.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "top_n_paths", n, step=step, index=index)
+
+    def set_opensta_uniquepathgroupsperclock(self, enable: bool,
+                                             step: Optional[str] = None,
+                                             index: Optional[str] = None):
+        """
+        Enables or disables generating separate path groups per clock.
+
+        Args:
+            enable (bool): Whether to enable unique path groups per clock.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "unique_path_groups_per_clock", enable, step=step, index=index)
+
+    def set_opensta_timingmode(self, mode: str,
+                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the timing mode to use.
+
+        Args:
+            mode (str): The timing mode to use.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "timing_mode", mode, step=step, index=index)
 
     def setup(self):
         super().setup()

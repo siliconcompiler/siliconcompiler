@@ -163,7 +163,7 @@ class EditableSchema:
             new_schema._BaseSchema__parent = None
         return new_schema
 
-    def rename(self, name: str):
+    def rename(self, name: str) -> None:
         '''
         Renames a named schema
         '''

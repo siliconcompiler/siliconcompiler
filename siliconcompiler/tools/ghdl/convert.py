@@ -1,3 +1,4 @@
+from typing import Optional
 from siliconcompiler import Task
 
 
@@ -12,10 +13,44 @@ class ConvertTask(Task):
         self.add_parameter("use_latches", "bool", "add the --latches flag", defvalue=False)
 
     def set_usefsynopsys(self, value: bool):
-        self.set("var", "use_fsynopsys", value)
+        """Deprecated: use set_ghdl_usefsynopsys instead."""
+        import warnings
+        warnings.warn("set_usefsynopsys is deprecated, use set_ghdl_usefsynopsys instead.",
+                      DeprecationWarning, stacklevel=2)
+        self.set_ghdl_usefsynopsys(value)
+
+    def set_ghdl_usefsynopsys(self, value: bool,
+                              step: Optional[str] = None,
+                              index: Optional[str] = None):
+        """
+        Adds the -fsynopsys flag to the GHDL command.
+
+        Args:
+            value (bool): Whether to add the flag.
+            step (str, optional): The step to associate with this setting.
+            index (str, optional): The index to associate with this setting.
+        """
+        self.set("var", "use_fsynopsys", value, step=step, index=index)
 
     def set_uselatches(self, value: bool):
-        self.set("var", "use_latches", value)
+        """Deprecated: use set_ghdl_uselatches instead."""
+        import warnings
+        warnings.warn("set_uselatches is deprecated, use set_ghdl_uselatches instead.",
+                      DeprecationWarning, stacklevel=2)
+        self.set_ghdl_uselatches(value)
+
+    def set_ghdl_uselatches(self, value: bool,
+                            step: Optional[str] = None,
+                            index: Optional[str] = None):
+        """
+        Adds the --latches flag to the GHDL command.
+
+        Args:
+            value (bool): Whether to add the flag.
+            step (str, optional): The step to associate with this setting.
+            index (str, optional): The index to associate with this setting.
+        """
+        self.set("var", "use_latches", value, step=step, index=index)
 
     def tool(self):
         return "ghdl"

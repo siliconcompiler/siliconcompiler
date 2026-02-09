@@ -79,7 +79,7 @@ if { $sc_openroad_tracks != "" } {
 
 set do_automatic_pins 1
 if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
-    if { [sc_check_version 26154] == 0 } {
+    if { [sc_check_version 24 3 10567] == 0 } {
         utl::error FLW 1 "bmaps are not supported in this version of openroad"
     }
 
@@ -366,6 +366,10 @@ if { [sc_cfg_exists constraint component] } {
 
         if { $halo != {} } {
             set inst [[ord::get_db_block] findInst $name]
+            set halo_box [$inst getHalo]
+            if { $halo_box != "NULL" } {
+                odb::dbBox_destroy $halo_box
+            }
             odb::dbBox_create $inst \
                 [ord::microns_to_dbu [lindex $halo 0]] \
                 [ord::microns_to_dbu [lindex $halo 1]] \
@@ -378,7 +382,7 @@ if { [sc_cfg_exists constraint component] } {
     sc_print_macro_information $sc_placed_insts
 }
 
-if { [sc_check_version 23008] } {
+if { [sc_check_version 24 3 7421] } {
     # Dont do random placement
 } else {
     if { $do_automatic_pins } {

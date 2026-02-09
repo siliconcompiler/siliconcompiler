@@ -145,3 +145,9 @@ def get_console_formatter(project, in_run, step, index):
     if support_color:
         return SCColorLoggerFormatter(base_format)
     return base_format
+
+
+def get_stream_handler(project, in_run, step, index):
+    handler = logging.StreamHandler(stream=sys.stdout)
+    handler.setFormatter(get_console_formatter(project, in_run, step, index))
+    return handler

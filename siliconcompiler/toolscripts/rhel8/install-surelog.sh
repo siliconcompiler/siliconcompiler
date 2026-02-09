@@ -26,7 +26,7 @@ cd surelog
 git checkout $(python3 ${src_path}/_tools.py --tool surelog --field git-commit)
 git submodule update --init --recursive
 
-scl run gcc-toolset-12 "LDFLAGS=\"-lrt\" make -j$(nproc)"
+scl run gcc-toolset-12 "LDFLAGS=\"-lrt\" make -j${NPROC:-$(nproc)}"
 
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then

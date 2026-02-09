@@ -32,7 +32,7 @@ def test_builddir():
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
 def test_builddir_notproject(arg):
-    with pytest.raises(TypeError, match="^project must be a Project type$"):
+    with pytest.raises(TypeError, match=r"^project must be a Project type$"):
         builddir(arg)
 
 
@@ -51,7 +51,7 @@ def test_builddir_diff_build():
 
 
 def test_jobdir_no_name():
-    with pytest.raises(ValueError, match="^name has not been set$"):
+    with pytest.raises(ValueError, match=r"^name has not been set$"):
         jobdir(Project())
 
 
@@ -62,7 +62,7 @@ def test_jobdir():
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
 def test_jobdir_notproject(arg):
-    with pytest.raises(TypeError, match="^project must be a Project type$"):
+    with pytest.raises(TypeError, match=r"^project must be a Project type$"):
         jobdir(arg)
 
 

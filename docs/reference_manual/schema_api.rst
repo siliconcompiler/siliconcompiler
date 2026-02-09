@@ -313,10 +313,6 @@ Supporting Classes
     :members:
     :show-inheritance:
 
-.. autoclass:: siliconcompiler.library.LibrarySchema
-    :members:
-    :show-inheritance:
-
 .. autoclass:: siliconcompiler.library.ToolLibrarySchema
     :members:
     :show-inheritance:

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
 
@@ -32,6 +34,80 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         self.add_parameter("pex_corners", "{str}", "set of pex corners to perform extraction on")
 
+    def set_openroad_abstractlefbloatlayers(self, enable: bool,
+                                            step: Optional[str] = None,
+                                            index: Optional[str] = None):
+        """
+        Enables or disables filling all layers when writing the abstract LEF.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "ord_abstract_lef_bloat_layers", enable, step=step, index=index)
+
+    def set_openroad_abstractlefbloatfactor(self, factor: int,
+                                            step: Optional[str] = None,
+                                            index: Optional[str] = None):
+        """
+        Sets the bloat factor to apply when writing the abstract LEF.
+
+        Args:
+            factor (int): The bloat factor.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "ord_abstract_lef_bloat_factor", factor, step=step, index=index)
+
+    def set_openroad_writecdl(self, enable: bool,
+                              step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables writing the CDL file.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_cdl", enable, step=step, index=index)
+
+    def set_openroad_writespef(self, enable: bool,
+                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables writing the SPEF file.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_spef", enable, step=step, index=index)
+
+    def set_openroad_writeliberty(self, enable: bool,
+                                  step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables writing the Liberty timing model.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_liberty", enable, step=step, index=index)
+
+    def set_openroad_writesdf(self, enable: bool,
+                              step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables writing the SDF timing model.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_sdf", enable, step=step, index=index)
+
     def task(self):
         return "write_data"
 
@@ -65,6 +141,7 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         # Setup outputs
         self.add_output_file(ext="lef")
+        self.add_output_file(ext="lvs.vg")
 
         if self.get("var", "write_cdl"):
             self.add_output_file(ext="cdl")

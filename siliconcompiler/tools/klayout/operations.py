@@ -1,3 +1,4 @@
+from typing import Optional, List, Tuple
 from siliconcompiler.tools.klayout import KLayoutTask
 
 
@@ -14,6 +15,45 @@ class OperationsTask(KLayoutTask):
                            "Extension to use for stream generation", defvalue="gds")
         self.add_parameter("timestamps", "bool",
                            "Export GDSII with timestamps", defvalue=True)
+
+    def set_klayout_operations(self, operations: List[Tuple[str, str]],
+                               step: Optional[str] = None,
+                               index: Optional[str] = None):
+        """
+        Sets the list of operations to perform.
+
+        Args:
+            operations (List[Tuple[str, str]]): The list of operations.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "operations", operations, step=step, index=index)
+
+    def set_klayout_stream(self, stream: str,
+                           step: Optional[str] = None,
+                           index: Optional[str] = None):
+        """
+        Sets the stream format for generation.
+
+        Args:
+            stream (str): The stream format to use.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "stream", stream, step=step, index=index)
+
+    def set_klayout_timestamps(self, enable: bool,
+                               step: Optional[str] = None,
+                               index: Optional[str] = None):
+        """
+        Enables or disables exporting GDSII with timestamps.
+
+        Args:
+            enable (bool): Whether to enable timestamps.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "timestamps", enable, step=step, index=index)
 
     def task(self):
         return "operations"

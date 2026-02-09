@@ -250,7 +250,7 @@ def test_get_dataroot():
 
 def test_get_dataroot_not_found():
     schema = PathSchema()
-    with pytest.raises(ValueError, match="^testsource is not a recognized source$"):
+    with pytest.raises(ValueError, match=r"^testsource is not a recognized source$"):
         schema.get_dataroot("testsource")
 
 
@@ -324,11 +324,13 @@ def test_check_filepaths_not_found_logger(caplog):
 
     assert schema.set("directory", "test0")
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    schema.logger = logger
+    with patch("logging.Logger.getChild") as child_logger:
+        logger = logging.getLogger()
+        child_logger.return_value = logger
+        logger.setLevel(logging.INFO)
 
-    assert schema.check_filepaths() is False
+        assert schema.check_filepaths() is False
+    child_logger.assert_called()
     assert "Parameter [directory] path test0 is invalid" in caplog.text
 
 
@@ -392,7 +394,7 @@ def test_active_dataroot_missing():
     schema = PathSchema()
 
     assert schema._get_active(None) is None
-    with pytest.raises(ValueError, match="^testpack is not a recognized dataroot$"):
+    with pytest.raises(ValueError, match=r"^testpack is not a recognized dataroot$"):
         with schema.active_dataroot("testpack"):
             pass
     assert schema._get_active(None) is None
@@ -403,7 +405,7 @@ def test_active_dataroot_no_root():
     EditableSchema(schema).remove("dataroot")
 
     assert schema._get_active(None) is None
-    with pytest.raises(ValueError, match="^testpack is not a recognized dataroot$"):
+    with pytest.raises(ValueError, match=r"^testpack is not a recognized dataroot$"):
         with schema.active_dataroot("testpack"):
             pass
     assert schema._get_active(None) is None
@@ -644,8 +646,8 @@ def test_get_active_dataroot_multiple_defined():
     schema.set_dataroot("defined1", "file://")
 
     with pytest.raises(ValueError,
-                       match="^dataroot must be specified, multiple are defined: "
-                             "defined0, defined1$"):
+                       match=r"^dataroot must be specified, multiple are defined: "
+                             r"defined0, defined1$"):
         schema._get_active_dataroot(None)
 
 

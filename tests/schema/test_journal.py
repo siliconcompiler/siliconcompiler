@@ -320,7 +320,7 @@ def test_replay_invalid_schema_type():
     assert "remove" in journal.get_types()
     journal.record("remove", ["test0", "test1"])
 
-    with pytest.raises(TypeError, match="^schema must be a BaseSchema, not "
+    with pytest.raises(TypeError, match=r"^schema must be a BaseSchema, not "
                        "<class 'siliconcompiler.schema.parameter.Parameter'>$"):
         journal.replay(Parameter("str"))
 
@@ -385,7 +385,7 @@ def test_replay_invalid_type():
         "index": None
     }]
 
-    with pytest.raises(ValueError, match="^Unknown record type notanoption$"):
+    with pytest.raises(ValueError, match=r"^Unknown record type notanoption$"):
         journal.replay(BaseSchema())
 
 
@@ -394,7 +394,7 @@ def test_replay_empty():
 
 
 def test_add_invalid_type():
-    with pytest.raises(ValueError, match="^invalid is not a valid type$"):
+    with pytest.raises(ValueError, match=r"^invalid is not a valid type$"):
         Journal().add_type("invalid")
 
 

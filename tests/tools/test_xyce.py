@@ -38,3 +38,12 @@ def test_xyce_version(gcd_design):
     with node.runtime():
         assert node.setup() is True
         assert node.task.check_exe_version(node.task.get_exe_version()) is True
+
+
+def test_xdm_parameter_rename():
+    task = convert.ConvertTask()
+    task.set_xdm_rename(False)
+    assert task.get("var", "rename") is False
+    task.set_xdm_rename(True, step='convert', index='1')
+    assert task.get("var", "rename", step='convert', index='1') is True
+    assert task.get("var", "rename") is False

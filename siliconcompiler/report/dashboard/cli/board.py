@@ -609,7 +609,7 @@ class Board:
         if layout.log_height == 0:
             return None
 
-        table = Table(box=None)
+        table = Table(box=None, width=layout.width)
         table.add_column(overflow="ellipsis", no_wrap=True, vertical="bottom")
         table.show_edge = False
         table.show_lines = False
