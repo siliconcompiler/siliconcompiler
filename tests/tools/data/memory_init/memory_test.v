@@ -5,8 +5,8 @@ module memory_test (
     output reg [7:0] data_mem
 );
 
-    reg [7:0] rom_hex [0:15];
-    reg [7:0] rom_mem [0:15];
+    reg [7:0] rom_hex [16];
+    reg [7:0] rom_mem [16];
 
     initial begin
         $readmemh("init.hex", rom_hex);
