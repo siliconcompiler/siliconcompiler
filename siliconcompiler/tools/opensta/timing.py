@@ -282,11 +282,16 @@ class TimingTask(TimingTaskBase):
                         self.get_files_from_input_nodes():
                     self.add_input_file(ext=f"{scenario.get('pexcorner')}.sdf")
 
-        if self.project.get("write_sdf"):
-            self.add_output_file(ext="sdf")
+        self.add_required_key("var", "write_sdf")
+        self.add_required_key("var", "write_liberty")
 
-        if self.project.get("write_liberty"):
-            self.add_output_file(ext="lib")
+        if self.get("var", "write_sdf"):
+            for corner in self.project.getkeys('constraint', 'timing', 'scenario'):
+                self.add_output_file(ext=f"{corner}.sdf")
+
+        if self.get("var", "write_liberty"):
+            for corner in self.project.getkeys('constraint', 'timing', 'scenario'):
+                self.add_output_file(ext=f"{corner}.lib")
 
 
 class FPGATimingTask(TimingTaskBase):
