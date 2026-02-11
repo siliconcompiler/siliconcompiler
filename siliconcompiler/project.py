@@ -25,7 +25,7 @@ from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
-from siliconcompiler.scheduler import Scheduler, SCRuntimeError
+from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode
 from siliconcompiler.utils.logging import get_stream_handler
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -516,8 +516,14 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             breakpoints = set()
             flow = self.get("flowgraph", self.get("option", "flow"), field="schema")
             for step, index in flow.get_nodes():
-                if self.get("option", "breakpoint", step=step, index=index):
-                    breakpoints.add((step, index))
+                try:
+                    node = SchedulerNode(self, step, index)
+                    with node.runtime():
+                        if node.task.has_breakpoint():
+                            breakpoints.add((step, index))
+                except:  # noqa: E722
+                    if self.get("option", "breakpoint", step=step, index=index):
+                        breakpoints.add((step, index))
             if breakpoints and self.__dashboard.is_running():
                 breakpoints = sorted(breakpoints)
                 self.logger.info("Disabling dashboard due to breakpoints at: "
@@ -1266,6 +1272,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.unset("option", "to")
         proj.unset("option", "prune")
         proj.unset("option", "from")
+        if not proj.option.get_nodashboard():
+            proj.option.set_nodashboard(not screenshot)
 
         jobname = f"_{task.task()}_{sc_jobname}_{sc_step}_{sc_index}_{task.tool()}"
         proj.set("option", "jobname", jobname)

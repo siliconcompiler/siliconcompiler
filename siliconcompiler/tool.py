@@ -2330,6 +2330,10 @@ class ShowTask(Task):
         vars["sc_do_screenshot"] = "false"
         return vars
 
+    def has_breakpoint(self):
+        # Show is like a breakpoint
+        return True
+
 
 class ScreenshotTask(ShowTask):
     """
@@ -2360,6 +2364,10 @@ class ScreenshotTask(ShowTask):
         vars = super().get_tcl_variables(manifest)
         vars["sc_do_screenshot"] = "true"
         return vars
+
+    def has_breakpoint(self):
+        # Use task level breakpoint information
+        return Task.has_breakpoint(self)
 
 
 def schema_task(schema):
