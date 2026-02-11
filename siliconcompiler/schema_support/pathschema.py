@@ -259,16 +259,16 @@ class PathSchema(PathSchemaBase):
                     retrieved or accessed.
                     Allowed roots:
 
-                    * /path/on/network/drive
-                    * file:///path/on/network/drive
-                    * git+https://github.com/xyz/xyz
-                    * git://github.com/xyz/xyz
-                    * git+ssh://github.com/xyz/xyz
-                    * ssh://github.com/xyz/xyz
-                    * https://github.com/xyz/xyz/archive
-                    * https://zeroasic.com/xyz.tar.gz
-                    * github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz
-                    * python://siliconcompiler
+                    * ``/path/on/network/drive``
+                    * ``file:///path/on/network/drive``
+                    * ``git+https://github.com/xyz/xyz``
+                    * ``git://github.com/xyz/xyz``
+                    * ``git+ssh://github.com/xyz/xyz``
+                    * ``ssh://github.com/xyz/xyz``
+                    * ``https://github.com/xyz/xyz/archive``
+                    * ``https://zeroasic.com/xyz.tar.gz``
+                    * ``github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz``
+                    * ``python://siliconcompiler``
                     """)))
 
         schema.insert(
