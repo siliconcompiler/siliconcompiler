@@ -1172,7 +1172,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         tool_cls = ScreenshotTask if screenshot else ShowTask
 
         sc_jobname = self.option.get_jobname()
-        sc_step, sc_index = None, None
+        sc_step, sc_index = self.get("arg", "step"), self.get("arg", "index")
 
         has_filename = filename is not None
         # Finding last layout if no argument specified
@@ -1191,17 +1191,28 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 for nodes in flow_obj.get_execution_order(reverse=True):
                     search_nodes.extend(nodes)
 
+            # Filter based on arg step/index if provided
+            if sc_step:
+                search_nodes = [node for node in search_nodes if node[0] == sc_step]
+                if sc_index:
+                    search_nodes = [node for node in search_nodes if node[1] == sc_index]
+
             exts = set()
             for cls in tool_cls.get_task(None):
                 try:
                     exts.update(cls().get_supported_show_extentions())
                 except NotImplementedError:
                     pass
+            # Sort extensions for consistent search order
+            exts = sorted(exts)
+
+            if extension:
+                if extension not in exts:
+                    self.logger.error(f"Extension '{extension}' not supported by registered showtools.")
+                    return None
+                exts = [extension]
 
             for ext in exts:
-                if extension and extension != ext:
-                    continue
-
                 for step, index in search_nodes:
                     filename = search_obj.find_result(ext,
                                                       step=step,
