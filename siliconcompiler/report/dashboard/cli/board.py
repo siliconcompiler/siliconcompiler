@@ -335,8 +335,7 @@ class Layout:
         if self.log_height < 0:
             self.log_height = 0
 
-        if self.width < self.job_board_v_limit:
-            self.job_board_show_log = False
+        self.job_board_show_log = self.width >= self.job_board_v_limit
 
 
 class Board:
