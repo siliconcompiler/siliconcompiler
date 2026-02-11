@@ -2623,7 +2623,7 @@ def test_task_write_task_manifest_with_invalid_dataroot(gcd_design):
 
     project.set_flow(flow)
 
-    NOPTask.find_task(project).set_dataroot("missing", os.path.abspath("dne"))
+    NOPTask.find_task(project).set_dataroot("missing", os.path.abspath("error"))
     NOPTask.find_task(project).set_refdir(".", dataroot="missing")
     NOPTask.find_task(project).set_script("log_script.tcl")
     NOPTask.find_task(project).set_exe("exe", format="json")
