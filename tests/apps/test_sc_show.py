@@ -73,11 +73,11 @@ def test_sc_show_design_only_screenshot(flags, monkeypatch, make_manifests, asic
 
 
 @pytest.mark.parametrize('flags', [
-    ['build/heartbeat/job0/route.detailed/0/outputs/heartbeat.def'],
-    ['build/heartbeat/job0/route.detailed/0/outputs/heartbeat.def'],
-    ['build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds'],
-    ['build/heartbeat/job0/write.gds/0/inputs/heartbeat.def',
-     '-cfg', 'build/heartbeat/job0/write.gds/0/outputs/heartbeat.pkg.json']
+    ['build/gcd/job0/route.detailed/0/outputs/gcd.def'],
+    ['build/gcd/job0/route.detailed/0/outputs/gcd.def'],
+    ['build/gcd/job0/write.gds/0/outputs/gcd.gds'],
+    ['build/gcd/job0/write.gds/0/inputs/gcd.def',
+     '-cfg', 'build/gcd/job0/write.gds/0/outputs/gcd.pkg.json']
 ])
 def test_sc_show(flags, monkeypatch, make_manifests, asic_gcd):
     '''Test sc-show app on a few sets of flags.'''
@@ -88,6 +88,15 @@ def test_sc_show(flags, monkeypatch, make_manifests, asic_gcd):
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
         show.assert_called_once_with(flags[0], extension=None, screenshot=False)
+
+
+def test_sc_show_double_flags(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app on a few sets of flags.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', 'build/gcd/job0/write.gds/0/outputs/gcd.pkg.json',
+                                     '-cfg', 'build/gcd/job0/write.gds/0/outputs/gcd.pkg.json'])
+    assert sc_show.main() == 1
 
 
 @pytest.mark.parametrize('flags', [
