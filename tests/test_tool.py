@@ -1803,36 +1803,36 @@ def test_has_breakpoint(running_node):
 
 
 def test_search_path_resolution_not_special(running_node):
-    assert running_node.task._find_files_search_paths("otherkey", "step", "index") == []
+    assert running_node.task._find_files_search_paths("otherkey", "step", "index", False) == []
 
 
 def test_search_path_resolution_script_no_ref(running_node):
-    assert running_node.task._find_files_search_paths("script", "step", "index") == []
+    assert running_node.task._find_files_search_paths("script", "step", "index", False) == []
 
 
 def test_search_path_resolution_script_with_ref(running_node):
     running_node.task.set("refdir", "refdir")
     os.makedirs("refdir", exist_ok=True)
 
-    assert running_node.task._find_files_search_paths("script", "step", "index") == [
+    assert running_node.task._find_files_search_paths("script", "step", "index", False) == [
         os.path.abspath("refdir")
     ]
 
 
 def test_search_path_resolution_input(running_node):
-    assert running_node.task._find_files_search_paths("input", "step", "index") == [
+    assert running_node.task._find_files_search_paths("input", "step", "index", False) == [
         os.path.abspath("build/testdesign/job0/step/index/inputs")
     ]
 
 
 def test_search_path_resolution_report(running_node):
-    assert running_node.task._find_files_search_paths("report", "step", "index") == [
+    assert running_node.task._find_files_search_paths("report", "step", "index", False) == [
         os.path.abspath("build/testdesign/job0/step/index/reports")
     ]
 
 
 def test_search_path_resolution_output(running_node):
-    assert running_node.task._find_files_search_paths("output", "step", "index") == [
+    assert running_node.task._find_files_search_paths("output", "step", "index", False) == [
         os.path.abspath("build/testdesign/job0/step/index/outputs")
     ]
 
@@ -2610,3 +2610,26 @@ def test_task_py_logging_output_tologger(gcd_design):
     assert re.match(r"^\| INFO .* \| INFO_MESSAGE$", content.splitlines()[-4])
     assert re.match(r"^\| WARNING .* \| WARNING_MESSAGE$", content.splitlines()[-3])
     assert re.match(r"^\| ERROR .* \| ERROR_MESSAGE$", content.splitlines()[-2])
+
+
+def test_task_write_task_manifest_with_invalid_dataroot(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', NOPTask())
+
+    project.set_flow(flow)
+
+    NOPTask.find_task(project).set_dataroot("missing", os.path.abspath("dne"))
+    NOPTask.find_task(project).set_refdir(".", dataroot="missing")
+    NOPTask.find_task(project).set_script("log_script.tcl")
+    NOPTask.find_task(project).set_exe("exe", format="json")
+
+    node = SchedulerNode(project, "step", "0")
+    with node.task.runtime(node) as runtool:
+        runtool.write_task_manifest(".")
+
+    assert os.path.isfile("sc_manifest.json")

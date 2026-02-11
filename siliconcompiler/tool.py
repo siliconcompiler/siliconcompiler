@@ -1905,10 +1905,13 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
     def _find_files_search_paths(self, key: str,
                                  step: Optional[str],
-                                 index: Optional[Union[int, str]]) -> List[str]:
-        search_paths = super()._find_files_search_paths(key, step, index)
+                                 index: Optional[Union[int, str]],
+                                 missing_ok: bool) -> List[str]:
+        search_paths = super()._find_files_search_paths(key, step, index, missing_ok)
         if key == "script":
-            search_paths.extend(self.find_files("refdir", step=step, index=index))
+            for refdir in self.find_files("refdir", step=step, index=index, missing_ok=missing_ok):
+                if refdir is not None:
+                    search_paths.append(refdir)
         elif key == "input":
             search_paths.append(os.path.join(
                 paths.workdir(self._parent(root=True), step=step, index=index), "inputs"))
