@@ -94,7 +94,8 @@ def test_sc_show_double_flags(monkeypatch, make_manifests, asic_gcd):
     '''Test sc-show app on a few sets of flags.'''
     make_manifests(asic_gcd)
 
-    monkeypatch.setattr('sys.argv', ['sc-show', 'build/gcd/job0/write.gds/0/outputs/gcd.pkg.json', '-cfg', 'build/gcd/job0/write.gds/0/outputs/gcd.pkg.json'])
+    monkeypatch.setattr('sys.argv', ['sc-show', 'build/gcd/job0/write.gds/0/outputs/gcd.pkg.json',
+                                     '-cfg', 'build/gcd/job0/write.gds/0/outputs/gcd.pkg.json'])
     assert sc_show.main() == 1
 
 

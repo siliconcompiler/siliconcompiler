@@ -1208,7 +1208,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
             if extension:
                 if extension not in exts:
-                    self.logger.error(f"Extension '{extension}' not supported by registered showtools.")
+                    self.logger.error(f"Extension '{extension}' not supported by "
+                                      f"registered showtools: {', '.join(exts)}")
                     return None
                 exts = [extension]
 
