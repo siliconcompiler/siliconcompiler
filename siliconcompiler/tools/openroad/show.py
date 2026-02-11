@@ -77,7 +77,7 @@ class ShowTask(ShowTask, APRTask, OpenROADSTAParameter):
         options = super().runtime_options()
         try:
             options.remove("-exit")
-        except KeyError:
+        except ValueError:
             pass
         options.append("-gui")
         return options
