@@ -882,7 +882,8 @@ class BaseSchema:
 
     def _find_files_search_paths(self, key: str,
                                  step: Optional[str],
-                                 index: Optional[Union[int, str]]) -> List[str]:
+                                 index: Optional[Union[int, str]],
+                                 missing_ok: bool) -> List[str]:
         """
         Returns a list of paths to search during find files.
 
@@ -890,6 +891,7 @@ class BaseSchema:
             key (str): final component of keypath
             step (str): Step name.
             index (str): Index name.
+            missing_ok (bool): If True, silently return empty list when files are not found.
         """
         return []
 
@@ -1027,7 +1029,9 @@ class BaseSchema:
             dataroots = base_schema._find_files_dataroot_resolvers()
 
         resolved_paths = []
-        root_search_paths = base_schema._find_files_search_paths(keypath[-1], step, index)
+        root_search_paths = base_schema._find_files_search_paths(keypath[-1],
+                                                                 step, index,
+                                                                 missing_ok)
         for path in paths:
             search_paths = root_search_paths.copy()
 

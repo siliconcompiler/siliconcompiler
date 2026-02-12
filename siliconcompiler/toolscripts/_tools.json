@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "9909fea941eecf2785de39de0912647c269a0149",
+    "git-commit": "45ec48c3f900e9f36c8d9a2a714433f22618f670",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -17,7 +17,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "cde32a15722b5d63736c5c448167cce605f37547",
+    "git-commit": "506914e0a1727c7272e486196ea58b0ac53ff7fe",
     "auto-update": true
   },
   "netgen": {
@@ -41,7 +41,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.30.5",
+    "version": "0.30.6",
     "git-url": "https://github.com/KLayout/klayout.git",
     "auto-update": true,
     "run-version": "source version.sh && echo $KLAYOUT_VERSION",
@@ -145,7 +145,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "16826dd6babadb8ab88a8d138e7586bd76a98fbf",
+    "git-commit": "446240c31e2b4aa33334d3c568c5729a9e3ff9e7",
     "docker-depends": "yosys",
     "auto-update": true
   },

@@ -35,7 +35,7 @@ def generate_summary_image(project, output_path, info):
     # near-white
     TEXT_COLOR = (224, 224, 224)
 
-    original_layout = Image.open(img_path)
+    original_layout = Image.open(img_path, formats=('PNG', 'JPEG'))
     orig_width, orig_height = original_layout.size
 
     aspect_ratio = orig_height / orig_width
@@ -88,4 +88,4 @@ def generate_summary_image(project, output_path, info):
 
 
 def _open_summary_image(image):
-    Image.open(image).show()
+    Image.open(image, formats=('PNG', 'JPEG')).show()
