@@ -351,7 +351,7 @@ def test_json_constraints_load_and_map(tmp_path):
 
     # missing entry in map should increment errors
     bad_json = {'pinX': {'pin': 'missing_pin', 'direction': 'input'}}
-    dc, errs = jcon.map_constraints(logger, bad_json, loaded_map)
+    _, errs = jcon.map_constraints(logger, bad_json, loaded_map)
     assert errs == 1
 
 
