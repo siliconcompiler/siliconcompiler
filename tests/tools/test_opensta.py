@@ -110,3 +110,21 @@ def test_opensta_parameter_timing_mode():
     task.set_opensta_timingmode('max', step='timing', index='1')
     assert task.get("var", "timing_mode", step='timing', index='1') == 'max'
     assert task.get("var", "timing_mode") == 'min'
+
+
+def test_opensta_parameter_write_sdf():
+    task = timing.TimingTask()
+    task.set_opensta_writesdf(True)
+    assert task.get("var", "write_sdf") is True
+    task.set_opensta_writesdf(False, step='timing', index='1')
+    assert task.get("var", "write_sdf", step='timing', index='1') is False
+    assert task.get("var", "write_sdf") is True
+
+
+def test_opensta_parameter_write_liberty():
+    task = timing.TimingTask()
+    task.set_opensta_writeliberty(True)
+    assert task.get("var", "write_liberty") is True
+    task.set_opensta_writeliberty(False, step='timing', index='1')
+    assert task.get("var", "write_liberty", step='timing', index='1') is False
+    assert task.get("var", "write_liberty") is True

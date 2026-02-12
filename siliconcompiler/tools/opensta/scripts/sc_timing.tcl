@@ -195,22 +195,28 @@ if { $opensta_timing_mode == "asic" } {
 }
 
 ###############################
-# Write SDF, Liberty if requested
+# Write SDF
 ###############################
 
-foreach corner $sc_scenarios {
-    if { [sc_cfg_tool_task_get var write_liberty] } {
-        puts "Writing liberty model for $corner"
-        write_timing_model -library_name "${sc_topmodule}_${corner}" \
-            -corner $corner \
-            "outputs/${sc_topmodule}.${corner}.lib"
-    }
-
-    if { [sc_cfg_tool_task_get var write_sdf] } {
+if { [sc_cfg_tool_task_get var write_sdf] } {
+    foreach corner $sc_scenarios {
         puts "Writing SDF for $corner"
         write_sdf -corner $corner \
             -include_typ \
             "outputs/${sc_topmodule}.${corner}.sdf"
+    }
+}
+
+###############################
+# Write Liberty
+###############################
+
+if { [sc_cfg_tool_task_get var write_liberty] } {
+    foreach corner $sc_scenarios {
+        puts "Writing liberty model for $corner"
+        write_timing_model -library_name "${sc_topmodule}_${corner}" \
+            -corner $corner \
+            "outputs/${sc_topmodule}.${corner}.lib"
     }
 }
 
