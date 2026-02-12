@@ -2,6 +2,8 @@ import pytest
 
 import os.path
 
+import xml.etree.ElementTree as ET
+
 from siliconcompiler import FPGA, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.vpr.place import PlaceTask
@@ -303,3 +305,85 @@ def test_vpr_parameter_timing_corner():
     task.set_vpr_timingcorner('slow', step='route', index='1')
     assert task.get("var", "timing_corner", step='route', index='1') == 'slow'
     assert task.get("var", "timing_corner") == 'fast'
+
+
+def test_json_constraints_load_and_map(tmp_path):
+    from siliconcompiler.tools.vpr import _json_constraint as jcon
+
+    # create json constraints file
+    json_constraints = {
+        'pinA': {'pin': 'core_pin', 'direction': 'input'},
+        'pinB': {'pin': 'core_out', 'direction': 'output'}
+    }
+    json_file = tmp_path / 'constraints.json'
+    json_file.write_text(__import__('json').dumps(json_constraints))
+
+    loaded = jcon.load_json_constraints(str(json_file))
+    assert loaded == json_constraints
+
+    # create constraints map
+    cmap = {
+        'core_pin': {'x': 1, 'y': 2, 'subtile': 0, 'block_type': 7},
+        'core_out': {'x': 3, 'y': 4, 'subtile': 1, 'block_type': 9}
+    }
+    map_file = tmp_path / 'map.json'
+    map_file.write_text(__import__('json').dumps(cmap))
+
+    loaded_map = jcon.load_constraints_map(str(map_file))
+    assert loaded_map == cmap
+
+    class DummyLogger:
+        def __init__(self):
+            self.errors = []
+
+        def error(self, msg):
+            self.errors.append(msg)
+
+    logger = DummyLogger()
+
+    design_constraints, errors = jcon.map_constraints(logger, loaded, loaded_map)
+    # input pin maps to tuple
+    assert design_constraints['pinA'] == (1, 2, 0, 7)
+    # output pin gets prefixed
+    assert design_constraints['out:pinB'] == (3, 4, 1, 9)
+    assert errors == 0
+
+    # missing entry in map should increment errors
+    bad_json = {'pinX': {'pin': 'missing_pin', 'direction': 'input'}}
+    dc, errs = jcon.map_constraints(logger, bad_json, loaded_map)
+    assert errs == 1
+
+
+def test_xml_constraint_helpers(tmp_path):
+    from siliconcompiler.tools.vpr import _xml_constraint as xcon
+    # test region parsing
+    region = ('5', '6', '2', '11')
+    x_low, x_high, y_low, y_high, subtile, block_type = xcon.generate_region_from_pin(region)
+    assert (x_low, x_high, y_low, y_high, subtile, block_type) == (5, 5, 6, 6, 2, 11)
+
+    # partition name
+    pname = xcon.generate_partition_name('pin[0]')
+    assert 'part_pin_0' in pname
+
+    # add atom
+    atom = xcon.generate_add_atom_xml('pinA')
+    assert atom.tag == 'add_atom'
+    assert atom.get('name_pattern') == 'pinA'
+
+    # add block type
+    btype = xcon.generate_add_block_type_xml('myblock')
+    assert btype.tag == 'add_logical_block'
+    assert btype.get('name_pattern') == 'myblock'
+
+    # add region (call directly with expected args)
+    region_xml = xcon.generate_add_region_xml(1, 1, 2, 2, 0)
+    assert region_xml.tag == 'add_region'
+    assert region_xml.get('x_low') == '1'
+    assert region_xml.get('y_low') == '2'
+    assert region_xml.get('subtile') == '0'
+
+    # write xml to file
+    root = ET.Element('vpr_constraints')
+    outfile = tmp_path / 'out.xml'
+    xcon.write_vpr_constraints_xml_file(root, str(outfile))
+    assert outfile.exists()
