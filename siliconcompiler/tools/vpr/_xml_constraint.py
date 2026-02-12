@@ -48,8 +48,9 @@ def generate_partition_xml(pin, pin_region):
 
     x_low, x_high, y_low, y_high, subtile, block_type = generate_region_from_pin(pin_region)
 
-    block_type_xml = generate_add_block_type_xml(block_type)
-    partition.append(block_type_xml)
+    if block_type:
+        block_type_xml = generate_add_block_type_xml(block_type)
+        partition.append(block_type_xml)
 
     region_xml = generate_add_region_xml(x_low, x_high, y_low, y_high, subtile)
     partition.append(region_xml)
@@ -61,7 +62,7 @@ def generate_add_block_type_xml(block_name):
 
     block_type_xml = ElementTree.Element("add_logical_block")
 
-    block_type_xml.set("name_pattern", block_name)
+    block_type_xml.set("name_pattern", str(block_name))
 
     return block_type_xml
 
