@@ -179,7 +179,7 @@ def setup_page():
     """
     streamlit.set_page_config(
         page_title=f'{state.get_project().design.name} dashboard',
-        page_icon=Image.open(SC_LOGO_PATH),
+        page_icon=Image.open(SC_LOGO_PATH, formats=('PNG',)),
         layout="wide",
         menu_items=SC_MENU)
 
