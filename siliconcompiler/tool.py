@@ -1297,6 +1297,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                        clobber: bool = False):
         """
         Add a required input file from the previous step in the flow.
+
         file and ext are mutually exclusive.
 
         Args:
@@ -1320,6 +1321,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                         clobber: bool = False):
         """
         Add an output file that this task will produce
+
         file and ext are mutually exclusive.
 
         Args:
