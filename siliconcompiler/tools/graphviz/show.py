@@ -56,6 +56,6 @@ class ShowTask(ShowTask):
         if ret:
             return ret
 
-        Image.open(f"outputs/{self.design_topmodule}.png").show()
+        Image.open(f"outputs/{self.design_topmodule}.png", formats=('PNG',)).show()
 
         return 0

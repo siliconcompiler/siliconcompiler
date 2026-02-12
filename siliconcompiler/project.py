@@ -25,7 +25,7 @@ from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
-from siliconcompiler.scheduler import Scheduler, SCRuntimeError
+from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode
 from siliconcompiler.utils.logging import get_stream_handler
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -516,8 +516,14 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             breakpoints = set()
             flow = self.get("flowgraph", self.get("option", "flow"), field="schema")
             for step, index in flow.get_nodes():
-                if self.get("option", "breakpoint", step=step, index=index):
-                    breakpoints.add((step, index))
+                try:
+                    node = SchedulerNode(self, step, index)
+                    with node.runtime():
+                        if node.task.has_breakpoint():
+                            breakpoints.add((step, index))
+                except:  # noqa: E722
+                    if self.get("option", "breakpoint", step=step, index=index):
+                        breakpoints.add((step, index))
             if breakpoints and self.__dashboard.is_running():
                 breakpoints = sorted(breakpoints)
                 self.logger.info("Disabling dashboard due to breakpoints at: "
@@ -1172,7 +1178,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         tool_cls = ScreenshotTask if screenshot else ShowTask
 
         sc_jobname = self.option.get_jobname()
-        sc_step, sc_index = None, None
+        sc_step, sc_index = self.get("arg", "step"), self.get("arg", "index")
 
         has_filename = filename is not None
         # Finding last layout if no argument specified
@@ -1191,17 +1197,29 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 for nodes in flow_obj.get_execution_order(reverse=True):
                     search_nodes.extend(nodes)
 
+            # Filter based on arg step/index if provided
+            if sc_step:
+                search_nodes = [node for node in search_nodes if node[0] == sc_step]
+                if sc_index:
+                    search_nodes = [node for node in search_nodes if node[1] == sc_index]
+
             exts = set()
             for cls in tool_cls.get_task(None):
                 try:
                     exts.update(cls().get_supported_show_extentions())
                 except NotImplementedError:
                     pass
+            # Sort extensions for consistent search order
+            exts = sorted(exts)
+
+            if extension:
+                if extension not in exts:
+                    self.logger.error(f"Extension '{extension}' not supported by "
+                                      f"registered showtools: {', '.join(exts)}")
+                    return None
+                exts = [extension]
 
             for ext in exts:
-                if extension and extension != ext:
-                    continue
-
                 for step, index in search_nodes:
                     filename = search_obj.find_result(ext,
                                                       step=step,
@@ -1254,6 +1272,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.unset("option", "to")
         proj.unset("option", "prune")
         proj.unset("option", "from")
+        if not proj.option.get_nodashboard():
+            proj.option.set_nodashboard(not screenshot)
 
         jobname = f"_{task.task()}_{sc_jobname}_{sc_step}_{sc_index}_{task.tool()}"
         proj.set("option", "jobname", jobname)

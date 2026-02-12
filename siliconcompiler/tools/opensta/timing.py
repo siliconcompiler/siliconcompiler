@@ -29,6 +29,11 @@ class TimingTaskBase(OpenSTATask):
                            defvalue="tools/_common/sdc/sc_constraints.sdc",
                            dataroot="siliconcompiler")
 
+        self.add_parameter("write_sdf", "bool", "if true will write sdf for every corner",
+                           defvalue=False)
+        self.add_parameter("write_liberty", "bool", "if true will write liberty for every corner",
+                           defvalue=False)
+
     def set_opensta_topnpaths(self, n: int,
                               step: Optional[str] = None,
                               index: Optional[str] = None):
@@ -67,6 +72,32 @@ class TimingTaskBase(OpenSTATask):
         """
         self.set("var", "timing_mode", mode, step=step, index=index)
 
+    def set_opensta_writesdf(self, enable: bool,
+                             step: Optional[str] = None,
+                             index: Optional[str] = None):
+        """
+        Enables or disables writing SDF files for every corner.
+
+        Args:
+            enable (bool): Whether to enable writing SDF files.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_sdf", enable, step=step, index=index)
+
+    def set_opensta_writeliberty(self, enable: bool,
+                                 step: Optional[str] = None,
+                                 index: Optional[str] = None):
+        """
+        Enables or disables writing liberty files for every corner.
+
+        Args:
+            enable (bool): Whether to enable writing liberty files.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_liberty", enable, step=step, index=index)
+
     def setup(self):
         super().setup()
 
@@ -82,6 +113,16 @@ class TimingTaskBase(OpenSTATask):
         self.add_required_key("var", "top_n_paths")
         self.add_required_key("var", "unique_path_groups_per_clock")
         self.add_required_key("var", "opensta_generic_sdc")
+
+        self.add_required_key("var", "write_sdf")
+        if self.get("var", "write_sdf"):
+            for corner in self.project.getkeys('constraint', 'timing', 'scenario'):
+                self.add_output_file(ext=f"{corner}.sdf")
+
+        self.add_required_key("var", "write_liberty")
+        if self.get("var", "write_liberty"):
+            for corner in self.project.getkeys('constraint', 'timing', 'scenario'):
+                self.add_output_file(ext=f"{corner}.lib")
 
     def post_process(self):
         super().post_process()

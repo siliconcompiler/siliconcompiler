@@ -32,6 +32,8 @@ if { [sc_design_has_placeable_ios] } {
     }
 
     estimate_parasitics -placement
+} else {
+    utl::info FLW 1 "No placeable IOs detected, skipping pin placement"
 }
 
 ###############################
