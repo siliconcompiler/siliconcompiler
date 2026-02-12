@@ -61,7 +61,7 @@ def generate_add_block_type_xml(block_name):
 
     block_type_xml = ElementTree.Element("add_logical_block")
 
-    block_type_xml.set("name_pattern", str(block_name))
+    block_type_xml.set("name_pattern", block_name)
 
     return block_type_xml
 
@@ -79,7 +79,7 @@ def generate_region_from_pin(pin_region):
     y_low = int(pin_region[1])
     y_high = int(pin_region[1])
     subtile = int(pin_region[2])
-    block_type = int(pin_region[3])
+    block_type = pin_region[3]
     return x_low, x_high, y_low, y_high, subtile, block_type
 
 
