@@ -1,3 +1,4 @@
+import json
 import pytest
 
 import os.path
@@ -316,7 +317,7 @@ def test_json_constraints_load_and_map(tmp_path):
         'pinB': {'pin': 'core_out', 'direction': 'output'}
     }
     json_file = tmp_path / 'constraints.json'
-    json_file.write_text(__import__('json').dumps(json_constraints))
+    json_file.write_text(json.dumps(json_constraints))
 
     loaded = jcon.load_json_constraints(str(json_file))
     assert loaded == json_constraints
@@ -327,7 +328,7 @@ def test_json_constraints_load_and_map(tmp_path):
         'core_out': {'x': 3, 'y': 4, 'subtile': 1, 'block_type': 9}
     }
     map_file = tmp_path / 'map.json'
-    map_file.write_text(__import__('json').dumps(cmap))
+    map_file.write_text(json.dumps(cmap))
 
     loaded_map = jcon.load_constraints_map(str(map_file))
     assert loaded_map == cmap
