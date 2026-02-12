@@ -128,3 +128,38 @@ def test_opensta_parameter_write_liberty():
     task.set_opensta_writeliberty(False, step='timing', index='1')
     assert task.get("var", "write_liberty", step='timing', index='1') is False
     assert task.get("var", "write_liberty") is True
+
+
+def test_timing_write_sdf_and_liberty():
+    """Test that both write_sdf and write_liberty can be enabled together."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("test")
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    # Create flow with timing task
+    flow = Flowgraph("test_flow")
+    flow.node("timing", timing.TimingTask())
+    proj.set_flow(flow)
+
+    # Create a scenario
+    scenario = proj.constraint.timing.make_scenario("testcorner")
+    scenario.add_libcorner(["typical", "generic"])
+    scenario.set_pexcorner("typical")
+
+    # Enable both
+    task = timing.TimingTask.find_task(proj)
+    task.set("var", "write_sdf", True, step="timing", index="0")
+    task.set("var", "write_liberty", True, step="timing", index="0")
+
+    node = SchedulerNode(proj, step='timing', index='0')
+    with node.runtime():
+        node.setup()
+
+        # Verify both file types are added
+        outputs = node.task.get("output")
+        assert "test.testcorner.sdf" in outputs, f"Expected testcorner.sdf in {outputs}"
+        assert "test.testcorner.lib" in outputs, f"Expected testcorner.lib in {outputs}"
