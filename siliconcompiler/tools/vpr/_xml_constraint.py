@@ -51,7 +51,7 @@ def generate_partition_xml(pin, pin_region):
     block_type_xml = generate_add_block_type_xml(block_type)
     partition.append(block_type_xml)
 
-    region_xml = generate_add_region_xml(x_low, x_high, y_low, y_high, subtile, block_type)
+    region_xml = generate_add_region_xml(x_low, x_high, y_low, y_high, subtile)
     partition.append(region_xml)
 
     return partition
@@ -110,7 +110,6 @@ def generate_add_region_xml(x_low, x_high, y_low, y_high, subtile):
     region_xml.set("y_low", str(y_low))
     region_xml.set("x_high", str(x_high))
     region_xml.set("y_high", str(y_high))
-    region_xml.set("subtile", str(subtile))
     region_xml.set("subtile", str(subtile))
 
     return region_xml
