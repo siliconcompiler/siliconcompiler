@@ -17,8 +17,10 @@ RUN echo "APT::Install-Suggests \"false\";" >> /etc/apt/apt.conf
 RUN TZ=Etc/UTC \
     apt-get update && \
     apt-get install -y tzdata && \
-    apt-get clean
-RUN apt-get install -y sudo \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y sudo \
                        git \
                        python3 python3-pip python3-venv && \
     apt-get clean && \
