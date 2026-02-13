@@ -49,11 +49,17 @@ def map_constraints(logger,
 
             if (design_pin_assignment in constraints_map):
                 # Convert the dictionary entries in the constraints map into a tuple:
-                design_pin_constraint_assignment = (
-                    constraints_map[design_pin_assignment]['x'],
-                    constraints_map[design_pin_assignment]['y'],
-                    constraints_map[design_pin_assignment]['subtile'],
-                    constraints_map[design_pin_assignment]['block_type'])
+                if ('block_type' in constraints_map[design_pin_assignment]):
+                    design_pin_constraint_assignment = (
+                        constraints_map[design_pin_assignment]['x'],
+                        constraints_map[design_pin_assignment]['y'],
+                        constraints_map[design_pin_assignment]['subtile'],
+                        constraints_map[design_pin_assignment]['block_type'])
+                else:
+                     design_pin_constraint_assignment = (
+                         constraints_map[design_pin_assignment]['x'],
+                         constraints_map[design_pin_assignment]['y'],
+                         constraints_map[design_pin_assignment]['subtile'])
 
                 design_constraints[named_design_pin] = design_pin_constraint_assignment
 
