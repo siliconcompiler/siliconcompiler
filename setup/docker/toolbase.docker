@@ -14,9 +14,8 @@ RUN echo "APT::Install-Suggests \"false\";" >> /etc/apt/apt.conf
 
 # Since scripts are written to run locally,
 # we need to install sudo
-RUN TZ=Etc/UTC \
-    apt-get update && \
-    apt-get install -y tzdata && \
+RUN apt-get update && \
+    TZ=Etc/UTC apt-get install -y tzdata && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 RUN apt-get update && \
