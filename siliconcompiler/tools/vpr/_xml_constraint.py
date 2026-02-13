@@ -70,8 +70,7 @@ def generate_add_block_type_xml(block_name):
 def generate_region_from_pin(pin_region):
 
     # ***ASSUMPTION:  Pin region is a 4-element tuple
-    #                 containing (X,Y,subtile) coordinates
-    #                 and a block type
+    #                 containing (X,Y,subtile,block_type)
 
     # TODO figure out a scheme that supports VPR's notion
     # of specifying a region size of > 1x1
@@ -80,10 +79,7 @@ def generate_region_from_pin(pin_region):
     y_low = int(pin_region[1])
     y_high = int(pin_region[1])
     subtile = int(pin_region[2])
-    if (len(pin_region) < 4):
-        block_type = None
-    else:
-        block_type = pin_region[3]
+    block_type = pin_region[3]
     return x_low, x_high, y_low, y_high, subtile, block_type
 
 
