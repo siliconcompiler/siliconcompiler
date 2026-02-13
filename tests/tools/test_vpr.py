@@ -10,6 +10,8 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.vpr.place import PlaceTask
 from siliconcompiler.tools.vpr.route import RouteTask
 from siliconcompiler.tools.vpr import VPRFPGA
+from siliconcompiler.tools.vpr import _json_constraint as jcon
+from siliconcompiler.tools.vpr import _xml_constraint as xcon
 from siliconcompiler.tools.genfasm.bitstream import BitstreamTask
 
 from tools.inputimporter import ImporterTask
@@ -308,8 +310,11 @@ def test_vpr_parameter_timing_corner():
     assert task.get("var", "timing_corner") == 'fast'
 
 
+# Test that JSON pin constraints can be read, and that when used
+# with a constraints map they can produce "mapped constraints",
+# that is, output data that can be passed to the XML constraints
+# generator
 def test_json_constraints_load_and_map(tmp_path):
-    from siliconcompiler.tools.vpr import _json_constraint as jcon
 
     # create json constraints file
     json_constraints = {
@@ -324,8 +329,8 @@ def test_json_constraints_load_and_map(tmp_path):
 
     # create constraints map
     cmap = {
-        'core_pin': {'x': 1, 'y': 2, 'subtile': 0, 'block_type': 7},
-        'core_out': {'x': 3, 'y': 4, 'subtile': 1, 'block_type': 9}
+        'core_pin': {'x': 1, 'y': 2, 'subtile': 0, 'block_type': "clb"},
+        'core_out': {'x': 3, 'y': 4, 'subtile': 1, 'block_type': "iob"}
     }
     map_file = tmp_path / 'map.json'
     map_file.write_text(json.dumps(cmap))
@@ -344,19 +349,22 @@ def test_json_constraints_load_and_map(tmp_path):
 
     design_constraints, errors = jcon.map_constraints(logger, loaded, loaded_map)
     # input pin maps to tuple
-    assert design_constraints['pinA'] == (1, 2, 0, 7)
+    assert design_constraints['pinA'] == (1, 2, 0, "clb")
     # output pin gets prefixed
-    assert design_constraints['out:pinB'] == (3, 4, 1, 9)
+    assert design_constraints['out:pinB'] == (3, 4, 1, "iob")
     assert errors == 0
 
-    # missing entry in map should increment errors
+    # errors are flagged by map_constraints when input constraints
+    # to the mapper contain pin names that are not in the constraints
+    # map; validate that errors are in fact generated for that case
     bad_json = {'pinX': {'pin': 'missing_pin', 'direction': 'input'}}
     _, errs = jcon.map_constraints(logger, bad_json, loaded_map)
     assert errs == 1
 
 
+# Verify that each of the helper functions called by the XML constraints
+# generator produces valid output; i.e. passes/formats input data correctly
 def test_xml_constraint_helpers(tmp_path):
-    from siliconcompiler.tools.vpr import _xml_constraint as xcon
     # test region parsing
     region = ('5', '6', '2', 'clb')
     x_low, x_high, y_low, y_high, subtile, block_type = xcon.generate_region_from_pin(region)
