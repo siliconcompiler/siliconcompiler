@@ -358,9 +358,9 @@ def test_json_constraints_load_and_map(tmp_path):
 def test_xml_constraint_helpers(tmp_path):
     from siliconcompiler.tools.vpr import _xml_constraint as xcon
     # test region parsing
-    region = ('5', '6', '2', '11')
+    region = ('5', '6', '2', 'clb')
     x_low, x_high, y_low, y_high, subtile, block_type = xcon.generate_region_from_pin(region)
-    assert (x_low, x_high, y_low, y_high, subtile, block_type) == (5, 5, 6, 6, 2, 11)
+    assert (x_low, x_high, y_low, y_high, subtile, block_type) == (5, 5, 6, 6, 2, 'clb')
 
     # partition name
     pname = xcon.generate_partition_name('pin[0]')
