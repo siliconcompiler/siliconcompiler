@@ -80,7 +80,10 @@ def generate_region_from_pin(pin_region):
     y_low = int(pin_region[1])
     y_high = int(pin_region[1])
     subtile = int(pin_region[2])
-    block_type = pin_region[3]
+    if (len(pin_region) < 4):
+        block_type = None
+    else:
+        block_type = pin_region[3]
     return x_low, x_high, y_low, y_high, subtile, block_type
 
 
