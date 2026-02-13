@@ -46,17 +46,31 @@ def generate_partition_xml(pin, pin_region):
     atom_xml = generate_add_atom_xml(pin)
     partition.append(atom_xml)
 
-    x_low, x_high, y_low, y_high, subtile = generate_region_from_pin(pin_region)
+    x_low, x_high, y_low, y_high, subtile, block_type = generate_region_from_pin(pin_region)
+
+    if block_type:
+        block_type_xml = generate_add_block_type_xml(block_type)
+        partition.append(block_type_xml)
+
     region_xml = generate_add_region_xml(x_low, x_high, y_low, y_high, subtile)
     partition.append(region_xml)
 
     return partition
 
 
+def generate_add_block_type_xml(block_name):
+
+    block_type_xml = ElementTree.Element("add_logical_block")
+
+    block_type_xml.set("name_pattern", str(block_name))
+
+    return block_type_xml
+
+
 def generate_region_from_pin(pin_region):
 
-    # ***ASSUMPTION:  Pin region is a 3-element tuple
-    #                 containing (X,Y,subtile) coordinates
+    # ***ASSUMPTION:  Pin region is a 4-element tuple
+    #                 containing (X,Y,subtile,block_type)
 
     # TODO figure out a scheme that supports VPR's notion
     # of specifying a region size of > 1x1
@@ -65,7 +79,8 @@ def generate_region_from_pin(pin_region):
     y_low = int(pin_region[1])
     y_high = int(pin_region[1])
     subtile = int(pin_region[2])
-    return x_low, x_high, y_low, y_high, subtile
+    block_type = pin_region[3]
+    return x_low, x_high, y_low, y_high, subtile, block_type
 
 
 def generate_partition_name(pin):
