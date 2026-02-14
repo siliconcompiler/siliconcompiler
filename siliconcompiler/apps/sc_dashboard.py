@@ -96,7 +96,12 @@ To include another project object to compare to:
                 'cfg_path': os.path.abspath(file_path)
             })
 
-    dashboard = WebDashboard(project, port=cli.get("cmdarg", "port"), graph_projs=graph_projs)
+    try:
+        dashboard = WebDashboard(project, port=cli.get("cmdarg", "port"), graph_projs=graph_projs)
+    except NotImplementedError as e:
+        cli.logger.error(e)
+        return 1
+
     dashboard.open_dashboard()
     dashboard.wait()
 

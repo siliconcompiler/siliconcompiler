@@ -297,7 +297,7 @@ proc sc_image_clocktree { } {
     set_propagated_clock [all_clocks]
 
     file mkdir reports/images/clocks
-    foreach clock [get_clocks *] {
+    foreach clock [all_clocks] {
         if { [llength [get_property $clock sources]] == 0 } {
             # Skip virtual clocks
             continue
