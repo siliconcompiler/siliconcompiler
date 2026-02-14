@@ -47,10 +47,10 @@ def main():
 
     # --- Task-Specific Adjustments ---
     # Get the specific task that handles the VHDL conversion (ConvertTask).
-    # We then set a tool-specific option on it. The `set_usefsynopsys(True)`
+    # We then set a tool-specific option on it. The `set_ghdl_usefsynopsys(True)`
     # option tells GHDL to add a `use` clause for Synopsys libraries, which
     # helps ensure the generated Verilog is compatible with synthesis tools.
-    ConvertTask.find_task(project).set_usefsynopsys(True)
+    ConvertTask.find_task(project).set_ghdl_usefsynopsys(True)
 
     # --- Execution & Analysis ---
     # Run the complete flow. SC will first run GHDL to convert the VHDL
