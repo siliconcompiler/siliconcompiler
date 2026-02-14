@@ -14,13 +14,16 @@ RUN echo "APT::Install-Suggests \"false\";" >> /etc/apt/apt.conf
 
 # Since scripts are written to run locally,
 # we need to install sudo
-RUN apt-get update
-RUN TZ=Etc/UTC apt-get install -y tzdata && \
-    apt-get clean
-RUN apt-get install -y sudo \
+RUN apt-get update && \
+    TZ=Etc/UTC apt-get install -y tzdata && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y sudo \
                        git \
                        python3 python3-pip python3-venv && \
-    apt-get clean
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Ensure PREFIX is captured by sudo for "sudo make install"
 RUN echo "Defaults env_keep += \"PREFIX\"" >> /etc/sudoers

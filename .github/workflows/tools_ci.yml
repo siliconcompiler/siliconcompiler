@@ -200,11 +200,11 @@ jobs:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
-          tool-cache: false
+          tool-cache: true
           android: true
           dotnet: true
           haskell: true
-          large-packages: false
+          large-packages: true
           swap-storage: true
 
       - name: Log in to the Container registry
