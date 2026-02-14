@@ -693,6 +693,12 @@ class ASICSynthesis(_ASICTask, YosysTask):
         for param in design.getkeys("fileset", fileset, "param"):
             self.add_required_key(design, "fileset", fileset, "param", param)
 
+        # Add memory initialization files (.hex, .mem) if present
+        for filetype in ["hex", "mem"]:
+            filekeys = self.get_fileset_file_keys(filetype)
+            for lib, key in filekeys:
+                self.add_required_key(lib, *key)
+
         self.add_output_file(ext="vg", clobber=True)
         self.add_output_file(ext="netlist.json")
 
