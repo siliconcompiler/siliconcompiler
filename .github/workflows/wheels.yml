@@ -132,8 +132,9 @@ jobs:
         ${{ steps.python.outputs.python-path }} -m venv venv
         . venv/bin/activate
         python3 --version
+        python3 -m pip install --upgrade pip
         wheel=$(find dist -name "*.whl")
-        pip install "$wheel"[test]
+        python3 -m pip install "$wheel"[test]
 
     - name: Run pytest (non-windows)
       if: matrix.platform.os != 'windows-latest'
@@ -148,9 +149,10 @@ jobs:
         ${{ steps.python.outputs.python-path }} -m venv venv
         venv/Scripts/activate
         python3 --version
+        python3 -m pip install --upgrade pip
         $wheel = Get-ChildItem -Path  dist\*.whl | % { $_.FullName }
         $install = -join($wheel, "[test]")
-        pip install $install
+        python3 -m pip install $install
 
     - name: Run pytest (windows)
       if: matrix.platform.os == 'windows-latest'
