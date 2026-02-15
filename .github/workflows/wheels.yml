@@ -13,7 +13,7 @@ env:
   MACOSX_DEPLOYMENT_TARGET: "10.15"
 
 concurrency:
-  group: wheels-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -129,8 +129,8 @@ jobs:
     - name: Install SC (non-windows)
       if: matrix.platform.os != 'windows-latest'
       run: |
-        ${{ steps.python.outputs.python-path }} -m venv venv
-        . venv/bin/activate
+        ${{ steps.python.outputs.python-path }} -m venv .venv
+        . .venv/bin/activate
         python3 --version
         python3 -m pip install --upgrade pip
         wheel=$(find dist -name "*.whl")
@@ -139,15 +139,15 @@ jobs:
     - name: Run pytest (non-windows)
       if: matrix.platform.os != 'windows-latest'
       run: |
-        . venv/bin/activate
+        . .venv/bin/activate
         pytest sc/tests/ -m "not eda and not docker" -n logical
         # pytest sc/tests/utils/test_showtools.py -k "klayout" -n logical
 
     - name: Install SC (windows)
       if: matrix.platform.os == 'windows-latest'
       run: |
-        ${{ steps.python.outputs.python-path }} -m venv venv
-        venv/Scripts/activate
+        ${{ steps.python.outputs.python-path }} -m venv .venv
+        .venv/Scripts/activate
         python3 --version
         python3 -m pip install --upgrade pip
         $wheel = Get-ChildItem -Path  dist\*.whl | % { $_.FullName }
@@ -158,7 +158,7 @@ jobs:
       if: matrix.platform.os == 'windows-latest'
       run: |
         $ErrorActionPreference = "Stop"
-        venv/Scripts/activate
+        .venv/Scripts/activate
         pytest sc/tests/ -m "not eda and not docker" -n logical
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE

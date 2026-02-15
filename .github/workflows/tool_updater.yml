@@ -1,9 +1,9 @@
+name: 'Tool Updater'
+
 on:
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * *'
-
-name: 'Tool Updater'
 
 jobs:
   get_tools:
