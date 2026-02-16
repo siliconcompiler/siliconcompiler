@@ -235,7 +235,8 @@ def to_lef(gds_path: str, out_file: str, layers: Dict[str, Set[Tuple[int, int]]]
 
     with open(out_file, "w") as file:
         for top_cell in layout.top_cells():
-            if ignore_cells and any(fnmatch.fnmatch(top_cell.name, ignore) for ignore in ignore_cells):
+            if ignore_cells and any(fnmatch.fnmatch(top_cell.name, ignore)
+                                    for ignore in ignore_cells):
                 print(f"[INFO] Skipping cell '{top_cell.name}' as it matches ignore pattern")
                 continue
 
