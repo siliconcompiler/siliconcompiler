@@ -154,10 +154,10 @@ def cleanup_cell(cell: pya.Cell, layers: Dict[str, Set[Tuple[int, int]]], layer_
         shape_proc.boolean(
             layout,
             cell,
-            layout.layer(layer_number, datatype),
+            layer,
             layout,
             cell,
-            layout.layer(layer_number, datatype),
+            layer,
             output_shapes,
             pya.EdgeProcessor.ModeOr,
             True,
@@ -233,57 +233,55 @@ def to_lef(gds_path: str, out_file: str, layers: Dict[str, Set[Tuple[int, int]]]
     while layer_type in all_datatype:
         layer_type += 1
 
-    file = open(out_file, "w")
-    for top_cell in layout.top_cells():
-        if ignore_cells and any(fnmatch.fnmatch(top_cell.name, ignore) for ignore in ignore_cells):
-            print(f"[INFO] Skipping cell '{top_cell.name}' as it matches ignore pattern")
-            continue
+    with open(out_file, "w") as file:
+        for top_cell in layout.top_cells():
+            if ignore_cells and any(fnmatch.fnmatch(top_cell.name, ignore) for ignore in ignore_cells):
+                print(f"[INFO] Skipping cell '{top_cell.name}' as it matches ignore pattern")
+                continue
 
-        cleanup_cell(top_cell, layers, layer_type)
+            cleanup_cell(top_cell, layers, layer_type)
 
-        bbox = top_cell.dbbox()
-        origin_x = 0.0
-        origin_y = 0.0
-        if bbox.left != 0:
-            origin_x = -bbox.left
-        if bbox.bottom != 0:
-            origin_y = -bbox.bottom
+            bbox = top_cell.dbbox()
+            origin_x = 0.0
+            origin_y = 0.0
+            if bbox.left != 0:
+                origin_x = -bbox.left
+            if bbox.bottom != 0:
+                origin_y = -bbox.bottom
 
-        macroname = top_cell.name.split("$")[0]
+            macroname = top_cell.name.split("$")[0]
 
-        print("MACRO " + macroname, file=file)
-        print(f"  CLASS {class_name} ;", file=file)
-        print(f"  ORIGIN {origin_x:.4f} {origin_y:.4f} ;", file=file)
-        print(f"  FOREIGN {top_cell.name} {-origin_x:.4f} {-origin_y:.4f} ;", file=file)
-        print(f"  SIZE {bbox.width():.4f} BY {bbox.height():.4f} ;", file=file)
-        if not symmetry:
-            symmetry = ["X", "Y", "R90"]
-        print(f"  SYMMETRY {' '.join(symmetry)} ;", file=file)
-        if site:
-            print(f"  SITE {site} ;", file=file)
+            print("MACRO " + macroname, file=file)
+            print(f"  CLASS {class_name} ;", file=file)
+            print(f"  ORIGIN {origin_x:.4f} {origin_y:.4f} ;", file=file)
+            print(f"  FOREIGN {top_cell.name} {-origin_x:.4f} {-origin_y:.4f} ;", file=file)
+            print(f"  SIZE {bbox.width():.4f} BY {bbox.height():.4f} ;", file=file)
+            if not symmetry:
+                symmetry = ["X", "Y", "R90"]
+            print(f"  SYMMETRY {' '.join(symmetry)} ;", file=file)
+            if site:
+                print(f"  SITE {site} ;", file=file)
 
-        for pin_name, pin_data in get_pins(top_cell, layers).items():
-            print("  PIN " + pin_name, file=file)
-            print("    DIRECTION INOUT ;", file=file)
-            print("    USE SIGNAL ;", file=file)
-            for layer_name, pin_shapes in pin_data.items():
-                for shape in pin_shapes:
-                    print("    PORT", file=file)
-                    print("      LAYER " + layer_name + " ;", file=file)
-                    print_shape("      ", shape, file)
-                    print("    END", file=file)
-            print("  END " + pin_name, file=file)
+            for pin_name, pin_data in get_pins(top_cell, layers).items():
+                print("  PIN " + pin_name, file=file)
+                print("    DIRECTION INOUT ;", file=file)
+                print("    USE SIGNAL ;", file=file)
+                for layer_name, pin_shapes in pin_data.items():
+                    for shape in pin_shapes:
+                        print("    PORT", file=file)
+                        print("      LAYER " + layer_name + " ;", file=file)
+                        print_shape("      ", shape, file)
+                        print("    END", file=file)
+                print("  END " + pin_name, file=file)
 
-        print("  OBS", file=file)
-        for layer_name, osb_shapes in get_obs(top_cell, layers, datatype=layer_type).items():
-            print(f"    LAYER {layer_name} ;", file=file)
-            for obs in osb_shapes:
-                print_shape("      ", obs, file=file)
-        print("  END", file=file)
+            print("  OBS", file=file)
+            for layer_name, osb_shapes in get_obs(top_cell, layers, datatype=layer_type).items():
+                print(f"    LAYER {layer_name} ;", file=file)
+                for obs in osb_shapes:
+                    print_shape("      ", obs, file=file)
+            print("  END", file=file)
 
-        print(f"END {macroname}", file=file)
-
-    file.close()
+            print(f"END {macroname}", file=file)
 
 
 def main():
