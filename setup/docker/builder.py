@@ -391,6 +391,12 @@ if __name__ == '__main__':
 
     _registry = args.registry
     _tools_filter = args.include_tools
+    if _tools_filter:
+        all_tools = _tools.get_tools()
+        for tool in _tools_filter:
+            if tool not in all_tools:
+                print(f'{tool} is not a valid tool. Valid tools are: {", ".join(all_tools)}')
+                exit(1)
 
     builder_name, builder_tag, _ = base_image_details()
     _images = {
