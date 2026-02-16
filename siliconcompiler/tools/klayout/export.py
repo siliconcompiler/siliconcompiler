@@ -84,6 +84,8 @@ class ExportTask(KLayoutTask, ScreenshotParams):
         for s in sc_stream_order:
             if self.pdk.valid("pdk", "layermapfileset", "klayout", "def", s):
                 self.add_required_key(self.pdk, "pdk", "layermapfileset", "klayout", "def", s)
+                for fileset in self.pdk.get("pdk", "layermapfileset", "klayout", "def", s):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "layermap")
                 req_set = True
                 break
         if not req_set:
