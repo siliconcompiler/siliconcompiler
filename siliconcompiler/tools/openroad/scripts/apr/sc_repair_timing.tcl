@@ -16,7 +16,7 @@ source "$sc_refdir/apr/preamble.tcl"
 ###############################
 
 set parasitics_stage -placement
-if { [sc_check_version 20073] && [grt::have_routes] } {
+if { [sc_check_version 24 3 4486] && [grt::have_routes] } {
     set parasitics_stage -global_routing
 }
 

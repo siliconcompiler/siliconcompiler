@@ -1,3 +1,5 @@
+from typing import Optional
+
 from siliconcompiler import Flowgraph
 from siliconcompiler import ShowTask
 
@@ -9,7 +11,7 @@ class ShowFlow(Flowgraph):
     runs a specific 'show' or 'screenshot' task for a given file format (e.g.,
     GDS, DEF).
     """
-    def __init__(self, task: ShowTask):
+    def __init__(self, task: Optional[ShowTask] = None):
         """
         Initializes the ShowFlow with a single task.
 
@@ -19,7 +21,8 @@ class ShowFlow(Flowgraph):
         super().__init__()
         self.set_name("showflow")
 
-        self.node(task.task(), task)
+        if task:
+            self.node(task.task(), task)
 
     @classmethod
     def make_docs(cls):

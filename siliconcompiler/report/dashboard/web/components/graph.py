@@ -46,11 +46,11 @@ def job_selector():
             default=True)
     }
 
-    with streamlit.popover('Select Jobs', use_container_width=True):
+    with streamlit.popover('Select Jobs', width='stretch'):
         selected_jobs_df = streamlit.data_editor(
             all_jobs_df,
             disabled=['job names'],
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             column_config=configuration)
 
@@ -97,14 +97,14 @@ def settings(metrics, nodes, graph_number):
         streamlit.columns(3, gap='small')
 
     with metric_selector_col:
-        with streamlit.popover('Select a Metric', use_container_width=True):
+        with streamlit.popover('Select a Metric', width='stretch'):
             selected_metric = streamlit.selectbox(
                 'Select a Metric', metrics,
                 label_visibility='collapsed',
                 key=f'graph-{graph_number}-metric-selection')
 
     with node_selector_col:
-        with streamlit.popover('Select Nodes', use_container_width=True):
+        with streamlit.popover('Select Nodes', width='stretch'):
             selected_nodes = streamlit.multiselect(
                 'Select a Node', nodes,
                 label_visibility='collapsed',
@@ -112,7 +112,7 @@ def settings(metrics, nodes, graph_number):
                 default=nodes)
 
     with settings_col:
-        with streamlit.popover('Settings', use_container_width=True):
+        with streamlit.popover('Settings', width='stretch'):
             log_scale = streamlit.checkbox(
                 "Log scale", False,
                 help="Make the y-axis log scale",
@@ -210,7 +210,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
             raise ValueError(f'{chart_type} not supported')
 
         chart = chart_mark.encode(x=x_axis, y=y_axis, color=color)
-        streamlit.altair_chart(chart, use_container_width=True, theme='streamlit')
+        streamlit.altair_chart(chart, width='stretch', theme='streamlit')
     else:
         streamlit.warning("No data available for the selected metric and nodes.")
 

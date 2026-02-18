@@ -3,12 +3,27 @@ import pytest
 
 import os.path
 
+from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler import ASIC, Design, Flowgraph
 from siliconcompiler.tools.opensta import timing
 
 from siliconcompiler.targets import freepdk45_demo
 
 from tools.inputimporter import ImporterTask
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_version(asic_gcd):
+    flow = Flowgraph("testflow")
+    flow.node("version", timing.TimingTask())
+    asic_gcd.set_flow(flow)
+
+    node = SchedulerNode(asic_gcd, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.check_exe_version(node.task.get_exe_version()) is True
 
 
 @pytest.mark.eda
@@ -95,3 +110,56 @@ def test_opensta_parameter_timing_mode():
     task.set_opensta_timingmode('max', step='timing', index='1')
     assert task.get("var", "timing_mode", step='timing', index='1') == 'max'
     assert task.get("var", "timing_mode") == 'min'
+
+
+def test_opensta_parameter_write_sdf():
+    task = timing.TimingTask()
+    task.set_opensta_writesdf(True)
+    assert task.get("var", "write_sdf") is True
+    task.set_opensta_writesdf(False, step='timing', index='1')
+    assert task.get("var", "write_sdf", step='timing', index='1') is False
+    assert task.get("var", "write_sdf") is True
+
+
+def test_opensta_parameter_write_liberty():
+    task = timing.TimingTask()
+    task.set_opensta_writeliberty(True)
+    assert task.get("var", "write_liberty") is True
+    task.set_opensta_writeliberty(False, step='timing', index='1')
+    assert task.get("var", "write_liberty", step='timing', index='1') is False
+    assert task.get("var", "write_liberty") is True
+
+
+def test_timing_write_sdf_and_liberty():
+    """Test that both write_sdf and write_liberty can be enabled together."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("test")
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    # Create flow with timing task
+    flow = Flowgraph("test_flow")
+    flow.node("timing", timing.TimingTask())
+    proj.set_flow(flow)
+
+    # Create a scenario
+    scenario = proj.constraint.timing.make_scenario("testcorner")
+    scenario.add_libcorner(["typical", "generic"])
+    scenario.set_pexcorner("typical")
+
+    # Enable both
+    task = timing.TimingTask.find_task(proj)
+    task.set("var", "write_sdf", True, step="timing", index="0")
+    task.set("var", "write_liberty", True, step="timing", index="0")
+
+    node = SchedulerNode(proj, step='timing', index='0')
+    with node.runtime():
+        node.setup()
+
+        # Verify both file types are added
+        outputs = node.task.get("output")
+        assert "test.testcorner.sdf" in outputs, f"Expected testcorner.sdf in {outputs}"
+        assert "test.testcorner.lib" in outputs, f"Expected testcorner.lib in {outputs}"

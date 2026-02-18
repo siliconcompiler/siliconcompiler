@@ -7,12 +7,12 @@ LABEL org.opencontainers.image.description="SiliconCompiler {{ tool }} tool"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update
-
 {% for tool in depends_tools %}
 COPY --from={{ tool }} $SC_PREFIX $SC_PREFIX
-RUN cat $SC_PREFIX/apt.txt | xargs apt-get install --ignore-missing -y && \
+RUN apt-get update && \
+    cat $SC_PREFIX/apt.txt | xargs apt-get install --ignore-missing -y && \
     apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
     rm $SC_PREFIX/apt.txt{% endfor %}
 
 # Execute scripts needed by tools
@@ -31,11 +31,12 @@ WORKDIR $SC_BUILD
 RUN apt-get update && \
     chmod +x ./{{ install_script }} && \
     ./{{ install_script }} && \
-    rm -rf $SC_BUILD/deps && \
-    apt-get clean
+    rm -rf $SC_BUILD/* && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Generate list of installed programs
-RUN apt list --installed | grep "\[installed\]" | sed 's/\/.*//' > $SC_PREFIX/apt.txt
+RUN apt list --installed | grep "\[installed\(.*\)\]" | sed 's/\/.*//' > $SC_PREFIX/apt.txt
 
 # Run additional commands needed by tool build, if needed by tool
 {{ extra_commands }}

@@ -70,7 +70,7 @@ def page_header(title_col_width=0.7):
 
     if state.DEVELOPER:
         with settings_col:
-            with streamlit.popover("Settings", use_container_width=True):
+            with streamlit.popover("Settings", width='stretch'):
                 # Layout selection
                 all_layouts = layouts.get_all_layouts()
                 layout_index = all_layouts.index(state.get_key(state.APP_LAYOUT))
@@ -179,7 +179,7 @@ def setup_page():
     """
     streamlit.set_page_config(
         page_title=f'{state.get_project().design.name} dashboard',
-        page_icon=Image.open(SC_LOGO_PATH),
+        page_icon=Image.open(SC_LOGO_PATH, formats=('PNG',)),
         layout="wide",
         menu_items=SC_MENU)
 
@@ -222,7 +222,7 @@ def file_viewer(project, path, page_key=None, header_col_width=0.89):
                 label="Download",
                 data=fp,
                 file_name=filename,
-                use_container_width=True)
+                width='stretch')
 
     # --- File Content Viewer ---
     try:
@@ -283,7 +283,7 @@ def manifest_viewer(project, header_col_width=0.70):
         streamlit.header('Manifest')
     with settings_col:
         streamlit.markdown(' ')  # Aligns with title
-        with streamlit.popover("Settings", use_container_width=True):
+        with streamlit.popover("Settings", width='stretch'):
             # Filtering options
             if streamlit.checkbox('Raw manifest', help='View raw, unprocessed manifest'):
                 manifest_to_show = json.loads(json.dumps(project.getdict(), sort_keys=True))
@@ -303,7 +303,7 @@ def manifest_viewer(project, header_col_width=0.70):
         streamlit.download_button(
             label='Download', file_name='manifest.json',
             data=json.dumps(project.getdict(), indent=2),
-            mime="application/json", use_container_width=True)
+            mime="application/json", width='stretch')
 
     # --- Manifest Display ---
     expand_keys = report.get_total_manifest_key_count(manifest_to_show) < \
@@ -334,7 +334,7 @@ def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width
         streamlit.header('Metrics')
     with settings_col:
         streamlit.markdown('')  # Align to header
-        with streamlit.popover("Settings", use_container_width=True):
+        with streamlit.popover("Settings", width='stretch'):
             transpose = streamlit.checkbox('Transpose', help='Transpose the metrics table')
             display_nodes = streamlit.multiselect('Pick nodes to include', all_nodes, [])
             display_metrics = streamlit.multiselect('Pick metrics to include?', all_metrics, [])
@@ -355,7 +355,7 @@ def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width
     if transpose:
         filtered_df = filtered_df.transpose()
 
-    streamlit.dataframe(filtered_df, use_container_width=True, height=height)
+    streamlit.dataframe(filtered_df, width='stretch', height=height or "auto")
 
 
 def node_image_viewer(project, step, index):
@@ -484,13 +484,13 @@ def node_viewer(project, step, index, metric_dataframe, height=None):
         if node_name in metric_dataframe:
             streamlit.dataframe(
                 metric_dataframe[node_name].dropna(),
-                use_container_width=True, height=height)
+                width='stretch', height=height or "auto")
     with records_col:
         streamlit.subheader(f'{node_name} details')
         nodes = {step + index: report.get_flowgraph_nodes(project, step, index)}
         streamlit.dataframe(
             DataFrame.from_dict(nodes),
-            use_container_width=True, height=height)
+            width='stretch', height=height or "auto")
     with logs_and_reports_col:
         streamlit.subheader(f'{node_name} files')
         node_file_tree_viewer(project, step, index)
@@ -527,7 +527,7 @@ def node_selector(nodes):
     """
     prev_node = state.get_selected_node()
 
-    with streamlit.popover("Select Node", use_container_width=True):
+    with streamlit.popover("Select Node", width='stretch'):
         idx = nodes.index(prev_node) if prev_node in nodes else 0
         selected_node = streamlit.selectbox(
             'Pick a node to inspect',

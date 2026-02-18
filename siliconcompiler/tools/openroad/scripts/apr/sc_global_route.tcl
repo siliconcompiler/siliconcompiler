@@ -22,7 +22,7 @@ if { [sc_cfg_tool_task_get var grt_use_pin_access] } {
     set sc_maxmetal [sc_get_layer_name [sc_cfg_get pdk $sc_pdk maxlayer]]
 
     set pin_access_args []
-    if { [sc_check_version 23235] } {
+    if { [sc_check_version 24 3 7648] } {
         # use value from preamble
     } else {
         lappend pin_access_args -bottom_routing_layer $sc_minmetal

@@ -49,6 +49,12 @@ class AdderDesign(Design):
                 self.add_file("cocotb_adder.py", filetype="python")
                 self.set_param("WIDTH", "8")
 
+            with self.active_fileset("icarus"):
+                self.add_file("icarus_cmd_file.f", filetype="commandfile")
+
+            with self.active_fileset("verilator"):
+                self.add_file("verilator_cmd_file.vc", filetype="commandfile")
+
 
 def sim_icarus(seed: int = None, trace: bool = True):
     """Runs a cocotb simulation of the Adder design.
@@ -67,8 +73,9 @@ def sim_icarus(seed: int = None, trace: bool = True):
     project.set_design(adder)
 
     # Add the cocotb testbench and the RTL design files
-    project.add_fileset("testbench.cocotb")
     project.add_fileset("rtl")
+    project.add_fileset("testbench.cocotb")
+    project.add_fileset("icarus")
 
     # Set the cocotb design verification flow
     project.set_flow(DVFlow(tool="icarus-cocotb"))
@@ -124,8 +131,9 @@ def sim_verilator(seed: int = None, trace: bool = True, trace_type: str = "vcd")
     project.set_design(adder)
 
     # Add the cocotb testbench and the RTL design files
-    project.add_fileset("testbench.cocotb")
     project.add_fileset("rtl")
+    project.add_fileset("testbench.cocotb")
+    project.add_fileset("verilator")
 
     # Set the cocotb design verification flow with Verilator
     project.set_flow(DVFlow(tool="verilator-cocotb"))

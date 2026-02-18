@@ -43,6 +43,15 @@ if { [sc_cfg_tool_task_get var write_cdl] } {
 }
 
 ###############################
+# Generate LVS Verilog
+###############################
+set remove_cells []
+foreach lib [sc_cfg_get asic asiclib] {
+    lappend remove_cells {*}[sc_cfg_get library $lib asic cells physicalonly]
+}
+write_verilog -include_pwr_gnd -remove_cells $remove_cells "outputs/${sc_topmodule}.lvs.vg"
+
+###############################
 # Generate SPEF
 ###############################
 

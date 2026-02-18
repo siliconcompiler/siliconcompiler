@@ -75,6 +75,11 @@ def main():
                 manifest = file
             elif not filename:
                 filename = file
+    if manifest and show.get("cmdarg", "cfg"):
+        show.logger.error("Cannot specify both a manifest file and configuration file.")
+        return 1
+    if show.get("cmdarg", "cfg"):
+        manifest = show.get("cmdarg", "cfg")
 
     # Attempt to load a manifest
     if not manifest:
@@ -100,7 +105,7 @@ def main():
                            extension=show.get("cmdarg", "extension"),
                            screenshot=show.get("cmdarg", "screenshot"))
 
-    if os.path.isfile(success) and show.get("cmdarg", "screenshot"):
+    if success and os.path.isfile(success) and show.get("cmdarg", "screenshot"):
         project.logger.info(f'Screenshot file: {success}')
 
     return 0

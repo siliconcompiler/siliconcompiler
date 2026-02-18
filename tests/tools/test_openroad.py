@@ -2,7 +2,11 @@
 import os
 import pytest
 
+from siliconcompiler import Flowgraph
+
 from siliconcompiler.flows.asicflow import ASICFlow
+
+from siliconcompiler.scheduler import SchedulerNode
 
 from siliconcompiler.tools.openroad import _apr
 from siliconcompiler.tools.openroad._apr import APRTask
@@ -23,6 +27,20 @@ from siliconcompiler.tools.openroad import rdlroute
 from siliconcompiler.tools.openroad import repair_design
 from siliconcompiler.tools.openroad import repair_timing
 from siliconcompiler.tools.openroad import screenshot
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_version(asic_gcd):
+    flow = Flowgraph("testflow")
+    flow.node("version", init_floorplan.InitFloorplanTask())
+    asic_gcd.set_flow(flow)
+
+    node = SchedulerNode(asic_gcd, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.check_exe_version(node.task.get_exe_version()) is True
 
 
 @pytest.mark.eda

@@ -28,7 +28,7 @@ env:
   REGISTRY: ghcr.io
 
 concurrency:
-  group: tools-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -200,11 +200,11 @@ jobs:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
-          tool-cache: false
+          tool-cache: true
           android: true
           dotnet: true
           haskell: true
-          large-packages: false
+          large-packages: true
           swap-storage: true
 
       - name: Log in to the Container registry
@@ -289,15 +289,15 @@ jobs:
 
       - name: Install
         run: |
-          python3 -m venv venv
-          . venv/bin/activate
+          python3 -m venv .venv
+          . .venv/bin/activate
 
           python3 -m pip install -e .[test]
           python3 -m pip install -r ./examples/requirements.txt
 
       - name: Gather cache
         run: |
-          . venv/bin/activate
+          . .venv/bin/activate
           python3 .github/workflows/bin/generate_cache.py
 
       - name: Upload
@@ -328,8 +328,8 @@ jobs:
 
       - name: Setup tests
         run: |
-          python3 -m venv clean_env
-          source clean_env/bin/activate
+          python3 -m venv .venv
+          source .venv/bin/activate
 
           python3 -m pip install -e .[test,cocotb]
           python3 -m pip install -r ./examples/requirements.txt
@@ -345,7 +345,7 @@ jobs:
 
       - name: Run tests
         run: |
-          source clean_env/bin/activate
+          source .venv/bin/activate
 
           # change running directory
           mkdir testrun
@@ -387,7 +387,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-          allow-prereleases: true
 
       - name: Fetch runner image
         run: |
@@ -401,8 +400,8 @@ jobs:
 
       - name: Setup tests
         run: |
-          ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
-          source clean_env/bin/activate
+          ${{ steps.setup-python.outputs.python-path }} -m venv .venv
+          source .venv/bin/activate
           python3 --version
 
           python3 -m pip install --upgrade pip
@@ -412,7 +411,7 @@ jobs:
         env:
           SC_IMAGE: ${{ needs.build_tool_builder.outputs.sc_tools }}
         run: |
-          source clean_env/bin/activate
+          source .venv/bin/activate
 
           # change running directory
           mkdir testrun
