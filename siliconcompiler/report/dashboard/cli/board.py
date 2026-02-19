@@ -397,6 +397,7 @@ class Board:
     }
 
     __USE_ICONS = False
+    __USE_LINK = False
 
     __JOB_BOARD_HEADER = True
 
@@ -690,10 +691,13 @@ class Board:
 
             log_file = None
             if layout.job_board_show_log:
-                for log in node["log"]:
+                for log, full_path in node["log"]:
                     try:
-                        if os.path.getsize(log) > 0:
-                            log_file = "[bright_black]{}[/]".format(log)
+                        if os.path.getsize(full_path) > 0:
+                            if Board.__USE_LINK:
+                                log_file = f"[link=file://{full_path}][bright_black]{log}[/][/link]"
+                            else:
+                                log_file = f"[bright_black]{log}[/]"
                             break
                     except OSError:
                         # File doesn't exist or inaccessible
@@ -1134,12 +1138,17 @@ class Board:
                         "duration": duration
                     },
                     "metrics": node_metrics,
-                    "log": [os.path.join(
-                        workdir(project, step=step, index=index, relpath=True),
-                        f"{step}.log"),
-                        os.path.join(
-                            workdir(project, step=step, index=index, relpath=True),
-                            f"sc_{step}_{index}.log")],
+                    "log": [(
+                        os.path.join(workdir(project, step=step, index=index, relpath=True),
+                                     f"{step}.log"),
+                        os.path.join(workdir(project, step=step, index=index),
+                                     f"{step}.log")
+                    ), (
+                        os.path.join(workdir(project, step=step, index=index, relpath=True),
+                                     f"sc_{step}_{index}.log"),
+                        os.path.join(workdir(project, step=step, index=index),
+                                     f"sc_{step}_{index}.log")
+                    )],
                     "print": {
                         "order": nodeorder[(step, index)],
                         "priority": node_priority[(step, index)]
