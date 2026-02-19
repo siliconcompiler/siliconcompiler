@@ -1,0 +1,27 @@
+{{ "=" * width }}
+SiliconCompiler End-of-Run Summary
+{{ "=" * width }}
+{% for header in headers %}
+{{ header }}{% endfor %}
+
+Node Execution Summary:
+{{ "-" * width }}
+{{ node_table }}
+{{ "-" * width }}
+Total: {{ total_nodes }} nodes | Passed: {{ passed }} | Failed: {{ failed }} | Skipped: {{ skipped }} | Timeout: {{ timeout }}
+
+Metrics Table:
+{{ "-" * width }}
+{{ metrics_table }}
+{{ "-" * width }}
+
+Log Files:
+{{ "-" * width }}
+{% if log_files %}{% for log_entry in log_files %}{{ log_entry }}
+{% endfor %}{% endif %}
+Run Information:
+{{ "-" * width }}
+Report Generated : {{ report_time }}
+Job Directory    : {{ job_directory }}
+Summary File     : {{ summary_file }}
+{{ "=" * width }}

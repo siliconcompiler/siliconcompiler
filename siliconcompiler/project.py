@@ -25,6 +25,7 @@ from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
+from siliconcompiler.report.end_of_run_summary import generate_end_of_run_summary
 from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode
 from siliconcompiler.utils.logging import get_stream_handler
 from siliconcompiler.utils import get_file_ext
@@ -574,6 +575,13 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.logger.error(f"Job log: {os.path.abspath(scheduler.log)}")
             raise RuntimeError(f"Run failed: {e.msg}") from None
         finally:
+            # Generate end-of-run summary report (text file)
+            try:
+                summary_path = generate_end_of_run_summary(self)
+                self.logger.info(f"End-of-run summary at {summary_path}")
+            except Exception as e:
+                self.logger.error(f"Failed to generate end-of-run summary: {e}")
+
             if self.__dashboard:
                 # Update dashboard
                 self.__dashboard.update_manifest()
