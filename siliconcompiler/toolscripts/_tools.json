@@ -65,7 +65,7 @@
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
-    "git-commit": "v2024.10",
+    "git-commit": "2024.10",
     "auto-update": false,
     "docker-cmds": [
       "# Remove ORFS Stuff",
