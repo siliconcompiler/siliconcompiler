@@ -365,6 +365,7 @@ def generate_end_of_run_summary(project: "Project", output_path: Optional[str] =
     # --- Render Template ---
     template = get_file_template('report/end_of_run_summary.txt.j2')
     report_content = template.render(
+        top_name="SiliconCompiler",
         width=table_width,
         headers=headers,
         node_table=node_table,
