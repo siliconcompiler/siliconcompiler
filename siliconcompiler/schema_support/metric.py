@@ -367,7 +367,8 @@ class MetricSchema(BaseSchema):
                 headers: List[Tuple[str, Optional[str]]],
                 nodes: Optional[List[Tuple[str, str]]] = None,
                 column_width: int = 15,
-                fd: Optional[TextIO] = None) -> None:
+                fd: Optional[TextIO] = None,
+                max_line_width: Optional[int] = None) -> None:
         '''
         Prints a formatted summary of metrics to a file descriptor.
 
@@ -380,6 +381,8 @@ class MetricSchema(BaseSchema):
                 Defaults to 15.
             fd (TextIO, optional): The file descriptor to write to.
                 Defaults to `sys.stdout`.
+            max_line_width (int, optional): The maximum line width for the summary table.
+                Defaults to the terminal width or 4 times the column width, whichever is larger.
         '''
         header = []
         headers.insert(0, ("SUMMARY", None))
@@ -391,7 +394,8 @@ class MetricSchema(BaseSchema):
                 else:
                     header.append(f"{title:<{max_header}} : {value}")
 
-        max_line_width = max(4 * column_width, int(0.95*shutil.get_terminal_size().columns))
+        if not max_line_width:
+            max_line_width = max(4 * column_width, int(0.95*shutil.get_terminal_size().columns))
         data = self.summary_table(nodes=nodes, column_width=column_width)
 
         if not fd:
