@@ -2256,3 +2256,73 @@ def test_getdict_type_inheritance():
     # Verify they're different
     assert Lint._getdict_type() != Project._getdict_type()
     assert Sim._getdict_type() != Project._getdict_type()
+
+
+def test_end_of_run_summary_called_on_success():
+    """Test that end_of_run_summary is called during project.run() on a successful run."""
+    design = Design("test")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("step1", FauxTask0())
+    proj.set_flow(flow)
+
+    def mock_run():
+        proj._record_history()
+
+    with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
+            patch('siliconcompiler.project.generate_end_of_run_summary') as summary:
+        run.side_effect = mock_run
+        proj.run()
+        run.assert_called_once()
+        summary.assert_called_once()
+
+
+def test_end_of_run_summary_called_on_failure():
+    """Test that end_of_run_summary is called during project.run() on a failed run."""
+    design = Design("test")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("step1", FauxTask0())
+    proj.set_flow(flow)
+
+    def mock_run():
+        raise RuntimeError("RuntimeError failure")
+
+    with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
+            patch('siliconcompiler.project.generate_end_of_run_summary') as summary:
+        run.side_effect = mock_run
+        summary.side_effect = "This file path"
+        with pytest.raises(RuntimeError, match=r"^RuntimeError failure$"):
+            proj.run()
+        run.assert_called_once()
+        summary.assert_called_once()
+
+
+def test_end_of_run_summary_called_on_sc_failure():
+    """Test that end_of_run_summary is called during project.run() on a failed run."""
+    design = Design("test")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("step1", FauxTask0())
+    proj.set_flow(flow)
+
+    def mock_run():
+        raise SCRuntimeError("SCRuntimeError failure")
+
+    with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
+            patch('siliconcompiler.project.generate_end_of_run_summary') as summary:
+        run.side_effect = mock_run
+        summary.side_effect = "This file path"
+        with pytest.raises(RuntimeError, match=r"^Run failed: SCRuntimeError failure$"):
+            proj.run()
+        run.assert_called_once()
+        summary.assert_called_once()
