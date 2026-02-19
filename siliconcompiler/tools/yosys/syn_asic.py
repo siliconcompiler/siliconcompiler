@@ -268,7 +268,7 @@ class ASICSynthesis(_ASICTask, YosysTask):
             True)
         self.add_parameter(
             "hier_threshold",
-            "int",
+            "int<1->>",
             "Instance limit for the number of cells in a module to preserve.",
             1000)
         self.add_parameter(
@@ -293,18 +293,18 @@ class ASICSynthesis(_ASICTask, YosysTask):
             copy=False)
         self.add_parameter(
             "abc_clock_period",
-            "float",
+            "float<0.0->>",
             "Clock period to use for synthesis in ps, if more than one clock is specified, the "
             "smallest period is used.",
             unit="ps")
         self.add_parameter(
             "abc_constraint_load",
-            "float",
+            "float<0.0->>",
             "Capacitive load for the abc techmapping in fF, if not specified it will not be used.",
             unit="fF")
         self.add_parameter(
             "abc_clock_derating",
-            "float",
+            "float<0.0->>",
             "Derating to apply to the clock period for abc synthesis",
             defvalue=0
         )
@@ -317,7 +317,7 @@ class ASICSynthesis(_ASICTask, YosysTask):
             False)
         self.add_parameter(
             "min_clockgate_fanout",
-            "int",
+            "int<1->>",
             "Minimum clockgate fanout.",
             8)
 

@@ -183,13 +183,13 @@ class OpenROADStdCellLibrary(StdCellLibrary):
         self.define_tool_parameter("openroad", "tielow_cell", "(str,str)",
                                    "A tuple specifying the tie-low cell name and its output port.")
 
-        self.define_tool_parameter("openroad", "place_density", "float",
+        self.define_tool_parameter("openroad", "place_density", "float<0.0-1.0>",
                                    "The target placement density for the design.")
 
-        self.define_tool_parameter("openroad", "global_cell_padding", "int",
+        self.define_tool_parameter("openroad", "global_cell_padding", "int<0->>",
                                    "Padding to be applied to cells during global placement.",
                                    defvalue=0)
-        self.define_tool_parameter("openroad", "detailed_cell_padding", "int",
+        self.define_tool_parameter("openroad", "detailed_cell_padding", "int<0->>",
                                    "Padding to be applied to cells during detailed placement.",
                                    defvalue=0)
 
@@ -366,7 +366,7 @@ class OpenROADTask(ASICTask):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("debug_level", "{(str,str,int)}",
+        self.add_parameter("debug_level", "{(str,str,int<0->>)}",
                            'list of "tool key level" to enable debugging of OpenROAD')
 
     def add_openroad_debuglevel(self, tool: str, category: str, level: int,
