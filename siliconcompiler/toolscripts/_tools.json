@@ -27,7 +27,7 @@
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "v5.0.1",
+    "git-commit": "v5.1.1",
     "auto-update": false
   },
   "magic": {
@@ -65,7 +65,7 @@
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
-    "git-commit": "v2024.03",
+    "git-commit": "v2024.10",
     "auto-update": false,
     "docker-cmds": [
       "# Remove ORFS Stuff",
@@ -96,7 +96,7 @@
   },
   "icarus": {
     "git-url": "https://github.com/steveicarus/iverilog.git",
-    "git-commit": "01441687235135d1c12eeef920f75d97995da333",
+    "git-commit": "7786fb67c30faf197689b3bc3369c828e59c8ae7",
     "auto-update": false
   },
   "yosys": {
@@ -168,7 +168,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "d647673f3b3960256069a79e8d92d36a3b89d9a4",
+    "git-commit": "416b2bd8fbc8cba316dc11b114f8a3041bfe5c0f",
     "auto-update": false
   }
 }
