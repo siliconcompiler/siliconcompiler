@@ -405,16 +405,16 @@ def test_summary_table_all_nodes():
             'tasktime': 's'
         },
         'step/0': {
-            'tasktime': '05.000'
+            'tasktime': '0:05.000'
         },
         'step/1': {
-            'tasktime': '07.000'
+            'tasktime': '0:07.000'
         },
         'step/2': {
-            'tasktime': '12.500'
+            'tasktime': '0:12.500'
         },
         'step/3': {
-            'tasktime': '15.500'
+            'tasktime': '0:15.500'
         }
     }
 
@@ -435,16 +435,16 @@ def test_summary_table_nodes_sorted():
             'totaltime': 's'
         },
         'step/0': {
-            'totaltime': '02:45.000'
+            'totaltime': '2:45.000'
         },
         'step/1': {
-            'totaltime': '02:27.000'
+            'totaltime': '2:27.000'
         },
         'step/2': {
-            'totaltime': '12.500'
+            'totaltime': '0:12.500'
         },
         'step/3': {
-            'totaltime': '15.500'
+            'totaltime': '0:15.500'
         }
     }
 
@@ -465,10 +465,10 @@ def test_summary_table_select_nodes():
             'tasktime': 's'
         },
         'step/1': {
-            'tasktime': '07.000'
+            'tasktime': '0:07.000'
         },
         'step/3': {
-            'tasktime': '15.500'
+            'tasktime': '0:15.500'
         }
     }
 
@@ -525,20 +525,20 @@ def test_summary_table_multiple_metrics():
             'exetime': 's'
         },
         'step/0': {
-            'tasktime': '05.000',
-            'exetime': '15.000'
+            'tasktime': '0:05.000',
+            'exetime': '0:15.000'
         },
         'step/1': {
-            'tasktime': '07.000',
-            'exetime': '17.000'
+            'tasktime': '0:07.000',
+            'exetime': '0:17.000'
         },
         'step/2': {
-            'tasktime': '12.500',
-            'exetime': '01:52.500'
+            'tasktime': '0:12.500',
+            'exetime': '1:52.500'
         },
         'step/3': {
-            'tasktime': '15.500',
-            'exetime': '01:55.500'
+            'tasktime': '0:15.500',
+            'exetime': '1:55.500'
         }
     }
 
@@ -571,33 +571,33 @@ def test_summary_table_no_trim():
         },
         'step/0': {
             'errors': ' ---  ',
-            'exetime': '15.000',
+            'exetime': '0:15.000',
             'memory': ' ---  ',
-            'tasktime': '05.000',
+            'tasktime': '0:05.000',
             'totaltime': ' ---  ',
             'warnings': ' ---  '
         },
         'step/1': {
             'errors': ' ---  ',
-            'exetime': '17.000',
+            'exetime': '0:17.000',
             'memory': ' ---  ',
-            'tasktime': '07.000',
+            'tasktime': '0:07.000',
             'totaltime': ' ---  ',
             'warnings': ' ---  '
         },
         'step/2': {
             'errors': ' ---  ',
-            'exetime': '01:52.500',
+            'exetime': '1:52.500',
             'memory': ' ---  ',
-            'tasktime': '12.500',
+            'tasktime': '0:12.500',
             'totaltime': ' ---  ',
             'warnings': ' ---  '
         },
         'step/3': {
             'errors': ' ---  ',
-            'exetime': '01:55.500',
+            'exetime': '1:55.500',
             'memory': ' ---  ',
-            'tasktime': '15.500',
+            'tasktime': '0:15.500',
             'totaltime': ' ---  ',
             'warnings': ' ---  '
         }
@@ -623,8 +623,8 @@ def test_summary(capsys):
         'pdk     : asap7',
         'library : asap7_library',
         '',
-        '         unit  step/0  step/1  step/2  step/3',
-        'tasktime    s  05.000  07.000  12.500  15.500',
+        '         unit    step/0    step/1    step/2    step/3',
+        'tasktime    s  0:05.000  0:07.000  0:12.500  0:15.500',
         '----------------------------------------------------------------------------']
 
 
@@ -648,8 +648,8 @@ def test_summary_fd():
         'pdk     : asap7',
         'library : asap7_library',
         '',
-        '         unit  step/0  step/1  step/2  step/3',
-        'tasktime    s  05.000  07.000  12.500  15.500',
+        '         unit    step/0    step/1    step/2    step/3',
+        'tasktime    s  0:05.000  0:07.000  0:12.500  0:15.500',
         '----------------------------------------------------------------------------']
 
 
@@ -690,6 +690,6 @@ def test_summary_column_width(capsys):
         'pdk     : asap7',
         'library : asap7_library',
         '',
-        '         unit   s...0   s...1   s...2   s...3',
-        'tasktime    s  05.000  07.000  12.500  15.500',
+        '         unit     s...0     s...1     s...2     s...3',
+        'tasktime    s  0:05.000  0:07.000  0:12.500  0:15.500',
         '----------------------------------------------------------------------------']

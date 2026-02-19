@@ -26,6 +26,7 @@ from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.utils.units import format_time
 
 
 class LogBuffer:
@@ -397,6 +398,7 @@ class Board:
     }
 
     __USE_ICONS = False
+    __USE_LINK = False
 
     __JOB_BOARD_HEADER = True
 
@@ -690,19 +692,22 @@ class Board:
 
             log_file = None
             if layout.job_board_show_log:
-                for log in node["log"]:
+                for log, full_path in node["log"]:
                     try:
-                        if os.path.getsize(log) > 0:
-                            log_file = "[bright_black]{}[/]".format(log)
+                        if os.path.getsize(full_path) > 0:
+                            if Board.__USE_LINK:
+                                log_file = f"[link=file://{full_path}][bright_black]{log}[/][/link]"
+                            else:
+                                log_file = f"[bright_black]{log}[/]"
                             break
                     except OSError:
                         # File doesn't exist or inaccessible
                         continue
 
             if node["time"]["duration"] is not None:
-                duration = f'{node["time"]["duration"]:.1f}s'
+                duration = format_time(node["time"]["duration"], milliseconds_digits=1)
             elif node["time"]["start"] is not None:
-                duration = f'{time.time() - node["time"]["start"]:.1f}s'
+                duration = format_time(time.time() - node["time"]["start"], milliseconds_digits=1)
             else:
                 duration = ""
 
@@ -748,7 +753,7 @@ class Board:
         runtimes = {}
         for name, job in job_data.items():
             if job.complete:
-                runtimes[name] = job.runtime
+                runtimes[name] = format_time(job.runtime, milliseconds_digits=1)
             else:
                 runtime = 0.0
                 for node in job.nodes:
@@ -756,9 +761,9 @@ class Board:
                         runtime += node["time"]["duration"]
                     elif node["time"]["start"] is not None:
                         runtime += ref_time - node["time"]["start"]
-                runtimes[name] = runtime
+                runtimes[name] = format_time(runtime, milliseconds_digits=1)
 
-        runtime_width = len(f"{max([0, *runtimes.values()]):.1f}")
+        runtime_width = max([*[len(r) for r in runtimes.values()], 0])
 
         job_info = []
         for name, job in job_data.items():
@@ -783,7 +788,7 @@ class Board:
             MofNCompleteColumn(),
             BarColumn(bar_width=60),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TextColumn(f" {{task.fields[runtime]:>{runtime_width}.1f}}s")
+            TextColumn(f" {{task.fields[runtime]:>{runtime_width}}}")
         )
         for _, name, total, success, runtime in job_info:
             progress.add_task(
@@ -1134,12 +1139,17 @@ class Board:
                         "duration": duration
                     },
                     "metrics": node_metrics,
-                    "log": [os.path.join(
-                        workdir(project, step=step, index=index, relpath=True),
-                        f"{step}.log"),
-                        os.path.join(
-                            workdir(project, step=step, index=index, relpath=True),
-                            f"sc_{step}_{index}.log")],
+                    "log": [(
+                        os.path.join(workdir(project, step=step, index=index, relpath=True),
+                                     f"{step}.log"),
+                        os.path.join(workdir(project, step=step, index=index),
+                                     f"{step}.log")
+                    ), (
+                        os.path.join(workdir(project, step=step, index=index, relpath=True),
+                                     f"sc_{step}_{index}.log"),
+                        os.path.join(workdir(project, step=step, index=index),
+                                     f"sc_{step}_{index}.log")
+                    )],
                     "print": {
                         "order": nodeorder[(step, index)],
                         "priority": node_priority[(step, index)]
