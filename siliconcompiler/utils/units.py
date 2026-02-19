@@ -257,8 +257,33 @@ def format_time(value: float, milliseconds_digits: int = 3) -> str:
     value, milliseconds = divmod(value, 1)
     hours, value = divmod(value, 3600)
     minutes, seconds = divmod(value, 60)
+    
+    # Handle rounding with carry propagation
     if milliseconds_digits <= 0:
-        seconds = round(seconds + milliseconds)
+        # Round seconds + milliseconds and propagate carries
+        rounded_seconds = int(round(seconds + milliseconds))
+        if rounded_seconds == 60:
+            seconds = 0
+            minutes += 1
+            if minutes == 60:
+                minutes = 0
+                hours += 1
+        else:
+            seconds = rounded_seconds
+    else:
+        # Round milliseconds and propagate carries
+        ms_rounded = int(round(milliseconds * 10**milliseconds_digits))
+        if ms_rounded == 10**milliseconds_digits:
+            ms_rounded = 0
+            seconds += 1
+            if seconds == 60:
+                seconds = 0
+                minutes += 1
+                if minutes == 60:
+                    minutes = 0
+                    hours += 1
+        milliseconds = ms_rounded
+    
     ftime = ''
     if hours > 0:
         ftime += f'{int(hours)}:'
@@ -268,5 +293,5 @@ def format_time(value: float, milliseconds_digits: int = 3) -> str:
         ftime += f'{int(minutes)}:'
     ftime += f'{int(seconds):02}'
     if milliseconds_digits > 0:
-        ftime += f'.{int(round(milliseconds * 10**milliseconds_digits)):0{milliseconds_digits}}'
+        ftime += f'.{int(milliseconds):0{milliseconds_digits}}'
     return ftime

@@ -186,3 +186,26 @@ def test_format_si(value, unit, margin, digits, expect):
 ])
 def test_format_time(value, expect):
     assert format_time(value) == expect
+
+
+@pytest.mark.parametrize("sec,milliseconds_digits,expect", [
+    # Test milliseconds carrying to seconds
+    (59.99951, 3, '1:00.000'),
+    (0.99951, 3, '0:01.000'),
+    (19.99951, 3, '0:20.000'),
+    # Test seconds carrying to minutes (milliseconds_digits=0)
+    (59.6, 0, '1:00'),
+    (119.6, 0, '2:00'),
+    # Test seconds carrying to minutes (with milliseconds)
+    (59.99951, 1, '1:00.0'),
+    (59.99951, 2, '1:00.00'),
+    # Test minutes carrying to hours
+    (59 * 60 + 59.6, 0, '1:00:00'),
+    (59 * 60 + 59.99951, 3, '1:00:00.000'),
+    # Test full overflow chain: hours:minutes:seconds
+    (59 * 3600 + 59 * 60 + 59.99951, 3, '60:00:00.000'),
+    (23 * 3600 + 59 * 60 + 59.6, 0, '24:00:00'),
+])
+def test_format_time_rounding_carry(sec, milliseconds_digits, expect):
+    """Test that rounding properly propagates carries across time units."""
+    assert format_time(sec, milliseconds_digits=milliseconds_digits) == expect
