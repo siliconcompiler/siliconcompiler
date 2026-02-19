@@ -243,28 +243,30 @@ def scale_binary(value: float, unit: Optional[str], digits: int = 3) -> Tuple[fl
     return (float(f'{value:.{digits}f}'), '')
 
 
-def format_time(value: float, with_milliseconds: bool = True) -> str:
+def format_time(value: float, milliseconds_digits: int = 3) -> str:
     '''
     Format a number as time.
     Prints as hh:mm:ss.ms (hours:minutes:seconds.milliseconds)
 
     Args:
         value (float): number of seconds to convert
-        with_milliseconds (bool): whether to include milliseconds in the output
-                                   Defaults to True.
+        milliseconds_digits (int): number of digits to print for milliseconds
+                                   Defaults to 3.
     '''
     # Report as hh:mm::ss.ms
     value, milliseconds = divmod(value, 1)
     hours, value = divmod(value, 3600)
     minutes, seconds = divmod(value, 60)
-    if not with_milliseconds:
+    if milliseconds_digits <= 0:
         seconds = round(seconds + milliseconds)
     ftime = ''
     if hours > 0:
         ftime += f'{int(hours)}:'
-    if hours > 0 or minutes > 0:
+    if hours > 0:
         ftime += f'{int(minutes):02}:'
+    else:
+        ftime += f'{int(minutes)}:'
     ftime += f'{int(seconds):02}'
-    if with_milliseconds:
-        ftime += f'.{int(round(milliseconds * 1000)):03}'
+    if milliseconds_digits > 0:
+        ftime += f'.{int(round(milliseconds * 10**milliseconds_digits)):0{milliseconds_digits}}'
     return ftime
