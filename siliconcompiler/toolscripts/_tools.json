@@ -134,7 +134,7 @@
     "docker-skip": true
   },
   "verible": {
-    "version": "v0.0-3303-gd87f2420",
+    "version": "v0.0-4051-g9fdb4057",
     "git-url": "https://github.com/chipsalliance/verible.git",
     "auto-update": false
   },
