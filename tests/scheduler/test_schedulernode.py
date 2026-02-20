@@ -113,6 +113,64 @@ def test_init(project):
     assert node._SchedulerNode__is_entry_node is True
 
 
+def test_init_no_topmodule(project):
+    project.design.set("fileset", "rtl", "topmodule", None)
+
+    node = SchedulerNode(project, "stepone", "0")
+
+    assert node.is_local is True
+    assert node.is_builtin is False
+    assert node.has_error is False
+    assert node.step == "stepone"
+    assert node.index == "0"
+    assert node.name == "testdesign"
+    assert node.topmodule == "testdesign"
+    assert node.project is project
+    assert node.logger is project.logger
+    assert node.jobname == "job0"
+    assert node.is_replay is False
+    assert isinstance(node.task, Task)
+    assert node.jobworkdir == jobdir(project)
+    assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
+
+    # Check private fields
+    assert node._SchedulerNode__record_user_info is False
+    assert node._SchedulerNode__generate_test_case is True
+    assert node._SchedulerNode__hash is False
+    assert node._SchedulerNode__is_entry_node is True
+
+
+def test_init_no_fileset(project):
+    project.set("option", "fileset", [])
+
+    node = SchedulerNode(project, "stepone", "0")
+
+    assert node.is_local is True
+    assert node.is_builtin is False
+    assert node.has_error is False
+    assert node.step == "stepone"
+    assert node.index == "0"
+    assert node.name == "testdesign"
+    assert node.topmodule == "testdesign"
+    assert node.project is project
+    assert node.logger is project.logger
+    assert node.jobname == "job0"
+    assert node.is_replay is False
+    assert isinstance(node.task, Task)
+    assert node.jobworkdir == jobdir(project)
+    assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
+
+    # Check private fields
+    assert node._SchedulerNode__record_user_info is False
+    assert node._SchedulerNode__generate_test_case is True
+    assert node._SchedulerNode__hash is False
+    assert node._SchedulerNode__is_entry_node is True
+
+
 def test_init_replay(project):
     node = SchedulerNode(project, "stepone", "0", replay=True)
 

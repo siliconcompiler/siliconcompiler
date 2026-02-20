@@ -121,6 +121,8 @@ def __screenshot_montage(schema, view, xbins, ybins):
     design_name = schema.get('option', 'design')
     fileset = schema.get("option", "fileset")[0]
     design = schema.get("library", design_name, "fileset", fileset, "topmodule")
+    if not design:
+        design = design_name
 
     horizontal_resolution, vertical_resolution = schema.get(
         'tool', 'klayout', 'task', task, 'var', 'show_resolution', step=step, index=index)
@@ -210,6 +212,8 @@ def main():
     design_name = schema.get('option', 'design')
     fileset = schema.get("option", "fileset")[0]
     design = schema.get("library", design_name, "fileset", fileset, "topmodule")
+    if not design:
+        design = design_name
 
     sc_fileext = schema.get('tool', 'klayout', 'task', task, 'var', 'showfiletype',
                             step=step, index=index)
