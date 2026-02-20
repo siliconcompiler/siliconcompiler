@@ -671,6 +671,8 @@ class Board:
         table_data_select = []
         for projectid, job in job_data.items():
             for n, node in enumerate(job.nodes):
+                if node["print"]["hide"]:
+                    continue
                 table_data_select.append(
                     (projectid, n, node["print"]["priority"], node["print"]["order"])
                 )
@@ -1000,6 +1002,11 @@ class Board:
             if not flow:
                 raise RuntimeError("dummy error")
 
+            check_flow = RuntimeFlowgraph(
+                project.get("flowgraph", flow, field='schema'),
+                from_steps=project.get('option', 'from'),
+                to_steps=project.get('option', 'to'),
+                prune_nodes=project.get('option', 'prune'))
             runtime_flow = RuntimeFlowgraph(
                 project.get("flowgraph", flow, field='schema'),
                 to_steps=project.get('option', 'to'),
@@ -1152,7 +1159,8 @@ class Board:
                     )],
                     "print": {
                         "order": nodeorder[(step, index)],
-                        "priority": node_priority[(step, index)]
+                        "priority": node_priority[(step, index)],
+                        "hide": (step, index) not in check_flow.get_nodes()
                     },
                     "type": node_type
                 }
