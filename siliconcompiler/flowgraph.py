@@ -1209,23 +1209,17 @@ class RuntimeFlowgraph:
         This method determines the final set of nodes, entry/exit points, and
         the execution order based on the runtime constraints.
         '''
-
         self.__nodes = set()
-        for entry in self.__to:
-            self.__nodes.update(self.__walk_graph(entry))
+        for exitnode in self.__to:
+            path = self.__walk_graph(exitnode)
+            if any(node in self.__from for node in path):
+                # Reject paths that dont connect to any from nodes
+                self.__nodes.update(path)
         self.__nodes = tuple(sorted(self.__nodes))
 
         # Update to and from
-        self.__from = tuple([
-            node for node in self.__from
-            if not self.__base.get(*node, "input") or
-            all([in_node not in self.__nodes for in_node in self.__base.get(*node, "input")])
-        ])
-        self.__to = tuple([
-            node for node in self.__to
-            if not self.__base.get_node_outputs(*node) or
-            all([out_node not in self.__nodes for out_node in self.__base.get_node_outputs(*node)])
-        ])
+        self.__from = tuple([node for node in self.__from if node in self.__nodes])
+        self.__to = tuple([node for node in self.__to if node in self.__nodes])
 
         ordering = []
         for level_nodes in self.__base.get_execution_order():
