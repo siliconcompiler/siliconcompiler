@@ -348,6 +348,8 @@ if __name__ == "__main__":
     design_name = schema.get('option', 'design')
     fileset = schema.get("option", "fileset")[0]
     design = schema.get("library", design_name, "fileset", fileset, "topmodule")
+    if not design:
+        design = design_name
 
     in_gds = os.path.join('inputs', f'{design}.{sc_ext}.gz')
     if not os.path.exists(in_gds):

@@ -32,6 +32,8 @@ if __name__ == "__main__":
     design_name = schema.get('option', 'design')
     fileset = schema.get("option", "fileset")[0]
     design = schema.get("library", design_name, "fileset", fileset, "topmodule")
+    if not design:
+        design = design_name
 
     ref_type, ref_source0, ref_source1 = schema.get("tool", sc_tool, "task", sc_task,
                                                     "var", "reference",
