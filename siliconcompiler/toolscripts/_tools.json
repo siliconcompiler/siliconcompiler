@@ -168,7 +168,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "416b2bd8fbc8cba316dc11b114f8a3041bfe5c0f",
+    "git-commit": "405682c75dc8ca7edbc2ba94ebfe5bc5faaf0904",
     "auto-update": false
   }
 }
