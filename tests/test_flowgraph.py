@@ -1070,7 +1070,7 @@ def test_runtime_validate_disjoint(caplog):
     assert "no path from stepone/0 to steptwo/0 in the testflow flowgraph" in caplog.text
 
 
-def test_runtime_validate_with_from(caplog):
+def test_runtime_validate_with_from():
     flow = Flowgraph("testflow")
 
     flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask")
