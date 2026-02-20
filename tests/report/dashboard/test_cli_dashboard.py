@@ -717,7 +717,7 @@ def test_render_job_dashboard_hide_before_from(mock_running_job_lg, dashboard_me
     ]
 
     expected_lines_all = []
-    for n, node in enumerate(mock_running_job_lg.nodes, start=1):
+    for node in mock_running_job_lg.nodes:
         if node["status"] in [NodeStatus.SKIPPED] or node["print"]["hide"]:
             continue
         log = ""
