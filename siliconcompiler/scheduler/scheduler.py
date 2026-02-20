@@ -90,6 +90,8 @@ class Scheduler:
             from_steps=from_steps,
             to_steps=to_steps,
             prune_nodes=prune_nodes)
+        if not self.__flow_runtime.get_nodes():
+            raise SCRuntimeError(f"{self.__flow.name} flowgraph contains no nodes to run.")
 
         self.__flow_load_runtime = RuntimeFlowgraph(
             self.__flow,

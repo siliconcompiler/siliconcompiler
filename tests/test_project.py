@@ -2187,11 +2187,10 @@ def test_run_with_empty_flowgraph(monkeypatch, caplog):
 
     # Should handle empty flow gracefully
     with pytest.raises(RuntimeError,
-                       match=r"^Run failed: emptyflow flowgraph contains errors "
-                             r"and cannot be run\.$"):
+                       match=r"^Run failed: emptyflow flowgraph contains no nodes to run\.$"):
         proj.run()
 
-    assert "Run failed: emptyflow flowgraph contains errors and cannot be run." in caplog.text
+    assert "Run failed: emptyflow flowgraph contains no nodes to run." in caplog.text
 
 
 def test_run_with_scruntimeerror(monkeypatch, caplog):
