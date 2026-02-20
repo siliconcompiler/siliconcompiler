@@ -80,7 +80,8 @@ def mock_running_job_lg():
             },
             "print": {
                 "order": (index, index),
-                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index
+                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index,
+                "hide": False
             }
         }
         for index in range(mock_job_data.total)
@@ -113,7 +114,8 @@ def mock_running_job_lg_second():
             },
             "print": {
                 "order": (index, index),
-                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index
+                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index,
+                "hide": False
             }
         }
         for index in range(mock_job_data.total)
@@ -142,7 +144,8 @@ def mock_running_job():
             "log": [(f"node{index + 1}.log", f"node{index + 1}.log")],
             "print": {
                 "order": (index, index),
-                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index
+                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index,
+                "hide": False
             }
         }
         for index in range(mock_job_data.total)
@@ -175,7 +178,8 @@ def mock_finished_job_fail():
             },
             "print": {
                 "order": (index, index),
-                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index
+                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index,
+                "hide": False
             }
         }
         for index in range(mock_job_data.total)
@@ -207,7 +211,8 @@ def mock_finished_job_passed():
             },
             "print": {
                 "order": (index, index),
-                "priority": index
+                "priority": index,
+                "hide": False
             }
         }
         for index in range(mock_job_data.total)
@@ -668,6 +673,95 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
     assert len(actual_lines) == len(expected_lines)
     for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
         assert actual == expected, f"line {i} does not match"
+
+
+def test_render_job_dashboard_hide_before_from(mock_running_job_lg, dashboard_medium):
+    """Test that the job dashboard is created properly"""
+    dashboard = dashboard_medium._dashboard
+
+    for n in range(1, mock_running_job_lg.total+1):
+        if n % 2 == 0:
+            # Hide every other node
+            mock_running_job_lg.nodes[0]["print"]["hide"] = True
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    job_board = dashboard._render_job_dashboard(dashboard._layout)
+
+    assert isinstance(job_board, Group)
+
+    assert len(job_board.renderables) == 2
+
+    job_table = job_board.renderables[0]
+    assert isinstance(job_table, Table)
+
+    assert job_table.row_count == 19
+
+    # Check the content
+    io_file = io.StringIO()
+    console = Console(file=io_file, width=120)
+    logger = logging.getLogger("test")
+    logger.setLevel(logging.INFO)
+    console.print(job_table)
+
+    # Remove all white spaces
+    actual_output = console.file.getvalue()
+    actual_lines = [
+        line.translate(str.maketrans("", "", " \t\n\r\f\v"))
+        for line in actual_output.splitlines()
+    ]
+
+    expected_lines_all = []
+    for n, node in enumerate(mock_running_job_lg.nodes, start=1):
+        if node["status"] in [NodeStatus.SKIPPED] or node["print"]["hide"]:
+            continue
+        log = ""
+        status = node["status"].upper()
+        job_id = "/".join(
+            [
+                mock_running_job_lg.design,
+                mock_running_job_lg.jobname,
+                node["step"],
+                str(node["index"]),
+            ]
+        )
+        div = ""
+        expected_line = f"{status}{div}{job_id}{div}{div}{div}{div}{log}".translate(
+            str.maketrans("", "", " \t\n\r\f\v"))
+        expected_lines_all.append(expected_line)
+
+    actual_lines = actual_lines[2:]
+    assert len(actual_lines) == 19
+
+    expected_lines = [
+        expected_lines_all[0],
+        expected_lines_all[1],
+        expected_lines_all[2],
+        expected_lines_all[3],
+        expected_lines_all[4],
+        expected_lines_all[5],
+        expected_lines_all[6],
+        expected_lines_all[7],
+        expected_lines_all[8],
+        expected_lines_all[9],
+        expected_lines_all[10],
+        expected_lines_all[11],
+        expected_lines_all[12],
+        expected_lines_all[13],
+        expected_lines_all[15],
+        expected_lines_all[18],
+        expected_lines_all[21],
+        expected_lines_all[24],
+        expected_lines_all[27]
+    ]
+    assert len(actual_lines) == len(expected_lines)
+    for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
+        assert actual == expected, f"line {i} does not match {actual} != {expected}"
 
 
 def test_render_job_dashboard_select_logs(mock_running_job_lg, dashboard_medium):
