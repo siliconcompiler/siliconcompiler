@@ -679,10 +679,10 @@ def test_render_job_dashboard_hide_before_from(mock_running_job_lg, dashboard_me
     """Test that the job dashboard is created properly"""
     dashboard = dashboard_medium._dashboard
 
-    for n in range(1, mock_running_job_lg.total+1):
+    for n in range(0, mock_running_job_lg.total):
         if n % 2 == 0:
             # Hide every other node
-            mock_running_job_lg.nodes[0]["print"]["hide"] = True
+            mock_running_job_lg.nodes[n]["print"]["hide"] = True
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
@@ -700,7 +700,7 @@ def test_render_job_dashboard_hide_before_from(mock_running_job_lg, dashboard_me
     job_table = job_board.renderables[0]
     assert isinstance(job_table, Table)
 
-    assert job_table.row_count == 19
+    assert job_table.row_count == 15
 
     # Check the content
     io_file = io.StringIO()
@@ -736,31 +736,10 @@ def test_render_job_dashboard_hide_before_from(mock_running_job_lg, dashboard_me
         expected_lines_all.append(expected_line)
 
     actual_lines = actual_lines[2:]
-    assert len(actual_lines) == 19
+    assert len(actual_lines) == 15
 
-    expected_lines = [
-        expected_lines_all[0],
-        expected_lines_all[1],
-        expected_lines_all[2],
-        expected_lines_all[3],
-        expected_lines_all[4],
-        expected_lines_all[5],
-        expected_lines_all[6],
-        expected_lines_all[7],
-        expected_lines_all[8],
-        expected_lines_all[9],
-        expected_lines_all[10],
-        expected_lines_all[11],
-        expected_lines_all[12],
-        expected_lines_all[13],
-        expected_lines_all[15],
-        expected_lines_all[18],
-        expected_lines_all[21],
-        expected_lines_all[24],
-        expected_lines_all[27]
-    ]
-    assert len(actual_lines) == len(expected_lines)
-    for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
+    assert len(actual_lines) == len(expected_lines_all)
+    for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines_all)):
         assert actual == expected, f"line {i} does not match {actual} != {expected}"
 
 
