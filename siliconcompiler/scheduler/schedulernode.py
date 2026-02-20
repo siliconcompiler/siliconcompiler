@@ -96,7 +96,8 @@ class SchedulerNode:
         self.__name = self.__project.name
         filesets = self.__project.get("option", "fileset")
         if filesets:
-            self.__topmodule: str = self.__project.get_library(self.__name).get_topmodule(filesets[0])
+            self.__topmodule: str = self.__project.get_library(
+                self.__name).get_topmodule(filesets[0])
         else:
             # Fallback to design name if fileset is not specified
             self.__topmodule = self.__name
