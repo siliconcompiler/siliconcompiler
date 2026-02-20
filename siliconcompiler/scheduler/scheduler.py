@@ -90,6 +90,8 @@ class Scheduler:
             from_steps=from_steps,
             to_steps=to_steps,
             prune_nodes=prune_nodes)
+        if not self.__flow_runtime.get_nodes():
+            raise SCRuntimeError(f"{self.__flow.name} flowgraph contains no nodes to run.")
 
         self.__flow_load_runtime = RuntimeFlowgraph(
             self.__flow,
@@ -706,6 +708,7 @@ class Scheduler:
         # Collect initial list of nodes to process
         for layer_nodes in self.__flow.get_execution_order():
             nodes.extend(layer_nodes)
+        running_nodes = self.__flow_runtime.get_nodes()
 
         # Determine pool size
         cores = utils.get_cores()
@@ -759,8 +762,13 @@ class Scheduler:
                         if isinstance(runrequired, SchedulerFlowReset):
                             raise runrequired
 
-                        # This node must be run
-                        self.__mark_pending(*node)
+                        if node in running_nodes:
+                            # This node must be run
+                            self.__mark_pending(*node)
+                        else:
+                            self.__logger.warning(f"{node} requires a rerun but is not in the "
+                                                  "current execution flow, skipping")
+                            replay.append(node)
                     else:
                         # import old information
                         replay.append(node)

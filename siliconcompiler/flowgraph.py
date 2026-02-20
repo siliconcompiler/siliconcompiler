@@ -1209,13 +1209,19 @@ class RuntimeFlowgraph:
         This method determines the final set of nodes, entry/exit points, and
         the execution order based on the runtime constraints.
         '''
-
         self.__nodes = set()
-        for entry in self.__to:
-            self.__nodes.update(self.__walk_graph(entry))
+        for exitnode in self.__to:
+            path = self.__walk_graph(exitnode)
+            if any(node in self.__from for node in path):
+                # Reject paths that dont connect to any from nodes
+                self.__nodes.update(path)
         self.__nodes = tuple(sorted(self.__nodes))
 
-        # Update to and from
+        # Update to and from to only include nodes that in the final graph
+        self.__from = tuple([node for node in self.__from if node in self.__nodes])
+        self.__to = tuple([node for node in self.__to if node in self.__nodes])
+
+        # Update to and from to those at the start or end
         self.__from = tuple([
             node for node in self.__from
             if not self.__base.get(*node, "input") or
@@ -1451,18 +1457,19 @@ class RuntimeFlowgraph:
                                  'flowgraph')
                 error = True
 
-            if not error:
+            if from_steps and to_steps:
                 # Check for missing paths
                 missing = []
                 found_any = False
-                for entrynode in runtime.get_entry_nodes():
+                from_nodes = set([node for node in flow.get_nodes() if node[0] in from_steps])
+                to_nodes = set([node for node in flow.get_nodes() if node[0] in to_steps])
+                for entrynode in from_nodes:
                     found = False
-                    for exitnode in runtime.get_exit_nodes():
+                    for exitnode in to_nodes:
                         if entrynode in runtime.__walk_graph(exitnode):
                             found = True
                     if not found:
-                        exits = ",".join([f"{step}/{index}"
-                                          for step, index in runtime.get_exit_nodes()])
+                        exits = ",".join([f"{step}/{index}" for step, index in to_nodes])
                         missing.append(f'no path from {entrynode[0]}/{entrynode[1]} to {exits} '
                                        f'in the {flow.name} flowgraph')
                     if found:
