@@ -51,7 +51,7 @@ class SynthesisFlow(Flowgraph):
                 self.edge("synthesis", "synmin", tail_index=n)
 
             for metric in ('errors',):
-                self.set("synthesis", str(n), 'goal', metric, 0)
+                self.get_graph_node("synthesis", n).add_goal(metric, 0)
 
         if syn_np > 1:
             prev_step = "synmin"

@@ -229,7 +229,7 @@ def archive(project: "Project",
         raise ValueError("no history to archive")
 
     if jobname is None:
-        jobname = project.get("option", "jobname")
+        jobname = project.option.get_jobname()
     if jobname not in histories:
         org_job = jobname
         jobname = histories[0]
@@ -237,12 +237,12 @@ def archive(project: "Project",
 
     history = project.history(jobname)
 
-    flow = history.get('option', 'flow')
+    flow = history.option.get_flow()
     flowgraph_nodes = RuntimeFlowgraph(
         history.get("flowgraph", flow, field='schema'),
-        from_steps=history.get('option', 'from'),
-        to_steps=history.get('option', 'to'),
-        prune_nodes=history.get('option', 'prune')).get_nodes()
+        from_steps=history.option.get_from(),
+        to_steps=history.option.get_to(),
+        prune_nodes=history.option.get_prune()).get_nodes()
 
     if not archive_name:
         archive_name = f"{history.name}_{jobname}.tgz"

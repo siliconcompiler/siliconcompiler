@@ -56,7 +56,7 @@ def main():
                 "file", "file", "Path to generate replay file to.", defvalue="replay.sh")
             self._add_commandline_argument(
                 "cfg", "file", "configuration manifest")
-            self.unset("option", "jobname")
+            self.option.unset("jobname")
 
     # Read command-line inputs and generate project objects to run the flow on.
     proj = ReplayProject.create_cmdline(
@@ -75,11 +75,11 @@ def main():
         return 1
 
     replay = Project.from_manifest(filepath=proj.get("cmdarg", "cfg"))
-    if proj.get("option", "jobname"):
-        replay.set("option", "jobname", proj.get("option", "jobname"))
+    if proj.option.get_jobname():
+        replay.option.set_jobname(proj.option.get_jobname())
 
     # Print Job Summary
-    job = replay.history(replay.get('option', 'jobname'))
+    job = replay.history(replay.option.get_jobname())
     pythonpackages = job.get('record', 'pythonpackage')
 
     pythonversion = set()
@@ -103,7 +103,7 @@ def main():
 
         tools.setdefault(toolpath, set()).add(toolversion)
         if toolversion:
-            tool = job.get('flowgraph', job.get('option', 'flow'), step, index, 'tool')
+            tool = job.get('flowgraph', job.option.get_flow(), step, index, 'tool')
             tool_versions.append(
                 ((step, index), tool, toolversion)
             )
@@ -133,7 +133,7 @@ def main():
     with io.StringIO() as fd:
         fd.write(utils.get_file_template('replay/requirements.txt').render(
             design=job.name,
-            jobname=job.get("option", "jobname"),
+            jobname=job.option.get_jobname(),
             date=starttime,
             pkgs=pythonpackages
         ))
@@ -152,7 +152,7 @@ def main():
     with io.StringIO() as fd:
         fd.write(utils.get_file_template('replay/replay.py.j2').render(
             design=job.name,
-            jobname=job.get("option", "jobname"),
+            jobname=job.option.get_jobname(),
             date=starttime,
             src_file=wrap_text(collect_files),
             tool_versions=sorted(tool_versions)
@@ -166,13 +166,13 @@ def main():
     for tool, version in tools.items():
         tool_info.append(f"{os.path.basename(tool):<{tool_len}}: {', '.join(version)}")
 
-    description = f"Replay for {job.name} / {job.get('option', 'jobname')}\n" \
+    description = f"Replay for {job.name} / {job.option.get_jobname()}\n" \
         f"Run on: {starttime}"
 
     with open(path, 'w', encoding='utf-8') as wf:
         wf.write(utils.get_file_template('replay/setup.sh').render(
             design=job.name,
-            jobname=job.get("option", "jobname"),
+            jobname=job.option.get_jobname(),
             date=starttime,
             description=description,
             pythonversion=pythonversion,

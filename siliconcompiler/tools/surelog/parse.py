@@ -99,8 +99,8 @@ class ElaborateTask(Task):
     def setup(self):
         super().setup()
 
-        is_docker = self.project.get('option', 'scheduler', 'name',
-                                     step=self.step, index=self.index) == 'docker'
+        is_docker = self.project.option.scheduler.get_name(step=self.step, index=self.index) == \
+            'docker'
         if not is_docker:
             exe = 'surelog'
             if sys.platform.startswith("win32"):
@@ -205,7 +205,7 @@ class ElaborateTask(Task):
         #######################
         for lib, fileset in filesets:
             for value in lib.get_file(fileset=fileset, filetype="commandfile"):
-                options.extend(['-f', + value])
+                options.extend(['-f', value])
 
         #######################
         # Sources

@@ -123,8 +123,8 @@ To delete a job, use:
     else:
         project = remote
 
-    if remote.get("option", "credentials"):
-        project.set("option", "credentials", remote.find_files("option", "credentials"))
+    if remote.option.get_credentials():
+        project.option.set_credentials(remote.find_files("option", "credentials"))
 
     client = Client(project)
     # Main logic.
@@ -144,12 +144,12 @@ To delete a job, use:
     # in its "check_progress/ until job is done" loop.
     elif remote.get("cmdarg", 'reconnect'):
         # Start from successors of entry nodes, so entry nodes are not fetched from remote.
-        flow = project.get('option', 'flow')
+        flow = project.option.get_flow()
         entry_nodes = project.get("flowgraph", flow, field="schema").get_entry_nodes()
         for entry_node in entry_nodes:
             outputs = project.get("flowgraph", flow,
                                   field='schema').get_node_outputs(*entry_node)
-            project.set('option', 'from', list(map(lambda node: node[0], outputs)))
+            project.option.add_from(list(map(lambda node: node[0], outputs)), clobber=True)
         # Enter the remote run loop.
         try:
             client._run_loop()

@@ -26,7 +26,7 @@ def get_project_cwd(project, manifest):
         str or None: The absolute path to the project's original working
                      directory, or None if it cannot be determined.
     """
-    build_dir = Path(project.get('option', 'builddir'))
+    build_dir = Path(project.option.get_builddir())
 
     manifest_path = Path(manifest)
     for path in manifest_path.parents:
@@ -53,8 +53,8 @@ def make_node_to_step_index_map(project, metric_dataframe):
             - pandas.DataFrame: The modified metric dataframe.
     """
     node_to_step_index_map = {}
-    if project.get('option', 'flow'):
-        for step, index in project.get("flowgraph", project.get('option', 'flow'),
+    if project.option.get_flow():
+        for step, index in project.get("flowgraph", project.option.get_flow(),
                                        field="schema").get_nodes():
             node_to_step_index_map[f'{step}/{index}'] = (step, index)
 
@@ -102,10 +102,10 @@ def is_running(project):
     Returns:
         bool: True if any node is not in a 'done' state, False otherwise.
     """
-    if not project.get('option', 'flow'):
+    if not project.option.get_flow():
         return False
 
-    for step, index in project.get("flowgraph", project.get('option', 'flow'),
+    for step, index in project.get("flowgraph", project.option.get_flow(),
                                    field="schema").get_nodes():
         state = project.get('record', 'status', step=step, index=index)
         if not NodeStatus.is_done(state):

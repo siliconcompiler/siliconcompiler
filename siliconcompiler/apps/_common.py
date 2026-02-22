@@ -155,21 +155,21 @@ def pick_manifest(cliproject: Project, src_file: Optional[str] = None) -> Option
         return manifest
 
     # 2. Infer design if unset and only one option exists.
-    if not cliproject.get("option", "design"):
+    if not cliproject.option.get_design():
         if len(all_manifests) == 1:
-            cliproject.set("option", "design", list(all_manifests.keys())[0])
+            cliproject.option.set_design(list(all_manifests.keys())[0])
         else:
             cliproject.logger.error('Design name is not set and could not be inferred.')
             return None
 
-    design = cliproject.get("option", "design")
+    design = cliproject.option.get_design()
 
     if design not in all_manifests:
         cliproject.logger.error(f'Could not find any manifests for design "{design}".')
         return None
 
     # 3. Infer jobname if unset and only one option exists for the design.
-    jobname = cliproject.get('option', 'jobname')
+    jobname = cliproject.option.get_jobname()
     if jobname not in all_manifests[design] and \
             len(all_manifests[design]) != 1:
         cliproject.logger.error(f'Could not determine jobname for {design}')

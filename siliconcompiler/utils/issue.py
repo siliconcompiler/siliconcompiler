@@ -228,7 +228,7 @@ def generate_testcase(project: "Project",
 
     if not archive_name:
         design = project.name
-        job = project.get('option', 'jobname')
+        job = project.option.get_jobname()
         file_time = datetime.fromtimestamp(issue_time, timezone.utc).strftime('%Y%m%d-%H%M%S')
         archive_name = f'sc_issue_{design}_{job}_{step}_{index}_{file_time}.tar.gz'
 

@@ -6,7 +6,7 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 def _find_summary_image(project, ext='png'):
     for nodes in reversed(project.get(
-            "flowgraph", project.get('option', 'flow'), field="schema").get_execution_order()):
+            "flowgraph", project.option.get_flow(), field="schema").get_execution_order()):
         for step, index in nodes:
             layout_img = project.find_result(ext, step=step, index=index)
             if layout_img:
@@ -16,16 +16,16 @@ def _find_summary_image(project, ext='png'):
 
 def _collect_data(project, flow=None, flowgraph_nodes=None, format_as_string=True):
     if not flow:
-        flow = project.get('option', 'flow')
+        flow = project.option.get_flow()
     if not flow:
         return [], {}, {}, {}, [], {}
 
     if not flowgraph_nodes:
         runtime = RuntimeFlowgraph(
             project.get("flowgraph", flow, field='schema'),
-            from_steps=project.get('option', 'from'),
-            to_steps=project.get('option', 'to'),
-            prune_nodes=project.get('option', 'prune'))
+            from_steps=project.option.get_from(),
+            to_steps=project.option.get_to(),
+            prune_nodes=project.option.get_prune())
 
         flowgraph_nodes = list(runtime.get_nodes())
         # only report tool based steps functions

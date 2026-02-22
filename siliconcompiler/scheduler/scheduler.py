@@ -63,7 +63,7 @@ class Scheduler:
         self.__logger: logging.Logger = project.logger.getChild("scheduler")
         self.__name = project.name
 
-        flow = self.__project.get("option", "flow")
+        flow = self.__project.option.get_flow()
         if not flow:
             raise SCRuntimeError("flow must be specified")
 
@@ -71,9 +71,9 @@ class Scheduler:
             raise SCRuntimeError("flow is not defined")
 
         self.__flow: "Flowgraph" = self.__project.get("flowgraph", flow, field="schema")
-        from_steps = self.__project.get('option', 'from')
-        to_steps = self.__project.get('option', 'to')
-        prune_nodes = self.__project.get('option', 'prune')
+        from_steps = self.__project.option.get_from()
+        to_steps = self.__project.option.get_to()
+        prune_nodes = self.__project.option.get_prune()
 
         if not self.__flow.validate(logger=self.__logger):
             raise SCRuntimeError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
@@ -106,15 +106,14 @@ class Scheduler:
 
         # Create dummy handler
         self.__joblog_handler = logging.NullHandler()
-        self.__org_job_name = self.__project.get("option", "jobname")
+        self.__org_job_name = self.__project.option.get_jobname()
         self.__logfile = None
 
         # Create tasks
         for step, index in self.__flow.get_nodes():
             node_cls = SchedulerNode
 
-            node_scheduler = self.__project.get('option', 'scheduler', 'name',
-                                                step=step, index=index)
+            node_scheduler = self.__project.option.scheduler.get_name(step=step, index=index)
             if node_scheduler == 'slurm':
                 node_cls = SlurmSchedulerNode
             elif node_scheduler == 'docker':
@@ -462,10 +461,10 @@ class Scheduler:
 
         if self.__org_job_name:
             # Copy collection directory
-            curret_job = self.__project.get("option", "jobname")
-            self.__project.set("option", "jobname", self.__org_job_name)
+            curret_job = self.__project.option.get_jobname()
+            self.__project.option.set_jobname(self.__org_job_name)
             copy_from = collectiondir(self.__project)
-            self.__project.set("option", "jobname", curret_job)
+            self.__project.option.set_jobname(curret_job)
             copy_to = collectiondir(self.__project)
             if os.path.exists(copy_from):
                 shutil.copytree(copy_from, copy_to,
@@ -509,7 +508,7 @@ class Scheduler:
             return
 
         if not recheck:
-            if not self.__project.get('option', 'clean') or self.__project.get('option', 'from'):
+            if not self.__project.option.get_clean() or self.__project.option.get_from():
                 return
 
         # If no step or nodes to start from were specified, the whole flow is being run
@@ -582,12 +581,12 @@ class Scheduler:
 
         extra_setup_nodes = {}
         from_nodes = []
-        if self.__project.get('option', 'clean'):
-            if self.__project.get("option", "from"):
+        if self.__project.option.get_clean():
+            if self.__project.option.get_from():
                 from_nodes = self.__flow_runtime.get_entry_nodes()
             load_nodes = self.__flow.get_nodes()
         else:
-            if self.__project.get("option", "from"):
+            if self.__project.option.get_from():
                 from_nodes = self.__flow_runtime.get_entry_nodes()
             load_nodes = self.__flow_load_runtime.get_nodes()
 
@@ -841,11 +840,11 @@ class Scheduler:
         from attempting to open a GUI.
         """
 
-        if not self.__project.get('option', 'nodisplay') and sys.platform == 'linux' \
+        if not self.__project.option.get_nodisplay() and sys.platform == 'linux' \
                 and 'DISPLAY' not in os.environ and 'WAYLAND_DISPLAY' not in os.environ:
             self.__logger.warning('Environment variable $DISPLAY or $WAYLAND_DISPLAY not set')
             self.__logger.warning("Setting [option,nodisplay] to True")
-            self.__project.set('option', 'nodisplay', True)
+            self.__project.option.set_nodisplay(True)
 
     def __increment_job_name(self) -> bool:
         """
@@ -858,15 +857,15 @@ class Scheduler:
         Returns:
             bool: True if the job name was incremented, False otherwise.
         """
-        if not self.__project.get('option', 'clean'):
+        if not self.__project.option.get_clean():
             return False
-        if not self.__project.get('option', 'jobincr'):
+        if not self.__project.option.get_jobincr():
             return False
 
         workdir = jobdir(self.__project)
         if os.path.isdir(workdir):
             # Strip off digits following jobname, if any
-            stem = self.__project.get('option', 'jobname').rstrip('0123456789')
+            stem = self.__project.option.get_jobname().rstrip('0123456789')
 
             dir_check = re.compile(fr'{stem}(\d+)')
 
@@ -875,7 +874,7 @@ class Scheduler:
                 m = dir_check.match(job)
                 if m:
                     jobid = max(jobid, int(m.group(1)))
-            self.__project.set('option', 'jobname', f'{stem}{jobid + 1}')
+            self.__project.option.set_jobname(f'{stem}{jobid + 1}')
             for task in self.__tasks.values():
                 task._update_job()
             return True

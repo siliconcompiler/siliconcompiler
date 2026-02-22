@@ -44,7 +44,7 @@ To capture all available provenance data, you must explicitly enable the :keypat
   proj = siliconcompiler.Project('my_design')
 
   # Enable full tracking to record user and machine information
-  proj.set('option', 'track', True)
+  proj.option.set_track(True)
 
   # ... continue with your compilation setup
 
