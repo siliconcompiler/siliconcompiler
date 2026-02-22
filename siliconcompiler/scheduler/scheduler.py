@@ -70,7 +70,7 @@ class Scheduler:
         if flow not in self.__project.getkeys("flowgraph"):
             raise SCRuntimeError("flow is not defined")
 
-        self.__flow: "Flowgraph" = self.__project.get("flowgraph", flow, field="schema")
+        self.__flow: "Flowgraph" = self.__project.get_flow(flow)
         from_steps = self.__project.option.get_from()
         to_steps = self.__project.option.get_to()
         prune_nodes = self.__project.option.get_prune()

@@ -157,7 +157,7 @@ class VizierOptimizier(Optimizer):
                 chip.graph(flow, org_flow, name=graph_name)
 
             # Complete nodes
-            nodes = chip.get("flowgraph", org_flow, field="schema").get_nodes()
+            nodes = chip.get_flow(org_flow).get_nodes()
             for step, _ in list(nodes):
                 nodes.append((step, None))
             nodes = set(nodes)

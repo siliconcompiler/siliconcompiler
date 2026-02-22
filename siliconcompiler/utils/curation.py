@@ -237,12 +237,20 @@ def archive(project: "Project",
 
     history = project.history(jobname)
 
-    flow = history.option.get_flow()
-    flowgraph_nodes = RuntimeFlowgraph(
-        history.get("flowgraph", flow, field='schema'),
-        from_steps=history.option.get_from(),
-        to_steps=history.option.get_to(),
-        prune_nodes=history.option.get_prune()).get_nodes()
+    flow = None
+    try:
+        flow = history.get_flow()
+    except KeyError:
+        pass
+
+    if flow:
+        flowgraph_nodes = RuntimeFlowgraph(
+            flow,
+            from_steps=history.option.get_from(),
+            to_steps=history.option.get_to(),
+            prune_nodes=history.option.get_prune()).get_nodes()
+    else:
+        flowgraph_nodes = []
 
     if not archive_name:
         archive_name = f"{history.name}_{jobname}.tgz"

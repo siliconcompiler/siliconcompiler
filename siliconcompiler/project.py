@@ -514,8 +514,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Disable dashboard if breakpoints are set
         if self.__dashboard and self.option.get_flow():
             breakpoints = set()
-            flow = self.get("flowgraph", self.option.get_flow(), field="schema")
-            for step, index in flow.get_nodes():
+            for step, index in self.get_flow().get_nodes():
                 try:
                     node = SchedulerNode(self, step, index)
                     with node.runtime():
@@ -1211,7 +1210,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             search_nodes = []
             flow = search_obj.option.get_flow()
             if flow:
-                flow_obj = search_obj.get("flowgraph", flow, field="schema")
+                flow_obj = search_obj.get_flow(flow)
                 for nodes in flow_obj.get_execution_order(reverse=True):
                     search_nodes.extend(nodes)
 

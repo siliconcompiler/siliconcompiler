@@ -371,7 +371,7 @@ class Checklist(NamedSchema):
 
                 for job, step, index in item_criteria.get_task():
                     job_data = schema_root.history(job)
-                    flow = job_data.get("flowgraph", job_data.option.get_flow(), field="schema")
+                    flow = job_data.get_flow()
 
                     if (step, index) not in flow.get_nodes():
                         error = True

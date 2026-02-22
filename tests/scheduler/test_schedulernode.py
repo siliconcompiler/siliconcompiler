@@ -1597,11 +1597,11 @@ def test_copy_from(project, monkeypatch, caplog, has_graphviz):
 
 def test_switch_node(project):
     node0 = SchedulerNode(project, "stepone", "0")
-    node1 = node0.switch_node("steptwo", "2")
+    node1 = node0.switch_node("steptwo", "0")
     assert node0.step == "stepone"
     assert node0.index == "0"
     assert node1.step == "steptwo"
-    assert node1.index == "2"
+    assert node1.index == "0"
     assert node0.project is node1.project
 
 

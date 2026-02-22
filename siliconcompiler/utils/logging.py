@@ -57,7 +57,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
 
         flow = project.option.get_flow()
         if flow:
-            nodes_to_run = list(project.get("flowgraph", flow, field="schema").get_nodes())
+            nodes_to_run = list(project.get_flow(flow).get_nodes())
         else:
             nodes_to_run = []
 

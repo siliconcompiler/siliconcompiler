@@ -1003,12 +1003,12 @@ class Board:
                 raise RuntimeError("dummy error")
 
             check_flow = RuntimeFlowgraph(
-                project.get("flowgraph", flow, field='schema'),
+                project.get_flow(flow),
                 from_steps=project.option.get_from(),
                 to_steps=project.option.get_to(),
                 prune_nodes=project.option.get_prune())
             runtime_flow = RuntimeFlowgraph(
-                project.get("flowgraph", flow, field='schema'),
+                project.get_flow(flow),
                 to_steps=project.option.get_to(),
                 prune_nodes=project.option.get_prune())
             record = project.get("record", field='schema')
@@ -1030,11 +1030,12 @@ class Board:
                     nodeorder[node] = (n, m)
 
                     node_inputs[node] = runtime_flow.get_node_inputs(*node, record=record)
-                    for in_node in project.get('flowgraph', flow, node[0], node[1], 'input'):
+                    for in_node in project.get_flow(flow).get_graph_node(node[0],
+                                                                         node[1]).get_input():
                         node_outputs.setdefault(in_node, set()).add(node)
 
             flow_entry_nodes = set(
-                project.get("flowgraph", flow, field="schema").get_entry_nodes())
+                project.get_flow(flow).get_entry_nodes())
             flow_exit_nodes = set(runtime_flow.get_exit_nodes())
 
             running_nodes = set([node for node in nodes if NodeStatus.is_running(nodestatus[node])])

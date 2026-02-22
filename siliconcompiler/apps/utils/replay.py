@@ -103,7 +103,7 @@ def main():
 
         tools.setdefault(toolpath, set()).add(toolversion)
         if toolversion:
-            tool = job.get('flowgraph', job.option.get_flow(), step, index, 'tool')
+            tool = job.get_flow().get_graph_node(step, index).get_tool()
             tool_versions.append(
                 ((step, index), tool, toolversion)
             )

@@ -254,7 +254,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             flow = self.__schema_full.option.get_flow()
             if not flow:
                 raise RuntimeError("flow not specified")
-            self.__schema_flow = self.__schema_full.get("flowgraph", flow, field="schema")
+            self.__schema_flow = self.__schema_full.get_flow(flow)
 
             self.__schema_flow_runtime = RuntimeFlowgraph(
                 self.__schema_flow,

@@ -137,7 +137,7 @@ def send(project, msg_type, step, index):
                     msg.attach(img_attach)
 
             runtime = RuntimeFlowgraph(
-                project.get("flowgraph", flow, field='schema'),
+                project.get_flow(flow),
                 from_steps=project.option.get_from(),
                 to_steps=project.option.get_to(),
                 prune_nodes=project.option.get_prune())

@@ -119,9 +119,8 @@ class SchedulerNode:
 
         self._update_job()
 
-        flow: str = self.__project.option.get_flow()
         self.__is_entry_node: bool = (self.__step, self.__index) in \
-            self.__project.get("flowgraph", flow, field="schema").get_entry_nodes()
+            self.__project.get_flow().get_entry_nodes()
 
         self.set_queue(None, None)
         self.__setup_schema_access()
@@ -331,11 +330,11 @@ class SchedulerNode:
         flow, task, records, and metrics associated with this node, optimizing
         access to configuration and results.
         """
-        flow = self.__project.option.get_flow()
-        self.__flow: "Flowgraph" = self.__project.get("flowgraph", flow, field="schema")
+        self.__flow: "Flowgraph" = self.__project.get_flow()
+        node = self.__flow.get_graph_node(self.__step, self.__index)
 
-        tool = self.__flow.get(self.__step, self.__index, 'tool')
-        task = self.__flow.get(self.__step, self.__index, 'task')
+        tool = node.get('tool')
+        task = node.get('task')
         self.__task: "Task" = self.__project.get("tool", tool, "task", task, field="schema")
         self.__record: "RecordSchema" = self.__project.get("record", field="schema")
         self.__metrics: "MetricSchema" = self.__project.get("metric", field="schema")

@@ -93,8 +93,7 @@ class Server(ServerSchema):
         self.sc_project_lookup = {}
 
     def __run_start(self, project):
-        flow = project.option.get_flow()
-        nodes = project.get("flowgraph", flow, field="schema").get_nodes()
+        nodes = project.get_flow().get_nodes()
 
         with self.sc_jobs_lock:
             job_hash = self.sc_project_lookup[project]["jobhash"]
@@ -444,7 +443,7 @@ class Server(ServerSchema):
         job_hash = project.get('record', 'remoteid')
 
         runtime = RuntimeFlowgraph(
-            project.get("flowgraph", project.option.get_flow(), field='schema'),
+            project.get_flow(),
             from_steps=project.option.get_from(),
             to_steps=project.option.get_to(),
             prune_nodes=project.option.get_prune())
