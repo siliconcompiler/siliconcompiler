@@ -281,7 +281,7 @@ class Server(ServerSchema):
         # Mark as nodisplay since it is a remote run
         project.option.set_nodisplay(True)
 
-        # Mark as quite to make server logging easier
+        # Mark as quiet to make server logging easier
         project.option.set_quiet(True)
 
         # Log job received
