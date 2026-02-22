@@ -104,7 +104,8 @@ class SchedulerNode:
         if not self.__topmodule:
             self.__topmodule = self.__name
 
-        self.__record_user_info: bool = self.__project.option.get_track(step=self.__step, index=self.__index)
+        self.__record_user_info: bool = self.__project.option.get_track(
+            step=self.__step, index=self.__index)
         self.__pipe = None
         self.__failed_log_lines = 20
         self.__error = False
