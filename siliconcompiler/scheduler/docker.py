@@ -115,7 +115,7 @@ def get_volumes_directories(project, cache_dir, workdir, step, index):
 
     pruned_dirs = set(pruned_dirs)
 
-    builddir = project.option.find_files('builddir')
+    builddir = project.find_files('option', 'builddir')
 
     rw_volumes = set()
 
@@ -254,7 +254,7 @@ class DockerSchedulerNode(SchedulerNode):
         else:
             cache_dir = RemoteResolver.determine_cache_dir(self.project)
             cwd = self.project_cwd
-            builddir = self.project.option.find_files('builddir')
+            builddir = self.project.find_files('option', 'builddir')
 
             local_cfg = os.path.abspath('sc_docker.json')
             cfg = local_cfg
