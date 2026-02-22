@@ -884,7 +884,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 raise ValueError(f"{alias_dep_name} does not have {alias_fileset} as a fileset")
 
         alias = (src_dep_name, src_fileset, alias_dep_name, alias_fileset)
-        self.option.add_alias(alias, clobber=clobber)
+        return self.option.add_alias(alias, clobber=clobber)
 
     def get_library(self, library: str) -> NamedSchema:
         """

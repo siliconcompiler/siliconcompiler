@@ -477,10 +477,10 @@ class ASIC(Project):
             info.append(("PDK", self.get("asic", "pdk")))
 
         # get search ordering
-        flow_name = self.get("option", 'flow')
+        flow_name = self.option.get_flow()
         flow = self.get("flowgraph", flow_name, field="schema")
-        to_steps = self.get('option', 'to')
-        prune_nodes = self.get('option', 'prune')
+        to_steps = self.option.get_to()
+        prune_nodes = self.option.get_prune()
         run_nodes = RuntimeFlowgraph(flow, to_steps=to_steps, prune_nodes=prune_nodes).get_nodes()
         nodes = []
         for node_group in flow.get_execution_order(reverse=True):
