@@ -87,6 +87,12 @@ class FPGASynthesis(YosysTask):
                     self.add_required_key(lib, *key)
                 # TODO, mark required for define and params
 
+        # Add memory initialization files (.hex, .mem) if present
+        for filetype in ["hex", "mem"]:
+            filekeys = self.get_fileset_file_keys(filetype)
+            for lib, key in filekeys:
+                self.add_required_key(lib, *key)
+
         self.add_output_file(ext="vg")
         self.add_output_file(ext="netlist.json")
         self.add_output_file(ext="blif")

@@ -126,6 +126,10 @@ def get_default_iomap() -> Dict[str, str]:
     # Waveform
     waveform_vcd = ('vcd',)
 
+    # Memory initialization
+    memory_hex = ('hex',)
+    memory_mem = ('mem',)
+
     # Constraint
     constraint_sdc = ('sdc',)
     constraint_upf = ('upf',)
@@ -179,6 +183,9 @@ def get_default_iomap() -> Dict[str, str]:
     default_iomap.update({ext: "verilog" for ext in netlist_verilog})
 
     default_iomap.update({ext: "vcd" for ext in waveform_vcd})
+
+    default_iomap.update({ext: "hex" for ext in memory_hex})
+    default_iomap.update({ext: "mem" for ext in memory_mem})
 
     default_iomap.update({ext: "sdc" for ext in constraint_sdc})
     default_iomap.update({ext: "upf" for ext in constraint_upf})
