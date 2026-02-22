@@ -40,7 +40,7 @@ The following code snippet below shows how the :ref:`demo design <asic_demo>` wa
         project = ASIC(design)                                 # create project
         project.add_fileset(["rtl", "sdc"])                    # enable filesets
         skywater130_demo(project)                              # load a pre-defined target
-        project.set('option','remote', True)                   # enable remote execution
+        project.option.set_remote(True)                        # enable remote execution
         project.run()                                          # run compilation
         project.summary()                                      # print summary
         project.show()                                         # show layout
@@ -91,7 +91,7 @@ If you were to remove this line, the job would run on your local machine.
 
 .. code-block:: python
 
-    project.set('option', 'remote', True)
+    project.option.set_remote(True)
 
 Executing the Flow
 ^^^^^^^^^^^^^^^^^^

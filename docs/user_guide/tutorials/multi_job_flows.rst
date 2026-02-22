@@ -9,7 +9,7 @@ The user can access these to create more complex, non-linear flows that take int
 The code snippet below shows a minimal sequence leveraging the multi-job feature.::
 
   project.run()
-  project.set('option', 'jobname', 'newname')
+  project.option.set_jobname('newname')
   project.set('some parameter..')
   project.run()
 
