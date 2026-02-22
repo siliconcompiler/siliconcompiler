@@ -66,9 +66,10 @@ def generate_testcase(project: "Project",
     manifest_path = os.path.join(issue_dir.name, 'orig_manifest.json')
     project.write_manifest(manifest_path)
 
-    flow = project.option.get_flow()
-    tool: str = project.get('flowgraph', flow, step, index, 'tool')
-    task: str = project.get('flowgraph', flow, step, index, 'task')
+    flow = project.get_flow()
+    node = flow.get_graph_node(step, index)
+    tool = node.get('tool')
+    task = node.get('task')
 
     task_requires: List[str] = project.get('tool', tool, 'task', task, 'require',
                                            step=step, index=index)
@@ -154,8 +155,6 @@ def generate_testcase(project: "Project",
 
     current_work_dir = os.getcwd()
     os.chdir(new_work_dir)
-
-    flow = project.option.get_flow()
 
     task_class: "Task" = project.get("tool", tool, "task", task, field="schema")
 

@@ -154,11 +154,9 @@ To run a testcase, use:
 
         project.set('arg', 'step', step)
         project.set('arg', 'index', index)
-        flow = project.option.get_flow()
-        tool = project.get("flowgraph", flow, step, index, "tool")
-        task = project.get("flowgraph", flow, step, index, "task")
-        taskmod = project.get("flowgraph", flow, step, index, "taskmodule")
-        project.logger.info(f'Preparing run for {step}/{index} - {tool}/{task} - {taskmod}')
+        node = project.get_flow().get_graph_node(step, index)
+        project.logger.info(f'Preparing run for {step}/{index} - '
+                            f'{node.get_tool()}/{node.get_task()} - {node.get_taskmodule()}')
 
         # Modify run environment to point to extracted files
         builddir_key = ['option', 'builddir']

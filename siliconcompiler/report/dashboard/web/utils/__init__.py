@@ -54,8 +54,7 @@ def make_node_to_step_index_map(project, metric_dataframe):
     """
     node_to_step_index_map = {}
     if project.option.get_flow():
-        for step, index in project.get("flowgraph", project.option.get_flow(),
-                                       field="schema").get_nodes():
+        for step, index in project.get_flow().get_nodes():
             node_to_step_index_map[f'{step}/{index}'] = (step, index)
 
     # Concatenate step and index in the DataFrame columns
@@ -105,8 +104,7 @@ def is_running(project):
     if not project.option.get_flow():
         return False
 
-    for step, index in project.get("flowgraph", project.option.get_flow(),
-                                   field="schema").get_nodes():
+    for step, index in project.get_flow().get_nodes():
         state = project.get('record', 'status', step=step, index=index)
         if not NodeStatus.is_done(state):
             return True

@@ -685,7 +685,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         self.__node_information = {}
         runtime = RuntimeFlowgraph(
-            self.__project.get("flowgraph", self.__project.option.get_flow(), field='schema'),
+            self.__project.get_flow(),
             from_steps=self.__project.option.get_from(),
             to_steps=self.__project.option.get_to(),
             prune_nodes=self.__project.option.get_prune())

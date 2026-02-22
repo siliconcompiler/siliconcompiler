@@ -67,9 +67,7 @@ class TaskScheduler:
         self.__logger = self.__project.logger
         self.__logger_console_handler = self.__project._logger_console
         self.__schema = self.__project
-        self.__flow: "Flowgraph" = self.__schema.get("flowgraph",
-                                                     self.__project.option.get_flow(),
-                                                     field="schema")
+        self.__flow: "Flowgraph" = self.__schema.get_flow()
         self.__record: "RecordSchema" = self.__schema.get("record", field="schema")
         self.__dashboard = project._Project__dashboard
 

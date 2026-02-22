@@ -22,7 +22,7 @@ def _collect_data(project, flow=None, flowgraph_nodes=None, format_as_string=Tru
 
     if not flowgraph_nodes:
         runtime = RuntimeFlowgraph(
-            project.get("flowgraph", flow, field='schema'),
+            project.get_flow(flow),
             from_steps=project.option.get_from(),
             to_steps=project.option.get_to(),
             prune_nodes=project.option.get_prune())
@@ -30,7 +30,7 @@ def _collect_data(project, flow=None, flowgraph_nodes=None, format_as_string=Tru
         flowgraph_nodes = list(runtime.get_nodes())
         # only report tool based steps functions
         for (step, index) in list(flowgraph_nodes):
-            tool = project.get('flowgraph', flow, step, '0', 'tool')
+            tool = project.get_flow(flow).get_graph_node(step, "0").get_tool()
             if tool == 'builtin':
                 index = flowgraph_nodes.index((step, index))
                 del flowgraph_nodes[index]
@@ -47,7 +47,7 @@ def _collect_data(project, flow=None, flowgraph_nodes=None, format_as_string=Tru
     reports = {}
 
     # Build ordered list of nodes in flowgraph
-    for level_nodes in project.get("flowgraph", flow, field="schema").get_execution_order():
+    for level_nodes in project.get_flow(flow).get_execution_order():
         nodes.extend(sorted(level_nodes))
     nodes = [node for node in nodes if node in flowgraph_nodes]
     for (step, index) in nodes:
@@ -67,17 +67,16 @@ def _collect_data(project, flow=None, flowgraph_nodes=None, format_as_string=Tru
 
         show_metric = False
         for step, index in nodes:
-            if metric in project.getkeys('flowgraph', flow,
-                                         step, index, 'weight') and \
-               project.get('flowgraph', flow, step, index, 'weight', metric):
+            if metric in project.get_flow(flow).get_graph_node(step, index).getkeys('weight') and \
+               project.get_flow(flow).get_graph_node(step, index).get('weight', metric):
                 show_metric = True
 
             value = project.get('metric', metric, step=step, index=index)
             if value is not None:
                 show_metric = True
 
-            tool = project.get('flowgraph', flow, step, index, 'tool')
-            task = project.get('flowgraph', flow, step, index, 'task')
+            tool = project.get_flow(flow).get_graph_node(step, index).get_tool()
+            task = project.get_flow(flow).get_graph_node(step, index).get_task()
             rpts = project.get('tool', tool, 'task', task, 'report', metric,
                                step=step, index=index)
 
@@ -126,7 +125,7 @@ def _get_flowgraph_path(project, flow, nodes_to_execute, only_include_successful
     to_search = []
     # Start search with any successful leaf nodes.
     flowgraph_steps = list(map(lambda node: node[0], nodes_to_execute))
-    runtime = RuntimeFlowgraph(project.get("flowgraph", flow, field='schema'),
+    runtime = RuntimeFlowgraph(project.get_flow(flow),
                                from_steps=flowgraph_steps,
                                to_steps=flowgraph_steps)
     end_nodes = runtime.get_exit_nodes()

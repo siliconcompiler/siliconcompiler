@@ -54,8 +54,7 @@ def get_nodes_and_edges(project):
     # --- Data Extraction ---
     node_dependencies = report.get_flowgraph_edges(project)
     successful_path = report.get_flowgraph_path(project)
-    flow = project.option.get_flow()
-    flowgraph_schema = project.get("flowgraph", flow, field="schema")
+    flowgraph_schema = project.get_flow()
     entry_exit_nodes = flowgraph_schema.get_entry_nodes() + flowgraph_schema.get_exit_nodes()
 
     # --- Node and Edge Creation ---
