@@ -462,10 +462,10 @@ class Scheduler:
 
         if self.__org_job_name:
             # Copy collection directory
-            curret_job = self.__project.get("option", "jobname")
-            self.__project.set("option", "jobname", self.__org_job_name)
+            curret_job = self.__project.option.get_jobname()
+            self.__project.option.set_jobname(self.__org_job_name)
             copy_from = collectiondir(self.__project)
-            self.__project.set("option", "jobname", curret_job)
+            self.__project.option.set_jobname(curret_job)
             copy_to = collectiondir(self.__project)
             if os.path.exists(copy_from):
                 shutil.copytree(copy_from, copy_to,

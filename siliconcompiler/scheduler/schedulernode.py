@@ -1309,10 +1309,10 @@ class SchedulerNode:
         """
         from siliconcompiler import Project
 
-        org_name = self.__project.get("option", "jobname")
-        self.__project.set("option", "jobname", source)
+        org_name = self.__project.option.get_jobname()
+        self.__project.option.set_jobname(source)
         copy_from = workdir(self.__project, step=self.__step, index=self.__index)
-        self.__project.set("option", "jobname", org_name)
+        self.__project.option.set_jobname(org_name)
 
         if not os.path.exists(copy_from):
             return
@@ -1336,7 +1336,7 @@ class SchedulerNode:
                 schema = Project.from_manifest(filepath=manifest)
                 # delete file as it might be a hard link
                 os.remove(manifest)
-                schema.set('option', 'jobname', self.__job)
+                schema.option.set_jobname(self.__job)
                 schema.write_manifest(manifest)
 
     def clean_directory(self) -> None:
