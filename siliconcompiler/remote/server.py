@@ -250,11 +250,11 @@ class Server(ServerSchema):
         project = Project.from_manifest(cfg=project_cfg)
 
         # Remove dashboard from server runs
-        project.set('option', 'nodashboard', True)
+        project.option.set_nodashboard(True)
 
         # Fetch some common values.
         design = project.name
-        job_name = project.get('option', 'jobname')
+        job_name = project.option.get_jobname()
         job_hash = uuid.uuid4().hex
         project.set('record', 'remoteid', job_hash)
 
@@ -273,16 +273,16 @@ class Server(ServerSchema):
             os.remove(tmp_file)
 
         # Create the working directory for the given 'job hash' if necessary.
-        project.set('option', 'builddir', job_root)
+        project.option.set_builddir(job_root)
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        project.set('option', 'remote', False)
+        project.option.set_remote(False)
 
         # Mark as nodisplay since it is a remote run
-        project.set('option', 'nodisplay', True)
+        project.option.set_nodisplay(True)
 
         # Mark as quite to make server logging easier
-        project.set('option', 'quiet', True)
+        project.option.set_quiet(True)
 
         # Log job received
         self.logger.info(f"Received job: {job_hash}")
@@ -473,12 +473,12 @@ class Server(ServerSchema):
             self.sc_jobs[sc_job_name] = nodes
 
         build_dir = os.path.join(self.nfs_mount, job_hash)
-        project.set('option', 'builddir', build_dir)
-        project.set('option', 'remote', False)
+        project.option.set_builddir(build_dir)
+        project.option.set_remote(False)
 
         if self.get('option', 'cluster') == 'slurm':
             # Run the job with slurm clustering.
-            project.set('option', 'scheduler', 'name', 'slurm')
+            project.option.set_scheduler('name', 'slurm')
 
         # Run the job.
         project.run()
