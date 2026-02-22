@@ -251,7 +251,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if not self.__step or not self.__index:
                 raise RuntimeError("step or index not specified")
 
-            flow = self.__schema_full.get('option', 'flow')
+            flow = self.__schema_full.option.get_flow()
             if not flow:
                 raise RuntimeError("flow not specified")
             self.__schema_flow = self.__schema_full.get("flowgraph", flow, field="schema")
@@ -259,7 +259,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             self.__schema_flow_runtime = RuntimeFlowgraph(
                 self.__schema_flow,
                 from_steps=set([step for step, _ in self.__schema_flow.get_entry_nodes()]),
-                prune_nodes=self.__schema_full.get('option', 'prune'))
+                prune_nodes=self.__schema_full.option.get_prune())
 
     @property
     def design_name(self) -> str:
@@ -536,8 +536,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         # Add global environmental vars
         envvars: Dict[str, str] = {}
-        for env in self.__schema_full.getkeys('option', 'env'):
-            envvars[env] = self.__schema_full.get('option', 'env', env)
+        for env in self.__schema_full.option.getkeys('env'):
+            envvars[env] = self.__schema_full.option.get_env(env)
 
         # Add tool-specific license server vars
         for lic_env in self.getkeys('licenseserver'):

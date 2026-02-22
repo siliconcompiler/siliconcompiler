@@ -42,7 +42,7 @@ def get_nodes_and_edges(project):
     nodes = []
     edges = []
 
-    if not project.get('option', 'flow'):
+    if not project.option.get_flow():
         return nodes, edges
 
     # --- Style Configuration ---
@@ -54,7 +54,7 @@ def get_nodes_and_edges(project):
     # --- Data Extraction ---
     node_dependencies = report.get_flowgraph_edges(project)
     successful_path = report.get_flowgraph_path(project)
-    flow = project.get('option', 'flow')
+    flow = project.option.get_flow()
     flowgraph_schema = project.get("flowgraph", flow, field="schema")
     entry_exit_nodes = flowgraph_schema.get_entry_nodes() + flowgraph_schema.get_exit_nodes()
 

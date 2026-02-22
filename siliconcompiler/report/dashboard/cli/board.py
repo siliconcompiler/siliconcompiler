@@ -998,19 +998,19 @@ class Board:
         try:
             node_inputs = {}
             node_outputs = {}
-            flow = project.get("option", "flow")
+            flow = project.option.get_flow()
             if not flow:
                 raise RuntimeError("dummy error")
 
             check_flow = RuntimeFlowgraph(
                 project.get("flowgraph", flow, field='schema'),
-                from_steps=project.get('option', 'from'),
-                to_steps=project.get('option', 'to'),
-                prune_nodes=project.get('option', 'prune'))
+                from_steps=project.option.get_from(),
+                to_steps=project.option.get_to(),
+                prune_nodes=project.option.get_prune())
             runtime_flow = RuntimeFlowgraph(
                 project.get("flowgraph", flow, field='schema'),
-                to_steps=project.get('option', 'to'),
-                prune_nodes=project.get('option', 'prune'))
+                to_steps=project.option.get_to(),
+                prune_nodes=project.option.get_prune())
             record = project.get("record", field='schema')
 
             execnodes = runtime_flow.get_nodes()
@@ -1086,8 +1086,8 @@ class Board:
         except RuntimeError:
             pass
 
-        design = project.get("option", "design")
-        jobname = project.get("option", "jobname")
+        design = project.option.get_design()
+        jobname = project.option.get_jobname()
 
         job_data = JobData()
         job_data.jobname = jobname

@@ -93,7 +93,7 @@ class Server(ServerSchema):
         self.sc_project_lookup = {}
 
     def __run_start(self, project):
-        flow = project.get("option", "flow")
+        flow = project.option.get_flow()
         nodes = project.get("flowgraph", flow, field="schema").get_nodes()
 
         with self.sc_jobs_lock:
@@ -128,7 +128,7 @@ class Server(ServerSchema):
             job_name = self.sc_project_lookup[project]["name"]
 
         project = project.copy()
-        project._Project__cwd = os.path.join(project.get('option', 'builddir'), '..')
+        project._Project__cwd = os.path.join(project.option.get_builddir(), '..')
         with tarfile.open(os.path.join(self.nfs_mount,
                                        job_hash,
                                        f'{job_hash}_{step}{index}.tar.gz'),
@@ -444,10 +444,10 @@ class Server(ServerSchema):
         job_hash = project.get('record', 'remoteid')
 
         runtime = RuntimeFlowgraph(
-            project.get("flowgraph", project.get('option', 'flow'), field='schema'),
-            from_steps=project.get('option', 'from'),
-            to_steps=project.get('option', 'to'),
-            prune_nodes=project.get('option', 'prune'))
+            project.get("flowgraph", project.option.get_flow(), field='schema'),
+            from_steps=project.option.get_from(),
+            to_steps=project.option.get_to(),
+            prune_nodes=project.option.get_prune())
 
         nodes = {}
         nodes[None] = {

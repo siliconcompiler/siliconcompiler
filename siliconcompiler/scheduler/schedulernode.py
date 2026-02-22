@@ -94,7 +94,7 @@ class SchedulerNode:
         self.__project = project
 
         self.__name = self.__project.name
-        filesets = self.__project.get("option", "fileset")
+        filesets = self.__project.option.get_fileset()
         if filesets:
             self.__topmodule: str = self.__project.get_library(
                 self.__name).get_topmodule(filesets[0])
@@ -104,14 +104,13 @@ class SchedulerNode:
         if not self.__topmodule:
             self.__topmodule = self.__name
 
-        self.__record_user_info: bool = self.__project.get(
-            "option", "track", step=self.__step, index=self.__index)
+        self.__record_user_info: bool = self.__project.option.get_track(step=self.__step, index=self.__index)
         self.__pipe = None
         self.__failed_log_lines = 20
         self.__error = False
         self.__generate_test_case = not replay
         self.__replay = replay
-        self.__hash = self.__project.get("option", "hash")
+        self.__hash = self.__project.option.get_hash()
         self.__builtin = False
 
         self.__enforce_inputfiles = True
@@ -119,7 +118,7 @@ class SchedulerNode:
 
         self._update_job()
 
-        flow: str = self.__project.get('option', 'flow')
+        flow: str = self.__project.option.get_flow()
         self.__is_entry_node: bool = (self.__step, self.__index) in \
             self.__project.get("flowgraph", flow, field="schema").get_entry_nodes()
 
@@ -248,7 +247,7 @@ class SchedulerNode:
         return self.__task
 
     def _update_job(self):
-        self.__job: str = self.__project.get('option', 'jobname')
+        self.__job: str = self.__project.option.get_jobname()
         self.__cwd = cwdir(self.__project)
         self.__jobworkdir = jobdir(self.__project)
         self.__workdir = workdir(self.__project, step=self.__step, index=self.__index)
@@ -331,7 +330,7 @@ class SchedulerNode:
         flow, task, records, and metrics associated with this node, optimizing
         access to configuration and results.
         """
-        flow = self.__project.get('option', 'flow')
+        flow = self.__project.option.get_flow()
         self.__flow: "Flowgraph" = self.__project.get("flowgraph", flow, field="schema")
 
         tool = self.__flow.get(self.__step, self.__index, 'tool')
@@ -921,7 +920,7 @@ class SchedulerNode:
                 - check_passed (bool): True if the version is compatible or
                   if the check was skipped, False otherwise.
         """
-        if self.__project.get('option', 'novercheck', step=self.__step, index=self.__index):
+        if self.__project.option.get_novercheck(step=self.__step, index=self.__index):
             return version, True
 
         with self.__set_env():
@@ -1002,20 +1001,17 @@ class SchedulerNode:
                         self.__task.generate_replay_script(self.__replay_script, self.__workdir)
                     ret_code = self.__task.run_task(
                         self.__workdir,
-                        self.__project.get('option', 'quiet',
-                                           step=self.__step, index=self.__index),
+                        self.__project.option.get_quiet(step=self.__step, index=self.__index),
                         self.__task.has_breakpoint(),
-                        self.__project.get('option', 'nice',
-                                           step=self.__step, index=self.__index),
-                        self.__project.get('option', 'timeout',
-                                           step=self.__step, index=self.__index))
+                        self.__project.option.get_nice(step=self.__step, index=self.__index),
+                        self.__project.option.get_timeout(step=self.__step, index=self.__index))
                 except Exception:
                     raise
 
             if ret_code != 0:
                 msg = f'Command failed with code {ret_code}.'
                 if os.path.exists(self.__logs["exe"]):
-                    if self.__project.get('option', 'quiet', step=self.__step, index=self.__index):
+                    if self.__project.option.get_quiet(step=self.__step, index=self.__index):
                         # Print last N lines of log when in quiet mode
                         with sc_open(self.__logs["exe"]) as logfd:
                             loglines = logfd.read().splitlines()
@@ -1063,8 +1059,7 @@ class SchedulerNode:
 
         # Stop if there are errors
         errors = self.__metrics.get('errors', step=self.__step, index=self.__index)
-        if errors and not self.__project.get('option', 'continue',
-                                             step=self.__step, index=self.__index):
+        if errors and not self.__project.option.get_continue(step=self.__step, index=self.__index):
             self.halt(f'{self.__task.tool()}/{self.__task.task()} reported {errors} '
                       f'errors during {self.__step}/{self.__index}')
 
@@ -1148,7 +1143,7 @@ class SchedulerNode:
         def print_info(suffix, line):
             self.logger.warning(f'{suffix}: {line}')
 
-        if not self.__project.get('option', 'quiet', step=self.__step, index=self.__index):
+        if not self.__project.option.get_quiet(step=self.__step, index=self.__index):
             for suffix, info in checks.items():
                 if suffix == 'errors':
                     info["display"] = print_error

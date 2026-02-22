@@ -55,7 +55,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
 
         max_width = 20
 
-        flow = project.get('option', 'flow')
+        flow = project.option.get_flow()
         if flow:
             nodes_to_run = list(project.get("flowgraph", flow, field="schema").get_nodes())
         else:
@@ -65,7 +65,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
         max_step_len = 1
         max_index_len = 1
 
-        if project.get('option', 'remote'):
+        if project.option.get_remote():
             nodes_to_run.append((client.remote_step_name, '0'))
         for future_step, future_index in nodes_to_run:
             max_step_len = max(len(future_step), max_step_len)
@@ -73,7 +73,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
         max_step_len = min(max_step_len, max_width)
         max_index_len = min(max_index_len, max_width)
 
-        jobname = project.get('option', 'jobname')
+        jobname = project.option.get_jobname()
 
         if step is None:
             step = '-' * max(max_step_len // 4, 1)
@@ -136,7 +136,7 @@ def get_console_formatter(project, in_run, step, index):
     if in_run:
         base_format = SCInRunLoggerFormatter(
             project,
-            project.get('option', 'jobname'),
+            project.option.get_jobname(),
             step, index)
     else:
         base_format = SCLoggerFormatter()

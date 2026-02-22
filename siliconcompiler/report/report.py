@@ -50,7 +50,7 @@ def get_flowgraph_nodes(project, step, index):
     '''
     nodes = {}
 
-    flow = project.get('option', 'flow')
+    flow = project.option.get_flow()
 
     tool = project.get('flowgraph', flow, step, index, 'tool')
     task = project.get('flowgraph', flow, step, index, 'task')
@@ -88,7 +88,7 @@ def get_flowgraph_edges(project):
         Returns dictionary where the values of the keys are the edges.
     '''
     flowgraph_edges = {}
-    flow = project.get('option', 'flow')
+    flow = project.option.get_flow()
     for step in project.getkeys('flowgraph', flow):
         for index in project.getkeys('flowgraph', flow, step):
             flowgraph_edges[step, index] = set()
@@ -206,12 +206,12 @@ def get_flowgraph_path(project):
         >>> get_flowgraph_path(project)
         Returns the "winning" path for that job.
     '''
-    flow = project.get('option', 'flow')
+    flow = project.option.get_flow()
     runtime = RuntimeFlowgraph(
         project.get("flowgraph", flow, field='schema'),
-        from_steps=project.get('option', 'from'),
-        to_steps=project.get('option', 'to'),
-        prune_nodes=project.get('option', 'prune'))
+        from_steps=project.option.get_from(),
+        to_steps=project.option.get_to(),
+        prune_nodes=project.option.get_prune())
     return utils._get_flowgraph_path(project, flow, runtime.get_nodes())
 
 
@@ -323,7 +323,7 @@ def get_metrics_source(project, step, index):
     file_to_metric = {}
     metric_primary_source = {}
 
-    flow = project.get('option', 'flow')
+    flow = project.option.get_flow()
 
     tool = project.get('flowgraph', flow, step, index, 'tool')
     task = project.get('flowgraph', flow, step, index, 'task')

@@ -78,9 +78,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self.__node_information = None
 
     def __get_remote_config_file(self, fail=True):
-        if self.__project.get('option', 'credentials'):
+        if self.__project.option.get_credentials():
             # Use the provided remote credentials file.
-            cfg_file = os.path.abspath(self.__project.get('option', 'credentials'))
+            cfg_file = os.path.abspath(self.__project.option.get_credentials())
 
             if fail and not os.path.isfile(cfg_file) and \
                getattr(self, '_error_on_missing_file', True):
@@ -156,8 +156,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         if include_job_id and self.__project.get('record', 'remoteid'):
             post_params['job_hash'] = self.__project.get('record', 'remoteid')
 
-        if include_job_name and self.__project.get('option', 'jobname'):
-            post_params['job_id'] = self.__project.get('option', 'jobname')
+        if include_job_name and self.__project.option.get_jobname():
+            post_params['job_id'] = self.__project.option.get_jobname()
 
         # Forward authentication information
         if ('username' in self.__config) and ('password' in self.__config) and \
@@ -469,7 +469,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         '''
         Dispatch the project to a remote server for processing.
         '''
-        should_resume = not self.__project.get('option', 'clean')
+        should_resume = not self.__project.option.get_clean()
         remote_resume = should_resume and self.__project.get('record', 'remoteid')
 
         # Pre-process: Run an starting nodes locally, and upload the
@@ -520,7 +520,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         self.__print_tos(remote_status)
 
-        remote_resume = not self.__project.get('option', 'clean') and \
+        remote_resume = not self.__project.option.get_clean() and \
             self.__project.get('record', 'remoteid')
         # Only package and upload the entry steps if starting a new job.
         if not remote_resume:
@@ -685,10 +685,10 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         self.__node_information = {}
         runtime = RuntimeFlowgraph(
-            self.__project.get("flowgraph", self.__project.get('option', 'flow'), field='schema'),
-            from_steps=self.__project.get('option', 'from'),
-            to_steps=self.__project.get('option', 'to'),
-            prune_nodes=self.__project.get('option', 'prune'))
+            self.__project.get("flowgraph", self.__project.option.get_flow(), field='schema'),
+            from_steps=self.__project.option.get_from(),
+            to_steps=self.__project.option.get_to(),
+            prune_nodes=self.__project.option.get_prune())
 
         for step, index in runtime.get_nodes():
             done = SCNodeStatus.is_done(self.__project.get('record', 'status',
@@ -759,7 +759,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self._finalize_loop()
 
         # Un-set the 'remote' option to avoid from/to-based summary/show errors
-        self.__project.unset('option', 'remote')
+        self.__project.option.unset('remote')
 
         if self.__dashboard:
             self.__dashboard.update_manifest()
@@ -790,7 +790,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         # Collect local values.
         job_hash = self.__project.get('record', 'remoteid')
-        local_dir = self.__project.get('option', 'builddir')
+        local_dir = self.__project.option.get_builddir()
 
         # Set default results archive path if necessary, and fetch it.
         with tempfile.TemporaryDirectory(prefix=f'sc_{job_hash}_', suffix=f'_{node}') as tmpdir:

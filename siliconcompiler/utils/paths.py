@@ -55,7 +55,7 @@ def builddir(project: "Project") -> str:
     if not isinstance(project, Project):
         raise TypeError("project must be a Project type")
 
-    builddir: str = project.get('option', 'builddir')
+    builddir: str = project.option.get_builddir()
     if os.path.isabs(builddir):
         return builddir
 
@@ -86,7 +86,7 @@ def jobdir(project: "Project") -> str:
     if not project.name:
         raise ValueError("name has not been set")
 
-    jobname: str = project.get('option', 'jobname')
+    jobname: str = project.option.get_jobname()
 
     return os.path.join(builddir(project), project.name, jobname)
 

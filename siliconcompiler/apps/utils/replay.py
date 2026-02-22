@@ -56,7 +56,7 @@ def main():
                 "file", "file", "Path to generate replay file to.", defvalue="replay.sh")
             self._add_commandline_argument(
                 "cfg", "file", "configuration manifest")
-            self.unset("option", "jobname")
+            self.option.unset("jobname")
 
     # Read command-line inputs and generate project objects to run the flow on.
     proj = ReplayProject.create_cmdline(
@@ -103,7 +103,7 @@ def main():
 
         tools.setdefault(toolpath, set()).add(toolversion)
         if toolversion:
-            tool = job.get('flowgraph', job.get('option', 'flow'), step, index, 'tool')
+            tool = job.get('flowgraph', job.option.get_flow(), step, index, 'tool')
             tool_versions.append(
                 ((step, index), tool, toolversion)
             )
@@ -133,7 +133,7 @@ def main():
     with io.StringIO() as fd:
         fd.write(utils.get_file_template('replay/requirements.txt').render(
             design=job.name,
-            jobname=job.get("option", "jobname"),
+            jobname=job.option.get_jobname(),
             date=starttime,
             pkgs=pythonpackages
         ))

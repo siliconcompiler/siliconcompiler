@@ -144,7 +144,7 @@ To delete a job, use:
     # in its "check_progress/ until job is done" loop.
     elif remote.get("cmdarg", 'reconnect'):
         # Start from successors of entry nodes, so entry nodes are not fetched from remote.
-        flow = project.get('option', 'flow')
+        flow = project.option.get_flow()
         entry_nodes = project.get("flowgraph", flow, field="schema").get_entry_nodes()
         for entry_node in entry_nodes:
             outputs = project.get("flowgraph", flow,

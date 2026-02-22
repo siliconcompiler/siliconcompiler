@@ -88,8 +88,8 @@ def send(project, msg_type, step, index):
         project_step = Parameter.GLOBAL_KEY
     if index is None:
         project_index = Parameter.GLOBAL_KEY
-    to = project.get('option', 'scheduler', 'msgcontact', step=project_step, index=project_index)
-    event = project.get('option', 'scheduler', 'msgevent', step=project_step, index=project_index)
+    to = project.option.scheduler.get_msgcontact(step=project_step, index=project_index)
+    event = project.option.scheduler.get_msgevent(step=project_step, index=project_index)
 
     if not to or not event:
         # nothing to do
@@ -104,8 +104,8 @@ def send(project, msg_type, step, index):
     if not cred:
         return
 
-    jobname = project.get("option", "jobname")
-    flow = project.get("option", "flow")
+    jobname = project.option.get_jobname()
+    flow = project.option.get_flow()
 
     msg = MIMEMultipart()
 
@@ -138,9 +138,9 @@ def send(project, msg_type, step, index):
 
             runtime = RuntimeFlowgraph(
                 project.get("flowgraph", flow, field='schema'),
-                from_steps=project.get('option', 'from'),
-                to_steps=project.get('option', 'to'),
-                prune_nodes=project.get('option', 'prune'))
+                from_steps=project.option.get_from(),
+                to_steps=project.option.get_to(),
+                prune_nodes=project.option.get_prune())
 
             nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
                 report_utils._collect_data(project, flow=flow,
