@@ -75,11 +75,11 @@ def main():
         return 1
 
     replay = Project.from_manifest(filepath=proj.get("cmdarg", "cfg"))
-    if proj.get("option", "jobname"):
-        replay.set("option", "jobname", proj.get("option", "jobname"))
+    if proj.option.get_jobname():
+        replay.option.set_jobname(proj.option.get_jobname())
 
     # Print Job Summary
-    job = replay.history(replay.get('option', 'jobname'))
+    job = replay.history(replay.option.get_jobname())
     pythonpackages = job.get('record', 'pythonpackage')
 
     pythonversion = set()

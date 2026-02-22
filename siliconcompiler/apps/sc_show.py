@@ -98,8 +98,8 @@ def main():
 
     if not project.find_files('option', 'builddir', missing_ok=True):
         project.logger.warning("Unable to access original build directory "
-                               f"\"{project.get('option', 'builddir')}\", using \"build\" instead")
-        project.set('option', 'builddir', 'build')
+                               f"\"{project.option.get_builddir()}\", using \"build\" instead")
+        project.option.set_builddir('build')
 
     success = project.show(filename,
                            extension=show.get("cmdarg", "extension"),
