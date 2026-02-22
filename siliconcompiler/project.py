@@ -768,6 +768,30 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return self.option.set_flow(flow)
 
+    def get_flow(self, name: Optional[str] = None) -> Flowgraph:
+        """
+        Retrieves a flowgraph by name.
+
+        Args:
+            name (str, optional): The name of the flowgraph to retrieve. If None,
+                                  retrieves the currently selected flowgraph.
+
+        Returns:
+            Flowgraph: The `Flowgraph` object corresponding to the specified name.
+
+        Raises:
+            KeyError: If the specified flowgraph is not found in the project.
+        """
+        if name is None:
+            name = self.option.get_flow()
+            if not name:
+                raise KeyError("no flow is currently selected")
+
+        if not self.valid("flowgraph", name):
+            raise KeyError(f"{name} flowgraph has not been loaded")
+
+        return self.get("flowgraph", name, field="schema")
+
     def add_fileset(self, fileset: Union[List[str], str], clobber: bool = False):
         """
         Adds one or more filesets to be used in this project.

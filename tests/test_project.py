@@ -181,6 +181,32 @@ def test_set_flow_obj():
     assert project.get("flowgraph", "testflow", field="schema") is flow
 
 
+def test_get_flow_no_selection():
+    with pytest.raises(KeyError, match=r"^'no flow is currently selected'$"):
+        Project().get_flow()
+
+
+def test_get_flow_missing_flowgraph():
+    project = Project()
+    project.set_flow("testflow")
+    with pytest.raises(KeyError, match=r"^'testflow flowgraph has not been loaded'$"):
+        project.get_flow()
+
+
+def test_get_flow_by_name():
+    project = Project()
+    flow = Flowgraph("testflow")
+    project.set_flow(flow)
+    assert project.get_flow("testflow") is flow
+
+
+def test_get_flow_default_selected():
+    project = Project()
+    flow = Flowgraph("testflow")
+    project.set_flow(flow)
+    assert project.get_flow() is flow
+
+
 def test_pickling(monkeypatch):
     monkeypatch.setattr(SCColorLoggerFormatter, "supports_color", lambda _: True)
 
