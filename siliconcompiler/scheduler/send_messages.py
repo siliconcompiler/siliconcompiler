@@ -236,7 +236,7 @@ if __name__ == "__main__":
     from siliconcompiler.targets import freepdk45_demo
     project = Project('test')
     project.use(freepdk45_demo)
-    project.option.scheduler.add_msgevent('ALL')
+    project.option.scheduler.add_msgevent('all')
     # To test, uncomment the following line and fill in a valid email address
-    # project.option.scheduler.set_msgcontact('your.email@example.com')
+    # project.option.scheduler.add_msgcontact('your.email@example.com')
     send(project, "BEGIN", "import", "0")

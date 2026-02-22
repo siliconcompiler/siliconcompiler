@@ -152,7 +152,7 @@ def main():
     with io.StringIO() as fd:
         fd.write(utils.get_file_template('replay/replay.py.j2').render(
             design=job.name,
-            jobname=job.get("option", "jobname"),
+            jobname=job.option.get_jobname(),
             date=starttime,
             src_file=wrap_text(collect_files),
             tool_versions=sorted(tool_versions)
@@ -166,13 +166,13 @@ def main():
     for tool, version in tools.items():
         tool_info.append(f"{os.path.basename(tool):<{tool_len}}: {', '.join(version)}")
 
-    description = f"Replay for {job.name} / {job.get('option', 'jobname')}\n" \
+    description = f"Replay for {job.name} / {job.option.get_jobname()}\n" \
         f"Run on: {starttime}"
 
     with open(path, 'w', encoding='utf-8') as wf:
         wf.write(utils.get_file_template('replay/setup.sh').render(
             design=job.name,
-            jobname=job.get("option", "jobname"),
+            jobname=job.option.get_jobname(),
             date=starttime,
             description=description,
             pythonversion=pythonversion,

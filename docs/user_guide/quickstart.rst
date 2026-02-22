@@ -86,7 +86,7 @@ Next, we load a **target**, which bundles a Process Design Kit (PDK), standard c
 Configuring the Run
 ^^^^^^^^^^^^^^^^^^^
 
-The :meth:`.Project.set()` method is used to configure various settings. Here, we set the :keypath:`option,remote` parameter to `True` to execute the compilation job in the cloud.
+:meth:`.Project.option` is used to configure various settings. Here, we set the :keypath:`option,remote` parameter to `True` to execute the compilation job in the cloud.
 If you were to remove this line, the job would run on your local machine.
 
 .. code-block:: python

@@ -106,7 +106,7 @@ def main():
         proj.option.set_cachedir(os.path.abspath(args.cachedir))
 
     if args.remoteid:
-        proj.option.set_remoteid(args.remoteid)
+        proj.set('record', 'remoteid', args.remoteid)
 
     # If running in a container/remote machine, we unset the scheduler to
     # prevent a recursive scheduling loop.

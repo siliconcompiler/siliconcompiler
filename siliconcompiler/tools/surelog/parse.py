@@ -205,7 +205,7 @@ class ElaborateTask(Task):
         #######################
         for lib, fileset in filesets:
             for value in lib.get_file(fileset=fileset, filetype="commandfile"):
-                options.extend(['-f', + value])
+                options.extend(['-f', value])
 
         #######################
         # Sources

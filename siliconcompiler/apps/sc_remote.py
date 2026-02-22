@@ -149,7 +149,7 @@ To delete a job, use:
         for entry_node in entry_nodes:
             outputs = project.get("flowgraph", flow,
                                   field='schema').get_node_outputs(*entry_node)
-            project.option.add_from(list(map(lambda node: node[0], outputs)))
+            project.option.add_from(list(map(lambda node: node[0], outputs)), clobber=True)
         # Enter the remote run loop.
         try:
             client._run_loop()

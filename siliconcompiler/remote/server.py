@@ -478,7 +478,7 @@ class Server(ServerSchema):
 
         if self.get('option', 'cluster') == 'slurm':
             # Run the job with slurm clustering.
-            project.option.set_scheduler('name', 'slurm')
+            project.option.scheduler.set_name('slurm')
 
         # Run the job.
         project.run()
