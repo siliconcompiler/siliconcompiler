@@ -16,6 +16,8 @@ source "$sc_refdir/common/debugging.tcl"
 
 source "$sc_refdir/common/procs.tcl"
 
+set sc_default_mode "**sc_default_mode**"
+
 ###############################
 # Design information
 ###############################
@@ -95,8 +97,15 @@ if { [sc_cfg_tool_task_check_in_list report_buffers var reports] && [sc_check_ve
 tee -quiet -file reports/report_units.rpt {report_units}
 
 tee -quiet -file reports/report_layer_rc.rpt {report_layer_rc}
-foreach corner [sta::corners] {
-    set corner_name [$corner name]
-    tee -quiet -append -file reports/report_layer_rc.rpt "puts \"Corner: $corner_name\""
-    tee -quiet -append -file reports/report_layer_rc.rpt "report_layer_rc -corner $corner_name"
+if { [sc_has_sta_mcmm_support] } {
+    foreach scene $sc_scenarios {
+        tee -quiet -append -file reports/report_layer_rc.rpt "puts \"Scene: $scene\""
+        tee -quiet -append -file reports/report_layer_rc.rpt "report_layer_rc -corner $scene"
+    }
+} else {
+    foreach corner [sta::corners] {
+        set corner_name [$corner name]
+        tee -quiet -append -file reports/report_layer_rc.rpt "puts \"Corner: $corner_name\""
+        tee -quiet -append -file reports/report_layer_rc.rpt "report_layer_rc -corner $corner_name"
+    }
 }

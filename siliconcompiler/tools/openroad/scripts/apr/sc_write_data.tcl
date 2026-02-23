@@ -103,11 +103,17 @@ if { [sc_cfg_tool_task_get var write_spef] } {
 ###############################
 
 if { [sc_cfg_tool_task_get var write_liberty] } {
-    foreach corner $sc_scenarios {
-        puts "Writing timing model for $corner"
-        write_timing_model -library_name "${sc_topmodule}_${corner}" \
-            -corner $corner \
-            "outputs/${sc_topmodule}.${corner}.lib"
+    foreach scene $sc_scenarios {
+        puts "Writing timing model for $scene"
+        if { [sc_has_sta_mcmm_support] } {
+            write_timing_model -library_name "${sc_topmodule}_${scene}" \
+                -scene $scene \
+                "outputs/${sc_topmodule}.${scene}.lib"
+        } else {
+            write_timing_model -library_name "${sc_topmodule}_${scene}" \
+                -corner $scene \
+                "outputs/${sc_topmodule}.${scene}.lib"
+        }
     }
 }
 
@@ -116,11 +122,17 @@ if { [sc_cfg_tool_task_get var write_liberty] } {
 ###############################
 
 if { [sc_cfg_tool_task_get var write_sdf] } {
-    foreach corner $sc_scenarios {
-        puts "Writing SDF for $corner"
-        write_sdf -corner $corner \
-            -include_typ \
-            "outputs/${sc_topmodule}.${corner}.sdf"
+    foreach scene $sc_scenarios {
+        puts "Writing SDF for $scene"
+        if { [sc_has_sta_mcmm_support] } {
+            write_sdf -scene $scene \
+                -include_typ \
+                "outputs/${sc_topmodule}.${scene}.sdf"
+        } else {
+            write_sdf -corner $scene \
+                -include_typ \
+                "outputs/${sc_topmodule}.${scene}.sdf"
+        }
     }
 }
 
@@ -128,20 +140,27 @@ if { [sc_cfg_tool_task_get var write_sdf] } {
 # Check Power Network
 ###############################
 
-foreach corner $sc_scenarios {
-    if { [sc_cfg_exists constraint timing scenario $corner voltage] } {
-        foreach net [dict keys [sc_cfg_get constraint timing scenario $corner voltage]] {
-            set_pdnsim_net_voltage -corner $corner \
+foreach scene $sc_scenarios {
+    if { [sc_cfg_exists constraint timing scenario $scene voltage] } {
+        foreach net [dict keys [sc_cfg_get constraint timing scenario $scene voltage]] {
+            set_pdnsim_net_voltage -corner $scene \
                 -net $net \
-                -voltage [sc_cfg_get constraint timing scenario $corner voltage $net]
+                -voltage [sc_cfg_get constraint timing scenario $scene voltage $net]
         }
     }
 }
 
 foreach net [sc_psm_check_nets] {
-    foreach corner $sc_scenarios {
-        puts "Analyzing supply net: $net on $corner"
-        analyze_power_grid -net $net -corner $corner
+    foreach scene $sc_scenarios {
+        if {
+            ![sc_is_scene_enabled $scene power] &&
+            ![sc_is_scene_enabled $scene leakagepower] &&
+            ![sc_is_scene_enabled $scene dynamicpower]
+        } {
+            continue
+        }
+        puts "Analyzing supply net: $net on $scene"
+        analyze_power_grid -net $net -corner $scene
     }
 }
 
