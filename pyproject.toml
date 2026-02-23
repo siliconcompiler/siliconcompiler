@@ -107,7 +107,7 @@ test = [
     "pytest-timeout == 2.4.0",
     "pytest-asyncio == 1.2.0",
     "pytest-cov == 7.0.0",
-    "responses == 0.25.8",
+    "responses == 0.26.0",
     "PyVirtualDisplay == 3.0"
 ]
 lint = [
