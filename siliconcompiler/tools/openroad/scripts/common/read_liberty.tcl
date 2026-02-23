@@ -18,7 +18,6 @@ if { [sc_has_sta_mcmm_support] } {
                 }
             }
             set files [sc_cfg_get_fileset $lib $lib_filesets liberty]
-            set files [sc_cfg_get_fileset $lib $lib_filesets liberty]
             foreach file $files {
                 if { [lsearch -exact $liberty_files $file] == -1 } {
                     lappend liberty_files $file
