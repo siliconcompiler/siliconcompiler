@@ -57,9 +57,14 @@ proc sc_path_group { args } {
 }
 
 proc sc_is_scene_enabled { scene check } {
+    global opensta_timing_mode
+    if { $opensta_timing_mode == "asic" } {
     if { [lsearch -exact [sc_cfg_get constraint timing scenario $scene check] $check] != -1 } {
-        return true
+            return true
+        } else {
+            return false
+        }
     } else {
-        return false
+        return true
     }
 }
