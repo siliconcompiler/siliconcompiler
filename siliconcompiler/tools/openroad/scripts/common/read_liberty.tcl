@@ -6,8 +6,8 @@ set sc_liberty_map [dict create]
 # Read Liberty
 if { [sc_has_sta_mcmm_support] } {
     set liberty_files []
-    foreach scene $sc_scenarios {
-        foreach lib $sc_logiclibs {
+    foreach lib $sc_logiclibs {
+        foreach scene $sc_scenarios {
             set lib_filesets []
             foreach libcorner [sc_cfg_get constraint timing scenario $scene libcorner] {
                 if {
@@ -18,7 +18,11 @@ if { [sc_has_sta_mcmm_support] } {
                 }
             }
             set files [sc_cfg_get_fileset $lib $lib_filesets liberty]
-            lappend liberty_files {*}$files
+            foreach file $files {
+                if { [lsearch -exact $liberty_files $file] == -1 } {
+                    lappend liberty_files $file
+                }
+            }
             foreach file $files {
                 set file_tail [file tail $file]
                 while { ![string equal -nocase [file extension $file_tail] ".lib"] } {
@@ -29,7 +33,7 @@ if { [sc_has_sta_mcmm_support] } {
             }
         }
     }
-    foreach lib_file [lsort -unique $liberty_files] {
+    foreach lib_file $liberty_files {
         puts "Reading liberty file: ${lib_file}"
         read_liberty $lib_file
     }
