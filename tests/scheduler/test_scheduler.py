@@ -14,7 +14,7 @@ from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SlurmSchedulerN
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
-from siliconcompiler.utils.paths import jobdir
+from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.tool import TaskExecutableNotReceived, TaskSkip, Task
 from siliconcompiler.utils.multiprocessing import MPManager
 
@@ -738,6 +738,50 @@ def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, monk
 
     assert scheduler._Scheduler__check_flowgraph_io() is False
     assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
+
+
+def test_check_flowgraph_io_with_files_valid_input(basic_project_no_flow, monkeypatch, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project_no_flow.set_flow(flow)
+
+    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = NOPTask.find_task(basic_project_no_flow)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+
+
+def test_check_flowgraph_io_with_files_valid_input_from(basic_project_no_flow, monkeypatch, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project_no_flow.set_flow(flow)
+
+    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    basic_project_no_flow.option.add_from("steptwo")
+
+    os.makedirs(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs'), exist_ok=True)
+    with open(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs', 'test.v'), 'w') as f:
+        f.write("test")
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = NOPTask.find_task(basic_project_no_flow)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
 
 
 def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, monkeypatch, caplog):
