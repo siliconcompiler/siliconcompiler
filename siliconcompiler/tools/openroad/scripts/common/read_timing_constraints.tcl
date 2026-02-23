@@ -43,6 +43,13 @@ if { [sc_cfg_tool_task_get var load_sdcs] } {
                 puts "Reading SDC into mode ($mode): ${sdc}"
                 read_sdc -mode $mode $sdc
             }
+
+            if { [llength $mode_sdcs] == 0 } {
+                # Read an empty SDC until segfault is resolved
+                set fid [open "sc_empty.sdc" "w"]
+                close $fid
+                read_sdc -mode $mode sc_empty.sdc
+            }
         }
 
         # Create scenes
