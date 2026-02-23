@@ -771,8 +771,10 @@ def test_check_flowgraph_io_with_files_valid_input_from(basic_project_no_flow, m
 
     basic_project_no_flow.option.add_from("steptwo")
 
-    os.makedirs(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs'), exist_ok=True)
-    with open(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs', 'test.v'), 'w') as f:
+    os.makedirs(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs'),
+                exist_ok=True)
+    with open(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs',
+                           'test.v'), 'w') as f:
         f.write("test")
 
     scheduler = Scheduler(basic_project_no_flow)
