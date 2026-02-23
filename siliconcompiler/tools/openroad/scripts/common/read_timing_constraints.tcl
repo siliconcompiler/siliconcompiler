@@ -2,6 +2,8 @@
 # Read timing constraints
 ###############################
 
+set sc_default_mode "**sc_default_mode**"
+
 if { [sc_cfg_tool_task_get var load_sdcs] } {
     if { [sc_has_sta_mcmm_support] } {
         if { ![sc_cfg_exists constraint timing mode] } {

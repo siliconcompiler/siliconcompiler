@@ -16,8 +16,6 @@ source "$sc_refdir/common/debugging.tcl"
 
 source "$sc_refdir/common/procs.tcl"
 
-set sc_default_mode "**sc_default_mode**"
-
 ###############################
 # Design information
 ###############################
