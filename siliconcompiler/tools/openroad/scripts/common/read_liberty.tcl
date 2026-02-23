@@ -18,7 +18,12 @@ if { [sc_has_sta_mcmm_support] } {
                 }
             }
             set files [sc_cfg_get_fileset $lib $lib_filesets liberty]
-            lappend liberty_files {*}$files
+            set files [sc_cfg_get_fileset $lib $lib_filesets liberty]
+            foreach file $files {
+                if { [lsearch -exact $liberty_files $file] == -1 } {
+                    lappend liberty_files $file
+                }
+            }
             foreach file $files {
                 set file_tail [file tail $file]
                 while { ![string equal -nocase [file extension $file_tail] ".lib"] } {
@@ -29,7 +34,7 @@ if { [sc_has_sta_mcmm_support] } {
             }
         }
     }
-    foreach lib_file [lsort -unique $liberty_files] {
+    foreach lib_file $liberty_files {
         puts "Reading liberty file: ${lib_file}"
         read_liberty $lib_file
     }
