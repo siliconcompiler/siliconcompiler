@@ -889,7 +889,7 @@ def test_resume_afterskipped_at_setup(gcd_design):
 
 
 @pytest.mark.timeout(60)
-def test_resume_value_changed(gcd_nop_project):
+def test_resume_value_changed(gcd_nop_project, caplog, monkeypatch):
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
 
     assert gcd_nop_project.run()
@@ -901,6 +901,48 @@ def test_resume_value_changed(gcd_nop_project):
                                step="stepthree", index="0")
     assert gcd_nop_project.set("option", "testing", "thistest")
     gcd_nop_project.logger.setLevel(logging.DEBUG)
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    assert gcd_nop_project.run()
+
+    assert run_copy.history("job0").get("record", "endtime", step="steptwo", index="0") == \
+        gcd_nop_project.history("job0").get("record", "endtime", step="steptwo", index="0")
+
+    assert run_copy.history("job0").get("record", "endtime", step="stepthree", index="0") != \
+        gcd_nop_project.history("job0").get("record", "endtime", step="stepthree", index="0")
+
+    assert run_copy.history("job0").get("record", "endtime", step="stepfour", index="0") != \
+        gcd_nop_project.history("job0").get("record", "endtime", step="stepfour", index="0")
+
+    assert run_copy.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert run_copy.history("job0").get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.SUCCESS
+    assert run_copy.history("job0").get("record", "status", step="stepfour", index="0") == \
+        NodeStatus.SUCCESS
+
+    assert gcd_nop_project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
+        NodeStatus.SUCCESS
+    assert "steptwo/0 requires a rerun but is not in the current execution flow, skipping" in caplog.text
+
+
+@pytest.mark.timeout(60)
+def test_resume_value_changed_not_before_from(gcd_nop_project):
+    EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
+
+    assert gcd_nop_project.run()
+    run_copy = gcd_nop_project.copy()
+    time.sleep(1)  # delay to ensure timestamps differ
+
+    # Change require list
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
+                               step="steptwo", index="0")
+    assert gcd_nop_project.set("option", "testing", "thistest")
+    gcd_nop_project.logger.setLevel(logging.DEBUG)
+    gcd_nop_project.option.add_from("stepthree")
     assert gcd_nop_project.run()
 
     assert run_copy.history("job0").get("record", "endtime", step="steptwo", index="0") == \
