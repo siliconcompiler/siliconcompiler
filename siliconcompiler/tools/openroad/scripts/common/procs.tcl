@@ -493,11 +493,6 @@ proc sc_count_logic_depth { } {
         if { [$pin is_driver] } {
             incr count
         }
-        set vertex [lindex [$pin vertices] 0]
-        # Stop at clock vertex
-        if { [$vertex is_clock] } {
-            break
-        }
     }
     # Subtract 1 to account for initial launch
     return [expr { $count - 1 }]
@@ -790,6 +785,10 @@ proc sc_check_version { min_major min_minor min_patch } {
     return false
 }
 
+proc sc_has_sta_mcmm_support { } {
+    return [sc_check_version 26 1 1133]
+}
+
 proc sc_set_gui_title { } {
     if { ![sc_check_version 24 3 2063] } {
         return
@@ -909,4 +908,12 @@ proc sc_global_connections { args } {
 
 proc sc_format_area { area } {
     return "([lindex $area 0], [lindex $area 1]) - ([lindex $area 2], [lindex $area 3])"
+}
+
+proc sc_is_scene_enabled { scene check } {
+    if { [lsearch -exact [sc_cfg_get constraint timing scenario $scene check] $check] != -1 } {
+        return true
+    } else {
+        return false
+    }
 }

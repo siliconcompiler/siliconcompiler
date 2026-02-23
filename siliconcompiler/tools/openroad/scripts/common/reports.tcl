@@ -150,13 +150,30 @@ utl::metric_int "design__logic__depth" [sc_count_logic_depth]
 
 if { [sc_cfg_tool_task_check_in_list power var reports] } {
     puts "$PREFIX power"
-    foreach corner [sta::corners] {
-        set corner_name [$corner name]
-        puts "Power for corner: $corner_name"
+    if { [sc_has_sta_mcmm_support] } {
+        foreach scene $sc_scenarios {
+            if {
+                ![sc_is_scene_enabled $scene power] &&
+                ![sc_is_scene_enabled $scene leakagepower] &&
+                ![sc_is_scene_enabled $scene dynamicpower]
+            } {
+                continue
+            }
+            puts "Power for scene: $scene"
 
-        tee -file reports/power/${corner_name}.rpt \
-            "report_power -corner $corner_name"
+            tee -file reports/power/${scene}.rpt \
+                "report_power -scene $scene"
+        }
+    } else {
+        foreach corner [sta::corners] {
+            set corner_name [$corner name]
+            puts "Power for corner: $corner_name"
+
+            tee -file reports/power/${corner_name}.rpt \
+                "report_power -corner $corner_name"
+        }
     }
+
     report_power_metric -corner [sc_cfg_tool_task_get var power_corner]
 }
 

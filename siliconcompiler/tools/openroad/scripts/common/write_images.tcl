@@ -91,13 +91,23 @@ proc sc_image_everything { } {
     sc_save_image "snapshot" reports/images/${sc_topmodule}.png
 }
 
-proc sc_image_irdrop { net corner } {
+proc sc_image_irdrop { net scene } {
     if { ![sc_cfg_tool_task_check_in_list power var reports] } {
         return
     }
 
     if { ![sc_has_placed_instances] || [sc_has_unplaced_instances] } {
         return
+    }
+
+    if { [sc_has_sta_mcmm_support] } {
+        if {
+            ![sc_is_scene_enabled $scene power] &&
+            ![sc_is_scene_enabled $scene leakagepower] &&
+            ![sc_is_scene_enabled $scene dynamicpower]
+        } {
+            return
+        }
     }
 
     sc_image_setup_default
@@ -115,18 +125,18 @@ proc sc_image_irdrop { net corner } {
     if { [sc_check_version 24 3 2487] } {
         lappend analyze_args -allow_reuse
     }
-    set failed [catch { analyze_power_grid -net $net -corner $corner {*}$analyze_args } err]
+    set failed [catch { analyze_power_grid -net $net -corner $scene {*}$analyze_args } err]
     foreach msg $msgs {
         unsuppress_message PSM $msg
     }
     if { $failed } {
-        utl::warn FLW 1 "Unable to generate IR drop heatmap for $net on $corner"
+        utl::warn FLW 1 "Unable to generate IR drop heatmap for $net on $scene"
         return
     }
 
     set gif -1
     if { [sc_check_version 24 3 5987] } {
-        set gif [save_animated_gif -start "reports/images/heatmap/irdrop/${net}.${corner}.gif"]
+        set gif [save_animated_gif -start "reports/images/heatmap/irdrop/${net}.${scene}.gif"]
         if { $gif == "" } {
             set gif 0
         }
@@ -138,7 +148,7 @@ proc sc_image_irdrop { net corner } {
         set layer_name [$layer getName]
 
         gui::set_heatmap IRDrop Net $net
-        gui::set_heatmap IRDrop Corner $corner
+        gui::set_heatmap IRDrop Corner $scene
         gui::set_heatmap IRDrop Layer $layer_name
         gui::set_heatmap IRDrop rebuild
 
@@ -152,8 +162,8 @@ proc sc_image_irdrop { net corner } {
 
         sc_image_heatmap "IR Drop" \
             "IRDrop" \
-            "irdrop/${net}.${corner}.${layer_name}.png" \
-            "IR drop for $net on $layer_name for $corner" \
+            "irdrop/${net}.${scene}.${layer_name}.png" \
+            "IR drop for $net on $layer_name for $scene" \
             $gif
 
         if { $label != "" } {
@@ -209,21 +219,42 @@ proc sc_image_power_density { } {
     if { ![sc_has_placed_instances] } {
         return
     }
+    global sc_scenarios
 
     sc_image_setup_default
 
     file mkdir reports/images/heatmap/power_density
 
-    foreach corner [sta::corners] {
-        set corner_name [$corner name]
+    if { [sc_has_sta_mcmm_support] } {
+        foreach scene $sc_scenarios {
+            if {
+                ![sc_is_scene_enabled $scene power] &&
+                ![sc_is_scene_enabled $scene leakagepower] &&
+                ![sc_is_scene_enabled $scene dynamicpower]
+            } {
+                continue
+            }
 
-        gui::set_heatmap Power Corner $corner_name
-        gui::set_heatmap Power rebuild
+            gui::set_heatmap Power Corner $scene
+            gui::set_heatmap Power rebuild
 
-        sc_image_heatmap "Power Density" \
-            "Power" \
-            "power_density/${corner_name}.png" \
-            "power density for $corner_name"
+            sc_image_heatmap "Power Density" \
+                "Power" \
+                "power_density/${scene}.png" \
+                "power density for $scene"
+        }
+    } else {
+        foreach corner [sta::corners] {
+            set corner_name [$corner name]
+
+            gui::set_heatmap Power Corner $corner_name
+            gui::set_heatmap Power rebuild
+
+            sc_image_heatmap "Power Density" \
+                "Power" \
+                "power_density/${corner_name}.png" \
+                "power density for $corner_name"
+        }
     }
 }
 
@@ -342,6 +373,12 @@ proc sc_image_timing_histograms { } {
     if { ![sc_check_version 24 3 3939] } {
         return
     }
+
+    if { [sc_has_sta_mcmm_support] } {
+        # Disabled due to segfault
+        return
+    }
+
     file mkdir reports/images/timing
 
     if { [sc_cfg_tool_task_check_in_list setup var reports] } {
@@ -468,8 +505,8 @@ if { [sc_cfg_tool_task_check_in_list power var reports] } {
 
     if { [sc_cfg_tool_task_check_in_list ir_drop var reports] } {
         foreach net [sc_psm_check_nets] {
-            foreach corner $sc_scenarios {
-                sc_image_irdrop $net $corner
+            foreach scene $sc_scenarios {
+                sc_image_irdrop $net $scene
             }
         }
     }
