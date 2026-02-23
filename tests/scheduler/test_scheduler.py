@@ -889,7 +889,7 @@ def test_resume_afterskipped_at_setup(gcd_design):
 
 
 @pytest.mark.timeout(60)
-def test_resume_value_changed(gcd_nop_project, caplog, monkeypatch):
+def test_resume_value_changed(gcd_nop_project):
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
 
     assert gcd_nop_project.run()
@@ -901,7 +901,6 @@ def test_resume_value_changed(gcd_nop_project, caplog, monkeypatch):
                                step="stepthree", index="0")
     assert gcd_nop_project.set("option", "testing", "thistest")
     gcd_nop_project.logger.setLevel(logging.DEBUG)
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
     assert gcd_nop_project.run()
 
     assert run_copy.history("job0").get("record", "endtime", step="steptwo", index="0") == \
@@ -926,7 +925,11 @@ def test_resume_value_changed(gcd_nop_project, caplog, monkeypatch):
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
-    assert "steptwo/0 requires a rerun but is not in the current execution flow, skipping" in caplog.text
+
+    with open("build/gcd/job0/job.log", "r") as f:
+        log_text = f.read()
+        assert "steptwo/0 requires a rerun but is not in the current execution flow, skipping" \
+            in log_text
 
 
 @pytest.mark.timeout(60)
