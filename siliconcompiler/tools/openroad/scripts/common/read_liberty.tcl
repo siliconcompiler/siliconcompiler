@@ -24,12 +24,16 @@ if { [sc_has_sta_mcmm_support] } {
                 }
             }
             foreach file $files {
-                set file_tail [file tail $file]
-                while { ![string equal -nocase [file extension $file_tail] ".lib"] } {
-                    set file_tail [file rootname $file_tail]
+                if { [sc_check_version 26 1 1257] } {
+                    # OpenSTA fixed lookup
+                    dict lappend sc_liberty_map $scene [file nativename $file]
+                } else {
+                    set file_tail [file tail $file]
+                    while { ![string equal -nocase [file extension $file_tail] ".lib"] } {
+                        set file_tail [file rootname $file_tail]
+                    }
+                    dict lappend sc_liberty_map $scene [file rootname $file_tail]
                 }
-                set libname [file rootname $file_tail]
-                dict lappend sc_liberty_map $scene $libname
             }
         }
     }
