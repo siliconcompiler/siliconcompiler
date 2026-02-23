@@ -6,8 +6,8 @@ set sc_liberty_map [dict create]
 # Read Liberty
 if { [sc_has_sta_mcmm_support] } {
     set liberty_files []
-    foreach scene $sc_scenarios {
-        foreach lib $sc_logiclibs {
+    foreach lib $sc_logiclibs {
+        foreach scene $sc_scenarios {
             set lib_filesets []
             foreach libcorner [sc_cfg_get constraint timing scenario $scene libcorner] {
                 if {
