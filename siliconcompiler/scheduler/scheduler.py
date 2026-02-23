@@ -765,8 +765,8 @@ class Scheduler:
                             # This node must be run
                             self.__mark_pending(*node)
                         else:
-                            self.__logger.warning(f"{node} requires a rerun but is not in the "
-                                                  "current execution flow, skipping")
+                            self.__logger.warning(f"{node[0]}/{node[1]} requires a rerun but is "
+                                                  "not in the current execution flow, skipping")
                             replay.append(node)
                     else:
                         # import old information
