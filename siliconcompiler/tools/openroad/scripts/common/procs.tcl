@@ -768,7 +768,7 @@ proc sc_check_version { min_major min_minor min_patch } {
     } elseif { [string index [lindex $version 0] 2] == "Q" } {
         set ord_major [string range [lindex $version 0] 0 1]
         set ord_minor [string index [lindex $version 0] 3]
-        set ord_patch [string range [lindex $version 0] 5 end]
+        set ord_patch [lindex $version 1]
     } else {
         utl::error FLW 1 "Unknown OpenROAD version format: [ord::openroad_version]"
     }
