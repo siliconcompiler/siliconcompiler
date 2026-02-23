@@ -740,15 +740,12 @@ def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, monk
     assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
 
 
-def test_check_flowgraph_io_with_files_valid_input(basic_project_no_flow, monkeypatch, caplog):
+def test_check_flowgraph_io_with_files_valid_input(basic_project_no_flow):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
     basic_project_no_flow.set_flow(flow)
-
-    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
-    basic_project_no_flow.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project_no_flow)
 
@@ -759,15 +756,12 @@ def test_check_flowgraph_io_with_files_valid_input(basic_project_no_flow, monkey
     assert scheduler._Scheduler__check_flowgraph_io() is True
 
 
-def test_check_flowgraph_io_with_files_valid_input_from(basic_project_no_flow, monkeypatch, caplog):
+def test_check_flowgraph_io_with_files_valid_input_from(basic_project_no_flow):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
     basic_project_no_flow.set_flow(flow)
-
-    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
-    basic_project_no_flow.logger.setLevel(logging.INFO)
 
     basic_project_no_flow.option.add_from("steptwo")
 
