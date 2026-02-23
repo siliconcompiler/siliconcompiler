@@ -926,11 +926,6 @@ def test_resume_value_changed(gcd_nop_project):
     assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
 
-    with open("build/gcd/job0/job.log", "r") as f:
-        log_text = f.read()
-        assert "steptwo/0 requires a rerun but is not in the current execution flow, skipping" \
-            in log_text
-
 
 @pytest.mark.timeout(60)
 def test_resume_value_changed_not_before_from(gcd_nop_project):
@@ -970,6 +965,11 @@ def test_resume_value_changed_not_before_from(gcd_nop_project):
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
+
+    with open("build/gcd/job0/job.log", "r") as f:
+        log_text = f.read()
+        assert "steptwo/0 requires a rerun but is not in the current execution flow, skipping" \
+            in log_text
 
 
 def test_check_tool_requirements_local(gcd_nop_project, monkeypatch, caplog):
