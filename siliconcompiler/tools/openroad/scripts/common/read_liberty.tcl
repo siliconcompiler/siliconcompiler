@@ -48,7 +48,7 @@ if { [sc_has_sta_mcmm_support] } {
                 }
             }
             foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
-                puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
+                puts "Reading liberty file for ${corner}: ${lib_file}"
                 read_liberty -corner $corner $lib_file
             }
         }
