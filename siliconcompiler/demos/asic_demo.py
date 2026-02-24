@@ -18,10 +18,10 @@ class ASICDemo(ASIC):
         design.set_dataroot("heartbeat", "python://siliconcompiler")
         with design.active_dataroot("heartbeat"), design.active_fileset("rtl"):
             design.set_topmodule("heartbeat")
-            design.add_file("data/heartbeat.v")
+            design.add_file("data/heartbeat/heartbeat.v")
             design.set_param("N", "8")
         with design.active_dataroot("heartbeat"), design.active_fileset("sdc"):
-            design.add_file("data/heartbeat.sdc")
+            design.add_file("data/heartbeat/heartbeat.sdc")
 
         # Set design
         self.set_design(design)
