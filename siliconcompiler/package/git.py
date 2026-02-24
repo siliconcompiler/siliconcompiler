@@ -121,7 +121,16 @@ class GitResolver(RemoteResolver):
 
         # For HTTPS, inject token if available
         url = self.urlparse
-        token = self.__get_token_env()
+        token = None
+        try:
+            srvs = []
+            if "github" in url.hostname:
+                srvs.append("GITHUB")
+                srvs.append("GH")
+            srvs.append("GIT")
+            token = self._get_auth_token(srvs)
+        except ValueError:
+            pass
         if not url.username and token:
             url = url._replace(netloc=f'{token}@{url.hostname}')
         # Ensure the scheme is HTTPS

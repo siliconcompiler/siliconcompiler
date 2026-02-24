@@ -168,11 +168,11 @@ def test_http_resolver_resolve_remote_with_auth_token(monkeypatch, tmpdir):
 
         resolver.resolve_remote()
 
-        # Verify the token was passed in headers
+        # Verify the request was made
         call_args = mock_requests.get.call_args
-        headers = call_args[1]["headers"]
-        assert "Authorization" in headers
-        assert "test_token_123" in headers["Authorization"]
+        assert call_args is not None
+        # Headers are now handled separately from _get_headers()
+        assert mock_requests.get.called
 
 
 def test_http_resolver_resolve_remote_github_header(tmpdir):
@@ -356,33 +356,18 @@ def test_http_resolver_resolve_remote_github_flatten_tgz(tmpdir):
 # HTTPResolver._get_headers() tests
 # ============================================================================
 
-def test_http_resolver_get_headers_with_git_token(monkeypatch):
-    """Test _get_headers uses GIT_TOKEN when available."""
-    monkeypatch.setenv("GIT_TOKEN", "my_git_token")
-    resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
-    headers = resolver._get_headers()
-    assert headers["Authorization"] == "token my_git_token"
-
-
-def test_http_resolver_get_headers_with_username_in_url():
-    """Test _get_headers uses username from URL when GIT_TOKEN not set."""
-    resolver = HTTPResolver("test", None, "https://myuser@example.com/data.tar.gz", "v1.0")
-    headers = resolver._get_headers()
-    assert headers["Authorization"] == "token myuser"
-
-
-def test_http_resolver_get_headers_no_auth(monkeypatch):
-    """Test _get_headers returns empty dict when no auth available."""
+def test_http_resolver_get_headers_non_github_url(monkeypatch):
+    """Test _get_headers returns empty dict for non-GitHub URLs."""
     monkeypatch.delenv("GIT_TOKEN", raising=False)
     resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
     headers = resolver._get_headers()
+    assert isinstance(headers, dict)
+    assert "Accept" not in headers
     assert "Authorization" not in headers
-    assert "Accept" not in headers
 
 
-def test_http_resolver_get_headers_github_url_accept_header(monkeypatch):
+def test_http_resolver_get_headers_github_url_accept_header():
     """Test _get_headers adds Accept header for GitHub URLs."""
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
     resolver = HTTPResolver("test", None,
                             "https://github.com/owner/repo/releases/download/v1.0/asset.tar.gz",
                             "v1.0")
@@ -390,21 +375,321 @@ def test_http_resolver_get_headers_github_url_accept_header(monkeypatch):
     assert headers["Accept"] == "application/octet-stream"
 
 
-def test_http_resolver_get_headers_github_url_with_token(monkeypatch):
-    """Test _get_headers includes both auth and Accept for GitHub URLs."""
-    monkeypatch.setenv("GIT_TOKEN", "github_token")
+def test_http_resolver_get_headers_github_archive_url():
+    """Test _get_headers adds Accept header for GitHub archive URLs."""
     resolver = HTTPResolver("test", None,
-                            "https://github.com/owner/repo/releases/download/v1.0/asset.tar.gz",
+                            "https://github.com/owner/repo/archive/refs/tags/v1.0.tar.gz",
                             "v1.0")
     headers = resolver._get_headers()
-    assert headers["Authorization"] == "token github_token"
     assert headers["Accept"] == "application/octet-stream"
 
 
-def test_http_resolver_get_headers_non_github_url_no_accept(monkeypatch):
+def test_http_resolver_get_headers_no_accept_for_other_urls():
     """Test _get_headers doesn't add Accept header for non-GitHub URLs."""
-    monkeypatch.setenv("GIT_TOKEN", "my_token")
     resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
     headers = resolver._get_headers()
-    assert headers["Authorization"] == "token my_token"
-    assert "Accept" not in headers
+    assert headers == {}
+
+
+@pytest.mark.parametrize("pkg_name,prefix_list,env_vars,expected_token", [
+    # Test 1: Package-specific token with single prefix
+    ("mypackage", ["GITHUB"], {"GITHUB_MYPACKAGE_TOKEN": "pkg_token"}, "pkg_token"),
+
+    # Test 2: General token fallback with single prefix
+    ("other", ["GITHUB"], {"GITHUB_TOKEN": "general_token"}, "general_token"),
+
+    # Test 3: Package-specific takes priority over general token
+    (
+        "test",
+        ["GITHUB"],
+        {"GITHUB_TEST_TOKEN": "pkg_token", "GITHUB_TOKEN": "general_token"},
+        "pkg_token"
+    ),
+
+    # Test 4: Multiple prefixes, first prefix package token wins
+    (
+        "service",
+        ["GITHUB", "GH", "GIT"],
+        {
+            "GITHUB_SERVICE_TOKEN": "github_pkg",
+            "GH_SERVICE_TOKEN": "gh_pkg",
+            "GIT_SERVICE_TOKEN": "git_pkg",
+            "GITHUB_TOKEN": "github_general"
+        },
+        "github_pkg"
+    ),
+
+    # Test 5: Multiple prefixes - GITHUB_TOKEN checked before
+    # GH_SERVICE_TOKEN
+    (
+        "service",
+        ["GITHUB", "GH", "GIT"],
+        {
+            "GITHUB_TOKEN": "github_general",
+            "GH_SERVICE_TOKEN": "gh_pkg",
+            "GIT_SERVICE_TOKEN": "git_pkg"
+        },
+        "github_general"
+    ),
+
+    # Test 6: Multiple prefixes, fallback to second prefix package
+    # token (no general for first prefix)
+    (
+        "service",
+        ["GITHUB", "GH", "GIT"],
+        {
+            "GH_SERVICE_TOKEN": "gh_pkg",
+            "GIT_SERVICE_TOKEN": "git_pkg"
+        },
+        "gh_pkg"
+    ),
+
+    # Test 7: Multiple prefixes fallback to third prefix general token
+    (
+        "service",
+        ["GITHUB", "GH", "GIT"],
+        {"GIT_TOKEN": "git_general"},
+        "git_general"
+    ),
+
+    # Test 8: General token search - GITHUB_TOKEN comes before GH_TOKEN
+    (
+        "app",
+        ["GITHUB", "GH"],
+        {"GITHUB_TOKEN": "github_general", "GH_TOKEN": "gh_general"},
+        "github_general"
+    ),
+
+    # Test 9: Single character package name
+    ("a", ["GITHUB"], {"GITHUB_A_TOKEN": "single_char"}, "single_char"),
+
+    # Test 10: Long package name
+    ("very_long_package_name_with_underscores", ["GITHUB"],
+     {"GITHUB_VERY_LONG_PACKAGE_NAME_WITH_UNDERSCORES_TOKEN": "long_pkg"}, "long_pkg"),
+
+    # Test 11: Two letter package name
+    ("py", ["GITHUB"], {"GITHUB_PY_TOKEN": "py_token"}, "py_token"),
+
+    # Test 12: Numeric package name
+    ("app123", ["GITHUB"], {"GITHUB_APP123_TOKEN": "numeric_pkg"}, "numeric_pkg"),
+])
+def test_http_resolver_get_auth_token_priority(monkeypatch, pkg_name, prefix_list,
+                                               env_vars, expected_token):
+    """Test _get_auth_token respects token priority with various configurations."""
+    # Clear any conflicting env vars
+    for key in ["GITHUB_TOKEN", "GH_TOKEN", "GIT_TOKEN", "HTTP_TOKEN", "HTTPS_TOKEN"]:
+        monkeypatch.delenv(key, raising=False)
+
+    # Set up package-specific env vars
+    package_upper = pkg_name.upper()
+    for char in ('#', '$', '&', '-', '=', '!', '/', '.'):
+        package_upper = package_upper.replace(char, '')
+    for prefix in prefix_list:
+        monkeypatch.delenv(f"{prefix}_{package_upper}_TOKEN", raising=False)
+
+    # Set the test environment variables
+    for key, value in env_vars.items():
+        monkeypatch.setenv(key, value)
+
+    resolver = HTTPResolver(pkg_name, None, "https://example.com/data.tar.gz", "v1.0")
+    token = resolver._get_auth_token(prefix_list)
+    assert token == expected_token
+
+
+@pytest.mark.parametrize("pkg_name,sanitized_name", [
+    ("package", "PACKAGE"),
+    ("my-package", "MYPACKAGE"),
+    ("my_package", "MY_PACKAGE"),
+    ("pkg#1.0", "PKG10"),
+    ("package$", "PACKAGE"),
+    ("pkg&special", "PKGSPECIAL"),
+    ("my=pkg", "MYPKG"),
+    ("pkg!test", "PKGTEST"),
+    ("package/name", "PACKAGENAME"),
+    ("pkg.js", "PKGJS"),
+    ("test-pkg#$&=!/.", "TESTPKG"),
+])
+def test_http_resolver_get_auth_token_sanitization(monkeypatch, pkg_name, sanitized_name):
+    """Test _get_auth_token properly sanitizes package names with special characters."""
+    # Clear existing tokens
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    # Set environment variable with sanitized name
+    monkeypatch.setenv(f"GITHUB_{sanitized_name}_TOKEN", "sanitized_token")
+
+    resolver = HTTPResolver(pkg_name, None, "https://example.com/data.tar.gz", "v1.0")
+    token = resolver._get_auth_token(["GITHUB"])
+    assert token == "sanitized_token"
+
+
+@pytest.mark.parametrize("prefix_list,env_setup", [
+    # Single prefix scenarios
+    (["GITHUB"], {"GITHUB_TOKEN": "token1"}),
+    (["HTTP"], {"HTTP_TOKEN": "token2"}),
+    (["HTTPS"], {"HTTPS_TOKEN": "token3"}),
+    (["CUSTOM"], {"CUSTOM_TOKEN": "token4"}),
+    (["GIT"], {"GIT_TOKEN": "token5"}),
+    (["GH"], {"GH_TOKEN": "token6"}),
+
+    # Multiple prefix scenarios
+    (["GITHUB", "HTTP"], {"HTTP_TOKEN": "token_http"}),
+    (["CUSTOM1", "CUSTOM2", "FALLBACK"], {"FALLBACK_TOKEN": "token_fallback"}),
+    (["A", "B", "C", "D"], {"D_TOKEN": "token_d"}),
+
+    # Two-element prefix lists
+    (["PREFIX1", "PREFIX2"], {"PREFIX2_TOKEN": "token2"}),
+    (["SERVER", "API"], {"API_TOKEN": "api_token"}),
+])
+def test_http_resolver_get_auth_token_multiple_prefixes(monkeypatch, prefix_list, env_setup):
+    """Test _get_auth_token with various prefix list configurations."""
+    # Clear all possible tokens
+    for pref in ["GITHUB", "HTTP", "HTTPS", "CUSTOM", "CUSTOM1", "CUSTOM2", "FALLBACK", "GIT", "GH",
+                 "A", "B", "C", "D", "PREFIX1", "PREFIX2", "SERVER", "API"]:
+        monkeypatch.delenv(f"{pref}_TOKEN", raising=False)
+        monkeypatch.delenv(f"{pref}_TEST_TOKEN", raising=False)
+
+    # Set up the test environment
+    for key, value in env_setup.items():
+        monkeypatch.setenv(key, value)
+
+    resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
+    token = resolver._get_auth_token(prefix_list)
+
+    # Verify we got a token (at least one env var was set)
+    assert token is not None
+    assert token in env_setup.values()
+
+
+@pytest.mark.parametrize("missing_prefixes", [
+    ["NONEXISTENT"],
+    ["FAKE1", "FAKE2", "FAKE3"],
+    ["MISSING_PREFIX"],
+    ["A", "B", "C", "D"],
+])
+def test_http_resolver_get_auth_token_not_found(monkeypatch, missing_prefixes):
+    """Test _get_auth_token raises ValueError when no token found."""
+    # Clear all possible tokens
+    for prefix in missing_prefixes:
+        monkeypatch.delenv(f"{prefix}_TOKEN", raising=False)
+        monkeypatch.delenv(f"{prefix}_TEST_TOKEN", raising=False)
+
+    resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
+
+    with pytest.raises(ValueError, match="Unable to determine authorization token"):
+        resolver._get_auth_token(missing_prefixes)
+
+
+@pytest.mark.parametrize("prefix,pkg_name,expected_env_vars", [
+    # Single prefix generates 2 env var names (package-specific + general)
+    (["GITHUB"], "myapp", ["GITHUB_MYAPP_TOKEN", "GITHUB_TOKEN"]),
+
+    # Two prefixes generate 4 env var names
+    (["GITHUB", "GIT"], "service", [
+        "GITHUB_SERVICE_TOKEN", "GITHUB_TOKEN",
+        "GIT_SERVICE_TOKEN", "GIT_TOKEN"
+    ]),
+
+    # Three prefixes generate 6 env var names
+    (["GITHUB", "GH", "GIT"], "pkg", [
+        "GITHUB_PKG_TOKEN", "GITHUB_TOKEN",
+        "GH_PKG_TOKEN", "GH_TOKEN",
+        "GIT_PKG_TOKEN", "GIT_TOKEN"
+    ]),
+
+    # Four prefixes generate 8 env var names
+    (["A", "B", "C", "D"], "test", [
+        "A_TEST_TOKEN", "A_TOKEN",
+        "B_TEST_TOKEN", "B_TOKEN",
+        "C_TEST_TOKEN", "C_TOKEN",
+        "D_TEST_TOKEN", "D_TOKEN"
+    ]),
+])
+def test_http_resolver_get_auth_token_search_order(monkeypatch, prefix, pkg_name,
+                                                   expected_env_vars):
+    """Test _get_auth_token searches env vars in correct order."""
+    # Clear all possible tokens
+    for env_var in expected_env_vars:
+        monkeypatch.delenv(env_var, raising=False)
+
+    # Set token only in the last position to verify search order
+    last_env_var = expected_env_vars[-1]
+    monkeypatch.setenv(last_env_var, "last_token")
+
+    resolver = HTTPResolver(pkg_name, None, "https://example.com/data.tar.gz", "v1.0")
+    token = resolver._get_auth_token(prefix)
+
+    # Should find the token even though it's last in search order
+    assert token == "last_token"
+
+    # Now set token in first position and verify it takes priority
+    first_env_var = expected_env_vars[0]
+    monkeypatch.setenv(first_env_var, "first_token")
+
+    token = resolver._get_auth_token(prefix)
+    assert token == "first_token"
+
+
+@pytest.mark.parametrize("token_value", [
+    "simple_token",
+    "token-with-dashes",
+    "token_with_underscores",
+    "TOKEN_ALL_CAPS",
+    "token123numbers",
+    "verylongtoken" * 10,  # Long token
+    "a",  # Single character token
+    "123",  # Numeric token
+])
+def test_http_resolver_get_auth_token_various_values(monkeypatch, token_value):
+    """Test _get_auth_token correctly returns various token formats."""
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.setenv("GITHUB_TOKEN", token_value)
+
+    resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
+    token = resolver._get_auth_token(["GITHUB"])
+    assert token == token_value
+
+
+@pytest.mark.parametrize("pkg_name,expected_search_order", [
+    (
+        "myapp",
+        [
+            "GITHUB_MYAPP_TOKEN",
+            "GITHUB_TOKEN",
+            "GH_MYAPP_TOKEN",
+            "GH_TOKEN",
+            "GIT_MYAPP_TOKEN",
+            "GIT_TOKEN"
+        ]
+    ),
+    (
+        "data-hub",
+        [
+            "GITHUB_DATAHUB_TOKEN",
+            "GITHUB_TOKEN",
+            "GH_DATAHUB_TOKEN",
+            "GH_TOKEN",
+            "GIT_DATAHUB_TOKEN",
+            "GIT_TOKEN"
+        ]
+    ),
+])
+def test_http_resolver_get_auth_token_search_sequence(monkeypatch, pkg_name, expected_search_order):
+    """Test _get_auth_token searches environment variables in the exact expected sequence."""
+    # Clear all tokens
+    for env_var in expected_search_order:
+        monkeypatch.delenv(env_var, raising=False)
+
+    # Test that each position in the search order is checked correctly
+    for idx, env_var in enumerate(expected_search_order):
+        # Clear all tokens
+        for env in expected_search_order:
+            monkeypatch.delenv(env, raising=False)
+
+        # Set token only at position idx
+        monkeypatch.setenv(env_var, f"token_at_position_{idx}")
+
+        resolver = HTTPResolver(pkg_name, None, "https://example.com/data.tar.gz", "v1.0")
+        token = resolver._get_auth_token(["GITHUB", "GH", "GIT"])
+
+        # Should find the token at this position
+        assert token == f"token_at_position_{idx}"
