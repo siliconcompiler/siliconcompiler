@@ -553,6 +553,37 @@ class RemoteResolver(Resolver):
 
             self.set_changed()
             return self.cache_path
+    
+    def _get_auth_token(self, prefix: List[str]) -> str:
+        """
+        Retrieves an authentication token from environment variables.
+        
+        Args:
+            prefix (List[str]): A list of prefixes to search for in environment variable names.
+                For example, if prefix is ['GITHUB'], it will look for 'GITHUB_<PACKAGE_NAME>_TOKEN' and 'GITHUB_TOKEN'.
+
+        Returns:
+            str: The found token.
+
+        Raises:
+            ValueError: If no token can be found in the environment.
+        """
+        token_name = self.name.upper()
+        # Sanitize package name for environment variable compatibility
+        for char in ('#', '$', '&', '-', '=', '!', '/', '.'):
+            token_name = token_name.replace(char, '')
+
+        search_env = []
+        for prf in prefix:
+            search_env.append(f"{prf.upper()}_{token_name}_TOKEN")
+            search_env.append(f"{prf.upper()}_TOKEN")
+
+        for env in search_env:
+            token = os.environ.get(env)
+            if token:
+                return token
+
+        raise ValueError(f'Unable to determine authorization token. Please set one of the following environment variables: {", ".join(search_env)}')
 
 
 class FileResolver(Resolver):

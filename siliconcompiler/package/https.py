@@ -85,10 +85,6 @@ class HTTPResolver(RemoteResolver):
             dict: A dictionary of HTTP headers to include in the download request.
         """
         headers = {}
-        auth_token = os.environ.get('GIT_TOKEN', self.urlparse.username)
-        if auth_token:
-            headers['Authorization'] = f'token {auth_token}'
-
         # GitHub release assets require a specific Accept header.
         if "github" in self.download_url:
             headers['Accept'] = 'application/octet-stream'
@@ -109,6 +105,21 @@ class HTTPResolver(RemoteResolver):
         data_url = self.download_url
 
         headers = self._get_headers()
+        if "Authorization" not in headers:
+            auth_token = self.urlparse.username
+            if not auth_token:
+                try:
+                    srvs = []
+                    if "github" in data_url:
+                        srvs.append("GITHUB")
+                        srvs.append("GH")
+                        srvs.append("GIT")
+                    srvs.extend(["HTTPS", "HTTP"])
+                    auth_token = self._get_auth_token(srvs)
+                except ValueError:
+                    pass
+            if auth_token:
+                headers['Authorization'] = f'token {auth_token}'
 
         self.logger.info(f'Downloading {self.name} data from {data_url}')
 

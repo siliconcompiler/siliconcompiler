@@ -234,7 +234,7 @@ def test_github_resolver_get_gh_auth_package_token(monkeypatch):
 
     resolver = GithubResolver("mypackage", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
-    token = resolver._GithubResolver__get_gh_auth()
+    token = resolver._GithubResolver__get_gh_token()
     assert token == "token_pkg"
 
 
@@ -244,7 +244,7 @@ def test_github_resolver_get_gh_auth_github_token(monkeypatch):
     monkeypatch.setenv("GITHUB_TOKEN", "token_github")
 
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
-    token = resolver._GithubResolver__get_gh_auth()
+    token = resolver._GithubResolver__get_gh_token()
     assert token == "token_github"
 
 
@@ -255,7 +255,7 @@ def test_github_resolver_get_gh_auth_git_token(monkeypatch):
     monkeypatch.setenv("GIT_TOKEN", "token_git")
 
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
-    token = resolver._GithubResolver__get_gh_auth()
+    token = resolver._GithubResolver__get_gh_token()
     assert token == "token_git"
 
 
@@ -268,7 +268,7 @@ def test_github_resolver_get_gh_auth_not_found(monkeypatch):
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
     with pytest.raises(ValueError, match="authorization token"):
-        resolver._GithubResolver__get_gh_auth()
+        resolver._GithubResolver__get_gh_token()
 
 
 def test_github_resolver_gh_unauthenticated():
@@ -399,14 +399,14 @@ def test_github_resolver_url_caching_with_source_archive():
 def test_github_resolver_get_gh_auth_sanitize_package_name(monkeypatch):
     """Test __get_gh_auth sanitizes special characters in package name."""
     # Package name with special characters that need sanitization
-    # "my-package#1.0" becomes "MYPACKAGE1.0" after sanitization
-    monkeypatch.setenv("GITHUB_MYPACKAGE1.0_TOKEN", "pkg_token")
+    # "my-package#1.0" becomes "MYPACKAGE10" after sanitization
+    monkeypatch.setenv("GITHUB_MYPACKAGE10_TOKEN", "pkg_token")
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("GIT_TOKEN", raising=False)
 
     resolver = GithubResolver("my-package#1.0", None,
                               "github://owner/repo/v1.0/v1.0.tar.gz", "v1.0")
-    token = resolver._GithubResolver__get_gh_auth()
+    token = resolver._GithubResolver__get_gh_token()
     assert token == "pkg_token"
 
 
@@ -419,5 +419,5 @@ def test_github_resolver_get_gh_auth_multiple_special_chars(monkeypatch):
 
     resolver = GithubResolver("test-pkg#$&=!/", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
-    token = resolver._GithubResolver__get_gh_auth()
+    token = resolver._GithubResolver__get_gh_token()
     assert token == "special_token"
