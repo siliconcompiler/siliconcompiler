@@ -388,6 +388,8 @@ def test_http_resolver_get_headers_no_accept_for_other_urls():
     """Test _get_headers doesn't add Accept header for non-GitHub URLs."""
     resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
     headers = resolver._get_headers()
+    assert headers == {}
+
 
 @pytest.mark.parametrize("pkg_name,prefix_list,env_vars,expected_token", [
     # Test 1: Package-specific token with single prefix
@@ -417,7 +419,8 @@ def test_http_resolver_get_headers_no_accept_for_other_urls():
         "github_pkg"
     ),
 
-    # Test 5: Multiple prefixes - GITHUB_TOKEN checked before GH_SERVICE_TOKEN
+    # Test 5: Multiple prefixes - GITHUB_TOKEN checked before
+    # GH_SERVICE_TOKEN
     (
         "service",
         ["GITHUB", "GH", "GIT"],
@@ -429,7 +432,8 @@ def test_http_resolver_get_headers_no_accept_for_other_urls():
         "github_general"
     ),
 
-    # Test 6: Multiple prefixes, fallback to second prefix package token (no general for first prefix)
+    # Test 6: Multiple prefixes, fallback to second prefix package
+    # token (no general for first prefix)
     (
         "service",
         ["GITHUB", "GH", "GIT"],
@@ -469,7 +473,8 @@ def test_http_resolver_get_headers_no_accept_for_other_urls():
     # Test 12: Numeric package name
     ("app123", ["GITHUB"], {"GITHUB_APP123_TOKEN": "numeric_pkg"}, "numeric_pkg"),
 ])
-def test_http_resolver_get_auth_token_priority(monkeypatch, pkg_name, prefix_list, env_vars, expected_token):
+def test_http_resolver_get_auth_token_priority(monkeypatch, pkg_name, prefix_list,
+                                               env_vars, expected_token):
     """Test _get_auth_token respects token priority with various configurations."""
     # Clear any conflicting env vars
     for key in ["GITHUB_TOKEN", "GH_TOKEN", "GIT_TOKEN", "HTTP_TOKEN", "HTTPS_TOKEN"]:
@@ -599,7 +604,8 @@ def test_http_resolver_get_auth_token_not_found(monkeypatch, missing_prefixes):
         "D_TEST_TOKEN", "D_TOKEN"
     ]),
 ])
-def test_http_resolver_get_auth_token_search_order(monkeypatch, prefix, pkg_name, expected_env_vars):
+def test_http_resolver_get_auth_token_search_order(monkeypatch, prefix, pkg_name,
+                                                   expected_env_vars):
     """Test _get_auth_token searches env vars in correct order."""
     # Clear all possible tokens
     for env_var in expected_env_vars:

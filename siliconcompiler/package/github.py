@@ -4,8 +4,6 @@ This module provides a GitHub-based resolver for SiliconCompiler packages.
 It defines the `GithubResolver` class, which is responsible for downloading
 release assets from public or private GitHub repositories.
 """
-import os
-
 from typing import Dict, Type, Optional, Tuple, TYPE_CHECKING
 
 from github import Github, Auth
