@@ -131,7 +131,7 @@ class GithubResolver(HTTPResolver):
             ValueError: If the specified release or asset cannot be found.
         """
         if self.__url is not None:
-             return self.__url
+            return self.__url
 
         # Handle standard source code archive names
         if artifact == f"{release}.zip":

@@ -322,6 +322,7 @@ def test_github_resolver_download_url_fallback_to_private(monkeypatch):
         url = resolver.download_url
         assert "asset.tar.gz" in url
 
+
 # ============================================================================
 # New tests for GithubResolver headers and URL caching
 # ============================================================================
