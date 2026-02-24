@@ -374,7 +374,7 @@ proc sc_image_timing_histograms { } {
         return
     }
 
-    if { [sc_has_sta_mcmm_support] } {
+    if { [sc_has_sta_mcmm_support] && ![sc_check_version 26 1 1179] } {
         # Disabled due to segfault
         return
     }
