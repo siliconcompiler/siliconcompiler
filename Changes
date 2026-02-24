@@ -8,6 +8,30 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.0 (2026-02-24)
+=========================================
+
+**Major:**
+
+ * Changed schema to make design object base class for all libraries.
+
+**Minor:**
+
+ * Fixed resizing of dashboard to ensure logs are visible after resize.
+ * Fixed dashboard use when breakpoints are present.
+ * Fixed `sc-show` to correctly handle `-cfg`.
+ * Fixed flowgraph handling when using `option,from`.
+ * Updated time format in dashboard to make it easier to read.
+ * Added `get_flow` to Project class to allow access to the loaded flowgraphs.
+
+ * Tools:
+
+  * klayout: added stream2lef task to generate a lef from a GDS or OAS file.
+  * openroad: fixed version parsing.
+  * opensta: added write_sdf and write_liberty support to timing task.
+  * vpr: updated pin constraint handling.
+
+
 SiliconCompiler 0.36.5 (2026-02-02)
 =========================================
 
