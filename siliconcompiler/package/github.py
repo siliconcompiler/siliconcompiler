@@ -54,6 +54,8 @@ class GithubResolver(HTTPResolver):
         """
         super().__init__(name, root, source, reference)
 
+        self.__url = None
+
         if len(self.gh_path) != 4:
             raise ValueError(
                 f"'{self.source}' is not in the proper form: "
@@ -98,6 +100,17 @@ class GithubResolver(HTTPResolver):
             self.logger.info("Could not find public release, trying private.")
             return self.__get_release_url(repository, release, artifact, private=True)
 
+    def _get_headers(self):
+        headers = super()._get_headers()
+
+        headers['Accept'] = 'application/octet-stream'
+        try:
+            headers['Authorization'] = f'token {self.__get_gh_auth()}'
+        except ValueError:
+            pass
+
+        return headers
+
     def __get_release_url(self, repository: str, release: str, artifact: str, private: bool) -> str:
         """
         Uses the GitHub API to find the download URL for a specific release asset.
@@ -117,6 +130,9 @@ class GithubResolver(HTTPResolver):
         Raises:
             ValueError: If the specified release or asset cannot be found.
         """
+        if self.__url is not None:
+             return self.__url
+
         # Handle standard source code archive names
         if artifact == f"{release}.zip":
             return f"https://github.com/{repository}/archive/refs/tags/{release}.zip"
@@ -134,6 +150,7 @@ class GithubResolver(HTTPResolver):
         if repo_release:
             for asset in repo_release.assets:
                 if asset.name == artifact:
+                    self.__url = asset.url
                     return asset.url
 
         raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')

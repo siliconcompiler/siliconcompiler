@@ -73,6 +73,28 @@ class HTTPResolver(RemoteResolver):
             data_url = f"{data_url}{self.reference}.tar.gz"
         return data_url
 
+    def _get_headers(self) -> Dict[str, str]:
+        """
+        Constructs the HTTP headers for the download request.
+
+        If a GIT_TOKEN is available in the environment variables, it adds an
+        Authorization header for authentication. This is particularly useful
+        for accessing private repositories or authenticated endpoints.
+
+        Returns:
+            dict: A dictionary of HTTP headers to include in the download request.
+        """
+        headers = {}
+        auth_token = os.environ.get('GIT_TOKEN', self.urlparse.username)
+        if auth_token:
+            headers['Authorization'] = f'token {auth_token}'
+
+        # GitHub release assets require a specific Accept header.
+        if "github" in self.download_url:
+            headers['Accept'] = 'application/octet-stream'
+
+        return headers
+
     def resolve_remote(self) -> None:
         """
         Fetches the remote archive, unpacks it, and stores it in the cache.
@@ -86,14 +108,7 @@ class HTTPResolver(RemoteResolver):
         """
         data_url = self.download_url
 
-        headers = {}
-        # Use GIT_TOKEN for authentication if available, primarily for GitHub raw downloads.
-        auth_token = os.environ.get('GIT_TOKEN', self.urlparse.username)
-        if auth_token:
-            headers['Authorization'] = f'token {auth_token}'
-        # GitHub release assets require a specific Accept header.
-        if "github" in data_url:
-            headers['Accept'] = 'application/octet-stream'
+        headers = self._get_headers()
 
         self.logger.info(f'Downloading {self.name} data from {data_url}')
 

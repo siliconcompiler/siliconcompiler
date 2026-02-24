@@ -350,3 +350,61 @@ def test_http_resolver_resolve_remote_github_flatten_tgz(tmpdir):
         # Verify file was moved to cache root
         assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
         assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0"))
+
+
+# ============================================================================
+# HTTPResolver._get_headers() tests
+# ============================================================================
+
+def test_http_resolver_get_headers_with_git_token(monkeypatch):
+    """Test _get_headers uses GIT_TOKEN when available."""
+    monkeypatch.setenv("GIT_TOKEN", "my_git_token")
+    resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
+    headers = resolver._get_headers()
+    assert headers["Authorization"] == "token my_git_token"
+
+
+def test_http_resolver_get_headers_with_username_in_url():
+    """Test _get_headers uses username from URL when GIT_TOKEN not set."""
+    resolver = HTTPResolver("test", None, "https://myuser@example.com/data.tar.gz", "v1.0")
+    headers = resolver._get_headers()
+    assert headers["Authorization"] == "token myuser"
+
+
+def test_http_resolver_get_headers_no_auth(monkeypatch):
+    """Test _get_headers returns empty dict when no auth available."""
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+    resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
+    headers = resolver._get_headers()
+    assert "Authorization" not in headers
+    assert "Accept" not in headers
+
+
+def test_http_resolver_get_headers_github_url_accept_header(monkeypatch):
+    """Test _get_headers adds Accept header for GitHub URLs."""
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+    resolver = HTTPResolver("test", None,
+                            "https://github.com/owner/repo/releases/download/v1.0/asset.tar.gz",
+                            "v1.0")
+    headers = resolver._get_headers()
+    assert headers["Accept"] == "application/octet-stream"
+
+
+def test_http_resolver_get_headers_github_url_with_token(monkeypatch):
+    """Test _get_headers includes both auth and Accept for GitHub URLs."""
+    monkeypatch.setenv("GIT_TOKEN", "github_token")
+    resolver = HTTPResolver("test", None,
+                            "https://github.com/owner/repo/releases/download/v1.0/asset.tar.gz",
+                            "v1.0")
+    headers = resolver._get_headers()
+    assert headers["Authorization"] == "token github_token"
+    assert headers["Accept"] == "application/octet-stream"
+
+
+def test_http_resolver_get_headers_non_github_url_no_accept(monkeypatch):
+    """Test _get_headers doesn't add Accept header for non-GitHub URLs."""
+    monkeypatch.setenv("GIT_TOKEN", "my_token")
+    resolver = HTTPResolver("test", None, "https://example.com/data.tar.gz", "v1.0")
+    headers = resolver._get_headers()
+    assert headers["Authorization"] == "token my_token"
+    assert "Accept" not in headers
