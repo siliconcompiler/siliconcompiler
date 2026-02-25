@@ -445,64 +445,65 @@ def test_timing_constraint_copy_mode_no_insert():
 
 def test_timing_scenario_schema_import_pre_0_53_0():
     root = ASICTimingConstraintSchema()
-    scene = root.make_scenario("testscenario")
 
-    scene._from_dict(
+    root._from_dict(
         {
-            "mode": {
-                "type": "str",
-                "require": False,
-                "scope": "global",
-                "lock": False,
-                "notes": None,
-                "pernode": "optional",
-                "node": {
-                    "global": {
+            "testscenario": {
+                "mode": {
+                    "type": "str",
+                    "require": False,
+                    "scope": "global",
+                    "lock": False,
+                    "notes": None,
+                    "pernode": "optional",
+                    "node": {
                         "global": {
-                            "value": "testmode",
-                            "signature": None
-                        }
-                    },
-                    "default": {
+                            "global": {
+                                "value": "testmode",
+                                "signature": None
+                            }
+                        },
                         "default": {
-                            "value": None,
-                            "signature": None
+                            "default": {
+                                "value": None,
+                                "signature": None
+                            }
                         }
                     }
-                }
-            },
-            "sdcfileset": {
-                "type": "[(str,str)]",
-                "require": False,
-                "scope": "global",
-                "lock": False,
-                "notes": None,
-                "pernode": "optional",
-                "node": {
-                    "global": {
+                },
+                "sdcfileset": {
+                    "type": "[(str,str)]",
+                    "require": False,
+                    "scope": "global",
+                    "lock": False,
+                    "notes": None,
+                    "pernode": "optional",
+                    "node": {
                         "global": {
-                            "value": [
-                                [
-                                    "testdesign",
-                                    "testfileset"
+                            "global": {
+                                "value": [
+                                    [
+                                        "testdesign",
+                                        "testfileset"
+                                    ]
+                                ],
+                                "signature": [
+                                    None
                                 ]
-                            ],
-                            "signature": [
-                                None
-                            ]
-                        }
-                    },
-                    "default": {
+                            }
+                        },
                         "default": {
-                            "value": [],
-                            "signature": []
+                            "default": {
+                                "value": [],
+                                "signature": []
+                            }
                         }
                     }
+                },
+                "__meta__": {
+                    "name": "test",
+                    "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
                 }
-            },
-            "__meta__": {
-                "name": "test",
-                "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
             }
         },
         keypath=(),
@@ -513,65 +514,67 @@ def test_timing_scenario_schema_import_pre_0_53_0():
 
 def test_timing_scenario_schema_import_no_mode_pre_0_53_0():
     root = ASICTimingConstraintSchema()
-    scene = root.make_scenario("testscenario")
 
-    scene._from_dict(
+    root._from_dict(
         {
-            "mode": {
-                "type": "str",
-                "require": False,
-                "scope": "global",
-                "lock": False,
-                "notes": None,
-                "pernode": "optional",
-                "node": {
-                    "default": {
+            "testscenario": {
+                "mode": {
+                    "type": "str",
+                    "require": False,
+                    "scope": "global",
+                    "lock": False,
+                    "notes": None,
+                    "pernode": "optional",
+                    "node": {
                         "default": {
-                            "value": None,
-                            "signature": None
+                            "default": {
+                                "value": None,
+                                "signature": None
+                            }
                         }
                     }
-                }
-            },
-            "sdcfileset": {
-                "type": "[(str,str)]",
-                "require": False,
-                "scope": "global",
-                "lock": False,
-                "notes": None,
-                "pernode": "optional",
-                "node": {
-                    "global": {
+                },
+                "sdcfileset": {
+                    "type": "[(str,str)]",
+                    "require": False,
+                    "scope": "global",
+                    "lock": False,
+                    "notes": None,
+                    "pernode": "optional",
+                    "node": {
                         "global": {
-                            "value": [
-                                [
-                                    "testdesign",
-                                    "testfileset"
+                            "global": {
+                                "value": [
+                                    [
+                                        "testdesign",
+                                        "testfileset"
+                                    ]
+                                ],
+                                "signature": [
+                                    None
                                 ]
-                            ],
-                            "signature": [
-                                None
-                            ]
-                        }
-                    },
-                    "default": {
+                            }
+                        },
                         "default": {
-                            "value": [],
-                            "signature": []
+                            "default": {
+                                "value": [],
+                                "signature": []
+                            }
                         }
                     }
+                },
+                "__meta__": {
+                    "name": "test",
+                    "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
                 }
-            },
-            "__meta__": {
-                "name": "test",
-                "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
             }
         },
         keypath=(),
         version=(0, 52, 1))
 
     assert root.get_mode("_importcreated_").get_sdcfileset() == [("testdesign", "testfileset")]
-    assert scene.get_mode() == "_importcreated_"
+    assert root.get_scenario("testscenario").get_mode() == "_importcreated_"
+    assert hasattr(root.get_scenario("testscenario"), "sdcfilesets_0_53_0") is False
 
 
 def test_timing_constraint_schema_import_pre_0_53_0():
@@ -639,3 +642,4 @@ def test_timing_constraint_schema_import_pre_0_53_0():
     assert root.getkeys("scenario") == ("testscene",)
     assert root.getkeys("mode") == ("testmode",)
     assert root.get_mode("testmode").get_sdcfileset() == [("testdesign", "testfileset")]
+    assert hasattr(root.get_scenario("testscene"), "sdcfilesets_0_53_0") is False
