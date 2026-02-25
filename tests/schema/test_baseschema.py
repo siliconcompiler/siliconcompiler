@@ -3936,3 +3936,190 @@ def test_lazyload_next(curr, nxt):
 ])
 def test_lazyload_enforce(curr, check):
     assert curr.is_enforced is check
+
+
+def test_from_dict_manifest_clear_with_default_removes_old_values():
+    """Test that manifest is cleared when default exists, removing old values."""
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("config", "default", "setting1", Parameter("str"))
+    edit.insert("config", "default", "setting2", Parameter("str"))
+
+    # Set initial values
+    schema.set("config", "instance1", "setting1", "value1")
+    schema.set("config", "instance1", "setting2", "value2")
+    schema.set("config", "instance2", "setting1", "old_value")
+
+    # Verify values are set before loading
+    assert schema.get("config", "instance1", "setting1") == "value1"
+    assert schema.get("config", "instance1", "setting2") == "value2"
+    assert schema.get("config", "instance2", "setting1") == "old_value"
+
+    # Create a new schema to load from_dict into
+    clean_schema = BaseSchema()
+    clean_edit = EditableSchema(clean_schema)
+    clean_edit.insert("config", "default", "setting1", Parameter("str"))
+    clean_edit.insert("config", "default", "setting2", Parameter("str"))
+
+    # Pre-populate like the initial schema
+    clean_schema.set("config", "instance1", "setting1", "value1")
+    clean_schema.set("config", "instance1", "setting2", "value2")
+    clean_schema.set("config", "instance2", "setting1", "old_value")
+
+    # Get the full manifest from the original schema
+    full_manifest = schema.getdict()
+
+    # Modify the manifest to only include instance1, not instance2
+    # by removing instance2 from the manifest
+    modified_manifest = full_manifest.copy()
+    del modified_manifest["config"]["instance2"]
+
+    # Load the modified manifest - before the fix, instance2 would remain
+    clean_schema._from_dict(modified_manifest, [], lazyload=LazyLoad.OFF)
+
+    # After from_dict with default present, instance2 should be removed
+    assert clean_schema.get("config", "instance1", "setting1") == "value1"
+    assert clean_schema.get("config", "instance1", "setting2") == "value2"
+    # instance2 should be removed when default is present (manifest was cleared)
+    assert clean_schema.get("config", "instance2", "setting1") is None
+
+
+def test_from_dict_manifest_no_clear_without_default_retains_old_values():
+    """Test that manifest is NOT cleared when no default exists, retaining old values."""
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    # Insert WITHOUT a default section - just direct instances
+    edit.insert("config", "instance1", "setting1", Parameter("str"))
+    edit.insert("config", "instance2", "setting1", Parameter("str"))
+
+    # Set initial values
+    schema.set("config", "instance1", "setting1", "value1")
+    schema.set("config", "instance2", "setting1", "old_value")
+
+    # Verify values are set before loading
+    assert schema.get("config", "instance1", "setting1") == "value1"
+    assert schema.get("config", "instance2", "setting1") == "old_value"
+
+    # Create a new schema without default to load from_dict into
+    clean_schema = BaseSchema()
+    clean_edit = EditableSchema(clean_schema)
+    clean_edit.insert("config", "instance1", "setting1", Parameter("str"))
+    clean_edit.insert("config", "instance2", "setting1", Parameter("str"))
+
+    # Pre-populate like the initial schema
+    clean_schema.set("config", "instance1", "setting1", "value1")
+    clean_schema.set("config", "instance2", "setting1", "old_value")
+
+    # Get the full manifest from the original schema
+    full_manifest = schema.getdict()
+
+    # Modify the manifest to only include instance1, not instance2
+    modified_manifest = full_manifest.copy()
+    del modified_manifest["config"]["instance2"]
+
+    # Load the modified manifest - instance2 should remain since no default exists
+    clean_schema._from_dict(modified_manifest, [], lazyload=LazyLoad.OFF)
+
+    # After from_dict WITHOUT default, instance1 should be updated
+    assert clean_schema.get("config", "instance1", "setting1") == "value1"
+    # instance2 should STILL exist because manifest was NOT cleared (no default)
+    assert clean_schema.get("config", "instance2", "setting1") == "old_value"
+
+
+def test_from_dict_manifest_clear_with_nested_default():
+    """Test that manifest clearing works correctly with nested schema defaults."""
+    class NestedSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("param", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "nested_schema"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("container", "default", NestedSchema())
+
+    # Set initial nested values
+    schema.set("container", "nested1", "param", "initial_value")
+    schema.set("container", "nested2", "param", "another_value")
+
+    # Verify nested values are set before loading
+    assert schema.get("container", "nested1", "param") == "initial_value"
+    assert schema.get("container", "nested2", "param") == "another_value"
+
+    # Create a new schema with nested defaults to load into
+    clean_schema = BaseSchema()
+    clean_edit = EditableSchema(clean_schema)
+    clean_edit.insert("container", "default", NestedSchema())
+
+    # Pre-populate like the initial schema
+    clean_schema.set("container", "nested1", "param", "initial_value")
+    clean_schema.set("container", "nested2", "param", "another_value")
+
+    # Get the full manifest
+    full_manifest = schema.getdict()
+
+    # Modify to only include nested1
+    modified_manifest = full_manifest.copy()
+    del modified_manifest["container"]["nested2"]
+
+    # Load the modified manifest
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "nested_schema": NestedSchema
+        }
+        clean_schema._from_dict(modified_manifest, [], lazyload=LazyLoad.OFF)
+
+    # After from_dict with nested default, nested2 should have its value cleared
+    assert clean_schema.get("container", "nested1", "param") == "initial_value"
+    # nested2 still exists as a schema (via default) but has no value set
+    assert clean_schema.get("container", "nested2", "param") is None
+
+
+def test_from_dict_manifest_clear_multiple_calls():
+    """Test that multiple calls to _from_dict with default properly clear manifest each time."""
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("data", "default", "value", Parameter("str"))
+
+    # First load
+    schema.set("data", "key1", "value", "first")
+    schema.set("data", "key2", "value", "first")
+
+    assert schema.get("data", "key1", "value") == "first"
+    assert schema.get("data", "key2", "value") == "first"
+
+    # Get manifest with all keys
+    manifest1 = schema.getdict()
+
+    # Modify to only have key1
+    manifest1_modified = manifest1.copy()
+    del manifest1_modified["data"]["key2"]
+
+    # First from_dict - only key1
+    schema._from_dict(manifest1_modified, [], lazyload=LazyLoad.OFF)
+    assert schema.get("data", "key1", "value") == "first"
+    # key2 cleared by first from_dict
+    assert schema.get("data", "key2", "value") is None
+
+    # Now set key3
+    schema.set("data", "key3", "value", "second")
+    assert schema.get("data", "key3", "value") == "second"
+
+    # Create manifest with key3
+    manifest2 = schema.getdict()
+
+    # Modify to have key1 but not key3
+    manifest2_modified = manifest2.copy()
+    del manifest2_modified["data"]["key3"]
+
+    # Second from_dict
+    schema._from_dict(manifest2_modified, [], lazyload=LazyLoad.OFF)
+    # key1 still exists
+    assert schema.get("data", "key1", "value") == "first"
+    # key3 is cleared by second from_dict
+    assert schema.get("data", "key3", "value") is None
