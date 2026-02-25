@@ -574,6 +574,7 @@ def test_timing_scenario_schema_import_no_mode_pre_0_53_0():
 
     assert root.get_mode("_importcreated_").get_sdcfileset() == [("testdesign", "testfileset")]
     assert root.get_scenario("testscenario").get_mode() == "_importcreated_"
+    assert hasattr(root.get_scenario("testscene"), "sdcfilesets_0_53_0") is False
 
 
 def test_timing_constraint_schema_import_pre_0_53_0():
@@ -641,3 +642,4 @@ def test_timing_constraint_schema_import_pre_0_53_0():
     assert root.getkeys("scenario") == ("testscene",)
     assert root.getkeys("mode") == ("testmode",)
     assert root.get_mode("testmode").get_sdcfileset() == [("testdesign", "testfileset")]
+    assert hasattr(root.get_scenario("testscene"), "sdcfilesets_0_53_0") is False
