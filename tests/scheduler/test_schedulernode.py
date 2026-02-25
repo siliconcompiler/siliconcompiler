@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import pytest
 import re
 import shutil
@@ -584,6 +585,24 @@ def test_check_files_changed_timestamp(project):
                 node, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_timestamp_symlink(project):
+    now = time.time() - 1
+
+    os.symlink("testfile_dne.txt", "testfile.txt")
+
+    project.set("library", "testdesign", "fileset", "rtl", "file", "verilog", "testfile.txt")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,file,verilog\] "
+                                 r"\(file not found\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
+
+
 def test_check_files_changed_directory(project):
     os.makedirs("testdir", exist_ok=True)
 
@@ -598,6 +617,23 @@ def test_check_files_changed_directory(project):
     with node.runtime():
         node.check_files_changed(
             node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_directory_symlink(project):
+    now = time.time() - 1
+
+    os.symlink("testdir_dne", "testdir")
+
+    project.set("library", "testdesign", "fileset", "rtl", "idir", "testdir")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] \(file not found\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
 def test_check_files_changed_timestamp_directory(project):
@@ -728,6 +764,60 @@ def test_check_files_changed_hash_directory(project):
     with node.runtime(), node_other.runtime():
         with pytest.raises(SchedulerNodeReset,
                            match=r"^\[library,testdesign,fileset,rtl,idir\] \(file hash\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")])
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_hash_file_symlink(project):
+    now = time.time() - 1
+
+    with open("testfile.txt", "w") as f:
+        f.write("test")
+
+    project.set("option", "hash", True)
+    project.set("library", "testdesign", "fileset", "rtl", "file", "verilog", "testfile.txt")
+    other_project = project.copy()
+
+    project.hash_files("library", "testdesign", "fileset", "rtl", "file", "verilog")
+
+    os.unlink("testfile.txt")
+    os.symlink("testfile_dne.txt", "testfile.txt")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,file,verilog\] "
+                                 r"\(file not found\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node_other, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_hash_directory_symlink(project):
+    now = time.time() - 1
+
+    os.makedirs("testdir", exist_ok=True)
+
+    project.set("option", "hash", True)
+    project.set("library", "testdesign", "fileset", "rtl", "idir", "testdir")
+    other_project = project.copy()
+
+    project.hash_files("library", "testdesign", "fileset", "rtl", "idir")
+
+    os.rmdir("testdir")
+    os.symlink("testdir_dne", "testdir")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] \(file not found\) "
                                  r"in steptwo/0 has been modified from previous run$"):
             node.check_files_changed(
                 node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")])

@@ -531,9 +531,12 @@ class SchedulerNode:
                 step, index = None, None
 
             if use_hash:
-                check_hash = self.__project.hash_files(*key, update=False, check=False,
-                                                       verbose=False,
-                                                       step=step, index=index)
+                try:
+                    check_hash = self.__project.hash_files(*key, update=False, check=False,
+                                                           verbose=False,
+                                                           step=step, index=index)
+                except FileNotFoundError:
+                    gen_warning(key, "file not found")
                 prev_hash = previous_run.__project.get(*key, field='filehash',
                                                        step=step, index=index)
 
@@ -549,7 +552,10 @@ class SchedulerNode:
                 if check_val != prev_val:
                     gen_warning(key, "file dataroot")
 
-                files = self.__project.find_files(*key, step=step, index=index)
+                try:
+                    files = self.__project.find_files(*key, step=step, index=index)
+                except FileNotFoundError:
+                    gen_warning(key, "file not found")
                 if not isinstance(files, (list, set, tuple)):
                     files = [files]
 
