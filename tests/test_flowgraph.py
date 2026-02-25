@@ -40,6 +40,16 @@ def large_flow():
     return flow
 
 
+class DummyFlow(Flowgraph):
+    def __init__(self, name: str = "dummy", dummy: bool = False):
+        super().__init__(name)
+
+        if dummy:
+            self.node("dummy", "siliconcompiler.tools.builtin.nop/NOPTask")
+        else:
+            self.node("notdummy", "siliconcompiler.tools.builtin.nop/NOPTask")
+
+
 def test_init():
     flow = Flowgraph("testflow")
     assert flow.name == "testflow"
@@ -1161,3 +1171,9 @@ def test_get_task_module_invalid_type():
                        match=r"^Task module name is not correctly formatted as <full\.module\."
                              r"path>/<ClassName>: None$"):
         Flowgraph()._Flowgraph__get_task_module(None)
+
+
+def test_flowgraph_recovery():
+    base = DummyFlow(dummy=True)
+    check = DummyFlow.from_manifest(cfg=base.getdict(), lazyload=False)
+    assert base.getdict() == check.getdict()
