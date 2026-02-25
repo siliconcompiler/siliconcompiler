@@ -255,6 +255,9 @@ class BaseSchema:
                     self.__default._from_dict(data, tuple([*keypath, "default"]), version=version)
                 handled.add("default")
 
+            # Remove preloaded information manifest
+            self.__manifest.clear()
+
         for key, data in manifest.items():
             data_keypath = tuple([*keypath, key])
             obj = self.__manifest.get(key, None)
