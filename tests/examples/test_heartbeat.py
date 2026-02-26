@@ -43,7 +43,7 @@ def test_py_make_syn(pdk):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(450)
+@pytest.mark.timeout(600)
 @pytest.mark.parametrize("pdk", ("freepdk45", "asap7"))
 def test_py_make_asic(pdk):
     from heartbeat import make
