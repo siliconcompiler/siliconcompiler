@@ -15,7 +15,7 @@ proc sc_image_heatmap { args } {
     set ident $keys(-heatmap)
     set title $keys(-title)
     set pixels 512
-    if { [info exists flags(-pixels)] } {
+    if { [info exists keys(-pixels)] } {
         set pixels $keys(-pixels)
     }
 
