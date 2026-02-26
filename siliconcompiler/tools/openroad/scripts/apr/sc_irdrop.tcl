@@ -122,17 +122,17 @@ foreach net $nets {
             set label [add_label -position "$x $y" -anchor "bottom right" -color white $layer_name]
 
             sc_save_image \
-                "IR drop for $net on $layer_name for $corner heatmap" \
-                reports/${net}/${corner}.${layer_name}.png \
-                $gif
+                -title "IR drop for $net on $layer_name for $corner heatmap" \
+                -gif $gif \
+                reports/${net}/${corner}.${layer_name}.png
 
             gui::set_heatmap IRDrop LogScale 1
             gui::set_heatmap IRDrop rebuild
 
             sc_save_image \
-                "IR drop for $net on $layer_name for $corner heatmap" \
-                reports/${net}/${corner}.${layer_name}_log.png \
-                $gif_log
+                -title "IR drop for $net on $layer_name for $corner heatmap" \
+                -gif $gif_log \
+                reports/${net}/${corner}.${layer_name}_log.png
 
             gui::set_display_controls "Heat Maps/IR Drop" visible false
 
