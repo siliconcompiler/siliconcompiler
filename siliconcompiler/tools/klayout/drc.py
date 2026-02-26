@@ -58,7 +58,10 @@ class DRCTask(KLayoutTask):
         options = ASICTask.runtime_options(self)
 
         layout = None
-        for file in [f'inputs/{self.design_topmodule}.gds.gz', f'inputs/{self.design_topmodule}.gds', f'inputs/{self.design_topmodule}.oas.gz', f'inputs/{self.design_topmodule}.oas']:
+        for file in [f'inputs/{self.design_topmodule}.gds.gz',
+                     f'inputs/{self.design_topmodule}.gds',
+                     f'inputs/{self.design_topmodule}.oas.gz',
+                     f'inputs/{self.design_topmodule}.oas']:
             if os.path.isfile(file):
                 layout = file
                 break
