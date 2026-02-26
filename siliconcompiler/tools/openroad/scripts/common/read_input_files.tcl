@@ -30,7 +30,10 @@ if { [file exists "inputs/${sc_topmodule}.odb"] || [file exists "inputs/${sc_top
         }
     }
 
-    if { [file exists "inputs/${sc_topmodule}.def"] || [file exists "inputs/${sc_topmodule}.def.gz"] } {
+    if {
+        [file exists "inputs/${sc_topmodule}.def"] ||
+        [file exists "inputs/${sc_topmodule}.def.gz"]
+    } {
         # Read DEF
         # get from previous step
         if { [file exists "inputs/${sc_topmodule}.def.gz"] } {
