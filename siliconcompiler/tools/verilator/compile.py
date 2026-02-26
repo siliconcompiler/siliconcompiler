@@ -29,7 +29,7 @@ class CompileTask(VerilatorTask):
         self.add_parameter("ldflags", "[str]",
                            "flags to provide to the linker invoked by Verilator")
 
-        self.add_parameter("pins_bv", "int",
+        self.add_parameter("pins_bv", "int<1->>",
                            "controls datatypes used to represent SystemC inputs/outputs. "
                            "See --pins-bv in Verilator docs for more info")
 

@@ -7,6 +7,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import Flowgraph, Design, Project
+from siliconcompiler.schema import EditableSchema, Parameter, PerNode
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
@@ -27,6 +28,8 @@ def minmax_project(monkeypatch):
             design.set_topmodule("top")
 
         proj = Project(design)
+        EditableSchema(proj).insert("metric", "metric0", Parameter("int", pernode=PerNode.REQUIRED))
+        EditableSchema(proj).insert("metric", "metric1", Parameter("int", pernode=PerNode.REQUIRED))
 
         flow = Flowgraph("test")
 
@@ -36,11 +39,11 @@ def minmax_project(monkeypatch):
             flow.edge("start", "end", tail_index=n)
 
             # errors / warnings is always present so safe to use here
-            flow.set("start", str(n), "weight", "errors", 1.0)
-            flow.set("start", str(n), "goal", "warnings", 0.0)
+            flow.set("start", str(n), "weight", "metric0", 1.0)
+            flow.set("start", str(n), "goal", "metric1", 0.0)
 
-            proj.set("metric", "errors", 1000 - n * 1 + 42.0, step="start", index=n)
-            proj.set("metric", "warnings", 0, step="start", index=n)
+            proj.set("metric", "metric0", 1000 - n * 1 + 42.0, step="start", index=n)
+            proj.set("metric", "metric1", 0, step="start", index=n)
 
         monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
         proj.logger.setLevel(logging.INFO)
@@ -240,25 +243,25 @@ def test_minimum_winner_failed(minmax_project, caplog):
 
 def test_minimum_winner_goal_negative(minmax_project, caplog):
     project = minmax_project(MinimumTask)
-    project.set("metric", "warnings", -1, step="start", index="9")
+    project.set("metric", "metric1", -1, step="start", index="9")
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
         assert node.task.select_input_nodes() == [('start', '8')]
 
     assert "Running builtin task 'minimum'" in caplog.text
-    assert "Step start/9 failed because it didn't meet goals for 'warnings' metric." in caplog.text
+    assert "Step start/9 failed because it didn't meet goals for 'metric1' metric." in caplog.text
     assert "Selected 'start/8' with score 0.000" in caplog.text
 
 
 def test_minimum_winner_goal_positive(minmax_project, caplog):
     project = minmax_project(MinimumTask)
-    project.set("metric", "warnings", 1, step="start", index="9")
+    project.set("metric", "metric1", 1, step="start", index="9")
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
         assert node.task.select_input_nodes() == [('start', '8')]
 
     assert "Running builtin task 'minimum'" in caplog.text
-    assert "Step start/9 failed because it didn't meet goals for 'warnings' metric." in caplog.text
+    assert "Step start/9 failed because it didn't meet goals for 'metric1' metric." in caplog.text
     assert "Selected 'start/8' with score 0.000" in caplog.text
 
 
@@ -275,31 +278,31 @@ def test_maximum_winner_failed(minmax_project, caplog):
 
 def test_maximum_winner_goal_negative(minmax_project, caplog):
     project = minmax_project(MaximumTask)
-    project.set("metric", "warnings", -1, step="start", index="0")
+    project.set("metric", "metric1", -1, step="start", index="0")
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
         assert node.task.select_input_nodes() == [('start', '1')]
 
     assert "Running builtin task 'maximum'" in caplog.text
-    assert "Step start/0 failed because it didn't meet goals for 'warnings' metric." in caplog.text
+    assert "Step start/0 failed because it didn't meet goals for 'metric1' metric." in caplog.text
     assert "Selected 'start/1' with score 1.000" in caplog.text
 
 
 def test_maximum_winner_goal_positive(minmax_project, caplog):
     project = minmax_project(MaximumTask)
-    project.set("metric", "warnings", 1, step="start", index="0")
+    project.set("metric", "metric1", 1, step="start", index="0")
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
         assert node.task.select_input_nodes() == [('start', '1')]
 
     assert "Running builtin task 'maximum'" in caplog.text
-    assert "Step start/0 failed because it didn't meet goals for 'warnings' metric." in caplog.text
+    assert "Step start/0 failed because it didn't meet goals for 'metric1' metric." in caplog.text
     assert "Selected 'start/1' with score 1.000" in caplog.text
 
 
 def test_mux_minimum(minmax_project, caplog):
     project = minmax_project(MuxTask)
-    project.set('flowgraph', "test", 'end', '0', 'args', 'minimum(errors)')
+    project.set('flowgraph', "test", 'end', '0', 'args', 'minimum(metric0)')
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
@@ -310,7 +313,7 @@ def test_mux_minimum(minmax_project, caplog):
 
 def test_mux_maximum(minmax_project, caplog):
     project = minmax_project(MuxTask)
-    project.set('flowgraph', "test", 'end', '0', 'args', 'maximum(errors)')
+    project.set('flowgraph', "test", 'end', '0', 'args', 'maximum(metric0)')
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
@@ -322,10 +325,10 @@ def test_mux_maximum(minmax_project, caplog):
 def test_mux_two_metrics(minmax_project, caplog):
     project = minmax_project(MuxTask)
     for index in project.getkeys("flowgraph", "test", "start"):
-        project.set("metric", "errors", 100 - int(index), step="start", index=index)
-        project.set("metric", "warnings", int(index) % 3, step="start", index=index)
-    project.set('flowgraph', "test", 'end', '0', 'args', 'maximum(warnings)')
-    project.add('flowgraph', "test", 'end', '0', 'args', 'minimum(errors)')
+        project.set("metric", "metric0", 100 - int(index), step="start", index=index)
+        project.set("metric", "metric1", int(index) % 3, step="start", index=index)
+    project.set('flowgraph', "test", 'end', '0', 'args', 'maximum(metric1)')
+    project.add('flowgraph', "test", 'end', '0', 'args', 'minimum(metric0)')
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
@@ -336,7 +339,7 @@ def test_mux_two_metrics(minmax_project, caplog):
 
 def test_verify_pass(minmax_project, caplog):
     project = minmax_project(VerifyTask, parallel=1)
-    project.set('flowgraph', "test", 'end', '0', 'args', 'errors==1042')
+    project.set('flowgraph', "test", 'end', '0', 'args', 'metric0==1042')
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
@@ -347,11 +350,11 @@ def test_verify_pass(minmax_project, caplog):
 
 def test_verify_fail(minmax_project, caplog):
     project = minmax_project(VerifyTask, parallel=1)
-    project.set('flowgraph', "test", 'end', '0', 'args', 'errors==1041')
+    project.set('flowgraph', "test", 'end', '0', 'args', 'metric0==1041')
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
-        with pytest.raises(ValueError, match=r"^end/0 fails 'errors' metric: 1042==1041$"):
+        with pytest.raises(ValueError, match=r"^end/0 fails 'metric0' metric: 1042==1041$"):
             node.task.select_input_nodes()
 
     assert "Running builtin task 'verify'" in caplog.text
@@ -359,8 +362,8 @@ def test_verify_fail(minmax_project, caplog):
 
 def test_verify_pass_two(minmax_project, caplog):
     project = minmax_project(VerifyTask, parallel=1)
-    project.set('flowgraph', "test", 'end', '0', 'args', 'errors==1042')
-    project.add('flowgraph', "test", 'end', '0', 'args', 'warnings==0')
+    project.set('flowgraph', "test", 'end', '0', 'args', 'metric0==1042')
+    project.add('flowgraph', "test", 'end', '0', 'args', 'metric1==0')
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
@@ -371,12 +374,12 @@ def test_verify_pass_two(minmax_project, caplog):
 
 def test_verify_fail_two(minmax_project, caplog):
     project = minmax_project(VerifyTask, parallel=1)
-    project.set('flowgraph', "test", 'end', '0', 'args', 'errors==1042')
-    project.add('flowgraph', "test", 'end', '0', 'args', 'warnings==1')
+    project.set('flowgraph', "test", 'end', '0', 'args', 'metric0==1042')
+    project.add('flowgraph', "test", 'end', '0', 'args', 'metric1==1')
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
-        with pytest.raises(ValueError, match=r"^end/0 fails 'warnings' metric: 0==1$"):
+        with pytest.raises(ValueError, match=r"^end/0 fails 'metric1' metric: 0==1$"):
             node.task.select_input_nodes()
 
     assert "Running builtin task 'verify'" in caplog.text
@@ -477,10 +480,12 @@ def test_setup_copies_inputs_verify():
     flow.edge("start", "end")
 
     proj = Project(design)
+    EditableSchema(proj).insert("metric", "metric0", Parameter("float"))
+    EditableSchema(proj).insert("metric", "metric1", Parameter("float"))
     proj.add_fileset("rtl")
     proj.set_flow(flow)
     NOPTask.find_task(proj).add_output_file("test.out", step="start", index="0")
-    proj.set('flowgraph', "test", 'end', '0', 'args', 'errors==1042')
+    proj.set('flowgraph', "test", 'end', '0', 'args', 'metric0==1042')
 
     assert proj.get("tool", "builtin", "task", task_name, "input", step="end", index="0") == []
     assert proj.get("tool", "builtin", "task", task_name, "output", step="end", index="0") == []
@@ -513,6 +518,8 @@ def test_setup_copies_inputs_multiple(cls):
     flow.edge("otherstart", "end")
 
     proj = Project(design)
+    EditableSchema(proj).insert("metric", "metric0", Parameter("float"))
+    EditableSchema(proj).insert("metric", "metric1", Parameter("float"))
     proj.add_fileset("rtl")
     proj.set_flow(flow)
     NOPTask.find_task(proj).add_output_file("test.out", step="start", index="0")

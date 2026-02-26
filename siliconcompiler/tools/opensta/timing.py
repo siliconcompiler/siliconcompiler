@@ -18,7 +18,7 @@ class TimingTaskBase(OpenSTATask):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("top_n_paths", "int", "number of paths to report timing for",
+        self.add_parameter("top_n_paths", "int<1->>", "number of paths to report timing for",
                            defvalue=10)
         self.add_parameter("unique_path_groups_per_clock", "bool",
                            "if true will generate separate path groups per clock", defvalue=False)

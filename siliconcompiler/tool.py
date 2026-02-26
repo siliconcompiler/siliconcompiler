@@ -36,7 +36,7 @@ from pathlib import Path
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
-from siliconcompiler.schema.parametertype import NodeType
+from siliconcompiler.schema.parametertype import NodeType, NodeEnumType
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import utils, NodeStatus, Flowgraph
@@ -1958,8 +1958,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 help_str = param.get(field="help")
 
                 val_type = param.get(field="type")
-                if "<" in val_type:
-                    encode_type = NodeType.parse(val_type)
+                encode_type = NodeType.parse(val_type)
+                if isinstance(encode_type, NodeEnumType):
                     try:
                         if val_type.startswith('['):
                             allowed = list(encode_type)[0].values
@@ -2814,7 +2814,7 @@ def schema_task(schema):
     schema.insert(
         'threads',
         Parameter(
-            'int',
+            'int<1->>',
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Task: thread parallelism",

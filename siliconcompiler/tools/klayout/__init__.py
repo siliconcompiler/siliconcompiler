@@ -31,7 +31,7 @@ class KLayoutPDK(PDK):
     def __init__(self):
         super().__init__()
 
-        self.define_tool_parameter("klayout", "units", "float",
+        self.define_tool_parameter("klayout", "units", "float<0.0->>",
                                    "The stream units for KLayout.")
         self.define_tool_parameter("klayout", "hide_layers", "{str}",
                                    "A list of layer names to initially hide when "

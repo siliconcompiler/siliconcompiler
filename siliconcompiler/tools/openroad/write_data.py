@@ -14,7 +14,7 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_parameter("ord_abstract_lef_bloat_layers", "bool",
                            "true/false, fill all layers when writing the abstract lef",
                            defvalue=True)
-        self.add_parameter("ord_abstract_lef_bloat_factor", "int",
+        self.add_parameter("ord_abstract_lef_bloat_factor", "int<1->>",
                            "Factor to apply when writing the abstract lef", defvalue=10)
 
         self.add_parameter("write_cdl", "bool",

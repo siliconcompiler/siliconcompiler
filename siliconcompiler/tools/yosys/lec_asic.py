@@ -13,7 +13,7 @@ class ASICLECTask(_ASICTask):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("induction_steps", "int",
+        self.add_parameter("induction_steps", "int<1->>",
                            "Number of induction steps for yosys equivalence checking", defvalue=10)
 
     def set_yosys_inductionsteps(self, steps: int,

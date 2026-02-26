@@ -14,7 +14,10 @@ class NodeType:
     __tuple = re.compile(r"^\((.*)\)$")
     __set = re.compile(r"^\{(.*)\}$")
     __enum = re.compile(r"^<(.*)>$")
-    __basetypes = re.compile(r"^(<(.*)>|int|float|str|bool|file|dir)$")
+    __rangetype = re.compile(r"^(int|float|str)<(.*)>$")
+    __rangenumber = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
+    __rangevalues = re.compile(f"^({__rangenumber}|<)-({__rangenumber}|>)$")
+    __basetypes = re.compile(r"^(<(.*)>|int(<(.*)>)?|float(<(.*)>)?|str(<(.*)>)?|bool|file|dir)$")
 
     def __init__(self, sctype):
         if isinstance(sctype, NodeType):
@@ -46,6 +49,32 @@ class NodeType:
         if NodeType.__basetypes.match(sctype):
             if NodeType.__enum.match(sctype):
                 return NodeEnumType(*sctype[1:-1].split(","))
+            range_groups = NodeType.__rangetype.match(sctype)
+            if range_groups:
+                basetype, rangespec = range_groups.groups()
+                if basetype == "str":
+                    return NodeEnumType(*rangespec.split(","))
+                if basetype not in ("int", "float"):
+                    raise ValueError(f"Invalid range base type: {basetype}")
+                range_parts = []
+                normlizer = int if basetype == "int" else float
+                for part in rangespec.split(","):
+                    match = NodeType.__rangevalues.match(part)
+                    if match:
+                        start, end = match.groups()
+                        if start == "<":
+                            start = None
+                        else:
+                            start = normlizer(start)
+                        if end == ">":
+                            end = None
+                        else:
+                            end = normlizer(end)
+                        range_parts.append((start, end))
+                    else:
+                        part = normlizer(part)
+                        range_parts.append((part, part))
+                return NodeRangeType(basetype, *range_parts)
             return sctype
         if NodeType.__list.match(sctype):
             return [NodeType.parse(sctype[1:-1])]
@@ -82,7 +111,7 @@ class NodeType:
         if isinstance(sctype, set):
             return f"{{{','.join([NodeType.encode(sct) for sct in sctype])}}}"
 
-        if isinstance(sctype, NodeEnumType):
+        if isinstance(sctype, (NodeEnumType, NodeRangeType)):
             return str(sctype)
 
         if isinstance(sctype, str):
@@ -95,7 +124,7 @@ class NodeType:
         """
         Check if the type contains a specific type.
         """
-        if check in (list, tuple, set, NodeEnumType):
+        if check in (list, tuple, set, NodeEnumType, NodeRangeType):
             if isinstance(value, check):
                 return True
         if isinstance(value, list):
@@ -104,6 +133,8 @@ class NodeType:
             return NodeType.contains(list(value)[0], check)
         if isinstance(value, tuple):
             return any([NodeType.contains(v, check) for v in value])
+        if isinstance(value, NodeRangeType):
+            return value.base == check
         return value == check
 
     @staticmethod
@@ -112,6 +143,9 @@ class NodeType:
         Recursive helper function for converting Python values to safe TCL
         values, based on the SC type string.
         '''
+
+        if isinstance(sctype, NodeRangeType):
+            sctype = sctype.base
 
         if isinstance(sctype, list):
             if value is None:
@@ -150,6 +184,7 @@ class NodeType:
                                 .replace('$', '\\$')    # escape '$' to avoid variable substitution
                                 .replace('"', '\\"'))   # escape '"' to avoid string terminating
             return '"' + escaped_val + '"'
+
         if sctype == 'bool':
             return 'true' if value else 'false'
 
@@ -287,6 +322,26 @@ class NodeType:
             else:
                 raise ValueError(f"enum must be a string, not a {type(value)}")
 
+        if isinstance(sctype, NodeRangeType):
+            value = NodeType.normalize(value, sctype.base)
+            for minval, maxval in sctype.values:
+                if minval is None:
+                    if value <= maxval:
+                        return value
+                elif maxval is None:
+                    if value >= minval:
+                        return value
+                elif minval <= value <= maxval:
+                    return value
+            valid = []
+            for minval, maxval in sctype.values:
+                if minval != maxval:
+                    valid.append(f"{minval if minval is not None else ''}-"
+                                 f"{maxval if maxval is not None else ''}")
+                else:
+                    valid.append(f"{minval}")
+            raise ValueError(f'{value} is not in range: {", ".join(valid)}')
+
         raise ValueError(f'Invalid type specifier: {sctype}')
 
 
@@ -315,11 +370,68 @@ class NodeEnumType:
         return str(self)
 
     def __hash__(self):
-        return hash(tuple(self.__values))
+        return hash(tuple(sorted(self.__values)))
 
     @property
     def values(self):
         '''
         Returns a set of the legal values for this enum.
+        '''
+        return self.__values
+
+
+class NodeRangeType:
+    """
+    Type for schema data type
+
+    Args:
+        values (list of str): list of legal values for this type.
+    """
+
+    def __init__(self, base, *values):
+        if not values:
+            raise ValueError("range cannot be empty set")
+        self.__base = base
+        values = [
+            (min([v0, v1]), max([v0, v1])) if v0 is not None and v1 is not None else (v0, v1)
+            for v0, v1 in set(values)]
+        self.__values = sorted(values,
+                               key=lambda v: (float('-inf') if v[0] is None else v[0],
+                                              float('inf') if v[1] is None else v[1]))
+
+    def __eq__(self, other):
+        if isinstance(other, NodeRangeType):
+            if self.__base != other.__base:
+                return False
+            return self.__values == other.__values
+        return False
+
+    def __str__(self):
+        values = []
+        for minval, maxval in self.__values:
+            if minval != maxval:
+                values.append(f"{minval if minval is not None else '<'}-"
+                              f"{maxval if maxval is not None else '>'}")
+            else:
+                values.append(f"{minval}")
+        return f"{self.__base}<{','.join(values)}>"
+
+    def __repr__(self):
+        return str(self)
+
+    def __hash__(self):
+        return hash(tuple([self.__base, *self.__values]))
+
+    @property
+    def base(self):
+        '''
+        Returns the base for this range.
+        '''
+        return self.__base
+
+    @property
+    def values(self):
+        '''
+        Returns a set of the legal values for this range.
         '''
         return self.__values
