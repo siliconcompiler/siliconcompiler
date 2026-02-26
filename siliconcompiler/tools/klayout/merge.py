@@ -82,7 +82,8 @@ class Merge(KLayoutTask):
                         continue
                     for in_step, in_index in nodes:
                         if step == in_step and index == in_index:
-                            self.add_input_file(self.compute_input_file_node_name(file, step, index))
+                            self.add_input_file(
+                                self.compute_input_file_node_name(file, step, index))
             else:
                 lib_name, fileset = ref_source0, ref_source1
                 self.add_required_key("library", lib_name, "fileset", fileset, "file", "gds")
@@ -95,7 +96,8 @@ class Merge(KLayoutTask):
                         continue
                     for in_step, in_index in nodes:
                         if step == in_step and index == in_index:
-                            self.add_input_file(self.compute_input_file_node_name(file, step, index))
+                            self.add_input_file(
+                                self.compute_input_file_node_name(file, step, index))
             else:
                 lib_name, fileset = merge_source0, merge_source1
                 self.add_required_key("library", lib_name, "fileset", fileset, "file", "gds")
