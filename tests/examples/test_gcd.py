@@ -39,7 +39,7 @@ def test_py_gcd():
 
     assert project.get('metric', 'warnings', step='route.global', index='0') == 0
 
-    assert project.get('metric', 'warnings', step='write.gds.gz', index='0') == 0
+    assert project.get('metric', 'warnings', step='write.gds', index='0') == 0
     assert project.get('metric', 'warnings', step='write.views', index='0') == 0
 
 
