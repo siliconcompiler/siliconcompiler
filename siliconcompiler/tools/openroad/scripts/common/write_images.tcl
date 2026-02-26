@@ -48,7 +48,7 @@ proc sc_image_heatmap { name ident image_name title { gif -1 } { allow_bin_adjus
 
     gui::set_display_controls "Heat Maps/${name}" visible true
 
-    sc_save_image "$title heatmap" reports/images/heatmap/${image_name} $gif
+    sc_save_image "$title heatmap" reports/images/heatmap/${image_name} $gif 512
 
     gui::set_display_controls "Heat Maps/${name}" visible false
 }
