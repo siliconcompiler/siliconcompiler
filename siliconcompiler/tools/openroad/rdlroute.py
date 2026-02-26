@@ -55,8 +55,8 @@ class RDLRouteTask(OpenROADTask):
                     self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
         self.add_output_file(ext="vg")
-        self.add_output_file(ext="def")
-        self.add_output_file(ext="odb")
+        self.add_output_file(ext="def.gz")
+        self.add_output_file(ext="odb.gz")
 
         if self.get("var", "rdlroute"):
             self.add_required_key("var", "rdlroute")

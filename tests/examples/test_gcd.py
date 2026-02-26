@@ -18,7 +18,7 @@ def test_py_gcd():
     project = Project.from_manifest(manifest).history("job0")
 
     # Verify that GDS file was generated.
-    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds.gz')
     # Verify that final manifest was recorded.
     assert os.path.isfile('build/gcd/job0/gcd.pkg.json')
 
@@ -50,7 +50,7 @@ def test_py_gcd_skywater():
 
     gcd_skywater.main()
 
-    assert os.path.isfile('build/gcd/rtl2gds/write.gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/rtl2gds/write.gds/0/outputs/gcd.gds.gz')
     assert os.path.isfile('build/gcd/signoff/gcd.pkg.json')
 
     # # Verify that the build was LVS and DRC clean.
@@ -64,7 +64,7 @@ def test_py_gcd_gf180():
     from gcd import gcd_gf180
     gcd_gf180.main()
 
-    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds.gz')
 
 
 @pytest.mark.eda
@@ -74,7 +74,7 @@ def test_py_gcd_ihp130():
     from gcd import gcd_ihp130
     gcd_ihp130.main()
 
-    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds.gz')
     assert os.path.isfile('build/gcd/drc/drc/0/outputs/gcd.lyrdb')
 
     proj = Project.from_manifest('build/gcd/drc/gcd.pkg.json')
@@ -87,7 +87,7 @@ def test_py_gcd_hls():
     from gcd import gcd_hls
     gcd_hls.main()
 
-    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds.gz')
 
 
 @pytest.mark.eda
@@ -97,4 +97,4 @@ def test_py_gcd_chisel():
     from gcd import gcd_chisel
     gcd_chisel.main()
 
-    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/GCD.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/GCD.gds.gz')

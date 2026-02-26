@@ -280,7 +280,7 @@ def check():
     assert HeartbeatDesign().check_filepaths()
 
 
-def screenshot(gds: str = "build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds"):
+def screenshot(gds: str = "build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds.gz"):
     """Generates a high-resolution screenshot of the Heartbeat design layout.
 
     This function runs a specialized flow that imports the final GDSII layout,

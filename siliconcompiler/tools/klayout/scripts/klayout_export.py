@@ -133,10 +133,8 @@ def main():
         if os.path.exists(in_def):
             break
         in_def = None
-    if not in_def:
-        in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
 
-    out_file = os.path.join('outputs', f'{design}.{sc_stream}')
+    out_file = os.path.join('outputs', f'{design}.{sc_stream}.gz')
 
     allow_missing = []
     for lib in schema.get("asic", "asiclib"):

@@ -575,25 +575,6 @@ proc sc_get_tie_cell { type } {
     return "$cell/$port"
 }
 
-proc sc_get_input_files { type key } {
-    global sc_topmodule
-
-    set input_file "inputs/${sc_topmodule}.${type}"
-    if { [file exists $input_file] } {
-        return [list $input_file]
-    }
-
-    if { [sc_cfg_exists {*}$key] } {
-        return [sc_cfg_get {*}$key]
-    }
-
-    return []
-}
-
-proc sc_has_input_files { type key } {
-    return [expr { [sc_get_input_files $type $key] != [] }]
-}
-
 proc sc_path_group { args } {
     sta::parse_key_args "sc_path_group" args \
         keys {-name -to -from} \

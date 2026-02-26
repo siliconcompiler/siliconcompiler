@@ -40,7 +40,9 @@ if __name__ == "__main__":
                                                     step=sc_step, index=sc_index)
     if ref_type == 'input':
         step, index = ref_source0, ref_source1
-        input_file = os.path.join('inputs', f"{design}.{ref_source0}{ref_source1}.gds")
+        input_file = os.path.join('inputs', f"{design}.{ref_source0}{ref_source1}.gds.gz")
+        if not os.path.exists(input_file):
+            input_file = os.path.join('inputs', f"{design}.{ref_source0}{ref_source1}.gds")
     else:
         input_file = schema.get("library", ref_source0, "fileset", ref_source1, "file", "gds")[0]
 
@@ -49,7 +51,9 @@ if __name__ == "__main__":
             schema.get("tool", sc_tool, "task", sc_task, "var", "merge",
                        step=sc_step, index=sc_index):
         if merge_type == 'input':
-            merge_file = os.path.join('inputs', f"{design}.{merge_source0}{merge_source1}.gds")
+            merge_file = os.path.join('inputs', f"{design}.{merge_source0}{merge_source1}.gds.gz")
+            if not os.path.exists(merge_file):
+                merge_file = os.path.join('inputs', f"{design}.{merge_source0}{merge_source1}.gds")
         else:
             merge_file = schema.get("library", merge_source0, "fileset", merge_source1,
                                     "file", "gds")[0]
@@ -76,6 +80,6 @@ if __name__ == "__main__":
         cell_inst = pya.CellInstArray(new_cell.cell_index(), pya.Trans())
         top_cell.insert(cell_inst)
 
-    write_stream(base_layout, f"outputs/{design}.gds", True)
+    write_stream(base_layout, f"outputs/{design}.gds.gz", True)
 
     generate_metrics()

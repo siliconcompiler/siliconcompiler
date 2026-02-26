@@ -23,8 +23,12 @@ class ShowTask(ShowTask, APRTask, OpenROADSTAParameter):
         self.unset("output")
 
         # Add input file requirements
+        if f"{self.design_topmodule}.odb.gz" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="odb.gz")
         if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
             self.add_input_file(ext="odb")
+        elif f"{self.design_topmodule}.def.gz" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="def.gz")
         elif f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
             self.add_input_file(ext="def")
         else:

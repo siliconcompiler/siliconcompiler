@@ -1439,9 +1439,14 @@ class APRTask(OpenROADTask):
                         self.add_required_key(libobj, "fileset", fileset, "file", "sdc")
 
         load_tech = True
+        if f"{self.design_topmodule}.odb.gz" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="odb.gz")
+            load_tech = False
         if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
             self.add_input_file(ext="odb")
             load_tech = False
+        elif f"{self.design_topmodule}.def.gz" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="def.gz")
         elif f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
             self.add_input_file(ext="def")
         else:
@@ -1463,8 +1468,8 @@ class APRTask(OpenROADTask):
             self.add_output_file(ext="sdc")
         self.add_output_file(ext="vg")
         self.add_output_file(ext="lec.vg")
-        self.add_output_file(ext="def")
-        self.add_output_file(ext="odb")
+        self.add_output_file(ext="def.gz")
+        self.add_output_file(ext="odb.gz")
 
         for lib in self.project.get("asic", "asiclib"):
             libobj = self.project.get_library(lib)
