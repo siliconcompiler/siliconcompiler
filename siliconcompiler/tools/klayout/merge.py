@@ -75,9 +75,14 @@ class Merge(KLayoutTask):
             ref_type, ref_source0, ref_source1 = self.get("var", "reference")
             if ref_type == 'input':
                 step, index = ref_source0, ref_source1
-                self.add_input_file(
-                    self.compute_input_file_node_name(f"{self.design_topmodule}.gds",
-                                                      step, index))
+                if f"{self.design_topmodule}.gds.gz" in self.get_files_from_input_nodes():
+                    self.add_input_file(
+                        self.compute_input_file_node_name(f"{self.design_topmodule}.gds.gz",
+                                                          step, index))
+                else:
+                    self.add_input_file(
+                        self.compute_input_file_node_name(f"{self.design_topmodule}.gds",
+                                                          step, index))
             else:
                 lib_name, fileset = ref_source0, ref_source1
                 self.add_required_key("library", lib_name, "fileset", fileset, "file", "gds")
@@ -85,11 +90,16 @@ class Merge(KLayoutTask):
             merge_type, merge_source0, merge_source1, _ = merge_entry
             if merge_type == 'input':
                 step, index = merge_source0, merge_source1
-                self.add_input_file(
-                    self.compute_input_file_node_name(f"{self.design_topmodule}.gds",
-                                                      step, index))
+                if f"{self.design_topmodule}.gds.gz" in self.get_files_from_input_nodes():
+                    self.add_input_file(
+                        self.compute_input_file_node_name(f"{self.design_topmodule}.gds.gz",
+                                                          step, index))
+                else:
+                    self.add_input_file(
+                        self.compute_input_file_node_name(f"{self.design_topmodule}.gds",
+                                                          step, index))
             else:
                 lib_name, fileset = merge_source0, merge_source1
                 self.add_required_key("library", lib_name, "fileset", fileset, "file", "gds")
 
-        self.add_output_file(ext="gds")
+        self.add_output_file(ext="gds.gz")

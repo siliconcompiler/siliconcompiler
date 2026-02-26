@@ -36,8 +36,14 @@ class DRCTask(KLayoutTask):
 
         self.add_commandline_option(['-z', '-nc', '-rx'], clobber=True)
 
-        if f"{self.design_topmodule}.gds" in self.get_files_from_input_nodes():
+        if f"{self.design_topmodule}.gds.gz" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="gds.gz")
+        elif f"{self.design_topmodule}.gds" in self.get_files_from_input_nodes():
             self.add_input_file(ext="gds")
+        elif f"{self.design_topmodule}.oas.gz" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="oas.gz")
+        elif f"{self.design_topmodule}.oas" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="oas")
         else:
             # Mark required
             for lib, fileset in self.project.get_filesets():
@@ -52,7 +58,7 @@ class DRCTask(KLayoutTask):
         options = ASICTask.runtime_options(self)
 
         layout = None
-        for file in [f'inputs/{self.design_topmodule}.gds', f'inputs/{self.design_topmodule}.oas']:
+        for file in [f'inputs/{self.design_topmodule}.gds.gz', f'inputs/{self.design_topmodule}.gds', f'inputs/{self.design_topmodule}.oas.gz', f'inputs/{self.design_topmodule}.oas']:
             if os.path.isfile(file):
                 layout = file
                 break

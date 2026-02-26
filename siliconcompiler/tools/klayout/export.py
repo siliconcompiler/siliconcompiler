@@ -61,6 +61,8 @@ class ExportTask(KLayoutTask, ScreenshotParams):
 
         self.set_script("klayout_export.py")
 
+        if f"{self.design_topmodule}.def.gz" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="def.gz")
         if f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
             self.add_input_file(ext="def")
         else:
@@ -75,7 +77,7 @@ class ExportTask(KLayoutTask, ScreenshotParams):
 
         default_stream = self.get("var", "stream")
 
-        self.add_output_file(ext=default_stream)
+        self.add_output_file(ext=f"{default_stream}.gz")
         self.add_output_file(ext="lyt")
         self.add_output_file(ext="lyp")
 
