@@ -1,14 +1,30 @@
 # Adopted from https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/3f9740e6b3643835e918d78ae1d377d65af0f0fb/flow/scripts/save_images.tcl
 
-proc sc_image_heatmap { name ident image_name title { gif -1 } { allow_bin_adjust 1 } } {
+proc sc_image_heatmap { args } {
+    sta::parse_key_args "sc_image_heatmap" args \
+        keys {-name -heatmap -title -gif -pixels} \
+        flags {-dont_allow_bin_adjust}
+
+    sta::check_argc_eq1 "sc_image_heatmap" $args
+
+    set path [lindex $args 0]
+
     lassign [sc_cfg_tool_task_get var ord_heatmap_bins] ord_heatmap_bins_x ord_heatmap_bins_y
+
+    set name $keys(-name)
+    set ident $keys(-heatmap)
+    set title $keys(-title)
+    set pixels 512
+    if { [info exists keys(-pixels)] } {
+        set pixels $keys(-pixels)
+    }
 
     file mkdir reports/images/heatmap
 
     gui::set_heatmap $ident ShowLegend 1
     gui::set_heatmap $ident ShowNumbers 1
 
-    if { $allow_bin_adjust } {
+    if { ![info exists flags(-dont_allow_bin_adjust)] } {
         set heatmap_xn $ord_heatmap_bins_x
         set heatmap_yn $ord_heatmap_bins_y
 
@@ -48,11 +64,16 @@ proc sc_image_heatmap { name ident image_name title { gif -1 } { allow_bin_adjus
 
     gui::set_display_controls "Heat Maps/${name}" visible true
 
+    set save_args []
+    if { [info exists keys(-gif)] && $keys(-gif) >= 0 } {
+        lappend save_args -gif $keys(-gif)
+    }
+
     sc_save_image \
         -title "$title heatmap" \
-        -gif $gif \
-        -pixels 512 \
-        reports/images/heatmap/${image_name}
+        {*}$save_args \
+        -pixels $pixels \
+        reports/images/heatmap/$path
 
     gui::set_display_controls "Heat Maps/${name}" visible false
 }
@@ -170,11 +191,12 @@ proc sc_image_irdrop { net scene } {
             set label [add_label -position "$x $y" -anchor "bottom right" -color white $layer_name]
         }
 
-        sc_image_heatmap "IR Drop" \
-            "IRDrop" \
-            "irdrop/${net}.${scene}.${layer_name}.png" \
-            "IR drop for $net on $layer_name for $scene" \
-            $gif
+        sc_image_heatmap \
+            -name "IR Drop" \
+            -heatmap "IRDrop" \
+            -title "IR drop for $net on $layer_name for $scene" \
+            -gif $gif \
+            "irdrop/${net}.${scene}.${layer_name}.png"
 
         if { $label != "" } {
             gui::delete_label $label
@@ -196,12 +218,12 @@ proc sc_image_routing_congestion { } {
 
     sc_image_setup_default
 
-    sc_image_heatmap "Routing Congestion" \
-        "Routing" \
-        "routing_congestion.png" \
-        "routing congestion" \
-        -1 \
-        0
+    sc_image_heatmap \
+        -name "Routing Congestion" \
+        -heatmap "Routing" \
+        -title "routing congestion" \
+        -dont_allow_bin_adjust \
+        "routing_congestion.png"
 }
 
 proc sc_image_estimated_routing_congestion { } {
@@ -214,12 +236,12 @@ proc sc_image_estimated_routing_congestion { } {
     suppress_message GRT 10
     suppress_message GRT 42
     catch {
-        sc_image_heatmap "Estimated Congestion (RUDY)" \
-            "RUDY" \
-            "estimated_routing_congestion.png" \
-            "estimated routing congestion" \
-            -1 \
-            0
+        sc_image_heatmap \
+            -name "Estimated Congestion (RUDY)" \
+            -heatmap "RUDY" \
+            -title "estimated routing congestion" \
+            -dont_allow_bin_adjust \
+            "estimated_routing_congestion.png"
     } err
     unsuppress_message GRT 10
     unsuppress_message GRT 42
@@ -248,10 +270,11 @@ proc sc_image_power_density { } {
             gui::set_heatmap Power Corner $scene
             gui::set_heatmap Power rebuild
 
-            sc_image_heatmap "Power Density" \
-                "Power" \
-                "power_density/${scene}.png" \
-                "power density for $scene"
+            sc_image_heatmap \
+                -name "Power Density" \
+                -heatmap "Power" \
+                -title "power density for $scene" \
+                "power_density/${scene}.png"
         }
     } else {
         foreach corner [sta::corners] {
@@ -260,10 +283,11 @@ proc sc_image_power_density { } {
             gui::set_heatmap Power Corner $corner_name
             gui::set_heatmap Power rebuild
 
-            sc_image_heatmap "Power Density" \
-                "Power" \
-                "power_density/${corner_name}.png" \
-                "power density for $corner_name"
+            sc_image_heatmap \
+                -name "Power Density" \
+                -heatmap "Power" \
+                -title "power density for $corner_name" \
+                "power_density/${corner_name}.png"
         }
     }
 }
@@ -275,10 +299,11 @@ proc sc_image_placement_density { } {
 
     sc_image_setup_default
 
-    sc_image_heatmap "Placement Density" \
-        "Placement" \
-        "placement_density.png" \
-        "placement density"
+    sc_image_heatmap \
+        -name "Placement Density" \
+        -heatmap "Placement" \
+        -title "placement density" \
+        "placement_density.png"
 }
 
 proc sc_image_module_view { } {
