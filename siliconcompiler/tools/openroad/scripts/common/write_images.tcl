@@ -48,7 +48,11 @@ proc sc_image_heatmap { name ident image_name title { gif -1 } { allow_bin_adjus
 
     gui::set_display_controls "Heat Maps/${name}" visible true
 
-    sc_save_image "$title heatmap" reports/images/heatmap/${image_name} $gif 512
+    sc_save_image \
+        -title "$title heatmap" \
+        -gif $gif \
+        -pixels 512 \
+        reports/images/heatmap/${image_name}
 
     gui::set_display_controls "Heat Maps/${name}" visible false
 }
@@ -66,7 +70,9 @@ proc sc_image_placement { } {
     gui::set_display_controls "Layers/*" visible false
     gui::set_display_controls "Instances/Physical/*" visible false
 
-    sc_save_image "placement" reports/images/${sc_topmodule}.placement.png
+    sc_save_image \
+        -title "placement" \
+        reports/images/${sc_topmodule}.placement.png
 }
 
 proc sc_image_routing { } {
@@ -81,14 +87,18 @@ proc sc_image_routing { } {
     gui::set_display_controls "Nets/Power" visible false
     gui::set_display_controls "Nets/Ground" visible false
 
-    sc_save_image "routing" reports/images/${sc_topmodule}.routing.png
+    sc_save_image \
+        -title "routing" \
+        reports/images/${sc_topmodule}.routing.png
 }
 
 proc sc_image_everything { } {
     global sc_topmodule
 
     sc_image_setup_default
-    sc_save_image "snapshot" reports/images/${sc_topmodule}.png
+    sc_save_image \
+        -title "snapshot" \
+        reports/images/${sc_topmodule}.png
 }
 
 proc sc_image_irdrop { net scene } {
@@ -286,7 +296,9 @@ proc sc_image_module_view { } {
     gui::set_display_controls "Misc/Module view" visible true
     gui::set_display_controls "Nets/*" visible false
 
-    sc_save_image "module view" reports/images/${sc_topmodule}.modules.png
+    sc_save_image \
+        -title "module view" \
+        reports/images/${sc_topmodule}.modules.png
 }
 
 proc sc_image_clocks { } {
@@ -308,7 +320,9 @@ proc sc_image_clocks { } {
         return
     }
 
-    sc_save_image "clocks" reports/images/${sc_topmodule}.clocks.png
+    sc_save_image \
+        -title "clocks" \
+        reports/images/${sc_topmodule}.clocks.png
 }
 
 proc sc_image_clocktree { } {
@@ -353,7 +367,8 @@ proc sc_image_clocktree { } {
             }
             gui::select_clockviewer_clock ${clock_name} {*}$select_clk_args
             sc_save_image \
-                "clock - ${clock_name}" \
+                -title "clock - ${clock_name}" \
+                -pixels 512 \
                 reports/images/clocks/${sc_topmodule}.${clock_name}.png
         }
     }
@@ -439,7 +454,9 @@ proc sc_image_optimizer { } {
         return
     }
 
-    sc_save_image "optimizer" reports/images/${sc_topmodule}.optimizer.png
+    sc_save_image \
+        -title "optimizer" \
+        reports/images/${sc_topmodule}.optimizer.png
 }
 
 proc sc_image_markers { } {
@@ -461,7 +478,7 @@ proc sc_image_markers { } {
         gui::select_marker_category $markerdb
 
         sc_save_image \
-            "markers - [$markerdb getName]" \
+            -title "markers - [$markerdb getName]" \
             reports/images/markers/${sc_topmodule}.[$markerdb getName].png
     }
 
