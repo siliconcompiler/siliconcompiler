@@ -1597,6 +1597,7 @@ def test_fileset_recursion_runs_once():
     # Patch Design.__get_fileset to track calls
     call_log = []
     orig_get_fileset = Design._Design__get_fileset
+
     def tracking_get_fileset(self, filesets, alias, visited, mapping):
         call_log.append(self.name)
         return orig_get_fileset(self, filesets, alias, visited, mapping)
