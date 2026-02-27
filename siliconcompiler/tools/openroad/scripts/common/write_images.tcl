@@ -267,7 +267,11 @@ proc sc_image_power_density { } {
                 continue
             }
 
-            gui::set_heatmap Power Corner $scene
+            if { [sc_check_version 26 1 1336] } {
+                gui::set_heatmap Power Scene $scene
+            } else {
+                gui::set_heatmap Power Corner $scene
+            }
             gui::set_heatmap Power rebuild
 
             sc_image_heatmap \
