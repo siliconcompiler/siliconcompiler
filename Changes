@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.1 (2026-02-26)
+=========================================
+
+**Minor:**
+
+ * Fixed handling of tokens during github+private dataroot resolution.
+ * Fixed `from_dict` handling to correctly restore a schema from file.
+ * Ensure the checks in `.run()` gracefully handle missing files.
+
+ * Tools:
+
+  * klayout: default to writing gzipped files.
+  * openroad: default to writing gzipped odb and def files.
+
+
 SiliconCompiler 0.37.0 (2026-02-24)
 =========================================
 
