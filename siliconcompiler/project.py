@@ -466,6 +466,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Check that alias libraries exist
         aliases = self.option.get_alias()
         for src_lib, src_fileset, dst_lib, dst_fileset in aliases:
+            if src_lib == dst_lib and src_fileset == dst_fileset:
+                self.logger.warning("alias points to the same library and fileset: "
+                                    f"{src_lib}/{src_fileset}")
+                continue
+
             if not src_lib:
                 self.logger.error("source library in [option,alias] must be set")
                 error = True
@@ -709,6 +714,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Build alias mapping
         alias = {}
         for src_lib, src_fileset, dst_lib, dst_fileset in self.option.get_alias():
+            if src_lib == dst_lib and src_fileset == dst_fileset:
+                continue
+
             if dst_lib:
                 if not self._has_library(dst_lib):
                     raise KeyError(f"{dst_lib} is not a loaded library")
@@ -905,6 +913,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
             if alias_fileset is not None and not alias_dep.has_fileset(alias_fileset):
                 raise ValueError(f"{alias_dep_name} does not have {alias_fileset} as a fileset")
+
+        if alias_dep_name == src_dep_name and alias_fileset == src_fileset:
+            raise ValueError("alias cannot target the same library and fileset")
 
         alias = (src_dep_name, src_fileset, alias_dep_name, alias_fileset)
         return self.option.add_alias(alias, clobber=clobber)

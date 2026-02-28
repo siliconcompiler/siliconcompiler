@@ -610,6 +610,16 @@ def test_add_alias_dst_invalid_fileset():
         proj.add_alias("test", "rtl", alias, "rtl2")
 
 
+def test_add_alias_duplicate_target():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    with pytest.raises(ValueError, match=r"^alias cannot target the same library and fileset$"):
+        proj.add_alias("test", "rtl", "test", "rtl")
+
+
 def test_add_alias_dst_name_type():
     design = Design("test")
     with design.active_fileset("rtl"):
@@ -783,6 +793,20 @@ def test_get_filesets_with_alias_same_fileset():
     assert proj.get_filesets() == [
         (design, "rtl"),
         (alias, "rtl")
+    ]
+
+
+def test_get_filesets_ignores_self_alias():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    proj.set("option", "alias", ("test", "rtl", "test", "rtl"))
+
+    assert proj.get_filesets() == [
+        (design, "rtl")
     ]
 
 
@@ -1440,6 +1464,25 @@ def test_check_manifest_with_alias_missing_dst_fileset(monkeypatch, caplog):
 
     assert proj.check_manifest() is False
     assert "rtl2 is not a valid fileset in testdesign" in caplog.text
+
+
+def test_check_manifest_with_alias_duplicate_target(monkeypatch, caplog):
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = Flowgraph("testflow")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set_flow(flow)
+
+    proj.set("option", "alias", ("testdesign", "rtl", "testdesign", "rtl"))
+
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.WARNING)
+
+    assert proj.check_manifest() is True
+    assert "alias points to the same library and fileset: testdesign/rtl" in caplog.text
 
 
 def test_init_run(monkeypatch, caplog):
