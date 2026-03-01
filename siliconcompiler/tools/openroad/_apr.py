@@ -1442,7 +1442,7 @@ class APRTask(OpenROADTask):
         if f"{self.design_topmodule}.odb.gz" in self.get_files_from_input_nodes():
             self.add_input_file(ext="odb.gz")
             load_tech = False
-        if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
+        elif f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
             self.add_input_file(ext="odb")
             load_tech = False
         elif f"{self.design_topmodule}.def.gz" in self.get_files_from_input_nodes():
