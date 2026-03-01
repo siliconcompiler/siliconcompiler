@@ -29,7 +29,6 @@ if [ ! -z ${PREFIX} ]; then
     deps_args="-prefix=$PREFIX"
 fi
 sudo ./etc/DependencyInstaller.sh -base
-sudo rm -f etc/openroad_deps_prefixes.txt
 $SUDO_INSTALL ./etc/DependencyInstaller.sh -common $deps_args
 
 cmake_args="-DENABLE_TESTS=OFF"
