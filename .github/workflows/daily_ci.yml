@@ -50,7 +50,7 @@ jobs:
           python3 .github/workflows/bin/generate_cache.py
 
       - name: Upload
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: scpackage-daily-cache
           path: .sc/cache
@@ -90,7 +90,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Restore cache
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: scpackage-daily-cache
           path: ${{ env.SCTESTCACHE }}
