@@ -17,7 +17,7 @@ import types
 
 import os.path
 
-from typing import List, Union, Tuple, Optional, Dict, get_args, get_origin
+from typing import Union, Tuple, Optional, Dict, get_args, get_origin
 
 from pathlib import Path
 
@@ -106,7 +106,7 @@ def __process_file(path: Union[Path, str], dir: str) -> Tuple[Dict, Optional[str
 
             typing_args = get_args(arg_type)
             if typing_args:
-                # Revert to string when we cant determine the type
+                # Revert to string when we cannot determine the type
                 arg_type = str
 
             func_args[arg]["type"] = arg_type
