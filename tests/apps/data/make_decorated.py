@@ -34,5 +34,12 @@ def has_arg3(target: Optional[str], count: int):
     print("target", target, count)
 
 
+def has_arg4(target: List[str], count: int):
+    assert isinstance(target, list)
+    for t in target:
+        assert isinstance(t, str)
+    print("target", *target, count)
+
+
 if __name__ == "__main__":
     sys.exit(smake.main(__file__))
