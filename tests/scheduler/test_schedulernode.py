@@ -2024,9 +2024,15 @@ def test_generate_testcase_autoissue(project, monkeypatch, caplog):
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase:
+    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase, \
+            patch("lambdapdk.get_pdk_names") as get_pdk_names, \
+            patch("lambdapdk.get_lib_names") as get_lib_names:
+        get_pdk_names.return_value = ["testpdk"]
+        get_lib_names.return_value = ["testlib"]
         node._SchedulerNode__generate_testcase()
         testcase.assert_called_once()
+        get_pdk_names.assert_called_once()
+        get_lib_names.assert_called_once()
 
     assert caplog.text == ""
 
