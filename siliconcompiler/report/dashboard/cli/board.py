@@ -176,6 +176,7 @@ class JobData:
 
     Attributes:
         total (int): The total number of nodes in the job.
+        visible (int): The total number of visible nodes in the job.
         success (int): The number of successfully completed nodes.
         error (int): The number of nodes that resulted in an error.
         skipped (int): The number of skipped nodes.
@@ -188,6 +189,7 @@ class JobData:
                             information about a single node in the flowgraph.
     """
     total: int = 0
+    visible: int = 0
     success: int = 0
     error: int = 0
     skipped: int = 0
@@ -207,6 +209,7 @@ class SessionData:
 
     Attributes:
         total (int): The total number of nodes across all jobs.
+        visible (int): The total number of visible nodes across all jobs.
         success (int): The total number of successfully completed nodes across all jobs.
         error (int): The total number of nodes that resulted in an error across all jobs.
         skipped (int): The total number of skipped nodes across all jobs.
@@ -216,6 +219,7 @@ class SessionData:
                                    corresponding JobData objects.
     """
     total: int = 0
+    visible: int = 0
     success: int = 0
     error: int = 0
     skipped: int = 0
@@ -862,7 +866,7 @@ class Board:
         """
         with self._render_data_lock:
             visible_progress_bars = len(self._render_data.jobs)
-            visible_jobs_count = self._render_data.total - self._render_data.skipped
+            visible_jobs_count = self._render_data.visible
 
         self._layout.update(
             self._console.height,
@@ -895,6 +899,9 @@ class Board:
 
             self._render_data.total = sum(
                 [0, *[job.total for job in self._render_data.jobs.values()]]
+            )
+            self._render_data.visible = sum(
+                [0, *[job.visible for job in self._render_data.jobs.values()]]
             )
             self._render_data.success = sum(
                 [0, *[job.success for job in self._render_data.jobs.values()]]
@@ -1116,6 +1123,10 @@ class Board:
                 job_data.skipped += 1
                 continue
 
+            hide = (step, index) not in check_flow.get_nodes()
+            if not hide:
+                job_data.visible += 1
+
             starttime = None
             duration = None
             if NodeStatus.is_done(status):
@@ -1161,7 +1172,7 @@ class Board:
                     "print": {
                         "order": nodeorder[(step, index)],
                         "priority": node_priority[(step, index)],
-                        "hide": (step, index) not in check_flow.get_nodes()
+                        "hide": hide
                     },
                     "type": node_type
                 }
