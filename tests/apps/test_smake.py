@@ -84,14 +84,12 @@ def test_smake_with_argument3(target, monkeypatch, capfd, datadir):
 def test_smake_with_argument4(target, monkeypatch, capfd, datadir):
     '''Test smake'''
 
-    args = ['--count', '5']
-    args += ['--target', target]
-    args += ['--target', "thistoo"]
+    args = ['--count', '5', '--target', target, '--target', 'thistoo']
     monkeypatch.setattr('sys.argv', [
         'smake', '-C', datadir, '-f', 'make_decorated.py',
         'has_arg4'] + args)
     assert smake.main() == 0
-    assert f"target {target} 5" in capfd.readouterr().out
+    assert f"target {target} thistoo 5" in capfd.readouterr().out
 
 
 def test_smake_help(monkeypatch, capfd, datadir):

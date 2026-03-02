@@ -96,6 +96,9 @@ def __process_file(path: Union[Path, str], dir: str) -> Tuple[Dict, Optional[str
                     typing_args = [t for t in typing_args if t is not type(None)]
                     is_none_default = True
 
+                if origin is list:
+                    func_args[arg]["action"] = "append"
+
                 if len(typing_args) == 1:
                     arg_type = typing_args[0]
                     if is_none_default:
@@ -247,11 +250,12 @@ To run a target with arguments, use:
                     add_args["required"] = True
                 else:
                     add_args["default"] = subarg_info["default"]
+                if "action" in subarg_info:
+                    add_args["action"] = subarg_info["action"]
 
                 # Handle boolean arguments correctly.
                 arg_type = subarg_info["type"]
                 if arg_type is bool:
-                    # Use a custom string-to-boolean converter.
                     def str2bool(v):
                         val = str(v).lower()
                         if val in ('y', 'yes', 't', 'true', 'on', '1'):
