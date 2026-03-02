@@ -66,6 +66,20 @@ def test_smake_with_argument2(target, monkeypatch, capfd, datadir):
     assert f"target {target} 5" in capfd.readouterr().out
 
 
+@pytest.mark.parametrize('target', (None, 'target0', 'target1'))
+def test_smake_with_argument3(target, monkeypatch, capfd, datadir):
+    '''Test smake'''
+
+    args = ['--count', '5']
+    if target is not None:
+        args += ['--target', target]
+    monkeypatch.setattr('sys.argv', [
+        'smake', '-C', datadir, '-f', 'make_decorated.py',
+        'has_arg3'] + args)
+    assert smake.main() == 0
+    assert f"target {target} 5" in capfd.readouterr().out
+
+
 def test_smake_help(monkeypatch, capfd, datadir):
     '''Test smake'''
 
@@ -99,11 +113,21 @@ def test_smake_file_with_import(monkeypatch, capfd, datadir):
     assert "ASIC IMPORT" in output.out
 
 
-def test_smake_file_decorated(monkeypatch, capfd, datadir):
-    '''Test smake with -f'''
+def test_smake_file_decorated_asic(monkeypatch, capfd, datadir):
+    '''Test smake with decorated functions'''
 
     exec_file = os.path.join(datadir, 'make_decorated.py')
     monkeypatch.setattr('sys.argv', [exec_file, 'asic'])
     assert smake.main(exec_file) == 0
     output = capfd.readouterr()
     assert "ASIC MAKE DECORATED" in output.out
+
+
+def test_smake_file_decorated_lint(monkeypatch, capfd, datadir):
+    '''Test smake with decorated functions'''
+
+    exec_file = os.path.join(datadir, 'make_decorated.py')
+    monkeypatch.setattr('sys.argv', [exec_file, 'lint'])
+    assert smake.main(exec_file) == 0
+    output = capfd.readouterr()
+    assert "LINT MAKE" in output.out

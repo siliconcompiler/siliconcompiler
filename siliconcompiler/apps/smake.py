@@ -13,10 +13,11 @@ Python without the need for complex boilerplate code.
 import argparse
 import sys
 import tempfile
+import types
 
 import os.path
 
-from typing import Union, Tuple, Optional, Dict
+from typing import List, Union, Tuple, Optional, Dict, get_args, get_origin
 
 from pathlib import Path
 
@@ -83,8 +84,28 @@ def __process_file(path: Union[Path, str], dir: str) -> Tuple[Dict, Optional[str
         func_spec = getfullargspec(func)
         func_args = {}
         for arg in func_spec.args:
+            func_args[arg] = {}
+
             arg_type = func_spec.annotations.get(arg, str)
-            func_args[arg] = {"type": arg_type}
+            typing_args = get_args(arg_type)
+            if typing_args:
+                origin = get_origin(arg_type)
+                is_union = origin is Union or origin is getattr(types, "UnionType", None)
+                is_none_default = False
+                if is_union and type(None) in typing_args:
+                    typing_args = [t for t in typing_args if t is not type(None)]
+                    is_none_default = True
+
+                if len(typing_args) == 1:
+                    arg_type = typing_args[0]
+                    func_args[arg]["default"] = None
+
+            typing_args = get_args(arg_type)
+            if typing_args:
+                # Revert to string when we cant determine the type
+                arg_type = str
+
+            func_args[arg]["type"] = arg_type
 
         if func_spec.defaults:
             for arg, defval in zip(reversed(func_spec.args), reversed(func_spec.defaults)):
@@ -267,7 +288,7 @@ To run a target with arguments, use:
         args_vars = vars(args)
         for arg in make_args[target]["args"]:
             arg_key = f'sub_{arg}'
-            if arg_key in args_vars and args_vars[arg_key] is not None:
+            if arg_key in args_vars:
                 call_args[arg] = args_vars[arg_key]
 
         # Call the selected function with its arguments.

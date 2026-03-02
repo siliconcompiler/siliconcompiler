@@ -2,6 +2,9 @@
 LOOK FOR THIS TEXT IN HELP
 '''
 import sys
+
+from typing import Optional, List
+
 from siliconcompiler.apps import smake
 
 
@@ -22,6 +25,12 @@ def has_arg(target: str):
 
 def has_arg2(target: str, count: int):
     assert isinstance(count, int)
+    print("target", target, count)
+
+
+def has_arg3(target: Optional[str], count: int):
+    if target is not None:
+        assert isinstance(target, str)
     print("target", target, count)
 
 
