@@ -63,6 +63,7 @@ def mock_project(asic_gcd):
 def mock_running_job_lg():
     mock_job_data = JobData()
     mock_job_data.total = 30
+    mock_job_data.visible = 30
     mock_job_data.design = "design1"
     mock_job_data.jobname = "job1"
     statuses = [NodeStatus.SUCCESS, NodeStatus.ERROR, NodeStatus.PENDING]
@@ -98,6 +99,7 @@ def mock_running_job_lg():
 def mock_running_job_lg_second():
     mock_job_data = JobData()
     mock_job_data.total = 30
+    mock_job_data.visible = 30
     mock_job_data.design = "design2"
     mock_job_data.jobname = "job2"
     statuses = [NodeStatus.ERROR, NodeStatus.PENDING, NodeStatus.SUCCESS]
@@ -132,6 +134,7 @@ def mock_running_job_lg_second():
 def mock_running_job():
     mock_job_data = JobData()
     mock_job_data.total = 5
+    mock_job_data.visible = 5
     mock_job_data.design = "design1"
     mock_job_data.jobname = "job1"
     statuses = [NodeStatus.SUCCESS, NodeStatus.ERROR, NodeStatus.PENDING]
@@ -162,6 +165,7 @@ def mock_running_job():
 def mock_finished_job_fail():
     mock_job_data = JobData()
     mock_job_data.total = 5
+    mock_job_data.visible = 5
     mock_job_data.design = "design1"
     mock_job_data.jobname = "job1"
     statuses = [NodeStatus.SUCCESS, NodeStatus.ERROR]
@@ -196,6 +200,7 @@ def mock_finished_job_fail():
 def mock_finished_job_passed():
     mock_job_data = JobData()
     mock_job_data.total = 5
+    mock_job_data.visible = 5
     mock_job_data.design = "design1"
     mock_job_data.jobname = "job1"
     mock_job_data.nodes = [
