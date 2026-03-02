@@ -98,7 +98,8 @@ def __process_file(path: Union[Path, str], dir: str) -> Tuple[Dict, Optional[str
 
                 if len(typing_args) == 1:
                     arg_type = typing_args[0]
-                    func_args[arg]["default"] = None
+                    if is_none_default:
+                        func_args[arg]["default"] = None
 
             typing_args = get_args(arg_type)
             if typing_args:
@@ -262,7 +263,7 @@ To run a target with arguments, use:
 
                 subparse.add_argument(
                     f'--{subarg}',
-                    dest=f'sub_{subarg}',
+                    dest=f'sub_{arg}_{subarg}',
                     metavar=f'<{subarg}>',
                     type=arg_type,
                     **add_args)
@@ -287,7 +288,7 @@ To run a target with arguments, use:
         call_args = {}
         args_vars = vars(args)
         for arg in make_args[target]["args"]:
-            arg_key = f'sub_{arg}'
+            arg_key = f'sub_{target}_{arg}'
             if arg_key in args_vars:
                 call_args[arg] = args_vars[arg_key]
 
