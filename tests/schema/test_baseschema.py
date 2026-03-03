@@ -4123,3 +4123,290 @@ def test_from_dict_manifest_clear_multiple_calls():
     assert schema.get("data", "key1", "value") == "first"
     # key3 is cleared by second from_dict
     assert schema.get("data", "key3", "value") is None
+
+
+def test_from_dict_with_failure():
+    class DummySchema1(BaseSchema):
+        def __init__(self, requiredkey):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema1_t0"
+
+    class DummySchema1_Safe(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema1_t0_safe"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", BaseSchema())
+    edit.insert("base", "default", Parameter("str"))
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "dummy_schema1_t0": DummySchema1,
+            "dummy_schema1_t0_safe": DummySchema1_Safe
+        }
+        schema._from_dict({
+            'dummy': {
+                'default': {},
+                'newdummy': {  # this has a different type than the default
+                    'string': {
+                        'type': 'str',
+                        'require': False,
+                        'scope': 'global',
+                        'lock': False,
+                        'switch': [],
+                        'shorthelp': None,
+                        'example': [],
+                        'help': None,
+                        'notes': None,
+                        'pernode': 'never',
+                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                                 'default': {'default': {'value': None, 'signature': None}}}
+                    },
+                    '__meta__': {
+                        'sctype': 'dummy_schema1_t0_safe',
+                        'class': 'dummy_schema1_t0'
+                    }
+                }
+            },
+            'base': {
+                'default': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'global',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+                'newbase': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'global',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            }
+        }, [], lazyload=LazyLoad.OFF)
+        children.assert_called_once()
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema1_Safe
+
+
+def test_from_dict_with_failure_raise():
+    class DummySchema1(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+            raise ValueError("Intentional failure in DummySchema1")
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema1_t1"
+
+    class DummySchema1_Safe(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema1_t1_safe"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", BaseSchema())
+    edit.insert("base", "default", Parameter("str"))
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "dummy_schema1_t1": DummySchema1,
+            "dummy_schema1_t1_safe": DummySchema1_Safe
+        }
+        schema._from_dict({
+            'dummy': {
+                'default': {},
+                'newdummy': {  # this has a different type than the default
+                    'string': {
+                        'type': 'str',
+                        'require': False,
+                        'scope': 'global',
+                        'lock': False,
+                        'switch': [],
+                        'shorthelp': None,
+                        'example': [],
+                        'help': None,
+                        'notes': None,
+                        'pernode': 'never',
+                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                                 'default': {'default': {'value': None, 'signature': None}}}
+                    },
+                    '__meta__': {
+                        'sctype': 'dummy_schema1_t1_safe',
+                        'class': 'dummy_schema1_t1'
+                    }
+                }
+            },
+            'base': {
+                'default': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'global',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+                'newbase': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'global',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            }
+        }, [], lazyload=LazyLoad.OFF)
+        children.assert_called_once()
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema1_Safe
+
+
+def test_from_dict_with_nofailure():
+    class DummySchema1(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema1_t2"
+
+    class DummySchema1_Safe(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema1_t2_safe"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", BaseSchema())
+    edit.insert("base", "default", Parameter("str"))
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "dummy_schema1_t2": DummySchema1,
+            "dummy_schema1_t2_safe": DummySchema1_Safe
+        }
+        schema._from_dict({
+            'dummy': {
+                'default': {},
+                'newdummy': {  # this has a different type than the default
+                    'string': {
+                        'type': 'str',
+                        'require': False,
+                        'scope': 'global',
+                        'lock': False,
+                        'switch': [],
+                        'shorthelp': None,
+                        'example': [],
+                        'help': None,
+                        'notes': None,
+                        'pernode': 'never',
+                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                                 'default': {'default': {'value': None, 'signature': None}}}
+                    },
+                    '__meta__': {
+                        'sctype': 'dummy_schema1_t2_safe',
+                        'class': 'dummy_schema1_t2'
+                    }
+                }
+            },
+            'base': {
+                'default': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'global',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+                'newbase': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'global',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            }
+        }, [], lazyload=LazyLoad.OFF)
+        children.assert_called_once()
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema1
