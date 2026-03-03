@@ -4134,7 +4134,7 @@ def test_from_dict_with_failure():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema1"
+            return "dummy_schema1_t0"
 
     class DummySchema1_Safe(BaseSchema):
         def __init__(self):
@@ -4144,7 +4144,7 @@ def test_from_dict_with_failure():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema1_safe"
+            return "dummy_schema1_t0_safe"
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -4156,8 +4156,8 @@ def test_from_dict_with_failure():
             load_schema_class:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "dummy_schema1": DummySchema1,
-            "dummy_schema1_safe": DummySchema1_Safe
+            "dummy_schema1_t0": DummySchema1,
+            "dummy_schema1_t0_safe": DummySchema1_Safe
         }
         schema._from_dict({
             'dummy': {
@@ -4178,8 +4178,8 @@ def test_from_dict_with_failure():
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
-                        'sctype': 'dummy_schema1_safe',
-                        'class': 'dummy_schema1'
+                        'sctype': 'dummy_schema1_t0_safe',
+                        'class': 'dummy_schema1_t0'
                     }
                 }
             },
@@ -4231,7 +4231,7 @@ def test_from_dict_with_failure_raise():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema1"
+            return "dummy_schema1_t1"
 
     class DummySchema1_Safe(BaseSchema):
         def __init__(self):
@@ -4241,7 +4241,7 @@ def test_from_dict_with_failure_raise():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema1_safe"
+            return "dummy_schema1_t1_safe"
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -4253,8 +4253,8 @@ def test_from_dict_with_failure_raise():
             load_schema_class:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "dummy_schema1": DummySchema1,
-            "dummy_schema1_safe": DummySchema1_Safe
+            "dummy_schema1_t1": DummySchema1,
+            "dummy_schema1_t1_safe": DummySchema1_Safe
         }
         schema._from_dict({
             'dummy': {
@@ -4275,8 +4275,8 @@ def test_from_dict_with_failure_raise():
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
-                        'sctype': 'dummy_schema1_safe',
-                        'class': 'dummy_schema1'
+                        'sctype': 'dummy_schema1_t1_safe',
+                        'class': 'dummy_schema1_t1'
                     }
                 }
             },
@@ -4326,7 +4326,7 @@ def test_from_dict_with_nofailure():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema1"
+            return "dummy_schema1_t2"
 
     class DummySchema1_Safe(BaseSchema):
         def __init__(self):
@@ -4336,7 +4336,7 @@ def test_from_dict_with_nofailure():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema1_safe"
+            return "dummy_schema1_t2_safe"
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -4348,8 +4348,8 @@ def test_from_dict_with_nofailure():
             load_schema_class:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "dummy_schema1": DummySchema1,
-            "dummy_schema1_safe": DummySchema1_Safe
+            "dummy_schema1_t2": DummySchema1,
+            "dummy_schema1_t2_safe": DummySchema1_Safe
         }
         schema._from_dict({
             'dummy': {
@@ -4370,8 +4370,8 @@ def test_from_dict_with_nofailure():
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
-                        'sctype': 'dummy_schema1_safe',
-                        'class': 'dummy_schema1'
+                        'sctype': 'dummy_schema1_t2_safe',
+                        'class': 'dummy_schema1_t2'
                     }
                 }
             },
