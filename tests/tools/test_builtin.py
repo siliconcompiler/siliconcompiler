@@ -933,7 +933,7 @@ def test_wait_serialize_tool_tasks_parallel_branches():
     assert flow.validate()
 
 
-def test_wait_serialize_tool_tasks_parallel_branches_Call_twice():
+def test_wait_serialize_tool_tasks_parallel_branches_call_twice():
     """Test serialization with parallel branches converging."""
     flow = Flowgraph("testflow")
 
@@ -981,7 +981,7 @@ def test_wait_serialize_tool_tasks_parallel_branches_Call_twice():
     assert flow.validate()
 
 
-def test_wait_serialize_tool_tasks_parallel_branches_Call_twice():
+def test_wait_serialize_tool_tasks_parallel_branches_call_twice_with_change():
     """Test serialization with parallel branches converging."""
     flow = Flowgraph("testflow")
 
