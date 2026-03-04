@@ -7,7 +7,7 @@ from typing import Optional
 if os.name == 'nt':
     # Windows setup
     import msvcrt
-    
+
     def check_key() -> Optional[str]:
         if msvcrt.kbhit():
             return msvcrt.getch().decode('utf-8', errors='ignore')
@@ -18,7 +18,7 @@ else:
     import select
     import tty
     import termios
-    
+
     def check_key() -> Optional[str]:
         if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
             return sys.stdin.read(1)
@@ -26,6 +26,8 @@ else:
 
 
 class Keyboard:
+    enabled: bool = False
+
     @staticmethod
     def start() -> None:
         """
@@ -33,7 +35,12 @@ class Keyboard:
         """
         if os.name != 'nt':
             # Save the terminal settings for later restoration
-            Keyboard.old_settings = termios.tcgetattr(sys.stdin)
+            try:
+                Keyboard.old_settings = termios.tcgetattr(sys.stdin)
+            except OSError:
+                # If stdin is not a terminal, we can't set it up for non-blocking input
+                return
+            Keyboard.enabled = True
             tty.setcbreak(sys.stdin.fileno())
 
     @staticmethod
@@ -41,6 +48,7 @@ class Keyboard:
         """
         Restore the terminal settings to their original state.
         """
+        Keyboard.enabled = False
         if os.name != 'nt' and hasattr(Keyboard, 'old_settings'):
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, Keyboard.old_settings)
 
@@ -50,4 +58,6 @@ class Keyboard:
         Check if a key has been pressed and return it.
         Returns None if no key is pressed.
         """
+        if not Keyboard.enabled:
+            return None
         return check_key()

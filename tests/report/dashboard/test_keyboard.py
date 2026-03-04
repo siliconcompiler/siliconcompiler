@@ -22,7 +22,8 @@ def test_check_key_pressed(monkeypatch):
         monkeypatch.setattr(keyboard_mod.msvcrt, 'getch', lambda: b'a')
         assert keyboard_mod.check_key() == 'a'
     else:
-        monkeypatch.setattr(keyboard_mod.select, 'select', lambda x, y, z, w=None: ([sys.stdin], [], []))
+        monkeypatch.setattr(keyboard_mod.select, 'select',
+                            lambda x, y, z, w=None: ([sys.stdin], [], []))
         monkeypatch.setattr(sys.stdin, 'read', lambda n: 'b')
         assert keyboard_mod.check_key() == 'b'
 
@@ -43,13 +44,31 @@ def test_keyboard_start_stop(monkeypatch):
         keyboard_mod.Keyboard.stop()
 
 
-def test_keyboard_check_key(monkeypatch):
+def test_keyboard_check_key_without_start(monkeypatch):
     # Should delegate to module-level check_key
+    if os.name == 'nt':
+        monkeypatch.setattr(keyboard_mod.msvcrt, 'kbhit', lambda: True)
+        monkeypatch.setattr(keyboard_mod.msvcrt, 'getch', lambda: b'x')
+        assert keyboard_mod.Keyboard.check_key() is None
+        assert keyboard_mod.Keyboard.enabled is False
+    else:
+        monkeypatch.setattr(keyboard_mod.select, 'select',
+                            lambda x, y, z, w=None: ([sys.stdin], [], []))
+        monkeypatch.setattr(sys.stdin, 'read', lambda n: 'y')
+        assert keyboard_mod.Keyboard.check_key() is None
+        assert keyboard_mod.Keyboard.enabled is False
+
+
+def test_keyboard_check_key_with_start(monkeypatch):
+    # Should delegate to module-level check_key
+    keyboard_mod.Keyboard.enabled = True
+
     if os.name == 'nt':
         monkeypatch.setattr(keyboard_mod.msvcrt, 'kbhit', lambda: True)
         monkeypatch.setattr(keyboard_mod.msvcrt, 'getch', lambda: b'x')
         assert keyboard_mod.Keyboard.check_key() == 'x'
     else:
-        monkeypatch.setattr(keyboard_mod.select, 'select', lambda x, y, z, w=None: ([sys.stdin], [], []))
+        monkeypatch.setattr(keyboard_mod.select, 'select',
+                            lambda x, y, z, w=None: ([sys.stdin], [], []))
         monkeypatch.setattr(sys.stdin, 'read', lambda n: 'y')
         assert keyboard_mod.Keyboard.check_key() == 'y'
