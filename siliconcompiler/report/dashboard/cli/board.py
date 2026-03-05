@@ -26,7 +26,7 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.units import format_time
-from .layout import Layout
+from siliconcompiler.report.dashboard.cli.layout import Layout
 
 
 class LogBuffer:
