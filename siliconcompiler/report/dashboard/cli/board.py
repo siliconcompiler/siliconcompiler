@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 import queue
@@ -9,7 +10,7 @@ import os.path
 
 from collections import deque
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, auto
 from typing import List, Dict
 
 from rich import box
@@ -20,6 +21,7 @@ from rich.progress import Progress, BarColumn, TextColumn, MofNCompleteColumn
 from rich.console import Console
 from rich.console import Group
 from rich.padding import Padding
+from rich.text import Text
 
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
@@ -27,6 +29,14 @@ from siliconcompiler.utils.paths import workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.units import format_time
 from siliconcompiler.report.dashboard.cli.layout import Layout
+from siliconcompiler.report.dashboard.cli.keyboard import Keyboard
+from siliconcompiler import _metadata
+
+
+class View(Enum):
+    NORMAL = auto()
+    HELP = auto()
+    DEBUG = auto()
 
 
 class LogBuffer:
@@ -326,11 +336,12 @@ class Board:
             return
 
         self._layout = Layout()
+        self.__view = View.NORMAL
 
-        if Board.__USE_ICONS:
-            self._layout.show_node_type = True
-        else:
-            Board._symbols.clear()
+        self.__symbols = copy.deepcopy(Board._symbols)
+
+        self.__use_icons = None
+        self.__handle_icons(Board.__USE_ICONS)
 
         self._render_event = manager.Event()
         self._render_stop_event = manager.Event()
@@ -352,10 +363,27 @@ class Board:
         # Sleep time for the dashboard
         self._dwell = 0.1
 
+        self.__pause = False
+
         if not self.__JOB_BOARD_HEADER:
             self._layout.padding_job_board_header = 0
 
         self._metrics = ("warnings", "errors")
+
+    def __handle_icons(self, value: bool):
+        if self.__use_icons is value:
+            return
+
+        self.__use_icons = value
+
+        self._layout.show_node_type = self.__use_icons
+
+        if self.__use_icons:
+            for key, value in Board._symbols.items():
+                self.__symbols[key].update(value)
+        else:
+            for sec in self.__symbols.values():
+                sec.clear()
 
     def make_log_hander(self) -> logging.Handler:
         """
@@ -364,7 +392,7 @@ class Board:
         Returns:
             logging.Handler: The log handler instance.
         """
-        return self._log_handler.make_handler(Board._symbols.get("logging", None))
+        return self._log_handler.make_handler(self.__symbols.get("logging", None))
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
@@ -379,6 +407,8 @@ class Board:
                     self._render_thread = threading.Thread(target=self._render, daemon=True)
                     self._render_event.clear()
                     self._render_stop_event.clear()
+
+                    Keyboard.start()
 
                     self._render_thread.start()
 
@@ -443,6 +473,8 @@ class Board:
 
         self._render_stop_event.set()
         self._render_event.set()
+
+        Keyboard.stop()
 
         # Wait for rendering to finish
         self.wait()
@@ -559,10 +591,10 @@ class Board:
         table.show_header = self.__JOB_BOARD_HEADER
 
         def get_column_header(title):
-            return Board._symbols.get("headers", {}).get(title, title.capitalize())
+            return self.__symbols.get("headers", {}).get(title, title.capitalize())
 
         def get_metrics_header(title):
-            return Board._symbols.get("metrics", {}).get(title, title.capitalize())
+            return self.__symbols.get("metrics", {}).get(title, title.capitalize())
 
         table.add_column(get_column_header("status"))
         if layout.show_node_type:
@@ -632,7 +664,7 @@ class Board:
                 *node["metrics"],
                 log_file]
             if layout.show_node_type:
-                node_symbol = Board._symbols.get("node", {}).get(node["type"], "")
+                node_symbol = self.__symbols.get("node", {}).get(node["type"], "")
                 row_data.insert(1, node_symbol)
             table_data.append(tuple(row_data))
 
@@ -748,11 +780,14 @@ class Board:
                     # Catch any multiprocessing errors
                     break
 
+                self._handle_keyboard()
+
                 if check_stop_event():
                     break
 
                 update_data()
-                self.live.update(self._get_rendable(), refresh=True)
+                if not self.__pause:
+                    self.live.update(self._get_rendable(), refresh=True)
                 time.sleep(self._dwell)
 
         finally:
@@ -761,6 +796,24 @@ class Board:
                 self.live.update(self._get_rendable(), refresh=True)
             else:
                 self._console.print(self._get_rendable())
+
+    def _handle_keyboard(self):
+        key = Keyboard.check_key()
+        if key is None:
+            return
+        if key.lower() == "h":
+            if self.__view == View.HELP:
+                self.__view = View.NORMAL
+            else:
+                self.__view = View.HELP
+        elif key.lower() == "i":
+            self.__handle_icons(not self.__use_icons)
+        elif key.lower() == "j":
+            self._layout.toggle_show_progress_bar()
+        elif key.lower() == "l":
+            self._layout.toggle_show_log()
+        elif key.lower() == "n":
+            self._layout.toggle_show_jobboard()
 
     def _update_layout(self) -> Layout:
         """
@@ -824,6 +877,38 @@ class Board:
                 [0, *[job.runtime for job in self._render_data.jobs.values()]]
             )
 
+    def _render_help(self, layout: Layout):
+        groups = []
+        banner_height = 7 + 1
+        authors_height = 1 + 1
+        table_height = 10  # 5 rows + header + padding
+
+        banner = Padding(Text(_metadata.banner), pad=(0, 0, 1, 0))
+        authors = Padding(Text(f"Authors: {', '.join(_metadata.authors)}", overflow="ellipsis", no_wrap=True), pad=(0, 0, 1, 0))
+
+        if layout.height >= banner_height + authors_height + table_height:
+            groups.append(banner)
+            groups.append(authors)
+        elif layout.height >= banner_height + table_height:
+            groups.append(banner)
+
+        table = Table(title="Dashboard Help")
+
+        table.add_column("Key", style="bold cyan")
+        table.add_column("Description")
+
+        for key, help in [
+                ("h", "Toggle showing this help information"),
+                ("j", "Toggle showing job details"),
+                ("n", "Toggle showing node details"),
+                ("l", "Toggle showing log details"),
+                ("i", "Toggle use of icons")]:
+            table.add_row(key, help)
+
+        groups.append(table)
+
+        return Group(*groups)
+
     def _get_rendable(self):
         """
         Assembles the final renderable object for the `rich.live` display.
@@ -837,19 +922,24 @@ class Board:
 
         layout = self._update_layout()
 
-        new_table = self._render_job_dashboard(layout)
-        new_bar = self._render_progress_bar(layout)
-        footer = self._render_log(layout)
+        if self.__view == View.HELP:
+            return self._render_help(layout)
 
         items = []
-        if new_table:
-            items.extend([new_table])
+        if layout.show_jobboard:
+            new_table = self._render_job_dashboard(layout)
+            if new_table:
+                items.append(new_table)
 
-        if new_bar:
-            items.extend([new_bar])
+        if layout.show_progress_bar:
+            new_bar = self._render_progress_bar(layout)
+            if new_bar:
+                items.append(new_bar)
 
-        if footer:
-            items.extend([footer])
+        if layout.show_log:
+            footer = self._render_log(layout)
+            if footer:
+                items.append(footer)
 
         return Group(*items)
 
