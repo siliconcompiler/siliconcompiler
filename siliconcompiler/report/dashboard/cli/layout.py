@@ -77,13 +77,12 @@ class Layout:
                 self.padding_job_board
 
         self.log_height = self._calc_log_height()
-        if self.log_height < 0:
-            self.log_height = 0
-        self.remaining_height -= self.log_height + self.padding_log
+        if self.log_height > 0:
+            self.remaining_height -= self.log_height + self.padding_log
 
     def toggle_show_log(self):
         """
-        Toggle the visibility of the log column in the job board.
+        Toggle the visibility of the log section.
         """
         self.show_log = not self.show_log
 
@@ -140,7 +139,7 @@ class Layout:
         # All remaining space goes to the log section minus log padding
         if not self.show_log:
             return 0
-        return self.remaining_height - self.padding_log
+        return max(self.remaining_height - self.padding_log, 0)
 
     def _set_minimal_layout(self):
         self.progress_bar_height = self.height - self.padding_progress_bar - 1

@@ -67,18 +67,6 @@ def test_layout_show_field_defaults():
     assert layout.show_progress_bar is True
 
 
-def test_layout_forced_negative_log_height(monkeypatch):
-    layout = Layout()
-
-    def _negative_log_height():
-        return -1
-
-    monkeypatch.setattr(layout, "_calc_log_height", _negative_log_height)
-    layout.update(height=10, width=120, visible_jobs=1, visible_bars=1)
-
-    assert layout.log_height == 0
-
-
 def test_layout_calculate_targets():
     layout = Layout()
     layout.height = 20
