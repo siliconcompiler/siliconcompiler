@@ -80,13 +80,13 @@ class Layout:
         if self.log_height < 0:
             self.log_height = 0
         self.remaining_height -= self.log_height + self.padding_log
-    
+
     def toggle_show_log(self):
         """
         Toggle the visibility of the log column in the job board.
         """
         self.show_log = not self.show_log
-    
+
     def toggle_show_progress_bar(self):
         """
         Toggle the visibility of the progress bar section.
