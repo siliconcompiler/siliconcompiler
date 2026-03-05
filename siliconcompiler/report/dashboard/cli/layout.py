@@ -65,7 +65,8 @@ class Layout:
 
         self.job_board_height = self._calc_job_board_height(target_jobs, visible_jobs)
         if self.job_board_height > 0:
-            self.remaining_height -= self.job_board_height + self.padding_job_board_header + self.padding_job_board
+            self.remaining_height -= self.job_board_height + self.padding_job_board_header + \
+                self.padding_job_board
 
         self.log_height = self._calc_log_height()
         if self.log_height < 0:
@@ -126,27 +127,3 @@ class Layout:
             target_jobs = visible_jobs
         target_jobs = int(math.ceil(target_jobs))
         return target_bars, target_jobs
-
-    def _calculate_progress_bar_height(self, target_bars, visible_bars, remaining_height):
-        progress_bar_height = max(min(target_bars, visible_bars), self.__progress_bar_height_default)
-        if progress_bar_height > 0:
-            remaining_height -= progress_bar_height + self.padding_progress_bar
-        return progress_bar_height, remaining_height
-
-    def _calculate_job_board_and_log_height(self, target_jobs, visible_jobs, remaining_height):
-        job_board_min_space = self.padding_job_board_header + self.padding_job_board
-        job_board_max_nodes = remaining_height // 2
-        jobs_to_show = min(min(target_jobs, visible_jobs), job_board_max_nodes)
-        if jobs_to_show > 0:
-            job_board_full_space = jobs_to_show + job_board_min_space
-        else:
-            job_board_full_space = 0
-
-        if remaining_height <= job_board_min_space:
-            return 0, 0
-        elif remaining_height <= job_board_full_space:
-            return remaining_height - job_board_min_space, 0
-        elif jobs_to_show == 0:
-            return 0, remaining_height
-        else:
-            return jobs_to_show, remaining_height - job_board_full_space - self.padding_log

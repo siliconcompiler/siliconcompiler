@@ -73,7 +73,8 @@ def test_layout_legacy_calculations():
         visible_bars=3,
         remaining_height=layout.height,
     )
-    assert progress_bar_height == max(min(target_bars, 3), layout._Layout__progress_bar_height_default)
+    assert progress_bar_height == max(min(target_bars, 3),
+                                      layout._Layout__progress_bar_height_default)
     assert remaining_height == layout.height - progress_bar_height - layout.padding_progress_bar
 
     job_board_height, log_height = layout._calculate_job_board_and_log_height(
