@@ -58,6 +58,15 @@ def test_layout_width_toggles_log_column():
     assert layout.job_board_show_log is False
 
 
+def test_layout_show_field_defaults():
+    layout = Layout()
+
+    assert layout.show_node_type is False
+    assert layout.show_jobboard is True
+    assert layout.show_log is True
+    assert layout.show_progress_bar is True
+
+
 def test_layout_forced_negative_log_height(monkeypatch):
     layout = Layout()
 
@@ -106,6 +115,121 @@ def test_layout_calc_log_height_with_padding():
     layout.remaining_height = 10
 
     assert layout._calc_log_height() == 8
+
+
+def test_layout_toggle_show_log_affects_height():
+    layout = Layout()
+    layout.remaining_height = 10
+
+    layout.toggle_show_log()
+
+    assert layout.show_log is False
+    assert layout._calc_log_height() == 0
+
+
+def test_layout_toggle_show_progress_bar_affects_height():
+    layout = Layout()
+
+    layout.toggle_show_progress_bar()
+
+    assert layout.show_progress_bar is False
+    assert layout._calc_progress_bar_height(5, 5) == 0
+
+
+def test_layout_toggle_show_jobboard_affects_height():
+    layout = Layout()
+    layout.remaining_height = 10
+
+    layout.toggle_show_jobboard()
+
+    assert layout.show_jobboard is False
+    assert layout._calc_job_board_height(5, 5) == 0
+
+
+def test_layout_update_with_hidden_progress_bar():
+    layout = Layout()
+    layout.toggle_show_progress_bar()
+
+    layout.update(height=12, width=130, visible_jobs=5, visible_bars=3)
+
+    assert layout.progress_bar_height == 0
+    assert layout.job_board_height > 0
+
+
+def test_layout_update_with_hidden_jobboard():
+    layout = Layout()
+    layout.toggle_show_jobboard()
+
+    layout.update(height=12, width=130, visible_jobs=5, visible_bars=3)
+
+    assert layout.job_board_height == 0
+    assert layout.progress_bar_height > 0
+
+
+def test_layout_update_with_hidden_log():
+    layout = Layout()
+    layout.toggle_show_log()
+
+    layout.update(height=12, width=130, visible_jobs=5, visible_bars=3)
+
+    assert layout.log_height == 0
+    assert layout.job_board_height > 0
+
+
+def test_layout_update_with_all_sections_hidden():
+    layout = Layout()
+    layout.toggle_show_progress_bar()
+    layout.toggle_show_jobboard()
+    layout.toggle_show_log()
+
+    layout.update(height=12, width=130, visible_jobs=5, visible_bars=3)
+
+    assert layout.progress_bar_height == 0
+    assert layout.job_board_height == 0
+    assert layout.log_height == 0
+
+
+def test_layout_update_with_log_and_jobboard_hidden():
+    layout = Layout()
+    layout.toggle_show_jobboard()
+    layout.toggle_show_log()
+
+    layout.update(height=12, width=130, visible_jobs=5, visible_bars=3)
+
+    assert layout.job_board_height == 0
+    assert layout.log_height == 0
+    assert layout.progress_bar_height > 0
+
+
+def test_layout_update_with_progress_and_log_hidden():
+    layout = Layout()
+    layout.toggle_show_progress_bar()
+    layout.toggle_show_log()
+
+    layout.update(height=12, width=130, visible_jobs=5, visible_bars=3)
+
+    assert layout.progress_bar_height == 0
+    assert layout.log_height == 0
+    assert layout.job_board_height > 0
+
+
+def test_layout_toggle_roundtrip_restores_defaults():
+    layout = Layout()
+    layout.toggle_show_progress_bar()
+    layout.toggle_show_jobboard()
+    layout.toggle_show_log()
+
+    layout.toggle_show_progress_bar()
+    layout.toggle_show_jobboard()
+    layout.toggle_show_log()
+
+    layout.update(height=12, width=130, visible_jobs=5, visible_bars=3)
+
+    assert layout.show_progress_bar is True
+    assert layout.show_jobboard is True
+    assert layout.show_log is True
+    assert layout.progress_bar_height > 0
+    assert layout.job_board_height > 0
 
 
 def test_layout_set_minimal_layout():
