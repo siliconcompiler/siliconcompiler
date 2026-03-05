@@ -27,6 +27,7 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.units import format_time
+from .layout import Layout
 
 
 class LogBuffer:
@@ -233,114 +234,6 @@ class NodeType(Enum):
     ENTRY = "entry"
     EXIT = "exit"
     OTHER = "other"
-
-
-@dataclass
-class Layout:
-    """
-    Manages the dynamic layout of the dashboard, calculating the height
-    of different sections based on terminal size and content.
-
-    Attributes:
-        height (int): The total height of the terminal.
-        width (int): The total width of the terminal.
-        log_height (int): The calculated height for the log display area.
-        job_board_height (int): The calculated height for the job status board.
-        progress_bar_height (int): The calculated height for the progress bar section.
-        job_board_show_log (bool): Flag to determine if the log file column is shown.
-        job_board_v_limit (int): Width threshold to switch to a more compact view.
-    """
-
-    height: int = 0
-    width: int = 0
-
-    log_height: int = 0
-    job_board_height: int = 0
-    progress_bar_height: int = 0
-
-    job_board_show_log: bool = True
-    job_board_v_limit: int = 120
-
-    __progress_bar_height_default = 1
-    padding_log = 2
-    padding_progress_bar: int = 1
-    padding_job_board: int = 1
-    padding_job_board_header: int = 1
-
-    show_node_type: bool = False
-
-    def update(self, height: int, width: int, visible_jobs: int, visible_bars: int):
-        """
-        Recalculates the layout dimensions based on the current terminal size and content.
-
-        This method implements the logic to intelligently allocate vertical space
-        to the progress bars, job board, and log view.
-
-        Args:
-            height (int): The current terminal height.
-            width (int): The current terminal width.
-            visible_jobs (int): The number of job nodes to be displayed.
-            visible_bars (int): The number of progress bars to be displayed.
-        """
-        self.height = height
-        self.width = width
-
-        if self.height < 3:
-            self.progress_bar_height = self.height - self.padding_progress_bar - 1
-            self.job_board_height = 0
-            self.log_height = 0
-
-        # target sizes
-        target_jobs = 0.25 * self.height
-        target_bars = 0.50 * self.height
-        # 25 % for log
-
-        # Adjust targets based on progress bars
-        if visible_bars < target_bars:
-            remainder = target_bars - visible_bars
-            target_bars = visible_bars
-            target_jobs += 0.75 * remainder
-        target_bars = int(math.ceil(target_bars))
-
-        # Adjust targets based on jobs
-        if visible_jobs < target_jobs:
-            target_jobs = visible_jobs
-        target_jobs = int(math.ceil(target_jobs))
-
-        remaining_height = self.height
-
-        # Allocate progress bar space (highest priority)
-        self.progress_bar_height = max(min(target_bars, visible_bars),
-                                       self.__progress_bar_height_default)
-        if self.progress_bar_height > 0:
-            remaining_height -= self.progress_bar_height + self.padding_progress_bar
-
-        # Calculate job board requirements
-        job_board_min_space = self.padding_job_board_header + self.padding_job_board
-        job_board_max_nodes = remaining_height // 2
-        visible_jobs = min(min(target_jobs, visible_jobs), job_board_max_nodes)
-        if visible_jobs > 0:
-            job_board_full_space = visible_jobs + job_board_min_space
-        else:
-            job_board_full_space = 0
-
-        # Allocate job board space (second priority)
-        if remaining_height <= job_board_min_space:
-            self.job_board_height = 0
-            self.log_height = 0
-        elif remaining_height <= job_board_full_space:
-            self.job_board_height = remaining_height - job_board_min_space
-            self.log_height = 0
-        elif visible_jobs == 0:
-            self.job_board_height = 0
-            self.log_height = remaining_height
-        else:
-            self.job_board_height = visible_jobs
-            self.log_height = remaining_height - job_board_full_space - self.padding_log
-        if self.log_height < 0:
-            self.log_height = 0
-
-        self.job_board_show_log = self.width >= self.job_board_v_limit
 
 
 class Board:
