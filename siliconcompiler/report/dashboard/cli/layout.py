@@ -52,13 +52,13 @@ class Layout:
         self.height = height
         self.width = width
 
+        # Decide whether to show the log column in the job board based on width
+        self.job_board_show_log = self.width >= self.job_board_v_limit
+
         # If terminal is extremely small, use minimal layout
         if self.height < 2:
             self._set_minimal_layout()
             return
-
-        # Decide whether to show the log column in the job board based on width
-        self.job_board_show_log = self.width >= self.job_board_v_limit
 
         # Target sizes are computed up front, then each section is sized independently.
         target_bars, target_jobs = self._calculate_targets(visible_bars, visible_jobs)
