@@ -18,7 +18,7 @@ def test_layout_extremely_small_height():
     layout = Layout()
     layout.update(height=1, width=80, visible_jobs=5, visible_bars=2)
 
-    assert layout.progress_bar_height == -1  # 1 - 1 - 1 = -1
+    assert layout.progress_bar_height == 0
     assert layout.job_board_height == 0
     assert layout.log_height == 0
 

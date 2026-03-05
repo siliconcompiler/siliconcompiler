@@ -117,6 +117,8 @@ class Layout:
 
     def _set_minimal_layout(self):
         self.progress_bar_height = self.height - self.padding_progress_bar - 1
+        if self.progress_bar_height < 0:
+            self.progress_bar_height = 0
         self.job_board_height = 0
         self.log_height = 0
 
