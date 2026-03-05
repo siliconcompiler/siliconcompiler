@@ -556,8 +556,14 @@ class Board:
 
         # Print final render to avoid losing it
         if self.live._screen:
-            self._console.print(self._get_rendable())
-        self._console.show_cursor()
+            try:
+                self._console.print(self._get_rendable())
+            except Exception:
+                pass
+        try:
+            self._console.show_cursor()
+        except Exception:
+            pass
 
     def wait(self):
         """Waits for the dashboard rendering thread to finish."""
