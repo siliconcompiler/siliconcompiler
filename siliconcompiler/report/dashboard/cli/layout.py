@@ -36,6 +36,9 @@ class Layout:
     padding_job_board_header: int = 1
 
     show_node_type: bool = False
+    show_jobboard: bool = True
+    show_log: bool = True
+    show_progress_bar: bool = True
 
     def update(self, height: int, width: int, visible_jobs: int, visible_bars: int):
         """
@@ -74,9 +77,26 @@ class Layout:
                 self.padding_job_board
 
         self.log_height = self._calc_log_height()
-        if self.log_height < 0:
-            self.log_height = 0
-        self.remaining_height -= self.log_height + self.padding_log
+        if self.log_height > 0:
+            self.remaining_height -= self.log_height + self.padding_log
+
+    def toggle_show_log(self):
+        """
+        Toggle the visibility of the log section.
+        """
+        self.show_log = not self.show_log
+
+    def toggle_show_progress_bar(self):
+        """
+        Toggle the visibility of the progress bar section.
+        """
+        self.show_progress_bar = not self.show_progress_bar
+
+    def toggle_show_jobboard(self):
+        """
+        Toggle the visibility of the job status board.
+        """
+        self.show_jobboard = not self.show_jobboard
 
     def _calc_progress_bar_height(self, target_bars, visible_bars):
         """
@@ -87,6 +107,8 @@ class Layout:
         - Never more than the target bars.
         """
         # Pick the minimum of target bars and visible bars, but at least 1
+        if not self.show_progress_bar:
+            return 0
         return max(min(target_bars, visible_bars), self.__progress_bar_height_default)
 
     def _calc_job_board_height(self, target_jobs, visible_jobs):
@@ -97,6 +119,8 @@ class Layout:
         - Never more than half the remaining_height (reserve space for log).
         - Returns 0 if not enough space for even the header/padding.
         """
+        if not self.show_jobboard:
+            return 0
         min_space = self.padding_job_board_header + self.padding_job_board
         # If not enough space for even the header/padding, skip job board
         if self.remaining_height <= min_space:
@@ -113,7 +137,9 @@ class Layout:
         - Never more than remaining_height (should be all that's left).
         """
         # All remaining space goes to the log section minus log padding
-        return self.remaining_height - self.padding_log
+        if not self.show_log:
+            return 0
+        return max(self.remaining_height - self.padding_log, 0)
 
     def _set_minimal_layout(self):
         self.progress_bar_height = self.height - self.padding_progress_bar - 1
