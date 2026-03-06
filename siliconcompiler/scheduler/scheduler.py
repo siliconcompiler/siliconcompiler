@@ -207,7 +207,7 @@ class Scheduler:
         self.__logfile = file_log
         self.__joblog_handler = logging.FileHandler(file_log)
         self.__joblog_handler.setFormatter(SCLoggerFormatter())
-        self.__logger.addHandler(self.__joblog_handler)
+        self.project.logger.addHandler(self.__joblog_handler)
 
     def run(self) -> None:
         """
@@ -295,7 +295,7 @@ class Scheduler:
             raise SCRuntimeError(str(e))
         finally:
             if self.__joblog_handler is not None:
-                self.__logger.removeHandler(self.__joblog_handler)
+                self.project.logger.removeHandler(self.__joblog_handler)
                 self.__joblog_handler.close()
                 self.__joblog_handler = logging.NullHandler()
 
