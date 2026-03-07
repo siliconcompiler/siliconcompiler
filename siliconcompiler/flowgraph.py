@@ -5,9 +5,9 @@ import logging
 
 import os.path
 
-from typing import Tuple, Union, Optional, List, Type, Set, TYPE_CHECKING
+from typing import Tuple, Union, Optional, List, Type, Set, Dict, TYPE_CHECKING
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema
+from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
@@ -1076,6 +1076,14 @@ class Flowgraph(NamedSchema, DocsSchema):
         docs.append(config)
 
         return docs
+
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
+        self.__clear_cache()
+        return super()._from_dict(manifest, keypath, version, lazyload)
 
 
 class RuntimeFlowgraph:
