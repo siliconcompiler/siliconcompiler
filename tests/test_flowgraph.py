@@ -1182,5 +1182,7 @@ def test_flowgraph_recovery():
 def test_flowgraph_recovery_cache_from_dict():
     base = DummyFlow(dummy=True)
     check = DummyFlow()
+    start_nodes = check.get_nodes()
     check._from_dict(base.getdict(), [], [])
+    assert check.get_nodes() != start_nodes
     assert check.get_nodes() == base.get_nodes()
