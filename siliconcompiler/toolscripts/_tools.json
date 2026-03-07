@@ -101,7 +101,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "v0.62",
+    "git-commit": "v0.63",
     "version-prefix": "",
     "auto-update": true
   },
@@ -151,7 +151,7 @@
   },
   "yosys-moosic": {
     "git-url": "https://github.com/gadfort/moosic-yosys-plugin.git",
-    "git-commit": "5dd1d8a60d0cc7228be856350bb90faad24dae9e",
+    "git-commit": "d45789c0f8698b9ed72313a51b06ad4865b4d0f1",
     "docker-depends": "yosys",
     "auto-update": true
   },
