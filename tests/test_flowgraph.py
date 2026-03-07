@@ -1177,3 +1177,10 @@ def test_flowgraph_recovery():
     base = DummyFlow(dummy=True)
     check = DummyFlow.from_manifest(cfg=base.getdict(), lazyload=False)
     assert base.getdict() == check.getdict()
+
+
+def test_flowgraph_recovery_cache_from_dict():
+    base = DummyFlow(dummy=True)
+    check = DummyFlow()
+    check._from_dict(base.getdict(), [], [])
+    assert check.get_nodes() == base.get_nodes()
