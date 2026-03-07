@@ -49,7 +49,7 @@ class PDK(ToolLibrarySchema):
         schema.insert(
             "pdk", 'node',
             Parameter(
-                'float',
+                'float<0.0->>',
                 scope=Scope.GLOBAL,
                 unit='nm',
                 shorthelp="PDK: process node",
@@ -116,7 +116,7 @@ class PDK(ToolLibrarySchema):
         schema.insert(
             "pdk", 'wafersize',
             Parameter(
-                'float',
+                'float<0.0->>',
                 scope=Scope.GLOBAL,
                 unit='mm',
                 shorthelp="PDK: wafer size",
@@ -133,7 +133,7 @@ class PDK(ToolLibrarySchema):
         schema.insert(
             "pdk", 'unitcost',
             Parameter(
-                'float',
+                'float<0.0->>',
                 scope=Scope.GLOBAL,
                 unit='USD',
                 shorthelp="PDK: unit cost",
@@ -147,7 +147,7 @@ class PDK(ToolLibrarySchema):
         schema.insert(
             "pdk", 'd0',
             Parameter(
-                'float',
+                'float<0.0->>',
                 scope=Scope.GLOBAL,
                 shorthelp="PDK: process defect density",
                 switch="-pdk_d0 'pdkname <float>'",
@@ -181,7 +181,7 @@ class PDK(ToolLibrarySchema):
         schema.insert(
             "pdk", 'edgemargin',
             Parameter(
-                'float',
+                'float<0.0->>',
                 scope=Scope.GLOBAL,
                 unit='mm',
                 shorthelp="PDK: wafer edge keep-out margin",
