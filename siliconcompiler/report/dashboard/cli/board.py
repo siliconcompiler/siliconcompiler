@@ -274,11 +274,15 @@ class Board:
         }
     )
     _symbols = {
-        "table": {
-            "warnings": "⚠️",
-            "errors": "🚫",
+        "headers": {
+            "status": "🚦",
+            "node": "🌐",
             "time": "⏳",
             "log": "📜",
+        },
+        "metrics": {
+            "warnings": "⚠️",
+            "errors": "🚫",
         },
         "logging": {
             logging.getLevelName(logging.DEBUG): "🐛",
@@ -555,7 +559,10 @@ class Board:
         table.show_header = self.__JOB_BOARD_HEADER
 
         def get_column_header(title):
-            return Board._symbols.get("table", {}).get(title, title.capitalize())
+            return Board._symbols.get("headers", {}).get(title, title.capitalize())
+
+        def get_metrics_header(title):
+            return Board._symbols.get("metrics", {}).get(title, title.capitalize())
 
         table.add_column(get_column_header("status"))
         if layout.show_node_type:
@@ -563,7 +570,7 @@ class Board:
         table.add_column(get_column_header("node"))
         table.add_column(get_column_header("time"), justify="right")
         for metric in self._metrics:
-            table.add_column(get_column_header(metric), justify="right")
+            table.add_column(get_metrics_header(metric), justify="right")
         if layout.job_board_show_log:
             table.add_column(get_column_header("log"))
 
