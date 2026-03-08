@@ -4,8 +4,6 @@ This module provides a GitHub-based resolver for SiliconCompiler packages.
 It defines the `GithubResolver` class, which is responsible for downloading
 release assets from public or private GitHub repositories.
 """
-import os
-
 from typing import Dict, Type, Optional, Tuple, TYPE_CHECKING
 
 from github import Github, Auth
@@ -54,6 +52,8 @@ class GithubResolver(HTTPResolver):
         """
         super().__init__(name, root, source, reference)
 
+        self.__url = None
+
         if len(self.gh_path) != 4:
             raise ValueError(
                 f"'{self.source}' is not in the proper form: "
@@ -98,6 +98,17 @@ class GithubResolver(HTTPResolver):
             self.logger.info("Could not find public release, trying private.")
             return self.__get_release_url(repository, release, artifact, private=True)
 
+    def _get_headers(self):
+        headers = super()._get_headers()
+
+        headers['Accept'] = 'application/octet-stream'
+        try:
+            headers['Authorization'] = f'token {self.__get_gh_token()}'
+        except ValueError:
+            pass
+
+        return headers
+
     def __get_release_url(self, repository: str, release: str, artifact: str, private: bool) -> str:
         """
         Uses the GitHub API to find the download URL for a specific release asset.
@@ -117,6 +128,9 @@ class GithubResolver(HTTPResolver):
         Raises:
             ValueError: If the specified release or asset cannot be found.
         """
+        if self.__url is not None:
+            return self.__url
+
         # Handle standard source code archive names
         if artifact == f"{release}.zip":
             return f"https://github.com/{repository}/archive/refs/tags/{release}.zip"
@@ -134,48 +148,13 @@ class GithubResolver(HTTPResolver):
         if repo_release:
             for asset in repo_release.assets:
                 if asset.name == artifact:
+                    self.__url = asset.url
                     return asset.url
 
         raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
 
-    def __get_gh_auth(self) -> str:
-        """
-        Searches for a GitHub authentication token in predefined environment variables.
-
-        The search order is:
-        1. GITHUB_<PACKAGE_NAME>_TOKEN
-        2. GITHUB_TOKEN
-        3. GIT_TOKEN
-
-        Returns:
-            str: The found token.
-
-        Raises:
-            ValueError: If no token can be found in the environment.
-        """
-        token_name = self.name.upper()
-        # Sanitize package name for environment variable compatibility
-        for char in ('#', '$', '&', '-', '=', '!', '/'):
-            token_name = token_name.replace(char, '')
-
-        search_env = (
-            f'GITHUB_{token_name}_TOKEN',
-            'GITHUB_TOKEN',
-            'GIT_TOKEN'
-        )
-
-        token = None
-        for env in search_env:
-            token = os.environ.get(env)
-            if token:
-                break
-
-        if not token:
-            raise ValueError('Unable to determine authorization token for GitHub. '
-                             'Please set one of the following environment variables: '
-                             f'{", ".join(search_env)}')
-
-        return token
+    def __get_gh_token(self) -> str:
+        return super()._get_auth_token(["GITHUB", "GH", "GIT"])
 
     def __gh(self, private: bool) -> Github:
         """
@@ -189,6 +168,6 @@ class GithubResolver(HTTPResolver):
             Github: An initialized PyGithub client instance.
         """
         if private:
-            return Github(auth=Auth.Token(self.__get_gh_auth()))
+            return Github(auth=Auth.Token(self.__get_gh_token()))
         else:
             return Github()

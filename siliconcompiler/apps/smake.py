@@ -13,10 +13,11 @@ Python without the need for complex boilerplate code.
 import argparse
 import sys
 import tempfile
+import types
 
 import os.path
 
-from typing import Union, Tuple, Optional, Dict
+from typing import Union, Tuple, Optional, Dict, get_args, get_origin
 
 from pathlib import Path
 
@@ -83,8 +84,32 @@ def __process_file(path: Union[Path, str], dir: str) -> Tuple[Dict, Optional[str
         func_spec = getfullargspec(func)
         func_args = {}
         for arg in func_spec.args:
+            func_args[arg] = {}
+
             arg_type = func_spec.annotations.get(arg, str)
-            func_args[arg] = {"type": arg_type}
+            typing_args = get_args(arg_type)
+            if typing_args:
+                origin = get_origin(arg_type)
+                is_union = origin is Union or origin is getattr(types, "UnionType", None)
+                is_none_default = False
+                if is_union and type(None) in typing_args:
+                    typing_args = [t for t in typing_args if t is not type(None)]
+                    is_none_default = True
+
+                if origin is list:
+                    func_args[arg]["action"] = "append"
+
+                if len(typing_args) == 1:
+                    arg_type = typing_args[0]
+                    if is_none_default:
+                        func_args[arg]["default"] = None
+
+            typing_args = get_args(arg_type)
+            if typing_args:
+                # Revert to string when we cannot determine the type
+                arg_type = str
+
+            func_args[arg]["type"] = arg_type
 
         if func_spec.defaults:
             for arg, defval in zip(reversed(func_spec.args), reversed(func_spec.defaults)):
@@ -225,11 +250,12 @@ To run a target with arguments, use:
                     add_args["required"] = True
                 else:
                     add_args["default"] = subarg_info["default"]
+                if "action" in subarg_info:
+                    add_args["action"] = subarg_info["action"]
 
                 # Handle boolean arguments correctly.
                 arg_type = subarg_info["type"]
                 if arg_type is bool:
-                    # Use a custom string-to-boolean converter.
                     def str2bool(v):
                         val = str(v).lower()
                         if val in ('y', 'yes', 't', 'true', 'on', '1'):
@@ -241,7 +267,7 @@ To run a target with arguments, use:
 
                 subparse.add_argument(
                     f'--{subarg}',
-                    dest=f'sub_{subarg}',
+                    dest=f'sub_{arg}_{subarg}',
                     metavar=f'<{subarg}>',
                     type=arg_type,
                     **add_args)
@@ -266,8 +292,8 @@ To run a target with arguments, use:
         call_args = {}
         args_vars = vars(args)
         for arg in make_args[target]["args"]:
-            arg_key = f'sub_{arg}'
-            if arg_key in args_vars and args_vars[arg_key] is not None:
+            arg_key = f'sub_{target}_{arg}'
+            if arg_key in args_vars:
                 call_args[arg] = args_vars[arg_key]
 
         # Call the selected function with its arguments.

@@ -243,24 +243,55 @@ def scale_binary(value: float, unit: Optional[str], digits: int = 3) -> Tuple[fl
     return (float(f'{value:.{digits}f}'), '')
 
 
-def format_time(value: float) -> str:
+def format_time(value: float, milliseconds_digits: int = 3) -> str:
     '''
     Format a number as time.
     Prints as hh:mm:ss.ms (hours:minutes:seconds.milliseconds)
 
     Args:
         value (float): number of seconds to convert
+        milliseconds_digits (int): number of digits to print for milliseconds
+                                   Defaults to 3.
     '''
     # Report as hh:mm::ss.ms
     value, milliseconds = divmod(value, 1)
     hours, value = divmod(value, 3600)
     minutes, seconds = divmod(value, 60)
-    milliseconds *= 1000
+
+    # Handle rounding with carry propagation
+    if milliseconds_digits <= 0:
+        # Round seconds + milliseconds and propagate carries
+        rounded_seconds = int(round(seconds + milliseconds))
+        if rounded_seconds == 60:
+            seconds = 0
+            minutes += 1
+            if minutes == 60:
+                minutes = 0
+                hours += 1
+        else:
+            seconds = rounded_seconds
+    else:
+        # Round milliseconds and propagate carries
+        ms_rounded = int(round(milliseconds * 10**milliseconds_digits))
+        if ms_rounded == 10**milliseconds_digits:
+            ms_rounded = 0
+            seconds += 1
+            if seconds == 60:
+                seconds = 0
+                minutes += 1
+                if minutes == 60:
+                    minutes = 0
+                    hours += 1
+        milliseconds = ms_rounded
+
     ftime = ''
     if hours > 0:
         ftime += f'{int(hours)}:'
-    if hours > 0 or minutes > 0:
+    if hours > 0:
         ftime += f'{int(minutes):02}:'
-    ftime += f'{int(seconds):02}.'
-    ftime += f'{int(milliseconds):03}'
+    else:
+        ftime += f'{int(minutes)}:'
+    ftime += f'{int(seconds):02}'
+    if milliseconds_digits > 0:
+        ftime += f'.{int(milliseconds):0{milliseconds_digits}}'
     return ftime

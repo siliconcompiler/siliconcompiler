@@ -405,7 +405,7 @@ class OpenROADTask(ASICTask):
         self.add_regex("warnings", r'^\[WARNING|^Warning')
         self.add_regex("errors", r'^\[ERROR')
 
-        if self.project.get('option', 'nodisplay'):
+        if self.project.option.get_nodisplay():
             # Tells QT to use the offscreen platform if nodisplay is used
             self.set_environmentalvariable("QT_QPA_PLATFORM", "offscreen")
 

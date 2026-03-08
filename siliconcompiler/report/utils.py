@@ -6,7 +6,7 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 def _find_summary_image(project, ext='png'):
     for nodes in reversed(project.get(
-            "flowgraph", project.get('option', 'flow'), field="schema").get_execution_order()):
+            "flowgraph", project.option.get_flow(), field="schema").get_execution_order()):
         for step, index in nodes:
             layout_img = project.find_result(ext, step=step, index=index)
             if layout_img:
@@ -16,21 +16,21 @@ def _find_summary_image(project, ext='png'):
 
 def _collect_data(project, flow=None, flowgraph_nodes=None, format_as_string=True):
     if not flow:
-        flow = project.get('option', 'flow')
+        flow = project.option.get_flow()
     if not flow:
         return [], {}, {}, {}, [], {}
 
     if not flowgraph_nodes:
         runtime = RuntimeFlowgraph(
-            project.get("flowgraph", flow, field='schema'),
-            from_steps=project.get('option', 'from'),
-            to_steps=project.get('option', 'to'),
-            prune_nodes=project.get('option', 'prune'))
+            project.get_flow(flow),
+            from_steps=project.option.get_from(),
+            to_steps=project.option.get_to(),
+            prune_nodes=project.option.get_prune())
 
         flowgraph_nodes = list(runtime.get_nodes())
         # only report tool based steps functions
         for (step, index) in list(flowgraph_nodes):
-            tool = project.get('flowgraph', flow, step, '0', 'tool')
+            tool = project.get_flow(flow).get_graph_node(step, "0").get_tool()
             if tool == 'builtin':
                 index = flowgraph_nodes.index((step, index))
                 del flowgraph_nodes[index]
@@ -47,7 +47,7 @@ def _collect_data(project, flow=None, flowgraph_nodes=None, format_as_string=Tru
     reports = {}
 
     # Build ordered list of nodes in flowgraph
-    for level_nodes in project.get("flowgraph", flow, field="schema").get_execution_order():
+    for level_nodes in project.get_flow(flow).get_execution_order():
         nodes.extend(sorted(level_nodes))
     nodes = [node for node in nodes if node in flowgraph_nodes]
     for (step, index) in nodes:
@@ -67,17 +67,16 @@ def _collect_data(project, flow=None, flowgraph_nodes=None, format_as_string=Tru
 
         show_metric = False
         for step, index in nodes:
-            if metric in project.getkeys('flowgraph', flow,
-                                         step, index, 'weight') and \
-               project.get('flowgraph', flow, step, index, 'weight', metric):
+            if metric in project.get_flow(flow).get_graph_node(step, index).getkeys('weight') and \
+               project.get_flow(flow).get_graph_node(step, index).get('weight', metric):
                 show_metric = True
 
             value = project.get('metric', metric, step=step, index=index)
             if value is not None:
                 show_metric = True
 
-            tool = project.get('flowgraph', flow, step, index, 'tool')
-            task = project.get('flowgraph', flow, step, index, 'task')
+            tool = project.get_flow(flow).get_graph_node(step, index).get_tool()
+            task = project.get_flow(flow).get_graph_node(step, index).get_task()
             rpts = project.get('tool', tool, 'task', task, 'report', metric,
                                step=step, index=index)
 
@@ -126,7 +125,7 @@ def _get_flowgraph_path(project, flow, nodes_to_execute, only_include_successful
     to_search = []
     # Start search with any successful leaf nodes.
     flowgraph_steps = list(map(lambda node: node[0], nodes_to_execute))
-    runtime = RuntimeFlowgraph(project.get("flowgraph", flow, field='schema'),
+    runtime = RuntimeFlowgraph(project.get_flow(flow),
                                from_steps=flowgraph_steps,
                                to_steps=flowgraph_steps)
     end_nodes = runtime.get_exit_nodes()

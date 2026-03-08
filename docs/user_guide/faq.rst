@@ -83,13 +83,13 @@ How do I...
 
     .. code-block:: python
 
-        project.set('option', 'builddir', <dirpath>)
+        project.option.set_builddir(<dirpath>)
 
 ... change the caching directory?
 
     .. code-block:: python
 
-        project.set('option', 'cachedir', <dirpath>)
+        project.option.set_cachedir(<dirpath>)
 
 ... use the setup json manifest file from a previous run?
 
@@ -101,28 +101,28 @@ How do I...
 
     .. code-block:: python
 
-       project.set('tool', <tool>, 'task', <task>, 'threads', <n>, step=<step>, index=<index>)
+       <task class>.find_task(project).set_threads(<n>, step=<step>, index=<index>)
 
 ... start a fresh run?
 
     .. code-block:: python
 
-       project.set('option', 'clean', True)
+       project.option.set_clean(True)
 
 ... start a fresh run and keep the old one?
 
     .. code-block:: python
 
-       project.set('option', 'clean', True)
-       project.set('option', 'jobincr', True)
+       project.option.set_clean(True)
+       project.option.set_jobincr(True)
 
 ... start a fresh run using the previous run information?
 
     .. code-block:: python
 
-       project.set('option', 'clean', True)
-       project.set('option', 'jobincr', True)
-       project.set('option', 'from', 'floorplan')
+       project.option.set_clean(True)
+       project.option.set_jobincr(True)
+       project.option.add_from('floorplan')
 
 ... register a new source of files?
 

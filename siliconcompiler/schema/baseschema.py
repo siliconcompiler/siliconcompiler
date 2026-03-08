@@ -174,7 +174,7 @@ class BaseSchema:
         return cls
 
     @staticmethod
-    def __process_meta_section(meta: Dict[str, str]) -> Optional[Type["BaseSchema"]]:
+    def __process_meta_section(meta: Dict[str, str]) -> List[Type["BaseSchema"]]:
         """
         Handle __meta__ section of the schema by loading the appropriate class
         """
@@ -182,14 +182,17 @@ class BaseSchema:
 
         # Lookup object, use class first, then type
         cls_name = meta.get("class", None)
-        cls = None
+        clss = []
         if cls_name:
             cls = cls_map.get(cls_name, None)
             if not cls:
                 cls = BaseSchema.__load_schema_class(cls_name)
-        if not cls:
-            cls = cls_map.get(meta.get("sctype", None), None)
-        return cls
+            if cls:
+                clss.append(cls)
+        sc_type = cls_map.get(meta.get("sctype", None), None)
+        if sc_type and sc_type not in clss:
+            clss.append(sc_type)
+        return clss
 
     @staticmethod
     def __extractversion(manifest: Dict) -> Optional[Tuple[int, ...]]:
@@ -255,19 +258,27 @@ class BaseSchema:
                     self.__default._from_dict(data, tuple([*keypath, "default"]), version=version)
                 handled.add("default")
 
+            # Remove preloaded information manifest
+            self.__manifest.clear()
+
         for key, data in manifest.items():
             data_keypath = tuple([*keypath, key])
             obj = self.__manifest.get(key, None)
             if not obj and isinstance(data, dict) and "__meta__" in data:
                 # Lookup object, use class first, then type
-                cls = BaseSchema.__process_meta_section(data["__meta__"])
-                if cls is BaseSchema and self.__default:
+                clss = BaseSchema.__process_meta_section(data["__meta__"])
+                if clss and clss[0] is BaseSchema and self.__default:
                     # Use default when BaseSchema is the class
                     obj = self.__default.copy(key=data_keypath)
                     self.__manifest[key] = obj
-                elif cls:
-                    # Create object and connect to schema
-                    obj = cls()
+                elif clss:
+                    for cls in clss:
+                        # Create object and connect to schema
+                        try:
+                            obj = cls()
+                            break
+                        except Exception:
+                            continue
                     obj.__parent = self
                     obj.__key = key
                     self.__manifest[key] = obj
@@ -310,13 +321,19 @@ class BaseSchema:
         if filepath:
             cfg = BaseSchema._read_manifest(filepath)
 
-        new_cls = None
+        new_clss = []
         if "__meta__" in cfg:
             # Determine correct class
-            new_cls = BaseSchema.__process_meta_section(cfg["__meta__"])
-        if new_cls:
-            schema = new_cls()
-        else:
+            new_clss = BaseSchema.__process_meta_section(cfg["__meta__"])
+        schema = None
+        for new_cls in new_clss:
+            try:
+                schema = new_cls()
+                break
+            except Exception:
+                pass
+
+        if schema is None:
             schema = cls()
 
         if lazyload:

@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "04da961e11aee2cf1991bbdde227b97cad2dc20c",
+    "git-commit": "e73dba36c0054e1df7d35291e3e684c344d74962",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -27,7 +27,7 @@
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "v5.0.1",
+    "git-commit": "v5.1.1",
     "auto-update": false
   },
   "magic": {
@@ -41,7 +41,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.30.6",
+    "version": "0.30.7",
     "git-url": "https://github.com/KLayout/klayout.git",
     "auto-update": true,
     "run-version": "source version.sh && echo $KLAYOUT_VERSION",
@@ -65,7 +65,7 @@
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
-    "git-commit": "v2024.03",
+    "git-commit": "2024.10",
     "auto-update": false,
     "docker-cmds": [
       "# Remove ORFS Stuff",
@@ -96,12 +96,12 @@
   },
   "icarus": {
     "git-url": "https://github.com/steveicarus/iverilog.git",
-    "git-commit": "01441687235135d1c12eeef920f75d97995da333",
+    "git-commit": "7786fb67c30faf197689b3bc3369c828e59c8ae7",
     "auto-update": false
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "v0.62",
+    "git-commit": "v0.63",
     "version-prefix": "",
     "auto-update": true
   },
@@ -134,7 +134,7 @@
     "docker-skip": true
   },
   "verible": {
-    "version": "v0.0-3303-gd87f2420",
+    "version": "v0.0-4051-g9fdb4057",
     "git-url": "https://github.com/chipsalliance/verible.git",
     "auto-update": false
   },
@@ -145,13 +145,13 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "744ed3b96eaa88dd2ef1fbbf5647f5740f3bb9b4",
+    "git-commit": "d82b0b163a725fc1a401fbb6b465cd862517ec1f",
     "docker-depends": "yosys",
     "auto-update": true
   },
   "yosys-moosic": {
     "git-url": "https://github.com/gadfort/moosic-yosys-plugin.git",
-    "git-commit": "5dd1d8a60d0cc7228be856350bb90faad24dae9e",
+    "git-commit": "fbe57eaae507f50e2504777b2438fa9eb451dab9",
     "docker-depends": "yosys",
     "auto-update": true
   },
@@ -168,7 +168,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "d647673f3b3960256069a79e8d92d36a3b89d9a4",
+    "git-commit": "405682c75dc8ca7edbc2ba94ebfe5bc5faaf0904",
     "auto-update": false
   }
 }

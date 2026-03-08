@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import pytest
 import re
 import shutil
@@ -96,6 +97,64 @@ def test_init(project):
     assert node.index == "0"
     assert node.name == "testdesign"
     assert node.topmodule == "top"
+    assert node.project is project
+    assert node.logger is project.logger
+    assert node.jobname == "job0"
+    assert node.is_replay is False
+    assert isinstance(node.task, Task)
+    assert node.jobworkdir == jobdir(project)
+    assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
+
+    # Check private fields
+    assert node._SchedulerNode__record_user_info is False
+    assert node._SchedulerNode__generate_test_case is True
+    assert node._SchedulerNode__hash is False
+    assert node._SchedulerNode__is_entry_node is True
+
+
+def test_init_no_topmodule(project):
+    project.design.set("fileset", "rtl", "topmodule", None)
+
+    node = SchedulerNode(project, "stepone", "0")
+
+    assert node.is_local is True
+    assert node.is_builtin is False
+    assert node.has_error is False
+    assert node.step == "stepone"
+    assert node.index == "0"
+    assert node.name == "testdesign"
+    assert node.topmodule == "testdesign"
+    assert node.project is project
+    assert node.logger is project.logger
+    assert node.jobname == "job0"
+    assert node.is_replay is False
+    assert isinstance(node.task, Task)
+    assert node.jobworkdir == jobdir(project)
+    assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
+
+    # Check private fields
+    assert node._SchedulerNode__record_user_info is False
+    assert node._SchedulerNode__generate_test_case is True
+    assert node._SchedulerNode__hash is False
+    assert node._SchedulerNode__is_entry_node is True
+
+
+def test_init_no_fileset(project):
+    project.set("option", "fileset", [])
+
+    node = SchedulerNode(project, "stepone", "0")
+
+    assert node.is_local is True
+    assert node.is_builtin is False
+    assert node.has_error is False
+    assert node.step == "stepone"
+    assert node.index == "0"
+    assert node.name == "testdesign"
+    assert node.topmodule == "testdesign"
     assert node.project is project
     assert node.logger is project.logger
     assert node.jobname == "job0"
@@ -526,6 +585,24 @@ def test_check_files_changed_timestamp(project):
                 node, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_timestamp_symlink(project):
+    now = time.time() - 1
+
+    os.symlink("testfile_dne.txt", "testfile.txt")
+
+    project.set("library", "testdesign", "fileset", "rtl", "file", "verilog", "testfile.txt")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,file,verilog\] "
+                                 r"\(file not found\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
+
+
 def test_check_files_changed_directory(project):
     os.makedirs("testdir", exist_ok=True)
 
@@ -540,6 +617,23 @@ def test_check_files_changed_directory(project):
     with node.runtime():
         node.check_files_changed(
             node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_directory_symlink(project):
+    now = time.time() - 1
+
+    os.symlink("testdir_dne", "testdir")
+
+    project.set("library", "testdesign", "fileset", "rtl", "idir", "testdir")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] \(file not found\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
 def test_check_files_changed_timestamp_directory(project):
@@ -670,6 +764,60 @@ def test_check_files_changed_hash_directory(project):
     with node.runtime(), node_other.runtime():
         with pytest.raises(SchedulerNodeReset,
                            match=r"^\[library,testdesign,fileset,rtl,idir\] \(file hash\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")])
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_hash_file_symlink(project):
+    now = time.time() - 1
+
+    with open("testfile.txt", "w") as f:
+        f.write("test")
+
+    project.set("option", "hash", True)
+    project.set("library", "testdesign", "fileset", "rtl", "file", "verilog", "testfile.txt")
+    other_project = project.copy()
+
+    project.hash_files("library", "testdesign", "fileset", "rtl", "file", "verilog")
+
+    os.unlink("testfile.txt")
+    os.symlink("testfile_dne.txt", "testfile.txt")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,file,verilog\] "
+                                 r"\(file not found\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node_other, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_hash_directory_symlink(project):
+    now = time.time() - 1
+
+    os.makedirs("testdir", exist_ok=True)
+
+    project.set("option", "hash", True)
+    project.set("library", "testdesign", "fileset", "rtl", "idir", "testdir")
+    other_project = project.copy()
+
+    project.hash_files("library", "testdesign", "fileset", "rtl", "idir")
+
+    os.rmdir("testdir")
+    os.symlink("testdir_dne", "testdir")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] \(file not found\) "
                                  r"in steptwo/0 has been modified from previous run$"):
             node.check_files_changed(
                 node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")])
@@ -1539,11 +1687,11 @@ def test_copy_from(project, monkeypatch, caplog, has_graphviz):
 
 def test_switch_node(project):
     node0 = SchedulerNode(project, "stepone", "0")
-    node1 = node0.switch_node("steptwo", "2")
+    node1 = node0.switch_node("steptwo", "0")
     assert node0.step == "stepone"
     assert node0.index == "0"
     assert node1.step == "steptwo"
-    assert node1.index == "2"
+    assert node1.index == "0"
     assert node0.project is node1.project
 
 
@@ -1876,9 +2024,15 @@ def test_generate_testcase_autoissue(project, monkeypatch, caplog):
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase:
+    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase, \
+            patch("lambdapdk.get_pdk_names") as get_pdk_names, \
+            patch("lambdapdk.get_lib_names") as get_lib_names:
+        get_pdk_names.return_value = ["testpdk"]
+        get_lib_names.return_value = ["testlib"]
         node._SchedulerNode__generate_testcase()
         testcase.assert_called_once()
+        get_pdk_names.assert_called_once()
+        get_lib_names.assert_called_once()
 
     assert caplog.text == ""
 
@@ -1893,8 +2047,14 @@ def test_generate_testcase_no_autoissue_no_manifest(project, monkeypatch, caplog
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase:
+    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase, \
+            patch("lambdapdk.get_pdk_names") as get_pdk_names, \
+            patch("lambdapdk.get_lib_names") as get_lib_names:
+        get_pdk_names.return_value = ["testpdk"]
+        get_lib_names.return_value = ["testlib"]
         node._SchedulerNode__generate_testcase()
+        get_pdk_names.assert_called_once()
+        get_lib_names.assert_called_once()
         testcase.assert_called_once()
 
     assert caplog.text == ""

@@ -58,7 +58,7 @@ def freepdk45_demo(
     scenario = project.constraint.timing.make_scenario("typical")
     scenario.add_libcorner(["typical", "generic"])
     scenario.set_pexcorner("typical")
-    scenario.add_check(["setup", "hold"])
+    scenario.add_check(["setup", "hold", "power"])
 
     # Set the delay model used for timing calculations. NLDM is a common standard.
     project.set_asic_delaymodel("nldm")

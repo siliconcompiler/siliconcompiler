@@ -14,7 +14,7 @@ def test_py_heartbeat():
     from heartbeat import heartbeat
     heartbeat.main()
 
-    assert os.path.exists('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds')
+    assert os.path.exists('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds.gz')
 
 
 def test_py_make_check():
@@ -43,14 +43,14 @@ def test_py_make_syn(pdk):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(450)
+@pytest.mark.timeout(600)
 @pytest.mark.parametrize("pdk", ("freepdk45", "asap7"))
 def test_py_make_asic(pdk):
     from heartbeat import make
     make.asic(pdk=pdk)
 
     assert os.path.isfile('build/heartbeat/job0/heartbeat.pkg.json')
-    assert os.path.exists('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds')
+    assert os.path.exists('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds.gz')
 
 
 @pytest.mark.eda
@@ -91,7 +91,7 @@ def test_py_make_fpga():
 def test_py_make_screenshot(monkeypatch):
     from heartbeat import make
     make.asic()
-    assert os.path.exists('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds')
+    assert os.path.exists('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds.gz')
 
     org_init = Project._init_run
 

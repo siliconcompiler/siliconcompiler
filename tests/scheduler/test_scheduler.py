@@ -14,7 +14,7 @@ from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SlurmSchedulerN
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
-from siliconcompiler.utils.paths import jobdir
+from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.tool import TaskExecutableNotReceived, TaskSkip, Task
 from siliconcompiler.utils.multiprocessing import MPManager
 
@@ -740,6 +740,46 @@ def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, monk
     assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
 
 
+def test_check_flowgraph_io_with_files_valid_input(basic_project_no_flow):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project_no_flow.set_flow(flow)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = NOPTask.find_task(basic_project_no_flow)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+
+
+def test_check_flowgraph_io_with_files_valid_input_from(basic_project_no_flow):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project_no_flow.set_flow(flow)
+
+    basic_project_no_flow.option.add_from("steptwo")
+
+    os.makedirs(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs'),
+                exist_ok=True)
+    with open(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs',
+                           'test.v'), 'w') as f:
+        f.write("test")
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = NOPTask.find_task(basic_project_no_flow)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+
+
 def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, monkeypatch, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask(), index=0)
@@ -925,6 +965,51 @@ def test_resume_value_changed(gcd_nop_project):
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
+
+
+@pytest.mark.timeout(60)
+def test_resume_value_changed_not_before_from(gcd_nop_project):
+    EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
+
+    assert gcd_nop_project.run()
+    run_copy = gcd_nop_project.copy()
+    time.sleep(1)  # delay to ensure timestamps differ
+
+    # Change require list
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
+                               step="steptwo", index="0")
+    assert gcd_nop_project.set("option", "testing", "thistest")
+    gcd_nop_project.logger.setLevel(logging.DEBUG)
+    gcd_nop_project.option.add_from("stepthree")
+    assert gcd_nop_project.run()
+
+    assert run_copy.history("job0").get("record", "endtime", step="steptwo", index="0") == \
+        gcd_nop_project.history("job0").get("record", "endtime", step="steptwo", index="0")
+
+    assert run_copy.history("job0").get("record", "endtime", step="stepthree", index="0") != \
+        gcd_nop_project.history("job0").get("record", "endtime", step="stepthree", index="0")
+
+    assert run_copy.history("job0").get("record", "endtime", step="stepfour", index="0") != \
+        gcd_nop_project.history("job0").get("record", "endtime", step="stepfour", index="0")
+
+    assert run_copy.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert run_copy.history("job0").get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.SUCCESS
+    assert run_copy.history("job0").get("record", "status", step="stepfour", index="0") == \
+        NodeStatus.SUCCESS
+
+    assert gcd_nop_project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
+        NodeStatus.SUCCESS
+
+    with open("build/gcd/job0/job.log", "r") as f:
+        log_text = f.read()
+        assert "steptwo/0 requires a rerun but is not in the current execution flow, skipping" \
+            in log_text
 
 
 def test_check_tool_requirements_local(gcd_nop_project, monkeypatch, caplog):

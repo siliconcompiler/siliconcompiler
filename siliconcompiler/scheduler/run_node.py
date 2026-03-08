@@ -100,10 +100,10 @@ def main():
     # Configure the project object based on command-line arguments.
     proj.set('arg', 'step', args.step)
     proj.set('arg', 'index', args.index)
-    proj.set('option', 'builddir', os.path.abspath(args.builddir))
+    proj.option.set_builddir(os.path.abspath(args.builddir))
 
     if args.cachedir:
-        proj.set('option', 'cachedir', os.path.abspath(args.cachedir))
+        proj.option.set_cachedir(os.path.abspath(args.cachedir))
 
     if args.remoteid:
         proj.set('record', 'remoteid', args.remoteid)
@@ -111,9 +111,8 @@ def main():
     # If running in a container/remote machine, we unset the scheduler to
     # prevent a recursive scheduling loop.
     if args.unset_scheduler:
-        for _, step, index in proj.get('option', 'scheduler', 'name',
-                                       field=None).getvalues():
-            proj.unset('option', 'scheduler', 'name', step=step, index=index)
+        for _, step, index in proj.option.scheduler.get('name', field=None).getvalues():
+            proj.option.scheduler.unset('name', step=step, index=index)
 
     # Pre-populate the package cache if a map is provided.
     if args.cachemap:

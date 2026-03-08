@@ -38,4 +38,4 @@ def test_py_make_asic(fileset, top):
     make.asic(fileset=fileset)
 
     assert os.path.isfile('build/picorv32/job0/picorv32.pkg.json')
-    assert os.path.isfile(f'build/picorv32/job0/write.gds/0/outputs/{top}.gds')
+    assert os.path.isfile(f'build/picorv32/job0/write.gds/0/outputs/{top}.gds.gz')

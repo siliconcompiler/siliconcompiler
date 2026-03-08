@@ -25,12 +25,12 @@ The default ``asicflow`` provides a great example of a typical optimization stra
 
     # For critical metrics, set a high weight and a strict goal of 0.
     if metric in ('errors', 'warnings', 'drvs', 'holdwns', 'setupwns', 'holdtns', 'setuptns'):
-        project.set('flowgraph', flow, step, index, 'weight', metric, 1.0)
-        project.set('flowgraph', flow, step, index, 'goal', metric, 0)
+        flow.get_graph_node(step, index).add_weight(metric, 1.0)
+        flow.get_graph_node(step, index).add_goal(metric, 0)
 
     # For "soft" optimization metrics, set a high weight but no specific goal.
     elif metric in ('cellarea', 'peakpower', 'standbypower'):
-        project.set('flowgraph', flow, step, index, 'weight', metric, 1.0)
+        flow.get_graph_node(step, index).add_weight(metric, 1.0)
 
 This configuration establishes:
 

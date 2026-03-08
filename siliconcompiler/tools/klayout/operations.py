@@ -160,8 +160,12 @@ class OperationsTask(KLayoutTask):
 
         default_stream = self.get("var", "stream")
 
-        self.add_input_file(ext=default_stream)
-        self.add_output_file(ext=default_stream)
+        if f"{self.design_topmodule}.{default_stream}.gz" in self.get_files_from_input_nodes():
+            self.add_input_file(ext=f"{default_stream}.gz")
+        else:
+            self.add_input_file(ext=default_stream)
+
+        self.add_output_file(ext=f"{default_stream}.gz")
 
         self.add_required_key("var", "operations")
         self.add_required_key("var", "stream")

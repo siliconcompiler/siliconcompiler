@@ -225,7 +225,7 @@ class SlurmSchedulerNode(SchedulerNode):
             self.__job_hash, self.step, self.index, "sh"))
 
         # Remove scheduler as this is now a local run
-        self.project.set('option', 'scheduler', 'name', None, step=self.step, index=self.index)
+        self.project.option.scheduler.set_name(None, step=self.step, index=self.index)
         self.project.write_manifest(cfg_file)
 
         # Allow user-defined compute node execution script if it already exists on the filesystem.

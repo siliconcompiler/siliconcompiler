@@ -31,4 +31,5 @@ if [ -z ${PREFIX} ]; then
     echo "Please add \"export PATH="/opt/verible/bin:\$PATH"\" to your .bashrc"
 fi
 
-$SUDO_INSTALL mv verible-$version/* $PREFIX
+$SUDO_INSTALL mkdir -p $PREFIX/bin
+$SUDO_INSTALL mv verible-$version/bin/* $PREFIX/bin/

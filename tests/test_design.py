@@ -1560,3 +1560,69 @@ def test_check_filepaths_fail(datadir):
     dut = Heartbeat()
 
     assert dut.check_filepaths() is False
+
+
+def test_fileset_recursion_runs_once():
+    class DummyDesign(Design):
+        def __init__(self, name):
+            super().__init__(name)
+            self.calls = []
+
+        def _assert_fileset(self, fileset):
+            pass
+
+        def get(self, *args, **kwargs):
+            if len(args) >= 3 and args[0] == "fileset" and args[2] == "depfileset":
+                return getattr(self, "_depfileset", [])
+            return []
+
+        def get_dep(self, dep):
+            return self._depmap[dep]
+
+        def add_depfileset(self, dep_obj, depfileset):
+            if not hasattr(self, "_depfileset"):
+                self._depfileset = []
+            if not hasattr(self, "_depmap"):
+                self._depmap = {}
+            self._depfileset.append((dep_obj.name, depfileset))
+            self._depmap[dep_obj.name] = dep_obj
+
+        def __get_fileset(self, filesets, alias, visited, mapping):
+            self.calls.append((self.name, filesets))
+            # Patch all dependencies to use DummyDesign's __get_fileset
+            for dep in getattr(self, "_depmap", {}).values():
+                dep.__class__.__get_fileset = DummyDesign.__get_fileset
+            return super()._Design__get_fileset(filesets, alias, visited, mapping)
+
+    # Patch Design.__get_fileset to track calls
+    call_log = []
+    orig_get_fileset = Design._Design__get_fileset
+
+    def tracking_get_fileset(self, filesets, alias, visited, mapping):
+        call_log.append(self.name)
+        return orig_get_fileset(self, filesets, alias, visited, mapping)
+    Design._Design__get_fileset = tracking_get_fileset
+
+    # Create a design hierarchy with duplicate dependency
+    a = DummyDesign("A")
+    b = DummyDesign("B")
+    c = DummyDesign("C")
+
+    a.add_depfileset(b, "fs_b")
+    a.add_depfileset(c, "fs_c")
+    b.add_depfileset(c, "fs_c")
+    b._depmap = {"C": c}
+    a._depmap = {"B": b, "C": c}
+
+    # Use public get_fileset to trigger recursion
+    result = a.get_fileset(["fs_b", "fs_c"])
+
+    # Each design should be visited only once
+    assert call_log.count("A") == 1, f"A was visited {call_log.count('A')} times, expected 1"
+    assert call_log.count("B") == 1, f"B was visited {call_log.count('B')} times, expected 1"
+    assert call_log.count("C") == 1, f"C was visited {call_log.count('C')} times, expected 1"
+    names = set(des.name for des, _ in result)
+    assert names == {"A", "B", "C"}
+
+    # Restore original method
+    Design._Design__get_fileset = orig_get_fileset

@@ -210,7 +210,7 @@ class SchedulerSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('name', value, step=step, index=index)
+        return self.set('name', value, step=step, index=index)
 
     def get_cores(self, step: Optional[str] = None, index: Optional[str] = None) -> int:
         """Gets the number of CPU cores required for the job.
@@ -232,7 +232,7 @@ class SchedulerSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('cores', value, step=step, index=index)
+        return self.set('cores', value, step=step, index=index)
 
     def get_memory(self, step: Optional[str] = None, index: Optional[str] = None) -> int:
         """Gets the memory required for the job in megabytes.
@@ -254,7 +254,7 @@ class SchedulerSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('memory', value, step=step, index=index)
+        return self.set('memory', value, step=step, index=index)
 
     def get_queue(self, step: Optional[str] = None, index: Optional[str] = None) -> str:
         """Gets the scheduler queue (or partition) for the job.
@@ -276,7 +276,7 @@ class SchedulerSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('queue', value, step=step, index=index)
+        return self.set('queue', value, step=step, index=index)
 
     def get_defer(self, step: Optional[str] = None, index: Optional[str] = None) -> str:
         """Gets the deferred start time for the job.
@@ -298,7 +298,7 @@ class SchedulerSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('defer', value, step=step, index=index)
+        return self.set('defer', value, step=step, index=index)
 
     def get_options(self, step: Optional[str] = None, index: Optional[str] = None) -> List[str]:
         """Gets the advanced pass-through options for the scheduler.
@@ -325,9 +325,9 @@ class SchedulerSchema(BaseSchema):
                 If False, appends to them. Defaults to False.
         """
         if clobber:
-            self.set('options', value, step=step, index=index)
+            return self.set('options', value, step=step, index=index)
         else:
-            self.add('options', value, step=step, index=index)
+            return self.add('options', value, step=step, index=index)
 
     def get_msgevent(self, step: Optional[str] = None, index: Optional[str] = None) -> List[str]:
         """Gets the event triggers for sending messages.
@@ -354,9 +354,9 @@ class SchedulerSchema(BaseSchema):
                 If False, appends to them. Defaults to False.
         """
         if clobber:
-            self.set('msgevent', value, step=step, index=index)
+            return self.set('msgevent', value, step=step, index=index)
         else:
-            self.add('msgevent', value, step=step, index=index)
+            return self.add('msgevent', value, step=step, index=index)
 
     def get_msgcontact(self, step: Optional[str] = None, index: Optional[str] = None) -> List[str]:
         """Gets the contact list for scheduler event messages.
@@ -383,9 +383,9 @@ class SchedulerSchema(BaseSchema):
                 If False, appends to it. Defaults to False.
         """
         if clobber:
-            self.set('msgcontact', value, step=step, index=index)
+            return self.set('msgcontact', value, step=step, index=index)
         else:
-            self.add('msgcontact', value, step=step, index=index)
+            return self.add('msgcontact', value, step=step, index=index)
 
     def get_maxnodes(self) -> int:
         """Gets the maximum number of concurrent nodes for a job.
@@ -401,7 +401,7 @@ class SchedulerSchema(BaseSchema):
         Args:
             value (int): The maximum number of nodes to set.
         """
-        self.set('maxnodes', value)
+        return self.set('maxnodes', value)
 
     def get_maxthreads(self) -> int:
         """Gets the maximum number of threads for each task in a job.
@@ -417,7 +417,7 @@ class SchedulerSchema(BaseSchema):
         Args:
             value (int): The maximum number of threads to set.
         """
-        self.set('maxthreads', value)
+        return self.set('maxthreads', value)
 
 
 class OptionSchema(BaseSchema):
@@ -940,7 +940,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (bool): The value to set for the remote flag.
         """
-        self.set('remote', value)
+        return self.set('remote', value)
 
     def get_credentials(self) -> str:
         """Gets the path to the user credentials file.
@@ -956,7 +956,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (str): The filepath to the credentials file.
         """
-        self.set('credentials', value)
+        return self.set('credentials', value)
 
     def get_cachedir(self) -> str:
         """Gets the path to the user cache directory.
@@ -972,7 +972,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (str): The filepath to the cache directory.
         """
-        self.set('cachedir', value)
+        return self.set('cachedir', value)
 
     def get_nice(self, step: Optional[str] = None, index: Optional[str] = None) -> int:
         """Gets the tool scheduling priority (nice level).
@@ -994,7 +994,7 @@ class OptionSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('nice', value, step=step, index=index)
+        return self.set('nice', value, step=step, index=index)
 
     def get_flow(self) -> str:
         """Gets the target flow name.
@@ -1010,7 +1010,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (str): The name of the flow to set.
         """
-        self.set('flow', value)
+        return self.set('flow', value)
 
     def get_optmode(self, step: Optional[str] = None, index: Optional[str] = None) -> int:
         """Gets the optimization mode.
@@ -1032,7 +1032,7 @@ class OptionSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('optmode', value, step=step, index=index)
+        return self.set('optmode', value, step=step, index=index)
 
     def get_builddir(self) -> str:
         """Gets the build directory path.
@@ -1048,7 +1048,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (str): The path to the build directory.
         """
-        self.set('builddir', value)
+        return self.set('builddir', value)
 
     def get_jobname(self) -> str:
         """Gets the job name.
@@ -1064,7 +1064,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (str): The name of the job.
         """
-        self.set('jobname', value)
+        return self.set('jobname', value)
 
     def get_from(self) -> List[str]:
         """Gets the list of starting steps for execution.
@@ -1083,9 +1083,9 @@ class OptionSchema(BaseSchema):
                 If False, appends to them. Defaults to False.
         """
         if clobber:
-            self.set('from', value)
+            return self.set('from', value)
         else:
-            self.add('from', value)
+            return self.add('from', value)
 
     def get_to(self) -> List[str]:
         """Gets the list of ending steps for execution.
@@ -1104,9 +1104,9 @@ class OptionSchema(BaseSchema):
                 If False, appends to them. Defaults to False.
         """
         if clobber:
-            self.set('to', value)
+            return self.set('to', value)
         else:
-            self.add('to', value)
+            return self.add('to', value)
 
     def get_prune(self) -> List[Tuple[str, str]]:
         """Gets the list of nodes to prune from the flowgraph.
@@ -1127,9 +1127,9 @@ class OptionSchema(BaseSchema):
                 If False, appends to them. Defaults to False.
         """
         if clobber:
-            self.set('prune', value)
+            return self.set('prune', value)
         else:
-            self.add('prune', value)
+            return self.add('prune', value)
 
     def get_breakpoint(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Checks if a breakpoint is set on a specific step.
@@ -1151,7 +1151,7 @@ class OptionSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('breakpoint', value, step=step, index=index)
+        return self.set('breakpoint', value, step=step, index=index)
 
     def get_clean(self) -> bool:
         """Gets the clean job flag.
@@ -1167,7 +1167,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (bool): The value to set for the clean flag.
         """
-        self.set('clean', value)
+        return self.set('clean', value)
 
     def get_hash(self) -> bool:
         """Gets the file hashing flag.
@@ -1183,7 +1183,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (bool): The value to set for the hash flag.
         """
-        self.set('hash', value)
+        return self.set('hash', value)
 
     def get_nodisplay(self) -> bool:
         """Gets the headless execution (no-display) flag.
@@ -1199,7 +1199,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (bool): The value to set for the no-display flag.
         """
-        self.set('nodisplay', value)
+        return self.set('nodisplay', value)
 
     def get_quiet(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Gets the quiet execution flag for a step.
@@ -1221,7 +1221,7 @@ class OptionSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('quiet', value, step=step, index=index)
+        return self.set('quiet', value, step=step, index=index)
 
     def get_jobincr(self) -> bool:
         """Gets the job name auto-increment flag.
@@ -1237,7 +1237,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (bool): The value for the job-increment flag.
         """
-        self.set('jobincr', value)
+        return self.set('jobincr', value)
 
     def get_novercheck(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Gets the version checking disable flag for a step.
@@ -1259,7 +1259,7 @@ class OptionSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('novercheck', value, step=step, index=index)
+        return self.set('novercheck', value, step=step, index=index)
 
     def get_track(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Gets the provenance tracking flag for a step.
@@ -1281,7 +1281,7 @@ class OptionSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('track', value, step=step, index=index)
+        return self.set('track', value, step=step, index=index)
 
     def get_continue(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Gets the continue-on-error flag for a step.
@@ -1303,7 +1303,7 @@ class OptionSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('continue', value, step=step, index=index)
+        return self.set('continue', value, step=step, index=index)
 
     def get_timeout(self, step: Optional[str] = None, index: Optional[str] = None) -> float:
         """Gets the timeout value for a step in seconds.
@@ -1325,7 +1325,7 @@ class OptionSchema(BaseSchema):
             step (str, optional): The flowgraph step. Defaults to None.
             index (str, optional): The flowgraph step index. Defaults to None.
         """
-        self.set('timeout', value, step=step, index=index)
+        return self.set('timeout', value, step=step, index=index)
 
     def get_env(self, key: str) -> str:
         """Gets an environment variable.
@@ -1345,7 +1345,7 @@ class OptionSchema(BaseSchema):
             key (str): The name of the environment variable.
             value (str): The value to set.
         """
-        self.set('env', key, value)
+        return self.set('env', key, value)
 
     def get_design(self) -> str:
         """Gets the top-level design library name.
@@ -1361,7 +1361,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (str): The name of the design.
         """
-        self.set('design', value)
+        return self.set('design', value)
 
     def get_alias(self) -> List[Tuple[str, str, str, str]]:
         """Gets the list of fileset aliases.
@@ -1383,9 +1383,9 @@ class OptionSchema(BaseSchema):
                 If False, appends to them. Defaults to False.
         """
         if clobber:
-            self.set('alias', value)
+            return self.set('alias', value)
         else:
-            self.add('alias', value)
+            return self.add('alias', value)
 
     def get_fileset(self) -> List[str]:
         """Gets the list of selected design filesets.
@@ -1404,9 +1404,9 @@ class OptionSchema(BaseSchema):
                 If False, appends to them. Defaults to False.
         """
         if clobber:
-            self.set('fileset', value)
+            return self.set('fileset', value)
         else:
-            self.add('fileset', value)
+            return self.add('fileset', value)
 
     def get_nodashboard(self) -> bool:
         """Gets the dashboard disable flag.
@@ -1422,7 +1422,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (bool): The value for the no-dashboard flag.
         """
-        self.set('nodashboard', value)
+        return self.set('nodashboard', value)
 
     def get_autoissue(self) -> bool:
         """Gets the autoissue flag.
@@ -1438,7 +1438,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (bool): The desired value for the autoissue flag.
         """
-        self.set('autoissue', value)
+        return self.set('autoissue', value)
 
     @property
     def scheduler(self) -> SchedulerSchema:

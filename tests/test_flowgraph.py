@@ -40,6 +40,16 @@ def large_flow():
     return flow
 
 
+class DummyFlow(Flowgraph):
+    def __init__(self, name: str = "dummy", dummy: bool = False):
+        super().__init__(name)
+
+        if dummy:
+            self.node("dummy", "siliconcompiler.tools.builtin.nop/NOPTask")
+        else:
+            self.node("notdummy", "siliconcompiler.tools.builtin.nop/NOPTask")
+
+
 def test_init():
     flow = Flowgraph("testflow")
     assert flow.name == "testflow"
@@ -676,11 +686,13 @@ def test_runtime_get_entry_nodes_jumbled_values(large_flow):
     all_steps = ["stepone", "joinone", "steptwo", "jointwo", "stepthree", "jointhree"]
     runtime = RuntimeFlowgraph(large_flow, from_steps=all_steps, to_steps=all_steps)
     assert runtime.get_entry_nodes() == (('stepone', '0'), ('stepone', '1'), ('stepone', '2'))
+    assert runtime.get_exit_nodes() == (('jointhree', '0'),)
 
 
 def test_runtime_get_exit_nodes_jumbled_values(large_flow):
     all_steps = ["stepone", "joinone", "steptwo", "jointwo", "stepthree", "jointhree"]
     runtime = RuntimeFlowgraph(large_flow, from_steps=all_steps, to_steps=all_steps)
+    assert runtime.get_entry_nodes() == (('stepone', '0'), ('stepone', '1'), ('stepone', '2'))
     assert runtime.get_exit_nodes() == (('jointhree', '0'),)
 
 
@@ -1051,8 +1063,7 @@ def test_runtime_validate_prune_path(large_flow, caplog):
         large_flow,
         prune_nodes=[("joinone", "0"), ("stepone", "2")], logger=logging.getLogger()) is False
 
-    assert "no path from stepone/0 to jointhree/0 in the testflow flowgraph" in caplog.text
-    assert "no path from stepone/1 to jointhree/0 in the testflow flowgraph" in caplog.text
+    assert "pruning removed all entry nodes for stepone in the testflow flowgraph" in caplog.text
 
 
 def test_runtime_validate_disjoint(caplog):
@@ -1067,6 +1078,35 @@ def test_runtime_validate_disjoint(caplog):
         to_steps=["steptwo"], logger=logging.getLogger()) is False
 
     assert "no path from stepone/0 to steptwo/0 in the testflow flowgraph" in caplog.text
+
+
+def test_runtime_validate_with_from():
+    flow = Flowgraph("testflow")
+
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask")
+    flow.node("steptwo", "siliconcompiler.tools.builtin.nop/NOPTask")
+    flow.node("stepthree", "siliconcompiler.tools.builtin.nop/NOPTask")
+    flow.node("stepfour", "siliconcompiler.tools.builtin.nop/NOPTask")
+    flow.node("leaf", "siliconcompiler.tools.builtin.nop/NOPTask", index=0)
+    flow.node("leaf", "siliconcompiler.tools.builtin.nop/NOPTask", index=1)
+    flow.node("leaf", "siliconcompiler.tools.builtin.nop/NOPTask", index=2)
+    flow.node("leaf", "siliconcompiler.tools.builtin.nop/NOPTask", index=3)
+    flow.edge("stepone", "leaf", head_index=0)
+    flow.edge("steptwo", "leaf", head_index=1)
+    flow.edge("stepthree", "leaf", head_index=2)
+    flow.edge("stepfour", "leaf", head_index=3)
+    flow.edge("stepone", "steptwo")
+    flow.edge("steptwo", "stepthree")
+    flow.edge("stepthree", "stepfour")
+
+    runtime = RuntimeFlowgraph(flow, from_steps=["stepthree"])
+    assert runtime.get_execution_order() == (
+        (('stepthree', '0'),),
+        (('leaf', '2'), ('stepfour', '0')),
+        (('leaf', '3'),)
+    )
+    assert runtime.get_entry_nodes() == (('stepthree', '0'),)
+    assert runtime.get_exit_nodes() == (('leaf', '2'), ('leaf', '3'))
 
 
 def test_get_task_module_invalid():
@@ -1131,3 +1171,18 @@ def test_get_task_module_invalid_type():
                        match=r"^Task module name is not correctly formatted as <full\.module\."
                              r"path>/<ClassName>: None$"):
         Flowgraph()._Flowgraph__get_task_module(None)
+
+
+def test_flowgraph_recovery():
+    base = DummyFlow(dummy=True)
+    check = DummyFlow.from_manifest(cfg=base.getdict(), lazyload=False)
+    assert base.getdict() == check.getdict()
+
+
+def test_flowgraph_recovery_cache_from_dict():
+    base = DummyFlow(dummy=True)
+    check = DummyFlow()
+    start_nodes = check.get_nodes()
+    check._from_dict(base.getdict(), [], [])
+    assert check.get_nodes() != start_nodes
+    assert check.get_nodes() == base.get_nodes()

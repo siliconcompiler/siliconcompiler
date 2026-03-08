@@ -395,24 +395,13 @@ class ASICTimingScenarioSchema(NamedSchema):
                    version: Optional[Tuple[int, ...]] = None,
                    lazyload: LazyLoad = LazyLoad.ON) \
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
-
-        sdcfileset = None
         if version and version < (0, 53, 0):
             sdcfileset = manifest.pop("sdcfileset", None)
+            if sdcfileset is not None:
+                self.sdcfilesets_0_53_0 = sdcfileset
             lazyload = LazyLoad.OFF
 
-        ret = super()._from_dict(manifest, keypath, version, lazyload)
-
-        if sdcfileset:
-            param = Parameter.from_dict(sdcfileset, keypath=(*keypath, "sdcfileset"),
-                                        version=version)
-            for value, step, index in param.getvalues():
-                if self.get_mode(step=step, index=index) is None:
-                    self.set_mode("_importcreated_", step=step, index=index)
-                for design, fileset in value:
-                    self.add_sdcfileset(design, fileset, step=step, index=index)
-
-        return ret
+        return super()._from_dict(manifest, keypath, version, lazyload)
 
 
 class ASICTimingConstraintSchema(BaseSchema):
@@ -730,7 +719,9 @@ class ASICTimingConstraintSchema(BaseSchema):
                    version: Optional[Tuple[int, ...]] = None,
                    lazyload: LazyLoad = LazyLoad.ON) \
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
+        is_pre_0_53_0 = False
         if version and version < (0, 53, 0):
+            is_pre_0_53_0 = True
             manifest.pop("__meta__", None)
             manifest = {
                 "scenario": manifest,
@@ -738,4 +729,20 @@ class ASICTimingConstraintSchema(BaseSchema):
             }
             lazyload = LazyLoad.OFF
 
-        return super()._from_dict(manifest, keypath, version, lazyload)
+        ret = super()._from_dict(manifest, keypath, version, lazyload)
+
+        if is_pre_0_53_0:
+            for scenario in self.get_scenario().values():
+                sdcfileset = getattr(scenario, "sdcfilesets_0_53_0", None)
+                if sdcfileset is None:
+                    continue
+                delattr(scenario, "sdcfilesets_0_53_0")
+                param = Parameter.from_dict(sdcfileset, keypath=(*keypath, scenario.name,
+                                                                 "sdcfileset"), version=version)
+                for value, step, index in param.getvalues():
+                    if scenario.get_mode(step=step, index=index) is None:
+                        scenario.set_mode("_importcreated_", step=step, index=index)
+                    for design, fileset in value:
+                        scenario.add_sdcfileset(design, fileset, step=step, index=index)
+
+        return ret

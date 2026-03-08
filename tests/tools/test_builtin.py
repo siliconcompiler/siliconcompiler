@@ -940,6 +940,104 @@ def test_wait_serialize_tool_tasks_parallel_branches():
     assert flow.validate()
 
 
+def test_wait_serialize_tool_tasks_parallel_branches_call_twice():
+    """Test serialization with parallel branches converging."""
+    flow = Flowgraph("testflow")
+
+    # Create parallel paths that both use the same tool
+    flow.node("start", NOPTask())
+    flow.node("place1", NOPTask(), index=0)
+    flow.node("place2", NOPTask(), index=0)
+    flow.node("join", JoinTask())
+
+    flow.edge("start", "place1")
+    flow.edge("start", "place2")
+    flow.edge("place1", "join")
+    flow.edge("place2", "join")
+
+    # Set place nodes to same tool
+    flow.set("place1", "0", "tool", "openroad")
+    flow.set("place2", "0", "tool", "openroad")
+
+    Wait.serialize_tool_tasks(flow, "openroad")
+    Wait.serialize_tool_tasks(flow, "openroad")
+
+    # Verify wait node was added (place1 and place2 are parallel)
+    nodes = flow.get_nodes()
+    wait_nodes = [n for n in nodes if "wait" in n[0]]
+    assert len(wait_nodes) == 1
+    assert ("place2.wait", "0") in nodes
+
+    # Verify execution order enforces serialization
+    assert flow.get_execution_order() == (
+        (('start', '0'),),
+        (('place1', '0'),),
+        (('place2.wait', '0'),),
+        (('place2', '0'),),
+        (('join', '0'),))
+
+    # Verify edges: place1 -> wait -> place2
+    wait_inputs = flow.get("place2.wait", "0", "input")
+    assert ("place1", "0") in wait_inputs
+
+    place2_inputs = flow.get("place2", "0", "input")
+    assert ("place2.wait", "0") in place2_inputs
+    assert ("start", "0") in place2_inputs  # Original edge preserved
+
+    # Graph should still be valid
+    assert flow.validate()
+
+
+def test_wait_serialize_tool_tasks_parallel_branches_call_twice_with_change():
+    """Test serialization with parallel branches converging."""
+    flow = Flowgraph("testflow")
+
+    # Create parallel paths that both use the same tool
+    flow.node("start", NOPTask())
+    flow.node("place1", NOPTask(), index=0)
+    flow.node("place2", NOPTask(), index=0)
+    flow.node("join", JoinTask())
+
+    flow.edge("start", "place1")
+    flow.edge("start", "place2")
+    flow.edge("place1", "join")
+    flow.edge("place2", "join")
+
+    # Set place nodes to same tool
+    flow.set("place1", "0", "tool", "openroad")
+    flow.set("place2", "0", "tool", "openroad")
+
+    Wait.serialize_tool_tasks(flow, "openroad")
+
+    # Verify execution order enforces serialization
+    assert flow.get_execution_order() == (
+        (('start', '0'),),
+        (('place1', '0'),),
+        (('place2.wait', '0'),),
+        (('place2', '0'),),
+        (('join', '0'),))
+
+    # Add new node
+    flow.node("place3", NOPTask(), index=0)
+    flow.edge("start", "place3")
+    flow.edge("place3", "join")
+    flow.set("place3", "0", "tool", "openroad")
+    Wait.serialize_tool_tasks(flow, "openroad")
+
+    # Verify execution order enforces serialization
+    assert flow.get_execution_order() == (
+        (('start', '0'),),
+        (('place1', '0'),),
+        (('place3.wait', '0'),),
+        (('place3', '0'),),
+        (('place2.wait', '0'),),
+        (('place2', '0'),),
+        (('join', '0'),))
+
+    # Graph should still be valid
+    assert flow.validate()
+
+
 def test_wait_serialize_tool_tasks_complex_diamond():
     """Test serialization with a complex diamond graph."""
     flow = Flowgraph("testflow")

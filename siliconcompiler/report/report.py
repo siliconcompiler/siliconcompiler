@@ -50,10 +50,10 @@ def get_flowgraph_nodes(project, step, index):
     '''
     nodes = {}
 
-    flow = project.get('option', 'flow')
+    flow = project.get_flow()
 
-    tool = project.get('flowgraph', flow, step, index, 'tool')
-    task = project.get('flowgraph', flow, step, index, 'task')
+    tool = flow.get_graph_node(step, index).get_tool()
+    task = flow.get_graph_node(step, index).get_task()
 
     if tool is not None:
         nodes['tool'] = tool
@@ -88,11 +88,10 @@ def get_flowgraph_edges(project):
         Returns dictionary where the values of the keys are the edges.
     '''
     flowgraph_edges = {}
-    flow = project.get('option', 'flow')
-    for step in project.getkeys('flowgraph', flow):
-        for index in project.getkeys('flowgraph', flow, step):
+    for step in project.get_flow().getkeys():
+        for index in project.get_flow().getkeys(step):
             flowgraph_edges[step, index] = set()
-            for in_step, in_index in project.get('flowgraph', flow, step, index, 'input'):
+            for in_step, in_index in project.get_flow().get_graph_node(step, index).get_input():
                 flowgraph_edges[step, index].add((in_step, in_index))
     return flowgraph_edges
 
@@ -206,12 +205,12 @@ def get_flowgraph_path(project):
         >>> get_flowgraph_path(project)
         Returns the "winning" path for that job.
     '''
-    flow = project.get('option', 'flow')
+    flow = project.option.get_flow()
     runtime = RuntimeFlowgraph(
-        project.get("flowgraph", flow, field='schema'),
-        from_steps=project.get('option', 'from'),
-        to_steps=project.get('option', 'to'),
-        prune_nodes=project.get('option', 'prune'))
+        project.get_flow(),
+        from_steps=project.option.get_from(),
+        to_steps=project.option.get_to(),
+        prune_nodes=project.option.get_prune())
     return utils._get_flowgraph_path(project, flow, runtime.get_nodes())
 
 
@@ -323,10 +322,10 @@ def get_metrics_source(project, step, index):
     file_to_metric = {}
     metric_primary_source = {}
 
-    flow = project.get('option', 'flow')
+    flow = project.get_flow()
 
-    tool = project.get('flowgraph', flow, step, index, 'tool')
-    task = project.get('flowgraph', flow, step, index, 'task')
+    tool = flow.get_graph_node(step, index).get_tool()
+    task = flow.get_graph_node(step, index).get_task()
 
     if not project.valid('tool', tool, 'task', task, 'report'):
         return metric_primary_source, file_to_metric

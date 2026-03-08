@@ -309,11 +309,17 @@ puts "$PREFIX logicdepth"
 puts [sc_count_logic_depth]
 
 puts "$PREFIX power"
-foreach corner [sta::corners] {
-    set corner_name [$corner name]
-    puts "Power for corner: $corner_name"
-    report_power -corner $corner_name > reports/power.${corner_name}.rpt
-    sc_display_report reports/power.${corner_name}.rpt
+foreach scene $sc_scenarios {
+    if {
+        ![sc_is_scene_enabled $scene power] &&
+        ![sc_is_scene_enabled $scene leakagepower] &&
+        ![sc_is_scene_enabled $scene dynamicpower]
+    } {
+        continue
+    }
+    puts "Power for scene: $scene"
+    report_power -corner $scene > reports/power.${scene}.rpt
+    sc_display_report reports/power.${scene}.rpt
 }
 
 puts "$PREFIX cells"

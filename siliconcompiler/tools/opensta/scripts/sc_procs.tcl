@@ -14,11 +14,6 @@ proc sc_count_logic_depth { } {
         if { [$pin is_driver] } {
             incr count
         }
-        set vertex [lindex [$pin vertices] 0]
-        # Stop at clock vertex
-        if { [$vertex is_clock] } {
-            break
-        }
     }
     # Subtract 1 to account for initial launch
     return [expr { $count - 1 }]
@@ -59,4 +54,17 @@ proc sc_path_group { args } {
         return
     }
     group_path -name $keys(-name) -from $keys(-from) -to $keys(-to)
+}
+
+proc sc_is_scene_enabled { scene check } {
+    global opensta_timing_mode
+    if { $opensta_timing_mode == "asic" } {
+        if { [lsearch -exact [sc_cfg_get constraint timing scenario $scene check] $check] != -1 } {
+            return true
+        } else {
+            return false
+        }
+    } else {
+        return true
+    }
 }

@@ -234,7 +234,7 @@ def test_github_resolver_get_gh_auth_package_token(monkeypatch):
 
     resolver = GithubResolver("mypackage", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
-    token = resolver._GithubResolver__get_gh_auth()
+    token = resolver._GithubResolver__get_gh_token()
     assert token == "token_pkg"
 
 
@@ -244,7 +244,7 @@ def test_github_resolver_get_gh_auth_github_token(monkeypatch):
     monkeypatch.setenv("GITHUB_TOKEN", "token_github")
 
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
-    token = resolver._GithubResolver__get_gh_auth()
+    token = resolver._GithubResolver__get_gh_token()
     assert token == "token_github"
 
 
@@ -255,7 +255,7 @@ def test_github_resolver_get_gh_auth_git_token(monkeypatch):
     monkeypatch.setenv("GIT_TOKEN", "token_git")
 
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
-    token = resolver._GithubResolver__get_gh_auth()
+    token = resolver._GithubResolver__get_gh_token()
     assert token == "token_git"
 
 
@@ -268,7 +268,7 @@ def test_github_resolver_get_gh_auth_not_found(monkeypatch):
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
     with pytest.raises(ValueError, match="authorization token"):
-        resolver._GithubResolver__get_gh_auth()
+        resolver._GithubResolver__get_gh_token()
 
 
 def test_github_resolver_gh_unauthenticated():
@@ -321,3 +321,103 @@ def test_github_resolver_download_url_fallback_to_private(monkeypatch):
         mock_gh_method.side_effect = gh_side_effect
         url = resolver.download_url
         assert "asset.tar.gz" in url
+
+
+# ============================================================================
+# New tests for GithubResolver headers and URL caching
+# ============================================================================
+def test_github_resolver_get_headers(monkeypatch):
+    """Test _get_headers returns correct headers for GitHub download."""
+    monkeypatch.setenv("GITHUB_TOKEN", "test_token")
+    # Use source archive to avoid API call
+    resolver = GithubResolver("test", None, "github://owner/repo/v1.0/v1.0.tar.gz", "v1.0")
+    headers = resolver._get_headers()
+    assert headers["Accept"] == "application/octet-stream"
+    assert headers["Authorization"] == "token test_token"
+
+
+def test_github_resolver_get_headers_no_token(monkeypatch):
+    """Test _get_headers returns Accept header and skips Authorization if no token."""
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+    # Use source archive to avoid API call
+    resolver = GithubResolver("test", None, "github://owner/repo/v1.0/v1.0.tar.gz", "v1.0")
+    headers = resolver._get_headers()
+    assert headers["Accept"] == "application/octet-stream"
+    assert "Authorization" not in headers
+
+
+def test_github_resolver_get_headers_inherits_parent(monkeypatch):
+    """Test _get_headers calls parent class and adds GitHub-specific headers."""
+    monkeypatch.setenv("GIT_TOKEN", "parent_token")
+    monkeypatch.setenv("GITHUB_TOKEN", "github_token")
+    # Use source archive to avoid API call
+    resolver = GithubResolver("test", None, "github://owner/repo/v1.0/v1.0.tar.gz", "v1.0")
+
+    # The GithubResolver should override Authorization from parent with GitHub token
+    headers = resolver._get_headers()
+    assert headers["Accept"] == "application/octet-stream"
+    assert headers["Authorization"] == "token github_token"
+
+
+def test_github_resolver_url_caching(monkeypatch):
+    """Test GithubResolver caches the URL after first lookup."""
+    resolver = GithubResolver("test", None, "github://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_gh = MagicMock()
+    mock_repo = MagicMock()
+    mock_asset = MagicMock()
+    mock_asset.name = "asset.tar.gz"
+    mock_asset.url = "https://github.com/owner/repo/releases/download/v1.0/asset.tar.gz"
+    mock_release = MagicMock()
+    mock_release.assets = [mock_asset]
+    mock_repo.get_release.return_value = mock_release
+    mock_gh.get_repo.return_value = mock_repo
+
+    with patch.object(resolver, "_GithubResolver__gh", return_value=mock_gh):
+        url1 = resolver.download_url
+        # __url should now be cached
+        assert resolver._GithubResolver__url == url1
+        # Second call should return cached URL, not call API again
+        url2 = resolver.download_url
+        assert url1 == url2
+        # Verify GitHub API was only called once (cached on second call)
+        assert mock_gh.get_repo.call_count == 1
+
+
+def test_github_resolver_url_caching_with_source_archive():
+    """Test URL caching for source archives that don't hit API."""
+    resolver = GithubResolver("test", None, "github://owner/repo/v1.0/v1.0.tar.gz", "v1.0")
+
+    # Source archives have direct URLs, no API call needed
+    url1 = resolver.download_url
+    url2 = resolver.download_url
+    assert url1 == url2
+    assert "archive/refs/tags/v1.0.tar.gz" in url1
+
+
+def test_github_resolver_get_gh_auth_sanitize_package_name(monkeypatch):
+    """Test __get_gh_auth sanitizes special characters in package name."""
+    # Package name with special characters that need sanitization
+    # "my-package#1.0" becomes "MYPACKAGE10" after sanitization
+    monkeypatch.setenv("GITHUB_MYPACKAGE10_TOKEN", "pkg_token")
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("my-package#1.0", None,
+                              "github://owner/repo/v1.0/v1.0.tar.gz", "v1.0")
+    token = resolver._GithubResolver__get_gh_token()
+    assert token == "pkg_token"
+
+
+def test_github_resolver_get_gh_auth_multiple_special_chars(monkeypatch):
+    """Test __get_gh_auth handles multiple special characters."""
+    # Test sanitization of #, $, &, -, =, !, /
+    monkeypatch.setenv("GITHUB_TESTPKG_TOKEN", "special_token")
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test-pkg#$&=!/", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+    token = resolver._GithubResolver__get_gh_token()
+    assert token == "special_token"

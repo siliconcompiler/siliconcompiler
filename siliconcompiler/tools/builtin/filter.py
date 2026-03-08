@@ -52,7 +52,7 @@ class FilterTask(Task):
 
         self.set_threads(1)
 
-        flow = self.project.get("flowgraph", self.project.option.get_flow(), field="schema")
+        flow = self.project.get_flow()
         graph_node = flow.get_graph_node(self.step, self.index)
 
         if self.get("var", "keep"):

@@ -19,7 +19,7 @@ def main():
         switchlist=['-jobname'],
         use_cfg=True, use_sources=False)
 
-    if not proj.get('option', 'design'):
+    if not proj.option.get_design():
         return 1
 
     # Print Job Summary

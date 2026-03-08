@@ -7,62 +7,116 @@ from siliconcompiler.utils.units import \
     format_si, format_time
 
 
-def test_binary():
-    value = 1.5
-    value_scaled = value * 1024 * 1024 * 1024
-    assert units.format_binary(value_scaled, 'B') == "1.500G"
-    assert units.format_binary(value_scaled, 'B', digits=1) == "1.5G"
-
-    assert units.format_binary(value, 'GB', digits=3) == "1.500"
-    assert units.format_binary(value, 'GB', digits=1) == "1.5"
+@pytest.mark.parametrize("value,unit,expect", [
+    (1.5 * 1024 * 1024 * 1024, "B", "1.500G"),
+])
+def test_binary_default_digits(value, unit, expect):
+    assert units.format_binary(value, unit) == expect
 
 
-def test_time():
-    sec = 6 * 3600 + 35 * 60 + 20 + 0.04
-    assert units.format_time(sec) == '6:35:20.040'
-    sec = 36 * 3600 + 35 * 60 + 20 + 0.04
-    assert units.format_time(sec) == '36:35:20.040'
-    sec = 35 * 60 + 20 + 0.05
-    assert units.format_time(sec) == '35:20.050'
-    sec = 20 + 0.05
-    assert units.format_time(sec) == '20.050'
+@pytest.mark.parametrize("value,unit,digits,expect", [
+    (1.5 * 1024 * 1024 * 1024, "B", 1, "1.5G"),
+    (1.5, "GB", 3, "1.500"),
+    (1.5, "GB", 1, "1.5"),
+])
+def test_binary_with_digits(value, unit, digits, expect):
+    assert units.format_binary(value, unit, digits=digits) == expect
 
 
-def test_si():
-    value = 1e5
-    assert units.format_si(value, 'Hz') == '100.000k'
-    assert units.format_si(value, 'Hz', digits=0) == '100k'
-    assert units.format_si(value, 'Hz', margin=0) == '0.100M'
-
-    assert units.format_si(1.1e9, 'Hz') == '1.100G'
-
-    assert units.format_si(value, 'kHz') == '100000.000'
-
-
-def test_si_with_um_to_mm():
-    assert units.convert(1555, from_unit='um', to_unit='mm') == 1.555
-    assert units.convert(1, from_unit='um', to_unit='mm') == 0.001
-
-    assert units.convert(1555, from_unit='mm', to_unit='um') == 1555000
-    assert units.convert(1, from_unit='mm', to_unit='um') == 1000
+@pytest.mark.parametrize("sec,expect", [
+    (6 * 3600 + 35 * 60 + 20 + 0.04, '6:35:20.040'),
+    (36 * 3600 + 35 * 60 + 20 + 0.04, '36:35:20.040'),
+    (35 * 60 + 20 + 0.05, '35:20.050'),
+    (20 + 0.05, '0:20.050'),
+    (20 + 0.6508, '0:20.651'),
+])
+def test_time(sec, expect):
+    assert units.format_time(sec) == expect
 
 
-def test_si_with_um2_to_mm2():
-    assert units.convert(1555, from_unit='um^2', to_unit='mm^2') == 0.001555
-    assert units.convert(1, from_unit='um^2', to_unit='mm^2') == 1e-6
+@pytest.mark.parametrize("sec,expect,digits", [
+    (6 * 3600 + 35 * 60 + 20 + 0.04, '6:35:20', 0),
+    (36 * 3600 + 35 * 60 + 20 + 0.04, '36:35:20', 0),
+    (35 * 60 + 20 + 0.05, '35:20', 0),
+    (20 + 0.05, '0:20', 0),
+    (20 + 0.6508, '0:21', 0),
+    (6 * 3600 + 35 * 60 + 20 + 0.04, '6:35:20.0', 1),
+    (36 * 3600 + 35 * 60 + 20 + 0.04, '36:35:20.0', 1),
+    (35 * 60 + 20 + 0.05, '35:20.1', 1),
+    (20 + 0.05, '0:20.1', 1),
+    (20 + 0.6508, '0:20.7', 1),
+    (6 * 3600 + 35 * 60 + 20 + 0.04, '6:35:20.04', 2),
+    (36 * 3600 + 35 * 60 + 20 + 0.04, '36:35:20.04', 2),
+    (35 * 60 + 20 + 0.05, '35:20.05', 2),
+    (20 + 0.05, '0:20.05', 2),
+    (20 + 0.6508, '0:20.65', 2),
+    (6 * 3600 + 35 * 60 + 20 + 0.04, '6:35:20.040', 3),
+    (36 * 3600 + 35 * 60 + 20 + 0.04, '36:35:20.040', 3),
+    (35 * 60 + 20 + 0.05, '35:20.050', 3),
+    (20 + 0.05, '0:20.050', 3),
+    (20 + 0.6508, '0:20.651', 3)
+])
+def test_time_milliseconds(sec, expect, digits):
+    assert units.format_time(sec, milliseconds_digits=digits) == expect
 
-    assert units.convert(1555, from_unit='mm^2', to_unit='um^2') == 1555e6
-    assert units.convert(1, from_unit='mm^2', to_unit='um^2') == 1e6
+
+@pytest.mark.parametrize("value,unit,expect", [
+    (1e5, 'Hz', '100.000k'),
+    (1.1e9, 'Hz', '1.100G'),
+    (1e5, 'kHz', '100000.000'),
+])
+def test_si_default(value, unit, expect):
+    assert units.format_si(value, unit) == expect
 
 
-def test_si_with_none_to_mm():
-    assert units.convert(1555, to_unit='mm') == 1555e3
-    assert units.convert(1, to_unit='mm') == 1e3
+@pytest.mark.parametrize("value,unit,digits,expect", [
+    (1e5, 'Hz', 0, '100k'),
+])
+def test_si_with_digits(value, unit, digits, expect):
+    assert units.format_si(value, unit, digits=digits) == expect
 
 
-def test_si_with_none_to_mm2():
-    assert units.convert(1555, to_unit='mm^2') == 1555e6
-    assert units.convert(1, to_unit='mm^2') == 1e6
+@pytest.mark.parametrize("value,unit,margin,expect", [
+    (1e5, 'Hz', 0, '0.100M'),
+])
+def test_si_with_margin(value, unit, margin, expect):
+    assert units.format_si(value, unit, margin=margin) == expect
+
+
+@pytest.mark.parametrize("value,from_unit,to_unit,expect", [
+    (1555, 'um', 'mm', 1.555),
+    (1, 'um', 'mm', 0.001),
+    (1555, 'mm', 'um', 1555000),
+    (1, 'mm', 'um', 1000),
+])
+def test_si_with_um_to_mm(value, from_unit, to_unit, expect):
+    assert units.convert(value, from_unit=from_unit, to_unit=to_unit) == expect
+
+
+@pytest.mark.parametrize("value,from_unit,to_unit,expect", [
+    (1555, 'um^2', 'mm^2', 0.001555),
+    (1, 'um^2', 'mm^2', 1e-6),
+    (1555, 'mm^2', 'um^2', 1555e6),
+    (1, 'mm^2', 'um^2', 1e6),
+])
+def test_si_with_um2_to_mm2(value, from_unit, to_unit, expect):
+    assert units.convert(value, from_unit=from_unit, to_unit=to_unit) == expect
+
+
+@pytest.mark.parametrize("value,to_unit,expect", [
+    (1555, 'mm', 1555e3),
+    (1, 'mm', 1e3),
+])
+def test_si_with_none_to_mm(value, to_unit, expect):
+    assert units.convert(value, to_unit=to_unit) == expect
+
+
+@pytest.mark.parametrize("value,to_unit,expect", [
+    (1555, 'mm^2', 1555e6),
+    (1, 'mm^2', 1e6),
+])
+def test_si_with_none_to_mm2(value, to_unit, expect):
+    assert units.convert(value, to_unit=to_unit) == expect
 
 
 @pytest.mark.parametrize("value,from_unit,to_unit,correct", [
@@ -121,10 +175,10 @@ def test_format_si(value, unit, margin, digits, expect):
 
 
 @pytest.mark.parametrize("value,expect", [
-    (0.2, "00.200"),
-    (2, "02.000"),
-    (20, "20.000"),
-    (200, "03:20.000"),
+    (0.2, "0:00.200"),
+    (2, "0:02.000"),
+    (20, "0:20.000"),
+    (200, "3:20.000"),
     (2000, "33:20.000"),
     (2e4, "5:33:20.000"),
     (2e5, "55:33:20.000"),
@@ -132,3 +186,26 @@ def test_format_si(value, unit, margin, digits, expect):
 ])
 def test_format_time(value, expect):
     assert format_time(value) == expect
+
+
+@pytest.mark.parametrize("sec,milliseconds_digits,expect", [
+    # Test milliseconds carrying to seconds
+    (59.99951, 3, '1:00.000'),
+    (0.99951, 3, '0:01.000'),
+    (19.99951, 3, '0:20.000'),
+    # Test seconds carrying to minutes (milliseconds_digits=0)
+    (59.6, 0, '1:00'),
+    (119.6, 0, '2:00'),
+    # Test seconds carrying to minutes (with milliseconds)
+    (59.99951, 1, '1:00.0'),
+    (59.99951, 2, '1:00.00'),
+    # Test minutes carrying to hours
+    (59 * 60 + 59.6, 0, '1:00:00'),
+    (59 * 60 + 59.99951, 3, '1:00:00.000'),
+    # Test full overflow chain: hours:minutes:seconds
+    (59 * 3600 + 59 * 60 + 59.99951, 3, '60:00:00.000'),
+    (23 * 3600 + 59 * 60 + 59.6, 0, '24:00:00'),
+])
+def test_format_time_rounding_carry(sec, milliseconds_digits, expect):
+    """Test that rounding properly propagates carries across time units."""
+    assert format_time(sec, milliseconds_digits=milliseconds_digits) == expect

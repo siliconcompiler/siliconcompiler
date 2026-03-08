@@ -831,7 +831,8 @@ class Design(DependencySchema, PathSchema, NamedSchema):
     def __get_fileset(self,
                       filesets: Union[List[str], str],
                       alias: Dict[Tuple[str, str], Tuple[NamedSchema, str]],
-                      mapping: List[Tuple[NamedSchema, str]]) -> \
+                      visited: List[Tuple[NamedSchema, str]],
+                      mapping: Dict[str, NamedSchema]) -> \
             List[Tuple[NamedSchema, str]]:
         """
         Private recursive method to compute the full list of (design, fileset)
@@ -843,8 +844,10 @@ class Design(DependencySchema, PathSchema, NamedSchema):
             filesets (Union[List[str], str]): List of top-level filesets to evaluate.
             alias (Dict[Tuple[str, str], Tuple[NamedSchema, str]]): Map of aliased
                 (design, fileset) tuples to substitute during traversal.
-            mapping (List[Tuple[NamedSchema, str]]): Internal list used to track
+            visited (List[Tuple[NamedSchema, str]]): Internal list used to track
                 visited (design, fileset) nodes during recursion.
+            mapping (Dict[str, NamedSchema]): Internal dictionary mapping design names to
+                design objects, used to resolve dependencies during recursion.
 
         Returns:
             List[Tuple[NamedSchema, str]]: A flattened, unique list of
@@ -854,19 +857,22 @@ class Design(DependencySchema, PathSchema, NamedSchema):
             # Ensure we have a list
             filesets = [filesets]
 
+        if self.name not in mapping:
+            mapping[self.name] = self
+
         for fileset in filesets:
             self._assert_fileset(fileset)
 
-            if (self, fileset) in mapping:
+            key = (self.name, fileset)
+            if key in visited:
                 continue
 
-            mapping.append((self, fileset))
+            visited.append(key)
             for dep, depfileset in self.get("fileset", fileset, "depfileset"):
                 if (dep, depfileset) in alias:
                     dep_obj, new_depfileset = alias[(dep, depfileset)]
                     if dep_obj is None:
                         continue
-
                     if new_depfileset:
                         depfileset = new_depfileset
                 else:
@@ -877,11 +883,17 @@ class Design(DependencySchema, PathSchema, NamedSchema):
                 if not isinstance(dep_obj, Design):
                     raise TypeError(f"{dep} must be a design object.")
 
-                mapping.extend(dep_obj.__get_fileset(depfileset, alias, mapping))
+                dep_key = (dep_obj.name, depfileset)
+                if dep_key not in visited:
+                    dep_obj.__get_fileset(depfileset, alias, visited, mapping)
 
         # Cleanup
         final_map = []
-        for cmap in mapping:
+        for libname, fileset in visited:
+            if libname not in mapping:
+                raise LookupError(f"{libname} not found in mapping")
+            lib = mapping[libname]
+            cmap = (lib, fileset)
             if cmap not in final_map:
                 final_map.append(cmap)
         return final_map
@@ -914,7 +926,7 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         if alias is None:
             alias = {}
 
-        return self.__get_fileset(filesets, alias, [])
+        return self.__get_fileset(filesets, alias, [], {})
 
     def _generate_doc(self, doc,
                       ref_root: str = "",

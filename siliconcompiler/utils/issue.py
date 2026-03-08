@@ -66,9 +66,10 @@ def generate_testcase(project: "Project",
     manifest_path = os.path.join(issue_dir.name, 'orig_manifest.json')
     project.write_manifest(manifest_path)
 
-    flow = project.option.get_flow()
-    tool: str = project.get('flowgraph', flow, step, index, 'tool')
-    task: str = project.get('flowgraph', flow, step, index, 'task')
+    flow = project.get_flow()
+    node = flow.get_graph_node(step, index)
+    tool = node.get('tool')
+    task = node.get('task')
 
     task_requires: List[str] = project.get('tool', tool, 'task', task, 'require',
                                            step=step, index=index)
@@ -155,8 +156,6 @@ def generate_testcase(project: "Project",
     current_work_dir = os.getcwd()
     os.chdir(new_work_dir)
 
-    flow = project.option.get_flow()
-
     task_class: "Task" = project.get("tool", tool, "task", task, field="schema")
 
     with task_class.runtime(SchedulerNode(project, step, index), relpath=new_work_dir) as task_obj:
@@ -228,7 +227,7 @@ def generate_testcase(project: "Project",
 
     if not archive_name:
         design = project.name
-        job = project.get('option', 'jobname')
+        job = project.option.get_jobname()
         file_time = datetime.fromtimestamp(issue_time, timezone.utc).strftime('%Y%m%d-%H%M%S')
         archive_name = f'sc_issue_{design}_{job}_{step}_{index}_{file_time}.tar.gz'
 

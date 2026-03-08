@@ -107,7 +107,7 @@ foreach lib $sc_targetlibs {
     assert_glob [sc_cfg_get library $lib option var yosys_buffer_input]
     set cellname [sc_cfg_get library $lib option var yosys_buffer_cell]
     set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_buffer_input]]
-    if { [llength $pins] != [llength [sta::corners]] } {
+    if { [llength $pins] != [llength $sc_scenarios] } {
         puts "\[ERROR] mismatch"
     }
     foreach pin $pins {
@@ -122,7 +122,7 @@ foreach lib $sc_targetlibs {
     assert_glob [sc_cfg_get library $lib option var yosys_buffer_output]
     set cellname [sc_cfg_get library $lib option var yosys_buffer_cell]
     set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_buffer_output]]
-    if { [llength $pins] != [llength [sta::corners]] } {
+    if { [llength $pins] != [llength $sc_scenarios] } {
         puts "\[ERROR] mismatch"
     }
     foreach pin $pins {
@@ -145,7 +145,7 @@ foreach lib $sc_targetlibs {
     assert_glob [sc_cfg_get library $lib option var yosys_tiehigh_port]
     set cellname [sc_cfg_get library $lib option var yosys_tiehigh_cell]
     set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_tiehigh_port]]
-    if { [llength $pins] != [llength [sta::corners]] } {
+    if { [llength $pins] != [llength $sc_scenarios] } {
         puts "\[ERROR] mismatch"
     }
     foreach pin $pins {
@@ -168,7 +168,7 @@ foreach lib $sc_targetlibs {
     assert_glob [sc_cfg_get library $lib option var yosys_tielow_port]
     set cellname [sc_cfg_get library $lib option var yosys_tielow_cell]
     set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_tielow_port]]
-    if { [llength $pins] != [llength [sta::corners]] } {
+    if { [llength $pins] != [llength $sc_scenarios] } {
         puts "\[ERROR] mismatch"
     }
     foreach pin $pins {
@@ -220,7 +220,7 @@ foreach lib $sc_targetlibs {
     assert_glob [sc_cfg_get library $lib option var openroad_tiehigh_port]
     set cellname [sc_cfg_get library $lib option var openroad_tiehigh_cell]
     set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var openroad_tiehigh_port]]
-    if { [llength $pins] != [llength [sta::corners]] } {
+    if { [llength $pins] != [llength $sc_scenarios] } {
         puts "\[ERROR] mismatch"
     }
     foreach pin $pins {
@@ -244,7 +244,7 @@ foreach lib $sc_targetlibs {
     assert_glob [sc_cfg_get library $lib option var openroad_tielow_port]
     set cellname [sc_cfg_get library $lib option var openroad_tielow_cell]
     set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var openroad_tielow_port]]
-    if { [llength $pins] != [llength [sta::corners]] } {
+    if { [llength $pins] != [llength $sc_scenarios] } {
         puts "\[ERROR] mismatch"
     }
     foreach pin $pins {

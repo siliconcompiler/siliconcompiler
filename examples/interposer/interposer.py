@@ -55,10 +55,10 @@ def main():
 
     # 1. Import the entire 'interposerflow' from the target. This flow handles
     #    floorplanning and routing the redistribution layers (RDL).
-    flow.graph(project.get("flowgraph", "interposerflow", field="schema"))
+    flow.graph(project.get_flow("interposerflow"))
     # 2. Import the entire 'drcflow' from the target. This flow runs
     #    Design Rule Checking (DRC) to verify the final layout.
-    flow.graph(project.get("flowgraph", "drcflow", field="schema"))
+    flow.graph(project.get_flow("drcflow"))
     # 3. Create a new edge to connect the two flows. We direct the output of the
     #    'write_gds' step (the end of interposerflow) to the input of the
     #    'drc' step (the start of drcflow).

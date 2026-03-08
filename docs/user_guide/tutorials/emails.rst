@@ -34,13 +34,13 @@ This key can be set to the following values:
 
     ...
     # Send messages for all nodes to you@xyz.com
-    project.set('option', 'scheduler', 'msgcontact', 'you@xyz.com')
+    project.option.scheduler.add_msgcontact('you@xyz.com')
 
     # Send messages for route step to you@xyz.com and pd-routing@xyz.com
-    project.set('option', 'scheduler', 'msgcontact', ['you@xyz.com', 'pd-routing@xyz.com'], step='route')
+    project.option.scheduler.add_msgcontact(['you@xyz.com', 'pd-routing@xyz.com'], step='route')
 
     # Send messages at the end of each node, in the event of a failure, and the final summary.
-    project.set('option', 'scheduler', 'msgevent', ['end', 'fail', 'summary'])
+    project.option.scheduler.add_msgevent(['end', 'fail', 'summary'])
     ...
 
 

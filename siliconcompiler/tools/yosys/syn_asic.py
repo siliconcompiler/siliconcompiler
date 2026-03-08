@@ -51,20 +51,19 @@ class _ASICTask(ASICTask, YosysTask):
             return
 
         # determine corner based on setup corner from constraints
-        scenarios = self.project.get("constraint", "timing", field="schema")
-        for scenario in scenarios.get_scenario().values():
+        timing_constraint = self.project.constraint.timing
+        for scenario in timing_constraint.get_scenario().values():
             if not scenario.get_libcorner():
                 continue
             if "setup" in scenario.get_check():
                 self.add_yosys_synthesiscorner(scenario.get_libcorner())
                 return
 
-        if scenarios:
-            # try getting it from first constraint with a valid libcorner
-            for scenario in scenarios.get_scenario().values():
-                if scenario.get_libcorner():
-                    self.add_yosys_synthesiscorner(scenario.get_libcorner())
-                    return
+        # try getting it from first constraint with a valid libcorner
+        for scenario in timing_constraint.get_scenario().values():
+            if scenario.get_libcorner():
+                self.add_yosys_synthesiscorner(scenario.get_libcorner())
+                return
 
     def pre_process(self):
         super().pre_process()

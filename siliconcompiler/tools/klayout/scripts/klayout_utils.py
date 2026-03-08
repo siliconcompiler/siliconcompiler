@@ -98,11 +98,13 @@ def technology(design, schema):
     for lef_file in layout_options.lefdef_config.lef_files:
         print(f"[INFO] LEF file: {lef_file}")
 
+    streams = get_streams(schema)
+
     in_files = layout_options.lefdef_config.macro_layout_files
     for lib in schema.get("asic", "asiclib"):
         libobj = schema.get("library", lib, field="schema")
-        for s in get_streams(schema):
-            for fileset in libobj.get("asic", "aprfileset"):
+        for fileset in libobj.get("asic", "aprfileset"):
+            for s in streams:
                 if libobj.valid("fileset", fileset, "file", s):
                     in_files.extend(libobj.get("fileset", fileset, "file", s))
                     break

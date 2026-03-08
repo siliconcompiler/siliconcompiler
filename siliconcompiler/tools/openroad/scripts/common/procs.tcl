@@ -388,17 +388,31 @@ proc sc_psm_check_nets { } {
 # Save an image
 ###########################
 
-proc sc_save_image { title path { gif -1 } { pixels 1000 } } {
+proc sc_save_image { args } {
+    sta::parse_key_args "sc_save_image" args \
+        keys {-title -gif -pixels} \
+        flags {}
+
+    sta::check_argc_eq1 "sc_save_image" $args
+
+    set title $keys(-title)
+    set path [lindex $args 0]
+
+    set pixels 1000
+    if { [info exists keys(-pixels)] } {
+        set pixels $keys(-pixels)
+    }
+
     utl::info FLW 1 "Saving \"$title\" to $path"
 
     save_image -resolution [sc_image_resolution $pixels] \
         -area [sc_image_area] \
         $path
 
-    if { $gif >= 0 } {
+    if { [info exists keys(-gif)] && $keys(-gif) >= 0 } {
         set gif_args []
         if { [sc_check_version 24 3 11279] } {
-            lappend gif_args -key $gif
+            lappend gif_args -key $keys(-gif)
         }
         save_animated_gif -add \
             -resolution [sc_image_resolution $pixels] \
@@ -493,11 +507,6 @@ proc sc_count_logic_depth { } {
         if { [$pin is_driver] } {
             incr count
         }
-        set vertex [lindex [$pin vertices] 0]
-        # Stop at clock vertex
-        if { [$vertex is_clock] } {
-            break
-        }
     }
     # Subtract 1 to account for initial launch
     return [expr { $count - 1 }]
@@ -564,25 +573,6 @@ proc sc_get_tie_cell { type } {
     set port [lindex $cell_port 1]
 
     return "$cell/$port"
-}
-
-proc sc_get_input_files { type key } {
-    global sc_topmodule
-
-    set input_file "inputs/${sc_topmodule}.${type}"
-    if { [file exists $input_file] } {
-        return [list $input_file]
-    }
-
-    if { [sc_cfg_exists {*}$key] } {
-        return [sc_cfg_get {*}$key]
-    }
-
-    return []
-}
-
-proc sc_has_input_files { type key } {
-    return [expr { [sc_get_input_files $type $key] != [] }]
 }
 
 proc sc_path_group { args } {
@@ -768,7 +758,7 @@ proc sc_check_version { min_major min_minor min_patch } {
     } elseif { [string index [lindex $version 0] 2] == "Q" } {
         set ord_major [string range [lindex $version 0] 0 1]
         set ord_minor [string index [lindex $version 0] 3]
-        set ord_patch [string range [lindex $version 0] 5 end]
+        set ord_patch [lindex $version 1]
     } else {
         utl::error FLW 1 "Unknown OpenROAD version format: [ord::openroad_version]"
     }
@@ -788,6 +778,10 @@ proc sc_check_version { min_major min_minor min_patch } {
     }
 
     return false
+}
+
+proc sc_has_sta_mcmm_support { } {
+    return [sc_check_version 26 1 1133]
 }
 
 proc sc_set_gui_title { } {
@@ -909,4 +903,12 @@ proc sc_global_connections { args } {
 
 proc sc_format_area { area } {
     return "([lindex $area 0], [lindex $area 1]) - ([lindex $area 2], [lindex $area 3])"
+}
+
+proc sc_is_scene_enabled { scene check } {
+    if { [lsearch -exact [sc_cfg_get constraint timing scenario $scene check] $check] != -1 } {
+        return true
+    } else {
+        return false
+    }
 }
