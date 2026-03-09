@@ -178,14 +178,14 @@ Move the slider to add more graphs or remove old ones (arrow B in image below). 
 .. image::  ../../_images/dashboard_images/dashboard_graphs.png
 
 
-For each graph, you must select one metric (show in image below). A random metric will be pre-selected.
+For each graph, you must select one metric (show in image below). A random metric will be preselected.
 Click 'Apply' to see the changes.
 
 .. image::  ../../_images/dashboard_images/dashboard_graphs_metric_selector.png
     :width: 300
 
 
-You may select any amount of nodes (show in image below). A random node will be pre-selected.
+You may select any amount of nodes (show in image below). A random node will be preselected.
 If you select 0 nodes, a blank graph will appear.
 Click 'Apply' to see the changes.
 
