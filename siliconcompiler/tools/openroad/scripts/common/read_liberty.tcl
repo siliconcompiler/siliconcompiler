@@ -4,7 +4,7 @@ set sc_delaymodel [sc_cfg_get asic delaymodel]
 set sc_liberty_map [dict create]
 
 # Read Liberty
-if { [sc_has_sta_mcmm_support] } {
+if { [sc_has_sta_mcmm_support] && [sc_cfg_tool_task_get var load_sdcs] } {
     set liberty_files []
     foreach lib $sc_logiclibs {
         foreach scene $sc_scenarios {
