@@ -54,7 +54,7 @@ jobs:
 
       # Read-only credentials, can be accessed by external contributors
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -92,7 +92,7 @@ jobs:
       # Read/write credentials, can only be accessed by repo members
       - name: Log in to the Container registry
         if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.PACKAGES_ACTOR }}
@@ -100,7 +100,7 @@ jobs:
 
       - name: Build and Push SiliconCompiler Builder Docker image
         if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: docker/sc_tool_builder
           push: true
@@ -128,14 +128,14 @@ jobs:
           name: tools
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.PACKAGES_ACTOR }}
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -165,14 +165,14 @@ jobs:
           name: tools
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.PACKAGES_ACTOR }}
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -208,14 +208,14 @@ jobs:
           swap-storage: true
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.PACKAGES_ACTOR }}
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./sc_tools/
           push: true
@@ -249,7 +249,7 @@ jobs:
         swap-storage: true
 
     - name: Log in to the Container registry
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.PACKAGES_ACTOR }}
@@ -269,7 +269,7 @@ jobs:
         echo "RUNNER_TAG=${runner_latest_tag}" >> $GITHUB_ENV
 
     - name: Build and Push Tool Docker image
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: ./sc_runner/
         push: true
