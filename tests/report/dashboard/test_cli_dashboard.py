@@ -640,8 +640,6 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
         status = node["status"].upper()
         job_id = "/".join(
             [
-                mock_running_job_lg.design,
-                mock_running_job_lg.jobname,
                 node["step"],
                 str(node["index"]),
             ]
@@ -729,8 +727,6 @@ def test_render_job_dashboard_hide_before_from(mock_running_job_lg, dashboard_me
         status = node["status"].upper()
         job_id = "/".join(
             [
-                mock_running_job_lg.design,
-                mock_running_job_lg.jobname,
                 node["step"],
                 str(node["index"]),
             ]
@@ -802,8 +798,6 @@ def test_render_job_dashboard_select_logs(mock_running_job_lg, dashboard_medium)
         status = node["status"].upper()
         job_id = "/".join(
             [
-                mock_running_job_lg.design,
-                mock_running_job_lg.jobname,
                 node["step"],
                 str(node["index"]),
             ]
@@ -893,8 +887,6 @@ def test_render_job_dashboard_select_no_logs(mock_running_job_lg, dashboard_medi
         status = node["status"].upper()
         job_id = "/".join(
             [
-                mock_running_job_lg.design,
-                mock_running_job_lg.jobname,
                 node["step"],
                 str(node["index"]),
             ]
