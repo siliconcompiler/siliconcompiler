@@ -574,7 +574,7 @@ class Board:
         if layout.job_board_show_log:
             table.add_column(get_column_header("log"))
 
-        multi_jobs = len(job_data) > 1 or True
+        multi_jobs = len(job_data) > 1
 
         # jobname, node index, priority, node order
         table_data_select = []
