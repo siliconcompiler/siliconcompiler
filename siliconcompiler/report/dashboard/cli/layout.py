@@ -3,7 +3,7 @@ import math
 from dataclasses import dataclass
 
 
-@dataclass(slots=True)
+@dataclass
 class Layout:
     """
     Manages the dynamic layout of the dashboard, calculating the height
