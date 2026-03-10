@@ -381,7 +381,7 @@ def test_layout_minimal_layout_height_1():
     assert layout.log_height == 0
 
 
-def test_layout_calculate_targets_all_visible():
+def test_layout_calculate_targets_all_visible_default():
     """Test _calculate_targets when all content is visible"""
     layout = Layout()
     layout.height = 20
@@ -614,7 +614,8 @@ def test_layout_calculate_targets_bars_redistribution_limited_jobs():
 
 
 def test_layout_calculate_targets_only_bars_redistribution_attempt():
-    """Test only bars visible: redistribution logic doesn't apply since no jobs to redistribute to"""
+    """Test only bars visible: redistribution logic doesn't
+    apply since no jobs to redistribute to"""
     layout = Layout()
     layout.height = 100
     layout.show_progress_bar = True
