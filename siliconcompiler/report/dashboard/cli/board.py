@@ -366,6 +366,17 @@ class Board:
         self.__help_dwell = 5.0
         self.__last_help = 0.0
 
+    def show_help(self):
+        """
+        Show or hide the help text in the dashboard. This method toggles the visibility
+        of the help text and updates the timestamp for when the help was last toggled.
+        """
+        if self._layout.show_help_text:
+            return
+
+        self._layout.toggle_show_help_text()
+        self.__last_help = time.time()
+
     def make_log_hander(self) -> logging.Handler:
         """
         Creates and returns a logging handler that directs logs to this board.
@@ -391,8 +402,7 @@ class Board:
 
                     Keyboard.start()
 
-                    self._layout.toggle_show_help_text()
-                    self.__last_help = time.time()
+                    self.show_help()
 
                     self._render_thread.start()
 
@@ -459,6 +469,11 @@ class Board:
         self._render_event.set()
 
         Keyboard.stop()
+
+        # Restore the help
+        self.__last_help = 0.0
+        if self._layout.show_help_text:
+            self._layout.toggle_show_help_text()
 
         # Wait for rendering to finish
         self.wait()
@@ -811,8 +826,7 @@ class Board:
             self._layout.toggle_show_jobboard()
         else:
             if not self._layout.show_help_text:
-                self.__last_help = time.time()
-                self._layout.toggle_show_help_text()
+                self.show_help()
 
     def _update_layout(self) -> Layout:
         """
