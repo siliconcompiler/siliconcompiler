@@ -352,9 +352,6 @@ class Board:
         # Sleep time for the dashboard
         self._dwell = 0.1
 
-        if not self.__JOB_BOARD_HEADER:
-            self._layout.padding_job_board_header = 0
-
         self._metrics = ("warnings", "errors")
 
     def make_log_hander(self) -> logging.Handler:
@@ -516,15 +513,17 @@ class Board:
         if layout.log_height == 0:
             return None
 
+        number_of_lines = layout.log_height - 1  # accounting for the padding
+
         table = Table(box=None, width=layout.width)
         table.add_column(overflow="ellipsis", no_wrap=True, vertical="bottom")
         table.show_edge = False
         table.show_lines = False
         table.show_footer = False
         table.show_header = False
-        for line in self._log_handler.get_lines(layout.log_height):
+        for line in self._log_handler.get_lines(number_of_lines):
             table.add_row(f"[white]{line}[/]")
-        while table.row_count < layout.log_height:
+        while table.row_count < number_of_lines:
             table.add_row("")
 
         return Group(table, Padding("", (0, 0)))
@@ -547,8 +546,10 @@ class Board:
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()  # Access jobs from SessionData
 
+        number_of_jobs = layout.job_board_height - 1  # accounting for the padding
         if self.__JOB_BOARD_HEADER:
             table_box = self.__JOB_BOARD_BOX
+            number_of_jobs -= 1  # accounting for the header
         else:
             table_box = None
 
@@ -590,7 +591,7 @@ class Board:
         table_data_select = sorted(table_data_select, key=lambda d: (d[2], *d[3], d[0]))
 
         # trim to size
-        table_data_select = table_data_select[0:layout.job_board_height]
+        table_data_select = table_data_select[0:number_of_jobs]
 
         # sort for printing order
         table_data_select = sorted(table_data_select, key=lambda d: (d[0], *d[3], d[2]))
@@ -682,7 +683,8 @@ class Board:
             job_info.append(
                 (done, f"{job.design}/{job.jobname}", job.total, job.success, runtimes[name]))
 
-        while len(job_info) > layout.progress_bar_height:
+        number_of_bars = layout.progress_bar_height - 1  # accounting for the padding
+        while len(job_info) > number_of_bars:
             for job in job_info:
                 if job[0]:
                     # complete complete and can be removed
@@ -692,7 +694,7 @@ class Board:
             del job_info[0]
 
         if not job_info:
-            return Padding("", (0, 0))
+            return None
 
         progress = Progress(
             TextColumn("[progress.description]{task.description}"),
