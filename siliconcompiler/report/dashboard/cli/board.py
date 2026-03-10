@@ -1,4 +1,3 @@
-import copy
 import logging
 import os
 import queue
@@ -937,7 +936,7 @@ class Board:
             items.append(log)
 
         if layout.help_text_height > 0:
-            items.append(Text(f"Press 'h' for help, press Ctrl+C to quit.",
+            items.append(Text("Press 'H' for help, press 'Ctrl+C' to quit.",
                               no_wrap=True, overflow="ellipsis", style="bold white"))
 
         return items
