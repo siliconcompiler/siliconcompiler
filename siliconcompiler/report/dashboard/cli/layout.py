@@ -121,7 +121,7 @@ class Layout:
 
     def _calc_debug_text_height(self):
         """
-        Calculate the height for the help text section.
+        Calculate the height for the debug text section.
         - Always at least 1 row.
         """
         if not self.show_debug_text:
