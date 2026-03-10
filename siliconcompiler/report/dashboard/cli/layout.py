@@ -25,18 +25,22 @@ class Layout:
     log_height: int = 0
     job_board_height: int = 0
     progress_bar_height: int = 0
+    help_text_height: int = 0
+    debug_text_height: int = 0
 
     remaining_height: int = 0
 
     job_board_show_log: bool = True
     job_board_v_limit: int = 120
 
-    __progress_bar_height_default = 1
+    __progress_bar_height_default: int = 1
 
     show_node_type: bool = False
     show_jobboard: bool = True
     show_log: bool = True
     show_progress_bar: bool = True
+    show_help_text: bool = False
+    show_debug_text: bool = False
 
     def update(self, height: int, width: int, visible_jobs: int, visible_bars: int):
         """
@@ -65,6 +69,14 @@ class Layout:
         target_bars, target_jobs = self._calculate_targets(visible_bars, visible_jobs)
         self.remaining_height = self.height
 
+        self.debug_text_height = self._calc_debug_text_height()
+        if self.debug_text_height > 0:
+            self.remaining_height -= self.debug_text_height
+
+        self.help_text_height = self._calc_help_text_height()
+        if self.help_text_height > 0:
+            self.remaining_height -= self.help_text_height
+
         self.progress_bar_height = self._calc_progress_bar_height(target_bars, visible_bars)
         if self.progress_bar_height > 0:
             self.remaining_height -= self.progress_bar_height
@@ -76,6 +88,18 @@ class Layout:
         self.log_height = self._calc_log_height()
         if self.log_height > 0:
             self.remaining_height -= self.log_height
+
+    def toggle_show_debug_text(self):
+        """
+        Toggle the visibility of the debug text section.
+        """
+        self.show_debug_text = not self.show_debug_text
+
+    def toggle_show_help_text(self):
+        """
+        Toggle the visibility of the help text section.
+        """
+        self.show_help_text = not self.show_help_text
 
     def toggle_show_log(self):
         """
@@ -94,6 +118,26 @@ class Layout:
         Toggle the visibility of the job status board.
         """
         self.show_jobboard = not self.show_jobboard
+
+    def _calc_debug_text_height(self):
+        """
+        Calculate the height for the help text section.
+        - Always at least 1 row.
+        """
+        if not self.show_debug_text:
+            return 0
+        return 1
+
+    def _calc_help_text_height(self):
+        """
+        Calculate the height for the help text section.
+        - Always at least 1 row.
+        """
+        if not self.show_help_text:
+            return 0
+        if self.remaining_height <= 4:
+            return 0
+        return 1
 
     def _calc_progress_bar_height(self, target_bars, visible_bars):
         """
