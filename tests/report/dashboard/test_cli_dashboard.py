@@ -566,7 +566,7 @@ def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
     assert isinstance(log.renderables[0], Table)
     assert isinstance(log.renderables[1], Padding)
 
-    assert log.renderables[0].row_count == 37
+    assert log.renderables[0].row_count == 39
 
     # Check content
     io_file = io.StringIO()
@@ -574,7 +574,7 @@ def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
     console.print(log)
     actual_output = console.file.getvalue()
     actual_lines = actual_output.splitlines(keepends=True)
-    start_index = 200 - 37
+    start_index = 200 - 39
     for i, line in enumerate(actual_lines):
         if start_index + i == 200:
             assert len(line.strip()) == 0

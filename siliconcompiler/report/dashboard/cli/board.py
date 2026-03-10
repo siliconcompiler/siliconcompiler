@@ -684,14 +684,15 @@ class Board:
                 (done, f"{job.design}/{job.jobname}", job.total, job.success, runtimes[name]))
 
         number_of_bars = layout.progress_bar_height - 1  # accounting for the padding
-        while len(job_info) > number_of_bars:
+        while job_info and len(job_info) > number_of_bars:
             for job in job_info:
                 if job[0]:
                     # complete complete and can be removed
                     job_info.remove(job)
                     break
             # remove first job
-            del job_info[0]
+            if job_info:
+                del job_info[0]
 
         if not job_info:
             return None
