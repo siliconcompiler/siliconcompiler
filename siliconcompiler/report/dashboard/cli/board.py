@@ -658,6 +658,9 @@ class Board:
             rich.group.Group or rich.padding.Padding: A renderable object for the
                                                       progress bars.
         """
+        if layout.progress_bar_height == 0:
+            return None
+
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()
 
@@ -827,6 +830,25 @@ class Board:
                 [0, *[job.runtime for job in self._render_data.jobs.values()]]
             )
 
+    def _render_view(self, layout: Layout):
+        """
+        Renders the entire dashboard view based on the current layout.
+        """
+        items = []
+        nodesboard = self._render_job_dashboard(layout)
+        if nodesboard:
+            items.append(nodesboard)
+
+        progress = self._render_progress_bar(layout)
+        if progress:
+            items.append(progress)
+
+        log = self._render_log(layout)
+        if log:
+            items.append(log)
+
+        return items
+
     def _get_rendable(self):
         """
         Assembles the final renderable object for the `rich.live` display.
@@ -840,19 +862,8 @@ class Board:
 
         layout = self._update_layout()
 
-        new_table = self._render_job_dashboard(layout)
-        new_bar = self._render_progress_bar(layout)
-        footer = self._render_log(layout)
-
         items = []
-        if new_table:
-            items.extend([new_table])
-
-        if new_bar:
-            items.extend([new_bar])
-
-        if footer:
-            items.extend([footer])
+        items.extend(self._render_view(layout))
 
         return Group(*items)
 
