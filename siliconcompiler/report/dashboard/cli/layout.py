@@ -56,26 +56,26 @@ class Layout:
         """
         self.height = height
         self.width = width
+        self.remaining_height = self.height
 
         # Decide whether to show the log column in the job board based on width
         self.job_board_show_log = self.width >= self.job_board_v_limit
-
-        # If terminal is extremely small, use minimal layout
-        if self.height < 2:
-            self._set_minimal_layout()
-            return
-
-        # Target sizes are computed up front, then each section is sized independently.
-        target_bars, target_jobs = self._calculate_targets(visible_bars, visible_jobs)
-        self.remaining_height = self.height
 
         self.debug_text_height = self._calc_debug_text_height()
         if self.debug_text_height > 0:
             self.remaining_height -= self.debug_text_height
 
+        # If terminal is extremely small, use minimal layout
+        if self.remaining_height < 2:
+            self._set_minimal_layout()
+            return
+
         self.help_text_height = self._calc_help_text_height()
         if self.help_text_height > 0:
             self.remaining_height -= self.help_text_height
+
+        # Target sizes are computed up front, then each section is sized independently.
+        target_bars, target_jobs = self._calculate_targets(visible_bars, visible_jobs)
 
         self.progress_bar_height = self._calc_progress_bar_height(target_bars, visible_bars)
         if self.progress_bar_height > 0:
@@ -196,6 +196,7 @@ class Layout:
             self.progress_bar_height = 0
         self.job_board_height = 0
         self.log_height = 0
+        self.help_text_height = 0
 
     def _calculate_targets(self, visible_bars, visible_jobs):
         target_jobs = 0.25 * self.height
