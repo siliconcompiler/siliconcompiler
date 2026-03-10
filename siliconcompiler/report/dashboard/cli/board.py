@@ -308,8 +308,6 @@ class Board:
     __USE_ICONS = False
     __USE_LINK = False
 
-    __JOB_BOARD_HEADER = True
-
     __JOB_BOARD_BOX = box.SIMPLE_HEAD
 
     def __init__(self, manager):
@@ -583,17 +581,14 @@ class Board:
         number_of_jobs = layout.job_board_height
         number_of_jobs -= 1  # accounting for the header
         number_of_jobs -= 1  # accounting for padding
-        if self.__JOB_BOARD_HEADER:
-            table_box = self.__JOB_BOARD_BOX
-            number_of_jobs -= 1  # accounting for the header
-        else:
-            table_box = None
+        table_box = self.__JOB_BOARD_BOX
+        number_of_jobs -= 1  # accounting for the header
 
         table = Table(box=table_box, pad_edge=False)
         table.show_edge = False
         table.show_lines = False
         table.show_footer = False
-        table.show_header = self.__JOB_BOARD_HEADER
+        table.show_header = True
 
         def get_column_header(title):
             return Board._symbols.get("headers", {}).get(title, title.capitalize())
@@ -679,8 +674,6 @@ class Board:
         if table.row_count == 0:
             return None
 
-        if self.__JOB_BOARD_HEADER:
-            return Group(table, Padding("", (0, 0)))
         return Group(table, Padding("", (0, 0)))
 
     def _render_progress_bar(self, layout: Layout):
