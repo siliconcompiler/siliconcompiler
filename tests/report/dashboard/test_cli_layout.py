@@ -83,6 +83,8 @@ def test_layout_calc_progress_bar_height():
 
     assert layout._calc_progress_bar_height(5, 2) == 3
     assert layout._calc_progress_bar_height(1, 10) == 2
+    assert layout._calc_progress_bar_height(0, 10) == 0
+    assert layout._calc_progress_bar_height(1, 0) == 0
 
 
 def test_layout_calc_job_board_height_min_space():

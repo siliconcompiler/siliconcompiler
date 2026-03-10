@@ -108,6 +108,8 @@ class Layout:
             return 0
         if self.remaining_height <= 1:
             return 0
+        if visible_bars == 0 or target_bars == 0:
+            return 0
 
         target_height = max(min(target_bars, visible_bars),
                             self.__progress_bar_height_default) + 1  # +1 for padding
