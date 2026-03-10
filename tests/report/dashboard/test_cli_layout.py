@@ -33,6 +33,18 @@ def test_layout_standard_allocation():
     assert layout.job_board_show_log is True
 
 
+def test_layout_standard_allocation_only_nodes():
+    layout = Layout()
+    layout.show_log = False
+    layout.show_progress_bar = False
+    layout.update(height=40, width=130, visible_jobs=200, visible_bars=4)
+
+    assert layout.progress_bar_height == 0
+    assert layout.job_board_height == 40
+    assert layout.log_height == 0
+    assert layout.job_board_show_log is True
+
+
 def test_layout_job_board_capped_by_space():
     layout = Layout()
     layout.update(height=6, width=130, visible_jobs=50, visible_bars=1)
@@ -369,7 +381,7 @@ def test_layout_minimal_layout_height_1():
     assert layout.log_height == 0
 
 
-def test_layout_calculate_targets_all_visible():
+def test_layout_calculate_targets_all_visible_default():
     """Test _calculate_targets when all content is visible"""
     layout = Layout()
     layout.height = 20
@@ -396,6 +408,227 @@ def test_layout_toggle_show_debug_text():
 
     layout.toggle_show_debug_text()
     assert layout.show_debug_text is False
+
+
+def test_layout_calculate_targets_all_hidden():
+    """Test when all sections are hidden"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = False
+    layout.show_jobboard = False
+    layout.show_log = False
+
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=10, visible_jobs=10)
+
+    assert target_bars == 0
+    assert target_jobs == 0
+
+
+def test_layout_calculate_targets_only_bars_visible():
+    """Test when only progress bars are visible (50% -> 100%)"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = True
+    layout.show_jobboard = False
+    layout.show_log = False
+
+    # With only bars visible, it gets 100% of space
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=20, visible_jobs=10)
+
+    # target_bars = 1.0 * 100 = 100, but limited by visible_bars (20)
+    assert target_bars == 20
+    # target_jobs should be 0 since jobboard is hidden
+    assert target_jobs == 0
+
+
+def test_layout_calculate_targets_only_jobs_visible():
+    """Test when only jobs are visible (25% -> 100%)"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = False
+    layout.show_jobboard = True
+    layout.show_log = False
+
+    # With only jobs visible, it gets 100% of space
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=20, visible_jobs=50)
+
+    # target_bars should be 0 since bars are hidden
+    assert target_bars == 0
+    # target_jobs = 1.0 * 100 = 100, but limited by visible_jobs (50)
+    assert target_jobs == 50
+
+
+def test_layout_calculate_targets_only_jobs_visible_lotsofjobs():
+    """Test when only jobs are visible (25% -> 100%)"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = False
+    layout.show_jobboard = True
+    layout.show_log = False
+
+    # With only jobs visible, it gets 100% of space
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=20, visible_jobs=200)
+
+    # target_bars should be 0 since bars are hidden
+    assert target_bars == 0
+    # target_jobs = 1.0 * 100 = 100, but limited by visible_jobs (50)
+    assert target_jobs == 100
+
+
+def test_layout_calculate_targets_only_log_visible():
+    """Test when only log is visible (25% -> 100%)"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = False
+    layout.show_jobboard = False
+    layout.show_log = True
+
+    # With only log visible, it gets 100% of space but log doesn't use _calculate_targets
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=20, visible_jobs=50)
+
+    # Both should be 0 since neither bars nor jobs are showing
+    assert target_bars == 0
+    assert target_jobs == 0
+
+
+def test_layout_calculate_targets_bars_and_jobs_visible():
+    """Test when bars and jobs are visible (50% and 25% -> 66.7% and 33.3%)"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = True
+    layout.show_jobboard = True
+    layout.show_log = False
+
+    # With bars and jobs: bars=50/(50+25)=66.7%, jobs=25/(50+25)=33.3%
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=30, visible_jobs=50)
+
+    # target_bars = 0.667 * 100 = 66.7, limited by visible_bars (30) -> 30
+    # When bars are reduced, remainder redistributes to jobs
+    # remainder = 66.7 - 30 = 36.7
+    # target_jobs = 33.3 + 0.75 * 36.7 = 33.3 + 27.5 = 60.8, limited by visible_jobs (50)
+    assert target_bars == 30
+    assert target_jobs == 50
+
+
+def test_layout_calculate_targets_bars_and_log_visible():
+    """Test when bars and log are visible (50% and 25% -> 66.7% and 33.3%)"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = True
+    layout.show_jobboard = False
+    layout.show_log = True
+
+    # With bars and log: bars=50/(50+25)=66.7%, jobs=0
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=30, visible_jobs=50)
+
+    # target_bars = 0.667 * 100 = 66.7, limited by visible_bars (30) -> 30
+    # target_jobs = 0 since jobboard is hidden
+    assert target_bars == 30
+    assert target_jobs == 0
+
+
+def test_layout_calculate_targets_jobs_and_log_visible():
+    """Test when jobs and log are visible (25% and 25% -> 50% and 50%)"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = False
+    layout.show_jobboard = True
+    layout.show_log = True
+
+    # With jobs and log: bars=0, jobs=25/(25+25)=50%
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=30, visible_jobs=50)
+
+    # target_bars = 0 since bars are hidden
+    # target_jobs = 0.5 * 100 = 50, limited by visible_jobs (50)
+    assert target_bars == 0
+    assert target_jobs == 50
+
+
+def test_layout_calculate_targets_all_visible():
+    """Test when all sections are visible (50%, 25%, 25%)"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = True
+    layout.show_jobboard = True
+    layout.show_log = True
+
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=30, visible_jobs=50)
+
+    # target_bars = 0.5 * 100 = 50, limited by visible_bars (30) -> 30
+    # remainder = 50 - 30 = 20
+    # target_jobs = 0.25 * 100 + 0.75 * 20 = 25 + 15 = 40, limited by visible_jobs (50)
+    assert target_bars == 30
+    assert target_jobs == 40
+
+
+def test_layout_calculate_targets_bars_jobs_no_redistribution():
+    """Test bars and jobs when visible_bars >= target_bars (no redistribution)"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = True
+    layout.show_jobboard = True
+    layout.show_log = False
+
+    # bars get 66.7%, jobs get 33.3%
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=80, visible_jobs=50)
+
+    # target_bars = 0.667 * 100 = 66.7, ceil = 67, limited by visible_bars (80) -> 67
+    assert target_bars == 67
+    # target_jobs = 0.333 * 100 = 33.3, ceil = 34, limited by visible_jobs (50) -> 34
+    assert target_jobs == 34
+
+
+def test_layout_calculate_targets_all_exact_distribution():
+    """Test all visible with exact distribution (both bars and jobs sufficient)"""
+    layout = Layout()
+    layout.height = 40
+    layout.show_progress_bar = True
+    layout.show_jobboard = True
+    layout.show_log = True
+
+    # target_bars = 0.5 * 40 = 20
+    # target_jobs = 0.25 * 40 = 10
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=25, visible_jobs=15)
+
+    assert target_bars == 20
+    assert target_jobs == 10
+
+
+def test_layout_calculate_targets_bars_redistribution_limited_jobs():
+    """Test all visible: bars redistribute when visible_bars < target, but jobs are capped"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = True
+    layout.show_jobboard = True
+    layout.show_log = True
+
+    # target_bars = 50, visible_bars = 10
+    # target_jobs = 25, visible_jobs = 5
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=10, visible_jobs=5)
+
+    # target_bars = 50, limited by visible_bars (10) -> 10
+    # remainder = 50 - 10 = 40
+    # target_jobs = 25 + 0.75 * 40 = 25 + 30 = 55, limited by visible_jobs (5) -> 5
+    assert target_bars == 10
+    assert target_jobs == 5
+
+
+def test_layout_calculate_targets_only_bars_redistribution_attempt():
+    """Test only bars visible: redistribution logic doesn't
+    apply since no jobs to redistribute to"""
+    layout = Layout()
+    layout.height = 100
+    layout.show_progress_bar = True
+    layout.show_jobboard = False
+    layout.show_log = False
+
+    # target_bars = 100, visible_bars = 20
+    target_bars, target_jobs = layout._calculate_targets(visible_bars=20, visible_jobs=50)
+
+    # target_bars = 100, limited by visible_bars (20) -> 20
+    # target_jobs = 0 since jobboard is hidden
+    assert target_bars == 20
+    assert target_jobs == 0
 
 
 def test_layout_toggle_show_help_text():

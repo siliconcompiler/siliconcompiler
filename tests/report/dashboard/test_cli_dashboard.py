@@ -444,9 +444,9 @@ def test_layout_log_fill():
     layout = Layout()
     layout.update(console_height, console_width, visible_jobs, visible_bars)
 
-    assert layout.job_board_height == visible_jobs
+    assert layout.job_board_height == 13
     assert layout.progress_bar_height == 2
-    assert layout.log_height == 88
+    assert layout.log_height == 85
     assert layout.job_board_show_log is True
 
 
@@ -461,9 +461,9 @@ def test_layout_log_fill_lots_of_jobs():
     layout = Layout()
     layout.update(console_height, console_width, visible_jobs, visible_bars)
 
-    assert layout.job_board_height == 20
+    assert layout.job_board_height == 23
     assert layout.progress_bar_height == 2
-    assert layout.log_height == 78
+    assert layout.log_height == 75
     assert layout.job_board_show_log is True
 
 
@@ -1329,9 +1329,9 @@ def test_layout_normal_size():
     layout = Layout()
 
     layout.update(50, 120, 15, 5)
-    assert layout.job_board_height == 15
+    assert layout.job_board_height == 18
     assert layout.progress_bar_height == 6
-    assert layout.log_height == 29
+    assert layout.log_height == 26
 
 
 def test_get_job(mock_project, fake_console):

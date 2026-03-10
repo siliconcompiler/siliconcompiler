@@ -171,12 +171,19 @@ class Layout:
         """
         if not self.show_jobboard:
             return 0
+        if visible_jobs == 0 or target_jobs == 0:
+            return 0
+
         # If not enough space for even the header/padding, skip job board
         if self.remaining_height <= 2:
             return 0
-        max_nodes = max(0, self.remaining_height // 2)
-        # Pick the minimum of target, visible jobs, and max nodes that fit
-        return min(target_jobs, visible_jobs, max_nodes)
+
+        if self.show_log:
+            max_nodes = max(0, self.remaining_height // 2)
+        else:
+            max_nodes = self.remaining_height
+        # Pick the minimum of target, visible jobs with padding considered, and max nodes that fit
+        return min(min(target_jobs, visible_jobs) + 3, max_nodes)
 
     def _calc_log_height(self):
         """
@@ -199,12 +206,30 @@ class Layout:
         self.help_text_height = 0
 
     def _calculate_targets(self, visible_bars, visible_jobs):
-        target_jobs = 0.25 * self.height
-        target_bars = 0.50 * self.height
+        # Calculate percentages based on what sections are actually being shown
+        bar_pct = 0.50 if self.show_progress_bar else 0
+        job_pct = 0.25 if self.show_jobboard else 0
+        log_pct = 0.25 if self.show_log else 0
+
+        # Normalize percentages to account for hidden sections
+        total_pct = bar_pct + job_pct + log_pct
+        if total_pct == 0:
+            return 0, 0
+
+        bar_pct = bar_pct / total_pct
+        job_pct = job_pct / total_pct
+
+        # Calculate targets based on normalized percentages
+        target_bars = bar_pct * self.height
+        target_jobs = job_pct * self.height
+
+        # If fewer bars than target, redistribute remaining space to jobs
         if visible_bars < target_bars:
             remainder = target_bars - visible_bars
             target_bars = visible_bars
-            target_jobs += 0.75 * remainder
+            if self.show_jobboard:
+                target_jobs += 0.75 * remainder
+
         target_bars = int(math.ceil(target_bars))
         if visible_jobs < target_jobs:
             target_jobs = visible_jobs
