@@ -26,14 +26,12 @@ class Layout:
     job_board_height: int = 0
     progress_bar_height: int = 0
 
+    remaining_height: int = 0
+
     job_board_show_log: bool = True
     job_board_v_limit: int = 120
 
     __progress_bar_height_default = 1
-    padding_log = 2
-    padding_progress_bar: int = 1
-    padding_job_board: int = 1
-    padding_job_board_header: int = 1
 
     show_node_type: bool = False
     show_jobboard: bool = True
@@ -69,16 +67,15 @@ class Layout:
 
         self.progress_bar_height = self._calc_progress_bar_height(target_bars, visible_bars)
         if self.progress_bar_height > 0:
-            self.remaining_height -= self.progress_bar_height + self.padding_progress_bar
+            self.remaining_height -= self.progress_bar_height
 
         self.job_board_height = self._calc_job_board_height(target_jobs, visible_jobs)
         if self.job_board_height > 0:
-            self.remaining_height -= self.job_board_height + self.padding_job_board_header + \
-                self.padding_job_board
+            self.remaining_height -= self.job_board_height
 
         self.log_height = self._calc_log_height()
         if self.log_height > 0:
-            self.remaining_height -= self.log_height + self.padding_log
+            self.remaining_height -= self.log_height
 
     def toggle_show_log(self):
         """
@@ -109,7 +106,16 @@ class Layout:
         # Pick the minimum of target bars and visible bars, but at least 1
         if not self.show_progress_bar:
             return 0
-        return max(min(target_bars, visible_bars), self.__progress_bar_height_default)
+        if self.remaining_height <= 1:
+            return 0
+        if visible_bars == 0 or target_bars == 0:
+            return 0
+
+        target_height = max(min(target_bars, visible_bars),
+                            self.__progress_bar_height_default) + 1  # +1 for padding
+        if target_height > self.remaining_height:
+            return max(self.remaining_height, 0)
+        return target_height
 
     def _calc_job_board_height(self, target_jobs, visible_jobs):
         """
@@ -121,9 +127,8 @@ class Layout:
         """
         if not self.show_jobboard:
             return 0
-        min_space = self.padding_job_board_header + self.padding_job_board
         # If not enough space for even the header/padding, skip job board
-        if self.remaining_height <= min_space:
+        if self.remaining_height <= 2:
             return 0
         max_nodes = max(0, self.remaining_height // 2)
         # Pick the minimum of target, visible jobs, and max nodes that fit
@@ -139,10 +144,10 @@ class Layout:
         # All remaining space goes to the log section minus log padding
         if not self.show_log:
             return 0
-        return max(self.remaining_height - self.padding_log, 0)
+        return max(self.remaining_height, 0)
 
     def _set_minimal_layout(self):
-        self.progress_bar_height = self.height - self.padding_progress_bar - 1
+        self.progress_bar_height = self.height - 1
         if self.progress_bar_height < 0:
             self.progress_bar_height = 0
         self.job_board_height = 0
