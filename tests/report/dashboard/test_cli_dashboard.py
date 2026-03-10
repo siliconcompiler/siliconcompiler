@@ -554,6 +554,55 @@ def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
 
     dashboard._update_layout()
 
+    dashboard._layout.log_height = 11
+    assert dashboard._layout.log_height == 11
+    assert dashboard._layout.job_board_height == 0
+    assert dashboard._layout.progress_bar_height == 0
+
+    logger = logging.getLogger("test")
+    logger.setLevel(logging.INFO)
+
+    dashboard_medium.set_logger(logger)
+
+    for i in range(0, 200):
+        logger.log(logging.INFO, f"log row {i}")
+
+    log = dashboard._render_log(dashboard._layout)
+    assert isinstance(log.renderables[0], Table)
+    assert isinstance(log.renderables[1], Padding)
+
+    assert log.renderables[0].row_count == 10
+
+    # Check content
+    io_file = io.StringIO()
+    console = Console(file=io_file, width=120)
+    console.print(log)
+    actual_output = console.file.getvalue()
+    actual_lines = actual_output.splitlines(keepends=True)
+    start_index = 200 - 10
+    for i, line in enumerate(actual_lines):
+        if start_index + i == 200:
+            assert len(line.strip()) == 0
+        else:
+            assert f"log row {start_index + i}" in line
+
+
+def test_render_log_only(mock_running_job_lg, dashboard_medium):
+    dashboard = dashboard_medium._dashboard
+    dashboard._layout.show_jobboard = False
+    dashboard._layout.show_progress_bar = False
+    dashboard._layout.show_log = True
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_layout()
+
+    assert dashboard._layout.log_height == 40
+    assert dashboard._layout.job_board_height == 0
+    assert dashboard._layout.progress_bar_height == 0
+
     logger = logging.getLogger("test")
     logger.setLevel(logging.INFO)
 
