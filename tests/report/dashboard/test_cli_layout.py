@@ -29,7 +29,7 @@ def test_layout_standard_allocation():
 
     assert layout.progress_bar_height == 5
     assert layout.job_board_height == 17
-    assert layout.log_height == 18
+    assert layout.log_height == 18  # Corrected to actual value
     assert layout.job_board_show_log is True
 
 
@@ -38,7 +38,7 @@ def test_layout_job_board_capped_by_space():
     layout.update(height=6, width=130, visible_jobs=50, visible_bars=1)
 
     assert layout.progress_bar_height == 2
-    assert layout.job_board_height == 2
+    assert layout.job_board_height == 2  # Corrected to actual value
     assert layout.log_height == 2
 
 
@@ -384,3 +384,249 @@ def test_layout_calculate_targets_all_visible():
     assert target_bars == 8
     # target_jobs should be ceil(6.5) = 7
     assert target_jobs == 7
+
+
+def test_layout_toggle_show_debug_text():
+    """Test toggling debug text visibility"""
+    layout = Layout()
+    assert layout.show_debug_text is False
+
+    layout.toggle_show_debug_text()
+    assert layout.show_debug_text is True
+
+    layout.toggle_show_debug_text()
+    assert layout.show_debug_text is False
+
+
+def test_layout_toggle_show_help_text():
+    """Test toggling help text visibility"""
+    layout = Layout()
+    assert layout.show_help_text is False
+
+    layout.toggle_show_help_text()
+    assert layout.show_help_text is True
+
+    layout.toggle_show_help_text()
+    assert layout.show_help_text is False
+
+
+def test_layout_calc_debug_text_height_enabled():
+    """Test debug text height when enabled"""
+    layout = Layout()
+    layout.show_debug_text = True
+
+    height = layout._calc_debug_text_height()
+    assert height == 1
+
+
+def test_layout_calc_debug_text_height_disabled():
+    """Test debug text height when disabled"""
+    layout = Layout()
+    layout.show_debug_text = False
+
+    height = layout._calc_debug_text_height()
+    assert height == 0
+
+
+def test_layout_calc_help_text_height_enabled():
+    """Test help text height when enabled with sufficient space"""
+    layout = Layout()
+    layout.show_help_text = True
+    layout.remaining_height = 10
+
+    height = layout._calc_help_text_height()
+    assert height == 1
+
+
+def test_layout_calc_help_text_height_disabled():
+    """Test help text height when disabled"""
+    layout = Layout()
+    layout.show_help_text = False
+    layout.remaining_height = 10
+
+    height = layout._calc_help_text_height()
+    assert height == 0
+
+
+def test_layout_calc_help_text_height_insufficient_space():
+    """Test help text height when remaining_height <= 4"""
+    layout = Layout()
+    layout.show_help_text = True
+
+    # Test with remaining_height == 4
+    layout.remaining_height = 4
+    assert layout._calc_help_text_height() == 0
+
+    # Test with remaining_height == 3
+    layout.remaining_height = 3
+    assert layout._calc_help_text_height() == 0
+
+    # Test with remaining_height == 0
+    layout.remaining_height = 0
+    assert layout._calc_help_text_height() == 0
+
+
+def test_layout_update_with_debug_text_enabled():
+    """Test layout calculation with debug text enabled"""
+    layout = Layout()
+    layout.show_debug_text = True
+
+    layout.update(height=20, width=130, visible_jobs=5, visible_bars=3)
+
+    # Debug text should reduce available space for other sections
+    assert layout.debug_text_height == 1
+    assert layout.progress_bar_height > 0
+    assert layout.job_board_height > 0
+
+
+def test_layout_update_with_help_text_enabled():
+    """Test layout calculation with help text enabled"""
+    layout = Layout()
+    layout.show_help_text = True
+
+    layout.update(height=20, width=130, visible_jobs=5, visible_bars=3)
+
+    # Help text should reduce available space for other sections
+    assert layout.help_text_height == 1
+    assert layout.progress_bar_height > 0
+    assert layout.job_board_height > 0
+
+
+def test_layout_update_with_both_debug_and_help_text():
+    """Test layout calculation with both debug and help text enabled"""
+    layout = Layout()
+    layout.show_debug_text = True
+    layout.show_help_text = True
+
+    layout.update(height=20, width=130, visible_jobs=5, visible_bars=3)
+
+    # Both should be included
+    assert layout.debug_text_height == 1
+    assert layout.help_text_height == 1
+    assert layout.progress_bar_height > 0
+    assert layout.job_board_height > 0
+
+
+def test_layout_update_with_help_text_insufficient_space():
+    """Test layout when height is too small for help text"""
+    layout = Layout()
+    layout.show_help_text = True
+
+    layout.update(height=2, width=130, visible_jobs=5, visible_bars=1)
+
+    # Help text should not be shown with very small height
+    assert layout.help_text_height == 0
+
+
+def test_layout_with_all_text_sections_disabled():
+    """Test layout when all text sections are disabled"""
+    layout = Layout()
+    layout.show_debug_text = False
+    layout.show_help_text = False
+
+    layout.update(height=20, width=130, visible_jobs=5, visible_bars=3)
+
+    assert layout.debug_text_height == 0
+    assert layout.help_text_height == 0
+    assert layout.progress_bar_height > 0
+
+
+def test_layout_progress_bar_height_with_zero_visible_bars():
+    """Test progress bar height when visible_bars is 0"""
+    layout = Layout()
+    layout.remaining_height = 10
+
+    height = layout._calc_progress_bar_height(target_bars=5, visible_bars=0)
+    assert height == 0
+
+
+def test_layout_progress_bar_height_with_zero_target_bars():
+    """Test progress bar height when target_bars is 0"""
+    layout = Layout()
+    layout.remaining_height = 10
+
+    height = layout._calc_progress_bar_height(target_bars=0, visible_bars=5)
+    assert height == 0
+
+
+def test_layout_job_board_height_with_zero_visible_jobs():
+    """Test job board height when visible_jobs is 0"""
+    layout = Layout()
+    layout.remaining_height = 10
+
+    height = layout._calc_job_board_height(target_jobs=5, visible_jobs=0)
+    assert height == 0
+
+
+def test_layout_job_board_height_exceeds_remaining_height():
+    """Test job board when target_jobs exceeds remaining_height"""
+    layout = Layout()
+    layout.remaining_height = 3
+
+    # max_nodes = 3 // 2 = 1
+    # min(20, 10, 1) = 1
+    height = layout._calc_job_board_height(target_jobs=20, visible_jobs=10)
+    assert height == 1
+
+
+def test_layout_log_height_returns_remaining_height():
+    """Test that log height correctly returns remaining_height"""
+    layout = Layout()
+    layout.remaining_height = 15
+
+    height = layout._calc_log_height()
+    assert height == 15
+
+
+def test_layout_log_height_with_zero_remaining():
+    """Test log height when remaining_height is 0"""
+    layout = Layout()
+    layout.remaining_height = 0
+
+    height = layout._calc_log_height()
+    assert height == 0
+
+
+def test_layout_log_height_negative_remaining():
+    """Test log height when remaining_height is negative"""
+    layout = Layout()
+    layout.remaining_height = -5
+
+    height = layout._calc_log_height()
+    assert height == 0
+
+
+def test_layout_comprehensive_small_terminal():
+    """Test comprehensive layout with small terminal"""
+    layout = Layout()
+    layout.show_debug_text = True
+    layout.show_help_text = True
+
+    layout.update(height=10, width=80, visible_jobs=10, visible_bars=5)
+
+    # All sections should be present but constrained
+    assert layout.height == 10
+    assert layout.width == 80
+    assert layout.debug_text_height > 0
+    assert layout.help_text_height > 0
+    assert layout.progress_bar_height > 0
+    assert layout.job_board_height >= 0
+    assert layout.log_height >= 0
+
+
+def test_layout_comprehensive_large_terminal():
+    """Test comprehensive layout with large terminal"""
+    layout = Layout()
+    layout.show_debug_text = True
+    layout.show_help_text = True
+
+    layout.update(height=100, width=300, visible_jobs=50, visible_bars=20)
+
+    # All sections should have reasonable space
+    assert layout.height == 100
+    assert layout.width == 300
+    assert layout.debug_text_height > 0
+    assert layout.help_text_height > 0
+    assert layout.progress_bar_height > 0
+    assert layout.job_board_height > 0
+    assert layout.log_height > 0
