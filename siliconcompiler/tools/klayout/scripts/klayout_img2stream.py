@@ -122,11 +122,7 @@ def png_to_gds(
 
 def main():
     """
-    Main function for the stream-to-LEF conversion script.
-
-    This script is executed by KLayout in batch mode. It parses command-line
-    arguments, reads a SiliconCompiler schema, and then uses the `to_lef`
-    function to perform the GDS/OASIS to LEF conversion.
+    Main function for converting an image to gds
     """
     # SC_ROOT provided by CLI, and is only accessible when this is main module
     sys.path.append(SC_KLAYOUT_ROOT)  # noqa: F821

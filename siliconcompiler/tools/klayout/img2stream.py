@@ -14,7 +14,7 @@ class Img2StreamTask(KLayoutTask):
                            units="um")
         self.add_parameter("targetwidth", "float", "Target width for the image",
                            units="um")
-        self.add_parameter("layer", "(int,int)", "Stream layer to putput image on")
+        self.add_parameter("layer", "(int,int)", "Stream layer to output image on")
         self.add_parameter("invert", "bool", "Invert the polarity of the image", defvalue=False)
         self.add_parameter("darkissolid", "bool", "Treat dark colors as a solid", defvalue=True)
         self.add_parameter("timestamp", "bool", "Export GDSII with timestamps", defvalue=True)
