@@ -11,7 +11,7 @@ from typing import Union
 
 from siliconcompiler import Project
 
-from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
+from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema, NamedSchema
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.library import ToolLibrarySchema
@@ -195,6 +195,10 @@ class FPGA(Project):
             for iobj in obj:
                 self.add_dep(iobj)
             return
+
+        if isinstance(obj, NamedSchema):
+            if obj.name is None:
+                raise ValueError("Cannot add unnamed schema object as a dependency")
 
         if isinstance(obj, FPGADevice):
             EditableSchema(self).insert("library", obj.name, obj, clobber=True)

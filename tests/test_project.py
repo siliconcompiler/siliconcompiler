@@ -389,6 +389,15 @@ def test_add_dep_invalid():
         Project().add_dep(str("this"))
 
 
+def test_add_dep_unnamed_design():
+    proj = Project()
+    unnamed_design = Design()
+
+    with pytest.raises(ValueError,
+                       match=r"^Cannot add unnamed schema object as a dependency$"):
+        proj.add_dep(unnamed_design)
+
+
 def test_add_dep_list():
     design0 = Design("test0")
     design1 = Design("test1")

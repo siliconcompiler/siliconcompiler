@@ -235,6 +235,15 @@ def test_add_dep_handoff():
         add_dep.assert_called_once_with(None)
 
 
+def test_add_dep_unnamed_library():
+    proj = ASIC()
+    unnamed_lib = StdCellLibrary()
+
+    with pytest.raises(ValueError,
+                       match=r"^Cannot add unnamed schema object as a dependency$"):
+        proj.add_dep(unnamed_lib)
+
+
 def test_check_manifest_empty(monkeypatch, caplog):
     proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
