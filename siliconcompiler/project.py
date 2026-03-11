@@ -338,6 +338,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.add_dep(iobj)
             return
 
+        if isinstance(obj, NamedSchema):
+            if obj.name is None:
+                raise ValueError("Cannot add unnamed schema object as a dependency")
+
         if isinstance(obj, Design):
             if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
