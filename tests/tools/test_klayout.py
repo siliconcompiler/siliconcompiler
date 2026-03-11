@@ -9,6 +9,7 @@ from siliconcompiler.tools.klayout import operations
 from siliconcompiler.tools.klayout import drc
 from siliconcompiler.tools.klayout import convert_drc_db
 from siliconcompiler.tools.klayout import merge
+from siliconcompiler.tools.klayout import img2stream
 
 from siliconcompiler.targets import freepdk45_demo
 
@@ -272,6 +273,41 @@ def test_convert_drc(setup_pdk_test, datadir):
 
     assert hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest() == \
         '6ee3d048a257ccb7f2c0e86333b2044d0173c5c0'
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_img2stream():
+    design = Design("testdesign")
+    design.set_dataroot("sc", "python://siliconcompiler")
+    with design.active_fileset("image"):
+        design.set_topmodule("logo")
+        design.add_file("data/logo.png", dataroot="sc")
+
+    proj = ASIC(design)
+    proj.add_fileset("image")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("testflow")
+    flow.node('image', img2stream.Img2StreamTask())
+    proj.set_flow(flow)
+
+    task = img2stream.Img2StreamTask.find_task(proj)
+    task.set_klayout_minsize(5.0)
+    task.set_klayout_targetwidth(200.0)
+    task.set_klayout_layer(1)
+    task.set_klayout_invert(True)
+    task.set_klayout_timestamp(False)
+
+    assert proj.run()
+
+    gds = proj.find_result("gds", step="image")
+    assert os.path.isfile(gds)
+
+    with open(gds, 'rb') as gds_file:
+        data = gds_file.read()
+        assert hashlib.md5(data).hexdigest() == "d39dd13b221f7799b7de8a091457c2cd"
 
 
 def test_klayout_parameter_operations():
