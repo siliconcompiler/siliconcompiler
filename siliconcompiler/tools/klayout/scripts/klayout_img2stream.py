@@ -110,7 +110,9 @@ def png_to_gds(
                 region.insert(box)
 
     print("Merging adjacent pixels into optimized polygons...")
-    region.merge()
+    region.size(pixel_size_dbu)
+    region.merge(1)
+    region.size(-pixel_size_dbu)
 
     # 5. Insert the optimized region into the cell and save
     top_cell.shapes(layer).insert(region)

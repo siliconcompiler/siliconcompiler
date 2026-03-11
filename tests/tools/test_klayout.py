@@ -307,7 +307,7 @@ def test_img2stream():
 
     with open(gds, 'rb') as gds_file:
         data = gds_file.read()
-        assert hashlib.md5(data).hexdigest() == "d39dd13b221f7799b7de8a091457c2cd"
+        assert hashlib.md5(data).hexdigest() == "0485bc8f27cef39cfa4a1633e9844d33"
 
 
 def test_klayout_parameter_operations():
