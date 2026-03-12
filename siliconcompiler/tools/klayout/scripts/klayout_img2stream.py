@@ -117,11 +117,11 @@ def png_to_gds(
     pass_count = 1
     while True:
         # Generate shifted regions to detect neighborhood states
-        r_up         = region.moved(pya.Vector(0, pixel_size_dbu))
-        r_right      = region.moved(pya.Vector(pixel_size_dbu, 0))
-        r_left       = region.moved(pya.Vector(-pixel_size_dbu, 0))
-        r_up_right   = region.moved(pya.Vector(pixel_size_dbu, pixel_size_dbu))
-        r_up_left    = region.moved(pya.Vector(-pixel_size_dbu, pixel_size_dbu))
+        r_up = region.moved(pya.Vector(0, pixel_size_dbu))
+        r_right = region.moved(pya.Vector(pixel_size_dbu, 0))
+        r_left = region.moved(pya.Vector(-pixel_size_dbu, 0))
+        r_up_right = region.moved(pya.Vector(pixel_size_dbu, pixel_size_dbu))
+        r_up_left = region.moved(pya.Vector(-pixel_size_dbu, pixel_size_dbu))
 
         # --- KISS TYPE 1: (\) Diagonal ---
         bridges_1 = (r_right & r_up) - region - r_up_right
