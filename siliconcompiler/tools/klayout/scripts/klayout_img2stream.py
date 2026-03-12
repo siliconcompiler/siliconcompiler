@@ -118,11 +118,11 @@ def png_to_gds(
     # with exactly one full pixel block.
 
     # Generate shifted regions to detect neighborhood states
-    r_up         = region.moved(pya.Vector(0, pixel_size_dbu))
-    r_right      = region.moved(pya.Vector(pixel_size_dbu, 0))
-    r_left       = region.moved(pya.Vector(-pixel_size_dbu, 0))
-    r_up_right   = region.moved(pya.Vector(pixel_size_dbu, pixel_size_dbu))
-    r_up_left    = region.moved(pya.Vector(-pixel_size_dbu, pixel_size_dbu))
+    r_up = region.moved(pya.Vector(0, pixel_size_dbu))
+    r_right = region.moved(pya.Vector(pixel_size_dbu, 0))
+    r_left = region.moved(pya.Vector(-pixel_size_dbu, 0))
+    r_up_right = region.moved(pya.Vector(pixel_size_dbu, pixel_size_dbu))
+    r_up_left = region.moved(pya.Vector(-pixel_size_dbu, pixel_size_dbu))
 
     # --- KISS TYPE 1: (\) Diagonal ---
     # Occurs when Top-Left and Bottom-Right are solid, but Top-Right is empty.
