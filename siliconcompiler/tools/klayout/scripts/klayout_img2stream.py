@@ -110,9 +110,36 @@ def png_to_gds(
                 region.insert(box)
 
     print("Merging adjacent pixels into optimized polygons...")
-    region.size(pixel_size_dbu)
-    region.merge(1)
-    region.size(-pixel_size_dbu)
+    region.merge()
+
+    print("Boolean Kissing-Corner Resolution...")
+
+    pass_count = 1
+    while True:
+        # Generate shifted regions to detect neighborhood states
+        r_up = region.moved(pya.Vector(0, pixel_size_dbu))
+        r_right = region.moved(pya.Vector(pixel_size_dbu, 0))
+        r_left = region.moved(pya.Vector(-pixel_size_dbu, 0))
+        r_up_right = region.moved(pya.Vector(pixel_size_dbu, pixel_size_dbu))
+        r_up_left = region.moved(pya.Vector(-pixel_size_dbu, pixel_size_dbu))
+
+        # --- KISS TYPE 1: (\) Diagonal ---
+        bridges_1 = (r_right & r_up) - region - r_up_right
+
+        # --- KISS TYPE 2: (/) Diagonal ---
+        bridges_2 = (r_left & r_up) - region - r_up_left
+
+        # Check for fixed point: if no new bridges are needed, terminate the loop
+        if bridges_1.is_empty() and bridges_2.is_empty():
+            print(f"Kissing-corner resolution converged after {pass_count - 1} additions.")
+            break
+
+        # Add the perfectly sized pixel bridges back to the main region
+        region = region + bridges_1 + bridges_2
+
+        # Merge to dissolve the bridges into the main polygons before the next pass
+        region.merge()
+        pass_count += 1
 
     # 5. Insert the optimized region into the cell and save
     top_cell.shapes(layer).insert(region)
