@@ -113,32 +113,33 @@ def png_to_gds(
     region.merge()
 
     print("Boolean Kissing-Corner Resolution...")
-    # To resolve kissing corners while strictly enforcing the pixel_size_dbu grid,
-    # we use KLayout's native boolean engine to find diagonal touches and bridge them
-    # with exactly one full pixel block.
 
-    # Generate shifted regions to detect neighborhood states
-    r_up = region.moved(pya.Vector(0, pixel_size_dbu))
-    r_right = region.moved(pya.Vector(pixel_size_dbu, 0))
-    r_left = region.moved(pya.Vector(-pixel_size_dbu, 0))
-    r_up_right = region.moved(pya.Vector(pixel_size_dbu, pixel_size_dbu))
-    r_up_left = region.moved(pya.Vector(-pixel_size_dbu, pixel_size_dbu))
+    pass_count = 1
+    while True:
+        # Generate shifted regions to detect neighborhood states
+        r_up         = region.moved(pya.Vector(0, pixel_size_dbu))
+        r_right      = region.moved(pya.Vector(pixel_size_dbu, 0))
+        r_left       = region.moved(pya.Vector(-pixel_size_dbu, 0))
+        r_up_right   = region.moved(pya.Vector(pixel_size_dbu, pixel_size_dbu))
+        r_up_left    = region.moved(pya.Vector(-pixel_size_dbu, pixel_size_dbu))
 
-    # --- KISS TYPE 1: (\) Diagonal ---
-    # Occurs when Top-Left and Bottom-Right are solid, but Top-Right is empty.
-    # Formula isolates exactly the Top-Right empty pixels that form the kiss.
-    bridges_1 = (r_right & r_up) - region - r_up_right
+        # --- KISS TYPE 1: (\) Diagonal ---
+        bridges_1 = (r_right & r_up) - region - r_up_right
 
-    # --- KISS TYPE 2: (/) Diagonal ---
-    # Occurs when Top-Right and Bottom-Left are solid, but Top-Left is empty.
-    # Formula isolates exactly the Top-Left empty pixels that form the kiss.
-    bridges_2 = (r_left & r_up) - region - r_up_left
+        # --- KISS TYPE 2: (/) Diagonal ---
+        bridges_2 = (r_left & r_up) - region - r_up_left
 
-    print("Fusing singularities...")
-    # Add the perfectly sized pixel bridges back to the main region
-    region = region + bridges_1 + bridges_2
+        # Check for fixed point: if no new bridges are needed, terminate the loop
+        if bridges_1.is_empty() and bridges_2.is_empty():
+            print(f"Kissing-corner resolution converged after {pass_count - 1} additions.")
+            break
 
-    region.merge()
+        # Add the perfectly sized pixel bridges back to the main region
+        region = region + bridges_1 + bridges_2
+
+        # Merge to dissolve the bridges into the main polygons before the next pass
+        region.merge()
+        pass_count += 1
 
     # 5. Insert the optimized region into the cell and save
     top_cell.shapes(layer).insert(region)
