@@ -29,7 +29,17 @@ def test_layout_standard_allocation():
 
     assert layout.progress_bar_height == 5
     assert layout.job_board_height == 17
-    assert layout.log_height == 18  # Corrected to actual value
+    assert layout.log_height == 18
+    assert layout.job_board_show_log is True
+
+
+def test_layout_standard_allocation_one():
+    layout = Layout()
+    layout.update(height=40, width=130, visible_jobs=1, visible_bars=1)
+
+    assert layout.progress_bar_height == 2
+    assert layout.job_board_height == 4
+    assert layout.log_height == 34
     assert layout.job_board_show_log is True
 
 
@@ -50,7 +60,7 @@ def test_layout_job_board_capped_by_space():
     layout.update(height=6, width=130, visible_jobs=50, visible_bars=1)
 
     assert layout.progress_bar_height == 2
-    assert layout.job_board_height == 2  # Corrected to actual value
+    assert layout.job_board_height == 2
     assert layout.log_height == 2
 
 
