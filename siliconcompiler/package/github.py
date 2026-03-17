@@ -161,13 +161,17 @@ class GithubResolver(HTTPResolver):
             return super()._get_auth_token(["GITHUB", "GH", "GIT"])
         except ValueError as e:
             # Try calling gh
-            if shutil.which("gh"):
+            gh = shutil.which("gh")
+            if gh:
                 try:
-                    run = subprocess.run(["gh", "auth", "token"], capture_output=True, timeout=5)
+                    run = subprocess.run([gh, "auth", "token"], capture_output=True, timeout=5)
                 except subprocess.TimeoutExpired:
                     raise e
                 if run.returncode == 0:
-                    return run.stdout.decode().strip()
+                    token = run.stdout.decode().strip()
+                    if not token or '\n' in token:
+                        raise e
+                    return token
             raise e
 
     def __gh(self, private: bool) -> Github:
