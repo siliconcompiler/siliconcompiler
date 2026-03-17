@@ -168,7 +168,7 @@ def init():
 
             add_project(os.path.basename(file_path), graph_project)
 
-        # Pre-select a node if specified in the project's arguments.
+        # Preselect a node if specified in the project's arguments.
         project_step = project.get('arg', 'step')
         project_index = project.get('arg', 'index')
         if project_step and project_index:

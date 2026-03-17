@@ -8,6 +8,22 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.2 (2026-03-09)
+=========================================
+
+**Minor:**
+
+ * Fixed recursive call on `.write_fileset` to avoid excessive recursion.
+ * Fixed file log installation to ensure the log contains errors from tool setup.
+ * Added additional error checks when adding aliases to check for no-op aliases.
+ * Added basic handling of type hinting to `smake`.
+
+ * Tools:
+
+  * openroad: update scripts to provide initial handling of multi-mode timing.
+  * opensta: update scripts to provide initial handling of multi-mode timing.
+
+
 SiliconCompiler 0.37.1 (2026-02-26)
 =========================================
 

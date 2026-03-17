@@ -3,7 +3,7 @@ import re
 
 from typing import Union, Tuple
 
-from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
+from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema, NamedSchema
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import Project, sc_open
@@ -200,6 +200,10 @@ class ASIC(Project):
             for iobj in obj:
                 self.add_dep(iobj)
             return
+
+        if isinstance(obj, NamedSchema):
+            if obj.name is None:
+                raise ValueError("Cannot add unnamed schema object as a dependency")
 
         if isinstance(obj, StdCellLibrary):
             if not self._has_library(obj.name):

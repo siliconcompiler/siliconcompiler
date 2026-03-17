@@ -116,6 +116,15 @@ def test_project_add_dep_handoff():
         add_dep.assert_called_once_with(None)
 
 
+def test_project_add_dep_unnamed_device():
+    proj = FPGA()
+    unnamed_device = FPGADevice()
+
+    with pytest.raises(ValueError,
+                       match=r"^Cannot add unnamed schema object as a dependency$"):
+        proj.add_dep(unnamed_device)
+
+
 def test_project_check_manifest_empty(monkeypatch, caplog):
     proj = FPGA()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())

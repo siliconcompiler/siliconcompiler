@@ -9,7 +9,7 @@ import os.path
 
 from collections import deque
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, auto
 from typing import List, Dict
 
 from rich import box
@@ -20,6 +20,7 @@ from rich.progress import Progress, BarColumn, TextColumn, MofNCompleteColumn
 from rich.console import Console
 from rich.console import Group
 from rich.padding import Padding
+from rich.text import Text
 
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
@@ -27,6 +28,13 @@ from siliconcompiler.utils.paths import workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.units import format_time
 from siliconcompiler.report.dashboard.cli.layout import Layout
+from siliconcompiler.report.dashboard.cli.keyboard import Keyboard
+from siliconcompiler import _metadata
+
+
+class View(Enum):
+    NORMAL = auto()
+    HELP = auto()
 
 
 class LogBuffer:
@@ -300,8 +308,6 @@ class Board:
     __USE_ICONS = False
     __USE_LINK = False
 
-    __JOB_BOARD_HEADER = True
-
     __JOB_BOARD_BOX = box.SIMPLE_HEAD
 
     def __init__(self, manager):
@@ -326,6 +332,7 @@ class Board:
             return
 
         self._layout = Layout()
+        self.__view = View.NORMAL
 
         if Board.__USE_ICONS:
             self._layout.show_node_type = True
@@ -352,10 +359,21 @@ class Board:
         # Sleep time for the dashboard
         self._dwell = 0.1
 
-        if not self.__JOB_BOARD_HEADER:
-            self._layout.padding_job_board_header = 0
-
         self._metrics = ("warnings", "errors")
+
+        self.__help_dwell = 5.0
+        self.__last_help = 0.0
+
+    def show_help(self):
+        """
+        Show or hide the help text in the dashboard. This method toggles the visibility
+        of the help text and updates the timestamp for when the help was last toggled.
+        """
+        if self._layout.show_help_text:
+            return
+
+        self._layout.toggle_show_help_text()
+        self.__last_help = time.time()
 
     def make_log_hander(self) -> logging.Handler:
         """
@@ -379,6 +397,10 @@ class Board:
                     self._render_thread = threading.Thread(target=self._render, daemon=True)
                     self._render_event.clear()
                     self._render_stop_event.clear()
+
+                    Keyboard.start()
+
+                    self.show_help()
 
                     self._render_thread.start()
 
@@ -443,6 +465,13 @@ class Board:
 
         self._render_stop_event.set()
         self._render_event.set()
+
+        Keyboard.stop()
+
+        # Restore the help
+        self.__last_help = 0.0
+        if self._layout.show_help_text:
+            self._layout.toggle_show_help_text()
 
         # Wait for rendering to finish
         self.wait()
@@ -516,18 +545,20 @@ class Board:
         if layout.log_height == 0:
             return None
 
-        table = Table(box=None, width=layout.width)
+        number_of_lines = layout.log_height
+
+        table = Table(box=None, width=layout.width, padding=(0, 0))
         table.add_column(overflow="ellipsis", no_wrap=True, vertical="bottom")
         table.show_edge = False
         table.show_lines = False
         table.show_footer = False
         table.show_header = False
-        for line in self._log_handler.get_lines(layout.log_height):
+        for line in self._log_handler.get_lines(number_of_lines):
             table.add_row(f"[white]{line}[/]")
-        while table.row_count < layout.log_height:
+        while table.row_count < number_of_lines:
             table.add_row("")
 
-        return Group(table, Padding("", (0, 0)))
+        return table
 
     def _render_job_dashboard(self, layout: Layout):
         """
@@ -547,16 +578,17 @@ class Board:
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()  # Access jobs from SessionData
 
-        if self.__JOB_BOARD_HEADER:
-            table_box = self.__JOB_BOARD_BOX
-        else:
-            table_box = None
+        number_of_jobs = layout.job_board_height
+        number_of_jobs -= 1  # accounting for the header
+        number_of_jobs -= 1  # accounting for padding
+        table_box = self.__JOB_BOARD_BOX
+        number_of_jobs -= 1  # accounting for the header
 
         table = Table(box=table_box, pad_edge=False)
         table.show_edge = False
         table.show_lines = False
         table.show_footer = False
-        table.show_header = self.__JOB_BOARD_HEADER
+        table.show_header = True
 
         def get_column_header(title):
             return Board._symbols.get("headers", {}).get(title, title.capitalize())
@@ -574,7 +606,7 @@ class Board:
         if layout.job_board_show_log:
             table.add_column(get_column_header("log"))
 
-        multi_jobs = len(job_data) > 1 or True
+        multi_jobs = len(job_data) > 1
 
         # jobname, node index, priority, node order
         table_data_select = []
@@ -590,7 +622,7 @@ class Board:
         table_data_select = sorted(table_data_select, key=lambda d: (d[2], *d[3], d[0]))
 
         # trim to size
-        table_data_select = table_data_select[0:layout.job_board_height]
+        table_data_select = table_data_select[0:number_of_jobs]
 
         # sort for printing order
         table_data_select = sorted(table_data_select, key=lambda d: (d[0], *d[3], d[2]))
@@ -642,9 +674,7 @@ class Board:
         if table.row_count == 0:
             return None
 
-        if self.__JOB_BOARD_HEADER:
-            return Group(table, Padding("", (0, 0)))
-        return Group(Padding("", (0, 0)), table, Padding("", (0, 0)))
+        return Group(table, Padding("", (0, 0)))
 
     def _render_progress_bar(self, layout: Layout):
         """
@@ -657,6 +687,9 @@ class Board:
             rich.group.Group or rich.padding.Padding: A renderable object for the
                                                       progress bars.
         """
+        if layout.progress_bar_height == 0:
+            return None
+
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()
 
@@ -682,17 +715,19 @@ class Board:
             job_info.append(
                 (done, f"{job.design}/{job.jobname}", job.total, job.success, runtimes[name]))
 
-        while len(job_info) > layout.progress_bar_height:
+        number_of_bars = layout.progress_bar_height - 1  # accounting for the padding
+        while job_info and len(job_info) > number_of_bars:
             for job in job_info:
                 if job[0]:
                     # complete complete and can be removed
                     job_info.remove(job)
                     break
             # remove first job
-            del job_info[0]
+            if job_info:
+                del job_info[0]
 
         if not job_info:
-            return Padding("", (0, 0))
+            return None
 
         progress = Progress(
             TextColumn("[progress.description]{task.description}"),
@@ -748,6 +783,8 @@ class Board:
                     # Catch any multiprocessing errors
                     break
 
+                self._handle_keyboard()
+
                 if check_stop_event():
                     break
 
@@ -761,6 +798,28 @@ class Board:
                 self.live.update(self._get_rendable(), refresh=True)
             else:
                 self._console.print(self._get_rendable())
+
+    def _handle_keyboard(self):
+        key = Keyboard.check_key()
+        if key is None:
+            return
+        key = key.lower()
+        if key == "h":
+            if self.__view == View.HELP:
+                self.__view = View.NORMAL
+            else:
+                self.__view = View.HELP
+        elif key == "d":
+            self._layout.toggle_show_debug_text()
+        elif key == "j":
+            self._layout.toggle_show_progress_bar()
+        elif key == "l":
+            self._layout.toggle_show_log()
+        elif key == "n":
+            self._layout.toggle_show_jobboard()
+        else:
+            if not self._layout.show_help_text:
+                self.show_help()
 
     def _update_layout(self) -> Layout:
         """
@@ -824,6 +883,71 @@ class Board:
                 [0, *[job.runtime for job in self._render_data.jobs.values()]]
             )
 
+    def _render_help(self, layout: Layout):
+        groups = []
+        banner_height = 7 + 1
+        authors_height = 1 + 1
+        version_height = 1 + 1
+        help_info = [
+            ("h", "Toggle showing this help information"),
+            ("j", "Toggle showing job details"),
+            ("n", "Toggle showing node details"),
+            ("l", "Toggle showing log details")]
+        table_height = 6 + len(help_info)  # header + padding
+
+        banner = Padding(Text(_metadata.banner), pad=(0, 0, 1, 0))
+        authors = Padding(
+            Text(f"Authors: {', '.join(_metadata.authors)}", overflow="ellipsis", no_wrap=True),
+            pad=(0, 0, 1, 0))
+        version = Padding(
+            Text(f"Version: {_metadata.version}", overflow="ellipsis", no_wrap=True),
+            pad=(0, 0, 1, 0))
+
+        if layout.height >= banner_height + authors_height + table_height + version_height:
+            groups.append(banner)
+            groups.append(authors)
+            groups.append(version)
+        elif layout.height >= banner_height + table_height + authors_height:
+            groups.append(banner)
+            groups.append(authors)
+        elif layout.height >= banner_height + table_height:
+            groups.append(banner)
+
+        table = Table(title="Dashboard Help")
+
+        table.add_column("Key", style="bold cyan")
+        table.add_column("Description")
+
+        for key, help in help_info:
+            table.add_row(key, help)
+
+        groups.append(table)
+
+        return groups
+
+    def _render_view(self, layout: Layout):
+        """
+        Renders the entire dashboard view based on the current layout.
+        """
+        items = []
+        nodesboard = self._render_job_dashboard(layout)
+        if nodesboard:
+            items.append(nodesboard)
+
+        progress = self._render_progress_bar(layout)
+        if progress:
+            items.append(progress)
+
+        log = self._render_log(layout)
+        if log:
+            items.append(log)
+
+        if layout.help_text_height > 0:
+            items.append(Text("Press 'H' for help, press 'Ctrl+C' to quit.",
+                              no_wrap=True, overflow="ellipsis", style="bold white"))
+
+        return items
+
     def _get_rendable(self):
         """
         Assembles the final renderable object for the `rich.live` display.
@@ -835,21 +959,23 @@ class Board:
             rich.group.Group: The complete, renderable dashboard layout.
         """
 
+        if self._layout.show_help_text and (time.time() - self.__last_help) > self.__help_dwell:
+            self._layout.toggle_show_help_text()
+
         layout = self._update_layout()
 
-        new_table = self._render_job_dashboard(layout)
-        new_bar = self._render_progress_bar(layout)
-        footer = self._render_log(layout)
-
         items = []
-        if new_table:
-            items.extend([new_table])
+        if self.__view == View.HELP:
+            items.extend(self._render_help(layout))
+        else:
+            items.extend(self._render_view(layout))
 
-        if new_bar:
-            items.extend([new_bar])
-
-        if footer:
-            items.extend([footer])
+        if layout.debug_text_height > 0:
+            items.append(Text(
+                f"Console: {layout.height}x{layout.width}, "
+                f"Sections: {layout.job_board_height}/{layout.progress_bar_height}/"
+                f"{layout.log_height}/{layout.help_text_height}/{layout.debug_text_height}",
+                no_wrap=True, overflow="ellipsis", style="bold white"))
 
         return Group(*items)
 

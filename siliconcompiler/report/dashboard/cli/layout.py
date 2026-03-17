@@ -25,20 +25,22 @@ class Layout:
     log_height: int = 0
     job_board_height: int = 0
     progress_bar_height: int = 0
+    help_text_height: int = 0
+    debug_text_height: int = 0
+
+    remaining_height: int = 0
 
     job_board_show_log: bool = True
     job_board_v_limit: int = 120
 
-    __progress_bar_height_default = 1
-    padding_log = 2
-    padding_progress_bar: int = 1
-    padding_job_board: int = 1
-    padding_job_board_header: int = 1
+    __progress_bar_height_default: int = 1
 
     show_node_type: bool = False
     show_jobboard: bool = True
     show_log: bool = True
     show_progress_bar: bool = True
+    show_help_text: bool = False
+    show_debug_text: bool = False
 
     def update(self, height: int, width: int, visible_jobs: int, visible_bars: int):
         """
@@ -54,31 +56,50 @@ class Layout:
         """
         self.height = height
         self.width = width
+        self.remaining_height = self.height
 
         # Decide whether to show the log column in the job board based on width
         self.job_board_show_log = self.width >= self.job_board_v_limit
 
+        self.debug_text_height = self._calc_debug_text_height()
+        if self.debug_text_height > 0:
+            self.remaining_height -= self.debug_text_height
+
         # If terminal is extremely small, use minimal layout
-        if self.height < 2:
+        if self.remaining_height < 2:
             self._set_minimal_layout()
             return
 
+        self.help_text_height = self._calc_help_text_height()
+        if self.help_text_height > 0:
+            self.remaining_height -= self.help_text_height
+
         # Target sizes are computed up front, then each section is sized independently.
         target_bars, target_jobs = self._calculate_targets(visible_bars, visible_jobs)
-        self.remaining_height = self.height
 
         self.progress_bar_height = self._calc_progress_bar_height(target_bars, visible_bars)
         if self.progress_bar_height > 0:
-            self.remaining_height -= self.progress_bar_height + self.padding_progress_bar
+            self.remaining_height -= self.progress_bar_height
 
         self.job_board_height = self._calc_job_board_height(target_jobs, visible_jobs)
         if self.job_board_height > 0:
-            self.remaining_height -= self.job_board_height + self.padding_job_board_header + \
-                self.padding_job_board
+            self.remaining_height -= self.job_board_height
 
         self.log_height = self._calc_log_height()
         if self.log_height > 0:
-            self.remaining_height -= self.log_height + self.padding_log
+            self.remaining_height -= self.log_height
+
+    def toggle_show_debug_text(self):
+        """
+        Toggle the visibility of the debug text section.
+        """
+        self.show_debug_text = not self.show_debug_text
+
+    def toggle_show_help_text(self):
+        """
+        Toggle the visibility of the help text section.
+        """
+        self.show_help_text = not self.show_help_text
 
     def toggle_show_log(self):
         """
@@ -98,6 +119,26 @@ class Layout:
         """
         self.show_jobboard = not self.show_jobboard
 
+    def _calc_debug_text_height(self):
+        """
+        Calculate the height for the debug text section.
+        - Always at least 1 row.
+        """
+        if not self.show_debug_text:
+            return 0
+        return 1
+
+    def _calc_help_text_height(self):
+        """
+        Calculate the height for the help text section.
+        - Always at least 1 row.
+        """
+        if not self.show_help_text:
+            return 0
+        if self.remaining_height <= 4:
+            return 0
+        return 1
+
     def _calc_progress_bar_height(self, target_bars, visible_bars):
         """
         Calculate the height for the progress bar section.
@@ -109,7 +150,16 @@ class Layout:
         # Pick the minimum of target bars and visible bars, but at least 1
         if not self.show_progress_bar:
             return 0
-        return max(min(target_bars, visible_bars), self.__progress_bar_height_default)
+        if self.remaining_height <= 1:
+            return 0
+        if visible_bars == 0 or target_bars == 0:
+            return 0
+
+        target_height = max(min(target_bars, visible_bars),
+                            self.__progress_bar_height_default) + 1  # +1 for padding
+        if target_height > self.remaining_height:
+            return max(self.remaining_height, 0)
+        return target_height
 
     def _calc_job_board_height(self, target_jobs, visible_jobs):
         """
@@ -121,13 +171,19 @@ class Layout:
         """
         if not self.show_jobboard:
             return 0
-        min_space = self.padding_job_board_header + self.padding_job_board
-        # If not enough space for even the header/padding, skip job board
-        if self.remaining_height <= min_space:
+        if visible_jobs == 0 or target_jobs == 0:
             return 0
-        max_nodes = max(0, self.remaining_height // 2)
-        # Pick the minimum of target, visible jobs, and max nodes that fit
-        return min(target_jobs, visible_jobs, max_nodes)
+
+        # If not enough space for even the header/padding, skip job board
+        if self.remaining_height <= 2:
+            return 0
+
+        if self.show_log:
+            max_nodes = max(0, self.remaining_height // 2)
+        else:
+            max_nodes = self.remaining_height
+        # Pick the minimum of target, visible jobs with padding considered, and max nodes that fit
+        return min(min(target_jobs, visible_jobs) + 3, max_nodes)
 
     def _calc_log_height(self):
         """
@@ -139,22 +195,41 @@ class Layout:
         # All remaining space goes to the log section minus log padding
         if not self.show_log:
             return 0
-        return max(self.remaining_height - self.padding_log, 0)
+        return max(self.remaining_height, 0)
 
     def _set_minimal_layout(self):
-        self.progress_bar_height = self.height - self.padding_progress_bar - 1
+        self.progress_bar_height = self.height - 1
         if self.progress_bar_height < 0:
             self.progress_bar_height = 0
         self.job_board_height = 0
         self.log_height = 0
+        self.help_text_height = 0
 
     def _calculate_targets(self, visible_bars, visible_jobs):
-        target_jobs = 0.25 * self.height
-        target_bars = 0.50 * self.height
+        # Calculate percentages based on what sections are actually being shown
+        bar_pct = 0.50 if self.show_progress_bar else 0
+        job_pct = 0.25 if self.show_jobboard else 0
+        log_pct = 0.25 if self.show_log else 0
+
+        # Normalize percentages to account for hidden sections
+        total_pct = bar_pct + job_pct + log_pct
+        if total_pct == 0:
+            return 0, 0
+
+        bar_pct = bar_pct / total_pct
+        job_pct = job_pct / total_pct
+
+        # Calculate targets based on normalized percentages
+        target_bars = bar_pct * self.height
+        target_jobs = job_pct * self.height
+
+        # If fewer bars than target, redistribute remaining space to jobs
         if visible_bars < target_bars:
             remainder = target_bars - visible_bars
             target_bars = visible_bars
-            target_jobs += 0.75 * remainder
+            if self.show_jobboard:
+                target_jobs += 0.75 * remainder
+
         target_bars = int(math.ceil(target_bars))
         if visible_jobs < target_jobs:
             target_jobs = visible_jobs
