@@ -30,7 +30,7 @@ class BambuStdCellLibrary(StdCellLibrary):
 
         self.define_tool_parameter("bambu", "device", "str",
                                    "name of the target device for bambu.")
-        self.define_tool_parameter("bambu", "clock_multiplier", "float",
+        self.define_tool_parameter("bambu", "clock_multiplier", "float<0.0->>",
                                    "scalar facto to convert from library units to ns.")
 
     def set_bambu_device_name(self, name):
