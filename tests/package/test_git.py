@@ -346,7 +346,8 @@ def test_git_resolver_include_submodule_invalid():
         resolver.include_submodules
 
 
-@pytest.mark.parametrize("scheme,expect", (("ssh", "ssh"), ("git+ssh", "ssh"), ("git", "https"), ("git+https", "https")))
+@pytest.mark.parametrize("scheme,expect", (("ssh", "ssh"), ("git+ssh", "ssh"),
+                                           ("git", "https"), ("git+https", "https")))
 @pytest.mark.parametrize("value", ("False", "FALSE", "false", "f", "F", "0"))
 def test_git_resolver_include_submodule_false(scheme, expect, value):
     resolver = GitResolver("test", None, f"{scheme}://github.com/owner/repo.git?submodules={value}",
