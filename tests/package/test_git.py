@@ -325,3 +325,31 @@ def test_git_resolver_resolve_remote_other_error(monkeypatch):
         mock_repo_class.clone_from = raise_other_error
         with pytest.raises(Exception):  # Will raise GitCommandError
             resolver.resolve_remote()
+
+
+def test_git_resolver_include_submodule_default():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git", "main")
+    assert resolver.include_submodules is True
+
+
+def test_git_resolver_include_submodule_default():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git?somethingelse=False", "main")
+    assert resolver.include_submodules is True
+
+
+def test_git_resolver_include_submodule_invalid():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git?submodules=k", "main")
+    with pytest.raises(ValueError, match=r"^k is not a valid option for submodule$"):
+        resolver.include_submodules
+
+
+@pytest.mark.parametrize("value", ("False", "FALSE", "false", "f", "F", "0"))
+def test_git_resolver_include_submodule_false(value):
+    resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?submodules={value}", "main")
+    assert resolver.include_submodules is False
+
+
+@pytest.mark.parametrize("value", ("True", "TRUE", "true", "t", "T", "1"))
+def test_git_resolver_include_submodule_true(value):
+    resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?submodules={value}", "main")
+    assert resolver.include_submodules is True

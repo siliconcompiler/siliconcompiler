@@ -11,6 +11,8 @@ import os.path
 from typing import Dict, Type, Optional, Union, TYPE_CHECKING
 
 from git import Repo, GitCommandError
+from urllib import parse as url_parse
+
 from siliconcompiler.package import RemoteResolver
 
 if TYPE_CHECKING:
@@ -137,6 +139,24 @@ class GitResolver(RemoteResolver):
         url = url._replace(scheme='https')
         return url.geturl()
 
+    @property
+    def include_submodules(self) -> bool:
+        """Returns true if submodules should be included"""
+
+        qs = self.urlparse.query
+        if not qs:
+            return True
+        for key, value in url_parse.parse_qsl(qs):
+            if key == "submodules":
+                if value.lower() in ("true", "t", "1"):
+                    return True
+                elif value.lower() in ("false", "f", "0"):
+                    return False
+                else:
+                    raise ValueError(f"{value} is not a valid option for submodule")
+
+        return True
+
     def resolve_remote(self) -> None:
         """
         Fetches the remote repository and checks out the specified reference.
@@ -151,14 +171,16 @@ class GitResolver(RemoteResolver):
         try:
             path = self.git_path
             self.logger.info(f'Cloning {self.name} data from {path}')
-            repo = Repo.clone_from(path, self.cache_path, recurse_submodules=True)
+            repo = Repo.clone_from(path, self.cache_path,
+                                   recurse_submodules=self.include_submodules)
 
             self.logger.info(f'Checking out {self.reference}')
             repo.git.checkout(self.reference)
 
-            self.logger.info('Updating submodules')
-            for submodule in repo.submodules:
-                submodule.update(recursive=True, init=True, force=True)
+            if self.include_submodules:
+                self.logger.info('Updating submodules')
+                for submodule in repo.submodules:
+                    submodule.update(recursive=True, init=True, force=True)
         except GitCommandError as e:
             error_msg = str(e)
             if 'Permission denied' in error_msg or 'could not read Username' in error_msg:
