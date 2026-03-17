@@ -119,7 +119,9 @@ class GitResolver(RemoteResolver):
         """
         if self.urlscheme == "git+ssh" or self.urlscheme == "ssh":
             # Reconstruct the original SSH URL
-            return self.source.replace('git+', '')
+            url = self.urlparse
+            url = url._replace(scheme='ssh', query="", fragment="")
+            return url.geturl()
 
         # For HTTPS, inject token if available
         url = self.urlparse
@@ -136,7 +138,7 @@ class GitResolver(RemoteResolver):
         if not url.username and token:
             url = url._replace(netloc=f'{token}@{url.hostname}')
         # Ensure the scheme is HTTPS
-        url = url._replace(scheme='https')
+        url = url._replace(scheme='https', query="", fragment="")
         return url.geturl()
 
     @property

@@ -330,12 +330,14 @@ def test_git_resolver_resolve_remote_other_error(monkeypatch):
 def test_git_resolver_include_submodule_default():
     resolver = GitResolver("test", None, "git://github.com/owner/repo.git", "main")
     assert resolver.include_submodules is True
+    assert resolver.git_path == "https://github.com/owner/repo.git"
 
 
 def test_git_resolver_include_submodule_default_with_qs():
     resolver = GitResolver("test", None, "git://github.com/owner/repo.git?somethingelse=False",
                            "main")
     assert resolver.include_submodules is True
+    assert resolver.git_path == "https://github.com/owner/repo.git"
 
 
 def test_git_resolver_include_submodule_invalid():
@@ -344,11 +346,13 @@ def test_git_resolver_include_submodule_invalid():
         resolver.include_submodules
 
 
+@pytest.mark.parametrize("scheme,expect", (("ssh", "ssh"), ("git+ssh", "ssh"), ("git", "https"), ("git+https", "https")))
 @pytest.mark.parametrize("value", ("False", "FALSE", "false", "f", "F", "0"))
-def test_git_resolver_include_submodule_false(value):
-    resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?submodules={value}",
+def test_git_resolver_include_submodule_false(scheme, expect, value):
+    resolver = GitResolver("test", None, f"{scheme}://github.com/owner/repo.git?submodules={value}",
                            "main")
     assert resolver.include_submodules is False
+    assert resolver.git_path == f"{expect}://github.com/owner/repo.git"
 
 
 @pytest.mark.parametrize("value", ("True", "TRUE", "true", "t", "T", "1"))
@@ -356,3 +360,4 @@ def test_git_resolver_include_submodule_true(value):
     resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?submodules={value}",
                            "main")
     assert resolver.include_submodules is True
+    assert resolver.git_path == "https://github.com/owner/repo.git"
