@@ -332,8 +332,9 @@ def test_git_resolver_include_submodule_default():
     assert resolver.include_submodules is True
 
 
-def test_git_resolver_include_submodule_default():
-    resolver = GitResolver("test", None, "git://github.com/owner/repo.git?somethingelse=False", "main")
+def test_git_resolver_include_submodule_default_with_qs():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git?somethingelse=False",
+                           "main")
     assert resolver.include_submodules is True
 
 
@@ -345,11 +346,13 @@ def test_git_resolver_include_submodule_invalid():
 
 @pytest.mark.parametrize("value", ("False", "FALSE", "false", "f", "F", "0"))
 def test_git_resolver_include_submodule_false(value):
-    resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?submodules={value}", "main")
+    resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?submodules={value}",
+                           "main")
     assert resolver.include_submodules is False
 
 
 @pytest.mark.parametrize("value", ("True", "TRUE", "true", "t", "T", "1"))
 def test_git_resolver_include_submodule_true(value):
-    resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?submodules={value}", "main")
+    resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?submodules={value}",
+                           "main")
     assert resolver.include_submodules is True
