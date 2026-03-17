@@ -1,5 +1,6 @@
 import pytest
 import logging
+import subprocess
 
 from unittest.mock import patch, MagicMock
 
@@ -421,3 +422,404 @@ def test_github_resolver_get_gh_auth_multiple_special_chars(monkeypatch):
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
     token = resolver._GithubResolver__get_gh_token()
     assert token == "special_token"
+
+
+# ============================================================================
+# Tests for gh CLI bypass in __get_gh_token
+# ============================================================================
+
+def test_github_resolver_get_gh_token_fallback_gh_cli_success(monkeypatch):
+    """Test __get_gh_token falls back to gh CLI and succeeds."""
+    # Clear all environment tokens to force fallback
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b"gh_cli_token_12345"
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        token = resolver._GithubResolver__get_gh_token()
+
+        assert token == "gh_cli_token_12345"
+        mock_which.assert_called_once_with("gh")
+        mock_run.assert_called_once_with(
+            ["/usr/bin/gh", "auth", "token"],
+            capture_output=True,
+            timeout=5
+        )
+
+
+def test_github_resolver_get_gh_token_fallback_gh_cli_strips_whitespace(monkeypatch):
+    """Test __get_gh_token gh CLI result strips whitespace."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b"  token_with_whitespace\n\n  "
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        token = resolver._GithubResolver__get_gh_token()
+
+        assert token == "token_with_whitespace"
+
+
+def test_github_resolver_get_gh_token_fallback_gh_missing(monkeypatch):
+    """Test __get_gh_token raises error when gh is missing."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which:
+        mock_which.return_value = None  # gh command not found
+
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()
+
+
+def test_github_resolver_get_gh_token_fallback_gh_timeout(monkeypatch):
+    """Test __get_gh_token handles timeout from gh CLI."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.side_effect = subprocess.TimeoutExpired(["gh", "auth", "token"], timeout=5)
+
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()
+
+
+def test_github_resolver_get_gh_token_fallback_gh_nonzero_exit(monkeypatch):
+    """Test __get_gh_token raises error when gh returns non-zero exit code."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 1
+    mock_result.stderr = b"Not authenticated"
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()
+
+
+def test_github_resolver_get_gh_token_fallback_gh_env_preferred_over_gh_cli(monkeypatch):
+    """Test environment tokens are preferred over gh CLI fallback."""
+    monkeypatch.setenv("GITHUB_TOKEN", "env_token")
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        token = resolver._GithubResolver__get_gh_token()
+
+        # Should use env token, never call gh
+        assert token == "env_token"
+        mock_which.assert_not_called()
+        mock_run.assert_not_called()
+
+
+def test_github_resolver_get_gh_token_fallback_only_when_env_fails(monkeypatch):
+    """Test gh CLI is only used when env variables fail."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b"fallback_token"
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        token = resolver._GithubResolver__get_gh_token()
+
+        assert token == "fallback_token"
+        # Verify gh CLI was called as fallback
+        mock_run.assert_called_once()
+
+
+def test_github_resolver_get_gh_token_fallback_preserves_original_error(monkeypatch):
+    """Test __get_gh_token preserves original ValueError when gh CLI also fails."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    # gh returns failure
+    mock_result = MagicMock()
+    mock_result.returncode = 1
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        # Should raise the original ValueError from parent class
+        with pytest.raises(ValueError) as exc_info:
+            resolver._GithubResolver__get_gh_token()
+
+        # Error message should mention authorization token (from parent)
+        assert "authorization token" in str(exc_info.value).lower()
+
+
+def test_github_resolver_get_gh_token_timeout_5_seconds(monkeypatch):
+    """Test __get_gh_token uses 5 second timeout for gh CLI."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b"token"
+
+    timeout_used = None
+
+    def capture_timeout(*args, **kwargs):
+        nonlocal timeout_used
+        timeout_used = kwargs.get('timeout')
+        return mock_result
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run", side_effect=capture_timeout) \
+            as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+
+        resolver._GithubResolver__get_gh_token()
+
+        mock_run.assert_called_once()
+        assert timeout_used == 5
+
+
+def test_github_resolver_get_gh_token_with_capture_output(monkeypatch):
+    """Test __get_gh_token uses capture_output=True for gh subprocess."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b"token"
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        resolver._GithubResolver__get_gh_token()
+
+        # Verify subprocess.run was called with capture_output=True
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs['capture_output'] is True
+
+
+# ============================================================================
+# Tests for gh CLI output validation
+# ============================================================================
+
+def test_github_resolver_get_gh_token_rejects_empty_output(monkeypatch):
+    """Test __get_gh_token rejects empty token from gh CLI."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b""  # Empty token
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()
+
+
+def test_github_resolver_get_gh_token_rejects_whitespace_only_output(monkeypatch):
+    """Test __get_gh_token rejects whitespace-only token from gh CLI."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b"   \n\n  \t  "  # Only whitespace
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()
+
+
+def test_github_resolver_get_gh_token_rejects_multiline_token(monkeypatch):
+    """Test __get_gh_token rejects multiline token from gh CLI."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b"token_line1\ntoken_line2"  # Multiple lines
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()
+
+
+def test_github_resolver_get_gh_token_rejects_embedded_newline(monkeypatch):
+    """Test __get_gh_token rejects token with embedded newlines."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    # Token with embedded newline after strip
+    mock_result.stdout = b"token_part1\ntoken_part2"
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()
+
+
+def test_github_resolver_get_gh_token_accepts_single_line_token(monkeypatch):
+    """Test __get_gh_token accepts valid single-line token from gh CLI."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b"valid_single_line_token"
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        token = resolver._GithubResolver__get_gh_token()
+
+        assert token == "valid_single_line_token"
+
+
+def test_github_resolver_get_gh_token_strips_leading_trailing_whitespace(monkeypatch):
+    """Test __get_gh_token properly strips leading/trailing whitespace."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = b"  \n  token_value  \n  "
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        token = resolver._GithubResolver__get_gh_token()
+
+        assert token == "token_value"
+        assert "\n" not in token
+
+
+def test_github_resolver_get_gh_token_rejects_carriage_returns(monkeypatch):
+    """Test __get_gh_token rejects tokens with carriage returns."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GIT_TOKEN", raising=False)
+
+    resolver = GithubResolver("test", None,
+                              "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    # Token with carriage return (should be rejected)
+    mock_result.stdout = b"token\rvalue"
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+        mock_which.return_value = "/usr/bin/gh"
+        mock_run.return_value = mock_result
+
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()
