@@ -813,7 +813,7 @@ def test_github_resolver_get_gh_token_rejects_carriage_returns(monkeypatch):
 
     mock_result = MagicMock()
     mock_result.returncode = 0
-    # Token with carriage return (strips leading/trailing only)
+    # Token with carriage return (should be rejected)
     mock_result.stdout = b"token\rvalue"
 
     with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
@@ -821,9 +821,5 @@ def test_github_resolver_get_gh_token_rejects_carriage_returns(monkeypatch):
         mock_which.return_value = "/usr/bin/gh"
         mock_run.return_value = mock_result
 
-        # strip() doesn't remove \r in the middle, but the validation should catch it
-        # Actually strip() will only strip leading/trailing, so \r in the middle would pass
-        # Let's modify test to check actual behavior - strip removes leading/trailing whitespace
-        token = resolver._GithubResolver__get_gh_token()
-        # \r is not stripped by .strip() if it's not leading/trailing
-        assert token == "token\rvalue"
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()

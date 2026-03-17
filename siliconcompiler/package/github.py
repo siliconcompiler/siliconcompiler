@@ -169,7 +169,7 @@ class GithubResolver(HTTPResolver):
                     raise e
                 if run.returncode == 0:
                     token = run.stdout.decode().strip()
-                    if not token or '\n' in token:
+                    if not token or '\n' in token or '\r' in token:
                         raise e
                     return token
             raise e
