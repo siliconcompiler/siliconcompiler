@@ -422,7 +422,6 @@ jobs:
   tools_changed_check:
     runs-on: ubuntu-latest
     name: Check if tools changed
-    if: github.event_name == 'pull_request'
     outputs:
       asic_changed: ${{ steps.changes.outputs.asic }}
     steps:
