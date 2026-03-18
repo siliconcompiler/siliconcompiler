@@ -1,5 +1,6 @@
 import pytest
 import hashlib
+from pathlib import Path
 
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
@@ -73,7 +74,8 @@ def test_vcd2fst_conversion():
     design = Design("random")
     with design.active_fileset("rtl"):
         design.set_topmodule("random")
-        design.add_file("/home/pgadfort/siliconcompiler/tests/utils/data/random.vcd")
+        vcd_path = str(Path(__file__).resolve().parent.parent / "utils" / "data" / "random.vcd")
+        design.add_file(vcd_path)
 
     proj = Project(design)
     proj.add_fileset("rtl")
