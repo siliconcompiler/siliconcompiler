@@ -422,25 +422,31 @@ jobs:
   tools_changed_check:
     runs-on: ubuntu-latest
     name: Check if tools changed
-    if: github.event_name == 'pull_request'
     outputs:
-      changed: ${{ steps.changes.outputs.tools }}
+      asic_changed: ${{ steps.changes.outputs.asic }}
     steps:
       - name: Checkout current SiliconCompiler
         uses: actions/checkout@v6
 
-      - name: Check tool updates
-        uses: dorny/paths-filter@v4
-        id: changes
+      - name: Checkout main SiliconCompiler
+        uses: actions/checkout@v6
         with:
-          filters: |
-            tools:
-              - 'siliconcompiler/toolscripts/_tools.json'
+          ref: main
+          path: scmain
 
-  run_daily:
-    name: Run daily CI
+      - name: Check tool updates
+        id: changes
+        run: |
+          toolsscript=.github/workflows/bin/check_tool_changes.py
+          toolsfile=siliconcompiler/toolscripts/_tools.json
+          asic_change=$(python3 $toolsscript scmain/${toolsfile} ${toolsfile} --workflow asic)
+          echo "asic=${asic_change}"
+          echo "asic=${asic_change}" >> $GITHUB_OUTPUT
+
+  run_daily_asic:
+    name: Run daily ASIC CI
     needs: [build_sc_tools, tools_changed_check]
-    if: always() && !cancelled() && needs.tools_changed_check.outputs.changed == 'true'
+    if: always() && !cancelled() && needs.tools_changed_check.outputs.asic_changed == 'Yes'
     uses: ./.github/workflows/daily_ci.yml
 
   server_tests:
