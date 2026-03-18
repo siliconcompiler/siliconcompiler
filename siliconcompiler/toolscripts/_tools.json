@@ -170,5 +170,10 @@
     "git-url": "https://github.com/keplertech/kepler-formal.git",
     "git-commit": "405682c75dc8ca7edbc2ba94ebfe5bc5faaf0904",
     "auto-update": false
+  },
+  "vcd2fst": {
+    "git-url": "https://github.com/Silimate/vcd2fst.git",
+    "git-commit": "d6c2aa562df99b92a64187b176359e26f1cc9cde",
+    "auto-update": true
   }
 }
