@@ -440,6 +440,7 @@ jobs:
           toolsscript=.github/workflows/bin/check_tool_changes.py
           toolsfile=siliconcompiler/toolscripts/_tools.json
           asic_change=$(python3 $toolsscript scmain/${toolsfile} ${toolsfile} --workflow asic)
+          echo "asic=${asic_change}"
           echo "asic=${asic_change}" >> $GITHUB_OUTPUT
 
   run_daily_asic:
