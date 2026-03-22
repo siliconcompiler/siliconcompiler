@@ -8,6 +8,22 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.3 (2026-03-22)
+=========================================
+
+**Minor:**
+
+ * Updated layout handling of the dashboard to better handle future modifications.
+ * Added help screen to dashboard and basic controls for what is displayed.
+ * Added check for adding dependencies to projects without a name.
+ * Added support for `?submodules=<True/False>` for git dataroots to control pulling submodules.
+
+ * Tools:
+
+  * klayout: added task to convert images to GDS.
+  * vcd2fst: added to support converting VCD files to FST.
+
+
 SiliconCompiler 0.37.2 (2026-03-09)
 =========================================
 
