@@ -2,9 +2,10 @@ from siliconcompiler.tools._common.cocotb.cocotb_task import (
     CocotbTask,
     get_cocotb_config
 )
+from siliconcompiler.tools._common import PlusArgs
 
 
-class CocotbExecTask(CocotbTask):
+class CocotbExecTask(CocotbTask, PlusArgs):
     '''
     Run a cocotb testbench against a compiled Icarus Verilog simulation.
 
@@ -49,5 +50,11 @@ class CocotbExecTask(CocotbTask):
 
         # Input .vvp file
         options.append(f"inputs/{self.design_topmodule}.vvp")
+
+        # Add plus args
+        plusargs = self.get_plusargs()
+        if plusargs:
+            for plusarg in plusargs:
+                options.append(f"+{plusarg[0]}={plusarg[1]}")
 
         return options
