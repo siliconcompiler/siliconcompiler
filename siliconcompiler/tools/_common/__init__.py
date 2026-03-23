@@ -21,7 +21,7 @@ class PlusArgs(Task):
                            'List of plusarg (name, value) tuples to pass to '
                            'the tool.')
 
-    def add_plusargs(
+    def add_plusarg(
         self, name: str, value: str,
         step: Optional[str] = None,
         index: Optional[Union[str, int]] = None,
