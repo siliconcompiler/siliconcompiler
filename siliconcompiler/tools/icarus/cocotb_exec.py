@@ -52,12 +52,10 @@ class CocotbExecTask(CocotbTask, PlusArgs):
         options.append(f"inputs/{self.design_topmodule}.vvp")
 
         # Add plus args
-        plusargs = self.get_plusargs()
-        if plusargs:
-            for plusarg in plusargs:
-                if plusarg[1]:
-                    options.append(f"+{plusarg[0]}={plusarg[1]}")
-                else:
-                    options.append(f"+{plusarg[0]}")
+        for plusarg in self.get_plusargs():
+            if plusarg[1]:
+                options.append(f"+{plusarg[0]}={plusarg[1]}")
+            else:
+                options.append(f"+{plusarg[0]}")
 
         return options

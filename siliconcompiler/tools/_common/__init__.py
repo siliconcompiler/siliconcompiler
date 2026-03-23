@@ -21,26 +21,11 @@ class PlusArgs(Task):
                            'List of plusarg (name, value) tuples to pass to '
                            'the tool.')
 
-    def set_plusargs(
-        self, plusargs: List[Tuple[str, str]],
-        step: Optional[str] = None,
-        index: Optional[Union[str, int]] = None
-    ):
-        """
-        Sets the plusargs list, replacing any existing values.
-
-        Args:
-            plusargs: List of (name, value) plusarg tuples.
-            step (str, optional): The specific step to apply this configuration to.
-            index (str or int, optional): The specific index to apply this
-                configuration to.
-        """
-        self.set("var", "plusargs", plusargs, step=step, index=index)
-
     def add_plusargs(
         self, plusarg: Tuple[str, str],
         step: Optional[str] = None,
-        index: Optional[Union[str, int]] = None
+        index: Optional[Union[str, int]] = None,
+        clobber: bool = False
     ):
         """
         Appends a single plusarg to the existing list.
@@ -50,8 +35,13 @@ class PlusArgs(Task):
             step (str, optional): The specific step to apply this configuration to.
             index (str or int, optional): The specific index to apply this
                 configuration to.
+            clobber (bool, optional): If True, replaces the current value.
+                Defaults to False.
         """
-        self.add("var", "plusargs", plusarg, step=step, index=index)
+        if clobber:
+            self.set("var", "plusargs", [plusarg], step=step, index=index)
+        else:
+            self.add("var", "plusargs", plusarg, step=step, index=index)
 
     def get_plusargs(
         self,
