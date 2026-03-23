@@ -7,7 +7,7 @@ class PlusArgs(Task):
 
     Provides a ``plusargs`` parameter and convenience methods for
     setting, adding, and retrieving plusarg values. Each plusarg is
-    a ``(name, value)`` tuple that maps to ``+name+value`` on the
+    a ``(name, value)`` tuple that maps to ``+name=value`` on the
     tool command line.
 
     Intended to be used via multiple inheritance alongside a concrete
