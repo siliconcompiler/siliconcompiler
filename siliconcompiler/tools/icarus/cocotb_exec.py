@@ -55,6 +55,9 @@ class CocotbExecTask(CocotbTask, PlusArgs):
         plusargs = self.get_plusargs()
         if plusargs:
             for plusarg in plusargs:
-                options.append(f"+{plusarg[0]}={plusarg[1]}")
+                if plusarg[1]:
+                    options.append(f"+{plusarg[0]}={plusarg[1]}")
+                else:
+                    options.append(f"+{plusarg[0]}")
 
         return options

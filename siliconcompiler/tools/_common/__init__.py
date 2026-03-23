@@ -53,14 +53,23 @@ class PlusArgs(Task):
         """
         self.add("var", "plusargs", plusarg, step=step, index=index)
 
-    def get_plusargs(self) -> List[Tuple[str, str]]:
+    def get_plusargs(
+        self,
+        step: Optional[str] = None,
+        index: Optional[Union[str, int]] = None
+    ) -> List[Tuple[str, str]]:
         """
         Returns the current list of plusargs.
+
+        Args:
+            step (str, optional): The specific step to retrieve configuration from.
+            index (str or int, optional): The specific index to retrieve
+                configuration from.
 
         Returns:
             list: List of (name, value) plusarg tuples.
         """
-        return self.get("var", "plusargs")
+        return self.get("var", "plusargs", step=step, index=index)
 
     def setup(self):
         super().setup()

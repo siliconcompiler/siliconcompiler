@@ -23,6 +23,9 @@ def test_plusargs_get_plusargs():
     task = PlusArgs()
     task.set_plusargs([("define", "FOO"), ("incdir", "/path")])
     assert task.get_plusargs() == [("define", "FOO"), ("incdir", "/path")]
+    task.set_plusargs([("key3", "val3")], step='test', index='1')
+    assert task.get_plusargs(step='test', index='1') == [("key3", "val3")]
+    assert task.get_plusargs() == [("define", "FOO"), ("incdir", "/path")]
 
 
 def test_plusargs_get_plusargs_empty():
