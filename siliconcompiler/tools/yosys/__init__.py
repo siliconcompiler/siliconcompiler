@@ -414,3 +414,8 @@ class YosysTask(Task):
                     registers += int(line_registers[0])
         if registers is not None:
             self.record_metric("registers", registers, source_file=self.get_logpath("exe"))
+
+    def get_runtime_environmental_variables(self, include_path: bool = True):
+        env = super().get_runtime_environmental_variables(include_path)
+        env["TMPDIR"] = os.getcwd()
+        return env
