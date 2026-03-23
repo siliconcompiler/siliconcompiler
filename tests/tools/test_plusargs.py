@@ -5,10 +5,10 @@ from siliconcompiler.tools._common import PlusArgs
 
 def test_plusargs_add_plusargs():
     task = PlusArgs()
-    task.add_plusargs(("key1", "val1"))
-    task.add_plusargs(("key2", "val2"))
+    task.add_plusargs("key1", "val1")
+    task.add_plusargs("key2", "val2")
     assert task.get("var", "plusargs") == [("key1", "val1"), ("key2", "val2")]
-    task.add_plusargs(("key3", "val3"), clobber=True)
+    task.add_plusargs("key3", "val3", clobber=True)
     assert task.get("var", "plusargs") == [("key3", "val3")]
 
 

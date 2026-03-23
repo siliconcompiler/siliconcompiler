@@ -22,7 +22,7 @@ class PlusArgs(Task):
                            'the tool.')
 
     def add_plusargs(
-        self, plusarg: Tuple[str, str],
+        self, name: str, value: str,
         step: Optional[str] = None,
         index: Optional[Union[str, int]] = None,
         clobber: bool = False
@@ -31,7 +31,8 @@ class PlusArgs(Task):
         Appends a single plusarg to the existing list.
 
         Args:
-            plusarg: A (name, value) plusarg tuple.
+            name (str): The plusarg name.
+            value (str): The plusarg value.
             step (str, optional): The specific step to apply this configuration to.
             index (str or int, optional): The specific index to apply this
                 configuration to.
@@ -39,9 +40,9 @@ class PlusArgs(Task):
                 Defaults to False.
         """
         if clobber:
-            self.set("var", "plusargs", [plusarg], step=step, index=index)
+            self.set("var", "plusargs", (name, value), step=step, index=index)
         else:
-            self.add("var", "plusargs", plusarg, step=step, index=index)
+            self.add("var", "plusargs", (name, value), step=step, index=index)
 
     def get_plusargs(
         self,
