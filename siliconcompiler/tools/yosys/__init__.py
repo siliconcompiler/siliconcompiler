@@ -381,6 +381,13 @@ class YosysTask(Task):
         # an "implicit post release number".
         return version.replace('+', '-')
 
+    def _tmpdir(self) -> str:
+        return os.path.join(os.getcwd(), "tmp")
+
+    def pre_process(self):
+        super().pre_process()
+        os.makedirs(self._tmpdir(), exist_ok=True)
+
     def _synthesis_post_process(self):
         stat_json = "reports/stat.json"
         if os.path.exists(stat_json):
@@ -414,3 +421,8 @@ class YosysTask(Task):
                     registers += int(line_registers[0])
         if registers is not None:
             self.record_metric("registers", registers, source_file=self.get_logpath("exe"))
+
+    def get_runtime_environmental_variables(self, include_path: bool = True):
+        env = super().get_runtime_environmental_variables(include_path)
+        env["TMPDIR"] = self._tmpdir()
+        return env
