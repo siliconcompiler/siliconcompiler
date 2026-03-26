@@ -113,139 +113,6 @@ if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
 }
 
 ###############################
-# Generate pad ring
-###############################
-
-if { [llength [sc_cfg_tool_task_get var padringfileset]] > 0 } {
-    set do_automatic_pins 0
-
-    set padringfiles_read []
-    set padringfileset [sc_cfg_tool_task_get var padringfileset]
-    set padringfiles [sc_cfg_get_fileset $sc_designlib $padringfileset tcl]
-    foreach padring_file $padringfiles {
-        if { [lsearch -exact $padringfiles_read $padring_file] != -1 } {
-            continue
-        }
-        puts "Sourcing padring configuration: ${padring_file}"
-        source $padring_file
-
-        lappend padringfiles_read $padring_file
-    }
-
-    if { [sc_design_has_unplaced_pads] } {
-        foreach inst [[ord::get_db_block] getInsts] {
-            if { [$inst isPad] && ![$inst isFixed] } {
-                utl::warn FLW 1 "[$inst getName] has not been placed"
-            }
-        }
-        utl::error FLW 1 "Design contains unplaced IOs"
-    }
-}
-
-###############################
-# Pin placement
-###############################
-set sc_hpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_horizontal]]
-set sc_vpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_vertical]]
-
-if { [sc_cfg_exists constraint pin] } {
-    source [sc_cfg_tool_task_get var sc_pin_constraints_tcl]
-
-    proc sc_pin_print { arg } { utl::warn FLW 1 $arg }
-    proc sc_pin_layer_select { pin } {
-        global sc_hpinmetal
-        global sc_vpinmetal
-
-        set layer [sc_cfg_get constraint pin $pin layer]
-        if { $layer != {} } {
-            return [sc_get_layer_name $layer]
-        }
-        set side [sc_cfg_get constraint pin $pin side]
-        if { $side != {} } {
-            switch -regexp $side {
-                "1|3" {
-                    return [lindex $sc_hpinmetal 0]
-                }
-                "2|4" {
-                    return [lindex $sc_vpinmetal 0]
-                }
-                default {
-                    utl::error FLW 1 "Side number ($side) on $pin is not supported."
-                }
-            }
-        }
-
-        utl::error FLW 1 "$pin needs to either specify side or layer parameter."
-    }
-    sc_collect_pin_constraints \
-        pin_placement \
-        pin_order \
-        sc_pin_layer_select \
-        sc_pin_print
-
-    foreach pin $pin_placement {
-        set layer [sc_pin_layer_select $pin]
-        set place [sc_cfg_get constraint pin $pin placement]
-
-        set x_loc [lindex $place 0]
-        set y_loc [lindex $place 1]
-
-        place_pin -pin_name $pin \
-            -layer $layer \
-            -location "$x_loc $y_loc" \
-            -force_to_die_boundary
-    }
-
-    dict for {side layer_pins} $pin_order {
-        set edge_length 0
-        switch -regexp $side {
-            "1|3" {
-                set edge_length \
-                    [expr { [lindex [ord::get_die_area] 3] - [lindex [ord::get_die_area] 1] }]
-            }
-            "2|4" {
-                set edge_length \
-                    [expr { [lindex [ord::get_die_area] 2] - [lindex [ord::get_die_area] 0] }]
-            }
-            default {
-                utl::error FLW 1 "Side number ($side) is not supported."
-            }
-        }
-
-        dict for {layer ordered_pins} $layer_pins {
-            set spacing [expr { $edge_length / ([llength $ordered_pins] + 1) }]
-
-            for { set i 0 } { $i < [llength $ordered_pins] } { incr i } {
-                set name [lindex $ordered_pins $i]
-                switch -regexp $side {
-                    "1" {
-                        set x_loc [lindex [ord::get_die_area] 1]
-                        set y_loc [expr { ($i + 1) * $spacing }]
-                    }
-                    "2" {
-                        set x_loc [expr { ($i + 1) * $spacing }]
-                        set y_loc [lindex [ord::get_die_area] 3]
-                    }
-                    "3" {
-                        set x_loc [lindex [ord::get_die_area] 2]
-                        set y_loc [expr { ($i + 1) * $spacing }]
-                    }
-                    "4" {
-                        set x_loc [expr { ($i + 1) * $spacing }]
-                        set y_loc [lindex [ord::get_die_area] 1]
-                    }
-                }
-
-                place_pin -pin_name $name \
-                    -layer $layer \
-                    -location "$x_loc $y_loc" \
-                    -force_to_die_boundary
-            }
-        }
-    }
-}
-
-###############################
 # Macro placement
 ###############################
 
@@ -380,6 +247,139 @@ if { [sc_cfg_exists constraint component] } {
     }
 
     sc_print_macro_information $sc_placed_insts
+}
+
+###############################
+# Pin placement
+###############################
+set sc_hpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_horizontal]]
+set sc_vpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_vertical]]
+
+if { [sc_cfg_exists constraint pin] } {
+    source [sc_cfg_tool_task_get var sc_pin_constraints_tcl]
+
+    proc sc_pin_print { arg } { utl::warn FLW 1 $arg }
+    proc sc_pin_layer_select { pin } {
+        global sc_hpinmetal
+        global sc_vpinmetal
+
+        set layer [sc_cfg_get constraint pin $pin layer]
+        if { $layer != {} } {
+            return [sc_get_layer_name $layer]
+        }
+        set side [sc_cfg_get constraint pin $pin side]
+        if { $side != {} } {
+            switch -regexp $side {
+                "1|3" {
+                    return [lindex $sc_hpinmetal 0]
+                }
+                "2|4" {
+                    return [lindex $sc_vpinmetal 0]
+                }
+                default {
+                    utl::error FLW 1 "Side number ($side) on $pin is not supported."
+                }
+            }
+        }
+
+        utl::error FLW 1 "$pin needs to either specify side or layer parameter."
+    }
+    sc_collect_pin_constraints \
+        pin_placement \
+        pin_order \
+        sc_pin_layer_select \
+        sc_pin_print
+
+    foreach pin $pin_placement {
+        set layer [sc_pin_layer_select $pin]
+        set place [sc_cfg_get constraint pin $pin placement]
+
+        set x_loc [lindex $place 0]
+        set y_loc [lindex $place 1]
+
+        place_pin -pin_name $pin \
+            -layer $layer \
+            -location "$x_loc $y_loc" \
+            -force_to_die_boundary
+    }
+
+    dict for {side layer_pins} $pin_order {
+        set edge_length 0
+        switch -regexp $side {
+            "1|3" {
+                set edge_length \
+                    [expr { [lindex [ord::get_die_area] 3] - [lindex [ord::get_die_area] 1] }]
+            }
+            "2|4" {
+                set edge_length \
+                    [expr { [lindex [ord::get_die_area] 2] - [lindex [ord::get_die_area] 0] }]
+            }
+            default {
+                utl::error FLW 1 "Side number ($side) is not supported."
+            }
+        }
+
+        dict for {layer ordered_pins} $layer_pins {
+            set spacing [expr { $edge_length / ([llength $ordered_pins] + 1) }]
+
+            for { set i 0 } { $i < [llength $ordered_pins] } { incr i } {
+                set name [lindex $ordered_pins $i]
+                switch -regexp $side {
+                    "1" {
+                        set x_loc [lindex [ord::get_die_area] 1]
+                        set y_loc [expr { ($i + 1) * $spacing }]
+                    }
+                    "2" {
+                        set x_loc [expr { ($i + 1) * $spacing }]
+                        set y_loc [lindex [ord::get_die_area] 3]
+                    }
+                    "3" {
+                        set x_loc [lindex [ord::get_die_area] 2]
+                        set y_loc [expr { ($i + 1) * $spacing }]
+                    }
+                    "4" {
+                        set x_loc [expr { ($i + 1) * $spacing }]
+                        set y_loc [lindex [ord::get_die_area] 1]
+                    }
+                }
+
+                place_pin -pin_name $name \
+                    -layer $layer \
+                    -location "$x_loc $y_loc" \
+                    -force_to_die_boundary
+            }
+        }
+    }
+}
+
+###############################
+# Generate pad ring
+###############################
+
+if { [llength [sc_cfg_tool_task_get var padringfileset]] > 0 } {
+    set do_automatic_pins 0
+
+    set padringfiles_read []
+    set padringfileset [sc_cfg_tool_task_get var padringfileset]
+    set padringfiles [sc_cfg_get_fileset $sc_designlib $padringfileset tcl]
+    foreach padring_file $padringfiles {
+        if { [lsearch -exact $padringfiles_read $padring_file] != -1 } {
+            continue
+        }
+        puts "Sourcing padring configuration: ${padring_file}"
+        source $padring_file
+
+        lappend padringfiles_read $padring_file
+    }
+
+    if { [sc_design_has_unplaced_pads] } {
+        foreach inst [[ord::get_db_block] getInsts] {
+            if { [$inst isPad] && ![$inst isFixed] } {
+                utl::warn FLW 1 "[$inst getName] has not been placed"
+            }
+        }
+        utl::error FLW 1 "Design contains unplaced IOs"
+    }
 }
 
 if { [sc_check_version 24 3 7421] } {
