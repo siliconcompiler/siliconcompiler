@@ -23,7 +23,7 @@ from pathlib import Path
 
 from inspect import getmembers, isfunction, getfullargspec
 
-from siliconcompiler._metadata import version
+from siliconcompiler._metadata import detailed_version as version
 from siliconcompiler.schema import utils
 
 # The default filename to look for if none is specified.

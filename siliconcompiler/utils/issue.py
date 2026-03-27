@@ -20,7 +20,7 @@ from siliconcompiler.utils.curation import collect
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.schema import __version__ as schema_version
-from siliconcompiler import __version__ as sc_version
+from siliconcompiler._metadata import detailed_version as sc_version
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
 
 if TYPE_CHECKING:
