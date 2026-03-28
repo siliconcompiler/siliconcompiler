@@ -1,5 +1,11 @@
 # Version number following semver standard.
-version = '0.37.4'
+try:
+    from siliconcompiler._version import __base_version__ as version
+    from siliconcompiler._version import __version__ as detailed_version
+except ImportError:
+    # This only exists in installations
+    version = None
+    detailed_version = None
 
 # Default server address for remote runs, if unspecified.
 default_server = 'https://server.siliconcompiler.com'

@@ -900,7 +900,7 @@ class Board:
             Text(f"Authors: {', '.join(_metadata.authors)}", overflow="ellipsis", no_wrap=True),
             pad=(0, 0, 1, 0))
         version = Padding(
-            Text(f"Version: {_metadata.version}", overflow="ellipsis", no_wrap=True),
+            Text(f"Version: {_metadata.detailed_version}", overflow="ellipsis", no_wrap=True),
             pad=(0, 0, 1, 0))
 
         if layout.height >= banner_height + authors_height + table_height + version_height:
