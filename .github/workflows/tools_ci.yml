@@ -51,6 +51,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       # Read-only credentials, can be accessed by external contributors
       - name: Log in to the Container registry
@@ -325,9 +327,12 @@ jobs:
 
       - name: Checkout current SiliconCompiler
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup tests
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           python3 -m venv .venv
           source .venv/bin/activate
 
@@ -380,6 +385,8 @@ jobs:
     steps:
       - name: Checkout SiliconCompiler
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         id: setup-python
