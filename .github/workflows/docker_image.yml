@@ -40,6 +40,7 @@ jobs:
         with:
           ref: ${{ inputs.sc_version }}
           repository: siliconcompiler/siliconcompiler
+          fetch-depth: 0
 
       - name: Checkout full SiliconCompiler repo
         if: inputs.sc_version == 'latest'
@@ -54,11 +55,16 @@ jobs:
           version=$(git describe --abbrev=0 --tags --match="v*")
           git checkout $version
 
-      - name: Get newest docker image for the input tool
-        id: docker
+      - name: Setup
         run: |
           python3 -m venv .venv
           . .venv/bin/activate
+          python3 -m pip install --upgrade pip
           pip install .
+
+      - name: Get newest docker image for the input tool
+        id: docker
+        run: |
+          . .venv/bin/activate
           sc_tool_name=$(python3 setup/docker/builder.py --tool ${{ inputs.tool }} --registry ${{ env.REGISTRY }})
           echo "sc_tool=${sc_tool_name}" >> $GITHUB_OUTPUT
