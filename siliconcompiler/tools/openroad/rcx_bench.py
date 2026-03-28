@@ -11,7 +11,7 @@ class ORXBenchTask(OpenROADTask):
         super().__init__()
 
         self.add_parameter("max_layer", "str", "Maximum layer to generate extraction bench for")
-        self.add_parameter("bench_length", "float", "Length of bench wires",
+        self.add_parameter("bench_length", "float<0.0->>", "Length of bench wires",
                            defvalue=100, units="um")
 
     def set_openroad_benchmaxlayer(self, layer: str,

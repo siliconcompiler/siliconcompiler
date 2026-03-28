@@ -99,7 +99,7 @@ class FPGADevice(ToolLibrarySchema):
         schema.insert(
             "fpga", 'lutsize',
             Parameter(
-                'int',
+                'int<1->>',
                 scope=Scope.GLOBAL,
                 shorthelp="FPGA: lutsize",
                 switch="-fpga_lutsize 'partname <int>'",
