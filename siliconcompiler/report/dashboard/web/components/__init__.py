@@ -17,7 +17,7 @@ import streamlit_antd_components as sac
 from PIL import Image
 
 import siliconcompiler
-from siliconcompiler import __version__ as sc_version
+from siliconcompiler._metadata import detailed_version as sc_version
 from siliconcompiler import utils
 from siliconcompiler.report import report
 

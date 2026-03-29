@@ -206,7 +206,7 @@ class CommandLineSchema(BaseSchema):
             '-version',
             # '--version',
             action='version',
-            version=f"{prog_version}SiliconCompiler {_metadata.version}")
+            version=f"{prog_version}SiliconCompiler {_metadata.detailed_version}")
 
         if use_sources:
             parser.add_argument('source',
@@ -248,7 +248,7 @@ class CommandLineSchema(BaseSchema):
                 name = name.split(" ")
                 authors.append(f"{name[0][0]}. {' '.join(name[1:])}")
             print("Authors:", ", ".join(authors))
-            print("Version:", _metadata.version, "\n")
+            print("Version:", _metadata.detailed_version, "\n")
             print("-" * 80)
 
         if 'source' in cmdargs:

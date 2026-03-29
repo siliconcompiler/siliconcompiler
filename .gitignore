@@ -41,3 +41,5 @@ _skbuild/
 
 # SC files
 sc_issue_*.tar.gz
+
+siliconcompiler/_version.py
