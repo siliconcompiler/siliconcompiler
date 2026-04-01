@@ -425,7 +425,7 @@ class OpenROADTask(ASICTask):
         pieces = version.split('-')
         if len(pieces) > 1:
             # strip off the hash in the new version style
-            return '-'.join(pieces[:-1])
+            return '-'.join(pieces)
         else:
             return pieces[0]
 
@@ -449,6 +449,7 @@ class OpenROADTask(ASICTask):
             year = version[0:2]
             quarter = version[3]
             build = version[5:] if len(version) > 5 else '0'
+            build = build.split('-')[0]  # Remove any trailing hash
             return f"{year}.{quarter}.{build}"
         else:
             return '0'
