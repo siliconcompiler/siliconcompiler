@@ -424,7 +424,7 @@ class OpenROADTask(ASICTask):
 
         pieces = version.split('-')
         if len(pieces) > 1:
-            # strip off the hash in the new version style
+            # return pieces joined by '-' (preserving the hash in the new version style)
             return '-'.join(pieces)
         else:
             return pieces[0]
