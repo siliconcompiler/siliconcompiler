@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "480d6493e270da36d823a39fd28e9743eb7544f4",
+    "git-commit": "44aff4d252f3ed29c7bc1b7ac740ce86437e5d23",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
