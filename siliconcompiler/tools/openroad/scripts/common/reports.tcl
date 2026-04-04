@@ -92,9 +92,11 @@ if { [sc_check_version 24 3 3461] } {
     puts "Reporting overdriven nets: reports/overdriven_nets.rpt"
     tee -quiet -file reports/overdriven_nets.rpt \
         "report_overdriven_nets -verbose"
+    utl::push_metrics_stage "sc__metric__{}_parallel"
     puts "Reporting overdriven nets: reports/overdriven_nets_with_parallel.rpt"
     tee -quiet -file reports/overdriven_nets_with_parallel.rpt \
         "report_overdriven_nets -include_parallel_driven -verbose"
+    utl::pop_metrics_stage
 }
 
 utl::metric_int "timing__clocks" [llength [all_clocks]]
