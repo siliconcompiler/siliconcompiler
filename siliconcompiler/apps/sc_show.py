@@ -39,6 +39,18 @@ def main():
     sc-show -design adder -ext odb
     (displays build/adder/job0/write.views/0/outputs/adder.odb)
 
+    sc-show -design adder -tool klayout
+    (displays build/adder/job0/write.gds/0/outputs/adder.gds using klayout)
+
+    sc-show -design adder -ext odb -tool openroad
+    (displays build/adder/job0/write.views/0/outputs/adder.odb using openroad)
+
+    sc-show -design adder -tool klayout/show
+    (displays build/adder/job0/write.gds/0/outputs/adder.gds using klayout in show mode)
+
+    sc-show -design adder -ext def -tool openroad/show
+    (displays build/adder/job0/write.views/0/outputs/adder.def using openroad in show mode)
+
     sc-show build/adder/job0/route/1/outputs/adder.def
     (displays build/adder/job0/route/1/outputs/adder.def)
     """
@@ -54,6 +66,8 @@ def main():
                 "-ext <str>")
             self._add_commandline_argument(
                 "screenshot", "bool", "Generate a screenshot and exit.")
+            self._add_commandline_argument(
+                "tool", "str", "Tool to use for showing the file.")
 
     show = ShowProject.create_cmdline(
         progname,
@@ -65,7 +79,8 @@ def main():
             '-jobname',
             '-cfg',
             '-ext',
-            '-screenshot'])
+            '-screenshot',
+            '-tool'])
 
     manifest = None
     filename = None
@@ -103,7 +118,8 @@ def main():
 
     success = project.show(filename,
                            extension=show.get("cmdarg", "extension"),
-                           screenshot=show.get("cmdarg", "screenshot"))
+                           screenshot=show.get("cmdarg", "screenshot"),
+                           tool=show.get("cmdarg", "tool"))
 
     if success and os.path.isfile(success) and show.get("cmdarg", "screenshot"):
         project.logger.info(f'Screenshot file: {success}')

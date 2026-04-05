@@ -1171,7 +1171,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if os.path.isfile(path) and not self.option.get_nodisplay() and display:
             _open_summary_image(path)
 
-    def show(self, filename: str = None, screenshot: bool = False, extension: str = None) -> str:
+    def show(self, filename: Optional[str] = None, screenshot: bool = False,
+             extension: Optional[str] = None, tool: Optional[str] = None) -> str:
         '''
         Opens a graphical viewer for a specified file or the last generated layout.
 
@@ -1195,6 +1196,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             extension (str, optional): The specific file extension to search for when
                                        automatically finding a file (e.g., 'gds', 'lef').
                                        Used only if `filename` is None. Defaults to None.
+            tool (str, optional): The name of the specific showtool to use for displaying the file.
+                                  If not provided, the tool is selected based on the file extension.
 
         Returns:
             str: The path to the generated screenshot file if `screenshot` is True,
@@ -1236,7 +1239,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     search_nodes = [node for node in search_nodes if node[1] == sc_index]
 
             exts = set()
-            for cls in tool_cls.get_task(None):
+            for cls in tool_cls.get_task(None, tool=tool):
                 try:
                     exts.update(cls().get_supported_show_extentions())
                 except NotImplementedError:
@@ -1280,9 +1283,13 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         filetype = get_file_ext(filepath)
 
-        task = tool_cls.get_task(filetype)
+        task = tool_cls.get_task(ext=filetype, tool=tool)
         if task is None:
-            self.logger.error(f"Filetype '{filetype}' not available in the registered showtools.")
+            if tool:
+                self.logger.error(f"Filetype '{filetype}' not available for {tool}.")
+            else:
+                self.logger.error(
+                    f"Filetype '{filetype}' not available in the registered showtools.")
             return None
 
         # Create copy of project to avoid changing user project
