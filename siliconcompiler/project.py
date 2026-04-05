@@ -1318,7 +1318,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.option.set_jobname(jobname)
 
         # Setup in task variables
-        task: ShowTask = task.find_task(proj)
+        task: ShowTask = task.__class__.find_task(proj)
         task.set_showfilepath(filename)
         task.set_showfiletype(filetype)
         task.set_shownode(jobname=sc_jobname, step=sc_step, index=sc_index)
