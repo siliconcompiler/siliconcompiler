@@ -2606,7 +2606,6 @@ def test_get_task_with_tool_none_ext_returns_all_tasks():
             as mock_settings_cls:
         mock_settings = MagicMock()
         mock_settings_cls.return_value = mock_settings
-        settings = mock_settings
 
         # When no extension provided, should return all tasks
         result = ShowTask.get_task(None, tool="toola")

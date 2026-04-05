@@ -2184,7 +2184,7 @@ class ShowTask(Task):
 
     @classmethod
     def get_task(cls: Type[TShowTask], ext: Optional[str], tool: Optional[str] = None) -> \
-            Union[Optional[TShowTask], Set[Type[TShowTask]]]:
+            Union[Optional[TShowTask], List[Type[TShowTask]]]:
         """
         Retrieves a suitable show task instance for a given file extension.
 
@@ -2206,7 +2206,7 @@ class ShowTask(Task):
         cls.__populate_tasks()
 
         settings = MPManager.get_transient_settings()
-        tasks = set(settings.get_category(cls.__name__).values())
+        tasks = list(settings.get_category(cls.__name__).values())
         if not tasks:
             return None
 
@@ -2227,7 +2227,7 @@ class ShowTask(Task):
                     continue
 
         # 2. Check User Settings for Preference
-        preference = MPManager.get_settings().get("showtask", ext)
+        preference = tool or MPManager.get_settings().get("showtask", ext)
 
         if preference:
             # Preference format: "tool" or "tool/task"

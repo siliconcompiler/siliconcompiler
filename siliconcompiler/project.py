@@ -1171,7 +1171,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if os.path.isfile(path) and not self.option.get_nodisplay() and display:
             _open_summary_image(path)
 
-    def show(self, filename: Optional[str] = None, screenshot: bool = False, extension: Optional[str] = None, tool: Optional[str] = None) -> str:
+    def show(self, filename: Optional[str] = None, screenshot: bool = False,
+             extension: Optional[str] = None, tool: Optional[str] = None) -> str:
         '''
         Opens a graphical viewer for a specified file or the last generated layout.
 
@@ -1287,7 +1288,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             if tool:
                 self.logger.error(f"Filetype '{filetype}' not available for {tool}.")
             else:
-                self.logger.error(f"Filetype '{filetype}' not available in the registered showtools.")
+                self.logger.error(
+                    f"Filetype '{filetype}' not available in the registered showtools.")
             return None
 
         # Create copy of project to avoid changing user project
