@@ -2183,25 +2183,60 @@ class ShowTask(Task):
             cls.register_task(c)
 
     @classmethod
+    @classmethod
     def get_task(cls: Type[TShowTask], ext: Optional[str], tool: Optional[str] = None) -> \
             Union[Optional[TShowTask], List[Type[TShowTask]]]:
         """
         Retrieves a suitable show task instance for a given file extension.
 
-        The method first checks the user's settings file (~/.sc/settings.json)
-        under the 'showtask' category for a preferred tool. If no preference
-        is found or the preferred tool is not available, it falls back to
-        automatic discovery.
+        The method first checks for a requested tool (if provided), then checks the user's
+        settings file (~/.sc/settings.json) under the 'showtask' category for a preferred tool.
+        If no tool is requested and no preference is found, it falls back to automatic discovery.
 
         Args:
             ext (str): The file extension to find a viewer for.
             tool (str, optional): The name of the specific showtool to use for displaying the file.
-                If not provided, the tool is selected based on the file extension.
+                Format can be "tool" to select any task from that tool, or "tool/task" to select
+                a specific task from that tool. If not provided, the tool is selected based on
+                the user's preference or automatic discovery.
 
         Returns:
             An instance of a compatible ShowTask subclass, or None if
             no suitable task is found.
         """
+        def find_task_by_spec(spec: str, ext: str, tasks: List) -> Optional:
+            """
+            Find a task matching a tool/task specification.
+
+            Args:
+                spec (str): Tool specification in format "tool" or "tool/task"
+                ext (str): File extension to verify support for
+                tasks (List): List of available task classes to search through
+
+            Returns:
+                An instance of matching ShowTask, or None if no match found
+            """
+            # Parse specification: "tool" or "tool/task"
+            spec_parts = spec.split('/')
+            spec_tool = spec_parts[0]
+            spec_task = spec_parts[1] if len(spec_parts) > 1 else None
+
+            for task_cls in tasks:
+                try:
+                    task_inst = task_cls()
+                    # Check if this task matches the specification
+                    if task_inst.tool() == spec_tool:
+                        if spec_task and task_inst.task() != spec_task:
+                            continue
+
+                        # Verify the tool actually supports the extension
+                        if ext in task_inst.get_supported_show_extentions():
+                            return task_inst
+                except NotImplementedError:
+                    continue
+
+            return None
+
         cls.__check_task(None)
         cls.__populate_tasks()
 
@@ -2215,39 +2250,17 @@ class ShowTask(Task):
 
         # 1. Check for requested tool first (if provided)
         if tool:
-            for task_cls in tasks:
-                try:
-                    task_inst = task_cls()
-                    # Check if this task matches the preference
-                    if task_inst.tool() == tool:
-                        # Verify the preferred tool actually supports the extension
-                        if ext in task_inst.get_supported_show_extentions():
-                            return task_inst
-                except NotImplementedError:
-                    continue
+            result = find_task_by_spec(tool, ext, tasks)
+            if result:
+                return result
 
         # 2. Check User Settings for Preference
-        preference = tool or MPManager.get_settings().get("showtask", ext)
+        preference = MPManager.get_settings().get("showtask", ext)
 
         if preference:
-            # Preference format: "tool" or "tool/task"
-            pref_parts = preference.split('/')
-            pref_tool = pref_parts[0]
-            pref_task = pref_parts[1] if len(pref_parts) > 1 else None
-
-            for task_cls in tasks:
-                try:
-                    task_inst = task_cls()
-                    # Check if this task matches the preference
-                    if task_inst.tool() == pref_tool:
-                        if pref_task and task_inst.task() != pref_task:
-                            continue
-
-                        # Verify the preferred tool actually supports the extension
-                        if ext in task_inst.get_supported_show_extentions():
-                            return task_inst
-                except NotImplementedError:
-                    continue
+            result = find_task_by_spec(preference, ext, tasks)
+            if result:
+                return result
 
         # 3. Fallback to Automatic Discovery
         for task_cls in tasks:

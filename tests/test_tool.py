@@ -2610,8 +2610,8 @@ def test_get_task_with_tool_none_ext_returns_all_tasks():
         # When no extension provided, should return all tasks
         result = ShowTask.get_task(None, tool="toola")
 
-        # Should return a set of all tasks
-        assert isinstance(result, set)
+        # Should return a list of all tasks
+        assert isinstance(result, list)
         assert len(result) >= 2
 
 
@@ -2652,6 +2652,123 @@ def test_get_task_with_tool_empty_string():
         # Should fall back to default discovery
         assert task is not None
         assert task.tool() in ["toola", "toolb"]
+
+
+def test_get_task_with_tool_and_task_format():
+    """Test tool parameter with 'tool/task' format to select specific task."""
+
+    class ToolGTask1(ShowTask):
+        def tool(self):
+            return "toolg"
+
+        def task(self):
+            return "view1"
+
+        def get_supported_show_extentions(self):
+            return ["svg"]
+
+    class ToolGTask2(ShowTask):
+        def tool(self):
+            return "toolg"
+
+        def task(self):
+            return "view2"
+
+        def get_supported_show_extentions(self):
+            return ["svg"]
+
+    ShowTask.register_task(ToolGTask1)
+    ShowTask.register_task(ToolGTask2)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        # Request specific task using tool/task format
+        task = ShowTask.get_task("svg", tool="toolg/view2")
+
+        assert task is not None
+        assert task.tool() == "toolg"
+        assert task.task() == "view2"
+        assert isinstance(task, ToolGTask2)
+
+
+def test_get_task_with_tool_task_format_invalid_task():
+    """Test tool/task format when specified task doesn't exist."""
+
+    class ToolHTask1(ShowTask):
+        def tool(self):
+            return "toolh"
+
+        def task(self):
+            return "mode_a"
+
+        def get_supported_show_extentions(self):
+            return ["txt"]
+
+    ShowTask.register_task(ToolHTask1)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        # Request non-existent task
+        task = ShowTask.get_task("txt", tool="toolh/mode_b")
+
+        # Should fall back to default discovery
+        assert task is not None
+        assert task.tool() == "toolh"
+
+
+def test_get_task_tool_task_format_priority_over_preference():
+    """Test that tool/task format has priority over preference."""
+
+    class ToolITask1(ShowTask):
+        def tool(self):
+            return "tooli"
+
+        def task(self):
+            return "task_x"
+
+        def get_supported_show_extentions(self):
+            return ["csv"]
+
+    class ToolITask2(ShowTask):
+        def tool(self):
+            return "tooli"
+
+        def task(self):
+            return "task_y"
+
+        def get_supported_show_extentions(self):
+            return ["csv"]
+
+    ShowTask.register_task(ToolITask1)
+    ShowTask.register_task(ToolITask2)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+
+        def get_side_effect(category, key, default=None):
+            if category == "showtask" and key == "csv":
+                return "tooli/task_x"  # Prefer task_x
+            return default
+
+        mock_settings.get.side_effect = get_side_effect
+        mock_settings_cls.return_value = mock_settings
+
+        # Request task_y explicitly, which should override preference
+        task = ShowTask.get_task("csv", tool="tooli/task_y")
+
+        assert task is not None
+        assert task.tool() == "tooli"
+        assert task.task() == "task_y"
+        assert isinstance(task, ToolITask2)
 
 
 def test_task_py_logging_output_different_files(gcd_design):

@@ -217,6 +217,30 @@ def test_sc_show_tool_with_all_parameters(monkeypatch, make_manifests, asic_gcd,
     assert "Screenshot file: test.png" in capsys.readouterr().out
 
 
+@pytest.mark.timeout(90)
+def test_sc_show_with_tool_task_format(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app with tool/task format.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-tool', 'klayout/full'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool='klayout/full')
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_with_tool_task_and_extension(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app with tool/task format and extension.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-ext', 'gds',
+                                     '-tool', 'openroad/timing'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(None, extension='gds', screenshot=False,
+                                     tool='openroad/timing')
+
+
 @pytest.mark.parametrize('flags', [
     ['-ext', 'gds'],
     ['-design', 'gcd', '-ext', 'gds'],

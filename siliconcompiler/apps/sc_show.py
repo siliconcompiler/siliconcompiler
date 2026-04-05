@@ -45,6 +45,12 @@ def main():
     sc-show -design adder -ext odb -tool openroad
     (displays build/adder/job0/write.views/0/outputs/adder.odb using openroad)
 
+    sc-show -design adder -tool klayout/show
+    (displays build/adder/job0/write.gds/0/outputs/adder.gds using klayout in show mode)
+
+    sc-show -design adder -ext def -tool openroad/show
+    (displays build/adder/job0/write.views/0/outputs/adder.def using openroad in show mode)
+
     sc-show build/adder/job0/route/1/outputs/adder.def
     (displays build/adder/job0/route/1/outputs/adder.def)
     """
