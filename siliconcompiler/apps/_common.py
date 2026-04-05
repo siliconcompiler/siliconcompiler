@@ -65,6 +65,8 @@ def _get_manifests(cwd: str) -> Dict:
     for _, buildpath in get_dirs(cwd):
         for design, designdir in get_dirs(buildpath):
             for jobname, jobdir in get_dirs(designdir):
+                if jobname.startswith("_show") or jobname.startswith("_screenshot"):
+                    continue  # Skip show/screenshot jobs
                 # Check for top-level manifest
                 manifest = os.path.join(jobdir, f'{design}.pkg.json')
                 if os.path.isfile(manifest):
