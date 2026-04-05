@@ -4,12 +4,13 @@ import os
 import os.path
 
 
-from siliconcompiler import ShowTask
+from siliconcompiler import ShowTask as BaseShowTask
+from siliconcompiler.tools.openroad import OpenROADTask
 from siliconcompiler.tools.openroad._apr import APRTask, OpenROADSTAParameter
 from siliconcompiler.utils.paths import workdir
 
 
-class ShowTask(ShowTask, APRTask, OpenROADSTAParameter):
+class ShowTask(BaseShowTask, APRTask, OpenROADSTAParameter):
     '''
     Show a design in openroad
     '''
@@ -76,6 +77,34 @@ class ShowTask(ShowTask, APRTask, OpenROADSTAParameter):
                                     f"{self.design_topmodule}.sdc")
             if sdc_file and os.path.exists(sdc_file):
                 shutil.copy2(sdc_file, f"inputs/{self.design_topmodule}.sdc")
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        try:
+            options.remove("-exit")
+        except ValueError:
+            pass
+        options.append("-gui")
+        return options
+
+
+class Show3DBloxTask(BaseShowTask, OpenROADTask):
+    '''
+    Show a 3D view of the design in openroad
+    '''
+    def __init__(self):
+        super().__init__()
+
+    def task(self) -> str:
+        return "show3dblox"
+
+    def setup(self):
+        super().setup()
+        self.set_threads()
+        self.set_script("sc_show_3dblox.tcl")
+
+    def get_supported_show_extentions(self):
+        return ["3dbx"]
 
     def runtime_options(self):
         options = super().runtime_options()

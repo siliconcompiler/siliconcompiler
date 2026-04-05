@@ -317,3 +317,80 @@ def test_pick_manifest_step_index_invalid_combo(asic_gcd, monkeypatch, caplog):
     assert asic_gcd.get("option", "design") == "gcd"
 
     assert "Node \"syn/0\" is not a valid node." in caplog.text
+
+
+@pytest.mark.timeout(90)
+def test_pick_manifest_from_file_found(asic_gcd, make_manifests, tmp_path):
+    '''Test finding manifest based on file in same directory.'''
+    make_manifests(asic_gcd)
+
+    # Create a test file in the same directory as the manifest
+    manifest_path = os.path.join(os.getcwd(), 'build', 'gcd', 'job0', 'gcd.pkg.json')
+    manifest_dir = os.path.dirname(manifest_path)
+    test_file = os.path.join(manifest_dir, 'test.gds')
+    with open(test_file, 'w') as f:
+        f.write('test')
+
+    manifests = _common._get_manifests(os.getcwd())
+    result = _common.pick_manifest_from_file(asic_gcd, test_file, manifests)
+
+    assert result is not None
+    assert os.path.dirname(result) == manifest_dir
+
+
+@pytest.mark.timeout(90)
+def test_pick_manifest_from_file_in_outputs(asic_gcd, make_manifests, tmp_path):
+    '''Test finding manifest when file is in outputs directory.'''
+    make_manifests(asic_gcd)
+
+    # Create test file in outputs directory alongside manifest
+    outputs_manifest = os.path.join(os.getcwd(), 'build', 'gcd', 'job0', 'synthesis', '0',
+                                    'outputs', 'gcd.pkg.json')
+    outputs_dir = os.path.dirname(outputs_manifest)
+    test_file = os.path.join(outputs_dir, 'gcd.v')
+    with open(test_file, 'w') as f:
+        f.write('test')
+
+    manifests = _common._get_manifests(os.getcwd())
+    result = _common.pick_manifest_from_file(asic_gcd, test_file, manifests)
+
+    assert result is not None
+    assert outputs_dir in result
+
+
+@pytest.mark.timeout(90)
+def test_pick_manifest_jobname_inference(asic_gcd, monkeypatch):
+    '''Test jobname inference when only one job exists.'''
+    def get_manifests(*args):
+        return {"gcd": {"job0": {(None, None): 'file'}}}
+    monkeypatch.setattr(_common, '_get_manifests', get_manifests)
+
+    def pick_manifest_from_file(*args):
+        return None
+    monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
+
+    asic_gcd.set('option', 'design', 'gcd')
+    # Don't set jobname - it should be inferred
+    result = _common.pick_manifest(asic_gcd)
+
+    assert result == 'file'
+    # jobname should remain unset or be inferred internally
+    assert asic_gcd.get("option", "design") == "gcd"
+
+
+@pytest.mark.timeout(90)
+def test_pick_manifest_infer_design_from_filename(asic_gcd, monkeypatch):
+    '''Test inferring design name from source file when design not set.'''
+    def get_manifests(*args):
+        return {"gcd": {"job0": {(None, None): 'file'}}}
+    monkeypatch.setattr(_common, '_get_manifests', get_manifests)
+
+    def pick_manifest_from_file(*args):
+        return None
+    monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
+
+    asic_gcd.unset('option', 'design')
+    result = _common.pick_manifest(asic_gcd, src_file='gcd.v')
+
+    assert result == 'file'
+    assert asic_gcd.get("option", "design") == "gcd"

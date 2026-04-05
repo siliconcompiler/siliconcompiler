@@ -3,7 +3,7 @@ import sys
 
 import os.path
 
-from siliconcompiler import Project
+from siliconcompiler import Project, Design
 from siliconcompiler.apps._common import pick_manifest
 
 
@@ -101,11 +101,23 @@ def main():
         manifest = pick_manifest(show, src_file=filename)
 
     if not manifest:
-        show.logger.error("Unable to find manifest")
-        return 1
+        if not filename:
+            show.logger.error("Unable to find manifest")
+            return 1
 
-    show.logger.info(f'Loading manifest: {manifest}')
-    project = Project.from_manifest(filepath=manifest)
+    if manifest:
+        show.logger.info(f'Loading manifest: {manifest}')
+        project = Project.from_manifest(filepath=manifest)
+    else:
+        project = Project()
+        # Setup faux project
+        designname = show.option.get_design()
+        design = Design(designname)
+        with design.active_fileset("show"):
+            design.set_topmodule(designname)
+            design.add_file(filename)
+        project.set_design(design)
+        project.add_fileset("show")
 
     # Read in file
     if filename:

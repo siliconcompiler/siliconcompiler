@@ -65,6 +65,8 @@ def _get_manifests(cwd: str) -> Dict:
     for _, buildpath in get_dirs(cwd):
         for design, designdir in get_dirs(buildpath):
             for jobname, jobdir in get_dirs(designdir):
+                if jobname.startswith("_show") or jobname.startswith("_screenshot"):
+                    continue  # Skip show/screenshot jobs
                 # Check for top-level manifest
                 manifest = os.path.join(jobdir, f'{design}.pkg.json')
                 if os.path.isfile(manifest):
@@ -158,6 +160,10 @@ def pick_manifest(cliproject: Project, src_file: Optional[str] = None) -> Option
     if not cliproject.option.get_design():
         if len(all_manifests) == 1:
             cliproject.option.set_design(list(all_manifests.keys())[0])
+        elif src_file:
+            designname = os.path.basename(src_file).split('.')[0]
+            cliproject.logger.info(f'Design name inferred from source file: {designname}')
+            cliproject.option.set_design(designname)
         else:
             cliproject.logger.error('Design name is not set and could not be inferred.')
             return None
@@ -165,7 +171,8 @@ def pick_manifest(cliproject: Project, src_file: Optional[str] = None) -> Option
     design = cliproject.option.get_design()
 
     if design not in all_manifests:
-        cliproject.logger.error(f'Could not find any manifests for design "{design}".')
+        log = cliproject.logger.error if not src_file else cliproject.logger.warning
+        log(f'Could not find any manifests for design "{design}".')
         return None
 
     # 3. Infer jobname if unset and only one option exists for the design.
