@@ -1239,7 +1239,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     search_nodes = [node for node in search_nodes if node[1] == sc_index]
 
             exts = set()
-            for cls in tool_cls.get_task(None):
+            for cls in tool_cls.get_task(None, tool=tool):
                 try:
                     exts.update(cls().get_supported_show_extentions())
                 except NotImplementedError:
