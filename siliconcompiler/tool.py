@@ -2183,7 +2183,7 @@ class ShowTask(Task):
             cls.register_task(c)
 
     @classmethod
-    def get_task(cls: Type[TShowTask], ext: Optional[str]) -> \
+    def get_task(cls: Type[TShowTask], ext: Optional[str], tool: Optional[str] = None) -> \
             Union[Optional[TShowTask], Set[Type[TShowTask]]]:
         """
         Retrieves a suitable show task instance for a given file extension.
@@ -2195,6 +2195,8 @@ class ShowTask(Task):
 
         Args:
             ext (str): The file extension to find a viewer for.
+            tool (str, optional): The name of the specific showtool to use for displaying the file.
+                If not provided, the tool is selected based on the file extension.
 
         Returns:
             An instance of a compatible ShowTask subclass, or None if
@@ -2211,7 +2213,20 @@ class ShowTask(Task):
         if ext is None:
             return tasks
 
-        # 1. Check User Settings for Preference
+        # 1. Check for requested tool first (if provided)
+        if tool:
+            for task_cls in tasks:
+                try:
+                    task_inst = task_cls()
+                    # Check if this task matches the preference
+                    if task_inst.tool() == tool:
+                        # Verify the preferred tool actually supports the extension
+                        if ext in task_inst.get_supported_show_extentions():
+                            return task_inst
+                except NotImplementedError:
+                    continue
+
+        # 2. Check User Settings for Preference
         preference = MPManager.get_settings().get("showtask", ext)
 
         if preference:
@@ -2234,7 +2249,7 @@ class ShowTask(Task):
                 except NotImplementedError:
                     continue
 
-        # 2. Fallback to Automatic Discovery
+        # 3. Fallback to Automatic Discovery
         for task_cls in tasks:
             try:
                 task_inst = task_cls()

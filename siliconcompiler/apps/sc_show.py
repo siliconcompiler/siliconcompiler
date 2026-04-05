@@ -54,6 +54,8 @@ def main():
                 "-ext <str>")
             self._add_commandline_argument(
                 "screenshot", "bool", "Generate a screenshot and exit.")
+            self._add_commandline_argument(
+                "tool", "str", "Tool to use for showing the file.")
 
     show = ShowProject.create_cmdline(
         progname,
@@ -65,7 +67,8 @@ def main():
             '-jobname',
             '-cfg',
             '-ext',
-            '-screenshot'])
+            '-screenshot',
+            '-tool'])
 
     manifest = None
     filename = None
@@ -103,7 +106,8 @@ def main():
 
     success = project.show(filename,
                            extension=show.get("cmdarg", "extension"),
-                           screenshot=show.get("cmdarg", "screenshot"))
+                           screenshot=show.get("cmdarg", "screenshot"),
+                           tool=show.get("cmdarg", "tool"))
 
     if success and os.path.isfile(success) and show.get("cmdarg", "screenshot"):
         project.logger.info(f'Screenshot file: {success}')
