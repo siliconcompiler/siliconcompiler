@@ -2183,7 +2183,6 @@ class ShowTask(Task):
             cls.register_task(c)
 
     @classmethod
-    @classmethod
     def get_task(cls: Type[TShowTask], ext: Optional[str], tool: Optional[str] = None) -> \
             Union[Optional[TShowTask], List[Type[TShowTask]]]:
         """
@@ -2204,7 +2203,7 @@ class ShowTask(Task):
             An instance of a compatible ShowTask subclass, or None if
             no suitable task is found.
         """
-        def find_task_by_spec(spec: str, ext: str, tasks: List) -> Optional:
+        def find_task_by_spec(spec: str, ext: str, tasks: List) -> Optional[Type[TShowTask]]:
             """
             Find a task matching a tool/task specification.
 
