@@ -264,3 +264,121 @@ def test_sc_show_ext(flags, monkeypatch, make_manifests, asic_gcd):
 def test_sc_show_no_manifest(monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'test', '-arg_step', 'invalid'])
     assert sc_show.main() == 1
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_file_without_manifest_no_design(monkeypatch, tmp_path):
+    '''Test sc-show with file but no manifest and no design specified.'''
+    # Create a temporary file
+    test_file = tmp_path / "test.gds"
+    test_file.write_text("test content")
+
+    monkeypatch.setattr('sys.argv', ['sc-show', str(test_file)])
+    # Design will be inferred from filename, so should succeed
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(str(test_file), extension=None, screenshot=False, tool=None)
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_file_without_manifest_with_design(monkeypatch, tmp_path):
+    '''Test sc-show with file but no manifest, with design specified.'''
+    # Create a temporary file
+    test_file = tmp_path / "test.gds"
+    test_file.write_text("test content")
+
+    monkeypatch.setattr('sys.argv', ['sc-show', str(test_file), '-design', 'mydesign'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        # Should be called with the file path
+        show.assert_called_once_with(str(test_file), extension=None, screenshot=False, tool=None)
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_file_without_manifest_with_extension(monkeypatch, tmp_path):
+    '''Test sc-show with file, no manifest, but with extension specified.'''
+    # Create a temporary file
+    test_file = tmp_path / "test.def"
+    test_file.write_text("test content")
+
+    monkeypatch.setattr('sys.argv', ['sc-show', str(test_file), '-design', 'test',
+                                     '-ext', 'def'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(str(test_file), extension='def', screenshot=False, tool=None)
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_file_without_manifest_with_tool(monkeypatch, tmp_path):
+    '''Test sc-show with file, no manifest, but with tool specified.'''
+    # Create a temporary file
+    test_file = tmp_path / "test.gds"
+    test_file.write_text("test content")
+
+    monkeypatch.setattr('sys.argv', ['sc-show', str(test_file), '-design', 'test',
+                                     '-tool', 'klayout'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(str(test_file), extension=None, screenshot=False, tool='klayout')
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_file_without_manifest_with_tool_task(monkeypatch, tmp_path):
+    '''Test sc-show with file, no manifest, with tool/task format.'''
+    # Create a temporary file
+    test_file = tmp_path / "test.gds"
+    test_file.write_text("test content")
+
+    monkeypatch.setattr('sys.argv', ['sc-show', str(test_file), '-design', 'test',
+                                     '-tool', 'klayout/show'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(str(test_file), extension=None, screenshot=False,
+                                     tool='klayout/show')
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_file_without_manifest_with_all_args(monkeypatch, tmp_path):
+    '''Test sc-show with file, no manifest, and all arguments specified.'''
+    # Create a temporary file
+    test_file = tmp_path / "test.def"
+    test_file.write_text("test content")
+
+    monkeypatch.setattr('sys.argv', ['sc-show', str(test_file), '-design', 'mydesign',
+                                     '-ext', 'def', '-tool', 'openroad/show'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(str(test_file), extension='def', screenshot=False,
+                                     tool='openroad/show')
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_file_without_manifest_with_screenshot(monkeypatch, tmp_path):
+    '''Test sc-show with file, no manifest, and screenshot flag.'''
+    # Create a temporary file
+    test_file = tmp_path / "test.gds"
+    test_file.write_text("test content")
+
+    with open("test.png", "w") as f:
+        f.write("test")
+
+    monkeypatch.setattr('sys.argv', ['sc-show', str(test_file), '-design', 'test',
+                                     '-screenshot', '-tool', 'klayout'])
+    with patch('siliconcompiler.Project.show') as show:
+        show.return_value = "test.png"
+        assert sc_show.main() == 0
+        show.assert_called_once_with(str(test_file), extension=None, screenshot=True,
+                                     tool='klayout')
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_nonexistent_file_with_design(monkeypatch):
+    '''Test sc-show with non-existent file and design specified.'''
+    nonexistent_file = "/tmp/nonexistent_file_12345.gds"
+
+    monkeypatch.setattr('sys.argv', ['sc-show', nonexistent_file, '-design', 'test'])
+    with patch('siliconcompiler.Project.show') as show:
+        # Should still attempt to show even with non-existent file
+        # (the actual file existence check happens in project.show())
+        assert sc_show.main() == 0
+        show.assert_called_once_with(nonexistent_file, extension=None, screenshot=False, tool=None)
