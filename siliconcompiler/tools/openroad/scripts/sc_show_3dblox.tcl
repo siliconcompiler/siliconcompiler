@@ -32,4 +32,4 @@ set_thread_count [sc_cfg_tool_task_get threads]
 # Read Files
 ###############################
 
-read_3dblox [sc_cfg_tool_task_get var showfilepath]
+read_3dbx [sc_cfg_tool_task_get var showfilepath]
