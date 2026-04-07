@@ -187,7 +187,6 @@ report_design_area_metrics
 utl::metric_int "design__nets" [llength [[ord::get_db_block] getNets]]
 
 if { ![sc_check_version 26 1 0] } {
-
     # get number of registers
     utl::metric_int "design__registers" [llength [all_registers]]
 
