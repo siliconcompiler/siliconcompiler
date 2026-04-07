@@ -1731,6 +1731,30 @@ class APRTask(OpenROADTask):
                         self.record_metric(metric, value, source_file=get_metric_sources(metric),
                                            source_unit=or_unit)
 
+            if self.project.get("metric", "registers", step=self.step, index=self.index) is None:
+                metric_key = "sc__cellarea__design__instance__count__class:sequential_cell"
+                if metric_key in metrics:
+                    self.record_metric("registers", metrics[metric_key],
+                                       source_file=get_metric_sources("registers"))
+
+            if self.project.get("metric", "inverters", step=self.step, index=self.index) is None:
+                inverters = 0
+                for metric, value in metrics.items():
+                    if metric.startswith("sc__cellarea__design__instance__count__class:") and \
+                            metric.lower().endswith("inverter"):
+                        inverters += value
+                self.record_metric("inverters", inverters,
+                                   source_file=get_metric_sources("inverters"))
+
+            if self.project.get("metric", "buffers", step=self.step, index=self.index) is None:
+                buffers = 0
+                for metric, value in metrics.items():
+                    if metric.startswith("sc__cellarea__design__instance__count__class:") and \
+                            metric.lower().endswith("buffer"):
+                        buffers += value
+                self.record_metric("buffers", buffers,
+                                   source_file=get_metric_sources("buffers"))
+
             ir_drop = None
             for or_metric, value in metrics.items():
                 if or_metric.startswith("sc__step__design_powergrid__drop__worst__net") or \

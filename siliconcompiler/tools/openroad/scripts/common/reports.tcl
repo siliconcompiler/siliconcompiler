@@ -92,9 +92,11 @@ if { [sc_check_version 24 3 3461] } {
     puts "Reporting overdriven nets: reports/overdriven_nets.rpt"
     tee -quiet -file reports/overdriven_nets.rpt \
         "report_overdriven_nets -verbose"
+    utl::push_metrics_stage "sc__metric__{}_parallel"
     puts "Reporting overdriven nets: reports/overdriven_nets_with_parallel.rpt"
     tee -quiet -file reports/overdriven_nets_with_parallel.rpt \
         "report_overdriven_nets -include_parallel_driven -verbose"
+    utl::pop_metrics_stage
 }
 
 utl::metric_int "timing__clocks" [llength [all_clocks]]
@@ -184,29 +186,31 @@ report_design_area_metrics
 # get number of nets in design
 utl::metric_int "design__nets" [llength [[ord::get_db_block] getNets]]
 
-# get number of registers
-utl::metric_int "design__registers" [llength [all_registers]]
+if { ![sc_check_version 26 1 0] } {
+    # get number of registers
+    utl::metric_int "design__registers" [llength [all_registers]]
 
-# get number of buffers
-set bufs 0
-set invs 0
-foreach inst [get_cells -hierarchical *] {
-    set cell [$inst cell]
-    if { $cell == "NULL" } {
-        continue
+    # get number of buffers
+    set bufs 0
+    set invs 0
+    foreach inst [get_cells -hierarchical *] {
+        set cell [$inst cell]
+        if { $cell == "NULL" } {
+            continue
+        }
+        set liberty_cell [$cell liberty_cell]
+        if { $liberty_cell == "NULL" } {
+            continue
+        }
+        if { [$liberty_cell is_buffer] } {
+            incr bufs
+        } elseif { [$liberty_cell is_inverter] } {
+            incr invs
+        }
     }
-    set liberty_cell [$cell liberty_cell]
-    if { $liberty_cell == "NULL" } {
-        continue
-    }
-    if { [$liberty_cell is_buffer] } {
-        incr bufs
-    } elseif { [$liberty_cell is_inverter] } {
-        incr invs
-    }
+    utl::metric_int "design__buffers" $bufs
+    utl::metric_int "design__inverters" $invs
 }
-utl::metric_int "design__buffers" $bufs
-utl::metric_int "design__inverters" $invs
 
 # get number of unconstrained endpoints
 with_output_to_variable endpoints {check_setup -unconstrained_endpoints}
