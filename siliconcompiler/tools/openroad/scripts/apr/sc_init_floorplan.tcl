@@ -293,14 +293,30 @@ if { [sc_cfg_exists constraint pin] } {
     foreach pin $pin_placement {
         set layer [sc_pin_layer_select $pin]
         set place [sc_cfg_get constraint pin $pin placement]
+        set shape [sc_cfg_get constraint pin $pin shape]
 
         set x_loc [lindex $place 0]
         set y_loc [lindex $place 1]
 
+        set place_args []
+        if { $shape == {} } {
+            lappend place_args -force_to_die_boundary
+        } elseif { $shape == "rectangle" || $shape == "square" } {
+            set width [sc_cfg_get constraint pin $pin width]
+            if { $shape == "square" } {
+                set length $width
+            } else {
+                set length [sc_cfg_get constraint pin $pin length]
+            }
+
+            lappend place_args -pin_size "$width $length"
+        } else {
+            utl::error FLW 1 "Shape $shape on pin $pin is not supported."
+        }
         place_pin -pin_name $pin \
             -layer $layer \
             -location "$x_loc $y_loc" \
-            -force_to_die_boundary
+            {*}$place_args
     }
 
     dict for {side layer_pins} $pin_order {

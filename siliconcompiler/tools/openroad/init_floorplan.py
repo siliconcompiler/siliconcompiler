@@ -180,6 +180,11 @@ class InitFloorplanTask(APRTask,
                 self.add_required_key(pin, "side")
             if pin.get_order(step=self.step, index=self.index) is not None:
                 self.add_required_key(pin, "order")
+            if pin.get_shape(step=self.step, index=self.index) is not None:
+                self.add_required_key(pin, "shape")
+                self.add_required_key(pin, "width")
+                if pin.get_shape(step=self.step, index=self.index) != "square":
+                    self.add_required_key(pin, "length")
 
         self.add_required_key(self.mainlib, "asic", "site")
         if self.project.constraint.area.get_diearea(step=self.step, index=self.index) and \
