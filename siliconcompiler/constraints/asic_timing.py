@@ -148,6 +148,17 @@ class ASICTimingScenarioSchema(NamedSchema):
             raise LookupError(f"{pin} does not have voltage")
         return self.get("voltage", pin, step=step, index=index)
 
+    def remove_pin_voltage(self, pin: str) -> None:
+        """
+        Removes the voltage of a specified pin.
+
+        Args:
+            pin (str): The name of the pin.
+        """
+        if not self.valid("voltage", pin):
+            raise LookupError(f"{pin} does not exist")
+        self.remove("voltage", pin)
+
     def add_libcorner(self,
                       libcorner: Union[List[str], str],
                       clobber: bool = False,

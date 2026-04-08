@@ -42,6 +42,96 @@ def test_timing_scenario_pin_voltage_missing():
         scene.get_pin_voltage("VDD")
 
 
+def test_timing_scenario_remove_pin_voltage():
+    """Test removing a pin voltage that exists."""
+    scene = ASICTimingScenarioSchema()
+    # Set voltage
+    scene.set_pin_voltage("VDD", 1.8)
+    assert scene.get_pin_voltage("VDD") == 1.8
+    # Remove voltage
+    scene.remove_pin_voltage("VDD")
+    # Verify it's removed
+    with pytest.raises(LookupError, match=r"^VDD does not have voltage$"):
+        scene.get_pin_voltage("VDD")
+
+
+def test_timing_scenario_remove_pin_voltage_missing():
+    """Test removing a pin voltage that doesn't exist raises error."""
+    scene = ASICTimingScenarioSchema()
+    with pytest.raises(LookupError, match=r"^VDD does not exist$"):
+        scene.remove_pin_voltage("VDD")
+
+
+def test_timing_scenario_remove_pin_voltage_multiple_pins():
+    """Test removing one pin voltage while others remain."""
+    scene = ASICTimingScenarioSchema()
+    # Set multiple pin voltages
+    scene.set_pin_voltage("VDD", 1.8)
+    scene.set_pin_voltage("GND", 0.0)
+    scene.set_pin_voltage("VSS", 0.0)
+    assert scene.valid("voltage", "VDD")
+    assert scene.valid("voltage", "GND")
+    assert scene.valid("voltage", "VSS")
+    # Remove one pin
+    scene.remove_pin_voltage("GND")
+    # Verify correct pin is removed
+    with pytest.raises(LookupError, match=r"^GND does not have voltage$"):
+        scene.get_pin_voltage("GND")
+    # Verify other pins remain
+    assert scene.get_pin_voltage("VDD") == 1.8
+    assert scene.get_pin_voltage("VSS") == 0.0
+
+
+def test_timing_scenario_remove_pin_voltage_no_interference():
+    """Test that removing one pin voltage doesn't affect others."""
+    scene = ASICTimingScenarioSchema()
+    # Set multiple pin voltages with different values
+    scene.set_pin_voltage("VDD", 1.8)
+    scene.set_pin_voltage("VDD", 2.5, step="step0", index="1")
+    scene.set_pin_voltage("VDDQ", 3.3)
+    # Verify all are set
+    assert scene.get_pin_voltage("VDD") == 1.8
+    assert scene.get_pin_voltage("VDD", step="step0", index="1") == 2.5
+    assert scene.get_pin_voltage("VDDQ") == 3.3
+    # Remove one pin - should remove all its scopes
+    scene.remove_pin_voltage("VDD")
+    # VDD should be gone at all scopes
+    with pytest.raises(LookupError):
+        scene.get_pin_voltage("VDD")
+    with pytest.raises(LookupError):
+        scene.get_pin_voltage("VDD", step="step0", index="1")
+    # But VDDQ should still exist
+    assert scene.get_pin_voltage("VDDQ") == 3.3
+
+
+def test_timing_scenario_remove_pin_voltage_idempotent_error():
+    """Test that trying to remove a non-existent pin always raises the same error."""
+    scene = ASICTimingScenarioSchema()
+
+    # First removal should fail
+    with pytest.raises(LookupError, match=r"^NONEXISTENT does not exist$"):
+        scene.remove_pin_voltage("NONEXISTENT")
+
+    # Second removal should fail with same error
+    with pytest.raises(LookupError, match=r"^NONEXISTENT does not exist$"):
+        scene.remove_pin_voltage("NONEXISTENT")
+
+
+def test_timing_scenario_remove_pin_voltage_then_readd():
+    """Test removing a pin voltage and then adding it back."""
+    scene = ASICTimingScenarioSchema()
+    # Set voltage
+    scene.set_pin_voltage("VDD", 1.8)
+    assert scene.get_pin_voltage("VDD") == 1.8
+    # Remove voltage
+    scene.remove_pin_voltage("VDD")
+    with pytest.raises(LookupError):
+        scene.get_pin_voltage("VDD")
+    # Add it back
+    scene.set_pin_voltage("VDD", 2.0)
+    assert scene.get_pin_voltage("VDD") == 2.0
+
+
 def test_timing_scenario_libcorner():
     scene = ASICTimingScenarioSchema()
     assert scene.add_libcorner("slow0")
