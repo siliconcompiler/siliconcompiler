@@ -452,6 +452,10 @@ class SchedulerNode:
         if not NodeStatus.is_success(previous_status):
             raise SchedulerNodeResetSilent("Previous step was not successful")
 
+        # Check if previous run top module changed
+        if self.topmodule != previous_run.topmodule:
+            raise SchedulerFlowReset("Top module name changed")
+
         # Check input nodes
         log_level = self.logger.level
         self.logger.setLevel(logging.CRITICAL)

@@ -506,6 +506,66 @@ def test_check_previous_run_status_task(project):
             node.check_previous_run_status(node_other)
 
 
+def test_check_previous_run_status_topmodule_changed(project):
+    node = SchedulerNode(project, "steptwo", "0")
+    project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    # Create a different project with different topmodule
+    other_design = Design("testdesign")
+    with other_design.active_fileset("rtl"):
+        other_design.set_topmodule("different_module")
+
+    other_project = Project(other_design)
+    other_project.add_fileset("rtl")
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    other_project.set_flow(flow)
+    other_project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    other_project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerFlowReset,
+                           match=r"^Top module name changed$"):
+            node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_topmodule_same(project, monkeypatch):
+    node = SchedulerNode(project, "steptwo", "0")
+    project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    # Create another project with same topmodule
+    other_design = Design("testdesign")
+    with other_design.active_fileset("rtl"):
+        other_design.set_topmodule("top")
+
+    other_project = Project(other_design)
+    other_project.add_fileset("rtl")
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    other_project.set_flow(flow)
+    other_project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    other_project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    def dummy_select(*args, **kwargs):
+        return [("stepone", "0")]
+    monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
+    monkeypatch.setattr(node_other.task, "select_input_nodes", dummy_select)
+
+    # Should not raise an exception
+    with node.runtime(), node_other.runtime():
+        node.check_previous_run_status(node_other)
+
+
 def test_check_previous_run_status_running(project):
     project.set("record", "status", NodeStatus.RUNNING, step="steptwo", index="0")
 
