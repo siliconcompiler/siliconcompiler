@@ -1,6 +1,7 @@
 import contextlib
 import logging
 import pytest
+import shutil
 
 import os.path
 
@@ -1418,3 +1419,101 @@ def test_make_readonly_error_handling(tmp_path, monkeypatch):
         resolver._make_readonly(test_file)
     except PermissionError:
         pytest.fail("_make_readonly should not raise PermissionError")
+
+
+# ============================================================================
+# Tests for _make_writable() method (for cache cleanup/deletion)
+# ============================================================================
+
+def test_make_writable_single_file(tmp_path):
+    """Test making a read-only file writable."""
+    import stat
+
+    # Create a read-only file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+    test_file.chmod(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)  # 444
+
+    # Verify it's read-only
+    assert not os.access(test_file, os.W_OK)
+
+    # Make it writable
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_writable(test_file)
+
+    # Verify owner can now write
+    assert os.access(test_file, os.W_OK)
+
+
+def test_make_writable_directory(tmp_path):
+    """Test making a read-only directory writable."""
+    # Create a directory with read-only files
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    file1 = cache_dir / "file1.txt"
+    file1.write_text("content1")
+
+    # Make everything read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify it's read-only
+    assert not os.access(file1, os.W_OK)
+    assert not os.access(cache_dir, os.W_OK)
+
+    # Make writable
+    resolver._make_writable(cache_dir)
+
+    # Verify owner can write
+    assert os.access(file1, os.W_OK)
+    assert os.access(cache_dir, os.W_OK)
+
+
+def test_make_readonly_then_delete(tmp_path):
+    """Test that we can delete a read-only cache after making it writable."""
+    # Create a read-only cache directory
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "file1.txt").write_text("content1")
+    (cache_dir / "subdir").mkdir()
+    (cache_dir / "subdir" / "file2.txt").write_text("content2")
+
+    # Make it read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify it's read-only
+    assert not os.access(cache_dir / "file1.txt", os.W_OK)
+    assert not os.access(cache_dir / "subdir", os.W_OK)
+
+    # Make writable and delete (should not raise)
+    resolver._make_writable(cache_dir)
+    shutil.rmtree(cache_dir)
+
+    # Verify deletion succeeded
+    assert not cache_dir.exists()
+
+
+def test_make_writable_preserves_read_and_exec(tmp_path):
+    """Test that making writable preserves existing read and execute permissions."""
+    import stat
+
+    # Create an executable file that's read-only
+    exec_file = tmp_path / "script.sh"
+    exec_file.write_text("#!/bin/bash\necho hello")
+    exec_file.chmod(stat.S_IRUSR | stat.S_IXUSR)  # r-x --- --- (500)
+
+    # Make writable
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_writable(exec_file)
+
+    # Verify it's still executable
+    assert os.access(exec_file, os.X_OK)
+    # Verify it's now writable
+    assert os.access(exec_file, os.W_OK)
+    # Verify it's still readable
+    assert os.access(exec_file, os.R_OK)

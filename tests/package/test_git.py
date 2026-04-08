@@ -86,6 +86,9 @@ def test_dirty_warning(monkeypatch, caplog, tmp_path):
 
     assert Path(resolver.cache_path).exists()
 
+    # Make cache writable to simulate a dirty repository (it's now read-only by default)
+    resolver._make_writable(resolver.cache_path)
+
     file = Path(resolver.cache_path).joinpath('file.txt')
     file.touch()
 

@@ -546,6 +546,11 @@ class RemoteResolver(Resolver):
             except BaseException:
                 # Exception occurred, so need to cleanup
                 try:
+                    # Make writable first, in case cache was partially made read-only
+                    try:
+                        self._make_writable(self.cache_path)
+                    except OSError as e:
+                        self.logger.warning(f"Could not make cache writable before cleanup: {e}")
                     shutil.rmtree(self.cache_path)
                 except BaseException as cleane:
                     self.logger.error(f"Exception occurred during cleanup: {cleane} "
@@ -586,6 +591,31 @@ class RemoteResolver(Resolver):
             # Remove write permissions from the directory itself
             current_mode = os.stat(path).st_mode
             new_mode = current_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+            os.chmod(path, new_mode)
+
+    def _make_writable(self, path: Union[str, Path]) -> None:
+        """
+        Recursively makes all files and directories in the given path writable.
+
+        This is used before deletion to ensure that read-only cached files can be
+        properly removed when necessary (e.g., for corrupted cache cleanup).
+
+        Args:
+            path: The path to make writable (file or directory).
+        """
+        path = Path(path)
+        if path.is_file():
+            # Add owner write permission, preserve everything else
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode | stat.S_IWUSR
+            os.chmod(path, new_mode)
+        elif path.is_dir():
+            # Process all contents recursively
+            for item in path.iterdir():
+                self._make_writable(item)
+            # Add owner write permission to the directory itself
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode | stat.S_IWUSR
             os.chmod(path, new_mode)
 
     def _get_auth_token(self, prefix: List[str]) -> str:
