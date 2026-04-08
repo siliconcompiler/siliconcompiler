@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.5 (2026-04-08)
+=========================================
+
+**Minor:**
+
+ * Added `-tool` option to `sc-show` to allow for tool filtering.
+ * Ensure the flow restarts when the topmodule name changes.
+
+ * Tools:
+
+  * openroad: Added support for handling 3D pin placement, reordered macro placement to occur before padring generation, and added 3D blox viewing support.
+
+
 SiliconCompiler 0.37.4 (2026-03-25)
 =========================================
 
