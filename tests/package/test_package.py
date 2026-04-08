@@ -1058,3 +1058,363 @@ def test_reset_cache_none():
     with patch("siliconcompiler.package.Resolver._Resolver__get_root_id") as root:
         Resolver.reset_cache(None)
         root.assert_not_called()
+
+
+# ============================================================================
+# Tests for _make_readonly() method
+# ============================================================================
+
+def test_make_readonly_single_file(tmp_path):
+    """Test making a single file read-only."""
+    import stat
+
+    # Create a test file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+
+    # Verify it's writable initially
+    assert os.access(test_file, os.W_OK)
+
+    # Make it read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(test_file)
+
+    # Verify it's read-only
+    assert not os.access(test_file, os.W_OK)
+    assert os.access(test_file, os.R_OK)
+
+    # Check exact permissions (444)
+    mode = os.stat(test_file).st_mode
+    assert mode & stat.S_IRUSR
+    assert mode & stat.S_IRGRP
+    assert mode & stat.S_IROTH
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+
+def test_make_readonly_single_file_path_object(tmp_path):
+    """Test making a single file read-only using Path object."""
+    import stat
+
+    # Create a test file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+
+    # Make it read-only using Path object
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(Path(test_file))
+
+    # Verify it's read-only
+    assert not os.access(test_file, os.W_OK)
+
+    # Check exact permissions
+    mode = os.stat(test_file).st_mode
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+
+def test_make_readonly_directory_simple(tmp_path):
+    """Test making a directory with files read-only."""
+    # Create a directory with files
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "file1.txt").write_text("content1")
+    (cache_dir / "file2.txt").write_text("content2")
+
+    # Verify files are writable initially
+    assert os.access(cache_dir / "file1.txt", os.W_OK)
+    assert os.access(cache_dir / "file2.txt", os.W_OK)
+
+    # Make directory and contents read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify all files are read-only
+    assert not os.access(cache_dir / "file1.txt", os.W_OK)
+    assert not os.access(cache_dir / "file2.txt", os.W_OK)
+
+    # Verify we can still read files
+    assert os.access(cache_dir / "file1.txt", os.R_OK)
+    assert os.access(cache_dir / "file2.txt", os.R_OK)
+
+    # Verify we can still traverse the directory
+    assert os.access(cache_dir, os.X_OK)
+
+
+def test_make_readonly_nested_directories(tmp_path):
+    """Test making nested directories with files read-only."""
+    # Create nested directory structure
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "file1.txt").write_text("root")
+
+    subdir1 = cache_dir / "subdir1"
+    subdir1.mkdir()
+    (subdir1 / "file2.txt").write_text("sub1")
+
+    subdir2 = subdir1 / "subdir2"
+    subdir2.mkdir()
+    (subdir2 / "file3.txt").write_text("sub2")
+
+    subdir3 = subdir2 / "subdir3"
+    subdir3.mkdir()
+    (subdir3 / "file4.txt").write_text("sub3")
+
+    # Make entire tree read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify all files are read-only
+    for fpath in cache_dir.rglob("*.txt"):
+        assert not os.access(fpath, os.W_OK), f"{fpath} should be read-only"
+        assert os.access(fpath, os.R_OK), f"{fpath} should be readable"
+
+    # Verify all directories are readable and traversable
+    for dpath in [cache_dir, subdir1, subdir2, subdir3]:
+        assert os.access(dpath, os.R_OK), f"{dpath} should be readable"
+        assert os.access(dpath, os.X_OK), f"{dpath} should be traversable"
+
+
+def test_make_readonly_empty_directory(tmp_path):
+    """Test making an empty directory read-only."""
+    # Create an empty directory
+    cache_dir = tmp_path / "empty_cache"
+    cache_dir.mkdir()
+
+    # Make it read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify directory is readable and still traversable
+    assert os.access(cache_dir, os.R_OK)
+    assert os.access(cache_dir, os.X_OK)
+
+    # Verify it's not writable
+    assert not os.access(cache_dir, os.W_OK)
+
+
+def test_make_readonly_preserves_read_access(tmp_path):
+    """Test that making read-only only removes write permissions, preserving others."""
+    import stat
+
+    # Create a file with restrictive permissions initially
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+    # Make it only readable by owner (400)
+    test_file.chmod(stat.S_IRUSR)
+
+    # Make it read-only (this should only remove write bits, not add read bits)
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(test_file)
+
+    # Verify owner can still read
+    mode = os.stat(test_file).st_mode
+    assert mode & stat.S_IRUSR
+    # Verify none can write (since the original file had no write bits anyway)
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+
+def test_make_readonly_preserves_executable_bit_file(tmp_path):
+    """Test that making read-only preserves the executable bit on files."""
+    import stat
+
+    # Create an executable file
+    test_file = tmp_path / "script.sh"
+    test_file.write_text("#!/bin/bash\necho hello")
+    test_file.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
+                    stat.S_IRGRP | stat.S_IXGRP |
+                    stat.S_IROTH | stat.S_IXOTH)  # 755
+
+    # Verify it's executable initially
+    assert os.access(test_file, os.X_OK)
+
+    # Make it read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(test_file)
+
+    # Verify it's still executable
+    assert os.access(test_file, os.X_OK)
+    # Verify it's not writable
+    assert not os.access(test_file, os.W_OK)
+    # Verify it's readable
+    assert os.access(test_file, os.R_OK)
+
+    # Check exact permissions (555)
+    mode = os.stat(test_file).st_mode
+    assert mode & stat.S_IRUSR
+    assert mode & stat.S_IXUSR
+    assert mode & stat.S_IRGRP
+    assert mode & stat.S_IXGRP
+    assert mode & stat.S_IROTH
+    assert mode & stat.S_IXOTH
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+
+def test_make_readonly_removes_write_preserves_exec(tmp_path):
+    """Test that making read-only removes write but preserves read and execute."""
+    import stat
+
+    # Create a file with write permission (644)
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+    test_file.chmod(stat.S_IRUSR | stat.S_IWUSR |
+                    stat.S_IRGRP |
+                    stat.S_IROTH)  # 644
+
+    # Make it read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(test_file)
+
+    # Verify permissions changed from 644 to 444
+    mode = os.stat(test_file).st_mode
+    assert mode & stat.S_IRUSR
+    assert mode & stat.S_IRGRP
+    assert mode & stat.S_IROTH
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+    # Verify no execute bit
+    assert not (mode & stat.S_IXUSR)
+    assert not (mode & stat.S_IXGRP)
+    assert not (mode & stat.S_IXOTH)
+
+
+def test_make_readonly_directory_with_mixed_permissions(tmp_path):
+    """Test making directory read-only removes write permissions while preserving read/exec."""
+    import stat
+
+    # Create a directory with files having different permissions
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    file1 = cache_dir / "file1.txt"
+    file1.write_text("content1")
+    file1.chmod(stat.S_IRUSR | stat.S_IWUSR)  # rw- --- ---
+
+    file2 = cache_dir / "file2.txt"
+    file2.write_text("content2")
+    file2.chmod(stat.S_IRUSR | stat.S_IRGRP)  # r-- r-- ---
+
+    # Make directory and contents read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify all files have write permissions removed
+    for fpath in [file1, file2]:
+        mode = os.stat(fpath).st_mode
+        assert not (mode & stat.S_IWUSR), f"{fpath}: owner should not be able to write"
+        assert not (mode & stat.S_IWGRP), f"{fpath}: group should not be able to write"
+        assert not (mode & stat.S_IWOTH), f"{fpath}: others should not be able to write"
+
+    # Verify file1 preserved its original read permission (owner only)
+    mode1 = os.stat(file1).st_mode
+    assert mode1 & stat.S_IRUSR, "file1: owner should be able to read"
+
+    # Verify file2 preserved its original read permissions (owner and group)
+    mode2 = os.stat(file2).st_mode
+    assert mode2 & stat.S_IRUSR, "file2: owner should be able to read"
+    assert mode2 & stat.S_IRGRP, "file2: group should be able to read"
+
+
+def test_make_readonly_directory_preserves_execute_bit(tmp_path):
+    """Test that making directories read-only preserves execute bit."""
+    import stat
+
+    # Create a directory structure
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    # Make cache_dir writable for setting it up, but will have initial permissions
+
+    subdir = cache_dir / "subdir"
+    subdir.mkdir()
+    (cache_dir / "test.txt").write_text("content")
+
+    # Set directory with specific permissions (755)
+    subdir.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
+                 stat.S_IRGRP | stat.S_IXGRP |
+                 stat.S_IROTH | stat.S_IXOTH)
+
+    # Verify execute bit initially
+    assert os.access(subdir, os.X_OK)
+
+    # Make read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify subdir still has execute bit (555 instead of 755)
+    assert os.access(subdir, os.X_OK)
+    # Verify not writable
+    assert not os.access(subdir, os.W_OK)
+    # Verify readable
+    assert os.access(subdir, os.R_OK)
+
+    mode = os.stat(subdir).st_mode
+    assert mode & stat.S_IXUSR
+    assert mode & stat.S_IXGRP
+    assert mode & stat.S_IXOTH
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+
+def test_make_readonly_string_path(tmp_path):
+    """Test making files read-only using string path instead of Path object."""
+    import stat
+
+    # Create a test file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+
+    # Make it read-only using string path
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(str(test_file))
+
+    # Verify it's read-only
+    mode = os.stat(test_file).st_mode
+    assert not (mode & stat.S_IWUSR)
+
+
+def test_make_readonly_error_handling(tmp_path, monkeypatch):
+    """Test error handling when chmod fails."""
+    # Create a test file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+
+    # Mock os.chmod to simulate permission error
+    original_chmod = os.chmod
+    call_count = {"count": 0}
+
+    def mock_chmod(path, mode, **kwargs):
+        call_count["count"] += 1
+        if call_count["count"] > 1:  # Fail on second call (after walking)
+            raise PermissionError("Permission denied")
+        return original_chmod(path, mode)
+
+    monkeypatch.setattr("os.chmod", mock_chmod)
+
+    # Make it read-only - should log warning but not raise
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+
+    # This should not raise an exception
+    try:
+        resolver._make_readonly(test_file)
+    except PermissionError:
+        pytest.fail("_make_readonly should not raise PermissionError")
