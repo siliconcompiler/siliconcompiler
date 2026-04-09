@@ -15,26 +15,26 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
 
         self.add_parameter("mpl_constraints", "[file]", "constraints script for macro placement")
 
-        self.add_parameter("macro_place_halo", "(float,float)",
+        self.add_parameter("macro_place_halo", "(float<0.0->>,float<0.0->>)",
                            "macro halo to use when performing automated macro placement "
                            "([x, y] in microns)", unit="um")
 
-        self.add_parameter("mpl_min_instances", "int",
+        self.add_parameter("mpl_min_instances", "int<1->>",
                            "minimum number of instances to use while clustering for "
                            "macro placement")
-        self.add_parameter("mpl_max_instances", "int",
+        self.add_parameter("mpl_max_instances", "int<1->>",
                            "maximum number of instances to use while clustering for "
                            "macro placement")
-        self.add_parameter("mpl_min_macros", "int",
+        self.add_parameter("mpl_min_macros", "int<1->>",
                            "minimum number of macros to use while clustering for macro placement")
-        self.add_parameter("mpl_max_macros", "int",
+        self.add_parameter("mpl_max_macros", "int<1->>",
                            "maximum number of macros to use while clustering for macro placement")
-        self.add_parameter("mpl_max_levels", "int",
+        self.add_parameter("mpl_max_levels", "int<1->>",
                            "maximum depth of physical hierarchical tree")
-        self.add_parameter("mpl_min_aspect_ratio", "float",
+        self.add_parameter("mpl_min_aspect_ratio", "float<0.0->>",
                            "Specifies the minimum aspect ratio of its width to height of a "
                            "standard cell cluster")
-        self.add_parameter("mpl_fence", "(float,float,float,float)",
+        self.add_parameter("mpl_fence", "(float<0.0->>,float<0.0->>,float<0.0->>,float<0.0->>)",
                            "Defines the global fence bounding box coordinates (llx, lly, urx, ury)",
                            unit="um")
         self.add_parameter("mpl_bus_planning", "bool",
@@ -43,30 +43,30 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
                            "Specifies the target dead space percentage, which influences the "
                            "utilization of standard cell clusters")
 
-        self.add_parameter("mpl_area_weight", "float",
+        self.add_parameter("mpl_area_weight", "float<0.0->>",
                            "Weight for the area of current floorplan")
-        self.add_parameter("mpl_outline_weight", "float",
+        self.add_parameter("mpl_outline_weight", "float<0.0->>",
                            "Weight for violating the fixed outline constraint, meaning that all "
                            "clusters should be placed within the shape of their parent cluster")
-        self.add_parameter("mpl_wirelength_weight", "float",
+        self.add_parameter("mpl_wirelength_weight", "float<0.0->>",
                            "Weight for half-perimeter wirelength")
-        self.add_parameter("mpl_guidance_weight", "float",
+        self.add_parameter("mpl_guidance_weight", "float<0.0->>",
                            "Weight for guidance cost or clusters being placed near specified "
                            "regions if users provide such constraints")
-        self.add_parameter("mpl_fence_weight", "float",
+        self.add_parameter("mpl_fence_weight", "float<0.0->>",
                            "Weight for fence cost, or how far the macro is from zero fence "
                            "violation")
-        self.add_parameter("mpl_boundary_weight", "float",
+        self.add_parameter("mpl_boundary_weight", "float<0.0->>",
                            "Weight for the boundary, or how far the hard macro clusters are from "
                            "boundaries. Note that mixed macro clusters are not pushed, thus not "
                            "considered in this cost.")
-        self.add_parameter("mpl_blockage_weight", "float",
+        self.add_parameter("mpl_blockage_weight", "float<0.0->>",
                            "Weight for the boundary, or how far the hard macro clusters are from "
                            "boundaries")
-        self.add_parameter("mpl_notch_weight", "float",
+        self.add_parameter("mpl_notch_weight", "float<0.0->>",
                            "Weight for the notch, or the existence of dead space that cannot be "
                            "used for placement & routing")
-        self.add_parameter("mpl_macro_blockage_weight", "float",
+        self.add_parameter("mpl_macro_blockage_weight", "float<0.0->>",
                            "Weight for macro blockage, or the overlapping instances of the macro")
 
     def add_openroad_mplconstraints(self, constraints: Union[str, List[str]],
