@@ -72,6 +72,11 @@ class GitResolver(RemoteResolver):
                 return True
             except GitCommandError:
                 self.logger.warning('Deleting corrupted cache data.')
+                # Make writable first, in case cache was previously made read-only
+                try:
+                    self._make_writable(self.cache_path)
+                except OSError as e:
+                    self.logger.warning(f"Could not make cache writable before deletion: {e}")
                 shutil.rmtree(self.cache_path)
                 return False
         return False

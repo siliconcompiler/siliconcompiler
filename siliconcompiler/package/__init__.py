@@ -18,6 +18,7 @@ import random
 import re
 import site
 import shutil
+import stat
 import time
 import threading
 import uuid
@@ -545,14 +546,83 @@ class RemoteResolver(Resolver):
             except BaseException:
                 # Exception occurred, so need to cleanup
                 try:
+                    # Make writable first, in case cache was partially made read-only
+                    try:
+                        self._make_writable(self.cache_path)
+                    except OSError as e:
+                        self.logger.warning(f"Could not make cache writable before cleanup: {e}")
                     shutil.rmtree(self.cache_path)
                 except BaseException as cleane:
                     self.logger.error(f"Exception occurred during cleanup: {cleane} "
                                       f"({cleane.__class__.__name__})")
                 raise
 
+            # Make all cached files read-only to prevent accidental modifications
+            try:
+                self._make_readonly(self.cache_path)
+            except OSError as e:
+                self.logger.warning(f"Could not make cache read-only: {e}")
+
             self.set_changed()
             return self.cache_path
+
+    def _make_readonly(self, path: Union[str, Path]) -> None:
+        """
+        Recursively makes all files and directories in the given path read-only.
+
+        This prevents accidental modification of cached remote data by removing write
+        permissions while preserving executable bits and read access. Note: git does
+        not track full file permissions (only the executable bit), so this operation
+        will not create a dirty warning in git repositories.
+
+        Args:
+            path: The path to make read-only (file or directory).
+        """
+        path = Path(path)
+        # Skip symlinks to avoid following them outside the cache
+        if path.is_symlink():
+            return
+        if path.is_file():
+            # Remove write permissions, preserve everything else (especially execute bit)
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+            os.chmod(path, new_mode)
+        elif path.is_dir():
+            # Process all contents recursively
+            for item in path.iterdir():
+                self._make_readonly(item)
+            # Remove write permissions from the directory itself
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+            os.chmod(path, new_mode)
+
+    def _make_writable(self, path: Union[str, Path]) -> None:
+        """
+        Recursively makes all files and directories in the given path writable.
+
+        This is used before deletion to ensure that read-only cached files can be
+        properly removed when necessary (e.g., for corrupted cache cleanup).
+
+        Args:
+            path: The path to make writable (file or directory).
+        """
+        path = Path(path)
+        # Skip symlinks to avoid following them outside the cache
+        if path.is_symlink():
+            return
+        if path.is_file():
+            # Add owner write permission, preserve everything else
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode | stat.S_IWUSR
+            os.chmod(path, new_mode)
+        elif path.is_dir():
+            # Process all contents recursively
+            for item in path.iterdir():
+                self._make_writable(item)
+            # Add owner write permission to the directory itself
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode | stat.S_IWUSR
+            os.chmod(path, new_mode)
 
     def _get_auth_token(self, prefix: List[str]) -> str:
         """
