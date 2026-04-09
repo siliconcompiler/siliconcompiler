@@ -1072,6 +1072,8 @@ def test_make_readonly_single_file(tmp_path):
     # Create a test file
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
+    # Set explicit initial permissions (0o644) to avoid umask variability
+    os.chmod(test_file, 0o644)
 
     # Verify it's writable initially
     assert os.access(test_file, os.W_OK)
@@ -1392,33 +1394,42 @@ def test_make_readonly_string_path(tmp_path):
     assert not (mode & stat.S_IWUSR)
 
 
-def test_make_readonly_error_handling(tmp_path, monkeypatch):
-    """Test error handling when chmod fails."""
-    # Create a test file
-    test_file = tmp_path / "test.txt"
-    test_file.write_text("content")
+def test_make_readonly_error_handling(tmp_path, monkeypatch, caplog):
+    """Test error handling when chmod fails in resolve() flow."""
+    import logging
+
+    # Create a mock remote resolver that succeeds initially
+    class TestResolver(RemoteResolver):
+        def check_cache(self):
+            return False  # Cache is invalid, will fetch
+
+        def resolve_remote(self):
+            # Create a test file to simulate successful download
+            (Path(self.cache_path) / "test.txt").parent.mkdir(parents=True, exist_ok=True)
+            (Path(self.cache_path) / "test.txt").write_text("content")
+
+    # Create project with logging
+    project = Project("testproj")
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.WARNING)
+    caplog.set_level(logging.WARNING)
+
+    resolver = TestResolver("test", project, "https://example.com", "v1.0")
 
     # Mock os.chmod to simulate permission error
-    original_chmod = os.chmod
-    call_count = {"count": 0}
-
     def mock_chmod(path, mode, **kwargs):
-        call_count["count"] += 1
-        if call_count["count"] > 1:  # Fail on second call (after walking)
-            raise PermissionError("Permission denied")
-        return original_chmod(path, mode)
+        raise PermissionError("Permission denied")
 
     monkeypatch.setattr("os.chmod", mock_chmod)
 
-    # Make it read-only - should log warning but not raise
-    project = Project("testproj")
-    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    # resolve() should catch the chmod error and log warning
+    # (the cache won't be made read-only, but resolve succeeds)
+    result = resolver.resolve()
 
-    # This should not raise an exception
-    try:
-        resolver._make_readonly(test_file)
-    except PermissionError:
-        pytest.fail("_make_readonly should not raise PermissionError")
+    # Verify that the cache path exists (resolve succeeded)
+    assert Path(result).exists()
+    # Verify that warning was logged about chmod failure
+    assert "Could not make cache read-only" in caplog.text
 
 
 # ============================================================================

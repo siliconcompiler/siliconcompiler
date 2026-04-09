@@ -579,6 +579,9 @@ class RemoteResolver(Resolver):
             path: The path to make read-only (file or directory).
         """
         path = Path(path)
+        # Skip symlinks to avoid following them outside the cache
+        if path.is_symlink():
+            return
         if path.is_file():
             # Remove write permissions, preserve everything else (especially execute bit)
             current_mode = os.stat(path).st_mode
@@ -604,6 +607,9 @@ class RemoteResolver(Resolver):
             path: The path to make writable (file or directory).
         """
         path = Path(path)
+        # Skip symlinks to avoid following them outside the cache
+        if path.is_symlink():
+            return
         if path.is_file():
             # Add owner write permission, preserve everything else
             current_mode = os.stat(path).st_mode
