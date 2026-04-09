@@ -124,3 +124,47 @@ def test_wildebeest_is_run(heartbeat_design):
 
     assert found, "wildebeest yosys plugin was not run (log file "\
         "did not contain expected execution message)"
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_memory_init_files(datadir):
+    """Test that .hex and .mem files are properly registered in synthesis."""
+    design = Design("memory_init_test")
+
+    with design.active_fileset("rtl"):
+        design.set_topmodule("memory_init_test")
+        design.add_file(os.path.join(datadir, "memory_init", "memory_init_test.v"))
+        design.add_file(os.path.join(datadir, "memory_init", "init.hex"))
+        design.add_file(os.path.join(datadir, "memory_init", "init.mem"))
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    # Set up a synthesis node to test file collection
+    node = SchedulerNode(proj, step='synthesis', index='0')
+    with node.runtime():
+        node.setup()
+
+        # Verify the synthesis task has the memory files marked as required
+        task = node.task
+        hex_files = task.get_fileset_file_keys("hex")
+        mem_files = task.get_fileset_file_keys("mem")
+
+        assert len(hex_files) > 0, ".hex files were not detected in filesets"
+        assert len(mem_files) > 0, ".mem files were not detected in filesets"
+
+        # hex_files and mem_files are tuples of (object, keypath)
+        # Verify the files can be found using the design object and its keypath
+        hex_lib, hex_key = hex_files[0]
+        mem_lib, mem_key = mem_files[0]
+
+        hex_found = hex_lib.find_files(*hex_key)
+        mem_found = mem_lib.find_files(*mem_key)
+
+        assert hex_found, ".hex file could not be resolved"
+        assert mem_found, ".mem file could not be resolved"
+        assert "init.hex" in str(hex_found), f"Expected init.hex in {hex_found}"
+        assert "init.mem" in str(mem_found), f"Expected init.mem in {mem_found}"
