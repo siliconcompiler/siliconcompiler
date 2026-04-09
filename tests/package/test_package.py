@@ -1257,21 +1257,15 @@ def test_make_readonly_preserves_executable_bit_file(tmp_path):
     if sys.platform != "win32":
         assert os.access(test_file, os.X_OK)
         # Check exact permissions
+        assert mode & stat.S_IRUSR
         assert mode & stat.S_IXUSR
+        assert mode & stat.S_IRGRP
         assert mode & stat.S_IXGRP
+        assert mode & stat.S_IROTH
         assert mode & stat.S_IXOTH
-
-    # Check exact permissions (555)
-    mode = os.stat(test_file).st_mode
-    assert mode & stat.S_IRUSR
-    assert mode & stat.S_IXUSR
-    assert mode & stat.S_IRGRP
-    assert mode & stat.S_IXGRP
-    assert mode & stat.S_IROTH
-    assert mode & stat.S_IXOTH
-    assert not (mode & stat.S_IWUSR)
-    assert not (mode & stat.S_IWGRP)
-    assert not (mode & stat.S_IWOTH)
+        assert not (mode & stat.S_IWUSR)
+        assert not (mode & stat.S_IWGRP)
+        assert not (mode & stat.S_IWOTH)
 
 
 def test_make_readonly_removes_write_preserves_exec(tmp_path):
