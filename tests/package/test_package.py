@@ -2,6 +2,7 @@ import contextlib
 import logging
 import pytest
 import shutil
+import sys
 
 import os.path
 
@@ -1186,6 +1187,8 @@ def test_make_readonly_nested_directories(tmp_path):
 
 def test_make_readonly_empty_directory(tmp_path):
     """Test making an empty directory read-only."""
+    import stat
+
     # Create an empty directory
     cache_dir = tmp_path / "empty_cache"
     cache_dir.mkdir()
@@ -1199,8 +1202,9 @@ def test_make_readonly_empty_directory(tmp_path):
     assert os.access(cache_dir, os.R_OK)
     assert os.access(cache_dir, os.X_OK)
 
-    # Verify it's not writable
-    assert not os.access(cache_dir, os.W_OK)
+    # Verify it's not writable by checking stat mode bits
+    mode = os.stat(cache_dir).st_mode
+    assert not (mode & stat.S_IWUSR)
 
 
 def test_make_readonly_preserves_read_access(tmp_path):
@@ -1228,7 +1232,7 @@ def test_make_readonly_preserves_read_access(tmp_path):
 
 
 def test_make_readonly_preserves_executable_bit_file(tmp_path):
-    """Test that making read-only preserves the executable bit on files."""
+    """Test that making read-only preserves the executable bit on files (Unix only)."""
     import stat
 
     # Create an executable file
@@ -1238,20 +1242,24 @@ def test_make_readonly_preserves_executable_bit_file(tmp_path):
                     stat.S_IRGRP | stat.S_IXGRP |
                     stat.S_IROTH | stat.S_IXOTH)  # 755
 
-    # Verify it's executable initially
-    assert os.access(test_file, os.X_OK)
-
     # Make it read-only
     project = Project("testproj")
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(test_file)
 
-    # Verify it's still executable
-    assert os.access(test_file, os.X_OK)
-    # Verify it's not writable
-    assert not os.access(test_file, os.W_OK)
-    # Verify it's readable
-    assert os.access(test_file, os.R_OK)
+    # Verify core behavior: write bits removed
+    mode = os.stat(test_file).st_mode
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+    # Unix-specific: verify execute bits preserved
+    if sys.platform != "win32":
+        assert os.access(test_file, os.X_OK)
+        # Check exact permissions
+        assert mode & stat.S_IXUSR
+        assert mode & stat.S_IXGRP
+        assert mode & stat.S_IXOTH
 
     # Check exact permissions (555)
     mode = os.stat(test_file).st_mode
@@ -1335,13 +1343,12 @@ def test_make_readonly_directory_with_mixed_permissions(tmp_path):
 
 
 def test_make_readonly_directory_preserves_execute_bit(tmp_path):
-    """Test that making directories read-only preserves execute bit."""
+    """Test that making directories read-only preserves execute bit (Unix only)."""
     import stat
 
     # Create a directory structure
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
-    # Make cache_dir writable for setting it up, but will have initial permissions
 
     subdir = cache_dir / "subdir"
     subdir.mkdir()
@@ -1352,28 +1359,23 @@ def test_make_readonly_directory_preserves_execute_bit(tmp_path):
                  stat.S_IRGRP | stat.S_IXGRP |
                  stat.S_IROTH | stat.S_IXOTH)
 
-    # Verify execute bit initially
-    assert os.access(subdir, os.X_OK)
-
     # Make read-only
     project = Project("testproj")
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
-    # Verify subdir still has execute bit (555 instead of 755)
-    assert os.access(subdir, os.X_OK)
-    # Verify not writable
-    assert not os.access(subdir, os.W_OK)
-    # Verify readable
-    assert os.access(subdir, os.R_OK)
-
+    # Core behavior: verify write bits removed
     mode = os.stat(subdir).st_mode
-    assert mode & stat.S_IXUSR
-    assert mode & stat.S_IXGRP
-    assert mode & stat.S_IXOTH
     assert not (mode & stat.S_IWUSR)
     assert not (mode & stat.S_IWGRP)
     assert not (mode & stat.S_IWOTH)
+
+    # Unix-specific: verify execute bits preserved (555 instead of 755)
+    if sys.platform != "win32":
+        assert os.access(subdir, os.X_OK)
+        assert mode & stat.S_IXUSR
+        assert mode & stat.S_IXGRP
+        assert mode & stat.S_IXOTH
 
 
 def test_make_readonly_string_path(tmp_path):
@@ -1459,6 +1461,8 @@ def test_make_writable_single_file(tmp_path):
 
 def test_make_writable_directory(tmp_path):
     """Test making a read-only directory writable."""
+    import stat
+
     # Create a directory with read-only files
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
@@ -1470,20 +1474,26 @@ def test_make_writable_directory(tmp_path):
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
-    # Verify it's read-only
-    assert not os.access(file1, os.W_OK)
-    assert not os.access(cache_dir, os.W_OK)
+    # Verify it's read-only via stat mode
+    mode_file = os.stat(file1).st_mode
+    mode_dir = os.stat(cache_dir).st_mode
+    assert not (mode_file & stat.S_IWUSR)
+    assert not (mode_dir & stat.S_IWUSR)
 
     # Make writable
     resolver._make_writable(cache_dir)
 
-    # Verify owner can write
-    assert os.access(file1, os.W_OK)
-    assert os.access(cache_dir, os.W_OK)
+    # Verify owner can write via stat mode
+    mode_file = os.stat(file1).st_mode
+    mode_dir = os.stat(cache_dir).st_mode
+    assert mode_file & stat.S_IWUSR
+    assert mode_dir & stat.S_IWUSR
 
 
 def test_make_readonly_then_delete(tmp_path):
     """Test that we can delete a read-only cache after making it writable."""
+    import stat
+
     # Create a read-only cache directory
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
@@ -1496,9 +1506,11 @@ def test_make_readonly_then_delete(tmp_path):
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
-    # Verify it's read-only
-    assert not os.access(cache_dir / "file1.txt", os.W_OK)
-    assert not os.access(cache_dir / "subdir", os.W_OK)
+    # Verify it's read-only via stat mode
+    mode_file1 = os.stat(cache_dir / "file1.txt").st_mode
+    mode_subdir = os.stat(cache_dir / "subdir").st_mode
+    assert not (mode_file1 & stat.S_IWUSR)
+    assert not (mode_subdir & stat.S_IWUSR)
 
     # Make writable and delete (should not raise)
     resolver._make_writable(cache_dir)
