@@ -1,7 +1,9 @@
 import contextlib
 import logging
+import os
 import pytest
 import shutil
+import stat
 import sys
 
 import os.path
@@ -390,14 +392,14 @@ def test_remote_cache_dir_no_root():
 
 def test_remote_cache_dir_from_schema():
     project = Project("testproj")
-    project.set("option", "cachedir", os.path.abspath("."))
+    project.option.set_cachedir(os.path.abspath("."))
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     assert resolver.cache_dir == Path(os.path.abspath("."))
 
 
 def test_remote_cache_dir_from_schema_not_found():
     project = Project("testproj")
-    project.set("option", "cachedir", "thispath")
+    project.option.set_cachedir("thispath")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     assert resolver.cache_dir == Path(os.path.abspath("thispath"))
@@ -410,7 +412,7 @@ def test_remote_cache_name():
 
 def test_remote_cache_path():
     project = Project("testproj")
-    project.set("option", "cachedir", "thispath")
+    project.option.set_cachedir("thispath")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
@@ -421,7 +423,7 @@ def test_remote_cache_path():
 
 def test_remote_cache_path_cache_exist():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
@@ -431,7 +433,7 @@ def test_remote_cache_path_cache_exist():
 
 def test_remote_lock_file():
     project = Project("testproj")
-    project.set("option", "cachedir", "thispath")
+    project.option.set_cachedir("thispath")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
@@ -442,7 +444,7 @@ def test_remote_lock_file():
 
 def test_remote_sc_lock_file():
     project = Project("testproj")
-    project.set("option", "cachedir", "thispath")
+    project.option.set_cachedir("thispath")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
@@ -453,7 +455,7 @@ def test_remote_sc_lock_file():
 
 def test_remote_resolve_cached():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -469,7 +471,7 @@ def test_remote_resolve_cached():
 
 def test_remote_resolve():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -485,7 +487,7 @@ def test_remote_resolve():
 
 def test_remote_resolve_cached_different_name():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -514,7 +516,7 @@ def test_remote_resolve_cached_different_name():
 
 def test_remote_lock():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -528,7 +530,7 @@ def test_remote_lock():
 
 def test_remote_lock_after_lock():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -549,7 +551,7 @@ def test_remote_lock_after_lock():
 
 def test_remote_lock_within_lock_thread():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
     resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
@@ -573,7 +575,7 @@ def test_remote_lock_within_lock_thread():
 
 def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
     resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
@@ -619,7 +621,7 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
 
 def test_remote_lock_within_lock_file(monkeypatch):
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
     resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
@@ -652,7 +654,7 @@ def test_remote_lock_within_lock_file(monkeypatch):
 
 def test_remote_lock_exception():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -675,7 +677,7 @@ def test_remote_lock_exception():
 
 def test_remote_lock_failed():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     resolver.set_timeout(1)
@@ -695,7 +697,7 @@ def test_remote_lock_failed():
 
 def test_remote_lock_revert_to_file():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -714,7 +716,7 @@ def test_remote_lock_revert_to_file():
 
 def test_remote_lock_revert_to_file_failed():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -1068,8 +1070,6 @@ def test_reset_cache_none():
 
 def test_make_readonly_single_file(tmp_path):
     """Test making a single file read-only."""
-    import stat
-
     # Create a test file
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
@@ -1080,7 +1080,8 @@ def test_make_readonly_single_file(tmp_path):
     assert os.access(test_file, os.W_OK)
 
     # Make it read-only
-    project = Project("testproj")
+    project = Project("testproj_single_file")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(test_file)
 
@@ -1100,14 +1101,13 @@ def test_make_readonly_single_file(tmp_path):
 
 def test_make_readonly_single_file_path_object(tmp_path):
     """Test making a single file read-only using Path object."""
-    import stat
-
     # Create a test file
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
 
     # Make it read-only using Path object
-    project = Project("testproj")
+    project = Project("testproj_path_object")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(Path(test_file))
 
@@ -1134,7 +1134,8 @@ def test_make_readonly_directory_simple(tmp_path):
     assert os.access(cache_dir / "file2.txt", os.W_OK)
 
     # Make directory and contents read-only
-    project = Project("testproj")
+    project = Project("testproj_dir_simple")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
@@ -1170,7 +1171,8 @@ def test_make_readonly_nested_directories(tmp_path):
     (subdir3 / "file4.txt").write_text("sub3")
 
     # Make entire tree read-only
-    project = Project("testproj")
+    project = Project("testproj_nested")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
@@ -1187,14 +1189,13 @@ def test_make_readonly_nested_directories(tmp_path):
 
 def test_make_readonly_empty_directory(tmp_path):
     """Test making an empty directory read-only."""
-    import stat
-
     # Create an empty directory
     cache_dir = tmp_path / "empty_cache"
     cache_dir.mkdir()
 
     # Make it read-only
-    project = Project("testproj")
+    project = Project("testproj_empty_dir")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
@@ -1209,8 +1210,6 @@ def test_make_readonly_empty_directory(tmp_path):
 
 def test_make_readonly_preserves_read_access(tmp_path):
     """Test that making read-only only removes write permissions, preserving others."""
-    import stat
-
     # Create a file with restrictive permissions initially
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
@@ -1218,7 +1217,8 @@ def test_make_readonly_preserves_read_access(tmp_path):
     test_file.chmod(stat.S_IRUSR)
 
     # Make it read-only (this should only remove write bits, not add read bits)
-    project = Project("testproj")
+    project = Project("testproj_preserves_read")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(test_file)
 
@@ -1233,8 +1233,6 @@ def test_make_readonly_preserves_read_access(tmp_path):
 
 def test_make_readonly_preserves_executable_bit_file(tmp_path):
     """Test that making read-only preserves the executable bit on files (Unix only)."""
-    import stat
-
     # Create an executable file
     test_file = tmp_path / "script.sh"
     test_file.write_text("#!/bin/bash\necho hello")
@@ -1243,7 +1241,8 @@ def test_make_readonly_preserves_executable_bit_file(tmp_path):
                     stat.S_IROTH | stat.S_IXOTH)  # 755
 
     # Make it read-only
-    project = Project("testproj")
+    project = Project("testproj_exec_bit")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(test_file)
 
@@ -1270,8 +1269,6 @@ def test_make_readonly_preserves_executable_bit_file(tmp_path):
 
 def test_make_readonly_removes_write_preserves_exec(tmp_path):
     """Test that making read-only removes write but preserves read and execute."""
-    import stat
-
     # Create a file with write permission (644)
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
@@ -1280,7 +1277,8 @@ def test_make_readonly_removes_write_preserves_exec(tmp_path):
                     stat.S_IROTH)  # 644
 
     # Make it read-only
-    project = Project("testproj")
+    project = Project("testproj_remove_write")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(test_file)
 
@@ -1300,8 +1298,6 @@ def test_make_readonly_removes_write_preserves_exec(tmp_path):
 
 def test_make_readonly_directory_with_mixed_permissions(tmp_path):
     """Test making directory read-only removes write permissions while preserving read/exec."""
-    import stat
-
     # Create a directory with files having different permissions
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
@@ -1315,7 +1311,8 @@ def test_make_readonly_directory_with_mixed_permissions(tmp_path):
     file2.chmod(stat.S_IRUSR | stat.S_IRGRP)  # r-- r-- ---
 
     # Make directory and contents read-only
-    project = Project("testproj")
+    project = Project("testproj_mixed_perms")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
@@ -1338,8 +1335,6 @@ def test_make_readonly_directory_with_mixed_permissions(tmp_path):
 
 def test_make_readonly_directory_preserves_execute_bit(tmp_path):
     """Test that making directories read-only preserves execute bit (Unix only)."""
-    import stat
-
     # Create a directory structure
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
@@ -1354,7 +1349,8 @@ def test_make_readonly_directory_preserves_execute_bit(tmp_path):
                  stat.S_IROTH | stat.S_IXOTH)
 
     # Make read-only
-    project = Project("testproj")
+    project = Project("testproj_dir_exec_bit")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
@@ -1374,14 +1370,13 @@ def test_make_readonly_directory_preserves_execute_bit(tmp_path):
 
 def test_make_readonly_string_path(tmp_path):
     """Test making files read-only using string path instead of Path object."""
-    import stat
-
     # Create a test file
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
 
     # Make it read-only using string path
-    project = Project("testproj")
+    project = Project("testproj_string_path")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(str(test_file))
 
@@ -1434,8 +1429,6 @@ def test_make_readonly_error_handling(tmp_path, monkeypatch, caplog):
 
 def test_make_writable_single_file(tmp_path):
     """Test making a read-only file writable."""
-    import stat
-
     # Create a read-only file
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
@@ -1445,7 +1438,8 @@ def test_make_writable_single_file(tmp_path):
     assert not os.access(test_file, os.W_OK)
 
     # Make it writable
-    project = Project("testproj")
+    project = Project("testproj_writable_single")
+    project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_writable(test_file)
 
