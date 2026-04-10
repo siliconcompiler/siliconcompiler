@@ -1076,8 +1076,9 @@ def test_make_readonly_single_file(tmp_path):
     # Set explicit initial permissions (0o644) to avoid umask variability
     os.chmod(test_file, 0o644)
 
-    # Verify it's writable initially
-    assert os.access(test_file, os.W_OK)
+    # Verify it has write permission bit initially
+    mode_before = os.stat(test_file).st_mode
+    assert mode_before & stat.S_IWUSR
 
     # Make it read-only
     project = Project("testproj_single_file")
@@ -1085,8 +1086,7 @@ def test_make_readonly_single_file(tmp_path):
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(test_file)
 
-    # Verify it's read-only
-    assert not os.access(test_file, os.W_OK)
+    # Verify it's read-only by checking permission bits
     assert os.access(test_file, os.R_OK)
 
     # Check exact permissions (444)
@@ -1111,9 +1111,6 @@ def test_make_readonly_single_file_path_object(tmp_path):
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(Path(test_file))
 
-    # Verify it's read-only
-    assert not os.access(test_file, os.W_OK)
-
     # Check exact permissions
     mode = os.stat(test_file).st_mode
     assert not (mode & stat.S_IWUSR)
@@ -1129,19 +1126,18 @@ def test_make_readonly_directory_simple(tmp_path):
     (cache_dir / "file1.txt").write_text("content1")
     (cache_dir / "file2.txt").write_text("content2")
 
-    # Verify files are writable initially
-    assert os.access(cache_dir / "file1.txt", os.W_OK)
-    assert os.access(cache_dir / "file2.txt", os.W_OK)
-
     # Make directory and contents read-only
     project = Project("testproj_dir_simple")
     project.option.set_cachedir(str(tmp_path))
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
-    # Verify all files are read-only
-    assert not os.access(cache_dir / "file1.txt", os.W_OK)
-    assert not os.access(cache_dir / "file2.txt", os.W_OK)
+    # Verify all files have write bits removed
+    for fpath in [cache_dir / "file1.txt", cache_dir / "file2.txt"]:
+        mode = os.stat(fpath).st_mode
+        assert not (mode & stat.S_IWUSR)
+        assert not (mode & stat.S_IWGRP)
+        assert not (mode & stat.S_IWOTH)
 
     # Verify we can still read files
     assert os.access(cache_dir / "file1.txt", os.R_OK)
@@ -1176,10 +1172,12 @@ def test_make_readonly_nested_directories(tmp_path):
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_readonly(cache_dir)
 
-    # Verify all files are read-only
+    # Verify all files are read-only by checking permission bits
     for fpath in cache_dir.rglob("*.txt"):
-        assert not os.access(fpath, os.W_OK), f"{fpath} should be read-only"
-        assert os.access(fpath, os.R_OK), f"{fpath} should be readable"
+        mode = os.stat(fpath).st_mode
+        assert not (mode & stat.S_IWUSR), f"{fpath} should have write bit removed"
+        assert not (mode & stat.S_IWGRP), f"{fpath} should have group write bit removed"
+        assert not (mode & stat.S_IWOTH), f"{fpath} should have other write bit removed"
 
     # Verify all directories are readable and traversable
     for dpath in [cache_dir, subdir1, subdir2, subdir3]:
@@ -1434,8 +1432,9 @@ def test_make_writable_single_file(tmp_path):
     test_file.write_text("content")
     test_file.chmod(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)  # 444
 
-    # Verify it's read-only
-    assert not os.access(test_file, os.W_OK)
+    # Verify it doesn't have write permission bit
+    mode_before = os.stat(test_file).st_mode
+    assert not (mode_before & stat.S_IWUSR)
 
     # Make it writable
     project = Project("testproj_writable_single")
@@ -1443,14 +1442,13 @@ def test_make_writable_single_file(tmp_path):
     resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
     resolver._make_writable(test_file)
 
-    # Verify owner can now write
-    assert os.access(test_file, os.W_OK)
+    # Verify owner write permission bit is now set
+    mode_after = os.stat(test_file).st_mode
+    assert mode_after & stat.S_IWUSR
 
 
 def test_make_writable_directory(tmp_path):
     """Test making a read-only directory writable."""
-    import stat
-
     # Create a directory with read-only files
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
@@ -1480,8 +1478,6 @@ def test_make_writable_directory(tmp_path):
 
 def test_make_readonly_then_delete(tmp_path):
     """Test that we can delete a read-only cache after making it writable."""
-    import stat
-
     # Create a read-only cache directory
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
@@ -1510,8 +1506,6 @@ def test_make_readonly_then_delete(tmp_path):
 
 def test_make_writable_preserves_read_and_exec(tmp_path):
     """Test that making writable preserves existing read and execute permissions."""
-    import stat
-
     # Create an executable file that's read-only
     exec_file = tmp_path / "script.sh"
     exec_file.write_text("#!/bin/bash\necho hello")
@@ -1524,7 +1518,8 @@ def test_make_writable_preserves_read_and_exec(tmp_path):
 
     # Verify it's still executable
     assert os.access(exec_file, os.X_OK)
-    # Verify it's now writable
-    assert os.access(exec_file, os.W_OK)
+    # Verify owner write permission bit is now set
+    mode_after = os.stat(exec_file).st_mode
+    assert mode_after & stat.S_IWUSR
     # Verify it's still readable
     assert os.access(exec_file, os.R_OK)
