@@ -3,7 +3,8 @@ from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.freepdk45.libs.nangate45 import Nangate45
-from lambdapdk.freepdk45.libs.fakeram45 import FakeRAM45Lambdalib_SinglePort
+from lambdapdk.freepdk45.libs.fakeram45 import FakeRAM45Lambdalib_SinglePort, \
+    FakeRAM45Lambdalib_SinglePortRegfile
 
 
 ####################################################
@@ -75,3 +76,4 @@ def freepdk45_demo(
     # Makes the fake SRAM library available to the flow under a common,
     # standardized naming convention.
     FakeRAM45Lambdalib_SinglePort.alias(project)
+    FakeRAM45Lambdalib_SinglePortRegfile.alias(project)
