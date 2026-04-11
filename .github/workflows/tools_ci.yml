@@ -102,10 +102,11 @@ jobs:
 
       - name: Build and Push SiliconCompiler Builder Docker image
         if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.1.0
         with:
           context: docker/sc_tool_builder
           push: true
+          provenance: false
           tags: ${{ steps.docker.outputs.builder }}
 
   build_tool:
@@ -137,10 +138,11 @@ jobs:
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.1.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
+          provenance: false
           tags: |
             ${{ matrix.name }}
             ${{ matrix.check_name }}
@@ -174,10 +176,11 @@ jobs:
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.1.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
+          provenance: false
           tags: |
             ${{ matrix.name }}
             ${{ matrix.check_name }}
@@ -217,10 +220,11 @@ jobs:
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.1.0
         with:
           context: ./sc_tools/
           push: true
+          provenance: false
           tags: ${{ needs.build_tool_builder.outputs.sc_tools }}
 
   runner_image:
@@ -271,10 +275,11 @@ jobs:
         echo "RUNNER_TAG=${runner_latest_tag}" >> $GITHUB_ENV
 
     - name: Build and Push Tool Docker image
-      uses: docker/build-push-action@v7
+      uses: docker/build-push-action@v7.1.0
       with:
         context: ./sc_runner/
         push: true
+        provenance: false
         tags: |
           ${{ needs.build_tool_builder.outputs.sc_runner }}
           ${{ env.RUNNER_TAG }}
