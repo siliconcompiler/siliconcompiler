@@ -369,6 +369,13 @@ if { [sc_cfg_exists constraint pin] } {
 }
 
 ###############################
+# Check pin placement
+###############################
+if { [sc_cfg_tool_task_get var assert_all_pins_placed] } {
+    sc_design_assert_ios_fixed
+}
+
+###############################
 # Generate pad ring
 ###############################
 
