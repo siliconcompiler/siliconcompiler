@@ -883,6 +883,32 @@ def test_check_files_changed_hash_directory_symlink(project):
                 node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_directory_invalid_symlink(project):
+    """Test that get_file_time fails when a directory contains an invalid symlink."""
+    # Create a directory with a valid file and an invalid symlink inside
+    os.makedirs("testdir", exist_ok=True)
+    with open("testdir/validfile.txt", "w") as f:
+        f.write("test")
+
+    # Create an invalid symlink inside the directory
+    os.symlink("nonexistent_target.txt", "testdir/invalid_link.txt")
+
+    # Set now to be later than the file mtimes to deterministically test the invalid symlink path
+    now = os.path.getmtime("testdir/validfile.txt") + 1
+
+    project.set("library", "testdesign", "fileset", "rtl", "idir", "testdir")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] "
+                                 r"\(file not found: .*/testdir/invalid_link\.txt\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
+
+
 def test_requires_run_breakpoint(project):
     assert project.set("option", "breakpoint", True, step="steptwo")
 

@@ -564,8 +564,11 @@ class SchedulerNode:
                     files = [files]
 
                 for check_file in files:
-                    if get_file_time(check_file) > previous_time:
-                        gen_warning(key, "timestamp")
+                    try:
+                        if get_file_time(check_file) > previous_time:
+                            gen_warning(key, "timestamp")
+                    except FileNotFoundError as e:
+                        gen_warning(key, f"file not found: {e.filename or e.filename2}")
 
     def get_check_changed_keys(self) -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         """
