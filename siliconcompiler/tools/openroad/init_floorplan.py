@@ -113,7 +113,7 @@ class InitFloorplanTask(APRTask,
             self.add("var", "bumpmapfileset", fileset, step=step, index=index)
 
     def set_openroad_assertallpinsplaced(self, enable: bool,
-                                       step: Optional[str] = None, index: Optional[str] = None):
+                                         step: Optional[str] = None, index: Optional[str] = None):
         """
         Enables or disables an assertion that all pins are placed after floorplanning.
 
