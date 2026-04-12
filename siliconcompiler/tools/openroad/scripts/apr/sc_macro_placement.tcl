@@ -26,6 +26,8 @@ if { [sc_design_has_unplaced_macros] } {
     # Macro placement
     ###############################
 
+    set prev_blockages [[ord::get_db_block] getBlockages]
+
     lassign [sc_cfg_tool_task_get var macro_place_halo] halo_x halo_y
 
     set mpl_args []
@@ -108,6 +110,18 @@ if { [sc_design_has_unplaced_macros] } {
         -halo_height $halo_y \
         -target_util [sc_global_placement_density -exclude_padding] \
         {*}$mpl_args
+
+    if { ![sc_cfg_tool_task_get var mpl_makeblockages] } {
+        # Remove created blockages
+        set count 0
+        foreach blockage [[ord::get_db_block] getBlockages] {
+            if { [lsearch -exact $prev_blockages $blockage] == -1 } {
+                odb::dbBlockage_destroy $blockage
+                incr count
+            }
+        }
+        utl::info FLW 1 "Removed $count blockages created during macro placement"
+    }
 }
 
 sc_print_macro_information
