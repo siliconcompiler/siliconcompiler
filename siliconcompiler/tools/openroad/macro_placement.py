@@ -324,7 +324,7 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
         self.set("var", "mpl_macro_blockage_weight", weight, step=step, index=index)
 
     def set_openroad_makeblockages(self, enable: bool,
-                                  step: Optional[str] = None, index: Optional[str] = None):
+                                   step: Optional[str] = None, index: Optional[str] = None):
         """
         Enables or disables the creation of blockages during macro placement.
 
