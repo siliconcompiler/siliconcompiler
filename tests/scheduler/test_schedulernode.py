@@ -901,7 +901,8 @@ def test_check_files_changed_directory_invalid_symlink(project):
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
         with pytest.raises(SchedulerNodeReset,
-                           match=r"^\[library,testdesign,fileset,rtl,idir\] \(file not found: .*/testdir/invalid_link\.txt\) "
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] "
+                                 r"\(file not found: .*/testdir/invalid_link\.txt\) "
                                  r"in steptwo/0 has been modified from previous run$"):
             node.check_files_changed(
                 node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
