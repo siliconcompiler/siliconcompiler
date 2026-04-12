@@ -369,13 +369,6 @@ if { [sc_cfg_exists constraint pin] } {
 }
 
 ###############################
-# Check pin placement
-###############################
-if { [sc_cfg_tool_task_get var assert_all_pins_placed] } {
-    sc_design_assert_ios_fixed
-}
-
-###############################
 # Generate pad ring
 ###############################
 
@@ -403,6 +396,13 @@ if { [llength [sc_cfg_tool_task_get var padringfileset]] > 0 } {
         }
         utl::error FLW 1 "Design contains unplaced IOs"
     }
+}
+
+###############################
+# Check pin placement
+###############################
+if { [sc_cfg_tool_task_get var assert_all_pins_placed] } {
+    sc_design_assert_ios_fixed
 }
 
 if { [sc_check_version 24 3 7421] } {
