@@ -25,6 +25,8 @@ class InitFloorplanTask(APRTask,
                            "remove buffers inserted by synthesis", defvalue=True)
         self.add_parameter("remove_dead_logic", "bool",
                            "remove logic which does not drive a primary output", defvalue=True)
+        self.add_parameter("assert_all_pins_placed", "bool",
+                           "assert that all pins are placed", defvalue=False)
 
         self.add_parameter("padringfileset", "[str]", "filesets to generate a padring")
         self.add_parameter("bumpmapfileset", "[str]", "filesets to generate a bumpmap")
@@ -110,6 +112,18 @@ class InitFloorplanTask(APRTask,
         else:
             self.add("var", "bumpmapfileset", fileset, step=step, index=index)
 
+    def set_openroad_assertallpinsplaced(self, enable: bool,
+                                         step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables an assertion that all pins are placed after floorplanning.
+
+        Args:
+            enable: True to assert that all pins are placed, False to disable this assertion.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "assert_all_pins_placed", enable, step=step, index=index)
+
     def task(self):
         return "init_floorplan"
 
@@ -145,6 +159,7 @@ class InitFloorplanTask(APRTask,
         self.add_required_key("var", "ifp_snap_strategy")
         self.add_required_key("var", "remove_synth_buffers")
         self.add_required_key("var", "remove_dead_logic")
+        self.add_required_key("var", "assert_all_pins_placed")
 
         if self.get("var", "padringfileset"):
             self.add_required_key("var", "padringfileset")

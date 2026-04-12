@@ -292,6 +292,22 @@ proc sc_design_has_placeable_ios { } {
     return false
 }
 
+proc sc_design_assert_ios_fixed { } {
+    set unfixed_ios false
+    foreach bterm [[ord::get_db_block] getBTerms] {
+        if {
+            [$bterm getFirstPinPlacementStatus] != "FIRM" &&
+            [$bterm getFirstPinPlacementStatus] != "LOCKED"
+        } {
+            set unfixed_ios true
+            puts "IO terminal [$bterm getName] has not been placed."
+        }
+    }
+    if { $unfixed_ios } {
+        utl::error FLW 1 "Design has unfixed IOs. Please fix all IOs before proceeding."
+    }
+}
+
 ###########################
 # Check if net has placed bpins
 ###########################
