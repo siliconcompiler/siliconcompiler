@@ -71,7 +71,7 @@ dependencies = [
     "streamlit-autorefresh == 1.0.1; python_version > '3.9'",
 
     # CLI dashboard
-    "rich >= 14.0.0, < 15.0.0"
+    "rich >= 14.0.0, < 16.0.0"
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
