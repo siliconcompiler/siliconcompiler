@@ -58,10 +58,10 @@ def test_init_with_port_in_url():
     assert resolver.host_path == "/test_owner/test_repo"
     assert resolver.host_port == 2222
 
+
 # ============================================================================
 # Cache Checking Tests
 # ============================================================================
-
 def test_check_cache_exists(tmp_path):
     """Test that check_cache returns True when cache directory exists."""
     proj = Project("testproj")
