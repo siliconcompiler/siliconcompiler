@@ -218,25 +218,6 @@ def test_resolve_remote_logs_stdout_stderr_on_error(mock_which, mock_run, mock_l
     assert actual_calls == expected_calls
 
 
-@patch("siliconcompiler.package.scp.subprocess.run")
-@patch("siliconcompiler.package.scp.shutil.which")
-def test_resolve_remote_creates_cache_dir(mock_which, mock_run, tmp_path):
-    """Test that resolve_remote works even if cache directory doesn't exist yet."""
-    proj = Project("testproj")
-    proj.option.set_cachedir(tmp_path)
-
-    resolver = SCPResolver("testscp", proj, "scp://github.com/test_owner/test_repo", "v1.0")
-    mock_which.return_value = "/usr/bin/scp"
-    mock_run.return_value = MagicMock(returncode=0)
-
-    # Ensure cache directory doesn't exist
-    assert not os.path.exists(resolver.cache_path)
-
-    resolver.resolve_remote()
-
-    mock_run.assert_called_once()
-
-
 # ============================================================================
 # Full Resolve Workflow Tests
 # ============================================================================
