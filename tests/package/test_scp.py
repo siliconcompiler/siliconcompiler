@@ -29,6 +29,7 @@ def test_init_basic():
                            "scp://github.com/test_owner/test_repo", "v1.0")
     assert resolver.host == "github.com"
     assert resolver.host_path == "/test_owner/test_repo"
+    assert resolver.host_port is None
 
 
 def test_init_with_different_host():
@@ -37,6 +38,7 @@ def test_init_with_different_host():
                            "scp://example.com/path/to/repo", "v2.0")
     assert resolver.host == "example.com"
     assert resolver.host_path == "/path/to/repo"
+    assert resolver.host_port is None
 
 
 def test_init_with_complex_path():
@@ -45,15 +47,16 @@ def test_init_with_complex_path():
                            "scp://server.org/deep/nested/path/repo", "main")
     assert resolver.host == "server.org"
     assert resolver.host_path == "/deep/nested/path/repo"
+    assert resolver.host_port is None
 
 
 def test_init_with_port_in_url():
     """Test initialization with port number in URL."""
     resolver = SCPResolver("testscp", Project(),
                            "scp://github.com:2222/test_owner/test_repo", "v1.0")
-    assert resolver.host == "github.com:2222"
+    assert resolver.host == "github.com"
     assert resolver.host_path == "/test_owner/test_repo"
-
+    assert resolver.host_port == 2222
 
 # ============================================================================
 # Cache Checking Tests
@@ -113,7 +116,7 @@ def test_resolve_remote_success(mock_which, mock_run, tmp_path):
 
     mock_which.assert_called_once_with("scp")
     mock_run.assert_called_once()
-    args, kwargs = mock_run.call_args
+    args, _ = mock_run.call_args
     command = args[0]
     assert command[0] == "/usr/bin/scp"
     assert command[1] == "-C"  # compression flag
@@ -335,7 +338,7 @@ def test_command_construction_correctness(mock_which, mock_run, tmp_path):
 
     resolver.resolve_remote()
 
-    args, kwargs = mock_run.call_args
+    args, _ = mock_run.call_args
     command = args[0]
 
     # Verify command structure and exact values
@@ -360,9 +363,59 @@ def test_subprocess_receives_correct_kwargs(mock_which, mock_run, tmp_path):
 
     resolver.resolve_remote()
 
-    args, kwargs = mock_run.call_args
+    _, kwargs = mock_run.call_args
     # Check that stdout and stderr are captured exactly
     assert kwargs == {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "text": True}
+
+
+# ============================================================================
+# Port Handling Tests
+# ============================================================================
+
+@patch("siliconcompiler.package.scp.subprocess.run")
+@patch("siliconcompiler.package.scp.shutil.which")
+def test_command_with_default_port(mock_which, mock_run, tmp_path):
+    """Test that default port (22) does not add -P flag to command."""
+    proj = Project("testproj")
+    proj.option.set_cachedir(tmp_path)
+
+    resolver = SCPResolver("testscp", proj, "scp://github.com/test_owner/test_repo", "v1.0")
+    mock_which.return_value = "/usr/bin/scp"
+    mock_run.return_value = MagicMock(returncode=0)
+
+    resolver.resolve_remote()
+
+    args, _ = mock_run.call_args
+    command = args[0]
+
+    # Verify no -P flag for default port
+    assert "-P" not in command
+    assert command[3] == "github.com:/test_owner/test_repo"
+
+
+@patch("siliconcompiler.package.scp.subprocess.run")
+@patch("siliconcompiler.package.scp.shutil.which")
+def test_command_with_custom_port(mock_which, mock_run, tmp_path):
+    """Test that custom port is passed via -P flag in SCP command."""
+    proj = Project("testproj")
+    proj.option.set_cachedir(tmp_path)
+
+    resolver = SCPResolver("testscp", proj, "scp://github.com:2222/test_owner/test_repo", "v1.0")
+    mock_which.return_value = "/usr/bin/scp"
+    mock_run.return_value = MagicMock(returncode=0)
+
+    resolver.resolve_remote()
+
+    args, _ = mock_run.call_args
+    command = args[0]
+
+    # Verify -P flag is present with correct port
+    assert "-P" in command
+    port_index = command.index("-P")
+    assert command[port_index + 1] == "2222"
+    # Host in the remote target should not contain the port
+    remote_target = command[port_index + 2]
+    assert remote_target == "github.com:/test_owner/test_repo"
 
 
 # ============================================================================

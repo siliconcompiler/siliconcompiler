@@ -19,7 +19,7 @@ def get_resolver() -> Dict[str, Type["SCPResolver"]]:
     Returns a dictionary mapping SCP schemes to the SCPResolver class.
 
     This function is used by the resolver system to discover and register this
-    resolver for handling `scp` and `https` protocols.
+    resolver for handling `scp`.
 
     Returns:
         dict: A dictionary mapping scheme names to the SCPResolver class.
@@ -42,8 +42,9 @@ class SCPResolver(RemoteResolver):
         """
         super().__init__(name, root, source, reference)
 
-        self.__host = self.urlparse.netloc
-        self.__host_path = self.urlparse.path
+        self.__host = None
+        self.__host_path = None
+        self.__host_port = ...
 
     def check_cache(self) -> bool:
         """
@@ -65,6 +66,13 @@ class SCPResolver(RemoteResolver):
         Returns:
             str: The host part of the SCP URL.
         """
+        if self.__host is None:
+            netloc = self.urlparse.netloc
+            if ':' in netloc:
+                self.__host, _ = netloc.rsplit(':', 1)
+            else:
+                self.__host = netloc
+
         return self.__host
 
     @property
@@ -75,14 +83,38 @@ class SCPResolver(RemoteResolver):
         Returns:
             str: The path part of the SCP URL.
         """
+        if self.__host_path is None:
+            self.__host_path = self.urlparse.path
+
         return self.__host_path
+
+    @property
+    def host_port(self) -> Optional[int]:
+        """
+        Extracts the port from the SCP URL, if specified.
+
+        Returns:
+            int or None: The port number if specified, otherwise None.
+        """
+        if self.__host_port is ...:
+            netloc = self.urlparse.netloc
+            if ':' in netloc:
+                _, port_str = netloc.rsplit(':', 1)
+                try:
+                    self.__host_port = int(port_str)
+                except ValueError:
+                    self.__host_port = None
+            else:
+                self.__host_port = None
+        return self.__host_port
 
     def resolve_remote(self) -> None:
         """
         Fetches the remote archive, unpacks it, and stores it in the cache.
 
         Raises:
-            FileNotFoundError: If the download fails.
+            RuntimeError: If the SCP command is not found.
+            FileNotFoundError: If the remote path cannot be fetched.
         """
         scp = shutil.which("scp")
         if scp is None:
@@ -94,9 +126,18 @@ class SCPResolver(RemoteResolver):
             scp,
             "-C",  # Enable compression for faster transfers
             "-r",  # Recursively copy directories
+        ]
+
+        # Add port flag if non-default port is specified
+        port = self.host_port
+        if port is not None:
+            command.extend(["-P", str(port)])
+
+        # Add source and destination
+        command.extend([
             f"{self.host}:{self.host_path}",
             self.cache_path
-        ]
+        ])
 
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if result.returncode != 0:
