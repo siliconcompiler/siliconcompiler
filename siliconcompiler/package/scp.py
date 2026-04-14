@@ -86,7 +86,8 @@ class SCPResolver(RemoteResolver):
         """
         scp = shutil.which("scp")
         if scp is None:
-            raise RuntimeError("SCP command not found. Please ensure SCP is installed and in your PATH.")
+            raise RuntimeError("SCP command not found. Please ensure SCP is installed and "
+                               "in your PATH.")
 
         # Construct the SCP command
         command = [
@@ -103,4 +104,5 @@ class SCPResolver(RemoteResolver):
                 self.logger.error(line)
             for line in result.stderr.splitlines():
                 self.logger.error(line)
-            raise FileNotFoundError(f"Failed to fetch data from {self.host}:{self.host_path} using SCP.")
+            raise FileNotFoundError("Failed to fetch data from "
+                                    f"{self.host}:{self.host_path} using SCP.")
