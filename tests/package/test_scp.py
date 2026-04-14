@@ -186,6 +186,38 @@ def test_resolve_remote_subprocess_error_with_logging(mock_which, mock_run, tmp_
     mock_run.assert_called_once()
 
 
+@patch("siliconcompiler.package.scp.SCPResolver.logger", new_callable=lambda: MagicMock())
+@patch("siliconcompiler.package.scp.subprocess.run")
+@patch("siliconcompiler.package.scp.shutil.which")
+def test_resolve_remote_logs_stdout_stderr_on_error(mock_which, mock_run, mock_logger, tmp_path):
+    """Test that stdout and stderr are correctly sent to logger when subprocess fails."""
+    proj = Project("testproj")
+    proj.option.set_cachedir(tmp_path)
+
+    resolver = SCPResolver("testscp", proj, "scp://github.com/test_owner/test_repo", "v1.0")
+    mock_which.return_value = "/usr/bin/scp"
+    mock_run.return_value = MagicMock(
+        returncode=255,
+        stdout="error line 1\nerror line 2\n",
+        stderr="stderr line 1\nstderr line 2\n"
+    )
+    resolver.logger = mock_logger
+
+    # Verify that FileNotFoundError is raised when subprocess fails
+    with pytest.raises(FileNotFoundError):
+        resolver.resolve_remote()
+
+    # Verify logger.error was called for each stdout and stderr line
+    expected_calls = [
+        ("error line 1",),
+        ("error line 2",),
+        ("stderr line 1",),
+        ("stderr line 2",),
+    ]
+    actual_calls = [call[0] for call in mock_logger.error.call_args_list]
+    assert actual_calls == expected_calls
+
+
 @patch("siliconcompiler.package.scp.subprocess.run")
 @patch("siliconcompiler.package.scp.shutil.which")
 def test_resolve_remote_creates_cache_dir(mock_which, mock_run, tmp_path):
