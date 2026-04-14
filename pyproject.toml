@@ -101,6 +101,7 @@ scsetup = "siliconcompiler.utils.showtools:showtasks"
 https = "siliconcompiler.package.https:get_resolver"
 git = "siliconcompiler.package.git:get_resolver"
 github = "siliconcompiler.package.github:get_resolver"
+scp = "siliconcompiler.package.scp:get_resolver"
 
 [project.entry-points."siliconcompiler.docs"]
 linkcode = "siliconcompiler.schema.docs:get_codeurl"
