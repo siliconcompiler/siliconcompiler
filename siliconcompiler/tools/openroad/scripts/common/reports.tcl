@@ -183,8 +183,10 @@ puts "$PREFIX cellarea"
 report_design_area
 report_design_area_metrics
 
-# get number of nets in design
-utl::metric_int "design__nets" [llength [[ord::get_db_block] getNets]]
+if { ![sc_check_version 26 2 219] } {
+    # get number of nets in design
+    utl::metric_int "design__nets" [llength [[ord::get_db_block] getNets]]
+}
 
 if { ![sc_check_version 26 1 0] } {
     # get number of registers
