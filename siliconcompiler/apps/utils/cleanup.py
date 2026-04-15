@@ -1,8 +1,6 @@
-# Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
-import os
+# Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 import sys
 import shutil
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
 

@@ -1,16 +1,9 @@
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 import pytest
-import sys
 import os
-import os.path
-import shutil
-import tempfile
-import time
-from datetime import datetime, timedelta
-from pathlib import Path
-from unittest.mock import patch
 
-from siliconcompiler import Project
+from datetime import datetime, timedelta
+
 from siliconcompiler.apps.utils import cleanup
 
 
