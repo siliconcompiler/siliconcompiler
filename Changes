@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.6 (2026-04-15)
+=========================================
+
+**Minor:**
+
+ * Switched to marking cached downloads as readonly to avoid accidental overwrites.
+ * Added utility app to cleanup caches with `python3 -m siliconcompiler.apps.utils.cleanup`.
+ * Updated targets to map regfiles from lambdalib.
+ * Added `scp` based file path resolver to allow files to be copied between machines.
+
+ * Tools:
+
+  * openroad: Added option to check that all pins are placed and remove blockages created during macro placement.
+
+
 SiliconCompiler 0.37.5 (2026-04-08)
 =========================================
 
