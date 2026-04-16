@@ -90,6 +90,70 @@ def test_resolve():
         resolver.resolve()
 
 
+def test_display_name_with_schema():
+    """Test display_name returns name when schema exists but has empty keypath."""
+    project = Project("testproj")
+    resolver = Resolver("mydata", project, "source://this")
+
+    # For root-level schemas with empty keypath, display_name should be just the name
+    display = resolver.display_name
+    assert display == "mydata"
+
+
+def test_display_name_without_schema():
+    """Test display_name returns just the name when no schema is provided."""
+    resolver = Resolver("mydata", None, "source://this")
+
+    # display_name should be just the name without keypath
+    assert resolver.display_name == "mydata"
+
+
+def test_display_name_with_nested_schema():
+    """Test display_name includes keypath when schema is nested."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    project = Project(design)
+
+    # Get a nested design schema from the project
+    library_design = project.get("library", "testdesign", field="schema")
+    resolver = Resolver("packagedata", library_design, "source://this")
+
+    # display_name should include the keypath in brackets
+    display = resolver.display_name
+    assert display == "packagedata [library,testdesign]"
+
+
+def test_display_name_consistency():
+    """Test that display_name is consistent across multiple calls."""
+    project = Project("testproj")
+    resolver = Resolver("data", project, "source://path")
+
+    # Multiple calls should return the same value
+    display1 = resolver.display_name
+    display2 = resolver.display_name
+    assert display1 == display2
+
+
+def test_display_name_format_with_keypath():
+    """Test that display_name follows the expected format when keypath exists."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    project = Project(design)
+    library_design = project.get("library", "testdesign", field="schema")
+
+    resolver = Resolver("myresolver", library_design, "source://this")
+
+    # Format should be: "name [keypath,...]"
+    display = resolver.display_name
+    # Should have brackets and the name at the start
+    assert display.startswith("myresolver [")
+    assert display.endswith("]")
+
+
 def test_find_resolver_not_found():
     with pytest.raises(ValueError,
                        match=r"^Source URI 'nosupport://help.me/file' is not supported$"):

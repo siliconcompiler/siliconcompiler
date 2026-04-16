@@ -135,6 +135,15 @@ class Resolver:
         return self.__name
 
     @property
+    def display_name(self) -> str:
+        """A user-friendly display name for the resolver."""
+        if self.__schema:
+            keypath = self.__schema._keypath
+            if keypath:
+                return f"{self.name} [{','.join(keypath)}]"
+        return self.name
+
+    @property
     def root(self) -> Optional[Union["Project", "BaseSchema"]]:
         """The root object (e.g., Project) providing context."""
         return self.__root
@@ -296,12 +305,12 @@ class Resolver:
 
         path = self.resolve()
         if not os.path.exists(path):
-            raise FileNotFoundError(f"Unable to locate '{self.name}' at {path}")
+            raise FileNotFoundError(f"Unable to locate '{self.display_name}' at {path}")
 
         if self.changed:
-            self.logger.info(f'Saved {self.name} data to {path}')
+            self.logger.info(f'Saved {self.display_name} data to {path}')
         else:
-            self.logger.info(f'Found {self.name} data at {path}')
+            self.logger.info(f'Found {self.display_name} data at {path}')
 
         Resolver.set_cache(self.__root, self.cache_id, path)
         return str(path)
@@ -828,7 +837,7 @@ class KeyPathResolver(Resolver):
             RuntimeError: If the resolver does not have a root project object defined.
         """
         if not self.root:
-            raise RuntimeError(f"A root schema has not been defined for '{self.name}'")
+            raise RuntimeError(f"A root schema has not been defined for '{self.display_name}'")
 
         key = self.urlpath.split(",")
         if self.root.get(*key, field='pernode').is_never():
