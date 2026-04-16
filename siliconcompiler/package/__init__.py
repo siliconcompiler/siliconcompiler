@@ -887,7 +887,8 @@ class DatarootResolver(Resolver):
 
         find_root = self.urlpath
         if not datarootstore.valid('dataroot', self.urlpath):
-            raise RuntimeError(f"Dataroot '{self.urlpath}' is not defined for '{self.display_name}'")
+            raise RuntimeError(
+                f"Dataroot '{self.urlpath}' is not defined for '{self.display_name}'")
 
         path: str = datarootstore.get("dataroot", find_root, "path")
         tag: Optional[str] = datarootstore.get("dataroot", find_root, "tag")

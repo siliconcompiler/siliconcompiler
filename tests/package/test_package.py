@@ -14,7 +14,8 @@ from unittest.mock import patch
 import siliconcompiler
 
 from siliconcompiler.package import Resolver, RemoteResolver
-from siliconcompiler.package import FileResolver, PythonPathResolver, KeyPathResolver, DatarootResolver
+from siliconcompiler.package import FileResolver, PythonPathResolver, \
+    KeyPathResolver, DatarootResolver
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
 from siliconcompiler import Project, Design
@@ -1901,7 +1902,7 @@ def test_dataroot_resolver_deep_nested_path(tmp_path):
 
     # Create a resolver that references deeply nested subdirectory
     resolver = DatarootResolver("testdata", design,
-                               "dataroot://mydata/level1/level2/level3/level4")
+                                "dataroot://mydata/level1/level2/level3/level4")
 
     resolved_path = resolver.resolve()
 
