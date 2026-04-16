@@ -1719,13 +1719,14 @@ def test_dataroot_resolver_resolve_with_nested_path(tmp_path):
     # Create a resolver that references this dataroot with a nested path
     # Note: URLs are parsed as scheme://netloc/path
     # For 'dataroot://mydata/subdir', netloc='mydata' and path='/subdir'
-    # Since os.path.join treats paths starting with / as absolute, we should be aware of this
-    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+    # The resolver should strip the leading / and join it to the base path
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata/subdir")
 
     resolved_path = resolver.resolve()
 
-    # Verify the base dataroot resolves correctly
-    assert os.path.normpath(resolved_path) == os.path.normpath(str(data_dir))
+    # Verify the nested path is correctly resolved
+    expected_path = os.path.normpath(str(data_dir / "subdir"))
+    assert os.path.normpath(resolved_path) == expected_path
 
 
 def test_dataroot_resolver_resolve_with_python_package():
@@ -1938,3 +1939,24 @@ def test_dataroot_resolver_find_resolver():
     """Test that dataroot:// scheme is properly registered."""
     resolver_cls = Resolver.find_resolver("dataroot://some/data")
     assert resolver_cls is DatarootResolver
+
+
+def test_dataroot_resolver_self_referential():
+    """Test that self-referential dataroots raise RuntimeError."""
+    design = Design("test")
+    design.set_dataroot("mydata", "dataroot://mydata")
+
+    resolver = DatarootResolver("test", design, "dataroot://mydata")
+    with pytest.raises(RuntimeError, match="Circular dataroot reference detected"):
+        resolver.get_path()
+
+
+def test_dataroot_resolver_mutually_referential():
+    """Test that mutually-referential dataroots raise RuntimeError."""
+    design = Design("test")
+    design.set_dataroot("dataA", "dataroot://dataB")
+    design.set_dataroot("dataB", "dataroot://dataA")
+
+    resolver = DatarootResolver("test", design, "dataroot://dataA")
+    with pytest.raises(RuntimeError, match="Circular dataroot reference detected"):
+        resolver.get_path()
