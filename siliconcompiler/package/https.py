@@ -125,8 +125,8 @@ class HTTPResolver(RemoteResolver):
 
         response = requests.get(data_url, stream=True, headers=headers)
         if not response.ok:
-            raise FileNotFoundError(f'Failed to download {self.display_name} data source from {data_url}. '
-                                    f'Status code: {response.status_code}')
+            raise FileNotFoundError(f'Failed to download {self.display_name} data source from '
+                                    f'{data_url}. Status code: {response.status_code}')
 
         os.makedirs(self.cache_path, exist_ok=True)
 
