@@ -18,6 +18,7 @@ from siliconcompiler.package import FileResolver, PythonPathResolver, KeyPathRes
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
 from siliconcompiler import Project, Design
+from siliconcompiler.schema import BaseSchema
 
 
 def test_init():
@@ -229,7 +230,7 @@ def test_file_env_var_with_scheme():
 
 
 def test_file_env_var_start_with_root():
-    class Project:
+    class Project(BaseSchema):
         __cwd = "thiscwd"
 
         def valid(*_args, **_kwargs):  # keep interface, silence linters
