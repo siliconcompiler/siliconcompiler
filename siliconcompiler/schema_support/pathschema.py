@@ -400,7 +400,6 @@ class PathSchema(PathSchemaBase):
         Returns:
             dictionary of str to resolver mapping
         """
-        schema_root = self._parent(root=True)
         schema = self.__dataroot_section()
 
         if not schema.valid("dataroot"):
