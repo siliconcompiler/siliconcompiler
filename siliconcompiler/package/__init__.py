@@ -98,7 +98,6 @@ class Resolver:
         settings.set("resolvers", "file", FileResolver)
         settings.set("resolvers", "key", KeyPathResolver)
         settings.set("resolvers", "python", PythonPathResolver)
-        settings.set("resolvers", "dataroot", DatarootResolver)
 
         for resolver in get_plugins("path_resolver"):
             for scheme, res in resolver().items():
