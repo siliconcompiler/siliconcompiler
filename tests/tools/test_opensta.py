@@ -6,6 +6,7 @@ import os.path
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler import ASIC, Design, Flowgraph
 from siliconcompiler.tools.opensta import timing
+from siliconcompiler.utils.paths import workdir
 
 from siliconcompiler.targets import freepdk45_demo
 
@@ -83,6 +84,39 @@ def test_opensta_sdf(datadir):
     # Check that the setup and hold slacks are the expected values.
     assert proj.history("job0").get('metric', 'setupslack', step='opensta', index='0') == -0.890
     assert proj.history("job0").get('metric', 'holdslack', step='opensta', index='0') == 0.020
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_opensta_write_lib_sdf(datadir):
+    design = Design("testdesign")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("foo")
+        design.add_file(os.path.join("lec", "foo.vg"))
+    with design.active_dataroot("root"), design.active_fileset("sdc"):
+        design.add_file(os.path.join("lec", "foo.sdc"))
+    proj = ASIC(design)
+    proj.add_fileset(["rtl", "sdc"])
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("timing")
+    flow.node("opensta", timing.TimingTask())
+    proj.set_flow(flow)
+
+    timing.TimingTask.find_task(proj).set_opensta_writesdf(True)
+    timing.TimingTask.find_task(proj).set_opensta_writeliberty(True)
+
+    # Check that OpenSTA ran successfully
+    assert proj.run()
+
+    # Check that sdf, liberty outputs are generated
+    out_dir = os.path.join(
+        workdir(proj.history("job0"), step="opensta", index="0"), "outputs"
+    )
+    assert os.path.exists(os.path.join(out_dir, "foo.typical.sdf"))
+    assert os.path.exists(os.path.join(out_dir, "foo.typical.lib"))
 
 
 def test_opensta_parameter_top_n_paths():
