@@ -390,7 +390,7 @@ class PathSchema(PathSchemaBase):
         tag: Optional[str] = BaseSchema.get(schema, "dataroot", name, "tag")
 
         resolver = Resolver.find_resolver(path)
-        return resolver(name, schema._parent(root=True), path, tag).get_path()
+        return resolver(name, self, path, tag).get_path()
 
     def _find_files_dataroot_resolvers(self, resolvers: bool = False) \
             -> Dict[str, Union[str, Callable]]:
@@ -411,7 +411,7 @@ class PathSchema(PathSchemaBase):
             path = BaseSchema.get(schema, "dataroot", dataroot, "path")
             tag = BaseSchema.get(schema, "dataroot", dataroot, "tag")
             resolver = Resolver.find_resolver(path)
-            resolver_obj = resolver(dataroot, schema_root, path, tag)
+            resolver_obj = resolver(dataroot, self, path, tag)
             if resolvers:
                 resolver_map[dataroot] = resolver_obj
             else:

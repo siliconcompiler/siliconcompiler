@@ -49,11 +49,11 @@ class GithubResolver(HTTPResolver):
     a GitHub token must be provided via environment variables.
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         """
         Initializes the GithubResolver.
         """
-        super().__init__(name, root, source, reference)
+        super().__init__(name, schema, source, reference)
 
         self.__url = None
 
