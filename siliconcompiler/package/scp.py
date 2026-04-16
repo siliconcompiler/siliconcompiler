@@ -36,11 +36,11 @@ class SCPResolver(RemoteResolver):
     This class copies a directory from a remote server using SCP
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         """
         Initializes the SCPResolver.
         """
-        super().__init__(name, root, source, reference)
+        super().__init__(name, schema, source, reference)
 
         self.__host = None
         self.__host_path = None

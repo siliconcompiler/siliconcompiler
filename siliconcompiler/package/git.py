@@ -47,11 +47,11 @@ class GitResolver(RemoteResolver):
     for SSH-based URLs.
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         """
         Initializes the GitResolver.
         """
-        super().__init__(name, root, source, reference)
+        super().__init__(name, schema, source, reference)
 
     def check_cache(self) -> bool:
         """
@@ -177,7 +177,7 @@ class GitResolver(RemoteResolver):
         """
         try:
             path = self.git_path
-            self.logger.info(f'Cloning {self.name} data from {path}')
+            self.logger.info(f'Cloning {self.display_name} data from {path}')
             repo = Repo.clone_from(path, self.cache_path,
                                    recurse_submodules=self.include_submodules)
 

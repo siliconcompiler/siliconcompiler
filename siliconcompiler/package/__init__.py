@@ -52,7 +52,7 @@ class Resolver:
 
     Attributes:
         name (str): The name of the data package being resolved.
-        root (object): The root object (typically a Project) providing context,
+        schema (object): The root object (typically a Project) providing context,
             such as environment variables and the working directory.
         source (str): The URI or path specifying the data source.
         reference (str): A version, commit hash, or tag for remote sources.
@@ -60,14 +60,15 @@ class Resolver:
     __STORAGE: Final[str] = "__Resolver_cache_id"
 
     def __init__(self, name: str,
-                 root: Optional[Union["Project", "BaseSchema"]],
+                 schema: Optional[Union["Project", "BaseSchema"]],
                  source: str,
                  reference: Optional[str] = None):
         """
         Initializes the Resolver.
         """
         self.__name = name
-        self.__root = root
+        self.__schema = schema
+        self.__root = None if schema is None else schema._parent(root=True)
         self.__source = source
         self.__reference = reference
         self.__changed = False
@@ -135,9 +136,23 @@ class Resolver:
         return self.__name
 
     @property
+    def display_name(self) -> str:
+        """A user-friendly display name for the resolver."""
+        if self.__schema:
+            keypath = self.__schema._keypath
+            if keypath:
+                return f"{self.name} [{','.join(keypath)}]"
+        return self.name
+
+    @property
     def root(self) -> Optional[Union["Project", "BaseSchema"]]:
         """The root object (e.g., Project) providing context."""
         return self.__root
+
+    @property
+    def schema(self) -> Optional["BaseSchema"]:
+        """The schema object (e.g., Project) providing context."""
+        return self.__schema
 
     @property
     def logger(self) -> logging.Logger:
@@ -296,12 +311,12 @@ class Resolver:
 
         path = self.resolve()
         if not os.path.exists(path):
-            raise FileNotFoundError(f"Unable to locate '{self.name}' at {path}")
+            raise FileNotFoundError(f"Unable to locate '{self.display_name}' at {path}")
 
         if self.changed:
-            self.logger.info(f'Saved {self.name} data to {path}')
+            self.logger.info(f'Saved {self.display_name} data to {path}')
         else:
-            self.logger.info(f'Found {self.name} data at {path}')
+            self.logger.info(f'Found {self.display_name} data at {path}')
 
         Resolver.set_cache(self.__root, self.cache_id, path)
         return str(path)
@@ -334,13 +349,13 @@ class RemoteResolver(Resolver):
     multiple SC instances try to download the same resource simultaneously.
     """
     def __init__(self, name: str,
-                 root: Optional[Union["Project", "BaseSchema"]],
+                 schema: Optional[Union["Project", "BaseSchema"]],
                  source: str,
                  reference: Optional[str] = None):
         if reference is None:
             raise ValueError(f'A reference (e.g., version, commit) is required for {name}')
 
-        super().__init__(name, root, source, reference)
+        super().__init__(name, schema, source, reference)
 
         # Wait a maximum of 10 minutes for other processes to finish
         self.__max_lock_wait: int = 60 * 10
@@ -666,13 +681,13 @@ class FileResolver(Resolver):
     It normalizes the source string to a `file://` URI.
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         if source.startswith("file://"):
             source = source[7:]
         if source[0] != "$" and not os.path.isabs(source):
-            source = os.path.join(cwdirsafe(root), source)
+            source = os.path.join(cwdirsafe(schema._parent(root=True)), source)
 
-        super().__init__(name, root, f"file://{source}", None)
+        super().__init__(name, schema, f"file://{source}", None)
 
     @property
     def urlpath(self) -> str:
@@ -697,8 +712,8 @@ class PythonPathResolver(Resolver):
     determine if a package is installed in "editable" mode.
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
-        super().__init__(name, root, source, None)
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
+        super().__init__(name, schema, source, None)
 
     @staticmethod
     @functools.lru_cache(maxsize=1)
@@ -814,8 +829,8 @@ class KeyPathResolver(Resolver):
     `find_files` method of the root project object to locate the corresponding file.
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
-        super().__init__(name, root, source, None)
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
+        super().__init__(name, schema, source, None)
 
     def resolve(self) -> str:
         """
@@ -828,7 +843,7 @@ class KeyPathResolver(Resolver):
             RuntimeError: If the resolver does not have a root project object defined.
         """
         if not self.root:
-            raise RuntimeError(f"A root schema has not been defined for '{self.name}'")
+            raise RuntimeError(f"A root schema has not been defined for '{self.display_name}'")
 
         key = self.urlpath.split(",")
         if self.root.get(*key, field='pernode').is_never():
