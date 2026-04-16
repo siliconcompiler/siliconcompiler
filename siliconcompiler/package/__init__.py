@@ -857,3 +857,43 @@ class KeyPathResolver(Resolver):
         if isinstance(paths, list):
             return paths[0]
         return paths
+
+
+class DatarootResolver(Resolver):
+    """
+    A resolver for finding file paths stored with other dataroots.
+    """
+
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
+        super().__init__(name, schema, source, None)
+
+    def resolve(self) -> str:
+        """
+        Resolves the path by looking up the keypath in the project schema.
+
+        Returns:
+            str: The file path found in the schema.
+
+        Raises:
+            RuntimeError: If the resolver does not have a root project object defined.
+        """
+        source_schema = self.schema
+        if not source_schema:
+            raise RuntimeError(f"A schema context is required for '{self.display_name}'")
+
+        datarootstore = self.schema._parent()
+        if not datarootstore:
+            raise RuntimeError(f"A root schema has not been defined for '{self.display_name}'")
+
+        find_root = self.urlpath
+        if not datarootstore.valid('dataroot', self.urlpath):
+            raise RuntimeError(f"Dataroot '{self.urlpath}' is not defined for '{self.display_name}'")
+
+        path: str = datarootstore.get("dataroot", find_root, "path")
+        tag: Optional[str] = datarootstore.get("dataroot", find_root, "tag")
+
+        resolver = Resolver.find_resolver(path)
+        base_path = resolver(self.name, self.schema, path, tag).get_path()
+        # Strip leading '/' from urlparse.path to avoid os.path.join treating it as absolute
+        subpath = self.urlparse.path.lstrip('/')
+        return os.path.join(base_path, subpath) if subpath else base_path

@@ -14,7 +14,7 @@ from unittest.mock import patch
 import siliconcompiler
 
 from siliconcompiler.package import Resolver, RemoteResolver
-from siliconcompiler.package import FileResolver, PythonPathResolver, KeyPathResolver
+from siliconcompiler.package import FileResolver, PythonPathResolver, KeyPathResolver, DatarootResolver
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
 from siliconcompiler import Project, Design
@@ -1588,3 +1588,352 @@ def test_make_writable_preserves_read_and_exec(tmp_path):
     assert mode_after & stat.S_IWUSR
     # Verify it's still readable
     assert os.access(exec_file, os.R_OK)
+
+
+# ============================================================================
+# Tests for DatarootResolver
+# ============================================================================
+
+def test_dataroot_resolver_init():
+    """Test DatarootResolver initialization."""
+    project = Project("testproj")
+    resolver = DatarootResolver("testdata", project, "dataroot://mydata")
+
+    assert resolver.name == "testdata"
+    assert resolver.source == "dataroot://mydata"
+    assert resolver.reference is None
+    assert resolver.urlscheme == "dataroot"
+    assert resolver.urlpath == "mydata"
+    assert isinstance(resolver.logger, logging.Logger)
+
+
+def test_dataroot_resolver_init_no_schema():
+    """Test DatarootResolver initialization without schema."""
+    resolver = DatarootResolver("testdata", None, "dataroot://mydata")
+
+    assert resolver.name == "testdata"
+    assert resolver.source == "dataroot://mydata"
+    assert resolver.schema is None
+    assert resolver.urlpath == "mydata"
+
+
+def test_dataroot_resolver_resolve_no_schema_context():
+    """Test DatarootResolver.resolve() raises error when schema context is missing."""
+    resolver = DatarootResolver("testdata", None, "dataroot://mydata")
+
+    with pytest.raises(RuntimeError,
+                       match=r"^A schema context is required for 'testdata'$"):
+        resolver.resolve()
+
+
+def test_dataroot_resolver_resolve_no_root_schema():
+    """Test DatarootResolver.resolve() raises error when root schema is missing."""
+    class MockSchema:
+        _keypath = ()
+
+        def _parent(self, root=False):
+            return None
+
+    schema = MockSchema()
+    resolver = DatarootResolver("testdata", schema, "dataroot://mydata")
+
+    with pytest.raises(RuntimeError,
+                       match=r"^A root schema has not been defined for 'testdata'$"):
+        resolver.resolve()
+
+
+def test_dataroot_resolver_resolve_undefined_dataroot():
+    """Test DatarootResolver.resolve() raises error when dataroot is not defined."""
+    project = Project("testproj")
+    # Don't set any dataroot, so 'mydata' will not be defined
+    resolver = DatarootResolver("testdata", project, "dataroot://mydata")
+
+    with pytest.raises(RuntimeError,
+                       match=r"^Dataroot 'mydata' is not defined for 'testdata'$"):
+        resolver.resolve()
+
+
+def test_dataroot_resolver_resolve_with_file_path(tmp_path):
+    """Test DatarootResolver.resolve() with a file:// dataroot."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create a test data directory
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "file.txt").write_text("test data")
+
+    # Set a dataroot pointing to the file path
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references this dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the data directory (may have trailing slash)
+    assert os.path.normpath(resolved_path) == os.path.normpath(str(data_dir))
+    assert os.path.exists(resolved_path.rstrip('/'))
+
+
+def test_dataroot_resolver_resolve_with_tag(tmp_path):
+    """Test DatarootResolver.resolve() with a dataroot that has a tag."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directories
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "file.txt").write_text("test data")
+
+    # Set a dataroot with a tag
+    design.set_dataroot("mydata", str(data_dir), tag="v1.0")
+
+    # Create a resolver that references this dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the data directory (may have trailing slash)
+    assert os.path.normpath(resolved_path) == os.path.normpath(str(data_dir))
+
+
+def test_dataroot_resolver_resolve_with_nested_path(tmp_path):
+    """Test DatarootResolver.resolve() with a nested path component."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory with subdirectories
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "subdir").mkdir()
+    (data_dir / "subdir" / "file.txt").write_text("nested data")
+
+    # Set a dataroot pointing to the data directory
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references this dataroot with a nested path
+    # Note: URLs are parsed as scheme://netloc/path
+    # For 'dataroot://mydata/subdir', netloc='mydata' and path='/subdir'
+    # Since os.path.join treats paths starting with / as absolute, we should be aware of this
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    resolved_path = resolver.resolve()
+
+    # Verify the base dataroot resolves correctly
+    assert os.path.normpath(resolved_path) == os.path.normpath(str(data_dir))
+
+
+def test_dataroot_resolver_resolve_with_python_package():
+    """Test DatarootResolver.resolve() with a python:// dataroot."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Set a dataroot pointing to a Python package
+    design.set_dataroot("mydata", "python://siliconcompiler")
+
+    # Create a resolver that references this dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the siliconcompiler package directory
+    expected_path = os.path.dirname(siliconcompiler.__file__)
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+
+def test_dataroot_resolver_resolve_multiple_dataroots(tmp_path):
+    """Test DatarootResolver with multiple dataroots defined."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create multiple test data directories
+    data_dir1 = tmp_path / "data1"
+    data_dir1.mkdir()
+    (data_dir1 / "file1.txt").write_text("data1")
+
+    data_dir2 = tmp_path / "data2"
+    data_dir2.mkdir()
+    (data_dir2 / "file2.txt").write_text("data2")
+
+    # Set multiple dataroots
+    design.set_dataroot("data1", str(data_dir1))
+    design.set_dataroot("data2", str(data_dir2))
+
+    # Create resolvers for each dataroot
+    resolver1 = DatarootResolver("testdata1", design, "dataroot://data1")
+    resolver2 = DatarootResolver("testdata2", design, "dataroot://data2")
+
+    # Each should resolve to its respective directory (normalize for comparison)
+    assert os.path.normpath(resolver1.resolve()) == os.path.normpath(str(data_dir1))
+    assert os.path.normpath(resolver2.resolve()) == os.path.normpath(str(data_dir2))
+
+
+def test_dataroot_resolver_resolve_with_display_name(tmp_path):
+    """Test DatarootResolver with display_name for nested schemas."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "file.txt").write_text("test data")
+
+    # Set a dataroot
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver with the design as schema
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    # display_name should include the name
+    assert "testdata" in resolver.display_name
+
+    # Should still be able to resolve
+    resolved_path = resolver.resolve()
+    assert os.path.normpath(resolved_path) == os.path.normpath(str(data_dir))
+
+
+def test_dataroot_resolver_caching(tmp_path):
+    """Test that DatarootResolver uses caching properly."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "file.txt").write_text("test data")
+
+    # Set a dataroot
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    # First resolution
+    path1 = resolver.get_path()
+
+    # Second resolution should use cache
+    path2 = resolver.get_path()
+
+    # Should return the same path (from cache)
+    assert path1 == path2
+
+
+def test_dataroot_resolver_subdirectory_path(tmp_path):
+    """Test DatarootResolver with subdirectory path in dataroot URL."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory with nested subdirectories
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "physical").mkdir()
+    (data_dir / "physical" / "impl").mkdir()
+    (data_dir / "physical" / "impl" / "design.gds").write_text("GDS data")
+
+    # Set a dataroot pointing to the base data directory
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references a subdirectory of the dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata/physical/impl")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the nested subdirectory
+    expected_path = str(data_dir / "physical" / "impl")
+    # Normalize for comparison since set_dataroot may add trailing slash
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+
+def test_dataroot_resolver_subdirectory_with_file(tmp_path):
+    """Test DatarootResolver accessing a specific file within dataroot subdirectories."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory with nested subdirectories
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "physical").mkdir()
+    (data_dir / "physical" / "impl").mkdir()
+    (data_dir / "physical" / "impl" / "design.gds").write_text("GDS data")
+    (data_dir / "physical" / "impl" / "design.def").write_text("DEF data")
+
+    # Set a dataroot pointing to the base data directory
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references a subdirectory of the dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata/physical/impl")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the nested subdirectory
+    expected_path = str(data_dir / "physical" / "impl")
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+    # Verify files exist at that location
+    assert os.path.exists(os.path.join(resolved_path, "design.gds"))
+    assert os.path.exists(os.path.join(resolved_path, "design.def"))
+
+
+def test_dataroot_resolver_deep_nested_path(tmp_path):
+    """Test DatarootResolver with deeply nested subdirectory paths."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory with deep nesting
+    data_dir = tmp_path / "data"
+    deep_path = data_dir / "level1" / "level2" / "level3" / "level4"
+    deep_path.mkdir(parents=True)
+    (deep_path / "file.txt").write_text("nested file")
+
+    # Set a dataroot pointing to the base data directory
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references deeply nested subdirectory
+    resolver = DatarootResolver("testdata", design,
+                               "dataroot://mydata/level1/level2/level3/level4")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the deeply nested subdirectory
+    expected_path = str(deep_path)
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+    # Verify file exists at that location
+    assert os.path.exists(os.path.join(resolved_path, "file.txt"))
+
+
+def test_dataroot_resolver_python_package_subdirectory():
+    """Test DatarootResolver accessing a subdirectory within a python:// package."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Set a dataroot pointing to a Python package
+    design.set_dataroot("mydata", "python://siliconcompiler")
+
+    # Create a resolver that references a subdirectory of the python package
+    # (e.g., tools subdirectory)
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata/tools")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the tools subdirectory within the package
+    expected_path = os.path.join(os.path.dirname(siliconcompiler.__file__), "tools")
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+
+def test_dataroot_resolver_find_resolver():
+    """Test that dataroot:// scheme is properly registered."""
+    resolver_cls = Resolver.find_resolver("dataroot://some/data")
+    assert resolver_cls is DatarootResolver
