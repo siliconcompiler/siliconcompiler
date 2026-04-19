@@ -107,7 +107,11 @@ def main():
 
     if manifest:
         show.logger.info(f'Loading manifest: {manifest}')
-        project = Project.from_manifest(filepath=manifest)
+        try:
+            project = Project.from_manifest(filepath=manifest)
+        except FileNotFoundError:
+            show.logger.error(f'Manifest file not found: {manifest}')
+            return 1
     else:
         project = Project()
         # Setup faux project
