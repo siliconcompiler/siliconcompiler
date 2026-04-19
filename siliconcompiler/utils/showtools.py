@@ -1,10 +1,11 @@
 from shutil import which
 
-from siliconcompiler import ShowTask, ScreenshotTask
+from siliconcompiler import OpenTask, ShowTask, ScreenshotTask
 
 from siliconcompiler.tools.klayout.show import ShowTask as KlayoutShow
 from siliconcompiler.tools.klayout.screenshot import ScreenshotTask as KlayoutScreenshot
 
+from siliconcompiler.tools.openroad.open import OpenTask as OpenROADOpen
 from siliconcompiler.tools.openroad.show import ShowTask as OpenROADShow
 from siliconcompiler.tools.openroad.show import Show3DBloxTask as OpenROADShow3DBlox
 from siliconcompiler.tools.openroad.screenshot import ScreenshotTask as OpenROADScreenshot
@@ -20,6 +21,8 @@ from siliconcompiler.tools.surfer.show import ShowTask as SurferShow
 
 
 def showtasks():
+    OpenTask.register_task(OpenROADOpen)
+
     ShowTask.register_task(KlayoutShow)
     ShowTask.register_task(OpenROADShow)
     ShowTask.register_task(OpenROADShow3DBlox)

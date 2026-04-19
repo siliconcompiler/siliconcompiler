@@ -11,7 +11,7 @@ class ShowTask(ShowTask):
         # surfer 0.3.0
         return stdout.strip().split()[1]
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["vcd", "fst"]
 
     def setup(self):

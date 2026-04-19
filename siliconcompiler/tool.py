@@ -54,7 +54,7 @@ if TYPE_CHECKING:
     from siliconcompiler import Project
 
 TTask = TypeVar('TTask', bound='Task')
-TShowTask = TypeVar('TShowTask', bound='ShowTask')
+TOpenTask = TypeVar('TOpenTask', bound='OpenTask')
 
 
 class TaskError(Exception):
@@ -2085,18 +2085,18 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         pass
 
 
-class ShowTask(Task):
+class OpenTask(Task):
     """
-    A specialized Task for tasks that display files (e.g., in a GUI viewer).
+    A specialized Task for tasks that opening files.
 
     This class provides a framework for dynamically finding and configuring
     viewer applications based on file types. It includes parameters for
     specifying the file to show and controlling the viewer's behavior.
-    Subclasses should implement `get_supported_show_extentions` to declare
+    Subclasses should implement `get_supported_task_extentions` to declare
     which file types they can handle.
     """
     def __init__(self):
-        """Initializes a ShowTask, adding specific parameters for show tasks."""
+        """Initializes an OpenTask, adding specific parameters for open tasks."""
         super().__init__()
         self.add_parameter("showfilepath", "file", "path to show")
         self.add_parameter("showfiletype", "str", "filetype to show")
@@ -2104,180 +2104,12 @@ class ShowTask(Task):
                            "source node information, not always available")
         self.add_parameter("showexit", "bool", "exit after opening", defvalue=False)
 
-    @classmethod
-    def __check_task(cls, task: Optional[Type["ShowTask"]]) -> bool:
-        """
-        Private helper to validate if a task is a valid ShowTask or ScreenshotTask.
-        """
-        if cls is not ShowTask and cls is not ScreenshotTask:
-            raise TypeError("class must be ShowTask or ScreenshotTask")
-
-        if task is None:
-            return False
-
-        if cls is ShowTask:
-            check, task_filter = ShowTask, ScreenshotTask
-        else:
-            check, task_filter = ScreenshotTask, None
-
-        if not issubclass(task, check):
-            return False
-        if task_filter and issubclass(task, task_filter):
-            return False
-
-        return True
-
-    @classmethod
-    def register_task(cls, task: Optional[Type["ShowTask"]]) -> None:
-        """
-        Registers a new show task class for dynamic discovery.
-
-        Args:
-            task: The show task class to register.
-
-        Raises:
-            TypeError: If the task is not a valid subclass.
-        """
-        if not cls.__check_task(task):
-            raise TypeError(f"task must be a subclass of {cls.__name__}")
-
-        MPManager.get_transient_settings().set(
-            cls.__name__,
-            f"{task.__module__}/{task.__name__}",
-            task)
-
-    @classmethod
-    def __populate_tasks(cls) -> None:
-        """
-        Private helper to discover and populate all available show/screenshot tasks.
-
-        This method recursively finds all subclasses and also loads tasks from
-        any installed plugins.
-        """
-        cls.__check_task(None)
-
-        if MPManager.get_transient_settings().get_category(cls.__name__):
-            return  # Already populated
-
-        def recurse(searchcls: Type["ShowTask"]):
-            subclss = set()
-            if not cls.__check_task(searchcls):
-                return subclss
-
-            subclss.add(searchcls)
-            for subcls in searchcls.__subclasses__():
-                subclss.update(recurse(subcls))
-
-            return subclss
-
-        classes = recurse(cls)
-
-        # Support non-SC defined tasks from plugins
-        for plugin in utils.get_plugins('showtask'):
-            plugin()
-
-        if not classes:
-            return
-
-        for c in classes:
-            cls.register_task(c)
-
-    @classmethod
-    def get_task(cls: Type[TShowTask], ext: Optional[str], tool: Optional[str] = None) -> \
-            Union[Optional[TShowTask], List[Type[TShowTask]]]:
-        """
-        Retrieves a suitable show task instance for a given file extension.
-
-        The method first checks for a requested tool (if provided), then checks the user's
-        settings file (~/.sc/settings.json) under the 'showtask' category for a preferred tool.
-        If no tool is requested and no preference is found, it falls back to automatic discovery.
-
-        Args:
-            ext (str): The file extension to find a viewer for.
-            tool (str, optional): The name of the specific showtool to use for displaying the file.
-                Format can be "tool" to select any task from that tool, or "tool/task" to select
-                a specific task from that tool. If not provided, the tool is selected based on
-                the user's preference or automatic discovery.
-
-        Returns:
-            An instance of a compatible ShowTask subclass, or None if
-            no suitable task is found.
-        """
-        def find_task_by_spec(spec: str, ext: str, tasks: List) -> Optional[Type[TShowTask]]:
-            """
-            Find a task matching a tool/task specification.
-
-            Args:
-                spec (str): Tool specification in format "tool" or "tool/task"
-                ext (str): File extension to verify support for
-                tasks (List): List of available task classes to search through
-
-            Returns:
-                An instance of matching ShowTask, or None if no match found
-            """
-            # Parse specification: "tool" or "tool/task"
-            spec_parts = spec.split('/')
-            spec_tool = spec_parts[0]
-            spec_task = spec_parts[1] if len(spec_parts) > 1 else None
-
-            for task_cls in tasks:
-                try:
-                    task_inst = task_cls()
-                    # Check if this task matches the specification
-                    if task_inst.tool() == spec_tool:
-                        if spec_task and task_inst.task() != spec_task:
-                            continue
-
-                        # Verify the tool actually supports the extension
-                        if ext in task_inst.get_supported_show_extentions():
-                            return task_inst
-                except NotImplementedError:
-                    continue
-
-            return None
-
-        cls.__check_task(None)
-        cls.__populate_tasks()
-
-        settings = MPManager.get_transient_settings()
-        tasks = list(settings.get_category(cls.__name__).values())
-        if not tasks:
-            return None
-
-        if ext is None:
-            return tasks
-
-        # 1. Check for requested tool first (if provided)
-        if tool:
-            result = find_task_by_spec(tool, ext, tasks)
-            if result:
-                return result
-
-        # 2. Check User Settings for Preference
-        preference = MPManager.get_settings().get("showtask", ext)
-
-        if preference:
-            result = find_task_by_spec(preference, ext, tasks)
-            if result:
-                return result
-
-        # 3. Fallback to Automatic Discovery
-        for task_cls in tasks:
-            try:
-                task_inst = task_cls()
-                if ext in task_inst.get_supported_show_extentions():
-                    return task_inst
-            except NotImplementedError:
-                pass
-
-        return None
-
     def task(self) -> str:
         """Returns the name of this task."""
-        return "show"
+        return "open"
 
     def setup(self) -> None:
-        """Sets up the parameters and requirements for the show task."""
+        """Sets up the parameters and requirements for the open task."""
         super().setup()
 
         self._set_filetype()
@@ -2292,15 +2124,20 @@ class ShowTask(Task):
         elif self.get("var", "showfiletype"):
             self.add_required_key("var", "showfiletype")
         else:
-            raise ValueError("no file information provided to show")
+            raise ValueError(f"no file information provided to {self.task()}")
 
-    def get_supported_show_extentions(self) -> List[str]:
+    def get_supported_task_extentions(self) -> List[str]:
         """
         Returns a list of file extensions supported by this show task.
         This method must be implemented by subclasses.
         """
+        if hasattr(self, "get_supported_show_extentions"):
+            import warnings
+            warnings.warn("get_supported_show_extentions is deprecated, please implement get_supported_task_extentions instead",
+                          DeprecationWarning, stacklevel=2)
+            return self.get_supported_show_extentions()
         raise NotImplementedError(
-            "get_supported_show_extentions must be implemented by the child class")
+            "get_supported_task_extentions must be implemented by the child class")
 
     def _set_filetype(self) -> None:
         """
@@ -2314,7 +2151,7 @@ class ShowTask(Task):
                 self.set("var", "showfiletype", ext)
 
         if not self.get("var", "showfilepath"):
-            exts = self.get_supported_show_extentions()
+            exts = self.get_supported_task_extentions()
 
             if not self.get("var", "showfiletype"):
                 input_files = {utils.get_file_ext(f): f.lower()
@@ -2350,6 +2187,198 @@ class ShowTask(Task):
         """Sets the source node information for the file being displayed."""
         return self.set("var", "shownode", (jobname, nodestep, nodeindex), step=step, index=index)
 
+    def has_breakpoint(self):
+        # Open is like a breakpoint
+        return True
+
+    @classmethod
+    def __check_task(cls, task: Optional[Type["OpenTask"]]) -> bool:
+        """
+        Private helper to validate if a task is a valid OpenTask, ShowTask, or ScreenshotTask.
+        """
+        if cls is not OpenTask and cls is not ShowTask and cls is not ScreenshotTask:
+            raise TypeError("class must be OpenTask, ShowTask, or ScreenshotTask")
+
+        if task is None:
+            return False
+
+        if cls is OpenTask:
+            check, task_filter = OpenTask, (ShowTask, ScreenshotTask)
+        elif cls is ShowTask:
+            check, task_filter = ShowTask, ScreenshotTask
+        else:
+            check, task_filter = ScreenshotTask, None
+
+        if not issubclass(task, check):
+            return False
+        if task_filter and issubclass(task, task_filter):
+            return False
+
+        return True
+
+    @classmethod
+    def register_task(cls, task: Optional[Type["OpenTask"]]) -> None:
+        """
+        Registers a new show task class for dynamic discovery.
+
+        Args:
+            task: The show task class to register.
+
+        Raises:
+            TypeError: If the task is not a valid subclass.
+        """
+        if not cls.__check_task(task):
+            raise TypeError(f"task must be a subclass of {cls.__name__}")
+
+        MPManager.get_transient_settings().set(
+            cls.__name__,
+            f"{task.__module__}/{task.__name__}",
+            task)
+
+    @classmethod
+    def __populate_tasks(cls) -> None:
+        """
+        Private helper to discover and populate all available show/screenshot tasks.
+
+        This method recursively finds all subclasses and also loads tasks from
+        any installed plugins.
+        """
+        cls.__check_task(None)
+
+        if MPManager.get_transient_settings().get_category(cls.__name__):
+            return  # Already populated
+
+        def recurse(searchcls: Type["OpenTask"]):
+            subclss = set()
+            if not cls.__check_task(searchcls):
+                return subclss
+
+            subclss.add(searchcls)
+            for subcls in searchcls.__subclasses__():
+                subclss.update(recurse(subcls))
+
+            return subclss
+
+        classes = recurse(cls)
+
+        # Support non-SC defined tasks from plugins
+        for plugin in utils.get_plugins('showtask'):
+            plugin()
+
+        if not classes:
+            return
+
+        for c in classes:
+            cls.register_task(c)
+
+    @classmethod
+    def get_task(cls: Type[TOpenTask], ext: Optional[str], tool: Optional[str] = None) -> \
+            Union[Optional[TOpenTask], List[Type[TOpenTask]]]:
+        """
+        Retrieves a suitable show task instance for a given file extension.
+
+        The method first checks for a requested tool (if provided), then checks the user's
+        settings file (~/.sc/settings.json) under the 'showtask' category for a preferred tool.
+        If no tool is requested and no preference is found, it falls back to automatic discovery.
+
+        Args:
+            ext (str): The file extension to find a viewer for.
+            tool (str, optional): The name of the specific showtool to use for displaying the file.
+                Format can be "tool" to select any task from that tool, or "tool/task" to select
+                a specific task from that tool. If not provided, the tool is selected based on
+                the user's preference or automatic discovery.
+
+        Returns:
+            An instance of a compatible ShowTask subclass, or None if
+            no suitable task is found.
+        """
+        def find_task_by_spec(spec: str, ext: str, tasks: List) -> Optional[Type[TOpenTask]]:
+            """
+            Find a task matching a tool/task specification.
+
+            Args:
+                spec (str): Tool specification in format "tool" or "tool/task"
+                ext (str): File extension to verify support for
+                tasks (List): List of available task classes to search through
+
+            Returns:
+                An instance of matching OpenTask, or None if no match found
+            """
+            # Parse specification: "tool" or "tool/task"
+            spec_parts = spec.split('/')
+            spec_tool = spec_parts[0]
+            spec_task = spec_parts[1] if len(spec_parts) > 1 else None
+
+            for task_cls in tasks:
+                try:
+                    task_inst = task_cls()
+                    # Check if this task matches the specification
+                    if task_inst.tool() == spec_tool:
+                        if spec_task and task_inst.task() != spec_task:
+                            continue
+
+                        # Verify the tool actually supports the extension
+                        if ext in task_inst.get_supported_task_extentions():
+                            return task_inst
+                except NotImplementedError:
+                    continue
+
+            return None
+
+        cls.__check_task(None)
+        cls.__populate_tasks()
+
+        settings = MPManager.get_transient_settings()
+        tasks = list(settings.get_category(cls.__name__).values())
+        if not tasks:
+            return None
+
+        if ext is None:
+            return tasks
+
+        # 1. Check for requested tool first (if provided)
+        if tool:
+            result = find_task_by_spec(tool, ext, tasks)
+            if result:
+                return result
+
+        # 2. Check User Settings for Preference
+        if issubclass(cls, ShowTask):
+            preference = MPManager.get_settings().get("showtask", ext)
+        else:
+            preference = MPManager.get_settings().get("opentask", ext)
+
+        if preference:
+            result = find_task_by_spec(preference, ext, tasks)
+            if result:
+                return result
+
+        # 3. Fallback to Automatic Discovery
+        for task_cls in tasks:
+            try:
+                task_inst = task_cls()
+                if ext in task_inst.get_supported_task_extentions():
+                    return task_inst
+            except NotImplementedError:
+                pass
+
+        return None
+
+
+class ShowTask(OpenTask):
+    """
+    A specialized Task for tasks that display files (e.g., in a GUI viewer).
+
+    This class provides a framework for dynamically finding and configuring
+    viewer applications based on file types. It includes parameters for
+    specifying the file to show and controlling the viewer's behavior.
+    Subclasses should implement `get_supported_task_extentions` to declare
+    which file types they can handle.
+    """
+    def task(self) -> str:
+        """Returns the name of this task."""
+        return "show"
+
     def get_tcl_variables(self, manifest: Optional[BaseSchema] = None) -> Dict[str, str]:
         """
         Gets Tcl variables for the task, ensuring 'sc_do_screenshot' is false
@@ -2358,10 +2387,6 @@ class ShowTask(Task):
         vars = super().get_tcl_variables(manifest)
         vars["sc_do_screenshot"] = "false"
         return vars
-
-    def has_breakpoint(self):
-        # Show is like a breakpoint
-        return True
 
 
 class ScreenshotTask(ShowTask):

@@ -10,7 +10,7 @@ class ShowTask(ShowTask):
     def tool(self):
         return "gtkwave"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["vcd", "fst"]
 
     def parse_version(self, stdout):
