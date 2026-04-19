@@ -69,7 +69,11 @@ To include another project object to compare to:
         return 1
 
     cli.logger.info(f'Loading manifest: {manifest}')
-    project = Project.from_manifest(filepath=manifest)
+    try:
+        project = Project.from_manifest(filepath=manifest)
+    except FileNotFoundError:
+        cli.logger.error(f'Manifest file not found: {manifest}')
+        return 1
 
     graph_projs = []
     if cli.get("cmdarg", "graph_cfg"):
@@ -89,7 +93,11 @@ To include another project object to compare to:
                                   f' {args} in "-graph_cfg {name_and_file_path}"'))
             if not os.path.isfile(file_path):
                 raise ValueError(f'not a valid file path: {file_path}')
-            graph_proj = Project.from_manifest(filepath=file_path)
+            try:
+                graph_proj = Project.from_manifest(filepath=file_path)
+            except FileNotFoundError:
+                cli.logger.error(f'Graph manifest file not found: {file_path}')
+                return 1
             graph_projs.append({
                 'project': graph_proj,
                 'name': name,

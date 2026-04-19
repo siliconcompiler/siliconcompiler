@@ -74,7 +74,12 @@ To run a testcase, use:
             issue.logger.error('-cfg must be provided')
             return 1
 
-        project: Project = Project.from_manifest(filepath=issue.get("cmdarg", "cfg"))
+        cfg_path = issue.get("cmdarg", "cfg")
+        try:
+            project: Project = Project.from_manifest(filepath=cfg_path)
+        except FileNotFoundError:
+            issue.logger.error(f'Configuration manifest not found: {cfg_path}')
+            return 1
 
         # Determine abs path for build dir
         builddir = project.option.get_builddir()
@@ -124,7 +129,12 @@ To run a testcase, use:
         with tarfile.open(file, 'r:gz') as f:
             f.extractall(path='.')
 
-        project = Project.from_manifest(filepath=f'{test_dir}/orig_manifest.json')
+        manifest_path = f'{test_dir}/orig_manifest.json'
+        try:
+            project = Project.from_manifest(filepath=manifest_path)
+        except FileNotFoundError:
+            issue.logger.error(f'Original manifest not found in testcase: {manifest_path}')
+            return 1
 
         with open(f'{test_dir}/issue.json', 'r') as f:
             issue_info = json.load(f)
