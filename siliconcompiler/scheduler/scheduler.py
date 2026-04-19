@@ -1,3 +1,4 @@
+import glob
 import logging
 import multiprocessing
 import os
@@ -10,7 +11,7 @@ import os.path
 
 from datetime import datetime
 
-from typing import Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
+from typing import Final, Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
 
 from siliconcompiler import NodeStatus, Task
 from siliconcompiler.schema import Journal
@@ -48,6 +49,7 @@ class Scheduler:
     It handles setting up individual task nodes, managing dependencies, logging,
     and reporting results.
     """
+    __MAX_LOG_BACKUPS: Final[int] = 5
 
     def __init__(self, project: "Project"):
         """
@@ -190,20 +192,30 @@ class Scheduler:
         Set up a per-job file logger for the current project and attach it to the
         scheduler's logger.
 
-        Creates the job directory if needed, rotates an existing job.log to a .bak
-        (using incrementing numeric suffixes if necessary), installs a FileHandler
+        Creates the job directory if needed, rotates an existing job.log to a timestamped
+        backup file (e.g., job.20260419-143400.log.bak), installs a FileHandler
         writing to job.log with the SCLoggerFormatter, and stores the handler on
-        self.__joblog_handler.
+        self.__joblog_handler. Old backup files beyond the retention limit are removed.
         """
         os.makedirs(jobdir(self.__project), exist_ok=True)
         file_log = os.path.join(jobdir(self.__project), "job.log")
-        bak_count = 0
-        bak_file_log = f"{file_log}.bak"
-        while os.path.exists(bak_file_log):
-            bak_count += 1
-            bak_file_log = f"{file_log}.bak.{bak_count}"
+
+        # If current log exists, back it up with timestamp
         if os.path.exists(file_log):
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            bak_file_log = f"{file_log}.{timestamp}.bak"
             os.rename(file_log, bak_file_log)
+
+        # Clean up old backups, keeping only the most recent ones
+        log_dir = jobdir(self.__project)
+        backup_files = sorted(glob.glob(os.path.join(log_dir, "job.log.*.bak")))
+        if len(backup_files) > Scheduler.__MAX_LOG_BACKUPS:
+            for old_backup in backup_files[:-Scheduler.__MAX_LOG_BACKUPS]:
+                try:
+                    os.remove(old_backup)
+                except OSError:
+                    pass
+
         self.__logfile = file_log
         self.__joblog_handler = logging.FileHandler(file_log)
         self.__joblog_handler.setFormatter(SCLoggerFormatter())

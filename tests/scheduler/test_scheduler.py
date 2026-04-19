@@ -395,14 +395,15 @@ def test_clean_build_dir_full_keep_log_rm_old_log(basic_project):
     os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
     with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
         f.write("test")
-    with open(os.path.join(jobdir(basic_project), "job.log.bak"), "w") as f:
+    with open(os.path.join(jobdir(basic_project), "job.log.20260101-100000.bak"), "w") as f:
         f.write("test")
 
     with patch("shutil.rmtree", autospec=True) as rmtree, \
             patch("os.remove") as remove:
         scheduler._Scheduler__clean_build_dir_full(recheck=True)
         rmtree.assert_called_once()
-        remove.assert_called_once_with(os.path.join(jobdir(basic_project), "job.log.bak"))
+        remove.assert_called_once_with(os.path.join(jobdir(basic_project),
+                                                    "job.log.20260101-100000.bak"))
 
 
 def test_clean_build_dir_full_with_from(basic_project):
@@ -1109,7 +1110,8 @@ def test_check_tool_requirements_pass(gcd_nop_project, monkeypatch, caplog):
 
 
 def test_install_file_logger(basic_project):
-    """Test that __install_file_logger creates job.log and handles backup files."""
+    """Test that __install_file_logger creates job.log and handles backup files with timestamps."""
+    import glob as glob_module
     scheduler = Scheduler(basic_project)
 
     # Create job directory
@@ -1126,49 +1128,54 @@ def test_install_file_logger(basic_project):
     # Check that new log exists
     assert os.path.exists(existing_log)
 
-    # Check that backup was created
-    backup_log = os.path.join(jobdir(basic_project), "job.log.bak")
-    assert os.path.exists(backup_log)
+    # Check that a timestamped backup was created
+    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak"))
+    assert len(backup_files) == 1
 
     # Check backup content
-    with open(backup_log, "r") as f:
+    with open(backup_files[0], "r") as f:
         assert f.read() == "existing log content"
 
 
 @pytest.mark.timeout(90)
 def test_install_file_logger_multiple_backups(basic_project):
-    """Test that __install_file_logger handles multiple backup files."""
+    """Test that __install_file_logger handles multiple timestamped backup files."""
+    import glob as glob_module
     scheduler = Scheduler(basic_project)
 
     # Create job directory
     os.makedirs(jobdir(basic_project), exist_ok=True)
 
-    # Create existing job.log and backups
+    # Create existing job.log and some timestamped backups
     existing_log = os.path.join(jobdir(basic_project), "job.log")
     with open(existing_log, "w") as f:
         f.write("log 1")
 
-    backup1 = os.path.join(jobdir(basic_project), "job.log.bak")
+    backup1 = os.path.join(jobdir(basic_project), "job.log.20260101-100000.bak")
     with open(backup1, "w") as f:
         f.write("backup 1")
 
-    backup2 = os.path.join(jobdir(basic_project), "job.log.bak.1")
+    backup2 = os.path.join(jobdir(basic_project), "job.log.20260101-100001.bak")
     with open(backup2, "w") as f:
         f.write("backup 2")
 
     # Call __install_file_logger
     scheduler._Scheduler__install_file_logger()
 
-    # Check that new backup was created with correct number
-    backup3 = os.path.join(jobdir(basic_project), "job.log.bak.2")
-    assert os.path.exists(backup3)
-    with open(backup3, "r") as f:
+    # Check that new timestamped backup was created
+    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak"))
+    assert len(backup_files) == 3
+
+    # Verify the most recent backup has the current log content
+    newest_backup = sorted(backup_files)[-1]
+    with open(newest_backup, "r") as f:
         assert f.read() == "log 1"
 
 
 @pytest.mark.timeout(90)
 def test_install_file_logger_no_existing_log(basic_project):
     """Test that __install_file_logger works when no existing log file."""
+    import glob as glob_module
     scheduler = Scheduler(basic_project)
 
     # Create job directory
@@ -1182,8 +1189,8 @@ def test_install_file_logger_no_existing_log(basic_project):
     assert os.path.exists(existing_log)
 
     # Check that no backup was created
-    backup_log = os.path.join(jobdir(basic_project), "job.log.bak")
-    assert not os.path.exists(backup_log)
+    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak"))
+    assert len(backup_files) == 0
 
 
 def test_logfile_init(basic_project):
@@ -1201,6 +1208,46 @@ def test_logfile_post_install(basic_project):
     scheduler._Scheduler__install_file_logger()
 
     assert scheduler.log == os.path.join(jobdir(basic_project), "job.log")
+
+
+@pytest.mark.timeout(90)
+def test_install_file_logger_max_backups(basic_project):
+    """Test that __install_file_logger enforces maximum backup limit."""
+    import glob as glob_module
+    scheduler = Scheduler(basic_project)
+
+    # Create job directory
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+
+    # Create more than max_log_backups (10) timestamped backup files
+    # Using timestamps that will sort correctly
+    for i in range(15):
+        timestamp = f"20260101-{100000 + i:06d}"
+        backup_file = os.path.join(jobdir(basic_project), f"job.log.{timestamp}.bak")
+        with open(backup_file, "w") as f:
+            f.write(f"backup {i}")
+
+    initial_backups = len(glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak")))
+    assert initial_backups == 15
+
+    # Create current job.log
+    existing_log = os.path.join(jobdir(basic_project), "job.log")
+    with open(existing_log, "w") as f:
+        f.write("current log")
+
+    # Call __install_file_logger
+    scheduler._Scheduler__install_file_logger()
+
+    # Check that backups are limited to max_log_backups (5)
+    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak"))
+    assert len(backup_files) == 5
+
+    # Verify the newest backup contains the current log content
+    if backup_files:
+        newest_backup = sorted(backup_files)[-1]
+        with open(newest_backup, "r") as f:
+            content = f.read()
+            assert "current log" in content or content == "current log"
 
 
 def test_check_tool_versions_local_pass(gcd_nop_project, monkeypatch, caplog):
