@@ -1,3 +1,5 @@
+:orphan:
+
 .. _picorv32_example:
 
 Building Your Own SoC
@@ -25,11 +27,8 @@ Build the PicoRV32 Core using SiliconCompiler
 ---------------------------------------------
 
 Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130 <schema-lambdapdk-sky130-sky130pdk>` PDK.
-Copy the following build script into the same directory which you copied ``picorv32.v`` into:
-
-.. literalinclude:: examples/picorv32/picorv32.py
-   :language: python
-   :caption: <project_dir>/picorv32.py
+Copy the following build script into the same directory which you copied ``picorv32.v`` into.
+A complete example build script can be found `in the repository <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
 
 Note in the code snippet above that :keypath:`option,remote` is set to ``False``. If this is set to ``True``, this means it is set up for :ref:`remote processing <remote_processing>`, and if you run this example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy.
 We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area.
@@ -57,30 +56,8 @@ You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable
 
 We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sky130_sram_macros/tree/main/sky130_sram_2kbyte_1rw1r_32x512_8>`_ block in this example.
 
-Create a Python script called ``sky130_sram_2k.py`` to describe the RAM macro in a format which can be imported by SiliconCompiler:
-
-.. literalinclude:: examples/picorv32_ram/sky130_sram_2k.py
-   :language: python
-   :caption: <project_dir>/sky130_sram_2k.py
-
-You will also need a "blackbox" Verilog file to assure the synthesis tools that the RAM module exists: you can call this file ``sky130_sram_2k.bb.v``. You don't need a full hardware description of the RAM block to generate an ASIC design, but the open-source workflow needs some basic information about the module:
-
-.. literalinclude:: examples/picorv32_ram/sky130_sram_2k.bb.v
-   :language: verilog
-   :caption: <project_dir>/sky130_sram_2k.bb.v
-
-Next, you need to create a top-level Verilog module containing one ``picorv32`` CPU core, one ``sky130_sram_2k`` memory, and signal wiring to connect their I/O ports together.
-Note that for the sake of brevity, this module does not include some optional parameters and signals:
-
-.. literalinclude:: examples/picorv32_ram/picorv32_top.v
-   :language: verilog
-   :caption: <project_dir>/picorv32_top.v
-
-Finally, your core build script will need to be updated to import the new SRAM Library, and specify some extra parameters such as die size and macro placement:
-
-.. literalinclude:: examples/picorv32_ram/picorv32_ram.py
-   :language: python
-   :caption: <project_dir>/picorv32_ram.py
+Create a Python script called ``sky130_sram_2k.py`` to describe the RAM macro in a format which can be imported by SiliconCompiler.
+Example files for the complete SoC design can be found `in the repository <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32_ram>`_.
 
 With all of that done, your project directory tree should look something like this::
 

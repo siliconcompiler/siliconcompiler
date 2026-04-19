@@ -118,7 +118,7 @@ This optimization significantly reduces network traffic and disk usage for large
     }
 
 Workflow: Slurm Settings
-^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Unlike standard schema options, scheduler-specific settings (like ``sharedpaths``) are stored in their own category.
 The :class:`.SlurmSchedulerNode` provides static helper methods to manage these configurations safely without needing to manually interact with the settings manager.
