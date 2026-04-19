@@ -17,7 +17,7 @@ from siliconcompiler import Checklist
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler import Task
-from siliconcompiler import ShowTask, ScreenshotTask
+from siliconcompiler import OpenTask, ShowTask, ScreenshotTask
 from siliconcompiler.schema_support.option import OptionSchema
 
 from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
@@ -1311,7 +1311,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             >>> # Automatically find and show the last generated layout
             >>> project.show()
         '''
-        tool_cls = ScreenshotTask if screenshot else ShowTask
+        tool_cls = ScreenshotTask if screenshot else OpenTask
 
         sc_jobname = self.option.get_jobname()
         sc_step, sc_index = self.get("arg", "step"), self.get("arg", "index")
@@ -1344,7 +1344,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             search_exts = []
             for cls in tool_cls.get_task(None, tool=tool):
                 try:
-                    exts = cls().get_supported_show_extentions()
+                    exts = cls().get_supported_task_extentions()
                     # Sort extensions within each task for consistency
                     for ext in sorted(exts):
                         # If a specific tool is requested, verify the extension resolves

@@ -13,7 +13,7 @@ import os.path
 from unittest.mock import patch, ANY, MagicMock
 
 from siliconcompiler import Flowgraph
-from siliconcompiler import ShowTask, ScreenshotTask
+from siliconcompiler import OpenTask, ShowTask, ScreenshotTask
 from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler import Task
@@ -142,7 +142,7 @@ class ToolA(ShowTask):
     def task(self):
         return "show"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["ext"]
 
 
@@ -153,7 +153,7 @@ class ToolB(ShowTask):
     def task(self):
         return "show"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["ext"]
 
 
@@ -2334,14 +2334,14 @@ def test_get_fileset_file_keys_invalid(running_node):
             runtool.get_fileset_file_keys(["verilog"])
 
 
-@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
-def test_show_keys(cls):
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_keys(cls):
     assert cls().getkeys("var") == ('showexit', 'showfilepath', 'showfiletype', 'shownode')
 
 
-@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
-def test_show_check_task_none(cls):
-    assert cls._ShowTask__check_task(None) is False
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_check_task_none(cls):
+    assert cls._OpenTask__check_task(None) is False
 
 
 @pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
@@ -2352,44 +2352,67 @@ def test_show_tcl_vars(cls):
             "sc_do_screenshot": "true" if cls is ScreenshotTask else "false"}
 
 
-def test_show_task_name():
+def test_open_task_name():
+    assert OpenTask().task() == "open"
     assert ShowTask().task() == "show"
     assert ScreenshotTask().task() == "screenshot"
 
 
-def test_show_check_task_invalid():
+def test_open_check_task_invalid():
+    class Test(OpenTask):
+        pass
+
+    with pytest.raises(TypeError, match=r"^class must be OpenTask, ShowTask, or ScreenshotTask$"):
+        Test._OpenTask__check_task(None)
+
+
+def test_open_check_task_is_opentask():
+    class Test(OpenTask):
+        pass
+
+    assert OpenTask._OpenTask__check_task(Test) is True
+    assert ShowTask._OpenTask__check_task(Test) is False
+    assert ScreenshotTask._OpenTask__check_task(Test) is False
+
+
+def test_open_check_task_is_showtask():
     class Test(ShowTask):
         pass
 
-    with pytest.raises(TypeError, match=r"^class must be ShowTask or ScreenshotTask$"):
-        Test._ShowTask__check_task(None)
+    assert OpenTask._OpenTask__check_task(Test) is False
+    assert ShowTask._OpenTask__check_task(Test) is True
+    assert ScreenshotTask._OpenTask__check_task(Test) is False
 
 
-def test_show_check_task_is_showtask():
-    class Test(ShowTask):
-        pass
-
-    assert ShowTask._ShowTask__check_task(Test) is True
-    assert ScreenshotTask._ShowTask__check_task(Test) is False
-
-
-def test_show_check_task_is_screenshottask():
+def test_open_check_task_is_screenshottask():
     class Test(ScreenshotTask):
         pass
 
-    assert ShowTask._ShowTask__check_task(Test) is False
-    assert ScreenshotTask._ShowTask__check_task(Test) is True
+    assert OpenTask._OpenTask__check_task(Test) is False
+    assert ShowTask._OpenTask__check_task(Test) is False
+    assert ScreenshotTask._OpenTask__check_task(Test) is True
 
 
-def test_show_register_task_invalid():
+def test_open_register_task_invalid():
     class Test:
         pass
 
-    with pytest.raises(TypeError, match=r"^task must be a subclass of ShowTask$"):
-        ShowTask.register_task(Test)
+    with pytest.raises(TypeError, match=r"^task must be a subclass of OpenTask$"):
+        OpenTask.register_task(Test)
 
 
-def test_show_register_task():
+def test_open_register_task():
+    class Test(OpenTask):
+        pass
+
+    settings = MPManager.get_transient_settings()
+    assert len(settings.get_category("OpenTask")) == 0
+    OpenTask.register_task(Test)
+    assert len(settings.get_category("OpenTask")) == 1
+    assert settings.get_category("OpenTask")["test_tool/Test"] is Test
+
+
+def test_open_register_task():
     class Test(ShowTask):
         pass
 
@@ -2400,7 +2423,18 @@ def test_show_register_task():
     assert settings.get_category("ShowTask")["test_tool/Test"] is Test
 
 
-def test_show_get_task_show_called():
+def test_screenshot_register_task():
+    class Test(ScreenshotTask):
+        pass
+
+    settings = MPManager.get_transient_settings()
+    assert len(settings.get_category("ScreenshotTask")) == 0
+    ScreenshotTask.register_task(Test)
+    assert len(settings.get_category("ScreenshotTask")) == 1
+    assert settings.get_category("ScreenshotTask")["test_tool/Test"] is Test
+
+
+def test_open_get_task_show_called():
     # Create a mock plugin function with proper attributes for sorting
     mock_plugin = MagicMock()
     mock_plugin.__module__ = 'test_module'
@@ -2413,12 +2447,25 @@ def test_show_get_task_show_called():
         mock_plugin.assert_called_once()
 
 
-@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
-def test_show_get_supported_show_extentions(cls):
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_get_supported_task_extentions(cls):
     with pytest.raises(NotImplementedError,
-                       match=r"^get_supported_show_extentions must be "
+                       match=r"^get_supported_task_extentions must be "
                              r"implemented by the child class$"):
-        cls().get_supported_show_extentions() == {}
+        cls().get_supported_task_extentions()
+
+
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_get_supported_task_extentions_backwards_compatibility(cls):
+    class DummyClass(cls):
+        def get_supported_show_extentions(self):
+            return ["ext"]
+
+    assert DummyClass().get_supported_show_extentions() == ["ext"]
+    with pytest.warns(DeprecationWarning,
+                      match=r"^get_supported_show_extentions is deprecated, please implement "
+                            r"get_supported_task_extentions instead$"):
+        assert DummyClass().get_supported_task_extentions() == ["ext"]
 
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
@@ -2586,7 +2633,7 @@ def test_showtask_specific_task_preference():
         def task(self):
             return "view_mode_1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["special"]
 
     class ToolCTask2(ShowTask):
@@ -2596,7 +2643,7 @@ def test_showtask_specific_task_preference():
         def task(self):
             return "view_mode_2"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["special"]
 
     ShowTask.register_task(ToolCTask1)
@@ -2690,7 +2737,7 @@ def test_get_task_with_tool_unsupported_extension():
         def task(self):
             return "show"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["xyz"]  # Only supports 'xyz', not 'ext'
 
     ShowTask.register_task(ToolC)
@@ -2720,7 +2767,7 @@ def test_get_task_with_tool_multiple_tasks_same_tool():
         def task(self):
             return "mode1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["ext"]
 
     class ToolDTask2(ShowTask):
@@ -2730,7 +2777,7 @@ def test_get_task_with_tool_multiple_tasks_same_tool():
         def task(self):
             return "mode2"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["ext"]
 
     ShowTask.register_task(ToolDTask1)
@@ -2760,7 +2807,7 @@ def test_get_task_with_tool_and_preference_both_valid():
         def task(self):
             return "task1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["data"]
 
     class ToolFTask1(ShowTask):
@@ -2770,7 +2817,7 @@ def test_get_task_with_tool_and_preference_both_valid():
         def task(self):
             return "task1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["data"]
 
     ShowTask.register_task(ToolETask1)
@@ -2863,7 +2910,7 @@ def test_get_task_with_tool_and_task_format():
         def task(self):
             return "view1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["svg"]
 
     class ToolGTask2(ShowTask):
@@ -2873,7 +2920,7 @@ def test_get_task_with_tool_and_task_format():
         def task(self):
             return "view2"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["svg"]
 
     ShowTask.register_task(ToolGTask1)
@@ -2904,7 +2951,7 @@ def test_get_task_with_tool_task_format_invalid_task():
         def task(self):
             return "mode_a"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["txt"]
 
     ShowTask.register_task(ToolHTask1)
@@ -2933,7 +2980,7 @@ def test_get_task_tool_task_format_priority_over_preference():
         def task(self):
             return "task_x"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["csv"]
 
     class ToolITask2(ShowTask):
@@ -2943,7 +2990,7 @@ def test_get_task_tool_task_format_priority_over_preference():
         def task(self):
             return "task_y"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["csv"]
 
     ShowTask.register_task(ToolITask1)

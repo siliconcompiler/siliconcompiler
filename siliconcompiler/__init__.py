@@ -12,7 +12,7 @@ from siliconcompiler.library import StdCellLibrary
 from siliconcompiler.schematic import Schematic
 
 # Tasks
-from siliconcompiler.tool import Task, ShowTask, ScreenshotTask, TaskSkip
+from siliconcompiler.tool import Task, OpenTask, ShowTask, ScreenshotTask, TaskSkip
 
 # Projects
 from siliconcompiler.project import Project
@@ -39,6 +39,7 @@ __all__ = [
 
     "Task",
     "TaskSkip",
+    "OpenTask",
     "ShowTask",
     "ScreenshotTask",
 
