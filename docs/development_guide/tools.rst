@@ -273,7 +273,6 @@ These methods are used to get information about the current state of the flow du
     index
     nodeworkdir
     record_metric
-    schema
     step
     task
     tool

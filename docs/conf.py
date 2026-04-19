@@ -21,7 +21,7 @@ from datetime import date
 sc_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, sc_root)
 import siliconcompiler  # noqa E402
-sys.path.append(os.path.join(sc_root, 'docs', '_ext'))
+sys.path.insert(0, os.path.join(sc_root, 'docs', '_ext'))
 
 from siliconcompiler.schema.docs import get_codeurl  # noqa E402
 from siliconcompiler.utils import get_plugins  # noqa E402

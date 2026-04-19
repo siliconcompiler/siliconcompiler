@@ -32,3 +32,7 @@ Support apps
 .. scapp::
   :app: python3 -m siliconcompiler.apps.utils.replay
   :title: replay
+
+.. scapp::
+  :app: python3 -m siliconcompiler.apps.utils.cleanup
+  :title: cleanup
