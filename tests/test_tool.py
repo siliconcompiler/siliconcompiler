@@ -98,6 +98,7 @@ def patch_psutil(monkeypatch):
     def drummy_virtual_memory():
         class Memory:
             percent = 91.21
+            available = 1024 * 1024 * 1024
         return Memory
 
     monkeypatch.setattr(imported_psutil, 'virtual_memory', drummy_virtual_memory)
