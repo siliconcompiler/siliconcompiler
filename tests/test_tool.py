@@ -20,7 +20,8 @@ from siliconcompiler import Task
 from siliconcompiler import Design, Project
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
-from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout
+from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout, \
+    TaskOutOfMemoryError
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -97,6 +98,7 @@ def patch_psutil(monkeypatch):
     def drummy_virtual_memory():
         class Memory:
             percent = 91.21
+            available = 1024 * 1024 * 1024
         return Memory
 
     monkeypatch.setattr(imported_psutil, 'virtual_memory', drummy_virtual_memory)
@@ -1368,6 +1370,51 @@ def test_run_task_memory_limit(running_node, monkeypatch, patch_psutil, caplog):
         assert runtool.run_task('.', False, False, None, None) == 0
 
     assert "Current system memory usage is 91.2%" in caplog.text
+
+
+def test_run_task_memory_limit_kill(running_node, monkeypatch, caplog):
+    """Verify process is killed when memory limit is exceeded and terminate/kill are called."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    # Mock process with tracking for terminate() and kill() calls
+    class TrackingPopen:
+        returncode = 0
+        pid = 1
+
+        def poll(self):
+            return None
+
+        def wait(self, timeout=None):
+            pass
+
+    def dummy_popen(*args, **kwargs):
+        assert args == (["found/exe"],)
+        return TrackingPopen()
+
+    def dummy_virtual_memory():
+        # Return memory usage above kill limit (99%)
+        class Memory:
+            percent = 99.5
+            available = 100 * 1024 * 1024  # 100 MiB
+        return Memory
+
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', dummy_virtual_memory)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with patch("siliconcompiler.tool.Task._Task__terminate_exe",
+               autospec=True) as mock_terminate_exe:
+        with running_node.task.runtime(running_node) as runtool:
+            with pytest.raises(TaskOutOfMemoryError, match=r"^$"):
+                runtool.run_task('.', False, False, None, None)
+        mock_terminate_exe.assert_called_once()
+
+    # Verify error message about memory is logged
+    assert "Task ran out of memory with 99.5% system memory usage (100.0 MB available)" \
+        in caplog.text
 
 
 @pytest.mark.parametrize("error", [PermissionError, imported_psutil.Error])
