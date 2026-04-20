@@ -1394,6 +1394,7 @@ def test_run_task_memory_limit_kill(running_node, monkeypatch, caplog):
         # Return memory usage above kill limit (99%)
         class Memory:
             percent = 99.5
+            available = 100 * 1024 * 1024  # 100 MiB
         return Memory
 
     monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
@@ -1403,14 +1404,16 @@ def test_run_task_memory_limit_kill(running_node, monkeypatch, caplog):
         return "found/exe"
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
-    with patch("siliconcompiler.tool.Task._Task__terminate_exe", autospec=True) as mock_terminate_exe:
+    with patch("siliconcompiler.tool.Task._Task__terminate_exe",
+               autospec=True) as mock_terminate_exe:
         with running_node.task.runtime(running_node) as runtool:
             with pytest.raises(TaskOutOfMemoryError, match=r"^$"):
                 runtool.run_task('.', False, False, None, None)
         mock_terminate_exe.assert_called_once()
 
     # Verify error message about memory is logged
-    assert "Task ran out of memory with 99.5% system memory usage" in caplog.text
+    assert "Task ran out of memory with 99.5% system memory usage (100.0 MB available)" \
+        in caplog.text
 
 
 @pytest.mark.parametrize("error", [PermissionError, imported_psutil.Error])
