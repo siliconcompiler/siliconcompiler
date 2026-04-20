@@ -74,6 +74,18 @@ class TaskTimeout(TaskError):
         self.timeout = timeout
 
 
+class TaskOutOfMemoryError(TaskError):
+    '''Error indicating that a task has run out of memory during execution.
+
+    Args:
+        memory_percent (float): The percentage of system memory usage at the time of the error.
+    '''
+
+    def __init__(self, *args, memory_percent=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.memory_percent = memory_percent
+
+
 class TaskExecutableNotFound(TaskError):
     '''Error indicating that the required tool executable could not be found.'''
     pass
@@ -134,6 +146,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     __IO_POLL_INTERVAL: float = 0.1
     __MEM_POLL_INTERVAL: float = 0.5
     __MEMORY_WARN_LIMIT: int = 90
+    __MEMORY_KILL_LIMIT: int = 99
 
     def __init__(self):
         super().__init__()
@@ -922,9 +935,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             pass
         return None
 
-    def __check_memory_limit(self, warn_limit: int) -> int:
+    def __check_memory_limit(self, warn_limit: int, kill_limit: int) -> int:
         try:
             memory_usage = psutil.virtual_memory()
+            if memory_usage.percent > kill_limit:
+                raise TaskOutOfMemoryError(memory_percent=memory_usage.percent)
             if memory_usage.percent > warn_limit:
                 self.logger.warning(
                     'Current system memory usage is '
@@ -1085,7 +1100,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                     max_mem_bytes = max(max_mem_bytes, proc_mem_bytes)
                                 next_collection = curr_time + Task.__MEM_POLL_INTERVAL
 
-                                memory_warn_limit = self.__check_memory_limit(memory_warn_limit)
+                                memory_warn_limit = self.__check_memory_limit(
+                                    memory_warn_limit, Task.__MEMORY_KILL_LIMIT)
 
                             read_stdio(stdout_reader, stderr_reader)
 
@@ -1101,6 +1117,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                         raise TaskError
                     except TaskTimeout as e:
                         self.logger.error(f'Task timed out after {e.timeout:.1f} seconds')
+                        self.__terminate_exe(proc)
+                        raise
+                    except TaskOutOfMemoryError as e:
+                        self.logger.error('Task ran out of memory with '
+                                          f'{e.memory_percent:.1f}% system memory usage')
                         self.__terminate_exe(proc)
                         raise
 

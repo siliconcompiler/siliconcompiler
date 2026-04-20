@@ -20,7 +20,8 @@ from siliconcompiler import Task
 from siliconcompiler import Design, Project
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
-from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout
+from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout, \
+    TaskOutOfMemoryError
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -1368,6 +1369,91 @@ def test_run_task_memory_limit(running_node, monkeypatch, patch_psutil, caplog):
         assert runtool.run_task('.', False, False, None, None) == 0
 
     assert "Current system memory usage is 91.2%" in caplog.text
+
+
+def test_run_task_memory_limit_kill(running_node, monkeypatch, caplog):
+    """Verify process is killed when memory limit is exceeded and terminate/kill are called."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    # Mock process with tracking for terminate() and kill() calls
+    class TrackingPopen:
+        returncode = 0
+        pid = 1
+
+        def poll(self):
+            return None
+
+        def wait(self, timeout=None):
+            pass
+
+    # Create a mock for psutil.Process to track calls
+    class MockProcess:
+        instances = []
+
+        def __init__(self, pid):
+            self.pid = pid
+            self.terminate_called = False
+            self.kill_called = False
+            MockProcess.instances.append(self)
+
+        def terminate(self):
+            self.terminate_called = True
+
+        def kill(self):
+            self.kill_called = True
+
+        def memory_full_info(self):
+            class Memory:
+                uss = 2
+            return Memory
+
+        def children(self, recursive=True):
+            return []
+
+        def wait(self, timeout=None):
+            pass
+
+    def dummy_psutil_process(pid):
+        return MockProcess(pid)
+
+    def dummy_popen(*args, **kwargs):
+        assert args == (["found/exe"],)
+        return TrackingPopen()
+
+    def dummy_wait_procs(children, timeout=None):
+        # Return empty alive list - all processes terminated/killed
+        return None, []
+
+    def dummy_virtual_memory():
+        # Return memory usage above kill limit (99%)
+        class Memory:
+            percent = 99.5
+        return Memory
+
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+    monkeypatch.setattr(imported_psutil, 'Process', dummy_psutil_process)
+    monkeypatch.setattr(imported_psutil, 'wait_procs', dummy_wait_procs)
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', dummy_virtual_memory)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with running_node.task.runtime(running_node) as runtool:
+        with pytest.raises(TaskOutOfMemoryError, match=r"^$"):
+            runtool.run_task('.', False, False, None, None)
+
+    # Verify error message about memory is logged
+    assert "Task ran out of memory with 99.5% system memory usage" in caplog.text
+    # Verify process termination messages are logged
+    assert "Waiting for builtin/nop to exit" in caplog.text
+
+    # Verify that terminate() was called on the process created during termination
+    # The MockProcess instances include: one created during __terminate_exe
+    assert len(MockProcess.instances) > 0, "MockProcess should have been instantiated"
+    # The last instance created (during __terminate_exe) should have terminate() called
+    terminate_process = MockProcess.instances[-1]
+    assert terminate_process.terminate_called, "Process terminate() should have been called"
 
 
 @pytest.mark.parametrize("error", [PermissionError, imported_psutil.Error])
