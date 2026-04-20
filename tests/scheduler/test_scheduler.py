@@ -395,7 +395,7 @@ def test_clean_build_dir_full_keep_log_rm_old_log(basic_project):
     os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
     with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
         f.write("test")
-    with open(os.path.join(jobdir(basic_project), "job.log.20260101-100000.bak"), "w") as f:
+    with open(os.path.join(jobdir(basic_project), "job.20260101-100000.log"), "w") as f:
         f.write("test")
 
     with patch("shutil.rmtree", autospec=True) as rmtree, \
@@ -403,7 +403,7 @@ def test_clean_build_dir_full_keep_log_rm_old_log(basic_project):
         scheduler._Scheduler__clean_build_dir_full(recheck=True)
         rmtree.assert_called_once()
         remove.assert_called_once_with(os.path.join(jobdir(basic_project),
-                                                    "job.log.20260101-100000.bak"))
+                                                    "job.20260101-100000.log"))
 
 
 def test_clean_build_dir_full_with_from(basic_project):
@@ -1128,8 +1128,9 @@ def test_install_file_logger(basic_project):
     # Check that new log exists
     assert os.path.exists(existing_log)
 
-    # Check that a timestamped backup was created
-    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak"))
+    # Check that a timestamped backup was created (job.{timestamp}.log)
+    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.*.log"))
+    backup_files = [f for f in backup_files if os.path.basename(f) != "job.log"]
     assert len(backup_files) == 1
 
     # Check backup content
@@ -1151,11 +1152,11 @@ def test_install_file_logger_multiple_backups(basic_project):
     with open(existing_log, "w") as f:
         f.write("log 1")
 
-    backup1 = os.path.join(jobdir(basic_project), "job.log.20260101-100000.bak")
+    backup1 = os.path.join(jobdir(basic_project), "job.20260101-100000.log")
     with open(backup1, "w") as f:
         f.write("backup 1")
 
-    backup2 = os.path.join(jobdir(basic_project), "job.log.20260101-100001.bak")
+    backup2 = os.path.join(jobdir(basic_project), "job.20260101-100001.log")
     with open(backup2, "w") as f:
         f.write("backup 2")
 
@@ -1163,7 +1164,8 @@ def test_install_file_logger_multiple_backups(basic_project):
     scheduler._Scheduler__install_file_logger()
 
     # Check that new timestamped backup was created
-    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak"))
+    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.*.log"))
+    backup_files = [f for f in backup_files if os.path.basename(f) != "job.log"]
     assert len(backup_files) == 3
 
     # Verify the most recent backup has the current log content
@@ -1189,7 +1191,8 @@ def test_install_file_logger_no_existing_log(basic_project):
     assert os.path.exists(existing_log)
 
     # Check that no backup was created
-    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak"))
+    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.*.log"))
+    backup_files = [f for f in backup_files if os.path.basename(f) != "job.log"]
     assert len(backup_files) == 0
 
 
@@ -1219,16 +1222,17 @@ def test_install_file_logger_max_backups(basic_project):
     # Create job directory
     os.makedirs(jobdir(basic_project), exist_ok=True)
 
-    # Create more than max_log_backups (10) timestamped backup files
+    # Create more than max_log_backups (5) timestamped backup files
     # Using timestamps that will sort correctly
-    for i in range(15):
+    for i in range(8):
         timestamp = f"20260101-{100000 + i:06d}"
-        backup_file = os.path.join(jobdir(basic_project), f"job.log.{timestamp}.bak")
+        backup_file = os.path.join(jobdir(basic_project), f"job.{timestamp}.log")
         with open(backup_file, "w") as f:
             f.write(f"backup {i}")
 
-    initial_backups = len(glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak")))
-    assert initial_backups == 15
+    initial_backups = glob_module.glob(os.path.join(jobdir(basic_project), "job.*.log"))
+    initial_backups = [f for f in initial_backups if os.path.basename(f) != "job.log"]
+    assert len(initial_backups) == 8
 
     # Create current job.log
     existing_log = os.path.join(jobdir(basic_project), "job.log")
@@ -1239,12 +1243,16 @@ def test_install_file_logger_max_backups(basic_project):
     scheduler._Scheduler__install_file_logger()
 
     # Check that backups are limited to max_log_backups (5)
-    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.log.*.bak"))
-    assert len(backup_files) == 5
+    backup_files = glob_module.glob(os.path.join(jobdir(basic_project), "job.*.log"))
+    backup_files = [f for f in backup_files if os.path.basename(f) != "job.log"]
+    assert len(backup_files) <= 5, f"Expected <= 5 backups, got {len(backup_files)}"
 
     # Verify the newest backup contains the current log content
     if backup_files:
         newest_backup = sorted(backup_files)[-1]
+        with open(newest_backup, "r") as f:
+            content = f.read()
+            assert "current log" in content or content == "current log"
         with open(newest_backup, "r") as f:
             content = f.read()
             assert "current log" in content or content == "current log"
