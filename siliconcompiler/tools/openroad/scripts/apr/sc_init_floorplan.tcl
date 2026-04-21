@@ -116,7 +116,9 @@ if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
 # Placement Blockages
 ###############################
 foreach blockage [sc_cfg_tool_task_get var placementblockage] {
-    lassign $blockage x1 y1 x2 y2
+    lassign $blockage pt0 pt1
+    lassign $pt0 x1 y1
+    lassign $pt1 x2 y2
     utl::info FLW 1 "Creating placement blockage at ($x1, $y1), ($x2, $y2)"
     create_blockage -region "$x1 $y1 $x2 $y2"
 }
@@ -125,7 +127,9 @@ foreach blockage [sc_cfg_tool_task_get var placementblockage] {
 # Routing Blockages
 ###############################
 foreach blockage [sc_cfg_tool_task_get var routingblockage] {
-    lassign $blockage layer x1 y1 x2 y2
+    lassign $blockage layer pt0 pt1
+    lassign $pt0 x1 y1
+    lassign $pt1 x2 y2
     set layer [sc_get_layer_name $layer]
     utl::info FLW 1 "Creating routing blockage on layer $layer at ($x1, $y1), ($x2, $y2)"
     create_obstruction -layer $layer -region "$x1 $y1 $x2 $y2"
