@@ -112,8 +112,9 @@ if { [sc_cfg_tool_task_check_in_list fmax var reports] } {
             continue
         }
         set fmax [expr { 1.0 / $min_period }]
+        set regs [llength [all_registers -clock $clk]]
         utl::metric_float "timing__fmax__clock:${clk_name}" $fmax
-        puts "$clk_name fmax = [format %.2f [expr { $fmax / 1e6 }]] MHz"
+        puts "$clk_name fmax = [format %.2f [expr { $fmax / 1e6 }]] MHz (registers: $regs)"
         set fmax_metric [expr { max($fmax_metric, $fmax) }]
     }
     if { $fmax_metric == 0 } {
