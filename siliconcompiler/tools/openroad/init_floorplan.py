@@ -31,6 +31,11 @@ class InitFloorplanTask(APRTask,
         self.add_parameter("padringfileset", "[str]", "filesets to generate a padring")
         self.add_parameter("bumpmapfileset", "[str]", "filesets to generate a bumpmap")
 
+        self.add_parameter("placementblockage", "[((float,float),(float,float))]",
+                           "Placement blockage coordinates", units="um")
+        self.add_parameter("routingblockage", "[(str,(float,float),(float,float))]",
+                           "Routing blockage coordinates", units="um")
+
         tools_root = os.path.dirname(os.path.dirname(__file__))
         self.set_dataroot("sc-common", os.path.join(tools_root, "_common"))
         self.add_parameter(
@@ -39,6 +44,51 @@ class InitFloorplanTask(APRTask,
             "TCL file defining pin constraints for use with OpenROAD.",
             "tcl/sc_pin_constraints.tcl",
             dataroot="sc-common")
+
+    def add_openroad_placementblockage(self, x0: float, y0: float, x1: float, y1: float,
+                                       step: Optional[str] = None, index: Optional[str] = None,
+                                       clobber: bool = False):
+        """
+        Adds a placement blockage defined by the coordinates of its lower-left (x0, y0)
+        and upper-right (x1, y1) corners.
+
+        Args:
+            x0: X-coordinate of the lower-left corner of the blockage.
+            y0: Y-coordinate of the lower-left corner of the blockage.
+            x1: X-coordinate of the upper-right corner of the blockage.
+            y1: Y-coordinate of the upper-right corner of the blockage.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing placement blockage list.
+                     If False, appends to the existing list.
+        """
+        if clobber:
+            self.set("var", "placementblockage", ((x0, y0), (x1, y1)), step=step, index=index)
+        else:
+            self.add("var", "placementblockage", ((x0, y0), (x1, y1)), step=step, index=index)
+
+    def add_openroad_routingblockage(self, layer: str, x0: float, y0: float, x1: float, y1: float,
+                                     step: Optional[str] = None, index: Optional[str] = None,
+                                     clobber: bool = False):
+        """
+        Adds a routing blockage defined by the coordinates of its lower-left (x0, y0)
+        and upper-right (x1, y1) corners.
+
+        Args:
+            layer: The routing layer to which this blockage applies.
+            x0: X-coordinate of the lower-left corner of the blockage.
+            y0: Y-coordinate of the lower-left corner of the blockage.
+            x1: X-coordinate of the upper-right corner of the blockage.
+            y1: Y-coordinate of the upper-right corner of the blockage.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing routing blockage list.
+                     If False, appends to the existing list.
+        """
+        if clobber:
+            self.set("var", "routingblockage", (layer, (x0, y0), (x1, y1)), step=step, index=index)
+        else:
+            self.add("var", "routingblockage", (layer, (x0, y0), (x1, y1)), step=step, index=index)
 
     def set_openroad_snapstrategy(self, snap: str,
                                   step: Optional[str] = None, index: Optional[str] = None):
@@ -160,6 +210,10 @@ class InitFloorplanTask(APRTask,
         self.add_required_key("var", "remove_synth_buffers")
         self.add_required_key("var", "remove_dead_logic")
         self.add_required_key("var", "assert_all_pins_placed")
+        if self.get("var", "placementblockage"):
+            self.add_required_key("var", "placementblockage")
+        if self.get("var", "routingblockage"):
+            self.add_required_key("var", "routingblockage")
 
         if self.get("var", "padringfileset"):
             self.add_required_key("var", "padringfileset")
