@@ -8,6 +8,20 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.7 (2026-04-21)
+=========================================
+
+**Minor:**
+
+ * Added dataroot resolver to allow for nesting dataroots.
+ * Fixed log files accumulating in the build directory and updated log naming to make it easier to identify runs.
+ * Added job termination when system memory exceeds 99% utilization.
+
+ * Tools:
+
+  * openroad: added support for placement and routing blockages in init floorplan.
+
+
 SiliconCompiler 0.37.6 (2026-04-15)
 =========================================
 
