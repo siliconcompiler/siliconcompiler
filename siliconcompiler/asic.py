@@ -14,6 +14,7 @@ from siliconcompiler.constraints import \
     ASICComponentConstraints, ASICPinConstraints
 from siliconcompiler.metrics import ASICMetricsSchema
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.utils import units
 
 from siliconcompiler import PDK
@@ -523,6 +524,37 @@ class ASIC(Project):
                 break
 
         return info
+
+    def _get_write_depgraph_extra(self):
+        extra_graph = {}
+        extra_styles = {}
+
+        extra_graph[self.name] = set()
+
+        pdk = self.get("asic", "pdk")
+        if pdk:
+            extra_graph[self.name].add(pdk)
+            extra_graph[pdk] = set()
+            extra_styles[pdk] = {'shape': 'Mdiamond', "color": "orange2"}
+
+        mainlib = self.get("asic", "mainlib")
+        libs = self.get("asic", "asiclib")
+        if mainlib and mainlib not in libs:
+            libs.insert(0, mainlib)
+
+        for n, lib in enumerate(libs):
+            extra_graph[self.name].add(lib)
+            extra_graph[lib] = set()
+            extra_styles[lib] = {'shape': 'diamond', "color": "palegreen3"}
+            if n == 0:
+                extra_styles[lib]["color"] = "royalblue1"
+
+            libobj = self.get_library(lib)
+            if isinstance(libobj, DependencySchema):
+                for dep in libobj.get_dep():
+                    extra_graph[lib].add(dep.name)
+
+        return extra_graph, extra_styles
 
 
 class ASICTask(Task):

@@ -6,6 +6,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import ASIC, Design, Flowgraph
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.asic import ASICTask, ASICConstraint
 from siliconcompiler.library import ToolLibrarySchema
 
@@ -953,3 +954,149 @@ def test_constraint_area():
     const = ASICConstraint()
     assert isinstance(const.area, ASICAreaConstraint)
     assert const.get("area", field="schema") is const.area
+
+
+# ── _get_write_depgraph_extra / write_depgraph tests ─────────────────────────
+
+
+def test_get_write_depgraph_extra_empty():
+    proj = ASIC(Design("test"))
+    graph, styles = proj._get_write_depgraph_extra()
+    assert graph["test"] == set()
+    assert styles == {}
+
+
+def test_get_write_depgraph_extra_with_pdk():
+    pdk = PDK("mypdk")
+    proj = ASIC(Design("test"))
+    proj.set_pdk(pdk)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    assert "mypdk" in graph["test"]
+    assert graph["mypdk"] == set()
+    assert styles["mypdk"]["shape"] == "Mdiamond"
+    assert styles["mypdk"]["color"] == "orange2"
+
+
+def test_get_write_depgraph_extra_pdk_no_outgoing_edges():
+    pdk = PDK("mypdk")
+    proj = ASIC(Design("test"))
+    proj.set_pdk(pdk)
+
+    graph, _ = proj._get_write_depgraph_extra()
+    assert graph["mypdk"] == set()
+
+
+def test_get_write_depgraph_extra_with_mainlib():
+    lib = StdCellLibrary("mylib")
+    proj = ASIC(Design("test"))
+    proj.set_mainlib(lib)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    assert "mylib" in graph["test"]
+    assert graph["mylib"] == set()
+    assert styles["mylib"]["shape"] == "diamond"
+    assert styles["mylib"]["color"] == "royalblue1"
+
+
+def test_get_write_depgraph_extra_with_asiclib():
+    lib = StdCellLibrary("extralib")
+    proj = ASIC(Design("test"))
+    proj.add_asiclib(lib)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    assert "extralib" in graph["test"]
+    assert styles["extralib"]["shape"] == "diamond"
+    assert styles["extralib"]["color"] == "royalblue1"
+
+
+def test_get_write_depgraph_extra_mainlib_in_asiclibs_not_duplicated():
+    lib = StdCellLibrary("sharedlib")
+    proj = ASIC(Design("test"))
+    proj.set_mainlib(lib)
+    proj.add_asiclib(lib)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    # Dict key uniqueness ensures no duplicate node; root connects exactly once
+    assert list(graph["test"]).count("sharedlib") == 1
+    assert "sharedlib" in styles
+
+
+def test_get_write_depgraph_extra_lib_deps_added_to_lib_edges():
+    dep_lib = StdCellLibrary("deplib")
+    main_lib = StdCellLibrary("mainlib")
+    main_lib.add_dep(dep_lib)
+
+    proj = ASIC(Design("test"))
+    proj.set_mainlib(main_lib)
+
+    graph, _ = proj._get_write_depgraph_extra()
+    assert "deplib" in graph["mainlib"]
+
+
+def test_get_write_depgraph_extra_pdk_and_mainlib_both_present():
+    pdk = PDK("mypdk")
+    lib = StdCellLibrary("mylib")
+    proj = ASIC(Design("test"))
+    proj.set_pdk(pdk)
+    proj.set_mainlib(lib)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    assert "mypdk" in graph["test"]
+    assert "mylib" in graph["test"]
+    assert "mypdk" in styles
+    assert "mylib" in styles
+
+
+def test_write_depgraph_includes_pdk_node():
+    pdk = PDK("mypdk")
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = ASIC(design)
+    proj.set_pdk(pdk)
+    proj.add_fileset("rtl")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png")
+
+    graph = mock.call_args.args[2]
+    node_styles = mock.call_args.kwargs["node_styles"]
+    assert "mypdk" in graph
+    assert node_styles["mypdk"]["shape"] == "Mdiamond"
+
+
+def test_write_depgraph_includes_mainlib_node():
+    lib = StdCellLibrary("mylib")
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = ASIC(design)
+    proj.set_mainlib(lib)
+    proj.add_fileset("rtl")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png")
+
+    graph = mock.call_args.args[2]
+    node_styles = mock.call_args.kwargs["node_styles"]
+    assert "mylib" in graph
+    assert node_styles["mylib"]["shape"] == "diamond"
+
+
+def test_write_depgraph_no_pdk_no_libs_only_fileset_nodes():
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png")
+
+    node_styles = mock.call_args.kwargs["node_styles"]
+    for style in node_styles.values():
+        assert style.get("shape") not in ("Mdiamond", "diamond")
