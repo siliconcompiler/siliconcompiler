@@ -2,7 +2,7 @@ import logging
 import pytest
 import os
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from siliconcompiler import FPGADevice, FPGA, Design
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
@@ -334,6 +334,7 @@ def test_write_depgraph_no_device_only_fileset_nodes():
         proj.write_depgraph("test.png")
 
     graph = mock.call_args.args[2]
+    assert graph == {'mydesign': {'mydesign/rtl'}, 'mydesign/rtl': set()}
     node_styles = mock.call_args.kwargs["node_styles"]
     # No FPGA device nodes
     for key in node_styles:

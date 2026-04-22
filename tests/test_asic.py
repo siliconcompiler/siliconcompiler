@@ -3,7 +3,7 @@ import pytest
 
 import os.path
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from siliconcompiler import ASIC, Design, Flowgraph
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
@@ -975,7 +975,7 @@ def test_get_write_depgraph_extra_with_pdk():
     assert "mypdk" in graph["test"]
     assert graph["mypdk"] == set()
     assert styles["mypdk"]["shape"] == "Mdiamond"
-    assert styles["mypdk"]["color"] == "lightblue"
+    assert styles["mypdk"]["color"] == "orange2"
 
 
 def test_get_write_depgraph_extra_pdk_no_outgoing_edges():
@@ -996,7 +996,7 @@ def test_get_write_depgraph_extra_with_mainlib():
     assert "mylib" in graph["test"]
     assert graph["mylib"] == set()
     assert styles["mylib"]["shape"] == "diamond"
-    assert styles["mylib"]["color"] == "lightgreen"
+    assert styles["mylib"]["color"] == "royalblue1"
 
 
 def test_get_write_depgraph_extra_with_asiclib():
@@ -1007,7 +1007,7 @@ def test_get_write_depgraph_extra_with_asiclib():
     graph, styles = proj._get_write_depgraph_extra()
     assert "extralib" in graph["test"]
     assert styles["extralib"]["shape"] == "diamond"
-    assert styles["extralib"]["color"] == "lightgreen"
+    assert styles["extralib"]["color"] == "royalblue1"
 
 
 def test_get_write_depgraph_extra_mainlib_in_asiclibs_not_duplicated():

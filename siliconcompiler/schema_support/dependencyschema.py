@@ -131,7 +131,12 @@ class DependencySchema(BaseSchema):
         if node_styles is None:
             node_styles = {}
 
+        all_nodes = set(graph.keys())
         for node, edges in graph.items():
+            all_nodes.update(edges)
+
+        for node in all_nodes:
+            edges = graph.get(node, set())
             styles = node_styles.get(node, {})
             text = styles.get('text', node)
             shape = styles.get('shape', 'box' if node == root else 'oval')

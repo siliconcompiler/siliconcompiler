@@ -535,17 +535,19 @@ class ASIC(Project):
         if pdk:
             extra_graph[self.name].add(pdk)
             extra_graph[pdk] = set()
-            extra_styles[pdk] = {'shape': 'Mdiamond', "color": "lightblue"}
+            extra_styles[pdk] = {'shape': 'Mdiamond', "color": "orange2"}
 
         mainlib = self.get("asic", "mainlib")
         libs = self.get("asic", "asiclib")
         if mainlib and mainlib not in libs:
             libs.insert(0, mainlib)
 
-        for lib in libs:
+        for n, lib in enumerate(libs):
             extra_graph[self.name].add(lib)
             extra_graph[lib] = set()
-            extra_styles[lib] = {'shape': 'diamond', "color": "lightgreen"}
+            extra_styles[lib] = {'shape': 'diamond', "color": "palegreen3"}
+            if n == 0:
+                extra_styles[lib]["color"] = "royalblue1"
 
             libobj = self.get_library(lib)
             if isinstance(libobj, DependencySchema):

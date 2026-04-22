@@ -7,7 +7,7 @@ import os.path
 from pathlib import Path
 from PIL import Image
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from siliconcompiler import Project
 from siliconcompiler import Lint, Sim
@@ -2390,7 +2390,6 @@ def test_write_depgraph_fileset_no_depfilesets_empty_edges():
     call = _capture_wdg(proj)
     graph = call.args[2]
     assert graph["test/rtl"] == set()
-
 
 
 def test_write_depgraph_depfileset_creates_edge():
