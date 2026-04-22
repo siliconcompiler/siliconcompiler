@@ -526,8 +526,8 @@ def test_get_filesets_with_deps():
     proj = Project(design)
     assert proj.add_fileset("rtl")
     assert proj.get_filesets() == [
+        (dep, "rtl.dep"),
         (design, "rtl"),
-        (dep, "rtl.dep")
     ]
 
 
@@ -752,8 +752,8 @@ def test_get_filesets_with_alias():
     assert proj.add_fileset("rtl")
     assert proj.add_alias(dep, "rtl", alias, "rtl1")
     assert proj.get_filesets() == [
+        (alias, "rtl1"),
         (design, "rtl"),
-        (alias, "rtl1")
     ]
 
 
@@ -801,8 +801,8 @@ def test_get_filesets_with_alias_same_fileset():
     assert proj.add_fileset("rtl")
     assert proj.add_alias(dep, "rtl", alias, "rtl")
     assert proj.get_filesets() == [
+        (alias, "rtl"),
         (design, "rtl"),
-        (alias, "rtl")
     ]
 
 
