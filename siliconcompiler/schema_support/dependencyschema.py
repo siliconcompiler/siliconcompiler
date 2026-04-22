@@ -86,6 +86,69 @@ class DependencySchema(BaseSchema):
 
         return True
 
+    @staticmethod
+    def _write_depgraph(filename: str,
+                        root: str,
+                        graph: Dict[str, Set[str]],
+                        node_styles: Optional[Dict[str, Dict[str, str]]] = None,
+                        fontcolor: str = '#000000',
+                        background: str = 'transparent',
+                        fontsize: str = '14',
+                        border: bool = True, landscape: bool = False) -> None:
+        r'''
+        Renders and saves a dependency graph to a file.
+
+        Args:
+            filename (filepath): Output filepath.
+            root (str): Name of the root node.
+            graph (dict): Dictionary mapping node names to sets of connected node names.
+            node_styles (dict): Optional dictionary mapping node names to style overrides.
+                Each entry may contain 'shape', 'color', and/or 'text' keys.
+            fontcolor (str): Node font RGB color hex value.
+            background (str): Background color.
+            fontsize (str): Node text font size.
+            border (bool): Enables node border if True.
+            landscape (bool): Renders graph in landscape layout if True.
+
+        Examples:
+            >>> DependencySchema._write_depgraph('mydump.png', 'root',
+            ...     {'root': {'child'}, 'child': set()})
+            Renders the dependency graph and writes the result to a png file.
+        '''
+        import graphviz
+
+        filepath = os.path.abspath(filename)
+        fileroot, ext = os.path.splitext(filepath)
+        fileformat = ext[1:]
+
+        penwidth = '1' if border else '0'
+        rankdir = 'LR' if landscape else 'TB'
+
+        dot = graphviz.Digraph(format=fileformat)
+        dot.graph_attr['rankdir'] = rankdir
+        dot.attr(bgcolor=background)
+
+        if node_styles is None:
+            node_styles = {}
+
+        for node, edges in graph.items():
+            styles = node_styles.get(node, {})
+            text = styles.get('text', node)
+            shape = styles.get('shape', 'box' if node == root else 'oval')
+            color = styles.get('color', background)
+
+            dot.node(node, label=text, bordercolor=fontcolor, style='filled',
+                     fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                     penwidth=penwidth, fillcolor=color, shape=shape)
+
+            for conn in sorted(edges):
+                dot.edge(node, conn, dir='back')
+
+        try:
+            dot.render(filename=fileroot, cleanup=True)
+        except graphviz.ExecutableNotFound as e:
+            raise RuntimeError(f'Unable to save flowgraph: {e}')
+
     def write_depgraph(self, filename: str,
                        fontcolor: str = '#000000',
                        background: str = 'transparent',
@@ -106,59 +169,28 @@ class DependencySchema(BaseSchema):
             >>> schema.write_depgraph('mydump.png')
             Renders the object dependency graph and writes the result to a png file.
         '''
-        import graphviz
-
-        filepath = os.path.abspath(filename)
-        fileroot, ext = os.path.splitext(filepath)
-        fileformat = ext[1:]
-
-        # controlling border width
-        if border:
-            penwidth = '1'
-        else:
-            penwidth = '0'
-
-        # controlling graph direction
-        if landscape:
-            rankdir = 'LR'
-        else:
-            rankdir = 'TB'
-
-        dot = graphviz.Digraph(format=fileformat)
-        dot.graph_attr['rankdir'] = rankdir
-        dot.attr(bgcolor=background)
-
         def make_label(dep):
             return f"lib-{dep.name}"
 
-        nodes = {
-            self.name: {
-                "text": self.name,
-                "shape": "box",
-                "color": background,
-                "connects_to": set([make_label(subdep) for subdep in self.__deps.values()])
-            }
+        graph = {
+            self.name: set(make_label(dep) for dep in self.__deps.values())
         }
+        node_styles = {
+            self.name: {'shape': 'box', 'text': self.name}
+        }
+
         for dep in self.get_dep():
-            nodes[make_label(dep)] = {
-                "text": dep.name,
-                "shape": "oval",
-                "color": background,
-                "connects_to": set([make_label(subdep) for subdep in dep.__deps.values()])
-            }
+            label = make_label(dep)
+            if isinstance(dep, DependencySchema):
+                connects_to = set(make_label(subdep) for subdep in dep.__deps.values())
+            else:
+                connects_to = set()
+            graph[label] = connects_to
+            node_styles[label] = {'shape': 'oval', 'text': dep.name}
 
-        for label, info in nodes.items():
-            dot.node(label, label=info['text'], bordercolor=fontcolor, style='filled',
-                     fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                     penwidth=penwidth, fillcolor=info["color"], shape=info['shape'])
-
-            for conn in info['connects_to']:
-                dot.edge(label, conn, dir='back')
-
-        try:
-            dot.render(filename=fileroot, cleanup=True)
-        except graphviz.ExecutableNotFound as e:
-            raise RuntimeError(f'Unable to save flowgraph: {e}')
+        self._write_depgraph(filename, self.name, graph, node_styles=node_styles,
+                             fontcolor=fontcolor, background=background,
+                             fontsize=fontsize, border=border, landscape=landscape)
 
     def __get_all_deps(self, seen: Set[str]) -> List[NamedSchema]:
         '''
