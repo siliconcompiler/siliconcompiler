@@ -132,10 +132,10 @@ class DependencySchema(BaseSchema):
             node_styles = {}
 
         all_nodes = set(graph.keys())
-        for node, edges in graph.items():
+        for _, edges in graph.items():
             all_nodes.update(edges)
 
-        for node in all_nodes:
+        for node in sorted(all_nodes):
             edges = graph.get(node, set())
             styles = node_styles.get(node, {})
             text = styles.get('text', node)
