@@ -2,9 +2,10 @@ import logging
 import pytest
 import os
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from siliconcompiler import FPGADevice, FPGA
+from siliconcompiler import FPGADevice, FPGA, Design
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.metrics import FPGAMetricsSchema
 from siliconcompiler.constraints import FPGAComponentConstraints, \
     FPGAPinConstraints, FPGATimingConstraintSchema
@@ -262,3 +263,78 @@ def test_dont_skip_timing_with_sdc(heartbeat_design, monkeypatch):
 
             node.task.pre_process()
         parent_pre.assert_called_once()
+
+
+# ── _get_write_depgraph_extra / write_depgraph tests ─────────────────────────
+
+
+def test_get_write_depgraph_extra_no_device():
+    proj = FPGA(Design("mydesign"))
+    graph, styles = proj._get_write_depgraph_extra()
+    assert graph["mydesign"] == set()
+    assert styles == {}
+
+
+def test_get_write_depgraph_extra_with_device():
+    device = FPGADevice("myfpga")
+    proj = FPGA(Design("mydesign"))
+    proj.set_fpga(device)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    assert "myfpga" in graph["mydesign"]
+    assert graph["myfpga"] == set()
+    assert styles["myfpga"]["shape"] == "Mdiamond"
+    assert styles["myfpga"]["color"] == "lightblue"
+
+
+def test_get_write_depgraph_extra_device_node_has_no_outgoing_edges():
+    device = FPGADevice("myfpga")
+    proj = FPGA(Design("mydesign"))
+    proj.set_fpga(device)
+
+    graph, _ = proj._get_write_depgraph_extra()
+    assert graph["myfpga"] == set()
+
+
+def test_get_write_depgraph_extra_device_not_in_styles_when_unset():
+    proj = FPGA(Design("mydesign"))
+    _, styles = proj._get_write_depgraph_extra()
+    assert "myfpga" not in styles
+
+
+def test_write_depgraph_includes_device_node():
+    device = FPGADevice("myfpga")
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = FPGA(design)
+    proj.set_fpga(device)
+    proj.add_fileset("rtl")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png")
+
+    graph = mock.call_args.args[2]
+    node_styles = mock.call_args.kwargs["node_styles"]
+    assert "myfpga" in graph
+    assert node_styles["myfpga"]["shape"] == "Mdiamond"
+    assert node_styles["myfpga"]["color"] == "lightblue"
+
+
+def test_write_depgraph_no_device_only_fileset_nodes():
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = FPGA(design)
+    proj.add_fileset("rtl")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png")
+
+    graph = mock.call_args.args[2]
+    node_styles = mock.call_args.kwargs["node_styles"]
+    # No FPGA device nodes
+    for key in node_styles:
+        assert node_styles[key].get("shape") != "Mdiamond"

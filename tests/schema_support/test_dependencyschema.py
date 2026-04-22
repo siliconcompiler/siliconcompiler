@@ -3,7 +3,7 @@ import pytest
 
 import os.path
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from siliconcompiler.schema import NamedSchema, BaseSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
@@ -561,3 +561,240 @@ def test_check_filepaths_depth_partial():
         cf.side_effect = cf_call
         assert dut.check_filepaths() is False
         assert cf.call_count == 3
+
+
+# ── _write_depgraph static method ────────────────────────────────────────────
+
+
+def _capture_dot(filename, root, graph, **kwargs):
+    """Run _write_depgraph with a mocked graphviz.Digraph; return the mock."""
+    dot = MagicMock()
+    dot.graph_attr = {}
+    with patch("graphviz.Digraph", return_value=dot):
+        DependencySchema._write_depgraph(filename, root, graph, **kwargs)
+    return dot
+
+
+def _node_calls(dot):
+    """Return dict mapping node id → kwargs from dot.node call_args_list."""
+    return {c.args[0]: c.kwargs for c in dot.node.call_args_list}
+
+
+def _edge_pairs(dot):
+    """Return set of (src, dst) tuples from dot.edge call_args_list."""
+    return {(c.args[0], c.args[1]) for c in dot.edge.call_args_list}
+
+
+def test_write_depgraph_static_empty_graph():
+    dot = _capture_dot("test.png", "root", {})
+    dot.node.assert_not_called()
+    dot.edge.assert_not_called()
+    dot.render.assert_called_once()
+
+
+def test_write_depgraph_static_single_node():
+    dot = _capture_dot("test.png", "root", {"root": set()})
+    assert len(_node_calls(dot)) == 1
+    assert "root" in _node_calls(dot)
+
+
+def test_write_depgraph_static_root_default_box():
+    dot = _capture_dot("test.png", "root", {"root": set()})
+    assert _node_calls(dot)["root"]["shape"] == "box"
+
+
+def test_write_depgraph_static_non_root_default_oval():
+    dot = _capture_dot("test.png", "root", {"root": {"child"}, "child": set()})
+    assert _node_calls(dot)["child"]["shape"] == "oval"
+
+
+def test_write_depgraph_static_text_defaults_to_node_id():
+    dot = _capture_dot("test.png", "root", {"root": set()})
+    assert _node_calls(dot)["root"]["label"] == "root"
+
+
+def test_write_depgraph_static_node_style_shape_override():
+    dot = _capture_dot("test.png", "root", {"root": set()},
+                       node_styles={"root": {"shape": "diamond"}})
+    assert _node_calls(dot)["root"]["shape"] == "diamond"
+
+
+def test_write_depgraph_static_node_style_text_override():
+    dot = _capture_dot("test.png", "root", {"root": set()},
+                       node_styles={"root": {"text": "My Label"}})
+    assert _node_calls(dot)["root"]["label"] == "My Label"
+
+
+def test_write_depgraph_static_node_style_color_override():
+    dot = _capture_dot("test.png", "root", {"root": set()},
+                       node_styles={"root": {"color": "#ff0000"}})
+    assert _node_calls(dot)["root"]["fillcolor"] == "#ff0000"
+
+
+def test_write_depgraph_static_color_defaults_to_background():
+    dot = _capture_dot("test.png", "root", {"root": set()}, background="#123456")
+    assert _node_calls(dot)["root"]["fillcolor"] == "#123456"
+
+
+def test_write_depgraph_static_edges_created():
+    dot = _capture_dot("test.png", "root",
+                       {"root": {"a", "b"}, "a": set(), "b": set()})
+    pairs = _edge_pairs(dot)
+    assert ("root", "a") in pairs
+    assert ("root", "b") in pairs
+
+
+def test_write_depgraph_static_no_edges_without_connections():
+    dot = _capture_dot("test.png", "root", {"root": set(), "orphan": set()})
+    dot.edge.assert_not_called()
+
+
+def test_write_depgraph_static_landscape():
+    dot = _capture_dot("test.png", "root", {}, landscape=True)
+    assert dot.graph_attr["rankdir"] == "LR"
+
+
+def test_write_depgraph_static_portrait():
+    dot = _capture_dot("test.png", "root", {}, landscape=False)
+    assert dot.graph_attr["rankdir"] == "TB"
+
+
+def test_write_depgraph_static_border_off():
+    dot = _capture_dot("test.png", "root", {"root": set()}, border=False)
+    assert _node_calls(dot)["root"]["penwidth"] == "0"
+
+
+def test_write_depgraph_static_border_on():
+    dot = _capture_dot("test.png", "root", {"root": set()}, border=True)
+    assert _node_calls(dot)["root"]["penwidth"] == "1"
+
+
+def test_write_depgraph_static_no_graphviz_exe():
+    dot = MagicMock()
+    dot.graph_attr = {}
+    dot.render.side_effect = graphviz.ExecutableNotFound("missing")
+    with patch("graphviz.Digraph", return_value=dot):
+        with pytest.raises(RuntimeError, match=r"^Unable to save flowgraph:"):
+            DependencySchema._write_depgraph("test.png", "root", {})
+
+
+def test_write_depgraph_static_node_styles_none_uses_defaults():
+    dot = _capture_dot("test.png", "root", {"root": set()}, node_styles=None)
+    assert _node_calls(dot)["root"]["shape"] == "box"
+
+
+def test_write_depgraph_static_partial_node_styles():
+    dot = _capture_dot("test.png", "root",
+                       {"root": {"child"}, "child": set()},
+                       node_styles={"root": {"text": "Root Node"}})
+    calls = _node_calls(dot)
+    assert calls["root"]["label"] == "Root Node"
+    assert calls["child"]["label"] == "child"
+
+
+# ── write_depgraph → _write_depgraph delegation ──────────────────────────────
+
+
+class _TestDep(NamedSchema, DependencySchema):
+    def __init__(self, name):
+        super().__init__()
+        self.set_name(name)
+
+
+def test_write_depgraph_delegates_to_static():
+    schema = _TestDep("top")
+    schema.add_dep(_TestDep("dep0"))
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock_static:
+        schema.write_depgraph("out.png")
+
+    mock_static.assert_called_once()
+    filename, root, _ = mock_static.call_args.args[:3]
+    assert filename == "out.png"
+    assert root == "top"
+
+
+def test_write_depgraph_root_connects_to_direct_deps():
+    schema = _TestDep("top")
+    schema.add_dep(_TestDep("dep0"))
+    schema.add_dep(_TestDep("dep1"))
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock_static:
+        schema.write_depgraph("out.png")
+
+    graph = mock_static.call_args.args[2]
+    assert "lib-dep0" in graph["top"]
+    assert "lib-dep1" in graph["top"]
+
+
+def test_write_depgraph_dep_nodes_included_with_edges():
+    dep0 = _TestDep("dep0")
+    dep1 = _TestDep("dep1")
+    dep0.add_dep(dep1)
+    schema = _TestDep("top")
+    schema.add_dep(dep0)
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock_static:
+        schema.write_depgraph("out.png")
+
+    graph = mock_static.call_args.args[2]
+    assert "lib-dep0" in graph
+    assert "lib-dep1" in graph["lib-dep0"]
+
+
+def test_write_depgraph_leaf_dep_has_empty_edges():
+    schema = _TestDep("top")
+    schema.add_dep(_TestDep("dep0"))
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock_static:
+        schema.write_depgraph("out.png")
+
+    graph = mock_static.call_args.args[2]
+    assert graph["lib-dep0"] == set()
+
+
+def test_write_depgraph_root_styled_as_box():
+    schema = _TestDep("top")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock_static:
+        schema.write_depgraph("out.png")
+
+    node_styles = mock_static.call_args.kwargs["node_styles"]
+    assert node_styles["top"]["shape"] == "box"
+
+
+def test_write_depgraph_dep_styled_as_oval():
+    schema = _TestDep("top")
+    schema.add_dep(_TestDep("dep0"))
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock_static:
+        schema.write_depgraph("out.png")
+
+    node_styles = mock_static.call_args.kwargs["node_styles"]
+    assert node_styles["lib-dep0"]["shape"] == "oval"
+
+
+def test_write_depgraph_dep_label_is_original_name():
+    schema = _TestDep("top")
+    schema.add_dep(_TestDep("dep0"))
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock_static:
+        schema.write_depgraph("out.png")
+
+    node_styles = mock_static.call_args.kwargs["node_styles"]
+    assert node_styles["lib-dep0"]["text"] == "dep0"
+
+
+def test_write_depgraph_visual_params_forwarded():
+    schema = _TestDep("top")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock_static:
+        schema.write_depgraph("out.png", fontcolor="#aabbcc", background="#001122",
+                              fontsize="18", border=False, landscape=True)
+
+    kw = mock_static.call_args.kwargs
+    assert kw["fontcolor"] == "#aabbcc"
+    assert kw["background"] == "#001122"
+    assert kw["fontsize"] == "18"
+    assert kw["border"] is False
+    assert kw["landscape"] is True

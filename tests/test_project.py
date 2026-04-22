@@ -7,7 +7,7 @@ import os.path
 from pathlib import Path
 from PIL import Image
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from siliconcompiler import Project
 from siliconcompiler import Lint, Sim
@@ -21,6 +21,7 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormat
 from siliconcompiler.utils.paths import jobdir
 
 from siliconcompiler.scheduler import SCRuntimeError
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
 
 
 class FauxTask0(Task):
@@ -2333,3 +2334,255 @@ def test_getdict_type_inheritance():
     # Verify they're different
     assert Lint._getdict_type() != Project._getdict_type()
     assert Sim._getdict_type() != Project._getdict_type()
+
+
+# ── write_depgraph tests ──────────────────────────────────────────────────────
+
+
+def _capture_wdg(proj, **kwargs):
+    """Call write_depgraph and return the captured call_args."""
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png", **kwargs)
+    return mock.call_args
+
+
+def test_write_depgraph_root_is_design_name():
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    assert call.args[1] == "mydesign"
+
+
+def test_write_depgraph_no_filesets_root_only():
+    design = Design("mydesign")
+    proj = Project(design)
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "mydesign" in graph
+    assert graph["mydesign"] == set()
+
+
+def test_write_depgraph_single_fileset_node():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "test/rtl" in graph["test"]
+    assert "test/rtl" in graph
+
+
+def test_write_depgraph_fileset_no_depfilesets_empty_edges():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert graph["test/rtl"] == set()
+
+
+
+def test_write_depgraph_depfileset_creates_edge():
+    dep = Design("mylib")
+    with dep.active_fileset("gates"):
+        dep.set_topmodule("cells")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "gates")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "mylib/gates" in graph["test/rtl"]
+
+
+def test_write_depgraph_alias_redirects_edge():
+    dep = Design("origlib")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    replacement = Design("newlib")
+    with replacement.active_fileset("rtl_v2"):
+        replacement.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_dep(replacement)
+    proj.add_fileset("rtl")
+    proj.add_alias(dep, "rtl", replacement, "rtl_v2")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "newlib/rtl_v2" in graph["test/rtl"]
+    assert "origlib/rtl" not in graph["test/rtl"]
+
+
+def test_write_depgraph_alias_delete_creates_gray_rectangle():
+    dep = Design("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_fileset("rtl")
+    proj.add_alias(dep, "rtl", None, "")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    node_styles = call.kwargs["node_styles"]
+
+    deleted = "dep/rtl"
+    assert deleted in graph["test/rtl"]
+    assert node_styles[deleted]["shape"] == "rectangle"
+    assert node_styles[deleted]["color"] == "#808080"
+
+
+def test_write_depgraph_deleted_node_has_no_outgoing_edges():
+    dep = Design("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_fileset("rtl")
+    proj.add_alias(dep, "rtl", None, "")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert graph["dep/rtl"] == set()
+
+
+def test_write_depgraph_deleted_node_not_duplicated_across_filesets():
+    dep = Design("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+    with design.active_fileset("syn"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_fileset(["rtl", "syn"])
+    proj.add_alias(dep, "rtl", None, "")
+
+    call = _capture_wdg(proj)
+    node_styles = call.kwargs["node_styles"]
+    assert "dep/rtl" in node_styles
+
+
+def test_write_depgraph_alias_unloaded_library_raises():
+    proj = Project(Design("test"))
+    proj.set("option", "alias", [("test", "rtl", "ghost", "rtl")])
+
+    with pytest.raises(KeyError, match=r"ghost"):
+        proj.write_depgraph("test.png")
+
+
+def test_write_depgraph_root_node_styled_as_box():
+    design = Design("test")
+    proj = Project(design)
+
+    call = _capture_wdg(proj)
+    node_styles = call.kwargs["node_styles"]
+    assert node_styles["test"]["shape"] == "box"
+
+
+def test_write_depgraph_visual_params_forwarded():
+    proj = Project(Design("test"))
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("out.png", fontcolor="#aabbcc", background="#001122",
+                            fontsize="20", border=False, landscape=True)
+
+    kw = mock.call_args.kwargs
+    assert kw["fontcolor"] == "#aabbcc"
+    assert kw["background"] == "#001122"
+    assert kw["fontsize"] == "20"
+    assert kw["border"] is False
+    assert kw["landscape"] is True
+
+
+def test_write_depgraph_error_propagates():
+    proj = Project(Design("test"))
+
+    with patch.object(DependencySchema, "_write_depgraph",
+                      side_effect=RuntimeError("Unable to save flowgraph")):
+        with pytest.raises(RuntimeError, match="Unable to save flowgraph"):
+            proj.write_depgraph("test.png")
+
+
+def test_get_write_depgraph_extra_base_returns_empty():
+    proj = Project(Design("test"))
+    graph, styles = proj._get_write_depgraph_extra()
+    assert graph == {}
+    assert styles == {}
+
+
+def test_write_depgraph_extra_nodes_merged_into_graph():
+    class CustomProject(Project):
+        def _get_write_depgraph_extra(self):
+            return (
+                {"extra_node": set()},
+                {"extra_node": {"shape": "star", "color": "#ff00ff"}}
+            )
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = CustomProject(design)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    node_styles = call.kwargs["node_styles"]
+    assert "extra_node" in graph
+    assert node_styles["extra_node"]["shape"] == "star"
+
+
+def test_write_depgraph_extra_edges_merged_into_existing_node():
+    class CustomProject(Project):
+        def _get_write_depgraph_extra(self):
+            return {"test": {"extra_child"}}, {}
+
+    design = Design("test")
+    proj = CustomProject(design)
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "extra_child" in graph["test"]
