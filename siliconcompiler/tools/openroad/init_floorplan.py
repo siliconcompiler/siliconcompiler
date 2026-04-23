@@ -201,7 +201,8 @@ class InitFloorplanTask(APRTask,
         load_vg = False
         if self.get("var", "enablehier"):
             inputs = self.get_files_from_input_nodes()
-            if f"{self.design_topmodule}.def.gz" not in inputs and f"{self.design_topmodule}.def" not in inputs:
+            if f"{self.design_topmodule}.def.gz" not in inputs and \
+                    f"{self.design_topmodule}.def" not in inputs:
                 load_vg = True
         else:
             load_vg = True
