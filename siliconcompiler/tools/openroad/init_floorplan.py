@@ -198,12 +198,22 @@ class InitFloorplanTask(APRTask,
 
         self.set_script("apr/sc_init_floorplan.tcl")
 
-        if f"{self.design_topmodule}.vg.gz" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="vg.gz")
-        elif f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="vg")
+        load_vg = False
+        if self.get("var", "enablehier"):
+            inputs = self.get_files_from_input_nodes()
+            if f"{self.design_topmodule}.def.gz" not in inputs and \
+                    f"{self.design_topmodule}.def" not in inputs:
+                load_vg = True
         else:
-            pass
+            load_vg = True
+
+        if load_vg:
+            if f"{self.design_topmodule}.vg.gz" in self.get_files_from_input_nodes():
+                self.add_input_file(ext="vg.gz")
+            elif f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+                self.add_input_file(ext="vg")
+            else:
+                pass
 
         self._set_reports([
             'check_setup',
