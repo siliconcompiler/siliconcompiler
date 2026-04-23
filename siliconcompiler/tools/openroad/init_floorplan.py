@@ -36,6 +36,10 @@ class InitFloorplanTask(APRTask,
         self.add_parameter("routingblockage", "[(str,(float,float),(float,float))]",
                            "Routing blockage coordinates", units="um")
 
+        self.add_parameter("enablehier", "bool",
+                           "Enable hierarchical design support in OpenROAD",
+                           defvalue=False)
+
         tools_root = os.path.dirname(os.path.dirname(__file__))
         self.set_dataroot("sc-common", os.path.join(tools_root, "_common"))
         self.add_parameter(
@@ -174,6 +178,18 @@ class InitFloorplanTask(APRTask,
         """
         self.set("var", "assert_all_pins_placed", enable, step=step, index=index)
 
+    def set_openroad_enablehier(self, enable: bool,
+                                step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables hierarchical design support in OpenROAD.
+
+        Args:
+            enable: True to enable hierarchical design support, False to disable it.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "enablehier", enable, step=step, index=index)
+
     def task(self):
         return "init_floorplan"
 
@@ -182,19 +198,9 @@ class InitFloorplanTask(APRTask,
 
         self.set_script("apr/sc_init_floorplan.tcl")
 
-        # if chip.valid('input', 'asic', 'floorplan') and \
-        #    chip.get('input', 'asic', 'floorplan', step=step, index=index):
-        #     chip.add('tool', tool, 'task', task, 'require',
-        #              ",".join(['input', 'asic', 'floorplan']),
-        #              step=step, index=index)
-
-        # if f'{design}.vg' in input_provides(chip, step, index):
-        #     chip.add('tool', tool, 'task', task, 'input', f'{design}.vg',
-        #              step=step, index=index)
-        # else:
-        #     chip.add('tool', tool, 'task', task, 'require', 'input,netlist,verilog',
-        #              step=step, index=index)
-        if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+        if f"{self.design_topmodule}.vg.gz" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="vg.gz")
+        elif f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
             self.add_input_file(ext="vg")
         else:
             pass
@@ -206,6 +212,7 @@ class InitFloorplanTask(APRTask,
             'power'
         ])
 
+        self.add_required_key("var", "enablehier")
         self.add_required_key("var", "ifp_snap_strategy")
         self.add_required_key("var", "remove_synth_buffers")
         self.add_required_key("var", "remove_dead_logic")
