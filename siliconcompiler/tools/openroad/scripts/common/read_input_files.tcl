@@ -42,7 +42,11 @@ if { [file exists "inputs/${sc_topmodule}.odb"] || [file exists "inputs/${sc_top
     } {
         set def_args []
         # Read verilog if available and hier is enabled
-        if { [sc_cfg_tool_task_get var enablehier] && [file exists $verilog_file] } {
+        if {
+            [sc_cfg_tool_task_exists var enablehier] &&
+            [sc_cfg_tool_task_get var enablehier] &&
+            [file exists $verilog_file]
+        } {
             puts "Reading netlist verilog: ${verilog_file}"
             read_verilog $verilog_file
             link_design -hier $sc_topmodule
