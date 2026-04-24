@@ -36,10 +36,6 @@ class InitFloorplanTask(APRTask,
         self.add_parameter("routingblockage", "[(str,(float,float),(float,float))]",
                            "Routing blockage coordinates", units="um")
 
-        self.add_parameter("enablehier", "bool",
-                           "Enable hierarchical design support in OpenROAD",
-                           defvalue=False)
-
         tools_root = os.path.dirname(os.path.dirname(__file__))
         self.set_dataroot("sc-common", os.path.join(tools_root, "_common"))
         self.add_parameter(
@@ -178,18 +174,6 @@ class InitFloorplanTask(APRTask,
         """
         self.set("var", "assert_all_pins_placed", enable, step=step, index=index)
 
-    def set_openroad_enablehier(self, enable: bool,
-                                step: Optional[str] = None, index: Optional[str] = None):
-        """
-        Enables or disables hierarchical design support in OpenROAD.
-
-        Args:
-            enable: True to enable hierarchical design support, False to disable it.
-            step: The specific step to apply this configuration to.
-            index: The specific index to apply this configuration to.
-        """
-        self.set("var", "enablehier", enable, step=step, index=index)
-
     def task(self):
         return "init_floorplan"
 
@@ -198,23 +182,6 @@ class InitFloorplanTask(APRTask,
 
         self.set_script("apr/sc_init_floorplan.tcl")
 
-        load_vg = False
-        if self.get("var", "enablehier"):
-            inputs = self.get_files_from_input_nodes()
-            if f"{self.design_topmodule}.def.gz" not in inputs and \
-                    f"{self.design_topmodule}.def" not in inputs:
-                load_vg = True
-        else:
-            load_vg = True
-
-        if load_vg:
-            if f"{self.design_topmodule}.vg.gz" in self.get_files_from_input_nodes():
-                self.add_input_file(ext="vg.gz")
-            elif f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
-                self.add_input_file(ext="vg")
-            else:
-                pass
-
         self._set_reports([
             'check_setup',
             'setup',
@@ -222,7 +189,6 @@ class InitFloorplanTask(APRTask,
             'power'
         ])
 
-        self.add_required_key("var", "enablehier")
         self.add_required_key("var", "ifp_snap_strategy")
         self.add_required_key("var", "remove_synth_buffers")
         self.add_required_key("var", "remove_dead_logic")
