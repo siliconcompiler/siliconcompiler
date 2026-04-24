@@ -1225,6 +1225,22 @@ class APRTask(OpenROADTask):
         self.add_parameter("global_connect_fileset", "[(str,str)]",
                            "list of libraries and filesets to generate connects from")
 
+        self.add_parameter("enablehier", "bool",
+                           "Enable hierarchical design support in OpenROAD when linking",
+                           defvalue=False)
+
+    def set_openroad_enablehier(self, enable: bool,
+                                step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables hierarchical design support in OpenROAD.
+
+        Args:
+            enable: True to enable hierarchical design support, False to disable it.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "enablehier", enable, step=step, index=index)
+
     def add_openroad_skipreport(self, report_type: Union[List[str], str],
                                 step: Optional[str] = None, index: Optional[str] = None,
                                 clobber: bool = False) -> None:
@@ -1347,6 +1363,7 @@ class APRTask(OpenROADTask):
         if self.get("var", "skip_reports"):
             self.add_required_key("var", "skip_reports")
 
+        self.add_required_key("var", "enablehier")
         self.add_required_key("var", "ord_enable_images")
         self.add_required_key("var", "ord_heatmap_bins")
         self.add_required_key("var", "load_grt_setup")
@@ -1438,6 +1455,7 @@ class APRTask(OpenROADTask):
                         libobj = self.project.get_library(lib)
                         self.add_required_key(libobj, "fileset", fileset, "file", "sdc")
 
+        load_vg = False
         load_tech = True
         if f"{self.design_topmodule}.odb.gz" in self.get_files_from_input_nodes():
             self.add_input_file(ext="odb.gz")
@@ -1447,10 +1465,20 @@ class APRTask(OpenROADTask):
             load_tech = False
         elif f"{self.design_topmodule}.def.gz" in self.get_files_from_input_nodes():
             self.add_input_file(ext="def.gz")
+            load_vg = self.get("var", "enablehier")
         elif f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
             self.add_input_file(ext="def")
+            load_vg = self.get("var", "enablehier")
         else:
-            pass
+            load_vg = True
+
+        if load_vg:
+            if f"{self.design_topmodule}.vg.gz" in self.get_files_from_input_nodes():
+                self.add_input_file(ext="vg.gz")
+            elif f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+                self.add_input_file(ext="vg")
+            else:
+                pass
 
         if load_tech:
             pdk = self.project.get_library(self.project.get("asic", "pdk"))
