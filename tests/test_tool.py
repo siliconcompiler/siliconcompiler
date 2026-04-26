@@ -2405,7 +2405,7 @@ def test_show_get_task_show_called():
     mock_plugin = MagicMock()
     mock_plugin.__module__ = 'test_module'
     mock_plugin.__name__ = 'test_plugin'
-    
+
     # Mock get_plugins to return the mock plugin that will be called
     with patch("siliconcompiler.tool.utils.get_plugins", return_value=[mock_plugin]):
         ShowTask.get_task("test_extension")
