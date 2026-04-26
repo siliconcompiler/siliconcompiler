@@ -221,13 +221,22 @@ def test_extension_search_order_stable():
     assert exts_2 == exts_3, "Extension search order changed between calls"
 
 
-def test_later_registration_takes_precedence():
+def test_later_registration_takes_precedence(monkeypatch):
     """Test that later-registered tasks take precedence for supported extensions."""
     from siliconcompiler.tools.klayout.show import ShowTask as KlayoutShow
     from siliconcompiler.tools.openroad.show import ShowTask as OpenROADShow
+    from siliconcompiler.utils.multiprocessing import MPManager
 
-    # Clear the transient settings to ensure fresh registration state for this test
-    # (In practice, they share the same singleton, so we test the behavior as-is)
+    # Isolate registry by clearing the transient settings category for this test
+    # This ensures the test exercises registration precedence logic deterministically
+    # without being affected by previous test runs
+    settings = MPManager.get_transient_settings()
+
+    # Clear the ShowTask category if it exists
+    try:
+        del settings._settings[ShowTask.__name__]
+    except (AttributeError, KeyError):
+        pass
 
     # Register klayout first
     ShowTask.register_task(KlayoutShow)

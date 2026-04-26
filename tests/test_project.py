@@ -2993,22 +2993,38 @@ def test_show_auto_find_preserves_tool_order(monkeypatch):
 
     def track_find_result(self, ext, step=None, index=None):
         tool_check_order.append(ext)
-        return "/path/to/design." + ext if ext in ['gds', 'def'] else None
+        # Return file for 'def' only on second call to allow both extensions to be tried
+        return "/path/to/design.def" if ext == 'def' else None
 
     monkeypatch.setattr(Project, "find_result", track_find_result)
 
-    # Create multiple mock task classes to simulate registration order
-    tool1 = MockShowTask("tool1", extensions={'gds'})
-    tool2 = MockShowTask("tool2", extensions={'def'})
+    # Create two distinct mock task classes to properly test tool ordering
+    class Tool1Task(MockShowTask):
+        def tool(self):
+            return "tool1"
+
+        def get_supported_show_extentions(self):
+            return {'gds'}
+
+    class Tool2Task(MockShowTask):
+        def tool(self):
+            return "tool2"
+
+        def get_supported_show_extentions(self):
+            return {'def'}
 
     # Mock get_task with proper behavior
     def mock_get_task(ext=None, tool=None):
         if ext is None:
             # When called with None, return list of task classes in order
-            return [type(tool1), type(tool2)]
+            return [Tool1Task, Tool2Task]
         else:
-            # When called with specific extension, return instance
-            return MockShowTask()
+            # When called with specific extension, return instance based on extension
+            if ext == 'gds':
+                return Tool1Task()
+            elif ext == 'def':
+                return Tool2Task()
+            return None
     monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
 
     # Mock get_file_ext
@@ -3026,8 +3042,10 @@ def test_show_auto_find_preserves_tool_order(monkeypatch):
 
     result = proj.show()
     assert result is None
-    # Extensions should be checked in order from task registration
-    assert 'gds' in tool_check_order or 'def' in tool_check_order
+    # Extensions should be checked in order from task registration: gds first (tool1),
+    # then def (tool2)
+    assert tool_check_order == ['gds', 'def'], \
+        f"Expected tool order ['gds', 'def'] but got {tool_check_order}"
 
 
 def test_show_with_history(monkeypatch):

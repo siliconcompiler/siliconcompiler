@@ -2261,7 +2261,12 @@ class ShowTask(Task):
             cls.register_task(c)
 
         # Support non-SC defined tasks from plugins (these override core tasks)
-        for plugin in utils.get_plugins('showtask'):
+        # Sort plugins deterministically for consistent ordering
+        plugins = sorted(
+            utils.get_plugins('showtask'),
+            key=lambda p: (p.__module__, p.__name__)
+        )
+        for plugin in plugins:
             plugin()
 
     @classmethod
