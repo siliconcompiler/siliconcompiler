@@ -2401,9 +2401,16 @@ def test_show_register_task():
 
 
 def test_show_get_task_show_called():
-    with patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
+    # Create a mock plugin function with proper attributes for sorting
+    mock_plugin = MagicMock()
+    mock_plugin.__module__ = 'test_module'
+    mock_plugin.__name__ = 'test_plugin'
+
+    # Mock get_plugins to return the mock plugin that will be called
+    with patch("siliconcompiler.tool.utils.get_plugins", return_value=[mock_plugin]):
         ShowTask.get_task("test_extension")
-        showtasks.assert_called_once()
+        # Verify the plugin was called (this is what the test is checking)
+        mock_plugin.assert_called_once()
 
 
 @pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])

@@ -2226,35 +2226,48 @@ class ShowTask(Task):
         Private helper to discover and populate all available show/screenshot tasks.
 
         This method recursively finds all subclasses and also loads tasks from
-        any installed plugins.
+        any installed plugins. Tasks are registered in a stable order:
+        1. Core siliconcompiler tasks (sorted by module path)
+        2. Plugin-provided tasks (in plugin load order)
+
+        This ensures that later-registered extensions take precedence over
+        earlier core tasks when multiple tools support the same extension.
         """
         cls.__check_task(None)
 
         if MPManager.get_transient_settings().get_category(cls.__name__):
             return  # Already populated
 
-        def recurse(searchcls: Type["ShowTask"]):
-            subclss = set()
+        def recurse(searchcls: Type["ShowTask"]) -> list:
+            subclss = []
             if not cls.__check_task(searchcls):
                 return subclss
 
-            subclss.add(searchcls)
+            subclss.append(searchcls)
+            # Iterate over subclasses (final sort by module path happens below)
             for subcls in searchcls.__subclasses__():
-                subclss.update(recurse(subcls))
+                subclss.extend(recurse(subcls))
 
             return subclss
 
         classes = recurse(cls)
 
-        # Support non-SC defined tasks from plugins
-        for plugin in utils.get_plugins('showtask'):
-            plugin()
+        # Sort core classes by module path for stable ordering
+        # Ensures consistent discovery order across runs
+        core_classes = sorted(classes, key=lambda c: (c.__module__, c.__name__))
 
-        if not classes:
-            return
-
-        for c in classes:
+        # Register core tasks first
+        for c in core_classes:
             cls.register_task(c)
+
+        # Support non-SC defined tasks from plugins (these override core tasks)
+        # Sort plugins deterministically for consistent ordering
+        plugins = sorted(
+            utils.get_plugins('showtask'),
+            key=lambda p: (p.__module__, p.__name__)
+        )
+        for plugin in plugins:
+            plugin()
 
     @classmethod
     def get_task(cls: Type[TShowTask], ext: Optional[str], tool: Optional[str] = None) -> \
@@ -2336,7 +2349,8 @@ class ShowTask(Task):
                 return result
 
         # 3. Fallback to Automatic Discovery
-        for task_cls in tasks:
+        # Iterate in reverse so later-registered tasks (e.g., plugins) take precedence
+        for task_cls in reversed(tasks):
             try:
                 task_inst = task_cls()
                 if ext in task_inst.get_supported_show_extentions():
