@@ -22,6 +22,17 @@ source "$sc_refdir/apr/preamble.tcl"
 sc_global_connections
 
 ###############################
+# Placement Blockages
+###############################
+foreach blockage [sc_cfg_tool_task_get var placementblockage] {
+    lassign $blockage pt0 pt1
+    lassign $pt0 x1 y1
+    lassign $pt1 x2 y2
+    utl::info FLW 1 "Creating placement blockage at ($x1, $y1), ($x2, $y2)"
+    create_blockage -region "$x1 $y1 $x2 $y2"
+}
+
+###############################
 # Initialize floorplan
 ###############################
 
@@ -110,17 +121,6 @@ if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
     if { $failed > 0 } {
         utl::warn FLW 3 "There are $failed unplaced ports in the design"
     }
-}
-
-###############################
-# Placement Blockages
-###############################
-foreach blockage [sc_cfg_tool_task_get var placementblockage] {
-    lassign $blockage pt0 pt1
-    lassign $pt0 x1 y1
-    lassign $pt1 x2 y2
-    utl::info FLW 1 "Creating placement blockage at ($x1, $y1), ($x2, $y2)"
-    create_blockage -region "$x1 $y1 $x2 $y2"
 }
 
 ###############################
