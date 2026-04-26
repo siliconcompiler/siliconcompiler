@@ -1339,23 +1339,31 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 if sc_index:
                     search_nodes = [node for node in search_nodes if node[1] == sc_index]
 
-            exts = set()
+            # Build ordered list of (task_class, extension) pairs respecting tool order
+            # This preserves the registration order so higher-priority tools are tried first
+            search_exts = []
             for cls in tool_cls.get_task(None, tool=tool):
                 try:
-                    exts.update(cls().get_supported_show_extentions())
+                    exts = cls().get_supported_show_extentions()
+                    # Sort extensions within each task for consistency
+                    for ext in sorted(exts):
+                        search_exts.append((cls, ext))
                 except NotImplementedError:
                     pass
-            # Sort extensions for consistent search order
-            exts = sorted(exts)
 
             if extension:
-                if extension not in exts:
+                # Validate that requested extension is supported
+                all_exts = [ext for _, ext in search_exts]
+                if extension not in all_exts:
                     self.logger.error(f"Extension '{extension}' not supported by "
-                                      f"registered showtools: {', '.join(exts)}")
+                                      f"registered showtools: {', '.join(sorted(set(all_exts)))}")
                     return None
-                exts = [extension]
+                # Search for the specific extension only, respecting tool order
+                search_exts = [(cls, ext) for cls, ext in search_exts if ext == extension]
 
-            for ext in exts:
+            # Search for files in tool-ordered sequence
+            # This ensures that earlier-registered (higher-priority) tools are tried first
+            for task_cls, ext in search_exts:
                 for step, index in search_nodes:
                     filename = search_obj.find_result(ext,
                                                       step=step,

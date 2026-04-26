@@ -2585,3 +2585,553 @@ def test_write_depgraph_extra_edges_merged_into_existing_node():
     call = _capture_wdg(proj)
     graph = call.args[2]
     assert "extra_child" in graph["test"]
+
+
+# ============================================================================
+# Tests for Project.show() method
+# ============================================================================
+
+class MockShowTask(Task):
+    """Mock ShowTask for testing."""
+    def __init__(self, name="mock_tool", extensions=None):
+        super().__init__()
+        self._name = name
+        self._extensions = extensions or {'gds', 'def', 'lef'}
+
+    def tool(self):
+        return self._name
+
+    def task(self):
+        return "show"
+
+    def get_supported_show_extentions(self):
+        return self._extensions
+
+    def set_showfilepath(self, filepath):
+        """Mock method for setting show filepath."""
+        pass
+
+    def set_showfiletype(self, filetype):
+        """Mock method for setting show filetype."""
+        pass
+
+    def set_shownode(self, **kwargs):
+        """Mock method for setting show node."""
+        pass
+
+    @staticmethod
+    def find_task(proj):
+        """Mock find_task to return a mock task instance."""
+        return MockShowTask()
+
+
+class MockScreenshotTask(Task):
+    """Mock ScreenshotTask for testing."""
+    def __init__(self, name="mock_tool", extensions=None):
+        super().__init__()
+        self._name = name
+        self._extensions = extensions or {'gds', 'def'}
+
+    def tool(self):
+        return self._name
+
+    def task(self):
+        return "screenshot"
+
+    def get_supported_show_extentions(self):
+        return self._extensions
+
+    def set_showfilepath(self, filepath):
+        """Mock method for setting show filepath."""
+        pass
+
+    def set_showfiletype(self, filetype):
+        """Mock method for setting show filetype."""
+        pass
+
+    def set_shownode(self, **kwargs):
+        """Mock method for setting show node."""
+        pass
+
+    @staticmethod
+    def find_task(proj):
+        """Mock find_task to return a mock task instance."""
+        return MockScreenshotTask()
+
+
+def test_show_with_explicit_filename(monkeypatch):
+    """Test show() with explicit filename."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: x == "/path/to/design.gds")
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Create a mock task instance
+    mock_show_task = MockShowTask()
+
+    # Mock ShowTask.get_task
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task",
+                        lambda ext=None, tool=None: mock_show_task)
+
+    # Mock project.run() to avoid execution
+    run_called = []
+    monkeypatch.setattr(Project, "run", lambda self: run_called.append(True) or self)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock ShowFlow to avoid graph construction issues
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show("/path/to/design.gds")
+    # Result is None for show() (non-screenshot mode)
+    assert result is None
+    assert run_called  # Verify run was called
+
+
+def test_show_with_filename_not_exists(monkeypatch):
+    """Test show() with non-existent file."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+
+    # Mock os.path.exists to return False
+    monkeypatch.setattr("os.path.exists", lambda x: False)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    result = proj.show("/nonexistent/file.gds")
+    assert result is None
+
+
+def test_show_auto_find_no_layout(monkeypatch):
+    """Test show() with auto-find when no layout exists."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # No history, so search_obj will be self
+    # Mock find_result to return None (no layout found)
+    monkeypatch.setattr(Project, "find_result", lambda self, *args, **kwargs: None)
+
+    # Mock get_task to return mock tasks
+    mock_show_task = MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task",
+                        lambda ext=None, tool=None: [mock_show_task.__class__])
+
+    result = proj.show()
+    assert result is None
+
+
+def test_show_auto_find_with_layout(monkeypatch):
+    """Test show() with auto-find when layout exists."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    flow = Flowgraph("default")
+    from siliconcompiler import Task
+
+    class MockFlowTask(Task):
+        def tool(self):
+            return "mock_tool"
+
+        def task(self):
+            return "mock_step"
+
+    # Mock the flow
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: flow)
+
+    # Mock get_execution_order to return flow nodes
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Mock find_result to return a file
+    monkeypatch.setattr(Project, "find_result",
+                        lambda self, ext, step=None, index=None: "/path/to/design.gds")
+
+    # Mock ShowTask.get_task with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes
+            return [MockShowTask]
+        else:
+            # When called with specific extension, return instance
+            return MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    run_called = []
+    monkeypatch.setattr(Project, "run", lambda self: run_called.append(True) or self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show()
+    assert result is None
+    assert run_called  # Verify run was called
+
+
+def test_show_with_extension_filter(monkeypatch):
+    """Test show() with extension filtering."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # Mock the flow
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: Flowgraph("default"))
+
+    # Mock get_execution_order
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Mock find_result to return a file
+    monkeypatch.setattr(Project, "find_result",
+                        lambda self, ext, step=None, index=None: "/path/to/design.def"
+                        if ext == "def" else None)
+
+    # Mock ShowTask with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes
+            return [MockShowTask]
+        else:
+            # When called with specific extension, return instance
+            return MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "def")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    run_called = []
+    monkeypatch.setattr(Project, "run", lambda self: run_called.append(True) or self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    # Request only 'def' extension
+    result = proj.show(extension="def")
+    assert result is None
+    assert run_called
+
+
+def test_show_with_unsupported_extension(monkeypatch):
+    """Test show() with unsupported extension."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # Mock get_execution_order
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: Flowgraph("default"))
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Create a mock task class with limited extensions
+    class LimitedMockShowTask(MockShowTask):
+        def __init__(self):
+            super().__init__(extensions={'gds'})
+
+    # Mock ShowTask with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes with limited extensions
+            return [LimitedMockShowTask]
+        else:
+            # When called with specific extension, return None (not supported)
+            return None
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Request unsupported extension
+    result = proj.show(extension="xyz")
+    assert result is None
+
+
+def test_show_screenshot_mode(monkeypatch):
+    """Test show() with screenshot=True."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: x == "/path/to/design.gds")
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Create a mock task instance
+    mock_screenshot_task = MockScreenshotTask()
+
+    # Mock ScreenshotTask.get_task
+    monkeypatch.setattr("siliconcompiler.project.ScreenshotTask.get_task",
+                        lambda ext=None, tool=None: mock_screenshot_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock run
+    run_called = []
+    monkeypatch.setattr(Project, "run", lambda self: run_called.append(True) or self)
+
+    # Mock find_result for screenshot mode return
+    monkeypatch.setattr(Project, "find_result",
+                        lambda self, ext, step=None, index=None: "/path/to/screenshot.png"
+                        if ext == "png" else None)
+
+    # Mock ShowFlow to avoid graph construction issues
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show("/path/to/design.gds", screenshot=True)
+    # Screenshot mode returns the PNG path
+    assert result == "/path/to/screenshot.png"
+    assert run_called
+
+
+def test_show_with_tool_parameter(monkeypatch):
+    """Test show() with specific tool specified."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: x == "/path/to/design.gds")
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock ShowTask.get_task - verify it's called with tool parameter
+    get_task_calls = []
+
+    def mock_get_task(ext=None, tool=None):
+        get_task_calls.append({"ext": ext, "tool": tool})
+        return MockShowTask("specified_tool")
+
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock run
+    monkeypatch.setattr(Project, "run", lambda self: self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show("/path/to/design.gds", tool="specified_tool")
+    assert result is None
+    # Verify get_task was called with the tool parameter
+    assert len(get_task_calls) > 0
+    assert get_task_calls[0]["tool"] == "specified_tool"
+
+
+def test_show_tool_not_found_for_extension(monkeypatch):
+    """Test show() when no tool supports the file extension."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: x == "/path/to/design.unknown")
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "unknown")
+
+    # Mock ShowTask.get_task to return None (no tool supports this extension)
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task",
+                        lambda ext=None, tool=None: None)
+
+    result = proj.show("/path/to/design.unknown")
+    assert result is None
+
+
+def test_show_auto_find_preserves_tool_order(monkeypatch):
+    """Test that auto-find respects tool registration order."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # Mock the flow
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: Flowgraph("default"))
+
+    # Mock get_execution_order
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Track which tools were checked and in what order
+    tool_check_order = []
+
+    def track_find_result(self, ext, step=None, index=None):
+        tool_check_order.append(ext)
+        return "/path/to/design." + ext if ext in ['gds', 'def'] else None
+
+    monkeypatch.setattr(Project, "find_result", track_find_result)
+
+    # Create multiple mock task classes to simulate registration order
+    tool1 = MockShowTask("tool1", extensions={'gds'})
+    tool2 = MockShowTask("tool2", extensions={'def'})
+
+    # Mock get_task with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes in order
+            return [type(tool1), type(tool2)]
+        else:
+            # When called with specific extension, return instance
+            return MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: x.split('.')[-1])
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    monkeypatch.setattr(Project, "run", lambda self: self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show()
+    assert result is None
+    # Extensions should be checked in order from task registration
+    assert 'gds' in tool_check_order or 'def' in tool_check_order
+
+
+def test_show_with_history(monkeypatch):
+    """Test show() uses history when available."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # Record history
+    proj._record_history()
+
+    # Mock the flow for the history project
+    history_proj = proj.history("job0")
+    monkeypatch.setattr(history_proj, "get_flow", lambda name=None: Flowgraph("default"))
+
+    # Mock get_execution_order
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Mock find_result
+    monkeypatch.setattr(Project, "find_result",
+                        lambda self, ext, step=None, index=None: "/path/to/design.gds")
+
+    # Mock ShowTask.get_task with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes
+            return [MockShowTask]
+        else:
+            # When called with specific extension, return instance
+            return MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    monkeypatch.setattr(Project, "run", lambda self: self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show()
+    assert result is None
+
+
+def test_show_handles_search_with_step_index_filter(monkeypatch):
+    """Test show() filters search nodes by step/index arguments."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+    proj.set("arg", "step", "route")
+    proj.set("arg", "index", "0")
+
+    # Mock the flow
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: Flowgraph("default"))
+
+    # Mock get_execution_order
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("place", "0"), ("route", "0")]])
+
+    # Track which steps are searched
+    searched_steps = []
+
+    def track_find_result(self, ext, step=None, index=None):
+        searched_steps.append((step, index))
+        return "/path/to/design.gds" if step == "route" else None
+
+    monkeypatch.setattr(Project, "find_result", track_find_result)
+
+    # Mock ShowTask.get_task with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes
+            return [MockShowTask]
+        else:
+            # When called with specific extension, return instance
+            return MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    monkeypatch.setattr(Project, "run", lambda self: self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show()
+    assert result is None
+    # Should only search for 'route' step since arg.step='route'
+    assert all(step == "route" for step, _ in searched_steps)

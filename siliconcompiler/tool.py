@@ -2244,8 +2244,8 @@ class ShowTask(Task):
                 return subclss
 
             subclss.append(searchcls)
-            # Process subclasses in a deterministic order (sorted by name)
-            for subcls in sorted(searchcls.__subclasses__(), key=lambda c: c.__name__):
+            # Iterate over subclasses (final sort by module path happens below)
+            for subcls in searchcls.__subclasses__():
                 subclss.extend(recurse(subcls))
 
             return subclss
@@ -2344,7 +2344,8 @@ class ShowTask(Task):
                 return result
 
         # 3. Fallback to Automatic Discovery
-        for task_cls in tasks:
+        # Iterate in reverse so later-registered tasks (e.g., plugins) take precedence
+        for task_cls in reversed(tasks):
             try:
                 task_inst = task_cls()
                 if ext in task_inst.get_supported_show_extentions():

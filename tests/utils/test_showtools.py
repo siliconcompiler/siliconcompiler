@@ -221,25 +221,26 @@ def test_extension_search_order_stable():
     assert exts_2 == exts_3, "Extension search order changed between calls"
 
 
-@pytest.mark.quick
-@pytest.mark.timeout(300)
 def test_later_registration_takes_precedence():
     """Test that later-registered tasks take precedence for supported extensions."""
     from siliconcompiler.tools.klayout.show import ShowTask as KlayoutShow
     from siliconcompiler.tools.openroad.show import ShowTask as OpenROADShow
 
+    # Clear the transient settings to ensure fresh registration state for this test
+    # (In practice, they share the same singleton, so we test the behavior as-is)
+
     # Register klayout first
     ShowTask.register_task(KlayoutShow)
     task_1 = ShowTask.get_task("def")
+    assert isinstance(task_1, KlayoutShow), "First registration should return KlayoutShow for 'def'"
 
-    # Register openroad after
+    # Register openroad after (openroad also supports 'def')
     ShowTask.register_task(OpenROADShow)
     task_2 = ShowTask.get_task("def")
-
-    # When both support 'def', OpenROAD (registered later) should take precedence
-    # This relies on the iteration order through tasks
-    assert isinstance(task_1, (KlayoutShow, OpenROADShow))
-    assert isinstance(task_2, (KlayoutShow, OpenROADShow))
+    # Later registration (OpenROAD) should take precedence via reversed iteration
+    from siliconcompiler.tools.openroad.show import ShowTask as OpenROADShowClass
+    assert isinstance(task_2, OpenROADShowClass), \
+        f"Later-registered OpenROAD should take precedence, but got {type(task_2).__name__}"
 
 
 @pytest.mark.quick
