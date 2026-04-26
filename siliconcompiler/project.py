@@ -1347,7 +1347,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     exts = cls().get_supported_show_extentions()
                     # Sort extensions within each task for consistency
                     for ext in sorted(exts):
-                        # If a specific tool is requested, verify the extension resolves to that tool
+                        # If a specific tool is requested, verify the extension resolves
+                        # to that tool
                         if tool:
                             resolved_task = tool_cls.get_task(ext, tool=tool)
                             if resolved_task is None:
