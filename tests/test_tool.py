@@ -1601,6 +1601,151 @@ def test_run_task_run_failed_resource(running_node, monkeypatch):
         assert runtool.call_count == 1
 
 
+def test_split_io_lines_no_terminator():
+    assert dut_tool._split_io_lines("partial") == ([], "partial")
+
+
+def test_split_io_lines_newline():
+    assert dut_tool._split_io_lines("abc\ndef\n") == (["abc", "def"], "")
+
+
+def test_split_io_lines_carriage_return():
+    # \r is treated as a line terminator so progress redraws emit per frame.
+    assert dut_tool._split_io_lines("abc\rdef\rghi") == (["abc", "def"], "ghi")
+
+
+def test_split_io_lines_crlf_not_split():
+    assert dut_tool._split_io_lines("abc\r\ndef\r\n") == (["abc", "def"], "")
+
+
+def test_split_io_lines_trailing_cr_held():
+    # Trailing \r is held back so a following \n won't produce a phantom empty line.
+    lines, partial = dut_tool._split_io_lines("abc\r")
+    assert lines == []
+    assert partial == "abc\r"
+    # Continuing with \n must yield a single line, no empty record.
+    lines, partial = dut_tool._split_io_lines(partial + "\ndef")
+    assert lines == ["abc"]
+    assert partial == "def"
+
+
+def test_run_task_consolidates_progress_line(running_node, monkeypatch, patch_psutil, caplog):
+    """A subprocess that flushes a progress line in chunks (no intermediate
+    newlines) should produce a single log record, not one per chunk."""
+
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    chunks = [
+        "    Processing cells ",
+        ".....10%.....20%",
+        ".....30%.....40%",
+        ".....50%.....60%.....70%",
+        ".....80%",
+        ".....90%.....100%\n",
+    ]
+    # An unterminated trailing fragment to verify the flush-on-exit drain.
+    trailing = "Done"
+    stdout_path = "running.log"
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            returncode = 0
+            pid = 1
+            call_count = 0
+
+            def poll(self):
+                idx = self.call_count
+                self.call_count += 1
+                if idx < len(chunks):
+                    with open(stdout_path, 'a') as f:
+                        f.write(chunks[idx])
+                    return None
+                if idx == len(chunks):
+                    with open(stdout_path, 'a') as f:
+                        f.write(trailing)
+                    return None
+                return self.returncode
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    monkeypatch.setattr(Task, '_Task__IO_POLL_INTERVAL', 0)
+
+    with caplog.at_level(logging.INFO):
+        with running_node.task.runtime(running_node) as runtool:
+            assert runtool.run_task('.', False, False, None, None) == 0
+
+    info_msgs = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+
+    expected_progress = (
+        "    Processing cells "
+        ".....10%.....20%.....30%.....40%.....50%.....60%.....70%"
+        ".....80%.....90%.....100%"
+    ).rstrip()
+
+    assert any(msg.rstrip() == expected_progress for msg in info_msgs), \
+        f"Expected single consolidated progress record, got: {info_msgs}"
+
+    assert any(msg.rstrip() == "Done" for msg in info_msgs), \
+        f"Trailing unterminated content was dropped from logs: {info_msgs}"
+
+    progress_fragments = [msg for msg in info_msgs
+                          if "%" in msg and msg.rstrip() != expected_progress]
+    assert not progress_fragments, \
+        f"Progress line was split across records: {progress_fragments}"
+
+
+def test_run_task_carriage_return_terminates_lines(running_node, monkeypatch, patch_psutil,
+                                                   caplog):
+    """A subprocess that uses \\r to redraw a progress bar should emit one log
+    record per frame."""
+
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    chunks = [
+        "Building... 0%",
+        "\rBuilding... 50%",
+        "\rBuilding... 100%\n",
+    ]
+    stdout_path = "running.log"
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            returncode = 0
+            pid = 1
+            call_count = 0
+
+            def poll(self):
+                idx = self.call_count
+                self.call_count += 1
+                if idx < len(chunks):
+                    with open(stdout_path, 'a') as f:
+                        f.write(chunks[idx])
+                    return None
+                return self.returncode
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    monkeypatch.setattr(Task, '_Task__IO_POLL_INTERVAL', 0)
+
+    with caplog.at_level(logging.INFO):
+        with running_node.task.runtime(running_node) as runtool:
+            assert runtool.run_task('.', False, False, None, None) == 0
+
+    info_msgs = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+
+    for frame in ("Building... 0%", "Building... 50%", "Building... 100%"):
+        assert frame in info_msgs, \
+            f"Missing \\r-terminated frame {frame!r} in log records: {info_msgs}"
+
+
 def test_select_input_nodes_entry(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.select_input_nodes() == []
