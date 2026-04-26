@@ -199,6 +199,197 @@ def test_sc_show_with_empty_tool(monkeypatch, make_manifests, asic_gcd):
         show.assert_called_once_with(None, extension=None, screenshot=False, tool='')
 
 
+# Mock task classes for testing
+class MockShowTask1:
+    """Mock show task for testing."""
+    def tool(self):
+        return "tool1"
+
+    def task(self):
+        return "task1"
+
+    def get_supported_show_extentions(self):
+        return ["ext1", "ext2"]
+
+
+class MockShowTask2:
+    """Mock show task for testing."""
+    def tool(self):
+        return "tool2"
+
+    def task(self):
+        return "task2"
+
+    def get_supported_show_extentions(self):
+        return ["ext3"]
+
+
+class MockScreenshotTask1:
+    """Mock screenshot task for testing."""
+    def tool(self):
+        return "tool1"
+
+    def task(self):
+        return "screenshot1"
+
+    def get_supported_show_extentions(self):
+        return ["ext1", "ext2"]
+
+
+class MockScreenshotTask2:
+    """Mock screenshot task for testing."""
+    def tool(self):
+        return "tool2"
+
+    def task(self):
+        return "screenshot2"
+
+    def get_supported_show_extentions(self):
+        return ["ext3"]
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_show_tools(monkeypatch, capsys):
+    '''Test sc-show -list to display show tools.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
+
+    mock_tasks = [MockShowTask1, MockShowTask2]
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+        mock_get_task.return_value = mock_tasks
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Verify header and structure
+    assert "Registered Show Tools (in order):" in output
+    assert "=" * 70 in output
+
+    # Verify tools are listed with their extensions
+    assert "1. tool1/task1" in output
+    assert "Extensions: ext1, ext2" in output
+    assert "2. tool2/task2" in output
+    assert "Extensions: ext3" in output
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_screenshot_tools(monkeypatch, capsys):
+    '''Test sc-show -list -screenshot to display screenshot tools.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-screenshot'])
+
+    mock_tasks = [MockScreenshotTask1, MockScreenshotTask2]
+
+    with patch('siliconcompiler.apps.sc_show.ScreenshotTask.get_task') as mock_get_task:
+        mock_get_task.return_value = mock_tasks
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Verify header and structure
+    assert "Registered Screenshot Tools (in order):" in output
+    assert "=" * 70 in output
+
+    # Verify tools are listed with their extensions
+    assert "1. tool1/screenshot1" in output
+    assert "Extensions: ext1, ext2" in output
+    assert "2. tool2/screenshot2" in output
+    assert "Extensions: ext3" in output
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_empty_tools(monkeypatch, capsys):
+    '''Test sc-show -list when no tools are registered.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+        mock_get_task.return_value = None
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # When no tasks, should still return 0 with no output
+    assert "Registered Show Tools (in order):" not in output
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_single_tool(monkeypatch, capsys):
+    '''Test sc-show -list with a single tool.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
+
+    mock_tasks = [MockShowTask1]
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+        mock_get_task.return_value = mock_tasks
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Verify correct numbering starts at 1
+    assert "1. tool1/task1" in output
+    assert "2. tool" not in output  # Should not have a second tool
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_sorted_extensions(monkeypatch, capsys):
+    '''Test sc-show -list displays extensions in sorted order.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
+
+    class MockTaskWithUnsortedExts:
+        def tool(self):
+            return "tool"
+
+        def task(self):
+            return "task"
+
+        def get_supported_show_extentions(self):
+            # Return unsorted extensions
+            return ["zed", "abc", "mno"]
+
+    mock_tasks = [MockTaskWithUnsortedExts]
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+        mock_get_task.return_value = mock_tasks
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Verify extensions are sorted alphabetically
+    assert "Extensions: abc, mno, zed" in output
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_no_extensions(monkeypatch, capsys):
+    '''Test sc-show -list with a tool that has no supported extensions.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
+
+    class MockTaskNoExts:
+        def tool(self):
+            return "tool"
+
+        def task(self):
+            return "task"
+
+        def get_supported_show_extentions(self):
+            return []
+
+    mock_tasks = [MockTaskNoExts]
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+        mock_get_task.return_value = mock_tasks
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Verify "none" is shown for no extensions
+    assert "Extensions: none" in output
+
+
 @pytest.mark.timeout(90)
 def test_sc_show_tool_with_all_parameters(monkeypatch, make_manifests, asic_gcd, capsys):
     '''Test sc-show app with tool and multiple other parameters.'''

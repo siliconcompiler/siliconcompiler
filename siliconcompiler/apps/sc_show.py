@@ -3,7 +3,7 @@ import sys
 
 import os.path
 
-from siliconcompiler import Project, Design
+from siliconcompiler import Project, Design, ShowTask, ScreenshotTask
 from siliconcompiler.apps._common import pick_manifest
 
 
@@ -53,6 +53,12 @@ def main():
 
     sc-show build/adder/job0/route/1/outputs/adder.def
     (displays build/adder/job0/route/1/outputs/adder.def)
+
+    sc-show -list
+    (lists all registered show tools and their supported extensions)
+
+    sc-show -list -screenshot
+    (lists all registered screenshot tools and their supported extensions)
     """
 
     class ShowProject(Project):
@@ -68,6 +74,9 @@ def main():
                 "screenshot", "bool", "Generate a screenshot and exit.")
             self._add_commandline_argument(
                 "tool", "str", "Tool to use for showing the file.")
+            self._add_commandline_argument(
+                "list", "bool",
+                "List all registered show/screenshot tools and their supported extensions.")
 
     show = ShowProject.create_cmdline(
         progname,
@@ -80,7 +89,34 @@ def main():
             '-cfg',
             '-ext',
             '-screenshot',
-            '-tool'])
+            '-tool',
+            '-list'])
+
+    # Handle --list option
+    if show.get("cmdarg", "list"):
+        task_cls = ScreenshotTask if show.get("cmdarg", "screenshot") else ShowTask
+        task_type = "Screenshot" if show.get("cmdarg", "screenshot") else "Show"
+
+        tasks = task_cls.get_task(None)
+        if tasks:
+            print(f"Registered {task_type} Tools (in order):")
+            print("=" * 70)
+            count = 0
+            for task_cls_item in tasks:
+                try:
+                    task_inst = task_cls_item()
+                    tool_name = task_inst.tool()
+                    task_name = task_inst.task()
+                    exts = task_inst.get_supported_show_extentions()
+                    ext_str = ', '.join(sorted(exts)) if exts else 'none'
+                    count += 1
+                    print(f"{count}. {tool_name}/{task_name}")
+                    print(f"   Extensions: {ext_str}")
+                except NotImplementedError:
+                    # Skip abstract tasks
+                    pass
+            print("=" * 70)
+        return 0
 
     manifest = None
     filename = None

@@ -88,6 +88,30 @@ class ShowTask(BaseShowTask, APRTask, OpenROADSTAParameter):
         return options
 
 
+class WebTask(ShowTask):
+    '''
+    Open with webviewer
+    '''
+
+    def task(self) -> str:
+        return "web"
+
+    def setup(self):
+        super().setup()
+
+        # Set minimum version
+        self.add_version(">=26Q2-565", clobber=True)
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        try:
+            options.remove("-gui")
+        except ValueError:
+            pass
+        options.append("-web")
+        return options
+
+
 class Show3DBloxTask(BaseShowTask, OpenROADTask):
     '''
     Show a 3D view of the design in openroad

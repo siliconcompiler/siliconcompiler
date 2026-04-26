@@ -2226,35 +2226,43 @@ class ShowTask(Task):
         Private helper to discover and populate all available show/screenshot tasks.
 
         This method recursively finds all subclasses and also loads tasks from
-        any installed plugins.
+        any installed plugins. Tasks are registered in a stable order:
+        1. Core siliconcompiler tasks (sorted by module path)
+        2. Plugin-provided tasks (in plugin load order)
+
+        This ensures that later-registered extensions take precedence over
+        earlier core tasks when multiple tools support the same extension.
         """
         cls.__check_task(None)
 
         if MPManager.get_transient_settings().get_category(cls.__name__):
             return  # Already populated
 
-        def recurse(searchcls: Type["ShowTask"]):
-            subclss = set()
+        def recurse(searchcls: Type["ShowTask"]) -> list:
+            subclss = []
             if not cls.__check_task(searchcls):
                 return subclss
 
-            subclss.add(searchcls)
-            for subcls in searchcls.__subclasses__():
-                subclss.update(recurse(subcls))
+            subclss.append(searchcls)
+            # Process subclasses in a deterministic order (sorted by name)
+            for subcls in sorted(searchcls.__subclasses__(), key=lambda c: c.__name__):
+                subclss.extend(recurse(subcls))
 
             return subclss
 
         classes = recurse(cls)
 
-        # Support non-SC defined tasks from plugins
+        # Sort core classes by module path for stable ordering
+        # Ensures consistent discovery order across runs
+        core_classes = sorted(classes, key=lambda c: (c.__module__, c.__name__))
+
+        # Register core tasks first
+        for c in core_classes:
+            cls.register_task(c)
+
+        # Support non-SC defined tasks from plugins (these override core tasks)
         for plugin in utils.get_plugins('showtask'):
             plugin()
-
-        if not classes:
-            return
-
-        for c in classes:
-            cls.register_task(c)
 
     @classmethod
     def get_task(cls: Type[TShowTask], ext: Optional[str], tool: Optional[str] = None) -> \
