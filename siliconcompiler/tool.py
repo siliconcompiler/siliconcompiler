@@ -120,6 +120,39 @@ class TaskSkip(TaskError):
         return self.__why
 
 
+def _split_io_lines(buffer: str) -> Tuple[List[str], str]:
+    """Split a stream buffer into complete lines plus a trailing partial.
+
+    Treats ``\\n``, ``\\r``, and ``\\r\\n`` as line terminators so that tools
+    that use carriage returns to redraw progress emit one log record per
+    frame. A trailing ``\\r`` at end-of-buffer is held back as partial in
+    case the next read begins with ``\\n`` (so ``\\r\\n`` is never split).
+    """
+    lines: List[str] = []
+    start = 0
+    i = 0
+    n = len(buffer)
+    while i < n:
+        c = buffer[i]
+        if c == '\n':
+            lines.append(buffer[start:i])
+            i += 1
+            start = i
+        elif c == '\r':
+            if i + 1 >= n:
+                # Trailing \r — defer in case next read starts with \n.
+                break
+            lines.append(buffer[start:i])
+            if buffer[i + 1] == '\n':
+                i += 2
+            else:
+                i += 1
+            start = i
+        else:
+            i += 1
+    return lines, buffer[start:]
+
+
 class Task(NamedSchema, PathSchema, DocsSchema):
     """
     A schema class that defines the parameters and methods for a single task
@@ -995,17 +1028,32 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         stdout_print = self.logger.info
         stderr_print = self.logger.error
 
-        def read_stdio(stdout_reader, stderr_reader):
+        # Buffers carry the trailing partial of each stream across polls so a
+        # single source line written in chunks is logged as one record, not one
+        # record per chunk.
+        stdout_partial = [""]
+        stderr_partial = [""]
+
+        def read_stdio(stdout_reader, stderr_reader, flush=False):
             """Helper to read and print stdout/stderr streams."""
             if quiet:
                 return
 
+            def drain(reader, partial_holder, emit):
+                data = reader.read()
+                buffer = partial_holder[0] + data if data else partial_holder[0]
+                lines, partial = _split_io_lines(buffer)
+                for line in lines:
+                    emit(line.rstrip())
+                if flush and partial:
+                    emit(partial.rstrip())
+                    partial = ""
+                partial_holder[0] = partial
+
             if is_stdout_log and stdout_reader:
-                for line in stdout_reader.readlines():
-                    stdout_print(line.rstrip())
+                drain(stdout_reader, stdout_partial, stdout_print)
             if is_stderr_log and stderr_reader:
-                for line in stderr_reader.readlines():
-                    stderr_print(line.rstrip())
+                drain(stderr_reader, stderr_partial, stderr_print)
 
         exe = self.get_exe()
 
@@ -1031,7 +1079,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                      sc_open(stderr_file) as stderr_reader:
                     if stdout_file == stderr_file:
                         stderr_reader = None
-                    read_stdio(stdout_reader, stderr_reader)
+                    read_stdio(stdout_reader, stderr_reader, flush=True)
 
                 if resource:
                     try:
@@ -1131,7 +1179,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                         raise
 
                     # Read any remaining I/O
-                    read_stdio(stdout_reader, stderr_reader)
+                    read_stdio(stdout_reader, stderr_reader, flush=True)
 
                     retcode = proc.returncode
 
