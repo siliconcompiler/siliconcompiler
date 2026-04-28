@@ -163,7 +163,7 @@
   },
   "surfer": {
     "git-url": "https://gitlab.com/surfer-project/surfer.git",
-    "git-commit": "v0.6.0",
+    "git-commit": "v0.7.0",
     "auto-update": true
   },
   "keplerformal": {
