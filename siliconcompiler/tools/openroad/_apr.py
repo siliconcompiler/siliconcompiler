@@ -1464,10 +1464,12 @@ class APRTask(OpenROADTask):
             self.add_input_file(ext="odb")
             load_tech = False
         elif f"{self.design_topmodule}.def.gz" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="def.gz")
+            if not self.get("var", "enablehier"):
+                self.add_input_file(ext="def.gz")
             load_vg = self.get("var", "enablehier")
         elif f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="def")
+            if not self.get("var", "enablehier"):
+                self.add_input_file(ext="def")
             load_vg = self.get("var", "enablehier")
         else:
             load_vg = True
