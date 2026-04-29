@@ -1444,7 +1444,9 @@ class APRTask(OpenROADTask):
             modes = self._get_modes()
             if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
                 self.add_input_file(ext="sdc")
-            elif all(f"{self.design_topmodule}.{mode}.sdc" in self.get_files_from_input_nodes() for mode in modes):
+            elif modes and \
+                    all(f"{self.design_topmodule}.{mode}.sdc" in self.get_files_from_input_nodes()
+                        for mode in modes):
                 for mode in modes:
                     self.add_input_file(ext=f"{mode}.sdc")
             else:
