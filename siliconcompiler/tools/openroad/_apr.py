@@ -1442,13 +1442,13 @@ class APRTask(OpenROADTask):
     def _add_pnr_inputs(self):
         if self.get("var", "load_sdcs"):
             modes = self._get_modes()
-            if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
-                self.add_input_file(ext="sdc")
-            elif modes and \
+            if modes and \
                     all(f"{self.design_topmodule}.{mode}.sdc" in self.get_files_from_input_nodes()
                         for mode in modes):
                 for mode in modes:
                     self.add_input_file(ext=f"{mode}.sdc")
+            elif f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+                self.add_input_file(ext="sdc")
             else:
                 for lib, fileset in self.project.get_filesets():
                     if lib.has_file(fileset=fileset, filetype="sdc"):
