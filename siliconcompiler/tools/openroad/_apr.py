@@ -1,7 +1,7 @@
 import os
 import json
 
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Set
 
 from siliconcompiler import sc_open
 from siliconcompiler import utils
@@ -1431,25 +1431,37 @@ class APRTask(OpenROADTask):
         if "power" in self.get("var", "reports"):
             self.add_required_key("var", "power_corner")
 
+    def _get_modes(self) -> Set[str]:
+        modes = set()
+        for scenario in self.project.constraint.timing.get_scenario().values():
+            mode = scenario.get_mode(self.step, self.index)
+            if mode:
+                modes.add(mode)
+        return modes
+
     def _add_pnr_inputs(self):
         if self.get("var", "load_sdcs"):
-            if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+            modes = self._get_modes()
+            if modes and \
+                    all(f"{self.design_topmodule}.{mode}.sdc" in self.get_files_from_input_nodes()
+                        for mode in modes):
+                for mode in modes:
+                    self.add_input_file(ext=f"{mode}.sdc")
+            elif f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
                 self.add_input_file(ext="sdc")
             else:
                 for lib, fileset in self.project.get_filesets():
                     if lib.has_file(fileset=fileset, filetype="sdc"):
                         self.add_required_key(lib, "fileset", fileset, "file", "sdc")
 
-                modes = set()
                 for scenario in self.project.constraint.timing.get_scenario().values():
                     mode = scenario.get_mode(self.step, self.index)
                     if mode:
-                        modes.add(mode)
                         self.add_required_key(scenario, "mode")
                         mode_obj = self.project.constraint.timing.get_mode(mode)
                         self.add_required_key(mode_obj, "sdcfileset")
 
-                for mode in modes:
+                for mode in self._get_modes():
                     mode_obj = self.project.constraint.timing.get_mode(mode)
                     for lib, fileset in mode_obj.get_sdcfileset():
                         libobj = self.project.get_library(lib)
