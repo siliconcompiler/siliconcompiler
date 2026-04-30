@@ -2161,22 +2161,32 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
 class OpenTask(Task):
     """
-    A specialized Task for tasks that opening files.
+    A specialized Task for tasks that open files in an interactive tool session.
 
-    This class provides a framework for dynamically finding and configuring
-    viewer applications based on file types. It includes parameters for
-    specifying the file to show and controlling the viewer's behavior.
+    `OpenTask` is the base class for tasks that hand a design file to an
+    interactive backend (for example, opening an `.odb`/`.def` in OpenROAD's
+    REPL/GUI for further inspection or scripting). Subclasses dynamically
+    discover the right backend based on the input file's extension.
+
+    `ShowTask` (a subclass) narrows this to non-interactive viewer applications
+    that display a file, and `ScreenshotTask` further specializes that to
+    headless image generation. When you only need to render a file, use
+    `ShowTask`; use `OpenTask` directly when you want to open the design in an
+    interactive session that keeps running after the file is loaded.
+
     Subclasses should implement `get_supported_task_extentions` to declare
-    which file types they can handle.
+    which file extensions they can handle.
     """
     def __init__(self):
-        """Initializes an OpenTask, adding specific parameters for open tasks."""
+        """Initialize an OpenTask, adding the parameters shared by open tasks."""
         super().__init__()
-        self.add_parameter("showfilepath", "file", "path to show")
-        self.add_parameter("showfiletype", "str", "filetype to show")
+        self.add_parameter("showfilepath", "file", "path to the file to open")
+        self.add_parameter("showfiletype", "str", "extension of the file to open")
         self.add_parameter("shownode", "(str,str,str)",
-                           "source node information, not always available")
-        self.add_parameter("showexit", "bool", "exit after opening", defvalue=False)
+                           "source node (jobname, step, index) the file came from; "
+                           "not always available")
+        self.add_parameter("showexit", "bool",
+                           "exit the tool after the file is opened", defvalue=False)
 
     def task(self) -> str:
         """Returns the name of this task."""
@@ -2456,13 +2466,16 @@ class OpenTask(Task):
 
 class ShowTask(OpenTask):
     """
-    A specialized Task for tasks that display files (e.g., in a GUI viewer).
+    A specialized `OpenTask` for tasks that display files in a viewer.
 
-    This class provides a framework for dynamically finding and configuring
-    viewer applications based on file types. It includes parameters for
-    specifying the file to show and controlling the viewer's behavior.
+    `ShowTask` is intended for read-only visualization: the backend (e.g. a GUI
+    layout viewer) renders the file and the user inspects it. Use this when the
+    goal is to look at a file rather than to drive an interactive tool session;
+    for the latter, use `OpenTask` directly. For headless image generation, use
+    the `ScreenshotTask` subclass.
+
     Subclasses should implement `get_supported_task_extentions` to declare
-    which file types they can handle.
+    which file extensions they can render.
     """
     def task(self) -> str:
         """Returns the name of this task."""
@@ -2480,11 +2493,12 @@ class ShowTask(OpenTask):
 
 class ScreenshotTask(ShowTask):
     """
-    A specialized Task for tasks that generate screenshots of files.
+    A specialized `ShowTask` that renders a file to an image and exits.
 
-    This class inherits from `ShowTask` and is specifically for tasks
-    that need to open a file, generate an image, and then exit. It automatically
-    sets the 'showexit' parameter to True.
+    Inherits the viewer-discovery machinery from `ShowTask` but runs headlessly:
+    the backend opens the file, writes a screenshot, and terminates. The
+    `showexit` parameter is forced to True during setup so subclasses cannot
+    accidentally leave an interactive session running.
     """
 
     def task(self) -> str:
