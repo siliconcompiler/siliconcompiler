@@ -3,7 +3,7 @@ import sys
 
 import os.path
 
-from siliconcompiler import Project, Design, ShowTask, ScreenshotTask
+from siliconcompiler import Project, Design, OpenTask, ShowTask, ScreenshotTask
 from siliconcompiler.apps._common import pick_manifest
 
 
@@ -59,6 +59,12 @@ def main():
 
     sc-show -list -screenshot
     (lists all registered screenshot tools and their supported extensions)
+
+    sc-show -list -open
+    (lists all registered open tools and their supported extensions)
+
+    sc-show -design adder -open
+    (opens build/adder/job0/write.gds/0/outputs/adder.gds in an interactive open tool)
     """
 
     class ShowProject(Project):
@@ -73,10 +79,14 @@ def main():
             self._add_commandline_argument(
                 "screenshot", "bool", "Generate a screenshot and exit.")
             self._add_commandline_argument(
+                "open", "bool",
+                "Open the file with an interactive open tool instead of a viewer.")
+            self._add_commandline_argument(
                 "tool", "str", "Tool to use for showing the file.")
             self._add_commandline_argument(
                 "list", "bool",
-                "List all registered show/screenshot tools and their supported extensions.")
+                "List all registered show/screenshot/open tools and their "
+                "supported extensions.")
 
     show = ShowProject.create_cmdline(
         progname,
@@ -89,8 +99,13 @@ def main():
             '-cfg',
             '-ext',
             '-screenshot',
+            '-open',
             '-tool',
             '-list'])
+
+    if show.get("cmdarg", "screenshot") and show.get("cmdarg", "open"):
+        show.logger.error("Cannot specify both -screenshot and -open")
+        return 1
 
     # Handle --list option
     if show.get("cmdarg", "list"):
@@ -112,8 +127,15 @@ def main():
         if ignored_flags:
             show.logger.warning(f"Ignoring {', '.join(ignored_flags)} when using -list")
 
-        task_cls = ScreenshotTask if show.get("cmdarg", "screenshot") else ShowTask
-        task_type = "Screenshot" if show.get("cmdarg", "screenshot") else "Show"
+        if show.get("cmdarg", "screenshot"):
+            task_cls = ScreenshotTask
+            task_type = "Screenshot"
+        elif show.get("cmdarg", "open"):
+            task_cls = OpenTask
+            task_type = "Open"
+        else:
+            task_cls = ShowTask
+            task_type = "Show"
 
         tasks = task_cls.get_task(None)
         if not tasks:
@@ -128,7 +150,7 @@ def main():
                 task_inst = task_cls_item()
                 tool_name = task_inst.tool()
                 task_name = task_inst.task()
-                exts = task_inst.get_supported_show_extentions()
+                exts = task_inst.get_supported_task_extentions()
                 ext_str = ', '.join(sorted(exts)) if exts else 'none'
                 count += 1
                 print(f"{count}. {tool_name}/{task_name}")
@@ -192,7 +214,8 @@ def main():
     success = project.show(filename,
                            extension=show.get("cmdarg", "extension"),
                            screenshot=show.get("cmdarg", "screenshot"),
-                           tool=show.get("cmdarg", "tool"))
+                           tool=show.get("cmdarg", "tool"),
+                           open=show.get("cmdarg", "open"))
 
     if success and os.path.isfile(success) and show.get("cmdarg", "screenshot"):
         project.logger.info(f'Screenshot file: {success}')

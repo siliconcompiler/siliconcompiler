@@ -1273,7 +1273,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             _open_summary_image(path)
 
     def show(self, filename: Optional[str] = None, screenshot: bool = False,
-             extension: Optional[str] = None, tool: Optional[str] = None) -> str:
+             extension: Optional[str] = None, tool: Optional[str] = None,
+             open: bool = False) -> str:
         '''
         Opens a graphical viewer for a specified file or the last generated layout.
 
@@ -1299,6 +1300,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                                        Used only if `filename` is None. Defaults to None.
             tool (str, optional): The name of the specific showtool to use for displaying the file.
                                   If not provided, the tool is selected based on the file extension.
+            open (bool): If True, the file is opened with an `OpenTask` (e.g. an interactive
+                         tool session) instead of being rendered with a `ShowTask`.
+                         Mutually exclusive with `screenshot`. Defaults to False.
 
         Returns:
             str: The path to the generated screenshot file if `screenshot` is True,
@@ -1311,7 +1315,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             >>> # Automatically find and show the last generated layout
             >>> project.show()
         '''
-        tool_cls = ScreenshotTask if screenshot else OpenTask
+        if screenshot and open:
+            raise ValueError("'screenshot' and 'open' are mutually exclusive")
+
+        if screenshot:
+            tool_cls = ScreenshotTask
+        elif open:
+            tool_cls = OpenTask
+        else:
+            tool_cls = ShowTask
 
         sc_jobname = self.option.get_jobname()
         sc_step, sc_index = self.get("arg", "step"), self.get("arg", "index")
