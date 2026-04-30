@@ -2245,7 +2245,8 @@ class OpenTask(Task):
                     if ext in input_files:
                         set_file(input_files[ext], ext)
                         break
-            self.set("var", "showfiletype", exts[-1], clobber=False)
+            if exts:
+                self.set("var", "showfiletype", exts[-1], clobber=False)
         else:
             file = self.get("var", "showfilepath")
             ext = utils.get_file_ext(file)
