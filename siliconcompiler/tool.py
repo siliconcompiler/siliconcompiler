@@ -2207,7 +2207,7 @@ class OpenTask(Task):
         """
         if hasattr(self, "get_supported_show_extentions"):
             import warnings
-            warnings.warn("get_supported_show_extentions is deprecated, please implement"
+            warnings.warn("get_supported_show_extentions is deprecated, please implement "
                           "get_supported_task_extentions instead",
                           DeprecationWarning, stacklevel=2)
             return self.get_supported_show_extentions()
