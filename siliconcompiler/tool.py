@@ -2202,7 +2202,7 @@ class OpenTask(Task):
 
     def get_supported_task_extentions(self) -> List[str]:
         """
-        Returns a list of file extensions supported by this show task.
+        Returns a list of file extensions supported by this task.
         This method must be implemented by subclasses.
         """
         if hasattr(self, "get_supported_show_extentions"):
