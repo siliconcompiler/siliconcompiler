@@ -15,7 +15,7 @@ class ShowTask(ShowTask):
     def tool(self):
         return "graphviz"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["dot", "xdot"]
 
     def setup(self):

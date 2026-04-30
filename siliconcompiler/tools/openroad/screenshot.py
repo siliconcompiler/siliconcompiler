@@ -48,8 +48,6 @@ class ScreenshotTask(ScreenshotTask, ShowTask):
 
         self.add_output_file(ext="png", clobber=True)
 
-        self.set_script("sc_show.tcl")
-
         self.set("var", "showexit", True)
 
         # No need for the GUI to open

@@ -1227,7 +1227,10 @@ class APRTask(OpenROADTask):
 
         self.add_parameter("enablehier", "bool",
                            "Enable hierarchical design support in OpenROAD when linking",
-                           defvalue=False)
+                           defvalue=self._default_enable_hier())
+
+    def _default_enable_hier(self) -> bool:
+        return False
 
     def set_openroad_enablehier(self, enable: bool,
                                 step: Optional[str] = None, index: Optional[str] = None):

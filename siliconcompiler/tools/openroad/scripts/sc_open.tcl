@@ -19,7 +19,9 @@ source "$sc_refdir/common/procs.tcl"
 ###############################
 # Setup GUI title early
 ###############################
-sc_set_gui_title
+if { [gui::enabled] } {
+    sc_set_gui_title
+}
 
 ###############################
 # Design information

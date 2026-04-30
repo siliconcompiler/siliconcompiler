@@ -1,10 +1,11 @@
 from shutil import which
 
-from siliconcompiler import ShowTask, ScreenshotTask
+from siliconcompiler import OpenTask, ShowTask, ScreenshotTask
 
 from siliconcompiler.tools.klayout.show import ShowTask as KlayoutShow
 from siliconcompiler.tools.klayout.screenshot import ScreenshotTask as KlayoutScreenshot
 
+from siliconcompiler.tools.openroad.open import OpenTask as OpenROADOpen
 from siliconcompiler.tools.openroad.show import ShowTask as OpenROADShow
 from siliconcompiler.tools.openroad.show import Show3DBloxTask as OpenROADShow3DBlox
 from siliconcompiler.tools.openroad.show import WebTask as OpenROADWeb
@@ -30,6 +31,9 @@ def showtasks():
 
     Later registrations take precedence when multiple tools support the same extension.
     """
+    # Register Open tasks
+    OpenTask.register_task(OpenROADOpen)
+
     # Register Show tasks - core tools first
     ShowTask.register_task(KlayoutShow)
     ShowTask.register_task(OpenROADShow)
