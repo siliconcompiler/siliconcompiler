@@ -1574,3 +1574,69 @@ def test_openroad_show_screenshot_inherit_copy(open_project, task_cls):
     assert os.path.exists("inputs/gcd.def")
     assert os.path.exists("inputs/gcd.vg")
     assert os.path.exists("inputs/gcd.sdc")
+
+
+# ----------------------------------------------------------------------
+# Regression guard: every OpenROAD open/show/screenshot variant must end up
+# pointing at sc_open.tcl with the right sc_do_screenshot value. The original
+# bug here was that ShowTask/ScreenshotTask called set_script("sc_show.tcl")
+# *after* OpenTask.setup() had already set sc_open.tcl, but set_script defaults
+# to clobber=False so the override was a silent no-op and the screenshot path
+# ran the wrong script.
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("task_cls", [
+    openroad_open.OpenTask,
+    openroad_show.ShowTask,
+    openroad_show.WebTask,
+    screenshot.ScreenshotTask,
+])
+def test_openroad_open_script_is_sc_open(asic_gcd, tmp_path, monkeypatch, task_cls):
+    """All OpenROAD open variants must end up running sc_open.tcl after full setup.
+
+    Regression guard: previously ShowTask/ScreenshotTask called
+    ``set_script("sc_show.tcl")`` after OpenTask.setup() had already set
+    ``sc_open.tcl``. Because ``set_script`` defaults to ``clobber=False``, the
+    second call was a silent no-op and the screenshot path ran the wrong
+    script. This test ensures every variant resolves to ``sc_open.tcl``.
+    """
+    monkeypatch.chdir(tmp_path)
+    asic_gcd.option.set_builddir(str(tmp_path / "build"))
+
+    flow = Flowgraph(f"openflow_{task_cls.__name__.lower()}")
+    flow.node("open", task_cls())
+    asic_gcd.set_flow(flow)
+
+    node = SchedulerNode(asic_gcd, "open", "0")
+    with node.runtime():
+        # project.show sets showfilepath before setup runs.
+        node.task.set("var", "showfilepath", "/tmp/dummy.def")
+        node.task.set("var", "showfiletype", "def")
+        node.setup()
+
+        scripts = [str(s) for s in node.task.get("script")]
+        assert any(s.endswith("sc_open.tcl") for s in scripts), \
+            f"{task_cls.__name__}: expected sc_open.tcl, got {scripts}"
+        assert all(not s.endswith("sc_show.tcl") for s in scripts), \
+            f"{task_cls.__name__}: sc_show.tcl should no longer be referenced; got {scripts}"
+
+
+def test_openroad_sc_open_tcl_has_screenshot_block(scroot):
+    """sc_open.tcl must source the screenshot block guarded by sc_do_screenshot."""
+    script_path = os.path.join(scroot, "siliconcompiler", "tools", "openroad",
+                               "scripts", "sc_open.tcl")
+    with open(script_path) as fh:
+        body = fh.read()
+    assert "sc_do_screenshot" in body, \
+        "sc_open.tcl must reference sc_do_screenshot to trigger screenshot rendering"
+    assert "screenshot.tcl" in body, \
+        "sc_open.tcl must source common/screenshot.tcl when sc_do_screenshot is true"
+
+
+def test_openroad_sc_show_tcl_removed(scroot):
+    """sc_show.tcl was consolidated into sc_open.tcl and should no longer exist."""
+    script_path = os.path.join(scroot, "siliconcompiler", "tools", "openroad",
+                               "scripts", "sc_show.tcl")
+    assert not os.path.exists(script_path), \
+        f"{script_path} should be removed; sc_open.tcl is now the single entry script"

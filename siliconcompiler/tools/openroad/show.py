@@ -10,11 +10,6 @@ class ShowTask(OpenTask, BaseShowTask):
     def __init__(self):
         super().__init__()
 
-    def setup(self):
-        super().setup()
-
-        self.set_script("sc_show.tcl")
-
     def runtime_options(self):
         options = super().runtime_options()
         options.append("-gui")

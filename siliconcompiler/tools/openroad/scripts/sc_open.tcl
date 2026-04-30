@@ -72,6 +72,10 @@ utl::pop_metrics_stage
 
 utl::push_metrics_stage "sc__step__{}"
 
+if { $sc_do_screenshot } {
+    source "$sc_refdir/common/screenshot.tcl"
+}
+
 if { [sc_cfg_tool_task_get var showexit] } {
     exit
 }

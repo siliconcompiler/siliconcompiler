@@ -3,8 +3,11 @@ import os
 
 import os.path
 
+from typing import Dict, Optional
+
 
 from siliconcompiler import OpenTask as BaseOpenTask
+from siliconcompiler.schema import BaseSchema
 from siliconcompiler.tools.openroad._apr import APRTask, OpenROADSTAParameter
 from siliconcompiler.utils.paths import workdir
 
@@ -107,3 +110,13 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
         except ValueError:
             pass
         return options
+
+    def get_tcl_variables(self, manifest: Optional[BaseSchema] = None) -> Dict[str, str]:
+        """
+        Defines ``sc_do_screenshot`` so ``sc_open.tcl`` always has the variable
+        bound. ``ShowTask``/``ScreenshotTask`` subclasses override this via the
+        base ``ShowTask``/``ScreenshotTask`` MRO to flip it on or off.
+        """
+        vars = super().get_tcl_variables(manifest)
+        vars.setdefault("sc_do_screenshot", "false")
+        return vars
