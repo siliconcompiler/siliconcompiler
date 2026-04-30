@@ -11,7 +11,13 @@ from siliconcompiler.utils.paths import workdir
 
 class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
     '''
-    Open a design in openroad
+    Open a design in openroad.
+
+    Reuses the APR input handling so the same odb/def/vg/sdc selection logic
+    (including ``enablehier`` linking and ``load_sdcs``) is applied. When a
+    ``showfilepath`` is provided (e.g. via ``sc-show -open``) the file plus any
+    sibling ``vg``/``sdc`` files from the source node are copied into ``inputs``
+    at runtime.
     '''
     def __init__(self):
         super().__init__()
@@ -19,22 +25,13 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
     def setup(self):
         super().setup()
 
-        self.unset("input")
+        # Open mode produces no output artifacts
         self.unset("output")
 
-        # Add input file requirements
-        if f"{self.design_topmodule}.odb.gz" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="odb.gz")
-        if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="odb")
-        elif f"{self.design_topmodule}.def.gz" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="def.gz")
-        elif f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="def")
-        else:
+        # If neither input-node files nor an explicit showfilepath are
+        # available, require the user to supply a file.
+        if not self.get("input") and not self.get("var", "showfilepath"):
             self.add_required_key("var", "showfilepath")
-        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="sdc")
 
         self.set_script("sc_open.tcl")
 
@@ -45,7 +42,7 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
         self._copy_show_files()
 
     def get_supported_task_extentions(self):
-        return ["odb", "def"]
+        return ["odb", "def", "vg"]
 
     def _copy_show_files(self):
         if not self.get("var", "showfilepath"):
@@ -63,6 +60,9 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
         dst_file = f"inputs/{self.design_topmodule}.{show_type}"
         shutil.copy2(show_file, dst_file)
 
+        if not (show_step and show_index):
+            return
+
         job_root = self.project
         if show_job:
             try:
@@ -70,12 +70,35 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
             except KeyError:
                 pass
 
-        if show_step and show_index:
-            sdc_file = os.path.join(workdir(job_root, step=show_step, index=show_index),
-                                    "output",
-                                    f"{self.design_topmodule}.sdc")
-            if sdc_file and os.path.exists(sdc_file):
-                shutil.copy2(sdc_file, f"inputs/{self.design_topmodule}.sdc")
+        src_outputs = os.path.join(workdir(job_root, step=show_step, index=show_index),
+                                   "outputs")
+
+        # Copy companion verilog netlist when linking a placed/routed def with -hier
+        if show_type in ("def", "def.gz"):
+            for vg_ext in ("vg.gz", "vg"):
+                vg_file = os.path.join(src_outputs, f"{self.design_topmodule}.{vg_ext}")
+                if os.path.exists(vg_file):
+                    shutil.copy2(vg_file, f"inputs/{self.design_topmodule}.{vg_ext}")
+                    break
+
+        # Copy SDCs when load_sdcs is enabled: prefer per-mode files, otherwise
+        # fall back to the generic <top>.sdc.
+        if not self.get("var", "load_sdcs"):
+            return
+
+        modes = self._get_modes()
+        mode_sdcs = [
+            (mode, os.path.join(src_outputs, f"{self.design_topmodule}.{mode}.sdc"))
+            for mode in modes
+        ]
+        if mode_sdcs and all(os.path.exists(p) for _, p in mode_sdcs):
+            for mode, sdc_file in mode_sdcs:
+                shutil.copy2(sdc_file, f"inputs/{self.design_topmodule}.{mode}.sdc")
+            return
+
+        sdc_file = os.path.join(src_outputs, f"{self.design_topmodule}.sdc")
+        if os.path.exists(sdc_file):
+            shutil.copy2(sdc_file, f"inputs/{self.design_topmodule}.sdc")
 
     def runtime_options(self):
         options = super().runtime_options()

@@ -209,7 +209,7 @@ def test_extension_search_order_stable():
         seen = set()
         for cls in tasks:
             try:
-                for ext in sorted(cls().get_supported_show_extentions()):
+                for ext in sorted(cls().get_supported_task_extentions()):
                     if ext not in seen:
                         ext_list.append(ext)
                         seen.add(ext)

@@ -2412,7 +2412,7 @@ def test_open_register_task():
     assert settings.get_category("OpenTask")["test_tool/Test"] is Test
 
 
-def test_open_register_task():
+def test_show_register_task():
     class Test(ShowTask):
         pass
 

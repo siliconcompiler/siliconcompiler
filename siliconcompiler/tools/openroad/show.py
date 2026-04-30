@@ -29,6 +29,9 @@ class WebTask(ShowTask):
     def task(self) -> str:
         return "web"
 
+    def _default_enable_hier(self) -> bool:
+        return True
+
     def setup(self):
         super().setup()
 

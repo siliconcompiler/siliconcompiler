@@ -2604,7 +2604,7 @@ class MockShowTask(Task):
     def task(self):
         return "show"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return self._extensions
 
     def set_showfilepath(self, filepath):
@@ -2638,7 +2638,7 @@ class MockScreenshotTask(Task):
     def task(self):
         return "screenshot"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return self._extensions
 
     def set_showfilepath(self, filepath):
@@ -3003,14 +3003,14 @@ def test_show_auto_find_preserves_tool_order(monkeypatch):
         def tool(self):
             return "tool1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return {'gds'}
 
     class Tool2Task(MockShowTask):
         def tool(self):
             return "tool2"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return {'def'}
 
     # Mock get_task with proper behavior
