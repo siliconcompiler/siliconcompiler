@@ -582,6 +582,7 @@ def test_sc_show_exception_with_screenshot(monkeypatch, make_manifests, asic_gcd
     with patch('siliconcompiler.Project.show') as show:
         show.side_effect = Exception("Screenshot generation failed")
         assert sc_show.main() == 1
+        show.assert_called_once()
 
 
 @pytest.mark.timeout(90)
@@ -593,6 +594,7 @@ def test_sc_show_exception_with_tool(monkeypatch, make_manifests, asic_gcd):
     with patch('siliconcompiler.Project.show') as show:
         show.side_effect = RuntimeError("Tool execution failed")
         assert sc_show.main() == 1
+        show.assert_called_once()
 
 
 @pytest.mark.timeout(90)
