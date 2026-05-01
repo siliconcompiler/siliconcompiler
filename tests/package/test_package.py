@@ -1487,6 +1487,62 @@ def test_make_readonly_error_handling(tmp_path, monkeypatch, caplog):
     assert "Could not make cache read-only" in caplog.text
 
 
+def test_make_readonly_skips_git_directory(tmp_path):
+    """_make_readonly must leave .git/ writable so git internals (e.g. LFS
+    clean filter buffering through .git/lfs/tmp) keep working after the cache
+    is sealed."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "payload.txt").write_text("data")
+
+    git_dir = cache_dir / ".git"
+    git_dir.mkdir()
+    lfs_tmp = git_dir / "lfs" / "tmp"
+    lfs_tmp.mkdir(parents=True)
+    (lfs_tmp / "scratch").write_text("buffer")
+
+    project = Project("testproj_git_skip")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Working tree payload is sealed
+    payload_mode = os.stat(cache_dir / "payload.txt").st_mode
+    assert not (payload_mode & stat.S_IWUSR)
+
+    # .git/ and everything beneath it remain writable
+    for p in [git_dir, lfs_tmp, lfs_tmp / "scratch"]:
+        assert os.stat(p).st_mode & stat.S_IWUSR, f"{p} should remain writable"
+
+    # Sanity: we can still create new files inside .git/lfs/tmp/
+    (lfs_tmp / "fresh").write_text("ok")
+
+
+def test_make_readonly_skips_nested_git_directory(tmp_path):
+    """Submodule .git/modules/<name>/ trees (nested .git directories) must
+    also stay writable."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    submodule = cache_dir / "sub"
+    submodule.mkdir()
+    (submodule / "payload.txt").write_text("data")
+    nested_git = submodule / ".git"
+    nested_git.mkdir()
+    (nested_git / "config").write_text("[core]\n")
+
+    project = Project("testproj_nested_git_skip")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Submodule payload is sealed
+    assert not (os.stat(submodule / "payload.txt").st_mode & stat.S_IWUSR)
+    # Nested .git/ remains writable
+    assert os.stat(nested_git).st_mode & stat.S_IWUSR
+    assert os.stat(nested_git / "config").st_mode & stat.S_IWUSR
+
+
 # ============================================================================
 # Tests for _make_writable() method (for cache cleanup/deletion)
 # ============================================================================
