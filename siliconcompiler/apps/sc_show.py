@@ -211,16 +211,20 @@ def main():
                                f"\"{project.option.get_builddir()}\", using \"build\" instead")
         project.option.set_builddir('build')
 
-    success = project.show(filename,
-                           extension=show.get("cmdarg", "extension"),
-                           screenshot=show.get("cmdarg", "screenshot"),
-                           tool=show.get("cmdarg", "tool"),
-                           open=show.get("cmdarg", "open"))
+    try:
+        success = project.show(filename,
+                               extension=show.get("cmdarg", "extension"),
+                               screenshot=show.get("cmdarg", "screenshot"),
+                               tool=show.get("cmdarg", "tool"),
+                               open=show.get("cmdarg", "open"))
 
-    if success and os.path.isfile(success) and show.get("cmdarg", "screenshot"):
-        project.logger.info(f'Screenshot file: {success}')
+        if success and os.path.isfile(success) and show.get("cmdarg", "screenshot"):
+            project.logger.info(f'Screenshot file: {success}')
 
-    return 0
+        return 0
+    except Exception as e:
+        project.logger.debug(f"Error during show: {e}", exc_info=True)
+        return 1
 
 
 #########################
