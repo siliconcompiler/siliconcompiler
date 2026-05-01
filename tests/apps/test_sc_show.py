@@ -5,6 +5,7 @@ import os.path
 
 from unittest.mock import patch
 
+from siliconcompiler import Project
 from siliconcompiler.apps import sc_show
 from siliconcompiler.utils.paths import workdir, jobdir
 
@@ -776,3 +777,133 @@ def test_sc_show_nonexistent_file_with_design(monkeypatch):
         assert sc_show.main() == 0
         show.assert_called_once_with(nonexistent_file, extension=None, screenshot=False, tool=None,
                                      open=False)
+
+
+@pytest.mark.timeout(90)
+def _capture_show_run(monkeypatch):
+    '''Patch Project.copy and Project.run so we can capture the copy that
+    show() builds and skip the actual flow execution. Returns a dict that
+    will be populated with 'copy' and 'run_self' once show() runs.'''
+    captured = {}
+    real_copy = Project.copy
+
+    def spy_copy(self, *args, **kwargs):
+        proj = real_copy(self, *args, **kwargs)
+        captured['copy'] = proj
+        return proj
+
+    def fake_run(self):
+        captured['run_self'] = self
+
+    monkeypatch.setattr(Project, 'copy', spy_copy)
+    monkeypatch.setattr(Project, 'run', fake_run)
+    return captured
+
+
+def test_sc_show_does_not_call_reset_job_params(monkeypatch, make_manifests, asic_gcd, tmp_path):
+    '''show() must override __reset_job_params on the copied project before run().'''
+    make_manifests(asic_gcd)
+
+    gds_file = tmp_path / "layout.gds"
+    gds_file.write_text("dummy")
+
+    captured = _capture_show_run(monkeypatch)
+
+    asic_gcd.show(filename=str(gds_file))
+
+    proj = captured.get('copy')
+    assert proj is not None, 'show() did not reach proj = self.copy()'
+    assert captured.get('run_self') is proj, 'show() did not call proj.run()'
+    # The override must live on the copy as an instance attribute that shadows
+    # the bound method, and it must be a no-op.
+    assert '_Project__reset_job_params' in proj.__dict__
+    assert proj._Project__reset_job_params() is None
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_preserves_job_parameters(monkeypatch, make_manifests, asic_gcd, tmp_path):
+    '''When run() invokes __reset_job_params on the copy, the override makes it a no-op.'''
+    make_manifests(asic_gcd)
+
+    asic_gcd.set("arg", "step", "custom_step")
+    asic_gcd.set("arg", "index", "42")
+
+    gds_file = tmp_path / "layout.gds"
+    gds_file.write_text("dummy")
+
+    captured = {}
+    real_copy = Project.copy
+    reset_called = []
+
+    def spy_copy(self, *args, **kwargs):
+        proj = real_copy(self, *args, **kwargs)
+        captured['copy'] = proj
+        return proj
+
+    def fake_run(self):
+        captured['run_self'] = self
+        # Mirror what real run() does at the end so the override actually matters.
+        result = self._Project__reset_job_params()
+        reset_called.append(result)
+
+    monkeypatch.setattr(Project, 'copy', spy_copy)
+    monkeypatch.setattr(Project, 'run', fake_run)
+
+    asic_gcd.show(filename=str(gds_file))
+
+    proj = captured.get('copy')
+    assert proj is not None
+    assert captured.get('run_self') is proj
+    # The reset call inside run() must hit the no-op lambda, not the real method.
+    assert reset_called == [None]
+    assert '_Project__reset_job_params' in proj.__dict__
+    # Original's args are unaffected because the copy is independent.
+    assert asic_gcd.get("arg", "step") == "custom_step"
+    assert asic_gcd.get("arg", "index") == "42"
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_with_screenshot_does_not_reset_params(monkeypatch, make_manifests,
+                                                       asic_gcd, tmp_path):
+    '''The reset override is installed on the copy in screenshot mode too.'''
+    make_manifests(asic_gcd)
+
+    asic_gcd.set("arg", "step", "screenshot_step")
+
+    gds_file = tmp_path / "layout.gds"
+    gds_file.write_text("dummy")
+
+    captured = _capture_show_run(monkeypatch)
+
+    asic_gcd.show(filename=str(gds_file), screenshot=True)
+
+    proj = captured.get('copy')
+    assert proj is not None
+    assert captured.get('run_self') is proj
+    assert '_Project__reset_job_params' in proj.__dict__
+    assert proj._Project__reset_job_params() is None
+    # Original project's job arg is untouched.
+    assert asic_gcd.get("arg", "step") == "screenshot_step"
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_with_file_does_not_reset_params(monkeypatch, make_manifests,
+                                                 asic_gcd, tmp_path):
+    '''The reset override is installed on the copy when showing a specific file.'''
+    make_manifests(asic_gcd)
+
+    asic_gcd.set("arg", "index", "99")
+
+    gds_file = tmp_path / "specific.gds"
+    gds_file.write_text("dummy")
+
+    captured = _capture_show_run(monkeypatch)
+
+    asic_gcd.show(filename=str(gds_file))
+
+    proj = captured.get('copy')
+    assert proj is not None
+    assert captured.get('run_self') is proj
+    assert '_Project__reset_job_params' in proj.__dict__
+    assert proj._Project__reset_job_params() is None
+    assert asic_gcd.get("arg", "index") == "99"
