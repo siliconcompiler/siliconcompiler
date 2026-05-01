@@ -358,6 +358,54 @@ def test_pick_manifest_from_file_in_outputs(asic_gcd, make_manifests, tmp_path):
     assert outputs_dir in result
 
 
+def test_pick_manifest_from_file_direct_outside_cwd(asic_gcd, tmp_path):
+    '''Manifest sits next to the source file but outside the cwd build tree.
+
+    Simulates passing an absolute path like
+    build/<design>/<jobname>/<step>/<index>/outputs/foo.vg
+    where the manifest <design>.pkg.json is in the same directory but cannot
+    be discovered by walking cwd.
+    '''
+    outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
+
+    manifest = outputs_dir / "gcd.pkg.json"
+    manifest.write_text("nothing")
+
+    src_file = outputs_dir / "gcd.vg"
+    src_file.write_text("module gcd; endmodule")
+
+    # Empty all_manifests: the discovery scan would not find anything, so the
+    # only way this resolves is via the direct-directory check.
+    result = _common.pick_manifest_from_file(asic_gcd, str(src_file), {})
+
+    assert result == str(manifest)
+
+
+def test_pick_manifest_from_file_direct_inputs_dir(asic_gcd, tmp_path):
+    '''Same as above but for files placed in an inputs/ directory.'''
+    inputs_dir = tmp_path / "inputs"
+    inputs_dir.mkdir()
+
+    manifest = inputs_dir / "gcd.pkg.json"
+    manifest.write_text("nothing")
+
+    src_file = inputs_dir / "gcd.v"
+    src_file.write_text("module gcd; endmodule")
+
+    result = _common.pick_manifest_from_file(asic_gcd, str(src_file), {})
+
+    assert result == str(manifest)
+
+
+def test_pick_manifest_from_file_direct_no_manifest(asic_gcd, tmp_path):
+    '''No .pkg.json next to the source file and no discovered manifests.'''
+    src_file = tmp_path / "stray.vg"
+    src_file.write_text("module stray; endmodule")
+
+    assert _common.pick_manifest_from_file(asic_gcd, str(src_file), {}) is None
+
+
 @pytest.mark.timeout(90)
 def test_pick_manifest_jobname_inference(asic_gcd, monkeypatch):
     '''Test jobname inference when only one job exists.'''

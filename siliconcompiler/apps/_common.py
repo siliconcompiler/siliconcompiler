@@ -118,6 +118,15 @@ def pick_manifest_from_file(cliproject: Project, src_file: Optional[str], all_ma
         return None
 
     src_dir = os.path.abspath(os.path.dirname(src_file))
+
+    # Check the source file's directory directly for a manifest. This handles
+    # files referenced by absolute paths or outside the cwd's build tree, where
+    # _get_manifests() would not have discovered them.
+    if os.path.isdir(src_dir):
+        for entry in os.listdir(src_dir):
+            if entry.endswith('.pkg.json'):
+                return os.path.join(src_dir, entry)
+
     # Iterate through all discovered manifests to find one in the same directory.
     for _, jobs in all_manifests.items():
         for _, nodes in jobs.items():
