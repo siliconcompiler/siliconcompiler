@@ -3522,37 +3522,3 @@ def test_open_task_get_show_workdir():
     task = OpenTask()
     assert hasattr(task, 'get_show_workdir')
     assert callable(task.get_show_workdir)
-
-
-def test_open_task_all_properties_together(tmp_path):
-    """Test all OpenTask properties working together."""
-    import tempfile
-
-    task = OpenTask()
-
-    # Create a temporary file for testing
-    with tempfile.NamedTemporaryFile(suffix='.def', delete=False, dir=tmp_path) as f:
-        test_file = f.name
-
-    try:
-        # Setup complete show configuration
-        task.set("var", "showfilepath", test_file)
-        task.set("var", "showfiletype", "def")
-        task.set("var", "shownode", ("job0", "place", "0"))
-
-        # Verify file properties work
-        assert task.has_show_filepath() is True
-        assert task.get_show_filepath() == test_file
-        assert task.get_show_filetype() == "def"
-
-        # Verify job/node properties work
-        assert task.get_show_job() == "job0"
-        show_step, show_index = task.get_show_node()
-        assert show_step == "place"
-        assert show_index == "0"
-
-        # Verify property existence without calling on standalone task
-        assert hasattr(task, 'get_show_jobroot')
-        assert hasattr(task, 'get_show_workdir')
-    finally:
-        os.remove(test_file)

@@ -2296,14 +2296,14 @@ class OpenTask(Task):
         if not self.has_show_node():
             return None
         job, _, _ = self.get("var", "shownode")
-        return job or None
+        return job
 
     def get_show_node(self) -> Tuple[Optional[str], Optional[str]]:
         """The ``(step, index)`` recorded in ``shownode``; ``(None, None)`` if not set."""
         if not self.has_show_node():
             return (None, None)
         _, step, index = self.get("var", "shownode")
-        return (step or None, index or None)
+        return (step, index)
 
     def get_show_jobroot(self) -> Optional["Project"]:
         """
@@ -2332,7 +2332,7 @@ class OpenTask(Task):
         subdirectory) themselves when needed.
         """
         show_step, show_index = self.get_show_node()
-        if not (show_step and show_index):
+        if show_step is None or show_index is None:
             return None
         job_root = self.get_show_jobroot()
         if job_root is None:
