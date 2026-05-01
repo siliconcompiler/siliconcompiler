@@ -1451,6 +1451,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         task.set_showfiletype(filetype)
         task.set_shownode(jobname=sc_jobname, nodestep=sc_step, nodeindex=sc_index)
 
+        # Avoid call to reset params
+        # This is safe because proj is a copy and is not returned from this function
+        proj.__reset_job_params = lambda: None
+
         # run show flow
         proj.run()
         if screenshot:

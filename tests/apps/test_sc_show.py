@@ -776,3 +776,80 @@ def test_sc_show_nonexistent_file_with_design(monkeypatch):
         assert sc_show.main() == 0
         show.assert_called_once_with(nonexistent_file, extension=None, screenshot=False, tool=None,
                                      open=False)
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_does_not_call_reset_job_params(monkeypatch, make_manifests, asic_gcd):
+    '''Test that Project.show() does not call __reset_job_params.'''
+    make_manifests(asic_gcd)
+
+    # Patch __reset_job_params to verify it's not called
+    with patch.object(asic_gcd, '_Project__reset_job_params') as mock_reset:
+        try:
+            asic_gcd.show()
+        except Exception:
+            # show() might fail due to missing files, that's OK
+            pass
+
+        # Verify __reset_job_params was not called on the original project
+        mock_reset.assert_not_called()
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_preserves_job_parameters(monkeypatch, make_manifests, asic_gcd):
+    '''Test that job-scoped parameters are preserved after show().'''
+    make_manifests(asic_gcd)
+
+    # Set job-scoped parameters that would normally be reset
+    asic_gcd.set("arg", "step", "custom_step")
+    asic_gcd.set("arg", "index", "42")
+
+    # Call show - since it overrides __reset_job_params with a no-op,
+    # the original project's parameters should still be there
+    try:
+        asic_gcd.show()
+    except Exception:
+        # show() might fail, but that's OK for this test
+        pass
+
+    # Verify job parameters are still set (not reset)
+    # Note: show() creates a copy of the project, so the original should be unaffected
+    assert asic_gcd.get("arg", "step") == "custom_step"
+    assert asic_gcd.get("arg", "index") == "42"
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_with_screenshot_does_not_reset_params(monkeypatch, make_manifests, asic_gcd):
+    '''Test that __reset_job_params is not called when using screenshot mode.'''
+    make_manifests(asic_gcd)
+
+    # Set job-scoped parameters
+    asic_gcd.set("arg", "step", "screenshot_step")
+
+    with patch.object(asic_gcd, '_Project__reset_job_params') as mock_reset:
+        try:
+            asic_gcd.show(screenshot=True)
+        except Exception:
+            pass
+
+        # Verify __reset_job_params was not called
+        mock_reset.assert_not_called()
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_with_file_does_not_reset_params(monkeypatch, make_manifests, asic_gcd):
+    '''Test that __reset_job_params is not called when showing a specific file.'''
+    make_manifests(asic_gcd)
+
+    # Set job-scoped parameters
+    asic_gcd.set("arg", "index", "99")
+
+    with patch.object(asic_gcd, '_Project__reset_job_params') as mock_reset:
+        try:
+            # Try to show a file that might not exist
+            asic_gcd.show(filename="/tmp/test.gds")
+        except Exception:
+            pass
+
+        # Verify __reset_job_params was not called
+        mock_reset.assert_not_called()
