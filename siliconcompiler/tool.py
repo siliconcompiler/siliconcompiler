@@ -2289,7 +2289,10 @@ class OpenTask(Task):
 
     def has_show_node(self) -> bool:
         """Whether ``shownode`` has been provided."""
-        return bool(self.get("var", "shownode"))
+        shownode = self.get("var", "shownode")
+        if not shownode:
+            return False
+        return any(item not in (None, "") for item in shownode)
 
     def get_show_job(self) -> Optional[str]:
         """The jobname recorded in ``shownode``, or ``None`` if not set."""

@@ -2565,6 +2565,14 @@ def test_open_has_show_node_set():
     assert task.has_show_node() is True
 
 
+def test_open_has_show_node_all_none():
+    # set_shownode() with no args writes (None, None, None); a tuple of all
+    # None/empty values must be treated as unset.
+    task = _AccessorOpenTask()
+    task.set_shownode()
+    assert task.has_show_node() is False
+
+
 def test_open_get_show_job_set():
     task = _AccessorOpenTask()
     task.set_shownode(jobname="job0", nodestep="syn", nodeindex="0")
