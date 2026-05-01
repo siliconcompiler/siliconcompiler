@@ -591,12 +591,20 @@ class RemoteResolver(Resolver):
         not track full file permissions (only the executable bit), so this operation
         will not create a dirty warning in git repositories.
 
+        Any directory named ``.git`` is skipped so git's internal state (including
+        ``.git/lfs/tmp`` and per-submodule ``.git/modules/<name>``) stays writable —
+        otherwise routine git operations like diff/status fail on LFS-tracked repos
+        because the clean filter cannot buffer through ``.git/lfs/tmp``.
+
         Args:
             path: The path to make read-only (file or directory).
         """
         path = Path(path)
         # Skip symlinks to avoid following them outside the cache
         if path.is_symlink():
+            return
+        # Preserve writability of git's internal state directories
+        if path.is_dir() and path.name == ".git":
             return
         if path.is_file():
             # Remove write permissions, preserve everything else (especially execute bit)
