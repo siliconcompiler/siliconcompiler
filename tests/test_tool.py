@@ -3438,16 +3438,16 @@ def test_task_write_task_manifest_with_invalid_dataroot(gcd_design):
 def test_open_task_properties():
     """Test the base OpenTask properties for managing show file operations."""
     task = OpenTask()
-    
+
     # Test has_show_filepath with no path set
     assert task.has_show_filepath() is False
-    
+
     # Test has_show_node with no node set
     assert task.has_show_node() is False
-    
+
     # Test get_show_job with no node set
     assert task.get_show_job() is None
-    
+
     # Test get_show_node with no node set
     show_step, show_index = task.get_show_node()
     assert show_step is None
@@ -3457,45 +3457,45 @@ def test_open_task_properties():
 def test_open_task_properties_with_values(tmp_path):
     """Test base OpenTask properties with actual values set."""
     import tempfile
-    
+
     task = OpenTask()
-    
+
     # Create a temporary file for testing
     with tempfile.NamedTemporaryFile(suffix='.def', delete=False, dir=tmp_path) as f:
         test_file = f.name
-    
+
     try:
         # Set showfilepath and showfiletype
         task.set("var", "showfilepath", test_file)
         task.set("var", "showfiletype", "def")
-        
+
         # Test has_show_filepath
         assert task.has_show_filepath() is True
-        
+
         # Test get_show_filepath
         assert task.get_show_filepath() == test_file
-        
+
         # Test get_show_filetype
         assert task.get_show_filetype() == "def"
-        
+
         # Test has_show_node and get_show_job (should be None)
         assert task.has_show_node() is False
         assert task.get_show_job() is None
-        
+
         # Test get_show_node (should be None, None)
         show_step, show_index = task.get_show_node()
         assert show_step is None
         assert show_index is None
-        
+
         # Set shownode
         task.set("var", "shownode", ("job0", "place", "0"))
-        
+
         # Test has_show_node now returns True
         assert task.has_show_node() is True
-        
+
         # Test get_show_job
         assert task.get_show_job() == "job0"
-        
+
         # Test get_show_node
         show_step, show_index = task.get_show_node()
         assert show_step == "place"
@@ -3507,7 +3507,7 @@ def test_open_task_properties_with_values(tmp_path):
 def test_open_task_get_job_root():
     """Test base OpenTask.get_show_jobroot() property."""
     task = OpenTask()
-    
+
     # get_show_jobroot uses task.project which may be None for standalone OpenTask
     # The real test is in test_open_task_all_properties_together which uses a full setup
     job_root = task.get_show_jobroot()
@@ -3527,30 +3527,30 @@ def test_open_task_get_show_workdir():
 def test_open_task_all_properties_together(tmp_path):
     """Test all OpenTask properties working together."""
     import tempfile
-    
+
     task = OpenTask()
-    
+
     # Create a temporary file for testing
     with tempfile.NamedTemporaryFile(suffix='.def', delete=False, dir=tmp_path) as f:
         test_file = f.name
-    
+
     try:
         # Setup complete show configuration
         task.set("var", "showfilepath", test_file)
         task.set("var", "showfiletype", "def")
         task.set("var", "shownode", ("job0", "place", "0"))
-        
+
         # Verify file properties work
         assert task.has_show_filepath() is True
         assert task.get_show_filepath() == test_file
         assert task.get_show_filetype() == "def"
-        
+
         # Verify job/node properties work
         assert task.get_show_job() == "job0"
         show_step, show_index = task.get_show_node()
         assert show_step == "place"
         assert show_index == "0"
-        
+
         # Verify property existence without calling on standalone task
         assert hasattr(task, 'get_show_jobroot')
         assert hasattr(task, 'get_show_workdir')
