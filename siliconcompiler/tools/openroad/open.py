@@ -9,7 +9,6 @@ from typing import Dict, Optional
 from siliconcompiler import OpenTask as BaseOpenTask
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.tools.openroad._apr import APRTask, OpenROADSTAParameter
-from siliconcompiler.utils.paths import workdir
 
 
 class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
@@ -33,7 +32,7 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
 
         # If neither input-node files nor an explicit showfilepath are
         # available, require the user to supply a file.
-        if not self.get("input") and not self.get("var", "showfilepath"):
+        if not self.get("input") and not self.has_show_filepath():
             self.add_required_key("var", "showfilepath")
 
         self.set_script("sc_open.tcl")
@@ -42,7 +41,7 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
         self._set_reports([])
 
     def _add_pnr_inputs(self):
-        if self.get("var", "showfilepath"):
+        if self.has_show_filepath():
             return
         super()._add_pnr_inputs()
 
@@ -54,35 +53,21 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
         return ["odb", "def", "vg"]
 
     def _copy_show_files(self):
-        if not self.get("var", "showfilepath"):
+        if not self.has_show_filepath():
             return
 
-        show_file = self.find_files('var', 'showfilepath')
-        show_type = self.get('var', 'showfiletype')
-
-        show_job, show_step, show_index = (None, None, None)
-        show_node = self.get("var", "shownode")
-        if show_node:
-            show_job, show_step, show_index = show_node
+        show_file = self.get_show_filepath()
+        show_type = self.get_show_filetype()
 
         # copy source in to keep sc_apr.tcl simple
         dst_file = f"inputs/{self.design_topmodule}.{show_type}"
         shutil.copy2(show_file, dst_file)
 
-        if not (show_step and show_index):
+        show_workdir = self.get_show_workdir()
+        if not show_workdir:
             return
 
-        job_root = self.project
-        if show_job:
-            try:
-                job_root = job_root.history(show_job)
-            except KeyError:
-                job_root = job_root.copy()
-                job_root.option.set_jobname(show_job)
-                pass
-
-        src_outputs = os.path.join(workdir(job_root, step=show_step, index=show_index),
-                                   "outputs")
+        src_outputs = os.path.join(show_workdir, "outputs")
 
         # Copy companion verilog netlist when linking a placed/routed def with -hier
         if show_type in ("def", "def.gz"):

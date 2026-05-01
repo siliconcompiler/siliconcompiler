@@ -2273,6 +2273,75 @@ class OpenTask(Task):
         """Sets the source node information for the file being displayed."""
         return self.set("var", "shownode", (jobname, nodestep, nodeindex), step=step, index=index)
 
+    def has_show_filepath(self) -> bool:
+        """Whether ``showfilepath`` has been provided."""
+        return bool(self.get("var", "showfilepath"))
+
+    def get_show_filepath(self) -> Optional[str]:
+        """Resolved path to ``showfilepath``, or ``None`` if not set."""
+        if not self.has_show_filepath():
+            return None
+        return self.find_files("var", "showfilepath")
+
+    def get_show_filetype(self) -> Optional[str]:
+        """The ``showfiletype`` value, or ``None`` if not set."""
+        return self.get("var", "showfiletype") or None
+
+    def has_show_node(self) -> bool:
+        """Whether ``shownode`` has been provided."""
+        shownode = self.get("var", "shownode")
+        if not shownode:
+            return False
+        return any(item not in (None, "") for item in shownode)
+
+    def get_show_job(self) -> Optional[str]:
+        """The jobname recorded in ``shownode``, or ``None`` if not set."""
+        if not self.has_show_node():
+            return None
+        job, _, _ = self.get("var", "shownode")
+        return job
+
+    def get_show_node(self) -> Tuple[Optional[str], Optional[str]]:
+        """The ``(step, index)`` recorded in ``shownode``; ``(None, None)`` if not set."""
+        if not self.has_show_node():
+            return (None, None)
+        _, step, index = self.get("var", "shownode")
+        return (step, index)
+
+    def get_show_jobroot(self) -> Optional["Project"]:
+        """
+        Project used to resolve files for the source ``shownode``.
+
+        When ``shownode`` carries a jobname, returns the matching history project
+        (or a fresh copy with that jobname applied if no history entry exists).
+        Otherwise returns the current project (which may be ``None`` outside of
+        a runtime context).
+        """
+        job_root = self.project
+        show_job = self.get_show_job()
+        if not show_job or job_root is None:
+            return job_root
+        try:
+            return job_root.history(show_job)
+        except KeyError:
+            job_root = job_root.copy()
+            job_root.option.set_jobname(show_job)
+            return job_root
+
+    def get_show_workdir(self) -> Optional[str]:
+        """
+        Working directory of the source ``shownode``, or ``None`` if a complete
+        ``shownode`` is not available. Callers append ``outputs/`` (or another
+        subdirectory) themselves when needed.
+        """
+        show_step, show_index = self.get_show_node()
+        if show_step is None or show_index is None:
+            return None
+        job_root = self.get_show_jobroot()
+        if job_root is None:
+            return None
+        return paths.workdir(job_root, step=show_step, index=show_index)
+
     def has_breakpoint(self):
         # Open is like a breakpoint
         return True
