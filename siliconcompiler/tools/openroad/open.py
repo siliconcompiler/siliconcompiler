@@ -39,6 +39,12 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
         self.set_script("sc_open.tcl")
 
         self.set("var", "showexit", False, clobber=False)
+        self._set_reports([])
+
+    def _add_pnr_inputs(self):
+        if self.get("var", "showfilepath"):
+            return
+        super()._add_pnr_inputs()
 
     def pre_process(self):
         super().pre_process()
@@ -71,6 +77,8 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
             try:
                 job_root = job_root.history(show_job)
             except KeyError:
+                job_root = job_root.copy()
+                job_root.option.set_jobname(show_job)
                 pass
 
         src_outputs = os.path.join(workdir(job_root, step=show_step, index=show_index),
