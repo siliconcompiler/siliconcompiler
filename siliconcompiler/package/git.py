@@ -146,33 +146,93 @@ class GitResolver(RemoteResolver):
         url = url._replace(scheme='https', query="", fragment="")
         return url.geturl()
 
-    @property
-    def include_submodules(self) -> bool:
-        """Returns true if submodules should be included"""
+    def __get_query_bool(self, key: str, default: bool) -> bool:
+        """
+        Parses a boolean query-string parameter from the source URL.
 
+        Raises:
+            ValueError: If the value is not a recognised boolean string.
+        """
         qs = self.urlparse.query
         if not qs:
-            return True
-        for key, value in url_parse.parse_qsl(qs):
-            if key == "submodules":
+            return default
+        for qs_key, value in url_parse.parse_qsl(qs):
+            if qs_key == key:
                 if value.lower() in ("true", "t", "1"):
                     return True
                 elif value.lower() in ("false", "f", "0"):
                     return False
                 else:
-                    raise ValueError(f"{value} is not a valid option for submodule")
+                    raise ValueError(f"{value} is not a valid option for {key}")
+        return default
 
-        return True
+    @property
+    def include_submodules(self) -> bool:
+        """Returns true if submodules should be included"""
+        return self.__get_query_bool("submodules", True)
+
+    @property
+    def include_lfs(self) -> bool:
+        """Returns true if Git LFS objects should be fetched"""
+        return self.__get_query_bool("lfs", True)
+
+    @staticmethod
+    def _repo_uses_submodules(repo_path: str) -> bool:
+        """
+        Returns True if the repository at ``repo_path`` declares submodules
+        via a ``.gitmodules`` file at its root.
+        """
+        return os.path.isfile(os.path.join(repo_path, ".gitmodules"))
+
+    @staticmethod
+    def _repo_uses_lfs(repo_path: str) -> bool:
+        """
+        Returns True if the repository at ``repo_path`` declares LFS-tracked
+        files via a ``.gitattributes`` entry containing ``filter=lfs``.
+        """
+        gitattributes = os.path.join(repo_path, ".gitattributes")
+        if not os.path.isfile(gitattributes):
+            return False
+        try:
+            with open(gitattributes, "r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    if "filter=lfs" in line:
+                        return True
+        except OSError:
+            return False
+        return False
+
+    def _pull_lfs(self, repo: "Repo") -> None:
+        """
+        Runs ``git lfs pull`` on the given repo if it has LFS-tracked files.
+
+        Raises:
+            RuntimeError: If the repo uses LFS but ``git-lfs`` is not installed.
+        """
+        if not self._repo_uses_lfs(repo.working_dir):
+            return
+        self.logger.info(f'Fetching LFS objects for {repo.working_dir}')
+        try:
+            repo.git.lfs("pull")
+        except GitCommandError as e:
+            msg = f"{e}".lower()
+            if "lfs" in msg and ("is not a git command" in msg or "not found" in msg):
+                raise RuntimeError(
+                    "Repository uses Git LFS but 'git-lfs' is not installed. "
+                    "Install git-lfs or pass '?lfs=false' in the source URL to skip.")
+            raise
 
     def resolve_remote(self) -> None:
         """
         Fetches the remote repository and checks out the specified reference.
 
         This method performs the `git clone` operation, followed by `git checkout`
-        on the specified branch, tag, or commit. It also initializes all submodules.
+        on the specified branch, tag, or commit. It also initializes all submodules
+        and fetches Git LFS objects when applicable.
 
         Raises:
-            RuntimeError: If authentication fails.
+            RuntimeError: If authentication fails or LFS is required but git-lfs
+                is not installed.
             GitCommandError: For other Git-related errors.
         """
         try:
@@ -184,10 +244,18 @@ class GitResolver(RemoteResolver):
             self.logger.info(f'Checking out {self.reference}')
             repo.git.checkout(self.reference)
 
-            if self.include_submodules:
+            has_submodules = (self.include_submodules
+                              and self._repo_uses_submodules(repo.working_dir))
+            if has_submodules:
                 self.logger.info('Updating submodules')
                 for submodule in repo.submodules:
                     submodule.update(recursive=True, init=True, force=True)
+
+            if self.include_lfs:
+                self._pull_lfs(repo)
+                if has_submodules:
+                    for submodule in repo.submodules:
+                        self._pull_lfs(submodule.module())
         except GitCommandError as e:
             error_msg = str(e)
             if 'Permission denied' in error_msg or 'could not read Username' in error_msg:
