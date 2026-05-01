@@ -550,6 +550,54 @@ def test_sc_show_tool_with_all_parameters(monkeypatch, make_manifests, asic_gcd,
 
 
 @pytest.mark.timeout(90)
+def test_sc_show_exception_handling(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app catches exceptions from project.show and returns non-zero exit code.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd'])
+    with patch('siliconcompiler.Project.show') as show:
+        show.side_effect = RuntimeError("Test error")
+        assert sc_show.main() == 1
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool=None, open=False)
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_exception_with_file(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app catches exceptions when showing a file.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', 'build/gcd/job0/write.gds/0/outputs/gcd.gds'])
+    with patch('siliconcompiler.Project.show') as show:
+        show.side_effect = OSError("File not found")
+        assert sc_show.main() == 1
+        show.assert_called_once()
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_exception_with_screenshot(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app catches exceptions when generating screenshot.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-screenshot'])
+    with patch('siliconcompiler.Project.show') as show:
+        show.side_effect = Exception("Screenshot generation failed")
+        assert sc_show.main() == 1
+        show.assert_called_once()
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_exception_with_tool(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app catches exceptions when using a specific tool.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-tool', 'klayout'])
+    with patch('siliconcompiler.Project.show') as show:
+        show.side_effect = RuntimeError("Tool execution failed")
+        assert sc_show.main() == 1
+        show.assert_called_once()
+
+
+@pytest.mark.timeout(90)
 def test_sc_show_with_tool_task_format(monkeypatch, make_manifests, asic_gcd):
     '''Test sc-show app with tool/task format.'''
     make_manifests(asic_gcd)
