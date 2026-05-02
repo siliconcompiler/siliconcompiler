@@ -356,7 +356,7 @@ class SchedulerNode:
             self.__project._logger_console.setFormatter(formatter)
             self.logger.addHandler(self.__project._logger_console)
 
-    def halt(self, msg: Optional[str] = None) -> None:
+    def halt(self, msg: Optional[str] = None, errmsg: Optional[str] = None) -> None:
         """
         Stops the node's execution due to an error.
 
@@ -365,18 +365,26 @@ class SchedulerNode:
 
         Args:
             msg (str, optional): An error message to log.
+            errmsg (str, optional): An additional error message to log.
         """
-        if msg:
-            self.logger.error(msg)
-
-        self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
         try:
-            self.__project.write_manifest(self.__manifests["output"])
-        except FileNotFoundError:
-            self.logger.error(f"Failed to write manifest for {self.__step}/{self.__index}.")
+            if msg:
+                self.logger.error(msg)
 
-        self.logger.error(f"Halting {self.__step}/{self.__index} due to errors.")
-        send_messages.send(self.__project, "fail", self.__step, self.__index)
+            self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
+            try:
+                self.__project.write_manifest(self.__manifests["output"])
+            except FileNotFoundError:
+                self.logger.error(f"Failed to write manifest for {self.__step}/{self.__index}.")
+
+            if errmsg:
+                self.logger.error(errmsg)
+            else:
+                self.logger.error(f"Halting {self.__step}/{self.__index} due to errors.")
+            send_messages.send(self.__project, "fail", self.__step, self.__index)
+        except:  # noqa E722
+            # Catch everything to avoid generating additional errors during error handling
+            pass
         sys.exit(1)
 
     def setup(self) -> bool:
@@ -867,6 +875,8 @@ class SchedulerNode:
 
             try:
                 self.execute()
+            except KeyboardInterrupt:
+                self.halt(errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
             except Exception as e:
                 utils.print_traceback(self.logger, e)
                 self.halt()

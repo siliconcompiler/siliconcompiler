@@ -296,6 +296,66 @@ def test_halt_with_reason(project, monkeypatch, caplog):
     assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
     assert os.path.exists("build/testdesign/job0/steptwo/0/outputs/testdesign.pkg.json")
     assert "failed due to error" in caplog.text
+    assert "Halting steptwo/0 due to errors" in caplog.text
+
+
+def test_halt_with_errmsg_replaces_default(project, monkeypatch, caplog):
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with pytest.raises(SystemExit):
+        node.halt(errmsg="custom halting message")
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+    assert "custom halting message" in caplog.text
+    # errmsg replaces the default "Halting..." line.
+    assert "Halting steptwo/0 due to errors" not in caplog.text
+
+
+def test_halt_swallows_write_manifest_error(project, monkeypatch, caplog):
+    '''halt() must still call sys.exit(1) even if write_manifest raises an
+    unexpected (non-FileNotFoundError) exception.'''
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch.object(project, "write_manifest", side_effect=RuntimeError("disk on fire")):
+        with pytest.raises(SystemExit) as excinfo:
+            node.halt("kicking off halt")
+    assert excinfo.value.code == 1
+    # The exception inside halt must not propagate out.
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+    assert "kicking off halt" in caplog.text
+
+
+def test_halt_swallows_send_messages_error(project, monkeypatch, caplog):
+    '''halt() must still call sys.exit(1) if send_messages.send raises.'''
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.scheduler.schedulernode.send_messages.send",
+               side_effect=RuntimeError("messaging broker down")):
+        with pytest.raises(SystemExit) as excinfo:
+            node.halt("kicking off halt")
+    assert excinfo.value.code == 1
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+    # The "Halting..." line should still have been logged before the suppressed exception.
+    assert "Halting steptwo/0 due to errors" in caplog.text
+
+
+def test_halt_swallows_record_set_error(project, monkeypatch):
+    '''halt() must still call sys.exit(1) if the very first internal call
+    (recording status) raises.'''
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch.object(node._SchedulerNode__record, "set",
+                      side_effect=RuntimeError("record blew up")):
+        with pytest.raises(SystemExit) as excinfo:
+            node.halt()
+    assert excinfo.value.code == 1
 
 
 def test_setup(project):
@@ -1616,6 +1676,26 @@ def test_run_failed_to_execute(project, monkeypatch, caplog):
 
     assert "thiserrorisraised" in caplog.text
     assert "Halting stepone/0 due to errors" in caplog.text
+
+
+def test_run_keyboard_interrupt_during_execute(project, monkeypatch, caplog):
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.INFO)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
+        call_exec.side_effect = KeyboardInterrupt()
+        with pytest.raises(SystemExit):
+            node.run()
+        call_exec.assert_called_once()
+
+    assert project.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
+
+    assert "Execution interrupted for stepone/0" in caplog.text
+    # The interrupt path passes errmsg=, which replaces the default "Halting..." line.
+    assert "Halting stepone/0 due to errors" not in caplog.text
 
 
 def test_run_failed_to_execute_initial_save_has_error(project):
