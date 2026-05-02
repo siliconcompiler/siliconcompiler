@@ -229,7 +229,7 @@ class MPManager(metaclass=_ManagerSingleton):
                 # Shut down the multiprocessing manager
                 MPManager.__address = None
                 manager.__manager.shutdown()
-        except:
+        except:  # noqa E722
             # Catch everything (incl. KeyboardInterrupt) so a signal arriving
             # mid-cleanup cannot escape an atexit callback or leave the
             # singleton half-torn-down.
@@ -239,11 +239,11 @@ class MPManager(metaclass=_ManagerSingleton):
             # so a re-entry to stop() is a no-op.
             try:
                 atexit.unregister(MPManager.stop)
-            except:
+            except:  # noqa E722
                 pass
             try:
                 _ManagerSingleton.remove_cls(MPManager)
-            except:
+            except:  # noqa E722
                 pass
 
     @staticmethod

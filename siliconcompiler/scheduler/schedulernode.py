@@ -382,8 +382,8 @@ class SchedulerNode:
             else:
                 self.logger.error(f"Halting {self.__step}/{self.__index} due to errors.")
             send_messages.send(self.__project, "fail", self.__step, self.__index)
-        except:
-            # Catch everthing to avoid generating additional errors during error handling
+        except:  # noqa E722
+            # Catch everything to avoid generating additional errors during error handling
             pass
         sys.exit(1)
 
