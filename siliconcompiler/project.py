@@ -599,6 +599,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         `reset()` on any parameter that does not have a 'global' scope,
         clearing task-specific values for the next run.
         """
+        if getattr(self, "_Project__skipreset", False):
+            return
+
         for key in self.allkeys():
             if key[0] == "history":
                 continue
@@ -1453,7 +1456,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Avoid call to reset params
         # This is safe because proj is a copy and is not returned from this function
-        proj.__reset_job_params = lambda: None
+        proj.__skipreset = True
 
         # run show flow
         proj.run()
