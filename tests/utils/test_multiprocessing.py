@@ -176,3 +176,66 @@ def test_stop_repeat():
     manager = MPManager()
     manager.stop()
     manager.stop()
+
+
+def _raise_kbi(*args, **kwargs):
+    raise KeyboardInterrupt()
+
+
+def test_stop_swallows_keyboard_interrupt_in_os_remove():
+    '''A KeyboardInterrupt raised by os.remove during atexit must not escape.'''
+    MPManager()
+    with patch("os.remove", side_effect=_raise_kbi):
+        # Must not raise.
+        MPManager.stop()
+    # Singleton fully cleaned up so a second stop() is a no-op.
+    assert _ManagerSingleton.has_cls(MPManager) is False
+    MPManager.stop()
+
+
+def test_stop_swallows_keyboard_interrupt_in_handler_close():
+    '''A KeyboardInterrupt raised while closing a logger handler must not escape.'''
+    manager = MPManager()
+
+    class KBIHandler(logging.Handler):
+        def close(self):
+            raise KeyboardInterrupt()
+
+    manager._MPManager__logger.addHandler(KBIHandler())
+
+    MPManager.stop()
+    assert _ManagerSingleton.has_cls(MPManager) is False
+
+
+def test_stop_swallows_keyboard_interrupt_in_board_stop():
+    '''A KeyboardInterrupt raised while stopping the dashboard must not escape.'''
+    MPManager().get_dashboard()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.Board.stop",
+               side_effect=_raise_kbi):
+        MPManager.stop()
+    assert _ManagerSingleton.has_cls(MPManager) is False
+
+
+def test_stop_swallows_keyboard_interrupt_in_manager_shutdown():
+    '''A KeyboardInterrupt raised while shutting down the multiprocessing
+    manager must not escape.'''
+    manager = MPManager()
+    # Force the manager_server branch on so shutdown() is reached.
+    manager._MPManager__manager_server = True
+
+    with patch.object(manager._MPManager__manager, "shutdown",
+                      side_effect=_raise_kbi):
+        MPManager.stop()
+    assert _ManagerSingleton.has_cls(MPManager) is False
+
+
+def test_stop_runs_housekeeping_after_interrupt():
+    '''Even if cleanup is interrupted, atexit.unregister must still run so the
+    handler is not left registered for a second invocation.'''
+    MPManager()
+    with patch("os.remove", side_effect=_raise_kbi), \
+            patch("atexit.unregister") as unreg:
+        MPManager.stop()
+        unreg.assert_called_once_with(MPManager.stop)
+    assert _ManagerSingleton.has_cls(MPManager) is False
