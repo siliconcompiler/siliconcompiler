@@ -296,6 +296,20 @@ def test_halt_with_reason(project, monkeypatch, caplog):
     assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
     assert os.path.exists("build/testdesign/job0/steptwo/0/outputs/testdesign.pkg.json")
     assert "failed due to error" in caplog.text
+    assert "Halting steptwo/0 due to errors" in caplog.text
+
+
+def test_halt_with_errmsg_replaces_default(project, monkeypatch, caplog):
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with pytest.raises(SystemExit):
+        node.halt(errmsg="custom halting message")
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+    assert "custom halting message" in caplog.text
+    # errmsg replaces the default "Halting..." line.
+    assert "Halting steptwo/0 due to errors" not in caplog.text
 
 
 def test_setup(project):
@@ -1616,6 +1630,26 @@ def test_run_failed_to_execute(project, monkeypatch, caplog):
 
     assert "thiserrorisraised" in caplog.text
     assert "Halting stepone/0 due to errors" in caplog.text
+
+
+def test_run_keyboard_interrupt_during_execute(project, monkeypatch, caplog):
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.INFO)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
+        call_exec.side_effect = KeyboardInterrupt()
+        with pytest.raises(SystemExit):
+            node.run()
+        call_exec.assert_called_once()
+
+    assert project.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
+
+    assert "Execution interrupted for stepone/0" in caplog.text
+    # The interrupt path passes errmsg=, which replaces the default "Halting..." line.
+    assert "Halting stepone/0 due to errors" not in caplog.text
 
 
 def test_run_failed_to_execute_initial_save_has_error(project):
