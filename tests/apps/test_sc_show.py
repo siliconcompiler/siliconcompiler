@@ -801,7 +801,7 @@ def _capture_show_run(monkeypatch):
 
 
 def test_sc_show_does_not_call_reset_job_params(monkeypatch, make_manifests, asic_gcd, tmp_path):
-    '''show() must override __reset_job_params on the copied project before run().'''
+    '''show() must mark the copied project to skip __reset_job_params before run().'''
     make_manifests(asic_gcd)
 
     gds_file = tmp_path / "layout.gds"
@@ -814,9 +814,9 @@ def test_sc_show_does_not_call_reset_job_params(monkeypatch, make_manifests, asi
     proj = captured.get('copy')
     assert proj is not None, 'show() did not reach proj = self.copy()'
     assert captured.get('run_self') is proj, 'show() did not call proj.run()'
-    # The override must live on the copy as an instance attribute that shadows
-    # the bound method, and it must be a no-op.
-    assert '_Project__reset_job_params' in proj.__dict__
+    # The skip flag must live on the copy as an instance attribute and be True,
+    # so that __reset_job_params becomes a no-op.
+    assert getattr(proj, '_Project__skipreset', False) is True
     assert proj._Project__reset_job_params() is None
 
 
@@ -854,9 +854,9 @@ def test_sc_show_preserves_job_parameters(monkeypatch, make_manifests, asic_gcd,
     proj = captured.get('copy')
     assert proj is not None
     assert captured.get('run_self') is proj
-    # The reset call inside run() must hit the no-op lambda, not the real method.
+    # The reset call inside run() must hit the no-op early-return path, not run the real loop.
     assert reset_called == [None]
-    assert '_Project__reset_job_params' in proj.__dict__
+    assert getattr(proj, '_Project__skipreset', False) is True
     # Original's args are unaffected because the copy is independent.
     assert asic_gcd.get("arg", "step") == "custom_step"
     assert asic_gcd.get("arg", "index") == "42"
@@ -865,7 +865,7 @@ def test_sc_show_preserves_job_parameters(monkeypatch, make_manifests, asic_gcd,
 @pytest.mark.timeout(90)
 def test_sc_show_with_screenshot_does_not_reset_params(monkeypatch, make_manifests,
                                                        asic_gcd, tmp_path):
-    '''The reset override is installed on the copy in screenshot mode too.'''
+    '''The reset skip flag is installed on the copy in screenshot mode too.'''
     make_manifests(asic_gcd)
 
     asic_gcd.set("arg", "step", "screenshot_step")
@@ -880,7 +880,7 @@ def test_sc_show_with_screenshot_does_not_reset_params(monkeypatch, make_manifes
     proj = captured.get('copy')
     assert proj is not None
     assert captured.get('run_self') is proj
-    assert '_Project__reset_job_params' in proj.__dict__
+    assert getattr(proj, '_Project__skipreset', False) is True
     assert proj._Project__reset_job_params() is None
     # Original project's job arg is untouched.
     assert asic_gcd.get("arg", "step") == "screenshot_step"
@@ -889,7 +889,7 @@ def test_sc_show_with_screenshot_does_not_reset_params(monkeypatch, make_manifes
 @pytest.mark.timeout(90)
 def test_sc_show_with_file_does_not_reset_params(monkeypatch, make_manifests,
                                                  asic_gcd, tmp_path):
-    '''The reset override is installed on the copy when showing a specific file.'''
+    '''The reset skip flag is installed on the copy when showing a specific file.'''
     make_manifests(asic_gcd)
 
     asic_gcd.set("arg", "index", "99")
@@ -904,6 +904,6 @@ def test_sc_show_with_file_does_not_reset_params(monkeypatch, make_manifests,
     proj = captured.get('copy')
     assert proj is not None
     assert captured.get('run_self') is proj
-    assert '_Project__reset_job_params' in proj.__dict__
+    assert getattr(proj, '_Project__skipreset', False) is True
     assert proj._Project__reset_job_params() is None
     assert asic_gcd.get("arg", "index") == "99"
