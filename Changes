@@ -8,6 +8,26 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.8 (2026-05-04)
+=========================================
+
+**Major:**
+
+ * Added `OpenTask` as parent class to `ShowTask` and `ScreenshotTask`, which enable opening in the commandline.
+
+**Minor:**
+
+ * Added `.write_depgraph` to Project to enable displaying the dependency graph of a project.
+ * Fixed calls to `sc-issue` to remove the requirement to add `-cfg`.
+ * Fixed file collection to avoid collecting a file twice.
+ * Updated log reading handling to better handle tools that emit partial lines.
+ * Fixed git file resolver when LFS is used.
+
+ * Tools:
+
+  * openroad: added support for `OpenTask` and reordered the creation of placement blockages.
+
+
 SiliconCompiler 0.37.7 (2026-04-21)
 =========================================
 
