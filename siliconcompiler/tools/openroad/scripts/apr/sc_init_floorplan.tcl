@@ -424,8 +424,17 @@ if { [llength [sc_cfg_tool_task_get var padringfileset]] > 0 } {
 ###############################
 # Check pin placement
 ###############################
+set sc_unplaced_pins "unknown"
+if { [sc_cfg_exists constraint pin] || [llength [sc_cfg_tool_task_get var padringfileset]] > 0 } {
+    set sc_unplaced_pins [sc_design_report_unplaced_pins]
+}
 if { [sc_cfg_tool_task_get var assert_all_pins_placed] } {
-    sc_design_assert_ios_fixed
+    if { $sc_unplaced_pins == "unknown" } {
+        set sc_unplaced_pins [sc_design_report_unplaced_pins]
+    }
+    if { $sc_unplaced_pins } {
+        utl::error FLW 1 "Design has unplaced pins. Please fix all pins before proceeding."
+    }
 }
 
 if { [sc_check_version 24 3 7421] } {
