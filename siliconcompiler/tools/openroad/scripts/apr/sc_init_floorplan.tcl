@@ -141,6 +141,7 @@ foreach blockage [sc_cfg_tool_task_get var routingblockage] {
 
 # If manual macro placement is provided use that first
 if { [sc_cfg_exists constraint component] } {
+    set place_errors 0
     set sc_snap_strategy [sc_cfg_tool_task_get {var} ifp_snap_strategy]
 
     if { $sc_snap_strategy == "manufacturing_grid" } {
@@ -212,7 +213,9 @@ if { [sc_cfg_exists constraint component] } {
         set stainst [get_cells -quiet $name]
         if { $stainst != {} } {
             if { [llength $stainst] > 1 } {
-                utl::error FLW 1 "Multiple cells found for instance $name"
+                incr place_errors
+                catch { utl::error FLW 1 "Multiple cells found for instance $name" }
+                continue
             }
             set inst [sta::sta_to_db_inst $stainst]
         } else {
@@ -225,8 +228,12 @@ if { [sc_cfg_exists constraint component] } {
             utl::warn FLW 1 "Could not find instance: $name"
 
             if { $cell == "" } {
-                utl::error FLW 1 \
-                    "Unable to create instance for $name as the cell has not been specified"
+                incr place_errors
+                catch {
+                    utl::error FLW 1 \
+                        "Unable to create instance for $name as the cell has not been specified"
+                }
+                continue
             }
         } else {
             set cell ""
@@ -270,6 +277,10 @@ if { [sc_cfg_exists constraint component] } {
     }
 
     sc_print_macro_information $sc_placed_insts
+
+    if { $place_errors > 0 } {
+        utl::error FLW 1 "There were $place_errors errors encountered during macro placement."
+    }
 }
 
 ###############################
