@@ -279,6 +279,7 @@ set sc_hpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_horizont
 set sc_vpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_vertical]]
 
 if { [sc_cfg_exists constraint pin] } {
+    set pin_errors 0
     source [sc_cfg_tool_task_get var sc_pin_constraints_tcl]
 
     proc sc_pin_print { arg } { utl::warn FLW 1 $arg }
@@ -336,10 +337,17 @@ if { [sc_cfg_exists constraint pin] } {
         } else {
             utl::error FLW 1 "Shape $shape on pin $pin is not supported."
         }
-        place_pin -pin_name $pin \
-            -layer $layer \
-            -location "$x_loc $y_loc" \
-            {*}$place_args
+
+        if {
+            [catch {
+                place_pin -pin_name $pin \
+                    -layer $layer \
+                    -location "$x_loc $y_loc" \
+                    {*}$place_args
+            }]
+        } {
+            incr pin_errors
+        }
     }
 
     dict for {side layer_pins} $pin_order {
@@ -382,12 +390,22 @@ if { [sc_cfg_exists constraint pin] } {
                     }
                 }
 
-                place_pin -pin_name $name \
-                    -layer $layer \
-                    -location "$x_loc $y_loc" \
-                    -force_to_die_boundary
+                if {
+                    [catch {
+                        place_pin -pin_name $name \
+                            -layer $layer \
+                            -location "$x_loc $y_loc" \
+                            -force_to_die_boundary
+                    }]
+                } {
+                    incr pin_errors
+                }
             }
         }
+    }
+
+    if { $pin_errors > 0 } {
+        utl::error FLW 1 "There were $pin_errors errors encountered during pin placement."
     }
 }
 
