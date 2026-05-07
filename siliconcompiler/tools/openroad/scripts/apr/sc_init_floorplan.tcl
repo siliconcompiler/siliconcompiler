@@ -432,7 +432,7 @@ if { [sc_cfg_tool_task_get var assert_all_pins_placed] } {
     if { $sc_unplaced_pins == "unknown" } {
         set sc_unplaced_pins [sc_design_report_unplaced_pins]
     }
-    if { $sc_unplaced_pins } {
+    if { $sc_unplaced_pins > 0 } {
         utl::error FLW 1 "Design has unplaced pins. Please fix all pins before proceeding."
     }
 }
