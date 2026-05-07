@@ -589,6 +589,99 @@ def test_runtime_nodes_from_to():
     assert runtime.get_execution_order() == ((('place', '0'),), (('cts', '0'),))
 
 
+def test_runtime_nodes_from_with_bypass_edge():
+    # Regression: when a downstream node has a bypass edge from an entry node
+    # that does not pass through the `from` step, the runtime graph must still
+    # only contain nodes at or after `from`. A previous bug in __walk_graph
+    # mutated a shared path list across sibling recursive calls, which caused
+    # the bypass entry chain to leak into the returned set when a sibling
+    # walk subsequently reached the `from` node.
+    flow = Flowgraph("bypass")
+    flow.node("entry_bypass", NOPTask())
+    flow.node("entry_main", NOPTask())
+    flow.node("upstream", NOPTask())
+    flow.node("from_node", NOPTask())
+    flow.node("converge", NOPTask())
+    flow.node("exit_node", NOPTask())
+
+    # Main chain: entry_main -> upstream -> from_node -> converge -> exit_node
+    flow.edge("entry_main", "upstream")
+    flow.edge("upstream", "from_node")
+    flow.edge("from_node", "converge")
+    flow.edge("converge", "exit_node")
+
+    # Bypass edge into converge that does NOT pass through from_node.
+    # Add it BEFORE the from_node edge so converge's input list visits the
+    # bypass first, exercising the path-mutation bug.
+    flow_bypass = Flowgraph("bypass2")
+    flow_bypass.node("entry_bypass", NOPTask())
+    flow_bypass.node("entry_main", NOPTask())
+    flow_bypass.node("upstream", NOPTask())
+    flow_bypass.node("from_node", NOPTask())
+    flow_bypass.node("converge", NOPTask())
+    flow_bypass.node("exit_node", NOPTask())
+    flow_bypass.edge("entry_bypass", "converge")  # bypass first
+    flow_bypass.edge("entry_main", "upstream")
+    flow_bypass.edge("upstream", "from_node")
+    flow_bypass.edge("from_node", "converge")
+    flow_bypass.edge("converge", "exit_node")
+
+    runtime = RuntimeFlowgraph(flow_bypass, from_steps=["from_node"])
+    # Must include only from_node and downstream; must NOT include
+    # entry_bypass, entry_main, or upstream.
+    assert runtime.get_nodes() == (
+        ('converge', '0'), ('exit_node', '0'), ('from_node', '0'))
+    assert runtime.get_entry_nodes() == (('from_node', '0'),)
+
+
+def test_runtime_nodes_from_with_upstream_chain_bypass():
+    # Regression: stronger version of the bypass bug — a multi-step upstream
+    # chain (entry -> A -> B -> C) feeds into a downstream node via a bypass
+    # edge, while the linear chain also leads to `from`. Without the fix,
+    # the upstream chain (A, B, C) leaks into the runtime nodes.
+    flow = Flowgraph("upstream_bypass")
+    flow.node("entry", NOPTask())
+    flow.node("a", NOPTask())
+    flow.node("b", NOPTask())
+    flow.node("c", NOPTask())
+    flow.node("from_node", NOPTask())
+    flow.node("downstream", NOPTask())
+    flow.node("exit_node", NOPTask())
+
+    # entry -> a -> b -> c -> from_node -> downstream -> exit_node  (main chain)
+    flow.edge("entry", "a")
+    flow.edge("a", "b")
+    flow.edge("b", "c")
+    flow.edge("c", "from_node")
+    flow.edge("from_node", "downstream")
+    flow.edge("downstream", "exit_node")
+
+    # Bypass: c also feeds directly into downstream, skipping from_node.
+    # Add this edge first so walk visits it before the from_node edge.
+    # Use a new flow built in the right order to control input ordering.
+    flow2 = Flowgraph("upstream_bypass2")
+    flow2.node("entry", NOPTask())
+    flow2.node("a", NOPTask())
+    flow2.node("b", NOPTask())
+    flow2.node("c", NOPTask())
+    flow2.node("from_node", NOPTask())
+    flow2.node("downstream", NOPTask())
+    flow2.node("exit_node", NOPTask())
+    flow2.edge("entry", "a")
+    flow2.edge("a", "b")
+    flow2.edge("b", "c")
+    flow2.edge("c", "downstream")  # bypass — added BEFORE from_node edge
+    flow2.edge("c", "from_node")
+    flow2.edge("from_node", "downstream")
+    flow2.edge("downstream", "exit_node")
+
+    runtime = RuntimeFlowgraph(flow2, from_steps=["from_node"])
+    # Must NOT include entry, a, b, c — they are upstream of from_node.
+    assert runtime.get_nodes() == (
+        ('downstream', '0'), ('exit_node', '0'), ('from_node', '0'))
+    assert runtime.get_entry_nodes() == (('from_node', '0'),)
+
+
 def test_runtime_get_nodes_args_none(large_flow):
     runtime = RuntimeFlowgraph(large_flow, args=(None, None))
     assert runtime.get_entry_nodes() == (('stepone', '0'), ('stepone', '1'), ('stepone', '2'))
