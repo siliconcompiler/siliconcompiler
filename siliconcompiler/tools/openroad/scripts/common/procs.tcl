@@ -293,21 +293,24 @@ proc sc_design_has_placeable_ios { } {
 }
 
 proc sc_design_report_unplaced_pins { } {
-    set unfixed_ios false
+    set unfixed_ios 0
     foreach bterm [[ord::get_db_block] getBTerms] {
         if {
             [$bterm getFirstPinPlacementStatus] != "FIRM" &&
             [$bterm getFirstPinPlacementStatus] != "LOCKED"
         } {
-            set unfixed_ios true
+            incr unfixed_ios
             utl::warn FLW 2 "IO terminal [$bterm getName] has not been placed."
         }
+    }
+    if { $unfixed_ios > 0 } {
+        utl::warn FLW 3 "Total unplaced IOs: $unfixed_ios"
     }
     return $unfixed_ios
 }
 
 proc sc_design_assert_ios_fixed { } {
-    if { [sc_design_report_unplaced_pins] } {
+    if { [sc_design_report_unplaced_pins] > 0 } {
         utl::error FLW 1 "Design has unfixed IOs. Please fix all IOs before proceeding."
     }
 }
