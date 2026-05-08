@@ -322,71 +322,85 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     # cleanup that restores raw-mode termios state, the SIGWINCH
     # handler, and closes master_fd / tty_fd. Without this, a failed
     # open would leave the user's terminal stuck in raw mode.
+    #
+    # The outer try/finally guarantees ``os.waitpid`` runs even if the
+    # log open/close raises — the child of pty.fork() must always be
+    # reaped, otherwise it lingers as a zombie.
     log_writer = None
+    status = None
     try:
-        log_writer = open(log_path, 'wb')
-        while True:
-            try:
-                rlist, _, _ = select.select(readable, [], [])
-            except (InterruptedError, OSError):
-                continue
-
-            if master_fd in rlist:
+        try:
+            log_writer = open(log_path, 'wb')
+            while True:
                 try:
-                    data = os.read(master_fd, 4096)
-                except OSError:
-                    data = b''
-                if not data:
-                    break
-                if parent_out >= 0:
+                    rlist, _, _ = select.select(readable, [], [])
+                except (InterruptedError, OSError):
+                    continue
+
+                if master_fd in rlist:
                     try:
-                        os.write(parent_out, data)
+                        data = os.read(master_fd, 4096)
+                    except OSError:
+                        data = b''
+                    if not data:
+                        break
+                    if parent_out >= 0:
+                        try:
+                            os.write(parent_out, data)
+                        except OSError:
+                            pass
+                    try:
+                        log_writer.write(data)
+                        log_writer.flush()
                     except OSError:
                         pass
-                try:
-                    log_writer.write(data)
-                    log_writer.flush()
-                except OSError:
-                    pass
 
-            if parent_in in rlist:
+                if parent_in in rlist:
+                    try:
+                        data = os.read(parent_in, 4096)
+                    except OSError:
+                        data = b''
+                    if not data:
+                        readable.remove(parent_in)
+                        continue
+                    try:
+                        os.write(master_fd, data)
+                    except OSError:
+                        break
+        finally:
+            if old_attrs is not None:
                 try:
-                    data = os.read(parent_in, 4096)
-                except OSError:
-                    data = b''
-                if not data:
-                    readable.remove(parent_in)
-                    continue
+                    termios.tcsetattr(parent_in, termios.TCSADRAIN, old_attrs)
+                except termios.error:
+                    pass
+            if old_winch is not None:
                 try:
-                    os.write(master_fd, data)
-                except OSError:
-                    break
-    finally:
-        if old_attrs is not None:
+                    signal.signal(signal.SIGWINCH, old_winch)
+                except (ValueError, OSError):
+                    pass
             try:
-                termios.tcsetattr(parent_in, termios.TCSADRAIN, old_attrs)
-            except termios.error:
-                pass
-        if old_winch is not None:
-            try:
-                signal.signal(signal.SIGWINCH, old_winch)
-            except (ValueError, OSError):
-                pass
-        try:
-            os.close(master_fd)
-        except OSError:
-            pass
-        if tty_fd >= 0:
-            try:
-                os.close(tty_fd)
+                os.close(master_fd)
             except OSError:
                 pass
-        if log_writer is not None:
-            log_writer.close()
+            if tty_fd >= 0:
+                try:
+                    os.close(tty_fd)
+                except OSError:
+                    pass
+            if log_writer is not None:
+                # Swallow close-time I/O errors so the inner finally
+                # can't propagate and skip the waitpid below.
+                try:
+                    log_writer.close()
+                except OSError:
+                    pass
+    finally:
+        try:
+            _, status = os.waitpid(pid, 0)
+        except OSError:
+            status = None
 
-    try:
-        _, status = os.waitpid(pid, 0)
-    except OSError:
+    if status is None:
         return 1
     return os.waitstatus_to_exitcode(status)
 
