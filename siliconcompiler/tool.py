@@ -317,6 +317,27 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     if parent_in >= 0:
         readable.append(parent_in)
 
+    def _write_all(fd, data):
+        # ``os.write`` is a thin wrapper over ``write(2)`` and can return
+        # fewer bytes than requested, especially on PTYs whose line-
+        # discipline buffer is partly full. Loop until the whole buffer
+        # is consumed. Returns True on full write, False if any byte
+        # couldn't be written; caller decides how to react.
+        written = 0
+        n = len(data)
+        while written < n:
+            try:
+                chunk = os.write(fd, data[written:])
+            except InterruptedError:
+                continue
+            except OSError:
+                return False
+            if chunk == 0:
+                # No progress — treat as failure rather than spin.
+                return False
+            written += chunk
+        return True
+
     # ``log_writer`` is opened inside the try block so that an open()
     # failure (disk full, permission denied, ...) can't bypass the
     # cleanup that restores raw-mode termios state, the SIGWINCH
@@ -345,10 +366,9 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
                     if not data:
                         break
                     if parent_out >= 0:
-                        try:
-                            os.write(parent_out, data)
-                        except OSError:
-                            pass
+                        # Best-effort: failures writing to the user's
+                        # terminal are ignored (matches prior behaviour).
+                        _write_all(parent_out, data)
                     try:
                         log_writer.write(data)
                         log_writer.flush()
@@ -363,9 +383,9 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
                     if not data:
                         readable.remove(parent_in)
                         continue
-                    try:
-                        os.write(master_fd, data)
-                    except OSError:
+                    if not _write_all(master_fd, data):
+                        # Child PTY closed / errored — exit the loop and
+                        # let the cleanup + waitpid path run.
                         break
         finally:
             if old_attrs is not None:
