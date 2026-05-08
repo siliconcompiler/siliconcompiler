@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.9 (2026-05-08)
+=========================================
+
+**Minor:**
+
+ * Made the breakpoint interface more robust and fixed issues with text getting garbled.
+ * Fixed issue when setting `option,from` where flowgraph would ignore it if the step appeared in a leg with parallel paths.
+
+ * Tools:
+
+  * openroad: added better handling of pin placement.
+
+
 SiliconCompiler 0.37.8 (2026-05-04)
 =========================================
 
