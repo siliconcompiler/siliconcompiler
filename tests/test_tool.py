@@ -10,7 +10,7 @@ import time
 
 import os.path
 
-from unittest.mock import patch, ANY, MagicMock
+from unittest.mock import patch, MagicMock
 
 from siliconcompiler import Flowgraph
 from siliconcompiler import OpenTask, ShowTask, ScreenshotTask
@@ -1500,11 +1500,14 @@ def test_run_task_breakpoint_valid(running_node, monkeypatch):
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        with patch("pty.spawn", autospec=True) as spawn:
-            spawn.return_value = 1
+        with patch.object(dut_tool, "_run_breakpoint", autospec=True) as runner:
+            runner.return_value = 1
             assert runtool.run_task('.', False, True, None, None) == 1
-            spawn.assert_called_once()
-            spawn.assert_called_with(["found/exe"], ANY)
+            runner.assert_called_once()
+            args, _ = runner.call_args
+            assert args[0] == "found/exe"
+            assert args[1] == []
+            assert args[2].endswith("running.log")
 
 
 def test_run_task_breakpoint_not_used(running_node, monkeypatch):
@@ -1528,10 +1531,351 @@ def test_run_task_breakpoint_not_used(running_node, monkeypatch):
     monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
 
     with running_node.task.runtime(running_node) as runtool:
-        with patch("pty.spawn", autospec=True) as spawn:
-            spawn.return_value = 1
+        with patch.object(dut_tool, "_run_breakpoint", autospec=True) as runner:
+            runner.return_value = 1
             assert runtool.run_task('.', False, True, None, None) == 1
-            spawn.assert_not_called()
+            runner.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Tests for _run_breakpoint (PTY runner)
+# ---------------------------------------------------------------------------
+
+def _block_dev_tty(monkeypatch):
+    """Prevent _run_breakpoint from grabbing the real terminal during tests.
+
+    ``_run_breakpoint`` opens ``/dev/tty`` to bypass multiprocessing's stdin
+    redirection. In a real interactive shell that would let tests put the
+    user's actual terminal into raw mode, which is rude even if cleanup
+    restores it. Force the open to fail so tests fall back to ``sys.stdin``
+    where the existing fixtures keep things hermetic.
+    """
+    real_open = dut_tool.os.open
+
+    def fake_open(path, flags, *args, **kwargs):
+        if path == "/dev/tty":
+            raise OSError("blocked in test")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(dut_tool.os, "open", fake_open)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_logs_raw_output(tmp_path, monkeypatch):
+    """End-to-end: log captures the raw byte stream verbatim.
+
+    Filtering would lose information for in-place line edits (history
+    recall, completion) so the log is intentionally a faithful recording.
+    Use ``cat`` or ``less -R`` to view the rendered form.
+    """
+    pytest.importorskip('pty')
+    _block_dev_tty(monkeypatch)
+
+    # Force the runner onto the no-tty code path: select() will then watch
+    # only the master fd, no stdin forwarding, and the test stays hermetic.
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    log_path = str(tmp_path / "bp.log")
+
+    # printf is universally available on POSIX and lets us emit raw escape
+    # bytes without depending on the shell's quoting.
+    rc = dut_tool._run_breakpoint(
+        "/usr/bin/printf",
+        ["\\033[31mERR\\033[0m hello\\n"],
+        log_path)
+
+    assert rc == 0
+    with open(log_path, "rb") as f:
+        contents = f.read()
+    # Raw bytes preserved: both the ANSI escape sequences and the payload.
+    assert b"\x1b[31m" in contents
+    assert b"\x1b[0m" in contents
+    assert b"ERR" in contents
+    assert b"hello" in contents
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_propagates_child_exit_code(tmp_path, monkeypatch):
+    pytest.importorskip('pty')
+    _block_dev_tty(monkeypatch)
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    log_path = str(tmp_path / "bp.log")
+    # /bin/sh -c 'exit 7' — verifies waitstatus_to_exitcode decoding
+    rc = dut_tool._run_breakpoint("/bin/sh", ["-c", "exit 7"], log_path)
+    assert rc == 7
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_missing_executable_returns_127(tmp_path, monkeypatch):
+    """If execvp fails in the child, the parent should see exit code 127."""
+    pytest.importorskip('pty')
+    _block_dev_tty(monkeypatch)
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    log_path = str(tmp_path / "bp.log")
+    rc = dut_tool._run_breakpoint(
+        "/nonexistent/definitely/not/a/real/binary",
+        [],
+        log_path)
+    assert rc == 127
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_winsize_propagated_when_tty(tmp_path, monkeypatch):
+    """When parent stdin is a TTY, winsize is copied to the child PTY."""
+    pytest.importorskip('pty')
+    import fcntl
+    import termios
+    import tty
+    import signal
+
+    # Block /dev/tty and inject a controllable fd so we exercise the TTY
+    # code path without touching the user's real terminal.
+    devnull_fd = os.open(os.devnull, os.O_RDONLY)
+    real_open = dut_tool.os.open
+
+    def fake_open(path, flags, *args, **kwargs):
+        if path == "/dev/tty":
+            raise OSError("blocked in test")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(dut_tool.os, "open", fake_open)
+
+    class _FakeStdin:
+        def fileno(self):
+            return devnull_fd
+
+    monkeypatch.setattr(dut_tool.sys, "stdin", _FakeStdin())
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: True)
+
+    captured = {"gets": 0, "sets": 0}
+    fake_winsize = b"\x18\x00\x50\x00\x00\x00\x00\x00"  # 24 rows, 80 cols
+
+    real_ioctl = fcntl.ioctl
+
+    def fake_ioctl(fd, request, arg=0, mutate_flag=False):
+        if request == termios.TIOCGWINSZ:
+            captured["gets"] += 1
+            return fake_winsize
+        if request == termios.TIOCSWINSZ:
+            captured["sets"] += 1
+            assert arg == fake_winsize
+            return arg
+        return real_ioctl(fd, request, arg, mutate_flag)
+
+    monkeypatch.setattr(fcntl, "ioctl", fake_ioctl)
+    # Skip raw mode + signal hooks — those touch the real terminal.
+    monkeypatch.setattr(termios, "tcgetattr", lambda fd: None)
+    monkeypatch.setattr(termios, "tcsetattr", lambda fd, when, attrs: None)
+    monkeypatch.setattr(tty, "setraw", lambda fd: None)
+    monkeypatch.setattr(signal, "signal", lambda *a, **kw: None)
+
+    log_path = str(tmp_path / "bp.log")
+    try:
+        rc = dut_tool._run_breakpoint("/bin/sh", ["-c", "exit 0"], log_path)
+    finally:
+        os.close(devnull_fd)
+
+    assert rc == 0
+    assert captured["gets"] >= 1, "TIOCGWINSZ should be queried from parent"
+    assert captured["sets"] >= 1, "TIOCSWINSZ should be applied to child PTY"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_no_winsize_when_not_tty(tmp_path, monkeypatch):
+    """Non-TTY parent: skip winsize and raw-mode plumbing entirely."""
+    pytest.importorskip('pty')
+    import fcntl
+    import termios
+    import tty
+
+    _block_dev_tty(monkeypatch)
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    called = {"gets": 0, "sets": 0, "raw": 0}
+
+    def fake_ioctl(*args, **kwargs):
+        request = args[1] if len(args) > 1 else None
+        if request == termios.TIOCGWINSZ:
+            called["gets"] += 1
+        elif request == termios.TIOCSWINSZ:
+            called["sets"] += 1
+        return b"\x00" * 8
+
+    monkeypatch.setattr(fcntl, "ioctl", fake_ioctl)
+    monkeypatch.setattr(tty, "setraw",
+                        lambda fd: called.__setitem__("raw", called["raw"] + 1))
+
+    log_path = str(tmp_path / "bp.log")
+    rc = dut_tool._run_breakpoint("/bin/sh", ["-c", "exit 0"], log_path)
+
+    assert rc == 0
+    assert called["gets"] == 0
+    assert called["sets"] == 0
+    assert called["raw"] == 0
+
+
+def test_run_breakpoint_raises_when_pty_unavailable(monkeypatch, tmp_path):
+    monkeypatch.setattr(dut_tool, "pty", None)
+    with pytest.raises(RuntimeError, match=r"pty module is not available"):
+        dut_tool._run_breakpoint("/bin/true", [], str(tmp_path / "bp.log"))
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_forwards_keystrokes_via_dev_tty(tmp_path, monkeypatch):
+    """End-to-end: arrows, Tab, printable chars, and Enter all reach the child.
+
+    Regression test for the multiprocessing-worker case: the worker's
+    ``sys.stdin`` is reassigned to wrap /dev/null (CPython
+    ``multiprocessing/util._close_stdin``) so reading from it returns
+    instant EOF. ``_run_breakpoint`` must instead read from ``/dev/tty``
+    (or, failing that, fd 0 directly) so keystrokes still reach the
+    child.
+
+    We simulate that environment here by forcing ``sys.stdin`` to wrap
+    /dev/null and providing a controllable fake ``/dev/tty`` whose
+    "user side" we can drive from the test.
+    """
+    pytest.importorskip('pty')
+    import fcntl
+    import termios
+    import tty as _tty_mod
+    import signal as _signal_mod
+
+    # Simulate the multiprocessing-worker stdin reassignment.
+    devnull_fd = os.open(os.devnull, os.O_RDONLY)
+
+    class _DevNullStdin:
+        def fileno(self):
+            return devnull_fd
+
+    monkeypatch.setattr(dut_tool.sys, "stdin", _DevNullStdin())
+    # Force the /dev/tty path (don't fall back to fd 0, which would be
+    # the test runner's own stdin and is not controllable from here).
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    # Build a fake user terminal: master/slave pair we drive from the
+    # test (master) while the runner sees the slave as its /dev/tty.
+    user_master, user_slave = os.openpty()
+    real_open = dut_tool.os.open
+
+    def fake_open(path, flags, *args, **kwargs):
+        if path == "/dev/tty":
+            # Hand out a dup so the runner's close() doesn't kill our handle.
+            return os.dup(user_slave)
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(dut_tool.os, "open", fake_open)
+    # Suppress side effects on user_slave (raw mode, signal hooks,
+    # winsize ioctls) — the test isn't validating those here.
+    monkeypatch.setattr(termios, "tcgetattr", lambda fd: None)
+    monkeypatch.setattr(termios, "tcsetattr", lambda *a, **kw: None)
+    monkeypatch.setattr(_tty_mod, "setraw", lambda fd: None)
+    monkeypatch.setattr(_signal_mod, "signal", lambda *a, **kw: None)
+    monkeypatch.setattr(fcntl, "ioctl", lambda *a, **kw: b"\x00" * 8)
+
+    # The "user" types: arrow up, arrow down, Tab, "hello", Enter.
+    # Cooked-mode line discipline in the inner PTY translates \r to \n
+    # before delivering the line to the child.
+    user_input = b"\x1b[A\x1b[B\thello\r"
+    os.write(user_master, user_input)
+
+    log_path = str(tmp_path / "bp.log")
+    # A small Python child gives us deterministic behaviour across
+    # systems and Python versions: read one line, write it back, exit.
+    # (Avoids subtle differences in coreutils ``head`` flushing.)
+    child_script = (
+        "import sys; "
+        "data = sys.stdin.buffer.readline(); "
+        "sys.stdout.buffer.write(data); "
+        "sys.stdout.flush()"
+    )
+    rc = dut_tool._run_breakpoint(
+        sys.executable, ["-c", child_script], log_path)
+
+    # Drain whatever the runner wrote back to the "user terminal".
+    fcntl.fcntl(user_master, fcntl.F_SETFL, os.O_NONBLOCK)
+    seen = b""
+    while True:
+        try:
+            chunk = os.read(user_master, 4096)
+        except BlockingIOError:
+            break
+        if not chunk:
+            break
+        seen += chunk
+
+    os.close(user_master)
+    os.close(user_slave)
+    os.close(devnull_fd)
+
+    # The exit code can legitimately be 0 (clean exit) or negative
+    # (signal exit — typically -1 / SIGHUP when our cleanup closes the
+    # inner PTY master before the child has finished tearing down).
+    # The latter is observed intermittently on Python 3.14 with
+    # multi-threaded pytest-xdist (forkpty emits a DeprecationWarning
+    # about deadlocks in that environment). What this test actually
+    # validates is keystroke flow, so we accept either outcome and let
+    # the byte assertions below catch real regressions.
+    assert rc == 0 or rc < 0, f"unexpected rc: {rc}"
+    # Each class of byte must appear in the round-tripped stream:
+    # printable text, arrow-key escape sequences, and Tab. (Enter
+    # arrives at the child as \n after ICRNL translation, which is
+    # fine — we're verifying the bytes flow, not the line discipline.)
+    assert b"hello" in seen, f"printable text missing from {seen!r}"
+    assert b"\x1b[A" in seen, f"up-arrow escape missing from {seen!r}"
+    assert b"\x1b[B" in seen, f"down-arrow escape missing from {seen!r}"
+    assert b"\t" in seen, f"tab missing from {seen!r}"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_falls_back_to_fd0_when_dev_tty_unavailable(
+        tmp_path, monkeypatch):
+    """When /dev/tty can't be opened (CI, daemon), fall back to fd 0.
+
+    Mirrors what ``pty.spawn`` did: read from STDIN_FILENO directly,
+    not from ``sys.stdin.fileno()`` (which may have been reassigned by
+    the multiprocessing bootstrap to a /dev/null fd).
+    """
+    pytest.importorskip('pty')
+    import fcntl
+    import termios
+    import tty as _tty_mod
+    import signal as _signal_mod
+
+    _block_dev_tty(monkeypatch)
+
+    # Make fd 0 "look like a tty" so we exercise the fd-0 fallback
+    # branch (otherwise the code falls through to sys.stdin.fileno()).
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: fd == 0 or fd == 1)
+    # Suppress all terminal-mode side effects on the test runner's
+    # actual fd 0/1 — we only care about which fd the runner picked.
+    monkeypatch.setattr(termios, "tcgetattr", lambda fd: None)
+    monkeypatch.setattr(termios, "tcsetattr", lambda *a, **kw: None)
+    monkeypatch.setattr(_tty_mod, "setraw", lambda fd: None)
+    monkeypatch.setattr(_signal_mod, "signal", lambda *a, **kw: None)
+    monkeypatch.setattr(fcntl, "ioctl", lambda *a, **kw: b"\x00" * 8)
+
+    # Track which fd select.select watches — proves we picked fd 0,
+    # not the redirected sys.stdin fd.
+    seen_fds = []
+
+    def fake_select(rlist, wlist, xlist, *args):
+        seen_fds.extend(rlist)
+        # Make master_fd EOF immediately so the loop exits without
+        # trying to read fd 0 (which is the pytest runner's stdin).
+        return [fd for fd in rlist if fd != 0], [], []
+
+    monkeypatch.setattr(__import__('select'), "select", fake_select)
+
+    log_path = str(tmp_path / "bp.log")
+    rc = dut_tool._run_breakpoint("/bin/sh", ["-c", "exit 0"], log_path)
+
+    assert rc == 0
+    assert 0 in seen_fds, (
+        "Expected runner to watch fd 0 directly when /dev/tty unavailable, "
+        f"saw fds: {seen_fds}")
 
 
 def test_run_task_run(running_node):

@@ -153,6 +153,278 @@ def _split_io_lines(buffer: str) -> Tuple[List[str], str]:
     return lines, buffer[start:]
 
 
+def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
+    """Run an executable interactively in a pseudo-terminal.
+
+    Used for breakpoint sessions where the user needs to interact with the
+    tool (e.g. tclreadline-driven shells). Compared to ``pty.spawn`` this
+    helper additionally:
+
+      * Propagates the parent terminal's window size (``TIOCSWINSZ``) to the
+        child PTY so readline-based shells wrap and redraw lines correctly.
+      * Forwards ``SIGWINCH`` so resizing the outer terminal during the
+        session updates the child's view of the window size.
+      * Puts the parent stdin into raw mode (restored on exit) so signals,
+        arrow keys, and tab-completion pass through to the child unmolested.
+      * Tees output to ``log_path`` as a faithful byte-for-byte recording
+        (including ANSI/control sequences). View it with ``cat`` or
+        ``less -R`` to see the rendered form. Stateless filtering would
+        be lossy for in-place line edits (history recall, completion),
+        so the log keeps the raw stream and lets the renderer interpret
+        it.
+      * Returns the exit code (decoded from waitpid status), not the raw
+        wait status.
+
+    NOTE: This path intentionally bypasses the memory, timeout, and nice
+    handling that the standard subprocess path provides. Interactive
+    sessions are expected to be supervised by the user, so SC does not
+    impose its own resource limits on them.
+
+    Returns the child's exit code. ``128 + signum`` for signal exits, per
+    ``os.waitstatus_to_exitcode`` semantics.
+    """
+    if pty is None:
+        raise RuntimeError("pty module is not available on this platform")
+
+    # POSIX-only modules — kept inside the function since this is the only
+    # place they're used and they're not importable on Windows.
+    import select
+    import signal
+    import termios
+    import tty
+    import fcntl
+
+    # Open the controlling terminal directly. We deliberately do NOT route
+    # through ``sys.stdin``/``sys.stdout`` here.
+    #
+    # Why: when this code runs inside a multiprocessing worker, Python's
+    # ``_close_stdin`` reassigns ``sys.stdin`` to wrap a freshly opened
+    # ``/dev/null`` fd (see CPython multiprocessing/process.py and
+    # multiprocessing/util.py). Crucially, ``sys.stdin.close()`` does NOT
+    # close the underlying fd 0 because the Python stdio wrappers are
+    # built with ``closefd=False`` — so fd 0 stays attached to the user's
+    # real terminal, but ``sys.stdin.fileno()`` now returns the /dev/null
+    # fd (typically 3). Reading from that path gives instant EOF and
+    # silently breaks Enter/Tab/arrow forwarding. This is also why the
+    # original ``pty.spawn`` implementation worked: it referenced
+    # ``STDIN_FILENO`` (= 0) directly, bypassing the redirected
+    # ``sys.stdin``.
+    #
+    # ``/dev/tty`` is preferred because it always refers to the calling
+    # process's controlling terminal regardless of any fd redirection.
+    # If that's unavailable (CI, daemons, no controlling terminal) we
+    # fall back to fd 0 directly, which mirrors what pty.spawn did.
+    # O_CLOEXEC ensures the child of pty.fork() (and the tool we exec
+    # into it) does not inherit a backdoor handle to the real
+    # controlling terminal. Without it, the executed tool could bypass
+    # our PTY isolation and write/read directly to the user's terminal,
+    # defeating the log capture and raw-mode plumbing.
+    tty_fd = -1
+    try:
+        tty_fd = os.open('/dev/tty', os.O_RDWR | os.O_NOCTTY | os.O_CLOEXEC)
+    except OSError:
+        tty_fd = -1
+
+    pid, master_fd = pty.fork()
+    if pid == 0:
+        # Child: replace ourselves with the target binary. argv[0] is set to
+        # ``exe`` so diagnostic output identifies the tool by its real name.
+        try:
+            os.execvp(exe, [exe, *cmdlist])
+        except Exception:
+            os._exit(127)
+
+    def _safe_fileno(stream):
+        # ``stream.fileno()`` can raise io.UnsupportedOperation when the
+        # stream is a pseudofile (e.g. captured stdin under pytest, or
+        # redirected I/O in some embeddings).
+        if stream is None:
+            return -1
+        try:
+            return stream.fileno()
+        except Exception:
+            return -1
+
+    # Fallback chain when /dev/tty is unavailable:
+    #   1. fd 0 / fd 1 directly — matches what ``pty.spawn`` did and works
+    #      around the multiprocessing-worker case where ``sys.stdin`` has
+    #      been reassigned to wrap a /dev/null fd while fd 0 itself still
+    #      points at the real terminal.
+    #   2. ``sys.stdin.fileno()`` / ``sys.stdout.fileno()`` — covers
+    #      embedded environments that genuinely reassign fd 0/1.
+    if tty_fd >= 0:
+        parent_in = parent_out = tty_fd
+    else:
+        parent_in = 0 if os.isatty(0) else _safe_fileno(sys.stdin)
+        parent_out = 1 if os.isatty(1) else _safe_fileno(sys.stdout)
+    # ``parent_is_tty`` gates the operations that *only make sense* when the
+    # parent's stdin is a real terminal: querying its window size and
+    # listening for SIGWINCH. The TIOCGWINSZ ioctl fails with ENOTTY on a
+    # pipe or regular file, and SIGWINCH is delivered by the kernel only
+    # when a terminal actually resizes — so attempting either against a
+    # non-TTY would just produce errors with no upside.
+    #
+    # NOTE: this flag does NOT gate stdin forwarding or raw-mode setup.
+    # Those run whenever we have any stdin fd at all, with the calls
+    # wrapped in try/except — see below for why that matters for tab
+    # completion and arrow keys.
+    parent_is_tty = parent_in >= 0 and os.isatty(parent_in)
+
+    def _push_winsize(*_args):
+        # Skip silently for non-TTY parents: ioctl would fail with ENOTTY.
+        if not parent_is_tty:
+            return
+        try:
+            size = fcntl.ioctl(parent_in, termios.TIOCGWINSZ, b'\x00' * 8)
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, size)
+        except OSError:
+            pass
+
+    # Push the initial window size so readline-based shells (tclreadline,
+    # GNU readline, ...) wrap and redraw lines using the real terminal
+    # geometry instead of the kernel's 80x24 default for a fresh PTY.
+    _push_winsize()
+
+    old_winch = None
+    if parent_is_tty:
+        # Re-push winsize whenever the user resizes the outer terminal so
+        # the child's view stays in sync for the rest of the session.
+        # Saved handler is restored in the finally block below.
+        try:
+            old_winch = signal.signal(signal.SIGWINCH, _push_winsize)
+        except (ValueError, OSError):
+            old_winch = None
+
+    # Apply raw mode opportunistically whenever we have an stdin fd. Without
+    # raw mode the parent terminal stays line-disciplined, which means the
+    # user has to press Enter before any keystroke reaches the child — fatal
+    # for tab completion, arrow-key history, and tclreadline-style editing.
+    # ``setraw`` on a non-TTY fd raises termios.error and is silently
+    # ignored, mirroring ``pty.spawn``'s behaviour.
+    old_attrs = None
+    if parent_in >= 0:
+        try:
+            old_attrs = termios.tcgetattr(parent_in)
+            tty.setraw(parent_in)
+        except (termios.error, OSError):
+            old_attrs = None
+
+    # Always forward parent stdin when we have a valid fd. ``pty.spawn``
+    # does the same — gating this on ``isatty`` would silently break
+    # interactive sessions whose stdin is a real TTY but reports otherwise
+    # (e.g. inherited through a multiprocessing worker on some setups).
+    readable = [master_fd]
+    if parent_in >= 0:
+        readable.append(parent_in)
+
+    def _write_all(fd, data):
+        # ``os.write`` is a thin wrapper over ``write(2)`` and can return
+        # fewer bytes than requested, especially on PTYs whose line-
+        # discipline buffer is partly full. Loop until the whole buffer
+        # is consumed. Returns True on full write, False if any byte
+        # couldn't be written; caller decides how to react.
+        written = 0
+        n = len(data)
+        while written < n:
+            try:
+                chunk = os.write(fd, data[written:])
+            except InterruptedError:
+                continue
+            except OSError:
+                return False
+            if chunk == 0:
+                # No progress — treat as failure rather than spin.
+                return False
+            written += chunk
+        return True
+
+    # ``log_writer`` is opened inside the try block so that an open()
+    # failure (disk full, permission denied, ...) can't bypass the
+    # cleanup that restores raw-mode termios state, the SIGWINCH
+    # handler, and closes master_fd / tty_fd. Without this, a failed
+    # open would leave the user's terminal stuck in raw mode.
+    #
+    # The outer try/finally guarantees ``os.waitpid`` runs even if the
+    # log open/close raises — the child of pty.fork() must always be
+    # reaped, otherwise it lingers as a zombie.
+    log_writer = None
+    status = None
+    try:
+        try:
+            log_writer = open(log_path, 'wb')
+            while True:
+                try:
+                    rlist, _, _ = select.select(readable, [], [])
+                except (InterruptedError, OSError):
+                    continue
+
+                if master_fd in rlist:
+                    try:
+                        data = os.read(master_fd, 4096)
+                    except OSError:
+                        data = b''
+                    if not data:
+                        break
+                    if parent_out >= 0:
+                        # Best-effort: failures writing to the user's
+                        # terminal are ignored (matches prior behaviour).
+                        _write_all(parent_out, data)
+                    try:
+                        log_writer.write(data)
+                        log_writer.flush()
+                    except OSError:
+                        pass
+
+                if parent_in in rlist:
+                    try:
+                        data = os.read(parent_in, 4096)
+                    except OSError:
+                        data = b''
+                    if not data:
+                        readable.remove(parent_in)
+                        continue
+                    if not _write_all(master_fd, data):
+                        # Child PTY closed / errored — exit the loop and
+                        # let the cleanup + waitpid path run.
+                        break
+        finally:
+            if old_attrs is not None:
+                try:
+                    termios.tcsetattr(parent_in, termios.TCSADRAIN, old_attrs)
+                except termios.error:
+                    pass
+            if old_winch is not None:
+                try:
+                    signal.signal(signal.SIGWINCH, old_winch)
+                except (ValueError, OSError):
+                    pass
+            try:
+                os.close(master_fd)
+            except OSError:
+                pass
+            if tty_fd >= 0:
+                try:
+                    os.close(tty_fd)
+                except OSError:
+                    pass
+            if log_writer is not None:
+                # Swallow close-time I/O errors so the inner finally
+                # can't propagate and skip the waitpid below.
+                try:
+                    log_writer.close()
+                except OSError:
+                    pass
+    finally:
+        try:
+            _, status = os.waitpid(pid, 0)
+        except OSError:
+            status = None
+
+    if status is None:
+        return 1
+    return os.waitstatus_to_exitcode(status)
+
+
 class Task(NamedSchema, PathSchema, DocsSchema):
     """
     A schema class that defines the parameters and methods for a single task
@@ -1104,13 +1376,12 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 breakpoint = False
 
             if breakpoint and sys.platform in ('darwin', 'linux'):
-                # Use pty for interactive breakpoint sessions on POSIX systems
-                with open(f"{self.step}.log", 'wb') as log_writer:
-                    def read(fd):
-                        data = os.read(fd, 1024)
-                        log_writer.write(data)
-                        return data
-                    retcode = pty.spawn([exe, *cmdlist], read)
+                # Interactive PTY session. NOTE: this path is intentionally
+                # supervised by the user, not by SC — the timeout, memory
+                # limit, and nice settings applied to the standard subprocess
+                # path below are NOT enforced here. See _run_breakpoint for
+                # details on winsize/SIGWINCH/raw-mode handling.
+                retcode = _run_breakpoint(exe, cmdlist, f"{self.step}.log")
             else:
                 # Standard subprocess execution
                 with open(stdout_file, 'w') as stdout_writer, \
