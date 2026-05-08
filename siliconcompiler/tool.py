@@ -214,9 +214,14 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     # process's controlling terminal regardless of any fd redirection.
     # If that's unavailable (CI, daemons, no controlling terminal) we
     # fall back to fd 0 directly, which mirrors what pty.spawn did.
+    # O_CLOEXEC ensures the child of pty.fork() (and the tool we exec
+    # into it) does not inherit a backdoor handle to the real
+    # controlling terminal. Without it, the executed tool could bypass
+    # our PTY isolation and write/read directly to the user's terminal,
+    # defeating the log capture and raw-mode plumbing.
     tty_fd = -1
     try:
-        tty_fd = os.open('/dev/tty', os.O_RDWR | os.O_NOCTTY)
+        tty_fd = os.open('/dev/tty', os.O_RDWR | os.O_NOCTTY | os.O_CLOEXEC)
     except OSError:
         tty_fd = -1
 
@@ -304,7 +309,6 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
         except (termios.error, OSError):
             old_attrs = None
 
-    log_writer = open(log_path, 'wb')
     # Always forward parent stdin when we have a valid fd. ``pty.spawn``
     # does the same — gating this on ``isatty`` would silently break
     # interactive sessions whose stdin is a real TTY but reports otherwise
@@ -313,7 +317,14 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     if parent_in >= 0:
         readable.append(parent_in)
 
+    # ``log_writer`` is opened inside the try block so that an open()
+    # failure (disk full, permission denied, ...) can't bypass the
+    # cleanup that restores raw-mode termios state, the SIGWINCH
+    # handler, and closes master_fd / tty_fd. Without this, a failed
+    # open would leave the user's terminal stuck in raw mode.
+    log_writer = None
     try:
+        log_writer = open(log_path, 'wb')
         while True:
             try:
                 rlist, _, _ = select.select(readable, [], [])
@@ -370,7 +381,8 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
                 os.close(tty_fd)
             except OSError:
                 pass
-        log_writer.close()
+        if log_writer is not None:
+            log_writer.close()
 
     try:
         _, status = os.waitpid(pid, 0)
