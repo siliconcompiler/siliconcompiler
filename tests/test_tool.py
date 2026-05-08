@@ -10,7 +10,7 @@ import time
 
 import os.path
 
-from unittest.mock import patch, ANY, MagicMock
+from unittest.mock import patch, MagicMock
 
 from siliconcompiler import Flowgraph
 from siliconcompiler import OpenTask, ShowTask, ScreenshotTask
@@ -1844,7 +1844,6 @@ def test_run_breakpoint_falls_back_to_fd0_when_dev_tty_unavailable(
     # Track which fd select.select watches — proves we picked fd 0,
     # not the redirected sys.stdin fd.
     seen_fds = []
-    real_select = __import__('select').select
 
     def fake_select(rlist, wlist, xlist, *args):
         seen_fds.extend(rlist)
