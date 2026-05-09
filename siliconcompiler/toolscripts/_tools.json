@@ -145,7 +145,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "4b4554f2be91d7f044406a6535b58c3803f76c78",
+    "git-commit": "a41d23e9997695deab8253d20b192bb5a2cfdd46",
     "docker-depends": "yosys",
     "auto-update": true
   },
