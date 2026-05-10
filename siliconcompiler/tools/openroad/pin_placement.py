@@ -21,6 +21,7 @@ class PinPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter, Open
         self._set_reports([
             'setup',
             'unconstrained',
+            "logicdepth",
 
             # Images
             'placement_density',

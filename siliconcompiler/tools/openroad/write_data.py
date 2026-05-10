@@ -128,6 +128,7 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
             'power',
             'drv_violations',
             'fmax',
+            "logicdepth",
 
             # Images
             'placement_density',

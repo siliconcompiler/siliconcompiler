@@ -25,6 +25,7 @@ class FillCellTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter, OpenROAD
             'power',
             'drv_violations',
             'fmax',
+            "logicdepth",
 
             # Images
             'placement_density',

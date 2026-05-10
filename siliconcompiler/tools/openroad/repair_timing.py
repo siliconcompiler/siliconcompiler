@@ -92,6 +92,7 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
             'drv_violations',
             'fmax',
             'report_buffers',
+            "logicdepth",
 
             # Images
             'placement_density',

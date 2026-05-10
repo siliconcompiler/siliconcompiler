@@ -76,6 +76,7 @@ class RepairDesignTask(APRTask, OpenROADSTAParameter, OpenROADRSZDRVParameter):
             'drv_violations',
             'fmax',
             'report_buffers',
+            "logicdepth",
 
             # Images
             'placement_density',

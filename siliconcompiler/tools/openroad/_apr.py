@@ -1186,6 +1186,7 @@ class APRTask(OpenROADTask):
             "drv_violations",
             "fmax",
             "power",
+            "logicdepth",
             "check_setup",
             "report_buffers",
             "placement_density",
