@@ -1087,8 +1087,13 @@ def _make_progress_job(nodes, design="design1", jobname="job1", complete=False):
 
 
 def _runtime_strings(progress):
-    """Extract the formatted runtime field from each task in a Progress object."""
-    return [task.fields["runtime"] for task in progress._tasks.values()]
+    """Extract the formatted runtime fields from each task in a Progress object.
+
+    Returns a list of (walltime, cputime) tuples; cputime is "" when no
+    parallelism was detected (no separate CPU column shown).
+    """
+    return [(task.fields["walltime"], task.fields["cputime"])
+            for task in progress._tasks.values()]
 
 
 def test_progress_bar_runtime_serial_shows_single_value(dashboard_medium):
@@ -1108,13 +1113,10 @@ def test_progress_bar_runtime_serial_shows_single_value(dashboard_medium):
     dashboard._update_layout()
 
     rendered = dashboard._render_progress_bar(dashboard._layout)
-    progress = rendered.renderables[0]
-    runtimes = [task.fields["runtime"] for task in progress._tasks.values()]
+    runtimes = _runtime_strings(rendered.renderables[0])
 
-    # total = 15, wall = max(totaltime) = 15 -> identical, single value
-    assert len(runtimes) == 1
-    assert "/" not in runtimes[0]
-    assert runtimes[0] == "0:15.0"
+    # total = 15, wall = max(totaltime) = 15 -> identical, no parallelism
+    assert runtimes == [("0:15.0", "")]
 
 
 def test_progress_bar_runtime_parallel_completed_shows_total_and_wall(dashboard_medium):
@@ -1135,11 +1137,10 @@ def test_progress_bar_runtime_parallel_completed_shows_total_and_wall(dashboard_
     dashboard._update_layout()
 
     rendered = dashboard._render_progress_bar(dashboard._layout)
-    runtimes = [task.fields["runtime"] for task in rendered.renderables[0]._tasks.values()]
+    runtimes = _runtime_strings(rendered.renderables[0])
 
     # wall = 10 (max totaltime metric), total = 30 (sum of work)
-    assert len(runtimes) == 1
-    assert runtimes[0] == "0:10.0 / 0:30.0"
+    assert runtimes == [("0:10.0", "0:30.0")]
 
 
 def test_progress_bar_runtime_in_progress_with_running_node(dashboard_medium):
@@ -1163,12 +1164,10 @@ def test_progress_bar_runtime_in_progress_with_running_node(dashboard_medium):
     with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
         rendered = dashboard._render_progress_bar(dashboard._layout)
 
-    runtimes = [task.fields["runtime"] for task in rendered.renderables[0]._tasks.values()]
+    runtimes = _runtime_strings(rendered.renderables[0])
 
-    # total = 5 + 5 + 3 = 13, wall = max(5,10) + 3 = 13 -> identical
-    assert len(runtimes) == 1
-    assert "/" not in runtimes[0]
-    assert runtimes[0] == "0:13.0"
+    # total = 5 + 5 + 3 = 13, wall = max(5,10) + 3 = 13 -> no parallelism
+    assert runtimes == [("0:13.0", "")]
 
 
 def test_progress_bar_runtime_in_progress_parallel_running(dashboard_medium):
@@ -1192,11 +1191,10 @@ def test_progress_bar_runtime_in_progress_parallel_running(dashboard_medium):
     with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
         rendered = dashboard._render_progress_bar(dashboard._layout)
 
-    runtimes = [task.fields["runtime"] for task in rendered.renderables[0]._tasks.values()]
+    runtimes = _runtime_strings(rendered.renderables[0])
 
     # wall = 10 + (now - min(now-4, now-2)) = 14, total = 10 + 4 + 2 = 16
-    assert len(runtimes) == 1
-    assert runtimes[0] == "0:14.0 / 0:16.0"
+    assert runtimes == [("0:14.0", "0:16.0")]
 
 
 def test_progress_bar_runtime_resumed_job_uses_recorded_totaltime(dashboard_medium):
@@ -1226,12 +1224,11 @@ def test_progress_bar_runtime_resumed_job_uses_recorded_totaltime(dashboard_medi
     with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
         rendered = dashboard._render_progress_bar(dashboard._layout)
 
-    runtimes = [task.fields["runtime"] for task in rendered.renderables[0]._tasks.values()]
+    runtimes = _runtime_strings(rendered.renderables[0])
 
     # wall = 90 (baseline) + 5 (active) = 95, total = 40 + 50 + 5 = 95
-    # No parallelism (sequential intervals + single running) -> single value.
-    assert len(runtimes) == 1
-    assert runtimes[0] == "1:35.0"
+    # No parallelism (sequential intervals + single running) -> wall column only.
+    assert runtimes == [("1:35.0", "")]
 
 
 def test_progress_bar_runtime_sequential_done_one_running_no_wall(dashboard_medium):
@@ -1255,7 +1252,7 @@ def test_progress_bar_runtime_sequential_done_one_running_no_wall(dashboard_medi
         rendered = dashboard._render_progress_bar(dashboard._layout)
 
     runtimes = _runtime_strings(rendered.renderables[0])
-    assert "/" not in runtimes[0]
+    assert runtimes[0][1] == ""  # cpu column empty -> no parallelism
 
 
 def test_progress_bar_runtime_two_running_triggers_wall(dashboard_medium):
@@ -1278,7 +1275,7 @@ def test_progress_bar_runtime_two_running_triggers_wall(dashboard_medium):
         rendered = dashboard._render_progress_bar(dashboard._layout)
 
     runtimes = _runtime_strings(rendered.renderables[0])
-    assert "/" in runtimes[0]
+    assert runtimes[0][1] != ""  # cpu column populated -> parallelism detected
 
 
 def test_progress_bar_runtime_overlapping_done_triggers_wall(dashboard_medium):
@@ -1300,7 +1297,7 @@ def test_progress_bar_runtime_overlapping_done_triggers_wall(dashboard_medium):
 
     rendered = dashboard._render_progress_bar(dashboard._layout)
     runtimes = _runtime_strings(rendered.renderables[0])
-    assert "/" in runtimes[0]
+    assert runtimes[0][1] != ""
 
 
 def test_progress_bar_runtime_no_data_shows_zero(dashboard_medium):
@@ -1319,11 +1316,9 @@ def test_progress_bar_runtime_no_data_shows_zero(dashboard_medium):
     dashboard._update_layout()
 
     rendered = dashboard._render_progress_bar(dashboard._layout)
-    runtimes = [task.fields["runtime"] for task in rendered.renderables[0]._tasks.values()]
+    runtimes = _runtime_strings(rendered.renderables[0])
 
-    assert len(runtimes) == 1
-    assert "/" not in runtimes[0]
-    assert runtimes[0] == "0:00.0"
+    assert runtimes == [("0:00.0", "")]
 
 
 def test_get_job_records_totaltime_metric(mock_project, fake_console):

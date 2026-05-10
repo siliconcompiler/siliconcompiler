@@ -710,7 +710,8 @@ class Board:
             job_data = self._render_data.jobs.copy()
 
         ref_time = time.time()
-        runtimes = {}
+        wall_strs = {}
+        cpu_strs = {}
         for name, job in job_data.items():
             total = 0.0
             done_intervals = []
@@ -737,20 +738,18 @@ class Board:
             else:
                 wall = wall_baseline
 
-            wall_str = format_time(wall, milliseconds_digits=1)
+            wall_strs[name] = format_time(wall, milliseconds_digits=1)
             if Board._has_parallelism(running_starts, done_intervals):
-                total_str = format_time(total, milliseconds_digits=1)
-                runtimes[name] = f"{wall_str} / {total_str}"
+                cpu_strs[name] = format_time(total, milliseconds_digits=1)
             else:
-                runtimes[name] = wall_str
-
-        runtime_width = max([*[len(r) for r in runtimes.values()], 0])
+                cpu_strs[name] = ""
 
         job_info = []
         for name, job in job_data.items():
             done = job.finished == job.total
-            job_info.append(
-                (done, f"{job.design}/{job.jobname}", job.total, job.success, runtimes[name]))
+            job_info.append((
+                done, f"{job.design}/{job.jobname}", job.total, job.success,
+                wall_strs[name], cpu_strs[name]))
 
         number_of_bars = layout.progress_bar_height - 1  # accounting for the padding
         while job_info and len(job_info) > number_of_bars:
@@ -766,19 +765,36 @@ class Board:
         if not job_info:
             return None
 
-        progress = Progress(
+        # Compute column widths and CPU visibility from displayed rows only,
+        # so trimmed-away jobs don't pad the visible columns or force a CPU
+        # column to appear when none of the rendered jobs has parallelism.
+        visible_walls = [row[4] for row in job_info]
+        visible_cpus = [row[5] for row in job_info]
+        wall_width = max([*[len(s) for s in visible_walls], 0])
+        cpu_width = max([*[len(s) for s in visible_cpus], 0])
+        show_cpu = any(visible_cpus)
+
+        columns = [
             TextColumn("[progress.description]{task.description}"),
             MofNCompleteColumn(),
             BarColumn(bar_width=60),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TextColumn(f" {{task.fields[runtime]:>{runtime_width}}}")
-        )
-        for _, name, total, success, runtime in job_info:
+            TextColumn(f" {{task.fields[walltime]:>{wall_width}}}"),
+        ]
+        if show_cpu:
+            sep_width = 3  # " / "
+            columns.append(TextColumn(f"{{task.fields[separator]:<{sep_width}}}"))
+            columns.append(TextColumn(f"{{task.fields[cputime]:>{cpu_width}}}"))
+
+        progress = Progress(*columns)
+        for _, name, total, success, walltime, cputime in job_info:
             progress.add_task(
                 f"[text.primary]Progress ({name}):",
                 total=total,
                 completed=success,
-                runtime=runtime
+                walltime=walltime,
+                separator=" / " if cputime else "",
+                cputime=cputime,
             )
 
         return Group(progress, Padding("", (0, 0)))
