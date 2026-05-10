@@ -3974,7 +3974,7 @@ def test_validate_io_with_files_join_extra_files(io_project, caplog):
     nop.add_output_file("a.v", step="stepone", index="0")
     nop.add_output_file("common.v", step="stepone", index="0")
     nop.add_output_file("b.v", step="steptwo", index="0")
-    nop.add_output_file("common.v", step="stepone", index="0")
+    nop.add_output_file("common.v", step="steptwo", index="0")
     nop.add_input_file("common.v", step="dojoin", index="0")
     nop.add_output_file("common.v", step="dojoin", index="0")
     nop.add_input_file("common.v", step="postjoin", index="0")
