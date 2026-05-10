@@ -498,6 +498,22 @@ class Board:
         self._render_thread.join()
 
     @staticmethod
+    def _has_parallelism(running_starts, done_intervals) -> bool:
+        """
+        Returns True iff at least two tasks have been observed running at the
+        same time. Two concurrent in-flight nodes count, as do any pair of
+        completed nodes whose wall-clock intervals (derived from totaltime
+        and tasktime metrics) overlap.
+        """
+        if len(running_starts) >= 2:
+            return True
+        intervals = sorted(done_intervals)
+        for (_, end), (start, _) in zip(intervals, intervals[1:]):
+            if start < end:
+                return True
+        return False
+
+    @staticmethod
     def format_status(status: str) -> str:
         """
         Formats a node status string with rich-compatible color markup.
@@ -696,16 +712,37 @@ class Board:
         ref_time = time.time()
         runtimes = {}
         for name, job in job_data.items():
-            if job.complete:
-                runtimes[name] = format_time(job.runtime, milliseconds_digits=1)
+            total = 0.0
+            done_intervals = []
+            done_totaltimes = []
+            running_starts = []
+            for node in job.nodes:
+                duration = node["time"]["duration"]
+                start = node["time"]["start"]
+                totaltime = node["time"].get("totaltime")
+
+                if duration is not None:
+                    total += duration
+                elif start is not None:
+                    total += ref_time - start
+                    running_starts.append(start)
+                if totaltime is not None:
+                    done_totaltimes.append(totaltime)
+                    if duration is not None:
+                        done_intervals.append((totaltime - duration, totaltime))
+
+            wall_baseline = max(done_totaltimes, default=0.0)
+            if running_starts:
+                wall = wall_baseline + (ref_time - min(running_starts))
             else:
-                runtime = 0.0
-                for node in job.nodes:
-                    if node["time"]["duration"] is not None:
-                        runtime += node["time"]["duration"]
-                    elif node["time"]["start"] is not None:
-                        runtime += ref_time - node["time"]["start"]
-                runtimes[name] = format_time(runtime, milliseconds_digits=1)
+                wall = wall_baseline
+
+            wall_str = format_time(wall, milliseconds_digits=1)
+            if Board._has_parallelism(running_starts, done_intervals):
+                total_str = format_time(total, milliseconds_digits=1)
+                runtimes[name] = f"{wall_str} / {total_str}"
+            else:
+                runtimes[name] = wall_str
 
         runtime_width = max([*[len(r) for r in runtimes.values()], 0])
 
@@ -1160,8 +1197,10 @@ class Board:
 
             starttime = None
             duration = None
+            totaltime = None
             if NodeStatus.is_done(status):
                 duration = project.get("metric", "tasktime", step=step, index=index)
+                totaltime = project.get("metric", "totaltime", step=step, index=index)
             if (step, index) in starttimes:
                 starttime = starttimes[(step, index)]
 
@@ -1186,7 +1225,8 @@ class Board:
                     "status": status,
                     "time": {
                         "start": starttime,
-                        "duration": duration
+                        "duration": duration,
+                        "totaltime": totaltime
                     },
                     "metrics": node_metrics,
                     "log": [(
