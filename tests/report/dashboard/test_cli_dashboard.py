@@ -136,37 +136,6 @@ def mock_running_job_lg_second():
 
 
 @pytest.fixture
-def mock_running_job():
-    mock_job_data = JobData()
-    mock_job_data.total = 5
-    mock_job_data.visible = 5
-    mock_job_data.design = "design1"
-    mock_job_data.jobname = "job1"
-    statuses = [NodeStatus.SUCCESS, NodeStatus.ERROR, NodeStatus.PENDING]
-    mock_job_data.nodes = [
-        {
-            "step": f"node{index + 1}",
-            "index": index,
-            "status": random.choice(statuses),
-            "metrics": ["", ""],
-            "log": [(f"node{index + 1}.log", f"node{index + 1}.log")],
-            "print": {
-                "order": (index, index),
-                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index,
-                "hide": False
-            }
-        }
-        for index in range(mock_job_data.total)
-    ]
-    mock_job_data.success = sum(1 for node in mock_job_data.nodes
-                                if NodeStatus.is_success(node["status"]))
-    mock_job_data.error = sum(1 for node in mock_job_data.nodes
-                              if NodeStatus.is_error(node["status"]))
-    mock_job_data.finished = mock_job_data.success + mock_job_data.error
-    return mock_job_data
-
-
-@pytest.fixture
 def mock_finished_job_fail():
     mock_job_data = JobData()
     mock_job_data.total = 5
@@ -1232,14 +1201,19 @@ def test_progress_bar_runtime_in_progress_parallel_running(dashboard_medium):
 
 
 def test_progress_bar_runtime_resumed_job_uses_recorded_totaltime(dashboard_medium):
-    """A resumed job: prior-session done nodes contribute via totaltime metric."""
+    """A resumed job: prior-session done nodes contribute via totaltime metric.
+
+    The two prior-session nodes are strictly sequential (intervals [0, 40] and
+    [40, 90]) so no parallelism is detected — this isolates the resumed wall-time
+    computation across a session boundary from the parallelism display path.
+    """
     dashboard = dashboard_medium._dashboard
     now = time.time()
-    # Imagine a prior session where two nodes completed; their totaltime metric
-    # captured wall time = 100s. We resume and a new node starts now - 5s ago.
+    # Prior session: two sequential nodes. Final wall checkpoint = 90.
+    # Resume and a new node starts now - 5s ago.
     job = _make_progress_job([
-        (NodeStatus.SUCCESS, 40.0, None, 60.0),    # prior session, wall checkpoint = 60
-        (NodeStatus.SUCCESS, 50.0, None, 100.0),   # prior session, wall checkpoint = 100
+        (NodeStatus.SUCCESS, 40.0, None, 40.0),    # prior session, interval [0, 40]
+        (NodeStatus.SUCCESS, 50.0, None, 90.0),    # prior session, interval [40, 90]
         (NodeStatus.RUNNING, None, now - 5.0, None),  # this session
     ], complete=False)
 
@@ -1255,9 +1229,10 @@ def test_progress_bar_runtime_resumed_job_uses_recorded_totaltime(dashboard_medi
 
     runtimes = [task.fields["runtime"] for task in rendered.renderables[0]._tasks.values()]
 
-    # wall = 100 (baseline) + 5 (active) = 105, total = 40 + 50 + 5 = 95
+    # wall = 90 (baseline) + 5 (active) = 95, total = 40 + 50 + 5 = 95
+    # No parallelism (sequential intervals + single running) -> single value.
     assert len(runtimes) == 1
-    assert runtimes[0] == "1:45.0 / 1:35.0"
+    assert runtimes[0] == "1:35.0"
 
 
 def test_progress_bar_runtime_sequential_done_one_running_no_wall(dashboard_medium):
