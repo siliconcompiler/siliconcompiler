@@ -1267,7 +1267,8 @@ class APRTask(OpenROADTask):
             patterns = list(report_type)
 
         if any("*" in pattern for pattern in patterns):
-            enum_type = list(NodeType.parse(BaseSchema.get(self, "var", "skip_reports", field="type")))[0]
+            enum_type = list(
+                NodeType.parse(BaseSchema.get(self, "var", "skip_reports", field="type")))[0]
             supported_report_types = NodeType.parse(enum_type).values
             expanded: List[str] = []
             for pattern in patterns:
