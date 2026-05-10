@@ -1588,6 +1588,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                     self.logger.error(
                         f'Invalid flow: {self.step}/{self.index} '
                         f'receives {inp} from multiple input tasks')
+                    error = True
                 all_inputs.add(inp)
 
         for requirement in requirements:

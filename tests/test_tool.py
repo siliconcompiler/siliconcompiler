@@ -4038,9 +4038,10 @@ def test_validate_io_input_from_disk(io_project):
     assert _validate_io(io_project, "steptwo", "0") is True
 
 
-def test_validate_io_duplicate_input_logs(io_project, caplog):
-    """For a non-builtin task, the same file from multiple upstreams logs (but
-    historically does not fail) the validation."""
+def test_validate_io_duplicate_input_fails(io_project, caplog):
+    """A non-builtin task with two upstreams providing the same input name has
+    ambiguous fan-in: the runtime can't decide which upstream's file is the
+    real one. The base validator must reject this flow, not just log it."""
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask(), index=0)
     flow.node("stepone", NOPTask(), index=1)
@@ -4056,9 +4057,9 @@ def test_validate_io_duplicate_input_logs(io_project, caplog):
     nop.add_output_file("test.v", step="stepone", index="1")
     nop.add_input_file("test.v", step="steptwo", index="0")
 
-    # NOPTask is a BuiltinTask; the duplicate-input log message belongs to the
+    # NOPTask is a BuiltinTask; the duplicate-input rejection belongs to the
     # base Task implementation. Exercise the base directly.
     node = SchedulerNode(io_project, "steptwo", "0")
     with nop.runtime(node) as task_obj:
-        assert Task._validate_io(task_obj) is True
+        assert Task._validate_io(task_obj) is False
     assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text

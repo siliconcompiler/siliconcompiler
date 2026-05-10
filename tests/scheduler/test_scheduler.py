@@ -93,6 +93,17 @@ class SetupSkip(Task):
         raise TaskSkip("skipped")
 
 
+class DupInputTask(Task):
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "dupinput"
+
+    def run(self):
+        return 0
+
+
 class AdditionalFiles(Task):
     def __init__(self):
         super().__init__()
@@ -663,6 +674,34 @@ def test_check_flowgraph_io_propagates_failure(basic_project_no_flow, monkeypatc
 
     assert scheduler._Scheduler__check_flowgraph_io() is False
     assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
+
+
+def test_check_flowgraph_io_rejects_duplicate_input(basic_project_no_flow,
+                                                    monkeypatch, caplog):
+    """Non-builtin task with ambiguous fan-in (same input name from two
+    upstreams) must fail validation at the scheduler entrypoint."""
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask(), index=0)
+    flow.node("stepone", NOPTask(), index=1)
+    flow.node("steptwo", DupInputTask())
+    flow.edge("stepone", "steptwo", tail_index=0)
+    flow.edge("stepone", "steptwo", tail_index=1)
+    basic_project_no_flow.set_flow(flow)
+
+    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    NOPTask.find_task(basic_project_no_flow).add_output_file(
+        "test.v", step="stepone", index="0")
+    NOPTask.find_task(basic_project_no_flow).add_output_file(
+        "test.v", step="stepone", index="1")
+    DupInputTask.find_task(basic_project_no_flow).add_input_file(
+        "test.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is False
+    assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text
 
 
 @pytest.mark.timeout(60)
