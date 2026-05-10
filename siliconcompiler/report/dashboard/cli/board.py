@@ -744,10 +744,6 @@ class Board:
             else:
                 cpu_strs[name] = ""
 
-        wall_width = max([*[len(s) for s in wall_strs.values()], 0])
-        cpu_width = max([*[len(s) for s in cpu_strs.values()], 0])
-        show_cpu = any(cpu_strs.values())
-
         job_info = []
         for name, job in job_data.items():
             done = job.finished == job.total
@@ -768,6 +764,15 @@ class Board:
 
         if not job_info:
             return None
+
+        # Compute column widths and CPU visibility from displayed rows only,
+        # so trimmed-away jobs don't pad the visible columns or force a CPU
+        # column to appear when none of the rendered jobs has parallelism.
+        visible_walls = [row[4] for row in job_info]
+        visible_cpus = [row[5] for row in job_info]
+        wall_width = max([*[len(s) for s in visible_walls], 0])
+        cpu_width = max([*[len(s) for s in visible_cpus], 0])
+        show_cpu = any(visible_cpus)
 
         columns = [
             TextColumn("[progress.description]{task.description}"),
