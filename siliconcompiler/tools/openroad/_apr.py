@@ -1,3 +1,4 @@
+import fnmatch
 import os
 import json
 
@@ -6,6 +7,7 @@ from typing import List, Union, Optional, Set
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.asic import CellArea
+from siliconcompiler.schema.parametertype import NodeType
 
 
 from siliconcompiler.tools.openroad import OpenROADTask
@@ -1258,6 +1260,12 @@ class APRTask(OpenROADTask):
             clobber: If True, overwrites the existing list of skipped reports.
                      If False, appends to the existing list.
         """
+        if isinstance(report_type, str) and "*" in report_type:
+            # Handle wildcard report types by converting them to a list of supported report types
+            enum_type = list(NodeType.parse(self.get("var", "skip_reports", field="type")))[0]
+            supported_report_types = NodeType.parse(enum_type).values
+            report_type = fnmatch.filter(supported_report_types, report_type)
+
         if clobber:
             self.set("var", "skip_reports", report_type, step=step, index=index)
         else:
@@ -1430,7 +1438,8 @@ class APRTask(OpenROADTask):
                 "clock_placement",
                 "clock_trees"))
 
-        self.set("var", "reports", set(task_reports).difference(skip_reports))
+        do_reports = set(task_reports).difference(skip_reports)
+        self.set("var", "reports", do_reports)
 
         if "power" in self.get("var", "reports"):
             self.add_required_key("var", "power_corner")
