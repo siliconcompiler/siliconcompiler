@@ -367,72 +367,24 @@ class Scheduler:
 
     def __check_flowgraph_io(self) -> bool:
         """
-        Validate that every runtime node will receive its required input files and that no
-        input file is provided by more than one source.
+        Validate that every runtime node will receive its required input files.
 
-        Checks whether each node's required inputs are available either from upstream
-        tasks' declared outputs or from existing output directories, and logs errors
-        for missing or duplicated input sources.
+        The per-node validation is delegated to ``Task._validate_io`` so that
+        task subclasses (notably the builtin tasks, which select among their
+        upstream inputs at runtime) can implement their own fan-in semantics.
 
         Returns:
             bool: `True` if the flowgraph satisfies input/output requirements, `False` otherwise.
         """
-        nodes = self.__flow_runtime.get_nodes()
         error = False
 
-        manifest_name = os.path.basename(self.manifest)
-
-        for (step, index) in nodes:
-            # Get files we receive from input nodes.
-            in_nodes = self.__flow_runtime.get_node_inputs(step, index, record=self.__record)
-            all_inputs = set()
+        for (step, index) in self.__flow_runtime.get_nodes():
             tool = self.__flow.get(step, index, "tool")
             task = self.__flow.get(step, index, "task")
             task_class = self.__project.get("tool", tool, "task", task, field="schema")
-            requirements = task_class.get('input', step=step, index=index)
 
-            for in_step, in_index in in_nodes:
-                if (in_step, in_index) not in nodes:
-                    # If we're not running the input step, the required
-                    # inputs need to already be copied into the build
-                    # directory.
-                    in_step_out_dir = os.path.join(
-                        workdir(self.__project, step=in_step, index=in_index), 'outputs')
-
-                    if not os.path.isdir(in_step_out_dir):
-                        # This means this step hasn't been run, but that
-                        # will be flagged by a different check. No error
-                        # message here since it would be redundant.
-                        inputs = []
-                        continue
-
-                    inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest_name]
-                else:
-                    in_tool = self.__flow.get(in_step, in_index, "tool")
-                    in_task = self.__flow.get(in_step, in_index, "task")
-                    in_task_class = self.__project.get("tool", in_tool, "task", in_task,
-                                                       field="schema")
-
-                    with in_task_class.runtime(self.__tasks[(in_step, in_index)]) as task:
-                        inputs = task.get_output_files()
-
-                with task_class.runtime(self.__tasks[(step, index)]) as task:
-                    for inp in inputs:
-                        node_inp = task.compute_input_file_node_name(inp, in_step, in_index)
-                        if node_inp in requirements:
-                            inp = node_inp
-                        if inp not in requirements:
-                            continue
-                        if inp in all_inputs:
-                            self.__logger.error(f'Invalid flow: {step}/{index} '
-                                                f'receives {inp} from multiple input tasks')
-                            error = True
-                        all_inputs.add(inp)
-
-            for requirement in requirements:
-                if requirement not in all_inputs:
-                    self.__logger.error(f'Invalid flow: {step}/{index} will '
-                                        f'not receive required input {requirement}.')
+            with task_class.runtime(self.__tasks[(step, index)]) as task_obj:
+                if not task_obj._validate_io():
                     error = True
 
         return not error

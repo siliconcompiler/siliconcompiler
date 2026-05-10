@@ -559,6 +559,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         self.__schema_metric: Optional[MetricSchema] = None
         self.__schema_flow: Optional[Flowgraph] = None
         self.__schema_flow_runtime: Optional[RuntimeFlowgraph] = None
+        self.__io_runtime_flow: Optional[RuntimeFlowgraph] = None
         if self.__schema_full:
             self.__schema_record = self.__schema_full.get("record", field="schema")
             self.__schema_metric = self.__schema_full.get("metric", field="schema")
@@ -579,6 +580,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             self.__schema_flow_runtime = RuntimeFlowgraph(
                 self.__schema_flow,
                 from_steps=set([step for step, _ in self.__schema_flow.get_entry_nodes()]),
+                prune_nodes=self.__schema_full.option.get_prune())
+
+            # Runtime view honoring option.from / option.to / option.prune,
+            # i.e. the subset of nodes that will actually run this invocation.
+            # Used by IO validation to distinguish running upstreams (whose
+            # outputs come from declared task outputs) from non-running ones
+            # (whose outputs must already exist on disk).
+            self.__io_runtime_flow = RuntimeFlowgraph(
+                self.__schema_flow,
+                from_steps=self.__schema_full.option.get_from(),
+                to_steps=self.__schema_full.option.get_to(),
                 prune_nodes=self.__schema_full.option.get_prune())
 
     @property
@@ -651,6 +663,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     @property
     def schema_flowruntime(self) -> RuntimeFlowgraph:
         return self.__schema_flow_runtime
+
+    @property
+    def _io_runtime_flow(self) -> RuntimeFlowgraph:
+        """
+        Runtime view of the flow that honors the project's ``from`` / ``to``
+        / ``prune`` options — i.e. the nodes that will actually run this
+        invocation. Distinct from ``schema_flowruntime`` (which is the full
+        graph minus pruned nodes), used by IO validation so that nodes
+        outside the active run are treated as on-disk dependencies.
+        """
+        return self.__io_runtime_flow
 
     def get_logpath(self, log: str) -> str:
         """
@@ -1511,6 +1534,70 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 inputs.setdefault(output, []).append((in_step, in_index))
 
         return inputs
+
+    def _list_upstream_outputs(self, in_step: str, in_index: str) -> List[str]:
+        """
+        Returns the file names that an upstream node will provide to this task.
+
+        If the upstream is part of the active IO runtime, its declared output
+        files are returned. Otherwise its on-disk ``outputs/`` directory is
+        scanned (excluding the manifest), since that node will not be re-run.
+        """
+        if (in_step, in_index) not in set(self._io_runtime_flow.get_nodes()):
+            in_step_out_dir = os.path.join(
+                paths.workdir(self.project, step=in_step, index=in_index), 'outputs')
+            if not os.path.isdir(in_step_out_dir):
+                return []
+            manifest_name = f"{self.project.name}.pkg.json"
+            return [inp for inp in os.listdir(in_step_out_dir) if inp != manifest_name]
+
+        in_tool = self.schema_flow.get(in_step, in_index, "tool")
+        in_task = self.schema_flow.get(in_step, in_index, "task")
+        in_task_class = self.project.get("tool", in_tool, "task", in_task, field="schema")
+        return list(in_task_class.get("output", step=in_step, index=in_index))
+
+    def _validate_io(self) -> bool:
+        """
+        Validate that this node's required input files will be supplied by
+        upstream nodes (or already exist on disk for nodes outside the runtime
+        view).
+
+        The base implementation enforces standard fan-in semantics: every
+        declared input must be produced by some upstream, and the same input
+        coming from multiple upstreams is flagged. Subclasses with non-standard
+        fan-in (e.g. builtin tasks that pick a single upstream at runtime) may
+        override this.
+
+        Returns:
+            bool: True if requirements are satisfied; False otherwise.
+        """
+        in_nodes = self._io_runtime_flow.get_node_inputs(
+            self.step, self.index, record=self.schema_record)
+        requirements = self.get("input")
+        all_inputs: Set[str] = set()
+        error = False
+
+        for in_step, in_index in in_nodes:
+            for inp in self._list_upstream_outputs(in_step, in_index):
+                node_inp = self.compute_input_file_node_name(inp, in_step, in_index)
+                if node_inp in requirements:
+                    inp = node_inp
+                if inp not in requirements:
+                    continue
+                if inp in all_inputs:
+                    self.logger.error(
+                        f'Invalid flow: {self.step}/{self.index} '
+                        f'receives {inp} from multiple input tasks')
+                all_inputs.add(inp)
+
+        for requirement in requirements:
+            if requirement not in all_inputs:
+                self.logger.error(
+                    f'Invalid flow: {self.step}/{self.index} will '
+                    f'not receive required input {requirement}.')
+                error = True
+
+        return not error
 
     def compute_input_file_node_name(self, filename: str, step: str, index: str) -> str:
         """
