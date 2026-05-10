@@ -27,7 +27,7 @@ from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
-from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
+from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.utils.curation import collect
 
 if TYPE_CHECKING:

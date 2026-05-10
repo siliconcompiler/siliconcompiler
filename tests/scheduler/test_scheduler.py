@@ -14,7 +14,7 @@ from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SlurmSchedulerN
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
-from siliconcompiler.utils.paths import jobdir, workdir
+from siliconcompiler.utils.paths import jobdir
 from siliconcompiler.tool import TaskExecutableNotReceived, TaskSkip, Task
 from siliconcompiler.utils.multiprocessing import MPManager
 
