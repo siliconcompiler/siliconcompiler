@@ -149,7 +149,9 @@ if { [llength [all_clocks]] > 0 } {
 }
 
 # get logic depth of design
-utl::metric_int "design__logic__depth" [sc_count_logic_depth]
+if { [sc_cfg_tool_task_check_in_list logicdepth var reports] } {
+    utl::metric_int "design__logic__depth" [sc_count_logic_depth]
+}
 
 if { [sc_cfg_tool_task_check_in_list power var reports] } {
     puts "$PREFIX power"

@@ -61,6 +61,7 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
             'power',
             'drv_violations',
             'fmax',
+            "logicdepth",
 
             # Images
             'placement_density',

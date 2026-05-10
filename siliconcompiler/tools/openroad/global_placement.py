@@ -105,6 +105,7 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
             'power',
             'fmax',
             'report_buffers',
+            "logicdepth",
 
             # Images
             'placement_density',

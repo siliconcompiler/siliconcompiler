@@ -44,6 +44,7 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
             'clock_skew',
             'drv_violations',
             'fmax',
+            "logicdepth",
 
             # Images
             'placement_density',
