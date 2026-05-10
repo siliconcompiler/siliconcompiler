@@ -3874,3 +3874,192 @@ def test_open_task_get_show_workdir():
     task = OpenTask()
     assert hasattr(task, 'get_show_workdir')
     assert callable(task.get_show_workdir)
+
+
+# -- Task._validate_io ---------------------------------------------------------
+
+@pytest.fixture
+def io_project():
+    """Empty project with a design but no flow; tests build their own flow."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    return proj
+
+
+def _validate_io(project, step, index):
+    """Helper: enter runtime context for (step, index) and call _validate_io."""
+    flow_name = project.option.get_flow()
+    flow = project.get_flow(flow_name)
+    tool = flow.get(step, index, "tool")
+    task = flow.get(step, index, "task")
+    task_class = project.get("tool", tool, "task", task, field="schema")
+    node = SchedulerNode(project, step, index)
+    with task_class.runtime(node) as task_obj:
+        return task_obj._validate_io()
+
+
+def test_validate_io_no_inputs_no_upstream(io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    io_project.set_flow(flow)
+    io_project._Project__logger = logging.getLogger()
+    io_project.logger.setLevel(logging.INFO)
+
+    assert _validate_io(io_project, "stepone", "0") is True
+    assert caplog.text == ""
+
+
+def test_validate_io_with_files(io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    io_project.set_flow(flow)
+    io_project._Project__logger = logging.getLogger()
+    io_project.logger.setLevel(logging.INFO)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+
+    assert _validate_io(io_project, "steptwo", "0") is True
+    assert caplog.text == ""
+
+
+def test_validate_io_with_files_join(io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.node("dojoin", NOPTask())
+    flow.node("postjoin", NOPTask())
+    flow.edge("stepone", "dojoin")
+    flow.edge("steptwo", "dojoin")
+    flow.edge("dojoin", "postjoin")
+    io_project.set_flow(flow)
+    io_project._Project__logger = logging.getLogger()
+    io_project.logger.setLevel(logging.INFO)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("a.v", step="stepone", index="0")
+    nop.add_output_file("b.v", step="steptwo", index="0")
+    nop.add_input_file("a.v", step="dojoin", index="0")
+    nop.add_input_file("b.v", step="dojoin", index="0")
+    nop.add_output_file("a.v", step="dojoin", index="0")
+    nop.add_output_file("b.v", step="dojoin", index="0")
+    nop.add_input_file("a.v", step="postjoin", index="0")
+    nop.add_input_file("b.v", step="postjoin", index="0")
+
+    assert _validate_io(io_project, "dojoin", "0") is True
+    assert _validate_io(io_project, "postjoin", "0") is True
+    assert caplog.text == ""
+
+
+def test_validate_io_with_files_join_extra_files(io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.node("dojoin", NOPTask())
+    flow.node("postjoin", NOPTask())
+    flow.edge("stepone", "dojoin")
+    flow.edge("steptwo", "dojoin")
+    flow.edge("dojoin", "postjoin")
+    io_project.set_flow(flow)
+    io_project._Project__logger = logging.getLogger()
+    io_project.logger.setLevel(logging.INFO)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("a.v", step="stepone", index="0")
+    nop.add_output_file("common.v", step="stepone", index="0")
+    nop.add_output_file("b.v", step="steptwo", index="0")
+    nop.add_output_file("common.v", step="steptwo", index="0")
+    nop.add_input_file("common.v", step="dojoin", index="0")
+    nop.add_output_file("common.v", step="dojoin", index="0")
+    nop.add_input_file("common.v", step="postjoin", index="0")
+
+    assert _validate_io(io_project, "dojoin", "0") is True
+    assert _validate_io(io_project, "postjoin", "0") is True
+    assert caplog.text == ""
+
+
+def test_validate_io_missing_input(io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    io_project.set_flow(flow)
+    io_project._Project__logger = logging.getLogger()
+    io_project.logger.setLevel(logging.INFO)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+    nop.add_input_file("missing.v", step="steptwo", index="0")
+
+    assert _validate_io(io_project, "steptwo", "0") is False
+    assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
+
+
+def test_validate_io_renamed_input(io_project):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    io_project.set_flow(flow)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
+
+    assert _validate_io(io_project, "steptwo", "0") is True
+
+
+def test_validate_io_input_from_disk(io_project):
+    """Upstream is outside the runtime (option.from); inputs should be discovered on disk."""
+    from siliconcompiler.utils.paths import workdir as _workdir
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    io_project.set_flow(flow)
+    io_project.option.add_from("steptwo")
+
+    out_dir = os.path.join(_workdir(io_project, step="stepone", index="0"), 'outputs')
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, 'test.v'), 'w') as f:
+        f.write("test")
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
+
+    assert _validate_io(io_project, "steptwo", "0") is True
+
+
+def test_validate_io_duplicate_input_fails(io_project, caplog):
+    """A non-builtin task with two upstreams providing the same input name has
+    ambiguous fan-in: the runtime can't decide which upstream's file is the
+    real one. The base validator must reject this flow, not just log it."""
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask(), index=0)
+    flow.node("stepone", NOPTask(), index=1)
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo", tail_index=0)
+    flow.edge("stepone", "steptwo", tail_index=1)
+    io_project.set_flow(flow)
+    io_project._Project__logger = logging.getLogger()
+    io_project.logger.setLevel(logging.INFO)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_output_file("test.v", step="stepone", index="1")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+
+    # NOPTask is a BuiltinTask; the duplicate-input rejection belongs to the
+    # base Task implementation. Exercise the base directly.
+    node = SchedulerNode(io_project, "steptwo", "0")
+    with nop.runtime(node) as task_obj:
+        assert Task._validate_io(task_obj) is False
+    assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text

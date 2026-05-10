@@ -33,6 +33,37 @@ class BuiltinTask(Task):
 
         return super().select_input_nodes()
 
+    def _validate_io(self):
+        """
+        Builtin tasks resolve their input fan-in at runtime: ``mux``,
+        ``minimum``, ``maximum``, and ``verify`` pick one upstream from many,
+        and ``join`` unions them. The same file arriving from multiple
+        upstreams is therefore expected, not an error. Validation only
+        requires that every declared input is produced by at least one
+        upstream node (or exists on disk for nodes outside the runtime view).
+        """
+        in_nodes = self._io_runtime_flow.get_node_inputs(
+            self.step, self.index, record=self.schema_record)
+        requirements = self.get("input")
+        received = set()
+
+        for in_step, in_index in in_nodes:
+            for inp in self._list_upstream_outputs(in_step, in_index):
+                node_inp = self.compute_input_file_node_name(inp, in_step, in_index)
+                if node_inp in requirements:
+                    inp = node_inp
+                if inp in requirements:
+                    received.add(inp)
+
+        error = False
+        for requirement in requirements:
+            if requirement not in received:
+                self.logger.error(
+                    f'Invalid flow: {self.step}/{self.index} will '
+                    f'not receive required input {requirement}.')
+                error = True
+        return not error
+
     def run(self):
         # Do nothing
         return 0
