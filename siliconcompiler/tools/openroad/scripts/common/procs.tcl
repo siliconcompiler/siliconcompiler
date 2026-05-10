@@ -942,10 +942,10 @@ proc sc_is_inside_die { x y } {
 
     set die_area [[ord::get_db_block] getDieArea]
     if {
-        $x < [die_area xMin] ||
-        $x > [die_area xMax] ||
-        $y < [die_area yMin] ||
-        $y > [die_area yMax]
+        $x < [$die_area xMin] ||
+        $x > [$die_area xMax] ||
+        $y < [$die_area yMin] ||
+        $y > [$die_area yMax]
     } {
         return false
     }
