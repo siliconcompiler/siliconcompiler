@@ -1260,11 +1260,23 @@ class APRTask(OpenROADTask):
             clobber: If True, overwrites the existing list of skipped reports.
                      If False, appends to the existing list.
         """
-        if isinstance(report_type, str) and "*" in report_type:
-            # Handle wildcard report types by converting them to a list of supported report types
+        if isinstance(report_type, str):
+            patterns = [report_type]
+        else:
+            patterns = list(report_type)
+
+        if any("*" in pattern for pattern in patterns):
             enum_type = list(NodeType.parse(self.get("var", "skip_reports", field="type")))[0]
             supported_report_types = NodeType.parse(enum_type).values
-            report_type = fnmatch.filter(supported_report_types, report_type)
+            expanded: List[str] = []
+            for pattern in patterns:
+                matches = fnmatch.filter(supported_report_types, pattern)
+                if not matches:
+                    raise ValueError(
+                        f"Report type pattern '{pattern}' did not match any supported "
+                        f"report types: {supported_report_types}")
+                expanded.extend(matches)
+            report_type = expanded
 
         if clobber:
             self.set("var", "skip_reports", report_type, step=step, index=index)
