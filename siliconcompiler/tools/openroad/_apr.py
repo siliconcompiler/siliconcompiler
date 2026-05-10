@@ -1,3 +1,4 @@
+import fnmatch
 import os
 import json
 
@@ -6,6 +7,8 @@ from typing import List, Union, Optional, Set
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.asic import CellArea
+from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema.parametertype import NodeType
 
 
 from siliconcompiler.tools.openroad import OpenROADTask
@@ -1258,6 +1261,25 @@ class APRTask(OpenROADTask):
             clobber: If True, overwrites the existing list of skipped reports.
                      If False, appends to the existing list.
         """
+        if isinstance(report_type, str):
+            patterns = [report_type]
+        else:
+            patterns = list(report_type)
+
+        if any("*" in pattern for pattern in patterns):
+            enum_type = list(
+                NodeType.parse(BaseSchema.get(self, "var", "skip_reports", field="type")))[0]
+            supported_report_types = NodeType.parse(enum_type).values
+            expanded: List[str] = []
+            for pattern in patterns:
+                matches = fnmatch.filter(supported_report_types, pattern)
+                if not matches:
+                    raise ValueError(
+                        f"Report type pattern '{pattern}' did not match any supported "
+                        f"report types: {supported_report_types}")
+                expanded.extend(matches)
+            report_type = expanded
+
         if clobber:
             self.set("var", "skip_reports", report_type, step=step, index=index)
         else:
@@ -1430,7 +1452,8 @@ class APRTask(OpenROADTask):
                 "clock_placement",
                 "clock_trees"))
 
-        self.set("var", "reports", set(task_reports).difference(skip_reports))
+        do_reports = set(task_reports).difference(skip_reports)
+        self.set("var", "reports", do_reports)
 
         if "power" in self.get("var", "reports"):
             self.add_required_key("var", "power_corner")
