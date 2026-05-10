@@ -349,6 +349,12 @@ if { [sc_cfg_exists constraint pin] } {
             utl::error FLW 1 "Shape $shape on pin $pin is not supported."
         }
 
+        if { ![sc_is_inside_die $x_loc $y_loc] } {
+            utl::warn FLW 1 "Pin $pin has a placement location of ($x_loc, $y_loc)\
+                which is outside the die area."
+            incr pin_errors
+        }
+
         if {
             [catch {
                 place_pin -pin_name $pin \
@@ -399,6 +405,12 @@ if { [sc_cfg_exists constraint pin] } {
                         set x_loc [expr { ($i + 1) * $spacing }]
                         set y_loc [lindex [ord::get_die_area] 1]
                     }
+                }
+
+                if { ![sc_is_inside_die $x_loc $y_loc] } {
+                    utl::warn FLW 1 "Pin $name has a placement location of ($x_loc, $y_loc)\
+                        which is outside the die area."
+                    incr pin_errors
                 }
 
                 if {
