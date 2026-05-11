@@ -70,11 +70,11 @@ jobs:
           - os: ubuntu-22.04
             arch: x86_64
           - os: macos-latest
-            arch: x86_64
+            arch: arm64
           - os: windows-latest
             arch: x86_64
         exclude:
-          - { python-version: "3.9", platform: {os: "macos-latest", arch: "x86_64"} }
+          - { python-version: "3.9", platform: {os: "macos-latest", arch: "arm64"} }
 
     steps:
     - uses: actions/checkout@v6
@@ -83,6 +83,7 @@ jobs:
         fetch-depth: 0
 
     - uses: actions/cache@v5
+      if: matrix.platform.os != 'macos-latest'
       id: cache
       with:
         path: |
@@ -110,14 +111,9 @@ jobs:
       run: |
         # || true is needed to avoid failure on brew link error with python3.12
         brew install graphviz || true
-        brew install --cask klayout
-        sudo xattr -dr com.apple.quarantine /Applications/KLayout/klayout.app
-        # https://github.com/ponty/PyVirtualDisplay/blob/master/.github/workflows/main.yml#L45
-        brew install --cask xquartz
-        echo "/opt/X11/bin" >> $GITHUB_PATH
-        mkdir -p /tmp/.X11-unix
-        sudo chmod 1777 /tmp/.X11-unix
-        sudo chown root /tmp/.X11-unix
+        # klayout cask is Qt-Cocoa and requires a WindowServer session;
+        # GitHub-hosted macOS runners don't have one, so screenshot tasks
+        # hang even with -z (no-gui). Skip klayout install/tests on macOS.
 
     - name: Setup python
       id: python
@@ -145,6 +141,11 @@ jobs:
       run: |
         . .venv/bin/activate
         pytest sc/tests/ -m "not eda and not docker" -n logical
+
+    - name: Run klayout pytest (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        . .venv/bin/activate
         pytest sc/tests/utils/test_showtools.py -k "klayout" -n logical
 
     - name: Install SC (windows)
