@@ -111,6 +111,7 @@ jobs:
         # || true is needed to avoid failure on brew link error with python3.12
         brew install graphviz || true
         brew install --cask klayout
+        sudo xattr -dr com.apple.quarantine /Applications/KLayout/klayout.app
         # https://github.com/ponty/PyVirtualDisplay/blob/master/.github/workflows/main.yml#L45
         brew install --cask xquartz
         echo "/opt/X11/bin" >> $GITHUB_PATH
