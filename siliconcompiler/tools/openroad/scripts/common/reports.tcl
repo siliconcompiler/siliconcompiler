@@ -149,7 +149,9 @@ if { [llength [all_clocks]] > 0 } {
 }
 
 # get logic depth of design
-utl::metric_int "design__logic__depth" [sc_count_logic_depth]
+if { [sc_cfg_tool_task_check_in_list logicdepth var reports] } {
+    utl::metric_int "design__logic__depth" [sc_count_logic_depth]
+}
 
 if { [sc_cfg_tool_task_check_in_list power var reports] } {
     puts "$PREFIX power"
@@ -215,13 +217,15 @@ if { ![sc_check_version 26 1 0] } {
     utl::metric_int "design__inverters" $invs
 }
 
-# get number of unconstrained endpoints
-with_output_to_variable endpoints {check_setup -unconstrained_endpoints}
-set unconstrained_endpoints [regexp -all -inline {[0-9]+} $endpoints]
-if { $unconstrained_endpoints == "" } {
-    set unconstrained_endpoints 0
+if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
+    # get number of unconstrained endpoints
+    with_output_to_variable endpoints {check_setup -unconstrained_endpoints}
+    set unconstrained_endpoints [regexp -all -inline {[0-9]+} $endpoints]
+    if { $unconstrained_endpoints == "" } {
+        set unconstrained_endpoints 0
+    }
+    utl::metric_int "timing__unconstrained" $unconstrained_endpoints
 }
-utl::metric_int "timing__unconstrained" $unconstrained_endpoints
 
 # Write markers
 foreach markerdb [[ord::get_db_block] getMarkerCategories] {

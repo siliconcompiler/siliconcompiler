@@ -27,6 +27,7 @@ class DetailedRouteTask(APRTask, OpenROADSTAParameter, OpenROADDRTPinAccessParam
             'power',
             'drv_violations',
             'fmax',
+            "logicdepth",
 
             # Images
             'placement_density',

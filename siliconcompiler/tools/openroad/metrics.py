@@ -22,6 +22,7 @@ class MetricsTask(APRTask, OpenROADSTAParameter):
             'power',
             'drv_violations',
             'fmax',
+            "logicdepth",
 
             # Images
             'placement_density',

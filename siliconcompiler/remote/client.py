@@ -547,8 +547,11 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         post_files = {'params': json.dumps(post_params)}
         if not remote_resume:
-            post_files['import'] = upload_file
             upload_file.seek(0)
+            # On Windows, tempfile.TemporaryFile returns _TemporaryFileWrapper;
+            # requests' multipart encoder hits a bytes-typed code path that
+            # doesn't go through __getattr__. Hand it the raw underlying file.
+            post_files['import'] = getattr(upload_file, 'file', upload_file)
 
         def post_action(url):
             return requests.post(

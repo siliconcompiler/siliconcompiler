@@ -46,6 +46,7 @@ class GlobalRouteTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter,
             'power',
             'drv_violations',
             'fmax',
+            "logicdepth",
 
             # Images
             'placement_density',

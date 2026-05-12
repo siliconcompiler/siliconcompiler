@@ -25,6 +25,7 @@ class DetailedPlacementTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
             'power',
             'drv_violations',
             'fmax',
+            "logicdepth",
 
             # Images
             'placement_density',

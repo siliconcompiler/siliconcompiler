@@ -498,6 +498,22 @@ class Board:
         self._render_thread.join()
 
     @staticmethod
+    def _has_parallelism(running_starts, done_intervals) -> bool:
+        """
+        Returns True iff at least two tasks have been observed running at the
+        same time. Two concurrent in-flight nodes count, as do any pair of
+        completed nodes whose wall-clock intervals (derived from totaltime
+        and tasktime metrics) overlap.
+        """
+        if len(running_starts) >= 2:
+            return True
+        intervals = sorted(done_intervals)
+        for (_, end), (start, _) in zip(intervals, intervals[1:]):
+            if start < end:
+                return True
+        return False
+
+    @staticmethod
     def format_status(status: str) -> str:
         """
         Formats a node status string with rich-compatible color markup.
@@ -694,26 +710,46 @@ class Board:
             job_data = self._render_data.jobs.copy()
 
         ref_time = time.time()
-        runtimes = {}
+        wall_strs = {}
+        cpu_strs = {}
         for name, job in job_data.items():
-            if job.complete:
-                runtimes[name] = format_time(job.runtime, milliseconds_digits=1)
-            else:
-                runtime = 0.0
-                for node in job.nodes:
-                    if node["time"]["duration"] is not None:
-                        runtime += node["time"]["duration"]
-                    elif node["time"]["start"] is not None:
-                        runtime += ref_time - node["time"]["start"]
-                runtimes[name] = format_time(runtime, milliseconds_digits=1)
+            total = 0.0
+            done_intervals = []
+            done_totaltimes = []
+            running_starts = []
+            for node in job.nodes:
+                duration = node["time"]["duration"]
+                start = node["time"]["start"]
+                totaltime = node["time"].get("totaltime")
 
-        runtime_width = max([*[len(r) for r in runtimes.values()], 0])
+                if duration is not None:
+                    total += duration
+                elif start is not None:
+                    total += ref_time - start
+                    running_starts.append(start)
+                if totaltime is not None:
+                    done_totaltimes.append(totaltime)
+                    if duration is not None:
+                        done_intervals.append((totaltime - duration, totaltime))
+
+            wall_baseline = max(done_totaltimes, default=0.0)
+            if running_starts:
+                wall = wall_baseline + (ref_time - min(running_starts))
+            else:
+                wall = wall_baseline
+
+            wall_strs[name] = format_time(wall, milliseconds_digits=1)
+            if Board._has_parallelism(running_starts, done_intervals):
+                cpu_strs[name] = format_time(total, milliseconds_digits=1)
+            else:
+                cpu_strs[name] = ""
 
         job_info = []
         for name, job in job_data.items():
             done = job.finished == job.total
-            job_info.append(
-                (done, f"{job.design}/{job.jobname}", job.total, job.success, runtimes[name]))
+            job_info.append((
+                done, f"{job.design}/{job.jobname}", job.total, job.success,
+                wall_strs[name], cpu_strs[name]))
 
         number_of_bars = layout.progress_bar_height - 1  # accounting for the padding
         while job_info and len(job_info) > number_of_bars:
@@ -729,19 +765,36 @@ class Board:
         if not job_info:
             return None
 
-        progress = Progress(
+        # Compute column widths and CPU visibility from displayed rows only,
+        # so trimmed-away jobs don't pad the visible columns or force a CPU
+        # column to appear when none of the rendered jobs has parallelism.
+        visible_walls = [row[4] for row in job_info]
+        visible_cpus = [row[5] for row in job_info]
+        wall_width = max([*[len(s) for s in visible_walls], 0])
+        cpu_width = max([*[len(s) for s in visible_cpus], 0])
+        show_cpu = any(visible_cpus)
+
+        columns = [
             TextColumn("[progress.description]{task.description}"),
             MofNCompleteColumn(),
             BarColumn(bar_width=60),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TextColumn(f" {{task.fields[runtime]:>{runtime_width}}}")
-        )
-        for _, name, total, success, runtime in job_info:
+            TextColumn(f" {{task.fields[walltime]:>{wall_width}}}"),
+        ]
+        if show_cpu:
+            sep_width = 3  # " / "
+            columns.append(TextColumn(f"{{task.fields[separator]:<{sep_width}}}"))
+            columns.append(TextColumn(f"{{task.fields[cputime]:>{cpu_width}}}"))
+
+        progress = Progress(*columns)
+        for _, name, total, success, walltime, cputime in job_info:
             progress.add_task(
                 f"[text.primary]Progress ({name}):",
                 total=total,
                 completed=success,
-                runtime=runtime
+                walltime=walltime,
+                separator=" / " if cputime else "",
+                cputime=cputime,
             )
 
         return Group(progress, Padding("", (0, 0)))
@@ -1160,8 +1213,10 @@ class Board:
 
             starttime = None
             duration = None
+            totaltime = None
             if NodeStatus.is_done(status):
                 duration = project.get("metric", "tasktime", step=step, index=index)
+                totaltime = project.get("metric", "totaltime", step=step, index=index)
             if (step, index) in starttimes:
                 starttime = starttimes[(step, index)]
 
@@ -1186,7 +1241,8 @@ class Board:
                     "status": status,
                     "time": {
                         "start": starttime,
-                        "duration": duration
+                        "duration": duration,
+                        "totaltime": totaltime
                     },
                     "metrics": node_metrics,
                     "log": [(

@@ -2,9 +2,9 @@ import io
 import logging
 import pytest
 import queue
-import random
 import sys
 import threading
+import time
 
 from rich.console import Console, Group
 from rich.table import Table
@@ -79,7 +79,8 @@ def mock_running_job_lg():
             "metrics": ["", ""],
             "time": {
                 "duration": None,
-                "start": None
+                "start": None,
+                "totaltime": None
             },
             "print": {
                 "order": (index, index),
@@ -114,39 +115,9 @@ def mock_running_job_lg_second():
             "metrics": ["", ""],
             "time": {
                 "duration": None,
-                "start": None
+                "start": None,
+                "totaltime": None
             },
-            "print": {
-                "order": (index, index),
-                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index,
-                "hide": False
-            }
-        }
-        for index in range(mock_job_data.total)
-    ]
-    mock_job_data.success = sum(1 for node in mock_job_data.nodes
-                                if NodeStatus.is_success(node["status"]))
-    mock_job_data.error = sum(1 for node in mock_job_data.nodes
-                              if NodeStatus.is_error(node["status"]))
-    mock_job_data.finished = mock_job_data.success + mock_job_data.error
-    return mock_job_data
-
-
-@pytest.fixture
-def mock_running_job():
-    mock_job_data = JobData()
-    mock_job_data.total = 5
-    mock_job_data.visible = 5
-    mock_job_data.design = "design1"
-    mock_job_data.jobname = "job1"
-    statuses = [NodeStatus.SUCCESS, NodeStatus.ERROR, NodeStatus.PENDING]
-    mock_job_data.nodes = [
-        {
-            "step": f"node{index + 1}",
-            "index": index,
-            "status": random.choice(statuses),
-            "metrics": ["", ""],
-            "log": [(f"node{index + 1}.log", f"node{index + 1}.log")],
             "print": {
                 "order": (index, index),
                 "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index,
@@ -180,7 +151,8 @@ def mock_finished_job_fail():
             "log": [(f"node{index + 1}.log", f"node{index + 1}.log")],
             "time": {
                 "duration": 5.0,
-                "start": None
+                "start": None,
+                "totaltime": 5.0
             },
             "print": {
                 "order": (index, index),
@@ -214,7 +186,8 @@ def mock_finished_job_passed():
             "log": [(f"node{index + 1}.log", f"node{index + 1}.log")],
             "time": {
                 "duration": 5.0,
-                "start": None
+                "start": None,
+                "totaltime": 5.0
             },
             "print": {
                 "order": (index, index),
@@ -1079,6 +1052,288 @@ def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg
     assert len(actual_lines) == len(expected_lines)
     for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
         assert actual == expected, f"line {i} does not match"
+
+
+def _make_progress_job(nodes, design="design1", jobname="job1", complete=False):
+    """Build a minimal JobData suitable for _render_progress_bar tests.
+
+    Each node entry is a (status, duration, start, totaltime) tuple.
+    """
+    job = JobData()
+    job.design = design
+    job.jobname = jobname
+    job.total = len(nodes)
+    job.visible = len(nodes)
+    job.complete = complete
+    job.nodes = []
+    for index, (status, duration, start, totaltime) in enumerate(nodes):
+        job.nodes.append({
+            "step": f"node{index}",
+            "index": index,
+            "status": status,
+            "metrics": ["", ""],
+            "log": [],
+            "time": {
+                "duration": duration,
+                "start": start,
+                "totaltime": totaltime,
+            },
+            "print": {"order": (index, index), "priority": index, "hide": False},
+        })
+    job.success = sum(1 for n in job.nodes if NodeStatus.is_success(n["status"]))
+    job.error = sum(1 for n in job.nodes if NodeStatus.is_error(n["status"]))
+    job.finished = job.success + job.error
+    return job
+
+
+def _runtime_strings(progress):
+    """Extract the formatted runtime fields from each task in a Progress object.
+
+    Returns a list of (walltime, cputime) tuples; cputime is "" when no
+    parallelism was detected (no separate CPU column shown).
+    """
+    return [(task.fields["walltime"], task.fields["cputime"])
+            for task in progress._tasks.values()]
+
+
+def test_progress_bar_runtime_serial_shows_single_value(dashboard_medium):
+    """Serial (non-parallel) runs should display only the total time."""
+    dashboard = dashboard_medium._dashboard
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 5.0, None, 5.0),
+        (NodeStatus.SUCCESS, 5.0, None, 10.0),
+        (NodeStatus.SUCCESS, 5.0, None, 15.0),
+    ], complete=True)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project, complete=True)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    rendered = dashboard._render_progress_bar(dashboard._layout)
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # total = 15, wall = max(totaltime) = 15 -> identical, no parallelism
+    assert runtimes == [("0:15.0", "")]
+
+
+def test_progress_bar_runtime_parallel_completed_shows_total_and_wall(dashboard_medium):
+    """A completed parallel job should display total / wall when they differ."""
+    dashboard = dashboard_medium._dashboard
+    # 3 nodes, each ran 10s but in parallel: totaltime metric is the wall checkpoint
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+    ], complete=True)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project, complete=True)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    rendered = dashboard._render_progress_bar(dashboard._layout)
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # wall = 10 (max totaltime metric), total = 30 (sum of work)
+    assert runtimes == [("0:10.0", "0:30.0")]
+
+
+def test_progress_bar_runtime_in_progress_with_running_node(dashboard_medium):
+    """In-progress jobs combine done totaltime baseline with active elapsed time."""
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    # 2 done nodes (sequential, each 5s) plus 1 running started 3s ago
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 5.0, None, 5.0),
+        (NodeStatus.SUCCESS, 5.0, None, 10.0),
+        (NodeStatus.RUNNING, None, now - 3.0, None),
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # total = 5 + 5 + 3 = 13, wall = max(5,10) + 3 = 13 -> no parallelism
+    assert runtimes == [("0:13.0", "")]
+
+
+def test_progress_bar_runtime_in_progress_parallel_running(dashboard_medium):
+    """Two nodes running in parallel: total counts both, wall counts the longest."""
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    # 1 done node (10s baseline), 2 running nodes started 4s and 2s ago
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+        (NodeStatus.RUNNING, None, now - 4.0, None),
+        (NodeStatus.RUNNING, None, now - 2.0, None),
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # wall = 10 + (now - min(now-4, now-2)) = 14, total = 10 + 4 + 2 = 16
+    assert runtimes == [("0:14.0", "0:16.0")]
+
+
+def test_progress_bar_runtime_resumed_job_uses_recorded_totaltime(dashboard_medium):
+    """A resumed job: prior-session done nodes contribute via totaltime metric.
+
+    The two prior-session nodes are strictly sequential (intervals [0, 40] and
+    [40, 90]) so no parallelism is detected — this isolates the resumed wall-time
+    computation across a session boundary from the parallelism display path.
+    """
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    # Prior session: two sequential nodes. Final wall checkpoint = 90.
+    # Resume and a new node starts now - 5s ago.
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 40.0, None, 40.0),    # prior session, interval [0, 40]
+        (NodeStatus.SUCCESS, 50.0, None, 90.0),    # prior session, interval [40, 90]
+        (NodeStatus.RUNNING, None, now - 5.0, None),  # this session
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # wall = 90 (baseline) + 5 (active) = 95, total = 40 + 50 + 5 = 95
+    # No parallelism (sequential intervals + single running) -> wall column only.
+    assert runtimes == [("1:35.0", "")]
+
+
+def test_progress_bar_runtime_sequential_done_one_running_no_wall(dashboard_medium):
+    """No two tasks ever overlapped (sequential done + single running) => single value."""
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 5.0, None, 5.0),    # interval [0, 5]
+        (NodeStatus.SUCCESS, 5.0, None, 10.0),   # interval [5, 10]
+        (NodeStatus.RUNNING, None, now - 2.0, None),  # only one running, no overlap
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+    assert runtimes[0][1] == ""  # cpu column empty -> no parallelism
+
+
+def test_progress_bar_runtime_two_running_triggers_wall(dashboard_medium):
+    """Two simultaneously-running nodes (no done history) trigger wall display."""
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    job = _make_progress_job([
+        (NodeStatus.RUNNING, None, now - 3.0, None),
+        (NodeStatus.RUNNING, None, now - 2.0, None),
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+    assert runtimes[0][1] != ""  # cpu column populated -> parallelism detected
+
+
+def test_progress_bar_runtime_overlapping_done_triggers_wall(dashboard_medium):
+    """Two completed nodes with overlapping wall intervals trigger wall display."""
+    dashboard = dashboard_medium._dashboard
+    # node A: wall interval [0, 10] (totaltime=10, tasktime=10)
+    # node B: wall interval [5, 15] (totaltime=15, tasktime=10) -> overlaps [5, 10]
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+        (NodeStatus.SUCCESS, 10.0, None, 15.0),
+    ], complete=True)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project, complete=True)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    rendered = dashboard._render_progress_bar(dashboard._layout)
+    runtimes = _runtime_strings(rendered.renderables[0])
+    assert runtimes[0][1] != ""
+
+
+def test_progress_bar_runtime_no_data_shows_zero(dashboard_medium):
+    """Pending job with no data: both total and wall are 0, single value displayed."""
+    dashboard = dashboard_medium._dashboard
+    job = _make_progress_job([
+        (NodeStatus.PENDING, None, None, None),
+        (NodeStatus.PENDING, None, None, None),
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    rendered = dashboard._render_progress_bar(dashboard._layout)
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    assert runtimes == [("0:00.0", "")]
+
+
+def test_get_job_records_totaltime_metric(mock_project, fake_console):
+    """_get_job should populate node['time']['totaltime'] from the totaltime metric."""
+    mock_project.set("record", "status", "success", step="route.global", index=0)
+    mock_project.set("metric", "tasktime", 12.5, step="route.global", index=0)
+    mock_project.set("metric", "totaltime", 42.0, step="route.global", index=0)
+
+    dashboard = MPManager.get_dashboard()
+    job = dashboard._get_job(mock_project)
+
+    matched = [n for n in job.nodes if n["step"] == "route.global"]
+    assert len(matched) == 1
+    assert matched[0]["time"]["duration"] == 12.5
+    assert matched[0]["time"]["totaltime"] == 42.0
 
 
 def test_render_job_dashboard_multi_job_limit_progress(

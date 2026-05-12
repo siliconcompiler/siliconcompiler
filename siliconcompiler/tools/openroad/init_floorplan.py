@@ -186,7 +186,8 @@ class InitFloorplanTask(APRTask,
             'check_setup',
             'setup',
             'unconstrained',
-            'power'
+            'power',
+            "logicdepth"
         ])
 
         self.add_required_key("var", "ifp_snap_strategy")
