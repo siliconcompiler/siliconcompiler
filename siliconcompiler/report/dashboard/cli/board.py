@@ -1126,10 +1126,21 @@ class Board:
                 == NodeStatus.SKIPPED
             )
         )
+        # Edges of the static flow graph. Including these makes the cache
+        # invalidate when a user mutates flowgraph edges between calls (e.g.
+        # in a Jupyter session) — node-set equality alone wouldn't catch
+        # that. O(N + E) per signature build, far cheaper than the recursive
+        # distance walk it gates.
+        flow_obj = project.get_flow(flow)
+        edges = tuple(
+            (node, tuple(sorted(flow_obj.get_graph_node(node[0], node[1]).get_input())))
+            for node in sorted(execnodes)
+        )
         signature = (
             flow,
             tuple(execnodes),
             tuple(sorted(check_flow_nodes)),
+            edges,
             tuple(project.option.get_from() or ()),
             tuple(project.option.get_to() or ()),
             tuple(project.option.get_prune() or ()),

@@ -23,6 +23,7 @@ from siliconcompiler.report.dashboard.cli.board import (
 )
 from siliconcompiler.report.dashboard.cli.keyboard import Keyboard
 from siliconcompiler import NodeStatus
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.multiprocessing import MPManager
 
 
@@ -1686,37 +1687,50 @@ def test_get_job_topology_invalidated_by_skipped(mock_project, fake_console):
     assert first.signature != second.signature
 
 
-def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console):
+def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
+                                                  monkeypatch):
     """The recursive `get_node_distance` walk inside `_get_flow_topology`
     is the expensive piece we're trying to avoid. After the first call
-    seeds the cache, status-only refreshes must not call it again."""
+    seeds the cache, status-only refreshes must not call it again.
+
+    Uses `RuntimeFlowgraph.get_execution_order` as a miss-only sentinel:
+    it is invoked exclusively from the cache-miss branch of
+    `_get_flow_topology`, so its call count equals the number of real
+    rebuilds. We also pin object identity to catch in-place rebuilds that
+    a presence-only check (`project_id in _topology_cache`) would miss.
+    """
     dashboard = MPManager.get_dashboard()
+    real_get_exec_order = RuntimeFlowgraph.get_execution_order
+    exec_calls = []
 
-    real_get_flow_topology = dashboard._get_flow_topology
-    call_count = {"n": 0}
+    def counting(self, *args, **kwargs):
+        exec_calls.append(self)
+        return real_get_exec_order(self, *args, **kwargs)
 
-    def counting_topology(project, project_id):
-        # Count cache misses by detecting whether the project_id is already
-        # in the cache before the underlying call resolves it.
-        was_cached = project_id in dashboard._topology_cache
-        result = real_get_flow_topology(project, project_id)
-        if not was_cached:
-            call_count["n"] += 1
-        return result
+    monkeypatch.setattr(RuntimeFlowgraph, "get_execution_order", counting)
 
-    with patch.object(dashboard, "_get_flow_topology",
-                      side_effect=counting_topology):
-        dashboard._get_job(mock_project)
-        dashboard._get_job(mock_project)
-        mock_project.set("record", "status", "running",
-                         step="floorplan.init", index=0)
-        dashboard._get_job(mock_project)
-        mock_project.set("record", "status", "success",
-                         step="floorplan.init", index=0)
-        dashboard._get_job(mock_project)
+    # First call: cache miss — get_execution_order must be invoked.
+    dashboard._get_job(mock_project)
+    after_seed = len(exec_calls)
+    assert after_seed >= 1
+    seeded = dashboard._topology_cache["test_design/test_job"]
 
-    assert call_count["n"] == 1, (
-        f"Topology should be computed once; computed {call_count['n']} times"
+    # Status-only refreshes: cache hits — must reuse the same _FlowTopology
+    # object and must not invoke get_execution_order again.
+    dashboard._get_job(mock_project)
+    mock_project.set("record", "status", "running",
+                     step="floorplan.init", index=0)
+    dashboard._get_job(mock_project)
+    mock_project.set("record", "status", "success",
+                     step="floorplan.init", index=0)
+    dashboard._get_job(mock_project)
+
+    assert len(exec_calls) == after_seed, (
+        f"get_execution_order called {len(exec_calls)} times, expected "
+        f"{after_seed} (one per real topology rebuild)"
+    )
+    assert dashboard._topology_cache["test_design/test_job"] is seeded, (
+        "Topology object identity changed despite no structural change"
     )
 
 
