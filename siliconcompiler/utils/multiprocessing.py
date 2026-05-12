@@ -343,7 +343,8 @@ class MPQueueHandler(QueueHandler):
     def enqueue(self, record):
         try:
             super().enqueue(record)
-        except BrokenPipeError:
-            # The pipe is broken so fail silently as this is likely
-            # at exit
+        except (BrokenPipeError, EOFError, ConnectionResetError, OSError, RemoteError):
+            # The queue is no longer reachable so fail silently. This is
+            # most likely happening during shutdown, when the parent's
+            # SyncManager has gone away before the child finished logging.
             pass

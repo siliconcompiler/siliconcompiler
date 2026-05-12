@@ -1,8 +1,11 @@
 import logging
 
+from multiprocessing.managers import RemoteError
 from unittest.mock import patch
 
-from siliconcompiler.utils.multiprocessing import MPManager, _ManagerSingleton
+import pytest
+
+from siliconcompiler.utils.multiprocessing import MPManager, MPQueueHandler, _ManagerSingleton
 from siliconcompiler.report.dashboard.cli.board import Board
 from siliconcompiler.utils.settings import SettingsManager
 
@@ -228,6 +231,45 @@ def test_stop_swallows_keyboard_interrupt_in_manager_shutdown():
                       side_effect=_raise_kbi):
         MPManager.stop()
     assert _ManagerSingleton.has_cls(MPManager) is False
+
+
+def _make_log_record():
+    return logging.LogRecord(
+        name="test", level=logging.INFO, pathname=__file__, lineno=1,
+        msg="hello", args=None, exc_info=None,
+    )
+
+
+@pytest.mark.parametrize("exc", [
+    BrokenPipeError("broken"),
+    EOFError("eof"),
+    ConnectionResetError("reset"),
+    OSError("oserr"),
+    RemoteError("remote"),
+])
+def test_mp_queue_handler_swallows_shutdown_errors(exc):
+    '''Errors raised by the underlying queue during shutdown must not escape
+    enqueue(); the parent's SyncManager may have gone away before children
+    finished logging.'''
+    class BrokenQueue:
+        def put_nowait(self, record):
+            raise exc
+
+    handler = MPQueueHandler(BrokenQueue())
+    # Must not raise.
+    handler.enqueue(_make_log_record())
+
+
+def test_mp_queue_handler_other_errors_propagate():
+    '''Errors that are not shutdown-related still propagate so genuine bugs
+    are not silently hidden.'''
+    class WeirdQueue:
+        def put_nowait(self, record):
+            raise ValueError("bug")
+
+    handler = MPQueueHandler(WeirdQueue())
+    with pytest.raises(ValueError):
+        handler.enqueue(_make_log_record())
 
 
 def test_stop_runs_housekeeping_after_interrupt():
