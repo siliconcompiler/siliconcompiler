@@ -8,6 +8,7 @@ import os.path
 from typing import List, Dict, Tuple, Optional, Callable, Any, Literal, TYPE_CHECKING
 
 from logging.handlers import QueueListener
+from multiprocessing.managers import RemoteError
 
 from siliconcompiler import NodeStatus
 from siliconcompiler import utils
@@ -189,7 +190,11 @@ class TaskScheduler:
             # be gone by now during an interrupted shutdown).
             try:
                 log_listener.stop()
-            except (AttributeError, OSError, EOFError, BrokenPipeError):
+            except (AttributeError, OSError, EOFError, BrokenPipeError,
+                    ConnectionResetError, RemoteError):
+                # Mirror the shutdown-error set caught by MPQueueHandler.enqueue:
+                # the QueueListener's sentinel put may fail through any of these
+                # if the SyncManager backing __log_queue has already gone away.
                 pass
             self.__logger_console_handler.setFormatter(console_format)
             job_log_handler.setFormatter(file_formatter)

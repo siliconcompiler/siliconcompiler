@@ -220,10 +220,19 @@ def test_run_control_c_stops_log_listener_once(large_flow, make_tasks, monkeypat
         f"QueueListener.stop() must be called once, got {len(stop_calls)}"
 
 
-def test_run_log_listener_stop_tolerates_dead_queue(large_flow, make_tasks, monkeypatch):
+@pytest.mark.parametrize("exc", [
+    BrokenPipeError("queue gone"),
+    ConnectionResetError("reset"),
+    EOFError("eof"),
+    OSError("oserr"),
+    taskscheduler_module.RemoteError("remote"),
+])
+def test_run_log_listener_stop_tolerates_dead_queue(large_flow, make_tasks,
+                                                    monkeypatch, exc):
     '''If the SyncManager-backed log queue has already gone away by the time
-    the finally block runs (e.g. during an interrupted shutdown), stop()
-    raising OSError/EOFError/BrokenPipeError must not escape run().'''
+    the finally block runs (e.g. during an interrupted shutdown), the
+    exceptions that QueueListener.stop()'s sentinel put may raise must not
+    escape run(). The caught set mirrors MPQueueHandler.enqueue.'''
     class DeadQueueListener:
         def __init__(self, *args, **kwargs):
             pass
@@ -232,7 +241,7 @@ def test_run_log_listener_stop_tolerates_dead_queue(large_flow, make_tasks, monk
             pass
 
         def stop(self):
-            raise BrokenPipeError("queue gone")
+            raise exc
 
     monkeypatch.setattr(taskscheduler_module, "QueueListener", DeadQueueListener)
 
