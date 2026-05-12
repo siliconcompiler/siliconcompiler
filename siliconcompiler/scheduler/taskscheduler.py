@@ -8,6 +8,7 @@ import os.path
 from typing import List, Dict, Tuple, Optional, Callable, Any, Literal, TYPE_CHECKING
 
 from logging.handlers import QueueListener
+from multiprocessing.managers import RemoteError
 
 from siliconcompiler import NodeStatus
 from siliconcompiler import utils
@@ -178,15 +179,22 @@ class TaskScheduler:
             MPManager.get_transient_settings().get(
                 'TaskScheduler', 'post_run', lambda project: None)(self.__project)
         except KeyboardInterrupt:
-            # exit immediately
-            log_listener.stop()
+            # Defer cleanup to the finally block so the listener is only
+            # stopped once. Calling stop() twice raises AttributeError when
+            # the listener thread has already been joined, and during
+            # shutdown the manager-backed queue may have already gone away.
             sys.exit(0)
         finally:
-            # Cleanup logger
+            # Cleanup logger. Tolerate the listener already being torn down
+            # or its backing queue being unreachable (the SyncManager may
+            # be gone by now during an interrupted shutdown).
             try:
                 log_listener.stop()
-            except AttributeError:
-                # Logger already stopped
+            except (AttributeError, OSError, EOFError, BrokenPipeError,
+                    ConnectionResetError, RemoteError):
+                # Mirror the shutdown-error set caught by MPQueueHandler.enqueue:
+                # the QueueListener's sentinel put may fail through any of these
+                # if the SyncManager backing __log_queue has already gone away.
                 pass
             self.__logger_console_handler.setFormatter(console_format)
             job_log_handler.setFormatter(file_formatter)
@@ -286,7 +294,10 @@ class TaskScheduler:
                     self.__schema.unset("arg", "step")
                     self.__schema.unset("arg", "index")
 
-                if info["parent_pipe"] and info["parent_pipe"].poll(1):
+                # The child either sent the package cache before exiting or
+                # it never will. poll(0) avoids blocking the scheduler loop
+                # for a full second when a child died without writing.
+                if info["parent_pipe"] and info["parent_pipe"].poll(0):
                     try:
                         packages = info["parent_pipe"].recv()
                         if isinstance(packages, dict):
@@ -300,7 +311,12 @@ class TaskScheduler:
                 info["node"].set_queue(None, None)
 
                 step, index = node
-                if info["proc"].exitcode > 0:
+                # Treat any nonzero exit code as an error. Children killed by
+                # a signal (e.g. SIGKILL, SIGTERM) report a negative exitcode
+                # and almost certainly did not get a chance to update the
+                # record, so they must be classified as ERROR rather than
+                # consulting the (stale) status field.
+                if info["proc"].exitcode != 0:
                     status = NodeStatus.ERROR
                 else:
                     status = self.__record.get('status', step=step, index=index)

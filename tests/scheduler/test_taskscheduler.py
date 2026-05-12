@@ -3,11 +3,13 @@ import logging
 import pytest
 
 from threading import Lock
+from unittest.mock import MagicMock
 
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler import NodeStatus
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.scheduler import TaskScheduler
+from siliconcompiler.scheduler import taskscheduler as taskscheduler_module
 from siliconcompiler.scheduler.taskscheduler import utils as imported_utils
 from siliconcompiler.scheduler import SchedulerNode, SCRuntimeError
 
@@ -184,6 +186,155 @@ def test_run_control_c(large_flow, make_tasks, monkeypatch):
 
     with pytest.raises(SystemExit):
         scheduler.run(logging.NullHandler())
+
+
+def test_run_control_c_stops_log_listener_once(large_flow, make_tasks, monkeypatch):
+    '''On KeyboardInterrupt, the QueueListener must be stopped exactly once.
+    Calling stop() twice raises AttributeError once the listener thread has
+    been joined; before this fix the except branch stopped it eagerly and
+    the finally block stopped it again.'''
+    stop_calls = []
+
+    class FakeQueueListener:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            pass
+
+        def stop(self):
+            stop_calls.append(True)
+
+    monkeypatch.setattr(taskscheduler_module, "QueueListener", FakeQueueListener)
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    def dummy_loop():
+        raise KeyboardInterrupt
+    monkeypatch.setattr(scheduler, "_TaskScheduler__run_loop", dummy_loop)
+
+    with pytest.raises(SystemExit):
+        scheduler.run(logging.NullHandler())
+
+    assert len(stop_calls) == 1, \
+        f"QueueListener.stop() must be called once, got {len(stop_calls)}"
+
+
+@pytest.mark.parametrize("exc", [
+    BrokenPipeError("queue gone"),
+    ConnectionResetError("reset"),
+    EOFError("eof"),
+    OSError("oserr"),
+    taskscheduler_module.RemoteError("remote"),
+])
+def test_run_log_listener_stop_tolerates_dead_queue(large_flow, make_tasks,
+                                                    monkeypatch, exc):
+    '''If the SyncManager-backed log queue has already gone away by the time
+    the finally block runs (e.g. during an interrupted shutdown), the
+    exceptions that QueueListener.stop()'s sentinel put may raise must not
+    escape run(). The caught set mirrors MPQueueHandler.enqueue.'''
+    class DeadQueueListener:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            pass
+
+        def stop(self):
+            raise exc
+
+    monkeypatch.setattr(taskscheduler_module, "QueueListener", DeadQueueListener)
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    def dummy_loop():
+        return None
+    monkeypatch.setattr(scheduler, "_TaskScheduler__run_loop", dummy_loop)
+
+    # Must not raise.
+    scheduler.run(logging.NullHandler())
+
+
+def _setup_completed_node(scheduler, node, exitcode, *, pipe_has_data=False):
+    '''Helper: mark a node as running with a fake process that has already
+    exited. Returns the mocks so the test can inspect call args.'''
+    info = scheduler._TaskScheduler__nodes[node]
+    proc = MagicMock()
+    proc.is_alive.return_value = False
+    proc.exitcode = exitcode
+    info["proc"] = proc
+    info["running"] = True
+
+    pipe = MagicMock()
+    pipe.poll.return_value = pipe_has_data
+    pipe.recv.return_value = {}
+    info["parent_pipe"] = pipe
+    return proc, pipe
+
+
+def test_process_completed_nodes_uses_nonblocking_poll(large_flow, make_tasks):
+    '''The scheduler must not block waiting on a child's pipe after the child
+    has already exited. poll() should be called with a 0 (or no) timeout.'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    node = ("stepone", "0")
+    _, pipe = _setup_completed_node(scheduler, node, exitcode=0)
+
+    scheduler._TaskScheduler__process_completed_nodes()
+
+    assert pipe.poll.called
+    # poll() may be called with a positional timeout or none at all; the
+    # only forbidden value is the previous 1-second blocking timeout.
+    for call in pipe.poll.call_args_list:
+        args, kwargs = call
+        timeout = args[0] if args else kwargs.get("timeout", 0)
+        assert timeout == 0, f"poll() was called with a blocking timeout: {timeout!r}"
+
+
+def test_process_completed_nodes_signal_killed_is_error(large_flow, make_tasks):
+    '''A child terminated by a signal reports a negative exitcode. The status
+    record has not been updated by such a child, so the scheduler must
+    classify the node as ERROR rather than trusting the stale record.'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    node = ("stepone", "0")
+    # Force a stale "SUCCESS" status that a real SIGKILLed child could not
+    # have written. The fix must override this.
+    large_flow.set("record", "status", NodeStatus.SUCCESS,
+                   step=node[0], index=node[1])
+    _setup_completed_node(scheduler, node, exitcode=-9)
+
+    scheduler._TaskScheduler__process_completed_nodes()
+
+    assert large_flow.get("record", "status",
+                          step=node[0], index=node[1]) == NodeStatus.ERROR
+
+
+def test_process_completed_nodes_clean_exit_keeps_status(large_flow, make_tasks):
+    '''Regression guard: a clean (exitcode == 0) exit must continue to
+    preserve whatever status the child wrote into the record.'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    node = ("stepone", "0")
+    large_flow.set("record", "status", NodeStatus.SUCCESS,
+                   step=node[0], index=node[1])
+    _setup_completed_node(scheduler, node, exitcode=0)
+
+    scheduler._TaskScheduler__process_completed_nodes()
+
+    assert large_flow.get("record", "status",
+                          step=node[0], index=node[1]) == NodeStatus.SUCCESS
+
+
+def test_process_completed_nodes_nonzero_exit_is_error(large_flow, make_tasks):
+    '''A positive nonzero exit (e.g. sys.exit(1) from halt()) must still be
+    classified as ERROR. This existed before the signal fix but the
+    rewritten comparison (!= 0) needs explicit coverage too.'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    node = ("stepone", "0")
+    _setup_completed_node(scheduler, node, exitcode=1)
+
+    scheduler._TaskScheduler__process_completed_nodes()
+
+    assert large_flow.get("record", "status",
+                          step=node[0], index=node[1]) == NodeStatus.ERROR
 
 
 def test_check(large_flow, make_tasks):
