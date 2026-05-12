@@ -1643,6 +1643,150 @@ def test_get_job_with_status(mock_project, fake_console):
     assert len(job.nodes) == 18
 
 
+def test_get_job_topology_cached(mock_project, fake_console):
+    """Repeated _get_job calls on the same project must reuse the cached
+    flowgraph topology rather than re-running the recursive distance walk.
+
+    The cache key is the design/jobname pair; status changes that don't
+    introduce/remove SKIPPED nodes must hit the cache.
+    """
+    dashboard = MPManager.get_dashboard()
+
+    dashboard._get_job(mock_project)
+    project_id = "test_design/test_job"
+    assert project_id in dashboard._topology_cache
+    cached = dashboard._topology_cache[project_id]
+
+    # A status flip that is NOT skipped must reuse the cached topology
+    # (same object identity).
+    mock_project.set("record", "status", "success", step="route.global", index=0)
+    dashboard._get_job(mock_project)
+    assert dashboard._topology_cache[project_id] is cached
+
+    mock_project.set("record", "status", "error", step="write.views", index=0)
+    dashboard._get_job(mock_project)
+    assert dashboard._topology_cache[project_id] is cached
+
+
+def test_get_job_topology_invalidated_by_skipped(mock_project, fake_console):
+    """Introducing a SKIPPED node changes which inputs downstream nodes see
+    (RuntimeFlowgraph.get_node_inputs walks past skipped predecessors), so
+    the topology cache must be rebuilt when the SKIPPED set changes."""
+    dashboard = MPManager.get_dashboard()
+
+    dashboard._get_job(mock_project)
+    project_id = "test_design/test_job"
+    first = dashboard._topology_cache[project_id]
+
+    mock_project.set("record", "status", "skipped", step="route.detailed", index=0)
+    dashboard._get_job(mock_project)
+    second = dashboard._topology_cache[project_id]
+
+    assert second is not first
+    assert first.signature != second.signature
+
+
+def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console):
+    """The recursive `get_node_distance` walk inside `_get_flow_topology`
+    is the expensive piece we're trying to avoid. After the first call
+    seeds the cache, status-only refreshes must not call it again."""
+    dashboard = MPManager.get_dashboard()
+
+    real_get_flow_topology = dashboard._get_flow_topology
+    call_count = {"n": 0}
+
+    def counting_topology(project, project_id):
+        # Count cache misses by detecting whether the project_id is already
+        # in the cache before the underlying call resolves it.
+        was_cached = project_id in dashboard._topology_cache
+        result = real_get_flow_topology(project, project_id)
+        if not was_cached:
+            call_count["n"] += 1
+        return result
+
+    with patch.object(dashboard, "_get_flow_topology",
+                      side_effect=counting_topology):
+        dashboard._get_job(mock_project)
+        dashboard._get_job(mock_project)
+        mock_project.set("record", "status", "running",
+                         step="floorplan.init", index=0)
+        dashboard._get_job(mock_project)
+        mock_project.set("record", "status", "success",
+                         step="floorplan.init", index=0)
+        dashboard._get_job(mock_project)
+
+    assert call_count["n"] == 1, (
+        f"Topology should be computed once; computed {call_count['n']} times"
+    )
+
+
+def test_get_job_status_counts_correct_with_cache(mock_project, fake_console):
+    """Status-derived counters (success/error/finished/visible) must update
+    on every call even when the topology cache is reused — they are
+    deliberately *not* part of the cache."""
+    dashboard = MPManager.get_dashboard()
+
+    job0 = dashboard._get_job(mock_project)
+    assert job0.success == 0
+    assert job0.finished == 0
+
+    mock_project.set("record", "status", "success", step="route.global", index=0)
+    job1 = dashboard._get_job(mock_project)
+    assert job1.success == 1
+    assert job1.finished == 1
+
+    mock_project.set("record", "status", "error", step="write.views", index=0)
+    job2 = dashboard._get_job(mock_project)
+    assert job2.error == 1
+    assert job2.success == 1
+    assert job2.finished == 2
+
+
+def test_get_job_priority_reflects_status_changes(mock_project, fake_console):
+    """node_priority is recomputed from cached node_dists on every call so
+    that running/error nodes float to the top of the display even though
+    the underlying topology was cached."""
+    dashboard = MPManager.get_dashboard()
+
+    # First call: nothing is running, nothing has errored, so entry nodes
+    # are the only priority-0 nodes.
+    job_initial = dashboard._get_job(mock_project)
+    initial_priorities = {
+        (node["step"], node["index"]): node["print"]["priority"]
+        for node in job_initial.nodes
+    }
+
+    # Pick a deep, non-entry node to set ERROR on; its priority should
+    # drop to 0 (errors are part of the priority-0 startnode set).
+    target = ("write.views", "0")
+    assert initial_priorities.get(target, 1) > 0
+
+    mock_project.set("record", "status", "error",
+                     step=target[0], index=target[1])
+    job_after = dashboard._get_job(mock_project)
+
+    after_priorities = {
+        (node["step"], node["index"]): node["print"]["priority"]
+        for node in job_after.nodes
+    }
+    assert after_priorities[target] == 0
+
+
+def test_get_job_separate_projects_use_separate_cache_entries(
+        mock_project, fake_console):
+    """The cache key is design/jobname; two distinct projects must each
+    get their own cached topology."""
+    dashboard = MPManager.get_dashboard()
+
+    dashboard._get_job(mock_project)
+    assert "test_design/test_job" in dashboard._topology_cache
+
+    mock_project.set('option', 'jobname', 'other_job')
+    dashboard._get_job(mock_project)
+    assert "test_design/other_job" in dashboard._topology_cache
+    assert "test_design/test_job" in dashboard._topology_cache
+
+
 def test_render_help_full_height(mock_project, fake_console):
     """Test rendering help display with full height (banner, authors, version, table)"""
     dashboard = MPManager.get_dashboard()

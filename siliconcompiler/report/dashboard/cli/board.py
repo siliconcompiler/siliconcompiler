@@ -10,7 +10,7 @@ import os.path
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import List, Dict
+from typing import Any, List, Dict, Set, Tuple
 
 from rich import box
 from rich.theme import Theme
@@ -175,6 +175,26 @@ class LogBufferHandler(logging.Handler):
                     (SCColorLoggerFormatter.bold_red.replace("[", "\\["), "[bold red]")):
                 log_entry = log_entry.replace(color, replacement)
         self._parent.add_line(log_entry)
+
+
+@dataclass
+class _FlowTopology:
+    """
+    Cached topology data for a single (design, jobname) flow.
+
+    The recursive distance walk in `_get_job` is the most expensive piece of
+    every dashboard update, but its result depends only on the flowgraph
+    structure (plus which nodes are SKIPPED — see `signature`). Caching this
+    lets status-only updates avoid O(N^2) recomputation on every refresh.
+    """
+    nodes: List[Tuple[str, str]]
+    nodeorder: Dict[Tuple[str, str], Tuple[int, int]]
+    node_dists: Dict[Tuple[str, str], Dict[Tuple[str, str], int]]
+    flow_entry_nodes: Set[Tuple[str, str]]
+    flow_exit_nodes: Set[Tuple[str, str]]
+    check_flow_nodes: Set[Tuple[str, str]]
+    lowest_priority: int
+    signature: Any
 
 
 @dataclass
@@ -351,6 +371,11 @@ class Board:
 
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
+
+        # Cache of flowgraph topology per project_id. The render thread is the
+        # only consumer of _get_job, and callers already serialize via
+        # _job_data_lock, so the cache itself does not need its own lock.
+        self._topology_cache: Dict[str, _FlowTopology] = {}
 
         self._log_handler_queue = manager.Queue()
 
@@ -1061,6 +1086,113 @@ class Board:
             self._board_info.data_modified = True
             self._render_event.set()
 
+    def _get_flow_topology(self, project, project_id):
+        """Compute (and cache) the topology-only parts of the flowgraph.
+
+        The recursive distance walk is the most expensive piece of `_get_job`
+        and depends only on the flowgraph structure plus the set of SKIPPED
+        nodes (since `get_node_inputs(record=...)` walks through skipped
+        nodes to their real predecessors). Caching by `project_id` lets
+        status-only updates skip the O(N^2) work entirely.
+
+        Returns None if the project has no configured flow.
+        """
+        flow = project.option.get_flow()
+        if not flow:
+            return None
+
+        check_flow = RuntimeFlowgraph(
+            project.get_flow(flow),
+            from_steps=project.option.get_from(),
+            to_steps=project.option.get_to(),
+            prune_nodes=project.option.get_prune())
+        runtime_flow = RuntimeFlowgraph(
+            project.get_flow(flow),
+            to_steps=project.option.get_to(),
+            prune_nodes=project.option.get_prune())
+        record = project.get("record", field='schema')
+
+        execnodes = runtime_flow.get_nodes()
+        check_flow_nodes = set(check_flow.get_nodes())
+
+        # Signature for cache invalidation. SKIPPED is the only status that
+        # changes which inputs a downstream node sees, so it's enough to
+        # invalidate on the SKIPPED set rather than re-running the heavier
+        # get_node_inputs probe for every node every call.
+        skipped = tuple(
+            sorted(
+                node for node in execnodes
+                if project.get("record", "status", step=node[0], index=node[1])
+                == NodeStatus.SKIPPED
+            )
+        )
+        signature = (
+            flow,
+            tuple(execnodes),
+            tuple(sorted(check_flow_nodes)),
+            tuple(project.option.get_from() or ()),
+            tuple(project.option.get_to() or ()),
+            tuple(project.option.get_prune() or ()),
+            skipped,
+        )
+
+        cached = self._topology_cache.get(project_id)
+        if cached is not None and cached.signature == signature:
+            return cached
+
+        nodes = []
+        nodeorder = {}
+        node_inputs = {}
+        node_outputs = {}
+
+        for n, nodeset in enumerate(runtime_flow.get_execution_order()):
+            for m, node in enumerate(nodeset):
+                if node not in execnodes:
+                    continue
+                nodes.append(node)
+                nodeorder[node] = (n, m)
+                node_inputs[node] = runtime_flow.get_node_inputs(*node, record=record)
+                for in_node in project.get_flow(flow).get_graph_node(node[0],
+                                                                     node[1]).get_input():
+                    node_outputs.setdefault(in_node, set()).add(node)
+
+        flow_entry_nodes = set(project.get_flow(flow).get_entry_nodes())
+        flow_exit_nodes = set(runtime_flow.get_exit_nodes())
+
+        def get_node_distance(node, search, level=1):
+            dists = {}
+            if node not in search:
+                return dists
+            for snode in search[node]:
+                dists[snode] = level
+                dists.update(get_node_distance(snode, search, level=level + 1))
+            return dists
+
+        node_dists = {}
+        for cnode in nodes:
+            # use 2x + 1 to give completed nodes sorting priority
+            node_dists[cnode] = {
+                node: 2 * level + 1
+                for node, level in get_node_distance(cnode, node_inputs).items()
+            }
+            node_dists[cnode].update({
+                node: 2 * level
+                for node, level in get_node_distance(cnode, node_outputs).items()
+            })
+
+        topology = _FlowTopology(
+            nodes=nodes,
+            nodeorder=nodeorder,
+            node_dists=node_dists,
+            flow_entry_nodes=flow_entry_nodes,
+            flow_exit_nodes=flow_exit_nodes,
+            check_flow_nodes=check_flow_nodes,
+            lowest_priority=3 * len(execnodes),
+            signature=signature,
+        )
+        self._topology_cache[project_id] = topology
+        return topology
+
     def _get_job(self, project, starttimes=None) -> JobData:
         """
         Parses a project object to extract detailed information about the flowgraph,
@@ -1080,88 +1212,45 @@ class Board:
         if not starttimes:
             starttimes = {}
 
+        design = project.option.get_design()
+        jobname = project.option.get_jobname()
+        project_id = f"{design}/{jobname}"
+
         nodes = []
         nodestatus = {}
         nodeorder = {}
         node_priority = {}
         flow_entry_nodes = set()
         flow_exit_nodes = set()
+        check_flow_nodes = set()
         try:
-            node_inputs = {}
-            node_outputs = {}
-            flow = project.option.get_flow()
-            if not flow:
+            topology = self._get_flow_topology(project, project_id)
+            if topology is None:
                 raise RuntimeError("dummy error")
 
-            check_flow = RuntimeFlowgraph(
-                project.get_flow(flow),
-                from_steps=project.option.get_from(),
-                to_steps=project.option.get_to(),
-                prune_nodes=project.option.get_prune())
-            runtime_flow = RuntimeFlowgraph(
-                project.get_flow(flow),
-                to_steps=project.option.get_to(),
-                prune_nodes=project.option.get_prune())
-            record = project.get("record", field='schema')
+            nodes = topology.nodes
+            nodeorder = topology.nodeorder
+            flow_entry_nodes = topology.flow_entry_nodes
+            flow_exit_nodes = topology.flow_exit_nodes
+            check_flow_nodes = topology.check_flow_nodes
 
-            execnodes = runtime_flow.get_nodes()
-            lowest_priority = 3 * len(execnodes)  # 2x + 1 is lowest computed, so 3x will be lower
-            for n, nodeset in enumerate(runtime_flow.get_execution_order()):
-                for m, node in enumerate(nodeset):
-                    if node not in execnodes:
-                        continue
-                    nodes.append(node)
-
-                    node_priority[node] = lowest_priority
-
-                    status = project.get("record", "status", step=node[0], index=node[1])
-                    if status is None:
-                        status = NodeStatus.PENDING
-                    nodestatus[node] = status
-                    nodeorder[node] = (n, m)
-
-                    node_inputs[node] = runtime_flow.get_node_inputs(*node, record=record)
-                    for in_node in project.get_flow(flow).get_graph_node(node[0],
-                                                                         node[1]).get_input():
-                        node_outputs.setdefault(in_node, set()).add(node)
-
-            flow_entry_nodes = set(
-                project.get_flow(flow).get_entry_nodes())
-            flow_exit_nodes = set(runtime_flow.get_exit_nodes())
+            for node in nodes:
+                node_priority[node] = topology.lowest_priority
+                status = project.get("record", "status", step=node[0], index=node[1])
+                if status is None:
+                    status = NodeStatus.PENDING
+                nodestatus[node] = status
 
             running_nodes = set([node for node in nodes if NodeStatus.is_running(nodestatus[node])])
             done_nodes = set([node for node in nodes if NodeStatus.is_done(nodestatus[node])])
             error_nodes = set([node for node in nodes if NodeStatus.is_error(nodestatus[node])])
 
-            def get_node_distance(node, search, level=1):
-                dists = {}
-
-                if node not in search:
-                    return dists
-
-                for snode in search[node]:
-                    dists[snode] = level
-                    dists.update(get_node_distance(snode, search, level=level+1))
-
-                return dists
-
-            # Compute relative node distances
-            node_dists = {}
-            for cnode in nodes:
-                # use 2x + 1 to give completed nodes sorting priority
-                node_dists[cnode] = {
-                    node: 2*level+1 for node, level in get_node_distance(cnode, node_inputs).items()
-                }
-                node_dists[cnode].update({
-                    node: 2*level for node, level in get_node_distance(cnode, node_outputs).items()
-                })
-
-            # Compute printing priority of nodes
+            # Compute printing priority of nodes (status-dependent; cheap)
             remaining_entry_nodes = flow_entry_nodes - done_nodes
             startnodes = running_nodes.union(remaining_entry_nodes)
             priority_node = {0: startnodes.union(error_nodes)}
             for node in nodes:
-                dists = node_dists[node]
+                dists = topology.node_dists[node]
                 levels = []
                 for snode in startnodes:
                     if snode not in dists:
@@ -1177,9 +1266,6 @@ class Board:
                     node_priority[node] = min(node_priority[node], level)
         except RuntimeError:
             pass
-
-        design = project.option.get_design()
-        jobname = project.option.get_jobname()
 
         job_data = JobData()
         job_data.jobname = jobname
@@ -1207,7 +1293,7 @@ class Board:
                 job_data.skipped += 1
                 continue
 
-            hide = (step, index) not in check_flow.get_nodes()
+            hide = (step, index) not in check_flow_nodes
             if not hide:
                 job_data.visible += 1
 
