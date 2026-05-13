@@ -5,6 +5,58 @@ import sys
 from siliconcompiler import utils
 
 
+class SCSuppressLoggerFilter(logging.Filter):
+    """
+    A togglable filter that suppresses every record while ``active`` is True.
+    Used to silence an existing handler without detaching it (so external
+    references to the handler stay valid) while another component owns the
+    terminal — e.g. the CLI dashboard's live view.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.active = False
+
+    def filter(self, record):
+        return not self.active
+
+
+class SCTeeLoggerHandler(logging.Handler):
+    """
+    Forwards each record to every handler currently attached to ``logger``,
+    optionally skipping one (typically a handler the caller already dispatches
+    to directly, to avoid double delivery).
+
+    The handler list is resolved on every emit, so sinks added or removed
+    after this handler was created take effect with no reconfiguration.
+    Intended for the QueueListener path so child-process records reach
+    handlers that were added to the logger after the listener was built.
+    """
+
+    def __init__(self, logger: logging.Logger, skip: logging.Handler = None):
+        super().__init__()
+        self._logger = logger
+        self._skip = skip
+
+    def emit(self, record):
+        for handler in list(self._logger.handlers):
+            if handler is self._skip or handler is self:
+                # Skip the caller's own pipe handler (typically the one the
+                # QueueListener already dispatches to) and the tee itself
+                # (in case it ever gets attached to the logger it watches,
+                # which would otherwise recurse infinitely).
+                continue
+            try:
+                handler.handle(record)
+            except Exception:
+                # A failing downstream sink must not break delivery to the
+                # other handlers in the caller's chain. We intentionally do
+                # NOT call self.handleError(record) here: handleError writes
+                # to sys.stderr, which bypasses the suppression filter the
+                # dashboard installs and would corrupt the rich Live screen.
+                pass
+
+
 class SCBlankLoggerFormatter(logging.Formatter):
     def __init__(self):
         super().__init__("%(message)s")

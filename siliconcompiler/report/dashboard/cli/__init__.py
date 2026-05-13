@@ -1,6 +1,7 @@
 import atexit
 
 from siliconcompiler.report.dashboard import AbstractDashboard
+from siliconcompiler.utils.logging import SCSuppressLoggerFilter
 
 
 class CliDashboard(AbstractDashboard):
@@ -12,15 +13,11 @@ class CliDashboard(AbstractDashboard):
     and the `Board` class, which handles the actual `rich`-based rendering.
 
     It manages the lifecycle of the dashboard, including starting, stopping,
-    and updating it with data from the project. A key feature is its ability to
-    "hijack" the standard logger to redirect log messages to its own display area.
-
-    Attributes:
-        _dashboard: An instance of the underlying `Board` class that manages
-                    the `rich` live display.
-        _logger: The `logging.Logger` instance associated with the dashboard.
-        __logger_console: A private attribute to store the original console
-                          handler of the logger before it's replaced.
+    and updating it with data from the project. While active it attaches its
+    own log handler to the project's logger as an additional sink and silences
+    the project's terminal handler via a filter. The terminal handler itself
+    is never swapped or detached, so other components (scheduler, slurm,
+    docker, etc.) keep their references to it intact.
     """
 
     def __init__(self, project):
@@ -36,9 +33,13 @@ class CliDashboard(AbstractDashboard):
 
         self._dashboard = MPManager.get_dashboard()
 
-        self.__logger_console = None
-
+        # Logger plumbing. When attached, _dashboard_handler is the extra
+        # sink we register on the project's logger; _terminal_handler is the
+        # project's terminal handler that we suppress via _suppress_filter.
         self._logger = None
+        self._dashboard_handler = None
+        self._terminal_handler = None
+        self._suppress_filter = SCSuppressLoggerFilter()
 
         if self.is_running():
             # Attach logger when already running
@@ -50,26 +51,61 @@ class CliDashboard(AbstractDashboard):
 
     def set_logger(self, logger):
         """
-        Sets the logger for the dashboard and hijacks its console handler.
+        Attaches the dashboard as an additional sink on the given logger and
+        silences the project's terminal handler so the live view owns the
+        screen. Passing ``None`` detaches the dashboard sink and restores
+        normal terminal output.
 
-        This method replaces the project's default console log handler with one
-        that directs log messages to the dashboard's internal log buffer.
-        The original handler is saved so it can be restored later.
+        The project's ``_logger_console`` handler is left in place — only its
+        emit is suppressed via a filter — so any external code that holds a
+        reference to it (taskscheduler, schedulernode, etc.) keeps working.
 
         Args:
-            logger (logging.Logger): The logger instance to attach to.
+            logger (logging.Logger): The logger to attach to, or ``None`` to
+                detach.
         """
-        if self._logger == logger:
+        if logger is None:
+            self._detach_logger()
+            self._logger = None
+            return
+
+        if self._dashboard_handler is not None:
+            if logger is self._logger:
+                # Same logger — no-op fast path.
+                return
+            # Different logger: move the dashboard handler over so we don't
+            # leak it on the old logger. In practice the project's logger
+            # is invariant, but the move is cheap and avoids a latent bug
+            # if that ever changes.
+            try:
+                self._logger.removeHandler(self._dashboard_handler)
+            except Exception:
+                pass
+            logger.addHandler(self._dashboard_handler)
+            self._logger = logger
+            return
+
+        if not self._dashboard._active:
+            # Headless / non-terminal environment — nothing to attach to.
+            self._logger = logger
             return
 
         self._logger = logger
-        if self._logger and self._dashboard._active:
-            # Hijack the console handler to redirect logs to the dashboard
-            self._logger.removeHandler(self._project._logger_console)
-            self.__logger_console = self._project._logger_console
-            self._project._logger_console = self._dashboard.make_log_hander()
-            self._logger.addHandler(self._project._logger_console)
-            self._project._logger_console.setFormatter(self.__logger_console.formatter)
+        self._terminal_handler = self._project._logger_console
+
+        # The dashboard buffer follows the terminal handler's current
+        # formatter, so any in-run formatter swap (e.g. SCBlankLoggerFormatter
+        # during a TaskScheduler run, or the step/index formatter inside a
+        # SchedulerNode) is reflected in the dashboard log pane without
+        # explicit synchronization.
+        self._dashboard_handler = self._dashboard.make_log_hander(
+            formatter_source=self._terminal_handler)
+        self._logger.addHandler(self._dashboard_handler)
+
+        # Silence the terminal handler so log emits don't corrupt the live
+        # display while the dashboard owns the screen.
+        self._terminal_handler.addFilter(self._suppress_filter)
+        self._suppress_filter.active = True
 
     def open_dashboard(self):
         """
@@ -127,27 +163,38 @@ class CliDashboard(AbstractDashboard):
 
     def stop(self):
         """
-        Stops the dashboard and restores the original logger configuration.
-
-        This method performs a final update, stops the rendering thread, and
-        restores the original console handler to the logger.
+        Stops the dashboard and restores normal terminal logging.
         """
         self._dashboard.end_of_run(self._project)
 
         self._dashboard.stop()
 
-        # Restore the original logger handler
-        if self.__logger_console and self._logger:
-            self._logger.removeHandler(self._project._logger_console)
-            formatter = self._project._logger_console.formatter
-            self._project._logger_console = self.__logger_console
-            self._logger.addHandler(self.__logger_console)
-            self.__logger_console.setFormatter(formatter)
-            self.__logger_console = None
+        self._detach_logger()
 
         if self.__exit_registered:
             atexit.unregister(self.stop)
             self.__exit_registered = False
+
+    def _detach_logger(self):
+        """
+        Remove the dashboard's log sink and unsuppress the terminal handler.
+        Safe to call when nothing is attached. Idempotent.
+        """
+        if self._terminal_handler is not None:
+            try:
+                self._terminal_handler.removeFilter(self._suppress_filter)
+            except Exception:
+                pass
+            self._suppress_filter.active = False
+
+        if self._dashboard_handler is not None and self._logger is not None:
+            try:
+                self._logger.removeHandler(self._dashboard_handler)
+            except Exception:
+                pass
+
+        self._dashboard_handler = None
+        self._terminal_handler = None
 
     def wait(self):
         """
