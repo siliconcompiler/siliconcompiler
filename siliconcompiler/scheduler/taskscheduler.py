@@ -17,7 +17,8 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.package import Resolver
 from siliconcompiler.schema import Journal
 
-from siliconcompiler.utils.logging import SCBlankLoggerFormatter, SCBlankColorlessLoggerFormatter
+from siliconcompiler.utils.logging import SCBlankLoggerFormatter, \
+    SCBlankColorlessLoggerFormatter, SCTeeLoggerHandler
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import SCRuntimeError
 
@@ -156,9 +157,16 @@ class TaskScheduler:
         # Call this in case this was invoked without __main__
         multiprocessing.freeze_support()
 
-        # Handle logs across threads
+        # Handle logs across threads. The tee handler forwards each record
+        # to any additional handler currently attached to the project's
+        # logger (e.g. the dashboard's log buffer), looked up fresh on every
+        # emit so sinks added or removed mid-run take effect without
+        # listener reconfiguration. It skips the terminal handler since the
+        # listener already dispatches to it directly.
+        extra_console_tee = SCTeeLoggerHandler(self.__logger,
+                                               skip=self.__logger_console_handler)
         log_listener = QueueListener(self.__log_queue, self.__logger_console_handler,
-                                     job_log_handler)
+                                     extra_console_tee, job_log_handler)
         console_format = self.__logger_console_handler.formatter
         file_formatter = job_log_handler.formatter
         self.__logger_console_handler.setFormatter(SCBlankLoggerFormatter())

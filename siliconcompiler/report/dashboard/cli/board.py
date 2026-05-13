@@ -65,17 +65,25 @@ class LogBuffer:
             event = threading.Event()
         self.event = event
 
-    def make_handler(self, logger_unicode_map) -> logging.Handler:
+    def make_handler(self, logger_unicode_map, formatter_source=None) -> logging.Handler:
         """
         Creates and returns a `LogBufferHandler` instance associated with this `LogBuffer`.
 
         This handler can then be added to a Python logger to direct log messages
         to this buffer.
 
+        Args:
+            formatter_source (logging.Handler, optional): When provided, the
+                returned handler formats each record with this source handler's
+                current formatter rather than its own. Lets the dashboard track
+                formatter changes that other code applies to the project's
+                terminal handler (e.g. the scheduler swapping in a blank
+                in-run formatter) without explicit synchronization.
+
         Returns:
             logging.Handler: An instance of `LogBufferHandler`.
         """
-        return LogBufferHandler(self, logger_unicode_map)
+        return LogBufferHandler(self, logger_unicode_map, formatter_source=formatter_source)
 
     def add_line(self, line: str):
         """
@@ -131,16 +139,23 @@ class LogBufferHandler(logging.Handler):
     for display in a dashboard or other UI, replacing console color codes
     with a simplified markdown-like format.
     """
-    def __init__(self, parent: LogBuffer, logger_unicode_map):
+    def __init__(self, parent: LogBuffer, logger_unicode_map, formatter_source=None):
         """
         Initializes the LogBufferHandler.
 
         Args:
             parent (LogBuffer): The parent `LogBuffer` instance to which processed
                                 log lines will be added.
+            formatter_source (logging.Handler, optional): If provided, records
+                are formatted using this handler's current formatter rather
+                than this handler's own. Lets the dashboard track formatter
+                changes that other code applies to the project's terminal
+                handler (e.g. the scheduler swapping in a blank in-run
+                formatter) without explicit synchronization.
         """
         super().__init__()
         self._parent = parent
+        self._formatter_source = formatter_source
 
         self.__logger_unicode_map = logger_unicode_map
         if self.__logger_unicode_map:
@@ -150,6 +165,19 @@ class LogBufferHandler(logging.Handler):
             self.__unicode_rep = re.compile(r"^\|\s[\u001ba-zA-Z0-9\[\\ ]+\s+\|")
         else:
             self.__unicode_rep = None
+
+    def format(self, record):
+        """
+        Format a record using ``formatter_source.formatter`` when one is set,
+        falling back to this handler's own formatter otherwise. The dashboard
+        relies on this so log lines stay in sync with whatever formatter the
+        project's terminal handler is currently using.
+        """
+        if self._formatter_source is not None:
+            formatter = self._formatter_source.formatter
+            if formatter is not None:
+                return formatter.format(record)
+        return super().format(record)
 
     def emit(self, record):
         """
@@ -400,14 +428,21 @@ class Board:
         self._layout.toggle_show_help_text()
         self.__last_help = time.time()
 
-    def make_log_hander(self) -> logging.Handler:
+    def make_log_hander(self, formatter_source=None) -> logging.Handler:
         """
         Creates and returns a logging handler that directs logs to this board.
+
+        Args:
+            formatter_source (logging.Handler, optional): When provided, the
+                returned handler formats records using this source handler's
+                current formatter. See :class:`LogBufferHandler` for details.
 
         Returns:
             logging.Handler: The log handler instance.
         """
-        return self._log_handler.make_handler(Board._symbols.get("logging", None))
+        return self._log_handler.make_handler(
+            Board._symbols.get("logging", None),
+            formatter_source=formatter_source)
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""

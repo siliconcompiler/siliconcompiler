@@ -2133,3 +2133,202 @@ def test_update_rendable_data_no_jobs(mock_project, fake_console):
 
     # Should have no jobs in render data
     assert len(dashboard._render_data.jobs) == 0
+
+
+# ---------------------------------------------------------------------------
+# LogBufferHandler.formatter_source
+# ---------------------------------------------------------------------------
+
+def _info_record(msg="hello"):
+    return logging.LogRecord(
+        name="test", level=logging.INFO, pathname=__file__, lineno=1,
+        msg=msg, args=None, exc_info=None)
+
+
+def test_log_buffer_handler_uses_own_formatter_when_no_source():
+    buffer = LogBuffer(queue.Queue(), n=10)
+    handler = buffer.make_handler(None)
+    handler.setFormatter(logging.Formatter("OWN:%(message)s"))
+
+    assert handler.format(_info_record("hi")) == "OWN:hi"
+
+
+def test_log_buffer_handler_delegates_to_formatter_source():
+    """When formatter_source is set, the handler formats with the source's
+    current formatter rather than its own."""
+    source = logging.Handler()
+    source.setFormatter(logging.Formatter("SRC:%(message)s"))
+
+    buffer = LogBuffer(queue.Queue(), n=10)
+    handler = buffer.make_handler(None, formatter_source=source)
+    handler.setFormatter(logging.Formatter("OWN:%(message)s"))
+
+    assert handler.format(_info_record("hi")) == "SRC:hi"
+
+
+def test_log_buffer_handler_tracks_source_formatter_changes():
+    """The whole point of formatter_source: when the source's formatter is
+    swapped out mid-run, the dashboard handler picks up the new formatter
+    on its very next emit, with no explicit synchronization."""
+    source = logging.Handler()
+    source.setFormatter(logging.Formatter("A:%(message)s"))
+
+    buffer = LogBuffer(queue.Queue(), n=10)
+    handler = buffer.make_handler(None, formatter_source=source)
+
+    assert handler.format(_info_record("hi")) == "A:hi"
+    source.setFormatter(logging.Formatter("B:%(message)s"))
+    assert handler.format(_info_record("hi")) == "B:hi"
+
+
+def test_log_buffer_handler_falls_back_when_source_has_no_formatter():
+    """If formatter_source is set but the source has no formatter attached,
+    fall back to the handler's own formatter rather than raising."""
+    source = logging.Handler()  # no formatter set
+
+    buffer = LogBuffer(queue.Queue(), n=10)
+    handler = buffer.make_handler(None, formatter_source=source)
+    handler.setFormatter(logging.Formatter("OWN:%(message)s"))
+
+    assert handler.format(_info_record("hi")) == "OWN:hi"
+
+
+# ---------------------------------------------------------------------------
+# CliDashboard set_logger / _detach_logger
+# ---------------------------------------------------------------------------
+
+def test_set_logger_adds_dashboard_handler_without_removing_terminal(
+        mock_project, fake_console):
+    """Attaching must not swap or detach the project's terminal handler —
+    other components (scheduler, slurm, docker, remote) hold references to
+    it and would break if it disappeared."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+
+    dash.set_logger(mock_project.logger)
+
+    assert mock_project._logger_console is terminal, \
+        "terminal handler must not be swapped"
+    assert terminal in mock_project.logger.handlers
+    assert dash._dashboard_handler in mock_project.logger.handlers
+    assert dash._terminal_handler is terminal
+
+
+def test_set_logger_installs_active_suppress_filter(mock_project, fake_console):
+    """The terminal handler stays attached but is silenced via a filter so
+    its writes don't corrupt the rich Live display."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash.set_logger(mock_project.logger)
+
+    assert dash._suppress_filter in mock_project._logger_console.filters
+    assert dash._suppress_filter.active is True
+
+
+def test_set_logger_idempotent_on_repeat_call(mock_project, fake_console):
+    """Calling set_logger twice with the same logger must not double-attach
+    the handler or stack duplicate filters."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash.set_logger(mock_project.logger)
+    first_handler = dash._dashboard_handler
+
+    dash.set_logger(mock_project.logger)
+
+    assert dash._dashboard_handler is first_handler
+    assert mock_project.logger.handlers.count(first_handler) == 1
+    assert mock_project._logger_console.filters.count(dash._suppress_filter) == 1
+
+
+def test_set_logger_none_detaches(mock_project, fake_console):
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash.set_logger(mock_project.logger)
+    attached = dash._dashboard_handler
+    assert attached is not None
+
+    dash.set_logger(None)
+
+    assert dash._dashboard_handler is None
+    assert attached not in mock_project.logger.handlers
+    assert dash._suppress_filter not in mock_project._logger_console.filters
+    assert dash._suppress_filter.active is False
+
+
+def test_detach_logger_undoes_attach(mock_project, fake_console):
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+    handlers_before = list(mock_project.logger.handlers)
+
+    dash.set_logger(mock_project.logger)
+    dash._detach_logger()
+
+    assert list(mock_project.logger.handlers) == handlers_before
+    assert terminal.filters == []
+    assert dash._dashboard_handler is None
+    assert dash._terminal_handler is None
+    assert dash._suppress_filter.active is False
+
+
+def test_detach_logger_is_idempotent(mock_project, fake_console):
+    """Calling _detach_logger when nothing is attached must not raise."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash._detach_logger()
+    dash._detach_logger()
+
+
+def test_attach_detach_attach_cycle(mock_project, fake_console):
+    """A second attach after detach should produce the same end-state as
+    the first — this is what the future user-quit + resume path relies on."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+
+    dash.set_logger(mock_project.logger)
+    first_handler = dash._dashboard_handler
+    dash._detach_logger()
+    dash.set_logger(mock_project.logger)
+    second_handler = dash._dashboard_handler
+
+    assert second_handler is not None
+    # The handler instance may be reused or new — either is fine. What
+    # matters is the end-state: attached to logger, filter active.
+    assert second_handler in mock_project.logger.handlers
+    assert dash._suppress_filter in terminal.filters
+    assert dash._suppress_filter.active is True
+    # And the first handler should not be lingering on the logger.
+    if second_handler is not first_handler:
+        assert first_handler not in mock_project.logger.handlers
+
+
+def test_terminal_output_suppressed_during_attach_resumed_after_detach(
+        mock_project, fake_console):
+    """End-to-end: records reach the terminal stream before attach, are
+    silenced while attached, and flow again after detach."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+
+    # Redirect the terminal handler's stream so we can inspect what it wrote.
+    captured = io.StringIO()
+    terminal.stream = captured
+
+    mock_project.logger.info("BEFORE")
+    before_len = len(captured.getvalue())
+    assert "BEFORE" in captured.getvalue()
+
+    dash.set_logger(mock_project.logger)
+    mock_project.logger.info("DURING")
+    # Nothing new should have been written to the terminal stream.
+    assert len(captured.getvalue()) == before_len
+
+    dash._detach_logger()
+    mock_project.logger.info("AFTER")
+    assert "AFTER" in captured.getvalue()
