@@ -40,13 +40,20 @@ class SCTeeLoggerHandler(logging.Handler):
 
     def emit(self, record):
         for handler in list(self._logger.handlers):
-            if handler is self._skip:
+            if handler is self._skip or handler is self:
+                # Skip the caller's own pipe handler (typically the one the
+                # QueueListener already dispatches to) and the tee itself
+                # (in case it ever gets attached to the logger it watches,
+                # which would otherwise recurse infinitely).
                 continue
             try:
                 handler.handle(record)
             except Exception:
                 # A failing downstream sink must not break delivery to the
-                # other handlers in the caller's chain.
+                # other handlers in the caller's chain. We intentionally do
+                # NOT call self.handleError(record) here: handleError writes
+                # to sys.stderr, which bypasses the suppression filter the
+                # dashboard installs and would corrupt the rich Live screen.
                 pass
 
 

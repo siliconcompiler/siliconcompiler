@@ -70,9 +70,18 @@ class CliDashboard(AbstractDashboard):
             return
 
         if self._dashboard_handler is not None:
-            # Already attached. Re-attaching to a different logger is not a
-            # supported flow (the project's logger doesn't change), so this
-            # also covers the "called twice with same logger" case.
+            if logger is self._logger:
+                # Same logger — no-op fast path.
+                return
+            # Different logger: move the dashboard handler over so we don't
+            # leak it on the old logger. In practice the project's logger
+            # is invariant, but the move is cheap and avoids a latent bug
+            # if that ever changes.
+            try:
+                self._logger.removeHandler(self._dashboard_handler)
+            except Exception:
+                pass
+            logger.addHandler(self._dashboard_handler)
             self._logger = logger
             return
 

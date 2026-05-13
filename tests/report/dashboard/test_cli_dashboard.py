@@ -2243,6 +2243,26 @@ def test_set_logger_idempotent_on_repeat_call(mock_project, fake_console):
     assert mock_project._logger_console.filters.count(dash._suppress_filter) == 1
 
 
+def test_set_logger_moves_handler_when_swapping_loggers(mock_project, fake_console):
+    """Re-attaching to a different logger must move the dashboard handler
+    rather than leaving it leaked on the old one. The project's logger is
+    invariant in practice, but the move keeps the contract self-consistent."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash.set_logger(mock_project.logger)
+    handler = dash._dashboard_handler
+    other = logging.getLogger("test_set_logger_moves_handler_when_swapping_loggers")
+    other.handlers = []
+
+    dash.set_logger(other)
+
+    assert dash._dashboard_handler is handler
+    assert handler not in mock_project.logger.handlers
+    assert handler in other.handlers
+    assert dash._logger is other
+
+
 def test_set_logger_none_detaches(mock_project, fake_console):
     with patch("threading.Thread"):
         dash = CliDashboard(mock_project)

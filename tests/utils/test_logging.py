@@ -142,6 +142,21 @@ def test_tee_picks_up_removed_handlers(logger):
     assert a.records == ["before-remove"]
 
 
+def test_tee_skips_itself_to_prevent_recursion(logger):
+    """If the tee is ever attached to the logger it watches, emitting must
+    not recurse infinitely — the tee skips itself in addition to ``skip``."""
+    capture = _Capture()
+    logger.addHandler(capture)
+
+    tee = SCTeeLoggerHandler(logger)
+    logger.addHandler(tee)  # tee now lives in the same handlers list
+
+    # Would recurse infinitely without the self-skip guard.
+    tee.handle(_make_record(msg="safe"))
+
+    assert capture.records == ["safe"]
+
+
 def test_tee_tolerates_handler_emit_failure(logger):
     """A misbehaving downstream handler must not break delivery to the
     other handlers in the chain."""
