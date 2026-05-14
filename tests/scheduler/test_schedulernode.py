@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import os
 import sys
 import pytest
@@ -1778,6 +1779,27 @@ def test_run_with_queue(project):
         call_exec.assert_called_once()
         call_remove_logger.assert_called_once()
         assert pipe.calls == 1
+
+
+def test_init_run_logger_with_queue_strips_inherited_handlers(project):
+    """In the multiprocessing path the child must drop every handler it
+    inherited from the parent and keep only the QueueHandler. Anything else
+    (terminal handler, dashboard's LogBufferHandler, etc.) would either
+    corrupt parent state or — when its sink is a manager-backed queue
+    shared with the parent — deliver the same record twice (once from the
+    child directly, once via the parent's QueueListener)."""
+    extra_handler = logging.NullHandler()
+    project.logger.addHandler(extra_handler)
+    assert extra_handler in project.logger.handlers
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.set_queue(None, Queue())
+
+    node._init_run_logger()
+
+    assert extra_handler not in project.logger.handlers
+    assert project.logger.handlers == [project._logger_console]
+    assert isinstance(project._logger_console, logging.handlers.QueueHandler)
 
 
 def test_run_called_testcase_on_error(project):
