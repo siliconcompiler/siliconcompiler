@@ -374,6 +374,16 @@ class Board:
             auto_refresh=True
         )
 
+        # Quit-handler subscribers. A set rather than a list so:
+        # (a) register/unregister are naturally idempotent;
+        # (b) we don't need a lock — ``set.add``, ``set.discard``, and
+        #     ``list(set)`` are atomic under the GIL, which avoids the
+        #     classic fork-while-held deadlock when a worker process
+        #     inherits a held lock from a different thread of the parent.
+        # Initialized unconditionally so register/unregister work even on
+        # an inactive Board where ``__init__`` short-circuits below.
+        self._on_quit_callbacks = set()
+
         self._active = self._console.is_terminal
         if not self._active:
             self._console = None
@@ -417,6 +427,16 @@ class Board:
         self.__help_dwell = 5.0
         self.__last_help = 0.0
 
+        # User-quit (disable dashboard mid-run via double-'q') state.
+        # ``_on_quit_callbacks`` / ``_quit_callbacks_lock`` are initialized
+        # above the early-return so register/unregister are safe to call
+        # on an inactive Board. The confirmation window guards against
+        # accidental teardown; the timing fields and pending flag are
+        # touched only by the render thread.
+        self._user_quit_window = 2.0
+        self._quit_pending_until = 0.0
+        self._user_quit_pending = False
+
     def show_help(self):
         """
         Show or hide the help text in the dashboard. This method toggles the visibility
@@ -427,6 +447,44 @@ class Board:
 
         self._layout.toggle_show_help_text()
         self.__last_help = time.time()
+
+    def register_quit_handler(self, callback):
+        """
+        Subscribe a callback to be invoked after the user confirms a
+        request to disable the dashboard mid-run.
+
+        Multiple subscribers are supported — any number of CliDashboard
+        instances may share this Board singleton, and each one that has
+        owner-side cleanup to do (logger sinks, suppression filters, etc.)
+        should subscribe here. Registration is idempotent (set semantics):
+        the same callback registered twice still produces a single entry.
+
+        The callback runs at the very end of the render thread's finally
+        block — after the live view has already been torn down by the
+        thread itself. It should only do owner-side cleanup and MUST NOT
+        call ``Board.stop`` or any other method that joins on the render
+        thread, since the render thread is still executing.
+        """
+        self._on_quit_callbacks.add(callback)
+
+    def unregister_quit_handler(self, callback):
+        """
+        Unsubscribe a previously-registered quit callback. No-op if the
+        callback was never registered. Idempotent.
+        """
+        self._on_quit_callbacks.discard(callback)
+
+    def _confirm_user_quit(self):
+        """
+        Mark the render loop for shutdown after the user has confirmed a
+        quit. Called from the render thread on the second 'q' press; the
+        loop notices ``_render_stop_event`` next iteration and falls into
+        its finally block, which performs the actual display teardown
+        and invokes the registered quit callback.
+        """
+        self._user_quit_pending = True
+        self._render_stop_event.set()
+        self._render_event.set()
 
     def make_log_hander(self, formatter_source=None) -> logging.Handler:
         """
@@ -457,6 +515,11 @@ class Board:
                     self._render_thread = threading.Thread(target=self._render, daemon=True)
                     self._render_event.clear()
                     self._render_stop_event.clear()
+
+                    # Reset user-quit state so a re-open after a previous
+                    # double-'q' starts clean.
+                    self._user_quit_pending = False
+                    self._quit_pending_until = 0.0
 
                     Keyboard.start()
 
@@ -912,11 +975,84 @@ class Board:
             else:
                 self._console.print(self._get_rendable())
 
+            # If the user disabled the dashboard mid-run, tear down the
+            # display ourselves (the outer Board.stop() would dead-lock if
+            # it tried to join us), then notify the owner so it can detach
+            # its log sink and lift the suppression filter.
+            if self._user_quit_pending:
+                self._user_quit_pending = False
+                self._user_quit_teardown()
+                # Snapshot the subscriber set before invoking — copying via
+                # ``list()`` is atomic under the GIL, so concurrent register
+                # / unregister calls don't race with our iteration. Each
+                # subscriber's failure is swallowed so one broken callback
+                # can't starve the rest.
+                for callback in list(self._on_quit_callbacks):
+                    try:
+                        callback()
+                    except Exception:
+                        pass
+
+    def _user_quit_teardown(self):
+        """
+        Display-side teardown invoked from the render thread's finally
+        block when the user disables the dashboard mid-run. Mirrors what
+        the tail of ``stop()`` does, minus the join (we *are* the render
+        thread).
+        """
+        try:
+            Keyboard.stop()
+        except Exception:
+            pass
+
+        self.__last_help = 0.0
+        if self._layout.show_help_text:
+            self._layout.toggle_show_help_text()
+
+        try:
+            self.live.stop()
+        except Exception:
+            pass
+
+        # Preserve the final frame in scrollback so the user can see
+        # what was on screen when they disabled the dashboard.
+        if self.live._screen:
+            try:
+                self._console.print(self._get_rendable())
+            except Exception:
+                pass
+        try:
+            self._console.show_cursor()
+        except Exception:
+            pass
+
     def _handle_keyboard(self):
+        # Expire stale quit-pending state on every tick, not just on keypress,
+        # so the yellow "press q again" hint disappears as soon as the window
+        # closes even if the user goes silent.
+        if self._quit_pending_until and time.time() > self._quit_pending_until:
+            self._quit_pending_until = 0.0
+
         key = Keyboard.check_key()
         if key is None:
             return
         key = key.lower()
+
+        if key == "q":
+            if self._quit_pending_until:
+                # Second press within the window — confirm.
+                self._quit_pending_until = 0.0
+                self._confirm_user_quit()
+            else:
+                # First press — arm the timer; the renderer surfaces a
+                # yellow prompt until the window closes or another key
+                # cancels.
+                self._quit_pending_until = time.time() + self._user_quit_window
+            return
+
+        # Any other key cancels a pending quit.
+        self._quit_pending_until = 0.0
+
         if key == "h":
             if self.__view == View.HELP:
                 self.__view = View.NORMAL
@@ -1005,7 +1141,8 @@ class Board:
             ("h", "Toggle showing this help information"),
             ("j", "Toggle showing job details"),
             ("n", "Toggle showing node details"),
-            ("l", "Toggle showing log details")]
+            ("l", "Toggle showing log details"),
+            ("q q", "Press twice to disable the dashboard and restore terminal logging")]
         table_height = 6 + len(help_info)  # header + padding
 
         banner = Padding(Text(_metadata.banner), pad=(0, 0, 1, 0))
@@ -1056,8 +1193,16 @@ class Board:
             items.append(log)
 
         if layout.help_text_height > 0:
-            items.append(Text("Press 'H' for help, press 'Ctrl+C' to quit.",
-                              no_wrap=True, overflow="ellipsis", style="bold white"))
+            if self._quit_pending_until and time.time() <= self._quit_pending_until:
+                items.append(Text(
+                    "Press 'q' again to disable the dashboard "
+                    "(any other key cancels)...",
+                    no_wrap=True, overflow="ellipsis", style="bold yellow"))
+            else:
+                items.append(Text(
+                    "Press 'H' for help, 'q' twice to disable dashboard, "
+                    "'Ctrl+C' to abort.",
+                    no_wrap=True, overflow="ellipsis", style="bold white"))
 
         return items
 
@@ -1072,7 +1217,14 @@ class Board:
             rich.group.Group: The complete, renderable dashboard layout.
         """
 
-        if self._layout.show_help_text and (time.time() - self.__last_help) > self.__help_dwell:
+        # Keep the hint row visible while the user is mid-double-press, so
+        # the yellow "press q again" prompt has somewhere to render.
+        if self._quit_pending_until and time.time() <= self._quit_pending_until:
+            if not self._layout.show_help_text:
+                self._layout.toggle_show_help_text()
+            self.__last_help = time.time()
+        elif self._layout.show_help_text and \
+                (time.time() - self.__last_help) > self.__help_dwell:
             self._layout.toggle_show_help_text()
 
         layout = self._update_layout()

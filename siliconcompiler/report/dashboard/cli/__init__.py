@@ -8,16 +8,20 @@ class CliDashboard(AbstractDashboard):
     """
     A command-line interface (CLI) implementation of the AbstractDashboard.
 
-    This class provides a concrete dashboard that renders progress and logs
-    directly in the terminal. It acts as a bridge between the core `project` object
-    and the `Board` class, which handles the actual `rich`-based rendering.
+    Acts as a thin per-project facade over the singleton :class:`Board`,
+    which actually owns the rich Live render thread. Any number of
+    ``CliDashboard`` instances can exist at once — every Project gets one,
+    and transient Projects (created via ``__setstate__`` / ``copy()`` /
+    ``Project.from_manifest``) get their own — but only the one whose
+    :meth:`open_dashboard` is called by an active run claims the Board's
+    quit-handler slot. Transient instances stay dormant: they don't attach
+    log handlers, install filters, or register quit callbacks.
 
-    It manages the lifecycle of the dashboard, including starting, stopping,
-    and updating it with data from the project. While active it attaches its
-    own log handler to the project's logger as an additional sink and silences
-    the project's terminal handler via a filter. The terminal handler itself
-    is never swapped or detached, so other components (scheduler, slurm,
-    docker, etc.) keep their references to it intact.
+    While active, this dashboard attaches its own log handler to the
+    project's logger as an additional sink and silences the project's
+    terminal handler via :class:`SCSuppressLoggerFilter`. The terminal
+    handler itself is never swapped or detached, so other components
+    (scheduler, slurm, docker, etc.) keep their references to it intact.
     """
 
     def __init__(self, project):
@@ -41,9 +45,20 @@ class CliDashboard(AbstractDashboard):
         self._terminal_handler = None
         self._suppress_filter = SCSuppressLoggerFilter()
 
-        if self.is_running():
-            # Attach logger when already running
-            self.set_logger(self._project.logger)
+        # Stable reference to our bound quit handler. Bound-method objects
+        # are created fresh on each attribute access (so ``a.f is a.f`` is
+        # False), which would make register/unregister against the Board's
+        # subscriber list unreliable. Capturing once gives us a single
+        # identity for both subscribe and unsubscribe.
+        self._quit_callback = self._handle_user_quit
+
+        # Deliberately NOT subscribing to the Board's quit handler here,
+        # and NOT auto-attaching the logger. We are only an *interface*
+        # to the singleton Board — transient Project instances (from
+        # __setstate__, deepcopy, Project.from_manifest, etc.) construct
+        # their own CliDashboard but never call open_dashboard. They have
+        # no logger plumbing to tear down, so they have no business
+        # subscribing. The active owner subscribes in open_dashboard.
 
         # Ensure the dashboard is properly stopped on program exit
         self.__exit_registered = True
@@ -71,7 +86,6 @@ class CliDashboard(AbstractDashboard):
 
         if self._dashboard_handler is not None:
             if logger is self._logger:
-                # Same logger — no-op fast path.
                 return
             # Different logger: move the dashboard handler over so we don't
             # leak it on the old logger. In practice the project's logger
@@ -119,6 +133,11 @@ class CliDashboard(AbstractDashboard):
             # Ensure the dashboard is properly stopped on program exit
             self.__exit_registered = True
             atexit.register(self.stop)
+
+        # Subscribe to the Board's quit notification now that we own
+        # logger plumbing worth tearing down. Idempotent on the Board
+        # side, so repeated open_dashboard calls are safe.
+        self._dashboard.register_quit_handler(self._quit_callback)
 
         self.set_logger(self._project.logger)
 
@@ -171,6 +190,10 @@ class CliDashboard(AbstractDashboard):
 
         self._detach_logger()
 
+        # Unsubscribe from the Board's quit notification. Other
+        # CliDashboard instances' subscriptions are untouched.
+        self._dashboard.unregister_quit_handler(self._quit_callback)
+
         if self.__exit_registered:
             atexit.unregister(self.stop)
             self.__exit_registered = False
@@ -195,6 +218,33 @@ class CliDashboard(AbstractDashboard):
 
         self._dashboard_handler = None
         self._terminal_handler = None
+
+    def _handle_user_quit(self):
+        """
+        Invoked from the dashboard render thread's finally block (after the
+        live view is already torn down) when the user double-presses 'q'.
+        Detaches our log sink so terminal output flows again, and removes
+        our subscription from the Board.
+
+        MUST NOT call ``self.stop()`` or anything that joins the render
+        thread: we are running on that thread.
+        """
+        try:
+            self._detach_logger()
+        except Exception:
+            pass
+
+        try:
+            self._dashboard.unregister_quit_handler(self._quit_callback)
+        except Exception:
+            pass
+
+        if self.__exit_registered:
+            try:
+                atexit.unregister(self.stop)
+            except Exception:
+                pass
+            self.__exit_registered = False
 
     def wait(self):
         """

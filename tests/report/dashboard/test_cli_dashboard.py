@@ -1880,7 +1880,7 @@ def test_render_help_table_content(mock_project, fake_console):
     # Check table has correct structure
     assert table.title == "Dashboard Help"
     assert len(table.columns) == 2
-    assert table.row_count == 4  # Should have 4 key bindings
+    assert table.row_count == 5  # h, j, n, l, q q
 
     # Verify table content by rendering it
     io_file = io.StringIO()
@@ -1897,6 +1897,8 @@ def test_render_help_table_content(mock_project, fake_console):
     assert "Toggle showing node details" in output
     assert "l" in output
     assert "Toggle showing log details" in output
+    assert "q q" in output
+    assert "disable the dashboard" in output
 
 
 def test_handle_keyboard_toggle_help(mock_project, fake_console):
@@ -2352,3 +2354,281 @@ def test_terminal_output_suppressed_during_attach_resumed_after_detach(
     dash._detach_logger()
     mock_project.logger.info("AFTER")
     assert "AFTER" in captured.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# User-quit (double-'q') flow
+# ---------------------------------------------------------------------------
+
+def test_handle_keyboard_first_q_arms_timer(mock_project, fake_console):
+    """A single 'q' arms the confirmation window but does not confirm."""
+    board = MPManager.get_dashboard()
+    board._quit_pending_until = 0.0
+    board._user_quit_pending = False
+
+    with patch.object(Keyboard, "check_key", return_value="q"):
+        board._handle_keyboard()
+
+    assert board._quit_pending_until > time.time()
+    assert board._user_quit_pending is False
+
+
+def test_handle_keyboard_double_q_confirms_quit(mock_project, fake_console):
+    """Two 'q' presses within the window set _user_quit_pending and the
+    render stop event, so the loop falls into its teardown finally."""
+    board = MPManager.get_dashboard()
+    board._quit_pending_until = 0.0
+    board._user_quit_pending = False
+    board._render_stop_event.clear()
+
+    with patch.object(Keyboard, "check_key", return_value="q"):
+        board._handle_keyboard()  # arm
+        board._handle_keyboard()  # confirm
+
+    assert board._quit_pending_until == 0.0
+    assert board._user_quit_pending is True
+    assert board._render_stop_event.is_set()
+
+
+def test_handle_keyboard_other_key_cancels_pending_quit(mock_project, fake_console):
+    """Any non-'q' key clears the pending-quit timer."""
+    board = MPManager.get_dashboard()
+
+    with patch.object(Keyboard, "check_key", return_value="q"):
+        board._handle_keyboard()
+    assert board._quit_pending_until > 0.0
+
+    with patch.object(Keyboard, "check_key", return_value="j"):
+        board._handle_keyboard()
+
+    assert board._quit_pending_until == 0.0
+    assert board._user_quit_pending is False
+
+
+def test_handle_keyboard_expired_window_re_arms(mock_project, fake_console):
+    """A 'q' whose previous arming has expired must re-arm rather than
+    immediately confirm (which would amount to a 'one-press quit' from
+    the user's perspective)."""
+    board = MPManager.get_dashboard()
+    board._quit_pending_until = time.time() - 1.0  # already expired
+    board._user_quit_pending = False
+
+    with patch.object(Keyboard, "check_key", return_value="q"):
+        board._handle_keyboard()
+
+    assert board._quit_pending_until > time.time()
+    assert board._user_quit_pending is False
+
+
+def test_quit_pending_hint_displayed_while_armed(mock_project, fake_console):
+    """While the quit window is open, the bottom hint should switch to
+    the yellow 'press q again' prompt."""
+    board = MPManager.get_dashboard()
+    board._quit_pending_until = time.time() + 5.0
+
+    rendable = board._get_rendable()
+    rendered = io.StringIO()
+    Console(file=rendered, width=200, force_terminal=True).print(rendable)
+    out = rendered.getvalue()
+
+    assert "Press 'q' again to disable" in out
+
+
+def test_handle_user_quit_callback_detaches_logger(mock_project, fake_console):
+    """The CliDashboard quit callback must lift the suppression filter
+    and remove the dashboard handler — the whole point of qq."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+
+    dash.set_logger(mock_project.logger)
+    assert dash._suppress_filter in terminal.filters
+
+    dash._handle_user_quit()
+
+    assert dash._dashboard_handler is None
+    assert dash._suppress_filter not in terminal.filters
+    assert dash._suppress_filter.active is False
+
+
+def test_user_quit_end_to_end_restores_terminal_output(mock_project, fake_console):
+    """End-to-end: simulate the render thread invoking the quit callback
+    and verify the terminal handler resumes emitting."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+    captured = io.StringIO()
+    terminal.stream = captured
+
+    dash.set_logger(mock_project.logger)
+    mock_project.logger.info("SUPPRESSED")
+    silenced_len = len(captured.getvalue())
+
+    dash._handle_user_quit()  # what the render thread invokes on qq
+    mock_project.logger.info("AFTER_QQ")
+
+    assert "SUPPRESSED" not in captured.getvalue()[silenced_len:]
+    assert "AFTER_QQ" in captured.getvalue()
+
+
+def test_open_dashboard_resets_quit_state_for_re_attach(mock_project, fake_console):
+    """After qq disables the dashboard, opening it again must start
+    fresh — no stale quit-pending or user-quit flags."""
+    board = MPManager.get_dashboard()
+    # Simulate stale state from a previous user-quit cycle
+    board._user_quit_pending = True
+    board._quit_pending_until = time.time() + 10.0
+    board._render_stop_event.set()
+    board._render_event.set()
+
+    with patch("threading.Thread") as mock_thread_cls:
+        mock_thread = mock_thread_cls.return_value
+        mock_thread.is_alive.return_value = False
+        board._render_thread = None
+        board.open_dashboard()
+
+    assert board._user_quit_pending is False
+    assert board._quit_pending_until == 0.0
+    assert not board._render_stop_event.is_set()
+    assert not board._render_event.is_set()
+
+
+@pytest.fixture
+def shared_board(fake_console):
+    """Pin MPManager.get_dashboard to return a single Board across every
+    CliDashboard creation in the test, mimicking production where Board
+    is a process singleton. The autouse ``reset_singleton`` fixture
+    normally hands out a fresh Board per call, which would mask the
+    multi-instance / shared-callback scenario these regression tests
+    are written to catch.
+    """
+    board = MPManager.get_dashboard()
+    with patch.object(MPManager, "get_dashboard", return_value=board):
+        yield board
+
+
+def _subscribers(board):
+    """Return the set of CliDashboard instances currently subscribed to
+    the Board's quit notification. Looks at each callback's ``__self__``
+    so we don't have to keep stable bound-method refs in test code."""
+    return {getattr(cb, "__self__", None) for cb in board._on_quit_callbacks}
+
+
+def test_init_does_not_subscribe_to_quit(mock_project, shared_board):
+    """A fresh CliDashboard must not subscribe to the Board's quit
+    notification at construction. Otherwise every transient instance
+    created by ``Project.__setstate__`` / ``copy()`` /
+    ``Project.from_manifest`` would also be notified on qq and run
+    useless cleanup on irrelevant state.
+    """
+    shared_board._on_quit_callbacks.clear()
+
+    with patch("threading.Thread"):
+        CliDashboard(mock_project)
+
+    assert shared_board._on_quit_callbacks == set(), \
+        "CliDashboard.__init__ must not subscribe to quit notifications"
+
+
+def test_open_dashboard_subscribes_to_quit(mock_project, shared_board):
+    """Only the dashboard that actually opens the live view should
+    subscribe."""
+    shared_board._on_quit_callbacks.clear()
+
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+        dash.open_dashboard()
+
+    assert _subscribers(shared_board) == {dash}
+
+
+def test_register_quit_handler_is_idempotent(mock_project, shared_board):
+    """Repeated ``open_dashboard`` calls (e.g., project.run called twice
+    on the same dashboard) must not stack duplicate subscriptions."""
+    shared_board._on_quit_callbacks.clear()
+
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+        dash.open_dashboard()
+        dash.open_dashboard()
+
+    assert len(shared_board._on_quit_callbacks) == 1
+    assert _subscribers(shared_board) == {dash}
+
+
+def test_orphan_dashboard_does_not_subscribe(mock_project, shared_board):
+    """An orphan instance (no ``open_dashboard`` call) must stay out of
+    the subscriber set. This is what prevents transient Project copies
+    from receiving qq notifications they have nothing to do with."""
+    shared_board._on_quit_callbacks.clear()
+
+    with patch("threading.Thread"):
+        active = CliDashboard(mock_project)
+        active.open_dashboard()
+        # Simulate __setstate__ creating a transient CliDashboard while
+        # the legitimate run is in progress.
+        orphan = CliDashboard(mock_project)
+
+    subs = _subscribers(shared_board)
+    assert active in subs
+    assert orphan not in subs
+
+
+def test_multiple_active_dashboards_all_subscribe(mock_project, shared_board):
+    """The Board is *designed* to support multiple active dashboards.
+    Each one that calls ``open_dashboard`` should receive qq notification
+    and clean up its own state independently, and ``stop`` must remove
+    only its own subscription."""
+    shared_board._on_quit_callbacks.clear()
+
+    with patch("threading.Thread"):
+        first = CliDashboard(mock_project)
+        first.open_dashboard()
+        second = CliDashboard(mock_project)
+        second.open_dashboard()
+
+    subs = _subscribers(shared_board)
+    assert first in subs and second in subs
+
+    first.stop()
+    assert _subscribers(shared_board) == {second}
+
+    second.stop()
+    assert shared_board._on_quit_callbacks == set()
+
+
+def test_handle_user_quit_unsubscribes(mock_project, shared_board):
+    """After qq fires, the dashboard's subscription should be gone — so a
+    future re-engage via ``open_dashboard`` cleanly re-subscribes."""
+    shared_board._on_quit_callbacks.clear()
+
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+        dash.open_dashboard()
+
+    assert _subscribers(shared_board) == {dash}
+    dash._handle_user_quit()
+    assert shared_board._on_quit_callbacks == set()
+
+
+def test_user_quit_then_reattach_cycle(mock_project, fake_console):
+    """A complete attach → qq → reattach cycle must leave the logger in
+    the correct attached state, ready for another qq."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+
+    dash.set_logger(mock_project.logger)
+    dash._handle_user_quit()  # qq
+
+    # Re-attach (what project.run() does on the next run)
+    dash.set_logger(mock_project.logger)
+    assert dash._dashboard_handler is not None
+    assert dash._dashboard_handler in mock_project.logger.handlers
+    assert dash._suppress_filter in terminal.filters
+    assert dash._suppress_filter.active is True
+
+    # Second qq must work just like the first.
+    dash._handle_user_quit()
+    assert dash._dashboard_handler is None
+    assert dash._suppress_filter not in terminal.filters
