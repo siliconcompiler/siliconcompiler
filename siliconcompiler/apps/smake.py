@@ -53,7 +53,7 @@ def __process_file(path: Union[Path, str], dir: str) -> Tuple[Dict, Optional[str
             - str or None: The docstring of the loaded module, if any.
     """
     if not os.path.exists(path):
-        return {}, None, None
+        raise FileNotFoundError(f"Specified file '{path}' does not exist.")
 
     mod_name, _ = os.path.splitext(os.path.basename(path))
 
@@ -204,8 +204,12 @@ To run a target with arguments, use:
         sys.path.insert(0, dir)
 
         # --- Process the source file to discover targets ---
-        make_args, default_arg, module_help = __process_file(source_file, dir) \
-            if source_file else ({}, None, None)
+        make_args, default_arg, module_help = {}, None, None
+        try:
+            make_args, default_arg, module_help = __process_file(source_file, dir)
+        except FileNotFoundError as e:
+            print(f"Error: Unable to process source file {source_file}: {e}")
+            return 1
 
         if module_help:
             description += f"\n\n{module_help}\n\n"

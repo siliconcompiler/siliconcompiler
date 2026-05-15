@@ -35,7 +35,9 @@ def test_smake_default_missing(monkeypatch, capfd):
 
     monkeypatch.setattr('sys.argv', ['smake'])
     assert smake.main() == 1
-    assert "Error: Unable to load makefile 'make.py'" in capfd.readouterr().out
+    output = capfd.readouterr().out
+    assert "Error: Unable to process source file make.py" in output
+    assert "does not exist" in output
 
 
 def test_smake_default_dir_missing(monkeypatch, capfd):
@@ -44,6 +46,17 @@ def test_smake_default_dir_missing(monkeypatch, capfd):
     monkeypatch.setattr('sys.argv', ['smake', '-C', 'testdir'])
     assert smake.main() == 1
     assert "Unable to change directory to testdir" in capfd.readouterr().out
+
+
+def test_smake_file_missing(monkeypatch, capfd, datadir):
+    '''Test smake fails when the file specified with -f does not exist.'''
+
+    monkeypatch.setattr('sys.argv', [
+        'smake', '-C', datadir, '-f', 'does_not_exist.py', 'asic'])
+    assert smake.main() == 1
+    output = capfd.readouterr().out
+    assert "Error: Unable to process source file does_not_exist.py" in output
+    assert "does not exist" in output
 
 
 @pytest.mark.parametrize('target', ('target0', 'target1'))
