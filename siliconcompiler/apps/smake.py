@@ -204,12 +204,16 @@ To run a target with arguments, use:
         sys.path.insert(0, dir)
 
         # --- Process the source file to discover targets ---
+        # If the user is only asking for help, allow the file to be missing so
+        # `smake --help` still prints usage information.
+        help_requested = any(arg in sys.argv for arg in ('--help', '-h'))
         make_args, default_arg, module_help = {}, None, None
         try:
             make_args, default_arg, module_help = __process_file(source_file, dir)
         except FileNotFoundError as e:
-            print(f"Error: Unable to process source file {source_file}: {e}")
-            return 1
+            if not help_requested:
+                print(f"Error: Unable to process source file {source_file}: {e}")
+                return 1
 
         if module_help:
             description += f"\n\n{module_help}\n\n"

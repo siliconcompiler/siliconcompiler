@@ -118,6 +118,21 @@ def test_smake_help(monkeypatch, capfd, datadir):
     assert "LINT HELP" in output.out
 
 
+def test_smake_help_no_file(monkeypatch, capfd, tmp_path):
+    '''Test that smake --help works even when the source file is missing.'''
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr('sys.argv', ['smake', '--help'])
+    with pytest.raises(SystemExit) as exc:
+        smake.main()
+    assert exc.value.code == 0
+    output = capfd.readouterr().out
+    # The usage line should still be printed.
+    assert "usage:" in output.lower()
+    # The file-not-found error should NOT appear when only help was requested.
+    assert "Error: Unable to process source file" not in output
+
+
 def test_smake_file(monkeypatch, capfd, datadir):
     '''Test smake with -f'''
 
