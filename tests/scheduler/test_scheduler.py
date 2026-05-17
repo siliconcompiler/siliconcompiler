@@ -104,6 +104,55 @@ class DupInputTask(Task):
         return 0
 
 
+class SeedTask(Task):
+    """Entry task that writes a seed.v file so downstream NOPTasks have
+    something to propagate."""
+
+    def tool(self) -> str:
+        return "seedtool"
+
+    def task(self) -> str:
+        return "seed"
+
+    def setup(self):
+        self.add_output_file("seed.v")
+
+    def run(self):
+        with open("outputs/seed.v", "w") as f:
+            f.write("// seed\n")
+        return 0
+
+
+@pytest.fixture
+def forkjoin_project(gcd_design):
+    """A fork/join flow used to exercise option.from after a fork:
+
+        entry --> A1 --> A2 --> joinstep
+              \\-> B1 --> B2 -/
+    """
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = Flowgraph("forkjoin")
+    flow.node("entry", SeedTask())
+    flow.node("A1", NOPTask())
+    flow.node("A2", NOPTask())
+    flow.node("B1", NOPTask())
+    flow.node("B2", NOPTask())
+    flow.node("joinstep", NOPTask())
+
+    flow.edge("entry", "A1")
+    flow.edge("A1", "A2")
+    flow.edge("entry", "B1")
+    flow.edge("B1", "B2")
+    flow.edge("A2", "joinstep")
+    flow.edge("B2", "joinstep")
+
+    project.set_flow(flow)
+    return project
+
+
 class AdditionalFiles(Task):
     def __init__(self):
         super().__init__()
@@ -728,6 +777,52 @@ def test_rerun(gcd_nop_project):
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="stepthree", index="0") == \
         NodeStatus.PENDING
+
+
+@pytest.mark.timeout(120)
+def test_rerun_from_after_fork_to_join(forkjoin_project):
+    """Re-running with option.from after a fork and option.to at the join
+    must forward the bypassed leg's prior SUCCESS so the join can launch.
+
+    Regression for a bug where __configure_collect_previous_information
+    only loaded prior manifests for nodes upstream of option.from,
+    silently dropping fork-sibling legs that re-converge downstream.
+    """
+    assert forkjoin_project.run()
+    for step in ("entry", "A1", "A2", "B1", "B2", "joinstep"):
+        assert forkjoin_project.history("job0").get(
+            "record", "status", step=step, index="0"
+        ) == NodeStatus.SUCCESS
+
+    forkjoin_project.set("option", "from", ["A1"])
+    forkjoin_project.set("option", "to", ["joinstep"])
+    assert forkjoin_project.run()
+
+    rec = forkjoin_project.history("job0")
+    # Bypassed leg keeps its prior SUCCESS so joinstep sees a satisfied dep.
+    assert rec.get("record", "status", step="B1", index="0") == NodeStatus.SUCCESS
+    assert rec.get("record", "status", step="B2", index="0") == NodeStatus.SUCCESS
+    # Active leg and join re-ran successfully.
+    assert rec.get("record", "status", step="A1", index="0") == NodeStatus.SUCCESS
+    assert rec.get("record", "status", step="A2", index="0") == NodeStatus.SUCCESS
+    assert rec.get("record", "status", step="joinstep", index="0") == NodeStatus.SUCCESS
+
+
+@pytest.mark.timeout(120)
+def test_rerun_from_after_fork_to_join_with_clean(forkjoin_project):
+    """Same scenario as test_rerun_from_after_fork_to_join but with
+    option.clean=True, which takes the other branch in
+    __configure_collect_previous_information."""
+    assert forkjoin_project.run()
+
+    forkjoin_project.set("option", "from", ["A1"])
+    forkjoin_project.set("option", "to", ["joinstep"])
+    forkjoin_project.set("option", "clean", True)
+    assert forkjoin_project.run()
+
+    rec = forkjoin_project.history("job0")
+    assert rec.get("record", "status", step="B2", index="0") == NodeStatus.SUCCESS
+    assert rec.get("record", "status", step="joinstep", index="0") == NodeStatus.SUCCESS
 
 
 @pytest.mark.timeout(60)
