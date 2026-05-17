@@ -558,7 +558,18 @@ class Scheduler:
         else:
             if self.__project.option.get_from():
                 from_nodes = self.__flow_runtime.get_entry_nodes()
-            load_nodes = self.__flow_load_runtime.get_nodes()
+            # Load every node that feeds something in the active runtime,
+            # not just nodes upstream of option.from. The original
+            # flow_load_runtime (to_steps=from_steps) silently dropped
+            # fork-sibling legs that re-converge downstream of from --
+            # their prior SUCCESS was never forwarded, so the join node
+            # would wait on a PENDING input forever.
+            runtime_steps = set(step for step, _ in self.__flow_runtime.get_nodes())
+            load_runtime = RuntimeFlowgraph(
+                self.__flow,
+                to_steps=runtime_steps,
+                prune_nodes=self.__project.option.get_prune())
+            load_nodes = load_runtime.get_nodes()
 
         # Collect previous run information
         for step, index in self.__flow.get_nodes():
