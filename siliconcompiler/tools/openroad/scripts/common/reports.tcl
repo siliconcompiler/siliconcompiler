@@ -83,11 +83,16 @@ if { [sc_cfg_tool_task_check_in_list drv_violations var reports] } {
     report_erc_metrics
 }
 
-puts "$PREFIX floating nets"
-puts "Reporting floating nets: reports/floating_nets.rpt"
-tee -quiet -file reports/floating_nets.rpt \
-    "report_floating_nets -verbose"
-if { [sc_check_version 24 3 3461] } {
+if { [sc_cfg_tool_task_check_in_list floating_nets var reports] } {
+    puts "$PREFIX floating nets"
+    puts "Reporting floating nets: reports/floating_nets.rpt"
+    tee -quiet -file reports/floating_nets.rpt \
+        "report_floating_nets -verbose"
+}
+if {
+    [sc_cfg_tool_task_check_in_list overdriven_nets var reports] &&
+    [sc_check_version 24 3 3461]
+} {
     puts "$PREFIX overdriven nets"
     puts "Reporting overdriven nets: reports/overdriven_nets.rpt"
     tee -quiet -file reports/overdriven_nets.rpt \

@@ -61,9 +61,15 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
             'power',
             'drv_violations',
             'fmax',
+            'floating_nets',
+            'overdriven_nets',
             "logicdepth",
 
             # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view',
             'placement_density',
             'routing_congestion',
             'power_density',

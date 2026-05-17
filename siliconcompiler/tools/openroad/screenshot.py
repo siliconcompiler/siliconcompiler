@@ -55,6 +55,10 @@ class ScreenshotTask(ScreenshotTask, ShowTask):
 
         self._set_reports([
             # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view',
             'placement_density',
             'routing_congestion',
             'power_density',

@@ -520,16 +520,24 @@ gui::save_display_controls
 sc_image_setup_default
 
 # General images
-sc_image_everything
-sc_image_placement
-sc_image_routing
+if { [sc_cfg_tool_task_check_in_list snapshot var reports] } {
+    sc_image_everything
+}
+if { [sc_cfg_tool_task_check_in_list placement_view var reports] } {
+    sc_image_placement
+}
+if { [sc_cfg_tool_task_check_in_list routing_view var reports] } {
+    sc_image_routing
+}
 
 if { [sc_cfg_tool_task_check_in_list module_view var reports] } {
     sc_image_module_view
 }
 
 # Markers
-sc_image_markers
+if { [sc_cfg_tool_task_check_in_list markers_view var reports] } {
+    sc_image_markers
+}
 
 # Histograms
 sc_image_timing_histograms
