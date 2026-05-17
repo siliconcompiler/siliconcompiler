@@ -735,6 +735,40 @@ class Parameter:
 
         return isinstance(self.__type, (list, set))
 
+    @property
+    def is_file(self) -> bool:
+        """
+        Returns true if this parameter's type contains a ``file`` type.
+
+        This is true for plain ``file`` parameters as well as for container
+        types whose leaf is ``file`` (e.g. ``[file]``, ``{file}``, or tuples
+        containing ``file``).
+        """
+
+        return NodeType.contains(self.__type, 'file')
+
+    @property
+    def is_directory(self) -> bool:
+        """
+        Returns true if this parameter's type contains a ``dir`` type.
+
+        This is true for plain ``dir`` parameters as well as for container
+        types whose leaf is ``dir`` (e.g. ``[dir]``, ``{dir}``, or tuples
+        containing ``dir``).
+        """
+
+        return NodeType.contains(self.__type, 'dir')
+
+    @property
+    def is_path(self) -> bool:
+        """
+        Returns true if this parameter's type contains a ``file`` or ``dir``
+        type. Useful for code paths that treat files and directories the same
+        (e.g. resolving, hashing, or copying path-like values).
+        """
+
+        return self.is_file or self.is_directory
+
     def is_empty(self) -> bool:
         '''
         Utility function to check key for an empty value.
