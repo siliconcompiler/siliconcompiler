@@ -1166,11 +1166,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 # Ignore history as this is not relevant to the task
                 continue
 
-            paramtype: str = schema.get(*keypath, field='type')
-            if 'file' not in paramtype and 'dir' not in paramtype:
+            param = root.get(*keypath, field=None)
+            if not param.is_path:
                 continue
 
-            for value, step, index in root.get(*keypath, field=None).getvalues():
+            for value, step, index in param.getvalues():
                 if not value:
                     continue
                 abspaths = root.find_files(*keypath, missing_ok=True, step=step, index=index)
