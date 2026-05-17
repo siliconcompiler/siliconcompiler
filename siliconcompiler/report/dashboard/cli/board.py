@@ -2,10 +2,24 @@ import logging
 import os
 import queue
 import re
+import sys
 import time
 import threading
 
 import os.path
+
+# Termios / select are only available on POSIX. The watcher silently
+# no-ops on Windows; that's acceptable because the qq teardown also
+# does its work via the platform-agnostic Keyboard module, and resume
+# via stdin only matters for interactive runs on a real TTY.
+if os.name != 'nt':
+    import select
+    import termios
+    import tty
+else:  # pragma: no cover - Windows-only path
+    select = None
+    termios = None
+    tty = None
 
 from collections import deque
 from dataclasses import dataclass, field
@@ -291,6 +305,150 @@ class NodeType(Enum):
     OTHER = "other"
 
 
+class _ResumeWatcher:
+    """
+    Tiny background thread that watches stdin for a ``d d`` keystroke
+    while the dashboard is disabled (post-qq) and fires the Board's
+    registered resume callbacks on confirmation. Owns stdin in cbreak
+    + echo-off mode so user keystrokes don't pollute the live log
+    output that's now flowing to the terminal.
+
+    Lifecycle:
+      - ``Board._user_quit_teardown`` constructs and ``start()``s the
+        watcher after the live view has been torn down.
+      - ``Board.open_dashboard`` ``stop()``s the watcher before the new
+        render thread takes over stdin. The stop is self-call safe: when
+        the watcher's own thread invoked a resume callback that landed
+        back in ``open_dashboard``, ``stop()`` just signals the stop
+        event and lets the watcher's call stack unwind on its own
+        (joining would deadlock).
+    """
+
+    # How long after the first 'd' the second must arrive to confirm.
+    WINDOW = 2.0
+    # stdin poll cadence inside the watcher loop.
+    POLL = 0.1
+
+    def __init__(self, fire_resume_callback):
+        # ``fire_resume_callback`` is called (with no args) when 'd d' is
+        # confirmed. The Board passes a helper that snapshots and invokes
+        # every registered resume subscriber.
+        self._fire_resume_callback = fire_resume_callback
+        self._stop_event = threading.Event()
+        self._thread = None
+        self._old_settings = None
+        self._hint_printed = False
+
+    def start(self):
+        """Start the watcher thread. Idempotent — repeat calls no-op."""
+        if self._thread is not None and self._thread.is_alive():
+            return
+        if os.name == 'nt':
+            # Windows: msvcrt-based watcher would work but is untested
+            # here. Skip cleanly — the qq feature still works; only the
+            # interactive resume hint is unavailable.
+            return
+        if not sys.stdin.isatty():
+            return
+
+        self._stop_event.clear()
+        self._thread = threading.Thread(target=self._run, daemon=True,
+                                        name="sc-dashboard-resume-watcher")
+        self._thread.start()
+
+    def stop(self):
+        """
+        Signal the watcher to exit and wait for it.
+
+        Self-call safe: if invoked from the watcher's own thread (which
+        happens when a resume callback re-enters ``Board.open_dashboard``),
+        we just set the stop event and return — the watcher will exit
+        when control unwinds back to its loop. Joining would deadlock.
+        """
+        self._stop_event.set()
+        if self._thread is None or not self._thread.is_alive():
+            return
+        if threading.current_thread() is self._thread:
+            # Restore terminal NOW so the upcoming Keyboard.start in
+            # the new render thread captures the pristine terminal
+            # state rather than our cbreak+no-echo settings.
+            self._restore_terminal()
+            return
+        # Wake the watcher out of select() and wait for it to exit. The
+        # ``POLL`` timeout means we'll wake within POLL seconds anyway.
+        try:
+            self._thread.join(timeout=self.POLL * 5)
+        except Exception:
+            pass
+
+    def is_running(self):
+        return self._thread is not None and self._thread.is_alive()
+
+    def _restore_terminal(self):
+        if self._old_settings is not None and termios is not None:
+            try:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._old_settings)
+            except (OSError, termios.error):
+                pass
+            self._old_settings = None
+
+    def _run(self):
+        # Hint the user once that the keybind is live. Goes to stderr
+        # so it interleaves cleanly with normal log output (which uses
+        # stdout via the project's terminal handler).
+        if not self._hint_printed:
+            try:
+                sys.stderr.write(
+                    "[dashboard disabled — press 'd' twice to re-enable]\n")
+                sys.stderr.flush()
+            except Exception:
+                pass
+            self._hint_printed = True
+
+        try:
+            self._old_settings = termios.tcgetattr(sys.stdin)
+        except (OSError, termios.error):
+            return
+
+        try:
+            # cbreak (which clears ECHO and ICANON) is exactly what we
+            # want: read individual keypresses, don't echo, don't wait
+            # for newline.
+            tty.setcbreak(sys.stdin.fileno())
+
+            pending_until = 0.0
+            while not self._stop_event.is_set():
+                ready, _, _ = select.select([sys.stdin], [], [], self.POLL)
+
+                # Expire the pending window even if the user is silent.
+                if pending_until and time.time() > pending_until:
+                    pending_until = 0.0
+
+                if not ready:
+                    continue
+
+                try:
+                    ch = sys.stdin.read(1)
+                except (OSError, ValueError):
+                    break
+                if not ch:
+                    continue
+
+                if ch.lower() == 'd':
+                    if pending_until and time.time() <= pending_until:
+                        # Confirmed.
+                        try:
+                            self._fire_resume_callback()
+                        except Exception:
+                            pass
+                        return
+                    pending_until = time.time() + self.WINDOW
+                else:
+                    pending_until = 0.0
+        finally:
+            self._restore_terminal()
+
+
 class Board:
     """
     The main class for rendering the live dashboard UI.
@@ -374,7 +532,7 @@ class Board:
             auto_refresh=True
         )
 
-        # Quit-handler subscribers. A set rather than a list so:
+        # Quit / resume subscribers. Sets rather than lists so:
         # (a) register/unregister are naturally idempotent;
         # (b) we don't need a lock — ``set.add``, ``set.discard``, and
         #     ``list(set)`` are atomic under the GIL, which avoids the
@@ -383,6 +541,13 @@ class Board:
         # Initialized unconditionally so register/unregister work even on
         # an inactive Board where ``__init__`` short-circuits below.
         self._on_quit_callbacks = set()
+        self._on_resume_callbacks = set()
+
+        # Watcher thread that listens for the 'd d' re-enable keystroke
+        # while the dashboard is disabled. Lazily created on first need
+        # in ``_user_quit_teardown``; torn down in ``open_dashboard``
+        # before the new render thread takes over stdin.
+        self._resume_watcher = None
 
         self._active = self._console.is_terminal
         if not self._active:
@@ -474,6 +639,44 @@ class Board:
         """
         self._on_quit_callbacks.discard(callback)
 
+    def register_resume_handler(self, callback):
+        """
+        Subscribe a callback to be invoked when the user requests the
+        dashboard be re-enabled (``d d``) after a prior user-quit.
+
+        Mirrors :meth:`register_quit_handler` semantics: any number of
+        subscribers; set semantics; safe to register repeatedly. The
+        callback survives qq teardown — that's intentional, since the
+        subscriber list is what tells the resume watcher who to notify.
+        Subscribers should only unregister via :meth:`unregister_resume_handler`
+        when they are permanently stopping (e.g. ``CliDashboard.stop``).
+
+        The callback runs on the resume watcher's thread, which means
+        it MAY call back into ``Board.open_dashboard`` — the watcher's
+        ``stop()`` is self-call safe for that case.
+        """
+        self._on_resume_callbacks.add(callback)
+
+    def unregister_resume_handler(self, callback):
+        """
+        Unsubscribe a previously-registered resume callback. No-op if
+        the callback was never registered. Idempotent.
+        """
+        self._on_resume_callbacks.discard(callback)
+
+    def _fire_resume_callbacks(self):
+        """
+        Called by the resume watcher when ``d d`` is confirmed. Snapshot
+        the subscriber set under the GIL and invoke each callback,
+        swallowing per-subscriber failures so one broken callback can't
+        starve the rest.
+        """
+        for callback in list(self._on_resume_callbacks):
+            try:
+                callback()
+            except Exception:
+                pass
+
     def _confirm_user_quit(self):
         """
         Mark the render loop for shutdown after the user has confirmed a
@@ -506,6 +709,15 @@ class Board:
         """Starts the dashboard rendering thread if it is not already running."""
         if not self._active:
             return
+
+        # If a resume watcher is currently holding stdin (we are coming
+        # back from a user-quit), tear it down before the render thread
+        # tries to claim stdin via Keyboard.start. ``stop()`` is
+        # self-call safe — if we got here from inside a resume callback,
+        # the watcher just signals itself and unwinds.
+        if self._resume_watcher is not None:
+            self._resume_watcher.stop()
+            self._resume_watcher = None
 
         if not self.is_running():
             self._update_render_data(None)
@@ -579,6 +791,15 @@ class Board:
         """
         Stops the dashboard rendering thread and cleans up the terminal display.
         """
+        # Always tear down the resume watcher first if one is running.
+        # We do this before the is_running / job-completion gates below
+        # because the watcher is a separate thread holding stdin in
+        # cbreak + no-echo mode — leaving it alive at program exit
+        # strands the user's shell in that mode.
+        if self._resume_watcher is not None:
+            self._resume_watcher.stop()
+            self._resume_watcher = None
+
         if not self.is_running():
             return
 
@@ -993,6 +1214,15 @@ class Board:
                     except Exception:
                         pass
 
+                # Spin up the resume watcher so a later ``d d`` re-engages
+                # the dashboard. Only worth starting if there's anyone
+                # subscribed to resume.
+                if self._on_resume_callbacks:
+                    if self._resume_watcher is None:
+                        self._resume_watcher = _ResumeWatcher(
+                            self._fire_resume_callbacks)
+                    self._resume_watcher.start()
+
     def _user_quit_teardown(self):
         """
         Display-side teardown invoked from the render thread's finally
@@ -1142,7 +1372,8 @@ class Board:
             ("j", "Toggle showing job details"),
             ("n", "Toggle showing node details"),
             ("l", "Toggle showing log details"),
-            ("q q", "Press twice to disable the dashboard and restore terminal logging")]
+            ("q q", "Press twice to disable the dashboard and restore terminal logging"),
+            ("d d", "After 'q q', press twice to re-enable the dashboard")]
         table_height = 6 + len(help_info)  # header + padding
 
         banner = Padding(Text(_metadata.banner), pad=(0, 0, 1, 0))

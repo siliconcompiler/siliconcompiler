@@ -1824,7 +1824,7 @@ def test_render_help_medium_height(mock_project, fake_console):
     dashboard = MPManager.get_dashboard()
 
     layout = Layout()
-    layout.height = 21  # Enough for banner, authors, and table but not version
+    layout.height = 22  # Enough for banner, authors, and table but not version
 
     help_group = dashboard._render_help(layout)
 
@@ -1841,7 +1841,7 @@ def test_render_help_small_height(mock_project, fake_console):
     dashboard = MPManager.get_dashboard()
 
     layout = Layout()
-    layout.height = 19  # Enough for banner and table only
+    layout.height = 20  # Enough for banner and table only
 
     help_group = dashboard._render_help(layout)
 
@@ -1880,7 +1880,7 @@ def test_render_help_table_content(mock_project, fake_console):
     # Check table has correct structure
     assert table.title == "Dashboard Help"
     assert len(table.columns) == 2
-    assert table.row_count == 5  # h, j, n, l, q q
+    assert table.row_count == 6  # h, j, n, l, q q, d d
 
     # Verify table content by rendering it
     io_file = io.StringIO()
@@ -2609,6 +2609,116 @@ def test_handle_user_quit_unsubscribes(mock_project, shared_board):
     assert _subscribers(shared_board) == {dash}
     dash._handle_user_quit()
     assert shared_board._on_quit_callbacks == set()
+
+
+# ---------------------------------------------------------------------------
+# Resume (d d) flow
+# ---------------------------------------------------------------------------
+
+def _resume_subscribers(board):
+    """Like ``_subscribers`` but for the resume callback set."""
+    return {getattr(cb, "__self__", None) for cb in board._on_resume_callbacks}
+
+
+def test_init_does_not_subscribe_to_resume(mock_project, shared_board):
+    """Same rationale as the quit-handler check: transient instances
+    have no business receiving resume notifications."""
+    shared_board._on_resume_callbacks.clear()
+
+    with patch("threading.Thread"):
+        CliDashboard(mock_project)
+
+    assert shared_board._on_resume_callbacks == set()
+
+
+def test_open_dashboard_subscribes_to_resume(mock_project, shared_board):
+    """Opening the dashboard must register both quit AND resume callbacks
+    — the resume one is what lets ``d d`` find a subscriber after qq."""
+    shared_board._on_resume_callbacks.clear()
+
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+        dash.open_dashboard()
+
+    assert _resume_subscribers(shared_board) == {dash}
+
+
+def test_resume_subscription_survives_user_quit(mock_project, shared_board):
+    """Crucial invariant for the qq → dd flow: qq must remove the quit
+    subscription but leave the resume subscription in place. Otherwise
+    ``d d`` would have no subscribers to fire."""
+    shared_board._on_quit_callbacks.clear()
+    shared_board._on_resume_callbacks.clear()
+
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+        dash.open_dashboard()
+
+    dash._handle_user_quit()
+
+    assert shared_board._on_quit_callbacks == set()
+    assert _resume_subscribers(shared_board) == {dash}
+
+
+def test_handle_user_resume_reopens_dashboard(mock_project, shared_board):
+    """The resume callback should re-attach logger plumbing and bring
+    the live view back."""
+    shared_board._on_resume_callbacks.clear()
+
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+        dash.open_dashboard()
+
+    dash._handle_user_quit()
+    # Post-qq: logger plumbing detached, suppress filter gone.
+    assert dash._dashboard_handler is None
+    assert dash._suppress_filter not in mock_project._logger_console.filters
+
+    with patch("threading.Thread"):
+        dash._handle_user_resume()
+
+    # Post-resume: logger plumbing reattached, suppress filter back.
+    assert dash._dashboard_handler is not None
+    assert dash._suppress_filter in mock_project._logger_console.filters
+    assert dash._suppress_filter.active is True
+    # And the quit subscription is re-armed for the next qq.
+    assert _subscribers(shared_board) == {dash}
+
+
+def test_stop_unsubscribes_resume(mock_project, shared_board):
+    """``stop()`` is the only path that should remove the resume
+    subscription — qq deliberately leaves it in place."""
+    shared_board._on_resume_callbacks.clear()
+
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+        dash.open_dashboard()
+    assert _resume_subscribers(shared_board) == {dash}
+
+    dash.stop()
+    assert shared_board._on_resume_callbacks == set()
+
+
+def test_fire_resume_callbacks_notifies_every_subscriber(mock_project, shared_board):
+    """The Board's resume-fire helper should invoke every registered
+    subscriber, even if one of them raises."""
+    shared_board._on_resume_callbacks.clear()
+    fired = []
+
+    def good():
+        fired.append("good")
+
+    def bad():
+        fired.append("bad")
+        raise RuntimeError("oops")
+
+    shared_board.register_resume_handler(good)
+    shared_board.register_resume_handler(bad)
+
+    shared_board._fire_resume_callbacks()
+
+    # Order isn't guaranteed (set), but both must have fired.
+    assert set(fired) == {"good", "bad"}
 
 
 def test_user_quit_then_reattach_cycle(mock_project, fake_console):

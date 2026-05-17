@@ -45,12 +45,13 @@ class CliDashboard(AbstractDashboard):
         self._terminal_handler = None
         self._suppress_filter = SCSuppressLoggerFilter()
 
-        # Stable reference to our bound quit handler. Bound-method objects
-        # are created fresh on each attribute access (so ``a.f is a.f`` is
-        # False), which would make register/unregister against the Board's
-        # subscriber list unreliable. Capturing once gives us a single
-        # identity for both subscribe and unsubscribe.
+        # Stable references to our bound subscribers. Bound-method
+        # objects are created fresh on each attribute access (so
+        # ``a.f is a.f`` is False), which would make register/unregister
+        # against the Board's subscriber sets unreliable. Capturing once
+        # gives us a single identity for both subscribe and unsubscribe.
         self._quit_callback = self._handle_user_quit
+        self._resume_callback = self._handle_user_resume
 
         # Deliberately NOT subscribing to the Board's quit handler here,
         # and NOT auto-attaching the logger. We are only an *interface*
@@ -134,10 +135,14 @@ class CliDashboard(AbstractDashboard):
             self.__exit_registered = True
             atexit.register(self.stop)
 
-        # Subscribe to the Board's quit notification now that we own
-        # logger plumbing worth tearing down. Idempotent on the Board
-        # side, so repeated open_dashboard calls are safe.
+        # Subscribe to the Board's quit / resume notifications now that
+        # we own logger plumbing worth tearing down (and re-engaging).
+        # Both are idempotent on the Board side, so repeated
+        # open_dashboard calls are safe. The resume subscription
+        # deliberately survives qq teardown — that's what lets ``d d``
+        # find a subscriber later.
         self._dashboard.register_quit_handler(self._quit_callback)
+        self._dashboard.register_resume_handler(self._resume_callback)
 
         self.set_logger(self._project.logger)
 
@@ -190,9 +195,10 @@ class CliDashboard(AbstractDashboard):
 
         self._detach_logger()
 
-        # Unsubscribe from the Board's quit notification. Other
-        # CliDashboard instances' subscriptions are untouched.
+        # Unsubscribe from the Board's quit + resume notifications.
+        # Other CliDashboard instances' subscriptions are untouched.
         self._dashboard.unregister_quit_handler(self._quit_callback)
+        self._dashboard.unregister_resume_handler(self._resume_callback)
 
         if self.__exit_registered:
             atexit.unregister(self.stop)
@@ -224,7 +230,9 @@ class CliDashboard(AbstractDashboard):
         Invoked from the dashboard render thread's finally block (after the
         live view is already torn down) when the user double-presses 'q'.
         Detaches our log sink so terminal output flows again, and removes
-        our subscription from the Board.
+        our quit subscription from the Board. The resume subscription is
+        intentionally left in place — that's how the resume watcher
+        finds us when the user later presses 'd' twice.
 
         MUST NOT call ``self.stop()`` or anything that joins the render
         thread: we are running on that thread.
@@ -239,12 +247,25 @@ class CliDashboard(AbstractDashboard):
         except Exception:
             pass
 
-        if self.__exit_registered:
-            try:
-                atexit.unregister(self.stop)
-            except Exception:
-                pass
-            self.__exit_registered = False
+        # atexit unregistration deliberately omitted here: the resume
+        # path may bring us back, and a re-engaged dashboard still wants
+        # its atexit-driven cleanup to run on program exit.
+
+    def _handle_user_resume(self):
+        """
+        Invoked from the Board's resume watcher thread when the user
+        confirms a re-enable via ``d d``. Re-runs the open-dashboard
+        path so our logger plumbing is reattached and a fresh render
+        thread starts.
+
+        Safe to call from the watcher thread: ``Board.open_dashboard``
+        tears down the watcher itself, with a self-call guard that
+        avoids the watcher trying to join its own thread.
+        """
+        try:
+            self.open_dashboard()
+        except Exception:
+            pass
 
     def wait(self):
         """
