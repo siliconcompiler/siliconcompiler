@@ -67,13 +67,13 @@ def get_volumes_directories(project, cache_dir, workdir, step, index):
     all_dirs = set()
     # Collect files
     for key in project.allkeys():
-        sc_type = project.get(*key, field='type')
+        param = project.get(*key, field=None)
 
-        if 'file' in sc_type or 'dir' in sc_type:
+        if param.is_path:
             cstep = step
             cindex = index
 
-            if project.get(*key, field='pernode').is_never():
+            if param.get(field='pernode').is_never():
                 cstep = None
                 cindex = None
 
@@ -84,7 +84,7 @@ def get_volumes_directories(project, cache_dir, workdir, step, index):
                 for path in files:
                     if path is None:
                         continue
-                    if 'file' in sc_type:
+                    if param.is_file:
                         all_dirs.add(os.path.dirname(path))
                     else:
                         all_dirs.add(path)
