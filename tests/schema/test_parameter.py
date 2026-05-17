@@ -694,6 +694,7 @@ def test_is_path_true(sctype):
 @pytest.mark.parametrize("sctype", (
     "str", "int", "float", "bool",
     "[str]", "{int}", "<a,b>", "[<a,b>]",
+    "<dir,file>"
 ))
 def test_is_path_false(sctype):
     assert Parameter(sctype).is_path is False
