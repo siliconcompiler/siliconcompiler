@@ -370,9 +370,14 @@ def test_sc_show_list_show_tools(monkeypatch, capsys):
     monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
 
     mock_tasks = [MockShowTask1, MockShowTask2]
+    # MockShowTask1 is preferred for ext1; MockShowTask2 is preferred for ext3.
+    # ext2 has no preferred entry (simulates an extension with no resolvable preference).
+    mock_ext_map = {"ext1": MockShowTask1(), "ext3": MockShowTask2()}
 
-    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
@@ -382,11 +387,12 @@ def test_sc_show_list_show_tools(monkeypatch, capsys):
     assert "Registered Show Tools (in order):" in output
     assert "=" * 70 in output
 
-    # Verify tools are listed with their extensions
+    # Verify tools are listed with their extensions, with preferred ones starred
     assert "1. tool1/task1" in output
-    assert "Extensions: ext1, ext2" in output
+    assert "Extensions: ext1*, ext2" in output
     assert "2. tool2/task2" in output
-    assert "Extensions: ext3" in output
+    assert "Extensions: ext3*" in output
+    assert "* indicates the preferred tool for that extension" in output
 
 
 @pytest.mark.timeout(90)
@@ -395,9 +401,16 @@ def test_sc_show_list_screenshot_tools(monkeypatch, capsys):
     monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-screenshot'])
 
     mock_tasks = [MockScreenshotTask1, MockScreenshotTask2]
+    mock_ext_map = {
+        "ext1": MockScreenshotTask1(),
+        "ext2": MockScreenshotTask1(),
+        "ext3": MockScreenshotTask2(),
+    }
 
-    with patch('siliconcompiler.apps.sc_show.ScreenshotTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.ScreenshotTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ScreenshotTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
@@ -407,11 +420,11 @@ def test_sc_show_list_screenshot_tools(monkeypatch, capsys):
     assert "Registered Screenshot Tools (in order):" in output
     assert "=" * 70 in output
 
-    # Verify tools are listed with their extensions
+    # Verify tools are listed with their extensions, with preferred ones starred
     assert "1. tool1/screenshot1" in output
-    assert "Extensions: ext1, ext2" in output
+    assert "Extensions: ext1*, ext2*" in output
     assert "2. tool2/screenshot2" in output
-    assert "Extensions: ext3" in output
+    assert "Extensions: ext3*" in output
 
 
 @pytest.mark.timeout(90)
@@ -420,9 +433,16 @@ def test_sc_show_list_open_tools(monkeypatch, capsys):
     monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-open'])
 
     mock_tasks = [MockOpenTask1, MockOpenTask2]
+    mock_ext_map = {
+        "ext1": MockOpenTask1(),
+        "ext2": MockOpenTask1(),
+        "ext3": MockOpenTask2(),
+    }
 
-    with patch('siliconcompiler.apps.sc_show.OpenTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.OpenTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.OpenTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
@@ -432,11 +452,107 @@ def test_sc_show_list_open_tools(monkeypatch, capsys):
     assert "Registered Open Tools (in order):" in output
     assert "=" * 70 in output
 
-    # Verify tools are listed with their extensions
+    # Verify tools are listed with their extensions, with preferred ones starred
     assert "1. tool1/open1" in output
-    assert "Extensions: ext1, ext2" in output
+    assert "Extensions: ext1*, ext2*" in output
     assert "2. tool2/open2" in output
-    assert "Extensions: ext3" in output
+    assert "Extensions: ext3*" in output
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_with_tool_filter(monkeypatch, capsys):
+    '''Test sc-show -list -tool filters to only matching tools.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-tool', 'tool2'])
+
+    mock_tasks = [MockShowTask1, MockShowTask2]
+    # When filtering to tool2, only its extensions resolve.
+    mock_ext_map = {"ext3": MockShowTask2()}
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Header reflects the active filter and only tool2 is listed.
+    assert "Registered Show Tools (in order) matching 'tool2':" in output
+    assert "1. tool2/task2" in output
+    assert "Extensions: ext3*" in output
+    # tool1 was filtered out entirely.
+    assert "tool1/task1" not in output
+    # The asterisk legend is printed (extension was starred).
+    assert "* indicates the preferred tool for that extension" in output
+    # get_extension_map must be called with the tool filter.
+    mock_ext.assert_called_once_with(tool='tool2')
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_with_tool_task_filter(monkeypatch, capsys):
+    '''Test sc-show -list -tool tool/task filters to a specific task.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-tool', 'tool1/task1'])
+
+    mock_tasks = [MockShowTask1, MockShowTask2]
+    mock_ext_map = {"ext1": MockShowTask1(), "ext2": MockShowTask1()}
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    assert "Registered Show Tools (in order) matching 'tool1/task1':" in output
+    assert "1. tool1/task1" in output
+    assert "Extensions: ext1*, ext2*" in output
+    assert "tool2/task2" not in output
+    mock_ext.assert_called_once_with(tool='tool1/task1')
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_with_tool_filter_no_match(monkeypatch, capsys):
+    '''Test sc-show -list -tool with a non-matching tool prints a clear message.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-tool', 'nonesuch'])
+
+    mock_tasks = [MockShowTask1, MockShowTask2]
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+        mock_get_task.return_value = mock_tasks
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    assert "No registered Show tools matched -tool 'nonesuch'" in output
+    # Nothing else should be listed.
+    assert "1. tool" not in output
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_with_tool_filter_not_in_ignored_warning(monkeypatch, capsys):
+    '''-tool is honored with -list, so it must not appear in the ignored-flags warning.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-tool', 'tool1', '-ext', 'ext1'])
+
+    mock_tasks = [MockShowTask1]
+    mock_ext_map = {"ext1": MockShowTask1(), "ext2": MockShowTask1()}
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    combined = captured.out + captured.err
+
+    # -ext should still be warned as ignored, but -tool should not.
+    assert "-ext" in combined
+    assert "-tool" not in combined.split("Ignoring", 1)[-1].split("\n")[0] \
+        if "Ignoring" in combined else True
 
 
 @pytest.mark.timeout(90)
@@ -461,9 +577,12 @@ def test_sc_show_list_single_tool(monkeypatch, capsys):
     monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
 
     mock_tasks = [MockShowTask1]
+    mock_ext_map = {"ext1": MockShowTask1(), "ext2": MockShowTask1()}
 
-    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
@@ -492,8 +611,11 @@ def test_sc_show_list_sorted_extensions(monkeypatch, capsys):
 
     mock_tasks = [MockTaskWithUnsortedExts]
 
-    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        # No preferred mapping for any of these extensions
+        mock_ext.return_value = {}
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
@@ -520,8 +642,10 @@ def test_sc_show_list_no_extensions(monkeypatch, capsys):
 
     mock_tasks = [MockTaskNoExts]
 
-    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = {}
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
