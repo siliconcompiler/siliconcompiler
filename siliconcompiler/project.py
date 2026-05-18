@@ -1355,19 +1355,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     search_nodes = [node for node in search_nodes if node[1] == sc_index]
 
             # Use the shared extension map so the preferred tool for each
-            # extension matches what sc-show -list reports.
+            # extension matches what sc-show -list reports. The map preserves
+            # registration order, so higher-priority tools are tried first.
             ext_map = tool_cls.get_extension_map(tool=tool)
-
-            # Build an ordered list of extensions, preserving tool registration
-            # order so higher-priority tools are tried first.
-            search_exts = []
-            for cls in tool_cls.get_task(None):
-                try:
-                    for ext in sorted(cls().get_supported_task_extentions()):
-                        if ext in ext_map and ext not in search_exts:
-                            search_exts.append(ext)
-                except NotImplementedError:
-                    pass
+            search_exts = list(ext_map.keys())
 
             if extension:
                 if extension not in search_exts:

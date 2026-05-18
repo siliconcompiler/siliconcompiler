@@ -3599,7 +3599,9 @@ def test_get_extension_map_single_tool():
 
 
 def test_get_extension_map_collects_all_extensions():
-    """All extensions across all registered tasks are present as keys."""
+    """All extensions across all registered tasks are present as keys, in
+    deterministic registration order (within a task, in the order returned by
+    get_supported_task_extentions)."""
 
     class ToolMulti(ShowTask):
         def tool(self):
@@ -3622,7 +3624,9 @@ def test_get_extension_map_collects_all_extensions():
 
         ext_map = ShowTask.get_extension_map()
 
-        assert set(ext_map.keys()) == {"ext", "a", "b", "c"}
+        # Order: ToolA registered first (its "ext"), then ToolMulti (a, b, c
+        # in the order it returns them).
+        assert list(ext_map.keys()) == ["ext", "a", "b", "c"]
 
 
 def test_get_extension_map_conflict_uses_last_registered():
@@ -3832,6 +3836,11 @@ def test_get_extension_map_matches_get_task_resolution():
         mock_settings_cls.return_value = mock_settings
 
         ext_map = ShowTask.get_extension_map()
+
+        # Deterministic order: ToolP registered first contributes "one" and
+        # "two" (its first appearance dedupes "two"), then ToolQ contributes
+        # "three".
+        assert list(ext_map.keys()) == ["one", "two", "three"]
 
         for ext, preferred in ext_map.items():
             resolved = ShowTask.get_task(ext)
