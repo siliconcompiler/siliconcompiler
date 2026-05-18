@@ -95,7 +95,7 @@ class Elaborate(SlangTask):
                 if add_source:
                     files = self.__get_files(manager, tree)
 
-                writer = pyslang.SyntaxPrinter(manager)
+                writer = pyslang.syntax.SyntaxPrinter(manager)
 
                 writer.setIncludeMissing(False)
                 writer.setIncludeSkipped(False)
@@ -137,7 +137,7 @@ class Elaborate(SlangTask):
             node = nodes.get()
             proc_range(node.sourceRange)
             for token in node:
-                if isinstance(token, pyslang.Token):
+                if isinstance(token, pyslang.parsing.Token):
                     proc_range(token.range)
                 else:
                     nodes.put(token)
