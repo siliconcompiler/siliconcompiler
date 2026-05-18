@@ -1354,38 +1354,29 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 if sc_index:
                     search_nodes = [node for node in search_nodes if node[1] == sc_index]
 
-            # Build ordered list of (task_class, extension) pairs respecting tool order
-            # This preserves the registration order so higher-priority tools are tried first
+            # Use the shared extension map so the preferred tool for each
+            # extension matches what sc-show -list reports.
+            ext_map = tool_cls.get_extension_map(tool=tool)
+
+            # Build an ordered list of extensions, preserving tool registration
+            # order so higher-priority tools are tried first.
             search_exts = []
-            for cls in tool_cls.get_task(None, tool=tool):
+            for cls in tool_cls.get_task(None):
                 try:
-                    exts = cls().get_supported_task_extentions()
-                    # Sort extensions within each task for consistency
-                    for ext in sorted(exts):
-                        # If a specific tool is requested, verify the extension resolves
-                        # to that tool
-                        if tool:
-                            resolved_task = tool_cls.get_task(ext, tool=tool)
-                            if resolved_task is None:
-                                # This extension is not supported by the requested tool
-                                continue
-                        search_exts.append((cls, ext))
+                    for ext in sorted(cls().get_supported_task_extentions()):
+                        if ext in ext_map and ext not in search_exts:
+                            search_exts.append(ext)
                 except NotImplementedError:
                     pass
 
             if extension:
-                # Validate that requested extension is supported
-                all_exts = [ext for _, ext in search_exts]
-                if extension not in all_exts:
+                if extension not in search_exts:
                     self.logger.error(f"Extension '{extension}' not supported by "
-                                      f"registered showtools: {', '.join(sorted(set(all_exts)))}")
+                                      f"registered showtools: {', '.join(sorted(search_exts))}")
                     return None
-                # Search for the specific extension only, respecting tool order
-                search_exts = [(cls, ext) for cls, ext in search_exts if ext == extension]
+                search_exts = [extension]
 
-            # Search for files in tool-ordered sequence
-            # This ensures that earlier-registered (higher-priority) tools are tried first
-            for task_cls, ext in search_exts:
+            for ext in search_exts:
                 for step, index in search_nodes:
                     filename = search_obj.find_result(ext,
                                                       step=step,

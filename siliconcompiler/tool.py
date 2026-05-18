@@ -2892,6 +2892,48 @@ class OpenTask(Task):
 
         return None
 
+    @classmethod
+    def get_extension_map(cls: Type[TOpenTask],
+                          tool: Optional[str] = None) -> Dict[str, TOpenTask]:
+        """
+        Returns a mapping of supported file extensions to the preferred task.
+
+        For every extension declared by any registered task of this class, the
+        returned dict contains the task instance that :meth:`get_task` would
+        pick for that extension. This is the single source of truth for
+        "which tool handles extension X" and is shared by ``sc-show -list``
+        and :meth:`Project.show` to keep their behavior consistent.
+
+        Args:
+            tool (str, optional): Tool spec in ``"tool"`` or ``"tool/task"``
+                form. When provided, only extensions resolvable to that
+                tool/task are included.
+
+        Returns:
+            A dictionary mapping each supported extension to the preferred
+            task instance for that extension.
+        """
+        cls.__check_task(None)
+        cls.__populate_tasks()
+
+        tasks = cls.get_task(None)
+        if not tasks:
+            return {}
+
+        all_exts: Set[str] = set()
+        for task_cls in tasks:
+            try:
+                all_exts.update(task_cls().get_supported_task_extentions())
+            except NotImplementedError:
+                continue
+
+        ext_map: Dict[str, TOpenTask] = {}
+        for ext in all_exts:
+            preferred = cls.get_task(ext, tool=tool)
+            if preferred is not None:
+                ext_map[ext] = preferred
+        return ext_map
+
 
 class ShowTask(OpenTask):
     """

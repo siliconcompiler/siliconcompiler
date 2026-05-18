@@ -63,6 +63,12 @@ def main():
     sc-show -list -open
     (lists all registered open tools and their supported extensions)
 
+    sc-show -list -tool klayout
+    (lists only klayout show tasks and their supported extensions)
+
+    sc-show -list -tool openroad/show
+    (lists only the openroad/show task and its supported extensions)
+
     sc-show -design adder -open
     (opens build/adder/job0/write.gds/0/outputs/adder.gds in an interactive open tool)
     """
@@ -109,7 +115,8 @@ def main():
 
     # Handle --list option
     if show.get("cmdarg", "list"):
-        # Warn if other CLI flags are set (they will be ignored)
+        # Warn if other CLI flags are set (they will be ignored).
+        # -tool is honored as a filter, so it's not in this list.
         ignored_flags = []
         try:
             if show.get("cmdarg", "design"):
@@ -120,8 +127,6 @@ def main():
             ignored_flags.append("-cfg")
         if show.get("cmdarg", "extension"):
             ignored_flags.append("-ext")
-        if show.get("cmdarg", "tool"):
-            ignored_flags.append("-tool")
         if show.get("cmdarg", "input"):
             ignored_flags.append("input files")
         if ignored_flags:
@@ -137,21 +142,69 @@ def main():
             task_cls = ShowTask
             task_type = "Show"
 
+        tool_filter = show.get("cmdarg", "tool")
+
         tasks = task_cls.get_task(None)
         if not tasks:
             print(f"No registered {task_type} tools found")
             return 0
 
-        print(f"Registered {task_type} Tools (in order):")
+        # When -tool is provided, restrict the listing (and preference
+        # resolution) to that tool/task spec.
+        if tool_filter:
+            spec_parts = tool_filter.split('/')
+            spec_tool = spec_parts[0]
+            spec_task = spec_parts[1] if len(spec_parts) > 1 else None
+
+            def matches_filter(inst) -> bool:
+                if inst.tool() != spec_tool:
+                    return False
+                if spec_task is not None and inst.task() != spec_task:
+                    return False
+                return True
+
+            filtered = []
+            for task_cls_item in tasks:
+                try:
+                    if matches_filter(task_cls_item()):
+                        filtered.append(task_cls_item)
+                except NotImplementedError:
+                    pass
+            if not filtered:
+                print(f"No registered {task_type} tools matched -tool '{tool_filter}'")
+                return 0
+            tasks = filtered
+
+        ext_map = task_cls.get_extension_map(tool=tool_filter)
+
+        header = f"Registered {task_type} Tools (in order)"
+        if tool_filter:
+            header += f" matching '{tool_filter}'"
+        header += ":"
+        print(header)
         print("=" * 70)
         count = 0
+        has_preferred = False
         for task_cls_item in tasks:
             try:
                 task_inst = task_cls_item()
                 tool_name = task_inst.tool()
                 task_name = task_inst.task()
                 exts = task_inst.get_supported_task_extentions()
-                ext_str = ', '.join(sorted(exts)) if exts else 'none'
+                if exts:
+                    formatted = []
+                    for ext in sorted(exts):
+                        preferred = ext_map.get(ext)
+                        if (preferred is not None
+                                and preferred.tool() == tool_name
+                                and preferred.task() == task_name):
+                            formatted.append(f"{ext}*")
+                            has_preferred = True
+                        else:
+                            formatted.append(ext)
+                    ext_str = ', '.join(formatted)
+                else:
+                    ext_str = 'none'
                 count += 1
                 print(f"{count}. {tool_name}/{task_name}")
                 print(f"   Extensions: {ext_str}")
@@ -159,6 +212,8 @@ def main():
                 # Skip abstract tasks
                 pass
         print("=" * 70)
+        if has_preferred:
+            print("* indicates the preferred tool for that extension")
         return 0
 
     manifest = None
