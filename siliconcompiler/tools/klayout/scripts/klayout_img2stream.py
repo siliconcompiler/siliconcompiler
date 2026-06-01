@@ -35,10 +35,8 @@ def png_to_gds(
 
     # 1. Load image with PIL — handles RGBA correctly (pya.Image drops the alpha channel)
     print(f"Loading {image_path}...")
-    try:
-        pil_img = PILImage.open(image_path)
-    except Exception as e:
-        raise ValueError(f"Image could not be loaded: {e}")
+
+    pil_img = PILImage.open(image_path)
 
     orig_w, orig_h = pil_img.size
     if orig_w == 0 or orig_h == 0:
