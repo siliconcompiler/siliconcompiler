@@ -30,25 +30,28 @@ def png_to_gds(
     :param dark_is_solid: Base logic - If True, dark pixels become GDS shapes.
     :param invert: Explicitly inverts the final polarity of the image.
     """
-    from PIL import Image as PILImage  # noqa E402
     from klayout_utils import get_write_options  # noqa E402
 
-    # 1. Load image with PIL — handles RGBA correctly (pya.Image drops the alpha channel)
+    # 1. Load image via pya.PixelBuffer (headless, no display required).
+    # pixel() returns ARGB as a packed uint32; composite over white so transparent→light.
     print(f"Loading {image_path}...")
 
-    pil_img = PILImage.open(image_path)
-
-    orig_w, orig_h = pil_img.size
+    if not image_path.lower().endswith('.png'):
+        raise ValueError(f"Only PNG images are supported; got: {image_path}")
+    img_buf = pya.PixelBuffer.read_png(image_path)
+    orig_w = img_buf.width()
+    orig_h = img_buf.height()
     if orig_w == 0 or orig_h == 0:
         raise ValueError("Image is empty. Ensure it's a valid image.")
 
-    # Convert to grayscale; composite RGBA over white so transparent→light, opaque→dark.
-    if pil_img.mode == 'RGBA':
-        _, _, _, alpha = pil_img.split()
-        gray_img = PILImage.new('L', pil_img.size, 255)
-        gray_img.paste(pil_img.convert('L'), mask=alpha)
-    else:
-        gray_img = pil_img.convert('L')
+    def _gray(x, y):
+        argb = img_buf.pixel(x, y)
+        a = (argb >> 24) & 0xFF
+        r = (argb >> 16) & 0xFF
+        g = (argb >> 8) & 0xFF
+        b = argb & 0xFF
+        gray = (299 * r + 587 * g + 114 * b) // 1000
+        return (a * gray + (255 - a) * 255) // 255
 
     # 2. Calculate pixel sizing and enforce minimum shape constraints
     raw_pixel_size = target_width_um / orig_w
@@ -73,7 +76,6 @@ def png_to_gds(
     region = pya.Region()
     pixel_size_dbu = int(pixel_size_um / layout.dbu)
 
-    gray_pixels = gray_img.load()
     threshold = 128  # midpoint of [0, 255]
 
     print("Generating GDS shapes...")
@@ -86,7 +88,7 @@ def png_to_gds(
             # Nearest-neighbor mapping back to original X coordinate
             x_orig = int(x_new * orig_w / new_w)
 
-            val = gray_pixels[x_orig, y_orig]
+            val = _gray(x_orig, y_orig)
 
             # Base binarization logic
             if dark_is_solid:

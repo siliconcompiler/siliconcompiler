@@ -279,7 +279,9 @@ def test_convert_drc(setup_pdk_test, datadir):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_img2stream():
+def test_img2stream(monkeypatch):
+    # pya.PixelBuffer.read_png triggers Qt platform init; offscreen avoids needing a display.
+    monkeypatch.setenv('QT_QPA_PLATFORM', 'offscreen')
     design = Design("testdesign")
     design.set_dataroot("sc", "python://siliconcompiler")
     with design.active_fileset("image"):
@@ -299,10 +301,10 @@ def test_img2stream():
     task.set_klayout_minsize(100.0)
     task.set_klayout_targetwidth(1500.0)
     task.set_klayout_layer(157)
-    
+
     # test optional outline layer path
     task.set_klayout_outline_layer(189)  # prBoundary
-    
+
     task.set_klayout_invert(True)
     task.set_klayout_timestamp(False)
 

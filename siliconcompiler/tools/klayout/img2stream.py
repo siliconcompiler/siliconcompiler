@@ -8,7 +8,7 @@ class Img2StreamTask(KLayoutTask):
 
         self.add_parameter("stream", "<gds,oas>", "Extension to use for stream generation",
                            defvalue="gds")
-        self.add_parameter("imageformat", "<png,jpg>", "Image format for input files",
+        self.add_parameter("imageformat", "<png>", "Image format for input files",
                            defvalue="png")
         self.add_parameter("minsize", "float", "Minimum shape size for image processing",
                            units="um")
