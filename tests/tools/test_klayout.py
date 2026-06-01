@@ -311,7 +311,6 @@ def test_img2stream():
 
     assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
 
-    print(gds)
 
 def test_klayout_parameter_operations():
     task = operations.OperationsTask()
