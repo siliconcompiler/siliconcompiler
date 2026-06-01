@@ -17,7 +17,7 @@ def png_to_gds(
     timestamps: bool = True
 ):
     """
-    Converts a PNG image to a GDSII layout using only KLayout's native API.
+    Converts a PNG image to a GDSII layout using KLayout's native API.
 
     :param image_path: Path to the input PNG image.
     :param output_gds: Path to the output GDS file.
@@ -27,17 +27,27 @@ def png_to_gds(
     :param dark_is_solid: Base logic - If True, dark pixels become GDS shapes.
     :param invert: Explicitly inverts the final polarity of the image.
     """
+    from PIL import Image as PILImage  # noqa E402
     from klayout_utils import get_write_options  # noqa E402
 
-    # 1. Open the image using KLayout's native Image class
+    # 1. Load image with PIL — handles RGBA correctly (pya.Image drops the alpha channel)
     print(f"Loading {image_path}...")
-    img = pya.Image(image_path)
+    try:
+        pil_img = PILImage.open(image_path)
+    except Exception as e:
+        raise ValueError(f"Image could not be loaded: {e}")
 
-    if img.is_empty():
-        raise ValueError("Image could not be loaded or is empty. Ensure it's a valid image.")
+    orig_w, orig_h = pil_img.size
+    if orig_w == 0 or orig_h == 0:
+        raise ValueError("Image is empty. Ensure it's a valid image.")
 
-    orig_w = img.width()
-    orig_h = img.height()
+    # Convert to grayscale; composite RGBA over white so transparent→light, opaque→dark.
+    if pil_img.mode == 'RGBA':
+        _, _, _, alpha = pil_img.split()
+        gray_img = PILImage.new('L', pil_img.size, 255)
+        gray_img.paste(pil_img.convert('L'), mask=alpha)
+    else:
+        gray_img = pil_img.convert('L')
 
     # 2. Calculate pixel sizing and enforce minimum shape constraints
     raw_pixel_size = target_width_um / orig_w
@@ -62,12 +72,8 @@ def png_to_gds(
     region = pya.Region()
     pixel_size_dbu = int(pixel_size_um / layout.dbu)
 
-    # KLayout image properties
-    is_color = img.is_color()
-
-    # We set our binarization threshold at the 50% mark of the image's max value.
-    # We fallback to 0.5 if max_value() returns 0 for any reason.
-    threshold = (img.max_value / 2.0) if img.max_value > 0 else 0.5
+    gray_pixels = gray_img.load()
+    threshold = 128  # midpoint of [0, 255]
 
     print("Generating GDS shapes...")
     # 4. Iterate through the target grid and sample the image
@@ -79,16 +85,7 @@ def png_to_gds(
             # Nearest-neighbor mapping back to original X coordinate
             x_orig = int(x_new * orig_w / new_w)
 
-            # Extract grayscale value from the native pya.Image
-            if is_color:
-                # Components: 0=R, 1=G, 2=B
-                r = img.get_pixel(x_orig, y_orig, 0)
-                g = img.get_pixel(x_orig, y_orig, 1)
-                b = img.get_pixel(x_orig, y_orig, 2)
-                # Standard luminance conversion
-                val = 0.299 * r + 0.587 * g + 0.114 * b
-            else:
-                val = img.get_pixel(x_orig, y_orig)
+            val = gray_pixels[x_orig, y_orig]
 
             # Base binarization logic
             if dark_is_solid:
@@ -164,11 +161,11 @@ def main():
     schema = get_schema(manifest='sc_manifest.json')
 
     # Extract info from manifest
-    sc_step = schema.get('arg', 'step')
-    sc_index = schema.get('arg', 'index')
+    sc_step: str = schema.get('arg', 'step')
+    sc_index: str = schema.get('arg', 'index')
 
     design_name = schema.get('option', 'design')
-    fileset = schema.get("option", "fileset")[0]
+    fileset: str = schema.get("option", "fileset")[0]
     design = schema.get("library", design_name, "fileset", fileset, "topmodule")
     if not design:
         design = design_name
