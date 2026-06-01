@@ -18,6 +18,8 @@ class Img2StreamTask(KLayoutTask):
         self.add_parameter("invert", "bool", "Invert the polarity of the image", defvalue=False)
         self.add_parameter("darkissolid", "bool", "Treat dark colors as a solid", defvalue=True)
         self.add_parameter("timestamp", "bool", "Export GDSII with timestamps", defvalue=True)
+        self.add_parameter("outline_layer", "(int,int)",
+                           "Layer/datatype to use for the OUTLINE boundary rectangle")
 
     def set_klayout_timestamp(self, enable: bool,
                               step: Optional[str] = None,
@@ -94,6 +96,20 @@ class Img2StreamTask(KLayoutTask):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "layer", (layer, purpose), step=step, index=index)
+
+    def set_klayout_outline_layer(self, layer: int, purpose: int = 0,
+                                  step: Optional[str] = None,
+                                  index: Optional[str] = None):
+        """
+        Sets the layer/datatype for the OUTLINE boundary rectangle added to the stream.
+
+        Args:
+            layer (int): The GDS layer number for the OUTLINE shape.
+            purpose (int, optional): The GDS datatype for the OUTLINE shape.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "outline_layer", (layer, purpose), step=step, index=index)
 
     def set_klayout_invert(self, invert: bool,
                            step: Optional[str] = None,

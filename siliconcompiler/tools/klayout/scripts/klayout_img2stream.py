@@ -1,4 +1,6 @@
 import sys
+
+from typing import Optional
 from typing import Tuple
 import pya
 import os.path
@@ -14,7 +16,8 @@ def png_to_gds(
     layer_num: Tuple[int, int] = (1, 0),
     dark_is_solid: bool = True,
     invert: bool = False,
-    timestamps: bool = True
+    timestamps: bool = True,
+    outline_layer: Optional[Tuple[int, int]] = None
 ):
     """
     Converts a PNG image to a GDSII layout using KLayout's native API.
@@ -140,6 +143,12 @@ def png_to_gds(
 
     # 5. Insert the optimized region into the cell and save
     top_cell.shapes(layer).insert(region)
+
+    if outline_layer is not None:
+        ol = layout.layer(outline_layer[0], outline_layer[1])
+        outline_box = pya.Box(0, 0, new_w * pixel_size_dbu, new_h * pixel_size_dbu)
+        top_cell.shapes(ol).insert(outline_box)
+
     layout.write(output_gds, get_write_options(output_gds, timestamps))
     print(f"GDS saved to {output_gds}")
 
@@ -188,6 +197,13 @@ def main():
     sc_timestamps = schema.get('tool', 'klayout', 'task', "image2stream", 'var', 'timestamp',
                                step=sc_step, index=sc_index)
 
+    outline_layer = None
+    if schema.valid('tool', 'klayout', 'task', 'image2stream', 'var', 'outline_layer') and \
+            schema.get('tool', 'klayout', 'task', 'image2stream', 'var', 'outline_layer',
+                       step=sc_step, index=sc_index):
+        outline_layer = schema.get('tool', 'klayout', 'task', 'image2stream', 'var',
+                                   'outline_layer', step=sc_step, index=sc_index)
+
     in_image = f"inputs/{design}.{format}"
     if not os.path.exists(in_image):
         for fileset in schema.get("option", "fileset"):
@@ -205,7 +221,8 @@ def main():
         layer_num=layer,
         dark_is_solid=darkissolid,
         invert=invert,
-        timestamps=sc_timestamps
+        timestamps=sc_timestamps,
+        outline_layer=outline_layer
     )
 
 
