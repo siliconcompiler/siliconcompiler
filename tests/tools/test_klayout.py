@@ -299,6 +299,10 @@ def test_img2stream():
     task.set_klayout_minsize(100.0)
     task.set_klayout_targetwidth(1500.0)
     task.set_klayout_layer(157)
+    
+    # test optional outline layer path
+    task.set_klayout_outline_layer(189)  # prBoundary
+    
     task.set_klayout_invert(True)
     task.set_klayout_timestamp(False)
 
