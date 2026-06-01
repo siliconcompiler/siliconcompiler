@@ -172,8 +172,9 @@ class KLayoutTask(ASICTask):
             self.set_refdir("scripts")
 
         self.set_environmentalvariable('PYTHONUNBUFFERED', '1')
-        # Always use offscreen — klayout -z is batch-only and never needs a real display.
-        self.set_environmentalvariable('QT_QPA_PLATFORM', 'offscreen')
+        if self.project.option.get_nodisplay():
+            # Tells QT to use the offscreen platform if nodisplay is used
+            self.set_environmentalvariable('QT_QPA_PLATFORM', 'offscreen')
 
         self.add_regex("warnings", r'(WARNING|warning)')
         self.add_regex("errors", r'ERROR')

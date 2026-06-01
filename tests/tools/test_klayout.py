@@ -290,6 +290,7 @@ def test_img2stream():
     proj.add_fileset("image")
 
     ihp130_demo(proj)
+    proj.option.set_nodisplay(True)
 
     proj.set_flow(Img2StreamFlow())
 
