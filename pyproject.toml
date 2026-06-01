@@ -60,7 +60,7 @@ dependencies = [
     "psutil >= 5.8.0",
     "Jinja2 >= 2.11.3",
 
-    "pyslang == 10.0.0",
+    "pyslang == 11.0.0",
 
     "importlib_metadata; python_version < '3.10'",
 
@@ -117,7 +117,7 @@ test = [
     "pytest-timeout == 2.4.0",
     "pytest-asyncio == 1.2.0",
     "pytest-cov == 7.1.0",
-    "responses == 0.26.0",
+    "responses == 0.26.1",
     "PyVirtualDisplay == 3.0"
 ]
 lint = [
