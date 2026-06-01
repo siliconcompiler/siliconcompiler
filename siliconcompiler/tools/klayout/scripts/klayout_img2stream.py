@@ -195,12 +195,8 @@ def main():
     sc_timestamps = schema.get('tool', 'klayout', 'task', "image2stream", 'var', 'timestamp',
                                step=sc_step, index=sc_index)
 
-    outline_layer = None
-    if schema.valid('tool', 'klayout', 'task', 'image2stream', 'var', 'outline_layer') and \
-            schema.get('tool', 'klayout', 'task', 'image2stream', 'var', 'outline_layer',
-                       step=sc_step, index=sc_index):
-        outline_layer = schema.get('tool', 'klayout', 'task', 'image2stream', 'var',
-                                   'outline_layer', step=sc_step, index=sc_index)
+    outline_layer = schema.get('tool', 'klayout', 'task', 'image2stream', 'var',
+                               'outline_layer', step=sc_step, index=sc_index)
 
     in_image = f"inputs/{design}.{format}"
     if not os.path.exists(in_image):

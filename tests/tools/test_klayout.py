@@ -279,9 +279,7 @@ def test_convert_drc(setup_pdk_test, datadir):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_img2stream(monkeypatch):
-    # pya.PixelBuffer.read_png triggers Qt platform init; offscreen avoids needing a display.
-    monkeypatch.setenv('QT_QPA_PLATFORM', 'offscreen')
+def test_img2stream():
     design = Design("testdesign")
     design.set_dataroot("sc", "python://siliconcompiler")
     with design.active_fileset("image"):
@@ -292,7 +290,6 @@ def test_img2stream(monkeypatch):
     proj.add_fileset("image")
 
     ihp130_demo(proj)
-    proj.option.set_nodashboard(True)
 
     proj.set_flow(Img2StreamFlow())
 
@@ -313,7 +310,10 @@ def test_img2stream(monkeypatch):
     assert proj.run()
 
     gds = proj.find_result("gds", step="image")
-    assert os.path.isfile(gds)
+
+    with open(gds, 'rb') as gds_file:
+        data = gds_file.read()
+        assert hashlib.md5(data).hexdigest() == "3357e0cd3cc9f3b32fba4ccf394bc156"
 
     assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
 
