@@ -155,6 +155,9 @@ class Img2StreamTask(KLayoutTask):
         self.add_required_key("var", "darkissolid")
         self.add_required_key("var", "timestamp")
 
+        if self.get("var", "outline_layer"):
+            self.add_required_key("var", "outline_layer")
+
         self.add_output_file(ext=f"{default_stream}.gz")
 
         if f"{self.design_topmodule}.{imageformat}" in self.get_files_from_input_nodes():
