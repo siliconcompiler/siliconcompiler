@@ -17,7 +17,8 @@ def png_to_gds(
     dark_is_solid: bool = True,
     invert: bool = False,
     timestamps: bool = True,
-    outline_layer: Optional[Tuple[int, int]] = None
+    outline_layer: Optional[Tuple[int, int]] = None,
+    fill_exclusion_layer: Optional[Tuple[int, int]] = None,
 ):
     """
     Converts a PNG image to a GDSII layout using KLayout's native API.
@@ -29,6 +30,8 @@ def png_to_gds(
     :param layer_num: The GDS layer number to draw the shapes on.
     :param dark_is_solid: Base logic - If True, dark pixels become GDS shapes.
     :param invert: Explicitly inverts the final polarity of the image.
+    :param outline_layer: Optional GDS layer for the outline.
+    :param fill_exclusion_layer: Optional GDS layer for fill exclusion.
     """
     from klayout_utils import get_write_options  # noqa E402
 
@@ -142,10 +145,10 @@ def png_to_gds(
     # 5. Insert the optimized region into the cell and save
     top_cell.shapes(layer).insert(region)
 
-    if outline_layer is not None:
-        ol = layout.layer(outline_layer[0], outline_layer[1])
-        outline_box = pya.Box(0, 0, new_w * pixel_size_dbu, new_h * pixel_size_dbu)
-        top_cell.shapes(ol).insert(outline_box)
+    bounds = pya.Box(0, 0, new_w * pixel_size_dbu, new_h * pixel_size_dbu)
+    for boundary_layer in (outline_layer, fill_exclusion_layer):
+        if boundary_layer is not None:
+            top_cell.shapes(layout.layer(boundary_layer[0], boundary_layer[1])).insert(bounds)
 
     layout.write(output_gds, get_write_options(output_gds, timestamps))
     print(f"GDS saved to {output_gds}")
@@ -197,6 +200,8 @@ def main():
 
     outline_layer = schema.get('tool', 'klayout', 'task', 'image2stream', 'var',
                                'outline_layer', step=sc_step, index=sc_index)
+    fill_exclusion_layer = schema.get('tool', 'klayout', 'task', 'image2stream', 'var',
+                                      'fill_exclusion_layer', step=sc_step, index=sc_index)
 
     in_image = f"inputs/{design}.{format}"
     if not os.path.exists(in_image):
@@ -216,7 +221,8 @@ def main():
         dark_is_solid=darkissolid,
         invert=invert,
         timestamps=sc_timestamps,
-        outline_layer=outline_layer
+        outline_layer=outline_layer,
+        fill_exclusion_layer=fill_exclusion_layer,
     )
 
 

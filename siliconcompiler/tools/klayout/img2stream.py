@@ -20,6 +20,8 @@ class Img2StreamTask(KLayoutTask):
         self.add_parameter("timestamp", "bool", "Export GDSII with timestamps", defvalue=True)
         self.add_parameter("outline_layer", "(int,int)",
                            "Layer/datatype to use for the OUTLINE boundary rectangle")
+        self.add_parameter("fill_exclusion_layer", "(int,int)",
+                           "Layer/datatype to use for the FILL EXCLUSION boundary rectangle")
 
     def set_klayout_timestamp(self, enable: bool,
                               step: Optional[str] = None,
@@ -110,6 +112,20 @@ class Img2StreamTask(KLayoutTask):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "outline_layer", (layer, purpose), step=step, index=index)
+
+    def set_klayout_fill_exclusion_layer(self, layer: int, purpose: int = 0,
+                                         step: Optional[str] = None,
+                                         index: Optional[str] = None):
+        """
+        Sets the layer/datatype for the FILL EXCLUSION boundary rectangle added to the stream.
+
+        Args:
+            layer (int): The GDS layer number for the FILL EXCLUSION shape.
+            purpose (int, optional): The GDS datatype for the FILL EXCLUSION shape.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "fill_exclusion_layer", (layer, purpose), step=step, index=index)
 
     def set_klayout_invert(self, invert: bool,
                            step: Optional[str] = None,

@@ -301,6 +301,7 @@ def test_img2stream():
 
     # test optional outline layer path
     task.set_klayout_outline_layer(189)  # prBoundary
+    task.set_klayout_fill_exclusion_layer(170)  # NoMetFiller
 
     task.set_klayout_invert(True)
     task.set_klayout_timestamp(False)
@@ -313,7 +314,7 @@ def test_img2stream():
 
     with open(gds, 'rb') as gds_file:
         data = gds_file.read()
-        assert hashlib.md5(data).hexdigest() == "3357e0cd3cc9f3b32fba4ccf394bc156"
+        assert hashlib.md5(data).hexdigest() == "e23055c16b50e65ae297cabb00fc8669"
 
     assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
 
