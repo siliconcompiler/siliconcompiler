@@ -145,8 +145,8 @@ def png_to_gds(
     # 5. Insert the optimized region into the cell and save
     top_cell.shapes(layer).insert(region)
 
-    bounds = pya.Box(0, 0, new_w * pixel_size_dbu, new_h * pixel_size_dbu)
     for boundary_layer in (outline_layer, fill_exclusion_layer):
+        bounds = pya.Box(0, 0, new_w * pixel_size_dbu, new_h * pixel_size_dbu)
         if boundary_layer is not None:
             top_cell.shapes(layout.layer(boundary_layer[0], boundary_layer[1])).insert(bounds)
 
