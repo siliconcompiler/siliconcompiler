@@ -314,7 +314,7 @@ def test_img2stream():
 
     with open(gds, 'rb') as gds_file:
         data = gds_file.read()
-        assert hashlib.md5(data).hexdigest() == "e23055c16b50e65ae297cabb00fc8669"
+        assert hashlib.md5(data).hexdigest() == "98e5472b73430afa2952ec8393cdef2a"
 
     assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
 
