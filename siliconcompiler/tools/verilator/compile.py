@@ -217,7 +217,7 @@ class CompileTask(VerilatorTask):
             options.extend(['--x-assign', 'unique'])
 
         if self.get("var", "main"):
-            options.extend(['--main'])
+            options.extend(['--main', '--timing'])
 
         options.extend(['--exe', '--build'])
 
