@@ -19,6 +19,10 @@ class CompileTask(VerilatorTask):
         self.add_parameter("trace_type", "<vcd,fst>",
                            "specifies type of wave file to create when [trace] is set",
                            defvalue="vcd")
+        self.add_parameter("main", "bool",
+                           "if true, generate a toplevel C++ wrapper and relax the C++ file "
+                           "requirement. See --main in Verilator docs for more info",
+                           defvalue=False)
 
         # TODO Move to design object
         self.add_parameter("cincludes", "[dir]",
@@ -74,6 +78,19 @@ class CompileTask(VerilatorTask):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "trace_type", trace_type, step=step, index=index)
+
+    def set_verilator_main(self, enable: bool,
+                           step: Optional[str] = None,
+                           index: Optional[str] = None):
+        """
+        Enables or disables toplevel C++ wrapper generation.
+
+        Args:
+            enable (bool): Whether to enable toplevel wrapper generation.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "main", enable, step=step, index=index)
 
     def add_verilator_cincludes(self, include: Union[str, List[str]],
                                 step: Optional[str] = None,
@@ -165,7 +182,7 @@ class CompileTask(VerilatorTask):
             if lib.has_file(fileset=fileset, filetype="c"):
                 self.add_required_key(lib, "fileset", fileset, "file", "c")
                 added_key = True
-        if not added_key:
+        if not added_key and not self.get("var", "main"):
             self.add_required_key(self.project.design, "fileset",
                                   self.project.get("option", "fileset")[0], "file", "c")
 
@@ -198,6 +215,9 @@ class CompileTask(VerilatorTask):
 
         if self.get("var", "initialize_random"):
             options.extend(['--x-assign', 'unique'])
+
+        if self.get("var", "main"):
+            options.extend(['--main'])
 
         options.extend(['--exe', '--build'])
 
