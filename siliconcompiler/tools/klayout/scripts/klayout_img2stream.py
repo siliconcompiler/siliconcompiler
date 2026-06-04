@@ -167,6 +167,7 @@ def main():
         technology,
         get_schema
     )
+    from klayout_stream2lef import to_lef, parse_layermap
 
     schema = get_schema(manifest='sc_manifest.json')
 
@@ -210,11 +211,14 @@ def main():
                 in_image = schema.get("library", design_name, "fileset", fileset, "file", format)[0]
                 break
 
+    sc_tech = technology(design, schema)
+
+    output_gds = f"outputs/{design}.{stream}.gz"
     png_to_gds(
         name=design,
         image_path=in_image,
-        output_gds=f"outputs/{design}.{stream}.gz",
-        technology=technology(design, schema),
+        output_gds=output_gds,
+        technology=sc_tech,
         target_width_um=targetwidth,
         min_shape_um=minsize,
         layer_num=layer,
@@ -223,6 +227,27 @@ def main():
         timestamps=sc_timestamps,
         outline_layer=outline_layer,
         fill_exclusion_layer=fill_exclusion_layer,
+    )
+
+    # Generate a LEF macro for the streamed image
+    load_options = sc_tech.load_layout_options
+    map_file = load_options.lefdef_config.map_file
+    if not map_file:
+        print("[ERROR] No layermap file specified in technology. Cannot proceed with LEF export.")
+        sys.exit(1)
+
+    layers = {}
+    for layer_name, layer_purpose, stream_number, datatype in parse_layermap(map_file):
+        if layer_name == "NAME":
+            layer_name = layer_purpose.split("/")[0]
+        layers.setdefault(layer_name, set()).add((stream_number, datatype))
+
+    to_lef(
+        output_gds,
+        f"outputs/{design}.lef",
+        layers,
+        set(),
+        "COVER",
     )
 
 

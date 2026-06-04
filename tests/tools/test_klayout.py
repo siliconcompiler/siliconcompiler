@@ -297,11 +297,11 @@ def test_img2stream():
     # 15 x 15 logo
     task.set_klayout_minsize(100.0)
     task.set_klayout_targetwidth(1500.0)
-    task.set_klayout_layer(157)
+    task.set_klayout_layer(134)
 
     # test optional outline layer path
     task.set_klayout_outline_layer(189)  # prBoundary
-    task.set_klayout_fill_exclusion_layer(170)  # NoMetFiller
+    task.set_klayout_fill_exclusion_layer(134, 4)  # NoMetFiller
 
     task.set_klayout_invert(True)
     task.set_klayout_timestamp(False)
@@ -311,10 +311,29 @@ def test_img2stream():
     assert proj.run()
 
     gds = proj.find_result("gds", step="image")
+    lef = proj.find_result("lef", step="image")
+    assert os.path.isfile(gds)
+    assert os.path.isfile(lef)
 
     with open(gds, 'rb') as gds_file:
         data = gds_file.read()
-        assert hashlib.md5(data).hexdigest() == "98e5472b73430afa2952ec8393cdef2a"
+        assert hashlib.md5(data).hexdigest() == "0c8a1f81af4a731ecb4f86f3f4bac591"
+
+    with open(lef, 'r') as lef_file:
+        assert lef_file.read() == """MACRO logo
+  CLASS COVER ;
+  ORIGIN 0.0000 0.0000 ;
+  FOREIGN logo -0.0000 -0.0000 ;
+  SIZE 1500.0000 BY 1400.0000 ;
+  SYMMETRY X Y R90 ;
+  OBS
+    LAYER TopMetal2 ;
+      POLYGON 0.0000 0.0000 0.0000 1400.0000 1500.0000 1400.0000 1500.0000 0.0000 ;
+    LAYER DIEAREA ;
+      POLYGON 0.0000 0.0000 0.0000 1400.0000 1500.0000 1400.0000 1500.0000 0.0000 ;
+  END
+END logo
+"""
 
     assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
 
