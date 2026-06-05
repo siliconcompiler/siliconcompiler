@@ -254,9 +254,15 @@ class CompileTask(VerilatorTask):
             options.append(trace_opt)
 
             # add siliconcompiler specific defines
-            c_flags.append("-DSILICONCOMPILER_TRACE_DIR=\"reports\"")
-            c_flags.append(
-                f"-DSILICONCOMPILER_TRACE_FILE=\"reports/{self.design_topmodule}.{ext}\"")
+            if self.get("var", "main"):
+                options.extend([
+                    "-DSILICONCOMPILER_TRACE_DIR=\"reports\"",
+                    f"-DSILICONCOMPILER_TRACE_FILE=\"reports/{self.design_topmodule}.{ext}\""
+                ])
+            else:
+                c_flags.append("-DSILICONCOMPILER_TRACE_DIR=\"reports\"")
+                c_flags.append(
+                    f"-DSILICONCOMPILER_TRACE_FILE=\"reports/{self.design_topmodule}.{ext}\"")
 
         if c_includes:
             c_flags.extend([f'-I{include}' for include in c_includes])
