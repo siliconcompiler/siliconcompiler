@@ -39,7 +39,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install graphviz
+          sudo apt-get install graphviz python3-tk
 
       - name: Install Dependencies (windows)
         if: runner.os == 'Windows'
@@ -124,7 +124,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install graphviz
+          sudo apt-get install graphviz python3-tk
 
       - name: Setup Python
         run: |
