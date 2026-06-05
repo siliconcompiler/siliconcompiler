@@ -1,4 +1,6 @@
 import sys
+
+from typing import Optional
 from typing import Tuple
 import pya
 import os.path
@@ -14,10 +16,12 @@ def png_to_gds(
     layer_num: Tuple[int, int] = (1, 0),
     dark_is_solid: bool = True,
     invert: bool = False,
-    timestamps: bool = True
+    timestamps: bool = True,
+    outline_layer: Optional[Tuple[int, int]] = None,
+    fill_exclusion_layer: Optional[Tuple[int, int]] = None,
 ):
     """
-    Converts a PNG image to a GDSII layout using only KLayout's native API.
+    Converts a PNG image to a GDSII layout using KLayout's native API.
 
     :param image_path: Path to the input PNG image.
     :param output_gds: Path to the output GDS file.
@@ -26,18 +30,29 @@ def png_to_gds(
     :param layer_num: The GDS layer number to draw the shapes on.
     :param dark_is_solid: Base logic - If True, dark pixels become GDS shapes.
     :param invert: Explicitly inverts the final polarity of the image.
+    :param outline_layer: Optional GDS layer for the outline.
+    :param fill_exclusion_layer: Optional GDS layer for fill exclusion.
     """
     from klayout_utils import get_write_options  # noqa E402
 
-    # 1. Open the image using KLayout's native Image class
+    # 1. Load image via QImage (supports PNG, JPEG, etc.) into a PixelBuffer.
+    # pixel() returns ARGB as a packed uint32; composite over white so transparent→light.
     print(f"Loading {image_path}...")
-    img = pya.Image(image_path)
 
-    if img.is_empty():
-        raise ValueError("Image could not be loaded or is empty. Ensure it's a valid image.")
+    img_buf = pya.PixelBuffer.from_qimage(pya.QImage(image_path))
+    orig_w = img_buf.width()
+    orig_h = img_buf.height()
+    if orig_w == 0 or orig_h == 0:
+        raise ValueError("Image is empty. Ensure it's a valid image.")
 
-    orig_w = img.width()
-    orig_h = img.height()
+    def _gray(x, y):
+        argb = img_buf.pixel(x, y)
+        a = (argb >> 24) & 0xFF
+        r = (argb >> 16) & 0xFF
+        g = (argb >> 8) & 0xFF
+        b = argb & 0xFF
+        gray = (299 * r + 587 * g + 114 * b) // 1000
+        return (a * gray + (255 - a) * 255) // 255
 
     # 2. Calculate pixel sizing and enforce minimum shape constraints
     raw_pixel_size = target_width_um / orig_w
@@ -62,12 +77,7 @@ def png_to_gds(
     region = pya.Region()
     pixel_size_dbu = int(pixel_size_um / layout.dbu)
 
-    # KLayout image properties
-    is_color = img.is_color()
-
-    # We set our binarization threshold at the 50% mark of the image's max value.
-    # We fallback to 0.5 if max_value() returns 0 for any reason.
-    threshold = (img.max_value / 2.0) if img.max_value > 0 else 0.5
+    threshold = 128  # midpoint of [0, 255]
 
     print("Generating GDS shapes...")
     # 4. Iterate through the target grid and sample the image
@@ -79,16 +89,7 @@ def png_to_gds(
             # Nearest-neighbor mapping back to original X coordinate
             x_orig = int(x_new * orig_w / new_w)
 
-            # Extract grayscale value from the native pya.Image
-            if is_color:
-                # Components: 0=R, 1=G, 2=B
-                r = img.get_pixel(x_orig, y_orig, 0)
-                g = img.get_pixel(x_orig, y_orig, 1)
-                b = img.get_pixel(x_orig, y_orig, 2)
-                # Standard luminance conversion
-                val = 0.299 * r + 0.587 * g + 0.114 * b
-            else:
-                val = img.get_pixel(x_orig, y_orig)
+            val = _gray(x_orig, y_orig)
 
             # Base binarization logic
             if dark_is_solid:
@@ -143,6 +144,12 @@ def png_to_gds(
 
     # 5. Insert the optimized region into the cell and save
     top_cell.shapes(layer).insert(region)
+
+    for boundary_layer in (outline_layer, fill_exclusion_layer):
+        bounds = pya.Box(0, 0, new_w * pixel_size_dbu, new_h * pixel_size_dbu)
+        if boundary_layer is not None:
+            top_cell.shapes(layout.layer(boundary_layer[0], boundary_layer[1])).insert(bounds)
+
     layout.write(output_gds, get_write_options(output_gds, timestamps))
     print(f"GDS saved to {output_gds}")
 
@@ -160,15 +167,16 @@ def main():
         technology,
         get_schema
     )
+    from klayout_stream2lef import to_lef, parse_layermap
 
     schema = get_schema(manifest='sc_manifest.json')
 
     # Extract info from manifest
-    sc_step = schema.get('arg', 'step')
-    sc_index = schema.get('arg', 'index')
+    sc_step: str = schema.get('arg', 'step')
+    sc_index: str = schema.get('arg', 'index')
 
     design_name = schema.get('option', 'design')
-    fileset = schema.get("option", "fileset")[0]
+    fileset: str = schema.get("option", "fileset")[0]
     design = schema.get("library", design_name, "fileset", fileset, "topmodule")
     if not design:
         design = design_name
@@ -191,6 +199,11 @@ def main():
     sc_timestamps = schema.get('tool', 'klayout', 'task', "image2stream", 'var', 'timestamp',
                                step=sc_step, index=sc_index)
 
+    outline_layer = schema.get('tool', 'klayout', 'task', 'image2stream', 'var',
+                               'outline_layer', step=sc_step, index=sc_index)
+    fill_exclusion_layer = schema.get('tool', 'klayout', 'task', 'image2stream', 'var',
+                                      'fill_exclusion_layer', step=sc_step, index=sc_index)
+
     in_image = f"inputs/{design}.{format}"
     if not os.path.exists(in_image):
         for fileset in schema.get("option", "fileset"):
@@ -198,17 +211,43 @@ def main():
                 in_image = schema.get("library", design_name, "fileset", fileset, "file", format)[0]
                 break
 
+    sc_tech = technology(design, schema)
+
+    output_gds = f"outputs/{design}.{stream}.gz"
     png_to_gds(
         name=design,
         image_path=in_image,
-        output_gds=f"outputs/{design}.{stream}.gz",
-        technology=technology(design, schema),
+        output_gds=output_gds,
+        technology=sc_tech,
         target_width_um=targetwidth,
         min_shape_um=minsize,
         layer_num=layer,
         dark_is_solid=darkissolid,
         invert=invert,
-        timestamps=sc_timestamps
+        timestamps=sc_timestamps,
+        outline_layer=outline_layer,
+        fill_exclusion_layer=fill_exclusion_layer,
+    )
+
+    # Generate a LEF macro for the streamed image
+    load_options = sc_tech.load_layout_options
+    map_file = load_options.lefdef_config.map_file
+    if not map_file:
+        print("[ERROR] No layermap file specified in technology. Cannot proceed with LEF export.")
+        sys.exit(1)
+
+    layers = {}
+    for layer_name, layer_purpose, stream_number, datatype in parse_layermap(map_file):
+        if layer_name == "NAME":
+            layer_name = layer_purpose.split("/")[0]
+        layers.setdefault(layer_name, set()).add((stream_number, datatype))
+
+    to_lef(
+        output_gds,
+        f"outputs/{design}.lef",
+        layers,
+        set(),
+        "COVER",
     )
 
 

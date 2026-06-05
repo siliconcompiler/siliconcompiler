@@ -11,9 +11,10 @@ from siliconcompiler.tools.klayout import convert_drc_db
 from siliconcompiler.tools.klayout import merge
 from siliconcompiler.tools.klayout import img2stream
 
-from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler.targets import freepdk45_demo, ihp130_demo
 
 from siliconcompiler import ASIC, Flowgraph, Design
+from siliconcompiler.flows.img2streamflow import Img2StreamFlow
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.klayout.export import ExportTask
 from siliconcompiler.tools.klayout import KLayoutLibrary
@@ -287,27 +288,54 @@ def test_img2stream():
 
     proj = ASIC(design)
     proj.add_fileset("image")
-    freepdk45_demo(proj)
 
-    flow = Flowgraph("testflow")
-    flow.node('image', img2stream.Img2StreamTask())
-    proj.set_flow(flow)
+    ihp130_demo(proj)
+
+    proj.set_flow(Img2StreamFlow())
 
     task = img2stream.Img2StreamTask.find_task(proj)
-    task.set_klayout_minsize(5.0)
-    task.set_klayout_targetwidth(200.0)
-    task.set_klayout_layer(1)
+    # 15 x 15 logo
+    task.set_klayout_minsize(100.0)
+    task.set_klayout_targetwidth(1500.0)
+    task.set_klayout_layer(134)
+
+    # test optional outline layer path
+    task.set_klayout_outline_layer(189)  # prBoundary
+    task.set_klayout_fill_exclusion_layer(134, 4)  # NoMetFiller
+
     task.set_klayout_invert(True)
     task.set_klayout_timestamp(False)
+
+    drc.DRCTask.find_task(proj).set_klayout_drcname("drc")
 
     assert proj.run()
 
     gds = proj.find_result("gds", step="image")
+    lef = proj.find_result("lef", step="image")
     assert os.path.isfile(gds)
+    assert os.path.isfile(lef)
 
     with open(gds, 'rb') as gds_file:
         data = gds_file.read()
-        assert hashlib.md5(data).hexdigest() == "994037d33d3c704e78bfca1f16b8b2cf"
+        assert hashlib.md5(data).hexdigest() == "0c8a1f81af4a731ecb4f86f3f4bac591"
+
+    with open(lef, 'r') as lef_file:
+        assert lef_file.read() == """MACRO logo
+  CLASS COVER ;
+  ORIGIN 0.0000 0.0000 ;
+  FOREIGN logo -0.0000 -0.0000 ;
+  SIZE 1500.0000 BY 1400.0000 ;
+  SYMMETRY X Y R90 ;
+  OBS
+    LAYER TopMetal2 ;
+      POLYGON 0.0000 0.0000 0.0000 1400.0000 1500.0000 1400.0000 1500.0000 0.0000 ;
+    LAYER DIEAREA ;
+      POLYGON 0.0000 0.0000 0.0000 1400.0000 1500.0000 1400.0000 1500.0000 0.0000 ;
+  END
+END logo
+"""
+
+    assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
 
 
 def test_klayout_parameter_operations():

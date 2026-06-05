@@ -8,6 +8,17 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.11 (2026-05-20)
+=========================================
+
+**Minor:**
+
+ * Fixed error message in `smake` when no file is provided.
+ * Improved path/dir/file type checking in schema types.
+ * Fixed issue where flows would be marked as failed when using `option,from`.
+ * Added preferred indicator to `sc-show -list`.
+
+
 SiliconCompiler 0.37.10 (2026-05-11)
 =========================================
 
