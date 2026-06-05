@@ -183,6 +183,8 @@ class CompileTask(VerilatorTask):
                 self.add_required_key(lib, "fileset", fileset, "file", "c")
                 added_key = True
         if not added_key and not self.get("var", "main"):
+            self.logger.warning("No c files found. c files are required for verilator compilation "
+                                "unless the \"main\" option is enabled.")
             self.add_required_key(self.project.design, "fileset",
                                   self.project.get("option", "fileset")[0], "file", "c")
 
