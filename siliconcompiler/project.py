@@ -25,7 +25,7 @@ from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
-from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode
+from siliconcompiler.scheduler import Scheduler, SCRuntimeError
 from siliconcompiler.utils.logging import get_stream_handler
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -521,22 +521,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.option.add_fileset(fileset, clobber=True)
 
         # Disable dashboard if breakpoints are set
-        if self.__dashboard and self.option.get_flow():
-            breakpoints = set()
-            for step, index in self.get_flow().get_nodes():
-                try:
-                    node = SchedulerNode(self, step, index)
-                    with node.runtime():
-                        if node.task.has_breakpoint():
-                            breakpoints.add((step, index))
-                except:  # noqa: E722
-                    if self.option.get_breakpoint(step=step, index=index):
-                        breakpoints.add((step, index))
-            if breakpoints and self.__dashboard.is_running():
-                breakpoints = sorted(breakpoints)
-                self.logger.info("Disabling dashboard due to breakpoints at: "
-                                 f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
-                self.__dashboard.stop()
+        if self.__dashboard and self.__dashboard.is_running() and \
+                CliDashboard.should_disable(self):
+            self.__dashboard.stop()
 
     def run(self) -> TProject:
         '''
