@@ -87,7 +87,9 @@ class CliDashboard(AbstractDashboard):
                 with node.runtime():
                     if node.task.has_breakpoint():
                         breakpoints.add((step, index))
-            except:  # noqa: E722
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except Exception:
                 if project.option.get_breakpoint(step=step, index=index):
                     breakpoints.add((step, index))
 

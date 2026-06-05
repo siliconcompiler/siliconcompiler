@@ -395,12 +395,12 @@ class TaskScheduler:
 
         self.__logger.debug(f'Launching {info["name"]}')
 
+        self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
+        self.__startTimes[node] = time.time()
+
         MPManager.get_transient_settings().get(
             'TaskScheduler', 'pre_node',
             lambda project, step, index: None)(self.__project, step, index)
-
-        self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
-        self.__startTimes[node] = time.time()
 
         # Start the process
         info["running"] = True

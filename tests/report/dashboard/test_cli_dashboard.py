@@ -2399,8 +2399,9 @@ def test_should_disable_no_breakpoint():
 def test_should_disable_with_breakpoint(monkeypatch, caplog):
     proj = _project_with_flow()
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
-    proj.logger.setLevel(logging.INFO)
+    test_logger = logging.getLogger("test-should-disable-with-breakpoint")
+    test_logger.setLevel(logging.INFO)
+    monkeypatch.setattr(proj, "_Project__logger", test_logger)
 
     proj.set("option", "breakpoint", True, step="faux")
 
