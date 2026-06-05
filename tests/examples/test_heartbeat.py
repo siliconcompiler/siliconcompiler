@@ -67,9 +67,20 @@ def test_py_make_sim_icarus():
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_py_make_sim_verilator():
+def test_py_make_sim_verilator_v():
     from heartbeat import make
     make.sim()
+
+    assert os.path.isfile('build/heartbeat/job0/heartbeat.pkg.json')
+    assert os.path.isfile('build/heartbeat/job0/simulate/0/reports/heartbeat_tb.vcd')
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_py_make_sim_verilator_cc():
+    from heartbeat import make
+    make.sim(tb_type='cc')
 
     assert os.path.isfile('build/heartbeat/job0/heartbeat.pkg.json')
     assert os.path.isfile('build/heartbeat/job0/simulate/0/reports/heartbeat.vcd')
