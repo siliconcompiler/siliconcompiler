@@ -187,7 +187,7 @@ def asic(pdk: str = "freepdk45", N: str = None):
     project.snapshot()
 
 
-def sim(N: str = None, tool: str = "verilator", tb_type: str = "cc"):
+def sim(N: str = None, tool: str = "verilator", tb_type: str = "v"):
     """Runs a simulation of the Heartbeat design.
 
     After the simulation completes, it attempts to open the generated
@@ -199,8 +199,7 @@ def sim(N: str = None, tool: str = "verilator", tb_type: str = "cc"):
         tool (str, optional): The simulation tool to use ('verilator' or
             'icarus'). Defaults to "verilator".
         tb_type (str, optional): The file extension of the testbench ('cc' or
-            'v'). Only used for tools which can work with multiple testbench
-            types. Defaults to "cc".
+            'v'). Defaults to "v".
     """
     # Create a project instance tailored for simulation.
     project = Sim()
@@ -210,15 +209,14 @@ def sim(N: str = None, tool: str = "verilator", tb_type: str = "cc"):
     project.set_design(hb)
 
     # Add the tool-specific testbench and the RTL design files.
-    tb_fileset = f"testbench.{tool}.{tb_type}" if tool == "verilator" else f"testbench.{tool}"
-    project.add_fileset(tb_fileset)
+    project.add_fileset(f"testbench.{tool}.{tb_type}")
     project.add_fileset("rtl")
     # Set the appropriate design verification flow.
     project.set_flow(DVFlow(tool=tool))
 
     # Optionally override the 'N' parameter for the testbench.
     if N is not None:
-        hb.set_param("N", N, fileset=tb_fileset)
+        hb.set_param("N", N, fileset=f"testbench.{tool}.{tb_type}")
 
     if tool == "verilator":
         # Add trace to verilator
