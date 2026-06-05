@@ -521,8 +521,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.option.add_fileset(fileset, clobber=True)
 
         # Disable dashboard if breakpoints are set
-        if self.__dashboard and CliDashboard.should_disable(self) and \
-                self.__dashboard.is_running():
+        if self.__dashboard and self.__dashboard.is_running() and \
+                CliDashboard.should_disable(self):
             self.__dashboard.stop()
 
     def run(self) -> TProject:

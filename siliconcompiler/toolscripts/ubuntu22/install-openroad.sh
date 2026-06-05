@@ -23,6 +23,10 @@ cd openroad
 git checkout $(python3 ${src_path}/_tools.py --tool openroad --field git-commit)
 git submodule update --init --recursive
 
+git config user.email "bot@siliconcompiler.com"
+git config user.name "SC-Install"
+git revert -m 1 --no-edit 3548df8222cbd2ef4a4b2900e720948205791eed
+
 deps_args=""
 if [ ! -z ${PREFIX} ]; then
     deps_args="-prefix=$PREFIX"

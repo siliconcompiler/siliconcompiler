@@ -1558,7 +1558,7 @@ def test_init_run_disable_dashboard_no_breakpoint(monkeypatch):
     with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running:
         is_running.return_value = True
         proj._init_run()
-        is_running.assert_not_called()
+        is_running.assert_called_once()
 
 
 def test_init_run_do_nothing(project_logger, caplog):

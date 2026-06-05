@@ -175,6 +175,7 @@ class Img2StreamTask(KLayoutTask):
             self.add_required_key("var", "outline_layer")
 
         self.add_output_file(ext=f"{default_stream}.gz")
+        self.add_output_file(ext="lef")
 
         if f"{self.design_topmodule}.{imageformat}" in self.get_files_from_input_nodes():
             self.add_input_file(ext=imageformat)
@@ -183,3 +184,11 @@ class Img2StreamTask(KLayoutTask):
                 if lib.has_file(fileset=fileset, filetype=imageformat):
                     self.add_required_key(lib, "fileset", fileset, "file", imageformat)
                     break
+
+        sc_stream_order = [default_stream, *[s for s in ("gds", "oas") if s != default_stream]]
+        for s in sc_stream_order:
+            if self.pdk.valid("pdk", "layermapfileset", "klayout", "def", s):
+                self.add_required_key(self.pdk, "pdk", "layermapfileset", "klayout", "def", s)
+                for fileset in self.pdk.get("pdk", "layermapfileset", "klayout", "def", s):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "layermap")
+                break
