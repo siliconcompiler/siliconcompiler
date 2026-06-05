@@ -24,7 +24,8 @@ from siliconcompiler import Project
      '5440a5a4d2cd71bc')
 ])
 @responses.activate
-def test_dependency_path_download_http(project_logger, datadir, path, ref, cache_id, tmp_path, caplog):
+def test_dependency_path_download_http(project_logger, datadir, path, ref, cache_id, tmp_path,
+                                       caplog):
     with open(os.path.join(datadir, 'https.tar.gz'), "rb") as f:
         responses.add(
             responses.GET,
