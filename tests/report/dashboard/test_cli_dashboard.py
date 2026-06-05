@@ -23,8 +23,32 @@ from siliconcompiler.report.dashboard.cli.board import (
 )
 from siliconcompiler.report.dashboard.cli.keyboard import Keyboard
 from siliconcompiler import NodeStatus
+from siliconcompiler import Project, Design, Flowgraph, Task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.multiprocessing import MPManager
+
+
+class FauxTask(Task):
+    def tool(self):
+        return "faux_tool"
+
+    def task(self):
+        return "faux_task"
+
+
+def _project_with_flow():
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    flow = Flowgraph("testflow")
+    flow.node("faux", FauxTask())
+    proj.set_flow(flow)
+
+    return proj
 
 
 @pytest.fixture
@@ -2352,3 +2376,33 @@ def test_terminal_output_suppressed_during_attach_resumed_after_detach(
     dash._detach_logger()
     mock_project.logger.info("AFTER")
     assert "AFTER" in captured.getvalue()
+
+
+def test_should_disable_no_flow():
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    # No flow set, so there is nothing to inspect.
+    assert CliDashboard.should_disable(proj) is False
+
+
+def test_should_disable_no_breakpoint():
+    proj = _project_with_flow()
+
+    assert CliDashboard.should_disable(proj) is False
+
+
+def test_should_disable_with_breakpoint(monkeypatch, caplog):
+    proj = _project_with_flow()
+
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    proj.set("option", "breakpoint", True, step="faux")
+
+    assert CliDashboard.should_disable(proj) is True
+    assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text

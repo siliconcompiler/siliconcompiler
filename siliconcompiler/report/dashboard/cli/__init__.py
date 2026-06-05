@@ -1,7 +1,12 @@
 import atexit
 
+from typing import TYPE_CHECKING
+
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
+
+if TYPE_CHECKING:
+    from siliconcompiler import Project
 
 
 class CliDashboard(AbstractDashboard):
@@ -48,6 +53,52 @@ class CliDashboard(AbstractDashboard):
         # Ensure the dashboard is properly stopped on program exit
         self.__exit_registered = True
         atexit.register(self.stop)
+
+    @staticmethod
+    def should_disable(project: "Project") -> bool:
+        """
+        Determines whether the dashboard should be disabled for a run.
+
+        The dashboard cannot coexist with a breakpoint: a breakpoint either
+        drops the flow into a Python interpreter or halts inside an EDA tool's
+        shell, both of which need exclusive control of the terminal. This
+        method inspects every node in the project's flow for a breakpoint and,
+        when any are found, logs which nodes triggered the decision.
+
+        Keeping the decision here (rather than inline in
+        :meth:`.Project._init_run`) makes it straightforward to unit test and
+        to add new disabling conditions in one place.
+
+        Args:
+            project: The SiliconCompiler project object to inspect.
+
+        Returns:
+            bool: True if the dashboard should be disabled, False otherwise.
+        """
+        from siliconcompiler.scheduler import SchedulerNode
+
+        if not project.option.get_flow():
+            return False
+
+        breakpoints = set()
+        for step, index in project.get_flow().get_nodes():
+            try:
+                node = SchedulerNode(project, step, index)
+                with node.runtime():
+                    if node.task.has_breakpoint():
+                        breakpoints.add((step, index))
+            except:  # noqa: E722
+                if project.option.get_breakpoint(step=step, index=index):
+                    breakpoints.add((step, index))
+
+        if not breakpoints:
+            return False
+
+        breakpoints = sorted(breakpoints)
+        project.logger.info(
+            "Disabling dashboard due to breakpoints at: "
+            f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
+        return True
 
     def set_logger(self, logger):
         """
