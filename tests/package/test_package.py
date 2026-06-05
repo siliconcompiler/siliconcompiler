@@ -270,7 +270,7 @@ def test_cache_id_different_source():
     assert res0.cache_id != res1.cache_id
 
 
-def test_get_path_new_data(monkeypatch, caplog):
+def test_get_path_new_data(project_logger, caplog):
     class AlwaysNew(RemoteResolver):
         def check_cache(self):
             return False
@@ -285,7 +285,7 @@ def test_get_path_new_data(monkeypatch, caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysNew("alwaysnew", proj, "notused", "notused")
@@ -319,7 +319,7 @@ def test_get_path_new_data_error(errorcls):
 
 
 @pytest.mark.parametrize("errorcls", (KeyboardInterrupt, IOError, SystemExit))
-def test_get_path_new_data_error_failed_to_clean(errorcls, monkeypatch, caplog):
+def test_get_path_new_data_error_failed_to_clean(project_logger, errorcls, caplog):
     class AlwaysNew(RemoteResolver):
         def check_cache(self):
             return False
@@ -334,7 +334,7 @@ def test_get_path_new_data_error_failed_to_clean(errorcls, monkeypatch, caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     def dummy_rm(tree):
@@ -350,7 +350,7 @@ def test_get_path_new_data_error_failed_to_clean(errorcls, monkeypatch, caplog):
     assert f"Exception occurred during cleanup: this error ({errorcls.__name__})" in caplog.text
 
 
-def test_get_path_old_data(monkeypatch, caplog):
+def test_get_path_old_data(project_logger, caplog):
     class AlwaysOld(RemoteResolver):
         def check_cache(self):
             return True
@@ -365,7 +365,7 @@ def test_get_path_old_data(monkeypatch, caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysOld("alwaysold", proj, "notused", "notused")
@@ -374,7 +374,7 @@ def test_get_path_old_data(monkeypatch, caplog):
     assert "Found alwaysold data at " in caplog.text
 
 
-def test_get_path_usecache(monkeypatch, caplog):
+def test_get_path_usecache(project_logger, caplog):
     class AlwaysCache(RemoteResolver):
         def check_cache(self):
             return True
@@ -389,7 +389,7 @@ def test_get_path_usecache(monkeypatch, caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysCache("alwayscache", proj, "notused", "notused")
@@ -1449,7 +1449,7 @@ def test_make_readonly_string_path(tmp_path):
     assert not (mode & stat.S_IWUSR)
 
 
-def test_make_readonly_error_handling(tmp_path, monkeypatch, caplog):
+def test_make_readonly_error_handling(project_logger, tmp_path, monkeypatch, caplog):
     """Test error handling when chmod fails in resolve() flow."""
     import logging
 
@@ -1465,7 +1465,7 @@ def test_make_readonly_error_handling(tmp_path, monkeypatch, caplog):
 
     # Create project with logging
     project = Project("testproj")
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project_logger(project)
     project.logger.setLevel(logging.WARNING)
     caplog.set_level(logging.WARNING)
 

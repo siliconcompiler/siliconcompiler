@@ -24,7 +24,7 @@ from siliconcompiler import Project
      '5440a5a4d2cd71bc')
 ])
 @responses.activate
-def test_dependency_path_download_http(datadir, path, ref, cache_id, tmp_path, monkeypatch, caplog):
+def test_dependency_path_download_http(project_logger, datadir, path, ref, cache_id, tmp_path, caplog):
     with open(os.path.join(datadir, 'https.tar.gz'), "rb") as f:
         responses.add(
             responses.GET,
@@ -36,7 +36,7 @@ def test_dependency_path_download_http(datadir, path, ref, cache_id, tmp_path, m
 
     proj = Project("testproj")
     proj.set("option", "cachedir", tmp_path)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     resolver = HTTPResolver("sc-data", proj, path, ref)
