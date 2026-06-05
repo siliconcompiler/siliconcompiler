@@ -1,6 +1,4 @@
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
-import os.path
-
 import pytest
 
 # The parser is pure Tcl, so we exercise it through Python's embedded Tcl
@@ -10,17 +8,13 @@ tkinter = pytest.importorskip("tkinter")
 
 
 @pytest.fixture
-def parse(scroot):
+def parse(tcl_interp):
     '''Returns a helper that parses argv against a spec via the Tcl parser.
 
     The helper returns the result as a Python dict (all values are strings;
     list-valued entries can be split further with ``split_list``).
     '''
-    tcl_file = os.path.join(
-        scroot, "siliconcompiler", "tools", "_common", "tcl", "sc_proc_args.tcl")
-
-    interp = tkinter.Tcl()
-    interp.eval(f"source {{{tcl_file}}}")
+    interp = tcl_interp("sc_proc_args.tcl")
     interp.eval(
         """
         proc _sc_parse_test { spec args } {
