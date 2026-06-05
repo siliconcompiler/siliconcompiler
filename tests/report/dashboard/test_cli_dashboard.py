@@ -2396,12 +2396,10 @@ def test_should_disable_no_breakpoint():
     assert CliDashboard.should_disable(proj) is False
 
 
-def test_should_disable_with_breakpoint(monkeypatch, caplog):
+def test_should_disable_with_breakpoint(project_logger, caplog):
     proj = _project_with_flow()
 
-    test_logger = logging.getLogger("test-should-disable-with-breakpoint")
-    test_logger.setLevel(logging.INFO)
-    monkeypatch.setattr(proj, "_Project__logger", test_logger)
+    project_logger(proj)
 
     proj.set("option", "breakpoint", True, step="faux")
 

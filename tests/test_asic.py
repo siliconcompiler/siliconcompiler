@@ -23,7 +23,7 @@ from siliconcompiler.scheduler import SchedulerNode
 
 
 @pytest.fixture
-def running_project():
+def running_project(project_logger):
     class TestProject(ASIC):
         def __init__(self):
             super().__init__()
@@ -34,8 +34,7 @@ def running_project():
             self.set_design(design)
             self.add_fileset("rtl")
 
-            self._Project__logger = logging.getLogger()
-            self.logger.setLevel(logging.INFO)
+            project_logger(self)
 
             flow = Flowgraph("testflow")
             flow.node("running", NOPTask())
@@ -245,9 +244,9 @@ def test_add_dep_unnamed_library():
         proj.add_dep(unnamed_lib)
 
 
-def test_check_manifest_empty(monkeypatch, caplog):
+def test_check_manifest_empty(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     with patch("siliconcompiler.Project.check_manifest") as check_manifest:
@@ -260,9 +259,9 @@ def test_check_manifest_empty(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_missing_pdk(monkeypatch, caplog):
+def test_check_manifest_missing_pdk(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set("asic", "pdk", "thispdk")
@@ -277,9 +276,9 @@ def test_check_manifest_missing_pdk(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_incorrect_type_pdk(monkeypatch, caplog):
+def test_check_manifest_incorrect_type_pdk(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.add_dep(StdCellLibrary("thislib"))
@@ -295,9 +294,9 @@ def test_check_manifest_incorrect_type_pdk(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_main_libmissing(monkeypatch, caplog):
+def test_check_manifest_main_libmissing(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -313,9 +312,9 @@ def test_check_manifest_main_libmissing(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_asiclib_missing(monkeypatch, caplog):
+def test_check_manifest_asiclib_missing(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -330,9 +329,9 @@ def test_check_manifest_asiclib_missing(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_pass(monkeypatch, caplog):
+def test_check_manifest_pass(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -347,9 +346,9 @@ def test_check_manifest_pass(monkeypatch, caplog):
     assert caplog.text == ""
 
 
-def test_check_manifest_pass_missing_mainlib(monkeypatch, caplog):
+def test_check_manifest_pass_missing_mainlib(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -363,9 +362,9 @@ def test_check_manifest_pass_missing_mainlib(monkeypatch, caplog):
     assert "[asic,mainlib] has not been set, this will be inferred" in caplog.text
 
 
-def test_init_run_set_mainlib(monkeypatch, caplog):
+def test_init_run_set_mainlib(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -380,9 +379,9 @@ def test_init_run_set_mainlib(monkeypatch, caplog):
     assert "Setting main library to: thislib" in caplog.text
 
 
-def test_init_run_set_pdk_asiclib(monkeypatch, caplog):
+def test_init_run_set_pdk_asiclib(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     lib = StdCellLibrary("thislib")
@@ -402,9 +401,9 @@ def test_init_run_set_pdk_asiclib(monkeypatch, caplog):
     assert "Adding thislib to [asic,asiclib]" in caplog.text
 
 
-def test_init_run_handling_missing_lib(monkeypatch, caplog):
+def test_init_run_handling_missing_lib(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_mainlib("thislib")
