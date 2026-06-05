@@ -197,6 +197,7 @@ class CompileTask(VerilatorTask):
         self.add_required_key("var", "trace")
         self.add_required_key("var", "trace_type")
         self.add_required_key("var", "initialize_random")
+        self.add_required_key("var", "main")
 
         self._setup_c_file_requirement()
 
