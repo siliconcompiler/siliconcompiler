@@ -118,8 +118,6 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         self.set("var", "pex_corners", list(self._get_pex_mapping().values()))
 
-        self.set("var", "use_spef", self.get("var", "write_spef"))
-
         self._set_reports([
             'setup',
             'hold',
@@ -152,6 +150,8 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         if not self.__has_openrcx():
             self.set("var", "write_spef", False)
+
+        self.set("var", "use_spef", self.get("var", "write_spef"))
 
         if self.get("var", "write_cdl"):
             self.add_output_file(ext="cdl")
