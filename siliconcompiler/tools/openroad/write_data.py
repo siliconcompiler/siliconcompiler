@@ -178,7 +178,6 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_required_key("var", "write_liberty")
         self.add_required_key("var", "write_sdf")
 
-
     def __has_openrcx(self):
         if not self.pdk.valid("pdk", "pexmodelfileset", "openroad"):
             return False
