@@ -60,7 +60,7 @@ dependencies = [
     "psutil >= 5.8.0",
     "Jinja2 >= 2.11.3",
 
-    "pyslang == 10.0.0",
+    "pyslang == 11.0.0",
 
     "importlib_metadata; python_version < '3.10'",
 

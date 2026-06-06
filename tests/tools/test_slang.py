@@ -109,11 +109,11 @@ def test_pyslang_api_surface():
     assert pyslang.DiagnosticSeverity.Error is not None
     assert pyslang.DiagnosticSeverity.Fatal is not None
 
-    assert pyslang.Driver is not None
-    assert pyslang.CommandLineOptions is not None
+    assert pyslang.driver.Driver is not None
+    assert pyslang.driver.CommandLineOptions is not None
 
-    assert pyslang.SyntaxPrinter is not None
-    assert pyslang.Token is not None
+    assert pyslang.syntax.SyntaxPrinter is not None
+    assert pyslang.parsing.Token is not None
 
     # Diagnostic codes referenced by elaborate.py
     for diag in ("MissingTimeScale", "UsedBeforeDeclared", "UnusedParameter",
@@ -136,10 +136,10 @@ def test_pyslang_driver_parses_verilog(tmp_path):
         "endmodule\n"
     )
 
-    driver = pyslang.Driver()
+    driver = pyslang.driver.Driver()
     driver.addStandardArgs()
 
-    opts = pyslang.CommandLineOptions()
+    opts = pyslang.driver.CommandLineOptions()
     opts.ignoreProgramName = True
 
     args = shlex.join(["--single-unit", "--top", "tiny", str(src)])
@@ -161,10 +161,10 @@ def test_pyslang_syntax_printer(tmp_path):
     src = tmp_path / "tiny.v"
     src.write_text("module tiny; endmodule\n")
 
-    driver = pyslang.Driver()
+    driver = pyslang.driver.Driver()
     driver.addStandardArgs()
 
-    opts = pyslang.CommandLineOptions()
+    opts = pyslang.driver.CommandLineOptions()
     opts.ignoreProgramName = True
 
     args = shlex.join(["--single-unit", "--top", "tiny", str(src)])
@@ -176,7 +176,7 @@ def test_pyslang_syntax_printer(tmp_path):
     trees = compilation.getSyntaxTrees()
     assert trees
 
-    writer = pyslang.SyntaxPrinter(compilation.sourceManager)
+    writer = pyslang.syntax.SyntaxPrinter(compilation.sourceManager)
     writer.setIncludeMissing(False)
     writer.setIncludeDirectives(False)
     text = writer.print(trees[0]).str()
@@ -192,7 +192,7 @@ def test_pyslang_syntax_printer(tmp_path):
     while not nodes.empty():
         node = nodes.get()
         for child in node:
-            if isinstance(child, pyslang.Token):
+            if isinstance(child, pyslang.parsing.Token):
                 found_token = True
             else:
                 nodes.put(child)
