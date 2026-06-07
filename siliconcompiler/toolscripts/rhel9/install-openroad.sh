@@ -11,34 +11,30 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo yum install -y git
+sudo yum install -y git curl --skip-broken
 
 mkdir -p deps
 cd deps
+
+mkdir -p bazelbin/bin
+BAZEL_PREFIX=$(pwd)/bazelbin
+
+PATH="$BAZEL_PREFIX/bin:$PATH"
 
 git clone $(python3 ${src_path}/_tools.py --tool openroad --field git-url) openroad
 cd openroad
 git checkout $(python3 ${src_path}/_tools.py --tool openroad --field git-commit)
 git submodule update --init --recursive
 
-# Install missing dependencies
-sudo yum install -y bison byacc
+sudo ./etc/DependencyInstaller.sh -bazel -prefix="$BAZEL_PREFIX"
+sudo chown -R $USER:$USER $BAZEL_PREFIX
 
-deps_args=""
 if [ ! -z ${PREFIX} ]; then
-    deps_args="-prefix=$PREFIX"
-fi
-sudo ./etc/DependencyInstaller.sh -base
-$SUDO_INSTALL ./etc/DependencyInstaller.sh -common $deps_args
-
-cmake_args="-DENABLE_TESTS=OFF"
-if [ ! -z ${PREFIX} ]; then
-    cmake_args="$cmake_args -DCMAKE_INSTALL_PREFIX=$PREFIX"
+    install_loc="$PREFIX"
+else
+    install_loc="$HOME/.local"
 fi
 
-./etc/Build.sh -cmake="$cmake_args" -threads=${NPROC:-$(nproc)}
-
-cd build
-$SUDO_INSTALL make install
+bazelisk run :install --config=release --//:platform=gui -- "$install_loc"
 
 cd -

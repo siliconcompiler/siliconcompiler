@@ -19,7 +19,7 @@ library (TechFlops) {
 
         pin (D) {
             direction: input;
-            
+
             timing() {
                 related_pin: "clk";
                 timing_type: hold_rising;
@@ -65,7 +65,7 @@ library (TechFlops) {
         pin (Q) {
             direction: output;
             function: "IQ";
-            
+
             timing() {
                 related_pin: "clk";
                 timing_type: rising_edge;
@@ -120,7 +120,7 @@ library (TechFlops) {
 
         pin (D) {
             direction: input;
-            
+
             timing() {
                 related_pin: "clk";
                 timing_type: hold_rising;
@@ -203,7 +203,7 @@ library (TechFlops) {
         pin (Q) {
             direction: output;
             function: "IQ";
-            
+
             timing() {
                 related_pin: "clk";
                 timing_type: rising_edge;
@@ -377,7 +377,7 @@ library (TechFlops) {
 
         pin (D) {
             direction: input;
-            
+
             timing() {
                 related_pin: "clk";
                 timing_type: hold_rising;
@@ -451,7 +451,7 @@ library (TechFlops) {
         pin (Q) {
             direction: output;
             function: "IQ";
-            
+
             timing() {
                 related_pin: "clk";
                 timing_type: rising_edge;
@@ -506,7 +506,7 @@ library (TechFlops) {
 
         pin (D) {
             direction: input;
-            
+
             timing() {
                 related_pin: "clk";
                 timing_type: hold_rising;
@@ -621,7 +621,7 @@ library (TechFlops) {
         pin (Q) {
             direction: output;
             function: "IQ";
-            
+
             timing() {
                 related_pin: "clk";
                 timing_type: rising_edge;
