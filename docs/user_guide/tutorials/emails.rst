@@ -52,4 +52,3 @@ The summary email will contain a metrics table and the output image if one is av
 
    * - .. image:: _images/email/end.png
      - .. image:: _images/email/summary.png
- 

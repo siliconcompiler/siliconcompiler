@@ -189,7 +189,7 @@ library (VTRPrimitives) {
 
         pin (D) {
             direction: input;
-            
+
             timing() {
                 related_pin: "clock";
                 timing_type: hold_rising;
@@ -235,7 +235,7 @@ library (VTRPrimitives) {
         pin (Q) {
             direction: output;
             function: "IQ";
-            
+
             timing() {
                 related_pin: "clock";
                 timing_type: rising_edge;

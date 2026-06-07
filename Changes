@@ -781,7 +781,7 @@ SiliconCompiler 0.28.4 (2024-10-28)
   * surelog: ensure its require list is complete to properly detect changes in inputs.
   * yosys: added screenshot task.
   * klayout: added drc task to run DRC and convert_drc_db task to convert a klayout DRC database to openroads.
-  * vpr: added `vpr_device_code` support. 
+  * vpr: added `vpr_device_code` support.
   * magic: added support for uncompressing LEF files.
 
 
