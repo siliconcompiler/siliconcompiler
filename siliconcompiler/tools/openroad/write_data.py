@@ -158,7 +158,7 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         if self.get("var", "write_spef"):
             self.add_required_key("var", "pex_corners")
             self.add_required_key("var", "use_spef")
-            for corner in self.pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
+            for corner in self.get("var", "pex_corners"):
                 self.add_required_key(self.pdk, "pdk", "pexmodelfileset", "openroad", corner)
                 for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", corner):
                     self.add_required_key(self.pdk, "fileset", fileset, "file", "openrcx")
@@ -179,10 +179,8 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_required_key("var", "write_sdf")
 
     def __has_openrcx(self):
-        if not self.pdk.valid("pdk", "pexmodelfileset", "openroad"):
-            return False
         for corner in self.pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
             for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", corner):
-                if self.pdk.valid("pdk", "fileset", fileset, "file", "openrcx"):
+                if self.pdk.get("fileset", fileset, "file", "openrcx"):
                     return True
         return False
