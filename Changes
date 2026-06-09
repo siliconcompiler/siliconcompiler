@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.12 (2026-06-09)
+=========================================
+
+**Minor:**
+
+ * Added breakpoint handling in the scheduler to avoid multiple breakpoints from running at the same time.
+
+ * Tools:
+
+  * img2stream: added LEF output.
+  * pyslang: updated to version 11.
+  * openroad: fixed write_views on missing OpenRCX files.
+  * verilator: added support for verilog only testbenches.
+
+
 SiliconCompiler 0.37.11 (2026-05-20)
 =========================================
 
