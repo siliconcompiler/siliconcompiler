@@ -3,7 +3,7 @@ import io
 import os.path
 from pathlib import Path
 
-from typing import List, Set, Union, Tuple, Optional, Iterable
+from typing import Dict, List, Set, Union, Tuple, Optional, Iterable
 
 from siliconcompiler import utils
 
@@ -15,8 +15,8 @@ from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema
 
 Alias = dict[
-    tuple[str, str],
-    tuple[Union[NamedSchema, str, None], Union[str, tuple[str, ...], None]]
+    Tuple[str, str],
+    Tuple[Union[NamedSchema, str, None], Union[str, Tuple[str, ...], None]]
 ]
 
 
@@ -836,9 +836,9 @@ class Design(DependencySchema, PathSchema, NamedSchema):
     def __get_fileset(self,
                       filesets: Union[Iterable[str], str],
                       alias: Alias,
-                      filelist: list[tuple[str, str]],
-                      visited: set[tuple[str, Union[tuple[str, ...], str]]],
-                      mapping: dict[str, NamedSchema]) -> \
+                      filelist: List[Tuple[str, str]],
+                      visited: Set[Tuple[str, Union[Tuple[str, ...], str]]],
+                      mapping: Dict[str, NamedSchema]) -> \
             List[Tuple[NamedSchema, str]]:
         """
         Private recursive method to compute the full list of (design, fileset)
@@ -847,10 +847,10 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         This method traverses the design's dependency graph.
 
         Args:
-            filesets (Union[List[str], str]): List of top-level filesets to evaluate.
+            filesets (Union[Iterable[str], str]): List of top-level filesets to evaluate.
             alias (Dict[Tuple[str, str], Tuple[NamedSchema, str]]): Map of aliased
                 (design, fileset) tuples to substitute during traversal.
-            visited (List[Tuple[NamedSchema, str]]): Internal list used to track
+            visited (Set[Tuple[NamedSchema, str]]): Internal list used to track
                 visited (design, fileset) nodes during recursion.
             mapping (Dict[str, NamedSchema]): Internal dictionary mapping design names to
                 design objects, used to resolve dependencies during recursion.
