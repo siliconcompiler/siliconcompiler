@@ -186,7 +186,16 @@ class InitFloorplanTask(APRTask,
             'check_setup',
             'setup',
             'unconstrained',
-            'power'
+            'power',
+            'floating_nets',
+            'overdriven_nets',
+            "logicdepth",
+
+            # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view'
         ])
 
         self.add_required_key("var", "ifp_snap_strategy")

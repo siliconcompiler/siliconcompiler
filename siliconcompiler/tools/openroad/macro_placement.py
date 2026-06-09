@@ -345,7 +345,15 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
 
         self._set_reports([
             'setup',
-            'unconstrained'
+            'unconstrained',
+            'floating_nets',
+            'overdriven_nets',
+
+            # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view'
         ])
 
         self.set_asic_var("macro_place_halo", require=True, mainlib_key="macro_placement_halo")

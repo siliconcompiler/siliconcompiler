@@ -18,6 +18,13 @@ class EndCapTapCellTask(APRTask, OpenROADSTAParameter):
         self.set_script("apr/sc_endcap_tapcell_insertion.tcl")
 
         self._set_reports([
+            'floating_nets',
+            'overdriven_nets',
+
             # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view',
             'placement_density'
         ])

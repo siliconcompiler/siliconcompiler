@@ -34,6 +34,22 @@ cd vcd2fst
 git checkout $(python3 ${src_path}/_tools.py --tool vcd2fst --field git-commit)
 git submodule update --init --recursive
 
+git apply - <<EOF
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b81f208..7f19e10 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -39,7 +39,7 @@ add_subdirectory(third_party/backward-cpp)
+ target_include_directories(backward_interface INTERFACE /usr/include/libdwarf/)
+ 
+ set(vcd2fst_SRC
+-  \${PROJECT_SOURCE_DIR}/vcd2fst.c
++  \${PROJECT_SOURCE_DIR}/vcd2fst.cpp
+   \${PROJECT_SOURCE_DIR}/fstapi.c
+   \${PROJECT_SOURCE_DIR}/fastlz.c
+   \${PROJECT_SOURCE_DIR}/lz4.c
+EOF
+
 mkdir -p build
 cd build
 cmake .. $cmake_args -DCMAKE_BUILD_TYPE=Release

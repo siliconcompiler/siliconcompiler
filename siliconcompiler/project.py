@@ -17,7 +17,7 @@ from siliconcompiler import Checklist
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler import Task
-from siliconcompiler import ShowTask, ScreenshotTask
+from siliconcompiler import OpenTask, ShowTask, ScreenshotTask
 from siliconcompiler.schema_support.option import OptionSchema
 
 from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
@@ -25,7 +25,7 @@ from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
-from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode
+from siliconcompiler.scheduler import Scheduler, SCRuntimeError
 from siliconcompiler.utils.logging import get_stream_handler
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -521,22 +521,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.option.add_fileset(fileset, clobber=True)
 
         # Disable dashboard if breakpoints are set
-        if self.__dashboard and self.option.get_flow():
-            breakpoints = set()
-            for step, index in self.get_flow().get_nodes():
-                try:
-                    node = SchedulerNode(self, step, index)
-                    with node.runtime():
-                        if node.task.has_breakpoint():
-                            breakpoints.add((step, index))
-                except:  # noqa: E722
-                    if self.option.get_breakpoint(step=step, index=index):
-                        breakpoints.add((step, index))
-            if breakpoints and self.__dashboard.is_running():
-                breakpoints = sorted(breakpoints)
-                self.logger.info("Disabling dashboard due to breakpoints at: "
-                                 f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
-                self.__dashboard.stop()
+        if self.__dashboard and self.__dashboard.is_running() and \
+                CliDashboard.should_disable(self):
+            self.__dashboard.stop()
 
     def run(self) -> TProject:
         '''
@@ -599,6 +586,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         `reset()` on any parameter that does not have a 'global' scope,
         clearing task-specific values for the next run.
         """
+        if getattr(self, "_Project__skipreset", False):
+            return
+
         for key in self.allkeys():
             if key[0] == "history":
                 continue
@@ -1273,7 +1263,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             _open_summary_image(path)
 
     def show(self, filename: Optional[str] = None, screenshot: bool = False,
-             extension: Optional[str] = None, tool: Optional[str] = None) -> str:
+             extension: Optional[str] = None, tool: Optional[str] = None,
+             open: bool = False) -> str:
         '''
         Opens a graphical viewer for a specified file or the last generated layout.
 
@@ -1299,6 +1290,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                                        Used only if `filename` is None. Defaults to None.
             tool (str, optional): The name of the specific showtool to use for displaying the file.
                                   If not provided, the tool is selected based on the file extension.
+            open (bool): If True, the file is opened with an `OpenTask` (e.g. an interactive
+                         tool session) instead of being rendered with a `ShowTask`.
+                         Mutually exclusive with `screenshot`. Defaults to False.
 
         Returns:
             str: The path to the generated screenshot file if `screenshot` is True,
@@ -1311,7 +1305,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             >>> # Automatically find and show the last generated layout
             >>> project.show()
         '''
-        tool_cls = ScreenshotTask if screenshot else ShowTask
+        if screenshot and open:
+            raise ValueError("'screenshot' and 'open' are mutually exclusive")
+
+        if screenshot:
+            tool_cls = ScreenshotTask
+        elif open:
+            tool_cls = OpenTask
+        else:
+            tool_cls = ShowTask
 
         sc_jobname = self.option.get_jobname()
         sc_step, sc_index = self.get("arg", "step"), self.get("arg", "index")
@@ -1339,38 +1341,20 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 if sc_index:
                     search_nodes = [node for node in search_nodes if node[1] == sc_index]
 
-            # Build ordered list of (task_class, extension) pairs respecting tool order
-            # This preserves the registration order so higher-priority tools are tried first
-            search_exts = []
-            for cls in tool_cls.get_task(None, tool=tool):
-                try:
-                    exts = cls().get_supported_show_extentions()
-                    # Sort extensions within each task for consistency
-                    for ext in sorted(exts):
-                        # If a specific tool is requested, verify the extension resolves
-                        # to that tool
-                        if tool:
-                            resolved_task = tool_cls.get_task(ext, tool=tool)
-                            if resolved_task is None:
-                                # This extension is not supported by the requested tool
-                                continue
-                        search_exts.append((cls, ext))
-                except NotImplementedError:
-                    pass
+            # Use the shared extension map so the preferred tool for each
+            # extension matches what sc-show -list reports. The map preserves
+            # registration order, so higher-priority tools are tried first.
+            ext_map = tool_cls.get_extension_map(tool=tool)
+            search_exts = list(ext_map.keys())
 
             if extension:
-                # Validate that requested extension is supported
-                all_exts = [ext for _, ext in search_exts]
-                if extension not in all_exts:
+                if extension not in search_exts:
                     self.logger.error(f"Extension '{extension}' not supported by "
-                                      f"registered showtools: {', '.join(sorted(set(all_exts)))}")
+                                      f"registered showtools: {', '.join(sorted(search_exts))}")
                     return None
-                # Search for the specific extension only, respecting tool order
-                search_exts = [(cls, ext) for cls, ext in search_exts if ext == extension]
+                search_exts = [extension]
 
-            # Search for files in tool-ordered sequence
-            # This ensures that earlier-registered (higher-priority) tools are tried first
-            for task_cls, ext in search_exts:
+            for ext in search_exts:
                 for step, index in search_nodes:
                     filename = search_obj.find_result(ext,
                                                       step=step,
@@ -1437,7 +1421,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         task: ShowTask = task.__class__.find_task(proj)
         task.set_showfilepath(filename)
         task.set_showfiletype(filetype)
-        task.set_shownode(jobname=sc_jobname, step=sc_step, index=sc_index)
+        task.set_shownode(jobname=sc_jobname, nodestep=sc_step, nodeindex=sc_index)
+
+        # Avoid call to reset params
+        # This is safe because proj is a copy and is not returned from this function
+        proj.__skipreset = True
 
         # run show flow
         proj.run()

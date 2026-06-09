@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "940703b1c719b37e14f8eda21b79faa68e039742",
+    "git-commit": "946b12e0d72a093e53fcb18edc6f1dc827a0988b",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -41,7 +41,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.30.8",
+    "version": "0.30.9",
     "git-url": "https://github.com/KLayout/klayout.git",
     "auto-update": true,
     "run-version": "source version.sh && echo $KLAYOUT_VERSION",
@@ -101,7 +101,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "v0.64",
+    "git-commit": "v0.66",
     "version-prefix": "",
     "auto-update": true
   },
@@ -145,7 +145,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "3a7f19d9783de95f58940d9e983d068959a07ada",
+    "git-commit": "08bb13bd128c73b79455f4ea344a1785e0a342e9",
     "docker-depends": "yosys",
     "auto-update": true
   },
@@ -157,7 +157,7 @@
   },
   "wildebeest": {
     "git-url": "https://github.com/zeroasiccorp/wildebeest.git",
-    "git-commit": "687411c38f37ea82cdd2eafc3bedd2b43f1ab1cf",
+    "git-commit": "b0b0d8d6bbbd0f866e205bf57ae979f5299a67da",
     "docker-depends": "yosys",
     "auto-update": true
   },
@@ -173,7 +173,7 @@
   },
   "vcd2fst": {
     "git-url": "https://github.com/Silimate/vcd2fst.git",
-    "git-commit": "d6c2aa562df99b92a64187b176359e26f1cc9cde",
+    "git-commit": "29da9a8da43c0ec09a8d378818c23abe48069129",
     "auto-update": true
   }
 }

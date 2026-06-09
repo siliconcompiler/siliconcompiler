@@ -1,8 +1,11 @@
 import logging
 
+from multiprocessing.managers import RemoteError
 from unittest.mock import patch
 
-from siliconcompiler.utils.multiprocessing import MPManager, _ManagerSingleton
+import pytest
+
+from siliconcompiler.utils.multiprocessing import MPManager, MPQueueHandler, _ManagerSingleton
 from siliconcompiler.report.dashboard.cli.board import Board
 from siliconcompiler.utils.settings import SettingsManager
 
@@ -176,3 +179,105 @@ def test_stop_repeat():
     manager = MPManager()
     manager.stop()
     manager.stop()
+
+
+def _raise_kbi(*args, **kwargs):
+    raise KeyboardInterrupt()
+
+
+def test_stop_swallows_keyboard_interrupt_in_os_remove():
+    '''A KeyboardInterrupt raised by os.remove during atexit must not escape.'''
+    MPManager()
+    with patch("os.remove", side_effect=_raise_kbi):
+        # Must not raise.
+        MPManager.stop()
+    # Singleton fully cleaned up so a second stop() is a no-op.
+    assert _ManagerSingleton.has_cls(MPManager) is False
+    MPManager.stop()
+
+
+def test_stop_swallows_keyboard_interrupt_in_handler_close():
+    '''A KeyboardInterrupt raised while closing a logger handler must not escape.'''
+    manager = MPManager()
+
+    class KBIHandler(logging.Handler):
+        def close(self):
+            raise KeyboardInterrupt()
+
+    manager._MPManager__logger.addHandler(KBIHandler())
+
+    MPManager.stop()
+    assert _ManagerSingleton.has_cls(MPManager) is False
+
+
+def test_stop_swallows_keyboard_interrupt_in_board_stop():
+    '''A KeyboardInterrupt raised while stopping the dashboard must not escape.'''
+    MPManager().get_dashboard()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.Board.stop",
+               side_effect=_raise_kbi):
+        MPManager.stop()
+    assert _ManagerSingleton.has_cls(MPManager) is False
+
+
+def test_stop_swallows_keyboard_interrupt_in_manager_shutdown():
+    '''A KeyboardInterrupt raised while shutting down the multiprocessing
+    manager must not escape.'''
+    manager = MPManager()
+    # Force the manager_server branch on so shutdown() is reached.
+    manager._MPManager__manager_server = True
+
+    with patch.object(manager._MPManager__manager, "shutdown",
+                      side_effect=_raise_kbi):
+        MPManager.stop()
+    assert _ManagerSingleton.has_cls(MPManager) is False
+
+
+def _make_log_record():
+    return logging.LogRecord(
+        name="test", level=logging.INFO, pathname=__file__, lineno=1,
+        msg="hello", args=None, exc_info=None,
+    )
+
+
+@pytest.mark.parametrize("exc", [
+    BrokenPipeError("broken"),
+    EOFError("eof"),
+    ConnectionResetError("reset"),
+    OSError("oserr"),
+    RemoteError("remote"),
+])
+def test_mp_queue_handler_swallows_shutdown_errors(exc):
+    '''Errors raised by the underlying queue during shutdown must not escape
+    enqueue(); the parent's SyncManager may have gone away before children
+    finished logging.'''
+    class BrokenQueue:
+        def put_nowait(self, record):
+            raise exc
+
+    handler = MPQueueHandler(BrokenQueue())
+    # Must not raise.
+    handler.enqueue(_make_log_record())
+
+
+def test_mp_queue_handler_other_errors_propagate():
+    '''Errors that are not shutdown-related still propagate so genuine bugs
+    are not silently hidden.'''
+    class WeirdQueue:
+        def put_nowait(self, record):
+            raise ValueError("bug")
+
+    handler = MPQueueHandler(WeirdQueue())
+    with pytest.raises(ValueError):
+        handler.enqueue(_make_log_record())
+
+
+def test_stop_runs_housekeeping_after_interrupt():
+    '''Even if cleanup is interrupted, atexit.unregister must still run so the
+    handler is not left registered for a second invocation.'''
+    MPManager()
+    with patch("os.remove", side_effect=_raise_kbi), \
+            patch("atexit.unregister") as unreg:
+        MPManager.stop()
+        unreg.assert_called_once_with(MPManager.stop)
+    assert _ManagerSingleton.has_cls(MPManager) is False

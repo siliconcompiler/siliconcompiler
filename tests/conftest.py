@@ -1,3 +1,4 @@
+import logging
 import os
 import pytest
 import json
@@ -11,6 +12,7 @@ import time
 
 import os.path
 
+from uuid import uuid4
 from pathlib import Path
 from pyvirtualdisplay import Display
 from unittest.mock import patch
@@ -142,6 +144,17 @@ def disable_or_images(monkeypatch, request):
         return old_init(self)
 
     monkeypatch.setattr(Project, '_init_run', mock_init)
+
+
+@pytest.fixture
+def project_logger(monkeypatch):
+    def setup(proj):
+        test_logger = logging.getLogger("sc_test_" + str(uuid4()))
+        test_logger.propagate = True
+        test_logger.setLevel(logging.INFO)
+        monkeypatch.setattr(proj, "_Project__logger", test_logger)
+
+    return setup
 
 
 @pytest.fixture(scope='session')

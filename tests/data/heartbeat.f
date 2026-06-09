@@ -1,6 +1,6 @@
 // This is a comment
 +incdir+.
-// Ingoree empty file below
+// Ignore empty file below
    
 +define+ASIC
 heartbeat.v

@@ -22,7 +22,6 @@ description = "A compiler framework that automates translation from source code 
 readme = {file = "README.md", content-type = "text/markdown"}
 classifiers = [
     "Environment :: Console",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -34,7 +33,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
     "Topic :: Software Development :: Build Tools"
 ]
-requires-python = ">= 3.9"
+requires-python = ">= 3.10"
 dependencies = [
     "aiohttp >= 3.10.11, < 3.14.0",
     "distro >= 1.9.0, < 2.0.0",
@@ -43,10 +42,8 @@ dependencies = [
     "graphviz >= 0.20, < 0.22",
     "orjson >= 3.11.0, < 4",
     "packaging >= 21.3, < 27",
-    "requests >= 2.31.0, < 2.33.0; python_version < '3.10'",
-    "requests >= 2.33.0, < 3.0.0; python_version >= '3.10'",
-    "Pillow >= 11.3.0, < 12.2.0; python_version < '3.10'",
-    "Pillow >= 12.2.0, < 13.0.0; python_version >= '3.10'",
+    "requests >= 2.33.0, < 3.0.0",
+    "Pillow >= 12.2.0, < 13.0.0",
     "PyYAML >= 6.0.0, < 7.0.0",
     "GitPython >= 3.1.44, < 3.2",
 
@@ -60,16 +57,14 @@ dependencies = [
     "psutil >= 5.8.0",
     "Jinja2 >= 2.11.3",
 
-    "pyslang == 10.0.0",
+    "pyslang == 11.0.0",
 
-    "importlib_metadata; python_version < '3.10'",
-
-    # dashboard, streamlit does not support 3.9
-    "streamlit == 1.54.0; python_version > '3.9'",
-    "streamlit_agraph == 0.0.45; python_version > '3.9'",
-    "streamlit-antd-components == 0.3.2; python_version > '3.9'",
-    "streamlit_javascript == 0.1.5; python_version > '3.9'",
-    "streamlit-autorefresh == 1.0.1; python_version > '3.9'",
+    # dashboard
+    "streamlit == 1.54.0",
+    "streamlit_agraph == 0.0.45",
+    "streamlit-antd-components == 0.3.2",
+    "streamlit_javascript == 0.1.5",
+    "streamlit-autorefresh == 1.0.1",
 
     # CLI dashboard
     "rich >= 14.0.0, < 16.0.0"
@@ -117,7 +112,7 @@ test = [
     "pytest-timeout == 2.4.0",
     "pytest-asyncio == 1.2.0",
     "pytest-cov == 7.1.0",
-    "responses == 0.26.0",
+    "responses == 0.26.1",
     "PyVirtualDisplay == 3.0"
 ]
 lint = [

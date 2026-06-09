@@ -20,7 +20,7 @@ from siliconcompiler.tools.builtin.wait import Wait
 
 
 @pytest.fixture
-def minmax_project(monkeypatch):
+def minmax_project(project_logger):
     def minmax(cls, parallel: int = 10):
         design = Design("testdesign")
         with design.active_fileset("rtl"):
@@ -42,7 +42,7 @@ def minmax_project(monkeypatch):
             proj.set("metric", "errors", 1000 - n * 1 + 42.0, step="start", index=n)
             proj.set("metric", "warnings", 0, step="start", index=n)
 
-        monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+        project_logger(proj)
         proj.logger.setLevel(logging.INFO)
         proj.add_fileset("rtl")
         proj.set_flow(flow)
@@ -96,7 +96,7 @@ def test_wait_name():
     assert Wait().task() == "wait"
 
 
-def test_nop_select_inputs(monkeypatch, caplog):
+def test_nop_select_inputs(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -107,7 +107,7 @@ def test_nop_select_inputs(monkeypatch, caplog):
     flow.edge("start", "end")
 
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
@@ -120,7 +120,7 @@ def test_nop_select_inputs(monkeypatch, caplog):
     assert "Running builtin task 'nop'" in caplog.text
 
 
-def test_join_select_inputs(monkeypatch, caplog):
+def test_join_select_inputs(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -131,7 +131,7 @@ def test_join_select_inputs(monkeypatch, caplog):
     flow.edge("start", "end")
 
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
@@ -144,7 +144,7 @@ def test_join_select_inputs(monkeypatch, caplog):
     assert "Running builtin task 'join'" in caplog.text
 
 
-def test_wait_select_inputs(monkeypatch, caplog):
+def test_wait_select_inputs(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -155,7 +155,7 @@ def test_wait_select_inputs(monkeypatch, caplog):
     flow.edge("start", "end")
 
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
@@ -663,7 +663,7 @@ def test_filter_fail_inputs():
             node.setup()
 
 
-def test_filter_remove_all(monkeypatch, caplog):
+def test_filter_remove_all(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -674,7 +674,7 @@ def test_filter_remove_all(monkeypatch, caplog):
     flow.edge("start", "end")
 
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
@@ -689,7 +689,7 @@ def test_filter_remove_all(monkeypatch, caplog):
     assert "Filters (nomatch) removed all incoming files" in caplog.text
 
 
-def test_filter_remove_all_from_args(monkeypatch, caplog):
+def test_filter_remove_all_from_args(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -701,7 +701,7 @@ def test_filter_remove_all_from_args(monkeypatch, caplog):
     flow.set("end", "0", "args", "nomatch")
 
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
@@ -1601,3 +1601,83 @@ def test_wait_serialize_tool_tasks_validates_serial_execution():
         (("end", "0"),))
 
     assert flow.validate()
+
+
+# Regression: builtin tasks select among (or union) their upstream inputs at
+# runtime, so the same file arriving from multiple upstreams is expected — not
+# an error. The base Task validator would log "receives X from multiple input
+# tasks" repeatedly here; BuiltinTask._validate_io must suppress that.
+@pytest.mark.parametrize("cls", [JoinTask, MinimumTask, MaximumTask, MuxTask])
+def test_validate_io_builtin_multiple_inputs_same_file(cls, project_logger, caplog):
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    task_name = cls().task()
+
+    flow = Flowgraph("test")
+    flow.node("start", NOPTask(), index=0)
+    flow.node("start", NOPTask(), index=1)
+    flow.node("start", NOPTask(), index=2)
+    flow.node("end", cls())
+    flow.edge("start", "end", tail_index=0)
+    flow.edge("start", "end", tail_index=1)
+    flow.edge("start", "end", tail_index=2)
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+    project_logger(proj)
+    proj.logger.setLevel(logging.INFO)
+
+    nop = NOPTask.find_task(proj)
+    nop.add_output_file("result.v", step="start", index="0")
+    nop.add_output_file("result.v", step="start", index="1")
+    nop.add_output_file("result.v", step="start", index="2")
+
+    node = SchedulerNode(proj, "end", "0")
+    with node.runtime():
+        node.setup()
+
+    builtin_task = proj.get("tool", "builtin", "task", task_name, field="schema")
+    with builtin_task.runtime(node) as task_obj:
+        assert task_obj._validate_io() is True
+
+    assert "receives result.v from multiple input tasks" not in caplog.text
+    assert "will not receive required input" not in caplog.text
+
+
+# Builtins still flag genuinely-missing inputs.
+@pytest.mark.parametrize("cls", [JoinTask, MinimumTask, MaximumTask, MuxTask])
+def test_validate_io_builtin_missing_input(cls, project_logger, caplog):
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    task_name = cls().task()
+
+    flow = Flowgraph("test")
+    flow.node("start", NOPTask())
+    flow.node("end", cls())
+    flow.edge("start", "end")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+    project_logger(proj)
+    proj.logger.setLevel(logging.INFO)
+
+    NOPTask.find_task(proj).add_output_file("test.out", step="start", index="0")
+
+    node = SchedulerNode(proj, "end", "0")
+    with node.runtime():
+        node.setup()
+
+    # Force a requirement that no upstream actually produces.
+    proj.get("tool", "builtin", "task", task_name, field="schema").add_input_file(
+        "missing.v", step="end", index="0")
+
+    builtin_task = proj.get("tool", "builtin", "task", task_name, field="schema")
+    with builtin_task.runtime(node) as task_obj:
+        assert task_obj._validate_io() is False
+    assert "will not receive required input missing.v" in caplog.text

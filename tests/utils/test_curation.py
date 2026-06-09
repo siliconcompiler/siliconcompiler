@@ -34,7 +34,7 @@ def test_collect_notproject(arg):
         collect(arg)
 
 
-def test_collect_file_verbose(monkeypatch, caplog):
+def test_collect_file_verbose(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         with design._active(copy=True):
@@ -43,7 +43,7 @@ def test_collect_file_verbose(monkeypatch, caplog):
         f.write("test")
 
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     collect(proj)
@@ -52,7 +52,7 @@ def test_collect_file_verbose(monkeypatch, caplog):
     assert f"  Collecting file: {os.path.abspath('top.v')}" in caplog.text
 
 
-def test_collect_file_not_verbose(monkeypatch, caplog):
+def test_collect_file_not_verbose(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         with design._active(copy=True):
@@ -61,7 +61,7 @@ def test_collect_file_not_verbose(monkeypatch, caplog):
         f.write("test")
 
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     collect(proj, verbose=False)
@@ -449,9 +449,9 @@ def test_archive_select_job():
         history.assert_called_once_with("thatjob")
 
 
-def test_archive_default_archive(monkeypatch, caplog):
+def test_archive_default_archive(project_logger, caplog):
     proj = Project(Design("testdesign"))
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj._record_history()
 
@@ -461,9 +461,9 @@ def test_archive_default_archive(monkeypatch, caplog):
     assert os.path.isfile("testdesign_job0.tgz")
 
 
-def test_archive_archive_name(monkeypatch, caplog):
+def test_archive_archive_name(project_logger, caplog):
     proj = Project(Design("testdesign"))
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj._record_history()
 
@@ -473,12 +473,12 @@ def test_archive_archive_name(monkeypatch, caplog):
     assert os.path.isfile("test.tar.gz")
 
 
-def test_archive(monkeypatch, caplog):
+def test_archive(project_logger, caplog):
     design = Design("testdesign")
     design.set_topmodule("top", fileset="test")
     proj = Project(design)
     proj.add_fileset("test")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     flow = Flowgraph("testflow")

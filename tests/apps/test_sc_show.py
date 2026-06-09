@@ -5,6 +5,7 @@ import os.path
 
 from unittest.mock import patch
 
+from siliconcompiler import Project
 from siliconcompiler.apps import sc_show
 from siliconcompiler.utils.paths import workdir, jobdir
 
@@ -43,7 +44,7 @@ def test_sc_show_design_only(flags, monkeypatch, make_manifests, asic_gcd):
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=None, screenshot=False, tool=None)
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool=None, open=False)
 
 
 @pytest.mark.timeout(90)
@@ -68,7 +69,7 @@ def test_sc_show_design_only_screenshot(flags, monkeypatch, make_manifests, asic
     with patch('siliconcompiler.Project.show') as show:
         show.return_value = "test.png"
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=None, screenshot=True, tool=None)
+        show.assert_called_once_with(None, extension=None, screenshot=True, tool=None, open=False)
     assert "Screenshot file: test.png" in capsys.readouterr().out
 
 
@@ -87,7 +88,8 @@ def test_sc_show(flags, monkeypatch, make_manifests, asic_gcd):
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(flags[0], extension=None, screenshot=False, tool=None)
+        show.assert_called_once_with(flags[0], extension=None, screenshot=False, tool=None,
+                                     open=False)
 
 
 def test_sc_show_double_flags(monkeypatch, make_manifests, asic_gcd):
@@ -100,6 +102,89 @@ def test_sc_show_double_flags(monkeypatch, make_manifests, asic_gcd):
 
 
 @pytest.mark.timeout(90)
+@pytest.mark.parametrize('mode_flag,kwargs', [
+    ('-screenshot', dict(screenshot=True, open=False)),
+    ('-open', dict(screenshot=False, open=True)),
+])
+@pytest.mark.parametrize('show_file', [
+    'build/gcd/job0/route.detailed/0/outputs/gcd.def',
+    'build/gcd/job0/write.views/0/outputs/gcd.odb',
+])
+def test_sc_show_def_with_mode_flag(mode_flag, kwargs, show_file,
+                                    monkeypatch, make_manifests, asic_gcd, capsys):
+    '''sc-show passes def/odb file paths through with -screenshot or -open.'''
+    make_manifests(asic_gcd)
+
+    if kwargs['screenshot']:
+        with open("test.png", "w") as f:
+            f.write("test")
+
+    monkeypatch.setattr('sys.argv', ['sc-show', show_file, mode_flag])
+    with patch('siliconcompiler.Project.show') as show:
+        if kwargs['screenshot']:
+            show.return_value = "test.png"
+        assert sc_show.main() == 0
+        show.assert_called_once_with(show_file, extension=None, tool=None, **kwargs)
+
+
+@pytest.mark.timeout(90)
+@pytest.mark.parametrize('flags', [
+    ['-design', 'gcd'],
+    ['-design', 'gcd',
+     '-arg_step', 'floorplan.init'],
+    ['-design', 'gcd',
+     '-arg_step', 'floorplan.init',
+     '-arg_index', '0'],
+])
+def test_sc_show_design_only_open(flags, monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app with -open flag.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-open'] + flags)
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool=None, open=True)
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_open_with_file(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show -open with a file path.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show',
+                                     'build/gcd/job0/write.gds/0/outputs/gcd.def',
+                                     '-open'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with('build/gcd/job0/write.gds/0/outputs/gcd.def',
+                                     extension=None, screenshot=False, tool=None, open=True)
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_open_with_tool_and_extension(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show -open with -tool and -ext.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-open',
+                                     '-ext', 'odb', '-tool', 'openroad'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(None, extension='odb', screenshot=False,
+                                     tool='openroad', open=True)
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_open_and_screenshot_mutually_exclusive(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show errors when both -open and -screenshot are specified.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-open', '-screenshot'])
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 1
+        show.assert_not_called()
+
+
+@pytest.mark.timeout(90)
 def test_sc_show_with_tool_design_only(monkeypatch, make_manifests, asic_gcd):
     '''Test sc-show app with tool argument and design only.'''
     make_manifests(asic_gcd)
@@ -107,7 +192,8 @@ def test_sc_show_with_tool_design_only(monkeypatch, make_manifests, asic_gcd):
     monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-tool', 'klayout'])
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=None, screenshot=False, tool='klayout')
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool='klayout',
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -120,7 +206,8 @@ def test_sc_show_with_tool_and_file(monkeypatch, make_manifests, asic_gcd):
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
         show.assert_called_once_with('build/gcd/job0/write.gds/0/outputs/gcd.gds',
-                                     extension=None, screenshot=False, tool='openlane')
+                                     extension=None, screenshot=False, tool='openlane',
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -136,7 +223,8 @@ def test_sc_show_with_tool_and_screenshot(monkeypatch, make_manifests, asic_gcd)
     with patch('siliconcompiler.Project.show') as show:
         show.return_value = "test.png"
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=None, screenshot=True, tool='gds2png')
+        show.assert_called_once_with(None, extension=None, screenshot=True, tool='gds2png',
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -148,7 +236,8 @@ def test_sc_show_with_tool_and_extension(monkeypatch, make_manifests, asic_gcd):
                                      '-tool', 'openroad'])
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension='odb', screenshot=False, tool='openroad')
+        show.assert_called_once_with(None, extension='odb', screenshot=False, tool='openroad',
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -160,7 +249,8 @@ def test_sc_show_with_tool_and_step_index(monkeypatch, make_manifests, asic_gcd)
                                      '-arg_index', '0', '-tool', 'magic'])
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=None, screenshot=False, tool='magic')
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool='magic',
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -172,7 +262,8 @@ def test_sc_show_with_tool_and_jobname(monkeypatch, make_manifests, asic_gcd):
                                      '-tool', 'klayout'])
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=None, screenshot=False, tool='klayout')
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool='klayout',
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -185,7 +276,8 @@ def test_sc_show_with_tool_and_cfg(monkeypatch, make_manifests, asic_gcd):
                                      '-tool', 'magic'])
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=None, screenshot=False, tool='magic')
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool='magic',
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -196,7 +288,7 @@ def test_sc_show_with_empty_tool(monkeypatch, make_manifests, asic_gcd):
     monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-tool', ''])
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=None, screenshot=False, tool='')
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool='', open=False)
 
 
 # Mock task classes for testing
@@ -208,7 +300,7 @@ class MockShowTask1:
     def task(self):
         return "task1"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["ext1", "ext2"]
 
 
@@ -220,7 +312,7 @@ class MockShowTask2:
     def task(self):
         return "task2"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["ext3"]
 
 
@@ -232,7 +324,7 @@ class MockScreenshotTask1:
     def task(self):
         return "screenshot1"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["ext1", "ext2"]
 
 
@@ -244,7 +336,31 @@ class MockScreenshotTask2:
     def task(self):
         return "screenshot2"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
+        return ["ext3"]
+
+
+class MockOpenTask1:
+    """Mock open task for testing."""
+    def tool(self):
+        return "tool1"
+
+    def task(self):
+        return "open1"
+
+    def get_supported_task_extentions(self):
+        return ["ext1", "ext2"]
+
+
+class MockOpenTask2:
+    """Mock open task for testing."""
+    def tool(self):
+        return "tool2"
+
+    def task(self):
+        return "open2"
+
+    def get_supported_task_extentions(self):
         return ["ext3"]
 
 
@@ -252,6 +368,155 @@ class MockScreenshotTask2:
 def test_sc_show_list_show_tools(monkeypatch, capsys):
     '''Test sc-show -list to display show tools.'''
     monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
+
+    mock_tasks = [MockShowTask1, MockShowTask2]
+    # MockShowTask1 is preferred for ext1; MockShowTask2 is preferred for ext3.
+    # ext2 has no preferred entry (simulates an extension with no resolvable preference).
+    mock_ext_map = {"ext1": MockShowTask1(), "ext3": MockShowTask2()}
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Verify header and structure
+    assert "Registered Show Tools (in order):" in output
+    assert "=" * 70 in output
+
+    # Verify tools are listed with their extensions, with preferred ones starred
+    assert "1. tool1/task1" in output
+    assert "Extensions: ext1*, ext2" in output
+    assert "2. tool2/task2" in output
+    assert "Extensions: ext3*" in output
+    assert "* indicates the preferred tool for that extension" in output
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_screenshot_tools(monkeypatch, capsys):
+    '''Test sc-show -list -screenshot to display screenshot tools.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-screenshot'])
+
+    mock_tasks = [MockScreenshotTask1, MockScreenshotTask2]
+    mock_ext_map = {
+        "ext1": MockScreenshotTask1(),
+        "ext2": MockScreenshotTask1(),
+        "ext3": MockScreenshotTask2(),
+    }
+
+    with patch('siliconcompiler.apps.sc_show.ScreenshotTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ScreenshotTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Verify header and structure
+    assert "Registered Screenshot Tools (in order):" in output
+    assert "=" * 70 in output
+
+    # Verify tools are listed with their extensions, with preferred ones starred
+    assert "1. tool1/screenshot1" in output
+    assert "Extensions: ext1*, ext2*" in output
+    assert "2. tool2/screenshot2" in output
+    assert "Extensions: ext3*" in output
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_open_tools(monkeypatch, capsys):
+    '''Test sc-show -list -open to display open tools.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-open'])
+
+    mock_tasks = [MockOpenTask1, MockOpenTask2]
+    mock_ext_map = {
+        "ext1": MockOpenTask1(),
+        "ext2": MockOpenTask1(),
+        "ext3": MockOpenTask2(),
+    }
+
+    with patch('siliconcompiler.apps.sc_show.OpenTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.OpenTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Verify header and structure
+    assert "Registered Open Tools (in order):" in output
+    assert "=" * 70 in output
+
+    # Verify tools are listed with their extensions, with preferred ones starred
+    assert "1. tool1/open1" in output
+    assert "Extensions: ext1*, ext2*" in output
+    assert "2. tool2/open2" in output
+    assert "Extensions: ext3*" in output
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_with_tool_filter(monkeypatch, capsys):
+    '''Test sc-show -list -tool filters to only matching tools.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-tool', 'tool2'])
+
+    mock_tasks = [MockShowTask1, MockShowTask2]
+    # When filtering to tool2, only its extensions resolve.
+    mock_ext_map = {"ext3": MockShowTask2()}
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    # Header reflects the active filter and only tool2 is listed.
+    assert "Registered Show Tools (in order) matching 'tool2':" in output
+    assert "1. tool2/task2" in output
+    assert "Extensions: ext3*" in output
+    # tool1 was filtered out entirely.
+    assert "tool1/task1" not in output
+    # The asterisk legend is printed (extension was starred).
+    assert "* indicates the preferred tool for that extension" in output
+    # get_extension_map must be called with the tool filter.
+    mock_ext.assert_called_once_with(tool='tool2')
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_with_tool_task_filter(monkeypatch, capsys):
+    '''Test sc-show -list -tool tool/task filters to a specific task.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-tool', 'tool1/task1'])
+
+    mock_tasks = [MockShowTask1, MockShowTask2]
+    mock_ext_map = {"ext1": MockShowTask1(), "ext2": MockShowTask1()}
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
+        assert sc_show.main() == 0
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    assert "Registered Show Tools (in order) matching 'tool1/task1':" in output
+    assert "1. tool1/task1" in output
+    assert "Extensions: ext1*, ext2*" in output
+    assert "tool2/task2" not in output
+    mock_ext.assert_called_once_with(tool='tool1/task1')
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_with_tool_filter_no_match(monkeypatch, capsys):
+    '''Test sc-show -list -tool with a non-matching tool prints a clear message.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-tool', 'nonesuch'])
 
     mock_tasks = [MockShowTask1, MockShowTask2]
 
@@ -262,40 +527,32 @@ def test_sc_show_list_show_tools(monkeypatch, capsys):
     captured = capsys.readouterr()
     output = captured.out
 
-    # Verify header and structure
-    assert "Registered Show Tools (in order):" in output
-    assert "=" * 70 in output
-
-    # Verify tools are listed with their extensions
-    assert "1. tool1/task1" in output
-    assert "Extensions: ext1, ext2" in output
-    assert "2. tool2/task2" in output
-    assert "Extensions: ext3" in output
+    assert "No registered Show tools matched -tool 'nonesuch'" in output
+    # Nothing else should be listed.
+    assert "1. tool" not in output
 
 
 @pytest.mark.timeout(90)
-def test_sc_show_list_screenshot_tools(monkeypatch, capsys):
-    '''Test sc-show -list -screenshot to display screenshot tools.'''
-    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-screenshot'])
+def test_sc_show_list_with_tool_filter_not_in_ignored_warning(monkeypatch, capsys):
+    '''-tool is honored with -list, so it must not appear in the ignored-flags warning.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', '-tool', 'tool1', '-ext', 'ext1'])
 
-    mock_tasks = [MockScreenshotTask1, MockScreenshotTask2]
+    mock_tasks = [MockShowTask1]
+    mock_ext_map = {"ext1": MockShowTask1(), "ext2": MockShowTask1()}
 
-    with patch('siliconcompiler.apps.sc_show.ScreenshotTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
-    output = captured.out
+    combined = captured.out + captured.err
 
-    # Verify header and structure
-    assert "Registered Screenshot Tools (in order):" in output
-    assert "=" * 70 in output
-
-    # Verify tools are listed with their extensions
-    assert "1. tool1/screenshot1" in output
-    assert "Extensions: ext1, ext2" in output
-    assert "2. tool2/screenshot2" in output
-    assert "Extensions: ext3" in output
+    # -ext should still be warned as ignored, but -tool should not.
+    assert "-ext" in combined
+    assert "-tool" not in combined.split("Ignoring", 1)[-1].split("\n")[0] \
+        if "Ignoring" in combined else True
 
 
 @pytest.mark.timeout(90)
@@ -320,9 +577,12 @@ def test_sc_show_list_single_tool(monkeypatch, capsys):
     monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
 
     mock_tasks = [MockShowTask1]
+    mock_ext_map = {"ext1": MockShowTask1(), "ext2": MockShowTask1()}
 
-    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
@@ -345,14 +605,17 @@ def test_sc_show_list_sorted_extensions(monkeypatch, capsys):
         def task(self):
             return "task"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             # Return unsorted extensions
             return ["zed", "abc", "mno"]
 
     mock_tasks = [MockTaskWithUnsortedExts]
 
-    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        # No preferred mapping for any of these extensions
+        mock_ext.return_value = {}
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
@@ -374,13 +637,15 @@ def test_sc_show_list_no_extensions(monkeypatch, capsys):
         def task(self):
             return "task"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return []
 
     mock_tasks = [MockTaskNoExts]
 
-    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task:
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
         mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = {}
         assert sc_show.main() == 0
 
     captured = capsys.readouterr()
@@ -404,8 +669,57 @@ def test_sc_show_tool_with_all_parameters(monkeypatch, make_manifests, asic_gcd,
         show.return_value = "test.png"
         assert sc_show.main() == 0
         show.assert_called_once_with('build/gcd/job0/write.gds/0/outputs/gcd.gds',
-                                     extension='gds', screenshot=True, tool='klayout')
+                                     extension='gds', screenshot=True, tool='klayout',
+                                     open=False)
     assert "Screenshot file: test.png" in capsys.readouterr().out
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_exception_handling(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app catches exceptions from project.show and returns non-zero exit code.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd'])
+    with patch('siliconcompiler.Project.show') as show:
+        show.side_effect = RuntimeError("Test error")
+        assert sc_show.main() == 1
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool=None, open=False)
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_exception_with_file(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app catches exceptions when showing a file.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', 'build/gcd/job0/write.gds/0/outputs/gcd.gds'])
+    with patch('siliconcompiler.Project.show') as show:
+        show.side_effect = OSError("File not found")
+        assert sc_show.main() == 1
+        show.assert_called_once()
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_exception_with_screenshot(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app catches exceptions when generating screenshot.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-screenshot'])
+    with patch('siliconcompiler.Project.show') as show:
+        show.side_effect = Exception("Screenshot generation failed")
+        assert sc_show.main() == 1
+        show.assert_called_once()
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_exception_with_tool(monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app catches exceptions when using a specific tool.'''
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-tool', 'klayout'])
+    with patch('siliconcompiler.Project.show') as show:
+        show.side_effect = RuntimeError("Tool execution failed")
+        assert sc_show.main() == 1
+        show.assert_called_once()
 
 
 @pytest.mark.timeout(90)
@@ -416,7 +730,8 @@ def test_sc_show_with_tool_task_format(monkeypatch, make_manifests, asic_gcd):
     monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'gcd', '-tool', 'klayout/full'])
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=None, screenshot=False, tool='klayout/full')
+        show.assert_called_once_with(None, extension=None, screenshot=False, tool='klayout/full',
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -429,7 +744,7 @@ def test_sc_show_with_tool_task_and_extension(monkeypatch, make_manifests, asic_
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
         show.assert_called_once_with(None, extension='gds', screenshot=False,
-                                     tool='openroad/timing')
+                                     tool='openroad/timing', open=False)
 
 
 @pytest.mark.parametrize('flags', [
@@ -449,7 +764,8 @@ def test_sc_show_ext(flags, monkeypatch, make_manifests, asic_gcd):
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(None, extension=flags[-1], screenshot=False, tool=None)
+        show.assert_called_once_with(None, extension=flags[-1], screenshot=False, tool=None,
+                                     open=False)
 
 
 def test_sc_show_no_manifest(monkeypatch):
@@ -469,7 +785,8 @@ def test_sc_show_file_without_manifest_no_design(monkeypatch):
     # Design will be inferred from filename, so should succeed
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(test_file, extension=None, screenshot=False, tool=None)
+        show.assert_called_once_with(test_file, extension=None, screenshot=False, tool=None,
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -484,7 +801,8 @@ def test_sc_show_file_without_manifest_with_design(monkeypatch):
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
         # Should be called with the file path
-        show.assert_called_once_with(test_file, extension=None, screenshot=False, tool=None)
+        show.assert_called_once_with(test_file, extension=None, screenshot=False, tool=None,
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -499,7 +817,8 @@ def test_sc_show_file_without_manifest_with_extension(monkeypatch):
                                      '-ext', 'def'])
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
-        show.assert_called_once_with(test_file, extension='def', screenshot=False, tool=None)
+        show.assert_called_once_with(test_file, extension='def', screenshot=False, tool=None,
+                                     open=False)
 
 
 @pytest.mark.timeout(90)
@@ -515,7 +834,7 @@ def test_sc_show_file_without_manifest_with_tool(monkeypatch):
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
         show.assert_called_once_with(test_file, extension=None,
-                                     screenshot=False, tool='klayout')
+                                     screenshot=False, tool='klayout', open=False)
 
 
 @pytest.mark.timeout(90)
@@ -531,7 +850,7 @@ def test_sc_show_file_without_manifest_with_tool_task(monkeypatch):
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
         show.assert_called_once_with(test_file, extension=None, screenshot=False,
-                                     tool='klayout/show')
+                                     tool='klayout/show', open=False)
 
 
 @pytest.mark.timeout(90)
@@ -547,7 +866,7 @@ def test_sc_show_file_without_manifest_with_all_args(monkeypatch):
     with patch('siliconcompiler.Project.show') as show:
         assert sc_show.main() == 0
         show.assert_called_once_with(test_file, extension='def', screenshot=False,
-                                     tool='openroad/show')
+                                     tool='openroad/show', open=False)
 
 
 @pytest.mark.timeout(90)
@@ -567,7 +886,7 @@ def test_sc_show_file_without_manifest_with_screenshot(monkeypatch):
         show.return_value = "test.png"
         assert sc_show.main() == 0
         show.assert_called_once_with(test_file, extension=None, screenshot=True,
-                                     tool='klayout')
+                                     tool='klayout', open=False)
 
 
 @pytest.mark.timeout(90)
@@ -580,4 +899,135 @@ def test_sc_show_nonexistent_file_with_design(monkeypatch):
         # Should still attempt to show even with non-existent file
         # (the actual file existence check happens in project.show())
         assert sc_show.main() == 0
-        show.assert_called_once_with(nonexistent_file, extension=None, screenshot=False, tool=None)
+        show.assert_called_once_with(nonexistent_file, extension=None, screenshot=False, tool=None,
+                                     open=False)
+
+
+@pytest.mark.timeout(90)
+def _capture_show_run(monkeypatch):
+    '''Patch Project.copy and Project.run so we can capture the copy that
+    show() builds and skip the actual flow execution. Returns a dict that
+    will be populated with 'copy' and 'run_self' once show() runs.'''
+    captured = {}
+    real_copy = Project.copy
+
+    def spy_copy(self, *args, **kwargs):
+        proj = real_copy(self, *args, **kwargs)
+        captured['copy'] = proj
+        return proj
+
+    def fake_run(self):
+        captured['run_self'] = self
+
+    monkeypatch.setattr(Project, 'copy', spy_copy)
+    monkeypatch.setattr(Project, 'run', fake_run)
+    return captured
+
+
+def test_sc_show_does_not_call_reset_job_params(monkeypatch, make_manifests, asic_gcd, tmp_path):
+    '''show() must mark the copied project to skip __reset_job_params before run().'''
+    make_manifests(asic_gcd)
+
+    gds_file = tmp_path / "layout.gds"
+    gds_file.write_text("dummy")
+
+    captured = _capture_show_run(monkeypatch)
+
+    asic_gcd.show(filename=str(gds_file))
+
+    proj = captured.get('copy')
+    assert proj is not None, 'show() did not reach proj = self.copy()'
+    assert captured.get('run_self') is proj, 'show() did not call proj.run()'
+    # The skip flag must live on the copy as an instance attribute and be True,
+    # so that __reset_job_params becomes a no-op.
+    assert getattr(proj, '_Project__skipreset', False) is True
+    assert proj._Project__reset_job_params() is None
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_preserves_job_parameters(monkeypatch, make_manifests, asic_gcd, tmp_path):
+    '''When run() invokes __reset_job_params on the copy, the override makes it a no-op.'''
+    make_manifests(asic_gcd)
+
+    asic_gcd.set("arg", "step", "custom_step")
+    asic_gcd.set("arg", "index", "42")
+
+    gds_file = tmp_path / "layout.gds"
+    gds_file.write_text("dummy")
+
+    captured = {}
+    real_copy = Project.copy
+    reset_called = []
+
+    def spy_copy(self, *args, **kwargs):
+        proj = real_copy(self, *args, **kwargs)
+        captured['copy'] = proj
+        return proj
+
+    def fake_run(self):
+        captured['run_self'] = self
+        # Mirror what real run() does at the end so the override actually matters.
+        result = self._Project__reset_job_params()
+        reset_called.append(result)
+
+    monkeypatch.setattr(Project, 'copy', spy_copy)
+    monkeypatch.setattr(Project, 'run', fake_run)
+
+    asic_gcd.show(filename=str(gds_file))
+
+    proj = captured.get('copy')
+    assert proj is not None
+    assert captured.get('run_self') is proj
+    # The reset call inside run() must hit the no-op early-return path, not run the real loop.
+    assert reset_called == [None]
+    assert getattr(proj, '_Project__skipreset', False) is True
+    # Original's args are unaffected because the copy is independent.
+    assert asic_gcd.get("arg", "step") == "custom_step"
+    assert asic_gcd.get("arg", "index") == "42"
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_with_screenshot_does_not_reset_params(monkeypatch, make_manifests,
+                                                       asic_gcd, tmp_path):
+    '''The reset skip flag is installed on the copy in screenshot mode too.'''
+    make_manifests(asic_gcd)
+
+    asic_gcd.set("arg", "step", "screenshot_step")
+
+    gds_file = tmp_path / "layout.gds"
+    gds_file.write_text("dummy")
+
+    captured = _capture_show_run(monkeypatch)
+
+    asic_gcd.show(filename=str(gds_file), screenshot=True)
+
+    proj = captured.get('copy')
+    assert proj is not None
+    assert captured.get('run_self') is proj
+    assert getattr(proj, '_Project__skipreset', False) is True
+    assert proj._Project__reset_job_params() is None
+    # Original project's job arg is untouched.
+    assert asic_gcd.get("arg", "step") == "screenshot_step"
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_with_file_does_not_reset_params(monkeypatch, make_manifests,
+                                                 asic_gcd, tmp_path):
+    '''The reset skip flag is installed on the copy when showing a specific file.'''
+    make_manifests(asic_gcd)
+
+    asic_gcd.set("arg", "index", "99")
+
+    gds_file = tmp_path / "specific.gds"
+    gds_file.write_text("dummy")
+
+    captured = _capture_show_run(monkeypatch)
+
+    asic_gcd.show(filename=str(gds_file))
+
+    proj = captured.get('copy')
+    assert proj is not None
+    assert captured.get('run_self') is proj
+    assert getattr(proj, '_Project__skipreset', False) is True
+    assert proj._Project__reset_job_params() is None
+    assert asic_gcd.get("arg", "index") == "99"

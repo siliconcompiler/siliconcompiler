@@ -1,11 +1,14 @@
+import fnmatch
 import os
 import json
 
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Set
 
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.asic import CellArea
+from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema.parametertype import NodeType
 
 
 from siliconcompiler.tools.openroad import OpenROADTask
@@ -1186,6 +1189,7 @@ class APRTask(OpenROADTask):
             "drv_violations",
             "fmax",
             "power",
+            "logicdepth",
             "check_setup",
             "report_buffers",
             "placement_density",
@@ -1195,7 +1199,13 @@ class APRTask(OpenROADTask):
             "clock_placement",
             "clock_trees",
             "optimization_placement",
-            "module_view"
+            "module_view",
+            "floating_nets",
+            "overdriven_nets",
+            "snapshot",
+            "placement_view",
+            "routing_view",
+            "markers_view"
         )
         self.add_parameter("reports", f"{{<{','.join(supported)}>}}",
                            "list of reports and images to generate, auto generated")
@@ -1227,7 +1237,10 @@ class APRTask(OpenROADTask):
 
         self.add_parameter("enablehier", "bool",
                            "Enable hierarchical design support in OpenROAD when linking",
-                           defvalue=False)
+                           defvalue=self._default_enable_hier())
+
+    def _default_enable_hier(self) -> bool:
+        return False
 
     def set_openroad_enablehier(self, enable: bool,
                                 step: Optional[str] = None, index: Optional[str] = None):
@@ -1254,6 +1267,25 @@ class APRTask(OpenROADTask):
             clobber: If True, overwrites the existing list of skipped reports.
                      If False, appends to the existing list.
         """
+        if isinstance(report_type, str):
+            patterns = [report_type]
+        else:
+            patterns = list(report_type)
+
+        if any("*" in pattern for pattern in patterns):
+            enum_type = list(
+                NodeType.parse(BaseSchema.get(self, "var", "skip_reports", field="type")))[0]
+            supported_report_types = sorted(NodeType.parse(enum_type).values)
+            expanded: List[str] = []
+            for pattern in patterns:
+                matches = fnmatch.filter(supported_report_types, pattern)
+                if not matches:
+                    raise ValueError(
+                        f"Report type pattern '{pattern}' did not match any supported "
+                        f"report types: {supported_report_types}")
+                expanded.extend(matches)
+            report_type = expanded
+
         if clobber:
             self.set("var", "skip_reports", report_type, step=step, index=index)
         else:
@@ -1426,30 +1458,43 @@ class APRTask(OpenROADTask):
                 "clock_placement",
                 "clock_trees"))
 
-        self.set("var", "reports", set(task_reports).difference(skip_reports))
+        do_reports = set(task_reports).difference(skip_reports)
+        self.set("var", "reports", do_reports)
 
         if "power" in self.get("var", "reports"):
             self.add_required_key("var", "power_corner")
 
+    def _get_modes(self) -> Set[str]:
+        modes = set()
+        for scenario in self.project.constraint.timing.get_scenario().values():
+            mode = scenario.get_mode(self.step, self.index)
+            if mode:
+                modes.add(mode)
+        return modes
+
     def _add_pnr_inputs(self):
         if self.get("var", "load_sdcs"):
-            if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+            modes = self._get_modes()
+            if modes and \
+                    all(f"{self.design_topmodule}.{mode}.sdc" in self.get_files_from_input_nodes()
+                        for mode in modes):
+                for mode in modes:
+                    self.add_input_file(ext=f"{mode}.sdc")
+            elif f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
                 self.add_input_file(ext="sdc")
             else:
                 for lib, fileset in self.project.get_filesets():
                     if lib.has_file(fileset=fileset, filetype="sdc"):
                         self.add_required_key(lib, "fileset", fileset, "file", "sdc")
 
-                modes = set()
                 for scenario in self.project.constraint.timing.get_scenario().values():
                     mode = scenario.get_mode(self.step, self.index)
                     if mode:
-                        modes.add(mode)
                         self.add_required_key(scenario, "mode")
                         mode_obj = self.project.constraint.timing.get_mode(mode)
                         self.add_required_key(mode_obj, "sdcfileset")
 
-                for mode in modes:
+                for mode in self._get_modes():
                     mode_obj = self.project.constraint.timing.get_mode(mode)
                     for lib, fileset in mode_obj.get_sdcfileset():
                         libobj = self.project.get_library(lib)

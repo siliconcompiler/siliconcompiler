@@ -14,7 +14,7 @@ from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SlurmSchedulerN
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
-from siliconcompiler.utils.paths import jobdir, workdir
+from siliconcompiler.utils.paths import jobdir
 from siliconcompiler.tool import TaskExecutableNotReceived, TaskSkip, Task
 from siliconcompiler.utils.multiprocessing import MPManager
 
@@ -91,6 +91,66 @@ class SetupSkip(Task):
 
     def setup(self) -> None:
         raise TaskSkip("skipped")
+
+
+class DupInputTask(Task):
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "dupinput"
+
+    def run(self):
+        return 0
+
+
+class SeedTask(Task):
+    """Entry task that writes a seed.v file so downstream NOPTasks have
+    something to propagate."""
+
+    def tool(self) -> str:
+        return "seedtool"
+
+    def task(self) -> str:
+        return "seed"
+
+    def setup(self):
+        self.add_output_file("seed.v")
+
+    def run(self):
+        with open("outputs/seed.v", "w") as f:
+            f.write("// seed\n")
+        return 0
+
+
+@pytest.fixture
+def forkjoin_project(gcd_design):
+    """A fork/join flow used to exercise option.from after a fork:
+
+        entry --> A1 --> A2 --> joinstep
+              \\-> B1 --> B2 -/
+    """
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = Flowgraph("forkjoin")
+    flow.node("entry", SeedTask())
+    flow.node("A1", NOPTask())
+    flow.node("A2", NOPTask())
+    flow.node("B1", NOPTask())
+    flow.node("B2", NOPTask())
+    flow.node("joinstep", NOPTask())
+
+    flow.edge("entry", "A1")
+    flow.edge("A1", "A2")
+    flow.edge("entry", "B1")
+    flow.edge("B1", "B2")
+    flow.edge("A2", "joinstep")
+    flow.edge("B2", "joinstep")
+
+    project.set_flow(flow)
+    return project
 
 
 class AdditionalFiles(Task):
@@ -217,10 +277,10 @@ def test_check_display_run(basic_project):
 
 
 @patch('sys.platform', 'linux')
-def test_check_display_nodisplay(basic_project, remove_display_environment, monkeypatch, caplog):
+def test_check_display_nodisplay(project_logger, basic_project, remove_display_environment, caplog):
     # Checks if the nodisplay option is set
     # On linux system without display
-    monkeypatch.setattr(basic_project, "_Project__logger", logging.getLogger())
+    project_logger(basic_project)
     basic_project.logger.setLevel(logging.INFO)
 
     basic_project.set("option", "nodisplay", False)
@@ -609,8 +669,8 @@ def test_classcheck_fail(basic_project):
         check_flowgraph_io.assert_not_called()
 
 
-def test_check_task_classes_fail(basic_project, monkeypatch, caplog):
-    monkeypatch.setattr(basic_project, "_Project__logger", logging.getLogger())
+def test_check_task_classes_fail(project_logger, basic_project, caplog):
+    project_logger(basic_project)
     basic_project.logger.setLevel(logging.INFO)
 
     EditableSchema(basic_project).insert("tool", "builtin", "task", "nop", Task(), clobber=True)
@@ -621,8 +681,8 @@ def test_check_task_classes_fail(basic_project, monkeypatch, caplog):
     assert "Invalid task: stepone/0 did not load the correct class module" in caplog.text
 
 
-def test_check_task_classes_pass(basic_project, monkeypatch, caplog):
-    monkeypatch.setattr(basic_project, "_Project__logger", logging.getLogger())
+def test_check_task_classes_pass(project_logger, basic_project, caplog):
+    project_logger(basic_project)
     basic_project.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project)
@@ -631,8 +691,12 @@ def test_check_task_classes_pass(basic_project, monkeypatch, caplog):
     assert caplog.text == ""
 
 
-def test_check_flowgraph_io_basic(basic_project, monkeypatch, caplog):
-    monkeypatch.setattr(basic_project, "_Project__logger", logging.getLogger())
+def test_check_flowgraph_io_basic(project_logger, basic_project, caplog):
+    """Smoke integration test that the scheduler still walks nodes and reports
+    success when there are no IO requirements. Detailed validation behavior
+    lives with Task._validate_io and is tested in tests/test_tool.py and
+    tests/tools/test_builtin.py."""
+    project_logger(basic_project)
     basic_project.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project)
@@ -641,164 +705,49 @@ def test_check_flowgraph_io_basic(basic_project, monkeypatch, caplog):
     assert caplog.text == ""
 
 
-def test_check_flowgraph_io_with_files(basic_project_no_flow, monkeypatch, caplog):
+def test_check_flowgraph_io_propagates_failure(project_logger, basic_project_no_flow, caplog):
+    """Scheduler-level smoke: a failing _validate_io result is surfaced."""
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
     basic_project_no_flow.set_flow(flow)
 
-    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    project_logger(basic_project_no_flow)
     basic_project_no_flow.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project_no_flow)
 
     nop = NOPTask.find_task(basic_project_no_flow)
-    nop.add_output_file("test.v", step="stepone", index="0")
-    nop.add_input_file("test.v", step="steptwo", index="0")
-
-    assert scheduler._Scheduler__check_flowgraph_io() is True
-    assert caplog.text == ""
-
-
-def test_check_flowgraph_io_with_files_join(basic_project_no_flow, monkeypatch, caplog):
-    flow = Flowgraph("testflow")
-    flow.node("stepone", NOPTask())
-    flow.node("steptwo", NOPTask())
-    flow.node("dojoin", NOPTask())
-    flow.node("postjoin", NOPTask())
-    flow.edge("stepone", "dojoin")
-    flow.edge("steptwo", "dojoin")
-    flow.edge("dojoin", "postjoin")
-    basic_project_no_flow.set_flow(flow)
-
-    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
-    basic_project_no_flow.logger.setLevel(logging.INFO)
-
-    scheduler = Scheduler(basic_project_no_flow)
-
-    nop = NOPTask.find_task(basic_project_no_flow)
-    nop.add_output_file("a.v", step="stepone", index="0")
-    nop.add_output_file("b.v", step="steptwo", index="0")
-    nop.add_input_file("a.v", step="dojoin", index="0")
-    nop.add_input_file("b.v", step="dojoin", index="0")
-    nop.add_output_file("a.v", step="dojoin", index="0")
-    nop.add_output_file("b.v", step="dojoin", index="0")
-    nop.add_input_file("a.v", step="postjoin", index="0")
-    nop.add_input_file("b.v", step="postjoin", index="0")
-
-    assert scheduler._Scheduler__check_flowgraph_io() is True
-    assert caplog.text == ""
-
-
-def test_check_flowgraph_io_with_files_join_extra_files(basic_project_no_flow, monkeypatch, caplog):
-    flow = Flowgraph("testflow")
-    flow.node("stepone", NOPTask())
-    flow.node("steptwo", NOPTask())
-    flow.node("dojoin", NOPTask())
-    flow.node("postjoin", NOPTask())
-    flow.edge("stepone", "dojoin")
-    flow.edge("steptwo", "dojoin")
-    flow.edge("dojoin", "postjoin")
-    basic_project_no_flow.set_flow(flow)
-
-    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
-    basic_project_no_flow.logger.setLevel(logging.INFO)
-
-    scheduler = Scheduler(basic_project_no_flow)
-
-    nop = NOPTask.find_task(basic_project_no_flow)
-    nop.add_output_file("a.v", step="stepone", index="0")
-    nop.add_output_file("common.v", step="stepone", index="0")
-    nop.add_output_file("b.v", step="steptwo", index="0")
-    nop.add_output_file("common.v", step="stepone", index="0")
-    nop.add_input_file("common.v", step="dojoin", index="0")
-    nop.add_output_file("common.v", step="dojoin", index="0")
-    nop.add_input_file("common.v", step="postjoin", index="0")
-
-    assert scheduler._Scheduler__check_flowgraph_io() is True
-    assert caplog.text == ""
-
-
-def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, monkeypatch, caplog):
-    flow = Flowgraph("testflow")
-    flow.node("stepone", NOPTask())
-    flow.node("steptwo", NOPTask())
-    flow.edge("stepone", "steptwo")
-    basic_project_no_flow.set_flow(flow)
-
-    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
-    basic_project_no_flow.logger.setLevel(logging.INFO)
-
-    scheduler = Scheduler(basic_project_no_flow)
-
-    nop = NOPTask.find_task(basic_project_no_flow)
-    nop.add_output_file("test.v", step="stepone", index="0")
-    nop.add_input_file("test.v", step="steptwo", index="0")
     nop.add_input_file("missing.v", step="steptwo", index="0")
 
     assert scheduler._Scheduler__check_flowgraph_io() is False
     assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
 
 
-def test_check_flowgraph_io_with_files_valid_input(basic_project_no_flow):
-    flow = Flowgraph("testflow")
-    flow.node("stepone", NOPTask())
-    flow.node("steptwo", NOPTask())
-    flow.edge("stepone", "steptwo")
-    basic_project_no_flow.set_flow(flow)
-
-    scheduler = Scheduler(basic_project_no_flow)
-
-    nop = NOPTask.find_task(basic_project_no_flow)
-    nop.add_output_file("test.v", step="stepone", index="0")
-    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
-
-    assert scheduler._Scheduler__check_flowgraph_io() is True
-
-
-def test_check_flowgraph_io_with_files_valid_input_from(basic_project_no_flow):
-    flow = Flowgraph("testflow")
-    flow.node("stepone", NOPTask())
-    flow.node("steptwo", NOPTask())
-    flow.edge("stepone", "steptwo")
-    basic_project_no_flow.set_flow(flow)
-
-    basic_project_no_flow.option.add_from("steptwo")
-
-    os.makedirs(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs'),
-                exist_ok=True)
-    with open(os.path.join(workdir(basic_project_no_flow, step="stepone", index="0"), 'outputs',
-                           'test.v'), 'w') as f:
-        f.write("test")
-
-    scheduler = Scheduler(basic_project_no_flow)
-
-    nop = NOPTask.find_task(basic_project_no_flow)
-    nop.add_output_file("test.v", step="stepone", index="0")
-    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
-
-    assert scheduler._Scheduler__check_flowgraph_io() is True
-
-
-def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, monkeypatch, caplog):
+def test_check_flowgraph_io_rejects_duplicate_input(project_logger, basic_project_no_flow,
+                                                    caplog):
+    """Non-builtin task with ambiguous fan-in (same input name from two
+    upstreams) must fail validation at the scheduler entrypoint."""
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask(), index=0)
     flow.node("stepone", NOPTask(), index=1)
-    flow.node("steptwo", NOPTask())
+    flow.node("steptwo", DupInputTask())
     flow.edge("stepone", "steptwo", tail_index=0)
     flow.edge("stepone", "steptwo", tail_index=1)
     basic_project_no_flow.set_flow(flow)
 
-    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    project_logger(basic_project_no_flow)
     basic_project_no_flow.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project_no_flow)
 
-    nop = NOPTask.find_task(basic_project_no_flow)
-    nop.add_output_file("test.v", step="stepone", index="0")
-    nop.add_output_file("test.v", step="stepone", index="1")
-    nop.add_input_file("test.v", step="steptwo", index="0")
+    NOPTask.find_task(basic_project_no_flow).add_output_file(
+        "test.v", step="stepone", index="0")
+    NOPTask.find_task(basic_project_no_flow).add_output_file(
+        "test.v", step="stepone", index="1")
+    DupInputTask.find_task(basic_project_no_flow).add_input_file(
+        "test.v", step="steptwo", index="0")
 
     assert scheduler._Scheduler__check_flowgraph_io() is False
     assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text
@@ -828,6 +777,52 @@ def test_rerun(gcd_nop_project):
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="stepthree", index="0") == \
         NodeStatus.PENDING
+
+
+@pytest.mark.timeout(120)
+def test_rerun_from_after_fork_to_join(forkjoin_project):
+    """Re-running with option.from after a fork and option.to at the join
+    must forward the bypassed leg's prior SUCCESS so the join can launch.
+
+    Regression for a bug where __configure_collect_previous_information
+    only loaded prior manifests for nodes upstream of option.from,
+    silently dropping fork-sibling legs that re-converge downstream.
+    """
+    assert forkjoin_project.run()
+    for step in ("entry", "A1", "A2", "B1", "B2", "joinstep"):
+        assert forkjoin_project.history("job0").get(
+            "record", "status", step=step, index="0"
+        ) == NodeStatus.SUCCESS
+
+    forkjoin_project.set("option", "from", ["A1"])
+    forkjoin_project.set("option", "to", ["joinstep"])
+    assert forkjoin_project.run()
+
+    rec = forkjoin_project.history("job0")
+    # Bypassed leg keeps its prior SUCCESS so joinstep sees a satisfied dep.
+    assert rec.get("record", "status", step="B1", index="0") == NodeStatus.SUCCESS
+    assert rec.get("record", "status", step="B2", index="0") == NodeStatus.SUCCESS
+    # Active leg and join re-ran successfully.
+    assert rec.get("record", "status", step="A1", index="0") == NodeStatus.SUCCESS
+    assert rec.get("record", "status", step="A2", index="0") == NodeStatus.SUCCESS
+    assert rec.get("record", "status", step="joinstep", index="0") == NodeStatus.SUCCESS
+
+
+@pytest.mark.timeout(120)
+def test_rerun_from_after_fork_to_join_with_clean(forkjoin_project):
+    """Same scenario as test_rerun_from_after_fork_to_join but with
+    option.clean=True, which takes the other branch in
+    __configure_collect_previous_information."""
+    assert forkjoin_project.run()
+
+    forkjoin_project.set("option", "from", ["A1"])
+    forkjoin_project.set("option", "to", ["joinstep"])
+    forkjoin_project.set("option", "clean", True)
+    assert forkjoin_project.run()
+
+    rec = forkjoin_project.history("job0")
+    assert rec.get("record", "status", step="B2", index="0") == NodeStatus.SUCCESS
+    assert rec.get("record", "status", step="joinstep", index="0") == NodeStatus.SUCCESS
 
 
 @pytest.mark.timeout(60)
@@ -1013,8 +1008,8 @@ def test_resume_value_changed_not_before_from(gcd_nop_project):
             in log_text
 
 
-def test_check_tool_requirements_local(gcd_nop_project, monkeypatch, caplog):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_requirements_local(project_logger, gcd_nop_project, caplog):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
@@ -1039,8 +1034,8 @@ def test_check_tool_requirements_local(gcd_nop_project, monkeypatch, caplog):
         "for stepthree/0." in caplog.text
 
 
-def test_check_tool_requirements_remote(gcd_nop_project, monkeypatch, caplog):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_requirements_remote(project_logger, gcd_nop_project, caplog):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
@@ -1067,8 +1062,8 @@ def test_check_tool_requirements_remote(gcd_nop_project, monkeypatch, caplog):
 
 
 @pytest.mark.parametrize("scheduler", ("docker", "slurm"))
-def test_check_tool_requirements_non_local(gcd_nop_project, monkeypatch, caplog, scheduler):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_requirements_non_local(project_logger, gcd_nop_project, caplog, scheduler):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
@@ -1094,8 +1089,8 @@ def test_check_tool_requirements_non_local(gcd_nop_project, monkeypatch, caplog,
         "for stepthree/0." not in caplog.text
 
 
-def test_check_tool_requirements_pass(gcd_nop_project, monkeypatch, caplog):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_requirements_pass(project_logger, gcd_nop_project, caplog):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
@@ -1258,8 +1253,8 @@ def test_install_file_logger_max_backups(basic_project):
             assert "current log" in content or content == "current log"
 
 
-def test_check_tool_versions_local_pass(gcd_nop_project, monkeypatch, caplog):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_versions_local_pass(project_logger, gcd_nop_project, caplog):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
@@ -1275,8 +1270,8 @@ def test_check_tool_versions_local_pass(gcd_nop_project, monkeypatch, caplog):
     assert caplog.text == ""
 
 
-def test_check_tool_versions_local_pass_not_received(gcd_nop_project, monkeypatch, caplog):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_versions_local_pass_not_received(project_logger, gcd_nop_project, caplog):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
@@ -1294,8 +1289,8 @@ def test_check_tool_versions_local_pass_not_received(gcd_nop_project, monkeypatc
     assert caplog.text == ""
 
 
-def test_check_tool_versions_remote(gcd_nop_project, monkeypatch, caplog):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_versions_remote(project_logger, gcd_nop_project, caplog):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     gcd_nop_project.option.set_remote(True)
@@ -1311,8 +1306,8 @@ def test_check_tool_versions_remote(gcd_nop_project, monkeypatch, caplog):
     assert caplog.text == ""
 
 
-def test_check_tool_versions_local_fail(gcd_nop_project, monkeypatch, caplog):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_versions_local_fail(project_logger, gcd_nop_project, caplog):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
@@ -1332,8 +1327,8 @@ def test_check_tool_versions_local_fail(gcd_nop_project, monkeypatch, caplog):
 
 
 @pytest.mark.parametrize("scheduler", ("docker", "slurm"))
-def test_check_tool_versions_non_local_fail(gcd_nop_project, monkeypatch, caplog, scheduler):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_versions_non_local_fail(project_logger, gcd_nop_project, caplog, scheduler):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
@@ -1353,8 +1348,8 @@ def test_check_tool_versions_non_local_fail(gcd_nop_project, monkeypatch, caplog
 
 
 @pytest.mark.parametrize("scheduler", ("docker", "slurm"))
-def test_check_tool_versions_non_local_pass(gcd_nop_project, monkeypatch, caplog, scheduler):
-    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+def test_check_tool_versions_non_local_pass(project_logger, gcd_nop_project, caplog, scheduler):
+    project_logger(gcd_nop_project)
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")

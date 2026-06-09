@@ -10,10 +10,10 @@ import time
 
 import os.path
 
-from unittest.mock import patch, ANY, MagicMock
+from unittest.mock import patch, MagicMock
 
 from siliconcompiler import Flowgraph
-from siliconcompiler import ShowTask, ScreenshotTask
+from siliconcompiler import OpenTask, ShowTask, ScreenshotTask
 from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler import Task
@@ -107,7 +107,7 @@ def patch_psutil(monkeypatch):
 
 
 @pytest.fixture
-def running_project():
+def running_project(project_logger):
     class TestProject(Project):
         def __init__(self):
             super().__init__()
@@ -118,8 +118,7 @@ def running_project():
             self.set_design(design)
             self.add_fileset("rtl")
 
-            self._Project__logger = logging.getLogger()
-            self.logger.setLevel(logging.INFO)
+            project_logger(self)
 
             flow = Flowgraph("testflow")
             flow.node("running", NOPTask())
@@ -142,7 +141,7 @@ class ToolA(ShowTask):
     def task(self):
         return "show"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["ext"]
 
 
@@ -153,7 +152,7 @@ class ToolB(ShowTask):
     def task(self):
         return "show"
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["ext"]
 
 
@@ -404,8 +403,8 @@ def test_get_exe_not_found(running_node):
             exe_not_found_handler.assert_called_once()
 
 
-def test_get_exe_not_found_suggestion(running_node, monkeypatch, caplog):
-    monkeypatch.setattr(running_node.project, "_Project__logger", logging.getLogger())
+def test_get_exe_not_found_suggestion(project_logger, running_node, caplog):
+    project_logger(running_node.project)
     running_node.project.logger.setLevel("INFO")
 
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
@@ -418,8 +417,8 @@ def test_get_exe_not_found_suggestion(running_node, monkeypatch, caplog):
     assert "Missing tool can be installed via: \"sc-install builtin\"" in caplog.text
 
 
-def test_get_exe_not_found_no_suggestion(running_node, monkeypatch, caplog):
-    monkeypatch.setattr(running_node.project, "_Project__logger", logging.getLogger())
+def test_get_exe_not_found_no_suggestion(project_logger, running_node, caplog):
+    project_logger(running_node.project)
     running_node.project.logger.setLevel("INFO")
 
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
@@ -1500,11 +1499,14 @@ def test_run_task_breakpoint_valid(running_node, monkeypatch):
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        with patch("pty.spawn", autospec=True) as spawn:
-            spawn.return_value = 1
+        with patch.object(dut_tool, "_run_breakpoint", autospec=True) as runner:
+            runner.return_value = 1
             assert runtool.run_task('.', False, True, None, None) == 1
-            spawn.assert_called_once()
-            spawn.assert_called_with(["found/exe"], ANY)
+            runner.assert_called_once()
+            args, _ = runner.call_args
+            assert args[0] == "found/exe"
+            assert args[1] == []
+            assert args[2].endswith("running.log")
 
 
 def test_run_task_breakpoint_not_used(running_node, monkeypatch):
@@ -1528,10 +1530,351 @@ def test_run_task_breakpoint_not_used(running_node, monkeypatch):
     monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
 
     with running_node.task.runtime(running_node) as runtool:
-        with patch("pty.spawn", autospec=True) as spawn:
-            spawn.return_value = 1
+        with patch.object(dut_tool, "_run_breakpoint", autospec=True) as runner:
+            runner.return_value = 1
             assert runtool.run_task('.', False, True, None, None) == 1
-            spawn.assert_not_called()
+            runner.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Tests for _run_breakpoint (PTY runner)
+# ---------------------------------------------------------------------------
+
+def _block_dev_tty(monkeypatch):
+    """Prevent _run_breakpoint from grabbing the real terminal during tests.
+
+    ``_run_breakpoint`` opens ``/dev/tty`` to bypass multiprocessing's stdin
+    redirection. In a real interactive shell that would let tests put the
+    user's actual terminal into raw mode, which is rude even if cleanup
+    restores it. Force the open to fail so tests fall back to ``sys.stdin``
+    where the existing fixtures keep things hermetic.
+    """
+    real_open = dut_tool.os.open
+
+    def fake_open(path, flags, *args, **kwargs):
+        if path == "/dev/tty":
+            raise OSError("blocked in test")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(dut_tool.os, "open", fake_open)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_logs_raw_output(tmp_path, monkeypatch):
+    """End-to-end: log captures the raw byte stream verbatim.
+
+    Filtering would lose information for in-place line edits (history
+    recall, completion) so the log is intentionally a faithful recording.
+    Use ``cat`` or ``less -R`` to view the rendered form.
+    """
+    pytest.importorskip('pty')
+    _block_dev_tty(monkeypatch)
+
+    # Force the runner onto the no-tty code path: select() will then watch
+    # only the master fd, no stdin forwarding, and the test stays hermetic.
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    log_path = str(tmp_path / "bp.log")
+
+    # printf is universally available on POSIX and lets us emit raw escape
+    # bytes without depending on the shell's quoting.
+    rc = dut_tool._run_breakpoint(
+        "/usr/bin/printf",
+        ["\\033[31mERR\\033[0m hello\\n"],
+        log_path)
+
+    assert rc == 0
+    with open(log_path, "rb") as f:
+        contents = f.read()
+    # Raw bytes preserved: both the ANSI escape sequences and the payload.
+    assert b"\x1b[31m" in contents
+    assert b"\x1b[0m" in contents
+    assert b"ERR" in contents
+    assert b"hello" in contents
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_propagates_child_exit_code(tmp_path, monkeypatch):
+    pytest.importorskip('pty')
+    _block_dev_tty(monkeypatch)
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    log_path = str(tmp_path / "bp.log")
+    # /bin/sh -c 'exit 7' — verifies waitstatus_to_exitcode decoding
+    rc = dut_tool._run_breakpoint("/bin/sh", ["-c", "exit 7"], log_path)
+    assert rc == 7
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_missing_executable_returns_127(tmp_path, monkeypatch):
+    """If execvp fails in the child, the parent should see exit code 127."""
+    pytest.importorskip('pty')
+    _block_dev_tty(monkeypatch)
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    log_path = str(tmp_path / "bp.log")
+    rc = dut_tool._run_breakpoint(
+        "/nonexistent/definitely/not/a/real/binary",
+        [],
+        log_path)
+    assert rc == 127
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_winsize_propagated_when_tty(tmp_path, monkeypatch):
+    """When parent stdin is a TTY, winsize is copied to the child PTY."""
+    pytest.importorskip('pty')
+    import fcntl
+    import termios
+    import tty
+    import signal
+
+    # Block /dev/tty and inject a controllable fd so we exercise the TTY
+    # code path without touching the user's real terminal.
+    devnull_fd = os.open(os.devnull, os.O_RDONLY)
+    real_open = dut_tool.os.open
+
+    def fake_open(path, flags, *args, **kwargs):
+        if path == "/dev/tty":
+            raise OSError("blocked in test")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(dut_tool.os, "open", fake_open)
+
+    class _FakeStdin:
+        def fileno(self):
+            return devnull_fd
+
+    monkeypatch.setattr(dut_tool.sys, "stdin", _FakeStdin())
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: True)
+
+    captured = {"gets": 0, "sets": 0}
+    fake_winsize = b"\x18\x00\x50\x00\x00\x00\x00\x00"  # 24 rows, 80 cols
+
+    real_ioctl = fcntl.ioctl
+
+    def fake_ioctl(fd, request, arg=0, mutate_flag=False):
+        if request == termios.TIOCGWINSZ:
+            captured["gets"] += 1
+            return fake_winsize
+        if request == termios.TIOCSWINSZ:
+            captured["sets"] += 1
+            assert arg == fake_winsize
+            return arg
+        return real_ioctl(fd, request, arg, mutate_flag)
+
+    monkeypatch.setattr(fcntl, "ioctl", fake_ioctl)
+    # Skip raw mode + signal hooks — those touch the real terminal.
+    monkeypatch.setattr(termios, "tcgetattr", lambda fd: None)
+    monkeypatch.setattr(termios, "tcsetattr", lambda fd, when, attrs: None)
+    monkeypatch.setattr(tty, "setraw", lambda fd: None)
+    monkeypatch.setattr(signal, "signal", lambda *a, **kw: None)
+
+    log_path = str(tmp_path / "bp.log")
+    try:
+        rc = dut_tool._run_breakpoint("/bin/sh", ["-c", "exit 0"], log_path)
+    finally:
+        os.close(devnull_fd)
+
+    assert rc == 0
+    assert captured["gets"] >= 1, "TIOCGWINSZ should be queried from parent"
+    assert captured["sets"] >= 1, "TIOCSWINSZ should be applied to child PTY"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_no_winsize_when_not_tty(tmp_path, monkeypatch):
+    """Non-TTY parent: skip winsize and raw-mode plumbing entirely."""
+    pytest.importorskip('pty')
+    import fcntl
+    import termios
+    import tty
+
+    _block_dev_tty(monkeypatch)
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    called = {"gets": 0, "sets": 0, "raw": 0}
+
+    def fake_ioctl(*args, **kwargs):
+        request = args[1] if len(args) > 1 else None
+        if request == termios.TIOCGWINSZ:
+            called["gets"] += 1
+        elif request == termios.TIOCSWINSZ:
+            called["sets"] += 1
+        return b"\x00" * 8
+
+    monkeypatch.setattr(fcntl, "ioctl", fake_ioctl)
+    monkeypatch.setattr(tty, "setraw",
+                        lambda fd: called.__setitem__("raw", called["raw"] + 1))
+
+    log_path = str(tmp_path / "bp.log")
+    rc = dut_tool._run_breakpoint("/bin/sh", ["-c", "exit 0"], log_path)
+
+    assert rc == 0
+    assert called["gets"] == 0
+    assert called["sets"] == 0
+    assert called["raw"] == 0
+
+
+def test_run_breakpoint_raises_when_pty_unavailable(monkeypatch, tmp_path):
+    monkeypatch.setattr(dut_tool, "pty", None)
+    with pytest.raises(RuntimeError, match=r"pty module is not available"):
+        dut_tool._run_breakpoint("/bin/true", [], str(tmp_path / "bp.log"))
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_forwards_keystrokes_via_dev_tty(tmp_path, monkeypatch):
+    """End-to-end: arrows, Tab, printable chars, and Enter all reach the child.
+
+    Regression test for the multiprocessing-worker case: the worker's
+    ``sys.stdin`` is reassigned to wrap /dev/null (CPython
+    ``multiprocessing/util._close_stdin``) so reading from it returns
+    instant EOF. ``_run_breakpoint`` must instead read from ``/dev/tty``
+    (or, failing that, fd 0 directly) so keystrokes still reach the
+    child.
+
+    We simulate that environment here by forcing ``sys.stdin`` to wrap
+    /dev/null and providing a controllable fake ``/dev/tty`` whose
+    "user side" we can drive from the test.
+    """
+    pytest.importorskip('pty')
+    import fcntl
+    import termios
+    import tty as _tty_mod
+    import signal as _signal_mod
+
+    # Simulate the multiprocessing-worker stdin reassignment.
+    devnull_fd = os.open(os.devnull, os.O_RDONLY)
+
+    class _DevNullStdin:
+        def fileno(self):
+            return devnull_fd
+
+    monkeypatch.setattr(dut_tool.sys, "stdin", _DevNullStdin())
+    # Force the /dev/tty path (don't fall back to fd 0, which would be
+    # the test runner's own stdin and is not controllable from here).
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
+
+    # Build a fake user terminal: master/slave pair we drive from the
+    # test (master) while the runner sees the slave as its /dev/tty.
+    user_master, user_slave = os.openpty()
+    real_open = dut_tool.os.open
+
+    def fake_open(path, flags, *args, **kwargs):
+        if path == "/dev/tty":
+            # Hand out a dup so the runner's close() doesn't kill our handle.
+            return os.dup(user_slave)
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(dut_tool.os, "open", fake_open)
+    # Suppress side effects on user_slave (raw mode, signal hooks,
+    # winsize ioctls) — the test isn't validating those here.
+    monkeypatch.setattr(termios, "tcgetattr", lambda fd: None)
+    monkeypatch.setattr(termios, "tcsetattr", lambda *a, **kw: None)
+    monkeypatch.setattr(_tty_mod, "setraw", lambda fd: None)
+    monkeypatch.setattr(_signal_mod, "signal", lambda *a, **kw: None)
+    monkeypatch.setattr(fcntl, "ioctl", lambda *a, **kw: b"\x00" * 8)
+
+    # The "user" types: arrow up, arrow down, Tab, "hello", Enter.
+    # Cooked-mode line discipline in the inner PTY translates \r to \n
+    # before delivering the line to the child.
+    user_input = b"\x1b[A\x1b[B\thello\r"
+    os.write(user_master, user_input)
+
+    log_path = str(tmp_path / "bp.log")
+    # A small Python child gives us deterministic behaviour across
+    # systems and Python versions: read one line, write it back, exit.
+    # (Avoids subtle differences in coreutils ``head`` flushing.)
+    child_script = (
+        "import sys; "
+        "data = sys.stdin.buffer.readline(); "
+        "sys.stdout.buffer.write(data); "
+        "sys.stdout.flush()"
+    )
+    rc = dut_tool._run_breakpoint(
+        sys.executable, ["-c", child_script], log_path)
+
+    # Drain whatever the runner wrote back to the "user terminal".
+    fcntl.fcntl(user_master, fcntl.F_SETFL, os.O_NONBLOCK)
+    seen = b""
+    while True:
+        try:
+            chunk = os.read(user_master, 4096)
+        except BlockingIOError:
+            break
+        if not chunk:
+            break
+        seen += chunk
+
+    os.close(user_master)
+    os.close(user_slave)
+    os.close(devnull_fd)
+
+    # The exit code can legitimately be 0 (clean exit) or negative
+    # (signal exit — typically -1 / SIGHUP when our cleanup closes the
+    # inner PTY master before the child has finished tearing down).
+    # The latter is observed intermittently on Python 3.14 with
+    # multi-threaded pytest-xdist (forkpty emits a DeprecationWarning
+    # about deadlocks in that environment). What this test actually
+    # validates is keystroke flow, so we accept either outcome and let
+    # the byte assertions below catch real regressions.
+    assert rc == 0 or rc < 0, f"unexpected rc: {rc}"
+    # Each class of byte must appear in the round-tripped stream:
+    # printable text, arrow-key escape sequences, and Tab. (Enter
+    # arrives at the child as \n after ICRNL translation, which is
+    # fine — we're verifying the bytes flow, not the line discipline.)
+    assert b"hello" in seen, f"printable text missing from {seen!r}"
+    assert b"\x1b[A" in seen, f"up-arrow escape missing from {seen!r}"
+    assert b"\x1b[B" in seen, f"down-arrow escape missing from {seen!r}"
+    assert b"\t" in seen, f"tab missing from {seen!r}"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
+def test_run_breakpoint_falls_back_to_fd0_when_dev_tty_unavailable(
+        tmp_path, monkeypatch):
+    """When /dev/tty can't be opened (CI, daemon), fall back to fd 0.
+
+    Mirrors what ``pty.spawn`` did: read from STDIN_FILENO directly,
+    not from ``sys.stdin.fileno()`` (which may have been reassigned by
+    the multiprocessing bootstrap to a /dev/null fd).
+    """
+    pytest.importorskip('pty')
+    import fcntl
+    import termios
+    import tty as _tty_mod
+    import signal as _signal_mod
+
+    _block_dev_tty(monkeypatch)
+
+    # Make fd 0 "look like a tty" so we exercise the fd-0 fallback
+    # branch (otherwise the code falls through to sys.stdin.fileno()).
+    monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: fd == 0 or fd == 1)
+    # Suppress all terminal-mode side effects on the test runner's
+    # actual fd 0/1 — we only care about which fd the runner picked.
+    monkeypatch.setattr(termios, "tcgetattr", lambda fd: None)
+    monkeypatch.setattr(termios, "tcsetattr", lambda *a, **kw: None)
+    monkeypatch.setattr(_tty_mod, "setraw", lambda fd: None)
+    monkeypatch.setattr(_signal_mod, "signal", lambda *a, **kw: None)
+    monkeypatch.setattr(fcntl, "ioctl", lambda *a, **kw: b"\x00" * 8)
+
+    # Track which fd select.select watches — proves we picked fd 0,
+    # not the redirected sys.stdin fd.
+    seen_fds = []
+
+    def fake_select(rlist, wlist, xlist, *args):
+        seen_fds.extend(rlist)
+        # Make master_fd EOF immediately so the loop exits without
+        # trying to read fd 0 (which is the pytest runner's stdin).
+        return [fd for fd in rlist if fd != 0], [], []
+
+    monkeypatch.setattr(__import__('select'), "select", fake_select)
+
+    log_path = str(tmp_path / "bp.log")
+    rc = dut_tool._run_breakpoint("/bin/sh", ["-c", "exit 0"], log_path)
+
+    assert rc == 0
+    assert 0 in seen_fds, (
+        "Expected runner to watch fd 0 directly when /dev/tty unavailable, "
+        f"saw fds: {seen_fds}")
 
 
 def test_run_task_run(running_node):
@@ -2334,14 +2677,14 @@ def test_get_fileset_file_keys_invalid(running_node):
             runtool.get_fileset_file_keys(["verilog"])
 
 
-@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
-def test_show_keys(cls):
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_keys(cls):
     assert cls().getkeys("var") == ('showexit', 'showfilepath', 'showfiletype', 'shownode')
 
 
-@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
-def test_show_check_task_none(cls):
-    assert cls._ShowTask__check_task(None) is False
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_check_task_none(cls):
+    assert cls._OpenTask__check_task(None) is False
 
 
 @pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
@@ -2352,41 +2695,64 @@ def test_show_tcl_vars(cls):
             "sc_do_screenshot": "true" if cls is ScreenshotTask else "false"}
 
 
-def test_show_task_name():
+def test_open_task_name():
+    assert OpenTask().task() == "open"
     assert ShowTask().task() == "show"
     assert ScreenshotTask().task() == "screenshot"
 
 
-def test_show_check_task_invalid():
+def test_open_check_task_invalid():
+    class Test(OpenTask):
+        pass
+
+    with pytest.raises(TypeError, match=r"^class must be OpenTask, ShowTask, or ScreenshotTask$"):
+        Test._OpenTask__check_task(None)
+
+
+def test_open_check_task_is_opentask():
+    class Test(OpenTask):
+        pass
+
+    assert OpenTask._OpenTask__check_task(Test) is True
+    assert ShowTask._OpenTask__check_task(Test) is False
+    assert ScreenshotTask._OpenTask__check_task(Test) is False
+
+
+def test_open_check_task_is_showtask():
     class Test(ShowTask):
         pass
 
-    with pytest.raises(TypeError, match=r"^class must be ShowTask or ScreenshotTask$"):
-        Test._ShowTask__check_task(None)
+    assert OpenTask._OpenTask__check_task(Test) is False
+    assert ShowTask._OpenTask__check_task(Test) is True
+    assert ScreenshotTask._OpenTask__check_task(Test) is False
 
 
-def test_show_check_task_is_showtask():
-    class Test(ShowTask):
-        pass
-
-    assert ShowTask._ShowTask__check_task(Test) is True
-    assert ScreenshotTask._ShowTask__check_task(Test) is False
-
-
-def test_show_check_task_is_screenshottask():
+def test_open_check_task_is_screenshottask():
     class Test(ScreenshotTask):
         pass
 
-    assert ShowTask._ShowTask__check_task(Test) is False
-    assert ScreenshotTask._ShowTask__check_task(Test) is True
+    assert OpenTask._OpenTask__check_task(Test) is False
+    assert ShowTask._OpenTask__check_task(Test) is False
+    assert ScreenshotTask._OpenTask__check_task(Test) is True
 
 
-def test_show_register_task_invalid():
+def test_open_register_task_invalid():
     class Test:
         pass
 
-    with pytest.raises(TypeError, match=r"^task must be a subclass of ShowTask$"):
-        ShowTask.register_task(Test)
+    with pytest.raises(TypeError, match=r"^task must be a subclass of OpenTask$"):
+        OpenTask.register_task(Test)
+
+
+def test_open_register_task():
+    class Test(OpenTask):
+        pass
+
+    settings = MPManager.get_transient_settings()
+    assert len(settings.get_category("OpenTask")) == 0
+    OpenTask.register_task(Test)
+    assert len(settings.get_category("OpenTask")) == 1
+    assert settings.get_category("OpenTask")["test_tool/Test"] is Test
 
 
 def test_show_register_task():
@@ -2400,7 +2766,18 @@ def test_show_register_task():
     assert settings.get_category("ShowTask")["test_tool/Test"] is Test
 
 
-def test_show_get_task_show_called():
+def test_screenshot_register_task():
+    class Test(ScreenshotTask):
+        pass
+
+    settings = MPManager.get_transient_settings()
+    assert len(settings.get_category("ScreenshotTask")) == 0
+    ScreenshotTask.register_task(Test)
+    assert len(settings.get_category("ScreenshotTask")) == 1
+    assert settings.get_category("ScreenshotTask")["test_tool/Test"] is Test
+
+
+def test_open_get_task_show_called():
     # Create a mock plugin function with proper attributes for sorting
     mock_plugin = MagicMock()
     mock_plugin.__module__ = 'test_module'
@@ -2413,12 +2790,233 @@ def test_show_get_task_show_called():
         mock_plugin.assert_called_once()
 
 
-@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
-def test_show_get_supported_show_extentions(cls):
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_get_supported_task_extentions(cls):
     with pytest.raises(NotImplementedError,
-                       match=r"^get_supported_show_extentions must be "
+                       match=r"^get_supported_task_extentions must be "
                              r"implemented by the child class$"):
-        cls().get_supported_show_extentions() == {}
+        cls().get_supported_task_extentions()
+
+
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_get_supported_task_extentions_backwards_compatibility(cls):
+    class DummyClass(cls):
+        def get_supported_show_extentions(self):
+            return ["ext"]
+
+    assert DummyClass().get_supported_show_extentions() == ["ext"]
+    with pytest.warns(DeprecationWarning,
+                      match=r"^get_supported_show_extentions is deprecated, please implement "
+                            r"get_supported_task_extentions instead$"):
+        assert DummyClass().get_supported_task_extentions() == ["ext"]
+
+
+# ---------------------------------------------------------------------------
+# OpenTask accessor tests (has_showfilepath, get_showfilepath, has_shownode,
+# get_shownode, showfiletype, job_root, show_workdir).
+# ---------------------------------------------------------------------------
+
+
+class _AccessorOpenTask(OpenTask):
+    """Minimal concrete OpenTask used to exercise accessor methods/properties."""
+    def tool(self):
+        return "testopentool"
+
+    def get_supported_task_extentions(self):
+        return ["odb", "def"]
+
+
+@pytest.fixture
+def open_node(project_logger):
+    """A SchedulerNode for a project whose flow contains an OpenTask."""
+    class _OpenProject(Project):
+        def __init__(self):
+            super().__init__()
+            design = Design("testdesign")
+            with design.active_fileset("rtl"):
+                design.set_topmodule("designtop")
+            self.set_design(design)
+            self.add_fileset("rtl")
+
+            project_logger(self)
+
+            flow = Flowgraph("testflow")
+            flow.node("opennode", _AccessorOpenTask())
+            self.set_flow(flow)
+
+    project = _OpenProject()
+    return SchedulerNode(project, "opennode", "0")
+
+
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_has_show_filepath_default(cls):
+    assert cls().has_show_filepath() is False
+
+
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_get_show_filepath_default(cls):
+    assert cls().get_show_filepath() is None
+
+
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_get_show_filetype_default(cls):
+    assert cls().get_show_filetype() is None
+
+
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_has_show_node_default(cls):
+    assert cls().has_show_node() is False
+
+
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_get_show_job_default(cls):
+    assert cls().get_show_job() is None
+
+
+@pytest.mark.parametrize("cls", [OpenTask, ShowTask, ScreenshotTask])
+def test_open_get_show_node_default(cls):
+    assert cls().get_show_node() == (None, None)
+
+
+def test_open_has_show_filepath_set(tmp_path):
+    f = tmp_path / "design.odb"
+    f.write_text("")
+    task = _AccessorOpenTask()
+    task.set_showfilepath(str(f))
+    assert task.has_show_filepath() is True
+
+
+def test_open_get_show_filepath_resolves(open_node, tmp_path):
+    f = tmp_path / "design.odb"
+    f.write_text("")
+    open_node.task.set_showfilepath(str(f))
+    with open_node.task.runtime(open_node) as runtool:
+        # find_files returns the absolute, resolved path.
+        assert runtool.get_show_filepath() == str(f)
+
+
+def test_open_get_show_filetype_set():
+    task = _AccessorOpenTask()
+    task.set_showfiletype("odb")
+    assert task.get_show_filetype() == "odb"
+
+
+def test_open_has_show_node_set():
+    task = _AccessorOpenTask()
+    task.set_shownode(jobname="job0", nodestep="syn", nodeindex="0")
+    assert task.has_show_node() is True
+
+
+def test_open_has_show_node_all_none():
+    # set_shownode() with no args writes (None, None, None); a tuple of all
+    # None/empty values must be treated as unset.
+    task = _AccessorOpenTask()
+    task.set_shownode()
+    assert task.has_show_node() is False
+
+
+def test_open_get_show_job_set():
+    task = _AccessorOpenTask()
+    task.set_shownode(jobname="job0", nodestep="syn", nodeindex="0")
+    assert task.get_show_job() == "job0"
+
+
+def test_open_get_show_job_no_jobname():
+    task = _AccessorOpenTask()
+    task.set_shownode(nodestep="syn", nodeindex="0")
+    assert task.has_show_node() is True
+    assert task.get_show_job() is None
+
+
+def test_open_get_show_node_set():
+    task = _AccessorOpenTask()
+    task.set_shownode(jobname="job0", nodestep="syn", nodeindex="0")
+    assert task.get_show_node() == ("syn", "0")
+
+
+def test_open_get_show_node_partial_step_only():
+    task = _AccessorOpenTask()
+    task.set_shownode(nodestep="syn")
+    assert task.get_show_node() == ("syn", None)
+
+
+def test_open_get_show_jobroot_no_runtime():
+    # Without a runtime context, project is None and jobroot follows.
+    assert OpenTask().get_show_jobroot() is None
+
+
+def test_open_get_show_jobroot_no_shownode(open_node):
+    with open_node.task.runtime(open_node) as runtool:
+        assert runtool.get_show_jobroot() is runtool.project
+
+
+def test_open_get_show_jobroot_no_jobname(open_node):
+    open_node.task.set_shownode(nodestep="syn", nodeindex="0")
+    with open_node.task.runtime(open_node) as runtool:
+        # No jobname carried in shownode → fall through to current project.
+        assert runtool.get_show_jobroot() is runtool.project
+
+
+def test_open_get_show_jobroot_history_hit(open_node):
+    open_node.project.option.set_jobname("oldjob")
+    open_node.project._record_history()
+    open_node.project.option.set_jobname("currjob")
+
+    open_node.task.set_shownode(jobname="oldjob", nodestep="syn", nodeindex="0")
+    with open_node.task.runtime(open_node) as runtool:
+        assert runtool.get_show_jobroot() is runtool.project.history("oldjob")
+
+
+def test_open_get_show_jobroot_history_miss_copies(open_node):
+    open_node.project.option.set_jobname("currjob")
+    open_node.task.set_shownode(jobname="missingjob", nodestep="syn", nodeindex="0")
+
+    with open_node.task.runtime(open_node) as runtool:
+        root = runtool.get_show_jobroot()
+        # Falls back to a copy with the requested jobname applied.
+        assert root is not runtool.project
+        assert root.option.get_jobname() == "missingjob"
+        assert runtool.project.option.get_jobname() == "currjob"
+
+
+def test_open_get_show_workdir_no_shownode(open_node):
+    with open_node.task.runtime(open_node) as runtool:
+        assert runtool.get_show_workdir() is None
+
+
+def test_open_get_show_workdir_missing_step(open_node):
+    open_node.task.set_shownode(jobname="job0")
+    with open_node.task.runtime(open_node) as runtool:
+        assert runtool.get_show_workdir() is None
+
+
+def test_open_get_show_workdir_missing_index(open_node):
+    open_node.task.set_shownode(jobname="job0", nodestep="syn")
+    with open_node.task.runtime(open_node) as runtool:
+        assert runtool.get_show_workdir() is None
+
+
+def test_open_get_show_workdir_full(open_node):
+    open_node.project.option.set_jobname("currjob")
+    open_node.task.set_shownode(nodestep="syn", nodeindex="0")
+    with open_node.task.runtime(open_node) as runtool:
+        from siliconcompiler.utils.paths import workdir
+        expected = workdir(runtool.project, step="syn", index="0")
+        assert runtool.get_show_workdir() == expected
+
+
+def test_open_get_show_workdir_uses_history(open_node):
+    open_node.project.option.set_jobname("oldjob")
+    open_node.project._record_history()
+    open_node.project.option.set_jobname("currjob")
+
+    open_node.task.set_shownode(jobname="oldjob", nodestep="syn", nodeindex="0")
+    with open_node.task.runtime(open_node) as runtool:
+        from siliconcompiler.utils.paths import workdir
+        # get_show_workdir must resolve against the historic project, not the current one.
+        expected = workdir(runtool.project.history("oldjob"), step="syn", index="0")
+        assert runtool.get_show_workdir() == expected
+        assert "oldjob" in runtool.get_show_workdir()
 
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
@@ -2586,7 +3184,7 @@ def test_showtask_specific_task_preference():
         def task(self):
             return "view_mode_1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["special"]
 
     class ToolCTask2(ShowTask):
@@ -2596,7 +3194,7 @@ def test_showtask_specific_task_preference():
         def task(self):
             return "view_mode_2"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["special"]
 
     ShowTask.register_task(ToolCTask1)
@@ -2690,7 +3288,7 @@ def test_get_task_with_tool_unsupported_extension():
         def task(self):
             return "show"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["xyz"]  # Only supports 'xyz', not 'ext'
 
     ShowTask.register_task(ToolC)
@@ -2720,7 +3318,7 @@ def test_get_task_with_tool_multiple_tasks_same_tool():
         def task(self):
             return "mode1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["ext"]
 
     class ToolDTask2(ShowTask):
@@ -2730,7 +3328,7 @@ def test_get_task_with_tool_multiple_tasks_same_tool():
         def task(self):
             return "mode2"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["ext"]
 
     ShowTask.register_task(ToolDTask1)
@@ -2760,7 +3358,7 @@ def test_get_task_with_tool_and_preference_both_valid():
         def task(self):
             return "task1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["data"]
 
     class ToolFTask1(ShowTask):
@@ -2770,7 +3368,7 @@ def test_get_task_with_tool_and_preference_both_valid():
         def task(self):
             return "task1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["data"]
 
     ShowTask.register_task(ToolETask1)
@@ -2863,7 +3461,7 @@ def test_get_task_with_tool_and_task_format():
         def task(self):
             return "view1"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["svg"]
 
     class ToolGTask2(ShowTask):
@@ -2873,7 +3471,7 @@ def test_get_task_with_tool_and_task_format():
         def task(self):
             return "view2"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["svg"]
 
     ShowTask.register_task(ToolGTask1)
@@ -2904,7 +3502,7 @@ def test_get_task_with_tool_task_format_invalid_task():
         def task(self):
             return "mode_a"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["txt"]
 
     ShowTask.register_task(ToolHTask1)
@@ -2933,7 +3531,7 @@ def test_get_task_tool_task_format_priority_over_preference():
         def task(self):
             return "task_x"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["csv"]
 
     class ToolITask2(ShowTask):
@@ -2943,7 +3541,7 @@ def test_get_task_tool_task_format_priority_over_preference():
         def task(self):
             return "task_y"
 
-        def get_supported_show_extentions(self):
+        def get_supported_task_extentions(self):
             return ["csv"]
 
     ShowTask.register_task(ToolITask1)
@@ -2968,6 +3566,285 @@ def test_get_task_tool_task_format_priority_over_preference():
         assert task.tool() == "tooli"
         assert task.task() == "task_y"
         assert isinstance(task, ToolITask2)
+
+
+def test_get_extension_map_empty():
+    """get_extension_map returns {} when no tasks are discovered."""
+    # Patch get_task to simulate "no registered tasks". (Real isolation is
+    # hard because subclasses defined elsewhere in the test file get
+    # auto-discovered by __populate_tasks.)
+    with patch.object(ShowTask, 'get_task', return_value=None):
+        assert ShowTask.get_extension_map() == {}
+
+    with patch.object(ShowTask, 'get_task', return_value=[]):
+        assert ShowTask.get_extension_map() == {}
+
+
+def test_get_extension_map_single_tool():
+    """Each ext from the registered tool maps to that tool's instance."""
+    ShowTask.register_task(ToolA)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        assert set(ext_map.keys()) == {"ext"}
+        assert isinstance(ext_map["ext"], ToolA)
+
+
+def test_get_extension_map_collects_all_extensions():
+    """All extensions across all registered tasks are present as keys, in
+    deterministic registration order (within a task, in the order returned by
+    get_supported_task_extentions)."""
+
+    class ToolMulti(ShowTask):
+        def tool(self):
+            return "toolmulti"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["a", "b", "c"]
+
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolMulti)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        # Order: ToolA registered first (its "ext"), then ToolMulti (a, b, c
+        # in the order it returns them).
+        assert list(ext_map.keys()) == ["ext", "a", "b", "c"]
+
+
+def test_get_extension_map_conflict_uses_last_registered():
+    """When two tools share an extension, the later-registered wins by default."""
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolB)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        # ToolA and ToolB both register "ext"; later-registered (ToolB) wins.
+        assert "ext" in ext_map
+        assert isinstance(ext_map["ext"], ToolB)
+
+
+def test_get_extension_map_respects_user_preference():
+    """User preference selects the preferred tool for a contested extension."""
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolB)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+
+        def get_side_effect(category, key, default=None):
+            if category == "showtask" and key == "ext":
+                return "toola"
+            return default
+
+        mock_settings.get.side_effect = get_side_effect
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        assert isinstance(ext_map["ext"], ToolA)
+
+
+def test_get_extension_map_tool_filter_matches_get_task():
+    """tool= behavior in get_extension_map mirrors get_task: it's a hint, not a strict filter.
+
+    For extensions the requested tool supports, the requested tool is preferred.
+    For extensions it does not, get_task falls back to whatever tool can handle
+    them, and get_extension_map reflects that same fallback. This matches how
+    Project.show resolves a tool for the eventual file extension.
+    """
+
+    class ToolOnlyXyz(ShowTask):
+        def tool(self):
+            return "xyztool"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["xyz"]
+
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolOnlyXyz)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map(tool="toola")
+
+        # ToolA wins for "ext" because the requested tool actually supports it.
+        assert isinstance(ext_map["ext"], ToolA)
+        # "xyz" still falls back to ToolOnlyXyz — matching get_task's behavior
+        # when the requested tool can't handle the extension.
+        assert isinstance(ext_map["xyz"], ToolOnlyXyz)
+
+        # Every entry must equal what get_task would return for that ext.
+        for ext, preferred in ext_map.items():
+            assert type(ShowTask.get_task(ext, tool="toola")) is type(preferred)
+
+
+def test_get_extension_map_skips_not_implemented():
+    """Tasks that don't implement get_supported_task_extentions are ignored."""
+
+    class AbstractTool(ShowTask):
+        def tool(self):
+            return "abstracttool"
+
+        def task(self):
+            return "show"
+        # No get_supported_task_extentions implementation → NotImplementedError
+
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(AbstractTool)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        # Only ToolA's extensions appear; AbstractTool is silently skipped.
+        assert set(ext_map.keys()) == {"ext"}
+
+
+@pytest.mark.parametrize("cls,expected_tool_cls", [
+    (OpenTask, "open"),
+    (ShowTask, "show"),
+    (ScreenshotTask, "screenshot"),
+])
+def test_get_extension_map_isolated_per_base_class(cls, expected_tool_cls):
+    """Each base class returns only tasks registered to that class hierarchy."""
+
+    class _OpenOnly(OpenTask):
+        def tool(self):
+            return "opentool"
+
+        def get_supported_task_extentions(self):
+            return ["o"]
+
+    class _ShowOnly(ShowTask):
+        def tool(self):
+            return "showtool"
+
+        def get_supported_task_extentions(self):
+            return ["s"]
+
+    class _ScreenshotOnly(ScreenshotTask):
+        def tool(self):
+            return "screenshottool"
+
+        def get_supported_task_extentions(self):
+            return ["p"]
+
+    OpenTask.register_task(_OpenOnly)
+    ShowTask.register_task(_ShowOnly)
+    ScreenshotTask.register_task(_ScreenshotOnly)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = cls.get_extension_map()
+
+        if cls is OpenTask:
+            # OpenTask sees all (Open/Show/Screenshot are all OpenTasks),
+            # but get_task only returns those that are NOT subclasses of
+            # Show/Screenshot, so only _OpenOnly's "o" is present.
+            assert "o" in ext_map
+            assert "s" not in ext_map
+            assert "p" not in ext_map
+        elif cls is ShowTask:
+            # ShowTask filters out ScreenshotTask subclasses.
+            assert "s" in ext_map
+            assert "o" not in ext_map
+            assert "p" not in ext_map
+        else:
+            # ScreenshotTask only
+            assert "p" in ext_map
+            assert "s" not in ext_map
+            assert "o" not in ext_map
+
+
+def test_get_extension_map_matches_get_task_resolution():
+    """get_extension_map[ext] must equal get_task(ext) for every supported ext."""
+
+    class ToolP(ShowTask):
+        def tool(self):
+            return "toolp"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["one", "two"]
+
+    class ToolQ(ShowTask):
+        def tool(self):
+            return "toolq"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["two", "three"]
+
+    ShowTask.register_task(ToolP)
+    ShowTask.register_task(ToolQ)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+
+        def get_side_effect(category, key, default=None):
+            # Prefer ToolP for the contested "two"
+            if category == "showtask" and key == "two":
+                return "toolp"
+            return default
+
+        mock_settings.get.side_effect = get_side_effect
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        # Deterministic order: ToolP registered first contributes "one" and
+        # "two" (its first appearance dedupes "two"), then ToolQ contributes
+        # "three".
+        assert list(ext_map.keys()) == ["one", "two", "three"]
+
+        for ext, preferred in ext_map.items():
+            resolved = ShowTask.get_task(ext)
+            assert type(resolved) is type(preferred), \
+                f"ext={ext}: map gave {type(preferred).__name__}, " \
+                f"get_task gave {type(resolved).__name__}"
 
 
 def test_task_py_logging_output_different_files(gcd_design):
@@ -3185,3 +4062,275 @@ def test_task_write_task_manifest_with_invalid_dataroot(gcd_design):
         runtool.write_task_manifest(".")
 
     assert os.path.isfile("sc_manifest.json")
+
+
+def test_open_task_properties():
+    """Test the base OpenTask properties for managing show file operations."""
+    task = OpenTask()
+
+    # Test has_show_filepath with no path set
+    assert task.has_show_filepath() is False
+
+    # Test has_show_node with no node set
+    assert task.has_show_node() is False
+
+    # Test get_show_job with no node set
+    assert task.get_show_job() is None
+
+    # Test get_show_node with no node set
+    show_step, show_index = task.get_show_node()
+    assert show_step is None
+    assert show_index is None
+
+
+def test_open_task_properties_with_values(tmp_path):
+    """Test base OpenTask properties with actual values set."""
+    import tempfile
+
+    task = OpenTask()
+
+    # Create a temporary file for testing
+    with tempfile.NamedTemporaryFile(suffix='.def', delete=False, dir=tmp_path) as f:
+        test_file = f.name
+
+    try:
+        # Set showfilepath and showfiletype
+        task.set("var", "showfilepath", test_file)
+        task.set("var", "showfiletype", "def")
+
+        # Test has_show_filepath
+        assert task.has_show_filepath() is True
+
+        # Test get_show_filepath
+        assert task.get_show_filepath() == test_file
+
+        # Test get_show_filetype
+        assert task.get_show_filetype() == "def"
+
+        # Test has_show_node and get_show_job (should be None)
+        assert task.has_show_node() is False
+        assert task.get_show_job() is None
+
+        # Test get_show_node (should be None, None)
+        show_step, show_index = task.get_show_node()
+        assert show_step is None
+        assert show_index is None
+
+        # Set shownode
+        task.set("var", "shownode", ("job0", "place", "0"))
+
+        # Test has_show_node now returns True
+        assert task.has_show_node() is True
+
+        # Test get_show_job
+        assert task.get_show_job() == "job0"
+
+        # Test get_show_node
+        show_step, show_index = task.get_show_node()
+        assert show_step == "place"
+        assert show_index == "0"
+    finally:
+        os.remove(test_file)
+
+
+def test_open_task_get_job_root():
+    """Test base OpenTask.get_show_jobroot() property."""
+    task = OpenTask()
+
+    # get_show_jobroot uses task.project which may be None for standalone OpenTask
+    # The real test is in test_open_task_all_properties_together which uses a full setup
+    job_root = task.get_show_jobroot()
+    # Either None or the project object is valid
+    assert job_root is None or job_root == task.project
+
+
+def test_open_task_get_show_workdir():
+    """Test base OpenTask.get_show_workdir() property."""
+    # This is tested in detail in test_open_task_all_properties_together
+    # Here we just verify the method exists
+    task = OpenTask()
+    assert hasattr(task, 'get_show_workdir')
+    assert callable(task.get_show_workdir)
+
+
+# -- Task._validate_io ---------------------------------------------------------
+
+@pytest.fixture
+def io_project():
+    """Empty project with a design but no flow; tests build their own flow."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    return proj
+
+
+def _validate_io(project, step, index):
+    """Helper: enter runtime context for (step, index) and call _validate_io."""
+    flow_name = project.option.get_flow()
+    flow = project.get_flow(flow_name)
+    tool = flow.get(step, index, "tool")
+    task = flow.get(step, index, "task")
+    task_class = project.get("tool", tool, "task", task, field="schema")
+    node = SchedulerNode(project, step, index)
+    with task_class.runtime(node) as task_obj:
+        return task_obj._validate_io()
+
+
+def test_validate_io_no_inputs_no_upstream(project_logger, io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    io_project.set_flow(flow)
+    project_logger(io_project)
+
+    assert _validate_io(io_project, "stepone", "0") is True
+    assert caplog.text == ""
+
+
+def test_validate_io_with_files(project_logger, io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    io_project.set_flow(flow)
+    project_logger(io_project)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+
+    assert _validate_io(io_project, "steptwo", "0") is True
+    assert caplog.text == ""
+
+
+def test_validate_io_with_files_join(project_logger, io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.node("dojoin", NOPTask())
+    flow.node("postjoin", NOPTask())
+    flow.edge("stepone", "dojoin")
+    flow.edge("steptwo", "dojoin")
+    flow.edge("dojoin", "postjoin")
+    io_project.set_flow(flow)
+    project_logger(io_project)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("a.v", step="stepone", index="0")
+    nop.add_output_file("b.v", step="steptwo", index="0")
+    nop.add_input_file("a.v", step="dojoin", index="0")
+    nop.add_input_file("b.v", step="dojoin", index="0")
+    nop.add_output_file("a.v", step="dojoin", index="0")
+    nop.add_output_file("b.v", step="dojoin", index="0")
+    nop.add_input_file("a.v", step="postjoin", index="0")
+    nop.add_input_file("b.v", step="postjoin", index="0")
+
+    assert _validate_io(io_project, "dojoin", "0") is True
+    assert _validate_io(io_project, "postjoin", "0") is True
+    assert caplog.text == ""
+
+
+def test_validate_io_with_files_join_extra_files(project_logger, io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.node("dojoin", NOPTask())
+    flow.node("postjoin", NOPTask())
+    flow.edge("stepone", "dojoin")
+    flow.edge("steptwo", "dojoin")
+    flow.edge("dojoin", "postjoin")
+    io_project.set_flow(flow)
+    project_logger(io_project)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("a.v", step="stepone", index="0")
+    nop.add_output_file("common.v", step="stepone", index="0")
+    nop.add_output_file("b.v", step="steptwo", index="0")
+    nop.add_output_file("common.v", step="steptwo", index="0")
+    nop.add_input_file("common.v", step="dojoin", index="0")
+    nop.add_output_file("common.v", step="dojoin", index="0")
+    nop.add_input_file("common.v", step="postjoin", index="0")
+
+    assert _validate_io(io_project, "dojoin", "0") is True
+    assert _validate_io(io_project, "postjoin", "0") is True
+    assert caplog.text == ""
+
+
+def test_validate_io_missing_input(project_logger, io_project, caplog):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    io_project.set_flow(flow)
+    project_logger(io_project)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+    nop.add_input_file("missing.v", step="steptwo", index="0")
+
+    assert _validate_io(io_project, "steptwo", "0") is False
+    assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
+
+
+def test_validate_io_renamed_input(io_project):
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    io_project.set_flow(flow)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
+
+    assert _validate_io(io_project, "steptwo", "0") is True
+
+
+def test_validate_io_input_from_disk(io_project):
+    """Upstream is outside the runtime (option.from); inputs should be discovered on disk."""
+    from siliconcompiler.utils.paths import workdir as _workdir
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    io_project.set_flow(flow)
+    io_project.option.add_from("steptwo")
+
+    out_dir = os.path.join(_workdir(io_project, step="stepone", index="0"), 'outputs')
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, 'test.v'), 'w') as f:
+        f.write("test")
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
+
+    assert _validate_io(io_project, "steptwo", "0") is True
+
+
+def test_validate_io_duplicate_input_fails(project_logger, io_project, caplog):
+    """A non-builtin task with two upstreams providing the same input name has
+    ambiguous fan-in: the runtime can't decide which upstream's file is the
+    real one. The base validator must reject this flow, not just log it."""
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask(), index=0)
+    flow.node("stepone", NOPTask(), index=1)
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo", tail_index=0)
+    flow.edge("stepone", "steptwo", tail_index=1)
+    io_project.set_flow(flow)
+    project_logger(io_project)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_output_file("test.v", step="stepone", index="1")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+
+    # NOPTask is a BuiltinTask; the duplicate-input rejection belongs to the
+    # base Task implementation. Exercise the base directly.
+    node = SchedulerNode(io_project, "steptwo", "0")
+    with nop.runtime(node) as task_obj:
+        assert Task._validate_io(task_obj) is False
+    assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text

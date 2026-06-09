@@ -288,8 +288,7 @@ def build_schema_value_table(params, refdoc, keypath_prefix=None, trim_prefix=No
                 continue
 
             val_type = param.get(field='type')
-            is_filedir = 'file' in val_type or 'dir' in val_type
-            if is_filedir:
+            if param.is_path:
                 val_node = format_value_file(val_type.startswith('['), value,
                                              param.get(field='dataroot',
                                                        step=step, index=index))

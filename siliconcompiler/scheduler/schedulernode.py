@@ -351,12 +351,20 @@ class SchedulerNode:
 
         if self.__queue:
             formatter = self.__project._logger_console.formatter
-            self.logger.removeHandler(self.__project._logger_console)
+            # In the child, the parent's logger handlers (terminal handler,
+            # dashboard sink, etc.) are still attached via fork. Some of those
+            # — notably the dashboard's LogBufferHandler — write into a
+            # manager-backed queue shared with the parent, so a direct child
+            # emit plus the parent's QueueListener dispatch would deliver the
+            # same record twice. Drop every inherited handler and install only
+            # the QueueHandler; the parent owns all dispatch from here on.
+            for handler in list(self.logger.handlers):
+                self.logger.removeHandler(handler)
             self.__project._logger_console = QueueHandler(self.__queue)
             self.__project._logger_console.setFormatter(formatter)
             self.logger.addHandler(self.__project._logger_console)
 
-    def halt(self, msg: Optional[str] = None) -> None:
+    def halt(self, msg: Optional[str] = None, errmsg: Optional[str] = None) -> None:
         """
         Stops the node's execution due to an error.
 
@@ -365,18 +373,26 @@ class SchedulerNode:
 
         Args:
             msg (str, optional): An error message to log.
+            errmsg (str, optional): An additional error message to log.
         """
-        if msg:
-            self.logger.error(msg)
-
-        self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
         try:
-            self.__project.write_manifest(self.__manifests["output"])
-        except FileNotFoundError:
-            self.logger.error(f"Failed to write manifest for {self.__step}/{self.__index}.")
+            if msg:
+                self.logger.error(msg)
 
-        self.logger.error(f"Halting {self.__step}/{self.__index} due to errors.")
-        send_messages.send(self.__project, "fail", self.__step, self.__index)
+            self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
+            try:
+                self.__project.write_manifest(self.__manifests["output"])
+            except FileNotFoundError:
+                self.logger.error(f"Failed to write manifest for {self.__step}/{self.__index}.")
+
+            if errmsg:
+                self.logger.error(errmsg)
+            else:
+                self.logger.error(f"Halting {self.__step}/{self.__index} due to errors.")
+            send_messages.send(self.__project, "fail", self.__step, self.__index)
+        except:  # noqa E722
+            # Catch everything to avoid generating additional errors during error handling
+            pass
         sys.exit(1)
 
     def setup(self) -> bool:
@@ -602,8 +618,7 @@ class SchedulerNode:
             keypath = tuple(key.split(","))
             if not self.__project.valid(*keypath, default_valid=True):
                 raise KeyError(f"[{','.join(keypath)}] not found")
-            keytype = self.__project.get(*keypath, field="type")
-            if 'file' in keytype or 'dir' in keytype:
+            if self.__project.get(*keypath, field=None).is_path:
                 path_keys.add(keypath)
             else:
                 value_keys.add(keypath)
@@ -762,8 +777,7 @@ class SchedulerNode:
                 error = True
                 continue
 
-            paramtype = param.get(field='type')
-            if ('file' in paramtype) or ('dir' in paramtype):
+            if param.is_path:
                 abspath = self.__project.find_files(*keypath,
                                                     missing_ok=True,
                                                     step=check_step, index=check_index)
@@ -867,6 +881,8 @@ class SchedulerNode:
 
             try:
                 self.execute()
+            except KeyboardInterrupt:
+                self.halt(errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
             except Exception as e:
                 utils.print_traceback(self.logger, e)
                 self.halt()
@@ -1235,10 +1251,10 @@ class SchedulerNode:
         # hash all requirements
         for item in set(self.__task.get('require')):
             args = item.split(',')
-            sc_type = self.__project.get(*args, field='type')
-            if 'file' in sc_type or 'dir' in sc_type:
+            param = self.__project.get(*args, field=None)
+            if param.is_path:
                 access_step, access_index = self.__step, self.__index
-                if self.__project.get(*args, field='pernode').is_never():
+                if param.get(field='pernode').is_never():
                     access_step, access_index = None, None
                 self.__project.hash_files(*args, step=access_step, index=access_index,
                                           check=False, verbose=False)
@@ -1252,12 +1268,12 @@ class SchedulerNode:
         # hash all requirements
         for item in set(self.__task.get('require')):
             args = item.split(',')
-            sc_type = self.__project.get(*args, field='type')
-            if 'file' in sc_type or 'dir' in sc_type:
+            param = self.__project.get(*args, field=None)
+            if param.is_path:
                 access_step, access_index = self.__step, self.__index
-                if self.__project.get(*args, field='pernode').is_never():
+                if param.get(field='pernode').is_never():
                     access_step, access_index = None, None
-                if self.__project.get(*args, field='filehash'):
+                if param.get(field='filehash'):
                     continue
                 self.__project.hash_files(*args, step=access_step, index=access_index,
                                           check=False, verbose=False)
@@ -1431,8 +1447,7 @@ class SchedulerNode:
         path_keys = set()
         for key in self.get_required_keys():
             try:
-                param_type: str = self.__project.get(*key, field="type")
-                if "file" in param_type or "dir" in param_type:
+                if self.__project.get(*key, field=None).is_path:
                     path_keys.add(key)
             except KeyError:
                 # Key does not exist

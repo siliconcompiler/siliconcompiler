@@ -28,7 +28,7 @@ class ShowTask(ShowTask, KLayoutTask):
 
         self.add_commandline_option(["-nc", "-rm"], clobber=True)
 
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["def", "lef", "gds", "oas", "lyrdb", "ascii"]
 
     def pre_process(self):

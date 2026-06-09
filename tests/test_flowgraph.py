@@ -589,6 +589,99 @@ def test_runtime_nodes_from_to():
     assert runtime.get_execution_order() == ((('place', '0'),), (('cts', '0'),))
 
 
+def test_runtime_nodes_from_with_bypass_edge():
+    # Regression: when a downstream node has a bypass edge from an entry node
+    # that does not pass through the `from` step, the runtime graph must still
+    # only contain nodes at or after `from`. A previous bug in __walk_graph
+    # mutated a shared path list across sibling recursive calls, which caused
+    # the bypass entry chain to leak into the returned set when a sibling
+    # walk subsequently reached the `from` node.
+    flow = Flowgraph("bypass")
+    flow.node("entry_bypass", NOPTask())
+    flow.node("entry_main", NOPTask())
+    flow.node("upstream", NOPTask())
+    flow.node("from_node", NOPTask())
+    flow.node("converge", NOPTask())
+    flow.node("exit_node", NOPTask())
+
+    # Main chain: entry_main -> upstream -> from_node -> converge -> exit_node
+    flow.edge("entry_main", "upstream")
+    flow.edge("upstream", "from_node")
+    flow.edge("from_node", "converge")
+    flow.edge("converge", "exit_node")
+
+    # Bypass edge into converge that does NOT pass through from_node.
+    # Add it BEFORE the from_node edge so converge's input list visits the
+    # bypass first, exercising the path-mutation bug.
+    flow_bypass = Flowgraph("bypass2")
+    flow_bypass.node("entry_bypass", NOPTask())
+    flow_bypass.node("entry_main", NOPTask())
+    flow_bypass.node("upstream", NOPTask())
+    flow_bypass.node("from_node", NOPTask())
+    flow_bypass.node("converge", NOPTask())
+    flow_bypass.node("exit_node", NOPTask())
+    flow_bypass.edge("entry_bypass", "converge")  # bypass first
+    flow_bypass.edge("entry_main", "upstream")
+    flow_bypass.edge("upstream", "from_node")
+    flow_bypass.edge("from_node", "converge")
+    flow_bypass.edge("converge", "exit_node")
+
+    runtime = RuntimeFlowgraph(flow_bypass, from_steps=["from_node"])
+    # Must include only from_node and downstream; must NOT include
+    # entry_bypass, entry_main, or upstream.
+    assert runtime.get_nodes() == (
+        ('converge', '0'), ('exit_node', '0'), ('from_node', '0'))
+    assert runtime.get_entry_nodes() == (('from_node', '0'),)
+
+
+def test_runtime_nodes_from_with_upstream_chain_bypass():
+    # Regression: stronger version of the bypass bug — a multi-step upstream
+    # chain (entry -> A -> B -> C) feeds into a downstream node via a bypass
+    # edge, while the linear chain also leads to `from`. Without the fix,
+    # the upstream chain (A, B, C) leaks into the runtime nodes.
+    flow = Flowgraph("upstream_bypass")
+    flow.node("entry", NOPTask())
+    flow.node("a", NOPTask())
+    flow.node("b", NOPTask())
+    flow.node("c", NOPTask())
+    flow.node("from_node", NOPTask())
+    flow.node("downstream", NOPTask())
+    flow.node("exit_node", NOPTask())
+
+    # entry -> a -> b -> c -> from_node -> downstream -> exit_node  (main chain)
+    flow.edge("entry", "a")
+    flow.edge("a", "b")
+    flow.edge("b", "c")
+    flow.edge("c", "from_node")
+    flow.edge("from_node", "downstream")
+    flow.edge("downstream", "exit_node")
+
+    # Bypass: c also feeds directly into downstream, skipping from_node.
+    # Add this edge first so walk visits it before the from_node edge.
+    # Use a new flow built in the right order to control input ordering.
+    flow2 = Flowgraph("upstream_bypass2")
+    flow2.node("entry", NOPTask())
+    flow2.node("a", NOPTask())
+    flow2.node("b", NOPTask())
+    flow2.node("c", NOPTask())
+    flow2.node("from_node", NOPTask())
+    flow2.node("downstream", NOPTask())
+    flow2.node("exit_node", NOPTask())
+    flow2.edge("entry", "a")
+    flow2.edge("a", "b")
+    flow2.edge("b", "c")
+    flow2.edge("c", "downstream")  # bypass — added BEFORE from_node edge
+    flow2.edge("c", "from_node")
+    flow2.edge("from_node", "downstream")
+    flow2.edge("downstream", "exit_node")
+
+    runtime = RuntimeFlowgraph(flow2, from_steps=["from_node"])
+    # Must NOT include entry, a, b, c — they are upstream of from_node.
+    assert runtime.get_nodes() == (
+        ('downstream', '0'), ('exit_node', '0'), ('from_node', '0'))
+    assert runtime.get_entry_nodes() == (('from_node', '0'),)
+
+
 def test_runtime_get_nodes_args_none(large_flow):
     runtime = RuntimeFlowgraph(large_flow, args=(None, None))
     assert runtime.get_entry_nodes() == (('stepone', '0'), ('stepone', '1'), ('stepone', '2'))
@@ -663,6 +756,42 @@ def test_runtime_get_nodes_starting_at(large_flow):
         ('steptwo', '0'))
 
 
+def test_runtime_get_nodes_starting_at_forward_bypass():
+    # Regression: the path-mutation bug fixed in __walk_graph could also
+    # manifest in forward walks (reverse=False). When a node has multiple
+    # outputs and one branch leads to a dead-end (no path to a `to` node),
+    # the dead-end branch must not pollute the result returned for the
+    # branch that DOES reach `to`.
+    #
+    # get_node_outputs returns sorted children, so we name nodes so the
+    # dead-end branch ('dead_*') sorts BEFORE the to-reaching branch
+    # ('reach_*'). This forces the walk to visit the dead-end first,
+    # mutating the shared path, then walk the reaching branch which would
+    # incorrectly return set(path) including the dead-end nodes pre-fix.
+    flow = Flowgraph("forward_bypass")
+    flow.node("start", NOPTask())
+    flow.node("dead_x", NOPTask())
+    flow.node("dead_y", NOPTask())
+    flow.node("reach_m", NOPTask())
+    flow.node("target", NOPTask())
+
+    flow.edge("start", "dead_x")
+    flow.edge("dead_x", "dead_y")
+    flow.edge("start", "reach_m")
+    flow.edge("reach_m", "target")
+
+    runtime = RuntimeFlowgraph(flow, to_steps=["target"])
+    # Sanity: runtime nodes computed via reverse walk are correct.
+    assert runtime.get_nodes() == (
+        ('reach_m', '0'), ('start', '0'), ('target', '0'))
+    # Forward walk from `start` should only return nodes that lead to
+    # `target`. Without the fix, `dead_x` and `dead_y` leak in because
+    # walking them first pollutes the shared path, and the subsequent
+    # reach_m -> target walk returns set(path) carrying that pollution.
+    assert runtime.get_nodes_starting_at("start", "0") == (
+        ('reach_m', '0'), ('start', '0'), ('target', '0'))
+
+
 def test_runtime_get_entry_nodes(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
@@ -675,11 +804,40 @@ def test_runtime_get_exit_nodes(large_flow):
     assert runtime.get_exit_nodes() == (('jointhree', '0'),)
 
 
-def test_runtime_get_entry_nodes_invalid_steps(large_flow):
-    all_steps = ["step1"]
-    runtime = RuntimeFlowgraph(large_flow, from_steps=all_steps, to_steps=all_steps)
-    assert runtime.get_entry_nodes() == tuple()
-    assert runtime.get_exit_nodes() == tuple()
+def test_runtime_invalid_from_step_raises(large_flow):
+    with pytest.raises(ValueError,
+                       match=r"from_steps \['step1'\] are not defined in flow 'testflow'"):
+        RuntimeFlowgraph(large_flow, from_steps=["step1"])
+
+
+def test_runtime_invalid_to_step_raises(large_flow):
+    with pytest.raises(ValueError,
+                       match=r"to_steps \['step1'\] are not defined in flow 'testflow'"):
+        RuntimeFlowgraph(large_flow, to_steps=["step1"])
+
+
+def test_runtime_invalid_from_step_partial_raises(large_flow):
+    # Even when one valid step is mixed with an invalid one, we should raise
+    # rather than silently ignore the typo.
+    with pytest.raises(ValueError,
+                       match=r"from_steps \['typo'\] are not defined in flow 'testflow'"):
+        RuntimeFlowgraph(large_flow, from_steps=["stepone", "typo"])
+
+
+def test_runtime_args_invalid_step_raises(large_flow):
+    with pytest.raises(ValueError,
+                       match=r"step 'nope' is not defined in flow 'testflow'"):
+        RuntimeFlowgraph(large_flow, args=("nope", None))
+
+
+def test_runtime_args_int_index(large_flow):
+    # Indices passed as ints must be normalized to strings so membership
+    # checks against get_nodes() (which always returns string indices) don't
+    # silently miss the node.
+    runtime = RuntimeFlowgraph(large_flow, args=("stepone", 1))
+    assert runtime.get_nodes() == (("stepone", "1"),)
+    assert runtime.get_entry_nodes() == (("stepone", "1"),)
+    assert runtime.get_exit_nodes() == (("stepone", "1"),)
 
 
 def test_runtime_get_entry_nodes_jumbled_values(large_flow):
@@ -989,6 +1147,28 @@ def test_get_node_inputs_record_skipped_from(large_flow):
 
     assert runtime.get_node_inputs("jointwo", "0", record=record) == [
         ('joinone', '0'), ('steptwo', '2')]
+
+
+def test_get_node_inputs_skipped_outside_runtime_filters_pruned(large_flow):
+    # Regression: when a SKIPPED input node is outside the runtime view
+    # (e.g. excluded by `from`), get_node_inputs must still apply prune
+    # filtering when falling back to the base flowgraph's inputs. Previously
+    # the fallback used self.__base.get(..., "input") directly and could
+    # leak pruned nodes into the returned dependency list.
+    runtime = RuntimeFlowgraph(
+        large_flow,
+        from_steps=["steptwo"],
+        prune_nodes=[("stepone", "0")])
+
+    record = RecordSchema()
+    # joinone/0 is upstream of `from` (so it's outside runtime) AND it is
+    # marked SKIPPED, which forces the fallback path.
+    record.set("status", NodeStatus.SKIPPED, step="joinone", index="0")
+
+    # joinone/0's base inputs are stepone/[0,1,2], but stepone/0 is pruned.
+    # The result must NOT include the pruned node.
+    assert runtime.get_node_inputs("steptwo", "0", record=record) == [
+        ('stepone', '1'), ('stepone', '2')]
     assert runtime.get_node_inputs("stepthree", "0", record=record) == [('jointwo', '0')]
 
 

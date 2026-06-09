@@ -2,9 +2,9 @@ import io
 import logging
 import pytest
 import queue
-import random
 import sys
 import threading
+import time
 
 from rich.console import Console, Group
 from rich.table import Table
@@ -23,7 +23,32 @@ from siliconcompiler.report.dashboard.cli.board import (
 )
 from siliconcompiler.report.dashboard.cli.keyboard import Keyboard
 from siliconcompiler import NodeStatus
+from siliconcompiler import Project, Design, Flowgraph, Task
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.multiprocessing import MPManager
+
+
+class FauxTask(Task):
+    def tool(self):
+        return "faux_tool"
+
+    def task(self):
+        return "faux_task"
+
+
+def _project_with_flow():
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    flow = Flowgraph("testflow")
+    flow.node("faux", FauxTask())
+    proj.set_flow(flow)
+
+    return proj
 
 
 @pytest.fixture
@@ -79,7 +104,8 @@ def mock_running_job_lg():
             "metrics": ["", ""],
             "time": {
                 "duration": None,
-                "start": None
+                "start": None,
+                "totaltime": None
             },
             "print": {
                 "order": (index, index),
@@ -114,39 +140,9 @@ def mock_running_job_lg_second():
             "metrics": ["", ""],
             "time": {
                 "duration": None,
-                "start": None
+                "start": None,
+                "totaltime": None
             },
-            "print": {
-                "order": (index, index),
-                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index,
-                "hide": False
-            }
-        }
-        for index in range(mock_job_data.total)
-    ]
-    mock_job_data.success = sum(1 for node in mock_job_data.nodes
-                                if NodeStatus.is_success(node["status"]))
-    mock_job_data.error = sum(1 for node in mock_job_data.nodes
-                              if NodeStatus.is_error(node["status"]))
-    mock_job_data.finished = mock_job_data.success + mock_job_data.error
-    return mock_job_data
-
-
-@pytest.fixture
-def mock_running_job():
-    mock_job_data = JobData()
-    mock_job_data.total = 5
-    mock_job_data.visible = 5
-    mock_job_data.design = "design1"
-    mock_job_data.jobname = "job1"
-    statuses = [NodeStatus.SUCCESS, NodeStatus.ERROR, NodeStatus.PENDING]
-    mock_job_data.nodes = [
-        {
-            "step": f"node{index + 1}",
-            "index": index,
-            "status": random.choice(statuses),
-            "metrics": ["", ""],
-            "log": [(f"node{index + 1}.log", f"node{index + 1}.log")],
             "print": {
                 "order": (index, index),
                 "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index,
@@ -180,7 +176,8 @@ def mock_finished_job_fail():
             "log": [(f"node{index + 1}.log", f"node{index + 1}.log")],
             "time": {
                 "duration": 5.0,
-                "start": None
+                "start": None,
+                "totaltime": 5.0
             },
             "print": {
                 "order": (index, index),
@@ -214,7 +211,8 @@ def mock_finished_job_passed():
             "log": [(f"node{index + 1}.log", f"node{index + 1}.log")],
             "time": {
                 "duration": 5.0,
-                "start": None
+                "start": None,
+                "totaltime": 5.0
             },
             "print": {
                 "order": (index, index),
@@ -1081,6 +1079,288 @@ def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg
         assert actual == expected, f"line {i} does not match"
 
 
+def _make_progress_job(nodes, design="design1", jobname="job1", complete=False):
+    """Build a minimal JobData suitable for _render_progress_bar tests.
+
+    Each node entry is a (status, duration, start, totaltime) tuple.
+    """
+    job = JobData()
+    job.design = design
+    job.jobname = jobname
+    job.total = len(nodes)
+    job.visible = len(nodes)
+    job.complete = complete
+    job.nodes = []
+    for index, (status, duration, start, totaltime) in enumerate(nodes):
+        job.nodes.append({
+            "step": f"node{index}",
+            "index": index,
+            "status": status,
+            "metrics": ["", ""],
+            "log": [],
+            "time": {
+                "duration": duration,
+                "start": start,
+                "totaltime": totaltime,
+            },
+            "print": {"order": (index, index), "priority": index, "hide": False},
+        })
+    job.success = sum(1 for n in job.nodes if NodeStatus.is_success(n["status"]))
+    job.error = sum(1 for n in job.nodes if NodeStatus.is_error(n["status"]))
+    job.finished = job.success + job.error
+    return job
+
+
+def _runtime_strings(progress):
+    """Extract the formatted runtime fields from each task in a Progress object.
+
+    Returns a list of (walltime, cputime) tuples; cputime is "" when no
+    parallelism was detected (no separate CPU column shown).
+    """
+    return [(task.fields["walltime"], task.fields["cputime"])
+            for task in progress._tasks.values()]
+
+
+def test_progress_bar_runtime_serial_shows_single_value(dashboard_medium):
+    """Serial (non-parallel) runs should display only the total time."""
+    dashboard = dashboard_medium._dashboard
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 5.0, None, 5.0),
+        (NodeStatus.SUCCESS, 5.0, None, 10.0),
+        (NodeStatus.SUCCESS, 5.0, None, 15.0),
+    ], complete=True)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project, complete=True)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    rendered = dashboard._render_progress_bar(dashboard._layout)
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # total = 15, wall = max(totaltime) = 15 -> identical, no parallelism
+    assert runtimes == [("0:15.0", "")]
+
+
+def test_progress_bar_runtime_parallel_completed_shows_total_and_wall(dashboard_medium):
+    """A completed parallel job should display total / wall when they differ."""
+    dashboard = dashboard_medium._dashboard
+    # 3 nodes, each ran 10s but in parallel: totaltime metric is the wall checkpoint
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+    ], complete=True)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project, complete=True)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    rendered = dashboard._render_progress_bar(dashboard._layout)
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # wall = 10 (max totaltime metric), total = 30 (sum of work)
+    assert runtimes == [("0:10.0", "0:30.0")]
+
+
+def test_progress_bar_runtime_in_progress_with_running_node(dashboard_medium):
+    """In-progress jobs combine done totaltime baseline with active elapsed time."""
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    # 2 done nodes (sequential, each 5s) plus 1 running started 3s ago
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 5.0, None, 5.0),
+        (NodeStatus.SUCCESS, 5.0, None, 10.0),
+        (NodeStatus.RUNNING, None, now - 3.0, None),
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # total = 5 + 5 + 3 = 13, wall = max(5,10) + 3 = 13 -> no parallelism
+    assert runtimes == [("0:13.0", "")]
+
+
+def test_progress_bar_runtime_in_progress_parallel_running(dashboard_medium):
+    """Two nodes running in parallel: total counts both, wall counts the longest."""
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    # 1 done node (10s baseline), 2 running nodes started 4s and 2s ago
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+        (NodeStatus.RUNNING, None, now - 4.0, None),
+        (NodeStatus.RUNNING, None, now - 2.0, None),
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # wall = 10 + (now - min(now-4, now-2)) = 14, total = 10 + 4 + 2 = 16
+    assert runtimes == [("0:14.0", "0:16.0")]
+
+
+def test_progress_bar_runtime_resumed_job_uses_recorded_totaltime(dashboard_medium):
+    """A resumed job: prior-session done nodes contribute via totaltime metric.
+
+    The two prior-session nodes are strictly sequential (intervals [0, 40] and
+    [40, 90]) so no parallelism is detected — this isolates the resumed wall-time
+    computation across a session boundary from the parallelism display path.
+    """
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    # Prior session: two sequential nodes. Final wall checkpoint = 90.
+    # Resume and a new node starts now - 5s ago.
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 40.0, None, 40.0),    # prior session, interval [0, 40]
+        (NodeStatus.SUCCESS, 50.0, None, 90.0),    # prior session, interval [40, 90]
+        (NodeStatus.RUNNING, None, now - 5.0, None),  # this session
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    # wall = 90 (baseline) + 5 (active) = 95, total = 40 + 50 + 5 = 95
+    # No parallelism (sequential intervals + single running) -> wall column only.
+    assert runtimes == [("1:35.0", "")]
+
+
+def test_progress_bar_runtime_sequential_done_one_running_no_wall(dashboard_medium):
+    """No two tasks ever overlapped (sequential done + single running) => single value."""
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 5.0, None, 5.0),    # interval [0, 5]
+        (NodeStatus.SUCCESS, 5.0, None, 10.0),   # interval [5, 10]
+        (NodeStatus.RUNNING, None, now - 2.0, None),  # only one running, no overlap
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+    assert runtimes[0][1] == ""  # cpu column empty -> no parallelism
+
+
+def test_progress_bar_runtime_two_running_triggers_wall(dashboard_medium):
+    """Two simultaneously-running nodes (no done history) trigger wall display."""
+    dashboard = dashboard_medium._dashboard
+    now = time.time()
+    job = _make_progress_job([
+        (NodeStatus.RUNNING, None, now - 3.0, None),
+        (NodeStatus.RUNNING, None, now - 2.0, None),
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    with patch("siliconcompiler.report.dashboard.cli.board.time.time", return_value=now):
+        rendered = dashboard._render_progress_bar(dashboard._layout)
+
+    runtimes = _runtime_strings(rendered.renderables[0])
+    assert runtimes[0][1] != ""  # cpu column populated -> parallelism detected
+
+
+def test_progress_bar_runtime_overlapping_done_triggers_wall(dashboard_medium):
+    """Two completed nodes with overlapping wall intervals trigger wall display."""
+    dashboard = dashboard_medium._dashboard
+    # node A: wall interval [0, 10] (totaltime=10, tasktime=10)
+    # node B: wall interval [5, 15] (totaltime=15, tasktime=10) -> overlaps [5, 10]
+    job = _make_progress_job([
+        (NodeStatus.SUCCESS, 10.0, None, 10.0),
+        (NodeStatus.SUCCESS, 10.0, None, 15.0),
+    ], complete=True)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project, complete=True)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    rendered = dashboard._render_progress_bar(dashboard._layout)
+    runtimes = _runtime_strings(rendered.renderables[0])
+    assert runtimes[0][1] != ""
+
+
+def test_progress_bar_runtime_no_data_shows_zero(dashboard_medium):
+    """Pending job with no data: both total and wall are 0, single value displayed."""
+    dashboard = dashboard_medium._dashboard
+    job = _make_progress_job([
+        (NodeStatus.PENDING, None, None, None),
+        (NodeStatus.PENDING, None, None, None),
+    ], complete=False)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = job
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    rendered = dashboard._render_progress_bar(dashboard._layout)
+    runtimes = _runtime_strings(rendered.renderables[0])
+
+    assert runtimes == [("0:00.0", "")]
+
+
+def test_get_job_records_totaltime_metric(mock_project, fake_console):
+    """_get_job should populate node['time']['totaltime'] from the totaltime metric."""
+    mock_project.set("record", "status", "success", step="route.global", index=0)
+    mock_project.set("metric", "tasktime", 12.5, step="route.global", index=0)
+    mock_project.set("metric", "totaltime", 42.0, step="route.global", index=0)
+
+    dashboard = MPManager.get_dashboard()
+    job = dashboard._get_job(mock_project)
+
+    matched = [n for n in job.nodes if n["step"] == "route.global"]
+    assert len(matched) == 1
+    assert matched[0]["time"]["duration"] == 12.5
+    assert matched[0]["time"]["totaltime"] == 42.0
+
+
 def test_render_job_dashboard_multi_job_limit_progress(
         mock_running_job_lg, mock_running_job_lg_second,
         dashboard_xsmall):
@@ -1386,6 +1666,163 @@ def test_get_job_with_status(mock_project, fake_console):
     assert job.design == "test_design"
     assert job.complete is False
     assert len(job.nodes) == 18
+
+
+def test_get_job_topology_cached(mock_project, fake_console):
+    """Repeated _get_job calls on the same project must reuse the cached
+    flowgraph topology rather than re-running the recursive distance walk.
+
+    The cache key is the design/jobname pair; status changes that don't
+    introduce/remove SKIPPED nodes must hit the cache.
+    """
+    dashboard = MPManager.get_dashboard()
+
+    dashboard._get_job(mock_project)
+    project_id = "test_design/test_job"
+    assert project_id in dashboard._topology_cache
+    cached = dashboard._topology_cache[project_id]
+
+    # A status flip that is NOT skipped must reuse the cached topology
+    # (same object identity).
+    mock_project.set("record", "status", "success", step="route.global", index=0)
+    dashboard._get_job(mock_project)
+    assert dashboard._topology_cache[project_id] is cached
+
+    mock_project.set("record", "status", "error", step="write.views", index=0)
+    dashboard._get_job(mock_project)
+    assert dashboard._topology_cache[project_id] is cached
+
+
+def test_get_job_topology_invalidated_by_skipped(mock_project, fake_console):
+    """Introducing a SKIPPED node changes which inputs downstream nodes see
+    (RuntimeFlowgraph.get_node_inputs walks past skipped predecessors), so
+    the topology cache must be rebuilt when the SKIPPED set changes."""
+    dashboard = MPManager.get_dashboard()
+
+    dashboard._get_job(mock_project)
+    project_id = "test_design/test_job"
+    first = dashboard._topology_cache[project_id]
+
+    mock_project.set("record", "status", "skipped", step="route.detailed", index=0)
+    dashboard._get_job(mock_project)
+    second = dashboard._topology_cache[project_id]
+
+    assert second is not first
+    assert first.signature != second.signature
+
+
+def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
+                                                  monkeypatch):
+    """The recursive `get_node_distance` walk inside `_get_flow_topology`
+    is the expensive piece we're trying to avoid. After the first call
+    seeds the cache, status-only refreshes must not call it again.
+
+    Uses `RuntimeFlowgraph.get_execution_order` as a miss-only sentinel:
+    it is invoked exclusively from the cache-miss branch of
+    `_get_flow_topology`, so its call count equals the number of real
+    rebuilds. We also pin object identity to catch in-place rebuilds that
+    a presence-only check (`project_id in _topology_cache`) would miss.
+    """
+    dashboard = MPManager.get_dashboard()
+    real_get_exec_order = RuntimeFlowgraph.get_execution_order
+    exec_calls = []
+
+    def counting(self, *args, **kwargs):
+        exec_calls.append(self)
+        return real_get_exec_order(self, *args, **kwargs)
+
+    monkeypatch.setattr(RuntimeFlowgraph, "get_execution_order", counting)
+
+    # First call: cache miss — get_execution_order must be invoked.
+    dashboard._get_job(mock_project)
+    after_seed = len(exec_calls)
+    assert after_seed >= 1
+    seeded = dashboard._topology_cache["test_design/test_job"]
+
+    # Status-only refreshes: cache hits — must reuse the same _FlowTopology
+    # object and must not invoke get_execution_order again.
+    dashboard._get_job(mock_project)
+    mock_project.set("record", "status", "running",
+                     step="floorplan.init", index=0)
+    dashboard._get_job(mock_project)
+    mock_project.set("record", "status", "success",
+                     step="floorplan.init", index=0)
+    dashboard._get_job(mock_project)
+
+    assert len(exec_calls) == after_seed, (
+        f"get_execution_order called {len(exec_calls)} times, expected "
+        f"{after_seed} (one per real topology rebuild)"
+    )
+    assert dashboard._topology_cache["test_design/test_job"] is seeded, (
+        "Topology object identity changed despite no structural change"
+    )
+
+
+def test_get_job_status_counts_correct_with_cache(mock_project, fake_console):
+    """Status-derived counters (success/error/finished/visible) must update
+    on every call even when the topology cache is reused — they are
+    deliberately *not* part of the cache."""
+    dashboard = MPManager.get_dashboard()
+
+    job0 = dashboard._get_job(mock_project)
+    assert job0.success == 0
+    assert job0.finished == 0
+
+    mock_project.set("record", "status", "success", step="route.global", index=0)
+    job1 = dashboard._get_job(mock_project)
+    assert job1.success == 1
+    assert job1.finished == 1
+
+    mock_project.set("record", "status", "error", step="write.views", index=0)
+    job2 = dashboard._get_job(mock_project)
+    assert job2.error == 1
+    assert job2.success == 1
+    assert job2.finished == 2
+
+
+def test_get_job_priority_reflects_status_changes(mock_project, fake_console):
+    """node_priority is recomputed from cached node_dists on every call so
+    that running/error nodes float to the top of the display even though
+    the underlying topology was cached."""
+    dashboard = MPManager.get_dashboard()
+
+    # First call: nothing is running, nothing has errored, so entry nodes
+    # are the only priority-0 nodes.
+    job_initial = dashboard._get_job(mock_project)
+    initial_priorities = {
+        (node["step"], node["index"]): node["print"]["priority"]
+        for node in job_initial.nodes
+    }
+
+    # Pick a deep, non-entry node to set ERROR on; its priority should
+    # drop to 0 (errors are part of the priority-0 startnode set).
+    target = ("write.views", "0")
+    assert initial_priorities.get(target, 1) > 0
+
+    mock_project.set("record", "status", "error",
+                     step=target[0], index=target[1])
+    job_after = dashboard._get_job(mock_project)
+
+    after_priorities = {
+        (node["step"], node["index"]): node["print"]["priority"]
+        for node in job_after.nodes
+    }
+    assert after_priorities[target] == 0
+
+
+def test_get_job_separate_projects_use_separate_cache_entries(
+        mock_project, fake_console):
+    """The cache key is design/jobname; two distinct projects must each
+    get their own cached topology."""
+    dashboard = MPManager.get_dashboard()
+
+    dashboard._get_job(mock_project)
+    assert "test_design/test_job" in dashboard._topology_cache
+
+    mock_project.set('option', 'jobname', 'other_job')
+    dashboard._get_job(mock_project)
+    assert "test_design/other_job" in dashboard._topology_cache
+    assert "test_design/test_job" in dashboard._topology_cache
 
 
 def test_render_help_full_height(mock_project, fake_console):
@@ -1720,3 +2157,251 @@ def test_update_rendable_data_no_jobs(mock_project, fake_console):
 
     # Should have no jobs in render data
     assert len(dashboard._render_data.jobs) == 0
+
+
+# ---------------------------------------------------------------------------
+# LogBufferHandler.formatter_source
+# ---------------------------------------------------------------------------
+
+def _info_record(msg="hello"):
+    return logging.LogRecord(
+        name="test", level=logging.INFO, pathname=__file__, lineno=1,
+        msg=msg, args=None, exc_info=None)
+
+
+def test_log_buffer_handler_uses_own_formatter_when_no_source():
+    buffer = LogBuffer(queue.Queue(), n=10)
+    handler = buffer.make_handler(None)
+    handler.setFormatter(logging.Formatter("OWN:%(message)s"))
+
+    assert handler.format(_info_record("hi")) == "OWN:hi"
+
+
+def test_log_buffer_handler_delegates_to_formatter_source():
+    """When formatter_source is set, the handler formats with the source's
+    current formatter rather than its own."""
+    source = logging.Handler()
+    source.setFormatter(logging.Formatter("SRC:%(message)s"))
+
+    buffer = LogBuffer(queue.Queue(), n=10)
+    handler = buffer.make_handler(None, formatter_source=source)
+    handler.setFormatter(logging.Formatter("OWN:%(message)s"))
+
+    assert handler.format(_info_record("hi")) == "SRC:hi"
+
+
+def test_log_buffer_handler_tracks_source_formatter_changes():
+    """The whole point of formatter_source: when the source's formatter is
+    swapped out mid-run, the dashboard handler picks up the new formatter
+    on its very next emit, with no explicit synchronization."""
+    source = logging.Handler()
+    source.setFormatter(logging.Formatter("A:%(message)s"))
+
+    buffer = LogBuffer(queue.Queue(), n=10)
+    handler = buffer.make_handler(None, formatter_source=source)
+
+    assert handler.format(_info_record("hi")) == "A:hi"
+    source.setFormatter(logging.Formatter("B:%(message)s"))
+    assert handler.format(_info_record("hi")) == "B:hi"
+
+
+def test_log_buffer_handler_falls_back_when_source_has_no_formatter():
+    """If formatter_source is set but the source has no formatter attached,
+    fall back to the handler's own formatter rather than raising."""
+    source = logging.Handler()  # no formatter set
+
+    buffer = LogBuffer(queue.Queue(), n=10)
+    handler = buffer.make_handler(None, formatter_source=source)
+    handler.setFormatter(logging.Formatter("OWN:%(message)s"))
+
+    assert handler.format(_info_record("hi")) == "OWN:hi"
+
+
+# ---------------------------------------------------------------------------
+# CliDashboard set_logger / _detach_logger
+# ---------------------------------------------------------------------------
+
+def test_set_logger_adds_dashboard_handler_without_removing_terminal(
+        mock_project, fake_console):
+    """Attaching must not swap or detach the project's terminal handler —
+    other components (scheduler, slurm, docker, remote) hold references to
+    it and would break if it disappeared."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+
+    dash.set_logger(mock_project.logger)
+
+    assert mock_project._logger_console is terminal, \
+        "terminal handler must not be swapped"
+    assert terminal in mock_project.logger.handlers
+    assert dash._dashboard_handler in mock_project.logger.handlers
+    assert dash._terminal_handler is terminal
+
+
+def test_set_logger_installs_active_suppress_filter(mock_project, fake_console):
+    """The terminal handler stays attached but is silenced via a filter so
+    its writes don't corrupt the rich Live display."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash.set_logger(mock_project.logger)
+
+    assert dash._suppress_filter in mock_project._logger_console.filters
+    assert dash._suppress_filter.active is True
+
+
+def test_set_logger_idempotent_on_repeat_call(mock_project, fake_console):
+    """Calling set_logger twice with the same logger must not double-attach
+    the handler or stack duplicate filters."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash.set_logger(mock_project.logger)
+    first_handler = dash._dashboard_handler
+
+    dash.set_logger(mock_project.logger)
+
+    assert dash._dashboard_handler is first_handler
+    assert mock_project.logger.handlers.count(first_handler) == 1
+    assert mock_project._logger_console.filters.count(dash._suppress_filter) == 1
+
+
+def test_set_logger_moves_handler_when_swapping_loggers(mock_project, fake_console):
+    """Re-attaching to a different logger must move the dashboard handler
+    rather than leaving it leaked on the old one. The project's logger is
+    invariant in practice, but the move keeps the contract self-consistent."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash.set_logger(mock_project.logger)
+    handler = dash._dashboard_handler
+    other = logging.getLogger("test_set_logger_moves_handler_when_swapping_loggers")
+    other.handlers = []
+
+    dash.set_logger(other)
+
+    assert dash._dashboard_handler is handler
+    assert handler not in mock_project.logger.handlers
+    assert handler in other.handlers
+    assert dash._logger is other
+
+
+def test_set_logger_none_detaches(mock_project, fake_console):
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash.set_logger(mock_project.logger)
+    attached = dash._dashboard_handler
+    assert attached is not None
+
+    dash.set_logger(None)
+
+    assert dash._dashboard_handler is None
+    assert attached not in mock_project.logger.handlers
+    assert dash._suppress_filter not in mock_project._logger_console.filters
+    assert dash._suppress_filter.active is False
+
+
+def test_detach_logger_undoes_attach(mock_project, fake_console):
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+    handlers_before = list(mock_project.logger.handlers)
+
+    dash.set_logger(mock_project.logger)
+    dash._detach_logger()
+
+    assert list(mock_project.logger.handlers) == handlers_before
+    assert terminal.filters == []
+    assert dash._dashboard_handler is None
+    assert dash._terminal_handler is None
+    assert dash._suppress_filter.active is False
+
+
+def test_detach_logger_is_idempotent(mock_project, fake_console):
+    """Calling _detach_logger when nothing is attached must not raise."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash._detach_logger()
+    dash._detach_logger()
+
+
+def test_attach_detach_attach_cycle(mock_project, fake_console):
+    """A second attach after detach should produce the same end-state as
+    the first — this is what the future user-quit + resume path relies on."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+
+    dash.set_logger(mock_project.logger)
+    first_handler = dash._dashboard_handler
+    dash._detach_logger()
+    dash.set_logger(mock_project.logger)
+    second_handler = dash._dashboard_handler
+
+    assert second_handler is not None
+    # The handler instance may be reused or new — either is fine. What
+    # matters is the end-state: attached to logger, filter active.
+    assert second_handler in mock_project.logger.handlers
+    assert dash._suppress_filter in terminal.filters
+    assert dash._suppress_filter.active is True
+    # And the first handler should not be lingering on the logger.
+    if second_handler is not first_handler:
+        assert first_handler not in mock_project.logger.handlers
+
+
+def test_terminal_output_suppressed_during_attach_resumed_after_detach(
+        mock_project, fake_console):
+    """End-to-end: records reach the terminal stream before attach, are
+    silenced while attached, and flow again after detach."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    terminal = mock_project._logger_console
+
+    # Redirect the terminal handler's stream so we can inspect what it wrote.
+    captured = io.StringIO()
+    terminal.stream = captured
+
+    mock_project.logger.info("BEFORE")
+    before_len = len(captured.getvalue())
+    assert "BEFORE" in captured.getvalue()
+
+    dash.set_logger(mock_project.logger)
+    mock_project.logger.info("DURING")
+    # Nothing new should have been written to the terminal stream.
+    assert len(captured.getvalue()) == before_len
+
+    dash._detach_logger()
+    mock_project.logger.info("AFTER")
+    assert "AFTER" in captured.getvalue()
+
+
+def test_should_disable_no_flow():
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    # No flow set, so there is nothing to inspect.
+    assert CliDashboard.should_disable(proj) is False
+
+
+def test_should_disable_no_breakpoint():
+    proj = _project_with_flow()
+
+    assert CliDashboard.should_disable(proj) is False
+
+
+def test_should_disable_with_breakpoint(project_logger, caplog):
+    proj = _project_with_flow()
+
+    project_logger(proj)
+
+    proj.set("option", "breakpoint", True, step="faux")
+
+    assert CliDashboard.should_disable(proj) is True
+    assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text

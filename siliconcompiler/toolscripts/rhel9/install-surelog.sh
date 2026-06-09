@@ -8,7 +8,7 @@ src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 # These dependencies are up-to-date with instructions from the INSTALL.md from the commit we are pinned to below
 sudo yum install -y gcc-toolset-12
 sudo dnf config-manager --set-enabled devel || true
-sudo yum install -y libuuid-devel java-11-openjdk-devel python3 zlib-static openssl-devel 
+sudo yum install -y libuuid-devel java-11-openjdk-devel python3 zlib-static openssl-devel
 sudo dnf config-manager --set-disabled devel || true
 sudo yum install -y git
 

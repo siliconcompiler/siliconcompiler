@@ -1016,8 +1016,7 @@ class BaseSchema:
         base_schema: BaseSchema = self.get(*keypath[0:-1], field="schema")
 
         param: Parameter = base_schema.get(keypath[-1], field=None)
-        paramtype: str = param.get(field='type')
-        if 'file' not in paramtype and 'dir' not in paramtype:
+        if not param.is_path:
             raise TypeError(
                 f'Cannot find files on {self.__format_key(*keypath)}, must be a path type')
 
@@ -1140,9 +1139,8 @@ class BaseSchema:
                 continue
 
             param: Parameter = self.get(*keypath, field=None)
-            paramtype: str = param.get(field='type')
 
-            if 'file' not in paramtype and 'dir' not in paramtype:
+            if not param.is_path:
                 continue
 
             for check_files, step, index in param.getvalues():

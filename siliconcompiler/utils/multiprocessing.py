@@ -199,41 +199,52 @@ class MPManager(metaclass=_ManagerSingleton):
 
         manager = MPManager()
 
-        # Remove all logger handlers to release file locks
-        for handler in list(manager.__logger.handlers):
-            manager.__logger.removeHandler(handler)
-            handler.close()
+        try:
+            # Remove all logger handlers to release file locks
+            for handler in list(manager.__logger.handlers):
+                manager.__logger.removeHandler(handler)
+                handler.close()
 
-        # Remove the log file if the run was successful
-        if not manager.__error:
-            try:
-                os.remove(manager.__logfile)
-            except:  # noqa E722
-                pass
+            # Remove the log file if the run was successful
+            if not manager.__error:
+                try:
+                    os.remove(manager.__logfile)
+                except:  # noqa E722
+                    pass
 
-        # Stop the dashboard service if it's running
-        if manager.__board:
-            try:
-                with manager.__board_lock:
+            # Stop the dashboard service if it's running
+            if manager.__board:
+                try:
+                    with manager.__board_lock:
+                        if manager.__board:
+                            manager.__board.stop()
+                            manager.__board = None
+                except RemoteError:
+                    # Try without the lock
                     if manager.__board:
                         manager.__board.stop()
                         manager.__board = None
-            except RemoteError:
-                # Try without the lock
-                if manager.__board:
-                    manager.__board.stop()
-                    manager.__board = None
 
-        if manager.__manager_server:
-            # Shut down the multiprocessing manager
-            MPManager.__address = None
-            manager.__manager.shutdown()
-
-        # Unregister cleanup function to prevent it from being called again
-        atexit.unregister(MPManager.stop)
-
-        # Delete singleton instance to allow for re-initialization
-        _ManagerSingleton.remove_cls(MPManager)
+            if manager.__manager_server:
+                # Shut down the multiprocessing manager
+                MPManager.__address = None
+                manager.__manager.shutdown()
+        except:  # noqa E722
+            # Catch everything (incl. KeyboardInterrupt) so a signal arriving
+            # mid-cleanup cannot escape an atexit callback or leave the
+            # singleton half-torn-down.
+            pass
+        finally:
+            # Always run housekeeping, even if cleanup above was interrupted,
+            # so a re-entry to stop() is a no-op.
+            try:
+                atexit.unregister(MPManager.stop)
+            except:  # noqa E722
+                pass
+            try:
+                _ManagerSingleton.remove_cls(MPManager)
+            except:  # noqa E722
+                pass
 
     @staticmethod
     def error(msg: Optional[str] = None):
@@ -332,7 +343,8 @@ class MPQueueHandler(QueueHandler):
     def enqueue(self, record):
         try:
             super().enqueue(record)
-        except BrokenPipeError:
-            # The pipe is broken so fail silently as this is likely
-            # at exit
+        except (BrokenPipeError, EOFError, ConnectionResetError, OSError, RemoteError):
+            # The queue is no longer reachable so fail silently. This is
+            # most likely happening during shutdown, when the parent's
+            # SyncManager has gone away before the child finished logging.
             pass
