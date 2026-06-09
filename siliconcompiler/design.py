@@ -3,7 +3,7 @@ import io
 import os.path
 from pathlib import Path
 
-from typing import List, Set, Union, Tuple, Dict, Optional, Iterable
+from typing import Dict, List, Set, Union, Tuple, Optional, Iterable
 
 from siliconcompiler import utils
 
@@ -13,6 +13,11 @@ from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema
+
+Alias = dict[
+    Tuple[str, str],
+    Tuple[Union[NamedSchema, str, None], Union[str, Tuple[str, ...], None]]
+]
 
 
 ###########################################################################
@@ -590,7 +595,7 @@ class Design(DependencySchema, PathSchema, NamedSchema):
     def __write_flist(self,
                       filename: str,
                       filesets: Union[List[str], str],
-                      depalias: Optional[Dict[Tuple[str, str], Tuple[NamedSchema, str]]],
+                      depalias: Optional[Alias],
                       comments: bool = False):
         '''
         Internal helper to write a Verilog-style file list (`.f` file).
@@ -668,7 +673,7 @@ class Design(DependencySchema, PathSchema, NamedSchema):
                       filename: str,
                       fileset: Optional[Union[Iterable[str], str]] = None,
                       fileformat: Optional[str] = None,
-                      depalias: Optional[Dict[Tuple[str, str], Tuple[NamedSchema, str]]] = None,
+                      depalias: Optional[Alias] = None,
                       comments: bool = False) -> None:
         """Exports filesets to a standard formatted text file.
 
@@ -829,9 +834,10 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         return Design.__name__
 
     def __get_fileset(self,
-                      filesets: Union[List[str], str],
-                      alias: Dict[Tuple[str, str], Tuple[NamedSchema, str]],
-                      visited: List[Tuple[NamedSchema, str]],
+                      filesets: Union[Iterable[str], str],
+                      alias: Alias,
+                      filelist: List[Tuple[str, str]],
+                      visited: Set[Tuple[str, Union[Tuple[str, ...], str]]],
                       mapping: Dict[str, NamedSchema]) -> \
             List[Tuple[NamedSchema, str]]:
         """
@@ -841,10 +847,10 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         This method traverses the design's dependency graph.
 
         Args:
-            filesets (Union[List[str], str]): List of top-level filesets to evaluate.
+            filesets (Union[Iterable[str], str]): List of top-level filesets to evaluate.
             alias (Dict[Tuple[str, str], Tuple[NamedSchema, str]]): Map of aliased
                 (design, fileset) tuples to substitute during traversal.
-            visited (List[Tuple[NamedSchema, str]]): Internal list used to track
+            visited (Set[Tuple[NamedSchema, str]]): Internal list used to track
                 visited (design, fileset) nodes during recursion.
             mapping (Dict[str, NamedSchema]): Internal dictionary mapping design names to
                 design objects, used to resolve dependencies during recursion.
@@ -853,9 +859,12 @@ class Design(DependencySchema, PathSchema, NamedSchema):
             List[Tuple[NamedSchema, str]]: A flattened, unique list of
             (Design, fileset) tuples.
         """
+        if self.name is None:
+            raise ValueError("Design name must be set before resolving filesets.")
+
         if isinstance(filesets, str):
-            # Ensure we have a list
-            filesets = [filesets]
+            # Ensure filesets is iterable
+            filesets = (filesets,)
 
         if self.name not in mapping:
             mapping[self.name] = self
@@ -867,13 +876,19 @@ class Design(DependencySchema, PathSchema, NamedSchema):
             if key in visited:
                 continue
 
-            visited.append(key)
+            visited.add(key)
+
             for dep, depfileset in self.get("fileset", fileset, "depfileset"):
                 if (dep, depfileset) in alias:
                     dep_obj, new_depfileset = alias[(dep, depfileset)]
                     if dep_obj is None:
                         continue
-                    if new_depfileset:
+
+                    if new_depfileset is not None:
+                        if not isinstance(new_depfileset, (str, tuple)):
+                            raise TypeError(
+                                f"alias[{(dep, depfileset)}]'s fileset list isn't a str or tuple."
+                            )
                         depfileset = new_depfileset
                 else:
                     if dep == self.name:
@@ -885,11 +900,13 @@ class Design(DependencySchema, PathSchema, NamedSchema):
 
                 dep_key = (dep_obj.name, depfileset)
                 if dep_key not in visited:
-                    dep_obj.__get_fileset(depfileset, alias, visited, mapping)
+                    dep_obj.__get_fileset(depfileset, alias, filelist, visited, mapping)
+
+            filelist.append(key)
 
         # Cleanup
         final_map = []
-        for libname, fileset in visited:
+        for libname, fileset in filelist:
             if libname not in mapping:
                 raise LookupError(f"{libname} not found in mapping")
             lib = mapping[libname]
@@ -900,7 +917,7 @@ class Design(DependencySchema, PathSchema, NamedSchema):
 
     def get_fileset(self,
                     filesets: Union[List[str], str],
-                    alias: Optional[Dict[Tuple[str, str], Tuple[NamedSchema, str]]] = None) -> \
+                    alias: Optional[Alias] = None) -> \
             List[Tuple[NamedSchema, str]]:
         """
         Computes the full, recursive list of (design, fileset) tuples
@@ -926,7 +943,7 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         if alias is None:
             alias = {}
 
-        return self.__get_fileset(filesets, alias, [], {})
+        return self.__get_fileset(filesets, alias, [], set(), {})
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
