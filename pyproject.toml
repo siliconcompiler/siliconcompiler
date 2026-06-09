@@ -35,7 +35,7 @@ classifiers = [
 ]
 requires-python = ">= 3.10"
 dependencies = [
-    "aiohttp >= 3.10.11, < 3.14.0",
+    "aiohttp >= 3.10.11, < 3.15.0",
     "distro >= 1.9.0, < 2.0.0",
     "docker >= 7.1.0, < 8.0.0",
     "fastjsonschema >= 2.20.0, < 2.22.0",
@@ -60,7 +60,7 @@ dependencies = [
     "pyslang == 11.0.0",
 
     # dashboard
-    "streamlit == 1.54.0",
+    "streamlit == 1.58.0",
     "streamlit_agraph == 0.0.45",
     "streamlit-antd-components == 0.3.2",
     "streamlit_javascript == 0.1.5",
@@ -107,23 +107,23 @@ tools = "siliconcompiler.apps.sc_install:get_install_tools"
 
 [project.optional-dependencies]
 test = [
-    "pytest == 8.4.2",
+    "pytest == 9.0.3",
     "pytest-xdist == 3.8.0",
     "pytest-timeout == 2.4.0",
-    "pytest-asyncio == 1.2.0",
+    "pytest-asyncio == 1.4.0",
     "pytest-cov == 7.1.0",
     "responses == 0.26.1",
     "PyVirtualDisplay == 3.0"
 ]
 lint = [
     "flake8 == 7.3.0",
-    "tclint == 0.7.0",
+    "tclint == 0.8.0",
     "codespell == 2.4.2"
 ]
 docs = [
     "Sphinx >= 7.4, <8.3",
     "pip-licenses == 5.5.5",
-    "pydata-sphinx-theme == 0.16.1",
+    "pydata-sphinx-theme == 0.18.0",
     "sc-leflib >= 0.2.0"
 ]
 optimizer = [
