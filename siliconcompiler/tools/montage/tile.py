@@ -11,7 +11,7 @@ class TileTask(Task):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("bins", "(int,int)", "Number of bins along the (x, y)-axis",
+        self.add_parameter("bins", "(int<1->>,int<1->>)", "Number of bins along the (x, y)-axis",
                            defvalue=(2, 2))
 
     def set_montage_bins(self, xbins: int, ybins: int,

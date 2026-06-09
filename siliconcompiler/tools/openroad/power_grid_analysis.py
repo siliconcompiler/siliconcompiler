@@ -16,7 +16,7 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("source_disconnection_rate", "float",
+        self.add_parameter("source_disconnection_rate", "float<0.0-100.0>",
                            "Fraction (0.0-100.0) of power source bumps to simulate "
                            "disconnected/failing bumps.",
                            defvalue=0.0)
@@ -31,11 +31,11 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
         self.add_parameter("net", "{str}",
                            "Set of specific power/ground nets to analyze (e.g., VDD, VSS).")
 
-        self.add_parameter("heatmap_grid", "(float,float)",
+        self.add_parameter("heatmap_grid", "(float<0.0->>,float<0.0->>)",
                            "Resolution of the IR drop heatmap grid (x_step, y_step).",
                            defvalue=(10, 10), units="um")
 
-        self.add_parameter("external_resistance", "float",
+        self.add_parameter("external_resistance", "float<0.0->>",
                            "Resistance value to add to the power grid model to account for "
                            "external factors (e.g., package, PCB).",
                            units="ohm")
