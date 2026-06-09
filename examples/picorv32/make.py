@@ -51,7 +51,7 @@ class PicoRV32Design(Design):
             with self.active_dataroot("picorv32"):
                 # The top module for this version is a wrapper.
                 self.set_topmodule("picorv32_top")
-                self.add_file("picorv32.v")
+                self.add_depfileset(self, "rtl")
             # Add local wrapper files.
             with self.active_dataroot("example"):
                 self.add_file("picorv32_top.v")

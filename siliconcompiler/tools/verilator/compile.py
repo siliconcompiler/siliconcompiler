@@ -19,6 +19,10 @@ class CompileTask(VerilatorTask):
         self.add_parameter("trace_type", "<vcd,fst>",
                            "specifies type of wave file to create when [trace] is set",
                            defvalue="vcd")
+        self.add_parameter("main", "bool",
+                           "if true, generate a toplevel C++ wrapper and relax the C++ file "
+                           "requirement. See --main in Verilator docs for more info",
+                           defvalue=False)
 
         # TODO Move to design object
         self.add_parameter("cincludes", "[dir]",
@@ -74,6 +78,19 @@ class CompileTask(VerilatorTask):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "trace_type", trace_type, step=step, index=index)
+
+    def set_verilator_main(self, enable: bool,
+                           step: Optional[str] = None,
+                           index: Optional[str] = None):
+        """
+        Enables or disables toplevel C++ wrapper generation.
+
+        Args:
+            enable (bool): Whether to enable toplevel wrapper generation.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "main", enable, step=step, index=index)
 
     def add_verilator_cincludes(self, include: Union[str, List[str]],
                                 step: Optional[str] = None,
@@ -165,7 +182,9 @@ class CompileTask(VerilatorTask):
             if lib.has_file(fileset=fileset, filetype="c"):
                 self.add_required_key(lib, "fileset", fileset, "file", "c")
                 added_key = True
-        if not added_key:
+        if not added_key and not self.get("var", "main"):
+            self.logger.warning("No c files found. c files are required for verilator compilation "
+                                "unless the \"main\" option is enabled.")
             self.add_required_key(self.project.design, "fileset",
                                   self.project.get("option", "fileset")[0], "file", "c")
 
@@ -180,6 +199,7 @@ class CompileTask(VerilatorTask):
         self.add_required_key("var", "trace")
         self.add_required_key("var", "trace_type")
         self.add_required_key("var", "initialize_random")
+        self.add_required_key("var", "main")
 
         self._setup_c_file_requirement()
 
@@ -198,6 +218,9 @@ class CompileTask(VerilatorTask):
 
         if self.get("var", "initialize_random"):
             options.extend(['--x-assign', 'unique'])
+
+        if self.get("var", "main"):
+            options.extend(['--main', '--timing'])
 
         options.extend(['--exe', '--build'])
 
@@ -234,9 +257,15 @@ class CompileTask(VerilatorTask):
             options.append(trace_opt)
 
             # add siliconcompiler specific defines
-            c_flags.append("-DSILICONCOMPILER_TRACE_DIR=\"reports\"")
-            c_flags.append(
-                f"-DSILICONCOMPILER_TRACE_FILE=\"reports/{self.design_topmodule}.{ext}\"")
+            if self.get("var", "main"):
+                options.extend([
+                    "-DSILICONCOMPILER_TRACE_DIR=\"reports\"",
+                    f"-DSILICONCOMPILER_TRACE_FILE=\"reports/{self.design_topmodule}.{ext}\""
+                ])
+            else:
+                c_flags.append("-DSILICONCOMPILER_TRACE_DIR=\"reports\"")
+                c_flags.append(
+                    f"-DSILICONCOMPILER_TRACE_FILE=\"reports/{self.design_topmodule}.{ext}\"")
 
         if c_includes:
             c_flags.extend([f'-I{include}' for include in c_includes])

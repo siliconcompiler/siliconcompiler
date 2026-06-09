@@ -18,6 +18,10 @@ class Img2StreamTask(KLayoutTask):
         self.add_parameter("invert", "bool", "Invert the polarity of the image", defvalue=False)
         self.add_parameter("darkissolid", "bool", "Treat dark colors as a solid", defvalue=True)
         self.add_parameter("timestamp", "bool", "Export GDSII with timestamps", defvalue=True)
+        self.add_parameter("outline_layer", "(int,int)",
+                           "Layer/datatype to use for the OUTLINE boundary rectangle")
+        self.add_parameter("fill_exclusion_layer", "(int,int)",
+                           "Layer/datatype to use for the FILL EXCLUSION boundary rectangle")
 
     def set_klayout_timestamp(self, enable: bool,
                               step: Optional[str] = None,
@@ -95,6 +99,34 @@ class Img2StreamTask(KLayoutTask):
         """
         self.set("var", "layer", (layer, purpose), step=step, index=index)
 
+    def set_klayout_outline_layer(self, layer: int, purpose: int = 0,
+                                  step: Optional[str] = None,
+                                  index: Optional[str] = None):
+        """
+        Sets the layer/datatype for the OUTLINE boundary rectangle added to the stream.
+
+        Args:
+            layer (int): The GDS layer number for the OUTLINE shape.
+            purpose (int, optional): The GDS datatype for the OUTLINE shape.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "outline_layer", (layer, purpose), step=step, index=index)
+
+    def set_klayout_fill_exclusion_layer(self, layer: int, purpose: int = 0,
+                                         step: Optional[str] = None,
+                                         index: Optional[str] = None):
+        """
+        Sets the layer/datatype for the FILL EXCLUSION boundary rectangle added to the stream.
+
+        Args:
+            layer (int): The GDS layer number for the FILL EXCLUSION shape.
+            purpose (int, optional): The GDS datatype for the FILL EXCLUSION shape.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "fill_exclusion_layer", (layer, purpose), step=step, index=index)
+
     def set_klayout_invert(self, invert: bool,
                            step: Optional[str] = None,
                            index: Optional[str] = None):
@@ -139,7 +171,11 @@ class Img2StreamTask(KLayoutTask):
         self.add_required_key("var", "darkissolid")
         self.add_required_key("var", "timestamp")
 
+        if self.get("var", "outline_layer"):
+            self.add_required_key("var", "outline_layer")
+
         self.add_output_file(ext=f"{default_stream}.gz")
+        self.add_output_file(ext="lef")
 
         if f"{self.design_topmodule}.{imageformat}" in self.get_files_from_input_nodes():
             self.add_input_file(ext=imageformat)
@@ -148,3 +184,11 @@ class Img2StreamTask(KLayoutTask):
                 if lib.has_file(fileset=fileset, filetype=imageformat):
                     self.add_required_key(lib, "fileset", fileset, "file", imageformat)
                     break
+
+        sc_stream_order = [default_stream, *[s for s in ("gds", "oas") if s != default_stream]]
+        for s in sc_stream_order:
+            if self.pdk.valid("pdk", "layermapfileset", "klayout", "def", s):
+                self.add_required_key(self.pdk, "pdk", "layermapfileset", "klayout", "def", s)
+                for fileset in self.pdk.get("pdk", "layermapfileset", "klayout", "def", s):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "layermap")
+                break

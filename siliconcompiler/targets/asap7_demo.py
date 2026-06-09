@@ -5,7 +5,8 @@ from siliconcompiler.flows import asicflow, synflow
 from lambdapdk.asap7.libs.asap7sc7p5t import ASAP7SC7p5RVT, ASAP7SC7p5SLVT, ASAP7SC7p5LVT
 from lambdapdk.asap7.libs.fakeram7 import FakeRAM7Lambdalib_SinglePort, \
     FakeRAM7Lambdalib_DoublePort, \
-    FakeRAM7Lambdalib_TrueDoublePort
+    FakeRAM7Lambdalib_TrueDoublePort, \
+    FakeRAM7Lambdalib_SinglePortRegfile
 from lambdapdk.asap7.libs.fakeio7 import FakeIO7Lambdalib_IO
 
 
@@ -102,6 +103,7 @@ def asap7_demo(
     # under a common, standardized naming convention. These are 'fake' libraries
     # for demonstration and academic purposes.
     FakeRAM7Lambdalib_SinglePort.alias(project)
+    FakeRAM7Lambdalib_SinglePortRegfile.alias(project)
     FakeRAM7Lambdalib_DoublePort.alias(project)
     FakeRAM7Lambdalib_TrueDoublePort.alias(project)
     FakeIO7Lambdalib_IO.alias(project)

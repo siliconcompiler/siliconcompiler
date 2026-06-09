@@ -3,7 +3,8 @@ from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.ihp130.libs.sg13g2_stdcell import IHP130StdCell_1p2
-from lambdapdk.ihp130.libs.sg13g2_sram import IHP130Lambdalib_SinglePort
+from lambdapdk.ihp130.libs.sg13g2_sram import IHP130Lambdalib_SinglePort, \
+    IHP130Lambdalib_SinglePortRegfile
 from lambdapdk.ihp130.libs.sg13g2_io import IHP130LambdaLib_IO_1p2
 
 
@@ -93,4 +94,5 @@ def ihp130_demo(
     # Makes specialized libraries like SRAM and IO cells available to the flow
     # under a common, standardized naming convention.
     IHP130Lambdalib_SinglePort.alias(project)
+    IHP130Lambdalib_SinglePortRegfile.alias(project)
     IHP130LambdaLib_IO_1p2.alias(project)

@@ -984,10 +984,10 @@ def test_heartbeat_example(datadir):
     dut.write_fileset(filename="heartbeat.f", fileset=['rtl', 'testbench'], comments=True)
 
     assert Path("heartbeat.f").read_text().splitlines() == [
-        '// heartbeat / rtl / verilog files',
-        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment / rtl / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// heartbeat / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// heartbeat / testbench / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}'
     ]
@@ -1141,13 +1141,13 @@ def test_get_fileset():
 
     dut = Heartbeat()
     assert dut.get_fileset("rtl") == [
-        (dut, 'rtl'),
         (incr_object, 'rtl.increment'),
+        (dut, 'rtl'),
     ]
 
     assert dut.get_fileset(["rtl", "testbench"]) == [
-        (dut, 'rtl'),
         (incr_object, 'rtl.increment'),
+        (dut, 'rtl'),
         (dut, 'testbench')
     ]
 
@@ -1172,13 +1172,13 @@ def test_get_fileset_self():
 
     dut = Heartbeat()
     assert dut.get_fileset("rtl") == [
-        (dut, 'rtl'),
         (dut, 'rtl.increment'),
+        (dut, 'rtl'),
     ]
 
     assert dut.get_fileset(["rtl", "testbench"]) == [
-        (dut, 'rtl'),
         (dut, 'rtl.increment'),
+        (dut, 'rtl'),
         (dut, 'testbench')
     ]
 
@@ -1209,8 +1209,8 @@ def test_get_fileset_duplicate():
 
     dut = Heartbeat()
     assert dut.get_fileset(["rtl", "testbench"]) == [
-        (dut, 'rtl'),
         (incr_object, 'rtl.increment'),
+        (dut, 'rtl'),
         (dut, 'testbench')
     ]
 
@@ -1250,8 +1250,8 @@ def test_get_fileset_alias():
 
     dut = Heartbeat()
     assert dut.get_fileset(["rtl", "testbench"]) == [
-        (dut, 'rtl'),
         (incr_object, 'rtl.increment'),
+        (dut, 'rtl'),
         (dut, 'testbench')
     ]
 
@@ -1260,15 +1260,15 @@ def test_get_fileset_alias():
     assert dut.get_fileset(
         ["rtl", "testbench"],
         alias={("increment", "rtl.increment"): (alias, "rtl.alias")}) == [
-        (dut, 'rtl'),
         (alias, 'rtl.alias'),
+        (dut, 'rtl'),
         (dut, 'testbench')
     ]
     assert dut.get_fileset(
         ["rtl", "testbench"],
         alias={("increment", "rtl.increment"): (alias, None)}) == [
-        (dut, 'rtl'),
         (alias, 'rtl.increment'),
+        (dut, 'rtl'),
         (dut, 'testbench')
     ]
     assert dut.get_fileset(
@@ -1324,10 +1324,10 @@ def test_write_fileset_alias(datadir):
         depalias={("increment", "rtl.increment"): (alias, "rtl.alias")}, comments=True)
 
     assert Path("fileset.f").read_text().splitlines() == [
-        '// heartbeat / rtl / verilog files',
-        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment_alias / rtl.alias / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// heartbeat / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// heartbeat / testbench / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
@@ -1335,16 +1335,16 @@ def test_write_fileset_alias(datadir):
     dut.write_fileset(
         "fileset_double.f",
         ["rtl", "testbench"],
-        depalias={("increment", "rtl.increment"): (alias, ["rtl.alias", "rtl.alias_other"])},
+        depalias={("increment", "rtl.increment"): (alias, ("rtl.alias", "rtl.alias_other"))},
         comments=True)
 
     assert Path("fileset_double.f").read_text().splitlines() == [
-        '// heartbeat / rtl / verilog files',
-        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment_alias / rtl.alias / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// increment_alias / rtl.alias_other / verilog files',
         f'// {os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// heartbeat / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// heartbeat / testbench / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
@@ -1387,10 +1387,10 @@ def test_write_fileset_same_datroot_name(datadir):
     dut.write_fileset("fileset.f",  ["rtl", "testbench"], comments=True)
 
     assert Path("fileset.f").read_text().splitlines() == [
-        '// heartbeat / rtl / verilog files',
-        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment / rtl.increment / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// heartbeat / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// heartbeat / testbench / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
@@ -1587,20 +1587,20 @@ def test_fileset_recursion_runs_once():
             self._depfileset.append((dep_obj.name, depfileset))
             self._depmap[dep_obj.name] = dep_obj
 
-        def __get_fileset(self, filesets, alias, visited, mapping):
+        def __get_fileset(self, filesets, alias, filelist, visited, mapping):
             self.calls.append((self.name, filesets))
             # Patch all dependencies to use DummyDesign's __get_fileset
             for dep in getattr(self, "_depmap", {}).values():
                 dep.__class__.__get_fileset = DummyDesign.__get_fileset
-            return super()._Design__get_fileset(filesets, alias, visited, mapping)
+            return super()._Design__get_fileset(filesets, alias, filelist, visited, mapping)
 
     # Patch Design.__get_fileset to track calls
     call_log = []
     orig_get_fileset = Design._Design__get_fileset
 
-    def tracking_get_fileset(self, filesets, alias, visited, mapping):
+    def tracking_get_fileset(self, filesets, alias, filelist, visited, mapping):
         call_log.append(self.name)
-        return orig_get_fileset(self, filesets, alias, visited, mapping)
+        return orig_get_fileset(self, filesets, alias, filelist, visited, mapping)
     Design._Design__get_fileset = tracking_get_fileset
 
     # Create a design hierarchy with duplicate dependency

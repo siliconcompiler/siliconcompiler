@@ -1,3 +1,4 @@
+import glob
 import logging
 import multiprocessing
 import os
@@ -10,7 +11,7 @@ import os.path
 
 from datetime import datetime
 
-from typing import Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
+from typing import Final, Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
 
 from siliconcompiler import NodeStatus, Task
 from siliconcompiler.schema import Journal
@@ -26,7 +27,7 @@ from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
-from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
+from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.utils.curation import collect
 
 if TYPE_CHECKING:
@@ -48,6 +49,7 @@ class Scheduler:
     It handles setting up individual task nodes, managing dependencies, logging,
     and reporting results.
     """
+    __MAX_LOG_BACKUPS: Final[int] = 5
 
     def __init__(self, project: "Project"):
         """
@@ -190,20 +192,36 @@ class Scheduler:
         Set up a per-job file logger for the current project and attach it to the
         scheduler's logger.
 
-        Creates the job directory if needed, rotates an existing job.log to a .bak
-        (using incrementing numeric suffixes if necessary), installs a FileHandler
+        Creates the job directory if needed, rotates an existing job.log to a timestamped
+        backup file (e.g., job.20260419-143400.log), installs a FileHandler
         writing to job.log with the SCLoggerFormatter, and stores the handler on
-        self.__joblog_handler.
+        self.__joblog_handler. Old backup files beyond the retention limit are removed.
         """
         os.makedirs(jobdir(self.__project), exist_ok=True)
         file_log = os.path.join(jobdir(self.__project), "job.log")
-        bak_count = 0
-        bak_file_log = f"{file_log}.bak"
-        while os.path.exists(bak_file_log):
-            bak_count += 1
-            bak_file_log = f"{file_log}.bak.{bak_count}"
+
+        # If current log exists, back it up with timestamp using file's modification time
         if os.path.exists(file_log):
-            os.rename(file_log, bak_file_log)
+            mtime = os.path.getmtime(file_log)
+            timestamp = datetime.fromtimestamp(mtime).strftime("%Y%m%d-%H%M%S")
+            bak_file_log = f"job.{timestamp}.log"
+            try:
+                os.rename(file_log, os.path.join(jobdir(self.__project), bak_file_log))
+            except OSError as e:
+                self.__logger.debug(f"Failed to rename log file {file_log}: {e}")
+
+        # Clean up old backups, keeping only the most recent ones
+        log_dir = jobdir(self.__project)
+        backup_files = sorted(glob.glob(os.path.join(log_dir, "job.*.log")))
+        # Exclude the current job.log from the list
+        backup_files = [f for f in backup_files if os.path.basename(f) != "job.log"]
+        if len(backup_files) > Scheduler.__MAX_LOG_BACKUPS:
+            for old_backup in backup_files[:-Scheduler.__MAX_LOG_BACKUPS]:
+                try:
+                    os.remove(old_backup)
+                except OSError as e:
+                    self.__logger.debug(f"Failed to remove backup log {old_backup}: {e}")
+
         self.__logfile = file_log
         self.__joblog_handler = logging.FileHandler(file_log)
         self.__joblog_handler.setFormatter(SCLoggerFormatter())
@@ -349,72 +367,24 @@ class Scheduler:
 
     def __check_flowgraph_io(self) -> bool:
         """
-        Validate that every runtime node will receive its required input files and that no
-        input file is provided by more than one source.
+        Validate that every runtime node will receive its required input files.
 
-        Checks whether each node's required inputs are available either from upstream
-        tasks' declared outputs or from existing output directories, and logs errors
-        for missing or duplicated input sources.
+        The per-node validation is delegated to ``Task._validate_io`` so that
+        task subclasses (notably the builtin tasks, which select among their
+        upstream inputs at runtime) can implement their own fan-in semantics.
 
         Returns:
             bool: `True` if the flowgraph satisfies input/output requirements, `False` otherwise.
         """
-        nodes = self.__flow_runtime.get_nodes()
         error = False
 
-        manifest_name = os.path.basename(self.manifest)
-
-        for (step, index) in nodes:
-            # Get files we receive from input nodes.
-            in_nodes = self.__flow_runtime.get_node_inputs(step, index, record=self.__record)
-            all_inputs = set()
+        for (step, index) in self.__flow_runtime.get_nodes():
             tool = self.__flow.get(step, index, "tool")
             task = self.__flow.get(step, index, "task")
             task_class = self.__project.get("tool", tool, "task", task, field="schema")
-            requirements = task_class.get('input', step=step, index=index)
 
-            for in_step, in_index in in_nodes:
-                if (in_step, in_index) not in nodes:
-                    # If we're not running the input step, the required
-                    # inputs need to already be copied into the build
-                    # directory.
-                    in_step_out_dir = os.path.join(
-                        workdir(self.__project, step=in_step, index=in_index), 'outputs')
-
-                    if not os.path.isdir(in_step_out_dir):
-                        # This means this step hasn't been run, but that
-                        # will be flagged by a different check. No error
-                        # message here since it would be redundant.
-                        inputs = []
-                        continue
-
-                    inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest_name]
-                else:
-                    in_tool = self.__flow.get(in_step, in_index, "tool")
-                    in_task = self.__flow.get(in_step, in_index, "task")
-                    in_task_class = self.__project.get("tool", in_tool, "task", in_task,
-                                                       field="schema")
-
-                    with in_task_class.runtime(self.__tasks[(in_step, in_index)]) as task:
-                        inputs = task.get_output_files()
-
-                with task_class.runtime(self.__tasks[(step, index)]) as task:
-                    for inp in inputs:
-                        node_inp = task.compute_input_file_node_name(inp, in_step, in_index)
-                        if node_inp in requirements:
-                            inp = node_inp
-                        if inp not in requirements:
-                            continue
-                        if inp in all_inputs:
-                            self.__logger.error(f'Invalid flow: {step}/{index} '
-                                                f'receives {inp} from multiple input tasks')
-                            error = True
-                        all_inputs.add(inp)
-
-            for requirement in requirements:
-                if requirement not in all_inputs:
-                    self.__logger.error(f'Invalid flow: {step}/{index} will '
-                                        f'not receive required input {requirement}.')
+            with task_class.runtime(self.__tasks[(step, index)]) as task_obj:
+                if not task_obj._validate_io():
                     error = True
 
         return not error
@@ -588,7 +558,18 @@ class Scheduler:
         else:
             if self.__project.option.get_from():
                 from_nodes = self.__flow_runtime.get_entry_nodes()
-            load_nodes = self.__flow_load_runtime.get_nodes()
+            # Load every node that feeds something in the active runtime,
+            # not just nodes upstream of option.from. The original
+            # flow_load_runtime (to_steps=from_steps) silently dropped
+            # fork-sibling legs that re-converge downstream of from --
+            # their prior SUCCESS was never forwarded, so the join node
+            # would wait on a PENDING input forever.
+            runtime_steps = set(step for step, _ in self.__flow_runtime.get_nodes())
+            load_runtime = RuntimeFlowgraph(
+                self.__flow,
+                to_steps=runtime_steps,
+                prune_nodes=self.__project.option.get_prune())
+            load_nodes = load_runtime.get_nodes()
 
         # Collect previous run information
         for step, index in self.__flow.get_nodes():

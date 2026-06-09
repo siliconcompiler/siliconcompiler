@@ -83,18 +83,25 @@ if { [sc_cfg_tool_task_check_in_list drv_violations var reports] } {
     report_erc_metrics
 }
 
-puts "$PREFIX floating nets"
-puts "Reporting floating nets: reports/floating_nets.rpt"
-tee -quiet -file reports/floating_nets.rpt \
-    "report_floating_nets -verbose"
-if { [sc_check_version 24 3 3461] } {
+if { [sc_cfg_tool_task_check_in_list floating_nets var reports] } {
+    puts "$PREFIX floating nets"
+    puts "Reporting floating nets: reports/floating_nets.rpt"
+    tee -quiet -file reports/floating_nets.rpt \
+        "report_floating_nets -verbose"
+}
+if {
+    [sc_cfg_tool_task_check_in_list overdriven_nets var reports] &&
+    [sc_check_version 24 3 3461]
+} {
     puts "$PREFIX overdriven nets"
     puts "Reporting overdriven nets: reports/overdriven_nets.rpt"
     tee -quiet -file reports/overdriven_nets.rpt \
         "report_overdriven_nets -verbose"
+    utl::push_metrics_stage "sc__metric__{}_parallel"
     puts "Reporting overdriven nets: reports/overdriven_nets_with_parallel.rpt"
     tee -quiet -file reports/overdriven_nets_with_parallel.rpt \
         "report_overdriven_nets -include_parallel_driven -verbose"
+    utl::pop_metrics_stage
 }
 
 utl::metric_int "timing__clocks" [llength [all_clocks]]
@@ -110,8 +117,9 @@ if { [sc_cfg_tool_task_check_in_list fmax var reports] } {
             continue
         }
         set fmax [expr { 1.0 / $min_period }]
+        set regs [llength [all_registers -clock $clk]]
         utl::metric_float "timing__fmax__clock:${clk_name}" $fmax
-        puts "$clk_name fmax = [format %.2f [expr { $fmax / 1e6 }]] MHz"
+        puts "$clk_name fmax = [format %.2f [expr { $fmax / 1e6 }]] MHz (registers: $regs)"
         set fmax_metric [expr { max($fmax_metric, $fmax) }]
     }
     if { $fmax_metric == 0 } {
@@ -146,7 +154,9 @@ if { [llength [all_clocks]] > 0 } {
 }
 
 # get logic depth of design
-utl::metric_int "design__logic__depth" [sc_count_logic_depth]
+if { [sc_cfg_tool_task_check_in_list logicdepth var reports] } {
+    utl::metric_int "design__logic__depth" [sc_count_logic_depth]
+}
 
 if { [sc_cfg_tool_task_check_in_list power var reports] } {
     puts "$PREFIX power"
@@ -181,40 +191,46 @@ puts "$PREFIX cellarea"
 report_design_area
 report_design_area_metrics
 
-# get number of nets in design
-utl::metric_int "design__nets" [llength [[ord::get_db_block] getNets]]
-
-# get number of registers
-utl::metric_int "design__registers" [llength [all_registers]]
-
-# get number of buffers
-set bufs 0
-set invs 0
-foreach inst [get_cells -hierarchical *] {
-    set cell [$inst cell]
-    if { $cell == "NULL" } {
-        continue
-    }
-    set liberty_cell [$cell liberty_cell]
-    if { $liberty_cell == "NULL" } {
-        continue
-    }
-    if { [$liberty_cell is_buffer] } {
-        incr bufs
-    } elseif { [$liberty_cell is_inverter] } {
-        incr invs
-    }
+if { ![sc_check_version 26 2 219] } {
+    # get number of nets in design
+    utl::metric_int "design__nets" [llength [[ord::get_db_block] getNets]]
 }
-utl::metric_int "design__buffers" $bufs
-utl::metric_int "design__inverters" $invs
 
-# get number of unconstrained endpoints
-with_output_to_variable endpoints {check_setup -unconstrained_endpoints}
-set unconstrained_endpoints [regexp -all -inline {[0-9]+} $endpoints]
-if { $unconstrained_endpoints == "" } {
-    set unconstrained_endpoints 0
+if { ![sc_check_version 26 1 0] } {
+    # get number of registers
+    utl::metric_int "design__registers" [llength [all_registers]]
+
+    # get number of buffers
+    set bufs 0
+    set invs 0
+    foreach inst [get_cells -hierarchical *] {
+        set cell [$inst cell]
+        if { $cell == "NULL" } {
+            continue
+        }
+        set liberty_cell [$cell liberty_cell]
+        if { $liberty_cell == "NULL" } {
+            continue
+        }
+        if { [$liberty_cell is_buffer] } {
+            incr bufs
+        } elseif { [$liberty_cell is_inverter] } {
+            incr invs
+        }
+    }
+    utl::metric_int "design__buffers" $bufs
+    utl::metric_int "design__inverters" $invs
 }
-utl::metric_int "timing__unconstrained" $unconstrained_endpoints
+
+if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
+    # get number of unconstrained endpoints
+    with_output_to_variable endpoints {check_setup -unconstrained_endpoints}
+    set unconstrained_endpoints [regexp -all -inline {[0-9]+} $endpoints]
+    if { $unconstrained_endpoints == "" } {
+        set unconstrained_endpoints 0
+    }
+    utl::metric_int "timing__unconstrained" $unconstrained_endpoints
+}
 
 # Write markers
 foreach markerdb [[ord::get_db_block] getMarkerCategories] {

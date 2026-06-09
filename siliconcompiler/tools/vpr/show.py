@@ -8,7 +8,7 @@ class ShowTask(ShowTask, VPRTask):
     '''
     Show placed and/or routed designs in VPR GUI
     '''
-    def get_supported_show_extentions(self):
+    def get_supported_task_extentions(self):
         return ["place", "route"]
 
     def runtime_options(self):

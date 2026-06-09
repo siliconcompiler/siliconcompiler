@@ -117,7 +117,8 @@ module picorv32_top #(
         .addr(mem_addr),
         .din(mem_wdata),
         .dout(mem_rdata),
-        .ctrl(),
-        .test()
+        .selctrl(1'b0),
+        .ctrl('b0),
+        .status()
     );
 endmodule

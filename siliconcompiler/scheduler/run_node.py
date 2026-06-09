@@ -18,7 +18,7 @@ import os.path
 from siliconcompiler import Project
 from siliconcompiler.package import Resolver
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler import __version__
+from siliconcompiler._metadata import detailed_version
 
 
 ##########################
@@ -43,7 +43,7 @@ def main():
     # Define command-line arguments
     parser.add_argument('-version',
                         action='version',
-                        version=__version__)
+                        version=detailed_version)
     parser.add_argument('-cfg',
                         required=True,
                         metavar='<file>',

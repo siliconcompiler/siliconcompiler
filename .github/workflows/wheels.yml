@@ -54,6 +54,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
     - uses: hynek/build-and-inspect-python-package@v2
 
   test_wheel:
@@ -63,23 +65,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         platform:
           - os: ubuntu-22.04
             arch: x86_64
           - os: macos-latest
-            arch: x86_64
+            arch: arm64
           - os: windows-latest
             arch: x86_64
-        exclude:
-          - { python-version: "3.9", platform: {os: "macos-latest", arch: "x86_64"} }
 
     steps:
     - uses: actions/checkout@v6
       with:
         path: sc
+        fetch-depth: 0
 
     - uses: actions/cache@v5
+      if: matrix.platform.os != 'macos-latest'
       id: cache
       with:
         path: |
@@ -107,13 +109,9 @@ jobs:
       run: |
         # || true is needed to avoid failure on brew link error with python3.12
         brew install graphviz || true
-        brew install --cask klayout
-        # https://github.com/ponty/PyVirtualDisplay/blob/master/.github/workflows/main.yml#L45
-        brew install --cask xquartz
-        echo "/opt/X11/bin" >> $GITHUB_PATH
-        mkdir -p /tmp/.X11-unix
-        sudo chmod 1777 /tmp/.X11-unix
-        sudo chown root /tmp/.X11-unix
+        # klayout cask is Qt-Cocoa and requires a WindowServer session;
+        # GitHub-hosted macOS runners don't have one, so screenshot tasks
+        # hang even with -z (no-gui). Skip klayout install/tests on macOS.
 
     - name: Setup python
       id: python
@@ -141,7 +139,12 @@ jobs:
       run: |
         . .venv/bin/activate
         pytest sc/tests/ -m "not eda and not docker" -n logical
-        # pytest sc/tests/utils/test_showtools.py -k "klayout" -n logical
+
+    - name: Run klayout pytest (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        . .venv/bin/activate
+        pytest sc/tests/utils/test_showtools.py -k "klayout" -n logical
 
     - name: Install SC (windows)
       if: matrix.platform.os == 'windows-latest'
@@ -183,9 +186,9 @@ jobs:
         name: Packages
         path: dist
 
-    - uses: pypa/gh-action-pypi-publish@v1.13.0
+    - uses: pypa/gh-action-pypi-publish@v1.14.0
 
     - name: Add wheels to GitHub release artifacts
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: dist/*.whl

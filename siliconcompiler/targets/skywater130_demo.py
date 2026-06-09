@@ -4,7 +4,8 @@ from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.sky130.libs.sky130sc import Sky130_SCHDLibrary
-from lambdapdk.sky130.libs.sky130sram import Sky130Lambdalib_SinglePort
+from lambdapdk.sky130.libs.sky130sram import Sky130Lambdalib_SinglePort, \
+    Sky130Lambdalib_SinglePortRegfile
 from lambdapdk.sky130.libs.sky130io import Sky130LambdaLib_IO
 
 
@@ -92,4 +93,5 @@ def skywater130_demo(
     # Makes specialized libraries like SRAM and IO cells available to the flow
     # under a common, standardized naming convention.
     Sky130Lambdalib_SinglePort.alias(project)
+    Sky130Lambdalib_SinglePortRegfile.alias(project)
     Sky130LambdaLib_IO.alias(project)

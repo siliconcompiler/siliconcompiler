@@ -77,7 +77,16 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         self.set_script("apr/sc_power_grid.tcl")
 
-        self._set_reports([])
+        self._set_reports([
+            'floating_nets',
+            'overdriven_nets',
+
+            # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view'
+        ])
 
         self.add_required_key("var", "fixed_pin_keepout")
         if self.get("var", "psm_allow_missing_terminal_nets"):

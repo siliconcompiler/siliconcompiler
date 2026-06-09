@@ -1,11 +1,14 @@
+import fnmatch
 import os
 import json
 
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Set
 
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.asic import CellArea
+from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema.parametertype import NodeType
 
 
 from siliconcompiler.tools.openroad import OpenROADTask
@@ -1187,6 +1190,7 @@ class APRTask(OpenROADTask):
             "drv_violations",
             "fmax",
             "power",
+            "logicdepth",
             "check_setup",
             "report_buffers",
             "placement_density",
@@ -1196,7 +1200,13 @@ class APRTask(OpenROADTask):
             "clock_placement",
             "clock_trees",
             "optimization_placement",
-            "module_view"
+            "module_view",
+            "floating_nets",
+            "overdriven_nets",
+            "snapshot",
+            "placement_view",
+            "routing_view",
+            "markers_view"
         )
         self.add_parameter("reports", f"{{<{','.join(supported)}>}}",
                            "list of reports and images to generate, auto generated")
@@ -1226,6 +1236,25 @@ class APRTask(OpenROADTask):
         self.add_parameter("global_connect_fileset", "[(str,str)]",
                            "list of libraries and filesets to generate connects from")
 
+        self.add_parameter("enablehier", "bool",
+                           "Enable hierarchical design support in OpenROAD when linking",
+                           defvalue=self._default_enable_hier())
+
+    def _default_enable_hier(self) -> bool:
+        return False
+
+    def set_openroad_enablehier(self, enable: bool,
+                                step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables hierarchical design support in OpenROAD.
+
+        Args:
+            enable: True to enable hierarchical design support, False to disable it.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "enablehier", enable, step=step, index=index)
+
     def add_openroad_skipreport(self, report_type: Union[List[str], str],
                                 step: Optional[str] = None, index: Optional[str] = None,
                                 clobber: bool = False) -> None:
@@ -1239,6 +1268,25 @@ class APRTask(OpenROADTask):
             clobber: If True, overwrites the existing list of skipped reports.
                      If False, appends to the existing list.
         """
+        if isinstance(report_type, str):
+            patterns = [report_type]
+        else:
+            patterns = list(report_type)
+
+        if any("*" in pattern for pattern in patterns):
+            enum_type = list(
+                NodeType.parse(BaseSchema.get(self, "var", "skip_reports", field="type")))[0]
+            supported_report_types = sorted(NodeType.parse(enum_type).values)
+            expanded: List[str] = []
+            for pattern in patterns:
+                matches = fnmatch.filter(supported_report_types, pattern)
+                if not matches:
+                    raise ValueError(
+                        f"Report type pattern '{pattern}' did not match any supported "
+                        f"report types: {supported_report_types}")
+                expanded.extend(matches)
+            report_type = expanded
+
         if clobber:
             self.set("var", "skip_reports", report_type, step=step, index=index)
         else:
@@ -1348,6 +1396,7 @@ class APRTask(OpenROADTask):
         if self.get("var", "skip_reports"):
             self.add_required_key("var", "skip_reports")
 
+        self.add_required_key("var", "enablehier")
         self.add_required_key("var", "ord_enable_images")
         self.add_required_key("var", "ord_heatmap_bins")
         self.add_required_key("var", "load_grt_setup")
@@ -1410,35 +1459,49 @@ class APRTask(OpenROADTask):
                 "clock_placement",
                 "clock_trees"))
 
-        self.set("var", "reports", set(task_reports).difference(skip_reports))
+        do_reports = set(task_reports).difference(skip_reports)
+        self.set("var", "reports", do_reports)
 
         if "power" in self.get("var", "reports"):
             self.add_required_key("var", "power_corner")
 
+    def _get_modes(self) -> Set[str]:
+        modes = set()
+        for scenario in self.project.constraint.timing.get_scenario().values():
+            mode = scenario.get_mode(self.step, self.index)
+            if mode:
+                modes.add(mode)
+        return modes
+
     def _add_pnr_inputs(self):
         if self.get("var", "load_sdcs"):
-            if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+            modes = self._get_modes()
+            if modes and \
+                    all(f"{self.design_topmodule}.{mode}.sdc" in self.get_files_from_input_nodes()
+                        for mode in modes):
+                for mode in modes:
+                    self.add_input_file(ext=f"{mode}.sdc")
+            elif f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
                 self.add_input_file(ext="sdc")
             else:
                 for lib, fileset in self.project.get_filesets():
                     if lib.has_file(fileset=fileset, filetype="sdc"):
                         self.add_required_key(lib, "fileset", fileset, "file", "sdc")
 
-                modes = set()
                 for scenario in self.project.constraint.timing.get_scenario().values():
                     mode = scenario.get_mode(self.step, self.index)
                     if mode:
-                        modes.add(mode)
                         self.add_required_key(scenario, "mode")
                         mode_obj = self.project.constraint.timing.get_mode(mode)
                         self.add_required_key(mode_obj, "sdcfileset")
 
-                for mode in modes:
+                for mode in self._get_modes():
                     mode_obj = self.project.constraint.timing.get_mode(mode)
                     for lib, fileset in mode_obj.get_sdcfileset():
                         libobj = self.project.get_library(lib)
                         self.add_required_key(libobj, "fileset", fileset, "file", "sdc")
 
+        load_vg = False
         load_tech = True
         if f"{self.design_topmodule}.odb.gz" in self.get_files_from_input_nodes():
             self.add_input_file(ext="odb.gz")
@@ -1447,11 +1510,23 @@ class APRTask(OpenROADTask):
             self.add_input_file(ext="odb")
             load_tech = False
         elif f"{self.design_topmodule}.def.gz" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="def.gz")
+            if not self.get("var", "enablehier"):
+                self.add_input_file(ext="def.gz")
+            load_vg = self.get("var", "enablehier")
         elif f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="def")
+            if not self.get("var", "enablehier"):
+                self.add_input_file(ext="def")
+            load_vg = self.get("var", "enablehier")
         else:
-            pass
+            load_vg = True
+
+        if load_vg:
+            if f"{self.design_topmodule}.vg.gz" in self.get_files_from_input_nodes():
+                self.add_input_file(ext="vg.gz")
+            elif f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+                self.add_input_file(ext="vg")
+            else:
+                pass
 
         if load_tech:
             pdk = self.project.get_library(self.project.get("asic", "pdk"))
@@ -1731,6 +1806,30 @@ class APRTask(OpenROADTask):
                     if or_use:
                         self.record_metric(metric, value, source_file=get_metric_sources(metric),
                                            source_unit=or_unit)
+
+            if self.project.get("metric", "registers", step=self.step, index=self.index) is None:
+                metric_key = "sc__cellarea__design__instance__count__class:sequential_cell"
+                if metric_key in metrics:
+                    self.record_metric("registers", metrics[metric_key],
+                                       source_file=get_metric_sources("registers"))
+
+            if self.project.get("metric", "inverters", step=self.step, index=self.index) is None:
+                inverters = 0
+                for metric, value in metrics.items():
+                    if metric.startswith("sc__cellarea__design__instance__count__class:") and \
+                            metric.lower().endswith("inverter"):
+                        inverters += value
+                self.record_metric("inverters", inverters,
+                                   source_file=get_metric_sources("inverters"))
+
+            if self.project.get("metric", "buffers", step=self.step, index=self.index) is None:
+                buffers = 0
+                for metric, value in metrics.items():
+                    if metric.startswith("sc__cellarea__design__instance__count__class:") and \
+                            metric.lower().endswith("buffer"):
+                        buffers += value
+                self.record_metric("buffers", buffers,
+                                   source_file=get_metric_sources("buffers"))
 
             ir_drop = None
             for or_metric, value in metrics.items():

@@ -48,8 +48,6 @@ class ScreenshotTask(ScreenshotTask, ShowTask):
 
         self.add_output_file(ext="png", clobber=True)
 
-        self.set_script("sc_show.tcl")
-
         self.set("var", "showexit", True)
 
         # No need for the GUI to open
@@ -57,6 +55,10 @@ class ScreenshotTask(ScreenshotTask, ShowTask):
 
         self._set_reports([
             # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view',
             'placement_density',
             'routing_congestion',
             'power_density',

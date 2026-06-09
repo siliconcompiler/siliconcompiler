@@ -54,7 +54,7 @@ if TYPE_CHECKING:
     from siliconcompiler import Project
 
 TTask = TypeVar('TTask', bound='Task')
-TShowTask = TypeVar('TShowTask', bound='ShowTask')
+TOpenTask = TypeVar('TOpenTask', bound='OpenTask')
 
 
 class TaskError(Exception):
@@ -72,6 +72,20 @@ class TaskTimeout(TaskError):
     def __init__(self, *args, timeout=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.timeout = timeout
+
+
+class TaskOutOfMemoryError(TaskError):
+    '''Error indicating that a task has run out of memory during execution.
+
+    Args:
+        memory_percent (float): The percentage of system memory usage at the time of the error.
+        available_mb (float): The available system memory in megabytes at the time of the error.
+    '''
+
+    def __init__(self, *args, memory_percent=None, available_mb=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.memory_percent = memory_percent
+        self.available_mb = available_mb
 
 
 class TaskExecutableNotFound(TaskError):
@@ -106,6 +120,311 @@ class TaskSkip(TaskError):
         return self.__why
 
 
+def _split_io_lines(buffer: str) -> Tuple[List[str], str]:
+    """Split a stream buffer into complete lines plus a trailing partial.
+
+    Treats ``\\n``, ``\\r``, and ``\\r\\n`` as line terminators so that tools
+    that use carriage returns to redraw progress emit one log record per
+    frame. A trailing ``\\r`` at end-of-buffer is held back as partial in
+    case the next read begins with ``\\n`` (so ``\\r\\n`` is never split).
+    """
+    lines: List[str] = []
+    start = 0
+    i = 0
+    n = len(buffer)
+    while i < n:
+        c = buffer[i]
+        if c == '\n':
+            lines.append(buffer[start:i])
+            i += 1
+            start = i
+        elif c == '\r':
+            if i + 1 >= n:
+                # Trailing \r — defer in case next read starts with \n.
+                break
+            lines.append(buffer[start:i])
+            if buffer[i + 1] == '\n':
+                i += 2
+            else:
+                i += 1
+            start = i
+        else:
+            i += 1
+    return lines, buffer[start:]
+
+
+def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
+    """Run an executable interactively in a pseudo-terminal.
+
+    Used for breakpoint sessions where the user needs to interact with the
+    tool (e.g. tclreadline-driven shells). Compared to ``pty.spawn`` this
+    helper additionally:
+
+      * Propagates the parent terminal's window size (``TIOCSWINSZ``) to the
+        child PTY so readline-based shells wrap and redraw lines correctly.
+      * Forwards ``SIGWINCH`` so resizing the outer terminal during the
+        session updates the child's view of the window size.
+      * Puts the parent stdin into raw mode (restored on exit) so signals,
+        arrow keys, and tab-completion pass through to the child unmolested.
+      * Tees output to ``log_path`` as a faithful byte-for-byte recording
+        (including ANSI/control sequences). View it with ``cat`` or
+        ``less -R`` to see the rendered form. Stateless filtering would
+        be lossy for in-place line edits (history recall, completion),
+        so the log keeps the raw stream and lets the renderer interpret
+        it.
+      * Returns the exit code (decoded from waitpid status), not the raw
+        wait status.
+
+    NOTE: This path intentionally bypasses the memory, timeout, and nice
+    handling that the standard subprocess path provides. Interactive
+    sessions are expected to be supervised by the user, so SC does not
+    impose its own resource limits on them.
+
+    Returns the child's exit code. ``128 + signum`` for signal exits, per
+    ``os.waitstatus_to_exitcode`` semantics.
+    """
+    if pty is None:
+        raise RuntimeError("pty module is not available on this platform")
+
+    # POSIX-only modules — kept inside the function since this is the only
+    # place they're used and they're not importable on Windows.
+    import select
+    import signal
+    import termios
+    import tty
+    import fcntl
+
+    # Open the controlling terminal directly. We deliberately do NOT route
+    # through ``sys.stdin``/``sys.stdout`` here.
+    #
+    # Why: when this code runs inside a multiprocessing worker, Python's
+    # ``_close_stdin`` reassigns ``sys.stdin`` to wrap a freshly opened
+    # ``/dev/null`` fd (see CPython multiprocessing/process.py and
+    # multiprocessing/util.py). Crucially, ``sys.stdin.close()`` does NOT
+    # close the underlying fd 0 because the Python stdio wrappers are
+    # built with ``closefd=False`` — so fd 0 stays attached to the user's
+    # real terminal, but ``sys.stdin.fileno()`` now returns the /dev/null
+    # fd (typically 3). Reading from that path gives instant EOF and
+    # silently breaks Enter/Tab/arrow forwarding. This is also why the
+    # original ``pty.spawn`` implementation worked: it referenced
+    # ``STDIN_FILENO`` (= 0) directly, bypassing the redirected
+    # ``sys.stdin``.
+    #
+    # ``/dev/tty`` is preferred because it always refers to the calling
+    # process's controlling terminal regardless of any fd redirection.
+    # If that's unavailable (CI, daemons, no controlling terminal) we
+    # fall back to fd 0 directly, which mirrors what pty.spawn did.
+    # O_CLOEXEC ensures the child of pty.fork() (and the tool we exec
+    # into it) does not inherit a backdoor handle to the real
+    # controlling terminal. Without it, the executed tool could bypass
+    # our PTY isolation and write/read directly to the user's terminal,
+    # defeating the log capture and raw-mode plumbing.
+    tty_fd = -1
+    try:
+        tty_fd = os.open('/dev/tty', os.O_RDWR | os.O_NOCTTY | os.O_CLOEXEC)
+    except OSError:
+        tty_fd = -1
+
+    pid, master_fd = pty.fork()
+    if pid == 0:
+        # Child: replace ourselves with the target binary. argv[0] is set to
+        # ``exe`` so diagnostic output identifies the tool by its real name.
+        try:
+            os.execvp(exe, [exe, *cmdlist])
+        except Exception:
+            os._exit(127)
+
+    def _safe_fileno(stream):
+        # ``stream.fileno()`` can raise io.UnsupportedOperation when the
+        # stream is a pseudofile (e.g. captured stdin under pytest, or
+        # redirected I/O in some embeddings).
+        if stream is None:
+            return -1
+        try:
+            return stream.fileno()
+        except Exception:
+            return -1
+
+    # Fallback chain when /dev/tty is unavailable:
+    #   1. fd 0 / fd 1 directly — matches what ``pty.spawn`` did and works
+    #      around the multiprocessing-worker case where ``sys.stdin`` has
+    #      been reassigned to wrap a /dev/null fd while fd 0 itself still
+    #      points at the real terminal.
+    #   2. ``sys.stdin.fileno()`` / ``sys.stdout.fileno()`` — covers
+    #      embedded environments that genuinely reassign fd 0/1.
+    if tty_fd >= 0:
+        parent_in = parent_out = tty_fd
+    else:
+        parent_in = 0 if os.isatty(0) else _safe_fileno(sys.stdin)
+        parent_out = 1 if os.isatty(1) else _safe_fileno(sys.stdout)
+    # ``parent_is_tty`` gates the operations that *only make sense* when the
+    # parent's stdin is a real terminal: querying its window size and
+    # listening for SIGWINCH. The TIOCGWINSZ ioctl fails with ENOTTY on a
+    # pipe or regular file, and SIGWINCH is delivered by the kernel only
+    # when a terminal actually resizes — so attempting either against a
+    # non-TTY would just produce errors with no upside.
+    #
+    # NOTE: this flag does NOT gate stdin forwarding or raw-mode setup.
+    # Those run whenever we have any stdin fd at all, with the calls
+    # wrapped in try/except — see below for why that matters for tab
+    # completion and arrow keys.
+    parent_is_tty = parent_in >= 0 and os.isatty(parent_in)
+
+    def _push_winsize(*_args):
+        # Skip silently for non-TTY parents: ioctl would fail with ENOTTY.
+        if not parent_is_tty:
+            return
+        try:
+            size = fcntl.ioctl(parent_in, termios.TIOCGWINSZ, b'\x00' * 8)
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, size)
+        except OSError:
+            pass
+
+    # Push the initial window size so readline-based shells (tclreadline,
+    # GNU readline, ...) wrap and redraw lines using the real terminal
+    # geometry instead of the kernel's 80x24 default for a fresh PTY.
+    _push_winsize()
+
+    old_winch = None
+    if parent_is_tty:
+        # Re-push winsize whenever the user resizes the outer terminal so
+        # the child's view stays in sync for the rest of the session.
+        # Saved handler is restored in the finally block below.
+        try:
+            old_winch = signal.signal(signal.SIGWINCH, _push_winsize)
+        except (ValueError, OSError):
+            old_winch = None
+
+    # Apply raw mode opportunistically whenever we have an stdin fd. Without
+    # raw mode the parent terminal stays line-disciplined, which means the
+    # user has to press Enter before any keystroke reaches the child — fatal
+    # for tab completion, arrow-key history, and tclreadline-style editing.
+    # ``setraw`` on a non-TTY fd raises termios.error and is silently
+    # ignored, mirroring ``pty.spawn``'s behaviour.
+    old_attrs = None
+    if parent_in >= 0:
+        try:
+            old_attrs = termios.tcgetattr(parent_in)
+            tty.setraw(parent_in)
+        except (termios.error, OSError):
+            old_attrs = None
+
+    # Always forward parent stdin when we have a valid fd. ``pty.spawn``
+    # does the same — gating this on ``isatty`` would silently break
+    # interactive sessions whose stdin is a real TTY but reports otherwise
+    # (e.g. inherited through a multiprocessing worker on some setups).
+    readable = [master_fd]
+    if parent_in >= 0:
+        readable.append(parent_in)
+
+    def _write_all(fd, data):
+        # ``os.write`` is a thin wrapper over ``write(2)`` and can return
+        # fewer bytes than requested, especially on PTYs whose line-
+        # discipline buffer is partly full. Loop until the whole buffer
+        # is consumed. Returns True on full write, False if any byte
+        # couldn't be written; caller decides how to react.
+        written = 0
+        n = len(data)
+        while written < n:
+            try:
+                chunk = os.write(fd, data[written:])
+            except InterruptedError:
+                continue
+            except OSError:
+                return False
+            if chunk == 0:
+                # No progress — treat as failure rather than spin.
+                return False
+            written += chunk
+        return True
+
+    # ``log_writer`` is opened inside the try block so that an open()
+    # failure (disk full, permission denied, ...) can't bypass the
+    # cleanup that restores raw-mode termios state, the SIGWINCH
+    # handler, and closes master_fd / tty_fd. Without this, a failed
+    # open would leave the user's terminal stuck in raw mode.
+    #
+    # The outer try/finally guarantees ``os.waitpid`` runs even if the
+    # log open/close raises — the child of pty.fork() must always be
+    # reaped, otherwise it lingers as a zombie.
+    log_writer = None
+    status = None
+    try:
+        try:
+            log_writer = open(log_path, 'wb')
+            while True:
+                try:
+                    rlist, _, _ = select.select(readable, [], [])
+                except (InterruptedError, OSError):
+                    continue
+
+                if master_fd in rlist:
+                    try:
+                        data = os.read(master_fd, 4096)
+                    except OSError:
+                        data = b''
+                    if not data:
+                        break
+                    if parent_out >= 0:
+                        # Best-effort: failures writing to the user's
+                        # terminal are ignored (matches prior behaviour).
+                        _write_all(parent_out, data)
+                    try:
+                        log_writer.write(data)
+                        log_writer.flush()
+                    except OSError:
+                        pass
+
+                if parent_in in rlist:
+                    try:
+                        data = os.read(parent_in, 4096)
+                    except OSError:
+                        data = b''
+                    if not data:
+                        readable.remove(parent_in)
+                        continue
+                    if not _write_all(master_fd, data):
+                        # Child PTY closed / errored — exit the loop and
+                        # let the cleanup + waitpid path run.
+                        break
+        finally:
+            if old_attrs is not None:
+                try:
+                    termios.tcsetattr(parent_in, termios.TCSADRAIN, old_attrs)
+                except termios.error:
+                    pass
+            if old_winch is not None:
+                try:
+                    signal.signal(signal.SIGWINCH, old_winch)
+                except (ValueError, OSError):
+                    pass
+            try:
+                os.close(master_fd)
+            except OSError:
+                pass
+            if tty_fd >= 0:
+                try:
+                    os.close(tty_fd)
+                except OSError:
+                    pass
+            if log_writer is not None:
+                # Swallow close-time I/O errors so the inner finally
+                # can't propagate and skip the waitpid below.
+                try:
+                    log_writer.close()
+                except OSError:
+                    pass
+    finally:
+        try:
+            _, status = os.waitpid(pid, 0)
+        except OSError:
+            status = None
+
+    if status is None:
+        return 1
+    return os.waitstatus_to_exitcode(status)
+
+
 class Task(NamedSchema, PathSchema, DocsSchema):
     """
     A schema class that defines the parameters and methods for a single task
@@ -134,6 +453,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     __IO_POLL_INTERVAL: float = 0.1
     __MEM_POLL_INTERVAL: float = 0.5
     __MEMORY_WARN_LIMIT: int = 90
+    __MEMORY_KILL_LIMIT_MB: int = 256
 
     def __init__(self):
         super().__init__()
@@ -239,6 +559,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         self.__schema_metric: Optional[MetricSchema] = None
         self.__schema_flow: Optional[Flowgraph] = None
         self.__schema_flow_runtime: Optional[RuntimeFlowgraph] = None
+        self.__io_runtime_flow: Optional[RuntimeFlowgraph] = None
         if self.__schema_full:
             self.__schema_record = self.__schema_full.get("record", field="schema")
             self.__schema_metric = self.__schema_full.get("metric", field="schema")
@@ -259,6 +580,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             self.__schema_flow_runtime = RuntimeFlowgraph(
                 self.__schema_flow,
                 from_steps=set([step for step, _ in self.__schema_flow.get_entry_nodes()]),
+                prune_nodes=self.__schema_full.option.get_prune())
+
+            # Runtime view honoring option.from / option.to / option.prune,
+            # i.e. the subset of nodes that will actually run this invocation.
+            # Used by IO validation to distinguish running upstreams (whose
+            # outputs come from declared task outputs) from non-running ones
+            # (whose outputs must already exist on disk).
+            self.__io_runtime_flow = RuntimeFlowgraph(
+                self.__schema_flow,
+                from_steps=self.__schema_full.option.get_from(),
+                to_steps=self.__schema_full.option.get_to(),
                 prune_nodes=self.__schema_full.option.get_prune())
 
     @property
@@ -331,6 +663,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     @property
     def schema_flowruntime(self) -> RuntimeFlowgraph:
         return self.__schema_flow_runtime
+
+    @property
+    def _io_runtime_flow(self) -> RuntimeFlowgraph:
+        """
+        Runtime view of the flow that honors the project's ``from`` / ``to``
+        / ``prune`` options — i.e. the nodes that will actually run this
+        invocation. Distinct from ``schema_flowruntime`` (which is the full
+        graph minus pruned nodes), used by IO validation so that nodes
+        outside the active run are treated as on-disk dependencies.
+        """
+        return self.__io_runtime_flow
 
     def get_logpath(self, log: str) -> str:
         """
@@ -823,11 +1166,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 # Ignore history as this is not relevant to the task
                 continue
 
-            paramtype: str = schema.get(*keypath, field='type')
-            if 'file' not in paramtype and 'dir' not in paramtype:
+            param = root.get(*keypath, field=None)
+            if not param.is_path:
                 continue
 
-            for value, step, index in root.get(*keypath, field=None).getvalues():
+            for value, step, index in param.getvalues():
                 if not value:
                     continue
                 abspaths = root.find_files(*keypath, missing_ok=True, step=step, index=index)
@@ -922,9 +1265,13 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             pass
         return None
 
-    def __check_memory_limit(self, warn_limit: int) -> int:
+    def __check_memory_limit(self, warn_limit: int, kill_limit_mb: int) -> int:
         try:
             memory_usage = psutil.virtual_memory()
+            available_mb = memory_usage.available / (1024 * 1024)
+            if available_mb < kill_limit_mb:
+                raise TaskOutOfMemoryError(memory_percent=memory_usage.percent,
+                                           available_mb=available_mb)
             if memory_usage.percent > warn_limit:
                 self.logger.warning(
                     'Current system memory usage is '
@@ -976,17 +1323,32 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         stdout_print = self.logger.info
         stderr_print = self.logger.error
 
-        def read_stdio(stdout_reader, stderr_reader):
+        # Buffers carry the trailing partial of each stream across polls so a
+        # single source line written in chunks is logged as one record, not one
+        # record per chunk.
+        stdout_partial = [""]
+        stderr_partial = [""]
+
+        def read_stdio(stdout_reader, stderr_reader, flush=False):
             """Helper to read and print stdout/stderr streams."""
             if quiet:
                 return
 
+            def drain(reader, partial_holder, emit):
+                data = reader.read()
+                buffer = partial_holder[0] + data if data else partial_holder[0]
+                lines, partial = _split_io_lines(buffer)
+                for line in lines:
+                    emit(line.rstrip())
+                if flush and partial:
+                    emit(partial.rstrip())
+                    partial = ""
+                partial_holder[0] = partial
+
             if is_stdout_log and stdout_reader:
-                for line in stdout_reader.readlines():
-                    stdout_print(line.rstrip())
+                drain(stdout_reader, stdout_partial, stdout_print)
             if is_stderr_log and stderr_reader:
-                for line in stderr_reader.readlines():
-                    stderr_print(line.rstrip())
+                drain(stderr_reader, stderr_partial, stderr_print)
 
         exe = self.get_exe()
 
@@ -1012,7 +1374,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                      sc_open(stderr_file) as stderr_reader:
                     if stdout_file == stderr_file:
                         stderr_reader = None
-                    read_stdio(stdout_reader, stderr_reader)
+                    read_stdio(stdout_reader, stderr_reader, flush=True)
 
                 if resource:
                     try:
@@ -1037,13 +1399,12 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 breakpoint = False
 
             if breakpoint and sys.platform in ('darwin', 'linux'):
-                # Use pty for interactive breakpoint sessions on POSIX systems
-                with open(f"{self.step}.log", 'wb') as log_writer:
-                    def read(fd):
-                        data = os.read(fd, 1024)
-                        log_writer.write(data)
-                        return data
-                    retcode = pty.spawn([exe, *cmdlist], read)
+                # Interactive PTY session. NOTE: this path is intentionally
+                # supervised by the user, not by SC — the timeout, memory
+                # limit, and nice settings applied to the standard subprocess
+                # path below are NOT enforced here. See _run_breakpoint for
+                # details on winsize/SIGWINCH/raw-mode handling.
+                retcode = _run_breakpoint(exe, cmdlist, f"{self.step}.log")
             else:
                 # Standard subprocess execution
                 with open(stdout_file, 'w') as stdout_writer, \
@@ -1085,7 +1446,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                     max_mem_bytes = max(max_mem_bytes, proc_mem_bytes)
                                 next_collection = curr_time + Task.__MEM_POLL_INTERVAL
 
-                                memory_warn_limit = self.__check_memory_limit(memory_warn_limit)
+                                memory_warn_limit = self.__check_memory_limit(
+                                    memory_warn_limit, Task.__MEMORY_KILL_LIMIT_MB)
 
                             read_stdio(stdout_reader, stderr_reader)
 
@@ -1103,9 +1465,15 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                         self.logger.error(f'Task timed out after {e.timeout:.1f} seconds')
                         self.__terminate_exe(proc)
                         raise
+                    except TaskOutOfMemoryError as e:
+                        self.logger.error('Task ran out of memory with '
+                                          f'{e.memory_percent:.1f}% system memory usage '
+                                          f'({e.available_mb:.1f} MB available)')
+                        self.__terminate_exe(proc)
+                        raise
 
                     # Read any remaining I/O
-                    read_stdio(stdout_reader, stderr_reader)
+                    read_stdio(stdout_reader, stderr_reader, flush=True)
 
                     retcode = proc.returncode
 
@@ -1166,6 +1534,71 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 inputs.setdefault(output, []).append((in_step, in_index))
 
         return inputs
+
+    def _list_upstream_outputs(self, in_step: str, in_index: str) -> List[str]:
+        """
+        Returns the file names that an upstream node will provide to this task.
+
+        If the upstream is part of the active IO runtime, its declared output
+        files are returned. Otherwise its on-disk ``outputs/`` directory is
+        scanned (excluding the manifest), since that node will not be re-run.
+        """
+        if (in_step, in_index) not in set(self._io_runtime_flow.get_nodes()):
+            in_step_out_dir = os.path.join(
+                paths.workdir(self.project, step=in_step, index=in_index), 'outputs')
+            if not os.path.isdir(in_step_out_dir):
+                return []
+            manifest_name = f"{self.project.name}.pkg.json"
+            return [inp for inp in os.listdir(in_step_out_dir) if inp != manifest_name]
+
+        in_tool = self.schema_flow.get(in_step, in_index, "tool")
+        in_task = self.schema_flow.get(in_step, in_index, "task")
+        in_task_class = self.project.get("tool", in_tool, "task", in_task, field="schema")
+        return list(in_task_class.get("output", step=in_step, index=in_index))
+
+    def _validate_io(self) -> bool:
+        """
+        Validate that this node's required input files will be supplied by
+        upstream nodes (or already exist on disk for nodes outside the runtime
+        view).
+
+        The base implementation enforces standard fan-in semantics: every
+        declared input must be produced by some upstream, and the same input
+        coming from multiple upstreams is flagged. Subclasses with non-standard
+        fan-in (e.g. builtin tasks that pick a single upstream at runtime) may
+        override this.
+
+        Returns:
+            bool: True if requirements are satisfied; False otherwise.
+        """
+        in_nodes = self._io_runtime_flow.get_node_inputs(
+            self.step, self.index, record=self.schema_record)
+        requirements = self.get("input")
+        all_inputs: Set[str] = set()
+        error = False
+
+        for in_step, in_index in in_nodes:
+            for inp in self._list_upstream_outputs(in_step, in_index):
+                node_inp = self.compute_input_file_node_name(inp, in_step, in_index)
+                if node_inp in requirements:
+                    inp = node_inp
+                if inp not in requirements:
+                    continue
+                if inp in all_inputs:
+                    self.logger.error(
+                        f'Invalid flow: {self.step}/{self.index} '
+                        f'receives {inp} from multiple input tasks')
+                    error = True
+                all_inputs.add(inp)
+
+        for requirement in requirements:
+            if requirement not in all_inputs:
+                self.logger.error(
+                    f'Invalid flow: {self.step}/{self.index} will '
+                    f'not receive required input {requirement}.')
+                error = True
+
+        return not error
 
     def compute_input_file_node_name(self, filename: str, step: str, index: str) -> str:
         """
@@ -2085,172 +2518,41 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         pass
 
 
-class ShowTask(Task):
+class OpenTask(Task):
     """
-    A specialized Task for tasks that display files (e.g., in a GUI viewer).
+    A specialized Task for tasks that open files in an interactive tool session.
 
-    This class provides a framework for dynamically finding and configuring
-    viewer applications based on file types. It includes parameters for
-    specifying the file to show and controlling the viewer's behavior.
-    Subclasses should implement `get_supported_show_extentions` to declare
-    which file types they can handle.
+    `OpenTask` is the base class for tasks that hand a design file to an
+    interactive backend (for example, opening an `.odb`/`.def` in OpenROAD's
+    REPL/GUI for further inspection or scripting). Subclasses dynamically
+    discover the right backend based on the input file's extension.
+
+    `ShowTask` (a subclass) narrows this to non-interactive viewer applications
+    that display a file, and `ScreenshotTask` further specializes that to
+    headless image generation. When you only need to render a file, use
+    `ShowTask`; use `OpenTask` directly when you want to open the design in an
+    interactive session that keeps running after the file is loaded.
+
+    Subclasses should implement `get_supported_task_extentions` to declare
+    which file extensions they can handle.
     """
     def __init__(self):
-        """Initializes a ShowTask, adding specific parameters for show tasks."""
+        """Initialize an OpenTask, adding the parameters shared by open tasks."""
         super().__init__()
-        self.add_parameter("showfilepath", "file", "path to show")
-        self.add_parameter("showfiletype", "str", "filetype to show")
+        self.add_parameter("showfilepath", "file", "path to the file to open")
+        self.add_parameter("showfiletype", "str", "extension of the file to open")
         self.add_parameter("shownode", "(str,str,str)",
-                           "source node information, not always available")
-        self.add_parameter("showexit", "bool", "exit after opening", defvalue=False)
-
-    @classmethod
-    def __check_task(cls, task: Optional[Type["ShowTask"]]) -> bool:
-        """
-        Private helper to validate if a task is a valid ShowTask or ScreenshotTask.
-        """
-        if cls is not ShowTask and cls is not ScreenshotTask:
-            raise TypeError("class must be ShowTask or ScreenshotTask")
-
-        if task is None:
-            return False
-
-        if cls is ShowTask:
-            check, task_filter = ShowTask, ScreenshotTask
-        else:
-            check, task_filter = ScreenshotTask, None
-
-        if not issubclass(task, check):
-            return False
-        if task_filter and issubclass(task, task_filter):
-            return False
-
-        return True
-
-    @classmethod
-    def register_task(cls, task: Optional[Type["ShowTask"]]) -> None:
-        """
-        Registers a new show task class for dynamic discovery.
-
-        Args:
-            task: The show task class to register.
-
-        Raises:
-            TypeError: If the task is not a valid subclass.
-        """
-        if not cls.__check_task(task):
-            raise TypeError(f"task must be a subclass of {cls.__name__}")
-
-        MPManager.get_transient_settings().set(
-            cls.__name__,
-            f"{task.__module__}/{task.__name__}",
-            task)
-
-    @classmethod
-    def __populate_tasks(cls) -> None:
-        """
-        Private helper to discover and populate all available show/screenshot tasks.
-
-        This method recursively finds all subclasses and also loads tasks from
-        any installed plugins.
-        """
-        cls.__check_task(None)
-
-        if MPManager.get_transient_settings().get_category(cls.__name__):
-            return  # Already populated
-
-        def recurse(searchcls: Type["ShowTask"]):
-            subclss = set()
-            if not cls.__check_task(searchcls):
-                return subclss
-
-            subclss.add(searchcls)
-            for subcls in searchcls.__subclasses__():
-                subclss.update(recurse(subcls))
-
-            return subclss
-
-        classes = recurse(cls)
-
-        # Support non-SC defined tasks from plugins
-        for plugin in utils.get_plugins('showtask'):
-            plugin()
-
-        if not classes:
-            return
-
-        for c in classes:
-            cls.register_task(c)
-
-    @classmethod
-    def get_task(cls: Type[TShowTask], ext: Optional[str]) -> \
-            Union[Optional[TShowTask], Set[Type[TShowTask]]]:
-        """
-        Retrieves a suitable show task instance for a given file extension.
-
-        The method first checks the user's settings file (~/.sc/settings.json)
-        under the 'showtask' category for a preferred tool. If no preference
-        is found or the preferred tool is not available, it falls back to
-        automatic discovery.
-
-        Args:
-            ext (str): The file extension to find a viewer for.
-
-        Returns:
-            An instance of a compatible ShowTask subclass, or None if
-            no suitable task is found.
-        """
-        cls.__check_task(None)
-        cls.__populate_tasks()
-
-        settings = MPManager.get_transient_settings()
-        tasks = set(settings.get_category(cls.__name__).values())
-        if not tasks:
-            return None
-
-        if ext is None:
-            return tasks
-
-        # 1. Check User Settings for Preference
-        preference = MPManager.get_settings().get("showtask", ext)
-
-        if preference:
-            # Preference format: "tool" or "tool/task"
-            pref_parts = preference.split('/')
-            pref_tool = pref_parts[0]
-            pref_task = pref_parts[1] if len(pref_parts) > 1 else None
-
-            for task_cls in tasks:
-                try:
-                    task_inst = task_cls()
-                    # Check if this task matches the preference
-                    if task_inst.tool() == pref_tool:
-                        if pref_task and task_inst.task() != pref_task:
-                            continue
-
-                        # Verify the preferred tool actually supports the extension
-                        if ext in task_inst.get_supported_show_extentions():
-                            return task_inst
-                except NotImplementedError:
-                    continue
-
-        # 2. Fallback to Automatic Discovery
-        for task_cls in tasks:
-            try:
-                task_inst = task_cls()
-                if ext in task_inst.get_supported_show_extentions():
-                    return task_inst
-            except NotImplementedError:
-                pass
-
-        return None
+                           "source node (jobname, step, index) the file came from; "
+                           "not always available")
+        self.add_parameter("showexit", "bool",
+                           "exit the tool after the file is opened", defvalue=False)
 
     def task(self) -> str:
         """Returns the name of this task."""
-        return "show"
+        return "open"
 
     def setup(self) -> None:
-        """Sets up the parameters and requirements for the show task."""
+        """Sets up the parameters and requirements for the open task."""
         super().setup()
 
         self._set_filetype()
@@ -2265,15 +2567,21 @@ class ShowTask(Task):
         elif self.get("var", "showfiletype"):
             self.add_required_key("var", "showfiletype")
         else:
-            raise ValueError("no file information provided to show")
+            raise ValueError(f"no file information provided to {self.task()}")
 
-    def get_supported_show_extentions(self) -> List[str]:
+    def get_supported_task_extentions(self) -> List[str]:
         """
-        Returns a list of file extensions supported by this show task.
+        Returns a list of file extensions supported by this task.
         This method must be implemented by subclasses.
         """
+        if hasattr(self, "get_supported_show_extentions"):
+            import warnings
+            warnings.warn("get_supported_show_extentions is deprecated, please implement "
+                          "get_supported_task_extentions instead",
+                          DeprecationWarning, stacklevel=2)
+            return self.get_supported_show_extentions()
         raise NotImplementedError(
-            "get_supported_show_extentions must be implemented by the child class")
+            "get_supported_task_extentions must be implemented by the child class")
 
     def _set_filetype(self) -> None:
         """
@@ -2287,7 +2595,7 @@ class ShowTask(Task):
                 self.set("var", "showfiletype", ext)
 
         if not self.get("var", "showfilepath"):
-            exts = self.get_supported_show_extentions()
+            exts = self.get_supported_task_extentions()
 
             if not self.get("var", "showfiletype"):
                 input_files = {utils.get_file_ext(f): f.lower()
@@ -2296,7 +2604,8 @@ class ShowTask(Task):
                     if ext in input_files:
                         set_file(input_files[ext], ext)
                         break
-            self.set("var", "showfiletype", exts[-1], clobber=False)
+            if exts:
+                self.set("var", "showfiletype", exts[-1], clobber=False)
         else:
             file = self.get("var", "showfilepath")
             ext = utils.get_file_ext(file)
@@ -2323,6 +2632,340 @@ class ShowTask(Task):
         """Sets the source node information for the file being displayed."""
         return self.set("var", "shownode", (jobname, nodestep, nodeindex), step=step, index=index)
 
+    def has_show_filepath(self) -> bool:
+        """Whether ``showfilepath`` has been provided."""
+        return bool(self.get("var", "showfilepath"))
+
+    def get_show_filepath(self) -> Optional[str]:
+        """Resolved path to ``showfilepath``, or ``None`` if not set."""
+        if not self.has_show_filepath():
+            return None
+        return self.find_files("var", "showfilepath")
+
+    def get_show_filetype(self) -> Optional[str]:
+        """The ``showfiletype`` value, or ``None`` if not set."""
+        return self.get("var", "showfiletype") or None
+
+    def has_show_node(self) -> bool:
+        """Whether ``shownode`` has been provided."""
+        shownode = self.get("var", "shownode")
+        if not shownode:
+            return False
+        return any(item not in (None, "") for item in shownode)
+
+    def get_show_job(self) -> Optional[str]:
+        """The jobname recorded in ``shownode``, or ``None`` if not set."""
+        if not self.has_show_node():
+            return None
+        job, _, _ = self.get("var", "shownode")
+        return job
+
+    def get_show_node(self) -> Tuple[Optional[str], Optional[str]]:
+        """The ``(step, index)`` recorded in ``shownode``; ``(None, None)`` if not set."""
+        if not self.has_show_node():
+            return (None, None)
+        _, step, index = self.get("var", "shownode")
+        return (step, index)
+
+    def get_show_jobroot(self) -> Optional["Project"]:
+        """
+        Project used to resolve files for the source ``shownode``.
+
+        When ``shownode`` carries a jobname, returns the matching history project
+        (or a fresh copy with that jobname applied if no history entry exists).
+        Otherwise returns the current project (which may be ``None`` outside of
+        a runtime context).
+        """
+        job_root = self.project
+        show_job = self.get_show_job()
+        if not show_job or job_root is None:
+            return job_root
+        try:
+            return job_root.history(show_job)
+        except KeyError:
+            job_root = job_root.copy()
+            job_root.option.set_jobname(show_job)
+            return job_root
+
+    def get_show_workdir(self) -> Optional[str]:
+        """
+        Working directory of the source ``shownode``, or ``None`` if a complete
+        ``shownode`` is not available. Callers append ``outputs/`` (or another
+        subdirectory) themselves when needed.
+        """
+        show_step, show_index = self.get_show_node()
+        if show_step is None or show_index is None:
+            return None
+        job_root = self.get_show_jobroot()
+        if job_root is None:
+            return None
+        return paths.workdir(job_root, step=show_step, index=show_index)
+
+    def has_breakpoint(self):
+        # Open is like a breakpoint
+        return True
+
+    @classmethod
+    def __check_task(cls, task: Optional[Type["OpenTask"]]) -> bool:
+        """
+        Private helper to validate if a task is a valid OpenTask, ShowTask, or ScreenshotTask.
+        """
+        if cls is not OpenTask and cls is not ShowTask and cls is not ScreenshotTask:
+            raise TypeError("class must be OpenTask, ShowTask, or ScreenshotTask")
+
+        if task is None:
+            return False
+
+        if cls is OpenTask:
+            check, task_filter = OpenTask, (ShowTask, ScreenshotTask)
+        elif cls is ShowTask:
+            check, task_filter = ShowTask, ScreenshotTask
+        else:
+            check, task_filter = ScreenshotTask, None
+
+        if not issubclass(task, check):
+            return False
+        if task_filter and issubclass(task, task_filter):
+            return False
+
+        return True
+
+    @classmethod
+    def register_task(cls, task: Optional[Type["OpenTask"]]) -> None:
+        """
+        Registers a new show task class for dynamic discovery.
+
+        Args:
+            task: The show task class to register.
+
+        Raises:
+            TypeError: If the task is not a valid subclass.
+        """
+        if not cls.__check_task(task):
+            raise TypeError(f"task must be a subclass of {cls.__name__}")
+
+        MPManager.get_transient_settings().set(
+            cls.__name__,
+            f"{task.__module__}/{task.__name__}",
+            task)
+
+    @classmethod
+    def __populate_tasks(cls) -> None:
+        """
+        Private helper to discover and populate all available show/screenshot tasks.
+
+        This method recursively finds all subclasses and also loads tasks from
+        any installed plugins. Tasks are registered in a stable order:
+        1. Core siliconcompiler tasks (sorted by module path)
+        2. Plugin-provided tasks (in plugin load order)
+
+        This ensures that later-registered extensions take precedence over
+        earlier core tasks when multiple tools support the same extension.
+        """
+        cls.__check_task(None)
+
+        if MPManager.get_transient_settings().get_category(cls.__name__):
+            return  # Already populated
+
+        def recurse(searchcls: Type["OpenTask"]) -> list:
+            subclss = []
+            if not cls.__check_task(searchcls):
+                return subclss
+
+            subclss.append(searchcls)
+            # Iterate over subclasses (final sort by module path happens below)
+            for subcls in searchcls.__subclasses__():
+                subclss.extend(recurse(subcls))
+
+            return subclss
+
+        classes = recurse(cls)
+
+        # Sort core classes by module path for stable ordering
+        # Ensures consistent discovery order across runs
+        core_classes = sorted(classes, key=lambda c: (c.__module__, c.__name__))
+
+        # Register core tasks first
+        for c in core_classes:
+            cls.register_task(c)
+
+        # Support non-SC defined tasks from plugins (these override core tasks)
+        # Sort plugins deterministically for consistent ordering
+        plugins = sorted(
+            utils.get_plugins('showtask'),
+            key=lambda p: (p.__module__, p.__name__)
+        )
+        for plugin in plugins:
+            plugin()
+
+    @classmethod
+    def get_task(cls: Type[TOpenTask], ext: Optional[str], tool: Optional[str] = None) -> \
+            Union[Optional[TOpenTask], List[Type[TOpenTask]]]:
+        """
+        Retrieves a suitable show task instance for a given file extension.
+
+        The method first checks for a requested tool (if provided), then checks the user's
+        settings file (~/.sc/settings.json) under the 'showtask' category for a preferred tool.
+        If no tool is requested and no preference is found, it falls back to automatic discovery.
+
+        Args:
+            ext (str): The file extension to find a viewer for.
+            tool (str, optional): A tool/task hint, not a strict filter. Format
+                can be ``"tool"`` to prefer any task from that tool, or
+                ``"tool/task"`` to prefer a specific task. If the hint cannot be
+                resolved for ``ext`` (e.g. the named tool doesn't support that
+                extension), resolution falls back to the user-settings
+                preference and then to automatic discovery, so a non-None
+                result does not guarantee the returned task matches the hint.
+
+        Returns:
+            An instance of a compatible ShowTask subclass, or None if
+            no suitable task is found.
+        """
+        def find_task_by_spec(spec: str, ext: str, tasks: List) -> Optional[Type[TOpenTask]]:
+            """
+            Find a task matching a tool/task specification.
+
+            Args:
+                spec (str): Tool specification in format "tool" or "tool/task"
+                ext (str): File extension to verify support for
+                tasks (List): List of available task classes to search through
+
+            Returns:
+                An instance of matching OpenTask, or None if no match found
+            """
+            # Parse specification: "tool" or "tool/task"
+            spec_parts = spec.split('/')
+            spec_tool = spec_parts[0]
+            spec_task = spec_parts[1] if len(spec_parts) > 1 else None
+
+            for task_cls in tasks:
+                try:
+                    task_inst = task_cls()
+                    # Check if this task matches the specification
+                    if task_inst.tool() == spec_tool:
+                        if spec_task and task_inst.task() != spec_task:
+                            continue
+
+                        # Verify the tool actually supports the extension
+                        if ext in task_inst.get_supported_task_extentions():
+                            return task_inst
+                except NotImplementedError:
+                    continue
+
+            return None
+
+        cls.__check_task(None)
+        cls.__populate_tasks()
+
+        settings = MPManager.get_transient_settings()
+        tasks = list(settings.get_category(cls.__name__).values())
+        if not tasks:
+            return None
+
+        if ext is None:
+            return tasks
+
+        # 1. Check for requested tool first (if provided)
+        if tool:
+            result = find_task_by_spec(tool, ext, tasks)
+            if result:
+                return result
+
+        # 2. Check User Settings for Preference
+        if issubclass(cls, ShowTask):
+            preference = MPManager.get_settings().get("showtask", ext)
+        else:
+            preference = MPManager.get_settings().get("opentask", ext)
+
+        if preference:
+            result = find_task_by_spec(preference, ext, tasks)
+            if result:
+                return result
+
+        # 3. Fallback to Automatic Discovery
+        # Iterate in reverse so later-registered tasks (e.g., plugins) take precedence
+        for task_cls in reversed(tasks):
+            try:
+                task_inst = task_cls()
+                if ext in task_inst.get_supported_task_extentions():
+                    return task_inst
+            except NotImplementedError:
+                pass
+
+        return None
+
+    @classmethod
+    def get_extension_map(cls: Type[TOpenTask],
+                          tool: Optional[str] = None) -> Dict[str, TOpenTask]:
+        """
+        Returns a mapping of supported file extensions to the preferred task.
+
+        For every extension declared by any registered task of this class, the
+        returned dict contains the task instance that :meth:`get_task` would
+        pick for that extension. This is the single source of truth for
+        "which tool handles extension X" and is shared by ``sc-show -list``
+        and :meth:`Project.show` to keep their behavior consistent.
+
+        Key insertion order is deterministic: extensions appear in the order
+        they are first encountered while iterating registered tasks in
+        registration order (within a task, the order returned by
+        :meth:`get_supported_task_extentions`).
+
+        Args:
+            tool (str, optional): A tool/task preference hint in ``"tool"`` or
+                ``"tool/task"`` form, forwarded to :meth:`get_task`. It biases
+                the preferred task per extension but is not a strict filter:
+                extensions the hint cannot resolve still appear in the map
+                with whichever task :meth:`get_task` falls back to.
+
+        Returns:
+            A dictionary mapping each supported extension to the preferred
+            task instance for that extension.
+        """
+        cls.__check_task(None)
+        cls.__populate_tasks()
+
+        tasks = cls.get_task(None)
+        if not tasks:
+            return {}
+
+        ordered_exts: List[str] = []
+        seen: Set[str] = set()
+        for task_cls in tasks:
+            try:
+                for ext in task_cls().get_supported_task_extentions():
+                    if ext not in seen:
+                        seen.add(ext)
+                        ordered_exts.append(ext)
+            except NotImplementedError:
+                continue
+
+        ext_map: Dict[str, TOpenTask] = {}
+        for ext in ordered_exts:
+            preferred = cls.get_task(ext, tool=tool)
+            if preferred is not None:
+                ext_map[ext] = preferred
+        return ext_map
+
+
+class ShowTask(OpenTask):
+    """
+    A specialized `OpenTask` for tasks that display files in a viewer.
+
+    `ShowTask` is intended for read-only visualization: the backend (e.g. a GUI
+    layout viewer) renders the file and the user inspects it. Use this when the
+    goal is to look at a file rather than to drive an interactive tool session;
+    for the latter, use `OpenTask` directly. For headless image generation, use
+    the `ScreenshotTask` subclass.
+
+    Subclasses should implement `get_supported_task_extentions` to declare
+    which file extensions they can render.
+    """
+    def task(self) -> str:
+        """Returns the name of this task."""
+        return "show"
+
     def get_tcl_variables(self, manifest: Optional[BaseSchema] = None) -> Dict[str, str]:
         """
         Gets Tcl variables for the task, ensuring 'sc_do_screenshot' is false
@@ -2332,18 +2975,15 @@ class ShowTask(Task):
         vars["sc_do_screenshot"] = "false"
         return vars
 
-    def has_breakpoint(self):
-        # Show is like a breakpoint
-        return True
-
 
 class ScreenshotTask(ShowTask):
     """
-    A specialized Task for tasks that generate screenshots of files.
+    A specialized `ShowTask` that renders a file to an image and exits.
 
-    This class inherits from `ShowTask` and is specifically for tasks
-    that need to open a file, generate an image, and then exit. It automatically
-    sets the 'showexit' parameter to True.
+    Inherits the viewer-discovery machinery from `ShowTask` but runs headlessly:
+    the backend opens the file, writes a screenshot, and terminates. The
+    `showexit` parameter is forced to True during setup so subclasses cannot
+    accidentally leave an interactive session running.
     """
 
     def task(self) -> str:

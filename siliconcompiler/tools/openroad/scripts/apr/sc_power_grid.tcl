@@ -82,12 +82,23 @@ tee -quiet -file reports/power_grid_configuration.rpt {pdngen -report_only}
 pdngen -failed_via_report "reports/${sc_topmodule}_pdngen_failed_vias.rpt"
 
 ###############################
+# Remove blockages
+###############################
+
+if { [llength $pdn_blockages] > 0 } {
+    foreach obstruction $pdn_blockages {
+        odb::dbObstruction_destroy $obstruction
+    }
+    utl::info FLW 1 "Deleted [llength $pdn_blockages] obstructions"
+}
+
+###############################
 # Check Power Network
 ###############################
 
 foreach net [sc_supply_nets] {
     if { ![[[ord::get_db_block] findNet $net] isSpecial] } {
-        utl::warn FLW 1 "$net_name is marked as a supply net, but is not marked as a special net"
+        utl::warn FLW 1 "$net is marked as a supply net, but is not marked as a special net"
     }
 }
 
@@ -103,22 +114,13 @@ foreach net [sc_psm_check_nets] {
     }
 
     sc_report_args -command check_power_grid -args $check_args
-    check_power_grid \
-        -floorplanning \
-        -error_file "reports/power_grid_${net}.rpt" \
-        -net $net \
-        {*}$check_args
-}
-
-###############################
-# Remove blockages
-###############################
-
-if { [llength $pdn_blockages] > 0 } {
-    foreach obstruction $pdn_blockages {
-        odb::dbObstruction_destroy $obstruction
+    catch {
+        check_power_grid \
+            -floorplanning \
+            -error_file "reports/check_power_grid_${net}.rpt" \
+            -net $net \
+            {*}$check_args
     }
-    utl::info FLW 1 "Deleted [llength $pdn_blockages] obstructions"
 }
 
 ###############################

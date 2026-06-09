@@ -45,6 +45,7 @@ class Merge(KLayoutTask):
                           index: Optional[Union[str, int]] = None, clobber: bool = False):
         """
         Adds a file to be merged with the reference file.
+
         Args:
             type (str): The fileset or input node to be merged.
             prefix (str): The prefix to apply during the merge.
@@ -53,7 +54,8 @@ class Merge(KLayoutTask):
             step (Optional[str]): The specific step to apply this configuration to.
             index (Optional[Union[str, int]]): The specific index to apply this configuration to.
             clobber (bool, optional): If True, overwrites the existing list of merge files.
-                                      If False, appends to the list. Defaults to False.
+
+                If False, appends to the list. Defaults to False.
         """
         if clobber:
             self.set("var", "merge", (self.__fix_type(type), source0, source1, prefix),

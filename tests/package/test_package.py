@@ -1,6 +1,10 @@
 import contextlib
 import logging
+import os
 import pytest
+import shutil
+import stat
+import sys
 
 import os.path
 
@@ -10,10 +14,12 @@ from unittest.mock import patch
 import siliconcompiler
 
 from siliconcompiler.package import Resolver, RemoteResolver
-from siliconcompiler.package import FileResolver, PythonPathResolver, KeyPathResolver
+from siliconcompiler.package import FileResolver, PythonPathResolver, \
+    KeyPathResolver, DatarootResolver
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
 from siliconcompiler import Project, Design
+from siliconcompiler.schema import BaseSchema
 
 
 def test_init():
@@ -84,6 +90,70 @@ def test_resolve():
     resolver = Resolver("testpath", Project("testproj"), "source://this")
     with pytest.raises(NotImplementedError, match=r"^child class must implement this$"):
         resolver.resolve()
+
+
+def test_display_name_with_schema():
+    """Test display_name returns name when schema exists but has empty keypath."""
+    project = Project("testproj")
+    resolver = Resolver("mydata", project, "source://this")
+
+    # For root-level schemas with empty keypath, display_name should be just the name
+    display = resolver.display_name
+    assert display == "mydata"
+
+
+def test_display_name_without_schema():
+    """Test display_name returns just the name when no schema is provided."""
+    resolver = Resolver("mydata", None, "source://this")
+
+    # display_name should be just the name without keypath
+    assert resolver.display_name == "mydata"
+
+
+def test_display_name_with_nested_schema():
+    """Test display_name includes keypath when schema is nested."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    project = Project(design)
+
+    # Get a nested design schema from the project
+    library_design = project.get("library", "testdesign", field="schema")
+    resolver = Resolver("packagedata", library_design, "source://this")
+
+    # display_name should include the keypath in brackets
+    display = resolver.display_name
+    assert display == "packagedata [library,testdesign]"
+
+
+def test_display_name_consistency():
+    """Test that display_name is consistent across multiple calls."""
+    project = Project("testproj")
+    resolver = Resolver("data", project, "source://path")
+
+    # Multiple calls should return the same value
+    display1 = resolver.display_name
+    display2 = resolver.display_name
+    assert display1 == display2
+
+
+def test_display_name_format_with_keypath():
+    """Test that display_name follows the expected format when keypath exists."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    project = Project(design)
+    library_design = project.get("library", "testdesign", field="schema")
+
+    resolver = Resolver("myresolver", library_design, "source://this")
+
+    # Format should be: "name [keypath,...]"
+    display = resolver.display_name
+    # Should have brackets and the name at the start
+    assert display.startswith("myresolver [")
+    assert display.endswith("]")
 
 
 def test_find_resolver_not_found():
@@ -161,7 +231,7 @@ def test_file_env_var_with_scheme():
 
 
 def test_file_env_var_start_with_root():
-    class Project:
+    class Project(BaseSchema):
         __cwd = "thiscwd"
 
         def valid(*_args, **_kwargs):  # keep interface, silence linters
@@ -200,7 +270,7 @@ def test_cache_id_different_source():
     assert res0.cache_id != res1.cache_id
 
 
-def test_get_path_new_data(monkeypatch, caplog):
+def test_get_path_new_data(project_logger, caplog):
     class AlwaysNew(RemoteResolver):
         def check_cache(self):
             return False
@@ -215,7 +285,7 @@ def test_get_path_new_data(monkeypatch, caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysNew("alwaysnew", proj, "notused", "notused")
@@ -249,7 +319,7 @@ def test_get_path_new_data_error(errorcls):
 
 
 @pytest.mark.parametrize("errorcls", (KeyboardInterrupt, IOError, SystemExit))
-def test_get_path_new_data_error_failed_to_clean(errorcls, monkeypatch, caplog):
+def test_get_path_new_data_error_failed_to_clean(project_logger, errorcls, caplog):
     class AlwaysNew(RemoteResolver):
         def check_cache(self):
             return False
@@ -264,7 +334,7 @@ def test_get_path_new_data_error_failed_to_clean(errorcls, monkeypatch, caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     def dummy_rm(tree):
@@ -280,7 +350,7 @@ def test_get_path_new_data_error_failed_to_clean(errorcls, monkeypatch, caplog):
     assert f"Exception occurred during cleanup: this error ({errorcls.__name__})" in caplog.text
 
 
-def test_get_path_old_data(monkeypatch, caplog):
+def test_get_path_old_data(project_logger, caplog):
     class AlwaysOld(RemoteResolver):
         def check_cache(self):
             return True
@@ -295,7 +365,7 @@ def test_get_path_old_data(monkeypatch, caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysOld("alwaysold", proj, "notused", "notused")
@@ -304,7 +374,7 @@ def test_get_path_old_data(monkeypatch, caplog):
     assert "Found alwaysold data at " in caplog.text
 
 
-def test_get_path_usecache(monkeypatch, caplog):
+def test_get_path_usecache(project_logger, caplog):
     class AlwaysCache(RemoteResolver):
         def check_cache(self):
             return True
@@ -319,7 +389,7 @@ def test_get_path_usecache(monkeypatch, caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysCache("alwayscache", proj, "notused", "notused")
@@ -388,14 +458,14 @@ def test_remote_cache_dir_no_root():
 
 def test_remote_cache_dir_from_schema():
     project = Project("testproj")
-    project.set("option", "cachedir", os.path.abspath("."))
+    project.option.set_cachedir(os.path.abspath("."))
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     assert resolver.cache_dir == Path(os.path.abspath("."))
 
 
 def test_remote_cache_dir_from_schema_not_found():
     project = Project("testproj")
-    project.set("option", "cachedir", "thispath")
+    project.option.set_cachedir("thispath")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     assert resolver.cache_dir == Path(os.path.abspath("thispath"))
@@ -408,7 +478,7 @@ def test_remote_cache_name():
 
 def test_remote_cache_path():
     project = Project("testproj")
-    project.set("option", "cachedir", "thispath")
+    project.option.set_cachedir("thispath")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
@@ -419,7 +489,7 @@ def test_remote_cache_path():
 
 def test_remote_cache_path_cache_exist():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
@@ -429,7 +499,7 @@ def test_remote_cache_path_cache_exist():
 
 def test_remote_lock_file():
     project = Project("testproj")
-    project.set("option", "cachedir", "thispath")
+    project.option.set_cachedir("thispath")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
@@ -440,7 +510,7 @@ def test_remote_lock_file():
 
 def test_remote_sc_lock_file():
     project = Project("testproj")
-    project.set("option", "cachedir", "thispath")
+    project.option.set_cachedir("thispath")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
@@ -451,7 +521,7 @@ def test_remote_sc_lock_file():
 
 def test_remote_resolve_cached():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -467,7 +537,7 @@ def test_remote_resolve_cached():
 
 def test_remote_resolve():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -483,7 +553,7 @@ def test_remote_resolve():
 
 def test_remote_resolve_cached_different_name():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -512,7 +582,7 @@ def test_remote_resolve_cached_different_name():
 
 def test_remote_lock():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -526,7 +596,7 @@ def test_remote_lock():
 
 def test_remote_lock_after_lock():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -547,7 +617,7 @@ def test_remote_lock_after_lock():
 
 def test_remote_lock_within_lock_thread():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
     resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
@@ -571,7 +641,7 @@ def test_remote_lock_within_lock_thread():
 
 def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
     resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
@@ -617,7 +687,7 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
 
 def test_remote_lock_within_lock_file(monkeypatch):
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
     resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
@@ -650,7 +720,7 @@ def test_remote_lock_within_lock_file(monkeypatch):
 
 def test_remote_lock_exception():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -673,7 +743,7 @@ def test_remote_lock_exception():
 
 def test_remote_lock_failed():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     resolver.set_timeout(1)
@@ -693,7 +763,7 @@ def test_remote_lock_failed():
 
 def test_remote_lock_revert_to_file():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -712,7 +782,7 @@ def test_remote_lock_revert_to_file():
 
 def test_remote_lock_revert_to_file_failed():
     project = Project("testproj")
-    project.set("option", "cachedir", ".")
+    project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
@@ -1058,3 +1128,891 @@ def test_reset_cache_none():
     with patch("siliconcompiler.package.Resolver._Resolver__get_root_id") as root:
         Resolver.reset_cache(None)
         root.assert_not_called()
+
+
+# ============================================================================
+# Tests for _make_readonly() method
+# ============================================================================
+
+def test_make_readonly_single_file(tmp_path):
+    """Test making a single file read-only."""
+    # Create a test file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+    # Set explicit initial permissions (0o644) to avoid umask variability
+    os.chmod(test_file, 0o644)
+
+    # Verify it has write permission bit initially
+    mode_before = os.stat(test_file).st_mode
+    assert mode_before & stat.S_IWUSR
+
+    # Make it read-only
+    project = Project("testproj_single_file")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(test_file)
+
+    # Verify it's read-only by checking permission bits
+    assert os.access(test_file, os.R_OK)
+
+    # Check exact permissions (444)
+    mode = os.stat(test_file).st_mode
+    assert mode & stat.S_IRUSR
+    assert mode & stat.S_IRGRP
+    assert mode & stat.S_IROTH
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+
+def test_make_readonly_single_file_path_object(tmp_path):
+    """Test making a single file read-only using Path object."""
+    # Create a test file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+
+    # Make it read-only using Path object
+    project = Project("testproj_path_object")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(Path(test_file))
+
+    # Check exact permissions
+    mode = os.stat(test_file).st_mode
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+
+def test_make_readonly_directory_simple(tmp_path):
+    """Test making a directory with files read-only."""
+    # Create a directory with files
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "file1.txt").write_text("content1")
+    (cache_dir / "file2.txt").write_text("content2")
+
+    # Make directory and contents read-only
+    project = Project("testproj_dir_simple")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify all files have write bits removed
+    for fpath in [cache_dir / "file1.txt", cache_dir / "file2.txt"]:
+        mode = os.stat(fpath).st_mode
+        assert not (mode & stat.S_IWUSR)
+        assert not (mode & stat.S_IWGRP)
+        assert not (mode & stat.S_IWOTH)
+
+    # Verify we can still read files
+    assert os.access(cache_dir / "file1.txt", os.R_OK)
+    assert os.access(cache_dir / "file2.txt", os.R_OK)
+
+    # Verify we can still traverse the directory
+    assert os.access(cache_dir, os.X_OK)
+
+
+def test_make_readonly_nested_directories(tmp_path):
+    """Test making nested directories with files read-only."""
+    # Create nested directory structure
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "file1.txt").write_text("root")
+
+    subdir1 = cache_dir / "subdir1"
+    subdir1.mkdir()
+    (subdir1 / "file2.txt").write_text("sub1")
+
+    subdir2 = subdir1 / "subdir2"
+    subdir2.mkdir()
+    (subdir2 / "file3.txt").write_text("sub2")
+
+    subdir3 = subdir2 / "subdir3"
+    subdir3.mkdir()
+    (subdir3 / "file4.txt").write_text("sub3")
+
+    # Make entire tree read-only
+    project = Project("testproj_nested")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify all files are read-only by checking permission bits
+    for fpath in cache_dir.rglob("*.txt"):
+        mode = os.stat(fpath).st_mode
+        assert not (mode & stat.S_IWUSR), f"{fpath} should have write bit removed"
+        assert not (mode & stat.S_IWGRP), f"{fpath} should have group write bit removed"
+        assert not (mode & stat.S_IWOTH), f"{fpath} should have other write bit removed"
+
+    # Verify all directories are readable and traversable
+    for dpath in [cache_dir, subdir1, subdir2, subdir3]:
+        assert os.access(dpath, os.R_OK), f"{dpath} should be readable"
+        assert os.access(dpath, os.X_OK), f"{dpath} should be traversable"
+
+
+def test_make_readonly_empty_directory(tmp_path):
+    """Test making an empty directory read-only."""
+    # Create an empty directory
+    cache_dir = tmp_path / "empty_cache"
+    cache_dir.mkdir()
+
+    # Make it read-only
+    project = Project("testproj_empty_dir")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify directory is readable and still traversable
+    assert os.access(cache_dir, os.R_OK)
+    assert os.access(cache_dir, os.X_OK)
+
+    # Verify it's not writable by checking stat mode bits
+    mode = os.stat(cache_dir).st_mode
+    assert not (mode & stat.S_IWUSR)
+
+
+def test_make_readonly_preserves_read_access(tmp_path):
+    """Test that making read-only only removes write permissions, preserving others."""
+    # Create a file with restrictive permissions initially
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+    # Make it only readable by owner (400)
+    test_file.chmod(stat.S_IRUSR)
+
+    # Make it read-only (this should only remove write bits, not add read bits)
+    project = Project("testproj_preserves_read")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(test_file)
+
+    # Verify owner can still read
+    mode = os.stat(test_file).st_mode
+    assert mode & stat.S_IRUSR
+    # Verify none can write (since the original file had no write bits anyway)
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+
+def test_make_readonly_preserves_executable_bit_file(tmp_path):
+    """Test that making read-only preserves the executable bit on files (Unix only)."""
+    # Create an executable file
+    test_file = tmp_path / "script.sh"
+    test_file.write_text("#!/bin/bash\necho hello")
+    test_file.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
+                    stat.S_IRGRP | stat.S_IXGRP |
+                    stat.S_IROTH | stat.S_IXOTH)  # 755
+
+    # Make it read-only
+    project = Project("testproj_exec_bit")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(test_file)
+
+    # Verify core behavior: write bits removed
+    mode = os.stat(test_file).st_mode
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+    # Unix-specific: verify execute bits preserved
+    if sys.platform != "win32":
+        assert os.access(test_file, os.X_OK)
+        # Check exact permissions
+        assert mode & stat.S_IRUSR
+        assert mode & stat.S_IXUSR
+        assert mode & stat.S_IRGRP
+        assert mode & stat.S_IXGRP
+        assert mode & stat.S_IROTH
+        assert mode & stat.S_IXOTH
+        assert not (mode & stat.S_IWUSR)
+        assert not (mode & stat.S_IWGRP)
+        assert not (mode & stat.S_IWOTH)
+
+
+def test_make_readonly_removes_write_preserves_exec(tmp_path):
+    """Test that making read-only removes write but preserves read and execute."""
+    # Create a file with write permission (644)
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+    test_file.chmod(stat.S_IRUSR | stat.S_IWUSR |
+                    stat.S_IRGRP |
+                    stat.S_IROTH)  # 644
+
+    # Make it read-only
+    project = Project("testproj_remove_write")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(test_file)
+
+    # Verify permissions changed from 644 to 444
+    mode = os.stat(test_file).st_mode
+    assert mode & stat.S_IRUSR
+    assert mode & stat.S_IRGRP
+    assert mode & stat.S_IROTH
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+    # Verify no execute bit
+    assert not (mode & stat.S_IXUSR)
+    assert not (mode & stat.S_IXGRP)
+    assert not (mode & stat.S_IXOTH)
+
+
+def test_make_readonly_directory_with_mixed_permissions(tmp_path):
+    """Test making directory read-only removes write permissions while preserving read/exec."""
+    # Create a directory with files having different permissions
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    file1 = cache_dir / "file1.txt"
+    file1.write_text("content1")
+    file1.chmod(stat.S_IRUSR | stat.S_IWUSR)  # rw- --- ---
+
+    file2 = cache_dir / "file2.txt"
+    file2.write_text("content2")
+    file2.chmod(stat.S_IRUSR | stat.S_IRGRP)  # r-- r-- ---
+
+    # Make directory and contents read-only
+    project = Project("testproj_mixed_perms")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify all files have write permissions removed
+    for fpath in [file1, file2]:
+        mode = os.stat(fpath).st_mode
+        assert not (mode & stat.S_IWUSR), f"{fpath}: owner should not be able to write"
+        assert not (mode & stat.S_IWGRP), f"{fpath}: group should not be able to write"
+        assert not (mode & stat.S_IWOTH), f"{fpath}: others should not be able to write"
+
+    # Verify file1 preserved its original read permission (owner only)
+    mode1 = os.stat(file1).st_mode
+    assert mode1 & stat.S_IRUSR, "file1: owner should be able to read"
+
+    # Verify file2 preserved its original read permissions (owner and group)
+    mode2 = os.stat(file2).st_mode
+    assert mode2 & stat.S_IRUSR, "file2: owner should be able to read"
+    assert mode2 & stat.S_IRGRP, "file2: group should be able to read"
+
+
+def test_make_readonly_directory_preserves_execute_bit(tmp_path):
+    """Test that making directories read-only preserves execute bit (Unix only)."""
+    # Create a directory structure
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    subdir = cache_dir / "subdir"
+    subdir.mkdir()
+    (cache_dir / "test.txt").write_text("content")
+
+    # Set directory with specific permissions (755)
+    subdir.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
+                 stat.S_IRGRP | stat.S_IXGRP |
+                 stat.S_IROTH | stat.S_IXOTH)
+
+    # Make read-only
+    project = Project("testproj_dir_exec_bit")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Core behavior: verify write bits removed
+    mode = os.stat(subdir).st_mode
+    assert not (mode & stat.S_IWUSR)
+    assert not (mode & stat.S_IWGRP)
+    assert not (mode & stat.S_IWOTH)
+
+    # Unix-specific: verify execute bits preserved (555 instead of 755)
+    if sys.platform != "win32":
+        assert os.access(subdir, os.X_OK)
+        assert mode & stat.S_IXUSR
+        assert mode & stat.S_IXGRP
+        assert mode & stat.S_IXOTH
+
+
+def test_make_readonly_string_path(tmp_path):
+    """Test making files read-only using string path instead of Path object."""
+    # Create a test file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+
+    # Make it read-only using string path
+    project = Project("testproj_string_path")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(str(test_file))
+
+    # Verify it's read-only
+    mode = os.stat(test_file).st_mode
+    assert not (mode & stat.S_IWUSR)
+
+
+def test_make_readonly_error_handling(project_logger, tmp_path, monkeypatch, caplog):
+    """Test error handling when chmod fails in resolve() flow."""
+    import logging
+
+    # Create a mock remote resolver that succeeds initially
+    class TestResolver(RemoteResolver):
+        def check_cache(self):
+            return False  # Cache is invalid, will fetch
+
+        def resolve_remote(self):
+            # Create a test file to simulate successful download
+            (Path(self.cache_path) / "test.txt").parent.mkdir(parents=True, exist_ok=True)
+            (Path(self.cache_path) / "test.txt").write_text("content")
+
+    # Create project with logging
+    project = Project("testproj")
+    project_logger(project)
+    project.logger.setLevel(logging.WARNING)
+    caplog.set_level(logging.WARNING)
+
+    resolver = TestResolver("test", project, "https://example.com", "v1.0")
+
+    # Mock os.chmod to simulate permission error
+    def mock_chmod(path, mode, **kwargs):
+        raise PermissionError("Permission denied")
+
+    monkeypatch.setattr("os.chmod", mock_chmod)
+
+    # resolve() should catch the chmod error and log warning
+    # (the cache won't be made read-only, but resolve succeeds)
+    result = resolver.resolve()
+
+    # Verify that the cache path exists (resolve succeeded)
+    assert Path(result).exists()
+    # Verify that warning was logged about chmod failure
+    assert "Could not make cache read-only" in caplog.text
+
+
+def test_make_readonly_skips_git_directory(tmp_path):
+    """_make_readonly must leave .git/ writable so git internals (e.g. LFS
+    clean filter buffering through .git/lfs/tmp) keep working after the cache
+    is sealed."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "payload.txt").write_text("data")
+
+    git_dir = cache_dir / ".git"
+    git_dir.mkdir()
+    lfs_tmp = git_dir / "lfs" / "tmp"
+    lfs_tmp.mkdir(parents=True)
+    (lfs_tmp / "scratch").write_text("buffer")
+
+    project = Project("testproj_git_skip")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Working tree payload is sealed
+    payload_mode = os.stat(cache_dir / "payload.txt").st_mode
+    assert not (payload_mode & stat.S_IWUSR)
+
+    # .git/ and everything beneath it remain writable
+    for p in [git_dir, lfs_tmp, lfs_tmp / "scratch"]:
+        assert os.stat(p).st_mode & stat.S_IWUSR, f"{p} should remain writable"
+
+    # Sanity: we can still create new files inside .git/lfs/tmp/
+    (lfs_tmp / "fresh").write_text("ok")
+
+
+def test_make_readonly_skips_nested_git_directory(tmp_path):
+    """Submodule .git/modules/<name>/ trees (nested .git directories) must
+    also stay writable."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    submodule = cache_dir / "sub"
+    submodule.mkdir()
+    (submodule / "payload.txt").write_text("data")
+    nested_git = submodule / ".git"
+    nested_git.mkdir()
+    (nested_git / "config").write_text("[core]\n")
+
+    project = Project("testproj_nested_git_skip")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Submodule payload is sealed
+    assert not (os.stat(submodule / "payload.txt").st_mode & stat.S_IWUSR)
+    # Nested .git/ remains writable
+    assert os.stat(nested_git).st_mode & stat.S_IWUSR
+    assert os.stat(nested_git / "config").st_mode & stat.S_IWUSR
+
+
+# ============================================================================
+# Tests for _make_writable() method (for cache cleanup/deletion)
+# ============================================================================
+
+def test_make_writable_single_file(tmp_path):
+    """Test making a read-only file writable."""
+    # Create a read-only file
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+    test_file.chmod(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)  # 444
+
+    # Verify it doesn't have write permission bit
+    mode_before = os.stat(test_file).st_mode
+    assert not (mode_before & stat.S_IWUSR)
+
+    # Make it writable
+    project = Project("testproj_writable_single")
+    project.option.set_cachedir(str(tmp_path))
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_writable(test_file)
+
+    # Verify owner write permission bit is now set
+    mode_after = os.stat(test_file).st_mode
+    assert mode_after & stat.S_IWUSR
+
+
+def test_make_writable_directory(tmp_path):
+    """Test making a read-only directory writable."""
+    # Create a directory with read-only files
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    file1 = cache_dir / "file1.txt"
+    file1.write_text("content1")
+
+    # Make everything read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify it's read-only via stat mode
+    mode_file = os.stat(file1).st_mode
+    mode_dir = os.stat(cache_dir).st_mode
+    assert not (mode_file & stat.S_IWUSR)
+    assert not (mode_dir & stat.S_IWUSR)
+
+    # Make writable
+    resolver._make_writable(cache_dir)
+
+    # Verify owner can write via stat mode
+    mode_file = os.stat(file1).st_mode
+    mode_dir = os.stat(cache_dir).st_mode
+    assert mode_file & stat.S_IWUSR
+    assert mode_dir & stat.S_IWUSR
+
+
+def test_make_readonly_then_delete(tmp_path):
+    """Test that we can delete a read-only cache after making it writable."""
+    # Create a read-only cache directory
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "file1.txt").write_text("content1")
+    (cache_dir / "subdir").mkdir()
+    (cache_dir / "subdir" / "file2.txt").write_text("content2")
+
+    # Make it read-only
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_readonly(cache_dir)
+
+    # Verify it's read-only via stat mode
+    mode_file1 = os.stat(cache_dir / "file1.txt").st_mode
+    mode_subdir = os.stat(cache_dir / "subdir").st_mode
+    assert not (mode_file1 & stat.S_IWUSR)
+    assert not (mode_subdir & stat.S_IWUSR)
+
+    # Make writable and delete (should not raise)
+    resolver._make_writable(cache_dir)
+    shutil.rmtree(cache_dir)
+
+    # Verify deletion succeeded
+    assert not cache_dir.exists()
+
+
+def test_make_writable_preserves_read_and_exec(tmp_path):
+    """Test that making writable preserves existing read and execute permissions."""
+    # Create an executable file that's read-only
+    exec_file = tmp_path / "script.sh"
+    exec_file.write_text("#!/bin/bash\necho hello")
+    exec_file.chmod(stat.S_IRUSR | stat.S_IXUSR)  # r-x --- --- (500)
+
+    # Make writable
+    project = Project("testproj")
+    resolver = RemoteResolver("test", project, "https://example.com", "v1.0")
+    resolver._make_writable(exec_file)
+
+    # Verify it's still executable
+    assert os.access(exec_file, os.X_OK)
+    # Verify owner write permission bit is now set
+    mode_after = os.stat(exec_file).st_mode
+    assert mode_after & stat.S_IWUSR
+    # Verify it's still readable
+    assert os.access(exec_file, os.R_OK)
+
+
+# ============================================================================
+# Tests for DatarootResolver
+# ============================================================================
+
+def test_dataroot_resolver_init():
+    """Test DatarootResolver initialization."""
+    project = Project("testproj")
+    resolver = DatarootResolver("testdata", project, "dataroot://mydata")
+
+    assert resolver.name == "testdata"
+    assert resolver.source == "dataroot://mydata"
+    assert resolver.reference is None
+    assert resolver.urlscheme == "dataroot"
+    assert resolver.urlpath == "mydata"
+    assert isinstance(resolver.logger, logging.Logger)
+
+
+def test_dataroot_resolver_init_no_schema():
+    """Test DatarootResolver initialization without schema."""
+    resolver = DatarootResolver("testdata", None, "dataroot://mydata")
+
+    assert resolver.name == "testdata"
+    assert resolver.source == "dataroot://mydata"
+    assert resolver.schema is None
+    assert resolver.urlpath == "mydata"
+
+
+def test_dataroot_resolver_resolve_no_schema_context():
+    """Test DatarootResolver.resolve() raises error when schema context is missing."""
+    resolver = DatarootResolver("testdata", None, "dataroot://mydata")
+
+    with pytest.raises(RuntimeError,
+                       match=r"^A schema context is required for 'testdata'$"):
+        resolver.resolve()
+
+
+def test_dataroot_resolver_resolve_no_root_schema():
+    """Test DatarootResolver.resolve() raises error when root schema is missing."""
+    class MockSchema:
+        _keypath = ()
+
+        def _parent(self, root=False):
+            return None
+
+    schema = MockSchema()
+    resolver = DatarootResolver("testdata", schema, "dataroot://mydata")
+
+    with pytest.raises(RuntimeError,
+                       match=r"^A root schema has not been defined for 'testdata'$"):
+        resolver.resolve()
+
+
+def test_dataroot_resolver_resolve_undefined_dataroot():
+    """Test DatarootResolver.resolve() raises error when dataroot is not defined."""
+    project = Project("testproj")
+    # Don't set any dataroot, so 'mydata' will not be defined
+    resolver = DatarootResolver("testdata", project, "dataroot://mydata")
+
+    with pytest.raises(RuntimeError,
+                       match=r"^Dataroot 'mydata' is not defined for 'testdata'$"):
+        resolver.resolve()
+
+
+def test_dataroot_resolver_resolve_with_file_path(tmp_path):
+    """Test DatarootResolver.resolve() with a file:// dataroot."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create a test data directory
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "file.txt").write_text("test data")
+
+    # Set a dataroot pointing to the file path
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references this dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the data directory (may have trailing slash)
+    assert os.path.normpath(resolved_path) == os.path.normpath(str(data_dir))
+    assert os.path.exists(resolved_path.rstrip('/'))
+
+
+def test_dataroot_resolver_resolve_with_tag(tmp_path):
+    """Test DatarootResolver.resolve() with a dataroot that has a tag."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directories
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "file.txt").write_text("test data")
+
+    # Set a dataroot with a tag
+    design.set_dataroot("mydata", str(data_dir), tag="v1.0")
+
+    # Create a resolver that references this dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the data directory (may have trailing slash)
+    assert os.path.normpath(resolved_path) == os.path.normpath(str(data_dir))
+
+
+def test_dataroot_resolver_resolve_with_nested_path(tmp_path):
+    """Test DatarootResolver.resolve() with a nested path component."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory with subdirectories
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "subdir").mkdir()
+    (data_dir / "subdir" / "file.txt").write_text("nested data")
+
+    # Set a dataroot pointing to the data directory
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references this dataroot with a nested path
+    # Note: URLs are parsed as scheme://netloc/path
+    # For 'dataroot://mydata/subdir', netloc='mydata' and path='/subdir'
+    # The resolver should strip the leading / and join it to the base path
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata/subdir")
+
+    resolved_path = resolver.resolve()
+
+    # Verify the nested path is correctly resolved
+    expected_path = os.path.normpath(str(data_dir / "subdir"))
+    assert os.path.normpath(resolved_path) == expected_path
+
+
+def test_dataroot_resolver_resolve_with_python_package():
+    """Test DatarootResolver.resolve() with a python:// dataroot."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Set a dataroot pointing to a Python package
+    design.set_dataroot("mydata", "python://siliconcompiler")
+
+    # Create a resolver that references this dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the siliconcompiler package directory
+    expected_path = os.path.dirname(siliconcompiler.__file__)
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+
+def test_dataroot_resolver_resolve_multiple_dataroots(tmp_path):
+    """Test DatarootResolver with multiple dataroots defined."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create multiple test data directories
+    data_dir1 = tmp_path / "data1"
+    data_dir1.mkdir()
+    (data_dir1 / "file1.txt").write_text("data1")
+
+    data_dir2 = tmp_path / "data2"
+    data_dir2.mkdir()
+    (data_dir2 / "file2.txt").write_text("data2")
+
+    # Set multiple dataroots
+    design.set_dataroot("data1", str(data_dir1))
+    design.set_dataroot("data2", str(data_dir2))
+
+    # Create resolvers for each dataroot
+    resolver1 = DatarootResolver("testdata1", design, "dataroot://data1")
+    resolver2 = DatarootResolver("testdata2", design, "dataroot://data2")
+
+    # Each should resolve to its respective directory (normalize for comparison)
+    assert os.path.normpath(resolver1.resolve()) == os.path.normpath(str(data_dir1))
+    assert os.path.normpath(resolver2.resolve()) == os.path.normpath(str(data_dir2))
+
+
+def test_dataroot_resolver_resolve_with_display_name(tmp_path):
+    """Test DatarootResolver with display_name for nested schemas."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "file.txt").write_text("test data")
+
+    # Set a dataroot
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver with the design as schema
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    # display_name should include the name
+    assert "testdata" in resolver.display_name
+
+    # Should still be able to resolve
+    resolved_path = resolver.resolve()
+    assert os.path.normpath(resolved_path) == os.path.normpath(str(data_dir))
+
+
+def test_dataroot_resolver_caching(tmp_path):
+    """Test that DatarootResolver uses caching properly."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "file.txt").write_text("test data")
+
+    # Set a dataroot
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
+
+    # First resolution
+    path1 = resolver.get_path()
+
+    # Second resolution should use cache
+    path2 = resolver.get_path()
+
+    # Should return the same path (from cache)
+    assert path1 == path2
+
+
+def test_dataroot_resolver_subdirectory_path(tmp_path):
+    """Test DatarootResolver with subdirectory path in dataroot URL."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory with nested subdirectories
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "physical").mkdir()
+    (data_dir / "physical" / "impl").mkdir()
+    (data_dir / "physical" / "impl" / "design.gds").write_text("GDS data")
+
+    # Set a dataroot pointing to the base data directory
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references a subdirectory of the dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata/physical/impl")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the nested subdirectory
+    expected_path = str(data_dir / "physical" / "impl")
+    # Normalize for comparison since set_dataroot may add trailing slash
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+
+def test_dataroot_resolver_subdirectory_with_file(tmp_path):
+    """Test DatarootResolver accessing a specific file within dataroot subdirectories."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory with nested subdirectories
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "physical").mkdir()
+    (data_dir / "physical" / "impl").mkdir()
+    (data_dir / "physical" / "impl" / "design.gds").write_text("GDS data")
+    (data_dir / "physical" / "impl" / "design.def").write_text("DEF data")
+
+    # Set a dataroot pointing to the base data directory
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references a subdirectory of the dataroot
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata/physical/impl")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the nested subdirectory
+    expected_path = str(data_dir / "physical" / "impl")
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+    # Verify files exist at that location
+    assert os.path.exists(os.path.join(resolved_path, "design.gds"))
+    assert os.path.exists(os.path.join(resolved_path, "design.def"))
+
+
+def test_dataroot_resolver_deep_nested_path(tmp_path):
+    """Test DatarootResolver with deeply nested subdirectory paths."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Create test data directory with deep nesting
+    data_dir = tmp_path / "data"
+    deep_path = data_dir / "level1" / "level2" / "level3" / "level4"
+    deep_path.mkdir(parents=True)
+    (deep_path / "file.txt").write_text("nested file")
+
+    # Set a dataroot pointing to the base data directory
+    design.set_dataroot("mydata", str(data_dir))
+
+    # Create a resolver that references deeply nested subdirectory
+    resolver = DatarootResolver("testdata", design,
+                                "dataroot://mydata/level1/level2/level3/level4")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the deeply nested subdirectory
+    expected_path = str(deep_path)
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+    # Verify file exists at that location
+    assert os.path.exists(os.path.join(resolved_path, "file.txt"))
+
+
+def test_dataroot_resolver_python_package_subdirectory():
+    """Test DatarootResolver accessing a subdirectory within a python:// package."""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
+
+    # Set a dataroot pointing to a Python package
+    design.set_dataroot("mydata", "python://siliconcompiler")
+
+    # Create a resolver that references a subdirectory of the python package
+    # (e.g., tools subdirectory)
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata/tools")
+
+    resolved_path = resolver.resolve()
+
+    # Should resolve to the tools subdirectory within the package
+    expected_path = os.path.join(os.path.dirname(siliconcompiler.__file__), "tools")
+    assert os.path.normpath(resolved_path) == os.path.normpath(expected_path)
+
+
+def test_dataroot_resolver_find_resolver():
+    """Test that dataroot:// scheme is properly registered."""
+    resolver_cls = Resolver.find_resolver("dataroot://some/data")
+    assert resolver_cls is DatarootResolver
+
+
+def test_dataroot_resolver_self_referential():
+    """Test that self-referential dataroots raise RuntimeError."""
+    design = Design("test")
+    design.set_dataroot("mydata", "dataroot://mydata")
+
+    resolver = DatarootResolver("test", design, "dataroot://mydata")
+    with pytest.raises(RuntimeError, match="Circular dataroot reference detected"):
+        resolver.get_path()
+
+
+def test_dataroot_resolver_mutually_referential():
+    """Test that mutually-referential dataroots raise RuntimeError."""
+    design = Design("test")
+    design.set_dataroot("dataA", "dataroot://dataB")
+    design.set_dataroot("dataB", "dataroot://dataA")
+
+    resolver = DatarootResolver("test", design, "dataroot://dataA")
+    with pytest.raises(RuntimeError, match="Circular dataroot reference detected"):
+        resolver.get_path()

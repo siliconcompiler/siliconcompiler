@@ -8,6 +8,7 @@ import os.path
 from typing import List, Dict, Tuple, Optional, Callable, Any, Literal, TYPE_CHECKING
 
 from logging.handlers import QueueListener
+from multiprocessing.managers import RemoteError
 
 from siliconcompiler import NodeStatus
 from siliconcompiler import utils
@@ -16,7 +17,8 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.package import Resolver
 from siliconcompiler.schema import Journal
 
-from siliconcompiler.utils.logging import SCBlankLoggerFormatter, SCBlankColorlessLoggerFormatter
+from siliconcompiler.utils.logging import SCBlankLoggerFormatter, \
+    SCBlankColorlessLoggerFormatter, SCTeeLoggerHandler
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import SCRuntimeError
 
@@ -121,12 +123,14 @@ class TaskScheduler:
                 "threads": None,
                 "running": False,
                 "manifest": None,
+                "breakpoint": False,
                 "node": tasks[(step, index)]
             }
 
             with tasks[(step, index)].runtime():
                 threads = tasks[(step, index)].threads
                 task["manifest"] = tasks[(step, index)].get_manifest()
+                task["breakpoint"] = tasks[(step, index)].task.has_breakpoint()
             if not threads:
                 threads = self.__max_threads
             task["threads"] = max(1, min(threads, self.__max_threads))
@@ -155,9 +159,16 @@ class TaskScheduler:
         # Call this in case this was invoked without __main__
         multiprocessing.freeze_support()
 
-        # Handle logs across threads
+        # Handle logs across threads. The tee handler forwards each record
+        # to any additional handler currently attached to the project's
+        # logger (e.g. the dashboard's log buffer), looked up fresh on every
+        # emit so sinks added or removed mid-run take effect without
+        # listener reconfiguration. It skips the terminal handler since the
+        # listener already dispatches to it directly.
+        extra_console_tee = SCTeeLoggerHandler(self.__logger,
+                                               skip=self.__logger_console_handler)
         log_listener = QueueListener(self.__log_queue, self.__logger_console_handler,
-                                     job_log_handler)
+                                     extra_console_tee, job_log_handler)
         console_format = self.__logger_console_handler.formatter
         file_formatter = job_log_handler.formatter
         self.__logger_console_handler.setFormatter(SCBlankLoggerFormatter())
@@ -178,15 +189,22 @@ class TaskScheduler:
             MPManager.get_transient_settings().get(
                 'TaskScheduler', 'post_run', lambda project: None)(self.__project)
         except KeyboardInterrupt:
-            # exit immediately
-            log_listener.stop()
+            # Defer cleanup to the finally block so the listener is only
+            # stopped once. Calling stop() twice raises AttributeError when
+            # the listener thread has already been joined, and during
+            # shutdown the manager-backed queue may have already gone away.
             sys.exit(0)
         finally:
-            # Cleanup logger
+            # Cleanup logger. Tolerate the listener already being torn down
+            # or its backing queue being unreachable (the SyncManager may
+            # be gone by now during an interrupted shutdown).
             try:
                 log_listener.stop()
-            except AttributeError:
-                # Logger already stopped
+            except (AttributeError, OSError, EOFError, BrokenPipeError,
+                    ConnectionResetError, RemoteError):
+                # Mirror the shutdown-error set caught by MPQueueHandler.enqueue:
+                # the QueueListener's sentinel put may fail through any of these
+                # if the SyncManager backing __log_queue has already gone away.
                 pass
             self.__logger_console_handler.setFormatter(console_format)
             job_log_handler.setFormatter(file_formatter)
@@ -286,7 +304,10 @@ class TaskScheduler:
                     self.__schema.unset("arg", "step")
                     self.__schema.unset("arg", "index")
 
-                if info["parent_pipe"] and info["parent_pipe"].poll(1):
+                # The child either sent the package cache before exiting or
+                # it never will. poll(0) avoids blocking the scheduler loop
+                # for a full second when a child died without writing.
+                if info["parent_pipe"] and info["parent_pipe"].poll(0):
                     try:
                         packages = info["parent_pipe"].recv()
                         if isinstance(packages, dict):
@@ -300,7 +321,12 @@ class TaskScheduler:
                 info["node"].set_queue(None, None)
 
                 step, index = node
-                if info["proc"].exitcode > 0:
+                # Treat any nonzero exit code as an error. Children killed by
+                # a signal (e.g. SIGKILL, SIGTERM) report a negative exitcode
+                # and almost certainly did not get a chance to update the
+                # record, so they must be classified as ERROR rather than
+                # consulting the (stale) status field.
+                if info["proc"].exitcode != 0:
                     status = NodeStatus.ERROR
                 else:
                     status = self.__record.get('status', step=step, index=index)
@@ -354,6 +380,34 @@ class TaskScheduler:
         # allow
         return True
 
+    def __start_node(self, node: Tuple[str, str]) -> None:
+        """
+        Private helper to start a single node's process.
+
+        Marks the node as running, records the start time, fires the
+        'pre_node' callback, and launches the underlying process.
+
+        Args:
+            node (tuple): The (step, index) of the node to start.
+        """
+        info = self.__nodes[node]
+        step, index = node
+
+        self.__logger.debug(f'Launching {info["name"]}')
+
+        self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
+        self.__startTimes[node] = time.time()
+
+        MPManager.get_transient_settings().get(
+            'TaskScheduler', 'pre_node',
+            lambda project, step, index: None)(self.__project, step, index)
+
+        # Start the process
+        info["running"] = True
+        info["parent_pipe"], pipe = multiprocessing.Pipe()
+        info["node"].set_queue(pipe, self.__log_queue)
+        info["proc"].start()
+
     def __launch_nodes(self) -> bool:
         """
         Private helper to launch new nodes whose dependencies are met.
@@ -362,16 +416,32 @@ class TaskScheduler:
         nodes have completed successfully, and if system resources are available.
         If all conditions are met, it starts the node's process.
 
+        Breakpoint handling: a node with a breakpoint must execute in complete
+        isolation. It takes priority over ordinary nodes, may only start once
+        no other node is running, and nothing else may start until it finishes.
+        When several breakpoint nodes are ready at once they are launched one at
+        a time in flowgraph execution order.
+
         Returns:
             bool: True if any new node was launched, False otherwise.
         """
         changed = False
-        for node in self.get_nodes_waiting_to_run():
-            # TODO: breakpoint logic:
-            # if node is breakpoint, then don't launch while len(running_nodes) > 0
 
+        running_nodes = self.get_running_nodes()
+
+        # If a breakpoint node is currently running, it must run alone: do not
+        # launch anything (breakpoint or otherwise) until it completes.
+        if any(self.__nodes[node]["breakpoint"] for node in running_nodes):
+            return changed
+
+        # First evaluate every waiting node's dependencies. This determines
+        # which nodes are ready to launch and, as a side effect, prunes nodes
+        # whose dependencies failed (clearing their proc so they are no longer
+        # considered waiting). This evaluation must happen regardless of any
+        # breakpoint gating below.
+        ready_nodes: List[Tuple[str, str]] = []
+        for node in self.get_nodes_waiting_to_run():
             info = self.__nodes[node]
-            step, index = node
 
             ready = True
             inputs = []
@@ -398,24 +468,35 @@ class TaskScheduler:
                 info["proc"] = None
                 continue
 
-            # If there are no dependencies left, launch this node and
-            # remove from nodes_to_run.
-            if ready and self.__allow_start(node):
-                self.__logger.debug(f'Launching {info["name"]}')
+            if ready:
+                ready_nodes.append(node)
 
-                MPManager.get_transient_settings().get(
-                    'TaskScheduler', 'pre_node',
-                    lambda project, step, index: None)(self.__project, step, index)
+        if not ready_nodes:
+            return changed
 
-                self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
-                self.__startTimes[node] = time.time()
+        # A ready breakpoint node takes priority. While one is waiting we must
+        # not start any other work: currently running nodes are allowed to
+        # drain to zero, after which the single highest-priority (earliest in
+        # execution order) breakpoint runs by itself.
+        breakpoint_nodes = [node for node in ready_nodes if self.__nodes[node]["breakpoint"]]
+        if breakpoint_nodes:
+            if running_nodes:
+                # Wait for the machine to go idle before starting the
+                # breakpoint; do not co-schedule anything alongside it.
+                return changed
+            # ready_nodes preserves execution order, so breakpoint_nodes[0] is
+            # the earliest pending breakpoint.
+            node = breakpoint_nodes[0]
+            if self.__allow_start(node):
+                self.__start_node(node)
                 changed = True
+            return changed
 
-                # Start the process
-                info["running"] = True
-                info["parent_pipe"], pipe = multiprocessing.Pipe()
-                info["node"].set_queue(pipe, self.__log_queue)
-                info["proc"].start()
+        # Normal scheduling: launch as many ready nodes as resources allow.
+        for node in ready_nodes:
+            if self.__allow_start(node):
+                self.__start_node(node)
+                changed = True
 
         return changed
 

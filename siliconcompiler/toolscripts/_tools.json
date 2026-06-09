@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "6f4b72880a4f47c1b27cf287cda4f0dd8f9e9105",
+    "git-commit": "946b12e0d72a093e53fcb18edc6f1dc827a0988b",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -41,7 +41,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.30.7",
+    "version": "0.30.9",
     "git-url": "https://github.com/KLayout/klayout.git",
     "auto-update": true,
     "run-version": "source version.sh && echo $KLAYOUT_VERSION",
@@ -55,7 +55,7 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "d3812098d8feb2d04cc4cb55e034a1f2338db02f",
+    "git-commit": "6662fa5da71f87797598060f17728b284b99a9fc",
     "auto-update": true
   },
   "verilator": {
@@ -101,7 +101,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "v0.63",
+    "git-commit": "v0.66",
     "version-prefix": "",
     "auto-update": true
   },
@@ -145,7 +145,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "8c82a4b7c4dff83d1d446610d8ee582aa094fd9d",
+    "git-commit": "08bb13bd128c73b79455f4ea344a1785e0a342e9",
     "docker-depends": "yosys",
     "auto-update": true
   },
@@ -157,18 +157,23 @@
   },
   "wildebeest": {
     "git-url": "https://github.com/zeroasiccorp/wildebeest.git",
-    "git-commit": "d79f06403b500b95b4cb33288f520e4e24fb9c47",
+    "git-commit": "b0b0d8d6bbbd0f866e205bf57ae979f5299a67da",
     "docker-depends": "yosys",
     "auto-update": true
   },
   "surfer": {
     "git-url": "https://gitlab.com/surfer-project/surfer.git",
-    "git-commit": "v0.6.0",
+    "git-commit": "v0.7.0",
     "auto-update": true
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
     "git-commit": "405682c75dc8ca7edbc2ba94ebfe5bc5faaf0904",
     "auto-update": false
+  },
+  "vcd2fst": {
+    "git-url": "https://github.com/Silimate/vcd2fst.git",
+    "git-commit": "29da9a8da43c0ec09a8d378818c23abe48069129",
+    "auto-update": true
   }
 }

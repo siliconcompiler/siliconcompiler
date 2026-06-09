@@ -11,6 +11,8 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.openroad import _apr
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad import metrics
+from siliconcompiler.tools.openroad import open as openroad_open
+from siliconcompiler.tools.openroad import show as openroad_show
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.tools.openroad import write_data
 from siliconcompiler.tools.openroad import antenna_repair
@@ -1275,3 +1277,366 @@ def test_openroad_screenshot_parameter_include_report_images():
     task.set_openroad_includereportimages(False, step='screenshot', index='1')
     assert task.get("var", "include_report_images", step='screenshot', index='1') is False
     assert task.get("var", "include_report_images") is True
+
+
+# ----------------------------------------------------------------------
+# OpenTask: identity + file copying
+# ----------------------------------------------------------------------
+
+
+def test_openroad_open_basics():
+    task = openroad_open.OpenTask()
+    assert task.task() == "open"
+    assert task.tool() == "openroad"
+    assert task.get_supported_task_extentions() == ["odb", "def", "vg"]
+    assert task.has_breakpoint() is True
+
+
+@pytest.mark.parametrize("task_cls", [
+    _apr.APRTask,
+    openroad_open.OpenTask,
+    openroad_show.ShowTask,
+    screenshot.ScreenshotTask,
+    init_floorplan.InitFloorplanTask,
+    global_placement.GlobalPlacementTask,
+    global_route.GlobalRouteTask,
+    repair_design.RepairDesignTask,
+    repair_timing.RepairTimingTask,
+    macro_placement.MacroPlacementTask,
+    metrics.MetricsTask,
+    write_data.WriteViewsTask,
+])
+def test_openroad_enablehier_default_false(task_cls):
+    """enablehier defaults to False for APR-derived tasks."""
+    assert task_cls().get("var", "enablehier") is False
+
+
+def test_openroad_web_enablehier_default_true():
+    """WebTask flips the enablehier default to True."""
+    assert openroad_show.WebTask().get("var", "enablehier") is True
+
+
+def test_openroad_show_supports_def():
+    """ShowTask inherits the open task's def/odb/vg extension support."""
+    task = openroad_show.ShowTask()
+    assert "def" in task.get_supported_task_extentions()
+    assert "odb" in task.get_supported_task_extentions()
+
+
+def test_openroad_screenshot_supports_def():
+    """ScreenshotTask inherits the open task's def/odb/vg extension support."""
+    task = screenshot.ScreenshotTask()
+    assert "def" in task.get_supported_task_extentions()
+    assert "odb" in task.get_supported_task_extentions()
+
+
+def _set_open_flow(project, task_cls=openroad_open.OpenTask):
+    """Replace the project's flow with a single-node flow holding ``task_cls``."""
+    flow = Flowgraph("openflow")
+    flow.node("open", task_cls())
+    project.set_flow(flow)
+
+
+def _populate_outputs(project, step, index, files):
+    """Create a fake ``outputs/`` for (step, index) and write ``files`` into it."""
+    outputs = os.path.join(workdir(project, step=step, index=index), "outputs")
+    os.makedirs(outputs, exist_ok=True)
+    for name, content in files.items():
+        with open(os.path.join(outputs, name), "w") as fh:
+            fh.write(content)
+    return outputs
+
+
+@pytest.fixture
+def open_project(asic_gcd, tmp_path, monkeypatch):
+    """A project rooted under tmp_path with a single OpenTask node installed."""
+    monkeypatch.chdir(tmp_path)
+    asic_gcd.option.set_builddir(str(tmp_path / "build"))
+    _set_open_flow(asic_gcd)
+    return asic_gcd
+
+
+def _run_copy(project, *,
+              show_step, show_index, show_type,
+              show_path, show_job="job0",
+              load_sdcs=None):
+    """Drive ``_copy_show_files`` on a SchedulerNode-bound OpenTask in cwd."""
+    node = SchedulerNode(project, "open", "0")
+    with node.runtime():
+        task = node.task
+        task.set("var", "showfilepath", show_path)
+        task.set("var", "showfiletype", show_type)
+        task.set("var", "shownode", (show_job, show_step, show_index))
+        if load_sdcs is not None:
+            task.set_openroad_loadsdcs(load_sdcs)
+
+        os.makedirs("inputs", exist_ok=True)
+        task._copy_show_files()
+
+
+def test_openroad_open_copy_no_showfilepath(open_project):
+    """No showfilepath => nothing is copied."""
+    node = SchedulerNode(open_project, "open", "0")
+    with node.runtime():
+        os.makedirs("inputs", exist_ok=True)
+        node.task._copy_show_files()
+
+    assert os.listdir("inputs") == []
+
+
+def test_openroad_open_copy_basic_def(open_project):
+    """A def supplied via showfilepath is copied to inputs/."""
+    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
+        "gcd.def": "def-content",
+    })
+    src_def = os.path.join(src_outputs, "gcd.def")
+
+    _run_copy(open_project,
+              show_step="route.detailed", show_index="0",
+              show_type="def", show_path=src_def)
+
+    assert os.path.exists("inputs/gcd.def")
+    with open("inputs/gcd.def") as fh:
+        assert fh.read() == "def-content"
+
+
+def test_openroad_open_copy_with_vg_companion(open_project):
+    """Opening a def pulls in a sibling vg netlist for -hier linking."""
+    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
+        "gcd.def": "def-content",
+        "gcd.vg": "verilog-content",
+    })
+    src_def = os.path.join(src_outputs, "gcd.def")
+
+    _run_copy(open_project,
+              show_step="route.detailed", show_index="0",
+              show_type="def", show_path=src_def)
+
+    assert os.path.exists("inputs/gcd.def")
+    assert os.path.exists("inputs/gcd.vg")
+    with open("inputs/gcd.vg") as fh:
+        assert fh.read() == "verilog-content"
+
+
+def test_openroad_open_copy_prefers_gz_vg(open_project):
+    """vg.gz is preferred over plain vg when both exist alongside the def."""
+    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
+        "gcd.def": "def-content",
+        "gcd.vg": "plain-vg",
+        "gcd.vg.gz": "gz-vg",
+    })
+    src_def = os.path.join(src_outputs, "gcd.def")
+
+    _run_copy(open_project,
+              show_step="route.detailed", show_index="0",
+              show_type="def", show_path=src_def)
+
+    assert os.path.exists("inputs/gcd.vg.gz")
+    assert not os.path.exists("inputs/gcd.vg")
+
+
+def test_openroad_open_copy_skips_vg_for_odb(open_project):
+    """Opening an odb does not pull in a vg companion (odb is self-contained)."""
+    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
+        "gcd.odb": "odb-content",
+        "gcd.vg": "vg-content",
+    })
+    src_odb = os.path.join(src_outputs, "gcd.odb")
+
+    _run_copy(open_project,
+              show_step="route.detailed", show_index="0",
+              show_type="odb", show_path=src_odb)
+
+    assert os.path.exists("inputs/gcd.odb")
+    assert not os.path.exists("inputs/gcd.vg")
+
+
+def test_openroad_open_copy_with_sdc(open_project):
+    """A sibling generic <top>.sdc is copied when load_sdcs is enabled (default)."""
+    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
+        "gcd.def": "def-content",
+        "gcd.sdc": "sdc-content",
+    })
+    src_def = os.path.join(src_outputs, "gcd.def")
+
+    _run_copy(open_project,
+              show_step="route.detailed", show_index="0",
+              show_type="def", show_path=src_def)
+
+    assert os.path.exists("inputs/gcd.sdc")
+    with open("inputs/gcd.sdc") as fh:
+        assert fh.read() == "sdc-content"
+
+
+def test_openroad_open_copy_load_sdcs_disabled(open_project):
+    """Disabling load_sdcs suppresses sdc copying."""
+    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
+        "gcd.def": "def-content",
+        "gcd.sdc": "sdc-content",
+    })
+    src_def = os.path.join(src_outputs, "gcd.def")
+
+    _run_copy(open_project,
+              show_step="route.detailed", show_index="0",
+              show_type="def", show_path=src_def,
+              load_sdcs=False)
+
+    assert os.path.exists("inputs/gcd.def")
+    assert not os.path.exists("inputs/gcd.sdc")
+
+
+def test_openroad_open_copy_cross_job(open_project):
+    """A shownode pointing at a different jobname resolves via project history."""
+    open_project.option.set_jobname("rtl2gds")
+    open_project._record_history()
+    open_project.option.set_jobname("job0")
+    _set_open_flow(open_project)
+
+    history = open_project.history("rtl2gds")
+    src_outputs = _populate_outputs(history, "route.detailed", "0", {
+        "gcd.def": "def-content",
+        "gcd.vg": "vg-content",
+        "gcd.sdc": "sdc-content",
+    })
+    src_def = os.path.join(src_outputs, "gcd.def")
+
+    _run_copy(open_project,
+              show_step="route.detailed", show_index="0",
+              show_type="def", show_path=src_def,
+              show_job="rtl2gds")
+
+    assert os.path.exists("inputs/gcd.def")
+    assert os.path.exists("inputs/gcd.vg")
+    assert os.path.exists("inputs/gcd.sdc")
+
+
+def test_openroad_open_copy_unknown_job_falls_back(open_project):
+    """If the referenced jobname has no history entry, fall back to the live project."""
+    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
+        "gcd.def": "def-content",
+    })
+    src_def = os.path.join(src_outputs, "gcd.def")
+
+    _run_copy(open_project,
+              show_step="route.detailed", show_index="0",
+              show_type="def", show_path=src_def,
+              show_job="does-not-exist")
+
+    assert os.path.exists("inputs/gcd.def")
+
+
+def test_openroad_open_copy_no_shownode(open_project):
+    """Without a shownode, only the showfilepath is copied — no companion lookup."""
+    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
+        "gcd.def": "def-content",
+        "gcd.vg": "vg-content",
+        "gcd.sdc": "sdc-content",
+    })
+    src_def = os.path.join(src_outputs, "gcd.def")
+
+    node = SchedulerNode(open_project, "open", "0")
+    with node.runtime():
+        task = node.task
+        task.set("var", "showfilepath", src_def)
+        task.set("var", "showfiletype", "def")
+        os.makedirs("inputs", exist_ok=True)
+        task._copy_show_files()
+
+    assert os.path.exists("inputs/gcd.def")
+    assert not os.path.exists("inputs/gcd.vg")
+    assert not os.path.exists("inputs/gcd.sdc")
+
+
+@pytest.mark.parametrize("task_cls", [
+    openroad_show.ShowTask,
+    screenshot.ScreenshotTask,
+])
+def test_openroad_show_screenshot_inherit_copy(open_project, task_cls):
+    """ShowTask and ScreenshotTask inherit the OpenTask file-copy behavior."""
+    _set_open_flow(open_project, task_cls=task_cls)
+
+    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
+        "gcd.def": "def-content",
+        "gcd.vg": "vg-content",
+        "gcd.sdc": "sdc-content",
+    })
+    src_def = os.path.join(src_outputs, "gcd.def")
+
+    node = SchedulerNode(open_project, "open", "0")
+    with node.runtime():
+        task = node.task
+        task.set("var", "showfilepath", src_def)
+        task.set("var", "showfiletype", "def")
+        task.set("var", "shownode", ("job0", "route.detailed", "0"))
+        os.makedirs("inputs", exist_ok=True)
+        task._copy_show_files()
+
+    assert os.path.exists("inputs/gcd.def")
+    assert os.path.exists("inputs/gcd.vg")
+    assert os.path.exists("inputs/gcd.sdc")
+
+
+# ----------------------------------------------------------------------
+# Regression guard: every OpenROAD open/show/screenshot variant must end up
+# pointing at sc_open.tcl with the right sc_do_screenshot value. The original
+# bug here was that ShowTask/ScreenshotTask called set_script("sc_show.tcl")
+# *after* OpenTask.setup() had already set sc_open.tcl, but set_script defaults
+# to clobber=False so the override was a silent no-op and the screenshot path
+# ran the wrong script.
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("task_cls", [
+    openroad_open.OpenTask,
+    openroad_show.ShowTask,
+    openroad_show.WebTask,
+    screenshot.ScreenshotTask,
+])
+def test_openroad_open_script_is_sc_open(asic_gcd, tmp_path, monkeypatch, task_cls):
+    """All OpenROAD open variants must end up running sc_open.tcl after full setup.
+
+    Regression guard: previously ShowTask/ScreenshotTask called
+    ``set_script("sc_show.tcl")`` after OpenTask.setup() had already set
+    ``sc_open.tcl``. Because ``set_script`` defaults to ``clobber=False``, the
+    second call was a silent no-op and the screenshot path ran the wrong
+    script. This test ensures every variant resolves to ``sc_open.tcl``.
+    """
+    monkeypatch.chdir(tmp_path)
+    asic_gcd.option.set_builddir(str(tmp_path / "build"))
+
+    flow = Flowgraph(f"openflow_{task_cls.__name__.lower()}")
+    flow.node("open", task_cls())
+    asic_gcd.set_flow(flow)
+
+    node = SchedulerNode(asic_gcd, "open", "0")
+    with node.runtime():
+        # project.show sets showfilepath before setup runs.
+        node.task.set("var", "showfilepath", "/tmp/dummy.def")
+        node.task.set("var", "showfiletype", "def")
+        node.setup()
+
+        scripts = [str(s) for s in node.task.get("script")]
+        assert any(s.endswith("sc_open.tcl") for s in scripts), \
+            f"{task_cls.__name__}: expected sc_open.tcl, got {scripts}"
+        assert all(not s.endswith("sc_show.tcl") for s in scripts), \
+            f"{task_cls.__name__}: sc_show.tcl should no longer be referenced; got {scripts}"
+
+
+def test_openroad_sc_open_tcl_has_screenshot_block(scroot):
+    """sc_open.tcl must source the screenshot block guarded by sc_do_screenshot."""
+    script_path = os.path.join(scroot, "siliconcompiler", "tools", "openroad",
+                               "scripts", "sc_open.tcl")
+    with open(script_path) as fh:
+        body = fh.read()
+    assert "sc_do_screenshot" in body, \
+        "sc_open.tcl must reference sc_do_screenshot to trigger screenshot rendering"
+    assert "screenshot.tcl" in body, \
+        "sc_open.tcl must source common/screenshot.tcl when sc_do_screenshot is true"
+
+
+def test_openroad_sc_show_tcl_removed(scroot):
+    """sc_show.tcl was consolidated into sc_open.tcl and should no longer exist."""
+    script_path = os.path.join(scroot, "siliconcompiler", "tools", "openroad",
+                               "scripts", "sc_show.tcl")
+    assert not os.path.exists(script_path), \
+        f"{script_path} should be removed; sc_open.tcl is now the single entry script"

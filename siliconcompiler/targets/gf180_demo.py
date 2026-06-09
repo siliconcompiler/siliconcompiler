@@ -4,7 +4,8 @@ from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.gf180 import GF180_5LM_1TM_9K_9t
 from lambdapdk.gf180.libs.gf180mcu import GF180_MCU_9T_5LMLibrary
-from lambdapdk.gf180.libs.gf180sram import GF180Lambdalib_SinglePort
+from lambdapdk.gf180.libs.gf180sram import GF180Lambdalib_SinglePort, \
+    GF180Lambdalib_SinglePortRegfile
 from lambdapdk.gf180.libs.gf180io import GF180Lambdalib_IO_5LM
 
 
@@ -94,4 +95,5 @@ def gf180_demo(
     # Makes specialized libraries like SRAM and IO cells available to the flow
     # under a common, standardized naming convention.
     GF180Lambdalib_SinglePort.alias(project)
+    GF180Lambdalib_SinglePortRegfile.alias(project)
     GF180Lambdalib_IO_5LM.alias(project)

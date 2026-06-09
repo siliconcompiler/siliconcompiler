@@ -126,7 +126,7 @@ class RecordSchema(BaseSchema):
             step (str): Step name to associate.
             index (str or int): Index name to associate.
         '''
-        self.set('scversion', _metadata.version, step=step, index=index)
+        self.set('scversion', _metadata.detailed_version, step=step, index=index)
         self.set('pythonversion', platform.python_version(), step=step, index=index)
 
     @staticmethod

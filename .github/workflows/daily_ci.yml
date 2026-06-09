@@ -70,10 +70,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Checkout SiliconCompiler
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set tools and permissions for caching
         run: |
@@ -97,6 +99,7 @@ jobs:
 
       - name: Setup tests
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           export LD_LIBRARY_PATH="${{ env.LD_LIBRARY_PATH_BACKUP }}"
           echo $LD_LIBRARY_PATH
           ${{ steps.setup-python.outputs.python-path }} -m venv .venv

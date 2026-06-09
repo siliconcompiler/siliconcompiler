@@ -18,6 +18,7 @@ import random
 import re
 import site
 import shutil
+import stat
 import time
 import threading
 import uuid
@@ -51,7 +52,7 @@ class Resolver:
 
     Attributes:
         name (str): The name of the data package being resolved.
-        root (object): The root object (typically a Project) providing context,
+        schema (object): The root object (typically a Project) providing context,
             such as environment variables and the working directory.
         source (str): The URI or path specifying the data source.
         reference (str): A version, commit hash, or tag for remote sources.
@@ -59,14 +60,15 @@ class Resolver:
     __STORAGE: Final[str] = "__Resolver_cache_id"
 
     def __init__(self, name: str,
-                 root: Optional[Union["Project", "BaseSchema"]],
+                 schema: Optional[Union["Project", "BaseSchema"]],
                  source: str,
                  reference: Optional[str] = None):
         """
         Initializes the Resolver.
         """
         self.__name = name
-        self.__root = root
+        self.__schema = schema
+        self.__root = None if schema is None else schema._parent(root=True)
         self.__source = source
         self.__reference = reference
         self.__changed = False
@@ -96,6 +98,7 @@ class Resolver:
         settings.set("resolvers", "file", FileResolver)
         settings.set("resolvers", "key", KeyPathResolver)
         settings.set("resolvers", "python", PythonPathResolver)
+        settings.set("resolvers", "dataroot", DatarootResolver)
 
         for resolver in get_plugins("path_resolver"):
             for scheme, res in resolver().items():
@@ -134,9 +137,23 @@ class Resolver:
         return self.__name
 
     @property
+    def display_name(self) -> str:
+        """A user-friendly display name for the resolver."""
+        if self.__schema:
+            keypath = self.__schema._keypath
+            if keypath:
+                return f"{self.name} [{','.join(keypath)}]"
+        return self.name
+
+    @property
     def root(self) -> Optional[Union["Project", "BaseSchema"]]:
         """The root object (e.g., Project) providing context."""
         return self.__root
+
+    @property
+    def schema(self) -> Optional["BaseSchema"]:
+        """The schema object (e.g., Project) providing context."""
+        return self.__schema
 
     @property
     def logger(self) -> logging.Logger:
@@ -295,12 +312,12 @@ class Resolver:
 
         path = self.resolve()
         if not os.path.exists(path):
-            raise FileNotFoundError(f"Unable to locate '{self.name}' at {path}")
+            raise FileNotFoundError(f"Unable to locate '{self.display_name}' at {path}")
 
         if self.changed:
-            self.logger.info(f'Saved {self.name} data to {path}')
+            self.logger.info(f'Saved {self.display_name} data to {path}')
         else:
-            self.logger.info(f'Found {self.name} data at {path}')
+            self.logger.info(f'Found {self.display_name} data at {path}')
 
         Resolver.set_cache(self.__root, self.cache_id, path)
         return str(path)
@@ -333,13 +350,13 @@ class RemoteResolver(Resolver):
     multiple SC instances try to download the same resource simultaneously.
     """
     def __init__(self, name: str,
-                 root: Optional[Union["Project", "BaseSchema"]],
+                 schema: Optional[Union["Project", "BaseSchema"]],
                  source: str,
                  reference: Optional[str] = None):
         if reference is None:
             raise ValueError(f'A reference (e.g., version, commit) is required for {name}')
 
-        super().__init__(name, root, source, reference)
+        super().__init__(name, schema, source, reference)
 
         # Wait a maximum of 10 minutes for other processes to finish
         self.__max_lock_wait: int = 60 * 10
@@ -545,14 +562,91 @@ class RemoteResolver(Resolver):
             except BaseException:
                 # Exception occurred, so need to cleanup
                 try:
+                    # Make writable first, in case cache was partially made read-only
+                    try:
+                        self._make_writable(self.cache_path)
+                    except OSError as e:
+                        self.logger.warning(f"Could not make cache writable before cleanup: {e}")
                     shutil.rmtree(self.cache_path)
                 except BaseException as cleane:
                     self.logger.error(f"Exception occurred during cleanup: {cleane} "
                                       f"({cleane.__class__.__name__})")
                 raise
 
+            # Make all cached files read-only to prevent accidental modifications
+            try:
+                self._make_readonly(self.cache_path)
+            except OSError as e:
+                self.logger.warning(f"Could not make cache read-only: {e}")
+
             self.set_changed()
             return self.cache_path
+
+    def _make_readonly(self, path: Union[str, Path]) -> None:
+        """
+        Recursively makes all files and directories in the given path read-only.
+
+        This prevents accidental modification of cached remote data by removing write
+        permissions while preserving executable bits and read access. Note: git does
+        not track full file permissions (only the executable bit), so this operation
+        will not create a dirty warning in git repositories.
+
+        Any directory named ``.git`` is skipped so git's internal state (including
+        ``.git/lfs/tmp`` and per-submodule ``.git/modules/<name>``) stays writable —
+        otherwise routine git operations like diff/status fail on LFS-tracked repos
+        because the clean filter cannot buffer through ``.git/lfs/tmp``.
+
+        Args:
+            path: The path to make read-only (file or directory).
+        """
+        path = Path(path)
+        # Skip symlinks to avoid following them outside the cache
+        if path.is_symlink():
+            return
+        # Preserve writability of git's internal state directories
+        if path.is_dir() and path.name == ".git":
+            return
+        if path.is_file():
+            # Remove write permissions, preserve everything else (especially execute bit)
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+            os.chmod(path, new_mode)
+        elif path.is_dir():
+            # Process all contents recursively
+            for item in path.iterdir():
+                self._make_readonly(item)
+            # Remove write permissions from the directory itself
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+            os.chmod(path, new_mode)
+
+    def _make_writable(self, path: Union[str, Path]) -> None:
+        """
+        Recursively makes all files and directories in the given path writable.
+
+        This is used before deletion to ensure that read-only cached files can be
+        properly removed when necessary (e.g., for corrupted cache cleanup).
+
+        Args:
+            path: The path to make writable (file or directory).
+        """
+        path = Path(path)
+        # Skip symlinks to avoid following them outside the cache
+        if path.is_symlink():
+            return
+        if path.is_file():
+            # Add owner write permission, preserve everything else
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode | stat.S_IWUSR
+            os.chmod(path, new_mode)
+        elif path.is_dir():
+            # Process all contents recursively
+            for item in path.iterdir():
+                self._make_writable(item)
+            # Add owner write permission to the directory itself
+            current_mode = os.stat(path).st_mode
+            new_mode = current_mode | stat.S_IWUSR
+            os.chmod(path, new_mode)
 
     def _get_auth_token(self, prefix: List[str]) -> str:
         """
@@ -596,13 +690,13 @@ class FileResolver(Resolver):
     It normalizes the source string to a `file://` URI.
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         if source.startswith("file://"):
             source = source[7:]
         if source[0] != "$" and not os.path.isabs(source):
-            source = os.path.join(cwdirsafe(root), source)
+            source = os.path.join(cwdirsafe(schema._parent(root=True)), source)
 
-        super().__init__(name, root, f"file://{source}", None)
+        super().__init__(name, schema, f"file://{source}", None)
 
     @property
     def urlpath(self) -> str:
@@ -627,8 +721,8 @@ class PythonPathResolver(Resolver):
     determine if a package is installed in "editable" mode.
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
-        super().__init__(name, root, source, None)
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
+        super().__init__(name, schema, source, None)
 
     @staticmethod
     @functools.lru_cache(maxsize=1)
@@ -744,8 +838,8 @@ class KeyPathResolver(Resolver):
     `find_files` method of the root project object to locate the corresponding file.
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
-        super().__init__(name, root, source, None)
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
+        super().__init__(name, schema, source, None)
 
     def resolve(self) -> str:
         """
@@ -758,7 +852,7 @@ class KeyPathResolver(Resolver):
             RuntimeError: If the resolver does not have a root project object defined.
         """
         if not self.root:
-            raise RuntimeError(f"A root schema has not been defined for '{self.name}'")
+            raise RuntimeError(f"A root schema has not been defined for '{self.display_name}'")
 
         key = self.urlpath.split(",")
         if self.root.get(*key, field='pernode').is_never():
@@ -771,3 +865,71 @@ class KeyPathResolver(Resolver):
         if isinstance(paths, list):
             return paths[0]
         return paths
+
+
+class DatarootResolver(Resolver):
+    """
+    A resolver for finding file paths stored with other dataroots.
+    """
+
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
+        super().__init__(name, schema, source, None)
+        # Track visited dataroots passed from parent resolver for cycle detection
+        self._parent_visited: Optional[set] = None
+
+    def resolve(self) -> str:
+        """
+        Resolves a dataroot by looking up its configured path and resolving it.
+
+        This resolver looks up a dataroot by name in the dataroot registry, retrieves
+        its configured path (which may be a file://, python://, or another dataroot://),
+        and resolves that path using the appropriate resolver. This allows dataroots
+        to reference other dataroots, forming resolution chains.
+
+        Returns:
+            str: The resolved absolute path for the dataroot.
+
+        Raises:
+            RuntimeError: If the resolver does not have a root project object defined,
+                if the dataroot is not defined in the registry, or if a circular
+                dataroot reference is detected during resolution.
+        """
+        source_schema = self.schema
+        if not source_schema:
+            raise RuntimeError(f"A schema context is required for '{self.display_name}'")
+
+        datarootstore = self.schema._parent()
+        if not datarootstore:
+            raise RuntimeError(f"A root schema has not been defined for '{self.display_name}'")
+
+        find_root = self.urlpath
+        if not datarootstore.valid('dataroot', self.urlpath):
+            raise RuntimeError(
+                f"Dataroot '{self.urlpath}' is not defined for '{self.display_name}'")
+
+        # Use visited set from parent, or start new one if this is top-level
+        visited = self._parent_visited if self._parent_visited is not None else set()
+
+        # Check for circular dataroot references
+        if find_root in visited:
+            raise RuntimeError(
+                f"Circular dataroot reference detected: '{find_root}' is part of a reference cycle")
+
+        # Mark this dataroot as visited
+        visited_copy = visited.copy()
+        visited_copy.add(find_root)
+
+        path: str = datarootstore.get("dataroot", find_root, "path")
+        tag: Optional[str] = datarootstore.get("dataroot", find_root, "tag")
+
+        resolver = Resolver.find_resolver(path)
+        resolver_instance = resolver(self.name, self.schema, path, tag)
+
+        # If the next resolver is also a DatarootResolver, pass the visited set to it
+        if isinstance(resolver_instance, DatarootResolver):
+            resolver_instance._parent_visited = visited_copy
+
+        base_path = resolver_instance.get_path()
+        # Strip leading '/' from urlparse.path to avoid os.path.join treating it as absolute
+        subpath = self.urlparse.path.lstrip('/')
+        return os.path.join(base_path, subpath) if subpath else base_path

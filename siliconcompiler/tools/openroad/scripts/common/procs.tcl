@@ -292,6 +292,29 @@ proc sc_design_has_placeable_ios { } {
     return false
 }
 
+proc sc_design_report_unplaced_pins { } {
+    set unfixed_ios 0
+    foreach bterm [[ord::get_db_block] getBTerms] {
+        if {
+            [$bterm getFirstPinPlacementStatus] != "FIRM" &&
+            [$bterm getFirstPinPlacementStatus] != "LOCKED"
+        } {
+            incr unfixed_ios
+            utl::warn FLW 2 "IO terminal [$bterm getName] has not been placed."
+        }
+    }
+    if { $unfixed_ios > 0 } {
+        utl::warn FLW 3 "Total unplaced IOs: $unfixed_ios"
+    }
+    return $unfixed_ios
+}
+
+proc sc_design_assert_ios_fixed { } {
+    if { [sc_design_report_unplaced_pins] > 0 } {
+        utl::error FLW 1 "Design has unfixed IOs. Please fix all IOs before proceeding."
+    }
+}
+
 ###########################
 # Check if net has placed bpins
 ###########################
@@ -911,4 +934,20 @@ proc sc_is_scene_enabled { scene check } {
     } else {
         return false
     }
+}
+
+proc sc_is_inside_die { x y } {
+    set x [ord::microns_to_dbu $x]
+    set y [ord::microns_to_dbu $y]
+
+    set die_area [[ord::get_db_block] getDieArea]
+    if {
+        $x < [$die_area xMin] ||
+        $x > [$die_area xMax] ||
+        $y < [$die_area yMin] ||
+        $y > [$die_area yMax]
+    } {
+        return false
+    }
+    return true
 }

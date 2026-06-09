@@ -63,10 +63,57 @@ def test_sc_issue_generate_success(flags,
 
 
 @pytest.mark.timeout(90)
-def test_sc_issue_fail_on_no_cfg(monkeypatch, project):
+def test_sc_issue_generate_positional_with_args(monkeypatch, project):
+    '''Test sc-issue app with positional argument and additional flags.'''
     monkeypatch.setattr('sys.argv', ['sc-issue',
-                                     'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json'])
-    assert sc_issue.main() == 1
+                                     'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json',
+                                     '-arg_step', 'stepone', '-arg_index', '0'])
+    with patch("siliconcompiler.utils.issue.datetime") as time:
+        time.fromtimestamp = datetime.fromtimestamp
+        time.now.return_value = datetime(2020, 3, 11, 14, 12, 13, tzinfo=timezone.utc)
+        assert sc_issue.main() == 0
+        time.now.assert_called()
+
+    assert os.path.isfile('sc_issue_heartbeat_job0_stepone_0_20200311-141213.tar.gz')
+
+
+@pytest.mark.timeout(90)
+@pytest.mark.parametrize('positional_path,flags,args', [
+    ('build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json',
+     [],
+     ("stepone", "0", None,
+      {"include_libraries": True, "include_specific_libraries": [], "hash_files": False})),
+    ('build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json',
+     ['-arg_step', 'stepone', '-arg_index', '0'],
+     ("stepone", "0", None,
+      {"include_libraries": True, "include_specific_libraries": [], "hash_files": False})),
+    ('build/heartbeat/job0/heartbeat.pkg.json',
+     ['-arg_step', 'steptwo', '-arg_index', '0', '-hash_files'],
+     ("steptwo", "0", None,
+      {"include_libraries": True, "include_specific_libraries": [], "hash_files": True})),
+    ('build/heartbeat/job0/heartbeat.pkg.json',
+     ['-arg_step', 'steptwo', '-arg_index', '0', '-exclude_libraries'],
+     ("steptwo", "0", None,
+      {"include_libraries": False, "include_specific_libraries": [], "hash_files": False})),
+    ('build/heartbeat/job0/heartbeat.pkg.json',
+     ['-arg_step', 'steptwo', '-arg_index', '0', '-exclude_libraries',
+      '-add_library', 'test0', '-add_library', 'test1'],
+     ("steptwo", "0", None,
+      {"include_libraries": False, "include_specific_libraries": ["test0", "test1"],
+       "hash_files": False}))
+])
+def test_sc_issue_generate_positional_call(positional_path,
+                                           flags,
+                                           args,
+                                           monkeypatch,
+                                           project):
+    '''Test sc-issue app with positional arguments and various flag combinations.'''
+
+    monkeypatch.setattr('sys.argv', ['sc-issue', positional_path] + flags)
+    with patch("siliconcompiler.apps.sc_issue.generate_testcase") as generate_testcase:
+        assert sc_issue.main() == 0
+        arg_step, arg_index, outfile, kwargs = args
+        generate_testcase.assert_called_once_with(ANY, arg_step, arg_index, outfile, **kwargs)
 
 
 @pytest.mark.timeout(90)
@@ -154,12 +201,46 @@ def test_sc_issue_run(monkeypatch, project):
 
 
 @pytest.mark.timeout(90)
-def test_sc_issue_run_without_file(monkeypatch, project):
-    '''Test sc-issue app fails when -run is used without -file.'''
+def test_sc_issue_run_positional(monkeypatch, project):
+    '''Test sc-issue app run with positional argument instead of -file flag.'''
+
+    # First generate a testcase with the -cfg flag to have a file to run
+    monkeypatch.setattr('sys.argv', ['sc-issue',
+                                     '-cfg',
+                                     'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json',
+                                     '-file',
+                                     'sc_issue_positional.tar.gz'])
+    assert sc_issue.main() == 0
+    assert os.path.isfile("sc_issue_positional.tar.gz")
+
+    # Now run the testcase using positional argument (before the -run flag)
+    monkeypatch.setattr('sys.argv', ['sc-issue', 'sc_issue_positional.tar.gz', '-run'])
+    assert sc_issue.main() == 0
+
+
+@pytest.mark.timeout(90)
+def test_sc_issue_run_without_file_error(monkeypatch, project):
+    '''Test sc-issue app fails when -run is used without -file or positional argument.'''
 
     monkeypatch.setattr('sys.argv', ['sc-issue', '-run'])
-    with pytest.raises(ValueError, match=r'-file must be provided'):
+    with pytest.raises(ValueError,
+                       match=r'-file must be provided|pass testcase file as positional argument'):
         sc_issue.main()
+
+
+@pytest.mark.timeout(90)
+def test_sc_issue_generate_positional_with_file(monkeypatch, project):
+    '''Test sc-issue app with positional argument and output file flag.'''
+    monkeypatch.setattr('sys.argv', ['sc-issue',
+                                     'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json',
+                                     '-file', 'custom_output.tar.gz'])
+    with patch("siliconcompiler.utils.issue.datetime") as time:
+        time.fromtimestamp = datetime.fromtimestamp
+        time.now.return_value = datetime(2020, 3, 11, 14, 12, 13, tzinfo=timezone.utc)
+        assert sc_issue.main() == 0
+        time.now.assert_called()
+
+    assert os.path.isfile('custom_output.tar.gz')
 
 
 @pytest.mark.timeout(90)

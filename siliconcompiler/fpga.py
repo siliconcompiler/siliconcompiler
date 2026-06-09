@@ -275,3 +275,17 @@ class FPGA(Project):
         headers = super()._summary_headers()
         headers.append(("fpga", self.get("fpga", "device")))
         return headers
+
+    def _get_write_depgraph_extra(self):
+        extra_graph = {}
+        extra_styles = {}
+
+        extra_graph[self.name] = set()
+
+        device = self.get("fpga", "device")
+        if device:
+            extra_graph[self.name].add(device)
+            extra_graph[device] = set()
+            extra_styles[device] = {'shape': 'Mdiamond', "color": "lightblue"}
+
+        return extra_graph, extra_styles

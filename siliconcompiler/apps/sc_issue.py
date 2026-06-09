@@ -20,15 +20,21 @@ Restricted SC app that generates a sharable testcase from a
 failed flow or runs an issue generated with this program.
 
 To generate a testcase, use:
+    sc-issue <design>.pkg.json
+
+    or with explicit flag:
     sc-issue -cfg <stepdir>/outputs/<design>.pkg.json
 
     or include a different step/index than what the cfg_file is pointing to:
-    sc-issue -cfg <otherdir>/outputs/<design>.pkg.json -arg_step <step> -arg_index <index>
+    sc-issue <design>.pkg.json -arg_step <step> -arg_index <index>
 
     or include specific libraries while excluding others:
-    sc-issue -cfg <stepdir>/outputs/<design>.pkg.json -exclude_libraries -add_library sram -add_library gpio
+    sc-issue <design>.pkg.json -exclude_libraries -add_library sram -add_library gpio
 
 To run a testcase, use:
+    sc-issue -run sc_issue_<...>.tar.gz
+
+    or with explicit flag:
     sc-issue -run -file sc_issue_<...>.tar.gz
 -----------------------------------------------------------
 """  # noqa E501
@@ -67,20 +73,33 @@ To run a testcase, use:
     issue = IssueProject.create_cmdline(
         progname,
         description=description,
-        switchlist=switchlist)
+        switchlist=switchlist,
+        use_sources=True)
 
     if not issue.get("cmdarg", "run"):
-        if not issue.get("cmdarg", "cfg"):
-            issue.logger.error('-cfg must be provided')
-            return 1
+        # Generate mode
+        cfg_path = issue.get("cmdarg", "cfg")
 
-        project: Project = Project.from_manifest(filepath=issue.get("cmdarg", "cfg"))
+        # If no -cfg provided, check for positional argument
+        if not cfg_path:
+            input_files = issue.get("cmdarg", "input")
+            if input_files and len(input_files) > 0:
+                cfg_path = input_files[0]
+
+        if not cfg_path:
+            issue.logger.error('-cfg must be provided or pass manifest as positional argument')
+            return 1
+        try:
+            project: Project = Project.from_manifest(filepath=cfg_path)
+        except FileNotFoundError:
+            issue.logger.error(f'Configuration manifest not found: {cfg_path}')
+            return 1
 
         # Determine abs path for build dir
         builddir = project.option.get_builddir()
         if isinstance(builddir, str) and not os.path.isabs(builddir):
             builddirname = os.path.basename(builddir)
-            fullpath = os.path.dirname(os.path.abspath(issue.get("cmdarg", "cfg")))
+            fullpath = os.path.dirname(os.path.abspath(cfg_path))
             while True:
                 if os.path.basename(fullpath) == builddirname:
                     project.option.set_builddir(fullpath)
@@ -116,15 +135,28 @@ To run a testcase, use:
 
         return 0
     else:
+        # Run mode
         file: Optional[str] = issue.get("cmdarg", "file")
+
+        # If no -file provided, check for positional argument
         if not file:
-            raise ValueError('-file must be provided')
+            input_files = issue.get("cmdarg", "input")
+            if input_files and len(input_files) > 0:
+                file = input_files[0]
+
+        if not file:
+            raise ValueError('-file must be provided or pass testcase file as positional argument')
 
         test_dir = os.path.basename(file)[0:-7]
         with tarfile.open(file, 'r:gz') as f:
             f.extractall(path='.')
 
-        project = Project.from_manifest(filepath=f'{test_dir}/orig_manifest.json')
+        manifest_path = f'{test_dir}/orig_manifest.json'
+        try:
+            project = Project.from_manifest(filepath=manifest_path)
+        except FileNotFoundError:
+            issue.logger.error(f'Original manifest not found in testcase: {manifest_path}')
+            return 1
 
         with open(f'{test_dir}/issue.json', 'r') as f:
             issue_info = json.load(f)

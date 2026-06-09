@@ -48,15 +48,21 @@ class HeartbeatDesign(Design):
                 self.set_param("N", "8")  # Default parameter value
 
             # Testbench for Icarus Verilog
-            with self.active_fileset("testbench.icarus"):
+            with self.active_fileset("testbench.icarus.v"):
                 self.set_topmodule("heartbeat_tb")
                 self.add_file("testbench.v")
                 self.set_param("N", "8")
 
             # C++ Testbench for Verilator
-            with self.active_fileset("testbench.verilator"):
+            with self.active_fileset("testbench.verilator.cc"):
                 self.set_topmodule("heartbeat")
                 self.add_file("testbench.cc")
+                self.set_param("N", "8")
+
+            # Verilog Testbench for Verilator
+            with self.active_fileset("testbench.verilator.v"):
+                self.set_topmodule("heartbeat_tb")
+                self.add_file("testbench.v")
                 self.set_param("N", "8")
 
             # ASIC timing constraints for the FreePDK45 technology.
@@ -181,7 +187,7 @@ def asic(pdk: str = "freepdk45", N: str = None):
     project.snapshot()
 
 
-def sim(N: str = None, tool: str = "verilator"):
+def sim(N: str = None, tool: str = "verilator", tb_type: str = "v"):
     """Runs a simulation of the Heartbeat design.
 
     After the simulation completes, it attempts to open the generated
@@ -192,6 +198,8 @@ def sim(N: str = None, tool: str = "verilator"):
             Defaults to None, which uses the value set in the design schema.
         tool (str, optional): The simulation tool to use ('verilator' or
             'icarus'). Defaults to "verilator".
+        tb_type (str, optional): The file extension of the testbench ('cc' or
+            'v'). Defaults to "v".
     """
     # Create a project instance tailored for simulation.
     project = Sim()
@@ -201,25 +209,27 @@ def sim(N: str = None, tool: str = "verilator"):
     project.set_design(hb)
 
     # Add the tool-specific testbench and the RTL design files.
-    project.add_fileset(f"testbench.{tool}")
+    project.add_fileset(f"testbench.{tool}.{tb_type}")
     project.add_fileset("rtl")
     # Set the appropriate design verification flow.
     project.set_flow(DVFlow(tool=tool))
 
     # Optionally override the 'N' parameter for the testbench.
     if N is not None:
-        hb.set_param("N", N, fileset=f"testbench.{tool}")
+        hb.set_param("N", N, fileset=f"testbench.{tool}.{tb_type}")
 
     if tool == "verilator":
         # Add trace to verilator
         CompileTask.find_task(project).set_verilator_trace(True)
+        if tb_type == "v":
+            CompileTask.find_task(project).set_verilator_main(True)
 
     # Run the simulation.
     project.run()
     project.summary()
 
     vcd = None
-    if tool == "icarus":
+    if tool == "icarus" or (tool == "verilator" and tb_type != "cc"):
         # Find the VCD (Value Change Dump) waveform file from the results.
         vcd = project.find_result(step='simulate', index='0',
                                   directory="reports",

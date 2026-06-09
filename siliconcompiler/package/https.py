@@ -121,12 +121,12 @@ class HTTPResolver(RemoteResolver):
             if auth_token:
                 headers['Authorization'] = f'token {auth_token}'
 
-        self.logger.info(f'Downloading {self.name} data from {data_url}')
+        self.logger.info(f'Downloading {self.display_name} data from {data_url}')
 
         response = requests.get(data_url, stream=True, headers=headers)
         if not response.ok:
-            raise FileNotFoundError(f'Failed to download {self.name} data source from {data_url}. '
-                                    f'Status code: {response.status_code}')
+            raise FileNotFoundError(f'Failed to download {self.display_name} data source from '
+                                    f'{data_url}. Status code: {response.status_code}')
 
         os.makedirs(self.cache_path, exist_ok=True)
 

@@ -6,6 +6,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import ASIC, Design, Flowgraph
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.asic import ASICTask, ASICConstraint
 from siliconcompiler.library import ToolLibrarySchema
 
@@ -22,7 +23,7 @@ from siliconcompiler.scheduler import SchedulerNode
 
 
 @pytest.fixture
-def running_project():
+def running_project(project_logger):
     class TestProject(ASIC):
         def __init__(self):
             super().__init__()
@@ -33,8 +34,7 @@ def running_project():
             self.set_design(design)
             self.add_fileset("rtl")
 
-            self._Project__logger = logging.getLogger()
-            self.logger.setLevel(logging.INFO)
+            project_logger(self)
 
             flow = Flowgraph("testflow")
             flow.node("running", NOPTask())
@@ -244,9 +244,9 @@ def test_add_dep_unnamed_library():
         proj.add_dep(unnamed_lib)
 
 
-def test_check_manifest_empty(monkeypatch, caplog):
+def test_check_manifest_empty(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     with patch("siliconcompiler.Project.check_manifest") as check_manifest:
@@ -259,9 +259,9 @@ def test_check_manifest_empty(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_missing_pdk(monkeypatch, caplog):
+def test_check_manifest_missing_pdk(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set("asic", "pdk", "thispdk")
@@ -276,9 +276,9 @@ def test_check_manifest_missing_pdk(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_incorrect_type_pdk(monkeypatch, caplog):
+def test_check_manifest_incorrect_type_pdk(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.add_dep(StdCellLibrary("thislib"))
@@ -294,9 +294,9 @@ def test_check_manifest_incorrect_type_pdk(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_main_libmissing(monkeypatch, caplog):
+def test_check_manifest_main_libmissing(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -312,9 +312,9 @@ def test_check_manifest_main_libmissing(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_asiclib_missing(monkeypatch, caplog):
+def test_check_manifest_asiclib_missing(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -329,9 +329,9 @@ def test_check_manifest_asiclib_missing(monkeypatch, caplog):
     assert "[asic,delaymodel] has not been set" in caplog.text
 
 
-def test_check_manifest_pass(monkeypatch, caplog):
+def test_check_manifest_pass(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -346,9 +346,9 @@ def test_check_manifest_pass(monkeypatch, caplog):
     assert caplog.text == ""
 
 
-def test_check_manifest_pass_missing_mainlib(monkeypatch, caplog):
+def test_check_manifest_pass_missing_mainlib(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -362,9 +362,9 @@ def test_check_manifest_pass_missing_mainlib(monkeypatch, caplog):
     assert "[asic,mainlib] has not been set, this will be inferred" in caplog.text
 
 
-def test_init_run_set_mainlib(monkeypatch, caplog):
+def test_init_run_set_mainlib(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_pdk(PDK("thispdk"))
@@ -379,9 +379,9 @@ def test_init_run_set_mainlib(monkeypatch, caplog):
     assert "Setting main library to: thislib" in caplog.text
 
 
-def test_init_run_set_pdk_asiclib(monkeypatch, caplog):
+def test_init_run_set_pdk_asiclib(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     lib = StdCellLibrary("thislib")
@@ -401,9 +401,9 @@ def test_init_run_set_pdk_asiclib(monkeypatch, caplog):
     assert "Adding thislib to [asic,asiclib]" in caplog.text
 
 
-def test_init_run_handling_missing_lib(monkeypatch, caplog):
+def test_init_run_handling_missing_lib(project_logger, caplog):
     proj = ASIC()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     proj.set_mainlib("thislib")
@@ -953,3 +953,149 @@ def test_constraint_area():
     const = ASICConstraint()
     assert isinstance(const.area, ASICAreaConstraint)
     assert const.get("area", field="schema") is const.area
+
+
+# ── _get_write_depgraph_extra / write_depgraph tests ─────────────────────────
+
+
+def test_get_write_depgraph_extra_empty():
+    proj = ASIC(Design("test"))
+    graph, styles = proj._get_write_depgraph_extra()
+    assert graph["test"] == set()
+    assert styles == {}
+
+
+def test_get_write_depgraph_extra_with_pdk():
+    pdk = PDK("mypdk")
+    proj = ASIC(Design("test"))
+    proj.set_pdk(pdk)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    assert "mypdk" in graph["test"]
+    assert graph["mypdk"] == set()
+    assert styles["mypdk"]["shape"] == "Mdiamond"
+    assert styles["mypdk"]["color"] == "orange2"
+
+
+def test_get_write_depgraph_extra_pdk_no_outgoing_edges():
+    pdk = PDK("mypdk")
+    proj = ASIC(Design("test"))
+    proj.set_pdk(pdk)
+
+    graph, _ = proj._get_write_depgraph_extra()
+    assert graph["mypdk"] == set()
+
+
+def test_get_write_depgraph_extra_with_mainlib():
+    lib = StdCellLibrary("mylib")
+    proj = ASIC(Design("test"))
+    proj.set_mainlib(lib)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    assert "mylib" in graph["test"]
+    assert graph["mylib"] == set()
+    assert styles["mylib"]["shape"] == "diamond"
+    assert styles["mylib"]["color"] == "royalblue1"
+
+
+def test_get_write_depgraph_extra_with_asiclib():
+    lib = StdCellLibrary("extralib")
+    proj = ASIC(Design("test"))
+    proj.add_asiclib(lib)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    assert "extralib" in graph["test"]
+    assert styles["extralib"]["shape"] == "diamond"
+    assert styles["extralib"]["color"] == "royalblue1"
+
+
+def test_get_write_depgraph_extra_mainlib_in_asiclibs_not_duplicated():
+    lib = StdCellLibrary("sharedlib")
+    proj = ASIC(Design("test"))
+    proj.set_mainlib(lib)
+    proj.add_asiclib(lib)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    # Dict key uniqueness ensures no duplicate node; root connects exactly once
+    assert list(graph["test"]).count("sharedlib") == 1
+    assert "sharedlib" in styles
+
+
+def test_get_write_depgraph_extra_lib_deps_added_to_lib_edges():
+    dep_lib = StdCellLibrary("deplib")
+    main_lib = StdCellLibrary("mainlib")
+    main_lib.add_dep(dep_lib)
+
+    proj = ASIC(Design("test"))
+    proj.set_mainlib(main_lib)
+
+    graph, _ = proj._get_write_depgraph_extra()
+    assert "deplib" in graph["mainlib"]
+
+
+def test_get_write_depgraph_extra_pdk_and_mainlib_both_present():
+    pdk = PDK("mypdk")
+    lib = StdCellLibrary("mylib")
+    proj = ASIC(Design("test"))
+    proj.set_pdk(pdk)
+    proj.set_mainlib(lib)
+
+    graph, styles = proj._get_write_depgraph_extra()
+    assert "mypdk" in graph["test"]
+    assert "mylib" in graph["test"]
+    assert "mypdk" in styles
+    assert "mylib" in styles
+
+
+def test_write_depgraph_includes_pdk_node():
+    pdk = PDK("mypdk")
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = ASIC(design)
+    proj.set_pdk(pdk)
+    proj.add_fileset("rtl")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png")
+
+    graph = mock.call_args.args[2]
+    node_styles = mock.call_args.kwargs["node_styles"]
+    assert "mypdk" in graph
+    assert node_styles["mypdk"]["shape"] == "Mdiamond"
+
+
+def test_write_depgraph_includes_mainlib_node():
+    lib = StdCellLibrary("mylib")
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = ASIC(design)
+    proj.set_mainlib(lib)
+    proj.add_fileset("rtl")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png")
+
+    graph = mock.call_args.args[2]
+    node_styles = mock.call_args.kwargs["node_styles"]
+    assert "mylib" in graph
+    assert node_styles["mylib"]["shape"] == "diamond"
+
+
+def test_write_depgraph_no_pdk_no_libs_only_fileset_nodes():
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png")
+
+    node_styles = mock.call_args.kwargs["node_styles"]
+    for style in node_styles.values():
+        assert style.get("shape") not in ("Mdiamond", "diamond")

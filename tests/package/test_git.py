@@ -74,9 +74,9 @@ def test_git_path_default():
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Appears to cause issues on windows machines")
-def test_dirty_warning(monkeypatch, caplog, tmp_path):
+def test_dirty_warning(project_logger, caplog, tmp_path):
     proj = Project("testproj")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert Path(tmp_path).exists()
@@ -85,6 +85,9 @@ def test_dirty_warning(monkeypatch, caplog, tmp_path):
     resolver.resolve()
 
     assert Path(resolver.cache_path).exists()
+
+    # Make cache writable to simulate a dirty repository (it's now read-only by default)
+    resolver._make_writable(resolver.cache_path)
 
     file = Path(resolver.cache_path).joinpath('file.txt')
     file.touch()
@@ -271,11 +274,38 @@ def test_git_resolver_resolve_remote_with_submodules(monkeypatch):
     mock_repo.submodules = [mock_submodule]
 
     import siliconcompiler.package.git as git_module
-    with patch.object(git_module, "Repo") as mock_repo_class:
+    with patch.object(git_module, "Repo") as mock_repo_class, \
+         patch.object(GitResolver, "_repo_uses_submodules", return_value=True):
         mock_repo_class.clone_from.return_value = mock_repo
         resolver.resolve_remote()
 
         mock_submodule.update.assert_called_once()
+
+
+def test_git_resolver_resolve_remote_skips_submodules_when_absent(monkeypatch):
+    """Test resolve_remote skips submodule update when .gitmodules is missing."""
+    resolver = GitResolver("test", Project("testproj"), "git://github.com/owner/repo.git", "main")
+
+    mock_submodule = MagicMock()
+    mock_repo = MagicMock()
+    mock_repo.submodules = [mock_submodule]
+
+    import siliconcompiler.package.git as git_module
+    with patch.object(git_module, "Repo") as mock_repo_class, \
+         patch.object(GitResolver, "_repo_uses_submodules", return_value=False):
+        mock_repo_class.clone_from.return_value = mock_repo
+        resolver.resolve_remote()
+
+        mock_submodule.update.assert_not_called()
+
+
+def test_git_resolver_repo_uses_submodules_no_file(tmp_path):
+    assert GitResolver._repo_uses_submodules(str(tmp_path)) is False
+
+
+def test_git_resolver_repo_uses_submodules_present(tmp_path):
+    (tmp_path / ".gitmodules").write_text("[submodule \"x\"]\n  path = x\n  url = ./x\n")
+    assert GitResolver._repo_uses_submodules(str(tmp_path)) is True
 
 
 def test_git_resolver_resolve_remote_ssh_auth_error(monkeypatch):
@@ -325,3 +355,214 @@ def test_git_resolver_resolve_remote_other_error(monkeypatch):
         mock_repo_class.clone_from = raise_other_error
         with pytest.raises(Exception):  # Will raise GitCommandError
             resolver.resolve_remote()
+
+
+def test_git_resolver_include_submodule_default():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git", "main")
+    assert resolver.include_submodules is True
+    assert resolver.git_path == "https://github.com/owner/repo.git"
+
+
+def test_git_resolver_include_submodule_default_with_qs():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git?somethingelse=False",
+                           "main")
+    assert resolver.include_submodules is True
+    assert resolver.git_path == "https://github.com/owner/repo.git"
+
+
+def test_git_resolver_include_submodule_invalid():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git?submodules=k", "main")
+    with pytest.raises(ValueError, match=r"^k is not a valid option for submodules$"):
+        resolver.include_submodules
+
+
+@pytest.mark.parametrize("scheme,expect", (("ssh", "ssh"), ("git+ssh", "ssh"),
+                                           ("git", "https"), ("git+https", "https")))
+@pytest.mark.parametrize("value", ("False", "FALSE", "false", "f", "F", "0"))
+def test_git_resolver_include_submodule_false(scheme, expect, value):
+    resolver = GitResolver("test", None, f"{scheme}://github.com/owner/repo.git?submodules={value}",
+                           "main")
+    assert resolver.include_submodules is False
+    assert resolver.git_path == f"{expect}://github.com/owner/repo.git"
+
+
+@pytest.mark.parametrize("value", ("True", "TRUE", "true", "t", "T", "1"))
+def test_git_resolver_include_submodule_true(value):
+    resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?submodules={value}",
+                           "main")
+    assert resolver.include_submodules is True
+    assert resolver.git_path == "https://github.com/owner/repo.git"
+
+
+# ============================================================================
+# Git LFS Tests
+# ============================================================================
+
+
+def test_git_resolver_include_lfs_default():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git", "main")
+    assert resolver.include_lfs is True
+
+
+def test_git_resolver_include_lfs_default_with_qs():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git?somethingelse=False",
+                           "main")
+    assert resolver.include_lfs is True
+
+
+def test_git_resolver_include_lfs_invalid():
+    resolver = GitResolver("test", None, "git://github.com/owner/repo.git?lfs=k", "main")
+    with pytest.raises(ValueError, match=r"^k is not a valid option for lfs$"):
+        resolver.include_lfs
+
+
+@pytest.mark.parametrize("scheme,expect", (("ssh", "ssh"), ("git+ssh", "ssh"),
+                                           ("git", "https"), ("git+https", "https")))
+@pytest.mark.parametrize("value", ("False", "FALSE", "false", "f", "F", "0"))
+def test_git_resolver_include_lfs_false(scheme, expect, value):
+    resolver = GitResolver("test", None, f"{scheme}://github.com/owner/repo.git?lfs={value}",
+                           "main")
+    assert resolver.include_lfs is False
+    assert resolver.git_path == f"{expect}://github.com/owner/repo.git"
+
+
+@pytest.mark.parametrize("value", ("True", "TRUE", "true", "t", "T", "1"))
+def test_git_resolver_include_lfs_true(value):
+    resolver = GitResolver("test", None, f"git://github.com/owner/repo.git?lfs={value}",
+                           "main")
+    assert resolver.include_lfs is True
+    assert resolver.git_path == "https://github.com/owner/repo.git"
+
+
+def test_git_resolver_repo_uses_lfs_no_attributes(tmp_path):
+    assert GitResolver._repo_uses_lfs(str(tmp_path)) is False
+
+
+def test_git_resolver_repo_uses_lfs_no_filter(tmp_path):
+    (tmp_path / ".gitattributes").write_text("*.txt text\n")
+    assert GitResolver._repo_uses_lfs(str(tmp_path)) is False
+
+
+def test_git_resolver_repo_uses_lfs_detects_filter(tmp_path):
+    (tmp_path / ".gitattributes").write_text(
+        "*.bin filter=lfs diff=lfs merge=lfs -text\n")
+    assert GitResolver._repo_uses_lfs(str(tmp_path)) is True
+
+
+def test_git_resolver_pull_lfs_skipped_when_not_used(tmp_path):
+    """_pull_lfs is a no-op when the repo has no LFS-tracked files."""
+    resolver = GitResolver("test", Project("testproj"),
+                           "git://github.com/owner/repo.git", "main")
+    mock_repo = MagicMock()
+    mock_repo.working_dir = str(tmp_path)
+    resolver._pull_lfs(mock_repo)
+    mock_repo.git.lfs.assert_not_called()
+
+
+def test_git_resolver_pull_lfs_invokes_when_used(tmp_path):
+    """_pull_lfs calls 'git lfs pull' when .gitattributes has filter=lfs."""
+    (tmp_path / ".gitattributes").write_text("*.bin filter=lfs\n")
+
+    resolver = GitResolver("test", Project("testproj"),
+                           "git://github.com/owner/repo.git", "main")
+    mock_repo = MagicMock()
+    mock_repo.working_dir = str(tmp_path)
+    resolver._pull_lfs(mock_repo)
+    mock_repo.git.lfs.assert_called_once_with("pull")
+
+
+def test_git_resolver_pull_lfs_missing_binary(tmp_path):
+    """_pull_lfs raises RuntimeError if git-lfs is not installed."""
+    (tmp_path / ".gitattributes").write_text("*.bin filter=lfs\n")
+
+    resolver = GitResolver("test", Project("testproj"),
+                           "git://github.com/owner/repo.git", "main")
+
+    from git.exc import GitCommandError
+
+    mock_repo = MagicMock()
+    mock_repo.working_dir = str(tmp_path)
+    mock_repo.git.lfs.side_effect = GitCommandError(
+        "git", "lfs", stderr=b"git: 'lfs' is not a git command. See 'git --help'.")
+
+    with pytest.raises(RuntimeError, match="git-lfs"):
+        resolver._pull_lfs(mock_repo)
+
+
+def test_git_resolver_pull_lfs_passthrough_other_errors(tmp_path):
+    """_pull_lfs re-raises GitCommandError for non-installation failures."""
+    (tmp_path / ".gitattributes").write_text("*.bin filter=lfs\n")
+
+    resolver = GitResolver("test", Project("testproj"),
+                           "git://github.com/owner/repo.git", "main")
+
+    from git.exc import GitCommandError
+
+    mock_repo = MagicMock()
+    mock_repo.working_dir = str(tmp_path)
+    mock_repo.git.lfs.side_effect = GitCommandError(
+        "git", "lfs", stderr=b"network unreachable")
+
+    with pytest.raises(GitCommandError):
+        resolver._pull_lfs(mock_repo)
+
+
+def test_git_resolver_resolve_remote_pulls_lfs(tmp_path):
+    """resolve_remote invokes LFS pull on main repo when applicable."""
+    proj = Project("testproj")
+    proj.set("option", "cachedir", tmp_path)
+
+    resolver = GitResolver("test", proj, "git://github.com/owner/repo.git", "main")
+
+    mock_repo = MagicMock()
+    mock_repo.submodules = []
+
+    import siliconcompiler.package.git as git_module
+    with patch.object(git_module, "Repo") as mock_repo_class, \
+         patch.object(GitResolver, "_repo_uses_lfs", return_value=True):
+        mock_repo_class.clone_from.return_value = mock_repo
+        resolver.resolve_remote()
+        mock_repo.git.lfs.assert_called_once_with("pull")
+
+
+def test_git_resolver_resolve_remote_lfs_disabled(tmp_path):
+    """resolve_remote skips LFS pull when ?lfs=false is in URL."""
+    proj = Project("testproj")
+    proj.set("option", "cachedir", tmp_path)
+
+    resolver = GitResolver("test", proj,
+                           "git://github.com/owner/repo.git?lfs=false", "main")
+
+    mock_repo = MagicMock()
+    mock_repo.submodules = []
+
+    import siliconcompiler.package.git as git_module
+    with patch.object(git_module, "Repo") as mock_repo_class, \
+         patch.object(GitResolver, "_repo_uses_lfs", return_value=True):
+        mock_repo_class.clone_from.return_value = mock_repo
+        resolver.resolve_remote()
+        mock_repo.git.lfs.assert_not_called()
+
+
+def test_git_resolver_resolve_remote_pulls_lfs_in_submodules(tmp_path):
+    """resolve_remote invokes LFS pull on submodules when both flags are on."""
+    proj = Project("testproj")
+    proj.set("option", "cachedir", tmp_path)
+
+    resolver = GitResolver("test", proj, "git://github.com/owner/repo.git", "main")
+
+    mock_submodule_repo = MagicMock()
+    mock_submodule = MagicMock()
+    mock_submodule.module.return_value = mock_submodule_repo
+
+    mock_repo = MagicMock()
+    mock_repo.submodules = [mock_submodule]
+
+    import siliconcompiler.package.git as git_module
+    with patch.object(git_module, "Repo") as mock_repo_class, \
+         patch.object(GitResolver, "_repo_uses_lfs", return_value=True), \
+         patch.object(GitResolver, "_repo_uses_submodules", return_value=True):
+        mock_repo_class.clone_from.return_value = mock_repo
+        resolver.resolve_remote()
+        mock_repo.git.lfs.assert_called_once_with("pull")
+        mock_submodule_repo.git.lfs.assert_called_once_with("pull")

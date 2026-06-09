@@ -179,7 +179,7 @@ def test_record_version(monkeypatch):
     def python_version():
         return "3.10.0"
     monkeypatch.setattr(platform, "python_version", python_version)
-    monkeypatch.setattr(_metadata, "version", "thisversion")
+    monkeypatch.setattr(_metadata, "detailed_version", "thisversion")
 
     schema = RecordSchema()
     schema.record_version("thisstep", "thisindex")

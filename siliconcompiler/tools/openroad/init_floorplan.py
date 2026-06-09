@@ -25,9 +25,16 @@ class InitFloorplanTask(APRTask,
                            "remove buffers inserted by synthesis", defvalue=True)
         self.add_parameter("remove_dead_logic", "bool",
                            "remove logic which does not drive a primary output", defvalue=True)
+        self.add_parameter("assert_all_pins_placed", "bool",
+                           "assert that all pins are placed", defvalue=False)
 
         self.add_parameter("padringfileset", "[str]", "filesets to generate a padring")
         self.add_parameter("bumpmapfileset", "[str]", "filesets to generate a bumpmap")
+
+        self.add_parameter("placementblockage", "[((float,float),(float,float))]",
+                           "Placement blockage coordinates", units="um")
+        self.add_parameter("routingblockage", "[(str,(float,float),(float,float))]",
+                           "Routing blockage coordinates", units="um")
 
         tools_root = os.path.dirname(os.path.dirname(__file__))
         self.set_dataroot("sc-common", os.path.join(tools_root, "_common"))
@@ -37,6 +44,51 @@ class InitFloorplanTask(APRTask,
             "TCL file defining pin constraints for use with OpenROAD.",
             "tcl/sc_pin_constraints.tcl",
             dataroot="sc-common")
+
+    def add_openroad_placementblockage(self, x0: float, y0: float, x1: float, y1: float,
+                                       step: Optional[str] = None, index: Optional[str] = None,
+                                       clobber: bool = False):
+        """
+        Adds a placement blockage defined by the coordinates of its lower-left (x0, y0)
+        and upper-right (x1, y1) corners.
+
+        Args:
+            x0: X-coordinate of the lower-left corner of the blockage.
+            y0: Y-coordinate of the lower-left corner of the blockage.
+            x1: X-coordinate of the upper-right corner of the blockage.
+            y1: Y-coordinate of the upper-right corner of the blockage.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing placement blockage list.
+                     If False, appends to the existing list.
+        """
+        if clobber:
+            self.set("var", "placementblockage", ((x0, y0), (x1, y1)), step=step, index=index)
+        else:
+            self.add("var", "placementblockage", ((x0, y0), (x1, y1)), step=step, index=index)
+
+    def add_openroad_routingblockage(self, layer: str, x0: float, y0: float, x1: float, y1: float,
+                                     step: Optional[str] = None, index: Optional[str] = None,
+                                     clobber: bool = False):
+        """
+        Adds a routing blockage defined by the coordinates of its lower-left (x0, y0)
+        and upper-right (x1, y1) corners.
+
+        Args:
+            layer: The routing layer to which this blockage applies.
+            x0: X-coordinate of the lower-left corner of the blockage.
+            y0: Y-coordinate of the lower-left corner of the blockage.
+            x1: X-coordinate of the upper-right corner of the blockage.
+            y1: Y-coordinate of the upper-right corner of the blockage.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing routing blockage list.
+                     If False, appends to the existing list.
+        """
+        if clobber:
+            self.set("var", "routingblockage", (layer, (x0, y0), (x1, y1)), step=step, index=index)
+        else:
+            self.add("var", "routingblockage", (layer, (x0, y0), (x1, y1)), step=step, index=index)
 
     def set_openroad_snapstrategy(self, snap: str,
                                   step: Optional[str] = None, index: Optional[str] = None):
@@ -110,6 +162,18 @@ class InitFloorplanTask(APRTask,
         else:
             self.add("var", "bumpmapfileset", fileset, step=step, index=index)
 
+    def set_openroad_assertallpinsplaced(self, enable: bool,
+                                         step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables an assertion that all pins are placed after floorplanning.
+
+        Args:
+            enable: True to assert that all pins are placed, False to disable this assertion.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "assert_all_pins_placed", enable, step=step, index=index)
+
     def task(self):
         return "init_floorplan"
 
@@ -118,33 +182,30 @@ class InitFloorplanTask(APRTask,
 
         self.set_script("apr/sc_init_floorplan.tcl")
 
-        # if chip.valid('input', 'asic', 'floorplan') and \
-        #    chip.get('input', 'asic', 'floorplan', step=step, index=index):
-        #     chip.add('tool', tool, 'task', task, 'require',
-        #              ",".join(['input', 'asic', 'floorplan']),
-        #              step=step, index=index)
-
-        # if f'{design}.vg' in input_provides(chip, step, index):
-        #     chip.add('tool', tool, 'task', task, 'input', f'{design}.vg',
-        #              step=step, index=index)
-        # else:
-        #     chip.add('tool', tool, 'task', task, 'require', 'input,netlist,verilog',
-        #              step=step, index=index)
-        if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="vg")
-        else:
-            pass
-
         self._set_reports([
             'check_setup',
             'setup',
             'unconstrained',
-            'power'
+            'power',
+            'floating_nets',
+            'overdriven_nets',
+            "logicdepth",
+
+            # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view'
         ])
 
         self.add_required_key("var", "ifp_snap_strategy")
         self.add_required_key("var", "remove_synth_buffers")
         self.add_required_key("var", "remove_dead_logic")
+        self.add_required_key("var", "assert_all_pins_placed")
+        if self.get("var", "placementblockage"):
+            self.add_required_key("var", "placementblockage")
+        if self.get("var", "routingblockage"):
+            self.add_required_key("var", "routingblockage")
 
         if self.get("var", "padringfileset"):
             self.add_required_key("var", "padringfileset")
@@ -180,6 +241,11 @@ class InitFloorplanTask(APRTask,
                 self.add_required_key(pin, "side")
             if pin.get_order(step=self.step, index=self.index) is not None:
                 self.add_required_key(pin, "order")
+            if pin.get_shape(step=self.step, index=self.index) is not None:
+                self.add_required_key(pin, "shape")
+                self.add_required_key(pin, "width")
+                if pin.get_shape(step=self.step, index=self.index) != "square":
+                    self.add_required_key(pin, "length")
 
         self.add_required_key(self.mainlib, "asic", "site")
         if self.project.constraint.area.get_diearea(step=self.step, index=self.index) and \

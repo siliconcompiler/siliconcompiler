@@ -119,7 +119,12 @@ To delete a job, use:
         return 0
 
     if project_cfg:
-        project = Project.from_manifest(filepath=remote.find_files('cmdarg', 'cfg'))
+        cfg_path = remote.find_files('cmdarg', 'cfg')
+        try:
+            project = Project.from_manifest(filepath=cfg_path)
+        except FileNotFoundError:
+            remote.logger.error(f'Configuration manifest not found: {cfg_path}')
+            return 1
     else:
         project = remote
 

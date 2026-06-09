@@ -269,7 +269,7 @@ async def test_handle_check_server_basic():
     # Verify response
     assert response.status == 200
     data = json.loads(response.body)
-    from siliconcompiler._metadata import version as sc_version
+    from siliconcompiler._metadata import detailed_version as sc_version
     from siliconcompiler.schema import __version__ as sc_schema_version
     from siliconcompiler.remote.server import Server as ServerClass
     assert data == {
@@ -305,7 +305,7 @@ async def test_handle_check_server_with_user():
     # Verify response includes user info
     assert response.status == 200
     data = json.loads(response.body)
-    from siliconcompiler._metadata import version as sc_version
+    from siliconcompiler._metadata import detailed_version as sc_version
     from siliconcompiler.schema import __version__ as sc_schema_version
     from siliconcompiler.remote.server import Server as ServerClass
     assert data == {

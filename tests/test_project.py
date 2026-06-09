@@ -21,6 +21,7 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormat
 from siliconcompiler.utils.paths import jobdir
 
 from siliconcompiler.scheduler import SCRuntimeError
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
 
 
 class FauxTask0(Task):
@@ -240,9 +241,9 @@ def test_record_history_recursive_history():
     assert proj.get("history", "job1", field="schema").getkeys("history") == tuple()
 
 
-def test_record_history_warn(monkeypatch, caplog):
+def test_record_history_warn(project_logger, caplog):
     proj = Project("testname")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.WARNING)
     proj._record_history()
     proj._record_history()
@@ -525,8 +526,8 @@ def test_get_filesets_with_deps():
     proj = Project(design)
     assert proj.add_fileset("rtl")
     assert proj.get_filesets() == [
+        (dep, "rtl.dep"),
         (design, "rtl"),
-        (dep, "rtl.dep")
     ]
 
 
@@ -751,8 +752,8 @@ def test_get_filesets_with_alias():
     assert proj.add_fileset("rtl")
     assert proj.add_alias(dep, "rtl", alias, "rtl1")
     assert proj.get_filesets() == [
+        (alias, "rtl1"),
         (design, "rtl"),
-        (alias, "rtl1")
     ]
 
 
@@ -800,8 +801,8 @@ def test_get_filesets_with_alias_same_fileset():
     assert proj.add_fileset("rtl")
     assert proj.add_alias(dep, "rtl", alias, "rtl")
     assert proj.get_filesets() == [
+        (alias, "rtl"),
         (design, "rtl"),
-        (alias, "rtl")
     ]
 
 
@@ -1001,9 +1002,9 @@ def test_summary_select_job_user():
         history.assert_called_once_with("thisjob")
 
 
-def test_summary_select_unknownjob(monkeypatch, caplog):
+def test_summary_select_unknownjob(project_logger, caplog):
     proj = Project(Design("testdesign"))
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.WARNING)
 
     proj.set("option", "jobname", "thisjob")
@@ -1132,12 +1133,12 @@ def test_snapshot_info():
     ]
 
 
-def test_snapshot(monkeypatch, caplog):
+def test_snapshot(project_logger, caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
 
     proj = Project(Design("testdesign"))
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj._record_history()
@@ -1175,12 +1176,12 @@ def test_snapshot_select_job():
         history.assert_called_once_with("thatjob")
 
 
-def test_snapshot_default_path(monkeypatch, caplog):
+def test_snapshot_default_path(project_logger, caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
 
     proj = Project(Design("testdesign"))
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj._record_history()
@@ -1202,12 +1203,12 @@ def test_snapshot_default_path(monkeypatch, caplog):
     assert "Generated summary image at " in caplog.text
 
 
-def test_snapshot_display_false(monkeypatch, caplog):
+def test_snapshot_display_false(project_logger, caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
 
     proj = Project(Design("testdesign"))
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj._record_history()
@@ -1226,12 +1227,12 @@ def test_snapshot_display_false(monkeypatch, caplog):
     assert "Generated summary image at " in caplog.text
 
 
-def test_snapshot_nodisplay(monkeypatch, caplog):
+def test_snapshot_nodisplay(project_logger, caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
 
     proj = Project(Design("testdesign"))
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj.set("option", "nodisplay", True)
@@ -1251,9 +1252,9 @@ def test_snapshot_nodisplay(monkeypatch, caplog):
     assert "Generated summary image at " in caplog.text
 
 
-def test_check_manifest_empty(monkeypatch, caplog):
+def test_check_manifest_empty(project_logger, caplog):
     proj = Project()
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1262,9 +1263,9 @@ def test_check_manifest_empty(monkeypatch, caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_empty_with_design(monkeypatch, caplog):
+def test_check_manifest_empty_with_design(project_logger, caplog):
     proj = Project(Design("testdesign"))
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1273,10 +1274,10 @@ def test_check_manifest_empty_with_design(monkeypatch, caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_design_set_not_loaded(monkeypatch, caplog):
+def test_check_manifest_design_set_not_loaded(project_logger, caplog):
     proj = Project()
     proj.set("option", "design", "testdesign")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1285,11 +1286,11 @@ def test_check_manifest_design_set_not_loaded(monkeypatch, caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_with_missing_fileset(monkeypatch, caplog):
+def test_check_manifest_with_missing_fileset(project_logger, caplog):
     design = Design("testdesign")
     proj = Project(design)
     proj.set("option", "fileset", "rtl")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1297,13 +1298,13 @@ def test_check_manifest_with_missing_fileset(monkeypatch, caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_with_missing_topmodule(monkeypatch, caplog):
+def test_check_manifest_with_missing_topmodule(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.add_file("top.v")
     proj = Project(design)
     proj.set("option", "fileset", "rtl")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1311,7 +1312,7 @@ def test_check_manifest_with_missing_topmodule(monkeypatch, caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_with_missing_flow(monkeypatch, caplog):
+def test_check_manifest_with_missing_flow(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1319,14 +1320,14 @@ def test_check_manifest_with_missing_flow(monkeypatch, caplog):
     proj = Project(design)
     proj.set("option", "fileset", "rtl")
     proj.set("option", "flow", "testflow")
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert "testflow has not been loaded" in caplog.text
 
 
-def test_check_manifest_pass(monkeypatch, caplog):
+def test_check_manifest_pass(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1335,14 +1336,14 @@ def test_check_manifest_pass(monkeypatch, caplog):
     proj = Project(design)
     proj.set("option", "fileset", "rtl")
     proj.set_flow(flow)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is True
     assert caplog.text == ""
 
 
-def test_check_manifest_with_alias_missing_src(monkeypatch, caplog):
+def test_check_manifest_with_alias_missing_src(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1354,14 +1355,14 @@ def test_check_manifest_with_alias_missing_src(monkeypatch, caplog):
 
     proj.set("option", "alias", ("nothere", "rtl", None, None))
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is True
     assert caplog.text == ""
 
 
-def test_check_manifest_with_alias_empty_src(monkeypatch, caplog):
+def test_check_manifest_with_alias_empty_src(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1373,14 +1374,14 @@ def test_check_manifest_with_alias_empty_src(monkeypatch, caplog):
 
     proj.set("option", "alias", (None, "rtl", None, None))
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert "source library in [option,alias] must be set" in caplog.text
 
 
-def test_check_manifest_with_alias_missing_src_fileset(monkeypatch, caplog):
+def test_check_manifest_with_alias_missing_src_fileset(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1392,14 +1393,14 @@ def test_check_manifest_with_alias_missing_src_fileset(monkeypatch, caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl2", None, None))
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert "rtl2 is not a valid fileset in testdesign" in caplog.text
 
 
-def test_check_manifest_with_alias_missing_dst(monkeypatch, caplog):
+def test_check_manifest_with_alias_missing_dst(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1411,14 +1412,14 @@ def test_check_manifest_with_alias_missing_dst(monkeypatch, caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl", None, None))
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is True
     assert caplog.text == ""
 
 
-def test_check_manifest_with_alias_empty_dst_fileset(monkeypatch, caplog):
+def test_check_manifest_with_alias_empty_dst_fileset(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1430,14 +1431,14 @@ def test_check_manifest_with_alias_empty_dst_fileset(monkeypatch, caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl", "testdesign", None))
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is True
     assert caplog.text == ""
 
 
-def test_check_manifest_with_alias_missing_dst_lib(monkeypatch, caplog):
+def test_check_manifest_with_alias_missing_dst_lib(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1449,14 +1450,14 @@ def test_check_manifest_with_alias_missing_dst_lib(monkeypatch, caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl", "testdesign1", None))
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert " testdesign1 has not been loaded" in caplog.text
 
 
-def test_check_manifest_with_alias_missing_dst_fileset(monkeypatch, caplog):
+def test_check_manifest_with_alias_missing_dst_fileset(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1468,14 +1469,14 @@ def test_check_manifest_with_alias_missing_dst_fileset(monkeypatch, caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl", "testdesign", "rtl2"))
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert "rtl2 is not a valid fileset in testdesign" in caplog.text
 
 
-def test_check_manifest_with_alias_duplicate_target(monkeypatch, caplog):
+def test_check_manifest_with_alias_duplicate_target(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1487,14 +1488,14 @@ def test_check_manifest_with_alias_duplicate_target(monkeypatch, caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl", "testdesign", "rtl"))
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.WARNING)
 
     assert proj.check_manifest() is True
     assert "alias points to the same library and fileset: testdesign/rtl" in caplog.text
 
 
-def test_init_run(monkeypatch, caplog):
+def test_init_run(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1502,7 +1503,7 @@ def test_init_run(monkeypatch, caplog):
 
     proj = Project(design)
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.get("option", "fileset") == []
@@ -1512,7 +1513,7 @@ def test_init_run(monkeypatch, caplog):
     assert "Setting design fileset to: rtl" in caplog.text
 
 
-def test_init_run_disable_dashboard_breakpoint(monkeypatch, caplog):
+def test_init_run_disable_dashboard_breakpoint(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1524,7 +1525,7 @@ def test_init_run_disable_dashboard_breakpoint(monkeypatch, caplog):
     flow.node("faux", FauxTask0())
     proj.set_flow(flow)
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     assert proj._Project__dashboard is not None
 
@@ -1557,10 +1558,10 @@ def test_init_run_disable_dashboard_no_breakpoint(monkeypatch):
     with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running:
         is_running.return_value = True
         proj._init_run()
-        is_running.assert_not_called()
+        is_running.assert_called_once()
 
 
-def test_init_run_do_nothing(monkeypatch, caplog):
+def test_init_run_do_nothing(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1571,7 +1572,7 @@ def test_init_run_do_nothing(monkeypatch, caplog):
 
     proj = Project(design)
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.get("option", "fileset") == []
@@ -1581,10 +1582,10 @@ def test_init_run_do_nothing(monkeypatch, caplog):
     assert caplog.text == ""
 
 
-def test_init_run_no_design(monkeypatch, caplog):
+def test_init_run_no_design(project_logger, caplog):
     proj = Project()
 
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     assert proj.get("option", "fileset") == []
@@ -2251,12 +2252,12 @@ def test_reset_job_params_with_nested_scratch_params():
     assert proj.get("option", "design") == "testdesign"
 
 
-def test_run_with_empty_flowgraph(monkeypatch, caplog):
+def test_run_with_empty_flowgraph(project_logger, caplog):
     """Test run with a flowgraph that has no nodes."""
     design = Design("test")
     design.set_topmodule("top", fileset="test")
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("test")
 
@@ -2271,11 +2272,11 @@ def test_run_with_empty_flowgraph(monkeypatch, caplog):
     assert "Run failed: emptyflow flowgraph contains no nodes to run." in caplog.text
 
 
-def test_run_with_scruntimeerror(monkeypatch, caplog):
+def test_run_with_scruntimeerror(project_logger, caplog):
     design = Design("test")
     design.set_topmodule("top", fileset="test")
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("test")
 
@@ -2297,11 +2298,11 @@ def test_run_with_scruntimeerror(monkeypatch, caplog):
     assert "Run failed: this error" in caplog.text
 
 
-def test_run_with_with_loginfo(monkeypatch, caplog):
+def test_run_with_with_loginfo(project_logger, caplog):
     design = Design("test")
     design.set_topmodule("top", fileset="test")
     proj = Project(design)
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    project_logger(proj)
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("test")
 
@@ -2333,3 +2334,822 @@ def test_getdict_type_inheritance():
     # Verify they're different
     assert Lint._getdict_type() != Project._getdict_type()
     assert Sim._getdict_type() != Project._getdict_type()
+
+
+# ── write_depgraph tests ──────────────────────────────────────────────────────
+
+
+def _capture_wdg(proj, **kwargs):
+    """Call write_depgraph and return the captured call_args."""
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("test.png", **kwargs)
+    return mock.call_args
+
+
+def test_write_depgraph_root_is_design_name():
+    design = Design("mydesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    assert call.args[1] == "mydesign"
+
+
+def test_write_depgraph_no_filesets_root_only():
+    design = Design("mydesign")
+    proj = Project(design)
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "mydesign" in graph
+    assert graph["mydesign"] == set()
+
+
+def test_write_depgraph_single_fileset_node():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "test/rtl" in graph["test"]
+    assert "test/rtl" in graph
+
+
+def test_write_depgraph_fileset_no_depfilesets_empty_edges():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert graph["test/rtl"] == set()
+
+
+def test_write_depgraph_depfileset_creates_edge():
+    dep = Design("mylib")
+    with dep.active_fileset("gates"):
+        dep.set_topmodule("cells")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "gates")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "mylib/gates" in graph["test/rtl"]
+
+
+def test_write_depgraph_alias_redirects_edge():
+    dep = Design("origlib")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    replacement = Design("newlib")
+    with replacement.active_fileset("rtl_v2"):
+        replacement.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_dep(replacement)
+    proj.add_fileset("rtl")
+    proj.add_alias(dep, "rtl", replacement, "rtl_v2")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "newlib/rtl_v2" in graph["test/rtl"]
+    assert "origlib/rtl" not in graph["test/rtl"]
+
+
+def test_write_depgraph_alias_delete_creates_gray_rectangle():
+    dep = Design("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_fileset("rtl")
+    proj.add_alias(dep, "rtl", None, "")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    node_styles = call.kwargs["node_styles"]
+
+    deleted = "dep/rtl"
+    assert deleted in graph["test/rtl"]
+    assert node_styles[deleted]["shape"] == "rectangle"
+    assert node_styles[deleted]["color"] == "#808080"
+
+
+def test_write_depgraph_deleted_node_has_no_outgoing_edges():
+    dep = Design("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_fileset("rtl")
+    proj.add_alias(dep, "rtl", None, "")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert graph["dep/rtl"] == set()
+
+
+def test_write_depgraph_deleted_node_not_duplicated_across_filesets():
+    dep = Design("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+    with design.active_fileset("syn"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    proj.add_dep(dep)
+    proj.add_fileset(["rtl", "syn"])
+    proj.add_alias(dep, "rtl", None, "")
+
+    call = _capture_wdg(proj)
+    node_styles = call.kwargs["node_styles"]
+    assert "dep/rtl" in node_styles
+
+
+def test_write_depgraph_alias_unloaded_library_raises():
+    proj = Project(Design("test"))
+    proj.set("option", "alias", [("test", "rtl", "ghost", "rtl")])
+
+    with pytest.raises(KeyError, match=r"ghost"):
+        proj.write_depgraph("test.png")
+
+
+def test_write_depgraph_root_node_styled_as_box():
+    design = Design("test")
+    proj = Project(design)
+
+    call = _capture_wdg(proj)
+    node_styles = call.kwargs["node_styles"]
+    assert node_styles["test"]["shape"] == "box"
+
+
+def test_write_depgraph_visual_params_forwarded():
+    proj = Project(Design("test"))
+
+    with patch.object(DependencySchema, "_write_depgraph") as mock:
+        proj.write_depgraph("out.png", fontcolor="#aabbcc", background="#001122",
+                            fontsize="20", border=False, landscape=True)
+
+    kw = mock.call_args.kwargs
+    assert kw["fontcolor"] == "#aabbcc"
+    assert kw["background"] == "#001122"
+    assert kw["fontsize"] == "20"
+    assert kw["border"] is False
+    assert kw["landscape"] is True
+
+
+def test_write_depgraph_error_propagates():
+    proj = Project(Design("test"))
+
+    with patch.object(DependencySchema, "_write_depgraph",
+                      side_effect=RuntimeError("Unable to save flowgraph")):
+        with pytest.raises(RuntimeError, match="Unable to save flowgraph"):
+            proj.write_depgraph("test.png")
+
+
+def test_get_write_depgraph_extra_base_returns_empty():
+    proj = Project(Design("test"))
+    graph, styles = proj._get_write_depgraph_extra()
+    assert graph == {}
+    assert styles == {}
+
+
+def test_write_depgraph_extra_nodes_merged_into_graph():
+    class CustomProject(Project):
+        def _get_write_depgraph_extra(self):
+            return (
+                {"extra_node": set()},
+                {"extra_node": {"shape": "star", "color": "#ff00ff"}}
+            )
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = CustomProject(design)
+    proj.add_fileset("rtl")
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    node_styles = call.kwargs["node_styles"]
+    assert "extra_node" in graph
+    assert node_styles["extra_node"]["shape"] == "star"
+
+
+def test_write_depgraph_extra_edges_merged_into_existing_node():
+    class CustomProject(Project):
+        def _get_write_depgraph_extra(self):
+            return {"test": {"extra_child"}}, {}
+
+    design = Design("test")
+    proj = CustomProject(design)
+
+    call = _capture_wdg(proj)
+    graph = call.args[2]
+    assert "extra_child" in graph["test"]
+
+
+# ============================================================================
+# Tests for Project.show() method
+# ============================================================================
+
+class MockShowTask(Task):
+    """Mock ShowTask for testing."""
+    def __init__(self, name="mock_tool", extensions=None):
+        super().__init__()
+        self._name = name
+        self._extensions = extensions or {'gds', 'def', 'lef'}
+
+    def tool(self):
+        return self._name
+
+    def task(self):
+        return "show"
+
+    def get_supported_task_extentions(self):
+        return self._extensions
+
+    def set_showfilepath(self, filepath):
+        """Mock method for setting show filepath."""
+        pass
+
+    def set_showfiletype(self, filetype):
+        """Mock method for setting show filetype."""
+        pass
+
+    def set_shownode(self, **kwargs):
+        """Mock method for setting show node."""
+        pass
+
+    @staticmethod
+    def find_task(proj):
+        """Mock find_task to return a mock task instance."""
+        return MockShowTask()
+
+
+class MockScreenshotTask(Task):
+    """Mock ScreenshotTask for testing."""
+    def __init__(self, name="mock_tool", extensions=None):
+        super().__init__()
+        self._name = name
+        self._extensions = extensions or {'gds', 'def'}
+
+    def tool(self):
+        return self._name
+
+    def task(self):
+        return "screenshot"
+
+    def get_supported_task_extentions(self):
+        return self._extensions
+
+    def set_showfilepath(self, filepath):
+        """Mock method for setting show filepath."""
+        pass
+
+    def set_showfiletype(self, filetype):
+        """Mock method for setting show filetype."""
+        pass
+
+    def set_shownode(self, **kwargs):
+        """Mock method for setting show node."""
+        pass
+
+    @staticmethod
+    def find_task(proj):
+        """Mock find_task to return a mock task instance."""
+        return MockScreenshotTask()
+
+
+def test_show_with_explicit_filename(monkeypatch):
+    """Test show() with explicit filename."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: x == "/path/to/design.gds")
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Create a mock task instance
+    mock_show_task = MockShowTask()
+
+    # Mock ShowTask.get_task
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task",
+                        lambda ext=None, tool=None: mock_show_task)
+
+    # Mock project.run() to avoid execution
+    run_called = []
+    monkeypatch.setattr(Project, "run", lambda self: run_called.append(True) or self)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock ShowFlow to avoid graph construction issues
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show("/path/to/design.gds")
+    # Result is None for show() (non-screenshot mode)
+    assert result is None
+    assert run_called  # Verify run was called
+
+
+def test_show_with_filename_not_exists(monkeypatch):
+    """Test show() with non-existent file."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+
+    # Mock os.path.exists to return False
+    monkeypatch.setattr("os.path.exists", lambda x: False)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    result = proj.show("/nonexistent/file.gds")
+    assert result is None
+
+
+def test_show_auto_find_no_layout(monkeypatch):
+    """Test show() with auto-find when no layout exists."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # No history, so search_obj will be self
+    # Mock find_result to return None (no layout found)
+    monkeypatch.setattr(Project, "find_result", lambda self, *args, **kwargs: None)
+
+    # Mock get_task to return mock tasks
+    mock_show_task = MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task",
+                        lambda ext=None, tool=None: [mock_show_task.__class__])
+
+    result = proj.show()
+    assert result is None
+
+
+def test_show_auto_find_with_layout(monkeypatch):
+    """Test show() with auto-find when layout exists."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    flow = Flowgraph("default")
+    from siliconcompiler import Task
+
+    class MockFlowTask(Task):
+        def tool(self):
+            return "mock_tool"
+
+        def task(self):
+            return "mock_step"
+
+    # Mock the flow
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: flow)
+
+    # Mock get_execution_order to return flow nodes
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Mock find_result to return a file
+    monkeypatch.setattr(Project, "find_result",
+                        lambda self, ext, step=None, index=None: "/path/to/design.gds")
+
+    # Mock ShowTask.get_task with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes
+            return [MockShowTask]
+        else:
+            # When called with specific extension, return instance
+            return MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    run_called = []
+    monkeypatch.setattr(Project, "run", lambda self: run_called.append(True) or self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show()
+    assert result is None
+    assert run_called  # Verify run was called
+
+
+def test_show_with_extension_filter(monkeypatch):
+    """Test show() with extension filtering."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # Mock the flow
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: Flowgraph("default"))
+
+    # Mock get_execution_order
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Mock find_result to return a file
+    monkeypatch.setattr(Project, "find_result",
+                        lambda self, ext, step=None, index=None: "/path/to/design.def"
+                        if ext == "def" else None)
+
+    # Mock ShowTask with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes
+            return [MockShowTask]
+        else:
+            # When called with specific extension, return instance
+            return MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "def")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    run_called = []
+    monkeypatch.setattr(Project, "run", lambda self: run_called.append(True) or self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    # Request only 'def' extension
+    result = proj.show(extension="def")
+    assert result is None
+    assert run_called
+
+
+def test_show_with_unsupported_extension(monkeypatch):
+    """Test show() with unsupported extension."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # Mock get_execution_order
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: Flowgraph("default"))
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Create a mock task class with limited extensions
+    class LimitedMockShowTask(MockShowTask):
+        def __init__(self):
+            super().__init__(extensions={'gds'})
+
+    # Mock ShowTask with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes with limited extensions
+            return [LimitedMockShowTask]
+        else:
+            # When called with specific extension, return None (not supported)
+            return None
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Request unsupported extension
+    result = proj.show(extension="xyz")
+    assert result is None
+
+
+def test_show_screenshot_mode(monkeypatch):
+    """Test show() with screenshot=True."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: x == "/path/to/design.gds")
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Create a mock task instance
+    mock_screenshot_task = MockScreenshotTask()
+
+    # Mock ScreenshotTask.get_task
+    monkeypatch.setattr("siliconcompiler.project.ScreenshotTask.get_task",
+                        lambda ext=None, tool=None: mock_screenshot_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock run
+    run_called = []
+    monkeypatch.setattr(Project, "run", lambda self: run_called.append(True) or self)
+
+    # Mock find_result for screenshot mode return
+    monkeypatch.setattr(Project, "find_result",
+                        lambda self, ext, step=None, index=None: "/path/to/screenshot.png"
+                        if ext == "png" else None)
+
+    # Mock ShowFlow to avoid graph construction issues
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show("/path/to/design.gds", screenshot=True)
+    # Screenshot mode returns the PNG path
+    assert result == "/path/to/screenshot.png"
+    assert run_called
+
+
+def test_show_with_tool_parameter(monkeypatch):
+    """Test show() with specific tool specified."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: x == "/path/to/design.gds")
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock ShowTask.get_task - verify it's called with tool parameter
+    get_task_calls = []
+
+    def mock_get_task(ext=None, tool=None):
+        get_task_calls.append({"ext": ext, "tool": tool})
+        return MockShowTask("specified_tool")
+
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock run
+    monkeypatch.setattr(Project, "run", lambda self: self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show("/path/to/design.gds", tool="specified_tool")
+    assert result is None
+    # Verify get_task was called with the tool parameter
+    assert len(get_task_calls) > 0
+    assert get_task_calls[0]["tool"] == "specified_tool"
+
+
+def test_show_tool_not_found_for_extension(monkeypatch):
+    """Test show() when no tool supports the file extension."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: x == "/path/to/design.unknown")
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "unknown")
+
+    # Mock ShowTask.get_task to return None (no tool supports this extension)
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task",
+                        lambda ext=None, tool=None: None)
+
+    result = proj.show("/path/to/design.unknown")
+    assert result is None
+
+
+def test_show_auto_find_preserves_tool_order(monkeypatch):
+    """Test that auto-find respects tool registration order."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # Mock the flow
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: Flowgraph("default"))
+
+    # Mock get_execution_order
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Track which tools were checked and in what order
+    tool_check_order = []
+
+    def track_find_result(self, ext, step=None, index=None):
+        tool_check_order.append(ext)
+        # Return file for 'def' only on second call to allow both extensions to be tried
+        return "/path/to/design.def" if ext == 'def' else None
+
+    monkeypatch.setattr(Project, "find_result", track_find_result)
+
+    # Create two distinct mock task classes to properly test tool ordering
+    class Tool1Task(MockShowTask):
+        def tool(self):
+            return "tool1"
+
+        def get_supported_task_extentions(self):
+            return {'gds'}
+
+    class Tool2Task(MockShowTask):
+        def tool(self):
+            return "tool2"
+
+        def get_supported_task_extentions(self):
+            return {'def'}
+
+    # Mock get_task with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes in order
+            return [Tool1Task, Tool2Task]
+        else:
+            # When called with specific extension, return instance based on extension
+            if ext == 'gds':
+                return Tool1Task()
+            elif ext == 'def':
+                return Tool2Task()
+            return None
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: x.split('.')[-1])
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    monkeypatch.setattr(Project, "run", lambda self: self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show()
+    assert result is None
+    # Extensions should be checked in order from task registration: gds first (tool1),
+    # then def (tool2)
+    assert tool_check_order == ['gds', 'def'], \
+        f"Expected tool order ['gds', 'def'] but got {tool_check_order}"
+
+
+def test_show_with_history(monkeypatch):
+    """Test show() uses history when available."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+
+    # Record history
+    proj._record_history()
+
+    # Mock the flow for the history project
+    history_proj = proj.history("job0")
+    monkeypatch.setattr(history_proj, "get_flow", lambda name=None: Flowgraph("default"))
+
+    # Mock get_execution_order
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("mock_step", "0")]])
+
+    # Mock find_result
+    monkeypatch.setattr(Project, "find_result",
+                        lambda self, ext, step=None, index=None: "/path/to/design.gds")
+
+    # Mock ShowTask.get_task with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes
+            return [MockShowTask]
+        else:
+            # When called with specific extension, return instance
+            return MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    monkeypatch.setattr(Project, "run", lambda self: self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show()
+    assert result is None
+
+
+def test_show_handles_search_with_step_index_filter(monkeypatch):
+    """Test show() filters search nodes by step/index arguments."""
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_flow("default")
+    proj.set("arg", "step", "route")
+    proj.set("arg", "index", "0")
+
+    # Mock the flow
+    monkeypatch.setattr(proj, "get_flow", lambda name=None: Flowgraph("default"))
+
+    # Mock get_execution_order
+    monkeypatch.setattr(Flowgraph, "get_execution_order",
+                        lambda self, reverse=False: [[("place", "0"), ("route", "0")]])
+
+    # Track which steps are searched
+    searched_steps = []
+
+    def track_find_result(self, ext, step=None, index=None):
+        searched_steps.append((step, index))
+        return "/path/to/design.gds" if step == "route" else None
+
+    monkeypatch.setattr(Project, "find_result", track_find_result)
+
+    # Mock ShowTask.get_task with proper behavior
+    def mock_get_task(ext=None, tool=None):
+        if ext is None:
+            # When called with None, return list of task classes
+            return [MockShowTask]
+        else:
+            # When called with specific extension, return instance
+            return MockShowTask()
+    monkeypatch.setattr("siliconcompiler.project.ShowTask.get_task", mock_get_task)
+
+    # Mock get_file_ext
+    monkeypatch.setattr("siliconcompiler.project.get_file_ext", lambda x: "gds")
+
+    # Mock os.path functions
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    # Mock run
+    monkeypatch.setattr(Project, "run", lambda self: self)
+
+    # Mock ShowFlow
+    monkeypatch.setattr("siliconcompiler.project.ShowFlow", lambda task: Flowgraph("show_flow"))
+
+    result = proj.show()
+    assert result is None
+    # Should only search for 'route' step since arg.step='route'
+    assert all(step == "route" for step, _ in searched_steps)

@@ -15,10 +15,13 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
 
         self.add_parameter("mpl_constraints", "[file]", "constraints script for macro placement")
 
+        self.add_parameter("mpl_makeblockages", "bool",
+                           "flag to enable or disable the creation of blockages during "
+                           "macro placement", defvalue=False)
+
         self.add_parameter("macro_place_halo", "(float<0.0->>,float<0.0->>)",
                            "macro halo to use when performing automated macro placement "
                            "([x, y] in microns)", unit="um")
-
         self.add_parameter("mpl_min_instances", "int<1->>",
                            "minimum number of instances to use while clustering for "
                            "macro placement")
@@ -319,6 +322,18 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
         """
         self.set("var", "mpl_macro_blockage_weight", weight, step=step, index=index)
 
+    def set_openroad_makeblockages(self, enable: bool,
+                                   step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables the creation of blockages during macro placement.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "mpl_makeblockages", enable, step=step, index=index)
+
     def task(self):
         return "macro_placement"
 
@@ -329,10 +344,20 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
 
         self._set_reports([
             'setup',
-            'unconstrained'
+            'unconstrained',
+            'floating_nets',
+            'overdriven_nets',
+
+            # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view'
         ])
 
         self.set_asic_var("macro_place_halo", require=True, mainlib_key="macro_placement_halo")
+
+        self.add_required_key("var", "mpl_makeblockages")
 
         if self.get("var", "mpl_constraints"):
             self.add_required_key("var", "mpl_constraints")

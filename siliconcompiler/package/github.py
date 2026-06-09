@@ -4,6 +4,9 @@ This module provides a GitHub-based resolver for SiliconCompiler packages.
 It defines the `GithubResolver` class, which is responsible for downloading
 release assets from public or private GitHub repositories.
 """
+import shutil
+import subprocess
+
 from typing import Dict, Type, Optional, Tuple, TYPE_CHECKING
 
 from github import Github, Auth
@@ -46,11 +49,11 @@ class GithubResolver(HTTPResolver):
     a GitHub token must be provided via environment variables.
     """
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         """
         Initializes the GithubResolver.
         """
-        super().__init__(name, root, source, reference)
+        super().__init__(name, schema, source, reference)
 
         self.__url = None
 
@@ -154,7 +157,22 @@ class GithubResolver(HTTPResolver):
         raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
 
     def __get_gh_token(self) -> str:
-        return super()._get_auth_token(["GITHUB", "GH", "GIT"])
+        try:
+            return super()._get_auth_token(["GITHUB", "GH", "GIT"])
+        except ValueError as e:
+            # Try calling gh
+            gh = shutil.which("gh")
+            if gh:
+                try:
+                    run = subprocess.run([gh, "auth", "token"], capture_output=True, timeout=5)
+                except subprocess.TimeoutExpired:
+                    raise e
+                if run.returncode == 0:
+                    token = run.stdout.decode().strip()
+                    if not token or '\n' in token or '\r' in token:
+                        raise e
+                    return token
+            raise e
 
     def __gh(self, private: bool) -> Github:
         """

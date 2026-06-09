@@ -51,6 +51,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       # Read-only credentials, can be accessed by external contributors
       - name: Log in to the Container registry
@@ -100,10 +102,11 @@ jobs:
 
       - name: Build and Push SiliconCompiler Builder Docker image
         if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.2.0
         with:
           context: docker/sc_tool_builder
           push: true
+          provenance: false
           tags: ${{ steps.docker.outputs.builder }}
 
   build_tool:
@@ -135,10 +138,11 @@ jobs:
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.2.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
+          provenance: false
           tags: |
             ${{ matrix.name }}
             ${{ matrix.check_name }}
@@ -172,10 +176,11 @@ jobs:
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.2.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
+          provenance: false
           tags: |
             ${{ matrix.name }}
             ${{ matrix.check_name }}
@@ -214,11 +219,17 @@ jobs:
           username: ${{ secrets.PACKAGES_ACTOR }}
           password: ${{ secrets.PACKAGES_TOKEN }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          buildkitd-flags: --debug
+
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.2.0
         with:
           context: ./sc_tools/
           push: true
+          provenance: false
           tags: ${{ needs.build_tool_builder.outputs.sc_tools }}
 
   runner_image:
@@ -269,10 +280,11 @@ jobs:
         echo "RUNNER_TAG=${runner_latest_tag}" >> $GITHUB_ENV
 
     - name: Build and Push Tool Docker image
-      uses: docker/build-push-action@v7
+      uses: docker/build-push-action@v7.2.0
       with:
         context: ./sc_runner/
         push: true
+        provenance: false
         tags: |
           ${{ needs.build_tool_builder.outputs.sc_runner }}
           ${{ env.RUNNER_TAG }}
@@ -325,9 +337,12 @@ jobs:
 
       - name: Checkout current SiliconCompiler
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup tests
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           python3 -m venv .venv
           source .venv/bin/activate
 
@@ -355,7 +370,7 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         continue-on-error: true
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
@@ -376,10 +391,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Checkout SiliconCompiler
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         id: setup-python
@@ -422,25 +439,31 @@ jobs:
   tools_changed_check:
     runs-on: ubuntu-latest
     name: Check if tools changed
-    if: github.event_name == 'pull_request'
     outputs:
-      changed: ${{ steps.changes.outputs.tools }}
+      asic_changed: ${{ steps.changes.outputs.asic }}
     steps:
       - name: Checkout current SiliconCompiler
         uses: actions/checkout@v6
 
-      - name: Check tool updates
-        uses: dorny/paths-filter@v4
-        id: changes
+      - name: Checkout main SiliconCompiler
+        uses: actions/checkout@v6
         with:
-          filters: |
-            tools:
-              - 'siliconcompiler/toolscripts/_tools.json'
+          ref: main
+          path: scmain
 
-  run_daily:
-    name: Run daily CI
+      - name: Check tool updates
+        id: changes
+        run: |
+          toolsscript=.github/workflows/bin/check_tool_changes.py
+          toolsfile=siliconcompiler/toolscripts/_tools.json
+          asic_change=$(python3 $toolsscript scmain/${toolsfile} ${toolsfile} --workflow asic)
+          echo "asic=${asic_change}"
+          echo "asic=${asic_change}" >> $GITHUB_OUTPUT
+
+  run_daily_asic:
+    name: Run daily ASIC CI
     needs: [build_sc_tools, tools_changed_check]
-    if: always() && !cancelled() && needs.tools_changed_check.outputs.changed == 'true'
+    if: always() && !cancelled() && needs.tools_changed_check.outputs.asic_changed == 'Yes'
     uses: ./.github/workflows/daily_ci.yml
 
   server_tests:

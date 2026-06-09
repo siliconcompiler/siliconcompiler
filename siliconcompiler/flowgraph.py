@@ -1121,35 +1121,49 @@ class RuntimeFlowgraph:
 
         self.__base = base
 
+        all_steps = set(step for step, _ in self.__base.get_nodes())
+
         if args and args[0] is not None:
             from_steps = None
             to_steps = None
             prune_nodes = None
 
             step, index = args
+            if step not in all_steps:
+                raise ValueError(
+                    f"step '{step}' is not defined in flow '{self.__base.name}'")
             if index is None:
-                self.__from = [(step, index) for index in self.__base.getkeys(step)]
+                self.__from = [(step, idx) for idx in self.__base.getkeys(step)]
             else:
-                self.__from = [(step, index)]
+                # Indices are stored as strings in the schema; normalize so
+                # downstream membership checks (e.g. against get_nodes())
+                # don't silently miss a node passed as an int.
+                self.__from = [(step, str(index))]
             self.__to = self.__from
         else:
             if from_steps:
+                bad_from = set(from_steps).difference(all_steps)
+                if bad_from:
+                    raise ValueError(
+                        f"from_steps {sorted(bad_from)} are not defined in flow "
+                        f"'{self.__base.name}'")
                 self.__from = []
                 for step in from_steps:
-                    try:
-                        self.__from.extend([(step, index) for index in self.__base.getkeys(step)])
-                    except KeyError:
-                        pass
+                    self.__from.extend(
+                        [(step, idx) for idx in self.__base.getkeys(step)])
             else:
                 self.__from = self.__base.get_entry_nodes()
 
             if to_steps:
+                bad_to = set(to_steps).difference(all_steps)
+                if bad_to:
+                    raise ValueError(
+                        f"to_steps {sorted(bad_to)} are not defined in flow "
+                        f"'{self.__base.name}'")
                 self.__to = []
                 for step in to_steps:
-                    try:
-                        self.__to.extend([(step, index) for index in self.__base.getkeys(step)])
-                    except KeyError:
-                        pass
+                    self.__to.extend(
+                        [(step, idx) for idx in self.__base.getkeys(step)])
             else:
                 self.__to = self.__base.get_exit_nodes()
 
@@ -1193,7 +1207,8 @@ class RuntimeFlowgraph:
         if node in path:
             return set(path)
 
-        path.append(node)
+        # Build a fresh path for each branch so siblings don't pollute each other.
+        path = path + [node]
         if reverse:
             if node in self.__from:
                 return set(path)
@@ -1349,7 +1364,16 @@ class RuntimeFlowgraph:
 
             if record.get("status", step=in_step, index=in_index) == NodeStatus.SKIPPED:
                 if (in_step, in_index) not in self.get_nodes():
-                    inputs.update(self.__base.get(in_step, in_index, "input"))
+                    # Skipped node is outside the runtime view. Fall back to
+                    # the base flowgraph inputs but apply the same filtering
+                    # we use for the in-runtime case so pruned/missing nodes
+                    # don't leak through as dependencies.
+                    for grand_step, grand_index in self.__base.get(in_step, in_index, "input"):
+                        if (grand_step, grand_index) not in base_nodes:
+                            continue
+                        if (grand_step, grand_index) in self.__prune:
+                            continue
+                        inputs.add((grand_step, grand_index))
                 else:
                     inputs.update(self.get_node_inputs(in_step, in_index, record=record))
             else:

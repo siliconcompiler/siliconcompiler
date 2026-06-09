@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import os
 import sys
 import pytest
@@ -286,8 +287,8 @@ def test_halt(project):
     assert os.path.exists("build/testdesign/job0/steptwo/0/outputs/testdesign.pkg.json")
 
 
-def test_halt_with_reason(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_halt_with_reason(project_logger, project, caplog):
+    project_logger(project)
     node = SchedulerNode(project, "steptwo", "0")
     node.task.setup_work_directory(node.workdir)
 
@@ -296,6 +297,66 @@ def test_halt_with_reason(project, monkeypatch, caplog):
     assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
     assert os.path.exists("build/testdesign/job0/steptwo/0/outputs/testdesign.pkg.json")
     assert "failed due to error" in caplog.text
+    assert "Halting steptwo/0 due to errors" in caplog.text
+
+
+def test_halt_with_errmsg_replaces_default(project_logger, project, caplog):
+    project_logger(project)
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with pytest.raises(SystemExit):
+        node.halt(errmsg="custom halting message")
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+    assert "custom halting message" in caplog.text
+    # errmsg replaces the default "Halting..." line.
+    assert "Halting steptwo/0 due to errors" not in caplog.text
+
+
+def test_halt_swallows_write_manifest_error(project_logger, project, caplog):
+    '''halt() must still call sys.exit(1) even if write_manifest raises an
+    unexpected (non-FileNotFoundError) exception.'''
+    project_logger(project)
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch.object(project, "write_manifest", side_effect=RuntimeError("disk on fire")):
+        with pytest.raises(SystemExit) as excinfo:
+            node.halt("kicking off halt")
+    assert excinfo.value.code == 1
+    # The exception inside halt must not propagate out.
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+    assert "kicking off halt" in caplog.text
+
+
+def test_halt_swallows_send_messages_error(project_logger, project, caplog):
+    '''halt() must still call sys.exit(1) if send_messages.send raises.'''
+    project_logger(project)
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.scheduler.schedulernode.send_messages.send",
+               side_effect=RuntimeError("messaging broker down")):
+        with pytest.raises(SystemExit) as excinfo:
+            node.halt("kicking off halt")
+    assert excinfo.value.code == 1
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+    # The "Halting..." line should still have been logged before the suppressed exception.
+    assert "Halting steptwo/0 due to errors" in caplog.text
+
+
+def test_halt_swallows_record_set_error(project_logger, project):
+    '''halt() must still call sys.exit(1) if the very first internal call
+    (recording status) raises.'''
+    project_logger(project)
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch.object(node._SchedulerNode__record, "set",
+                      side_effect=RuntimeError("record blew up")):
+        with pytest.raises(SystemExit) as excinfo:
+            node.halt()
+    assert excinfo.value.code == 1
 
 
 def test_setup(project):
@@ -305,8 +366,8 @@ def test_setup(project):
         assert node.setup() is True
 
 
-def test_setup_error(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_setup_error(project_logger, project, monkeypatch, caplog):
+    project_logger(project)
     node = SchedulerNode(project, "steptwo", "0")
 
     def dummy_setup(*args, **kwargs):
@@ -319,8 +380,8 @@ def test_setup_error(project, monkeypatch, caplog):
     assert "Failed to run setup() for steptwo/0 with builtin/nop" in caplog.text
 
 
-def test_setup_with_return(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_setup_with_return(project_logger, project, monkeypatch, caplog):
+    project_logger(project)
     node = SchedulerNode(project, "steptwo", "0")
 
     def dummy_setup(*args, **kwargs):
@@ -335,8 +396,8 @@ def test_setup_with_return(project, monkeypatch, caplog):
     assert "Failed to run setup() for steptwo/0 with builtin/nop" in caplog.text
 
 
-def test_setup_skipped(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_setup_skipped(project_logger, project, monkeypatch, caplog):
+    project_logger(project)
     node = SchedulerNode(project, "steptwo", "0")
 
     def dummy_setup(*args, **kwargs):
@@ -422,8 +483,8 @@ def test_check_values_changed_no_change(project):
             node, [('library', 'testdesign', 'fileset', 'rtl', 'param', 'N')])
 
 
-def test_check_values_changed_change(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_check_values_changed_change(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     project.set('library', 'testdesign', 'fileset', 'rtl', 'param', 'N', "64")
@@ -442,8 +503,8 @@ def test_check_values_changed_change(project, monkeypatch, caplog):
                 other, [('library', 'testdesign', 'fileset', 'rtl', 'param', 'N')])
 
 
-def test_check_values_changed_change_missing(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_check_values_changed_change_missing(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(project, "steptwo", "0")
@@ -504,6 +565,66 @@ def test_check_previous_run_status_task(project):
         with pytest.raises(SchedulerNodeResetSilent,
                            match=r"^Task name changed$"):
             node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_topmodule_changed(project):
+    node = SchedulerNode(project, "steptwo", "0")
+    project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    # Create a different project with different topmodule
+    other_design = Design("testdesign")
+    with other_design.active_fileset("rtl"):
+        other_design.set_topmodule("different_module")
+
+    other_project = Project(other_design)
+    other_project.add_fileset("rtl")
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    other_project.set_flow(flow)
+    other_project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    other_project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerFlowReset,
+                           match=r"^Top module name changed$"):
+            node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_topmodule_same(project, monkeypatch):
+    node = SchedulerNode(project, "steptwo", "0")
+    project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    # Create another project with same topmodule
+    other_design = Design("testdesign")
+    with other_design.active_fileset("rtl"):
+        other_design.set_topmodule("top")
+
+    other_project = Project(other_design)
+    other_project.add_fileset("rtl")
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    other_project.set_flow(flow)
+    other_project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    other_project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    def dummy_select(*args, **kwargs):
+        return [("stepone", "0")]
+    monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
+    monkeypatch.setattr(node_other.task, "select_input_nodes", dummy_select)
+
+    # Should not raise an exception
+    with node.runtime(), node_other.runtime():
+        node.check_previous_run_status(node_other)
 
 
 def test_check_previous_run_status_running(project):
@@ -823,6 +944,32 @@ def test_check_files_changed_hash_directory_symlink(project):
                 node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_directory_invalid_symlink(project):
+    """Test that get_file_time fails when a directory contains an invalid symlink."""
+    # Create a directory with a valid file and an invalid symlink inside
+    os.makedirs("testdir", exist_ok=True)
+    with open("testdir/validfile.txt", "w") as f:
+        f.write("test")
+
+    # Create an invalid symlink inside the directory
+    os.symlink("nonexistent_target.txt", "testdir/invalid_link.txt")
+
+    # Set now to be later than the file mtimes to deterministically test the invalid symlink path
+    now = os.path.getmtime("testdir/validfile.txt") + 1
+
+    project.set("library", "testdesign", "fileset", "rtl", "idir", "testdir")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] "
+                                 r"\(file not found: .*/testdir/invalid_link\.txt\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
+
+
 def test_requires_run_breakpoint(project):
     assert project.set("option", "breakpoint", True, step="steptwo")
 
@@ -871,8 +1018,8 @@ def test_requires_run_all_pass(project, monkeypatch):
     node.requires_run()
 
 
-def test_requires_run_all_input_corrupt(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_requires_run_all_input_corrupt(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.DEBUG)
 
     node = SchedulerNode(project, "steptwo", "0")
@@ -886,8 +1033,8 @@ def test_requires_run_all_input_corrupt(project, monkeypatch, caplog):
         node.requires_run()
 
 
-def test_requires_run_all_output_corrupt(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_requires_run_all_output_corrupt(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.DEBUG)
 
     node = SchedulerNode(project, "steptwo", "0")
@@ -924,8 +1071,8 @@ def test_requires_run_all_keys_failed(project, monkeypatch):
         node.requires_run()
 
 
-def test_check_logfile(project, datadir, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_check_logfile(project_logger, project, datadir, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     # add regex
@@ -964,8 +1111,8 @@ def test_check_logfile(project, datadir, monkeypatch, caplog):
     assert project.get("metric", "warnings", step="stepone", index="0") == 1
 
 
-def test_check_logfile_capped(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_check_logfile_capped(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     # add regex
@@ -1011,8 +1158,8 @@ def test_check_logfile_capped(project, monkeypatch, caplog):
         assert len(file.read().splitlines()) == 200
 
 
-def test_check_logfile_with_extra_metrics(project, datadir, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_check_logfile_with_extra_metrics(project_logger, project, datadir, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     # add regex
@@ -1199,8 +1346,8 @@ def test_setup_input_directory_renames_file(project):
     assert not os.path.isfile(input_dir / "dummy.pkg.json")
 
 
-def test_setup_input_directory_no_input_dir(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_setup_input_directory_no_input_dir(project_logger, project, caplog):
+    project_logger(project)
 
     input_dir = Path(workdir(project, step="steptwo", index="0")) / "inputs"
     os.makedirs(input_dir, exist_ok=True)
@@ -1220,8 +1367,8 @@ def test_setup_input_directory_no_input_dir(project, monkeypatch, caplog):
 
 
 @pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
-def test_setup_input_directory_input_error(project, error, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_setup_input_directory_input_error(project_logger, project, error, caplog):
+    project_logger(project)
 
     input_dir = Path(workdir(project, step="steptwo", index="0")) / "inputs"
     os.makedirs(input_dir, exist_ok=True)
@@ -1247,8 +1394,8 @@ def test_validate(project):
         assert node.validate() is True
 
 
-def test_validate_missing_inputs(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_validate_missing_inputs(project_logger, project, caplog):
+    project_logger(project)
 
     project.set("tool", "builtin", "task", "nop", "input", "file0.txt",
                 step="steptwo", index="0")
@@ -1259,8 +1406,8 @@ def test_validate_missing_inputs(project, monkeypatch, caplog):
     assert "Required input file0.txt not received for steptwo/0" in caplog.text
 
 
-def test_validate_missing_required_key(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_validate_missing_required_key(project_logger, project, caplog):
+    project_logger(project)
 
     project.set("tool", "builtin", "task", "nop", "require", ["key,not,found"],
                 step="steptwo", index="0")
@@ -1271,8 +1418,8 @@ def test_validate_missing_required_key(project, monkeypatch, caplog):
     assert "Cannot resolve required keypath [key,not,found]" in caplog.text
 
 
-def test_validate_empty_required_key(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_validate_empty_required_key(project_logger, project, caplog):
+    project_logger(project)
 
     project.set("tool", "builtin", "task", "nop", "require",
                 ["library,testdesign,fileset,rtl,topmodule"],
@@ -1286,8 +1433,8 @@ def test_validate_empty_required_key(project, monkeypatch, caplog):
         in caplog.text
 
 
-def test_validate_missing_required_file(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_validate_missing_required_file(project_logger, project, caplog):
+    project_logger(project)
 
     project.set("tool", "builtin", "task", "nop", "require",
                 ["library,testdesign,fileset,rtl,file,verilog"],
@@ -1301,8 +1448,8 @@ def test_validate_missing_required_file(project, monkeypatch, caplog):
         "[library,testdesign,fileset,rtl,file,verilog]" in caplog.text
 
 
-def test_summarize(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_summarize(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     project.set("metric", "errors", 2, step="steptwo", index="0")
@@ -1316,8 +1463,8 @@ def test_summarize(project, monkeypatch, caplog):
     assert "Finished task in 12.50s\n" in caplog.text
 
 
-def test_report_output_files_builtin(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_report_output_files_builtin(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(project, "steptwo", "0")
@@ -1327,8 +1474,8 @@ def test_report_output_files_builtin(project, monkeypatch, caplog):
     assert caplog.text == ""
 
 
-def test_report_output_files_missing_outputs_dir(echo_project, monkeypatch, caplog):
-    monkeypatch.setattr(echo_project, "_Project__logger", logging.getLogger())
+def test_report_output_files_missing_outputs_dir(project_logger, echo_project, caplog):
+    project_logger(echo_project)
     node = SchedulerNode(echo_project, "steptwo", "0")
     with node.runtime():
         with pytest.raises(SystemExit):
@@ -1338,8 +1485,8 @@ def test_report_output_files_missing_outputs_dir(echo_project, monkeypatch, capl
     assert "Halting steptwo/0 due to errors" in caplog.text
 
 
-def test_report_output_files_missing_manifest(echo_project, monkeypatch, caplog):
-    monkeypatch.setattr(echo_project, "_Project__logger", logging.getLogger())
+def test_report_output_files_missing_manifest(project_logger, echo_project, caplog):
+    project_logger(echo_project)
     node = SchedulerNode(echo_project, "steptwo", "0")
     with node.runtime():
         os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
@@ -1350,8 +1497,8 @@ def test_report_output_files_missing_manifest(echo_project, monkeypatch, caplog)
     assert "Halting steptwo/0 due to errors" in caplog.text
 
 
-def test_report_output_files_missing_outputs(echo_project, monkeypatch, caplog):
-    monkeypatch.setattr(echo_project, "_Project__logger", logging.getLogger())
+def test_report_output_files_missing_outputs(project_logger, echo_project, caplog):
+    project_logger(echo_project)
     echo_project.set("tool", "echo", "task", "echo", "output", "echothis.txt",
                      step="steptwo", index="0")
 
@@ -1366,8 +1513,8 @@ def test_report_output_files_missing_outputs(echo_project, monkeypatch, caplog):
     assert "Halting steptwo/0 due to errors" in caplog.text
 
 
-def test_report_output_files_extra_outputs(echo_project, monkeypatch, caplog):
-    monkeypatch.setattr(echo_project, "_Project__logger", logging.getLogger())
+def test_report_output_files_extra_outputs(project_logger, echo_project, caplog):
+    project_logger(echo_project)
     echo_project.set("tool", "echo", "task", "echo", "output", "echothis.txt",
                      step="steptwo", index="0")
 
@@ -1469,8 +1616,8 @@ def test_run_pass_hash(project):
     assert project.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
 
 
-def test_run_failed_to_validate(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_run_failed_to_validate(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(project, "stepone", "0")
@@ -1490,8 +1637,8 @@ def test_run_failed_to_validate(project, monkeypatch, caplog):
     assert "Halting stepone/0 due to errors" in caplog.text
 
 
-def test_run_failed_select_input(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_run_failed_select_input(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(project, "steptwo", "0")
@@ -1511,8 +1658,8 @@ def test_run_failed_select_input(project, monkeypatch, caplog):
     assert "Halting steptwo/0 due to errors" in caplog.text
 
 
-def test_run_failed_to_execute(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_run_failed_to_execute(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(project, "stepone", "0")
@@ -1530,6 +1677,26 @@ def test_run_failed_to_execute(project, monkeypatch, caplog):
 
     assert "thiserrorisraised" in caplog.text
     assert "Halting stepone/0 due to errors" in caplog.text
+
+
+def test_run_keyboard_interrupt_during_execute(project_logger, project, caplog):
+    project_logger(project)
+    project.logger.setLevel(logging.INFO)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
+        call_exec.side_effect = KeyboardInterrupt()
+        with pytest.raises(SystemExit):
+            node.run()
+        call_exec.assert_called_once()
+
+    assert project.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
+
+    assert "Execution interrupted for stepone/0" in caplog.text
+    # The interrupt path passes errmsg=, which replaces the default "Halting..." line.
+    assert "Halting stepone/0 due to errors" not in caplog.text
 
 
 def test_run_failed_to_execute_initial_save_has_error(project):
@@ -1559,8 +1726,8 @@ def test_run_failed_to_execute_initial_save_has_error(project):
     assert saved_manifest.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
 
 
-def test_run_failed_to_execute_generate_issue(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_run_failed_to_execute_generate_issue(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(project, "stepone", "0")
@@ -1614,6 +1781,27 @@ def test_run_with_queue(project):
         assert pipe.calls == 1
 
 
+def test_init_run_logger_with_queue_strips_inherited_handlers(project):
+    """In the multiprocessing path the child must drop every handler it
+    inherited from the parent and keep only the QueueHandler. Anything else
+    (terminal handler, dashboard's LogBufferHandler, etc.) would either
+    corrupt parent state or — when its sink is a manager-backed queue
+    shared with the parent — deliver the same record twice (once from the
+    child directly, once via the parent's QueueListener)."""
+    extra_handler = logging.NullHandler()
+    project.logger.addHandler(extra_handler)
+    assert extra_handler in project.logger.handlers
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.set_queue(None, Queue())
+
+    node._init_run_logger()
+
+    assert extra_handler not in project.logger.handlers
+    assert project.logger.handlers == [project._logger_console]
+    assert isinstance(project._logger_console, logging.handlers.QueueHandler)
+
+
 def test_run_called_testcase_on_error(project):
     node = SchedulerNode(project, "stepone", "0")
     assert node._SchedulerNode__generate_test_case is True
@@ -1642,8 +1830,8 @@ def test_run_not_called_testcase_on_error(project):
         call_testcase.assert_not_called()
 
 
-def test_copy_from_do_nothing(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_copy_from_do_nothing(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(project, "stepone", "0")
@@ -1651,8 +1839,8 @@ def test_copy_from_do_nothing(project, monkeypatch, caplog):
     assert caplog.text == ""
 
 
-def test_copy_from(project, monkeypatch, caplog, has_graphviz):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_copy_from(project_logger, project, caplog, has_graphviz):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(project, "stepone", "0")
@@ -2014,8 +2202,8 @@ def test_check_previous_run_status_preserves_success_path(project, monkeypatch):
 
 
 @pytest.mark.timeout(180)
-def test_generate_testcase_autoissue(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_generate_testcase_autoissue(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     project.option.set_autoissue(True)
@@ -2038,8 +2226,8 @@ def test_generate_testcase_autoissue(project, monkeypatch, caplog):
 
 
 @pytest.mark.timeout(180)
-def test_generate_testcase_no_autoissue_no_manifest(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_generate_testcase_no_autoissue_no_manifest(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     assert project.option.get_autoissue() is False
@@ -2061,8 +2249,8 @@ def test_generate_testcase_no_autoissue_no_manifest(project, monkeypatch, caplog
 
 
 @pytest.mark.timeout(180)
-def test_generate_testcase_no_autoissue_output_manifest(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_generate_testcase_no_autoissue_output_manifest(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     assert project.option.get_autoissue() is False
@@ -2082,8 +2270,8 @@ def test_generate_testcase_no_autoissue_output_manifest(project, monkeypatch, ca
 
 
 @pytest.mark.timeout(180)
-def test_generate_testcase_no_autoissue_input_manifest(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+def test_generate_testcase_no_autoissue_input_manifest(project_logger, project, caplog):
+    project_logger(project)
     project.logger.setLevel(logging.INFO)
 
     assert project.option.get_autoissue() is False

@@ -19,7 +19,6 @@ To learn how to use SiliconCompiler, see the :ref:`user guide <user_guide>`.
    Tools  <predef_modules/tools>
    PDKs <predef_modules/pdks>
    Libraries <predef_modules/libs>
-   FPGAs <predef_modules/fpgas>
    Checklists <predef_modules/checklists>
 
 .. _api_refs:

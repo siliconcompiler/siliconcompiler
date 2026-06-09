@@ -8,6 +8,146 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.37.12 (2026-06-09)
+=========================================
+
+**Minor:**
+
+ * Added breakpoint handling in the scheduler to avoid multiple breakpoints from running at the same time.
+
+ * Tools:
+
+  * img2stream: added LEF output.
+  * pyslang: updated to version 11.
+  * openroad: fixed write_views on missing OpenRCX files.
+  * verilator: added support for verilog only testbenches.
+
+
+SiliconCompiler 0.37.11 (2026-05-20)
+=========================================
+
+**Minor:**
+
+ * Fixed error message in `smake` when no file is provided.
+ * Improved path/dir/file type checking in schema types.
+ * Fixed issue where flows would be marked as failed when using `option,from`.
+ * Added preferred indicator to `sc-show -list`.
+
+
+SiliconCompiler 0.37.10 (2026-05-11)
+=========================================
+
+**Minor:**
+
+ * Fixed flowgraph handling of builtin tasks, like min and max, to correctly handle the input/output file checks.
+ * Fixed the time reporting on the dashboard to avoid double counting parallel tasks.
+
+ * Tools:
+
+  * openroad: added checks for pin placement outside die area and added support for glob skip reports.
+
+
+SiliconCompiler 0.37.9 (2026-05-08)
+=========================================
+
+**Minor:**
+
+ * Made the breakpoint interface more robust and fixed issues with text getting garbled.
+ * Fixed issue when setting `option,from` where flowgraph would ignore it if the step appeared in a leg with parallel paths.
+
+ * Tools:
+
+  * openroad: added better handling of pin placement.
+
+
+SiliconCompiler 0.37.8 (2026-05-04)
+=========================================
+
+**Major:**
+
+ * Added `OpenTask` as parent class to `ShowTask` and `ScreenshotTask`, which enable opening in the commandline.
+
+**Minor:**
+
+ * Added `.write_depgraph` to Project to enable displaying the dependency graph of a project.
+ * Fixed calls to `sc-issue` to remove the requirement to add `-cfg`.
+ * Fixed file collection to avoid collecting a file twice.
+ * Updated log reading handling to better handle tools that emit partial lines.
+ * Fixed git file resolver when LFS is used.
+
+ * Tools:
+
+  * openroad: added support for `OpenTask` and reordered the creation of placement blockages.
+
+
+SiliconCompiler 0.37.7 (2026-04-21)
+=========================================
+
+**Minor:**
+
+ * Added dataroot resolver to allow for nesting dataroots.
+ * Fixed log files accumulating in the build directory and updated log naming to make it easier to identify runs.
+ * Added job termination when system memory exceeds 99% utilization.
+
+ * Tools:
+
+  * openroad: added support for placement and routing blockages in init floorplan.
+
+
+SiliconCompiler 0.37.6 (2026-04-15)
+=========================================
+
+**Minor:**
+
+ * Switched to marking cached downloads as readonly to avoid accidental overwrites.
+ * Added utility app to cleanup caches with `python3 -m siliconcompiler.apps.utils.cleanup`.
+ * Updated targets to map regfiles from lambdalib.
+ * Added `scp` based file path resolver to allow files to be copied between machines.
+
+ * Tools:
+
+  * openroad: Added option to check that all pins are placed and remove blockages created during macro placement.
+
+
+SiliconCompiler 0.37.5 (2026-04-08)
+=========================================
+
+**Minor:**
+
+ * Added `-tool` option to `sc-show` to allow for tool filtering.
+ * Ensure the flow restarts when the topmodule name changes.
+
+ * Tools:
+
+  * openroad: Added support for handling 3D pin placement, reordered macro placement to occur before padring generation, and added 3D blox viewing support.
+
+
+SiliconCompiler 0.37.4 (2026-03-25)
+=========================================
+
+**Minor:**
+
+ * Tools:
+
+  * cocotb: Added plusargs task to allow for easier access to plusargs in simulations.
+
+
+SiliconCompiler 0.37.3 (2026-03-22)
+=========================================
+
+**Minor:**
+
+ * Updated layout handling of the dashboard to better handle future modifications.
+ * Added help screen to dashboard and basic controls for what is displayed.
+ * Added check for adding dependencies to projects without a name.
+ * Added support for `?submodules=<True/False>` for git dataroots to control pulling submodules.
+
+ * Tools:
+
+  * klayout: added task to convert images to GDS.
+  * vcd2fst: added to support converting VCD files to FST.
+
+
 SiliconCompiler 0.37.2 (2026-03-09)
 =========================================
 
@@ -656,7 +796,7 @@ SiliconCompiler 0.28.4 (2024-10-28)
   * surelog: ensure its require list is complete to properly detect changes in inputs.
   * yosys: added screenshot task.
   * klayout: added drc task to run DRC and convert_drc_db task to convert a klayout DRC database to openroads.
-  * vpr: added `vpr_device_code` support. 
+  * vpr: added `vpr_device_code` support.
   * magic: added support for uncompressing LEF files.
 
 

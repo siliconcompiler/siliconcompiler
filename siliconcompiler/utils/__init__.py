@@ -15,11 +15,7 @@ from jinja2 import Environment, FileSystemLoader, Template
 
 from typing import Dict, Optional, Union, Callable, List, TYPE_CHECKING
 
-import sys
-if sys.version_info < (3, 10):
-    from importlib_metadata import entry_points
-else:
-    from importlib.metadata import entry_points
+from importlib.metadata import entry_points
 
 from siliconcompiler.utils.paths import builddir
 

@@ -103,11 +103,8 @@ def collect(project: "Project",
             continue
 
         param: Parameter = project.get(*key, field=None)
-        leaftype: str = param.get(field='type')
-        is_dir = "dir" in leaftype
-        is_file = "file" in leaftype
 
-        if not is_dir and not is_file:
+        if not param.is_path:
             continue
 
         if not param.get(field='copy'):
@@ -122,17 +119,16 @@ def collect(project: "Project",
             else:
                 values = [values]
 
-            if is_dir:
+            if param.is_directory:
                 dirs[(key, step, index)] = values
             else:
                 files[(key, step, index)] = values
 
     try:
         path_filter = FilterDirectories(project)
+        collected_dirs = set()
         for key, step, index in sorted(dirs.keys()):
             abs_paths = find_files(*key, step=step, index=index)
-
-            new_paths = set()
 
             if not isinstance(abs_paths, (list, tuple, set)):
                 abs_paths = [abs_paths]
@@ -149,14 +145,14 @@ def collect(project: "Project",
                     continue
 
                 imported = False
-                for new_path in new_paths:
-                    if abs_path.startswith(new_path):
+                for collected in collected_dirs:
+                    if abs_path == collected or abs_path.startswith(collected + os.sep):
                         imported = True
                         break
                 if imported:
                     continue
 
-                new_paths.add(abs_path)
+                collected_dirs.add(abs_path)
 
                 import_path = os.path.join(directory, value.get_hashed_filename())
                 if os.path.exists(import_path):
@@ -186,6 +182,16 @@ def collect(project: "Project",
 
                 if abs_path.startswith(directory):
                     # File already imported in directory
+                    continue
+
+                # Skip files that live inside a directory that was already collected;
+                # they are reachable via the collected directory's search path.
+                contained = False
+                for collected in collected_dirs:
+                    if abs_path.startswith(collected + os.sep):
+                        contained = True
+                        break
+                if contained:
                     continue
 
                 import_path = os.path.join(directory, value.get_hashed_filename())

@@ -10,7 +10,7 @@ import os.path
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import List, Dict
+from typing import Any, List, Dict, Set, Tuple
 
 from rich import box
 from rich.theme import Theme
@@ -65,17 +65,25 @@ class LogBuffer:
             event = threading.Event()
         self.event = event
 
-    def make_handler(self, logger_unicode_map) -> logging.Handler:
+    def make_handler(self, logger_unicode_map, formatter_source=None) -> logging.Handler:
         """
         Creates and returns a `LogBufferHandler` instance associated with this `LogBuffer`.
 
         This handler can then be added to a Python logger to direct log messages
         to this buffer.
 
+        Args:
+            formatter_source (logging.Handler, optional): When provided, the
+                returned handler formats each record with this source handler's
+                current formatter rather than its own. Lets the dashboard track
+                formatter changes that other code applies to the project's
+                terminal handler (e.g. the scheduler swapping in a blank
+                in-run formatter) without explicit synchronization.
+
         Returns:
             logging.Handler: An instance of `LogBufferHandler`.
         """
-        return LogBufferHandler(self, logger_unicode_map)
+        return LogBufferHandler(self, logger_unicode_map, formatter_source=formatter_source)
 
     def add_line(self, line: str):
         """
@@ -131,16 +139,23 @@ class LogBufferHandler(logging.Handler):
     for display in a dashboard or other UI, replacing console color codes
     with a simplified markdown-like format.
     """
-    def __init__(self, parent: LogBuffer, logger_unicode_map):
+    def __init__(self, parent: LogBuffer, logger_unicode_map, formatter_source=None):
         """
         Initializes the LogBufferHandler.
 
         Args:
             parent (LogBuffer): The parent `LogBuffer` instance to which processed
                                 log lines will be added.
+            formatter_source (logging.Handler, optional): If provided, records
+                are formatted using this handler's current formatter rather
+                than this handler's own. Lets the dashboard track formatter
+                changes that other code applies to the project's terminal
+                handler (e.g. the scheduler swapping in a blank in-run
+                formatter) without explicit synchronization.
         """
         super().__init__()
         self._parent = parent
+        self._formatter_source = formatter_source
 
         self.__logger_unicode_map = logger_unicode_map
         if self.__logger_unicode_map:
@@ -150,6 +165,19 @@ class LogBufferHandler(logging.Handler):
             self.__unicode_rep = re.compile(r"^\|\s[\u001ba-zA-Z0-9\[\\ ]+\s+\|")
         else:
             self.__unicode_rep = None
+
+    def format(self, record):
+        """
+        Format a record using ``formatter_source.formatter`` when one is set,
+        falling back to this handler's own formatter otherwise. The dashboard
+        relies on this so log lines stay in sync with whatever formatter the
+        project's terminal handler is currently using.
+        """
+        if self._formatter_source is not None:
+            formatter = self._formatter_source.formatter
+            if formatter is not None:
+                return formatter.format(record)
+        return super().format(record)
 
     def emit(self, record):
         """
@@ -175,6 +203,26 @@ class LogBufferHandler(logging.Handler):
                     (SCColorLoggerFormatter.bold_red.replace("[", "\\["), "[bold red]")):
                 log_entry = log_entry.replace(color, replacement)
         self._parent.add_line(log_entry)
+
+
+@dataclass
+class _FlowTopology:
+    """
+    Cached topology data for a single (design, jobname) flow.
+
+    The recursive distance walk in `_get_job` is the most expensive piece of
+    every dashboard update, but its result depends only on the flowgraph
+    structure (plus which nodes are SKIPPED — see `signature`). Caching this
+    lets status-only updates avoid O(N^2) recomputation on every refresh.
+    """
+    nodes: List[Tuple[str, str]]
+    nodeorder: Dict[Tuple[str, str], Tuple[int, int]]
+    node_dists: Dict[Tuple[str, str], Dict[Tuple[str, str], int]]
+    flow_entry_nodes: Set[Tuple[str, str]]
+    flow_exit_nodes: Set[Tuple[str, str]]
+    check_flow_nodes: Set[Tuple[str, str]]
+    lowest_priority: int
+    signature: Any
 
 
 @dataclass
@@ -352,6 +400,11 @@ class Board:
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
 
+        # Cache of flowgraph topology per project_id. The render thread is the
+        # only consumer of _get_job, and callers already serialize via
+        # _job_data_lock, so the cache itself does not need its own lock.
+        self._topology_cache: Dict[str, _FlowTopology] = {}
+
         self._log_handler_queue = manager.Queue()
 
         self._log_handler = LogBuffer(self._log_handler_queue, n=120, event=self._render_event)
@@ -375,14 +428,21 @@ class Board:
         self._layout.toggle_show_help_text()
         self.__last_help = time.time()
 
-    def make_log_hander(self) -> logging.Handler:
+    def make_log_hander(self, formatter_source=None) -> logging.Handler:
         """
         Creates and returns a logging handler that directs logs to this board.
+
+        Args:
+            formatter_source (logging.Handler, optional): When provided, the
+                returned handler formats records using this source handler's
+                current formatter. See :class:`LogBufferHandler` for details.
 
         Returns:
             logging.Handler: The log handler instance.
         """
-        return self._log_handler.make_handler(Board._symbols.get("logging", None))
+        return self._log_handler.make_handler(
+            Board._symbols.get("logging", None),
+            formatter_source=formatter_source)
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
@@ -496,6 +556,22 @@ class Board:
             return
 
         self._render_thread.join()
+
+    @staticmethod
+    def _has_parallelism(running_starts, done_intervals) -> bool:
+        """
+        Returns True iff at least two tasks have been observed running at the
+        same time. Two concurrent in-flight nodes count, as do any pair of
+        completed nodes whose wall-clock intervals (derived from totaltime
+        and tasktime metrics) overlap.
+        """
+        if len(running_starts) >= 2:
+            return True
+        intervals = sorted(done_intervals)
+        for (_, end), (start, _) in zip(intervals, intervals[1:]):
+            if start < end:
+                return True
+        return False
 
     @staticmethod
     def format_status(status: str) -> str:
@@ -694,26 +770,46 @@ class Board:
             job_data = self._render_data.jobs.copy()
 
         ref_time = time.time()
-        runtimes = {}
+        wall_strs = {}
+        cpu_strs = {}
         for name, job in job_data.items():
-            if job.complete:
-                runtimes[name] = format_time(job.runtime, milliseconds_digits=1)
-            else:
-                runtime = 0.0
-                for node in job.nodes:
-                    if node["time"]["duration"] is not None:
-                        runtime += node["time"]["duration"]
-                    elif node["time"]["start"] is not None:
-                        runtime += ref_time - node["time"]["start"]
-                runtimes[name] = format_time(runtime, milliseconds_digits=1)
+            total = 0.0
+            done_intervals = []
+            done_totaltimes = []
+            running_starts = []
+            for node in job.nodes:
+                duration = node["time"]["duration"]
+                start = node["time"]["start"]
+                totaltime = node["time"].get("totaltime")
 
-        runtime_width = max([*[len(r) for r in runtimes.values()], 0])
+                if duration is not None:
+                    total += duration
+                elif start is not None:
+                    total += ref_time - start
+                    running_starts.append(start)
+                if totaltime is not None:
+                    done_totaltimes.append(totaltime)
+                    if duration is not None:
+                        done_intervals.append((totaltime - duration, totaltime))
+
+            wall_baseline = max(done_totaltimes, default=0.0)
+            if running_starts:
+                wall = wall_baseline + (ref_time - min(running_starts))
+            else:
+                wall = wall_baseline
+
+            wall_strs[name] = format_time(wall, milliseconds_digits=1)
+            if Board._has_parallelism(running_starts, done_intervals):
+                cpu_strs[name] = format_time(total, milliseconds_digits=1)
+            else:
+                cpu_strs[name] = ""
 
         job_info = []
         for name, job in job_data.items():
             done = job.finished == job.total
-            job_info.append(
-                (done, f"{job.design}/{job.jobname}", job.total, job.success, runtimes[name]))
+            job_info.append((
+                done, f"{job.design}/{job.jobname}", job.total, job.success,
+                wall_strs[name], cpu_strs[name]))
 
         number_of_bars = layout.progress_bar_height - 1  # accounting for the padding
         while job_info and len(job_info) > number_of_bars:
@@ -729,19 +825,36 @@ class Board:
         if not job_info:
             return None
 
-        progress = Progress(
+        # Compute column widths and CPU visibility from displayed rows only,
+        # so trimmed-away jobs don't pad the visible columns or force a CPU
+        # column to appear when none of the rendered jobs has parallelism.
+        visible_walls = [row[4] for row in job_info]
+        visible_cpus = [row[5] for row in job_info]
+        wall_width = max([*[len(s) for s in visible_walls], 0])
+        cpu_width = max([*[len(s) for s in visible_cpus], 0])
+        show_cpu = any(visible_cpus)
+
+        columns = [
             TextColumn("[progress.description]{task.description}"),
             MofNCompleteColumn(),
             BarColumn(bar_width=60),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TextColumn(f" {{task.fields[runtime]:>{runtime_width}}}")
-        )
-        for _, name, total, success, runtime in job_info:
+            TextColumn(f" {{task.fields[walltime]:>{wall_width}}}"),
+        ]
+        if show_cpu:
+            sep_width = 3  # " / "
+            columns.append(TextColumn(f"{{task.fields[separator]:<{sep_width}}}"))
+            columns.append(TextColumn(f"{{task.fields[cputime]:>{cpu_width}}}"))
+
+        progress = Progress(*columns)
+        for _, name, total, success, walltime, cputime in job_info:
             progress.add_task(
                 f"[text.primary]Progress ({name}):",
                 total=total,
                 completed=success,
-                runtime=runtime
+                walltime=walltime,
+                separator=" / " if cputime else "",
+                cputime=cputime,
             )
 
         return Group(progress, Padding("", (0, 0)))
@@ -900,7 +1013,7 @@ class Board:
             Text(f"Authors: {', '.join(_metadata.authors)}", overflow="ellipsis", no_wrap=True),
             pad=(0, 0, 1, 0))
         version = Padding(
-            Text(f"Version: {_metadata.version}", overflow="ellipsis", no_wrap=True),
+            Text(f"Version: {_metadata.detailed_version}", overflow="ellipsis", no_wrap=True),
             pad=(0, 0, 1, 0))
 
         if layout.height >= banner_height + authors_height + table_height + version_height:
@@ -1008,6 +1121,124 @@ class Board:
             self._board_info.data_modified = True
             self._render_event.set()
 
+    def _get_flow_topology(self, project, project_id):
+        """Compute (and cache) the topology-only parts of the flowgraph.
+
+        The recursive distance walk is the most expensive piece of `_get_job`
+        and depends only on the flowgraph structure plus the set of SKIPPED
+        nodes (since `get_node_inputs(record=...)` walks through skipped
+        nodes to their real predecessors). Caching by `project_id` lets
+        status-only updates skip the O(N^2) work entirely.
+
+        Returns None if the project has no configured flow.
+        """
+        flow = project.option.get_flow()
+        if not flow:
+            return None
+
+        check_flow = RuntimeFlowgraph(
+            project.get_flow(flow),
+            from_steps=project.option.get_from(),
+            to_steps=project.option.get_to(),
+            prune_nodes=project.option.get_prune())
+        runtime_flow = RuntimeFlowgraph(
+            project.get_flow(flow),
+            to_steps=project.option.get_to(),
+            prune_nodes=project.option.get_prune())
+        record = project.get("record", field='schema')
+
+        execnodes = runtime_flow.get_nodes()
+        check_flow_nodes = set(check_flow.get_nodes())
+
+        # Signature for cache invalidation. SKIPPED is the only status that
+        # changes which inputs a downstream node sees, so it's enough to
+        # invalidate on the SKIPPED set rather than re-running the heavier
+        # get_node_inputs probe for every node every call.
+        skipped = tuple(
+            sorted(
+                node for node in execnodes
+                if project.get("record", "status", step=node[0], index=node[1])
+                == NodeStatus.SKIPPED
+            )
+        )
+        # Edges of the static flow graph. Including these makes the cache
+        # invalidate when a user mutates flowgraph edges between calls (e.g.
+        # in a Jupyter session) — node-set equality alone wouldn't catch
+        # that. O(N + E) per signature build, far cheaper than the recursive
+        # distance walk it gates.
+        flow_obj = project.get_flow(flow)
+        edges = tuple(
+            (node, tuple(sorted(flow_obj.get_graph_node(node[0], node[1]).get_input())))
+            for node in sorted(execnodes)
+        )
+        signature = (
+            flow,
+            tuple(execnodes),
+            tuple(sorted(check_flow_nodes)),
+            edges,
+            tuple(project.option.get_from() or ()),
+            tuple(project.option.get_to() or ()),
+            tuple(project.option.get_prune() or ()),
+            skipped,
+        )
+
+        cached = self._topology_cache.get(project_id)
+        if cached is not None and cached.signature == signature:
+            return cached
+
+        nodes = []
+        nodeorder = {}
+        node_inputs = {}
+        node_outputs = {}
+
+        for n, nodeset in enumerate(runtime_flow.get_execution_order()):
+            for m, node in enumerate(nodeset):
+                if node not in execnodes:
+                    continue
+                nodes.append(node)
+                nodeorder[node] = (n, m)
+                node_inputs[node] = runtime_flow.get_node_inputs(*node, record=record)
+                for in_node in project.get_flow(flow).get_graph_node(node[0],
+                                                                     node[1]).get_input():
+                    node_outputs.setdefault(in_node, set()).add(node)
+
+        flow_entry_nodes = set(project.get_flow(flow).get_entry_nodes())
+        flow_exit_nodes = set(runtime_flow.get_exit_nodes())
+
+        def get_node_distance(node, search, level=1):
+            dists = {}
+            if node not in search:
+                return dists
+            for snode in search[node]:
+                dists[snode] = level
+                dists.update(get_node_distance(snode, search, level=level + 1))
+            return dists
+
+        node_dists = {}
+        for cnode in nodes:
+            # use 2x + 1 to give completed nodes sorting priority
+            node_dists[cnode] = {
+                node: 2 * level + 1
+                for node, level in get_node_distance(cnode, node_inputs).items()
+            }
+            node_dists[cnode].update({
+                node: 2 * level
+                for node, level in get_node_distance(cnode, node_outputs).items()
+            })
+
+        topology = _FlowTopology(
+            nodes=nodes,
+            nodeorder=nodeorder,
+            node_dists=node_dists,
+            flow_entry_nodes=flow_entry_nodes,
+            flow_exit_nodes=flow_exit_nodes,
+            check_flow_nodes=check_flow_nodes,
+            lowest_priority=3 * len(execnodes),
+            signature=signature,
+        )
+        self._topology_cache[project_id] = topology
+        return topology
+
     def _get_job(self, project, starttimes=None) -> JobData:
         """
         Parses a project object to extract detailed information about the flowgraph,
@@ -1027,88 +1258,45 @@ class Board:
         if not starttimes:
             starttimes = {}
 
+        design = project.option.get_design()
+        jobname = project.option.get_jobname()
+        project_id = f"{design}/{jobname}"
+
         nodes = []
         nodestatus = {}
         nodeorder = {}
         node_priority = {}
         flow_entry_nodes = set()
         flow_exit_nodes = set()
+        check_flow_nodes = set()
         try:
-            node_inputs = {}
-            node_outputs = {}
-            flow = project.option.get_flow()
-            if not flow:
+            topology = self._get_flow_topology(project, project_id)
+            if topology is None:
                 raise RuntimeError("dummy error")
 
-            check_flow = RuntimeFlowgraph(
-                project.get_flow(flow),
-                from_steps=project.option.get_from(),
-                to_steps=project.option.get_to(),
-                prune_nodes=project.option.get_prune())
-            runtime_flow = RuntimeFlowgraph(
-                project.get_flow(flow),
-                to_steps=project.option.get_to(),
-                prune_nodes=project.option.get_prune())
-            record = project.get("record", field='schema')
+            nodes = topology.nodes
+            nodeorder = topology.nodeorder
+            flow_entry_nodes = topology.flow_entry_nodes
+            flow_exit_nodes = topology.flow_exit_nodes
+            check_flow_nodes = topology.check_flow_nodes
 
-            execnodes = runtime_flow.get_nodes()
-            lowest_priority = 3 * len(execnodes)  # 2x + 1 is lowest computed, so 3x will be lower
-            for n, nodeset in enumerate(runtime_flow.get_execution_order()):
-                for m, node in enumerate(nodeset):
-                    if node not in execnodes:
-                        continue
-                    nodes.append(node)
-
-                    node_priority[node] = lowest_priority
-
-                    status = project.get("record", "status", step=node[0], index=node[1])
-                    if status is None:
-                        status = NodeStatus.PENDING
-                    nodestatus[node] = status
-                    nodeorder[node] = (n, m)
-
-                    node_inputs[node] = runtime_flow.get_node_inputs(*node, record=record)
-                    for in_node in project.get_flow(flow).get_graph_node(node[0],
-                                                                         node[1]).get_input():
-                        node_outputs.setdefault(in_node, set()).add(node)
-
-            flow_entry_nodes = set(
-                project.get_flow(flow).get_entry_nodes())
-            flow_exit_nodes = set(runtime_flow.get_exit_nodes())
+            for node in nodes:
+                node_priority[node] = topology.lowest_priority
+                status = project.get("record", "status", step=node[0], index=node[1])
+                if status is None:
+                    status = NodeStatus.PENDING
+                nodestatus[node] = status
 
             running_nodes = set([node for node in nodes if NodeStatus.is_running(nodestatus[node])])
             done_nodes = set([node for node in nodes if NodeStatus.is_done(nodestatus[node])])
             error_nodes = set([node for node in nodes if NodeStatus.is_error(nodestatus[node])])
 
-            def get_node_distance(node, search, level=1):
-                dists = {}
-
-                if node not in search:
-                    return dists
-
-                for snode in search[node]:
-                    dists[snode] = level
-                    dists.update(get_node_distance(snode, search, level=level+1))
-
-                return dists
-
-            # Compute relative node distances
-            node_dists = {}
-            for cnode in nodes:
-                # use 2x + 1 to give completed nodes sorting priority
-                node_dists[cnode] = {
-                    node: 2*level+1 for node, level in get_node_distance(cnode, node_inputs).items()
-                }
-                node_dists[cnode].update({
-                    node: 2*level for node, level in get_node_distance(cnode, node_outputs).items()
-                })
-
-            # Compute printing priority of nodes
+            # Compute printing priority of nodes (status-dependent; cheap)
             remaining_entry_nodes = flow_entry_nodes - done_nodes
             startnodes = running_nodes.union(remaining_entry_nodes)
             priority_node = {0: startnodes.union(error_nodes)}
             for node in nodes:
-                dists = node_dists[node]
+                dists = topology.node_dists[node]
                 levels = []
                 for snode in startnodes:
                     if snode not in dists:
@@ -1124,9 +1312,6 @@ class Board:
                     node_priority[node] = min(node_priority[node], level)
         except RuntimeError:
             pass
-
-        design = project.option.get_design()
-        jobname = project.option.get_jobname()
 
         job_data = JobData()
         job_data.jobname = jobname
@@ -1154,14 +1339,16 @@ class Board:
                 job_data.skipped += 1
                 continue
 
-            hide = (step, index) not in check_flow.get_nodes()
+            hide = (step, index) not in check_flow_nodes
             if not hide:
                 job_data.visible += 1
 
             starttime = None
             duration = None
+            totaltime = None
             if NodeStatus.is_done(status):
                 duration = project.get("metric", "tasktime", step=step, index=index)
+                totaltime = project.get("metric", "totaltime", step=step, index=index)
             if (step, index) in starttimes:
                 starttime = starttimes[(step, index)]
 
@@ -1186,7 +1373,8 @@ class Board:
                     "status": status,
                     "time": {
                         "start": starttime,
-                        "duration": duration
+                        "duration": duration,
+                        "totaltime": totaltime
                     },
                     "metrics": node_metrics,
                     "log": [(
