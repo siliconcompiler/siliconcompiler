@@ -117,7 +117,8 @@ class FPGASynthesis(YosysTask):
         device = self.project.get("fpga", "device")
         if device:
             fpga = self.project.get_library(device)
-            for key in ("fpga_config", "macrolib", "dsp_techmap",
+            # skipped "fpga_config" due to selfcontainment issue.
+            for key in ("macrolib", "dsp_techmap",
                         "memory_libmap", "memory_techmap", "flop_techmap"):
                 # not every FPGA device defines the yosys tool parameters
                 # (mirrors the sc_cfg_exists guards in sc_synth_fpga.tcl)
