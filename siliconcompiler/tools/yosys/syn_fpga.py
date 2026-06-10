@@ -118,12 +118,15 @@ class FPGASynthesis(YosysTask):
         if device:
             fpga = self.project.get_library(device)
             # skipped "fpga_config" due to selfcontainment issue.
-            for key in ("macrolib", "dsp_techmap",
-                        "memory_libmap", "memory_techmap", "flop_techmap"):
-                # not every FPGA device defines the yosys tool parameters
-                # (mirrors the sc_cfg_exists guards in sc_synth_fpga.tcl)
-                if fpga.valid("tool", "yosys", key) and fpga.get("tool", "yosys", key):
-                    self.add_required_key(fpga, "tool", "yosys", key)
+            if fpga.valid("tool", "yosys", "fpga_config") and fpga.get("tool", "yosys", "fpga_config"):
+                pass
+            else:
+                for key in ("macrolib", "dsp_techmap",
+                            "memory_libmap", "memory_techmap", "flop_techmap"):
+                    # not every FPGA device defines the yosys tool parameters
+                    # (mirrors the sc_cfg_exists guards in sc_synth_fpga.tcl)
+                    if fpga.valid("tool", "yosys", key) and fpga.get("tool", "yosys", key):
+                        self.add_required_key(fpga, "tool", "yosys", key)
 
     def post_process(self):
         super().post_process()
