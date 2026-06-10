@@ -21,6 +21,25 @@ class MagicTask(Task):
     def tool(self):
         return "magic"
 
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import Flowgraph, Design, ASIC
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.targets import freepdk45_demo
+        design = Design("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = ASIC(design)
+        proj.add_fileset("docs")
+        freepdk45_demo(proj)
+        flow = Flowgraph("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
+
     def parse_version(self, stdout):
         return stdout.strip('\n')
 

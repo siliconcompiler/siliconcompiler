@@ -47,6 +47,9 @@ class _ASICTask(ASICTask, YosysTask):
                         self.add_required_key(lib_obj, "fileset", fileset, "file", "liberty")
 
             # blackbox verilog netlists are read per-asiclib by the synth/lec scripts
+            # (only when the library defines the yosys blackbox_fileset parameter)
+            if not lib_obj.valid("tool", "yosys", "blackbox_fileset"):
+                continue
             bb_filesets = lib_obj.get("tool", "yosys", "blackbox_fileset")
             if bb_filesets:
                 self.add_required_key(lib_obj, "tool", "yosys", "blackbox_fileset")

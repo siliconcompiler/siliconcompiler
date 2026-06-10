@@ -20,6 +20,25 @@ class LVSTask(Task):
     def task(self):
         return "lvs"
 
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import Flowgraph, Design, ASIC
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.targets import freepdk45_demo
+        design = Design("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = ASIC(design)
+        proj.add_fileset("docs")
+        freepdk45_demo(proj)
+        flow = Flowgraph("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
+
     def parse_version(self, stdout):
         # First line: Netgen 1.5.190 compiled on Fri Jun 25 16:05:36 EDT 2021
         return stdout.split()[1]

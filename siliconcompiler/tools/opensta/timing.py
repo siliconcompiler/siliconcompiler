@@ -333,6 +333,25 @@ class FPGATimingTask(TimingTaskBase):
     def task(self):
         return "fpga_timing"
 
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import Flowgraph, Design, FPGA
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.demos.fpga_demo import Z1000
+        design = Design("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = FPGA(design)
+        proj.add_fileset("docs")
+        proj.set_fpga(Z1000())
+        flow = Flowgraph("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
+
     def get_tcl_variables(self, manifest=None):
         """
         Gets Tcl variables for the task, setting 'opensta_timing_mode' to fpga.
@@ -352,7 +371,9 @@ class FPGATimingTask(TimingTaskBase):
         device = self.project.get("fpga", "device")
         if device:
             lib = self.project.get_library(device)
-            if lib.get("tool", "opensta", "liberty_filesets"):
+            # not every FPGA device defines the opensta liberty_filesets parameter
+            if lib.valid("tool", "opensta", "liberty_filesets") and \
+                    lib.get("tool", "opensta", "liberty_filesets"):
                 self.add_required_key(lib, "tool", "opensta", "liberty_filesets")
                 for fileset in lib.get("tool", "opensta", "liberty_filesets"):
                     if lib.has_file(fileset=fileset, filetype="liberty"):
