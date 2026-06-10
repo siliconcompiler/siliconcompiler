@@ -38,7 +38,7 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
         self.add_parameter("external_resistance", "float",
                            "Resistance value to add to the power grid model to account for "
                            "external factors (e.g., package, PCB).",
-                           units="ohm")
+                           defvalue=0, units="ohm")
 
     def set_openroad_disconnectrate(self, rate: float,
                                     step: Optional[str] = None,

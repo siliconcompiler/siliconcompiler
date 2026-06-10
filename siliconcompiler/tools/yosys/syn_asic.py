@@ -747,8 +747,9 @@ class ASICSynthesis(_ASICTask, YosysTask):
 
         if self.get("var", "preserve_modules"):
             self.add_required_key("var", "preserve_modules")
-        if self.get("var", "blackbox_modules"):
-            self.add_required_key("var", "blackbox_modules")
+        # NOTE: blackbox_modules is intentionally not required — it is read nowhere (only the
+        # parallel preserve_modules is consumed by sc_synth_asic.tcl). Parameter kept for API
+        # compatibility but currently inert.
 
         self.add_required_key("var", "use_slang")
         self.add_required_key("var", "add_buffers")

@@ -396,8 +396,9 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
             self.add_required_key("var", "mpl_blockage_weight")
         if self.get("var", "mpl_notch_weight") is not None:
             self.add_required_key("var", "mpl_notch_weight")
-        if self.get("var", "mpl_macro_blockage_weight") is not None:
-            self.add_required_key("var", "mpl_macro_blockage_weight")
+        # NOTE: mpl_macro_blockage_weight is intentionally not required — it is not read by
+        # sc_macro_placement.tcl (no matching rtl_macro_placer flag). The parameter is kept for
+        # API compatibility but is currently inert.
 
     def pre_process(self):
         if all([
