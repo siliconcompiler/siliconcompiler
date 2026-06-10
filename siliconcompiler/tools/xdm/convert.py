@@ -74,6 +74,8 @@ class ConvertTask(Task):
         options.extend(['--dir_out', f'outputs/{self.design_topmodule}.xyce'])
         options.append(self.__input_file())
 
+        return options
+
     def post_process(self):
         super().post_process()
 
