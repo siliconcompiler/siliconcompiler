@@ -118,7 +118,8 @@ class FPGASynthesis(YosysTask):
         if device:
             fpga = self.project.get_library(device)
             # skipped "fpga_config" due to selfcontainment issue.
-            if fpga.valid("tool", "yosys", "fpga_config") and fpga.get("tool", "yosys", "fpga_config"):
+            if fpga.valid("tool", "yosys", "fpga_config") and \
+                    fpga.get("tool", "yosys", "fpga_config"):
                 pass
             else:
                 for key in ("macrolib", "dsp_techmap",
