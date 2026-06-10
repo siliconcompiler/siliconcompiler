@@ -1,6 +1,6 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
 from siliconcompiler import ASIC
-from siliconcompiler.flows import asicflow, synflow
+from siliconcompiler.flows import asicflow, synflow, drcflow
 
 from lambdapdk.ihp130.libs.sg13g2_stdcell import IHP130StdCell_1p2
 from lambdapdk.ihp130.libs.sg13g2_sram import IHP130Lambdalib_SinglePort, \
@@ -52,6 +52,9 @@ def ihp130_demo(
     project.add_dep(synflow.SynthesisFlow(
         syn_np=syn_np,
         timing_np=timing_np))
+    # IHP130 signs off with KLayout DRC; register the matching DRC flow so it
+    # can be selected after the RTL-to-GDS run. (No open-source LVS available.)
+    project.add_dep(drcflow.DRCFlow())
 
     # 3. Set Target PDK
     # Specifies the process development kit to be used.

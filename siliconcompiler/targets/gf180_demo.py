@@ -1,6 +1,6 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
 from siliconcompiler import ASIC
-from siliconcompiler.flows import asicflow, synflow
+from siliconcompiler.flows import asicflow, synflow, drcflow
 
 from lambdapdk.gf180 import GF180_5LM_1TM_9K_9t
 from lambdapdk.gf180.libs.gf180mcu import GF180_MCU_9T_5LMLibrary
@@ -51,6 +51,9 @@ def gf180_demo(
     project.add_dep(synflow.SynthesisFlow(
         syn_np=syn_np,
         timing_np=timing_np))
+    # GF180 signs off with KLayout DRC; register the matching DRC flow so it
+    # can be selected after the RTL-to-GDS run. (No open-source LVS available.)
+    project.add_dep(drcflow.DRCFlow())
 
     # 3. Define Timing Corners for Static Timing Analysis (STA)
     # Sets up different scenarios to analyze timing performance under various
