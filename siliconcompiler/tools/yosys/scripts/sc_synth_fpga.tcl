@@ -72,10 +72,10 @@ if { $use_slang } {
     sc_apply_params
 }
 
-set sc_designlib [sc_cfg_get fpga device]
-set sc_partname [sc_cfg_get library $sc_designlib fpga partname]
+set sc_fpgalib [sc_cfg_get fpga device]
+set sc_partname [sc_cfg_get library $sc_fpgalib fpga partname]
 
-set sc_syn_lut_size [sc_cfg_get library $sc_designlib fpga lutsize]
+set sc_syn_lut_size [sc_cfg_get library $sc_fpgalib fpga lutsize]
 
 # TODO: add logic that remaps yosys built in name based on part number
 
@@ -84,8 +84,8 @@ set sc_syn_lut_size [sc_cfg_get library $sc_designlib fpga lutsize]
 yosys hierarchy -top $sc_topmodule
 
 if {
-    [sc_cfg_exists library $sc_designlib tool yosys fpga_config] &&
-    [sc_cfg_get library $sc_designlib tool yosys fpga_config] != {} &&
+    [sc_cfg_exists library $sc_fpgalib tool yosys fpga_config] &&
+    [sc_cfg_get library $sc_fpgalib tool yosys fpga_config] != {} &&
     [sc_load_plugin wildebeest]
 } {
     set synth_fpga_args []
@@ -98,24 +98,24 @@ if {
     }
 
     yosys synth_fpga \
-        -config [sc_cfg_get library $sc_designlib tool yosys fpga_config] \
+        -config [sc_cfg_get library $sc_fpgalib tool yosys fpga_config] \
         -show_config \
         -top $sc_topmodule \
         {*}$synth_fpga_args
 } elseif { [string match {ice*} $sc_partname] } {
     yosys synth_ice40 -top $sc_topmodule
 } else {
-    set sc_syn_feature_set [sc_cfg_get library $sc_designlib tool yosys feature_set]
+    set sc_syn_feature_set [sc_cfg_get library $sc_fpgalib tool yosys feature_set]
 
     yosys log "Process Yosys DSP techmap options."
-    set sc_syn_dsp_options [sc_cfg_get library $sc_designlib tool yosys dsp_options]
+    set sc_syn_dsp_options [sc_cfg_get library $sc_fpgalib tool yosys dsp_options]
     yosys log "Yosys DSP techmap options = $sc_syn_dsp_options"
 
     # Pre-processing step:  if DSPs instance are hard-coded into
     # the user's design, we can use a blackbox flow for DSP mapping
     # as follows:
 
-    foreach macrolib [sc_cfg_get library $sc_designlib tool yosys macrolib] {
+    foreach macrolib [sc_cfg_get library $sc_fpgalib tool yosys macrolib] {
         yosys read_verilog -lib $macrolib
     }
 
@@ -149,9 +149,9 @@ if {
     #so that we don't convert any math blocks
     #into other primitives
 
-    if { [sc_cfg_get library $sc_designlib tool yosys dsp_techmap] != {} } {
+    if { [sc_cfg_get library $sc_fpgalib tool yosys dsp_techmap] != {} } {
         set sc_syn_dsp_library \
-            [sc_cfg_get library $sc_designlib tool yosys dsp_techmap]
+            [sc_cfg_get library $sc_fpgalib tool yosys dsp_techmap]
 
         yosys log "Run techmap flow for DSP Blocks"
         yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
@@ -169,9 +169,9 @@ if {
 
     yosys techmap -map +/techmap.v
 
-    set sc_syn_memory_libmap [sc_cfg_get library $sc_designlib tool yosys memory_libmap]
+    set sc_syn_memory_libmap [sc_cfg_get library $sc_fpgalib tool yosys memory_libmap]
     set sc_do_rom_map [expr { [lsearch -exact $sc_syn_feature_set mem_init] < 0 }]
-    set sc_syn_memory_library [sc_cfg_get library $sc_designlib tool yosys memory_techmap]
+    set sc_syn_memory_library [sc_cfg_get library $sc_fpgalib tool yosys memory_techmap]
 
     if { [sc_map_memory $sc_syn_memory_libmap $sc_syn_memory_library $sc_do_rom_map] } {
         post_techmap
@@ -185,7 +185,7 @@ if {
 
     sc_fpga_legalize_flops $sc_syn_feature_set
 
-    set sc_syn_flop_library [sc_cfg_get library $sc_designlib tool yosys flop_techmap]
+    set sc_syn_flop_library [sc_cfg_get library $sc_fpgalib tool yosys flop_techmap]
     if { $sc_syn_flop_library != {} } {
         yosys techmap -map $sc_syn_flop_library
 

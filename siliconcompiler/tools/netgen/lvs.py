@@ -20,6 +20,25 @@ class LVSTask(Task):
     def task(self):
         return "lvs"
 
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import Flowgraph, Design, ASIC
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.targets import freepdk45_demo
+        design = Design("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = ASIC(design)
+        proj.add_fileset("docs")
+        freepdk45_demo(proj)
+        flow = Flowgraph("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
+
     def parse_version(self, stdout):
         # First line: Netgen 1.5.190 compiled on Fri Jun 25 16:05:36 EDT 2021
         return stdout.split()[1]
@@ -47,6 +66,16 @@ class LVSTask(Task):
             for lib, fileset in self.project.get_filesets():
                 if lib.has_file(fileset=fileset, filetype="verilog"):
                     self.add_required_key(lib, "fileset", fileset, "file", "verilog")
+
+        # sc_lvs.tcl reads asic pdk and loads the LVS runset (.tcl) on every run;
+        # declare them required so the runset is hashed (cache) and copied (remote).
+        self.add_required_key("asic", "pdk")
+        pdk = self.project.get_library(self.project.get("asic", "pdk"))
+        if pdk.get("pdk", "lvs", "runsetfileset", "netgen", "basic"):
+            self.add_required_key(pdk, "pdk", "lvs", "runsetfileset", "netgen", "basic")
+            for fileset in pdk.get("pdk", "lvs", "runsetfileset", "netgen", "basic"):
+                if pdk.has_file(fileset=fileset, filetype="tcl"):
+                    self.add_required_key(pdk, "fileset", fileset, "file", "tcl")
 
         self.set_logdestination("stderr", "log", suffix="errors")
         self.add_regex("warnings", '^Warning:')

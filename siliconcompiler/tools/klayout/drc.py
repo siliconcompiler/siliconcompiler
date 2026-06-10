@@ -54,6 +54,19 @@ class DRCTask(KLayoutTask):
 
         self.add_required_key("var", "drc_name")
 
+        # The DRC runset deck and its parameters are resolved in runtime_options;
+        # declare them required so they are hashed (cache) and copied (remote runs).
+        drc_name = self.get("var", "drc_name")
+        if drc_name:
+            self.add_required_key(
+                self.pdk, "pdk", "drc", "runsetfileset", "klayout", drc_name)
+            for fileset in self.pdk.get(
+                    "pdk", "drc", "runsetfileset", "klayout", drc_name):
+                if self.pdk.has_file(fileset=fileset, filetype="drc"):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "drc")
+        if self.pdk.get("tool", "klayout", "drc_params"):
+            self.add_required_key(self.pdk, "tool", "klayout", "drc_params")
+
     def runtime_options(self):
         options = ASICTask.runtime_options(self)
 

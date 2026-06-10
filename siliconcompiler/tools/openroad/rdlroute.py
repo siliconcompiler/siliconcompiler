@@ -62,4 +62,15 @@ class RDLRouteTask(OpenROADTask):
             self.add_required_key("var", "rdlroute")
         self.add_required_key("var", "fin_add_fill")
 
+        # sc_rdlroute.tcl loads the PDK tech LEF and per-library LEFs; declare them
+        # required so they are hashed (cache) and copied (remote runs).
+        for fileset in self.pdk.get("pdk", "aprtechfileset", "openroad"):
+            if self.pdk.has_file(fileset=fileset, filetype="lef"):
+                self.add_required_key(self.pdk, "fileset", fileset, "file", "lef")
+        for asiclib in self.project.get("asic", "asiclib"):
+            lib = self.project.get_library(asiclib)
+            for fileset in lib.get("asic", "aprfileset"):
+                if lib.has_file(fileset=fileset, filetype="lef"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "lef")
+
         self.set("var", "fin_add_fill", False)

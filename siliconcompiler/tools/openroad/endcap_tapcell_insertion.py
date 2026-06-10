@@ -28,3 +28,8 @@ class EndCapTapCellTask(APRTask, OpenROADSTAParameter):
             'markers_view',
             'placement_density'
         ])
+
+        # sc_endcap_tapcell_insertion.tcl sources the tapcells file when the mainlib
+        # defines it; declare it required so it is hashed (cache) and copied (remote).
+        if self.mainlib.get("tool", "openroad", "tapcells"):
+            self.add_required_key(self.mainlib, "tool", "openroad", "tapcells")

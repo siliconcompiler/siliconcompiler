@@ -49,3 +49,10 @@ class SynthesisTask(VivadoTask):
 
         self.add_required_key("var", "synth_directive")
         self.add_required_key("var", "synth_mode")
+
+        # sc_syn_fpga.tcl applies the design's xdc constraint files; declare them
+        # required so they are hashed (cache) and copied (remote runs).
+        design = self.project.design
+        for fileset in self.project.get("option", "fileset"):
+            if design.has_file(fileset=fileset, filetype="xdc"):
+                self.add_required_key(design, "fileset", fileset, "file", "xdc")
