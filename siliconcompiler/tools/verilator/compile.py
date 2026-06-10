@@ -197,7 +197,9 @@ class CompileTask(VerilatorTask):
         # Mark required
         self.add_required_key("var", "mode")
         self.add_required_key("var", "trace")
-        self.add_required_key("var", "trace_type")
+        # trace_type is only read when tracing is enabled
+        if self.get("var", "trace"):
+            self.add_required_key("var", "trace_type")
         self.add_required_key("var", "initialize_random")
         self.add_required_key("var", "main")
 

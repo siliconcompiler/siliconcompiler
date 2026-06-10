@@ -43,6 +43,9 @@ class TileTask(Task):
         self.set_exe("montage", vswitch="-version")
         self.add_version(">=6.9.0")
 
+        # bins is read unconditionally in setup/runtime_options (has a defvalue)
+        self.add_required_key("var", "bins")
+
         xbins, ybins = self.get("var", "bins")
 
         if f"{self.design_topmodule}.png" in self.get_files_from_input_nodes():

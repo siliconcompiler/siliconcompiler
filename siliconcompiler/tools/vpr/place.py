@@ -34,6 +34,8 @@ class PlaceTask(VPRTask):
                 self.add_required_key("library", self.project.get("fpga", "device"),
                                       "tool", "vpr", "constraintsmap")
 
+        self.add_required_key("var", "enable_images")
+
     def pre_process(self):
         super().pre_process()
 

@@ -63,6 +63,9 @@ class ConvertTask(ASICTask, Task):
         if self.project.get("option", "alias"):
             self.add_required_key("option", "alias")
 
+        # memorychannels is read unconditionally in runtime_options (has a defvalue)
+        self.add_required_key("var", "memorychannels")
+
         # Mark required
         for lib, fileset in self.project.get_filesets():
             if lib.has_idir(fileset):

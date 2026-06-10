@@ -264,7 +264,8 @@ class VPRTask(Task):
 
         self.set_threads()
 
-        self.add_required_key("var", "enable_images")
+        # NOTE: enable_images is required by the PlaceTask/RouteTask setups (the only tasks that read
+        # it); it is not required here in the shared base, where show/screenshot/genfasm never read it.
         self.add_required_key("var", "timing_paths")
         self.add_required_key("var", "timing_report_type")
         self.add_required_key("var", "enable_timing_analysis")
