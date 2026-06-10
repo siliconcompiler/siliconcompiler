@@ -326,3 +326,31 @@ def test_verilator_parameter_initialize_random():
     task.set_verilator_initializerandom(False, step='compile', index='1')
     assert task.get("var", "initialize_random", step='compile', index='1') is False
     assert task.get("var", "initialize_random") is True
+
+
+def test_verilatorctrlfile_required(gcd_design):
+    # Regression guard (P1): a verilatorctrlfile read at runtime must be declared
+    # required so it is hashed (cache) and copied (remote runs).
+    with open('test.vlt', 'w') as f:
+        f.write('test')
+
+    dep_design = Design("libdep")
+    with dep_design.active_fileset("config"):
+        dep_design.add_file('test.vlt')
+
+    with gcd_design.active_fileset("rtl"):
+        gcd_design.add_depfileset(dep_design, "config")
+
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("lint", lint.LintTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "lint", "0")
+    with node.runtime():
+        assert node.setup() is True
+        requires = node.task.get("require")
+
+    assert "library,libdep,fileset,config,file,verilatorctrlfile" in requires

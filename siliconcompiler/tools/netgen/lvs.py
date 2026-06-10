@@ -48,6 +48,16 @@ class LVSTask(Task):
                 if lib.has_file(fileset=fileset, filetype="verilog"):
                     self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
+        # sc_lvs.tcl reads asic pdk and loads the LVS runset (.tcl) on every run;
+        # declare them required so the runset is hashed (cache) and copied (remote).
+        self.add_required_key("asic", "pdk")
+        pdk = self.project.get_library(self.project.get("asic", "pdk"))
+        if pdk.get("pdk", "lvs", "runsetfileset", "netgen", "basic"):
+            self.add_required_key(pdk, "pdk", "lvs", "runsetfileset", "netgen", "basic")
+            for fileset in pdk.get("pdk", "lvs", "runsetfileset", "netgen", "basic"):
+                if pdk.has_file(fileset=fileset, filetype="tcl"):
+                    self.add_required_key(pdk, "fileset", fileset, "file", "tcl")
+
         self.set_logdestination("stderr", "log", suffix="errors")
         self.add_regex("warnings", '^Warning:')
 

@@ -93,6 +93,16 @@ class FPGASynthesis(YosysTask):
 
         self.add_required_key("var", "use_slang")
 
+        # device tool files (config / macrolib / techmaps) are read by sc_synth_fpga.tcl;
+        # declare the ones that are set so they are hashed (cache) and copied (remote runs).
+        device = self.project.get("fpga", "device")
+        if device:
+            fpga = self.project.get_library(device)
+            for key in ("fpga_config", "macrolib", "dsp_techmap",
+                        "memory_libmap", "memory_techmap", "flop_techmap"):
+                if fpga.get("tool", "yosys", key):
+                    self.add_required_key(fpga, "tool", "yosys", key)
+
     def post_process(self):
         super().post_process()
 

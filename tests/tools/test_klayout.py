@@ -442,3 +442,35 @@ def test_klayout_merge_parameter_add_merge_fileset_conversion():
     task.add_klayout_merge('fileset', 'lib1', 'fileset1', 'prefix1')
     # Should convert 'fileset' to 'fs'
     assert task.get("var", "merge") == [('fs', 'lib1', 'fileset1', 'prefix1')]
+
+
+def test_drc_runset_required(setup_pdk_test):
+    # Regression guard (P1): the DRC runset deck resolved in runtime_options must be
+    # declared required so it is hashed (cache) and copied (remote runs).
+    import klayout_pdk
+
+    design = Design("testdesign")
+    with design.active_fileset("layout"):
+        design.set_topmodule("interposer")
+
+    proj = ASIC(design)
+    proj.add_fileset(["layout"])
+    proj.set_pdk(klayout_pdk.FauxPDK())
+    proj.set_asic_delaymodel("nldm")
+    proj.set_mainlib("testdesign")
+
+    flow = Flowgraph("testflow")
+    flow.node("drc", drc.DRCTask())
+    proj.set_flow(flow)
+
+    drc.DRCTask.find_task(proj).set("var", "drc_name", "drc")
+
+    node = SchedulerNode(proj, "drc", "0")
+    with node.runtime():
+        assert node.setup() is True
+        requires = node.task.get("require")
+
+    pdk_name = proj.get("asic", "pdk")
+    assert f"library,{pdk_name},pdk,drc,runsetfileset,klayout,drc" in requires, requires
+    assert any(r.startswith(f"library,{pdk_name},fileset,") and r.endswith("file,drc")
+               for r in requires), requires

@@ -293,6 +293,19 @@ class TimingTask(TimingTaskBase):
             for obj, key in self.get_fileset_file_keys("sdc"):
                 self.add_required_key(obj, *key)
 
+        # per-corner liberty files are read by sc_timing.tcl; declare them required
+        # so they are hashed (cache) and copied (remote runs).
+        delay_model = self.project.get("asic", "delaymodel")
+        for asiclib in self.project.get("asic", "asiclib"):
+            lib = self.project.get_library(asiclib)
+            for scenario in self.project.constraint.timing.get_scenario().values():
+                for corner in scenario.get_libcorner(self.step, self.index):
+                    if not lib.valid("asic", "libcornerfileset", corner, delay_model):
+                        continue
+                    self.add_required_key(lib, "asic", "libcornerfileset", corner, delay_model)
+                    for fileset in lib.get("asic", "libcornerfileset", corner, delay_model):
+                        self.add_required_key(lib, "fileset", fileset, "file", "liberty")
+
         added_spef = False
         for scenario in self.project.constraint.timing.get_scenario().values():
             if scenario.get("pexcorner") is None:
@@ -333,6 +346,17 @@ class FPGATimingTask(TimingTaskBase):
 
         self.add_input_file(ext="sdc")
         self.add_input_file(ext="typical.sdf")
+
+        # per-device liberty files are read by sc_timing.tcl (fpga mode); declare
+        # them required so they are hashed (cache) and copied (remote runs).
+        device = self.project.get("fpga", "device")
+        if device:
+            lib = self.project.get_library(device)
+            if lib.get("tool", "opensta", "liberty_filesets"):
+                self.add_required_key(lib, "tool", "opensta", "liberty_filesets")
+                for fileset in lib.get("tool", "opensta", "liberty_filesets"):
+                    if lib.has_file(fileset=fileset, filetype="liberty"):
+                        self.add_required_key(lib, "fileset", fileset, "file", "liberty")
 
     def pre_process(self):
         """
