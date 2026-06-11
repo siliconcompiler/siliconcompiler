@@ -18,6 +18,8 @@ def test_version(gcd_design):
     flow.node("version", tile.TileTask())
     proj.set_flow(flow)
 
+    tile.TileTask.find_task(proj).set_montage_bins(2, 2)
+
     node = SchedulerNode(proj, "version", "0")
     with node.runtime():
         assert node.setup() is True
@@ -32,7 +34,7 @@ def test_runtime_opts(gcd_design):
     flow.node("tile", tile.TileTask())
     proj.set_flow(flow)
 
-    assert tile.TileTask.find_task(proj).set("var", "bins", (4, 3))
+    tile.TileTask.find_task(proj).set_montage_bins(4, 3)
 
     node = SchedulerNode(proj, "tile", "0")
     with node.runtime():
@@ -50,6 +52,33 @@ def test_runtime_opts(gcd_design):
             '-tile', '4x3', '-geometry', '+0+0', 'outputs/gcd.png']
 
 
+def test_runtime_opts_autodetect_bins(gcd_design):
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("tile", tile.TileTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "tile", "0")
+    with node.runtime():
+        # Pretend upstream nodes provided a 3x2 grid of tile images; bins is
+        # left unset so it must be inferred from the filenames.
+        node.task.get_files_from_input_nodes = lambda: {
+            f"gcd_X{x}_Y{y}.png": [("up", "0")]
+            for x in range(3) for y in range(2)
+        }
+
+        assert node.setup() is True
+        assert node.task.get("var", "bins") == (3, 2)
+
+        arguments = node.task.get_runtime_arguments()
+        assert arguments == [
+            'inputs/gcd_X0_Y0.png', 'inputs/gcd_X1_Y0.png', 'inputs/gcd_X2_Y0.png',
+            'inputs/gcd_X0_Y1.png', 'inputs/gcd_X1_Y1.png', 'inputs/gcd_X2_Y1.png',
+            '-tile', '3x2', '-geometry', '+0+0', 'outputs/gcd.png']
+
+
 def test_policy_generation(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
@@ -57,6 +86,8 @@ def test_policy_generation(gcd_design):
     flow = Flowgraph("testflow")
     flow.node("tile", tile.TileTask())
     proj.set_flow(flow)
+
+    tile.TileTask.find_task(proj).set_montage_bins(2, 2)
 
     node = SchedulerNode(proj, "tile", "0")
     with node.runtime():
@@ -87,9 +118,9 @@ def test_convert_runtime_opts(gcd_design):
     flow.node("convert", convert.ConvertTask())
     proj.set_flow(flow)
 
-    convert.ConvertTask.find_task(proj).set("var", "format", "jpg")
-    convert.ConvertTask.find_task(proj).set("var", "resize", "1024x1024")
-    convert.ConvertTask.find_task(proj).set("var", "quality", 85)
+    convert.ConvertTask.find_task(proj).set_convert_format("jpg")
+    convert.ConvertTask.find_task(proj).set_convert_resize("1024x1024")
+    convert.ConvertTask.find_task(proj).set_convert_quality(85)
 
     node = SchedulerNode(proj, "convert", "0")
     with node.runtime():
