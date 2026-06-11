@@ -65,7 +65,7 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. sctool::
   :root: siliconcompiler.tools.montage
-  :tasks: tile/TileTask
+  :tasks: convert/ConvertTask tile/TileTask
 
 .. sctool::
   :root: siliconcompiler.tools.netgen
