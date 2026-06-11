@@ -7,7 +7,7 @@ class DRCFlow(Flowgraph):
     '''A design rule check (DRC) flow.
 
     This flow is designed to perform a DRC run on an input GDSII file using
-    KLayout.
+    KLayout or Magic.
     '''
     def __init__(self, name: str = "drcflow", tool: str = "klayout"):
         """
