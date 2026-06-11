@@ -152,10 +152,10 @@ class SlangTask(Task):
         return options
 
     def _init_driver(self, ignored_diagnotics=None):
-        self._driver = pyslang.Driver()
+        self._driver = pyslang.driver.Driver()
         self._driver.addStandardArgs()
 
-        parse_options = pyslang.CommandLineOptions()
+        parse_options = pyslang.driver.CommandLineOptions()
         parse_options.ignoreProgramName = True
         opts = shlex.join(self.get_runtime_arguments())
         self.logger.info(f"runtime arguments: {opts}")

@@ -9,12 +9,6 @@ Installation: https://github.com/RTimothyEdwards/magic
 Sources: https://github.com/RTimothyEdwards/magic
 '''
 
-import gzip
-import shutil
-
-import os.path
-
-from siliconcompiler.schema.parametervalue import PathNodeValue
 from siliconcompiler import Task
 
 
@@ -26,6 +20,25 @@ class MagicTask(Task):
 
     def tool(self):
         return "magic"
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import Flowgraph, Design, ASIC
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.targets import freepdk45_demo
+        design = Design("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = ASIC(design)
+        proj.add_fileset("docs")
+        freepdk45_demo(proj)
+        flow = Flowgraph("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
 
     def parse_version(self, stdout):
         return stdout.strip('\n')
@@ -60,31 +73,11 @@ class MagicTask(Task):
             self.add_required_key("var", "read_lef")
         self.add_required_key("asic", "pdk")
 
-    def pre_process(self):
-        super().pre_process()
-        # pdk = chip.get('option', 'pdk')
-        # stackup = chip.get('option', 'stackup')
-        # mainlib = get_mainlib(chip)
-        # libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
-        # process_file('lef', chip, 'pdk', pdk, 'aprtech', 'magic', stackup, libtype, 'lef')
-
-        # for lib in get_libraries(chip, 'logic'):
-        #     process_file('lef', chip, 'library', lib, 'output', stackup, 'lef')
-
-        # for lib in get_libraries(chip, 'macro'):
-        #     if lib in chip.get('tool', tool, 'task', task, 'var', 'exclude', step=step,
-        # index=index):
-        #         process_file('lef', chip, 'library', lib, 'output', stackup, 'lef')
-
-    def _add_read_lef(self, path):
-        if path.lower().endswith('.gz'):
-            new_file_name = f'inputs/sc_{PathNodeValue.generate_hashed_path(path[:-3], None)}'
-
-            with gzip.open(path, 'rt', encoding="utf-8") as fin:
-                with open(new_file_name, 'w') as fout:
-                    fout.write(fin.read().encode("ascii", "ignore").decode("ascii"))
-        else:
-            new_file_name = f'inputs/sc_{PathNodeValue.generate_hashed_path(path, None)}'
-            shutil.copy2(path, new_file_name)
-
-        self.add("var", "read_lef", os.path.abspath(new_file_name))
+        # sc_magic.tcl loads the DRC runset (tech file) on every magic task;
+        # declare it required so it is hashed (cache) and copied (remote runs).
+        pdk = self.project.get_library(self.project.get("asic", "pdk"))
+        if pdk.get("pdk", "drc", "runsetfileset", "magic", "basic"):
+            self.add_required_key(pdk, "pdk", "drc", "runsetfileset", "magic", "basic")
+            for fileset in pdk.get("pdk", "drc", "runsetfileset", "magic", "basic"):
+                if pdk.has_file(fileset=fileset, filetype="tech"):
+                    self.add_required_key(pdk, "fileset", fileset, "file", "tech")

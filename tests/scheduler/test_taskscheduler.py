@@ -359,3 +359,283 @@ def test_check_invalid_with_error(large_flow, make_tasks):
                        match=r"^Could not run final steps \(jointhree\) due to errors "
                              r"in: stepone/0, stepone/1$"):
         scheduler.check()
+
+
+# ---------------------------------------------------------------------------
+# Breakpoint scheduling
+#
+# A node with a breakpoint must execute in complete isolation: it takes
+# priority over ordinary nodes, only starts once nothing else is running, and
+# blocks all other launches until it finishes. When several breakpoints are
+# ready at once they run one at a time in flowgraph execution order.
+#
+# The tests below drive the private scheduling primitives directly with mocked
+# processes so the launch decisions are fully deterministic (no subprocess
+# timing involved), plus a couple of real end-to-end runs to guard against the
+# wiring breaking.
+# ---------------------------------------------------------------------------
+
+
+def _set_breakpoints(proj, *nodes):
+    '''Set a breakpoint option on each (step, index) before scheduler build.'''
+    for step, index in nodes:
+        proj.option.set_breakpoint(True, step=step, index=str(index))
+
+
+def _mock_all_procs(scheduler, *, alive=True, threads=1):
+    '''Replace every node's real Process with a controllable MagicMock and
+    normalize per-node thread counts so resource gating is deterministic.
+
+    Returns a dict mapping (step, index) -> proc mock.'''
+    procs = {}
+    nodes = scheduler._TaskScheduler__nodes
+    for node, info in nodes.items():
+        proc = MagicMock()
+        proc.is_alive.return_value = alive
+        proc.exitcode = 0
+        info["proc"] = proc
+        info["threads"] = threads
+        procs[node] = proc
+    return procs
+
+
+def _set_resources(scheduler, max_parallel):
+    '''Pin the resource limits so launch decisions depend only on the count of
+    parallel jobs, never on the host's actual core count.'''
+    scheduler._TaskScheduler__max_parallel_run = max_parallel
+    scheduler._TaskScheduler__max_cores = 10_000
+    scheduler._TaskScheduler__max_threads = 10_000
+
+
+def _launch(scheduler):
+    return scheduler._TaskScheduler__launch_nodes()
+
+
+def _mark_done(scheduler, proj, node, status=NodeStatus.SUCCESS):
+    '''Simulate a running node finishing: flip its mocked process to dead,
+    write the resulting record status, and run the completion handler so the
+    scheduler clears its running/proc state exactly as it would in a real run.'''
+    info = scheduler._TaskScheduler__nodes[node]
+    info["proc"].is_alive.return_value = False
+    info["proc"].exitcode = 0
+    proj.set("record", "status", status, step=node[0], index=node[1])
+    scheduler._TaskScheduler__process_completed_nodes()
+
+
+def test_breakpoint_flag_detected(large_flow, make_tasks):
+    '''The breakpoint option must be captured per-node at construction.'''
+    _set_breakpoints(large_flow, ("steptwo", "1"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    nodes = scheduler._TaskScheduler__nodes
+    assert nodes[("steptwo", "1")]["breakpoint"] is True
+    assert all(info["breakpoint"] is False
+               for node, info in nodes.items() if node != ("steptwo", "1"))
+
+
+def test_breakpoint_launches_alone_when_idle(large_flow, make_tasks):
+    '''With the machine idle, a single breakpoint entry node launches by
+    itself even though its sibling entry nodes are equally ready.'''
+    _set_breakpoints(large_flow, ("stepone", "0"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    assert _launch(scheduler) is True
+    assert scheduler.get_running_nodes() == [("stepone", "0")]
+
+
+def test_breakpoint_takes_priority_over_ready_siblings(large_flow, make_tasks):
+    '''Ready non-breakpoint siblings must not be co-scheduled with a ready
+    breakpoint, even though resources would allow them all to run.'''
+    _set_breakpoints(large_flow, ("stepone", "1"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    _launch(scheduler)
+    # Only the breakpoint runs; the other two ready entry nodes are held back.
+    assert scheduler.get_running_nodes() == [("stepone", "1")]
+
+
+def test_nothing_launches_while_breakpoint_running(large_flow, make_tasks):
+    '''Once a breakpoint is running, no further node (breakpoint or not) may
+    start until it completes.'''
+    _set_breakpoints(large_flow, ("stepone", "0"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    _launch(scheduler)
+    assert scheduler.get_running_nodes() == [("stepone", "0")]
+
+    # The breakpoint is still alive; subsequent launch passes are no-ops.
+    assert _launch(scheduler) is False
+    assert scheduler.get_running_nodes() == [("stepone", "0")]
+
+
+def test_breakpoint_waits_for_running_nodes_to_drain(large_flow, make_tasks):
+    '''A ready breakpoint must not start while other nodes are still running,
+    and it must also suppress launching any new ordinary nodes in the
+    meantime (so the machine can drain to idle).'''
+    _set_breakpoints(large_flow, ("stepone", "0"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    procs = _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    # Pretend an ordinary sibling is already running.
+    info = scheduler._TaskScheduler__nodes[("stepone", "1")]
+    info["running"] = True
+    procs[("stepone", "1")].is_alive.return_value = True
+    large_flow.set("record", "status", NodeStatus.RUNNING, step="stepone", index="1")
+
+    # Breakpoint cannot start (something is running) and stepone/2 must be
+    # held back so the machine can drain.
+    assert _launch(scheduler) is False
+    assert scheduler.get_running_nodes() == [("stepone", "1")]
+
+
+def test_breakpoint_runs_after_drain(large_flow, make_tasks):
+    '''After the last running node drains, the held breakpoint runs alone and
+    the remaining ordinary sibling still waits behind it.'''
+    _set_breakpoints(large_flow, ("stepone", "0"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    procs = _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    info = scheduler._TaskScheduler__nodes[("stepone", "1")]
+    info["running"] = True
+    procs[("stepone", "1")].is_alive.return_value = True
+    large_flow.set("record", "status", NodeStatus.RUNNING, step="stepone", index="1")
+
+    _launch(scheduler)
+    assert scheduler.get_running_nodes() == [("stepone", "1")]
+
+    # Drain the running sibling, then the breakpoint takes the machine alone.
+    _mark_done(scheduler, large_flow, ("stepone", "1"))
+    assert _launch(scheduler) is True
+    assert scheduler.get_running_nodes() == [("stepone", "0")]
+
+
+def test_multiple_breakpoints_run_serially_in_order(large_flow, make_tasks):
+    '''Two ready breakpoints run one at a time, earliest-in-execution-order
+    first, and a breakpoint always preempts a ready ordinary sibling.'''
+    _set_breakpoints(large_flow, ("stepone", "0"), ("stepone", "2"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    # First the earliest breakpoint, alone.
+    _launch(scheduler)
+    assert scheduler.get_running_nodes() == [("stepone", "0")]
+
+    _mark_done(scheduler, large_flow, ("stepone", "0"))
+
+    # Now the second breakpoint runs alone, ahead of the ordinary stepone/1.
+    assert _launch(scheduler) is True
+    assert scheduler.get_running_nodes() == [("stepone", "2")]
+
+    _mark_done(scheduler, large_flow, ("stepone", "2"))
+
+    # Only once both breakpoints are done does the ordinary node run.
+    assert _launch(scheduler) is True
+    assert scheduler.get_running_nodes() == [("stepone", "1")]
+
+
+def test_not_ready_breakpoint_does_not_block_others(large_flow, make_tasks):
+    '''A breakpoint whose dependencies are not yet satisfied must not suppress
+    ordinary nodes that are ready to run.'''
+    # joinone depends on all three stepone nodes, which have not run yet.
+    _set_breakpoints(large_flow, ("joinone", "0"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    _launch(scheduler)
+    # The not-yet-ready breakpoint is irrelevant; entry nodes launch normally.
+    assert scheduler.get_running_nodes() == [
+        ("stepone", "0"), ("stepone", "1"), ("stepone", "2")]
+
+
+def test_no_breakpoint_launches_in_parallel(large_flow, make_tasks):
+    '''Sanity: without breakpoints, all ready entry nodes launch together.'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    assert _launch(scheduler) is True
+    assert scheduler.get_running_nodes() == [
+        ("stepone", "0"), ("stepone", "1"), ("stepone", "2")]
+
+
+def test_no_breakpoint_respects_max_parallel(large_flow, make_tasks):
+    '''Sanity: the ordinary resource cap is still honored when no breakpoints
+    are involved.'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=2)
+
+    _launch(scheduler)
+    assert scheduler.get_running_nodes() == [("stepone", "0"), ("stepone", "1")]
+
+
+def test_breakpoint_node_with_failed_deps_is_pruned(large_flow, make_tasks):
+    '''A breakpoint node whose dependencies failed must still be pruned (its
+    proc cleared) rather than waiting forever for an isolated slot.'''
+    _set_breakpoints(large_flow, ("steptwo", "0"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    # steptwo/* depend on joinone/0; mark it failed.
+    large_flow.set("record", "status", NodeStatus.ERROR, step="joinone", index="0")
+
+    _launch(scheduler)
+    info = scheduler._TaskScheduler__nodes[("steptwo", "0")]
+    assert info["proc"] is None
+    assert ("steptwo", "0") not in scheduler.get_running_nodes()
+    assert ("steptwo", "0") not in scheduler.get_nodes_waiting_to_run()
+
+
+@pytest.mark.timeout(180)
+def test_run_end_to_end_with_breakpoint(large_flow, make_tasks):
+    '''A full real run with a breakpoint on a middle node still completes all
+    nodes successfully.'''
+    _set_breakpoints(large_flow, ("steptwo", "1"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler.run(logging.NullHandler())
+
+    for step, index in large_flow.get("flowgraph", "testflow", field="schema").get_nodes():
+        assert large_flow.get("record", "status", step=step, index=index) == NodeStatus.SUCCESS
+
+
+@pytest.mark.timeout(180)
+def test_run_end_to_end_with_multiple_breakpoints(large_flow, make_tasks):
+    '''A full real run with breakpoints on several nodes across different
+    levels completes all nodes successfully.'''
+    _set_breakpoints(large_flow,
+                     ("stepone", "0"), ("steptwo", "2"), ("stepthree", "1"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler.run(logging.NullHandler())
+
+    for step, index in large_flow.get("flowgraph", "testflow", field="schema").get_nodes():
+        assert large_flow.get("record", "status", step=step, index=index) == NodeStatus.SUCCESS
+
+
+@pytest.mark.timeout(180)
+def test_run_end_to_end_single_parallel_under_breakpoint(large_flow, make_tasks,
+                                                         monkeypatch):
+    '''End-to-end with a breakpoint on every entry node and only a single core
+    available: the run must still complete every node successfully (exercises
+    the drain-then-isolate path repeatedly under tight resources).'''
+    def one_core(*args, **kwargs):
+        return 1
+    monkeypatch.setattr(imported_utils, "get_cores", one_core)
+
+    _set_breakpoints(large_flow,
+                     ("stepone", "0"), ("stepone", "1"), ("stepone", "2"))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler.run(logging.NullHandler())
+
+    for step, index in large_flow.get("flowgraph", "testflow", field="schema").get_nodes():
+        assert large_flow.get("record", "status", step=step, index=index) == NodeStatus.SUCCESS

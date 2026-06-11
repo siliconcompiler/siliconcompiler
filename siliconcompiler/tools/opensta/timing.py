@@ -112,7 +112,8 @@ class TimingTaskBase(OpenSTATask):
                 raise LookupError(f'{self.get("var", "timing_mode")} is not a defined mode')
         self.add_required_key("var", "top_n_paths")
         self.add_required_key("var", "unique_path_groups_per_clock")
-        self.add_required_key("var", "opensta_generic_sdc")
+        # NOTE: opensta_generic_sdc is intentionally not required — the opensta scripts only read it
+        # in a commented-out fallback (the live reader is OpenROAD's separate same-named parameter).
 
         self.add_required_key("var", "write_sdf")
         if self.get("var", "write_sdf"):
@@ -293,6 +294,19 @@ class TimingTask(TimingTaskBase):
             for obj, key in self.get_fileset_file_keys("sdc"):
                 self.add_required_key(obj, *key)
 
+        # per-corner liberty files are read by sc_timing.tcl; declare them required
+        # so they are hashed (cache) and copied (remote runs).
+        delay_model = self.project.get("asic", "delaymodel")
+        for asiclib in self.project.get("asic", "asiclib"):
+            lib = self.project.get_library(asiclib)
+            for scenario in self.project.constraint.timing.get_scenario().values():
+                for corner in scenario.get_libcorner(self.step, self.index):
+                    if not lib.valid("asic", "libcornerfileset", corner, delay_model):
+                        continue
+                    self.add_required_key(lib, "asic", "libcornerfileset", corner, delay_model)
+                    for fileset in lib.get("asic", "libcornerfileset", corner, delay_model):
+                        self.add_required_key(lib, "fileset", fileset, "file", "liberty")
+
         added_spef = False
         for scenario in self.project.constraint.timing.get_scenario().values():
             if scenario.get("pexcorner") is None:
@@ -320,6 +334,25 @@ class FPGATimingTask(TimingTaskBase):
     def task(self):
         return "fpga_timing"
 
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import Flowgraph, Design, FPGA
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.demos.fpga_demo import Z1000
+        design = Design("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = FPGA(design)
+        proj.add_fileset("docs")
+        proj.set_fpga(Z1000())
+        flow = Flowgraph("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
+
     def get_tcl_variables(self, manifest=None):
         """
         Gets Tcl variables for the task, setting 'opensta_timing_mode' to fpga.
@@ -333,6 +366,19 @@ class FPGATimingTask(TimingTaskBase):
 
         self.add_input_file(ext="sdc")
         self.add_input_file(ext="typical.sdf")
+
+        # per-device liberty files are read by sc_timing.tcl (fpga mode); declare
+        # them required so they are hashed (cache) and copied (remote runs).
+        device = self.project.get("fpga", "device")
+        if device:
+            lib = self.project.get_library(device)
+            # not every FPGA device defines the opensta liberty_filesets parameter
+            if lib.valid("tool", "opensta", "liberty_filesets") and \
+                    lib.get("tool", "opensta", "liberty_filesets"):
+                self.add_required_key(lib, "tool", "opensta", "liberty_filesets")
+                for fileset in lib.get("tool", "opensta", "liberty_filesets"):
+                    if lib.has_file(fileset=fileset, filetype="liberty"):
+                        self.add_required_key(lib, "fileset", fileset, "file", "liberty")
 
     def pre_process(self):
         """

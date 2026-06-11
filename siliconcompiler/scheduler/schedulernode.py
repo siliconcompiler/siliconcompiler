@@ -618,8 +618,7 @@ class SchedulerNode:
             keypath = tuple(key.split(","))
             if not self.__project.valid(*keypath, default_valid=True):
                 raise KeyError(f"[{','.join(keypath)}] not found")
-            keytype = self.__project.get(*keypath, field="type")
-            if 'file' in keytype or 'dir' in keytype:
+            if self.__project.get(*keypath, field=None).is_path:
                 path_keys.add(keypath)
             else:
                 value_keys.add(keypath)
@@ -778,8 +777,7 @@ class SchedulerNode:
                 error = True
                 continue
 
-            paramtype = param.get(field='type')
-            if ('file' in paramtype) or ('dir' in paramtype):
+            if param.is_path:
                 abspath = self.__project.find_files(*keypath,
                                                     missing_ok=True,
                                                     step=check_step, index=check_index)
@@ -1253,10 +1251,10 @@ class SchedulerNode:
         # hash all requirements
         for item in set(self.__task.get('require')):
             args = item.split(',')
-            sc_type = self.__project.get(*args, field='type')
-            if 'file' in sc_type or 'dir' in sc_type:
+            param = self.__project.get(*args, field=None)
+            if param.is_path:
                 access_step, access_index = self.__step, self.__index
-                if self.__project.get(*args, field='pernode').is_never():
+                if param.get(field='pernode').is_never():
                     access_step, access_index = None, None
                 self.__project.hash_files(*args, step=access_step, index=access_index,
                                           check=False, verbose=False)
@@ -1270,12 +1268,12 @@ class SchedulerNode:
         # hash all requirements
         for item in set(self.__task.get('require')):
             args = item.split(',')
-            sc_type = self.__project.get(*args, field='type')
-            if 'file' in sc_type or 'dir' in sc_type:
+            param = self.__project.get(*args, field=None)
+            if param.is_path:
                 access_step, access_index = self.__step, self.__index
-                if self.__project.get(*args, field='pernode').is_never():
+                if param.get(field='pernode').is_never():
                     access_step, access_index = None, None
-                if self.__project.get(*args, field='filehash'):
+                if param.get(field='filehash'):
                     continue
                 self.__project.hash_files(*args, step=access_step, index=access_index,
                                           check=False, verbose=False)
@@ -1449,8 +1447,7 @@ class SchedulerNode:
         path_keys = set()
         for key in self.get_required_keys():
             try:
-                param_type: str = self.__project.get(*key, field="type")
-                if "file" in param_type or "dir" in param_type:
+                if self.__project.get(*key, field=None).is_path:
                     path_keys.add(key)
             except KeyError:
                 # Key does not exist

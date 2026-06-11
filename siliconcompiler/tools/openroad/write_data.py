@@ -118,8 +118,6 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         self.set("var", "pex_corners", list(self._get_pex_mapping().values()))
 
-        self.set("var", "use_spef", self.get("var", "write_spef"))
-
         self._set_reports([
             'setup',
             'hold',
@@ -128,9 +126,15 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
             'power',
             'drv_violations',
             'fmax',
+            'floating_nets',
+            'overdriven_nets',
             "logicdepth",
 
             # Images
+            'snapshot',
+            'placement_view',
+            'routing_view',
+            'markers_view',
             'placement_density',
             'routing_congestion',
             'power_density',
@@ -144,11 +148,20 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_output_file(ext="lef")
         self.add_output_file(ext="lvs.vg")
 
+        if not self.__has_openrcx():
+            self.set("var", "write_spef", False)
+
+        self.set("var", "use_spef", self.get("var", "write_spef"))
+
         if self.get("var", "write_cdl"):
             self.add_output_file(ext="cdl")
         if self.get("var", "write_spef"):
             self.add_required_key("var", "pex_corners")
             self.add_required_key("var", "use_spef")
+            for corner in self.get("var", "pex_corners"):
+                self.add_required_key(self.pdk, "pdk", "pexmodelfileset", "openroad", corner)
+                for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", corner):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "openrcx")
             for corner in self.get("var", "pex_corners"):
                 self.add_output_file(ext=f"{corner}.spef")
         if self.get("var", "write_liberty"):
@@ -164,3 +177,10 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_required_key("var", "write_spef")
         self.add_required_key("var", "write_liberty")
         self.add_required_key("var", "write_sdf")
+
+    def __has_openrcx(self):
+        for corner in self.pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
+            for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", corner):
+                if self.pdk.get("fileset", fileset, "file", "openrcx"):
+                    return True
+        return False

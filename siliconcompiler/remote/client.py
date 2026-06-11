@@ -587,9 +587,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 continue
 
             param: Parameter = self.__project.get(*key, field=None)
-            key_type: str = param.get(field="type")
 
-            if 'dir' in key_type or 'file' in key_type:
+            if param.is_path:
                 schema_obj = self.__project.get(*key[:-1], field="schema")
                 dataroot_objs = schema_obj._find_files_dataroot_resolvers(True)
 

@@ -1,7 +1,7 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
 from siliconcompiler import ASIC
 
-from siliconcompiler.flows import asicflow, synflow
+from siliconcompiler.flows import asicflow, synflow, signoffflow
 
 from lambdapdk.sky130.libs.sky130sc import Sky130_SCHDLibrary
 from lambdapdk.sky130.libs.sky130sram import Sky130Lambdalib_SinglePort, \
@@ -51,6 +51,9 @@ def skywater130_demo(
     project.add_dep(synflow.SynthesisFlow(
         syn_np=syn_np,
         timing_np=timing_np))
+    # Skywater130 signs off with Magic (DRC) and Netgen (LVS); register the
+    # matching signoff flow so it can be selected after the RTL-to-GDS run.
+    project.add_dep(signoffflow.SignoffFlow())
 
     # 3. Set Target PDK
     # Specifies the process development kit to be used.

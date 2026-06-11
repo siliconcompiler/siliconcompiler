@@ -15,8 +15,9 @@ set sc_logiclibs [sc_cfg_get asic asiclib]
 
 set sc_blackboxes []
 foreach lib $sc_logiclibs {
-    if { [sc_cfg_exists library $lib output blackbox verilog] } {
-        foreach lib_f [sc_cfg_get library $lib output blackbox verilog] {
+    if { [sc_cfg_exists library $lib tool yosys blackbox_fileset] } {
+        set lib_fileset [sc_cfg_get library $lib tool yosys blackbox_fileset]
+        foreach lib_f [sc_cfg_get_fileset $lib $lib_fileset verilog] {
             lappend sc_blackboxes $lib_f
         }
     }

@@ -82,6 +82,7 @@ class RouteTask(VPRTask):
         self.add_required_key("var", "max_router_iterations")
         self.add_required_key("var", "gen_post_implementation_netlist")
         self.add_required_key("var", "timing_corner")
+        self.add_required_key("var", "enable_images")
 
         self.set("var", "gen_post_implementation_netlist",
                  self.get("var", "enable_timing_analysis"))

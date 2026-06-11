@@ -123,12 +123,14 @@ class TaskScheduler:
                 "threads": None,
                 "running": False,
                 "manifest": None,
+                "breakpoint": False,
                 "node": tasks[(step, index)]
             }
 
             with tasks[(step, index)].runtime():
                 threads = tasks[(step, index)].threads
                 task["manifest"] = tasks[(step, index)].get_manifest()
+                task["breakpoint"] = tasks[(step, index)].task.has_breakpoint()
             if not threads:
                 threads = self.__max_threads
             task["threads"] = max(1, min(threads, self.__max_threads))
@@ -378,6 +380,34 @@ class TaskScheduler:
         # allow
         return True
 
+    def __start_node(self, node: Tuple[str, str]) -> None:
+        """
+        Private helper to start a single node's process.
+
+        Marks the node as running, records the start time, fires the
+        'pre_node' callback, and launches the underlying process.
+
+        Args:
+            node (tuple): The (step, index) of the node to start.
+        """
+        info = self.__nodes[node]
+        step, index = node
+
+        self.__logger.debug(f'Launching {info["name"]}')
+
+        self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
+        self.__startTimes[node] = time.time()
+
+        MPManager.get_transient_settings().get(
+            'TaskScheduler', 'pre_node',
+            lambda project, step, index: None)(self.__project, step, index)
+
+        # Start the process
+        info["running"] = True
+        info["parent_pipe"], pipe = multiprocessing.Pipe()
+        info["node"].set_queue(pipe, self.__log_queue)
+        info["proc"].start()
+
     def __launch_nodes(self) -> bool:
         """
         Private helper to launch new nodes whose dependencies are met.
@@ -386,16 +416,32 @@ class TaskScheduler:
         nodes have completed successfully, and if system resources are available.
         If all conditions are met, it starts the node's process.
 
+        Breakpoint handling: a node with a breakpoint must execute in complete
+        isolation. It takes priority over ordinary nodes, may only start once
+        no other node is running, and nothing else may start until it finishes.
+        When several breakpoint nodes are ready at once they are launched one at
+        a time in flowgraph execution order.
+
         Returns:
             bool: True if any new node was launched, False otherwise.
         """
         changed = False
-        for node in self.get_nodes_waiting_to_run():
-            # TODO: breakpoint logic:
-            # if node is breakpoint, then don't launch while len(running_nodes) > 0
 
+        running_nodes = self.get_running_nodes()
+
+        # If a breakpoint node is currently running, it must run alone: do not
+        # launch anything (breakpoint or otherwise) until it completes.
+        if any(self.__nodes[node]["breakpoint"] for node in running_nodes):
+            return changed
+
+        # First evaluate every waiting node's dependencies. This determines
+        # which nodes are ready to launch and, as a side effect, prunes nodes
+        # whose dependencies failed (clearing their proc so they are no longer
+        # considered waiting). This evaluation must happen regardless of any
+        # breakpoint gating below.
+        ready_nodes: List[Tuple[str, str]] = []
+        for node in self.get_nodes_waiting_to_run():
             info = self.__nodes[node]
-            step, index = node
 
             ready = True
             inputs = []
@@ -422,24 +468,35 @@ class TaskScheduler:
                 info["proc"] = None
                 continue
 
-            # If there are no dependencies left, launch this node and
-            # remove from nodes_to_run.
-            if ready and self.__allow_start(node):
-                self.__logger.debug(f'Launching {info["name"]}')
+            if ready:
+                ready_nodes.append(node)
 
-                MPManager.get_transient_settings().get(
-                    'TaskScheduler', 'pre_node',
-                    lambda project, step, index: None)(self.__project, step, index)
+        if not ready_nodes:
+            return changed
 
-                self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
-                self.__startTimes[node] = time.time()
+        # A ready breakpoint node takes priority. While one is waiting we must
+        # not start any other work: currently running nodes are allowed to
+        # drain to zero, after which the single highest-priority (earliest in
+        # execution order) breakpoint runs by itself.
+        breakpoint_nodes = [node for node in ready_nodes if self.__nodes[node]["breakpoint"]]
+        if breakpoint_nodes:
+            if running_nodes:
+                # Wait for the machine to go idle before starting the
+                # breakpoint; do not co-schedule anything alongside it.
+                return changed
+            # ready_nodes preserves execution order, so breakpoint_nodes[0] is
+            # the earliest pending breakpoint.
+            node = breakpoint_nodes[0]
+            if self.__allow_start(node):
+                self.__start_node(node)
                 changed = True
+            return changed
 
-                # Start the process
-                info["running"] = True
-                info["parent_pipe"], pipe = multiprocessing.Pipe()
-                info["node"].set_queue(pipe, self.__log_queue)
-                info["proc"].start()
+        # Normal scheduling: launch as many ready nodes as resources allow.
+        for node in ready_nodes:
+            if self.__allow_start(node):
+                self.__start_node(node)
+                changed = True
 
         return changed
 

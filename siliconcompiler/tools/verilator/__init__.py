@@ -63,6 +63,8 @@ class VerilatorTask(Task):
                 self.add_required_key(lib, "fileset", fileset, "define")
             if lib.has_file(fileset=fileset, filetype="commandfile"):
                 self.add_required_key(lib, "fileset", fileset, "file", "commandfile")
+            if lib.has_file(fileset=fileset, filetype="verilatorctrlfile"):
+                self.add_required_key(lib, "fileset", fileset, "file", "verilatorctrlfile")
             if add_inputs:
                 if lib.has_file(fileset=fileset, filetype="systemverilog"):
                     self.add_required_key(lib, "fileset", fileset, "file", "systemverilog")

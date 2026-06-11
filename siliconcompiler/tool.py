@@ -1166,11 +1166,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 # Ignore history as this is not relevant to the task
                 continue
 
-            paramtype: str = schema.get(*keypath, field='type')
-            if 'file' not in paramtype and 'dir' not in paramtype:
+            param = root.get(*keypath, field=None)
+            if not param.is_path:
                 continue
 
-            for value, step, index in root.get(*keypath, field=None).getvalues():
+            for value, step, index in param.getvalues():
                 if not value:
                     continue
                 abspaths = root.find_files(*keypath, missing_ok=True, step=step, index=index)
@@ -2810,10 +2810,13 @@ class OpenTask(Task):
 
         Args:
             ext (str): The file extension to find a viewer for.
-            tool (str, optional): The name of the specific showtool to use for displaying the file.
-                Format can be "tool" to select any task from that tool, or "tool/task" to select
-                a specific task from that tool. If not provided, the tool is selected based on
-                the user's preference or automatic discovery.
+            tool (str, optional): A tool/task hint, not a strict filter. Format
+                can be ``"tool"`` to prefer any task from that tool, or
+                ``"tool/task"`` to prefer a specific task. If the hint cannot be
+                resolved for ``ext`` (e.g. the named tool doesn't support that
+                extension), resolution falls back to the user-settings
+                preference and then to automatic discovery, so a non-None
+                result does not guarantee the returned task matches the hint.
 
         Returns:
             An instance of a compatible ShowTask subclass, or None if
@@ -2891,6 +2894,59 @@ class OpenTask(Task):
                 pass
 
         return None
+
+    @classmethod
+    def get_extension_map(cls: Type[TOpenTask],
+                          tool: Optional[str] = None) -> Dict[str, TOpenTask]:
+        """
+        Returns a mapping of supported file extensions to the preferred task.
+
+        For every extension declared by any registered task of this class, the
+        returned dict contains the task instance that :meth:`get_task` would
+        pick for that extension. This is the single source of truth for
+        "which tool handles extension X" and is shared by ``sc-show -list``
+        and :meth:`Project.show` to keep their behavior consistent.
+
+        Key insertion order is deterministic: extensions appear in the order
+        they are first encountered while iterating registered tasks in
+        registration order (within a task, the order returned by
+        :meth:`get_supported_task_extentions`).
+
+        Args:
+            tool (str, optional): A tool/task preference hint in ``"tool"`` or
+                ``"tool/task"`` form, forwarded to :meth:`get_task`. It biases
+                the preferred task per extension but is not a strict filter:
+                extensions the hint cannot resolve still appear in the map
+                with whichever task :meth:`get_task` falls back to.
+
+        Returns:
+            A dictionary mapping each supported extension to the preferred
+            task instance for that extension.
+        """
+        cls.__check_task(None)
+        cls.__populate_tasks()
+
+        tasks = cls.get_task(None)
+        if not tasks:
+            return {}
+
+        ordered_exts: List[str] = []
+        seen: Set[str] = set()
+        for task_cls in tasks:
+            try:
+                for ext in task_cls().get_supported_task_extentions():
+                    if ext not in seen:
+                        seen.add(ext)
+                        ordered_exts.append(ext)
+            except NotImplementedError:
+                continue
+
+        ext_map: Dict[str, TOpenTask] = {}
+        for ext in ordered_exts:
+            preferred = cls.get_task(ext, tool=tool)
+            if preferred is not None:
+                ext_map[ext] = preferred
+        return ext_map
 
 
 class ShowTask(OpenTask):

@@ -103,11 +103,8 @@ def collect(project: "Project",
             continue
 
         param: Parameter = project.get(*key, field=None)
-        leaftype: str = param.get(field='type')
-        is_dir = "dir" in leaftype
-        is_file = "file" in leaftype
 
-        if not is_dir and not is_file:
+        if not param.is_path:
             continue
 
         if not param.get(field='copy'):
@@ -122,7 +119,7 @@ def collect(project: "Project",
             else:
                 values = [values]
 
-            if is_dir:
+            if param.is_directory:
                 dirs[(key, step, index)] = values
             else:
                 files[(key, step, index)] = values

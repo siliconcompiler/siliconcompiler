@@ -46,6 +46,17 @@ class _ASICTask(ASICTask, YosysTask):
                     for fileset in lib_obj.get("asic", "libcornerfileset", corner, delaymodel):
                         self.add_required_key(lib_obj, "fileset", fileset, "file", "liberty")
 
+            # blackbox verilog netlists are read per-asiclib by the synth/lec scripts
+            # (only when the library defines the yosys blackbox_fileset parameter)
+            if not lib_obj.valid("tool", "yosys", "blackbox_fileset"):
+                continue
+            bb_filesets = lib_obj.get("tool", "yosys", "blackbox_fileset")
+            if bb_filesets:
+                self.add_required_key(lib_obj, "tool", "yosys", "blackbox_fileset")
+                for bb_fileset in bb_filesets:
+                    if lib_obj.has_file(fileset=bb_fileset, filetype="verilog"):
+                        self.add_required_key(lib_obj, "fileset", bb_fileset, "file", "verilog")
+
     def _determine_synthesis_corner(self):
         if self.get("var", "synthesis_corner"):
             return
@@ -736,8 +747,9 @@ class ASICSynthesis(_ASICTask, YosysTask):
 
         if self.get("var", "preserve_modules"):
             self.add_required_key("var", "preserve_modules")
-        if self.get("var", "blackbox_modules"):
-            self.add_required_key("var", "blackbox_modules")
+        # NOTE: blackbox_modules is intentionally not required — it is read nowhere (only the
+        # parallel preserve_modules is consumed by sc_synth_asic.tcl). Parameter kept for API
+        # compatibility but currently inert.
 
         self.add_required_key("var", "use_slang")
         self.add_required_key("var", "add_buffers")

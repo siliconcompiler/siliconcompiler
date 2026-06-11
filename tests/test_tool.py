@@ -107,7 +107,7 @@ def patch_psutil(monkeypatch):
 
 
 @pytest.fixture
-def running_project():
+def running_project(project_logger):
     class TestProject(Project):
         def __init__(self):
             super().__init__()
@@ -118,8 +118,7 @@ def running_project():
             self.set_design(design)
             self.add_fileset("rtl")
 
-            self._Project__logger = logging.getLogger()
-            self.logger.setLevel(logging.INFO)
+            project_logger(self)
 
             flow = Flowgraph("testflow")
             flow.node("running", NOPTask())
@@ -404,8 +403,8 @@ def test_get_exe_not_found(running_node):
             exe_not_found_handler.assert_called_once()
 
 
-def test_get_exe_not_found_suggestion(running_node, monkeypatch, caplog):
-    monkeypatch.setattr(running_node.project, "_Project__logger", logging.getLogger())
+def test_get_exe_not_found_suggestion(project_logger, running_node, caplog):
+    project_logger(running_node.project)
     running_node.project.logger.setLevel("INFO")
 
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
@@ -418,8 +417,8 @@ def test_get_exe_not_found_suggestion(running_node, monkeypatch, caplog):
     assert "Missing tool can be installed via: \"sc-install builtin\"" in caplog.text
 
 
-def test_get_exe_not_found_no_suggestion(running_node, monkeypatch, caplog):
-    monkeypatch.setattr(running_node.project, "_Project__logger", logging.getLogger())
+def test_get_exe_not_found_no_suggestion(project_logger, running_node, caplog):
+    project_logger(running_node.project)
     running_node.project.logger.setLevel("INFO")
 
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
@@ -2828,7 +2827,7 @@ class _AccessorOpenTask(OpenTask):
 
 
 @pytest.fixture
-def open_node():
+def open_node(project_logger):
     """A SchedulerNode for a project whose flow contains an OpenTask."""
     class _OpenProject(Project):
         def __init__(self):
@@ -2839,8 +2838,7 @@ def open_node():
             self.set_design(design)
             self.add_fileset("rtl")
 
-            self._Project__logger = logging.getLogger()
-            self.logger.setLevel(logging.INFO)
+            project_logger(self)
 
             flow = Flowgraph("testflow")
             flow.node("opennode", _AccessorOpenTask())
@@ -3570,6 +3568,285 @@ def test_get_task_tool_task_format_priority_over_preference():
         assert isinstance(task, ToolITask2)
 
 
+def test_get_extension_map_empty():
+    """get_extension_map returns {} when no tasks are discovered."""
+    # Patch get_task to simulate "no registered tasks". (Real isolation is
+    # hard because subclasses defined elsewhere in the test file get
+    # auto-discovered by __populate_tasks.)
+    with patch.object(ShowTask, 'get_task', return_value=None):
+        assert ShowTask.get_extension_map() == {}
+
+    with patch.object(ShowTask, 'get_task', return_value=[]):
+        assert ShowTask.get_extension_map() == {}
+
+
+def test_get_extension_map_single_tool():
+    """Each ext from the registered tool maps to that tool's instance."""
+    ShowTask.register_task(ToolA)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        assert set(ext_map.keys()) == {"ext"}
+        assert isinstance(ext_map["ext"], ToolA)
+
+
+def test_get_extension_map_collects_all_extensions():
+    """All extensions across all registered tasks are present as keys, in
+    deterministic registration order (within a task, in the order returned by
+    get_supported_task_extentions)."""
+
+    class ToolMulti(ShowTask):
+        def tool(self):
+            return "toolmulti"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["a", "b", "c"]
+
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolMulti)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        # Order: ToolA registered first (its "ext"), then ToolMulti (a, b, c
+        # in the order it returns them).
+        assert list(ext_map.keys()) == ["ext", "a", "b", "c"]
+
+
+def test_get_extension_map_conflict_uses_last_registered():
+    """When two tools share an extension, the later-registered wins by default."""
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolB)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        # ToolA and ToolB both register "ext"; later-registered (ToolB) wins.
+        assert "ext" in ext_map
+        assert isinstance(ext_map["ext"], ToolB)
+
+
+def test_get_extension_map_respects_user_preference():
+    """User preference selects the preferred tool for a contested extension."""
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolB)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+
+        def get_side_effect(category, key, default=None):
+            if category == "showtask" and key == "ext":
+                return "toola"
+            return default
+
+        mock_settings.get.side_effect = get_side_effect
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        assert isinstance(ext_map["ext"], ToolA)
+
+
+def test_get_extension_map_tool_filter_matches_get_task():
+    """tool= behavior in get_extension_map mirrors get_task: it's a hint, not a strict filter.
+
+    For extensions the requested tool supports, the requested tool is preferred.
+    For extensions it does not, get_task falls back to whatever tool can handle
+    them, and get_extension_map reflects that same fallback. This matches how
+    Project.show resolves a tool for the eventual file extension.
+    """
+
+    class ToolOnlyXyz(ShowTask):
+        def tool(self):
+            return "xyztool"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["xyz"]
+
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolOnlyXyz)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map(tool="toola")
+
+        # ToolA wins for "ext" because the requested tool actually supports it.
+        assert isinstance(ext_map["ext"], ToolA)
+        # "xyz" still falls back to ToolOnlyXyz — matching get_task's behavior
+        # when the requested tool can't handle the extension.
+        assert isinstance(ext_map["xyz"], ToolOnlyXyz)
+
+        # Every entry must equal what get_task would return for that ext.
+        for ext, preferred in ext_map.items():
+            assert type(ShowTask.get_task(ext, tool="toola")) is type(preferred)
+
+
+def test_get_extension_map_skips_not_implemented():
+    """Tasks that don't implement get_supported_task_extentions are ignored."""
+
+    class AbstractTool(ShowTask):
+        def tool(self):
+            return "abstracttool"
+
+        def task(self):
+            return "show"
+        # No get_supported_task_extentions implementation → NotImplementedError
+
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(AbstractTool)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        # Only ToolA's extensions appear; AbstractTool is silently skipped.
+        assert set(ext_map.keys()) == {"ext"}
+
+
+@pytest.mark.parametrize("cls,expected_tool_cls", [
+    (OpenTask, "open"),
+    (ShowTask, "show"),
+    (ScreenshotTask, "screenshot"),
+])
+def test_get_extension_map_isolated_per_base_class(cls, expected_tool_cls):
+    """Each base class returns only tasks registered to that class hierarchy."""
+
+    class _OpenOnly(OpenTask):
+        def tool(self):
+            return "opentool"
+
+        def get_supported_task_extentions(self):
+            return ["o"]
+
+    class _ShowOnly(ShowTask):
+        def tool(self):
+            return "showtool"
+
+        def get_supported_task_extentions(self):
+            return ["s"]
+
+    class _ScreenshotOnly(ScreenshotTask):
+        def tool(self):
+            return "screenshottool"
+
+        def get_supported_task_extentions(self):
+            return ["p"]
+
+    OpenTask.register_task(_OpenOnly)
+    ShowTask.register_task(_ShowOnly)
+    ScreenshotTask.register_task(_ScreenshotOnly)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = cls.get_extension_map()
+
+        if cls is OpenTask:
+            # OpenTask sees all (Open/Show/Screenshot are all OpenTasks),
+            # but get_task only returns those that are NOT subclasses of
+            # Show/Screenshot, so only _OpenOnly's "o" is present.
+            assert "o" in ext_map
+            assert "s" not in ext_map
+            assert "p" not in ext_map
+        elif cls is ShowTask:
+            # ShowTask filters out ScreenshotTask subclasses.
+            assert "s" in ext_map
+            assert "o" not in ext_map
+            assert "p" not in ext_map
+        else:
+            # ScreenshotTask only
+            assert "p" in ext_map
+            assert "s" not in ext_map
+            assert "o" not in ext_map
+
+
+def test_get_extension_map_matches_get_task_resolution():
+    """get_extension_map[ext] must equal get_task(ext) for every supported ext."""
+
+    class ToolP(ShowTask):
+        def tool(self):
+            return "toolp"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["one", "two"]
+
+    class ToolQ(ShowTask):
+        def tool(self):
+            return "toolq"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["two", "three"]
+
+    ShowTask.register_task(ToolP)
+    ShowTask.register_task(ToolQ)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+
+        def get_side_effect(category, key, default=None):
+            # Prefer ToolP for the contested "two"
+            if category == "showtask" and key == "two":
+                return "toolp"
+            return default
+
+        mock_settings.get.side_effect = get_side_effect
+        mock_settings_cls.return_value = mock_settings
+
+        ext_map = ShowTask.get_extension_map()
+
+        # Deterministic order: ToolP registered first contributes "one" and
+        # "two" (its first appearance dedupes "two"), then ToolQ contributes
+        # "three".
+        assert list(ext_map.keys()) == ["one", "two", "three"]
+
+        for ext, preferred in ext_map.items():
+            resolved = ShowTask.get_task(ext)
+            assert type(resolved) is type(preferred), \
+                f"ext={ext}: map gave {type(preferred).__name__}, " \
+                f"get_task gave {type(resolved).__name__}"
+
+
 def test_task_py_logging_output_different_files(gcd_design):
     # Create a project instance
     project = Project(gcd_design)
@@ -3901,25 +4178,23 @@ def _validate_io(project, step, index):
         return task_obj._validate_io()
 
 
-def test_validate_io_no_inputs_no_upstream(io_project, caplog):
+def test_validate_io_no_inputs_no_upstream(project_logger, io_project, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     io_project.set_flow(flow)
-    io_project._Project__logger = logging.getLogger()
-    io_project.logger.setLevel(logging.INFO)
+    project_logger(io_project)
 
     assert _validate_io(io_project, "stepone", "0") is True
     assert caplog.text == ""
 
 
-def test_validate_io_with_files(io_project, caplog):
+def test_validate_io_with_files(project_logger, io_project, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
     io_project.set_flow(flow)
-    io_project._Project__logger = logging.getLogger()
-    io_project.logger.setLevel(logging.INFO)
+    project_logger(io_project)
 
     nop = NOPTask.find_task(io_project)
     nop.add_output_file("test.v", step="stepone", index="0")
@@ -3929,7 +4204,7 @@ def test_validate_io_with_files(io_project, caplog):
     assert caplog.text == ""
 
 
-def test_validate_io_with_files_join(io_project, caplog):
+def test_validate_io_with_files_join(project_logger, io_project, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
@@ -3939,8 +4214,7 @@ def test_validate_io_with_files_join(io_project, caplog):
     flow.edge("steptwo", "dojoin")
     flow.edge("dojoin", "postjoin")
     io_project.set_flow(flow)
-    io_project._Project__logger = logging.getLogger()
-    io_project.logger.setLevel(logging.INFO)
+    project_logger(io_project)
 
     nop = NOPTask.find_task(io_project)
     nop.add_output_file("a.v", step="stepone", index="0")
@@ -3957,7 +4231,7 @@ def test_validate_io_with_files_join(io_project, caplog):
     assert caplog.text == ""
 
 
-def test_validate_io_with_files_join_extra_files(io_project, caplog):
+def test_validate_io_with_files_join_extra_files(project_logger, io_project, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
@@ -3967,8 +4241,7 @@ def test_validate_io_with_files_join_extra_files(io_project, caplog):
     flow.edge("steptwo", "dojoin")
     flow.edge("dojoin", "postjoin")
     io_project.set_flow(flow)
-    io_project._Project__logger = logging.getLogger()
-    io_project.logger.setLevel(logging.INFO)
+    project_logger(io_project)
 
     nop = NOPTask.find_task(io_project)
     nop.add_output_file("a.v", step="stepone", index="0")
@@ -3984,14 +4257,13 @@ def test_validate_io_with_files_join_extra_files(io_project, caplog):
     assert caplog.text == ""
 
 
-def test_validate_io_missing_input(io_project, caplog):
+def test_validate_io_missing_input(project_logger, io_project, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
     io_project.set_flow(flow)
-    io_project._Project__logger = logging.getLogger()
-    io_project.logger.setLevel(logging.INFO)
+    project_logger(io_project)
 
     nop = NOPTask.find_task(io_project)
     nop.add_output_file("test.v", step="stepone", index="0")
@@ -4038,7 +4310,7 @@ def test_validate_io_input_from_disk(io_project):
     assert _validate_io(io_project, "steptwo", "0") is True
 
 
-def test_validate_io_duplicate_input_fails(io_project, caplog):
+def test_validate_io_duplicate_input_fails(project_logger, io_project, caplog):
     """A non-builtin task with two upstreams providing the same input name has
     ambiguous fan-in: the runtime can't decide which upstream's file is the
     real one. The base validator must reject this flow, not just log it."""
@@ -4049,8 +4321,7 @@ def test_validate_io_duplicate_input_fails(io_project, caplog):
     flow.edge("stepone", "steptwo", tail_index=0)
     flow.edge("stepone", "steptwo", tail_index=1)
     io_project.set_flow(flow)
-    io_project._Project__logger = logging.getLogger()
-    io_project.logger.setLevel(logging.INFO)
+    project_logger(io_project)
 
     nop = NOPTask.find_task(io_project)
     nop.add_output_file("test.v", step="stepone", index="0")

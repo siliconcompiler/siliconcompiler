@@ -245,7 +245,7 @@ def parse_operations(schema, base_layout, steps):
         if (step_name == "merge" or step_name == "add"):
             files = []
             if len(args_key) > 5:
-                if 'file' not in schema.get(*args_key, field='type'):
+                if not schema.get(*args_key, field=None).is_file:
                     raise ValueError(f'{step_name} requires {args_key} be a file type')
                 files = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))
             else:

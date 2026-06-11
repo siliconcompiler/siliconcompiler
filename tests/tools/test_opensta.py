@@ -163,3 +163,35 @@ def test_timing_write_sdf_and_liberty():
         outputs = node.task.get("output")
         assert "test.testcorner.sdf" in outputs, f"Expected testcorner.sdf in {outputs}"
         assert "test.testcorner.lib" in outputs, f"Expected testcorner.lib in {outputs}"
+
+
+def test_timing_liberty_files_required():
+    # Regression guard (P1): per-corner liberty files read by sc_timing.tcl must be
+    # declared required so they are hashed (cache) and copied (remote runs).
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("test")
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("test_flow")
+    flow.node("timing", timing.TimingTask())
+    proj.set_flow(flow)
+
+    scenario = proj.constraint.timing.make_scenario("testcorner")
+    scenario.add_libcorner(["typical"])
+    scenario.set_pexcorner("typical")
+
+    # mirror the run path: _init_run() populates asic,asiclib from mainlib before
+    # node setup, which is when the liberty requires are declared.
+    proj._init_run()
+
+    node = SchedulerNode(proj, step='timing', index='0')
+    with node.runtime():
+        assert node.setup() is True
+        requires = node.task.get("require")
+
+    assert any("asic,libcornerfileset,typical," in r for r in requires), requires
+    assert any(r.endswith("file,liberty") for r in requires), requires

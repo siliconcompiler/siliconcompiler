@@ -102,7 +102,7 @@ jobs:
 
       - name: Build and Push SiliconCompiler Builder Docker image
         if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/build-push-action@v7.1.0
+        uses: docker/build-push-action@v7.2.0
         with:
           context: docker/sc_tool_builder
           push: true
@@ -138,7 +138,7 @@ jobs:
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.1.0
+        uses: docker/build-push-action@v7.2.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -176,7 +176,7 @@ jobs:
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.1.0
+        uses: docker/build-push-action@v7.2.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -225,7 +225,7 @@ jobs:
           buildkitd-flags: --debug
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.1.0
+        uses: docker/build-push-action@v7.2.0
         with:
           context: ./sc_tools/
           push: true
@@ -280,7 +280,7 @@ jobs:
         echo "RUNNER_TAG=${runner_latest_tag}" >> $GITHUB_ENV
 
     - name: Build and Push Tool Docker image
-      uses: docker/build-push-action@v7.1.0
+      uses: docker/build-push-action@v7.2.0
       with:
         context: ./sc_runner/
         push: true
@@ -370,7 +370,7 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         continue-on-error: true
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
@@ -391,7 +391,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Checkout SiliconCompiler
         uses: actions/checkout@v6

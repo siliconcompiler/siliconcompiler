@@ -17,7 +17,7 @@ class ScreenshotTask(ScreenshotTask, ShowTask):
         options = super().runtime_options()
         options = options[0:-2]  # remove disp
 
-        showtype = self.get("var", "showtype")
+        showtype = self.get("var", "showfiletype")
         if showtype == 'route':
             screenshot_command_str = ("set_draw_block_text 0; " +
                                       "set_draw_block_outlines 0; " +

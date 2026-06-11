@@ -83,3 +83,21 @@ def test_parameter_memorychannels():
     task.set_bambu_memorychannels(4, step='convert', index='1')
     assert task.get("var", "memorychannels", step='convert', index='1') == 4
     assert task.get("var", "memorychannels") == 2
+
+
+def test_sdc_required(gcd_design):
+    # Regression guard (P1): sdc files consumed by get_clock() in runtime_options
+    # must be declared required so they are hashed (cache) and copied (remote runs).
+    proj = Project(gcd_design)
+    proj.add_fileset(["rtl", "sdc"])
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        requires = node.task.get("require")
+
+    assert any(r.endswith("file,sdc") for r in requires), requires

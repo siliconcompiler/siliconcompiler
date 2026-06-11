@@ -25,7 +25,7 @@ from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
-from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode
+from siliconcompiler.scheduler import Scheduler, SCRuntimeError
 from siliconcompiler.utils.logging import get_stream_handler
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -521,22 +521,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.option.add_fileset(fileset, clobber=True)
 
         # Disable dashboard if breakpoints are set
-        if self.__dashboard and self.option.get_flow():
-            breakpoints = set()
-            for step, index in self.get_flow().get_nodes():
-                try:
-                    node = SchedulerNode(self, step, index)
-                    with node.runtime():
-                        if node.task.has_breakpoint():
-                            breakpoints.add((step, index))
-                except:  # noqa: E722
-                    if self.option.get_breakpoint(step=step, index=index):
-                        breakpoints.add((step, index))
-            if breakpoints and self.__dashboard.is_running():
-                breakpoints = sorted(breakpoints)
-                self.logger.info("Disabling dashboard due to breakpoints at: "
-                                 f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
-                self.__dashboard.stop()
+        if self.__dashboard and self.__dashboard.is_running() and \
+                CliDashboard.should_disable(self):
+            self.__dashboard.stop()
 
     def run(self) -> TProject:
         '''
@@ -1354,38 +1341,20 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 if sc_index:
                     search_nodes = [node for node in search_nodes if node[1] == sc_index]
 
-            # Build ordered list of (task_class, extension) pairs respecting tool order
-            # This preserves the registration order so higher-priority tools are tried first
-            search_exts = []
-            for cls in tool_cls.get_task(None, tool=tool):
-                try:
-                    exts = cls().get_supported_task_extentions()
-                    # Sort extensions within each task for consistency
-                    for ext in sorted(exts):
-                        # If a specific tool is requested, verify the extension resolves
-                        # to that tool
-                        if tool:
-                            resolved_task = tool_cls.get_task(ext, tool=tool)
-                            if resolved_task is None:
-                                # This extension is not supported by the requested tool
-                                continue
-                        search_exts.append((cls, ext))
-                except NotImplementedError:
-                    pass
+            # Use the shared extension map so the preferred tool for each
+            # extension matches what sc-show -list reports. The map preserves
+            # registration order, so higher-priority tools are tried first.
+            ext_map = tool_cls.get_extension_map(tool=tool)
+            search_exts = list(ext_map.keys())
 
             if extension:
-                # Validate that requested extension is supported
-                all_exts = [ext for _, ext in search_exts]
-                if extension not in all_exts:
+                if extension not in search_exts:
                     self.logger.error(f"Extension '{extension}' not supported by "
-                                      f"registered showtools: {', '.join(sorted(set(all_exts)))}")
+                                      f"registered showtools: {', '.join(sorted(search_exts))}")
                     return None
-                # Search for the specific extension only, respecting tool order
-                search_exts = [(cls, ext) for cls, ext in search_exts if ext == extension]
+                search_exts = [extension]
 
-            # Search for files in tool-ordered sequence
-            # This ensures that earlier-registered (higher-priority) tools are tried first
-            for task_cls, ext in search_exts:
+            for ext in search_exts:
                 for step, index in search_nodes:
                     filename = search_obj.find_result(ext,
                                                       step=step,

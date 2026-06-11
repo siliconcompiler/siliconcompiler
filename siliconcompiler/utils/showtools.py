@@ -36,8 +36,8 @@ def showtasks():
 
     # Register Show tasks - core tools first
     ShowTask.register_task(KlayoutShow)
-    ShowTask.register_task(OpenROADShow)
     ShowTask.register_task(OpenROADWeb)
+    ShowTask.register_task(OpenROADShow)
     ShowTask.register_task(OpenROADShow3DBlox)
     ShowTask.register_task(GraphvizShow)
     ShowTask.register_task(VPRShow)

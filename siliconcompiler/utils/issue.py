@@ -52,10 +52,10 @@ def generate_testcase(project: "Project",
                     continue
                 if key[-2] == 'option' and key[-1] == 'cachedir':
                     continue
-            sc_type: str = project.get(*key, field='type')
-            if 'file' not in sc_type and 'dir' not in sc_type:
+            param = project.get(*key, field=None)
+            if not param.is_path:
                 continue
-            for _, key_step, key_index in project.get(*key, field=None).getvalues():
+            for _, key_step, key_index in param.getvalues():
                 project.hash_files(
                     *key,
                     check=False,
@@ -115,8 +115,7 @@ def generate_testcase(project: "Project",
         if 'default' in keypath:
             continue
 
-        sctype: str = project.get(*keypath, field='type')
-        if 'file' not in sctype and 'dir' not in sctype:
+        if not project.get(*keypath, field=None).is_path:
             continue
 
         project.set(

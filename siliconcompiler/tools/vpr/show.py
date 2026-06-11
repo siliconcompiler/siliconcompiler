@@ -15,7 +15,9 @@ class ShowTask(ShowTask, VPRTask):
         options = super().runtime_options()
 
         file_path = self.get("var", "showfilepath")
-        file_dir = os.path.dirname(file_path)
+        # When shown from an upstream node, no showfilepath is set and the design
+        # files are copied into the inputs/ directory.
+        file_dir = os.path.dirname(file_path) if file_path else "inputs"
         blif_file = os.path.join(file_dir, f'{self.design_topmodule}.blif')
         net_file = os.path.join(file_dir, f'{self.design_topmodule}.net')
         place_file = os.path.join(file_dir, f'{self.design_topmodule}.place')

@@ -683,6 +683,85 @@ def test_is_list():
     assert param.is_list()
 
 
+@pytest.mark.parametrize("sctype", (
+    "file", "[file]", "{file}",
+    "dir", "[dir]", "{dir}",
+))
+def test_is_path_true(sctype):
+    assert Parameter(sctype).is_path is True
+
+
+@pytest.mark.parametrize("sctype", (
+    "str", "int", "float", "bool",
+    "[str]", "{int}", "<a,b>", "[<a,b>]",
+    "<dir,file>"
+))
+def test_is_path_false(sctype):
+    assert Parameter(sctype).is_path is False
+
+
+@pytest.mark.parametrize("sctype", ("file", "[file]", "{file}"))
+def test_is_file_true(sctype):
+    param = Parameter(sctype)
+    assert param.is_file is True
+    assert param.is_directory is False
+    assert param.is_path is True
+
+
+@pytest.mark.parametrize("sctype", ("dir", "[dir]", "{dir}"))
+def test_is_directory_true(sctype):
+    param = Parameter(sctype)
+    assert param.is_directory is True
+    assert param.is_file is False
+    assert param.is_path is True
+
+
+@pytest.mark.parametrize("sctype", (
+    "str", "int", "float", "bool",
+    "[str]", "{int}", "<a,b>",
+))
+def test_is_file_directory_false(sctype):
+    param = Parameter(sctype)
+    assert param.is_file is False
+    assert param.is_directory is False
+
+
+def test_is_path_tuple_with_file():
+    param = Parameter("(str,file)")
+    assert param.is_file is True
+    assert param.is_directory is False
+    assert param.is_path is True
+
+
+def test_is_path_tuple_with_dir():
+    param = Parameter("(str,dir)")
+    assert param.is_directory is True
+    assert param.is_file is False
+    assert param.is_path is True
+
+
+def test_is_path_tuple_without_path():
+    param = Parameter("(str,int)")
+    assert param.is_file is False
+    assert param.is_directory is False
+    assert param.is_path is False
+
+
+def test_is_path_list_of_tuple_with_file():
+    param = Parameter("[(str,file)]")
+    assert param.is_file is True
+    assert param.is_path is True
+
+
+def test_is_path_properties_are_properties():
+    # Guard against accidental refactor back to methods - the user-facing
+    # contract is attribute access, not a call.
+    param = Parameter("file")
+    assert param.is_file is True
+    assert param.is_directory is False
+    assert param.is_path is True
+
+
 def test_getvalues():
     param = Parameter("str", defvalue="test", pernode=PerNode.OPTIONAL)
 

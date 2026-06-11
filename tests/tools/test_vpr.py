@@ -5,10 +5,14 @@ import os.path
 
 import xml.etree.ElementTree as ET
 
+from unittest.mock import patch
+
 from siliconcompiler import FPGA, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.vpr.place import PlaceTask
 from siliconcompiler.tools.vpr.route import RouteTask
+from siliconcompiler.tools.vpr.show import ShowTask as VPRShowTask
+from siliconcompiler.tools.vpr.screenshot import ScreenshotTask as VPRScreenshotTask
 from siliconcompiler.tools.vpr import VPRFPGA
 from siliconcompiler.tools.vpr import _json_constraint as jcon
 from siliconcompiler.tools.vpr import _xml_constraint as xcon
@@ -396,3 +400,176 @@ def test_xml_constraint_helpers(tmp_path):
     outfile = tmp_path / 'out.xml'
     xcon.write_vpr_constraints_xml_file(root, str(outfile))
     assert outfile.exists()
+
+
+@pytest.fixture
+def faux_fpga():
+    """Factory: configure a minimal FPGA + arch/graph files so VPRTask resolves."""
+    def _setup(proj):
+        fpga = VPRFPGA()
+        fpga.set_name("faux")
+        fpga.set_vpr_devicecode("faux_device")
+        fpga.set_vpr_clockmodel("ideal")
+        fpga.set_vpr_channelwidth(50)
+        fpga.set_vpr_archfile("test.xml")
+        fpga.set_vpr_graphfile("test_graph.xml")
+        proj.set_fpga(fpga)
+
+        for fn in ("test.xml", "test_graph.xml"):
+            with open(fn, "w") as f:
+                f.write("test")
+    return _setup
+
+
+@pytest.fixture
+def write_design_files():
+    """Factory: create the blif/net/place/route files VPR show/screenshot read."""
+    def _write(directory):
+        os.makedirs(directory, exist_ok=True)
+        for ext in ("blif", "net", "place", "route"):
+            with open(os.path.join(directory, f"gcd.{ext}"), "w") as f:
+                f.write("test")
+    return _write
+
+
+@pytest.fixture
+def expected_vpr_args():
+    """Factory: the full VPR command (built by VPRTask + show) for the faux FPGA.
+
+    ``file_dir`` is the directory the design files are read from and ``tail`` is the
+    task-specific suffix (``--disp on`` for show, ``--graphics_commands ...`` for
+    screenshot). Threads are pinned to 2 by the caller patching get_cores.
+    """
+    def _build(file_dir, tail):
+        return [
+            '--device', 'faux_device',
+            '--verify_file_digests', 'off',
+            '--write_block_usage', 'reports/block_usage.json',
+            '--outfile_prefix', 'outputs/',
+            os.path.abspath('test.xml'),
+            '--num_workers', '2',
+            '--constant_net_method', 'route',
+            '--const_gen_inference', 'none',
+            '--sweep_dangling_primary_ios', 'off',
+            '--sweep_dangling_nets', 'off',
+            '--allow_dangling_combinational_nodes', 'on',
+            '--sweep_constant_primary_outputs', 'off',
+            '--sweep_dangling_blocks', 'off',
+            '--clock_modeling', 'ideal',
+            '--router_lookahead', 'map',
+            '--timing_analysis', 'off',
+            '--read_rr_graph', os.path.abspath('test_graph.xml'),
+            '--route_chan_width', '50',
+            os.path.join(file_dir, 'gcd.blif'),
+            '--net_file', os.path.join(file_dir, 'gcd.net'),
+            '--analysis',
+            '--place_file', os.path.join(file_dir, 'gcd.place'),
+            '--route_file', os.path.join(file_dir, 'gcd.route'),
+        ] + tail
+    return _build
+
+
+def test_vpr_show_runtime_args_from_inputs(gcd_design, faux_fpga, write_design_files,
+                                           expected_vpr_args):
+    # Regression: ShowTask.runtime_options() called os.path.dirname(showfilepath)
+    # unconditionally and crashed when no showfilepath was set (driven from an
+    # upstream node). It must fall back to the inputs/ directory.
+    proj = FPGA(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("show", VPRShowTask())
+    proj.set_flow(flow)
+
+    faux_fpga(proj)
+    write_design_files("inputs")
+
+    node = SchedulerNode(proj, step="show", index="0")
+    with node.runtime():
+        with patch("siliconcompiler.utils.get_cores") as get_cores:
+            get_cores.return_value = 2
+            assert node.setup() is True
+        # No showfilepath set -> must not raise, must read from inputs/.
+        arguments = node.task.get_runtime_arguments()
+
+    assert arguments == expected_vpr_args("inputs", ["--disp", "on"])
+
+
+def test_vpr_show_runtime_args_with_showfilepath(gcd_design, faux_fpga, write_design_files,
+                                                 expected_vpr_args):
+    # When showfilepath is set, the design files are read from its directory.
+    proj = FPGA(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("show", VPRShowTask())
+    proj.set_flow(flow)
+
+    faux_fpga(proj)
+    write_design_files("showdir")
+
+    VPRShowTask.find_task(proj).set("var", "showfilepath",
+                                    os.path.join("showdir", "gcd.place"))
+
+    node = SchedulerNode(proj, step="show", index="0")
+    with node.runtime():
+        with patch("siliconcompiler.utils.get_cores") as get_cores:
+            get_cores.return_value = 2
+            assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+
+    assert arguments == expected_vpr_args("showdir", ["--disp", "on"])
+
+
+@pytest.mark.parametrize("filetype,command", [
+    ("route", "set_draw_block_text 0; set_draw_block_outlines 0; set_routing_util 1; "
+              "save_graphics outputs/gcd.png;"),
+    ("place", "set_draw_block_text 1; set_draw_block_outlines 1; "
+              "save_graphics outputs/gcd.png;"),
+])
+def test_vpr_screenshot_runtime_args(gcd_design, faux_fpga, write_design_files,
+                                     expected_vpr_args, filetype, command):
+    # Regression: screenshot read an undefined "showtype" var (KeyError); it must
+    # read "showfiletype", which _set_filetype derives as place/route. The
+    # interactive "--disp on" is also stripped in favour of --graphics_commands.
+    proj = FPGA(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("screenshot", VPRScreenshotTask())
+    proj.set_flow(flow)
+
+    faux_fpga(proj)
+    write_design_files("inputs")
+
+    VPRScreenshotTask.find_task(proj).set("var", "showfiletype", filetype)
+
+    node = SchedulerNode(proj, step="screenshot", index="0")
+    with node.runtime():
+        with patch("siliconcompiler.utils.get_cores") as get_cores:
+            get_cores.return_value = 2
+            assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+
+    assert arguments == expected_vpr_args("inputs", ["--graphics_commands", command])
+
+
+def test_vpr_screenshot_runtime_args_invalid_filetype(gcd_design, faux_fpga, write_design_files):
+    # An unknown showfiletype should raise a clear ValueError, not a KeyError.
+    proj = FPGA(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("screenshot", VPRScreenshotTask())
+    proj.set_flow(flow)
+
+    faux_fpga(proj)
+    write_design_files("inputs")
+
+    VPRScreenshotTask.find_task(proj).set("var", "showfiletype", "bogus")
+
+    node = SchedulerNode(proj, step="screenshot", index="0")
+    with node.runtime():
+        assert node.setup() is True
+        with pytest.raises(ValueError, match="Incorrect file type bogus"):
+            node.task.get_runtime_arguments()
