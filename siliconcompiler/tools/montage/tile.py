@@ -3,7 +3,6 @@ import re
 from typing import Optional, Tuple, Union
 
 from siliconcompiler import TaskSkip
-from siliconcompiler.tool import TaskError
 from siliconcompiler.tools.montage import ImageMagickTask
 
 
