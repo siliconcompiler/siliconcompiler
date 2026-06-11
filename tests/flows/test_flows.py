@@ -16,7 +16,7 @@ from siliconcompiler.tools.builtin.nop import NOPTask
 
 @pytest.mark.parametrize("flow", [
     ASICFlow(), HLSASICFlow(), VHDLASICFlow(),
-    DRCFlow(),
+    DRCFlow(tool="klayout"), DRCFlow(tool="magic"),
     DVFlow(tool="icarus"), DVFlow(tool="verilator"), DVFlow(tool="xyce"), DVFlow(tool="xdm-xyce"),
     FPGANextPNRFlow(), FPGAVPRFlow(), FPGAXilinxFlow(),
     GenerateOpenRCXFlow(NOPTask()),
