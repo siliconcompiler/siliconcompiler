@@ -1,9 +1,10 @@
 from typing import Optional, Union
 
-from siliconcompiler import Task, TaskSkip
+from siliconcompiler import TaskSkip
+from siliconcompiler.tools.montage import ImageMagickTask
 
 
-class TileTask(Task):
+class TileTask(ImageMagickTask):
     '''
     Tiles input images into a single output image.
     '''
@@ -27,25 +28,15 @@ class TileTask(Task):
         """
         self.set("var", "bins", (xbins, ybins), step=step, index=index)
 
-    def tool(self):
-        return "montage"
-
     def task(self):
         return "tile"
 
-    def parse_version(self, stdout):
-        first_line = stdout.splitlines()[0]
-        return first_line.split(' ')[2]
-
     def setup(self):
+        self.set_exe("montage", vswitch="-version")
+
         super().setup()
 
-        self.set_exe("montage", vswitch="-version")
-        self.add_version(">=6.9.0")
-
-        # bins is read unconditionally in setup/runtime_options (has a defvalue)
         self.add_required_key("var", "bins")
-
         xbins, ybins = self.get("var", "bins")
 
         if f"{self.design_topmodule}.png" in self.get_files_from_input_nodes():
@@ -56,13 +47,6 @@ class TileTask(Task):
                 self.add_input_file(f'{self.design_topmodule}_X{x}_Y{y}.png')
 
         self.add_output_file(ext="png")
-
-        self.add_commandline_option(['-limit', 'memory', '8GiB'])
-        self.add_commandline_option(['-limit', 'map', '8GiB'])
-        self.add_commandline_option(['-limit', 'disk', '8GiB'])
-        self.add_commandline_option(['-limit', 'width', '32KP'])
-        self.add_commandline_option(['-limit', 'height', '32KP'])
-        self.add_commandline_option(['-limit', 'area', '1GP'])
 
     def runtime_options(self):
         options = super().runtime_options()
