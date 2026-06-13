@@ -173,7 +173,7 @@
   },
   "vcd2fst": {
     "git-url": "https://github.com/Silimate/vcd2fst.git",
-    "git-commit": "29da9a8da43c0ec09a8d378818c23abe48069129",
+    "git-commit": "83d9d2f386cdf190e3c4a5370b9e62b93f5cc7fb",
     "auto-update": true
   }
 }
