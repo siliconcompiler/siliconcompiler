@@ -107,7 +107,7 @@ tools = "siliconcompiler.apps.sc_install:get_install_tools"
 
 [project.optional-dependencies]
 test = [
-    "pytest == 9.1.0",
+    "pytest == 9.1.1",
     "pytest-xdist == 3.8.0",
     "pytest-timeout == 2.4.0",
     "pytest-asyncio == 1.4.0",
@@ -123,7 +123,7 @@ lint = [
 docs = [
     "Sphinx >= 7.4, <8.3",
     "pip-licenses == 5.5.5",
-    "pydata-sphinx-theme == 0.18.0",
+    "pydata-sphinx-theme == 0.19.0",
     "sc-leflib >= 0.2.0"
 ]
 optimizer = [
