@@ -165,3 +165,16 @@ def test_write_verilog():
     d = hello_world()
     d.write_verilog("test.vg")
     assert filecmp.cmp("test.vg", golden_file)
+
+
+def test_write_verilog_buses():
+    test_dir = Path(__file__).parent
+    golden_file = test_dir / "data" / "schematic_buses.vg"
+    d = Schematic("buses")
+    d.add_pin("data[7:0]", "input")
+    d.add_pin("addr[7:2]", "output")
+    d.add_pin("clk", "input")
+    d.add_net("dbus[15:0]")
+    d.add_net("sel[3:1]")
+    d.write_verilog("buses.vg")
+    assert filecmp.cmp("buses.vg", golden_file)
