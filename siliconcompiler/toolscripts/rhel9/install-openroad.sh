@@ -12,6 +12,7 @@ else
 fi
 
 sudo yum install -y git curl --skip-broken
+sudo yum install -y make pandoc groff util-linux --skip-broken
 
 mkdir -p deps
 cd deps
