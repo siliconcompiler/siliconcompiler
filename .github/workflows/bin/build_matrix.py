@@ -42,7 +42,7 @@ if __name__ == "__main__":
                 prebuild = [f"install-{pretool}.sh" for pretool in prebuild]
 
             for runon, arm64 in (("ubuntu-latest", False), ("ubuntu-24.04-arm", True)):
-                if arm64 and osname not in ("ubuntu22", "ubuntu24"):
+                if arm64 and osname not in ("ubuntu22", "ubuntu24", "ubuntu26"):
                     continue
 
                 arch = "x86_64"
