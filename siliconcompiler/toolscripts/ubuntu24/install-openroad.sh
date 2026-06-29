@@ -14,6 +14,7 @@ fi
 sudo apt-get update
 
 sudo apt-get install -y git curl
+sudo apt-get install -y make pandoc groff bsdmainutils
 
 mkdir -p deps
 cd deps
