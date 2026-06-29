@@ -25,7 +25,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: klayout version
         id: version
@@ -33,7 +33,7 @@ jobs:
         run: |
           echo "version=$(python3 siliconcompiler/toolscripts/_tools.py --tool klayout --field version)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         id: cache
         with:
           path: |
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - uses: hynek/build-and-inspect-python-package@v2
@@ -75,12 +75,12 @@ jobs:
             arch: x86_64
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         path: sc
         fetch-depth: 0
 
-    - uses: actions/cache@v5
+    - uses: actions/cache@v6
       if: matrix.platform.os != 'macos-latest'
       id: cache
       with:
