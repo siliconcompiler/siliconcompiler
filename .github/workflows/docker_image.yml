@@ -36,7 +36,7 @@ jobs:
     steps:
       - name: Checkout SiliconCompiler
         if: inputs.sc_version != 'latest'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.sc_version }}
           repository: siliconcompiler/siliconcompiler
@@ -44,7 +44,7 @@ jobs:
 
       - name: Checkout full SiliconCompiler repo
         if: inputs.sc_version == 'latest'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: siliconcompiler/siliconcompiler
           fetch-depth: 0
