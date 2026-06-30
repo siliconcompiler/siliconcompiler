@@ -868,7 +868,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if len(flows) == 1:
             return flows[0]
         else:
-            if flow not in self.__flow_warnings:
+            if flows and flow not in self.__flow_warnings:
                 self.__flow_warnings.append(flow)
                 self.logger.warning(f"Flowgraph '{flow}' not found, and multiple "
                                     f"matches exist: {', '.join(flows)}")

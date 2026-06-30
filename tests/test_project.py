@@ -262,6 +262,18 @@ def test_get_flow_by_name_partial_unclear_double(project_logger, caplog):
         "Flowgraph 'test' not found, and multiple matches exist: testflow-0, testflow-1") == 1
 
 
+def test_get_flow_by_name_partial_unclear_none(project_logger, caplog):
+    project = Project()
+    project_logger(project)
+    project.logger.setLevel(logging.INFO)
+    flow = Flowgraph("testflow-0")
+    project.set_flow(flow)
+    project.add_dep(Flowgraph("testflow-1"))
+    with pytest.raises(KeyError, match=r"^'test0 flowgraph has not been loaded'$"):
+        project.get_flow("test0")
+    assert "Flowgraph 'test0' not found, and multiple matches exist:" not in caplog.text
+
+
 def test_get_flow_default_selected():
     project = Project()
     flow = Flowgraph("testflow")
