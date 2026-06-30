@@ -77,7 +77,8 @@ class FPGAXilinxFlow(Flowgraph):
             cls(language="systemverilog-sv2v"),
             cls(language="chisel"),
             cls(language="vhdl"),
-            cls(language="hls")
+            cls(language="hls"),
+            cls(language="bluespec")
         ]
 
 
@@ -135,7 +136,8 @@ class FPGANextPNRFlow(Flowgraph):
             cls(language="systemverilog-sv2v"),
             cls(language="chisel"),
             cls(language="vhdl"),
-            cls(language="hls")
+            cls(language="hls"),
+            cls(language="bluespec")
         ]
 
 
@@ -198,7 +200,8 @@ class FPGAVPRFlow(Flowgraph):
             cls(language="systemverilog-sv2v"),
             cls(language="chisel"),
             cls(language="vhdl"),
-            cls(language="hls")
+            cls(language="hls"),
+            cls(language="bluespec")
         ]
 
 
@@ -250,7 +253,8 @@ class FPGAVPROpenSTAFlow(FPGAVPRFlow):
             cls(language="systemverilog-sv2v"),
             cls(language="chisel"),
             cls(language="vhdl"),
-            cls(language="hls")
+            cls(language="hls"),
+            cls(language="bluespec")
         ]
 
 

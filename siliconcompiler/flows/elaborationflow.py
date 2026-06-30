@@ -18,6 +18,7 @@ from siliconcompiler.tools.bambu.convert import ConvertTask as BambuConvertTask
 from siliconcompiler.tools.ghdl.convert import ConvertTask as GHDLConvertTask
 from siliconcompiler.tools.sv2v.convert import ConvertTask as SV2VConvertTask
 from siliconcompiler.tools.chisel.convert import ConvertTask as ChiselConvertTask
+from siliconcompiler.tools.bluespec.convert import ConvertTask as BluespecConvertTask
 
 
 class ElaborationFlow(Flowgraph):
@@ -57,6 +58,8 @@ class ElaborationFlow(Flowgraph):
             self.graph(VHDLElaborationFlow())
         elif language == "hls":
             self.graph(HLSElaborationFlow())
+        elif language == "bluespec":
+            self.graph(BluespecElaborationFlow())
         else:
             raise ValueError(f"Unsupported language: {language}")
 
@@ -67,7 +70,8 @@ class ElaborationFlow(Flowgraph):
                 cls(language="systemverilog-sv2v"),
                 cls(language="chisel"),
                 cls(language="vhdl"),
-                cls(language="hls")]
+                cls(language="hls"),
+                cls(language="bluespec")]
 
 
 class SlangElaborationFlow(Flowgraph):
@@ -186,12 +190,35 @@ class ChiselElaborationFlow(Flowgraph):
         self.node("convert", ChiselConvertTask())
 
 
+class BluespecElaborationFlow(Flowgraph):
+    '''A Bluespec-based elaboration flow.
+
+    This flow supports designs written in the Bluespec hardware construction
+    language by using a 'convert' step that uses the Bluespec compiler to
+    generate Verilog from the Bluespec source.
+
+    The final node, **convert**, emits Verilog.
+    '''
+
+    def __init__(self, name: str = "bluespecelaborationflow"):
+        """
+        Initializes the BluespecElaborationFlow.
+
+        Args:
+            * name (str): The name of the flow.
+        """
+        super().__init__(name)
+
+        self.node("convert", BluespecConvertTask())
+
+
 ##################################################
 if __name__ == "__main__":
     for flowcls in [SlangElaborationFlow,
                     SV2VElaborationFlow,
                     HLSElaborationFlow,
                     VHDLElaborationFlow,
-                    ChiselElaborationFlow]:
+                    ChiselElaborationFlow,
+                    BluespecElaborationFlow]:
         flow = flowcls()
         flow.write_flowgraph(f"{flow.name}.png")

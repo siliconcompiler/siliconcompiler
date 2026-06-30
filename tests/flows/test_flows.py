@@ -12,7 +12,7 @@ from siliconcompiler.flows.asicflow import (
     PlacementFlow,
     ClockTreeSynthesisFlow,
     RoutingFlow,
-    DFMFlow,
+    DFMFlow
 )
 from siliconcompiler.flows.drcflow import DRCFlow, KlayoutDRCFlow, MagicDRCFlow
 from siliconcompiler.flows.dvflow import (
@@ -22,7 +22,7 @@ from siliconcompiler.flows.dvflow import (
     VerilatorDVFlow,
     VerilatorCocotbDVFlow,
     XyceDVFlow,
-    XDMXyceDVFlow,
+    XDMXyceDVFlow
 )
 from siliconcompiler.flows.elaborationflow import (
     ElaborationFlow,
@@ -31,12 +31,13 @@ from siliconcompiler.flows.elaborationflow import (
     HLSElaborationFlow,
     VHDLElaborationFlow,
     ChiselElaborationFlow,
+    BluespecElaborationFlow
 )
 from siliconcompiler.flows.fpgaflow import (
     FPGAXilinxFlow,
     FPGANextPNRFlow,
     FPGAVPRFlow,
-    FPGAVPROpenSTAFlow,
+    FPGAVPROpenSTAFlow
 )
 from siliconcompiler.flows.generate_openroad_rcx import GenerateOpenRCXFlow
 from siliconcompiler.flows.highresscreenshotflow import HighResScreenshotFlow
@@ -76,6 +77,7 @@ from siliconcompiler.flows.synflow import SynthesisFlow
     HLSElaborationFlow,
     VHDLElaborationFlow,
     ChiselElaborationFlow,
+    BluespecElaborationFlow,
     FPGAXilinxFlow,
     FPGANextPNRFlow,
     FPGAVPRFlow,

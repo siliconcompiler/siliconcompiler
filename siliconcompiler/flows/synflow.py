@@ -82,7 +82,8 @@ class SynthesisFlow(Flowgraph):
             cls(language="systemverilog-sv2v", syn_np=3, timing_np=3),
             cls(language="chisel", syn_np=3, timing_np=3),
             cls(language="vhdl", syn_np=3, timing_np=3),
-            cls(language="hls", syn_np=3, timing_np=3)
+            cls(language="hls", syn_np=3, timing_np=3),
+            cls(language="bluespec", syn_np=3, timing_np=3)
         ]
 
 

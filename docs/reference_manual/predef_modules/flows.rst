@@ -70,6 +70,9 @@ source language. They can be used on their own as a front-end.
 .. schema::
   :root: siliconcompiler.flows.elaborationflow/ChiselElaborationFlow
 
+.. schema::
+  :root: siliconcompiler.flows.elaborationflow/BluespecElaborationFlow
+
 Synthesis Flows
 ---------------
 

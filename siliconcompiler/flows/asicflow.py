@@ -134,7 +134,8 @@ class ASICFlow(Flowgraph):
                 syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
             cls(language="chisel", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
             cls(language="vhdl", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
-            cls(language="hls", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+            cls(language="hls", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="bluespec", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
         ]
 
 
