@@ -857,6 +857,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         Args:
             flow (str): The name of the flowgraph to search for.
         """
+        if not flow:
+            return None
+
         if flow in self.getkeys("flowgraph"):
             return flow
 
