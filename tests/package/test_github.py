@@ -8,6 +8,19 @@ from siliconcompiler.package.github import GithubResolver
 from siliconcompiler import Project
 
 
+@pytest.fixture(autouse=True)
+def clear_env(monkeypatch):
+    """Clear relevant environment variables before each test."""
+    for var in ["GITHUB", "GH", "GIT"]:
+        monkeypatch.delenv(f"{var}_MYPACKAGE_TOKEN", raising=False)
+        monkeypatch.delenv(f"{var}_TEST_TOKEN", raising=False)
+        monkeypatch.delenv(f"{var}_TOKEN", raising=False)
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which:
+        mock_which.return_value = None
+        yield
+
+
 def test_init_incorrect():
     with pytest.raises(ValueError,
                        match=r"^'github://this' is not in the proper form: github://"
@@ -231,7 +244,6 @@ def test_github_resolver_get_release_url_latest(monkeypatch, caplog):
 def test_github_resolver_get_gh_auth_package_token(monkeypatch):
     """Test __get_gh_auth finds package-specific token."""
     monkeypatch.setenv("GITHUB_MYPACKAGE_TOKEN", "token_pkg")
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
 
     resolver = GithubResolver("mypackage", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
@@ -241,7 +253,6 @@ def test_github_resolver_get_gh_auth_package_token(monkeypatch):
 
 def test_github_resolver_get_gh_auth_github_token(monkeypatch):
     """Test __get_gh_auth falls back to GITHUB_TOKEN."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
     monkeypatch.setenv("GITHUB_TOKEN", "token_github")
 
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
@@ -251,8 +262,6 @@ def test_github_resolver_get_gh_auth_github_token(monkeypatch):
 
 def test_github_resolver_get_gh_auth_git_token(monkeypatch):
     """Test __get_gh_auth falls back to GIT_TOKEN."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.setenv("GIT_TOKEN", "token_git")
 
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
@@ -260,12 +269,8 @@ def test_github_resolver_get_gh_auth_git_token(monkeypatch):
     assert token == "token_git"
 
 
-def test_github_resolver_get_gh_auth_not_found(monkeypatch):
+def test_github_resolver_get_gh_auth_not_found():
     """Test __get_gh_auth raises error when no token found."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
     with pytest.raises(ValueError, match="authorization token"):
@@ -337,13 +342,12 @@ def test_github_resolver_get_headers(monkeypatch):
     assert headers["Authorization"] == "token test_token"
 
 
-def test_github_resolver_get_headers_no_token(monkeypatch):
+def test_github_resolver_get_headers_no_token():
     """Test _get_headers returns Accept header and skips Authorization if no token."""
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
     # Use source archive to avoid API call
     resolver = GithubResolver("test", None, "github://owner/repo/v1.0/v1.0.tar.gz", "v1.0")
     headers = resolver._get_headers()
+
     assert headers["Accept"] == "application/octet-stream"
     assert "Authorization" not in headers
 
@@ -402,8 +406,6 @@ def test_github_resolver_get_gh_auth_sanitize_package_name(monkeypatch):
     # Package name with special characters that need sanitization
     # "my-package#1.0" becomes "MYPACKAGE10" after sanitization
     monkeypatch.setenv("GITHUB_MYPACKAGE10_TOKEN", "pkg_token")
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
 
     resolver = GithubResolver("my-package#1.0", None,
                               "github://owner/repo/v1.0/v1.0.tar.gz", "v1.0")
@@ -415,8 +417,6 @@ def test_github_resolver_get_gh_auth_multiple_special_chars(monkeypatch):
     """Test __get_gh_auth handles multiple special characters."""
     # Test sanitization of #, $, &, -, =, !, /
     monkeypatch.setenv("GITHUB_TESTPKG_TOKEN", "special_token")
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
 
     resolver = GithubResolver("test-pkg#$&=!/", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
@@ -428,13 +428,8 @@ def test_github_resolver_get_gh_auth_multiple_special_chars(monkeypatch):
 # Tests for gh CLI bypass in __get_gh_token
 # ============================================================================
 
-def test_github_resolver_get_gh_token_fallback_gh_cli_success(monkeypatch):
+def test_github_resolver_get_gh_token_fallback_gh_cli_success():
     """Test __get_gh_token falls back to gh CLI and succeeds."""
-    # Clear all environment tokens to force fallback
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -458,12 +453,8 @@ def test_github_resolver_get_gh_token_fallback_gh_cli_success(monkeypatch):
         )
 
 
-def test_github_resolver_get_gh_token_fallback_gh_cli_strips_whitespace(monkeypatch):
+def test_github_resolver_get_gh_token_fallback_gh_cli_strips_whitespace():
     """Test __get_gh_token gh CLI result strips whitespace."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -481,12 +472,8 @@ def test_github_resolver_get_gh_token_fallback_gh_cli_strips_whitespace(monkeypa
         assert token == "token_with_whitespace"
 
 
-def test_github_resolver_get_gh_token_fallback_gh_missing(monkeypatch):
+def test_github_resolver_get_gh_token_fallback_gh_missing():
     """Test __get_gh_token raises error when gh is missing."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -497,12 +484,8 @@ def test_github_resolver_get_gh_token_fallback_gh_missing(monkeypatch):
             resolver._GithubResolver__get_gh_token()
 
 
-def test_github_resolver_get_gh_token_fallback_gh_timeout(monkeypatch):
+def test_github_resolver_get_gh_token_fallback_gh_timeout():
     """Test __get_gh_token handles timeout from gh CLI."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -515,12 +498,8 @@ def test_github_resolver_get_gh_token_fallback_gh_timeout(monkeypatch):
             resolver._GithubResolver__get_gh_token()
 
 
-def test_github_resolver_get_gh_token_fallback_gh_nonzero_exit(monkeypatch):
+def test_github_resolver_get_gh_token_fallback_gh_nonzero_exit():
     """Test __get_gh_token raises error when gh returns non-zero exit code."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -554,13 +533,8 @@ def test_github_resolver_get_gh_token_fallback_gh_env_preferred_over_gh_cli(monk
         mock_run.assert_not_called()
 
 
-def test_github_resolver_get_gh_token_fallback_only_when_env_fails(monkeypatch):
+def test_github_resolver_get_gh_token_fallback_only_when_env_fails():
     """Test gh CLI is only used when env variables fail."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GH_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -580,38 +554,35 @@ def test_github_resolver_get_gh_token_fallback_only_when_env_fails(monkeypatch):
         mock_run.assert_called_once()
 
 
-def test_github_resolver_get_gh_token_fallback_preserves_original_error(monkeypatch):
+def test_github_resolver_get_gh_token_fallback_preserves_original_error():
     """Test __get_gh_token preserves original ValueError when gh CLI also fails."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
+
+    # Distinctive sentinel error raised by the parent env lookup
+    sentinel = ValueError("sentinel original authorization token error")
 
     # gh returns failure
     mock_result = MagicMock()
     mock_result.returncode = 1
 
     with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
-         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run, \
+         patch("siliconcompiler.package.RemoteResolver._get_auth_token",
+               side_effect=sentinel):
         mock_which.return_value = "/usr/bin/gh"
         mock_run.return_value = mock_result
 
-        # Should raise the original ValueError from parent class
+        # Should re-raise the exact original ValueError from the parent class,
+        # not a new one introduced by the gh fallback path
         with pytest.raises(ValueError) as exc_info:
             resolver._GithubResolver__get_gh_token()
 
-        # Error message should mention authorization token (from parent)
-        assert "authorization token" in str(exc_info.value).lower()
+        assert exc_info.value is sentinel
 
 
-def test_github_resolver_get_gh_token_timeout_5_seconds(monkeypatch):
+def test_github_resolver_get_gh_token_timeout_5_seconds():
     """Test __get_gh_token uses 5 second timeout for gh CLI."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -637,12 +608,8 @@ def test_github_resolver_get_gh_token_timeout_5_seconds(monkeypatch):
         assert timeout_used == 5
 
 
-def test_github_resolver_get_gh_token_with_capture_output(monkeypatch):
+def test_github_resolver_get_gh_token_with_capture_output():
     """Test __get_gh_token uses capture_output=True for gh subprocess."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -666,12 +633,8 @@ def test_github_resolver_get_gh_token_with_capture_output(monkeypatch):
 # Tests for gh CLI output validation
 # ============================================================================
 
-def test_github_resolver_get_gh_token_rejects_empty_output(monkeypatch):
+def test_github_resolver_get_gh_token_rejects_empty_output():
     """Test __get_gh_token rejects empty token from gh CLI."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -688,12 +651,8 @@ def test_github_resolver_get_gh_token_rejects_empty_output(monkeypatch):
             resolver._GithubResolver__get_gh_token()
 
 
-def test_github_resolver_get_gh_token_rejects_whitespace_only_output(monkeypatch):
+def test_github_resolver_get_gh_token_rejects_whitespace_only_output():
     """Test __get_gh_token rejects whitespace-only token from gh CLI."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -710,12 +669,8 @@ def test_github_resolver_get_gh_token_rejects_whitespace_only_output(monkeypatch
             resolver._GithubResolver__get_gh_token()
 
 
-def test_github_resolver_get_gh_token_rejects_multiline_token(monkeypatch):
+def test_github_resolver_get_gh_token_rejects_multiline_token():
     """Test __get_gh_token rejects multiline token from gh CLI."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -732,12 +687,8 @@ def test_github_resolver_get_gh_token_rejects_multiline_token(monkeypatch):
             resolver._GithubResolver__get_gh_token()
 
 
-def test_github_resolver_get_gh_token_rejects_embedded_newline(monkeypatch):
+def test_github_resolver_get_gh_token_rejects_embedded_newline():
     """Test __get_gh_token rejects token with embedded newlines."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -755,12 +706,8 @@ def test_github_resolver_get_gh_token_rejects_embedded_newline(monkeypatch):
             resolver._GithubResolver__get_gh_token()
 
 
-def test_github_resolver_get_gh_token_accepts_single_line_token(monkeypatch):
+def test_github_resolver_get_gh_token_accepts_single_line_token():
     """Test __get_gh_token accepts valid single-line token from gh CLI."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -778,12 +725,8 @@ def test_github_resolver_get_gh_token_accepts_single_line_token(monkeypatch):
         assert token == "valid_single_line_token"
 
 
-def test_github_resolver_get_gh_token_strips_leading_trailing_whitespace(monkeypatch):
+def test_github_resolver_get_gh_token_strips_leading_trailing_whitespace():
     """Test __get_gh_token properly strips leading/trailing whitespace."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
@@ -802,12 +745,8 @@ def test_github_resolver_get_gh_token_strips_leading_trailing_whitespace(monkeyp
         assert "\n" not in token
 
 
-def test_github_resolver_get_gh_token_rejects_carriage_returns(monkeypatch):
+def test_github_resolver_get_gh_token_rejects_carriage_returns():
     """Test __get_gh_token rejects tokens with carriage returns."""
-    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GIT_TOKEN", raising=False)
-
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
