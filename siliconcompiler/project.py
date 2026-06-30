@@ -128,6 +128,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Init options callbacks
         self.__init_option_callbacks()
 
+        # Init flow warnings list
+        self.__flow_warnings = []
+
         if design:
             if isinstance(design, str):
                 self.option.set_design(design)
@@ -847,6 +850,34 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return self.option.set_design(design)
 
+    def __find_flow(self, flow: str) -> Optional[str]:
+        """
+        Attempts to find a flowgraph by name, allowing for partial matches.
+
+        Args:
+            flow (str): The name of the flowgraph to search for.
+        """
+        if not flow:
+            return None
+
+        if flow in self.getkeys("flowgraph"):
+            return flow
+
+        flows = []
+        for loaded_flow in self.getkeys("flowgraph"):
+            if loaded_flow.startswith(flow):
+                flows.append(loaded_flow)
+
+        if len(flows) == 1:
+            return flows[0]
+        else:
+            if flows and flow not in self.__flow_warnings:
+                self.__flow_warnings.append(flow)
+                self.logger.warning(f"Flowgraph '{flow}' not found, and multiple "
+                                    f"matches exist: {', '.join(flows)}")
+
+        return None
+
     def set_flow(self, flow: Union[Flowgraph, str]):
         """
         Sets the active flowgraph for this project.
@@ -855,12 +886,23 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         (the flow) that the project will execute. If a `Flowgraph` object
         is provided, it is first added as a dependency.
 
+        When given a string, the name is resolved against the flowgraphs already
+        loaded into the project. An exact match is preferred; if none exists, the
+        name is treated as a prefix and matched against the loaded flowgraph
+        names. This allows a short name to select a variant-suffixed flow, for
+        example ``"synflow"`` resolves to ``"synflow-verilog"``. The match must be
+        unique: if the prefix matches more than one loaded flowgraph, a warning
+        listing the candidates is logged and a `KeyError` is raised.
+
         Args:
-            flow (Union[Flowgraph, str]): The flowgraph object or its name (string)
-                                                to be set as the current flow.
+            flow (Union[Flowgraph, str]): The flowgraph object, or the full or
+                partial (prefix) name of a flowgraph already loaded into the
+                project.
 
         Raises:
             TypeError: If the provided `flow` is not a string or a `Flowgraph` object.
+            KeyError: If no loaded flowgraph matches the given name, or if a partial
+                name matches more than one loaded flowgraph.
         """
         if isinstance(flow, Flowgraph):
             self.add_dep(flow)
@@ -868,21 +910,42 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         elif not isinstance(flow, str):
             raise TypeError("flow must be a string or a Flowgraph object")
 
+        # Attempt to find the flow
+        if not self.valid("flowgraph", flow):
+            find_flow = self.__find_flow(flow)
+            if find_flow:
+                self.logger.debug(
+                    f"Flowgraph '{flow}' not found, using '{find_flow}' instead")
+                flow = find_flow
+            else:
+                raise KeyError(f"{flow} flowgraph has not been loaded")
+
         return self.option.set_flow(flow)
 
     def get_flow(self, name: Optional[str] = None) -> Flowgraph:
         """
         Retrieves a flowgraph by name.
 
+        The name is resolved against the flowgraphs already loaded into the
+        project. An exact match is preferred; if none exists, the name is treated
+        as a prefix and matched against the loaded flowgraph names. This allows a
+        short name to select a variant-suffixed flow, for example ``"synflow"``
+        resolves to ``"synflow-verilog"``. The match must be unique: if the prefix
+        matches more than one loaded flowgraph, a warning listing the candidates
+        is logged and a `KeyError` is raised.
+
         Args:
-            name (str, optional): The name of the flowgraph to retrieve. If None,
-                                  retrieves the currently selected flowgraph.
+            name (str, optional): The full or partial (prefix) name of the
+                flowgraph to retrieve. If None, the currently selected flowgraph
+                (:keypath:`option,flow`) is used.
 
         Returns:
-            Flowgraph: The `Flowgraph` object corresponding to the specified name.
+            Flowgraph: The `Flowgraph` object corresponding to the resolved name.
 
         Raises:
-            KeyError: If the specified flowgraph is not found in the project.
+            KeyError: If no flow is currently selected (when `name` is None), if no
+                loaded flowgraph matches the given name, or if a partial name
+                matches more than one loaded flowgraph.
         """
         if name is None:
             name = self.option.get_flow()
@@ -890,7 +953,13 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 raise KeyError("no flow is currently selected")
 
         if not self.valid("flowgraph", name):
-            raise KeyError(f"{name} flowgraph has not been loaded")
+            find_flow = self.__find_flow(name)
+            if find_flow:
+                self.logger.debug(
+                    f"Flowgraph '{name}' not found, using '{find_flow}' instead")
+                name = find_flow
+            else:
+                raise KeyError(f"{name} flowgraph has not been loaded")
 
         return self.get("flowgraph", name, field="schema")
 
