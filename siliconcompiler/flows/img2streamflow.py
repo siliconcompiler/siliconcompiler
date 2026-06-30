@@ -1,7 +1,8 @@
 from siliconcompiler import Flowgraph
 
 from siliconcompiler.tools.klayout import img2stream
-from siliconcompiler.tools.klayout import drc
+
+from siliconcompiler.flows.drcflow import KlayoutDRCFlow
 
 
 class Img2StreamFlow(Flowgraph):
@@ -16,8 +17,7 @@ class Img2StreamFlow(Flowgraph):
         self.node('image', img2stream.Img2StreamTask())
 
         if run_drc:
-            self.node('drc', drc.DRCTask())
-
+            self.graph(KlayoutDRCFlow())
             self.edge('image', 'drc')
 
 

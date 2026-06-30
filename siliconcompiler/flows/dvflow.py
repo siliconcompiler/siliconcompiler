@@ -52,38 +52,132 @@ class DVFlow(Flowgraph):
         super().__init__(name)
 
         if tool == "icarus":
-            self.node("compile", icarus_compile.CompileTask())
-            sim_task = exec_input.ExecInputTask()
-            com_name = "compile"
+            self.graph(IcarusDVFlow(np=np))
         elif tool == "icarus-cocotb":
-            self.node("compile", icarus_compile.CompileTask())
-            sim_task = icarus_cocotb.CocotbExecTask()
-            com_name = "compile"
+            self.graph(IcarusCocotbDVFlow(np=np))
         elif tool == "verilator":
-            self.node("compile", verilator_compile.CompileTask())
-            sim_task = exec_input.ExecInputTask()
-            com_name = "compile"
+            self.graph(VerilatorDVFlow(np=np))
         elif tool == "verilator-cocotb":
-            self.node("compile", verilator_cocotb_compile.CocotbCompileTask())
-            sim_task = verilator_cocotb.CocotbExecTask()
-            com_name = "compile"
+            self.graph(VerilatorCocotbDVFlow(np=np))
         elif tool == "xyce":
-            sim_task = xyce_simulate.SimulateTask()
-            com_name = None
+            self.graph(XyceDVFlow(np=np))
         elif tool == "xdm-xyce":
-            self.node("compile", xdm_convert.ConvertTask())
-            sim_task = xyce_simulate.SimulateTask()
-            com_name = "compile"
+            self.graph(XDMXyceDVFlow(np=np))
         else:
             raise ValueError(f'{tool} is not a supported tool')
 
+    @classmethod
+    def make_docs(cls):
+        return [cls(tool="icarus", np=3),
+                cls(tool="icarus-cocotb", np=3),
+                cls(tool="verilator", np=3),
+                cls(tool="verilator-cocotb", np=3),
+                cls(tool="xyce", np=3),
+                cls(tool="xdm-xyce", np=3)]
+
+
+class IcarusDVFlow(Flowgraph):
+    '''A DV flow using the Icarus Verilog simulator.'''
+    def __init__(self, name: str = "icarusdvflow", np: int = 1):
+        super().__init__(name)
+
+        self.node("compile", icarus_compile.CompileTask())
+        sim_task = exec_input.ExecInputTask()
+
         for n in range(np):
             self.node("simulate", sim_task, index=n)
-            if com_name:
-                self.edge(com_name, "simulate", head_index=n)
+            self.edge("compile", "simulate", head_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        return cls(np=3)
+
+
+class IcarusCocotbDVFlow(Flowgraph):
+    '''A DV flow using the Icarus Verilog simulator with cocotb testbenches.'''
+    def __init__(self, name: str = "icaruscocotbdvflow", np: int = 1):
+        super().__init__(name)
+
+        self.node("compile", icarus_compile.CompileTask())
+        sim_task = icarus_cocotb.CocotbExecTask()
+
+        for n in range(np):
+            self.node("simulate", sim_task, index=n)
+            self.edge("compile", "simulate", head_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        return cls(np=3)
+
+
+class VerilatorDVFlow(Flowgraph):
+    '''A DV flow using the Verilator simulator.'''
+    def __init__(self, name: str = "verilatordvflow", np: int = 1):
+        super().__init__(name)
+
+        self.node("compile", verilator_compile.CompileTask())
+        sim_task = exec_input.ExecInputTask()
+
+        for n in range(np):
+            self.node("simulate", sim_task, index=n)
+            self.edge("compile", "simulate", head_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        return cls(np=3)
+
+
+class VerilatorCocotbDVFlow(Flowgraph):
+    '''A DV flow using the Verilator simulator with cocotb testbenches.'''
+    def __init__(self, name: str = "verilatorcocotbdvflow", np: int = 1):
+        super().__init__(name)
+
+        self.node("compile", verilator_cocotb_compile.CocotbCompileTask())
+        sim_task = verilator_cocotb.CocotbExecTask()
+
+        for n in range(np):
+            self.node("simulate", sim_task, index=n)
+            self.edge("compile", "simulate", head_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        return cls(np=3)
+
+
+class XyceDVFlow(Flowgraph):
+    '''A DV flow using the Xyce circuit simulator.'''
+    def __init__(self, name: str = "xycedvflow", np: int = 1):
+        super().__init__(name)
+
+        sim_task = xyce_simulate.SimulateTask()
+
+        for n in range(np):
+            self.node("simulate", sim_task, index=n)
+
+    @classmethod
+    def make_docs(cls):
+        return cls(np=3)
+
+
+class XDMXyceDVFlow(Flowgraph):
+    '''A DV flow using the Xyce circuit simulator with XDM conversion.'''
+    def __init__(self, name: str = "xdmxycedvflow", np: int = 1):
+        super().__init__(name)
+
+        self.node("compile", xdm_convert.ConvertTask())
+        sim_task = xyce_simulate.SimulateTask()
+
+        for n in range(np):
+            self.node("simulate", sim_task, index=n)
+            self.edge("compile", "simulate", head_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        return cls(np=3)
 
 
 ##################################################
 if __name__ == "__main__":
-    flow = DVFlow(np=3)
-    flow.write_flowgraph(f"{flow.name}.png")
+    for tool in ["icarus", "icarus-cocotb", "verilator", "verilator-cocotb", "xyce", "xdm-xyce"]:
+        flow = DVFlow(tool=tool, np=3)
+        flow.write_flowgraph(f"{flow.name}.png")
