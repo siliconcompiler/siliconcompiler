@@ -1,6 +1,10 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
+from typing import Optional
+
 from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow, drcflow
+
+from siliconcompiler.targets._utils import detect_elaboration_language
 
 from lambdapdk.ihp130.libs.sg13g2_stdcell import IHP130StdCell_1p2
 from lambdapdk.ihp130.libs.sg13g2_sram import IHP130Lambdalib_SinglePort, \
@@ -15,7 +19,8 @@ def ihp130_demo(
         project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-        timing_np: int = 1):
+        timing_np: int = 1,
+        language: Optional[str] = None):
     """
         Configure a siliconcompiler ASIC for the IHP 130nm PDK, including libraries,
         flows, timing scenarios, and basic physical constraints.
@@ -33,7 +38,10 @@ def ihp130_demo(
             * cts_np (int): Parallelism for clock-tree synthesis.
             * route_np (int): Parallelism for routing.
             * timing_np (int): Parallelism for timing analysis (synthesis-only flow).
+            * language (Optional[str]): The hardware description language to use.
         """
+    if language is None:
+        language = detect_elaboration_language(project)
 
     # 1. Load Standard Cell Library
     # Sets the primary standard cell library for the design. This library

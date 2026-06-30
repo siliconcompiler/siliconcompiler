@@ -1,6 +1,10 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
+from typing import Optional
+
 from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
+
+from siliconcompiler.targets._utils import detect_elaboration_language
 
 from lambdapdk.asap7.libs.asap7sc7p5t import ASAP7SC7p5RVT, ASAP7SC7p5SLVT, ASAP7SC7p5LVT
 from lambdapdk.asap7.libs.fakeram7 import FakeRAM7Lambdalib_SinglePort, \
@@ -17,7 +21,8 @@ def asap7_demo(
         project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-        timing_np: int = 1):
+        timing_np: int = 1,
+        language: Optional[str] = None):
     """
         Configure an ASIC for the ASAP7 PDK with multi-Vt libraries, flows, timing corners,
         and physical constraints.
@@ -35,7 +40,10 @@ def asap7_demo(
             * cts_np (int): Parallel process count for clock-tree synthesis.
             * route_np (int): Parallel process count for routing.
             * timing_np (int): Parallel process count for timing-analysis synthesis.
+            * language (Optional[str]): The hardware description language to use.
         """
+    if language is None:
+        language = detect_elaboration_language(project)
 
     # 1. Load Standard Cell Libraries
     # ASAP7 provides cells with different threshold voltages (Vt) to allow for
