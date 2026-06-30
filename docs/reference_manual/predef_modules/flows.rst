@@ -11,23 +11,12 @@ ASIC Flows
 ----------
 
 Complete ASIC compilation flows that take RTL through synthesis, place-and-route,
-and finishing. Each variant differs only in the front-end used to bring the design
-into Verilog before the shared place-and-route back-end runs.
+and finishing. The ``language`` argument selects the front-end used to bring the
+design into Verilog before the shared place-and-route back-end runs; a variant is
+shown below for each supported source language.
 
 .. schema::
   :root: siliconcompiler.flows.asicflow/ASICFlow
-
-.. schema::
-  :root: siliconcompiler.flows.asicflow/SV2VASICFlow
-
-.. schema::
-  :root: siliconcompiler.flows.asicflow/HLSASICFlow
-
-.. schema::
-  :root: siliconcompiler.flows.asicflow/VHDLASICFlow
-
-.. schema::
-  :root: siliconcompiler.flows.asicflow/ChiselASICFlow
 
 ASIC Subflows
 ^^^^^^^^^^^^^
@@ -60,6 +49,15 @@ front-end for any downstream flow that consumes a Verilog netlist.
 .. schema::
   :root: siliconcompiler.flows.elaborationflow/ElaborationFlow
 
+Elaboration Subflows
+^^^^^^^^^^^^^^^^^^^^^
+
+The language-specific building blocks for elaborating a design in a single
+source language. They can be used on their own as a front-end.
+
+.. schema::
+  :root: siliconcompiler.flows.elaborationflow/SlangElaborationFlow
+
 .. schema::
   :root: siliconcompiler.flows.elaborationflow/SV2VElaborationFlow
 
@@ -80,18 +78,6 @@ variant pairs a different front-end language with the shared Yosys synthesis ste
 
 .. schema::
   :root: siliconcompiler.flows.synflow/SynthesisFlow
-
-.. schema::
-  :root: siliconcompiler.flows.synflow/SV2VSynthesisFlow
-
-.. schema::
-  :root: siliconcompiler.flows.synflow/HLSSynthesisFlow
-
-.. schema::
-  :root: siliconcompiler.flows.synflow/VHDLSynthesisFlow
-
-.. schema::
-  :root: siliconcompiler.flows.synflow/ChiselSynthesisFlow
 
 Lint Flows
 ----------

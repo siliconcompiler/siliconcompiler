@@ -1,3 +1,7 @@
+from typing import Optional
+
+from siliconcompiler import Flowgraph
+
 from siliconcompiler.tools.icarus import compile as icarus_compile
 from siliconcompiler.tools.icarus import cocotb_exec as icarus_cocotb
 from siliconcompiler.tools.verilator import compile as verilator_compile
@@ -6,9 +10,6 @@ from siliconcompiler.tools.verilator import cocotb_exec as verilator_cocotb
 from siliconcompiler.tools.execute import exec_input
 from siliconcompiler.tools.xyce import simulate as xyce_simulate
 from siliconcompiler.tools.xdm import convert as xdm_convert
-
-
-from siliconcompiler import Flowgraph
 
 
 class DVFlow(Flowgraph):
@@ -33,7 +34,7 @@ class DVFlow(Flowgraph):
         * 'xyce': Simulates a netlist with the Xyce circuit simulator.
         * 'xdm-xyce': Converts a design to a Xyce-compatible format and simulates.
     '''
-    def __init__(self, name: str = None, tool: str = "icarus", np: int = 1):
+    def __init__(self, name: Optional[str] = None, tool: str = "icarus", np: int = 1):
         """
         Initializes the DVFlow with a specified tool and parallelism.
 

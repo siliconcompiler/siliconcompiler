@@ -1,10 +1,12 @@
+from typing import Optional
+
+from siliconcompiler import Flowgraph
+from siliconcompiler import Task
+
 from siliconcompiler.tools.openroad import rcx_bench
 from siliconcompiler.tools.openroad import rcx_extract
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin.wait import Wait
-
-from siliconcompiler import Flowgraph
-from siliconcompiler import Task
 
 
 class GenerateOpenRCXFlow(Flowgraph):
@@ -24,7 +26,7 @@ class GenerateOpenRCXFlow(Flowgraph):
         3. **extract**: The golden SPEF is used to generate a calibrated OpenRCX
                         deck.
     '''
-    def __init__(self, extraction_task: Task = None, corners: int = 1,
+    def __init__(self, extraction_task: Optional[Task] = None, corners: int = 1,
                  serial_extraction: bool = False):
         """
         Initializes the GenerateOpenRCXFlow.

@@ -1,4 +1,7 @@
+from typing import Optional
+
 from siliconcompiler import Flowgraph
+
 from siliconcompiler.tools.klayout.drc import DRCTask as KlayoutDRC
 from siliconcompiler.tools.magic.drc import DRCTask as MagicDRC
 
@@ -9,7 +12,7 @@ class DRCFlow(Flowgraph):
     This flow is designed to perform a DRC run on an input GDSII file using
     KLayout or Magic.
     '''
-    def __init__(self, name: str = "drcflow", tool: str = "klayout"):
+    def __init__(self, name: Optional[str] = None, tool: str = "klayout"):
         """
         Initializes the DRCFlow.
 
@@ -20,6 +23,8 @@ class DRCFlow(Flowgraph):
         Raises:
             ValueError: If an unsupported tool is specified.
         """
+        if name is None:
+            name = f"drcflow-{tool}"
         super().__init__(name)
 
         if tool == "klayout":

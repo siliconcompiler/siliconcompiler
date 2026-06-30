@@ -26,6 +26,7 @@ from siliconcompiler.flows.dvflow import (
 )
 from siliconcompiler.flows.elaborationflow import (
     ElaborationFlow,
+    SlangElaborationFlow,
     SV2VElaborationFlow,
     HLSElaborationFlow,
     VHDLElaborationFlow,
@@ -45,13 +46,7 @@ from siliconcompiler.flows.lintflow import LintFlow, VerilatorLintFlow, SlangLin
 from siliconcompiler.flows.lvsflow import MagicLVSFlow
 from siliconcompiler.flows.showflow import ShowFlow
 from siliconcompiler.flows.signoffflow import SignoffFlow
-from siliconcompiler.flows.synflow import (
-    SynthesisFlow,
-    SV2VSynthesisFlow,
-    HLSSynthesisFlow,
-    VHDLSynthesisFlow,
-    ChiselSynthesisFlow,
-)
+from siliconcompiler.flows.synflow import SynthesisFlow
 
 
 @pytest.mark.parametrize("flow", [
@@ -76,6 +71,7 @@ from siliconcompiler.flows.synflow import (
     XyceDVFlow,
     XDMXyceDVFlow,
     ElaborationFlow,
+    SlangElaborationFlow,
     SV2VElaborationFlow,
     HLSElaborationFlow,
     VHDLElaborationFlow,
@@ -94,11 +90,7 @@ from siliconcompiler.flows.synflow import (
     MagicLVSFlow,
     ShowFlow,
     SignoffFlow,
-    SynthesisFlow,
-    SV2VSynthesisFlow,
-    HLSSynthesisFlow,
-    VHDLSynthesisFlow,
-    ChiselSynthesisFlow,
+    SynthesisFlow
 ])
 def test_default_valid(flow: Flowgraph):
     flows = flow.make_docs()

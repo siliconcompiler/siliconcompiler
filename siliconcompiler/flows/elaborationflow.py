@@ -8,7 +8,10 @@ interchangeably as a front-end for any downstream flow that consumes a Verilog
 netlist (e.g. synthesis).
 '''
 
+from typing import Optional
+
 from siliconcompiler import Flowgraph
+
 from siliconcompiler.tools.slang.elaborate import Elaborate as VerilogElaborate
 
 from siliconcompiler.tools.bambu.convert import ConvertTask as BambuConvertTask
@@ -18,6 +21,56 @@ from siliconcompiler.tools.chisel.convert import ConvertTask as ChiselConvertTas
 
 
 class ElaborationFlow(Flowgraph):
+    '''A flow which elaborates an RTL design from its source files.
+
+    This flow performs only the elaboration portion of the synthesis flow,
+    producing an elaborated design without running synthesis or timing
+    analysis. It is useful for quickly checking that a design elaborates
+    cleanly.
+
+    The flow consists of the following step:
+        * **elaborate**: Elaborates the RTL design from its source files.
+
+    The final node, **elaborate**, emits Verilog.
+    '''
+
+    def __init__(self, name: Optional[str] = None, language: str = "verilog"):
+        """
+        Initializes the ElaborationFlow.
+
+        Args:
+            * name (str, optional): The name of the flow. If not provided, it
+                defaults to 'elaborationflow-<language>'.
+            * language (str): The hardware description language of the design.
+        """
+        if name is None:
+            name = f"elaborationflow-{language}"
+        super().__init__(name)
+
+        if language == "verilog" or language == "systemverilog":
+            self.graph(SlangElaborationFlow())
+        elif language == "systemverilog-sv2v":
+            self.graph(SV2VElaborationFlow())
+        elif language == "chisel":
+            self.graph(ChiselElaborationFlow())
+        elif language == "vhdl":
+            self.graph(VHDLElaborationFlow())
+        elif language == "hls":
+            self.graph(HLSElaborationFlow())
+        else:
+            raise ValueError(f"Unsupported language: {language}")
+
+    @classmethod
+    def make_docs(cls):
+        return [cls(language="verilog"),
+                cls(language="systemverilog"),
+                cls(language="systemverilog-sv2v"),
+                cls(language="chisel"),
+                cls(language="vhdl"),
+                cls(language="hls")]
+
+
+class SlangElaborationFlow(Flowgraph):
     '''
     A flow which elaborates an RTL design from its source files.
 
@@ -32,9 +85,9 @@ class ElaborationFlow(Flowgraph):
     The final node, **elaborate**, emits Verilog.
     '''
 
-    def __init__(self, name: str = "elaborationflow"):
+    def __init__(self, name: str = "slangelaborationflow"):
         """
-        Initializes the ElaborationFlow.
+        Initializes the SlangElaborationFlow.
 
         Args:
             * name (str): The name of the flow.
@@ -135,7 +188,7 @@ class ChiselElaborationFlow(Flowgraph):
 
 ##################################################
 if __name__ == "__main__":
-    for flowcls in [ElaborationFlow,
+    for flowcls in [SlangElaborationFlow,
                     SV2VElaborationFlow,
                     HLSElaborationFlow,
                     VHDLElaborationFlow,

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from siliconcompiler import Flowgraph
 
 from siliconcompiler.tools.openroad import init_floorplan
@@ -20,11 +22,10 @@ from siliconcompiler.tools.klayout import export as klayout_export
 
 from siliconcompiler.tools.builtin import minimum
 
-from siliconcompiler.flows.synflow import SynthesisFlow, SV2VSynthesisFlow, HLSSynthesisFlow, \
-    VHDLSynthesisFlow, ChiselSynthesisFlow
+from siliconcompiler.flows.synflow import SynthesisFlow
 
 
-class _ASICFlowBase(Flowgraph):
+class ASICFlow(Flowgraph):
     '''A configurable ASIC compilation flow.
 
     This flow targets ASIC designs, taking RTL through a complete synthesis,
@@ -35,7 +36,7 @@ class _ASICFlowBase(Flowgraph):
         * **elaborate**: RTL elaboration using Slang.
         * **synthesis**: RTL synthesis using Yosys.
         * **floorplan**: Floorplanning, including macro placement, tapcell/endcap
-            insertion, power grid generation, and pin placement.
+          insertion, power grid generation, and pin placement.
         * **place**: Global and detailed placement.
         * **cts**: Clock tree synthesis and post-CTS timing repair.
         * **route**: Global and detailed routing.
@@ -44,9 +45,14 @@ class _ASICFlowBase(Flowgraph):
 
     The synthesis, floorplan, place, cts, and route steps support parallel
     execution to explore different strategies. This can be configured by
-    setting the corresponding '_np' argument to a value greater than 1.
+    setting the corresponding ``*_np`` argument to a value greater than 1.
 
     Args:
+        * name (str, optional): The name of the flow. If not provided, it
+          defaults to 'asicflow-<language>'.
+        * language (str): The hardware description language of the design. One
+          of 'verilog', 'systemverilog', 'systemverilog-sv2v', 'chisel',
+          'vhdl', or 'hls'.
         * syn_np (int): Number of parallel synthesis jobs to launch.
         * floorplan_np (int): Number of parallel floorplan jobs to launch.
         * place_np (int): Number of parallel placement jobs to launch.
@@ -54,10 +60,8 @@ class _ASICFlowBase(Flowgraph):
         * route_np (int): Number of parallel routing jobs to launch.
     '''
 
-    def _synthesis(self, np):
-        raise NotImplementedError("Subclasses must implement the _synthesis method.")
-
-    def __init__(self, name: str = 'asicflow',
+    def __init__(self, name: Optional[str] = None,
+                 language: str = "verilog",
                  syn_np: int = 1,
                  floorplan_np: int = 1,
                  place_np: int = 1,
@@ -67,15 +71,18 @@ class _ASICFlowBase(Flowgraph):
 
         Args:
             * name (str): The name of the flow.
+            * language (str): The hardware description language of the design.
+            * syn_np (int): The number of parallel synthesis jobs to launch.
             * floorplan_np (int): The number of parallel floorplan jobs to launch.
             * place_np (int): The number of parallel placement jobs to launch.
             * cts_np (int): The number of parallel clock tree synthesis jobs to launch.
             * route_np (int): The number of parallel routing jobs to launch.
         """
-        super().__init__()
-        self.set_name(name)
+        if name is None:
+            name = f"asicflow-{language}"
+        super().__init__(name)
 
-        synth = self._synthesis(np=syn_np)
+        synth = SynthesisFlow(language=language, syn_np=syn_np)
         self.graph(synth)
 
         prev_node = synth.get_exit_nodes()
@@ -113,13 +120,22 @@ class _ASICFlowBase(Flowgraph):
         '''Creates an instance of the flow for documentation generation.
 
         This method is intended to be used by documentation generation tools to
-        create a representative instance of the flow, typically with parallel
-        execution features enabled to demonstrate the flow's capabilities.
+        create representative instances of the flow, one for each supported
+        source language, with parallel execution enabled to demonstrate the
+        flow's capabilities.
 
         Returns:
-            An instance of the ASICFlow class.
+            A list of ASICFlow instances, one per supported source language.
         '''
-        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+        return [
+            cls(language="verilog",
+                syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="systemverilog-sv2v",
+                syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="chisel", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="vhdl", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="hls", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+        ]
 
 
 class FloorplanningFlow(Flowgraph):
@@ -137,6 +153,7 @@ class FloorplanningFlow(Flowgraph):
 
         Args:
             * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
         """
         super().__init__(name)
 
@@ -184,6 +201,7 @@ class PlacementFlow(Flowgraph):
 
         Args:
             * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
         """
         super().__init__(name)
 
@@ -227,6 +245,7 @@ class ClockTreeSynthesisFlow(Flowgraph):
 
         Args:
             * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
         """
         super().__init__(name)
 
@@ -268,6 +287,7 @@ class RoutingFlow(Flowgraph):
 
         Args:
             * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
         """
         super().__init__(name)
 
@@ -292,7 +312,7 @@ class RoutingFlow(Flowgraph):
         execution features enabled to demonstrate the flow's capabilities.
 
         Returns:
-            An instance of the DFMFlow class.
+            An instance of the RoutingFlow class.
         '''
         return cls(np=3)
 
@@ -311,6 +331,7 @@ class DFMFlow(Flowgraph):
 
         Args:
             * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
         """
         super().__init__(name)
 
@@ -338,51 +359,14 @@ class DFMFlow(Flowgraph):
         return cls(np=3)
 
 
-class ASICFlow(_ASICFlowBase):
-    '''A configurable ASIC compilation flow.
-
-    This flow targets ASIC designs, taking RTL through a complete synthesis,
-    place-and-route, and finishing flow.
-
-    The flow is divided into the following major steps:
-
-        * **elaborate**: RTL elaboration using Slang.
-        * **synthesis**: RTL synthesis using Yosys.
-        * **floorplan**: Floorplanning, including macro placement, tapcell/endcap
-            insertion, power grid generation, and pin placement.
-        * **place**: Global and detailed placement.
-        * **cts**: Clock tree synthesis and post-CTS timing repair.
-        * **route**: Global and detailed routing.
-        * **dfm**: Design-for-manufacturing steps, primarily metal fill.
-        * **write**: Writing out final views of the design (GDSII, etc.).
-
-    The synthesis, floorplan, place, cts, and route steps support parallel
-    execution to explore different strategies. This can be configured by
-    setting the corresponding '_np' argument to a value greater than 1.
-
-    Args:
-        * syn_np (int): Number of parallel synthesis jobs to launch.
-        * floorplan_np (int): Number of parallel floorplan jobs to launch.
-        * place_np (int): Number of parallel placement jobs to launch.
-        * cts_np (int): Number of parallel clock tree synthesis jobs to launch.
-        * route_np (int): Number of parallel routing jobs to launch.
-    '''
-
-    def _synthesis(self, np):
-        return SynthesisFlow(syn_np=np)
-
-
 class SV2VASICFlow(ASICFlow):
-    '''A SystemVerilog-to-Verilog extension of the ASICFlow.
+    '''A SystemVerilog-to-Verilog variant of the ASIC compilation flow.
 
     This flow is intended for designs written in SystemVerilog that may not be
-    fully supported by downstream synthesis or APR tools. It inserts a
-    'convert' step using SV2V before the standard 'elaborate' step to ensure
-    the design is in a compatible Verilog format.
+    fully supported by downstream synthesis or APR tools. The design is
+    converted to a compatible Verilog format with SV2V during elaboration,
+    before running the standard synthesis, place-and-route, and finishing steps.
     '''
-
-    def _synthesis(self, np):
-        return SV2VSynthesisFlow(syn_np=np)
 
     def __init__(self, name: str = 'sv2vasicflow',
                  syn_np: int = 1,
@@ -401,23 +385,25 @@ class SV2VASICFlow(ASICFlow):
             * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__(name,
+                         language="systemverilog-sv2v",
                          syn_np=syn_np,
                          floorplan_np=floorplan_np,
                          place_np=place_np,
                          cts_np=cts_np,
                          route_np=route_np)
 
+    @classmethod
+    def make_docs(cls):
+        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+
 
 class HLSASICFlow(ASICFlow):
-    '''A High-Level Synthesis (HLS) extension of the ASICFlow.
+    '''A High-Level Synthesis (HLS) variant of the ASIC compilation flow.
 
-    This class inherits from ASICFlow and modifies it to support C-based HLS.
-    It replaces the initial 'elaborate' step with a 'convert' step, which
-    handles the conversion of HLS C code to RTL using the Bambu tool.
+    This flow supports C-based HLS designs. The HLS C code is converted to RTL
+    with the Bambu tool during elaboration, before running the standard
+    synthesis, place-and-route, and finishing steps.
     '''
-
-    def _synthesis(self, np):
-        return HLSSynthesisFlow(syn_np=np)
 
     def __init__(self, name: str = 'hlsasicflow',
                  syn_np: int = 1,
@@ -436,24 +422,25 @@ class HLSASICFlow(ASICFlow):
             * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__(name,
+                         language="hls",
                          syn_np=syn_np,
                          floorplan_np=floorplan_np,
                          place_np=place_np,
                          cts_np=cts_np,
                          route_np=route_np)
 
+    @classmethod
+    def make_docs(cls):
+        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+
 
 class VHDLASICFlow(ASICFlow):
-    '''A VHDL-based ASIC synthesis flow.
+    '''A VHDL variant of the ASIC compilation flow.
 
-    This class extends the standard ASICFlow to support VHDL input by
-    replacing the initial Verilog-focused 'elaborate' step with a 'convert'
-    step. This new step uses GHDL to analyze and elaborate the VHDL design
-    before synthesis.
+    This flow supports VHDL input. The design is analyzed and elaborated with
+    GHDL during elaboration, before running the standard synthesis,
+    place-and-route, and finishing steps.
     '''
-
-    def _synthesis(self, np):
-        return VHDLSynthesisFlow(syn_np=np)
 
     def __init__(self, name: str = 'vhdlasicflow',
                  syn_np: int = 1,
@@ -461,13 +448,7 @@ class VHDLASICFlow(ASICFlow):
                  place_np: int = 1,
                  cts_np: int = 1,
                  route_np: int = 1):
-        '''Initializes the VHDL ASIC flow.
-
-        This method sets up the flow graph for VHDL designs by:
-
-            1. Removing the default 'elaborate' node.
-            2. Adding a 'convert' node that runs the GHDLConvertTask.
-            3. Connecting the new 'convert' node to the 'synthesis' node(s).
+        '''Initializes the VHDLASICFlow.
 
         Args:
             * name (str): The name of the flow.
@@ -478,24 +459,26 @@ class VHDLASICFlow(ASICFlow):
             * route_np (int): The number of parallel routing jobs to launch.
         '''
         super().__init__(name,
+                         language="vhdl",
                          syn_np=syn_np,
                          floorplan_np=floorplan_np,
                          place_np=place_np,
                          cts_np=cts_np,
                          route_np=route_np)
 
+    @classmethod
+    def make_docs(cls):
+        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+
 
 class ChiselASICFlow(ASICFlow):
-    '''A Chisel-based ASIC synthesis flow.
+    '''A Chisel variant of the ASIC compilation flow.
 
-    This class extends the standard ASICFlow to support designs written in
-    the Chisel hardware construction language. It replaces the Verilog-focused
-    'elaborate' step with a 'convert' step that uses the Chisel compiler to
-    generate Verilog from the Chisel source before synthesis.
+    This flow supports designs written in the Chisel hardware construction
+    language. The Chisel source is converted to Verilog with the Chisel compiler
+    during elaboration, before running the standard synthesis, place-and-route,
+    and finishing steps.
     '''
-
-    def _synthesis(self, np):
-        return ChiselSynthesisFlow(syn_np=np)
 
     def __init__(self, name: str = 'chiselasicflow',
                  syn_np: int = 1,
@@ -514,11 +497,16 @@ class ChiselASICFlow(ASICFlow):
             * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__(name,
+                         language="chisel",
                          syn_np=syn_np,
                          floorplan_np=floorplan_np,
                          place_np=place_np,
                          cts_np=cts_np,
                          route_np=route_np)
+
+    @classmethod
+    def make_docs(cls):
+        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
 
 
 ##################################################

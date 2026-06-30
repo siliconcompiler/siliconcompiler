@@ -18,8 +18,7 @@ class ShowFlow(Flowgraph):
         Args:
             task (ShowTask): The specific show/screenshot task to be executed.
         """
-        super().__init__()
-        self.set_name("showflow")
+        super().__init__("showflow")
 
         if task:
             self.node(task.task(), task)

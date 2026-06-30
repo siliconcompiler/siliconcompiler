@@ -1,8 +1,9 @@
-from siliconcompiler.tools.verilator.lint import LintTask as VerilatorLintTask
-from siliconcompiler.tools.slang.lint import Lint as SlangLint
-
+from typing import Optional
 
 from siliconcompiler import Flowgraph
+
+from siliconcompiler.tools.verilator.lint import LintTask as VerilatorLintTask
+from siliconcompiler.tools.slang.lint import Lint as SlangLint
 
 
 class LintFlow(Flowgraph):
@@ -16,9 +17,9 @@ class LintFlow(Flowgraph):
         * 'slang': A linter based on the Slang compiler.
         * 'verilator': A linter based on the Verilator tool.
     '''
-    def __init__(self, name: str = None, tool: str = "slang"):
+    def __init__(self, name: Optional[str] = None, tool: str = "slang"):
         """
-        Initializes the LintFlowgraph.
+        Initializes the LintFlow.
 
         Args:
             name (str, optional): The name of the flow. If not provided, it
