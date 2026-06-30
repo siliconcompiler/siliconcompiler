@@ -10,7 +10,7 @@ This tutorial will walk you through the process of building an ASIC containing o
 .. image:: ../../_images/picorv32_ram_screenshot.png
 
 We will walk through the process of downloading the design files and writing a build script, but for your reference, you can find complete example designs which reflect the contents of this tutorial in the public SiliconCompiler repository.
-The first part of the tutorial will cover building the CPU core `without RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_, and the second part will describe how to `add an SRAM block <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
+The first part of the tutorial will cover building the CPU core `without RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`__, and the second part will describe how to `add an SRAM block <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
 
 See the :ref:`Installation <installation>` section for information on how to install SiliconCompiler, and the :ref:`Remote Processing <remote_processing>` section for instructions on setting up the remote workflow.
 
@@ -21,14 +21,14 @@ The heart of any digital design is its HDL code, typically written in a language
 High-level synthesis languages are gaining in popularity, but most of them still output their final design sources in a traditional HDL such as Verilog.
 
 PicoRV32 is an open-source implementation of a small RISC-V CPU core, the sort you might find in a low-power microcontroller.
-Its source code, license, and various tooling can be found `in its GitHub repository <https://github.com/YosysHQ/picorv32>`_.
+Its source code, license, and various tooling can be found `in its GitHub repository <https://github.com/YosysHQ/picorv32>`__.
 
 Build the PicoRV32 Core using SiliconCompiler
 ---------------------------------------------
 
 Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130 <schema-lambdapdk-sky130-sky130pdk>` PDK.
 Copy the following build script into the same directory which you copied ``picorv32.v`` into.
-A complete example build script can be found `in the repository <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
+A complete example build script can be found `in the repository <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`__.
 
 Note in the code snippet above that :keypath:`option,remote` is set to ``False``. If this is set to ``True``, this means it is set up for :ref:`remote processing <remote_processing>`, and if you run this example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy.
 We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area.
@@ -52,12 +52,12 @@ This will teach you how to import and place a hard IP block in your design.
 
 The open-source Skywater130 PDK does not currently include foundry-published memory macros.
 Instead, they have a set of OpenRAM configurations which are blessed by the maintainers.
-You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable/technology/sky130>`_ to generate RAM macros from scratch if you are willing to install the `OpenRAM utility <https://github.com/VLSIDA/OpenRAM>`_, or you can `download pre-built files <https://github.com/VLSIDA/sky130_sram_macros>`_.
+You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable/technology/sky130>`__ to generate RAM macros from scratch if you are willing to install the `OpenRAM utility <https://github.com/VLSIDA/OpenRAM>`__, or you can `download pre-built files <https://github.com/VLSIDA/sky130_sram_macros>`__.
 
-We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sky130_sram_macros/tree/main/sky130_sram_2kbyte_1rw1r_32x512_8>`_ block in this example.
+We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sky130_sram_macros/tree/main/sky130_sram_2kbyte_1rw1r_32x512_8>`__ block in this example.
 
 Create a Python script called ``sky130_sram_2k.py`` to describe the RAM macro in a format which can be imported by SiliconCompiler.
-Example files for the complete SoC design can be found `in the repository <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32_ram>`_.
+Example files for the complete SoC design can be found `in the repository <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32_ram>`__.
 
 With all of that done, your project directory tree should look something like this::
 
