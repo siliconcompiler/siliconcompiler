@@ -40,7 +40,7 @@ def test_get_manifests_single_design(asic_gcd, make_manifests):
     manifests = _common._get_manifests(os.getcwd())
     assert len(manifests) == 1
     assert len(manifests["gcd"]) == 1
-    assert len(manifests["gcd"]["job0"]) == 20
+    assert len(manifests["gcd"]["job0"]) == 21
 
     assert os.path.dirname(manifests["gcd"]["job0"][(None, None)]).endswith('job0')
     del manifests["gcd"]["job0"][(None, None)]
@@ -58,8 +58,8 @@ def test_get_manifests_single_design_multiple_jobs(asic_gcd, make_manifests):
     manifests = _common._get_manifests(os.getcwd())
     assert len(manifests) == 1
     assert len(manifests["gcd"]) == 2
-    assert len(manifests["gcd"]["job0"]) == 20
-    assert len(manifests["gcd"]["job1"]) == 20
+    assert len(manifests["gcd"]["job0"]) == 21
+    assert len(manifests["gcd"]["job1"]) == 21
 
     assert os.path.dirname(manifests["gcd"]["job0"][(None, None)]).endswith('job0')
     del manifests["gcd"]["job0"][(None, None)]
@@ -82,8 +82,8 @@ def test_get_manifests_multiple_designs(asic_gcd, asic_heartbeat, make_manifests
     assert len(manifests) == 2
     assert len(manifests["gcd"]) == 1
     assert len(manifests["heartbeat"]) == 1
-    assert len(manifests["gcd"]["job0"]) == 20
-    assert len(manifests["heartbeat"]["job0"]) == 20
+    assert len(manifests["gcd"]["job0"]) == 21
+    assert len(manifests["heartbeat"]["job0"]) == 21
 
 
 @pytest.mark.timeout(90)
@@ -95,7 +95,7 @@ def test_get_manifests_missingoutput(asic_gcd, make_manifests):
     manifests = _common._get_manifests(os.getcwd())
     assert len(manifests) == 1
     assert len(manifests["gcd"]) == 1
-    assert len(manifests["gcd"]["job0"]) == 20
+    assert len(manifests["gcd"]["job0"]) == 21
 
     assert os.path.dirname(manifests["gcd"]["job0"][(None, None)]).endswith('job0')
     del manifests["gcd"]["job0"][(None, None)]

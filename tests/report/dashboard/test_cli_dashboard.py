@@ -1348,14 +1348,14 @@ def test_progress_bar_runtime_no_data_shows_zero(dashboard_medium):
 
 def test_get_job_records_totaltime_metric(mock_project, fake_console):
     """_get_job should populate node['time']['totaltime'] from the totaltime metric."""
-    mock_project.set("record", "status", "success", step="route.global", index=0)
-    mock_project.set("metric", "tasktime", 12.5, step="route.global", index=0)
-    mock_project.set("metric", "totaltime", 42.0, step="route.global", index=0)
+    mock_project.set("record", "status", "success", step="route.global_route", index=0)
+    mock_project.set("metric", "tasktime", 12.5, step="route.global_route", index=0)
+    mock_project.set("metric", "totaltime", 42.0, step="route.global_route", index=0)
 
     dashboard = MPManager.get_dashboard()
     job = dashboard._get_job(mock_project)
 
-    matched = [n for n in job.nodes if n["step"] == "route.global"]
+    matched = [n for n in job.nodes if n["step"] == "route.global_route"]
     assert len(matched) == 1
     assert matched[0]["time"]["duration"] == 12.5
     assert matched[0]["time"]["totaltime"] == 42.0
@@ -1620,14 +1620,14 @@ def test_get_job(mock_project, fake_console):
     job = dashboard._get_job(mock_project)
     assert isinstance(job, JobData)
 
-    assert job.total == 19
+    assert job.total == 20
     assert job.error == 0
     assert job.success == 0
     assert job.skipped == 0
     assert job.finished == 0
     assert job.design == "test_design"
     assert job.complete is False
-    assert len(job.nodes) == 19
+    assert len(job.nodes) == 20
 
 
 def test_get_job_with_skipped(mock_project, fake_console):
@@ -1638,18 +1638,18 @@ def test_get_job_with_skipped(mock_project, fake_console):
     job = dashboard._get_job(mock_project)
     assert isinstance(job, JobData)
 
-    assert job.total == 19
+    assert job.total == 20
     assert job.error == 0
     assert job.success == 1
     assert job.skipped == 1
     assert job.finished == 1
     assert job.design == "test_design"
     assert job.complete is False
-    assert len(job.nodes) == 18
+    assert len(job.nodes) == 19
 
 
 def test_get_job_with_status(mock_project, fake_console):
-    mock_project.set("record", "status", "success", step="route.global", index=0)
+    mock_project.set("record", "status", "success", step="route.global_route", index=0)
     mock_project.set("record", "status", "skipped", step="route.detailed", index=0)
     mock_project.set("record", "status", "error", step="write.views", index=0)
 
@@ -1658,14 +1658,14 @@ def test_get_job_with_status(mock_project, fake_console):
     job = dashboard._get_job(mock_project)
     assert isinstance(job, JobData)
 
-    assert job.total == 19
+    assert job.total == 20
     assert job.error == 1
     assert job.success == 2
     assert job.skipped == 1
     assert job.finished == 3
     assert job.design == "test_design"
     assert job.complete is False
-    assert len(job.nodes) == 18
+    assert len(job.nodes) == 19
 
 
 def test_get_job_topology_cached(mock_project, fake_console):
@@ -1684,7 +1684,7 @@ def test_get_job_topology_cached(mock_project, fake_console):
 
     # A status flip that is NOT skipped must reuse the cached topology
     # (same object identity).
-    mock_project.set("record", "status", "success", step="route.global", index=0)
+    mock_project.set("record", "status", "success", step="route.global_route", index=0)
     dashboard._get_job(mock_project)
     assert dashboard._topology_cache[project_id] is cached
 
@@ -1768,7 +1768,7 @@ def test_get_job_status_counts_correct_with_cache(mock_project, fake_console):
     assert job0.success == 0
     assert job0.finished == 0
 
-    mock_project.set("record", "status", "success", step="route.global", index=0)
+    mock_project.set("record", "status", "success", step="route.global_route", index=0)
     job1 = dashboard._get_job(mock_project)
     assert job1.success == 1
     assert job1.finished == 1
