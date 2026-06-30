@@ -268,8 +268,10 @@ def test_github_resolver_get_gh_auth_not_found(monkeypatch):
 
     resolver = GithubResolver("test", None, "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
-    with pytest.raises(ValueError, match="authorization token"):
-        resolver._GithubResolver__get_gh_token()
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which:
+        mock_which.return_value = None
+        with pytest.raises(ValueError, match="authorization token"):
+            resolver._GithubResolver__get_gh_token()
 
 
 def test_github_resolver_gh_unauthenticated():
@@ -339,11 +341,16 @@ def test_github_resolver_get_headers(monkeypatch):
 
 def test_github_resolver_get_headers_no_token(monkeypatch):
     """Test _get_headers returns Accept header and skips Authorization if no token."""
+    monkeypatch.delenv("GITHUB_TEST_TOKEN", raising=False)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("GIT_TOKEN", raising=False)
     # Use source archive to avoid API call
     resolver = GithubResolver("test", None, "github://owner/repo/v1.0/v1.0.tar.gz", "v1.0")
-    headers = resolver._get_headers()
+
+    with patch("siliconcompiler.package.github.shutil.which") as mock_which:
+        mock_which.return_value = None
+        headers = resolver._get_headers()
+
     assert headers["Accept"] == "application/octet-stream"
     assert "Authorization" not in headers
 
