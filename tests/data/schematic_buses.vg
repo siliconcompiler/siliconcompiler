@@ -1,0 +1,15 @@
+module buses(addr, clk, data);
+
+  output [7:2] addr;
+  input  clk;
+  input [7:0] data;
+
+  // wires
+
+  wire [15:0] dbus;
+  wire [3:1] sel;
+
+  // components
+
+
+endmodule

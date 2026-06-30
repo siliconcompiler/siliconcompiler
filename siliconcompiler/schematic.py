@@ -267,9 +267,7 @@ class Schematic(BaseSchema):
         pinlist = []
         for item in keys:
             t = self.get('schematic', 'part', part.name, 'pin', item, 'bitrange')
-            if t != (0, 0):
-                item = f"{item}[{t[0]}:{t[1]}]"
-            pinlist.append(item)
+            pinlist.append(f"{item}{self._format_bitrange(t)}")
         pins = tuple(pinlist)
 
         return pins
@@ -359,20 +357,14 @@ class Schematic(BaseSchema):
 
             direction = self.get('schematic', 'pin', pin, 'direction')
             bits = self.get('schematic', 'pin', pin, 'bitrange')
-            if bits[1]:
-                bitrange = f"[{bits[1]}:{bits[0]}]"
-            else:
-                bitrange = ""
+            bitrange = self._format_bitrange(bits)
             lines.append(f"  {direction} {bitrange} {pin};")
 
         # Declare nets
         lines.append("\n  // wires\n")
         for net in self.all_nets():
             bits = self.get('schematic', 'net', net, 'bitrange')
-            if bits[1]:
-                bitrange = f"[{bits[1]}:{bits[0]}]"
-            else:
-                bitrange = ""
+            bitrange = self._format_bitrange(bits)
             if net not in self.pins:
                 lines.append(f"  wire {bitrange} {net};")
 
@@ -431,6 +423,25 @@ class Schematic(BaseSchema):
         if hasattr(pin_obj, "pin"):
             return pin_obj.pin
         return getattr(pin_obj, "name", None)
+
+    @staticmethod
+    def _format_bitrange(bits: Tuple[int, int]) -> str:
+        """
+        Format a stored ``(max, min)`` bitrange tuple as a Verilog vector range.
+
+        This helper is used to turn a stored bitrange into its textual
+        ``[max:min]`` form.
+
+        Args:
+            bits (tuple[int, int]): Bit range as a ``(max, min)`` tuple. The
+                sentinel ``(0, 0)`` denotes a scalar (single-bit) signal.
+
+        Returns:
+            str: ``"[max:min]"`` for vectors or ``""`` for scalar signals.
+        """
+        if bits == (0, 0):
+            return ""
+        return f"[{bits[0]}:{bits[1]}]"
 
 
 ###########################################################################
