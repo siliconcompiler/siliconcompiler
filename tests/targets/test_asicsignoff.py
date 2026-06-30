@@ -51,9 +51,9 @@ _SIGNOFF = {
     # overlap of contact) with the CI tool versions; the count shifts when the
     # tools change. Pin it so the test still exercises DRC and flags any
     # change; drop to 0 once the layout is cleaned up.
-    "gf180": dict(target=gf180_demo, flow="drcflow-klayout", drc_name="drc", lvs=False,
+    "gf180": dict(target=gf180_demo, flow="drcflow", drc_name="drc", lvs=False,
                   expect_drcs=2),
-    "ihp130": dict(target=ihp130_demo, flow="drcflow-klayout", drc_name="drc", lvs=False,
+    "ihp130": dict(target=ihp130_demo, flow="drcflow", drc_name="drc", lvs=False,
                    expect_drcs=0),
 }
 
