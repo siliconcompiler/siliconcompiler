@@ -55,10 +55,12 @@ def skywater130_demo(
         floorplan_np=floorplan_np,
         place_np=place_np,
         cts_np=cts_np,
-        route_np=route_np))
+        route_np=route_np,
+        language=language))
     project.add_dep(synflow.SynthesisFlow(
         syn_np=syn_np,
-        timing_np=timing_np))
+        timing_np=timing_np,
+        language=language))
     # Skywater130 signs off with Magic (DRC) and Netgen (LVS); register the
     # matching signoff flow so it can be selected after the RTL-to-GDS run.
     project.add_dep(signoffflow.SignoffFlow())

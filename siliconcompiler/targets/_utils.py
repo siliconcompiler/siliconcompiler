@@ -75,9 +75,9 @@ def detect_elaboration_language(proj: Project, default: str = "verilog") -> Opti
             return "hls"
         if lib.has_file(fileset=fileset, filetype="bsv"):
             return "bluespec"
-        if lib.has_file(fileset=fileset, filetype="verilog"):
-            return "verilog"
         if lib.has_file(fileset=fileset, filetype="systemverilog"):
             return "systemverilog"
+        if lib.has_file(fileset=fileset, filetype="verilog"):
+            return "verilog"
 
     return default

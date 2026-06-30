@@ -13,7 +13,8 @@ from siliconcompiler.utils.paths import workdir, jobdir
 @pytest.fixture
 def make_manifests():
     def impl(project):
-        for nodes in project.get("flowgraph", "asicflow", field="schema").get_execution_order():
+        flow = project.get("option", "flow")
+        for nodes in project.get("flowgraph", flow, field="schema").get_execution_order():
             for step, index in nodes:
                 for d in ('inputs', 'outputs'):
                     path = os.path.join(workdir(project, step=step, index=index), d)

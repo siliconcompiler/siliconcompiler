@@ -63,10 +63,12 @@ def asap7_demo(
         floorplan_np=floorplan_np,
         place_np=place_np,
         cts_np=cts_np,
-        route_np=route_np))
+        route_np=route_np,
+        language=language))
     project.add_dep(synflow.SynthesisFlow(
         syn_np=syn_np,
-        timing_np=timing_np))
+        timing_np=timing_np,
+        language=language))
 
     # 3. Set Target PDK
     # Specifies the process development kit to be used, which contains

@@ -68,7 +68,7 @@ def test_detect_elaboration_language_single(filetype, expected):
     (("verilog", "vhdl"), "vhdl"),
     (("verilog", "c"), "hls"),
     (("verilog", "bsv"), "bluespec"),
-    (("systemverilog", "verilog"), "verilog"),
+    (("systemverilog", "verilog"), "systemverilog"),
 ])
 def test_detect_elaboration_language_precedence(filetypes, expected):
     # When a single fileset holds more than one language, the higher-precedence

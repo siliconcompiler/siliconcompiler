@@ -56,10 +56,12 @@ def ihp130_demo(
         floorplan_np=floorplan_np,
         place_np=place_np,
         cts_np=cts_np,
-        route_np=route_np))
+        route_np=route_np,
+        language=language))
     project.add_dep(synflow.SynthesisFlow(
         syn_np=syn_np,
-        timing_np=timing_np))
+        timing_np=timing_np,
+        language=language))
     # IHP130 signs off with KLayout DRC; register the matching DRC flow so it
     # can be selected after the RTL-to-GDS run. (No open-source LVS available.)
     project.add_dep(drcflow.DRCFlow())
