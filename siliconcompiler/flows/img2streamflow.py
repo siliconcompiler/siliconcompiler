@@ -1,3 +1,5 @@
+from typing import Optional
+
 from siliconcompiler import Flowgraph
 
 from siliconcompiler.tools.klayout import img2stream
