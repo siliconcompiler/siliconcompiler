@@ -183,7 +183,6 @@ def test_set_flow_partial():
     assert project.get("option", "flow") == "testflow"
 
 
-
 def test_set_flow_partial_unclear(project_logger, caplog):
     project = Project()
     project_logger(project)
@@ -259,7 +258,8 @@ def test_get_flow_by_name_partial_unclear_double(project_logger, caplog):
         project.get_flow("test")
     with pytest.raises(KeyError, match=r"^'test flowgraph has not been loaded'$"):
         project.get_flow("test")
-    assert caplog.text.count("Flowgraph 'test' not found, and multiple matches exist: testflow-0, testflow-1") == 1
+    assert caplog.text.count(
+        "Flowgraph 'test' not found, and multiple matches exist: testflow-0, testflow-1") == 1
 
 
 def test_get_flow_default_selected():
