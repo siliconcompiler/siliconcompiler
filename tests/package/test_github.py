@@ -559,21 +559,26 @@ def test_github_resolver_get_gh_token_fallback_preserves_original_error():
     resolver = GithubResolver("test", None,
                               "github+private://owner/repo/v1.0/asset.tar.gz", "v1.0")
 
+    # Distinctive sentinel error raised by the parent env lookup
+    sentinel = ValueError("sentinel original authorization token error")
+
     # gh returns failure
     mock_result = MagicMock()
     mock_result.returncode = 1
 
     with patch("siliconcompiler.package.github.shutil.which") as mock_which, \
-         patch("siliconcompiler.package.github.subprocess.run") as mock_run:
+         patch("siliconcompiler.package.github.subprocess.run") as mock_run, \
+         patch("siliconcompiler.package.RemoteResolver._get_auth_token",
+               side_effect=sentinel):
         mock_which.return_value = "/usr/bin/gh"
         mock_run.return_value = mock_result
 
-        # Should raise the original ValueError from parent class
+        # Should re-raise the exact original ValueError from the parent class,
+        # not a new one introduced by the gh fallback path
         with pytest.raises(ValueError) as exc_info:
             resolver._GithubResolver__get_gh_token()
 
-        # Error message should mention authorization token (from parent)
-        assert "authorization token" in str(exc_info.value).lower()
+        assert exc_info.value is sentinel
 
 
 def test_github_resolver_get_gh_token_timeout_5_seconds():
