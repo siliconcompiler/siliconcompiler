@@ -163,10 +163,37 @@ def test_set_design_obj():
     assert project.design is design
 
 
+def test_set_flow_not_loaded():
+    project = Project()
+    with pytest.raises(KeyError, match=r"^'testflow flowgraph has not been loaded'$"):
+        project.set_flow("testflow")
+
+
 def test_set_flow_str():
     project = Project()
+    project.add_dep(Flowgraph("testflow"))
     project.set_flow("testflow")
     assert project.get("option", "flow") == "testflow"
+
+
+def test_set_flow_partial():
+    project = Project()
+    project.add_dep(Flowgraph("testflow"))
+    project.set_flow("test")
+    assert project.get("option", "flow") == "testflow"
+
+
+
+def test_set_flow_partial_unclear(project_logger, caplog):
+    project = Project()
+    project_logger(project)
+    project.logger.setLevel(logging.INFO)
+    project.add_dep(Flowgraph("testflow-0"))
+    project.add_dep(Flowgraph("testflow-1"))
+    with pytest.raises(KeyError, match=r"^'test flowgraph has not been loaded'$"):
+        project.set_flow("test")
+    assert "Flowgraph 'test' not found, and multiple matches exist: testflow-0, testflow-1" \
+        in caplog.text
 
 
 def test_set_flow_not_valid():
@@ -189,7 +216,7 @@ def test_get_flow_no_selection():
 
 def test_get_flow_missing_flowgraph():
     project = Project()
-    project.set_flow("testflow")
+    project.set("option", "flow", "testflow")
     with pytest.raises(KeyError, match=r"^'testflow flowgraph has not been loaded'$"):
         project.get_flow()
 
@@ -199,6 +226,40 @@ def test_get_flow_by_name():
     flow = Flowgraph("testflow")
     project.set_flow(flow)
     assert project.get_flow("testflow") is flow
+
+
+def test_get_flow_by_name_partial():
+    project = Project()
+    flow = Flowgraph("testflow")
+    project.set_flow(flow)
+    assert project.get_flow("test") is flow
+
+
+def test_get_flow_by_name_partial_unclear(project_logger, caplog):
+    project = Project()
+    project_logger(project)
+    project.logger.setLevel(logging.INFO)
+    flow = Flowgraph("testflow-0")
+    project.set_flow(flow)
+    project.add_dep(Flowgraph("testflow-1"))
+    with pytest.raises(KeyError, match=r"^'test flowgraph has not been loaded'$"):
+        project.get_flow("test")
+    assert "Flowgraph 'test' not found, and multiple matches exist: testflow-0, testflow-1" \
+        in caplog.text
+
+
+def test_get_flow_by_name_partial_unclear_double(project_logger, caplog):
+    project = Project()
+    project_logger(project)
+    project.logger.setLevel(logging.INFO)
+    flow = Flowgraph("testflow-0")
+    project.set_flow(flow)
+    project.add_dep(Flowgraph("testflow-1"))
+    with pytest.raises(KeyError, match=r"^'test flowgraph has not been loaded'$"):
+        project.get_flow("test")
+    with pytest.raises(KeyError, match=r"^'test flowgraph has not been loaded'$"):
+        project.get_flow("test")
+    assert caplog.text.count("Flowgraph 'test' not found, and multiple matches exist: testflow-0, testflow-1") == 1
 
 
 def test_get_flow_default_selected():
@@ -2159,13 +2220,6 @@ def test_set_design_with_whitespace_name():
     proj = Project()
     proj.set_design("test design")
     assert proj.name == "test design"
-
-
-def test_set_flow_with_empty_string():
-    """Test set_flow with empty string."""
-    proj = Project()
-    proj.set_flow("")
-    assert proj.get("option", "flow") == ""
 
 
 def test_add_alias_repeat_with_same_values():
