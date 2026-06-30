@@ -79,6 +79,17 @@ class SchemaGen(SphinxDirective):
             schema_sec = build_section_with_target(name, schema_sec_ref,
                                                    self.state.document)
 
+            # When more than one instance is rendered, the section refs are
+            # suffixed (``-0``, ``-1``, ...) and the bare ``ref_root`` label is
+            # never defined. Register it as an alias for the first section so
+            # cross-references to the un-suffixed label (e.g. the auto-generated
+            # target pages) still resolve.
+            if len(schemas) > 1 and n == 0:
+                bare_ref = nodes.make_id(ref_root)
+                target = nodes.target('', '', ids=[bare_ref], names=[bare_ref])
+                self.state.document.note_explicit_target(target)
+                schema_sec["ids"].append(bare_ref)
+
             # Add docstrings
             docstring = None
             docsfile = None
