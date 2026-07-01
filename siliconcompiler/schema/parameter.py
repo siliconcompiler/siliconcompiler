@@ -262,12 +262,12 @@ class Parameter:
                     return self.__defvalue.get(field=field)
 
             try:
-                return self.__node[step][Parameter.GLOBAL_KEY].get(field=field)
+                return self.__node[step][None].get(field=field)
             except KeyError:
                 pass
 
             try:
-                return self.__node[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY].get(field=field)
+                return self.__node[None][None].get(field=field)
             except KeyError:
                 return self.__defvalue.get(field=field)
         elif field == "type":
@@ -360,9 +360,6 @@ class Parameter:
             if isinstance(index, int):
                 index = str(index)
 
-            step = step if step is not None else Parameter.GLOBAL_KEY
-            index = index if index is not None else Parameter.GLOBAL_KEY
-
             if step not in self.__node:
                 self.__node[step] = {}
             if index not in self.__node[step]:
@@ -441,9 +438,6 @@ class Parameter:
             if isinstance(index, int):
                 index = str(index)
 
-            step = step if step is not None else Parameter.GLOBAL_KEY
-            index = index if index is not None else Parameter.GLOBAL_KEY
-
             if step not in self.__node:
                 self.__node[step] = {}
             if index not in self.__node[step]:
@@ -489,9 +483,6 @@ class Parameter:
 
         if isinstance(index, int):
             index = str(index)
-
-        step = step if step is not None else Parameter.GLOBAL_KEY
-        index = index if index is not None else Parameter.GLOBAL_KEY
 
         try:
             del self.__node[step][index]
@@ -550,9 +541,11 @@ class Parameter:
         }
 
         for step in self.__node:
-            dictvals["node"][step] = {}
+            out_step = Parameter.GLOBAL_KEY if step is None else step
+            dictvals["node"][out_step] = {}
             for index, val in self.__node[step].items():
-                dictvals["node"][step][index] = val.getdict()
+                out_index = Parameter.GLOBAL_KEY if index is None else index
+                dictvals["node"][out_step][out_index] = val.getdict()
 
         if include_default:
             dictvals["node"].setdefault("default", {})["default"] = self.__defvalue.getdict()
@@ -637,11 +630,13 @@ class Parameter:
             self.__defvalue._from_dict(defvalue, keypath, version)
 
         for step, indexdata in manifest["node"].items():
-            self.__node[step] = {}
+            in_step = None if step == Parameter.GLOBAL_KEY else step
+            self.__node[in_step] = {}
             for index, nodedata in indexdata.items():
+                in_index = None if index == Parameter.GLOBAL_KEY else index
                 value = self.__defvalue.copy()
                 value._from_dict(nodedata, keypath, version)
-                self.__node[step][index] = value
+                self.__node[in_step][in_index] = value
 
         if requires_set:
             for step, indexdata in self.__node.items():
@@ -674,12 +669,12 @@ class Parameter:
                 return self.__defvalue.gettcl()
 
         try:
-            return self.__node[step][Parameter.GLOBAL_KEY].gettcl()
+            return self.__node[step][None].gettcl()
         except KeyError:
             pass
 
         try:
-            return self.__node[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY].gettcl()
+            return self.__node[None][None].gettcl()
         except KeyError:
             return self.__defvalue.gettcl()
 
@@ -700,14 +695,12 @@ class Parameter:
         has_global = False
         for step in self.__node:
             for index in self.__node[step]:
-                step_arg = None if step == Parameter.GLOBAL_KEY else step
-                index_arg = None if index == Parameter.GLOBAL_KEY else index
-                if step_arg is None and index_arg is None:
+                if step is None and index is None:
                     has_global = True
                 if return_values:
-                    vals.append((self.__node[step][index].get(), step_arg, index_arg))
+                    vals.append((self.__node[step][index].get(), step, index))
                 else:
-                    vals.append((self.__node[step][index], step_arg, index_arg))
+                    vals.append((self.__node[step][index], step, index))
 
         if self.__pernode != PerNode.REQUIRED and not has_global and return_defvalue:
             if return_values:
@@ -786,16 +779,14 @@ class Parameter:
         A value counts as set if a user has set a global value OR a value for
         the provided step/index.
         '''
-        if Parameter.GLOBAL_KEY in self.__node and \
-                Parameter.GLOBAL_KEY in self.__node[Parameter.GLOBAL_KEY] and \
-                self.__node[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY]:
+        if None in self.__node and \
+                None in self.__node[None] and \
+                self.__node[None][None]:
             # global value is set
             return True
 
         if step is None:
             return False
-        if index is None:
-            index = Parameter.GLOBAL_KEY
 
         return step in self.__node and \
             index in self.__node[step] and \
@@ -820,12 +811,12 @@ class Parameter:
                 return self.__defvalue.has_value
 
         try:
-            return self.__node[step][Parameter.GLOBAL_KEY].has_value
+            return self.__node[step][None].has_value
         except KeyError:
             pass
 
         try:
-            return self.__node[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY].has_value
+            return self.__node[None][None].has_value
         except KeyError:
             return self.__defvalue.has_value
 
