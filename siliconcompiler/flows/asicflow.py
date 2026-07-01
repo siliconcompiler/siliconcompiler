@@ -99,8 +99,9 @@ class ASICFlow(Flowgraph):
                 ("floorplan", FloorplanningFlow(np=floorplan_np)),
                 ("place", PlacementFlow(np=place_np)),
                 ("cts", ClockTreeSynthesisFlow(np=cts_np)),
+                ("cts", FillerCellFlow(np=1)),  # use cts for now
                 ("route", RoutingFlow(np=route_np)),
-                ("dfm", DFMFlow(np=1))]:
+                ("dfm", MetalFillFlow(np=1))]:
             self.graph(graph, name=prefix)
             for node in graph.get_entry_nodes():
                 self.edge(prev_node, f"{prefix}.{node[0]}", head_index=node[1])
@@ -318,17 +319,17 @@ class RoutingFlow(Flowgraph):
         return cls(np=3)
 
 
-class DFMFlow(Flowgraph):
-    '''A flow that performs only the design-for-manufacturing (DFM) portion of the ASIC flow.
+class MetalFillFlow(Flowgraph):
+    '''A flow that performs only the metal fill portion of the ASIC flow.
 
     This flow is useful for quickly checking that a design can be successfully
-    processed for DFM without running synthesis or timing analysis. It includes
+    processed for metal fill without running synthesis or timing analysis. It includes
     metal fill insertion.
     '''
 
-    def __init__(self, name: str = 'dfmflow', np: int = 1):
+    def __init__(self, name: str = 'metalfillflow', np: int = 1):
         """
-        Initializes the DFMFlow.
+        Initializes the MetalFillFlow.
 
         Args:
             * name (str): The name of the flow.
@@ -337,9 +338,7 @@ class DFMFlow(Flowgraph):
         super().__init__(name)
 
         for n in range(np):
-            self.node("fillcell", fillercell_insertion.FillCellTask(), index=n)
             self.node("metal_fill", fillmetal_insertion.FillMetalTask(), index=n)
-            self.edge("fillcell", "metal_fill", tail_index=n, head_index=n)
 
         if np > 1:
             self.node("min", minimum.MinimumTask())
@@ -355,7 +354,47 @@ class DFMFlow(Flowgraph):
         execution features enabled to demonstrate the flow's capabilities.
 
         Returns:
-            An instance of the DFMFlow class.
+            An instance of the MetalFillFlow class.
+        '''
+        return cls(np=3)
+
+
+class FillerCellFlow(Flowgraph):
+    '''A flow that performs only the design-for-manufacturing (DFM) portion of the ASIC flow.
+
+    This flow is useful for quickly checking that a design can be successfully
+    processed for DFM without running synthesis or timing analysis. It includes
+    filler cell insertion.
+    '''
+
+    def __init__(self, name: str = 'fillercellflow', np: int = 1):
+        """
+        Initializes the FillerCellFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
+        """
+        super().__init__(name)
+
+        for n in range(np):
+            self.node("fillcell", fillercell_insertion.FillCellTask(), index=n)
+
+        if np > 1:
+            self.node("min", minimum.MinimumTask())
+            for n in range(np):
+                self.edge("fillcell", "min", tail_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create a representative instance of the flow, typically with parallel
+        execution features enabled to demonstrate the flow's capabilities.
+
+        Returns:
+            An instance of the FillerCellFlow class.
         '''
         return cls(np=3)
 

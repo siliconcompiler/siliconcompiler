@@ -12,7 +12,8 @@ from siliconcompiler.flows.asicflow import (
     PlacementFlow,
     ClockTreeSynthesisFlow,
     RoutingFlow,
-    DFMFlow
+    FillerCellFlow,
+    MetalFillFlow
 )
 from siliconcompiler.flows.drcflow import DRCFlow, KlayoutDRCFlow, MagicDRCFlow
 from siliconcompiler.flows.dvflow import (
@@ -60,7 +61,8 @@ from siliconcompiler.flows.synflow import SynthesisFlow
     PlacementFlow,
     ClockTreeSynthesisFlow,
     RoutingFlow,
-    DFMFlow,
+    FillerCellFlow,
+    MetalFillFlow,
     DRCFlow,
     KlayoutDRCFlow,
     MagicDRCFlow,

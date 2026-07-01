@@ -34,10 +34,13 @@ used on their own to run or debug an individual stage of the back-end.
   :root: siliconcompiler.flows.asicflow/ClockTreeSynthesisFlow
 
 .. schema::
+  :root: siliconcompiler.flows.asicflow/FillerCellFlow
+
+.. schema::
   :root: siliconcompiler.flows.asicflow/RoutingFlow
 
 .. schema::
-  :root: siliconcompiler.flows.asicflow/DFMFlow
+  :root: siliconcompiler.flows.asicflow/MetalFillFlow
 
 Elaboration Flows
 -----------------
