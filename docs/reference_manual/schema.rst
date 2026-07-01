@@ -75,7 +75,7 @@ Per-node Parameter Fields
 ---------------------------
 
 The following fields are specified inside the ``node`` dictionary on a per-step/index basis.
-Default values for each field are stored under the special keys ``"default", "default"``, and global values are specified under the special keys ``"global", "global"``.
+Default values for each field are stored under the special keys ``"default", "default"``, and global values are specified under the special keys ``"*", "*"``.
 
 .. glossary::
 
