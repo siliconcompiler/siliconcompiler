@@ -90,7 +90,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         Raises:
             ValueError: If 'step' or 'index' are reserved names (like
-                'default' or 'global') or contain invalid characters ('/').
+                'default' or '*') or contain invalid characters ('/').
             ValueError: If 'task' is not a valid Task object, string, or class.
 
         Examples:

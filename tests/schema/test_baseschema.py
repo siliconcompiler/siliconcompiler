@@ -707,8 +707,8 @@ def test_getdict_param_keypath():
                     'value': None,
                 },
             },
-            'global': {
-                'global': {
+            '*': {
+                '*': {
                     'signature': None,
                     'value': "thistest",
                 },
@@ -1220,7 +1220,7 @@ def test_from_manifest_cfg_no_meta():
                 'help': None,
                 'notes': None,
                 'pernode': 'never',
-                'node': {'global': {'global': {'value': 'testthis', 'signature': None}},
+                'node': {'*': {'*': {'value': 'testthis', 'signature': None}},
                          'default': {'default': {'value': None, 'signature': None}}}
             }
         }
@@ -1262,7 +1262,7 @@ def test_from_manifest_cfg_different_base_correct_base_class():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'testthis', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'testthis', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             },
@@ -2218,8 +2218,8 @@ def test_getdict_with_journal():
                             'value': None,
                         },
                     },
-                    'global': {
-                        'global': {
+                    '*': {
+                        '*': {
                             'signature': None,
                             'value': 'hello',
                         },
@@ -2685,7 +2685,7 @@ def test_from_dict_composite_type_names():
                         'help': None,
                         'notes': None,
                         'pernode': 'never',
-                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                        'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
@@ -2718,7 +2718,7 @@ def test_from_dict_composite_type_names():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
@@ -2778,7 +2778,7 @@ def test_from_dict_composite_type_names_lazy():
                         'help': None,
                         'notes': None,
                         'pernode': 'never',
-                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                        'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
@@ -2811,7 +2811,7 @@ def test_from_dict_composite_type_names_lazy():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
@@ -2902,8 +2902,7 @@ def test_from_dict_composite_nested():
                                 'help': None,
                                 'notes': None,
                                 'pernode': 'never',
-                                'node': {'global': {'global': {'value': 'teststring',
-                                                               'signature': None}},
+                                'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                                          'default': {'default': {'value': None, 'signature': None}}}
                             },
                             '__meta__': {
@@ -2971,7 +2970,7 @@ def test_from_dict_composite_type_names_use_default():
                         'help': None,
                         'notes': None,
                         'pernode': 'never',
-                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                        'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
@@ -3004,7 +3003,7 @@ def test_from_dict_composite_type_names_use_default():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
@@ -3065,7 +3064,7 @@ def test_from_dict_composite_type_load_via_class_name():
                         'help': None,
                         'notes': None,
                         'pernode': 'never',
-                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                        'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
@@ -3098,7 +3097,7 @@ def test_from_dict_composite_type_load_via_class_name():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
@@ -3158,7 +3157,7 @@ def test_from_dict_composite_using_cls_name():
                         'help': None,
                         'notes': None,
                         'pernode': 'never',
-                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                        'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
@@ -3191,7 +3190,7 @@ def test_from_dict_composite_using_cls_name():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
@@ -3235,7 +3234,7 @@ def test_from_dict_composite_no_meta():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             },
@@ -3251,7 +3250,7 @@ def test_from_dict_composite_no_meta():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
@@ -4174,7 +4173,7 @@ def test_from_dict_with_failure():
                         'help': None,
                         'notes': None,
                         'pernode': 'never',
-                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                        'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
@@ -4208,7 +4207,7 @@ def test_from_dict_with_failure():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
@@ -4271,7 +4270,7 @@ def test_from_dict_with_failure_raise():
                         'help': None,
                         'notes': None,
                         'pernode': 'never',
-                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                        'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
@@ -4305,7 +4304,7 @@ def test_from_dict_with_failure_raise():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
@@ -4366,7 +4365,7 @@ def test_from_dict_with_nofailure():
                         'help': None,
                         'notes': None,
                         'pernode': 'never',
-                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                        'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
@@ -4400,7 +4399,7 @@ def test_from_dict_with_nofailure():
                     'help': None,
                     'notes': None,
                     'pernode': 'never',
-                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                    'node': {'*': {'*': {'value': 'teststring', 'signature': None}},
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }

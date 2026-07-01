@@ -1,5 +1,6 @@
 import pytest
 import logging
+import re
 
 import os.path
 
@@ -10,6 +11,7 @@ from siliconcompiler import NodeStatus
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema import Parameter
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
 
@@ -125,12 +127,12 @@ def test_node_index():
     assert flow.get("teststep", "1", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
 
 
-@pytest.mark.parametrize("step", ["global", "default",
+@pytest.mark.parametrize("step", [Parameter.GLOBAL_KEY, "default",
                                   "sc_collected_files", "sc_config", "sc_blah"])
 def test_node_reserved_step(step):
     flow = Flowgraph("testflow")
 
-    with pytest.raises(ValueError, match=rf"^{step} is a reserved name$"):
+    with pytest.raises(ValueError, match=rf"^{re.escape(step)} is a reserved name$"):
         flow.node(step, "siliconcompiler.tools.builtin.nop/NOPTask")
 
 
@@ -138,12 +140,24 @@ def test_node_allow_step():
     Flowgraph("testflow").node("scblah", "siliconcompiler.tools.builtin.nop/NOPTask")
 
 
-@pytest.mark.parametrize("index", ["global", "default"])
+@pytest.mark.parametrize("name", ["global", "globals"])
+def test_node_allow_global_step(name):
+    # "global" is no longer reserved: the global sentinel serializes under
+    # GLOBAL_KEY ("*"), freeing the bare word for flow nodes.
+    Flowgraph("testflow").node(name, "siliconcompiler.tools.builtin.nop/NOPTask")
+
+
+@pytest.mark.parametrize("index", [Parameter.GLOBAL_KEY, "default"])
 def test_node_reserved_index(index):
     flow = Flowgraph("testflow")
 
-    with pytest.raises(ValueError, match=rf"^{index} is a reserved name$"):
+    with pytest.raises(ValueError, match=rf"^{re.escape(index)} is a reserved name$"):
         flow.node("teststep", "siliconcompiler.tools.builtin.nop/NOPTask", index=index)
+
+
+def test_node_allow_global_index():
+    Flowgraph("testflow").node(
+        "teststep", "siliconcompiler.tools.builtin.nop/NOPTask", index="global")
 
 
 def test_edge():

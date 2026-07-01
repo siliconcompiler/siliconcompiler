@@ -64,7 +64,7 @@ class Parameter:
         kwargs: forwarded to default value constructor
     '''
 
-    GLOBAL_KEY = 'global'
+    GLOBAL_KEY = '*'
 
     def __init__(self,
                  type: str,
@@ -661,12 +661,18 @@ class Parameter:
         if defvalue:
             self.__defvalue._from_dict(defvalue, keypath, version)
 
+        # GLOBAL_KEY is the wire alias for the internal None sentinel. It changed
+        # from the bare word "global" to "*" in schema 0.55.0; read the legacy
+        # token for older manifests so their global values still load.
+        global_key = Parameter.GLOBAL_KEY
+        if version and version < (0, 55, 0):
+            global_key = "global"
+
         for step, indexdata in manifest["node"].items():
-            # GLOBAL_KEY is the wire alias for the internal None sentinel.
-            in_step = None if step == Parameter.GLOBAL_KEY else step
+            in_step = None if step == global_key else step
             self.__node[in_step] = {}
             for index, nodedata in indexdata.items():
-                in_index = None if index == Parameter.GLOBAL_KEY else index
+                in_index = None if index == global_key else index
                 value = self.__defvalue.copy()
                 value._from_dict(nodedata, keypath, version)
                 self.__node[in_step][in_index] = value

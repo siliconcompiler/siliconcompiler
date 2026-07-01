@@ -486,6 +486,43 @@ def test_from_dict_version0_50_0():
     assert param.get(step="teststep", index="0") == ['test1', 'test0']
 
 
+def test_from_dict_version0_54_0():
+    # Prior to schema 0.55.0 the global node bucket was serialized under the
+    # bare word "global". Manifests at those versions must still load the global
+    # value into the internal None bucket (not a literal "global" node).
+    param = Parameter.from_dict({
+        'node': {
+            'default': {
+                'default': {
+                    'signature': None,
+                    'value': None,
+                },
+            },
+            'global': {
+                'global': {
+                    'signature': None,
+                    'value': 4,
+                },
+            },
+            'teststep': {
+                '0': {
+                    'signature': None,
+                    'value': 5,
+                },
+            },
+        },
+        'pernode': 'optional',
+        'type': 'int',
+    }, [], (0, 54, 0))
+
+    assert param.get() == 4
+    assert param.get(step="teststep", index="0") == 5
+    # the legacy "global" token was mapped to the internal None sentinel
+    assert param.getvalues() == [(4, None, None), (5, "teststep", "0")]
+    # re-serialization uses the current "*" token
+    assert list(param.getdict()["node"]) == [Parameter.GLOBAL_KEY, "teststep", "default"]
+
+
 def test_from_dict():
     param = Parameter.from_dict({
         'example': [
@@ -494,8 +531,8 @@ def test_from_dict():
         'help': 'long help',
         'lock': False,
         'node': {
-            'global': {
-                'global': {
+            '*': {
+                '*': {
                     'signature': None,
                     'value': (
                         'test',
@@ -581,8 +618,8 @@ def test_from_dict_round_trip_enum():
                     'value': None,
                 },
             },
-            'global': {
-                'global': {
+            '*': {
+                '*': {
                     'signature': None,
                     'value': (
                         'test',
@@ -1509,8 +1546,8 @@ def test_getdict_with_vals():
                     'value': None,
                 },
             },
-            'global': {
-              'global': {
+            '*': {
+              '*': {
                    'signature': None,
                    'value': 1,
                },
@@ -1535,8 +1572,8 @@ def test_getdict_with_vals():
         'help': None,
         'lock': False,
         'node': {
-            'global': {
-              'global': {
+            '*': {
+              '*': {
                    'signature': None,
                    'value': 1,
                },
@@ -1574,8 +1611,8 @@ def test_getdict_with_vals_list():
                     'value': [],
                 },
             },
-            'global': {
-              'global': {
+            '*': {
+              '*': {
                    'signature': [None],
                    'value': [1],
                },
@@ -1600,8 +1637,8 @@ def test_getdict_with_vals_list():
         'help': None,
         'lock': False,
         'node': {
-            'global': {
-              'global': {
+            '*': {
+              '*': {
                    'signature': [None],
                    'value': [1],
                },
