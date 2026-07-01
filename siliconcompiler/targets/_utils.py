@@ -48,7 +48,7 @@ def detect_elaboration_language(proj: Project, default: str = "verilog") -> Opti
     presence of Verilog, SystemVerilog, Chisel, VHDL, HLS, and Bluespec source files.
 
     Args:
-        proj (ASIC): The siliconcompiler project containing the design sources.
+        proj (Project): The siliconcompiler project containing the design sources.
         default (str, optional): The default language to return if no specific
             language is detected.
 
