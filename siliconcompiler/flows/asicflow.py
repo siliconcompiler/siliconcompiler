@@ -208,9 +208,9 @@ class PlacementFlow(Flowgraph):
         super().__init__(name)
 
         for n in range(np):
-            self.node("global_place", global_placement.GlobalPlacementTask(), index=n)
+            self.node("global", global_placement.GlobalPlacementTask(), index=n)
             self.node("repair_design", repair_design.RepairDesignTask(), index=n)
-            self.edge("global_place", "repair_design", tail_index=n, head_index=n)
+            self.edge("global", "repair_design", tail_index=n, head_index=n)
             self.node("detailed", detailed_placement.DetailedPlacementTask(), index=n)
             self.edge("repair_design", "detailed", tail_index=n, head_index=n)
 
@@ -294,9 +294,9 @@ class RoutingFlow(Flowgraph):
         super().__init__(name)
 
         for n in range(np):
-            self.node("global_route", global_route.GlobalRouteTask(), index=n)
+            self.node("global", global_route.GlobalRouteTask(), index=n)
             self.node("antenna_repair", antenna_repair.AntennaRepairTask(), index=n)
-            self.edge("global_route", "antenna_repair", tail_index=n, head_index=n)
+            self.edge("global", "antenna_repair", tail_index=n, head_index=n)
             self.node("detailed", detailed_route.DetailedRouteTask(), index=n)
             self.edge("antenna_repair", "detailed", tail_index=n, head_index=n)
 
