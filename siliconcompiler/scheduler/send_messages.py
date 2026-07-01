@@ -23,7 +23,6 @@ from pathlib import Path
 from siliconcompiler import sc_open
 from siliconcompiler.utils import default_email_credentials_file, get_file_template
 from siliconcompiler.report import utils as report_utils
-from siliconcompiler.schema import Parameter
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.paths import workdir
 
@@ -83,13 +82,8 @@ def send(project, msg_type, step, index):
         index (str): The index associated with the event. Can be None for
             global events.
     """
-    project_step, project_index = step, index
-    if step is None:
-        project_step = Parameter.GLOBAL_KEY
-    if index is None:
-        project_index = Parameter.GLOBAL_KEY
-    to = project.option.scheduler.get_msgcontact(step=project_step, index=project_index)
-    event = project.option.scheduler.get_msgevent(step=project_step, index=project_index)
+    to = project.option.scheduler.get_msgcontact(step=step, index=index)
+    event = project.option.scheduler.get_msgevent(step=step, index=index)
 
     if not to or not event:
         # nothing to do
