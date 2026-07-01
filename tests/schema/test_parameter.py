@@ -355,6 +355,81 @@ def test_from_dict_round_trip():
     assert param.getdict() == param_check.getdict()
 
 
+def test_global_key_input_maps_to_none():
+    # GLOBAL_KEY is only a serialization alias for the internal None sentinel.
+    # Passing it through the public API must behave identically to None so the
+    # string never leaks into the internal node representation.
+    param = Parameter("int", pernode=PerNode.OPTIONAL)
+    param.set(4, step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY)
+
+    # reachable as the global value with or without the alias
+    assert param.get() == 4
+    assert param.get(step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == 4
+
+    # internally represented purely as the None/global bucket
+    assert param.getvalues() == [(4, None, None)]
+
+    # the wire form uses GLOBAL_KEY, and round-trips back to the same value
+    manifest = param.getdict()
+    assert list(manifest["node"]) == [Parameter.GLOBAL_KEY, "default"]
+    assert Parameter.from_dict(manifest, [], None).get() == 4
+
+    # unset via the alias clears the global value
+    assert param.unset(step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY)
+    assert not param.is_set()
+
+
+@pytest.mark.parametrize("scope", ["global", "step-global"])
+def test_accessors_honor_global_key_alias(scope):
+    # Every step/index accessor must treat GLOBAL_KEY identically to None so the
+    # alias never leaks into (or is missed by) the internal representation.
+    GK = Parameter.GLOBAL_KEY
+
+    def build():
+        p = Parameter("int", pernode=PerNode.OPTIONAL)
+        p.set(4)                          # fully-global value
+        p.set(5, step="syn", index="0")   # per-node value
+        p.set(7, step="syn")              # step-scoped global value
+        return p
+
+    # the None-form coordinate we are probing, and its GLOBAL_KEY alias
+    none_args, alias_args = {
+        "global": ((None, None), (GK, GK)),
+        "step-global": (("syn", None), ("syn", GK)),
+    }[scope]
+
+    p = build()
+    (s0, i0), (s1, i1) = none_args, alias_args
+    assert p.get(step=s0, index=i0) == p.get(step=s1, index=i1)
+    assert bool(p.is_set(s0, i0)) == bool(p.is_set(s1, i1))
+    assert p.has_value(s0, i0) == p.has_value(s1, i1)
+    assert p.gettcl(s0, i0) == p.gettcl(s1, i1)
+
+
+def test_mutators_honor_global_key_alias():
+    GK = Parameter.GLOBAL_KEY
+
+    # set via alias == set via None
+    p_alias = Parameter("int", pernode=PerNode.OPTIONAL)
+    p_alias.set(4, step=GK, index=GK)
+    p_none = Parameter("int", pernode=PerNode.OPTIONAL)
+    p_none.set(4)
+    assert p_alias.getdict() == p_none.getdict()
+
+    # add via alias == add via None
+    l_alias = Parameter("[int]", pernode=PerNode.OPTIONAL)
+    l_alias.add(4, step=GK, index=GK)
+    l_none = Parameter("[int]", pernode=PerNode.OPTIONAL)
+    l_none.add(4)
+    assert l_alias.getdict() == l_none.getdict()
+
+    # unset via alias == unset via None
+    p_alias.unset(step=GK, index=GK)
+    p_none.unset()
+    assert p_alias.getdict() == p_none.getdict()
+    assert not p_alias.is_set()
+
+
 def test_from_dict_version0_50_0():
     param = Parameter.from_dict({
         'enum': [

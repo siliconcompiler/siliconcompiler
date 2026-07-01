@@ -249,27 +249,12 @@ class Parameter:
             Returns the value stored in the parameter.
         """
 
+        step, index = self.__map_global(step, index)
+
         self.__assert_step_index(field, step, index)
 
         if field in self.__defvalue.fields:
-            if isinstance(index, int):
-                index = str(index)
-
-            try:
-                return self.__node[step][index].get(field=field)
-            except KeyError:
-                if self.__pernode == PerNode.REQUIRED:
-                    return self.__defvalue.get(field=field)
-
-            try:
-                return self.__node[step][None].get(field=field)
-            except KeyError:
-                pass
-
-            try:
-                return self.__node[None][None].get(field=field)
-            except KeyError:
-                return self.__defvalue.get(field=field)
+            return self.__resolve(step, index).get(field=field)
         elif field == "type":
             return NodeType.encode(self.__type)
         elif field == "scope":
@@ -298,6 +283,47 @@ class Parameter:
             return self.__require
 
         raise ValueError(f'"{field}" is not a valid field')
+
+    @staticmethod
+    def __map_global(step: Optional[str],
+                     index: Optional[Union[int, str]]) \
+            -> Tuple[Optional[str], Optional[Union[int, str]]]:
+        # GLOBAL_KEY is only a serialization alias for the internal None
+        # sentinel. Normalize it away on the way in so the string never becomes
+        # an internal node key.
+        if step == Parameter.GLOBAL_KEY:
+            step = None
+        if index == Parameter.GLOBAL_KEY:
+            index = None
+        return step, index
+
+    def __resolve(self, step: Optional[str], index: Optional[Union[int, str]]):
+        """
+        Resolves the underlying value object for a step/index, applying the
+        global (None) fallback chain: exact node -> step-global -> fully global
+        -> default value. Shared by all per-node value accessors so the lookup
+        (and the None/GLOBAL_KEY handling) lives in one place.
+
+        Callers are responsible for normalizing step/index via ``__map_global``.
+        """
+        if isinstance(index, int):
+            index = str(index)
+
+        try:
+            return self.__node[step][index]
+        except KeyError:
+            if self.__pernode == PerNode.REQUIRED:
+                return self.__defvalue
+
+        try:
+            return self.__node[step][None]
+        except KeyError:
+            pass
+
+        try:
+            return self.__node[None][None]
+        except KeyError:
+            return self.__defvalue
 
     def __assert_step_index(self, field: Optional[str],
                             step: Optional[str],
@@ -346,6 +372,8 @@ class Parameter:
             >>> param.set('top')
             Sets the value to 'top'
         '''
+
+        step, index = self.__map_global(step, index)
 
         if field != "lock":
             if self.__lock:
@@ -426,6 +454,8 @@ class Parameter:
             Adds the file 'hello.v' the parameter.
         '''
 
+        step, index = self.__map_global(step, index)
+
         if self.__lock:
             return False
 
@@ -480,6 +510,8 @@ class Parameter:
 
         if self.__lock:
             return False
+
+        step, index = self.__map_global(step, index)
 
         if isinstance(index, int):
             index = str(index)
@@ -630,6 +662,7 @@ class Parameter:
             self.__defvalue._from_dict(defvalue, keypath, version)
 
         for step, indexdata in manifest["node"].items():
+            # GLOBAL_KEY is the wire alias for the internal None sentinel.
             in_step = None if step == Parameter.GLOBAL_KEY else step
             self.__node[in_step] = {}
             for index, nodedata in indexdata.items():
@@ -656,27 +689,12 @@ class Parameter:
                 on a per-node basis.
         """
 
+        step, index = self.__map_global(step, index)
+
         if self.__pernode == PerNode.REQUIRED and (step is None or index is None):
             return None
 
-        if isinstance(index, int):
-            index = str(index)
-
-        try:
-            return self.__node[step][index].gettcl()
-        except KeyError:
-            if self.__pernode == PerNode.REQUIRED:
-                return self.__defvalue.gettcl()
-
-        try:
-            return self.__node[step][None].gettcl()
-        except KeyError:
-            pass
-
-        try:
-            return self.__node[None][None].gettcl()
-        except KeyError:
-            return self.__defvalue.gettcl()
+        return self.__resolve(step, index).gettcl()
 
     def getvalues(self, return_defvalue: bool = True, return_values: bool = True) \
             -> List[Tuple[Union[Any, NodeValue, NodeSetValue, NodeListValue],
@@ -779,6 +797,8 @@ class Parameter:
         A value counts as set if a user has set a global value OR a value for
         the provided step/index.
         '''
+        step, index = self.__map_global(step, index)
+
         if None in self.__node and \
                 None in self.__node[None] and \
                 self.__node[None][None]:
@@ -801,24 +821,9 @@ class Parameter:
         the provided step/index.
         '''
 
-        if isinstance(index, int):
-            index = str(index)
+        step, index = self.__map_global(step, index)
 
-        try:
-            return self.__node[step][index].has_value
-        except KeyError:
-            if self.__pernode == PerNode.REQUIRED:
-                return self.__defvalue.has_value
-
-        try:
-            return self.__node[step][None].has_value
-        except KeyError:
-            pass
-
-        try:
-            return self.__node[None][None].has_value
-        except KeyError:
-            return self.__defvalue.has_value
+        return self.__resolve(step, index).has_value
 
     @property
     def default(self) -> Union[NodeValue, NodeSetValue, NodeListValue]:
