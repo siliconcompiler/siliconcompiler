@@ -185,6 +185,7 @@ class InitFloorplanTask(APRTask,
         self._set_reports([
             'check_setup',
             'setup',
+            'fmax',
             'unconstrained',
             'power',
             'floating_nets',
