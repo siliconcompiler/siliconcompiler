@@ -1,6 +1,10 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
+from typing import Optional
+
 from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow, drcflow
+
+from siliconcompiler.targets._utils import detect_elaboration_language
 
 from lambdapdk.gf180 import GF180_5LM_1TM_9K_9t
 from lambdapdk.gf180.libs.gf180mcu import GF180_MCU_9T_5LMLibrary
@@ -16,7 +20,8 @@ def gf180_demo(
         project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-        timing_np: int = 1):
+        timing_np: int = 1,
+        language: Optional[str] = None):
     """
         Configure an ASIC for the GlobalFoundries 180nm (GF180) process by registering
         the PDK and standard-cell/IP libraries, installing compilation flows, creating STA
@@ -30,7 +35,10 @@ def gf180_demo(
             * cts_np (int): Parallelism for clock-tree synthesis.
             * route_np (int): Parallelism for routing.
             * timing_np (int): Parallelism for timing analysis.
+            * language (Optional[str]): The hardware description language to use.
         """
+    if language is None:
+        language = detect_elaboration_language(project)
 
     # 1. Load PDK and Standard Cell Libraries
     # Sets the process development kit and the standard cell libraries
@@ -47,10 +55,12 @@ def gf180_demo(
         floorplan_np=floorplan_np,
         place_np=place_np,
         cts_np=cts_np,
-        route_np=route_np))
+        route_np=route_np,
+        language=language))
     project.add_dep(synflow.SynthesisFlow(
         syn_np=syn_np,
-        timing_np=timing_np))
+        timing_np=timing_np,
+        language=language))
     # GF180 signs off with KLayout DRC; register the matching DRC flow so it
     # can be selected after the RTL-to-GDS run. (No open-source LVS available.)
     project.add_dep(drcflow.DRCFlow())

@@ -291,7 +291,7 @@ def test_img2stream():
 
     ihp130_demo(proj)
 
-    proj.set_flow(Img2StreamFlow())
+    proj.set_flow(Img2StreamFlow(drc="klayout"))
 
     task = img2stream.Img2StreamTask.find_task(proj)
     # 15 x 15 logo

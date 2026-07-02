@@ -1,9 +1,9 @@
-from siliconcompiler.tools.magic import extspice
-from siliconcompiler.tools.magic import drc
-from siliconcompiler.tools.netgen import lvs
-from siliconcompiler.tools.builtin import join
-
 from siliconcompiler import Flowgraph
+
+from siliconcompiler.flows.drcflow import MagicDRCFlow
+from siliconcompiler.flows.lvsflow import MagicLVSFlow
+
+from siliconcompiler.tools.builtin import join
 
 
 class SignoffFlow(Flowgraph):
@@ -28,11 +28,8 @@ class SignoffFlow(Flowgraph):
         """
         super().__init__(name)
 
-        self.node("drc", drc.DRCTask())
-
-        self.node("extspice", extspice.ExtractTask())
-        self.node("lvs", lvs.LVSTask())
-        self.edge("extspice", "lvs")
+        self.graph(MagicDRCFlow())
+        self.graph(MagicLVSFlow())
 
         self.node("signoff", join.JoinTask())
         self.edge("drc", "signoff")
