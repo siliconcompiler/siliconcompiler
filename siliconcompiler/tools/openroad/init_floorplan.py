@@ -21,10 +21,6 @@ class InitFloorplanTask(APRTask,
 
         self.add_parameter("ifp_snap_strategy", "<none,site,grid>",
                            "Snapping strategy to use when placing macros.", defvalue="site")
-        self.add_parameter("remove_synth_buffers", "bool",
-                           "remove buffers inserted by synthesis", defvalue=True)
-        self.add_parameter("remove_dead_logic", "bool",
-                           "remove logic which does not drive a primary output", defvalue=True)
         self.add_parameter("assert_all_pins_placed", "bool",
                            "assert that all pins are placed", defvalue=False)
 
@@ -112,7 +108,10 @@ class InitFloorplanTask(APRTask,
             step: The specific step to apply this configuration to.
             index: The specific index to apply this configuration to.
         """
-        self.set("var", "remove_synth_buffers", enable, step=step, index=index)
+        import warnings
+        warnings.warn("set_openroad_removebuffers is deprecated in init_floorplan. "
+                      "Use cleanup_synth instead.",
+                      DeprecationWarning, stacklevel=2)
 
     def set_openroad_removedeadlogic(self, enable: bool,
                                      step: Optional[str] = None, index: Optional[str] = None):
@@ -124,7 +123,10 @@ class InitFloorplanTask(APRTask,
             step: The specific step to apply this configuration to.
             index: The specific index to apply this configuration to.
         """
-        self.set("var", "remove_dead_logic", enable, step=step, index=index)
+        import warnings
+        warnings.warn("set_openroad_removedeadlogic is deprecated in init_floorplan. "
+                      "Use cleanup_synth instead.",
+                      DeprecationWarning, stacklevel=2)
 
     def add_openroad_padringfileset(self, fileset: Union[str, List[str]],
                                     step: Optional[str] = None, index: Optional[str] = None,
@@ -199,8 +201,6 @@ class InitFloorplanTask(APRTask,
         ])
 
         self.add_required_key("var", "ifp_snap_strategy")
-        self.add_required_key("var", "remove_synth_buffers")
-        self.add_required_key("var", "remove_dead_logic")
         self.add_required_key("var", "assert_all_pins_placed")
         if self.get("var", "placementblockage"):
             self.add_required_key("var", "placementblockage")

@@ -25,6 +25,9 @@ The ASIC flow is assembled from the following stage-specific subflows. They can 
 used on their own to run or debug an individual stage of the back-end.
 
 .. schema::
+  :root: siliconcompiler.flows.asicflow/CleanupSynthFlow
+
+.. schema::
   :root: siliconcompiler.flows.asicflow/FloorplanningFlow
 
 .. schema::

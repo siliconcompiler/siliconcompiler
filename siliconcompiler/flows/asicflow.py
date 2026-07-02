@@ -2,6 +2,7 @@ from typing import Optional
 
 from siliconcompiler import Flowgraph
 
+from siliconcompiler.tools.openroad import synth_cleanup
 from siliconcompiler.tools.openroad import init_floorplan
 from siliconcompiler.tools.openroad import macro_placement
 from siliconcompiler.tools.openroad import endcap_tapcell_insertion
@@ -101,6 +102,7 @@ class ASICFlow(Flowgraph):
         self.rename_node("timing", "synthesis.timing")
 
         for prefix, graph in [
+                ("cleanup", CleanupSynthFlow(np=1)),
                 ("floorplan", FloorplanningFlow(np=floorplan_np)),
                 ("place", PlacementFlow(np=place_np)),
                 ("cts", ClockTreeSynthesisFlow(np=cts_np)),
@@ -143,6 +145,46 @@ class ASICFlow(Flowgraph):
             cls(language="hls", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
             cls(language="bluespec", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
         ]
+
+
+class CleanupSynthFlow(Flowgraph):
+    '''A flow that performs only the synthesis cleanup portion of the ASIC flow.
+
+    This flow is useful for quickly checking that a design can be successfully
+    cleaned up after synthesis without running floorplanning or timing analysis.
+    It includes the removal of synthesis buffers and dead logic.
+    '''
+
+    def __init__(self, name: str = 'cleanup_synthflow', np: int = 1):
+        """
+        Initializes the CleanupSynthFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
+        """
+        super().__init__(name)
+
+        for n in range(np):
+            self.node("clean", synth_cleanup.CleanupSynthTask(), index=n)
+
+        if np > 1:
+            self.node("min", minimum.MinimumTask())
+            for n in range(np):
+                self.edge("clean", "min", tail_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create a representative instance of the flow, typically with parallel
+        execution features enabled to demonstrate the flow's capabilities.
+
+        Returns:
+            An instance of the CleanupSynthFlow class.
+        '''
+        return cls(np=3)
 
 
 class FloorplanningFlow(Flowgraph):
