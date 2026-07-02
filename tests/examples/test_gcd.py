@@ -31,7 +31,7 @@ def test_py_gcd():
     # 2 ABC Warnings
     assert project.get('metric', 'warnings', step='synthesis', index='0') == 2
 
-    assert project.get('metric', 'warnings', step='floorplan.init', index='0') == 2
+    assert project.get('metric', 'warnings', step='floorplan.init', index='0') == 1
 
     assert project.get('metric', 'warnings', step='place.detailed', index='0') == 0
 
