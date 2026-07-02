@@ -1,10 +1,13 @@
+from typing import Optional
+
+from siliconcompiler import Flowgraph
+
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.opensta import timing
 
 from siliconcompiler.tools.builtin import minimum
 
-from siliconcompiler import Flowgraph
-from siliconcompiler.tools.slang import elaborate
+from siliconcompiler.flows.elaborationflow import ElaborationFlow
 
 
 class SynthesisFlow(Flowgraph):
@@ -24,37 +27,48 @@ class SynthesisFlow(Flowgraph):
                       using OpenSTA.
     '''
 
-    def __init__(self, name: str = "synflow", syn_np: int = 1, timing_np: int = 1):
+    def __init__(self, name: Optional[str] = None,
+                 language: str = "verilog",
+                 syn_np: int = 1, timing_np: int = 1):
         """
-        Initializes the SynthesisFlowgraph.
+        Initializes the SynthesisFlow.
 
         Args:
             * name (str): The name of the flow.
+            * language (str): The hardware description language of the design.
             * syn_np (int): The number of parallel synthesis jobs to launch. If
                 greater than 1, a 'minimum' step is added to select the best
                 result.
             * timing_np (int): The number of parallel timing analysis jobs to
                 launch.
         """
-        super().__init__()
-        self.set_name(name)
+        if name is None:
+            name = f"synflow-{language}"
+        super().__init__(name)
 
-        self.node("elaborate", elaborate.Elaborate())
+        elab = ElaborationFlow(language=language)
+        self.graph(elab)
+
+        elab_node = elab.get_exit_nodes()
+        if len(elab_node) != 1:
+            raise ValueError("Elaboration flow must have exactly one exit node.")
+        elab_node = elab_node[0][0]  # Get the node name from the tuple
+
         if syn_np > 1:
-            self.node("synmin", minimum.MinimumTask())
+            self.node("min", minimum.MinimumTask())
 
         for n in range(syn_np):
             self.node("synthesis", syn_asic.ASICSynthesis(), index=n)
-            self.edge("elaborate", "synthesis", head_index=n)
+            self.edge(elab_node, "synthesis", head_index=n)
 
             if syn_np > 1:
-                self.edge("synthesis", "synmin", tail_index=n)
+                self.edge("synthesis", "min", tail_index=n)
 
             for metric in ('errors',):
                 self.get_graph_node("synthesis", n).add_goal(metric, 0)
 
         if syn_np > 1:
-            prev_step = "synmin"
+            prev_step = "min"
         else:
             prev_step = "synthesis"
         for n in range(timing_np):
@@ -63,10 +77,17 @@ class SynthesisFlow(Flowgraph):
 
     @classmethod
     def make_docs(cls):
-        return SynthesisFlow(syn_np=3, timing_np=3)
+        return [
+            cls(language="verilog", syn_np=3, timing_np=3),
+            cls(language="systemverilog-sv2v", syn_np=3, timing_np=3),
+            cls(language="chisel", syn_np=3, timing_np=3),
+            cls(language="vhdl", syn_np=3, timing_np=3),
+            cls(language="hls", syn_np=3, timing_np=3),
+            cls(language="bluespec", syn_np=3, timing_np=3)
+        ]
 
 
 ##################################################
 if __name__ == "__main__":
-    flow = SynthesisFlow(syn_np=3, timing_np=3)
-    flow.write_flowgraph(f"{flow.name}.png")
+    for flow in SynthesisFlow.make_docs():
+        flow.write_flowgraph(f"{flow.name}.png")

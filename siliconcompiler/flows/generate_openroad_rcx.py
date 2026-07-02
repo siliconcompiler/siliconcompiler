@@ -1,9 +1,12 @@
-from siliconcompiler.tools.openroad import rcx_bench
-from siliconcompiler.tools.openroad import rcx_extract
-from siliconcompiler.tools.builtin import nop
+from typing import Optional
 
 from siliconcompiler import Flowgraph
 from siliconcompiler import Task
+
+from siliconcompiler.tools.openroad import rcx_bench
+from siliconcompiler.tools.openroad import rcx_extract
+from siliconcompiler.tools.builtin import nop
+from siliconcompiler.tools.builtin.wait import Wait
 
 
 class GenerateOpenRCXFlow(Flowgraph):
@@ -23,7 +26,7 @@ class GenerateOpenRCXFlow(Flowgraph):
         3. **extract**: The golden SPEF is used to generate a calibrated OpenRCX
                         deck.
     '''
-    def __init__(self, extraction_task: Task = None, corners: int = 1,
+    def __init__(self, extraction_task: Optional[Task] = None, corners: int = 1,
                  serial_extraction: bool = False):
         """
         Initializes the GenerateOpenRCXFlow.
@@ -59,17 +62,13 @@ class GenerateOpenRCXFlow(Flowgraph):
             self.edge('pex', 'extract', head_index=n, tail_index=n)
             self.edge('bench', 'extract', head_index=n)
 
-            if serial_extraction and n > 0:
-                # For license restrictions make each pex step dependent on the previous pex step
-
-                if n == 0:
-                    prev = 'bench'
-                    prev_index = 0
-                else:
-                    prev = 'pex'
-                    prev_index = n - 1
-
-                self.edge(prev, 'pex', head_index=n, tail_index=prev_index)
+        if serial_extraction:
+            # For license restrictions, serialize the pex steps so they run one at
+            # a time. Wait tasks impose a scheduling barrier without creating a
+            # data dependency between the pex steps. This serializes every node
+            # using the extraction tool, which assumes the third-party PEX tool is
+            # distinct from the openroad tool used by bench/extract.
+            Wait.serialize_tool_tasks(self, extraction_task.tool())
 
     @classmethod
     def make_docs(cls):

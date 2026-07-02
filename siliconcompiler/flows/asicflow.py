@@ -1,4 +1,7 @@
-from siliconcompiler.tools.yosys import syn_asic
+from typing import Optional
+
+from siliconcompiler import Flowgraph
+
 from siliconcompiler.tools.openroad import init_floorplan
 from siliconcompiler.tools.openroad import macro_placement
 from siliconcompiler.tools.openroad import endcap_tapcell_insertion
@@ -17,15 +20,9 @@ from siliconcompiler.tools.openroad import fillmetal_insertion
 from siliconcompiler.tools.openroad import write_data
 from siliconcompiler.tools.klayout import export as klayout_export
 
-from siliconcompiler.tools.bambu.convert import ConvertTask
-from siliconcompiler.tools.ghdl.convert import ConvertTask as GHDLConvertTask
-from siliconcompiler.tools.sv2v.convert import ConvertTask as SV2VConvertTask
-from siliconcompiler.tools.chisel.convert import ConvertTask as ChiselConvertTask
-
 from siliconcompiler.tools.builtin import minimum
 
-from siliconcompiler import Flowgraph
-from siliconcompiler.tools.slang import elaborate
+from siliconcompiler.flows.synflow import SynthesisFlow
 
 
 class ASICFlow(Flowgraph):
@@ -39,7 +36,7 @@ class ASICFlow(Flowgraph):
         * **elaborate**: RTL elaboration using Slang.
         * **synthesis**: RTL synthesis using Yosys.
         * **floorplan**: Floorplanning, including macro placement, tapcell/endcap
-            insertion, power grid generation, and pin placement.
+          insertion, power grid generation, and pin placement.
         * **place**: Global and detailed placement.
         * **cts**: Clock tree synthesis and post-CTS timing repair.
         * **route**: Global and detailed routing.
@@ -48,9 +45,14 @@ class ASICFlow(Flowgraph):
 
     The synthesis, floorplan, place, cts, and route steps support parallel
     execution to explore different strategies. This can be configured by
-    setting the corresponding '_np' argument to a value greater than 1.
+    setting the corresponding ``*_np`` argument to a value greater than 1.
 
     Args:
+        * name (str, optional): The name of the flow. If not provided, it
+          defaults to 'asicflow-<language>'.
+        * language (str): The hardware description language of the design. One
+          of 'verilog', 'systemverilog', 'systemverilog-sv2v', 'chisel',
+          'vhdl', or 'hls'.
         * syn_np (int): Number of parallel synthesis jobs to launch.
         * floorplan_np (int): Number of parallel floorplan jobs to launch.
         * place_np (int): Number of parallel placement jobs to launch.
@@ -58,7 +60,8 @@ class ASICFlow(Flowgraph):
         * route_np (int): Number of parallel routing jobs to launch.
     '''
 
-    def __init__(self, name: str = 'asicflow',
+    def __init__(self, name: Optional[str] = None,
+                 language: str = "verilog",
                  syn_np: int = 1,
                  floorplan_np: int = 1,
                  place_np: int = 1,
@@ -68,104 +71,114 @@ class ASICFlow(Flowgraph):
 
         Args:
             * name (str): The name of the flow.
+            * language (str): The hardware description language of the design.
             * syn_np (int): The number of parallel synthesis jobs to launch.
             * floorplan_np (int): The number of parallel floorplan jobs to launch.
             * place_np (int): The number of parallel placement jobs to launch.
             * cts_np (int): The number of parallel clock tree synthesis jobs to launch.
             * route_np (int): The number of parallel routing jobs to launch.
         """
-        super().__init__()
-        self.set_name(name)
+        if name is None:
+            name = f"asicflow-{language}"
+        super().__init__(name)
 
-        self.node("elaborate", elaborate.Elaborate())
+        synth = SynthesisFlow(language=language, syn_np=syn_np)
+        self.graph(synth)
 
-        if syn_np > 1:
-            syn_prev_node = "synthesis.min"
-            self.node("synthesis.min", minimum.MinimumTask())
-        else:
-            syn_prev_node = "synthesis"
+        prev_node = synth.get_exit_nodes()
+        prev_node = [node for node in prev_node if node[0] != "timing"]
+        if len(prev_node) == 0:
+            timing_node = synth.get_exit_nodes()[0]
+            node = synth.get_graph_node(timing_node[0], timing_node[1])
+            prev_node = node.get_input()
+        if len(prev_node) != 1:
+            raise ValueError("Synthesis flow must have exactly one exit synthesis node.")
+        prev_node = prev_node[0][0]  # Get the node name from the tuple
 
-        for n in range(syn_np):
-            self.node("synthesis", syn_asic.ASICSynthesis(), index=n)
-            self.edge("elaborate", "synthesis", head_index=n)
-            if syn_np > 1:
-                self.edge("synthesis", "synthesis.min", tail_index=n)
+        if prev_node == "min":
+            self.rename_node("min", "synthesis.min")
+            prev_node = "synthesis.min"
+        self.rename_node("timing", "synthesis.timing")
 
-        if floorplan_np > 1:
-            fp_prev_node = "floorplan.min"
-            self.node("floorplan.min", minimum.MinimumTask())
-        else:
-            fp_prev_node = "floorplan.pin_placement"
+        for prefix, graph in [
+                ("floorplan", FloorplanningFlow(np=floorplan_np)),
+                ("place", PlacementFlow(np=place_np)),
+                ("cts", ClockTreeSynthesisFlow(np=cts_np)),
+                ("cts", FillerCellFlow(np=1)),  # use cts for now
+                ("route", RoutingFlow(np=route_np)),
+                ("dfm", MetalFillFlow(np=1))]:
+            self.graph(graph, name=prefix)
+            for node in graph.get_entry_nodes():
+                self.edge(prev_node, f"{prefix}.{node[0]}", head_index=node[1])
 
-        for n in range(floorplan_np):
-            self.node("floorplan.init", init_floorplan.InitFloorplanTask(), index=n)
-            self.edge(syn_prev_node, "floorplan.init", head_index=n)
-            self.node("floorplan.macro_placement", macro_placement.MacroPlacementTask(), index=n)
-            self.edge("floorplan.init", "floorplan.macro_placement", tail_index=n, head_index=n)
-            self.node("floorplan.tapcell", endcap_tapcell_insertion.EndCapTapCellTask(), index=n)
-            self.edge("floorplan.macro_placement", "floorplan.tapcell", tail_index=n, head_index=n)
-            self.node("floorplan.power_grid", power_grid.PowerGridTask(), index=n)
-            self.edge("floorplan.tapcell", "floorplan.power_grid", tail_index=n, head_index=n)
-            self.node("floorplan.pin_placement", pin_placement.PinPlacementTask(), index=n)
-            self.edge("floorplan.power_grid", "floorplan.pin_placement", tail_index=n, head_index=n)
-            if floorplan_np > 1:
-                self.edge("floorplan.pin_placement", "floorplan.min", tail_index=n)
-
-        if place_np > 1:
-            place_prev_node = "place.min"
-            self.node("place.min", minimum.MinimumTask())
-        else:
-            place_prev_node = "place.detailed"
-
-        for n in range(place_np):
-            self.node("place.global", global_placement.GlobalPlacementTask(), index=n)
-            self.edge(fp_prev_node, "place.global", head_index=n)
-            self.node("place.repair_design", repair_design.RepairDesignTask(), index=n)
-            self.edge("place.global", "place.repair_design", tail_index=n, head_index=n)
-            self.node("place.detailed", detailed_placement.DetailedPlacementTask(), index=n)
-            self.edge("place.repair_design", "place.detailed", tail_index=n, head_index=n)
-            if place_np > 1:
-                self.edge("place.detailed", "place.min", tail_index=n)
-
-        if cts_np > 1:
-            cts_prev_node = "cts.min"
-            self.node("cts.min", minimum.MinimumTask())
-        else:
-            cts_prev_node = "cts.fillcell"
-
-        for n in range(cts_np):
-            self.node("cts.clock_tree_synthesis", clock_tree_synthesis.CTSTask(), index=n)
-            self.edge(place_prev_node, "cts.clock_tree_synthesis", head_index=n)
-            self.node("cts.repair_timing", repair_timing.RepairTimingTask(), index=n)
-            self.edge("cts.clock_tree_synthesis", "cts.repair_timing", tail_index=n, head_index=n)
-            self.node("cts.fillcell", fillercell_insertion.FillCellTask(), index=n)
-            self.edge("cts.repair_timing", "cts.fillcell", tail_index=n, head_index=n)
-            if cts_np > 1:
-                self.edge("cts.fillcell", "cts.min", tail_index=n)
-
-        if route_np > 1:
-            route_prev_node = "route.min"
-            self.node("route.min", minimum.MinimumTask())
-        else:
-            route_prev_node = "route.detailed"
-
-        for n in range(route_np):
-            self.node("route.global", global_route.GlobalRouteTask(), index=n)
-            self.edge(cts_prev_node, "route.global", head_index=n)
-            self.node("route.antenna_repair", antenna_repair.AntennaRepairTask(), index=n)
-            self.edge("route.global", "route.antenna_repair", tail_index=n, head_index=n)
-            self.node("route.detailed", detailed_route.DetailedRouteTask(), index=n)
-            self.edge("route.antenna_repair", "route.detailed", tail_index=n, head_index=n)
-            if route_np > 1:
-                self.edge("route.detailed", "route.min", tail_index=n)
-
-        self.node("dfm.metal_fill", fillmetal_insertion.FillMetalTask())
-        self.edge(route_prev_node, "dfm.metal_fill")
+            prev_node = graph.get_exit_nodes()
+            if len(prev_node) != 1:
+                raise ValueError(f"{graph.name} must have exactly one exit node.")
+            prev_node = f"{prefix}.{prev_node[0][0]}"  # Get the node name from the tuple
 
         self.node("write.views", write_data.WriteViewsTask())
-        self.edge("dfm.metal_fill", "write.views")
+        self.edge(prev_node, "write.views")
         self.node("write.gds", klayout_export.ExportTask())
-        self.edge("dfm.metal_fill", "write.gds")
+        self.edge(prev_node, "write.gds")
+
+    @classmethod
+    def make_docs(cls):
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create representative instances of the flow, one for each supported
+        source language, with parallel execution enabled to demonstrate the
+        flow's capabilities.
+
+        Returns:
+            A list of ASICFlow instances, one per supported source language.
+        '''
+        return [
+            cls(language="verilog",
+                syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="systemverilog-sv2v",
+                syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="chisel", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="vhdl", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="hls", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
+            cls(language="bluespec", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+        ]
+
+
+class FloorplanningFlow(Flowgraph):
+    '''A flow that performs only the floorplanning portion of the ASIC flow.
+
+    This flow is useful for quickly checking that a design can be successfully
+    floorplanned without running synthesis or timing analysis. It includes
+    macro placement, tapcell/endcap insertion, power grid generation, and pin
+    placement.
+    '''
+
+    def __init__(self, name: str = 'floorplanningflow', np: int = 1):
+        """
+        Initializes the FloorplanningFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
+        """
+        super().__init__(name)
+
+        for n in range(np):
+            self.node("init", init_floorplan.InitFloorplanTask(), index=n)
+            self.node("macro_placement", macro_placement.MacroPlacementTask(), index=n)
+            self.edge("init", "macro_placement", tail_index=n, head_index=n)
+            self.node("tapcell", endcap_tapcell_insertion.EndCapTapCellTask(), index=n)
+            self.edge("macro_placement", "tapcell", tail_index=n, head_index=n)
+            self.node("power_grid", power_grid.PowerGridTask(), index=n)
+            self.edge("tapcell", "power_grid", tail_index=n, head_index=n)
+            self.node("pin_placement", pin_placement.PinPlacementTask(), index=n)
+            self.edge("power_grid", "pin_placement", tail_index=n, head_index=n)
+
+        if np > 1:
+            self.node("min", minimum.MinimumTask())
+            for n in range(np):
+                self.edge("pin_placement", "min", tail_index=n)
 
     @classmethod
     def make_docs(cls):
@@ -176,18 +189,228 @@ class ASICFlow(Flowgraph):
         execution features enabled to demonstrate the flow's capabilities.
 
         Returns:
-            An instance of the ASICFlow class.
+            An instance of the FloorplanningFlow class.
         '''
-        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+        return cls(np=3)
+
+
+class PlacementFlow(Flowgraph):
+    '''A flow that performs only the placement portion of the ASIC flow.
+
+    This flow is useful for quickly checking that a design can be successfully
+    placed without running synthesis or timing analysis. It includes global
+    placement, repair, and detailed placement.
+    '''
+
+    def __init__(self, name: str = 'placementflow', np: int = 1):
+        """
+        Initializes the PlacementFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
+        """
+        super().__init__(name)
+
+        for n in range(np):
+            self.node("global", global_placement.GlobalPlacementTask(), index=n)
+            self.node("repair_design", repair_design.RepairDesignTask(), index=n)
+            self.edge("global", "repair_design", tail_index=n, head_index=n)
+            self.node("detailed", detailed_placement.DetailedPlacementTask(), index=n)
+            self.edge("repair_design", "detailed", tail_index=n, head_index=n)
+
+        if np > 1:
+            self.node("min", minimum.MinimumTask())
+            for n in range(np):
+                self.edge("detailed", "min", tail_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create a representative instance of the flow, typically with parallel
+        execution features enabled to demonstrate the flow's capabilities.
+
+        Returns:
+            An instance of the PlacementFlow class.
+        '''
+        return cls(np=3)
+
+
+class ClockTreeSynthesisFlow(Flowgraph):
+    '''A flow that performs only the clock tree synthesis portion of the ASIC flow.
+
+    This flow is useful for quickly checking that a design can be successfully
+    clock tree synthesized without running synthesis or timing analysis. It
+    includes clock tree synthesis, repair, and filler cell insertion.
+    '''
+
+    def __init__(self, name: str = 'ctssflow', np: int = 1):
+        """
+        Initializes the ClockTreeSynthesisFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
+        """
+        super().__init__(name)
+
+        for n in range(np):
+            self.node("clock_tree_synthesis", clock_tree_synthesis.CTSTask(), index=n)
+            self.node("repair_timing", repair_timing.RepairTimingTask(), index=n)
+            self.edge("clock_tree_synthesis", "repair_timing", tail_index=n, head_index=n)
+
+        if np > 1:
+            self.node("min", minimum.MinimumTask())
+            for n in range(np):
+                self.edge("repair_timing", "min", tail_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create a representative instance of the flow, typically with parallel
+        execution features enabled to demonstrate the flow's capabilities.
+
+        Returns:
+            An instance of the ClockTreeSynthesisFlow class.
+        '''
+        return cls(np=3)
+
+
+class RoutingFlow(Flowgraph):
+    '''A flow that performs only the routing portion of the ASIC flow.
+
+    This flow is useful for quickly checking that a design can be successfully
+    routed without running synthesis or timing analysis. It includes global
+    routing, antenna repair, and detailed routing.
+    '''
+
+    def __init__(self, name: str = 'routingflow', np: int = 1):
+        """
+        Initializes the RoutingFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
+        """
+        super().__init__(name)
+
+        for n in range(np):
+            self.node("global", global_route.GlobalRouteTask(), index=n)
+            self.node("antenna_repair", antenna_repair.AntennaRepairTask(), index=n)
+            self.edge("global", "antenna_repair", tail_index=n, head_index=n)
+            self.node("detailed", detailed_route.DetailedRouteTask(), index=n)
+            self.edge("antenna_repair", "detailed", tail_index=n, head_index=n)
+
+        if np > 1:
+            self.node("min", minimum.MinimumTask())
+            for n in range(np):
+                self.edge("detailed", "min", tail_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create a representative instance of the flow, typically with parallel
+        execution features enabled to demonstrate the flow's capabilities.
+
+        Returns:
+            An instance of the RoutingFlow class.
+        '''
+        return cls(np=3)
+
+
+class MetalFillFlow(Flowgraph):
+    '''A flow that performs only the metal fill portion of the ASIC flow.
+
+    This flow is useful for quickly checking that a design can be successfully
+    processed for metal fill without running synthesis or timing analysis. It includes
+    metal fill insertion.
+    '''
+
+    def __init__(self, name: str = 'metalfillflow', np: int = 1):
+        """
+        Initializes the MetalFillFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
+        """
+        super().__init__(name)
+
+        for n in range(np):
+            self.node("metal_fill", fillmetal_insertion.FillMetalTask(), index=n)
+
+        if np > 1:
+            self.node("min", minimum.MinimumTask())
+            for n in range(np):
+                self.edge("metal_fill", "min", tail_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create a representative instance of the flow, typically with parallel
+        execution features enabled to demonstrate the flow's capabilities.
+
+        Returns:
+            An instance of the MetalFillFlow class.
+        '''
+        return cls(np=3)
+
+
+class FillerCellFlow(Flowgraph):
+    '''A flow that performs only the design-for-manufacturing (DFM) portion of the ASIC flow.
+
+    This flow is useful for quickly checking that a design can be successfully
+    processed for DFM without running synthesis or timing analysis. It includes
+    filler cell insertion.
+    '''
+
+    def __init__(self, name: str = 'fillercellflow', np: int = 1):
+        """
+        Initializes the FillerCellFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
+        """
+        super().__init__(name)
+
+        for n in range(np):
+            self.node("fillcell", fillercell_insertion.FillCellTask(), index=n)
+
+        if np > 1:
+            self.node("min", minimum.MinimumTask())
+            for n in range(np):
+                self.edge("fillcell", "min", tail_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create a representative instance of the flow, typically with parallel
+        execution features enabled to demonstrate the flow's capabilities.
+
+        Returns:
+            An instance of the FillerCellFlow class.
+        '''
+        return cls(np=3)
 
 
 class SV2VASICFlow(ASICFlow):
-    '''A SystemVerilog-to-Verilog extension of the ASICFlow.
+    '''A SystemVerilog-to-Verilog variant of the ASIC compilation flow.
 
     This flow is intended for designs written in SystemVerilog that may not be
-    fully supported by downstream synthesis or APR tools. It inserts a
-    'convert' step using SV2V before the standard 'elaborate' step to ensure
-    the design is in a compatible Verilog format.
+    fully supported by downstream synthesis or APR tools. The design is
+    converted to a compatible Verilog format with SV2V during elaboration,
+    before running the standard synthesis, place-and-route, and finishing steps.
     '''
 
     def __init__(self, name: str = 'sv2vasicflow',
@@ -207,21 +430,24 @@ class SV2VASICFlow(ASICFlow):
             * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__(name,
+                         language="systemverilog-sv2v",
                          syn_np=syn_np,
                          floorplan_np=floorplan_np,
                          place_np=place_np,
                          cts_np=cts_np,
                          route_np=route_np)
 
-        self.insert_node("convert", SV2VConvertTask(), before_step="elaborate")
+    @classmethod
+    def make_docs(cls):
+        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
 
 
 class HLSASICFlow(ASICFlow):
-    '''A High-Level Synthesis (HLS) extension of the ASICFlow.
+    '''A High-Level Synthesis (HLS) variant of the ASIC compilation flow.
 
-    This class inherits from ASICFlow and modifies it to support C-based HLS.
-    It replaces the initial 'elaborate' step with a 'convert' step, which
-    handles the conversion of HLS C code to RTL using the Bambu tool.
+    This flow supports C-based HLS designs. The HLS C code is converted to RTL
+    with the Bambu tool during elaboration, before running the standard
+    synthesis, place-and-route, and finishing steps.
     '''
 
     def __init__(self, name: str = 'hlsasicflow',
@@ -241,25 +467,24 @@ class HLSASICFlow(ASICFlow):
             * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__(name,
+                         language="hls",
                          syn_np=syn_np,
                          floorplan_np=floorplan_np,
                          place_np=place_np,
                          cts_np=cts_np,
                          route_np=route_np)
 
-        self.remove_node("elaborate")
-        self.node("convert", ConvertTask())
-        for n in range(syn_np):
-            self.edge("convert", "synthesis", head_index=n)
+    @classmethod
+    def make_docs(cls):
+        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
 
 
 class VHDLASICFlow(ASICFlow):
-    '''A VHDL-based ASIC synthesis flow.
+    '''A VHDL variant of the ASIC compilation flow.
 
-    This class extends the standard ASICFlow to support VHDL input by
-    replacing the initial Verilog-focused 'elaborate' step with a 'convert'
-    step. This new step uses GHDL to analyze and elaborate the VHDL design
-    before synthesis.
+    This flow supports VHDL input. The design is analyzed and elaborated with
+    GHDL during elaboration, before running the standard synthesis,
+    place-and-route, and finishing steps.
     '''
 
     def __init__(self, name: str = 'vhdlasicflow',
@@ -268,13 +493,7 @@ class VHDLASICFlow(ASICFlow):
                  place_np: int = 1,
                  cts_np: int = 1,
                  route_np: int = 1):
-        '''Initializes the VHDL ASIC flow.
-
-        This method sets up the flow graph for VHDL designs by:
-
-            1. Removing the default 'elaborate' node.
-            2. Adding a 'convert' node that runs the GHDLConvertTask.
-            3. Connecting the new 'convert' node to the 'synthesis' node(s).
+        '''Initializes the VHDLASICFlow.
 
         Args:
             * name (str): The name of the flow.
@@ -285,25 +504,25 @@ class VHDLASICFlow(ASICFlow):
             * route_np (int): The number of parallel routing jobs to launch.
         '''
         super().__init__(name,
+                         language="vhdl",
                          syn_np=syn_np,
                          floorplan_np=floorplan_np,
                          place_np=place_np,
                          cts_np=cts_np,
                          route_np=route_np)
 
-        self.remove_node("elaborate")
-        self.node("convert", GHDLConvertTask())
-        for n in range(syn_np):
-            self.edge("convert", "synthesis", head_index=n)
+    @classmethod
+    def make_docs(cls):
+        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
 
 
 class ChiselASICFlow(ASICFlow):
-    '''A Chisel-based ASIC synthesis flow.
+    '''A Chisel variant of the ASIC compilation flow.
 
-    This class extends the standard ASICFlow to support designs written in
-    the Chisel hardware construction language. It replaces the Verilog-focused
-    'elaborate' step with a 'convert' step that uses the Chisel compiler to
-    generate Verilog from the Chisel source before synthesis.
+    This flow supports designs written in the Chisel hardware construction
+    language. The Chisel source is converted to Verilog with the Chisel compiler
+    during elaboration, before running the standard synthesis, place-and-route,
+    and finishing steps.
     '''
 
     def __init__(self, name: str = 'chiselasicflow',
@@ -323,18 +542,20 @@ class ChiselASICFlow(ASICFlow):
             * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__(name,
+                         language="chisel",
                          syn_np=syn_np,
                          floorplan_np=floorplan_np,
                          place_np=place_np,
                          cts_np=cts_np,
                          route_np=route_np)
-        self.remove_node("elaborate")
-        self.node("convert", ChiselConvertTask())
-        for n in range(syn_np):
-            self.edge("convert", "synthesis", head_index=n)
+
+    @classmethod
+    def make_docs(cls):
+        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
 
 
 ##################################################
 if __name__ == "__main__":
-    flow = ASICFlow(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
-    flow.write_flowgraph(f"{flow.name}.png")
+    for flowcls in [ASICFlow, SV2VASICFlow, HLSASICFlow, VHDLASICFlow, ChiselASICFlow]:
+        flow = flowcls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+        flow.write_flowgraph(f"{flow.name}.png", background="white")

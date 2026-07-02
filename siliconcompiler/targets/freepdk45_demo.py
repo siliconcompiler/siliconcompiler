@@ -1,6 +1,10 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
+from typing import Optional
+
 from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
+
+from siliconcompiler.targets._utils import detect_elaboration_language
 
 from lambdapdk.freepdk45.libs.nangate45 import Nangate45
 from lambdapdk.freepdk45.libs.fakeram45 import FakeRAM45Lambdalib_SinglePort, \
@@ -14,7 +18,8 @@ def freepdk45_demo(
         project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-        timing_np: int = 1):
+        timing_np: int = 1,
+        language: Optional[str] = None):
     """
         Configure an ASIC for the FreePDK45 process: load Nangate45 standard-cell library,
         set synthesis/implementation flows, select the PDK, apply a typical timing scenario and
@@ -28,7 +33,10 @@ def freepdk45_demo(
             * cts_np (int): Parallelism for clock-tree synthesis.
             * route_np (int): Parallelism for routing.
             * timing_np (int): Parallelism for timing analysis.
+            * language (Optional[str]): The hardware description language to use.
         """
+    if language is None:
+        language = detect_elaboration_language(project)
 
     # 1. Load Standard Cell Library
     # Sets the Nangate45 open-source standard cell library as the primary
@@ -43,10 +51,12 @@ def freepdk45_demo(
         floorplan_np=floorplan_np,
         place_np=place_np,
         cts_np=cts_np,
-        route_np=route_np))
+        route_np=route_np,
+        language=language))
     project.add_dep(synflow.SynthesisFlow(
         syn_np=syn_np,
-        timing_np=timing_np))
+        timing_np=timing_np,
+        language=language))
 
     # 3. Set Target PDK
     # Specifies the process development kit to be used.

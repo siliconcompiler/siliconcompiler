@@ -1,7 +1,11 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
+from typing import Optional
+
 from siliconcompiler import ASIC
 
 from siliconcompiler.flows import asicflow, synflow, signoffflow
+
+from siliconcompiler.targets._utils import detect_elaboration_language
 
 from lambdapdk.sky130.libs.sky130sc import Sky130_SCHDLibrary
 from lambdapdk.sky130.libs.sky130sram import Sky130Lambdalib_SinglePort, \
@@ -16,7 +20,8 @@ def skywater130_demo(
         project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-        timing_np: int = 1):
+        timing_np: int = 1,
+        language: Optional[str] = None):
     '''
     Configures a siliconcompiler project for the Skywater130 process development kit (PDK).
 
@@ -32,7 +37,10 @@ def skywater130_demo(
         * cts_np (int): Number of parallel processes for clock tree synthesis.
         * route_np (int): Number of parallel processes for routing.
         * timing_np (int): Number of parallel processes for timing analysis.
+        * language (Optional[str]): The hardware description language to use.
     '''
+    if language is None:
+        language = detect_elaboration_language(project)
 
     # 1. Load Standard Cell Library
     # Sets the primary standard cell library for the design. This library
@@ -47,10 +55,12 @@ def skywater130_demo(
         floorplan_np=floorplan_np,
         place_np=place_np,
         cts_np=cts_np,
-        route_np=route_np))
+        route_np=route_np,
+        language=language))
     project.add_dep(synflow.SynthesisFlow(
         syn_np=syn_np,
-        timing_np=timing_np))
+        timing_np=timing_np,
+        language=language))
     # Skywater130 signs off with Magic (DRC) and Netgen (LVS); register the
     # matching signoff flow so it can be selected after the RTL-to-GDS run.
     project.add_dep(signoffflow.SignoffFlow())
