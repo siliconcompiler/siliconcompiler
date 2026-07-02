@@ -293,6 +293,184 @@ def test_insert_node_invalid(large_flow):
         )
 
 
+def test_rename_node_preserves_task(large_flow):
+    # joinone is a single-index node feeding all steptwo indices
+    large_flow.rename_node("joinone", "merge")
+
+    assert "joinone" not in large_flow.getkeys()
+    assert "merge" in large_flow.getkeys()
+
+    # Task binding follows the rename
+    assert large_flow.get("merge", "0", "tool") == "builtin"
+    assert large_flow.get("merge", "0", "task") == "join"
+    assert large_flow.get("merge", "0", "taskmodule") == \
+        "siliconcompiler.tools.builtin.join/JoinTask"
+
+
+def test_rename_node_rewires_inputs(large_flow):
+    large_flow.rename_node("joinone", "merge")
+
+    # merge inherits joinone's inputs...
+    assert large_flow.get("merge", "0", "input") == [
+        ("stepone", "0"), ("stepone", "1"), ("stepone", "2")]
+
+    # ...and the downstream steptwo nodes now point at merge
+    for n in range(3):
+        assert large_flow.get("steptwo", str(n), "input") == [("merge", "0")]
+
+
+def test_rename_node_multi_index(large_flow):
+    # stepone has three indices; rename must carry them all
+    large_flow.rename_node("stepone", "start")
+
+    assert "stepone" not in large_flow.getkeys()
+    assert large_flow.getkeys("start") == ("0", "1", "2")
+
+    # downstream joinone now references start for every index
+    assert large_flow.get("joinone", "0", "input") == [
+        ("start", "0"), ("start", "1"), ("start", "2")]
+
+
+def test_rename_node_preserves_topology(large_flow):
+    large_flow.rename_node("steptwo", "middle")
+
+    assert large_flow.get_execution_order() == (
+        (('stepone', '0'), ('stepone', '1'), ('stepone', '2')),
+        (('joinone', '0'),),
+        (('middle', '0'), ('middle', '1'), ('middle', '2')),
+        (('jointwo', '0'),),
+        (('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2')),
+        (('jointhree', '0'),))
+
+
+def test_rename_node_preserves_goals():
+    flow = Flowgraph("testflow")
+    flow.node("synthesis", NOPTask())
+    flow.get_graph_node("synthesis", "0").add_goal("errors", 0)
+
+    flow.rename_node("synthesis", "syn")
+
+    assert "synthesis" not in flow.getkeys()
+    assert flow.get_graph_node("syn", "0").get_goal("errors") == 0
+
+
+def test_rename_node_entry_node(large_flow):
+    # renaming an entry node keeps it an entry node
+    large_flow.rename_node("stepone", "start")
+    assert large_flow.get_entry_nodes() == (
+        ("start", "0"), ("start", "1"), ("start", "2"))
+
+
+def test_rename_node_exit_node(large_flow):
+    large_flow.rename_node("jointhree", "finish")
+    assert large_flow.get_exit_nodes() == (("finish", "0"),)
+
+
+def test_rename_node_dotted_name(large_flow):
+    # dotted names (the grouping convention) are valid targets
+    large_flow.rename_node("joinone", "synthesis.min")
+    assert "synthesis.min" in large_flow.getkeys()
+    assert large_flow.get_node_outputs("synthesis.min", "0") == (
+        ("steptwo", "0"), ("steptwo", "1"), ("steptwo", "2"))
+
+
+def test_rename_node_clears_cache(large_flow):
+    # populate caches
+    assert ("joinone", "0") in large_flow.get_nodes()
+
+    large_flow.rename_node("joinone", "merge")
+
+    nodes = large_flow.get_nodes()
+    assert ("joinone", "0") not in nodes
+    assert ("merge", "0") in nodes
+
+
+def test_rename_node_same_name_noop(large_flow):
+    before = large_flow.get_execution_order()
+    large_flow.rename_node("joinone", "joinone")
+    assert large_flow.get_execution_order() == before
+    assert "joinone" in large_flow.getkeys()
+
+
+def test_rename_node_invalid_step(large_flow):
+    with pytest.raises(ValueError,
+                       match=r"^invalidstep is not a valid step in testflow$"):
+        large_flow.rename_node("invalidstep", "whatever")
+
+
+def test_rename_node_existing_target(large_flow):
+    with pytest.raises(ValueError,
+                       match=r"^steptwo is already defined in testflow$"):
+        large_flow.rename_node("joinone", "steptwo")
+
+
+def test_rename_node_reserved_target(large_flow):
+    with pytest.raises(ValueError, match=r"^default is a reserved name$"):
+        large_flow.rename_node("joinone", "default")
+
+
+def test_rename_node_slash_target(large_flow):
+    with pytest.raises(ValueError,
+                       match=r"^bad/name is not a valid step, it cannot contain '/'$"):
+        large_flow.rename_node("joinone", "bad/name")
+
+
+def test_rename_node_self_referential_indices():
+    # a step whose indices feed a shared node, then a join fanning back:
+    # ensure references from the renamed step to itself are rewired too
+    flow = Flowgraph("testflow")
+    flow.node("a", NOPTask())
+    flow.node("b", NOPTask())
+    flow.edge("a", "b")
+    flow.node("c", NOPTask())
+    flow.edge("b", "c")
+
+    flow.rename_node("b", "b.renamed")
+
+    assert flow.get("b.renamed", "0", "input") == [("a", "0")]
+    assert flow.get("c", "0", "input") == [("b.renamed", "0")]
+    assert flow.get_execution_order() == (
+        (("a", "0"),),
+        (("b.renamed", "0"),),
+        (("c", "0"),))
+
+
+def test_rename_node_intra_step_reference():
+    # An edge between two indices of the *same* step: after copying the step
+    # to its new name, that input still references the old name and must be
+    # rewired to the new name too.
+    flow = Flowgraph("testflow")
+    flow.node("s", NOPTask(), index=0)
+    flow.node("s", NOPTask(), index=1)
+    flow.edge("s", "s", tail_index=0, head_index=1)
+
+    flow.rename_node("s", "renamed")
+
+    assert "s" not in flow.getkeys()
+    assert flow.get("renamed", "0", "input") == []
+    assert flow.get("renamed", "1", "input") == [("renamed", "0")]
+    assert flow.get_execution_order() == (
+        (("renamed", "0"),),
+        (("renamed", "1"),))
+
+
+def test_rename_node_preserves_arbitrary_fields():
+    # Fields beyond task/goal (e.g. weight) are copied generically.
+    flow = Flowgraph("testflow")
+    flow.node("synthesis", NOPTask())
+    flow.get_graph_node("synthesis", "0").add_weight("area_cells", 2.5)
+
+    flow.rename_node("synthesis", "syn")
+
+    assert flow.get_graph_node("syn", "0").get_weight("area_cells") == 2.5
+
+
+def test_rename_node_keeps_graph_valid(large_flow):
+    assert large_flow.validate()
+    large_flow.rename_node("steptwo", "middle")
+    assert large_flow.validate()
+
+
 def test_get_nodes(large_flow):
     assert large_flow.get_nodes() == (
         ('joinone', '0'), ('jointhree', '0'), ('jointwo', '0'),
