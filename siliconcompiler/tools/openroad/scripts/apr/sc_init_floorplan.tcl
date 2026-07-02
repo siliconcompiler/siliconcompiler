@@ -491,18 +491,6 @@ if { [sc_check_version 24 3 7421] } {
 }
 
 ###############################
-# Remove buffers inserted by synthesis
-###############################
-
-if { [sc_cfg_tool_task_get var remove_synth_buffers] } {
-    remove_buffers
-}
-
-if { [sc_cfg_tool_task_get var remove_dead_logic] } {
-    eliminate_dead_logic
-}
-
-###############################
 # Task Postamble
 ###############################
 

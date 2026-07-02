@@ -29,6 +29,7 @@ from siliconcompiler.tools.openroad import rdlroute
 from siliconcompiler.tools.openroad import repair_design
 from siliconcompiler.tools.openroad import repair_timing
 from siliconcompiler.tools.openroad import screenshot
+from siliconcompiler.tools.openroad import synth_cleanup
 
 
 @pytest.mark.eda
@@ -827,19 +828,35 @@ def test_openroad_init_floorplan_parameter_snap_strategy():
 
 def test_openroad_init_floorplan_parameter_remove_buffers():
     task = init_floorplan.InitFloorplanTask()
-    task.set_openroad_removebuffers(True)
-    assert task.get("var", "remove_synth_buffers") is True
-    task.set_openroad_removebuffers(False, step='init_floorplan', index='1')
-    assert task.get("var", "remove_synth_buffers", step='init_floorplan', index='1') is False
-    assert task.get("var", "remove_synth_buffers") is True
+    with pytest.warns(DeprecationWarning,
+                      match="set_openroad_removebuffers is deprecated in init_floorplan. "
+                            "Use cleanup_synth instead."):
+        task.set_openroad_removebuffers(True)
 
 
 def test_openroad_init_floorplan_parameter_remove_dead_logic():
     task = init_floorplan.InitFloorplanTask()
+    with pytest.warns(DeprecationWarning,
+                      match="set_openroad_removedeadlogic is deprecated in init_floorplan. "
+                            "Use cleanup_synth instead."):
+        task.set_openroad_removedeadlogic(True)
+
+
+def test_openroad_cleanup_synth_parameter_remove_buffers():
+    task = synth_cleanup.CleanupSynthTask()
+    task.set_openroad_removebuffers(True)
+    assert task.get("var", "remove_synth_buffers") is True
+    task.set_openroad_removebuffers(False, step='cleanup_synth', index='1')
+    assert task.get("var", "remove_synth_buffers", step='cleanup_synth', index='1') is False
+    assert task.get("var", "remove_synth_buffers") is True
+
+
+def test_openroad_cleanup_synth_parameter_remove_dead_logic():
+    task = synth_cleanup.CleanupSynthTask()
     task.set_openroad_removedeadlogic(True)
     assert task.get("var", "remove_dead_logic") is True
-    task.set_openroad_removedeadlogic(False, step='init_floorplan', index='1')
-    assert task.get("var", "remove_dead_logic", step='init_floorplan', index='1') is False
+    task.set_openroad_removedeadlogic(False, step='cleanup_synth', index='1')
+    assert task.get("var", "remove_dead_logic", step='cleanup_synth', index='1') is False
     assert task.get("var", "remove_dead_logic") is True
 
 
