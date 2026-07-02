@@ -95,6 +95,11 @@ class ASICFlow(Flowgraph):
             raise ValueError("Synthesis flow must have exactly one exit synthesis node.")
         prev_node = prev_node[0][0]  # Get the node name from the tuple
 
+        if prev_node == "min":
+            self.rename_node("min", "synthesis.min")
+            prev_node = "synthesis.min"
+        self.rename_node("timing", "synthesis.timing")
+
         for prefix, graph in [
                 ("floorplan", FloorplanningFlow(np=floorplan_np)),
                 ("place", PlacementFlow(np=place_np)),
@@ -553,4 +558,4 @@ class ChiselASICFlow(ASICFlow):
 if __name__ == "__main__":
     for flowcls in [ASICFlow, SV2VASICFlow, HLSASICFlow, VHDLASICFlow, ChiselASICFlow]:
         flow = flowcls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
-        flow.write_flowgraph(f"{flow.name}.png")
+        flow.write_flowgraph(f"{flow.name}.png", background="white")

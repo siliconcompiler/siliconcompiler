@@ -55,20 +55,20 @@ class SynthesisFlow(Flowgraph):
         elab_node = elab_node[0][0]  # Get the node name from the tuple
 
         if syn_np > 1:
-            self.node("synmin", minimum.MinimumTask())
+            self.node("min", minimum.MinimumTask())
 
         for n in range(syn_np):
             self.node("synthesis", syn_asic.ASICSynthesis(), index=n)
             self.edge(elab_node, "synthesis", head_index=n)
 
             if syn_np > 1:
-                self.edge("synthesis", "synmin", tail_index=n)
+                self.edge("synthesis", "min", tail_index=n)
 
             for metric in ('errors',):
                 self.get_graph_node("synthesis", n).add_goal(metric, 0)
 
         if syn_np > 1:
-            prev_step = "synmin"
+            prev_step = "min"
         else:
             prev_step = "synthesis"
         for n in range(timing_np):
