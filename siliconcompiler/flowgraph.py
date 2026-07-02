@@ -220,6 +220,27 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__clear_cache()
 
+    def _rewire_inputs(self, transform) -> None:
+        '''
+        Rewrites the input edges of every node in the flowgraph.
+
+        Iterates over all nodes and passes each node's list of
+        ``(step, index)`` input tuples through ``transform``. When
+        ``transform`` returns a new list, the node's inputs are replaced
+        with it; when it returns ``None`` the node is left untouched.
+
+        Args:
+            transform (callable): Function taking a node's current list of
+                input tuples and returning the new list, or ``None`` to
+                leave the inputs unchanged.
+        '''
+        for flow_step in self.getkeys():
+            for flow_index in self.getkeys(flow_step):
+                inputs = self.get(flow_step, flow_index, 'input')
+                new_inputs = transform(inputs)
+                if new_inputs is not None:
+                    self.set(flow_step, flow_index, 'input', new_inputs)
+
     def remove_node(self, step: str, index: Optional[Union[str, int]] = None) -> None:
         '''
         Removes a flowgraph node and reconnects its inputs to its outputs.
@@ -265,18 +286,17 @@ class Flowgraph(NamedSchema, DocsSchema):
             self.remove(step)
 
         # Re-wire: Find all nodes that had the removed node as an input
-        for flow_step in self.getkeys():
-            for flow_index in self.getkeys(flow_step):
-                current_node = self.get_graph_node(flow_step, flow_index)
-                inputs = current_node.get_input()
+        def rewire(inputs):
+            if node_to_remove not in inputs:
+                return None
+            # Remove the old edge
+            inputs = [inode for inode in inputs if inode != node_to_remove]
+            # Add new edges from the removed node's inputs
+            inputs.extend(node_inputs)
+            # Return the new list of inputs, removing duplicates
+            return sorted(set(inputs))
 
-                if node_to_remove in inputs:
-                    # Remove the old edge
-                    inputs = [inode for inode in inputs if inode != node_to_remove]
-                    # Add new edges from the removed node's inputs
-                    inputs.extend(node_inputs)
-                    # Set the new list of inputs, removing duplicates
-                    self.set(flow_step, flow_index, 'input', sorted(set(inputs)))
+        self._rewire_inputs(rewire)
 
         self.__clear_cache()
 
@@ -376,14 +396,15 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         # Rewire every edge that referenced the old step, including any
         # self-references that were copied over to new_step above.
-        for flow_step in self.getkeys():
-            for flow_index in self.getkeys(flow_step):
-                inputs = self.get(flow_step, flow_index, 'input')
-                if any(in_step == step for in_step, _ in inputs):
-                    self.set(flow_step, flow_index, 'input', [
-                        (new_step if in_step == step else in_step, in_index)
-                        for in_step, in_index in inputs
-                    ])
+        def rewire(inputs):
+            if not any(in_step == step for in_step, _ in inputs):
+                return None
+            return [
+                (new_step if in_step == step else in_step, in_index)
+                for in_step, in_index in inputs
+            ]
+
+        self._rewire_inputs(rewire)
 
         self.__clear_cache()
 
