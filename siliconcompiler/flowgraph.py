@@ -62,6 +62,38 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__cache_tasks = None
 
+    @staticmethod
+    def _assert_valid_step(step: str) -> None:
+        '''
+        Validates a step name, raising if it is reserved or malformed.
+
+        Args:
+            step (str): The step name to validate.
+
+        Raises:
+            ValueError: If ``step`` is a reserved name or contains a '/'.
+        '''
+        if step in (Parameter.GLOBAL_KEY, 'default') or step.startswith("sc_"):
+            raise ValueError(f"{step} is a reserved name")
+        if '/' in step:
+            raise ValueError(f"{step} is not a valid step, it cannot contain '/'")
+
+    @staticmethod
+    def _assert_valid_index(index: str) -> None:
+        '''
+        Validates an index name, raising if it is reserved or malformed.
+
+        Args:
+            index (str): The index name to validate.
+
+        Raises:
+            ValueError: If ``index`` is a reserved name or contains a '/'.
+        '''
+        if index in (Parameter.GLOBAL_KEY, 'default'):
+            raise ValueError(f"{index} is a reserved name")
+        if '/' in index:
+            raise ValueError(f"{index} is not a valid index, it cannot contain '/'")
+
     def node(self, step: str, task: "Task", index: Optional[Union[str, int]] = 0) -> None:
         '''
         Creates or updates a flowgraph node.
@@ -107,17 +139,10 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         from siliconcompiler import Task
 
-        if step in (Parameter.GLOBAL_KEY, 'default') or step.startswith("sc_"):
-            raise ValueError(f"{step} is a reserved name")
+        self._assert_valid_step(step)
 
         index = str(index)
-        if index in (Parameter.GLOBAL_KEY, 'default'):
-            raise ValueError(f"{index} is a reserved name")
-
-        if '/' in step:
-            raise ValueError(f"{step} is not a valid step, it cannot contain '/'")
-        if '/' in index:
-            raise ValueError(f"{index} is not a valid index, it cannot contain '/'")
+        self._assert_valid_index(index)
 
         # Determine task name and module
         task_module = None
@@ -296,6 +321,69 @@ class Flowgraph(NamedSchema, DocsSchema):
             self.set(istep, iindex, "input", inputs)
             self.add(istep, iindex, "input", (step, index))
         self.set(step, index, "input", [(before_step, before_index)])
+
+        self.__clear_cache()
+
+    def rename_node(self, step: str, new_step: str) -> None:
+        '''
+        Renames a step, preserving its nodes, tasks, and connectivity.
+
+        Every node belonging to ``step`` (all of its indices) is moved to
+        ``new_step``, keeping the same indices, task bindings, goals, and
+        input edges. All edges elsewhere in the graph that referenced
+        ``step`` are rewired to point at ``new_step``, so the topology of
+        the flow is unchanged.
+
+        This is primarily useful after :meth:`graph` when a sub-flow's step
+        names need to be re-badged to fit a parent flow's naming scheme
+        (e.g. renaming ``synmin`` to ``synthesis.min``) without having to
+        prefix every step in the sub-flow.
+
+        Args:
+            step (str): Existing step name to rename.
+            new_step (str): New step name. Must not already exist and must
+                obey the same naming rules as :meth:`node`.
+
+        Raises:
+            ValueError: If ``step`` does not exist, if ``new_step`` is a
+                reserved name or contains a '/', or if ``new_step`` is
+                already defined in the flowgraph.
+
+        Examples:
+            >>> flow.node('synmin', minimum.MinimumTask())
+            >>> flow.rename_node('synmin', 'synthesis.min')
+            # ('synmin', '0') is now ('synthesis.min', '0'); all edges follow.
+        '''
+
+        if step not in self.getkeys():
+            raise ValueError(f"{step} is not a valid step in {self.name}")
+
+        if new_step == step:
+            # Nothing to do
+            return
+
+        self._assert_valid_step(new_step)
+
+        if new_step in self.getkeys():
+            raise ValueError(f"{new_step} is already defined in {self.name}")
+
+        # Copy all node data (task, goals, inputs, ...) from step to new_step
+        for keys in self.allkeys(step):
+            self.set(new_step, *keys, self.get(step, *keys))
+
+        # Drop the original step.
+        self.remove(step)
+
+        # Rewire every edge that referenced the old step, including any
+        # self-references that were copied over to new_step above.
+        for flow_step in self.getkeys():
+            for flow_index in self.getkeys(flow_step):
+                inputs = self.get(flow_step, flow_index, 'input')
+                if any(in_step == step for in_step, _ in inputs):
+                    self.set(flow_step, flow_index, 'input', [
+                        (new_step if in_step == step else in_step, in_index)
+                        for in_step, in_index in inputs
+                    ])
 
         self.__clear_cache()
 
