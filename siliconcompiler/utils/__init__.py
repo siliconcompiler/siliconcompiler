@@ -540,7 +540,10 @@ def get_cores(physical: bool = False) -> int:
             total_physical = psutil.cpu_count(logical=False)
             if total_logical and total_physical and total_physical < total_logical:
                 threads_per_core = total_logical / total_physical
-                cores = int(logical_available / threads_per_core)
+                # Clamp to at least 1 so a tight affinity mask (e.g. a single
+                # logical CPU) still reports a usable core rather than falling
+                # through to the machine-wide fallback below.
+                cores = max(1, int(logical_available / threads_per_core))
             else:
                 cores = logical_available
         else:

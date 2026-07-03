@@ -125,6 +125,20 @@ def test_get_cores_affinity_physical(monkeypatch):
     assert get_cores(physical=True) == 3
 
 
+def test_get_cores_affinity_physical_single_logical_core(monkeypatch):
+    # A tight affinity mask (single logical CPU) on a hyperthreaded machine
+    # must still report at least one physical core rather than truncating to
+    # 0 and falling through to the machine-wide fallback.
+    monkeypatch.setattr(os, 'sched_getaffinity', lambda pid: {0},
+                        raising=False)
+
+    def cpu_count(logical):
+        return 16 if logical else 8
+
+    monkeypatch.setattr(psutil, 'cpu_count', cpu_count)
+    assert get_cores(physical=True) == 1
+
+
 def test_get_cores_affinity_physical_no_hyperthreading(monkeypatch):
     # No hyperthreading -> physical count equals the affinity-limited count.
     monkeypatch.setattr(os, 'sched_getaffinity', lambda pid: {0, 1, 2, 3},
