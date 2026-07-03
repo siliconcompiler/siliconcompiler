@@ -1,6 +1,5 @@
 import atexit
 import logging
-import multiprocessing
 import tempfile
 import threading
 
