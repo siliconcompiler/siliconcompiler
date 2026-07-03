@@ -505,7 +505,13 @@ def truncate_text(text: str, width: int) -> str:
 
 def get_cores(physical: bool = False) -> int:
     '''
-    Get max number of cores for this machine.
+    Get max number of cores available to this process.
+
+    On Linux this honors the process' CPU affinity mask, so restrictions
+    applied via cgroups/cpuset (e.g. containers) or ``taskset`` cap the value
+    returned. This lets an operator bound SiliconCompiler's CPU usage without
+    any additional configuration. On platforms without affinity support the
+    machine-wide core count is used instead.
 
     Args:
         physical (bool): if true, only count physical cores. Defaults to False.
@@ -514,7 +520,37 @@ def get_cores(physical: bool = False) -> int:
         int: The number of available cores. Defaults to 1 if detection fails.
     '''
 
-    cores = psutil.cpu_count(logical=not physical)
+    cores = None
+
+    try:
+        # os.sched_getaffinity respects cgroup/cpuset and taskset restrictions,
+        # so it reflects the cores actually usable by this process rather than
+        # every core on the machine.
+        logical_available = len(os.sched_getaffinity(0))
+    except AttributeError:
+        # Not available on this platform (e.g. macOS, Windows).
+        logical_available = None
+
+    if logical_available:
+        if physical:
+            # sched_getaffinity only reports logical CPUs, so scale the
+            # affinity-limited count down by the machine's hyperthreading
+            # ratio to approximate the number of physical cores available.
+            total_logical = psutil.cpu_count(logical=True)
+            total_physical = psutil.cpu_count(logical=False)
+            if total_logical and total_physical and total_physical < total_logical:
+                threads_per_core = total_logical / total_physical
+                # Clamp to at least 1 so a tight affinity mask (e.g. a single
+                # logical CPU) still reports a usable core rather than falling
+                # through to the machine-wide fallback below.
+                cores = max(1, int(logical_available / threads_per_core))
+            else:
+                cores = logical_available
+        else:
+            cores = logical_available
+
+    if not cores:
+        cores = psutil.cpu_count(logical=not physical)
 
     if not cores:
         cores = os.cpu_count()
