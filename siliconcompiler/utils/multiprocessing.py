@@ -2,6 +2,7 @@ import atexit
 import logging
 import multiprocessing
 import tempfile
+import threading
 
 import os.path
 
@@ -28,11 +29,18 @@ class _ManagerSingleton(type):
     Attributes:
         _instances (dict): A dictionary to store singleton instances, mapping
             class objects to their single instance.
-        _lock (multiprocessing.Lock): A lock to prevent race conditions during
+        _lock (threading.Lock): A lock to prevent race conditions during
             the first instantiation.
     """
     _instances = {}
-    _lock = multiprocessing.Lock()
+    # A threading.Lock (not multiprocessing.Lock) is sufficient and correct
+    # here: the singleton registry ``_instances`` is per-process state, so this
+    # only needs to guard threads within a single interpreter. Using a
+    # multiprocessing.Lock would allocate a POSIX named semaphore in every
+    # process that imports this module (including every spawned scheduler
+    # worker), which the resource_tracker then reports as "leaked" when a
+    # worker is terminated before it can unlink the semaphore.
+    _lock = threading.Lock()
 
     @staticmethod
     def has_cls(mcls):
