@@ -1,7 +1,9 @@
 import logging
 import pytest
 
+import os
 import os.path
+import psutil
 
 from unittest.mock import patch
 
@@ -82,9 +84,60 @@ def test_safecompare_invalid_operator():
         safecompare(1, "!", 2)
 
 
-def test_get_cores_logical(monkeypatch):
-    import psutil
+@pytest.fixture(autouse=True)
+def disable_affinity(monkeypatch):
+    """Give every get_cores() test a deterministic baseline by removing
+    os.sched_getaffinity (as on macOS/Windows). Tests that exercise the
+    affinity path re-add it explicitly with raising=False."""
+    monkeypatch.delattr(os, 'sched_getaffinity', raising=False)
 
+
+def test_get_cores_affinity(monkeypatch):
+    # sched_getaffinity is preferred when available so cpuset/taskset limits
+    # are honored, regardless of the machine's total core count.
+    monkeypatch.setattr(os, 'sched_getaffinity', lambda pid: {0, 1, 2, 3},
+                        raising=False)
+    monkeypatch.setattr(
+        psutil, 'cpu_count',
+        lambda logical: pytest.fail('affinity should be preferred'))
+    assert get_cores() == 4
+
+
+def test_get_cores_affinity_respects_cpuset(monkeypatch):
+    # Even on a large machine, a narrow affinity mask caps the reported cores.
+    monkeypatch.setattr(os, 'sched_getaffinity', lambda pid: {2, 5},
+                        raising=False)
+    monkeypatch.setattr(psutil, 'cpu_count', lambda logical: 64)
+    assert get_cores() == 2
+
+
+def test_get_cores_affinity_physical(monkeypatch):
+    # Physical count scales the affinity-limited logical count down by the
+    # machine's hyperthreading ratio (2 threads/core here -> 6/2 == 3).
+    monkeypatch.setattr(os, 'sched_getaffinity', lambda pid: set(range(6)),
+                        raising=False)
+
+    def cpu_count(logical):
+        return 16 if logical else 8
+
+    monkeypatch.setattr(psutil, 'cpu_count', cpu_count)
+    assert get_cores() == 6
+    assert get_cores(physical=True) == 3
+
+
+def test_get_cores_affinity_physical_no_hyperthreading(monkeypatch):
+    # No hyperthreading -> physical count equals the affinity-limited count.
+    monkeypatch.setattr(os, 'sched_getaffinity', lambda pid: {0, 1, 2, 3},
+                        raising=False)
+
+    def cpu_count(logical):
+        return 8
+
+    monkeypatch.setattr(psutil, 'cpu_count', cpu_count)
+    assert get_cores(physical=True) == 4
+
+
+def test_get_cores_logical(monkeypatch):
     def cpu_count(logical):
         assert logical
         return 2
@@ -94,8 +147,6 @@ def test_get_cores_logical(monkeypatch):
 
 
 def test_get_cores_physical(monkeypatch):
-    import psutil
-
     def cpu_count(logical):
         assert not logical
         return 2
@@ -105,9 +156,6 @@ def test_get_cores_physical(monkeypatch):
 
 
 def test_get_cores_use_os(monkeypatch):
-    import psutil
-    import os
-
     def psutil_cpu_count(logical):
         return None
 
@@ -121,9 +169,6 @@ def test_get_cores_use_os(monkeypatch):
 
 
 def test_get_cores_use_os_one_core(monkeypatch):
-    import psutil
-    import os
-
     def psutil_cpu_count(logical):
         return None
 
@@ -137,9 +182,6 @@ def test_get_cores_use_os_one_core(monkeypatch):
 
 
 def test_get_cores_fallback(monkeypatch):
-    import psutil
-    import os
-
     def psutil_cpu_count(logical):
         return None
 
@@ -150,6 +192,14 @@ def test_get_cores_fallback(monkeypatch):
     monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
     assert get_cores() == 1
     assert get_cores(physical=True) == 1
+
+
+def test_get_cores_empty_affinity_falls_back(monkeypatch):
+    # An empty affinity set is treated as "unknown" and falls through to psutil.
+    monkeypatch.setattr(os, 'sched_getaffinity', lambda pid: set(),
+                        raising=False)
+    monkeypatch.setattr(psutil, 'cpu_count', lambda logical: 4)
+    assert get_cores() == 4
 
 
 def test_get_plugin():
