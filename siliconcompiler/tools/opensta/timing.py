@@ -217,7 +217,7 @@ class TimingTaskBase(OpenSTATask):
                 skew = f'{skewtype}skew'
                 self.record_metric(skew, max(values),
                                    source_file=self.__report_map(skew),
-                                   source_unit='W')
+                                   source_unit=timescale)
 
         drv_report = "reports/drv_violators.rpt"
         if os.path.exists(drv_report):
