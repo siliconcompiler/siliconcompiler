@@ -217,16 +217,29 @@ class CliDashboard(AbstractDashboard):
     def stop(self):
         """
         Stops the dashboard and restores normal terminal logging.
+
+        Teardown must always release the atexit hook registered in
+        :meth:`__init__`, even when the underlying dashboard teardown raises.
+        The ``Board`` is built from :class:`MPManager` shared proxy objects
+        (events, dicts, queues) which can be torn down before this runs during
+        multiprocess exit; touching them then raises. If that exception were
+        allowed to propagate before the ``atexit.unregister`` below, the bound
+        ``self.stop`` would stay registered and fire again at interpreter
+        shutdown, surfacing as "Exception ignored in atexit callback"
+        (issue #5035). The ``try``/``finally`` guarantees the hook is released
+        regardless.
         """
-        self._dashboard.end_of_run(self._project)
+        try:
+            self._dashboard.end_of_run(self._project)
+            self._dashboard.stop()
+        except Exception:
+            pass
+        finally:
+            self._detach_logger()
 
-        self._dashboard.stop()
-
-        self._detach_logger()
-
-        if self.__exit_registered:
-            atexit.unregister(self.stop)
-            self.__exit_registered = False
+            if self.__exit_registered:
+                atexit.unregister(self.stop)
+                self.__exit_registered = False
 
     def _detach_logger(self):
         """

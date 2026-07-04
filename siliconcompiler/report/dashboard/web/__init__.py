@@ -109,6 +109,7 @@ class WebDashboard(AbstractDashboard):
         self.__lock = fasteners.InterProcessLock(self.__manifest_lock)
 
         # Ensure cleanup is called on exit
+        self.__exit_registered = True
         atexit.register(self.__cleanup)
 
     def open_dashboard(self):
@@ -253,11 +254,30 @@ class WebDashboard(AbstractDashboard):
         """
         Cleans up resources by stopping the dashboard and removing the temp directory.
         This method is registered with atexit to be called on program exit.
-        """
-        self.stop()
 
-        if os.path.exists(self.__directory):
-            shutil.rmtree(self.__directory)
+        Teardown must always release the atexit hook registered in
+        :meth:`__init__`, even when stopping the dashboard raises (at
+        interpreter shutdown the ``multiprocessing.Process`` internals may
+        already be torn down, and ``signal.signal`` raises off the main
+        thread). If such an exception escaped this atexit callback it would
+        surface as "Exception ignored in atexit callback" and skip the temp
+        directory removal below. The ``try``/``finally`` guarantees both the
+        hook release and the cleanup run regardless.
+        """
+        try:
+            self.stop()
+        except Exception:
+            pass
+        finally:
+            if self.__exit_registered:
+                atexit.unregister(self.__cleanup)
+                self.__exit_registered = False
+
+            try:
+                if os.path.exists(self.__directory):
+                    shutil.rmtree(self.__directory)
+            except Exception:
+                pass
 
     @staticmethod
     def get_next_port():
