@@ -2405,3 +2405,101 @@ def test_should_disable_with_breakpoint(project_logger, caplog):
 
     assert CliDashboard.should_disable(proj) is True
     assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# CliDashboard atexit lifecycle (issue #5035)
+# ---------------------------------------------------------------------------
+
+def test_init_registers_atexit_hook(mock_project, fake_console):
+    """__init__ registers stop() with atexit so the dashboard is torn down
+    on program exit."""
+    with patch("siliconcompiler.report.dashboard.cli.atexit") as mock_atexit, \
+            patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    assert dash._CliDashboard__exit_registered is True
+    mock_atexit.register.assert_called_once_with(dash.stop)
+
+
+def test_stop_unregisters_atexit_hook(mock_project, fake_console):
+    """stop() must release the atexit hook it registered in __init__ so the
+    bound method does not fire again at interpreter shutdown."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    assert dash._CliDashboard__exit_registered is True
+
+    with patch("siliconcompiler.report.dashboard.cli.atexit") as mock_atexit:
+        dash.stop()
+
+    assert dash._CliDashboard__exit_registered is False
+    mock_atexit.unregister.assert_called_once_with(dash.stop)
+
+
+def test_stop_unregisters_atexit_when_teardown_raises(mock_project, fake_console):
+    """Even when the underlying dashboard teardown raises (e.g. MPManager
+    proxy objects torn down during multiprocess exit), stop() must not
+    propagate and must still release the atexit hook. Otherwise the dangling
+    hook fires again at exit and surfaces as "Exception ignored in atexit
+    callback" (issue #5035)."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    with patch.object(dash._dashboard, "end_of_run", side_effect=EOFError), \
+            patch.object(dash._dashboard, "stop", side_effect=EOFError), \
+            patch("siliconcompiler.report.dashboard.cli.atexit") as mock_atexit:
+        dash.stop()  # must not raise
+
+    assert dash._CliDashboard__exit_registered is False
+    mock_atexit.unregister.assert_called_once_with(dash.stop)
+
+
+def test_stop_restores_logger_when_teardown_raises(mock_project, fake_console):
+    """A raising dashboard teardown must not leave the dashboard log sink
+    attached — the logger is restored via the finally block."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    dash.set_logger(mock_project.logger)
+    attached = dash._dashboard_handler
+    assert attached is not None
+
+    with patch.object(dash._dashboard, "stop", side_effect=EOFError):
+        dash.stop()
+
+    assert dash._dashboard_handler is None
+    assert attached not in mock_project.logger.handlers
+    assert dash._suppress_filter.active is False
+
+
+def test_stop_is_idempotent(mock_project, fake_console):
+    """Calling stop() twice must only unregister the hook once and must not
+    raise on the second call."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    with patch("siliconcompiler.report.dashboard.cli.atexit") as mock_atexit:
+        dash.stop()
+        dash.stop()
+
+    assert dash._CliDashboard__exit_registered is False
+    mock_atexit.unregister.assert_called_once_with(dash.stop)
+
+
+def test_nodashboard_after_construction_releases_hook(mock_project, fake_console):
+    """Setting option 'nodashboard' after a dashboard was constructed runs
+    Project.__init_dashboard, which stops the old dashboard. That teardown
+    must not leave a dangling atexit hook even when the underlying dashboard
+    raises (issue #5035)."""
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+    mock_project._Project__dashboard = dash
+
+    with patch.object(dash._dashboard, "end_of_run", side_effect=EOFError), \
+            patch.object(dash._dashboard, "stop", side_effect=EOFError):
+        # Triggers the nodashboard callback -> dash.stop()
+        mock_project.set("option", "nodashboard", True)
+
+    assert mock_project._Project__dashboard is None
+    assert dash._CliDashboard__exit_registered is False
