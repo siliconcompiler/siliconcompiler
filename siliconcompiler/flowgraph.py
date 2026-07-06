@@ -1317,7 +1317,7 @@ class RuntimeFlowgraph:
             return set(path)
 
         # Build a fresh path for each branch so siblings don't pollute each other.
-        path = path + [node]
+        path = [*path, node]
         if reverse:
             if node in self.__from:
                 return set(path)
