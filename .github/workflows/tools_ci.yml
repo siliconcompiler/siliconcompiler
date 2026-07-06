@@ -102,7 +102,7 @@ jobs:
 
       - name: Build and Push SiliconCompiler Builder Docker image
         if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/build-push-action@v7.2.0
+        uses: docker/build-push-action@v7.3.0
         with:
           context: docker/sc_tool_builder
           push: true
@@ -138,7 +138,7 @@ jobs:
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.2.0
+        uses: docker/build-push-action@v7.3.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -176,7 +176,7 @@ jobs:
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.2.0
+        uses: docker/build-push-action@v7.3.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -225,7 +225,7 @@ jobs:
           buildkitd-flags: --debug
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.2.0
+        uses: docker/build-push-action@v7.3.0
         with:
           context: ./sc_tools/
           push: true
@@ -280,7 +280,7 @@ jobs:
         echo "RUNNER_TAG=${runner_latest_tag}" >> $GITHUB_ENV
 
     - name: Build and Push Tool Docker image
-      uses: docker/build-push-action@v7.2.0
+      uses: docker/build-push-action@v7.3.0
       with:
         context: ./sc_runner/
         push: true
