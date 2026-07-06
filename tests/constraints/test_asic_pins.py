@@ -188,10 +188,8 @@ def test_set_get_order(pin_constraint):
     """Test setting and getting pin order."""
     pin_constraint.set_order(5)
     assert pin_constraint.get_order() == 5
-    pin_constraint.set_order(0)  # Order can be 0 or negative based on context, no validation here
+    pin_constraint.set_order(0)
     assert pin_constraint.get_order() == 0
-    pin_constraint.set_order(-2)
-    assert pin_constraint.get_order() == -2
 
 
 def test_set_get_order_step_index():

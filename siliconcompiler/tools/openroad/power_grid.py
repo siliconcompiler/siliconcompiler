@@ -13,7 +13,7 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("fixed_pin_keepout", "float",
+        self.add_parameter("fixed_pin_keepout", "float<0.0->>",
                            "if > 0, applies a blockage in multiples of the routing pitch to each "
                            "fixed pin to ensure there is room for routing.", defvalue=0)
         self.add_parameter("psm_allow_missing_terminal_nets", "[str]",

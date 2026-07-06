@@ -16,7 +16,7 @@ class ConvertTask(ASICTask, Task):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("memorychannels", "int", "Number of memory channels available",
+        self.add_parameter("memorychannels", "int<1->>", "Number of memory channels available",
                            defvalue=1)
 
     def set_bambu_memorychannels(self, channels: int,

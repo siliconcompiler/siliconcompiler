@@ -45,7 +45,7 @@ class SchedulerSchema(BaseSchema):
         schema.insert(
             'cores',
             Parameter(
-                'int',
+                'int<1->>',
                 scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: Scheduler core constraint",
@@ -169,7 +169,7 @@ class SchedulerSchema(BaseSchema):
         schema.insert(
             'maxnodes',
             Parameter(
-                'int',
+                'int<1->>',
                 scope=Scope.GLOBAL,
                 shorthelp="Option: maximum concurrent nodes",
                 switch="-maxnodes <int>",
@@ -182,7 +182,7 @@ class SchedulerSchema(BaseSchema):
         schema.insert(
             'maxthreads',
             Parameter(
-                'int',
+                'int<1->>',
                 scope=Scope.GLOBAL,
                 shorthelp="Option: maximum number of threads to assign a task",
                 example=["api: option.set('maxthreads', 4)"],
@@ -494,7 +494,7 @@ class OptionSchema(BaseSchema):
         schema.insert(
             'nice',
             Parameter(
-                'int',
+                'int<-20-19>',
                 scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: tool scheduling priority",
@@ -523,7 +523,7 @@ class OptionSchema(BaseSchema):
         schema.insert(
             'optmode',
             Parameter(
-                'int',
+                'int<0->>',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 defvalue=0,
@@ -763,7 +763,7 @@ class OptionSchema(BaseSchema):
         schema.insert(
             'timeout',
             Parameter(
-                'float',
+                'float<0.0->>',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 unit='s',

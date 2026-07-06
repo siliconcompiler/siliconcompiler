@@ -11,17 +11,17 @@ class ScreenshotParams(Task):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("show_resolution", "(int,int)",
+        self.add_parameter("show_resolution", "(int<1->>,int<1->>)",
                            "Horizontal and vertical resolution in pixels",
                            defvalue=(4096, 4096), unit="px")
-        self.add_parameter("show_bins", "(int,int)",
+        self.add_parameter("show_bins", "(int<1->>,int<1->>)",
                            "If greater than 1, splits the image into multiple segments along "
                            "x-axis and y-axis", defvalue=(1, 1))
-        self.add_parameter("show_margin", "float",
+        self.add_parameter("show_margin", "float<0.0->>",
                            "Margin around design in microns", defvalue=10, unit="um")
-        self.add_parameter("show_linewidth", "int",
+        self.add_parameter("show_linewidth", "int<0->>",
                            "Width of lines in detailed screenshots", defvalue=0, unit="px")
-        self.add_parameter("show_oversampling", "int",
+        self.add_parameter("show_oversampling", "int<1-3>",
                            "Image oversampling used in detailed screenshots", defvalue=2)
 
     def set_klayout_bins(self, xbins: int, ybins: int,
