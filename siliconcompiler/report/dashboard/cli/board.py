@@ -368,10 +368,14 @@ class Board:
         """
         self._console = Console(theme=Board.__theme)
 
+        # auto_refresh is disabled: the render loop drives every repaint
+        # explicitly via live.update(..., refresh=True), so rich's background
+        # refresh thread would only redraw the same renderable between our
+        # updates -- extra CPU and an extra thread for no visual gain.
         self.live = Live(
             console=self._console,
             screen=True,
-            auto_refresh=True
+            auto_refresh=False
         )
 
         self._active = self._console.is_terminal
@@ -886,12 +890,26 @@ class Board:
             update_data()
 
             if not self.live.is_started:
-                self.live.start(refresh=True)
+                # No initial refresh: no job data exists yet at open time, so a
+                # refresh here would just paint an empty frame. screen=True
+                # already clears the display on start, and the loop paints real
+                # content as soon as the first data-change event fires.
+                self.live.start()
 
             while not check_stop_event():
+                # Only refresh the render data from the shared (manager-proxied)
+                # state when a data-change event has actually fired. wait()
+                # already tells us whether that happened, so we avoid the
+                # per-cycle proxy round-trips _update_rendable_data() would
+                # otherwise make just to check its data_modified flag. The timer
+                # displays are recomputed from the local snapshot on every
+                # redraw below, so they keep ticking without touching the
+                # proxies.
+                data_changed = False
                 try:
                     if self._render_event.wait(timeout=self._dwell):
                         self._render_event.clear()
+                        data_changed = True
                 except:  # noqa E722
                     # Catch any multiprocessing errors
                     break
@@ -901,7 +919,8 @@ class Board:
                 if check_stop_event():
                     break
 
-                update_data()
+                if data_changed:
+                    update_data()
                 self.live.update(self._get_rendable(), refresh=True)
                 time.sleep(self._dwell)
 
