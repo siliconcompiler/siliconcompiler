@@ -840,3 +840,32 @@ def test_check_python_dependencies_never_raises(monkeypatch, logger, caplog):
     with caplog.at_level(logging.DEBUG):
         check_python_dependencies(logger)  # must not raise
     assert caplog.messages == ["python dependency check skipped: catastrophe"]
+
+
+def test_check_python_dependencies_isolates_per_project(
+        monkeypatch, tmp_path, logger, caplog):
+    # A failure checking one project must not prevent the others being checked.
+    good = tmp_path / "good_pyproject.toml"
+    good.write_text('[project]\nname = "good"\ndependencies = ["missingpkg"]\n')
+
+    def fake_load(path):
+        if path == "/bad/pyproject.toml":
+            raise RuntimeError("boom")
+        return _load_pyproject_data(path)
+
+    monkeypatch.setattr(
+        utils, "_find_editable_pyproject_paths",
+        lambda: ["/bad/pyproject.toml", str(good)])
+    monkeypatch.setattr(utils, "_installed_distribution_versions", lambda: {})
+    monkeypatch.setattr(utils, "_load_pyproject_data", fake_load)
+
+    with caplog.at_level(logging.DEBUG):
+        check_python_dependencies(logger)
+
+    assert caplog.messages == [
+        "python dependency check skipped for /bad/pyproject.toml: boom",
+        "required dependency 'missingpkg' is declared in good's pyproject.toml "
+        "but is not installed",
+        "good environment is out of sync with pyproject.toml; "
+        "run 'pip install -e .' to update",
+    ]

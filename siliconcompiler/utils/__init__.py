@@ -906,13 +906,21 @@ def check_python_dependencies(logger: logging.Logger) -> None:
     """
     try:
         installed = _installed_distribution_versions()
-        for pyproject in _find_editable_pyproject_paths():
+        pyprojects = _find_editable_pyproject_paths()
+    except Exception as e:
+        logger.debug(f"python dependency check skipped: {e}")
+        return
+
+    # Check each discovered project independently so that a single bad
+    # pyproject.toml does not prevent the remaining ones from being checked.
+    for pyproject in pyprojects:
+        try:
             data = _load_pyproject_data(pyproject)
             if data is None:
                 continue
             _check_project_dependencies(data, installed, logger)
-    except Exception as e:
-        logger.debug(f"python dependency check skipped: {e}")
+        except Exception as e:
+            logger.debug(f"python dependency check skipped for {pyproject}: {e}")
 
 
 class FilterDirectories:
