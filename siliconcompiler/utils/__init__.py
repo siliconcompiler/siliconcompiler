@@ -15,7 +15,19 @@ from jinja2 import Environment, FileSystemLoader, Template
 
 from typing import Dict, Optional, Union, Callable, List, TYPE_CHECKING
 
-from importlib.metadata import entry_points
+import importlib.util
+from importlib.metadata import distributions, entry_points
+
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
+
+try:
+    import tomllib
+except ImportError:  # Python < 3.11
+    try:
+        import tomli as tomllib
+    except ImportError:  # pragma: no cover - only when tomli is not yet installed
+        tomllib = None
 
 from siliconcompiler.utils.paths import builddir
 
@@ -578,6 +590,337 @@ def print_traceback(logger: logging.Logger, exception: Exception):
     logger.error("Backtrace:")
     for line in trace.getvalue().splitlines():
         logger.error(line)
+
+
+# Optional-dependency groups that provide development, testing, or CI tooling
+# rather than runtime functionality. These are skipped by the pre-run dependency
+# check because they are not required to execute a flow. Names are matched
+# case-insensitively.
+_IGNORED_OPTIONAL_GROUPS = frozenset({
+    "test", "tests", "testing",
+    "dev", "develop", "development",
+    "lint", "linting",
+    "doc", "docs", "documentation",
+    "type", "types", "typing", "mypy",
+    "cov", "coverage",
+    "ci", "cicd",
+    "build",
+    "release",
+    "format", "formatting", "style",
+    "bench", "benchmark", "benchmarks",
+    "check", "checks",
+})
+
+
+def _load_pyproject_data(pyproject_path: str) -> Optional[Dict]:
+    """
+    Parses a pyproject.toml file.
+
+    Args:
+        pyproject_path (str): Path to the pyproject.toml file.
+
+    Returns:
+        dict or None: The parsed contents, or None if the file is missing,
+            malformed, or no TOML parser is available.
+    """
+    if tomllib is None:
+        return None
+
+    try:
+        with open(pyproject_path, "rb") as f:
+            return tomllib.load(f)
+    except (OSError, ValueError):
+        # ValueError covers tomllib.TOMLDecodeError (a ValueError subclass).
+        return None
+
+
+def _installed_distribution_versions() -> Dict[str, str]:
+    """
+    Maps canonicalized distribution names to their installed versions.
+
+    Returns:
+        dict: A mapping of :func:`packaging.utils.canonicalize_name` names to
+            installed version strings for every distribution in the environment.
+    """
+    installed: Dict[str, str] = {}
+    for dist in distributions():
+        try:
+            name = dist.metadata["Name"]
+        except Exception:
+            name = None
+        if not name:
+            continue
+        canon = canonicalize_name(name)
+        # Multiple site directories may expose the same distribution; keep the
+        # first one found (matches import resolution order).
+        if canon not in installed:
+            installed[canon] = dist.version
+    return installed
+
+
+def _evaluate_requirement(req_str: str, installed: Dict[str, str]):
+    """
+    Evaluates a single PEP 508 requirement against the installed environment.
+
+    Args:
+        req_str (str): The raw requirement string from pyproject.toml.
+        installed (dict): Mapping of canonicalized names to installed versions.
+
+    Returns:
+        tuple: ``(status, name, have)`` where ``status`` is one of ``"ok"``,
+            ``"missing"``, ``"incompatible"``, or ``"skip"``. ``name`` is the
+            distribution name (or None when unparsable) and ``have`` is the
+            installed version (or None when not installed).
+    """
+    try:
+        req = Requirement(req_str)
+    except Exception:
+        # Unparsable requirement (e.g. a bare URL); nothing actionable to report.
+        return ("skip", None, None)
+
+    try:
+        if req.marker is not None and not req.marker.evaluate():
+            # Requirement does not apply to this environment (OS/Python version).
+            return ("skip", None, None)
+    except Exception:
+        return ("skip", None, None)
+
+    name = req.name
+    canon = canonicalize_name(name)
+    if canon not in installed:
+        return ("missing", name, None)
+
+    have = installed[canon]
+    try:
+        if req.specifier and not req.specifier.contains(have, prereleases=True):
+            return ("incompatible", name, have)
+    except Exception:
+        # Installed version could not be compared (non-PEP440); do not report.
+        return ("skip", name, have)
+
+    return ("ok", name, have)
+
+
+def _check_optional_group(group: str, reqs: List, installed: Dict[str, str],
+                          proj_name: str, logger: logging.Logger) -> int:
+    """
+    Reports issues for a single optional-dependencies group.
+
+    A group is only treated as "opted into" when all-but-one of its applicable
+    members are installed; only then are missing members reported. Version
+    incompatibilities are always reported for members that are installed,
+    regardless of whether the group is considered active.
+
+    Returns:
+        int: The number of issues reported for this group.
+    """
+    applicable = []
+    for req_str in reqs:
+        if not isinstance(req_str, str):
+            continue
+        status, name, have = _evaluate_requirement(req_str, installed)
+        if status == "skip":
+            continue
+        applicable.append((req_str, status, name, have))
+
+    if not applicable:
+        return 0
+
+    installed_count = sum(1 for (_, status, _, _) in applicable if status != "missing")
+    # "active" == all-but-one applicable members are present (and at least one is).
+    active = installed_count > 0 and installed_count >= len(applicable) - 1
+
+    issues = 0
+    for req_str, status, name, have in applicable:
+        if status == "incompatible":
+            logger.warning(
+                f"installed '{name}' ({have}) does not satisfy '{req_str.strip()}' "
+                f"from optional group '{group}' in {proj_name}")
+            issues += 1
+        elif status == "missing" and active:
+            logger.warning(
+                f"optional group '{group}' in {proj_name} appears installed, but "
+                f"'{name}' is missing (declared as '{req_str.strip()}')")
+            issues += 1
+    return issues
+
+
+def _check_project_dependencies(data: Dict, installed: Dict[str, str],
+                                logger: logging.Logger) -> int:
+    """
+    Reports declared-vs-installed dependency issues for a parsed pyproject.toml.
+
+    Args:
+        data (dict): Parsed pyproject.toml contents.
+        installed (dict): Mapping of canonicalized names to installed versions.
+        logger (logging.Logger): Logger used to emit warnings.
+
+    Returns:
+        int: Total number of issues reported.
+    """
+    project = data.get("project") if isinstance(data, dict) else None
+    if not isinstance(project, dict):
+        return 0
+
+    proj_name = project.get("name") or "this project"
+    issues = 0
+
+    core = project.get("dependencies")
+    if isinstance(core, list):
+        for req_str in core:
+            if not isinstance(req_str, str):
+                continue
+            status, name, have = _evaluate_requirement(req_str, installed)
+            if status == "missing":
+                logger.warning(
+                    f"required dependency '{name}' is declared in {proj_name}'s "
+                    f"pyproject.toml but is not installed")
+                issues += 1
+            elif status == "incompatible":
+                logger.warning(
+                    f"installed '{name}' ({have}) does not satisfy "
+                    f"'{req_str.strip()}' declared in {proj_name}'s pyproject.toml")
+                issues += 1
+
+    groups_with_issues = []
+    optional = project.get("optional-dependencies")
+    if isinstance(optional, dict):
+        for group, reqs in optional.items():
+            if not isinstance(reqs, list):
+                continue
+            if isinstance(group, str) and group.lower() in _IGNORED_OPTIONAL_GROUPS:
+                # Development/testing tooling is not required to run a flow.
+                continue
+            group_issues = _check_optional_group(group, reqs, installed, proj_name, logger)
+            if group_issues:
+                groups_with_issues.append(group)
+            issues += group_issues
+
+    if issues:
+        # Include any affected optional groups so the reinstall covers them too.
+        if groups_with_issues:
+            target = f".[{','.join(groups_with_issues)}]"
+        else:
+            target = "."
+        logger.warning(
+            f"{proj_name} environment is out of sync with pyproject.toml; "
+            f"run 'pip install -e {target}' to update")
+    return issues
+
+
+def _locate_pyproject_for_module(module: str) -> Optional[str]:
+    """
+    Finds the source pyproject.toml associated with an importable module.
+
+    Walks upward from the module's location to the nearest ancestor directory
+    containing a pyproject.toml.
+
+    Args:
+        module (str): The top-level importable module name.
+
+    Returns:
+        str or None: Absolute path to the pyproject.toml, or None if not found.
+    """
+    try:
+        spec = importlib.util.find_spec(module)
+    except (ImportError, ValueError, AttributeError, ModuleNotFoundError):
+        return None
+    if spec is None:
+        return None
+
+    if spec.origin and spec.origin != "namespace":
+        start = os.path.dirname(spec.origin)
+    else:
+        locations = list(spec.submodule_search_locations or [])
+        if not locations:
+            return None
+        start = locations[0]
+
+    current = os.path.abspath(start)
+    while True:
+        candidate = os.path.join(current, "pyproject.toml")
+        if os.path.isfile(candidate):
+            return candidate
+        parent = os.path.dirname(current)
+        if parent == current:
+            return None
+        current = parent
+
+
+def _find_editable_pyproject_paths() -> List[str]:
+    """
+    Locates source pyproject.toml files for all editable-installed distributions.
+
+    Reuses :class:`siliconcompiler.package.PythonPathResolver` to enumerate
+    importable modules and to determine which are installed in editable mode.
+
+    Returns:
+        list: Absolute paths to discovered pyproject.toml files, de-duplicated.
+    """
+    # Imported lazily: siliconcompiler.package imports from siliconcompiler.utils,
+    # so a module-level import here would be circular.
+    try:
+        from siliconcompiler.package import PythonPathResolver
+    except Exception:
+        return []
+
+    try:
+        mapping = PythonPathResolver.get_python_module_mapping()
+    except Exception:
+        return []
+
+    paths: List[str] = []
+    seen = set()
+    for module in mapping:
+        try:
+            if not PythonPathResolver.is_python_module_editable(module):
+                continue
+        except Exception:
+            continue
+
+        pyproject = _locate_pyproject_for_module(module)
+        if pyproject and pyproject not in seen:
+            seen.add(pyproject)
+            paths.append(pyproject)
+    return paths
+
+
+def check_python_dependencies(logger: logging.Logger) -> None:
+    """
+    Warns when an editable install's environment is out of sync with its
+    declared pyproject.toml dependencies.
+
+    This is a purely informative pre-run check aimed at editable (``pip install
+    -e .``) installs, where changes to ``pyproject.toml`` are not reflected in
+    the environment until a reinstall. For every editable-installed distribution
+    whose source pyproject.toml can be located, declared dependencies are
+    compared against what is actually installed, and mismatches are logged as
+    warnings. Non-editable installs are skipped because their metadata is
+    authoritative.
+
+    The check never raises: any unexpected failure is logged at debug level so
+    that it can never interfere with a run.
+
+    Args:
+        logger (logging.Logger): Logger used to emit warnings.
+    """
+    try:
+        installed = _installed_distribution_versions()
+        pyprojects = _find_editable_pyproject_paths()
+    except Exception as e:
+        logger.debug(f"python dependency check skipped: {e}")
+        return
+
+    # Check each discovered project independently so that a single bad
+    # pyproject.toml does not prevent the remaining ones from being checked.
+    for pyproject in pyprojects:
+        try:
+            data = _load_pyproject_data(pyproject)
+            if data is None:
+                continue
+            _check_project_dependencies(data, installed, logger)
+        except Exception as e:
+            logger.debug(f"python dependency check skipped for {pyproject}: {e}")
 
 
 class FilterDirectories:
