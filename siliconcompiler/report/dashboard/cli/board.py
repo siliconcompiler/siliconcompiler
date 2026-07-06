@@ -368,10 +368,14 @@ class Board:
         """
         self._console = Console(theme=Board.__theme)
 
+        # auto_refresh is disabled: the render loop drives every repaint
+        # explicitly via live.update(..., refresh=True), so rich's background
+        # refresh thread would only redraw the same renderable between our
+        # updates -- extra CPU and an extra thread for no visual gain.
         self.live = Live(
             console=self._console,
             screen=True,
-            auto_refresh=True
+            auto_refresh=False
         )
 
         self._active = self._console.is_terminal
@@ -387,6 +391,11 @@ class Board:
         else:
             Board._symbols.clear()
 
+        # Cross-process "please repaint" signal, fired both by new log lines
+        # and by job-data changes (_update_render_data). It must stay a manager
+        # Event so the render loop is woken regardless of which process
+        # produced the update. Whether that repaint also needs to reload job
+        # data is decided separately via the data_modified flag below.
         self._render_event = manager.Event()
         self._render_stop_event = manager.Event()
         self._render_thread = None
@@ -407,6 +416,9 @@ class Board:
 
         self._log_handler_queue = manager.Queue()
 
+        # The log buffer shares the render event so a new log line wakes the
+        # loop to repaint promptly. It does not touch data_modified, so a
+        # log-only wake repaints without triggering a job-data reload.
         self._log_handler = LogBuffer(self._log_handler_queue, n=120, event=self._render_event)
 
         # Sleep time for the dashboard
@@ -524,6 +536,7 @@ class Board:
                 return
 
         self._render_stop_event.set()
+        # Wake the render loop so it observes the stop event promptly.
         self._render_event.set()
 
         Keyboard.stop()
@@ -882,13 +895,35 @@ class Board:
                 # Catch any multiprocessing errors
                 return True
 
+        def data_changed():
+            # Unlocked peek at the data-changed flag. This is only an
+            # optimization to skip the locked read+copy in update_data() on
+            # log-only wakes; update_data() re-checks and clears the flag under
+            # _job_data_lock, so a racing update is caught on the next wake
+            # (data changes fire _render_event too).
+            try:
+                return self._board_info.data_modified
+            except:  # noqa E722
+                # Catch any multiprocessing errors
+                return False
+
         try:
             update_data()
 
             if not self.live.is_started:
-                self.live.start(refresh=True)
+                # No initial refresh: no job data exists yet at open time, so a
+                # refresh here would just paint an empty frame. screen=True
+                # already clears the display on start, and the loop paints real
+                # content as soon as the first render event fires.
+                self.live.start()
 
             while not check_stop_event():
+                # The render event wakes us for both new log lines and job-data
+                # changes; it also bounds the wait to ~_dwell so timers keep
+                # ticking. We repaint on every wake, but only reload job data
+                # (the locked, proxy-heavy update_data) when data_modified is
+                # actually set -- a log-only wake just repaints, draining new
+                # lines via get_lines().
                 try:
                     if self._render_event.wait(timeout=self._dwell):
                         self._render_event.clear()
@@ -901,7 +936,8 @@ class Board:
                 if check_stop_event():
                     break
 
-                update_data()
+                if data_changed():
+                    update_data()
                 self.live.update(self._get_rendable(), refresh=True)
                 time.sleep(self._dwell)
 
