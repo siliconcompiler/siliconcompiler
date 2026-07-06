@@ -49,9 +49,6 @@ class AdderDesign(Design):
                 self.add_file("cocotb_adder.py", filetype="python")
                 self.set_param("WIDTH", "8")
 
-            with self.active_fileset("icarus"):
-                self.add_file("icarus_cmd_file.f", filetype="commandfile")
-
 
 def sim_icarus(seed: int = None, trace: bool = True):
     """Runs a cocotb simulation of the Adder design.
@@ -72,13 +69,17 @@ def sim_icarus(seed: int = None, trace: bool = True):
     # Add the cocotb testbench and the RTL design files
     project.add_fileset("rtl")
     project.add_fileset("testbench.cocotb")
-    project.add_fileset("icarus")
 
     # Set the cocotb design verification flow
     project.set_flow(DVFlow(tool="icarus-cocotb"))
 
+    compile_task = IcarusCompileTask.find_task(project)
+
     # Enable waveform tracing
-    IcarusCompileTask.find_task(project).set_trace_enabled(trace)
+    compile_task.set_trace_enabled(trace)
+
+    # Set the simulation timescale
+    compile_task.set_icarus_timescale("1ns", "1ps")
 
     # Optionally set a random seed for reproducibility
     if seed is not None:

@@ -65,6 +65,57 @@ def test_runtime_args(heartbeat_design):
             heartbeat_design.get_file("rtl", "verilog")[0]]
 
 
+def test_runtime_args_timescale(heartbeat_design):
+    proj = Project(heartbeat_design)
+    heartbeat_design.set_param("N", "8", "rtl")
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", compile.CompileTask())
+    proj.set_flow(flow)
+    compile.CompileTask.find_task(proj).set_icarus_timescale("1ns", "1ps")
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get_runtime_arguments() == [
+            '-o', 'outputs/heartbeat.vvp',
+            '-s', 'heartbeat',
+            '-Pheartbeat.N=8',
+            '-DSILICONCOMPILER_TRACE_DIR="reports"',
+            '-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"',
+            '-f', 'sc_timescale.f',
+            heartbeat_design.get_file("rtl", "verilog")[0]]
+
+
+def test_timescale_file_generation(heartbeat_design):
+    proj = Project(heartbeat_design)
+    heartbeat_design.set_param("N", "8", "rtl")
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", compile.CompileTask())
+    proj.set_flow(flow)
+    compile.CompileTask.find_task(proj).set_icarus_timescale("1ns", "1ps")
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        node.task.pre_process()
+
+    with open("sc_timescale.f") as f:
+        assert f.read() == "+timescale+1ns/1ps\n"
+
+
+def test_icarus_parameter_timescale():
+    task = compile.CompileTask()
+    task.set_icarus_timescale('1ns', '1ps')
+    assert task.get("var", "timescale") == ('1ns', '1ps')
+    task.set_icarus_timescale('10ps', '1ps', step='compile', index='1')
+    assert task.get("var", "timescale", step='compile', index='1') == ('10ps', '1ps')
+    assert task.get("var", "timescale") == ('1ns', '1ps')
+
+
 def test_icarus_parameter_verilog_generation():
     task = compile.CompileTask()
     task.set_icarus_veriloggeneration('2005-sv')

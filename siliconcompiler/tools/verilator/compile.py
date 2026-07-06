@@ -40,9 +40,9 @@ class CompileTask(VerilatorTask):
         self.add_parameter("initialize_random", "bool",
                            "true/false, when true registers will reset with a random value")
 
-        self.add_parameter("timescale", "str",
-                           "default simulation timescale as \"<unit>/<precision>\" (e.g. "
-                           "\"1ns/1ps\"). Passed to Verilator via --timescale.")
+        self.add_parameter("timescale", "(str,str)",
+                           "default simulation timescale as a (unit, precision) pair (e.g. "
+                           "(\"1ns\", \"1ps\")). Passed to Verilator via --timescale.")
 
     def set_verilator_mode(self, mode: str,
                            step: Optional[str] = None,
@@ -179,7 +179,7 @@ class CompileTask(VerilatorTask):
             step (str, optional): The specific step to apply this configuration to.
             index (str, optional): The specific index to apply this configuration to.
         """
-        self.set("var", "timescale", f"{unit}/{precision}", step=step, index=index)
+        self.set("var", "timescale", (unit, precision), step=step, index=index)
 
     def set_verilator_initializerandom(self, enable: bool,
                                        step: Optional[str] = None,
@@ -250,7 +250,8 @@ class CompileTask(VerilatorTask):
 
         timescale = self.get("var", "timescale")
         if timescale:
-            options.extend(['--timescale', timescale])
+            unit, precision = timescale
+            options.extend(['--timescale', f'{unit}/{precision}'])
 
         options.extend(['--exe', '--build'])
 

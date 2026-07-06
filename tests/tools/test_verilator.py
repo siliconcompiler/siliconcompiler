@@ -278,10 +278,10 @@ def test_runtime_args_timescale(heartbeat_design, monkeypatch):
 def test_verilator_parameter_timescale():
     task = compile.CompileTask()
     task.set_verilator_timescale('1ns', '1ps')
-    assert task.get("var", "timescale") == '1ns/1ps'
+    assert task.get("var", "timescale") == ('1ns', '1ps')
     task.set_verilator_timescale('10ps', '1ps', step='compile', index='1')
-    assert task.get("var", "timescale", step='compile', index='1') == '10ps/1ps'
-    assert task.get("var", "timescale") == '1ns/1ps'
+    assert task.get("var", "timescale", step='compile', index='1') == ('10ps', '1ps')
+    assert task.get("var", "timescale") == ('1ns', '1ps')
 
 
 def test_verilator_parameter_mode():
