@@ -53,6 +53,7 @@ dependencies = [
     "lambdapdk >= 0.2.14",
 
     "fasteners >= 0.20",
+    "tomli >= 2.0.0; python_version < '3.11'",
     "pandas >= 1.1.5",
     "psutil >= 5.8.0",
     "Jinja2 >= 2.11.3",

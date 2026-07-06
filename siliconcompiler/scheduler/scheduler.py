@@ -255,6 +255,10 @@ class Scheduler:
             # Configure run
             self.__project._init_run()
 
+            # Informational check: warn if an editable install's environment is
+            # out of sync with its declared pyproject.toml dependencies.
+            utils.check_python_dependencies(self.__logger)
+
             # Check validity of setup
             if not self.check_manifest():
                 raise SCRuntimeError("check_manifest() failed")
