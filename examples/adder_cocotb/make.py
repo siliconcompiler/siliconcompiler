@@ -52,9 +52,6 @@ class AdderDesign(Design):
             with self.active_fileset("icarus"):
                 self.add_file("icarus_cmd_file.f", filetype="commandfile")
 
-            with self.active_fileset("verilator"):
-                self.add_file("verilator_cmd_file.vc", filetype="commandfile")
-
 
 def sim_icarus(seed: int = None, trace: bool = True):
     """Runs a cocotb simulation of the Adder design.
@@ -133,7 +130,6 @@ def sim_verilator(seed: int = None, trace: bool = True, trace_type: str = "vcd")
     # Add the cocotb testbench and the RTL design files
     project.add_fileset("rtl")
     project.add_fileset("testbench.cocotb")
-    project.add_fileset("verilator")
 
     # Set the cocotb design verification flow with Verilator
     project.set_flow(DVFlow(tool="verilator-cocotb"))
@@ -142,6 +138,9 @@ def sim_verilator(seed: int = None, trace: bool = True, trace_type: str = "vcd")
     compile_task = VerilatorCompileTask.find_task(project)
     compile_task.set_verilator_trace(trace)
     compile_task.set_verilator_tracetype(trace_type)
+
+    # Set the simulation timescale
+    compile_task.set_verilator_timescale("1ns", "1ps")
 
     cocotb_task = VerilatorCocotbExecTask.find_task(project)
     cocotb_task.set_cocotb_trace(

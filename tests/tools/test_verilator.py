@@ -244,6 +244,46 @@ def test_runtime_args_trace(heartbeat_design, monkeypatch):
                        '\'-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"\'']
 
 
+def test_runtime_args_timescale(heartbeat_design, monkeypatch):
+    proj = Project(heartbeat_design)
+    heartbeat_design.set_param("N", "8", "rtl")
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", compile.CompileTask())
+    proj.set_flow(flow)
+    compile.CompileTask.find_task(proj).set_verilator_timescale("1ns", "1ps")
+
+    def limit_cpu(*args, **kwargs):
+        return 2
+
+    monkeypatch.setattr(utils, 'get_cores', limit_cpu)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get_runtime_arguments() == [
+            '-sv',
+            '--top-module', 'heartbeat',
+            '-GN=8',
+            heartbeat_design.get_file("rtl", "verilog")[0],
+            '--timescale', '1ns/1ps',
+            '--exe',
+            '--build',
+            '-j', '2',
+            '--cc',
+            '-o', '../outputs/heartbeat.vexe']
+
+
+def test_verilator_parameter_timescale():
+    task = compile.CompileTask()
+    task.set_verilator_timescale('1ns', '1ps')
+    assert task.get("var", "timescale") == '1ns/1ps'
+    task.set_verilator_timescale('10ps', '1ps', step='compile', index='1')
+    assert task.get("var", "timescale", step='compile', index='1') == '10ps/1ps'
+    assert task.get("var", "timescale") == '1ns/1ps'
+
+
 def test_verilator_parameter_mode():
     task = compile.CompileTask()
     task.set_verilator_mode('systemc')
