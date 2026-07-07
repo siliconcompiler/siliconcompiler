@@ -30,7 +30,7 @@ def test_py_make_syn(fileset):
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(2400)
+@pytest.mark.timeout(900)
 @pytest.mark.parametrize("fileset,top", (
     ("rtl", "picorv32"), ("rtl.memory", "picorv32_top")))
 def test_py_make_asic(fileset, top):

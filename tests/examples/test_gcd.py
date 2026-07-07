@@ -7,7 +7,7 @@ from siliconcompiler import Project
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(600)
+@pytest.mark.timeout(300)
 def test_py_gcd():
     from gcd import gcd
     gcd.main()
@@ -44,7 +44,8 @@ def test_py_gcd():
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(900)
+@pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_py_gcd_skywater():
     from gcd import gcd_skywater
 
@@ -59,7 +60,7 @@ def test_py_gcd_skywater():
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(900)
+@pytest.mark.timeout(600)
 def test_py_gcd_gf180():
     from gcd import gcd_gf180
     gcd_gf180.main()
@@ -82,7 +83,8 @@ def test_py_gcd_ihp130():
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(1200)
+@pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_py_gcd_hls():
     from gcd import gcd_hls
     gcd_hls.main()
@@ -92,7 +94,7 @@ def test_py_gcd_hls():
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(600)
+@pytest.mark.timeout(300)
 def test_py_gcd_chisel():
     from gcd import gcd_chisel
     gcd_chisel.main()
