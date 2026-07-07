@@ -3,7 +3,7 @@ import pytest
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(1200)
+@pytest.mark.timeout(900)
 def test_py_mlir_hls():
     from mlir_hls import mlir_hls
     mlir_hls.main()

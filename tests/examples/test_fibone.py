@@ -5,7 +5,7 @@ import os.path
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(600)
+@pytest.mark.timeout(300)
 def test_py_fibone():
     from fibone import fibone
     fibone.main()
