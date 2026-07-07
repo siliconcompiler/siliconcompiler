@@ -20,6 +20,12 @@ class CompileTask(Task):
                            'auto-generated and compiled with the design to capture all signals.',
                            defvalue=False)
 
+        self.add_parameter("timescale", "(str,str)",
+                           'default simulation timescale as a (unit, precision) pair (e.g. '
+                           '("1ns", "1ps")). When set, an Icarus command file with the '
+                           'corresponding "+timescale+" directive is auto-generated and '
+                           'passed to iverilog.')
+
     def set_icarus_veriloggeneration(self, gen: str,
                                      step: Optional[str] = None,
                                      index: Optional[str] = None):
@@ -48,6 +54,25 @@ class CompileTask(Task):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "trace", enabled, step=step, index=index)
+
+    def set_icarus_timescale(self, unit: str, precision: str,
+                             step: Optional[str] = None,
+                             index: Optional[Union[str, int]] = None):
+        """
+        Sets the default simulation timescale.
+
+        When set, an Icarus command file containing ``+timescale+<unit>/<precision>``
+        is auto-generated and passed to iverilog via ``-f``. This sets the default
+        time unit and precision for modules that do not specify their own
+        ``timescale`` directive.
+
+        Args:
+            unit (str): The time unit (e.g. "1ns").
+            precision (str): The time precision (e.g. "1ps").
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "timescale", (unit, precision), step=step, index=index)
 
     def tool(self):
         return "icarus"
@@ -95,12 +120,19 @@ class CompileTask(Task):
         if self.get("var", "verilog_generation"):
             self.add_required_key("var", "verilog_generation")
 
+        if self.get("var", "timescale"):
+            self.add_required_key("var", "timescale")
+
     def pre_process(self):
         super().pre_process()
 
         # Generate VCD dump module if tracing is enabled
         if self.get("var", "trace"):
             self._generate_trace_module()
+
+        # Generate a command file setting the default timescale if requested
+        if self.get("var", "timescale"):
+            self._generate_timescale_file()
 
     def _generate_trace_module(self):
         trace_file = f"reports/{self.design_topmodule}.vcd"
@@ -114,6 +146,11 @@ endmodule
 """
         with open("sc_trace_dump.v", "w") as f:
             f.write(dump_module)
+
+    def _generate_timescale_file(self):
+        unit, precision = self.get("var", "timescale")
+        with open("sc_timescale.f", "w") as f:
+            f.write(f"+timescale+{unit}/{precision}\n")
 
     def runtime_options(self):
         options = super().runtime_options()
@@ -164,6 +201,10 @@ endmodule
         #######################
         # Command files
         #######################
+        # Auto-generated timescale command file (see pre_process)
+        if self.get("var", "timescale"):
+            options.extend(['-f', 'sc_timescale.f'])
+
         for lib, fileset in filesets:
             for value in lib.get_file(fileset=fileset, filetype="commandfile"):
                 options.extend(['-f', value])

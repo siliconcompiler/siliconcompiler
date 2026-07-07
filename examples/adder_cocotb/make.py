@@ -4,56 +4,61 @@
 """
 Example demonstrating cocotb integration with SiliconCompiler.
 
-This example shows how to use the DVFlow with the 'icarus-cocotb' tool
-to run Python-based cocotb testbenches against an Icarus Verilog simulation.
+This example shows how to use the ``dvflow_cocotb`` helper to run Python-based
+cocotb testbenches against a design, using either the Icarus Verilog or
+Verilator simulation flow.
 """
 
 from siliconcompiler import Design, Sim
-from siliconcompiler.flows.dvflow import DVFlow
 
-from siliconcompiler.tools.icarus.compile import CompileTask as IcarusCompileTask
-from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask as IcarusCocotbExecTask
-
-from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask as VerilatorCompileTask
-from siliconcompiler.tools.verilator.cocotb_exec import CocotbExecTask as VerilatorCocotbExecTask
+from siliconcompiler.targets.dvflow_cocotb import dvflow_cocotb
 
 
-class AdderDesign(Design):
-    """Adder design schema setup.
+class Adder(Design):
+    """RTL design schema for the parameterized adder.
 
-    This class defines the project structure for a simple parameterized
-    adder design with a cocotb testbench.
+    Defines the ``rtl`` fileset containing the Verilog source and its
+    top module for the adder design under test.
     """
 
     def __init__(self):
-        """Initializes the AdderDesign object."""
+        """Initializes the Adder object."""
         super().__init__()
 
-        # Set the design's name
         self.set_name("adder")
 
-        # Establish the root directory for all design-related files
-        self.set_dataroot("adder", __file__)
+        self.set_dataroot("local", __file__)
 
-        # Configure filesets within the established data root
-        with self.active_dataroot("adder"):
-            # RTL sources
+        with self.active_dataroot("local"):
             with self.active_fileset("rtl"):
                 self.set_topmodule("adder")
                 self.add_file("adder.v")
                 self.set_param("WIDTH", "8")
 
-            # Cocotb testbench
+
+class AdderTb(Design):
+    """Cocotb testbench schema for the adder design.
+
+    Defines the ``testbench.cocotb`` fileset containing the Python cocotb
+    test module and declares a dependency on the :class:`Adder` RTL design.
+    """
+
+    def __init__(self):
+        """Initializes the AdderTb object."""
+        super().__init__()
+
+        # Set the design's name
+        self.set_name("adder_testbench")
+
+        # Establish the root directory for all design-related files
+        self.set_dataroot("local", __file__)
+
+        # Configure filesets within the established data root
+        with self.active_dataroot("local"):
             with self.active_fileset("testbench.cocotb"):
                 self.set_topmodule("adder")
                 self.add_file("cocotb_adder.py", filetype="python")
-                self.set_param("WIDTH", "8")
-
-            with self.active_fileset("icarus"):
-                self.add_file("icarus_cmd_file.f", filetype="commandfile")
-
-            with self.active_fileset("verilator"):
-                self.add_file("verilator_cmd_file.vc", filetype="commandfile")
+                self.add_depfileset(Adder(), "rtl")
 
 
 def sim_icarus(seed: int = None, trace: bool = True):
@@ -65,27 +70,22 @@ def sim_icarus(seed: int = None, trace: bool = True):
         trace (bool, optional): Enable waveform tracing. Defaults to True.
             When enabled, generates a VCD file for waveform viewing.
     """
-    # Create a project instance tailored for simulation
-    project = Sim()
+    # Create a project instance
+    project = Sim(AdderTb())
 
-    # Instantiate and configure the design
-    adder = AdderDesign()
-    project.set_design(adder)
-
-    # Add the cocotb testbench and the RTL design files
-    project.add_fileset("rtl")
+    # Add the cocotb testbench files
     project.add_fileset("testbench.cocotb")
-    project.add_fileset("icarus")
 
-    # Set the cocotb design verification flow
-    project.set_flow(DVFlow(tool="icarus-cocotb"))
+    # Call cocotb target function to setup the project for a cocotb run
+    dvflow_cocotb(
+        project=project,
+        trace=trace,
+        timescale=("1ns", "1ps"),
+        seed=seed
+    )
 
-    # Enable waveform tracing
-    IcarusCompileTask.find_task(project).set_trace_enabled(trace)
-
-    # Optionally set a random seed for reproducibility
-    if seed is not None:
-        IcarusCocotbExecTask.find_task(project).set_cocotb_randomseed(seed)
+    # Select the icarus + cocotb flow
+    project.set_flow("icaruscocotbdvflow")
 
     # Run the simulation
     project.run()
@@ -123,35 +123,23 @@ def sim_verilator(seed: int = None, trace: bool = True, trace_type: str = "vcd")
         trace_type (str, optional): Waveform format - 'vcd' (default) or 'fst'.
             FST is a compressed format that produces smaller files.
     """
-    # Create a project instance tailored for simulation
-    project = Sim()
+    # Create a project instance
+    project = Sim(AdderTb())
 
-    # Instantiate and configure the design
-    adder = AdderDesign()
-    project.set_design(adder)
-
-    # Add the cocotb testbench and the RTL design files
-    project.add_fileset("rtl")
+    # Add the cocotb testbench files
     project.add_fileset("testbench.cocotb")
-    project.add_fileset("verilator")
 
-    # Set the cocotb design verification flow with Verilator
-    project.set_flow(DVFlow(tool="verilator-cocotb"))
-
-    # Enable waveform tracing (must be enabled on both compile and simulate tasks)
-    compile_task = VerilatorCompileTask.find_task(project)
-    compile_task.set_verilator_trace(trace)
-    compile_task.set_verilator_tracetype(trace_type)
-
-    cocotb_task = VerilatorCocotbExecTask.find_task(project)
-    cocotb_task.set_cocotb_trace(
-        enable=trace,
-        trace_type=trace_type
+    # Call cocotb target function to setup the project for a cocotb run
+    dvflow_cocotb(
+        project=project,
+        trace=trace,
+        trace_type=trace_type,
+        timescale=("1ns", "1ps"),
+        seed=seed
     )
 
-    # Optionally set a random seed for reproducibility
-    if seed is not None:
-        cocotb_task.set_cocotb_randomseed(seed)
+    # Select the Verilator + cocotb flow
+    project.set_flow("verilatorcocotbdvflow")
 
     # Run the simulation
     project.run()
@@ -180,5 +168,5 @@ def sim_verilator(seed: int = None, trace: bool = True, trace_type: str = "vcd")
 
 
 def check():
-    """Checks that all file paths in the AdderDesign are valid."""
-    assert AdderDesign().check_filepaths()
+    """Checks that all file paths in the AdderTb design are valid."""
+    assert AdderTb().check_filepaths()

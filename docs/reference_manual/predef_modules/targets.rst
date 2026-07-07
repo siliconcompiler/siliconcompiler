@@ -11,6 +11,10 @@ These are typically "demo" targets which use a specific combination of predefine
     :name: asap7_demo
 
 .. sctarget::
+    :root: siliconcompiler.targets.dvflow_cocotb
+    :name: dvflow_cocotb
+
+.. sctarget::
     :root: siliconcompiler.targets.freepdk45_demo
     :name: freepdk45_demo
 
