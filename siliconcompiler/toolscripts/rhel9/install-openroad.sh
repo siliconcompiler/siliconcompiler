@@ -36,6 +36,6 @@ else
     install_loc="$HOME/.local"
 fi
 
-bazelisk run :install --config=release --//:platform=gui -- "$install_loc"
+bazelisk run :install --config=release --//:platform=gui --jobs=${NPROC:-$(nproc)} -- "$install_loc"
 
 cd -
