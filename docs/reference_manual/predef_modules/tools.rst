@@ -84,6 +84,10 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
   :tasks: timing/TimingTask timing/FPGATimingTask
 
 .. sctool::
+  :root: siliconcompiler.tools.sby
+  :tasks: bmc/BMCTask cover/CoverTask prove/ProveTask
+
+.. sctool::
   :root: siliconcompiler.tools.slang
   :tasks: elaborate/Elaborate lint/Lint
 

@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+# Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
+
+from siliconcompiler import Design, Project
+from siliconcompiler.flows.formalflow import FormalFlow
+
+
+def main():
+    """
+    Unbounded proof of the SymbiYosys quickstart 'prove' design.
+
+    Mirrors the official quickstart prove.sby: a testbench wraps the
+    demo unit, assumes reset behavior, and its assertion is proven for
+    all reachable states by k-induction.
+    """
+    design = Design("prove")
+    design.set_dataroot("sby_quickstart", __file__)
+    design.set_topmodule("testbench", fileset="rtl")
+    design.add_file("prove.sv", dataroot="sby_quickstart", fileset="rtl")
+
+    project = Project(design)
+    project.add_fileset("rtl")
+    project.set_flow(FormalFlow(mode="prove"))
+
+    assert project.run(), "formal verification failed"
+
+    project.summary()
+
+
+if __name__ == "__main__":
+    main()
