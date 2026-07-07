@@ -144,8 +144,8 @@
     "auto-update": false
   },
   "yosys-slang": {
-    "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "a8c027e6bf3f213885ec089bd5f7f338ce779986",
+    "git-url": "https://github.com/povik/sv-elab.git",
+    "git-commit": "2026-07-07",
     "docker-depends": "yosys",
     "auto-update": true
   },
