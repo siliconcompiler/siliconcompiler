@@ -13,10 +13,9 @@ Sources: https://github.com/YosysHQ/sby
 Installation: https://symbiyosys.readthedocs.io/en/latest/install.html
 '''
 import os
-import shutil
 
 from siliconcompiler import Task
-from siliconcompiler.utils import sc_open
+from siliconcompiler.utils import link_copy, sc_open
 
 
 class SBYTask(Task):
@@ -38,21 +37,10 @@ class SBYTask(Task):
                            "mode, or the induction length in prove mode.",
                            defvalue=20)
 
-        self.add_parameter("engine", "[str]",
-                           "Engine lines for the [engines] section of the sby job file, e.g. "
-                           "'smtbmc bitwuzla' or 'smtbmc boolector'. Each entry is one line.",
+        self.add_parameter("engine", "[<smtbmc bitwuzla,smtbmc boolector>]",
+                           "Engine lines for the [engines] section of the sby job file. "
+                           "Each entry is one line.",
                            defvalue=["smtbmc bitwuzla"])
-
-        self.add_parameter("timeout", "int",
-                           "Timeout in seconds for the proof engines (sby [options] timeout). "
-                           "0 disables the timeout.",
-                           defvalue=0)
-
-        self.add_parameter("toolroot", "dir",
-                           "Installation prefix of the formal toolchain to use (containing "
-                           "bin/sby, bin/yosys, bin/yosys-smtbmc, ...). When set, this prefix "
-                           "is prepended to PATH and passed to sby via --yosys/--smtbmc/... so "
-                           "the tools in this prefix are used even if others exist on PATH.")
 
     def tool(self):
         return "sby"
@@ -61,21 +49,22 @@ class SBYTask(Task):
         '''sby verification mode; same as the task name.'''
         return self.task()
 
-    def set_depth(self, depth, step=None, index=None):
+    def set_sby_depth(self, depth):
         """Sets the solver unrolling depth (cycles for bmc/cover, induction length for prove)."""
-        self.set("var", "depth", depth, step=step, index=index)
+        self.set("var", "depth", depth)
 
-    def set_engine(self, engine, step=None, index=None):
-        """Sets the sby engine line(s), e.g. 'smtbmc bitwuzla'."""
-        self.set("var", "engine", engine, step=step, index=index)
+    def add_sby_engine(self, engine, clobber=False):
+        """Adds an sby engine line, e.g. 'smtbmc bitwuzla'.
 
-    def set_timeout(self, timeout, step=None, index=None):
-        """Sets the proof engine timeout in seconds (0 disables)."""
-        self.set("var", "timeout", timeout, step=step, index=index)
-
-    def set_toolroot(self, toolroot, step=None, index=None):
-        """Sets the installation prefix of the formal toolchain to use."""
-        self.set("var", "toolroot", toolroot, step=step, index=index)
+        Args:
+            engine (Union[str, List[str]]): engine line(s) for the [engines] section.
+            clobber (bool, optional): If True, overwrites the existing engine list.
+                                      If False, appends to it. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "engine", engine)
+        else:
+            self.add("var", "engine", engine)
 
     def setup(self):
         super().setup()
@@ -83,16 +72,6 @@ class SBYTask(Task):
         # The upstream sby git build reports a versionless "SBY" banner, so no
         # vswitch/version specifiers: the version check is skipped entirely.
         self.set_exe("sby")
-
-        toolroot = self.get("var", "toolroot")
-        if toolroot:
-            self.set_path(os.path.join(toolroot, "bin"))
-            libpaths = [os.path.join(toolroot, lib) for lib in ("lib", "lib64")]
-            libpaths = [path for path in libpaths if os.path.isdir(path)]
-            if os.environ.get("LD_LIBRARY_PATH"):
-                libpaths.append(os.environ["LD_LIBRARY_PATH"])
-            if libpaths:
-                self.set_environmentalvariable("LD_LIBRARY_PATH", os.pathsep.join(libpaths))
 
         self.add_regex("warnings", r"^SBY .* WARNING")
 
@@ -106,12 +85,14 @@ class SBYTask(Task):
                 self.add_required_key(lib, "fileset", fileset, "idir")
             if lib.get("fileset", fileset, "define"):
                 self.add_required_key(lib, "fileset", fileset, "define")
+            for param in lib.getkeys("fileset", fileset, "param"):
+                self.add_required_key(lib, "fileset", fileset, "param", param)
             if lib.has_file(fileset=fileset, filetype="systemverilog"):
                 self.add_required_key(lib, "fileset", fileset, "file", "systemverilog")
             if lib.has_file(fileset=fileset, filetype="verilog"):
                 self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
-        for var in ("depth", "engine", "timeout"):
+        for var in ("depth", "engine"):
             self.add_required_key("var", var)
 
     def sby_workdir(self):
@@ -121,30 +102,13 @@ class SBYTask(Task):
     def __sby_file(self):
         return f"{self.design_topmodule}.sby"
 
-    def __collect_sources(self):
-        '''Collects (dst, src) pairs for the [files] section.
-
-        sby copies each source into <workdir>/src/<dst>; dst must be a
-        relative path, so files are referenced by basename with a prefix
-        added on collision.
-        '''
-        sources = []
-        seen = set()
-        for lib, fileset in self.project.get_filesets():
-            for filetype in ("systemverilog", "verilog"):
-                for src in lib.get_file(fileset=fileset, filetype=filetype):
-                    dst = os.path.basename(src)
-                    if dst in seen:
-                        dst = f"f{len(sources)}_{dst}"
-                    seen.add(dst)
-                    sources.append((dst, src, filetype))
-        return sources
-
     def pre_process(self):
         super().pre_process()
 
         idirs = []
         defines = []
+        params = []
+        sources = []
         for lib, fileset in self.project.get_filesets():
             for idir in lib.get_idir(fileset):
                 if idir not in idirs:
@@ -152,6 +116,13 @@ class SBYTask(Task):
             for define in lib.get("fileset", fileset, "define"):
                 if define not in defines:
                     defines.append(define)
+            for param in lib.getkeys("fileset", fileset, "param"):
+                params.append((param, lib.get("fileset", fileset, "param", param)))
+            for filetype in ("verilog", "systemverilog"):
+                sources.extend(lib.get_file(fileset=fileset, filetype=filetype))
+
+        if not sources:
+            raise ValueError("sby requires at least one verilog/systemverilog source file")
 
         read_opts = ["-formal", "-sv"]
         for idir in idirs:
@@ -159,17 +130,13 @@ class SBYTask(Task):
         for define in defines:
             read_opts.append(f"-D{define}")
 
-        sources = self.__collect_sources()
-        if not sources:
-            raise ValueError("sby requires at least one verilog/systemverilog source file")
-
         with open(self.__sby_file(), "w") as f:
             f.write("[options]\n")
             f.write(f"mode {self.mode()}\n")
             f.write(f"depth {self.get('var', 'depth')}\n")
-            timeout = self.get("var", "timeout")
+            timeout = self.project.option.get_timeout(step=self.step, index=self.index)
             if timeout:
-                f.write(f"timeout {timeout}\n")
+                f.write(f"timeout {int(timeout)}\n")
             f.write("\n")
 
             f.write("[engines]\n")
@@ -177,29 +144,17 @@ class SBYTask(Task):
                 f.write(f"{engine}\n")
             f.write("\n")
 
+            # sby reads the sources directly from their original locations; no
+            # [files] section is emitted so nothing is copied into the workdir.
             f.write("[script]\n")
-            for dst, _, _ in sources:
-                f.write(f"read_verilog {' '.join(read_opts)} {dst}\n")
+            for src in sources:
+                f.write(f"read_verilog {' '.join(read_opts)} {src}\n")
+            for name, value in params:
+                f.write(f"chparam -set {name} {value} {self.design_topmodule}\n")
             f.write(f"prep -top {self.design_topmodule}\n")
-            f.write("\n")
-
-            f.write("[files]\n")
-            for dst, src, _ in sources:
-                f.write(f"{dst} {src}\n")
 
     def runtime_options(self):
         options = super().runtime_options()
-
-        toolroot = self.get("var", "toolroot")
-        if toolroot:
-            for opt, exe in (("--yosys", "yosys"),
-                             ("--abc", "yosys-abc"),
-                             ("--smtbmc", "yosys-smtbmc"),
-                             ("--witness", "yosys-witness"),
-                             ("--btormc", "btormc")):
-                path = os.path.join(toolroot, "bin", exe)
-                if os.path.exists(path):
-                    options.extend([opt, path])
 
         # -f: overwrite the work directory if it exists (needed for reruns)
         options.append("-f")
@@ -227,5 +182,5 @@ class SBYTask(Task):
         for root, _, files in os.walk(self.sby_workdir()):
             for fname in files:
                 if fname.endswith((".vcd", ".fst")):
-                    shutil.copy2(os.path.join(root, fname),
-                                 os.path.join("reports", fname))
+                    link_copy(os.path.join(root, fname),
+                              os.path.join("reports", fname))

@@ -16,9 +16,9 @@ def main():
     """
     for mode in ("bmc", "prove", "cover"):
         design = Design("fifo")
-        design.set_dataroot("sby_fifo", __file__)
+        design.set_dataroot("sva_sby", __file__)
         design.set_topmodule("fifo", fileset="rtl")
-        design.add_file("fifo.sv", dataroot="sby_fifo", fileset="rtl")
+        design.add_file("fifo.sv", dataroot="sva_sby", fileset="rtl")
 
         project = Project(design)
         project.add_fileset("rtl")

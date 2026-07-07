@@ -14,16 +14,16 @@ def main():
     'counter < 32' assertion is checked for 100 cycles.
     """
     design = Design("demo")
-    design.set_dataroot("sby_quickstart", __file__)
+    design.set_dataroot("sva_sby", __file__)
     design.set_topmodule("demo", fileset="rtl")
-    design.add_file("demo.sv", dataroot="sby_quickstart", fileset="rtl")
+    design.add_file("demo.sv", dataroot="sva_sby", fileset="rtl")
 
     project = Project(design)
     project.add_fileset("rtl")
     project.set_flow(FormalFlow(mode="bmc"))
 
     # the official demo.sby checks 100 cycles
-    BMCTask.find_task(project).set_depth(100)
+    BMCTask.find_task(project).set_sby_depth(100)
 
     assert project.run(), "formal verification failed"
 

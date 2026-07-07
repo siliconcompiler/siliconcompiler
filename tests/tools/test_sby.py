@@ -1,9 +1,6 @@
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 import os
 import pytest
-import shutil
-
-import os.path
 
 from siliconcompiler import Design, Project, Flowgraph
 from siliconcompiler.flows.formalflow import FormalFlow
@@ -20,17 +17,16 @@ def test_task_modes():
 def test_parameters():
     task = bmc.BMCTask()
 
-    task.set_depth(45)
+    task.set_sby_depth(45)
     assert task.get("var", "depth") == 45
 
-    task.set_engine(["smtbmc boolector"])
+    # append to the default engine list
+    task.add_sby_engine("smtbmc boolector")
+    assert task.get("var", "engine") == ["smtbmc bitwuzla", "smtbmc boolector"]
+
+    # clobber replaces it
+    task.add_sby_engine("smtbmc boolector", clobber=True)
     assert task.get("var", "engine") == ["smtbmc boolector"]
-
-    task.set_timeout(120)
-    assert task.get("var", "timeout") == 120
-
-    task.set_toolroot("/opt/formal")
-    assert task.get("var", "toolroot") == "/opt/formal"
 
 
 def test_formalflow_modes():
@@ -62,15 +58,50 @@ def test_sby_file_generation(gcd_design, monkeypatch):
         sby_file = "gcd.sby"
         assert os.path.exists(sby_file)
         with open(sby_file) as f:
-            job = f.read()
+            job = f.read().splitlines()
 
-        assert "mode bmc" in job
-        assert "depth 20" in job
-        assert "smtbmc bitwuzla" in job
-        assert "prep -top gcd" in job
-        for src in gcd_design.get_file(fileset="rtl", filetype="verilog"):
-            assert f"read_verilog -formal -sv {os.path.basename(src)}" in job
-            assert f"{os.path.basename(src)} {src}" in job
+    assert job[0] == "[options]"
+    assert job[1] == "mode bmc"
+    assert job[2] == "depth 20"
+    assert job[3] == ""
+    assert job[4] == "[engines]"
+    assert job[5] == "smtbmc bitwuzla"
+    assert job[6] == ""
+    assert job[7] == "[script]"
+
+    # sources are referenced by their original path, then elaborated
+    sources = gcd_design.get_file(fileset="rtl", filetype="verilog")
+    script = job[8:]
+    for i, src in enumerate(sources):
+        assert script[i] == f"read_verilog -formal -sv {src}"
+    assert script[len(sources)] == "prep -top gcd"
+
+
+def test_sby_params_and_timeout(gcd_design, monkeypatch):
+    gcd_design.set("fileset", "rtl", "param", "N", "64")
+
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
+    proj.option.set_timeout(120)
+
+    flow = Flowgraph("testflow")
+    flow.node("formal", bmc.BMCTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "formal", "0")
+    with node.runtime():
+        assert node.setup() is True
+
+        node.task.setup_work_directory(node.workdir)
+        monkeypatch.chdir(node.workdir)
+
+        node.task.pre_process()
+        with open("gcd.sby") as f:
+            job = f.read().splitlines()
+
+    # node timeout is written into the job; params become chparam lines
+    assert "timeout 120" in job
+    assert "chparam -set N 64 gcd" in job
 
 
 def test_runtime_args(gcd_design):
@@ -90,33 +121,11 @@ def test_runtime_args(gcd_design):
             'gcd.sby']
 
 
-PASS_COUNTER = """
-module counter (
-    input clk,
-    output reg [5:0] count
-);
-    initial count = 0;
-
-    always @(posedge clk) begin
-        if (count == 15)
-            count <= 0;
-        else
-            count <= count + 1'b1;
-    end
-
-`ifdef FORMAL
-    always @(posedge clk)
-        assert (count < 32);
-`endif
-endmodule
-"""
-
-
-def _counter_project(mode):
+def _counter_project(datadir, mode, rtl="sby/counter.v"):
     design = Design("counter")
-    design.set_dataroot("testroot", os.getcwd())
+    design.set_dataroot("root", datadir)
     design.set_topmodule("counter", fileset="rtl")
-    design.add_file("counter.v", dataroot="testroot", fileset="rtl")
+    design.add_file(rtl, dataroot="root", fileset="rtl")
 
     proj = Project(design)
     proj.add_fileset("rtl")
@@ -125,51 +134,39 @@ def _counter_project(mode):
 
 
 @pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.skipif(shutil.which("sby") is None or shutil.which("bitwuzla") is None,
-                    reason="sby/bitwuzla are not available")
-def test_bmc_pass():
-    with open("counter.v", "w") as f:
-        f.write(PASS_COUNTER)
-
-    proj = _counter_project("bmc")
+def test_bmc_pass(datadir):
+    proj = _counter_project(datadir, "bmc")
     assert proj.run()
 
     assert proj.history("job0").get('metric', 'errors', step='formal', index='0') == 0
 
     with open("build/counter/job0/formal/0/sby/status") as f:
-        assert f.read().startswith("PASS")
+        assert f.read().strip() == "PASS"
 
 
 @pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.skipif(shutil.which("sby") is None or shutil.which("bitwuzla") is None,
-                    reason="sby/bitwuzla are not available")
-def test_bmc_fail_produces_trace():
-    # assertion bound is violated when the counter reaches 8
-    with open("counter.v", "w") as f:
-        f.write(PASS_COUNTER.replace("count < 32", "count < 8"))
-
-    proj = _counter_project("bmc")
+def test_bmc_fail_produces_trace(datadir):
+    # counter_fail.v tightens the bound so the assertion is violated
+    proj = _counter_project(datadir, "bmc", rtl="sby/counter_fail.v")
     with pytest.raises(RuntimeError):
         proj.run()
 
     with open("build/counter/job0/formal/0/sby/status") as f:
-        assert f.read().startswith("FAIL")
+        assert f.read().strip() == "FAIL"
 
     # counterexample trace is preserved for debugging
     assert os.path.exists("build/counter/job0/formal/0/reports/trace.vcd")
 
 
 @pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.skipif(shutil.which("sby") is None or shutil.which("bitwuzla") is None,
-                    reason="sby/bitwuzla are not available")
-def test_prove_pass():
-    with open("counter.v", "w") as f:
-        f.write(PASS_COUNTER)
-
-    proj = _counter_project("prove")
+def test_prove_pass(datadir):
+    proj = _counter_project(datadir, "prove")
     assert proj.run()
 
     assert proj.history("job0").get('metric', 'errors', step='formal', index='0') == 0

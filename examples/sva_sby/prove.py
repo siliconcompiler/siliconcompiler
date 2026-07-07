@@ -14,9 +14,9 @@ def main():
     all reachable states by k-induction.
     """
     design = Design("prove")
-    design.set_dataroot("sby_quickstart", __file__)
+    design.set_dataroot("sva_sby", __file__)
     design.set_topmodule("testbench", fileset="rtl")
-    design.add_file("prove.sv", dataroot="sby_quickstart", fileset="rtl")
+    design.add_file("prove.sv", dataroot="sva_sby", fileset="rtl")
 
     project = Project(design)
     project.add_fileset("rtl")

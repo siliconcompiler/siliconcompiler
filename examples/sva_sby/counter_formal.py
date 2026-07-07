@@ -24,11 +24,11 @@ def main(mode="bmc"):
     design = Design("counter")
 
     # Set the root directory for the design's source files.
-    design.set_dataroot("counter_formal", __file__)
+    design.set_dataroot("sva_sby", __file__)
 
     # Configure the RTL (Verilog) source files.
     design.set_topmodule("counter", fileset="rtl")
-    design.add_file("counter.v", dataroot="counter_formal", fileset="rtl")
+    design.add_file("counter.v", dataroot="sva_sby", fileset="rtl")
 
     # Create a project and select the formal verification flow.
     project = Project(design)

@@ -14,9 +14,9 @@ def main():
     producing a reachability trace for every cover() statement.
     """
     design = Design("cover")
-    design.set_dataroot("sby_quickstart", __file__)
+    design.set_dataroot("sva_sby", __file__)
     design.set_topmodule("top", fileset="rtl")
-    design.add_file("cover.sv", dataroot="sby_quickstart", fileset="rtl")
+    design.add_file("cover.sv", dataroot="sva_sby", fileset="rtl")
 
     project = Project(design)
     project.add_fileset("rtl")

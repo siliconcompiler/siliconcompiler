@@ -8,33 +8,32 @@
 module counter #(
     parameter WIDTH = 8
 ) (
-    input              clk,
-    input              rst,
-    input              en,
+    input clk,
+    input rst,
+    input en,
     output reg [WIDTH-1:0] count
 );
 
     always @(posedge clk) begin
-        if (rst)
-            count <= {WIDTH{1'b0}};
-        else if (en)
-            count <= count + 1'b1;
+        if (rst) count <= {WIDTH{1'b0}};
+        else if (en) count <= count + 1'b1;
     end
 
 `ifdef FORMAL
     // $past() is only valid after the first clock edge
     reg past_valid = 1'b0;
-    always @(posedge clk)
-        past_valid <= 1'b1;
+    always @(posedge clk) past_valid <= 1'b1;
 
     always @(posedge clk) begin
         if (past_valid) begin
-            if ($past(rst))
+            // exactly one of these holds each cycle
+            if ($past(rst)) begin
                 a_reset : assert (count == {WIDTH{1'b0}});
-            else if (!$past(en))
+            end else if (!$past(en)) begin
                 a_hold : assert (count == $past(count));
-            else
+            end else begin
                 a_increment : assert (count == $past(count) + 1'b1);
+            end
 
             // reachability targets for cover mode
             c_rollover : cover (count == {WIDTH{1'b1}});
