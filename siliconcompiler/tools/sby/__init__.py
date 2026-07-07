@@ -40,7 +40,7 @@ class SBYTask(Task):
         self.add_parameter("engine", "[<smtbmc bitwuzla,smtbmc boolector>]",
                            "Engine lines for the [engines] section of the sby job file. "
                            "Each entry is one line.",
-                           defvalue=["smtbmc bitwuzla"])
+                           defvalue=["smtbmc boolector"])
 
     def tool(self):
         return "sby"

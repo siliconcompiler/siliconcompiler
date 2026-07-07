@@ -20,13 +20,16 @@ def test_parameters():
     task.set_sby_depth(45)
     assert task.get("var", "depth") == 45
 
+    # default engine
+    assert task.get("var", "engine") == ["smtbmc boolector"]
+
     # append to the default engine list
-    task.add_sby_engine("smtbmc boolector")
-    assert task.get("var", "engine") == ["smtbmc bitwuzla", "smtbmc boolector"]
+    task.add_sby_engine("smtbmc bitwuzla")
+    assert task.get("var", "engine") == ["smtbmc boolector", "smtbmc bitwuzla"]
 
     # clobber replaces it
-    task.add_sby_engine("smtbmc boolector", clobber=True)
-    assert task.get("var", "engine") == ["smtbmc boolector"]
+    task.add_sby_engine("smtbmc bitwuzla", clobber=True)
+    assert task.get("var", "engine") == ["smtbmc bitwuzla"]
 
 
 def test_formalflow_modes():
@@ -65,7 +68,7 @@ def test_sby_file_generation(gcd_design, monkeypatch):
     assert job[2] == "depth 20"
     assert job[3] == ""
     assert job[4] == "[engines]"
-    assert job[5] == "smtbmc bitwuzla"
+    assert job[5] == "smtbmc boolector"
     assert job[6] == ""
     assert job[7] == "[script]"
 

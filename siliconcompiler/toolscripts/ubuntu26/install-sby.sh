@@ -16,10 +16,9 @@ sudo apt-get update
 
 # sby is pure python and drives yosys / yosys-smtbmc (installed separately); its
 # 'click' dependency is bundled into the tool prefix below. The remaining
-# packages build the bitwuzla SMT solver used by the default sby engine.
-sudo apt-get install -y git python3 python3-venv python3-pip \
-                        build-essential cmake pkg-config ninja-build \
-                        libgmp-dev
+# packages build the boolector SMT solver used by the default sby engine.
+sudo apt-get install -y git python3 python3-pip \
+                        build-essential cmake libgmp-dev curl
 
 mkdir -p deps
 cd deps
@@ -37,30 +36,22 @@ cd -
 # stays importable by whichever python ends up running sby.
 $SUDO_INSTALL python3 -m pip install --target "$PREFIX/share/yosys/python3" "click==8.1.7"
 
-# --- Bitwuzla (SMT solver for the default 'smtbmc bitwuzla' engine) ---
+# --- Boolector (SMT solver for the default 'smtbmc boolector' engine) ---
 # Built here, not as its own tool: the CI image build does not support chaining
-# docker-depends (sby already depends on yosys). meson is installed in a venv
-# because distro packages can be older than bitwuzla requires.
-python3 -m venv .bitwuzla --clear
-. .bitwuzla/bin/activate
-python3 -m pip install meson
-
-# preserve PATH under sudo so the venv's meson is visible during 'ninja install'
-if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
-    SUDO_INSTALL="sudo -E PATH=$PATH"
-fi
-
-git clone $(python3 ${src_path}/_tools.py --tool bitwuzla --field git-url) bitwuzla
-cd bitwuzla
-git checkout $(python3 ${src_path}/_tools.py --tool bitwuzla --field git-commit)
+# docker-depends (sby already depends on yosys). yosys' smtbmc driver in this
+# release speaks the classic '--smt2' CLI, which the rewritten bitwuzla dropped,
+# so boolector is used.
+git clone $(python3 ${src_path}/_tools.py --tool boolector --field git-url) boolector
+cd boolector
+git checkout $(python3 ${src_path}/_tools.py --tool boolector --field git-commit)
+./contrib/setup-lingeling.sh
+./contrib/setup-btor2tools.sh
 
 args=
 if [ ! -z ${PREFIX} ]; then
     args="--prefix $PREFIX"
 fi
-./configure.py $args
-ninja -C build
-$SUDO_INSTALL ninja -C build install
+./configure.sh $args
+make -C build -j"${NPROC:-$(nproc)}"
+$SUDO_INSTALL make -C build install
 cd -
-
-deactivate
