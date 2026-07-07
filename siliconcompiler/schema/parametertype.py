@@ -16,7 +16,7 @@ class NodeType:
     __enum = re.compile(r"^<(.*)>$")
     __rangetype = re.compile(r"^(int|float|str)<(.*)>$")
     __rangenumber = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
-    __rangevalues = re.compile(f"^({__rangenumber}|<)-({__rangenumber}|>)$")
+    __rangevalues = re.compile(rf"^({__rangenumber})?\.\.({__rangenumber})?$")
     __basetypes = re.compile(r"^(<(.*)>|int(<(.*)>)?|float(<(.*)>)?|str(<(.*)>)?|bool|file|dir)$")
 
     def __init__(self, sctype):
@@ -62,13 +62,9 @@ class NodeType:
                     match = NodeType.__rangevalues.match(part)
                     if match:
                         start, end = match.groups()
-                        if start == "<":
-                            start = None
-                        else:
+                        if start is not None:
                             start = normlizer(start)
-                        if end == ">":
-                            end = None
-                        else:
+                        if end is not None:
                             end = normlizer(end)
                         range_parts.append((start, end))
                     else:
@@ -336,7 +332,7 @@ class NodeType:
             valid = []
             for minval, maxval in sctype.values:
                 if minval != maxval:
-                    valid.append(f"{minval if minval is not None else ''}-"
+                    valid.append(f"{minval if minval is not None else ''}.."
                                  f"{maxval if maxval is not None else ''}")
                 else:
                     valid.append(f"{minval}")
@@ -417,8 +413,8 @@ class NodeRangeType:
         values = []
         for minval, maxval in self.__values:
             if minval != maxval:
-                values.append(f"{minval if minval is not None else '<'}-"
-                              f"{maxval if maxval is not None else '>'}")
+                values.append(f"{minval if minval is not None else ''}.."
+                              f"{maxval if maxval is not None else ''}")
             else:
                 values.append(f"{minval}")
         return f"{self.__base}<{','.join(values)}>"

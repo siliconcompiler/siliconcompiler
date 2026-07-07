@@ -188,11 +188,11 @@ def test_encode_invalid():
         (NodeType("(str,float)"), (1, 2.5), ("1", 2.5)),
         ("str<one,two,three>", "one", "one"),
         ("int<0,2,5>", "2", 2),
-        ("int<0-5>", "2", 2),
-        ("int<0,2,5-9>", "8", 8),
+        ("int<0..5>", "2", 2),
+        ("int<0,2,5..9>", "8", 8),
         ("float<0,2.1,5>", "2.1", 2.1),
-        ("float<0-5>", "2.5", 2.5),
-        ("float<0,2,5-9>", "8.7", 8.7),
+        ("float<0..5>", "2.5", 2.5),
+        ("float<0,2,5..9>", "8.7", 8.7),
     ])
 def test_normalize(type, value, expect):
     norm = NodeType.normalize(value, NodeType.parse(type))
@@ -211,7 +211,7 @@ def test_normalize(type, value, expect):
         ("str", "test$next[0]", "\"test\\$next\\[0]\""),
         ("str", "test\\next", "\"test\\\\next\""),
         ("int", 1, "1"),
-        ("int<0-5>", 1, "1"),
+        ("int<0..5>", 1, "1"),
         ("float", 1e5, "100000"),
         ("float", 10.5e-6, "1.05e-05"),
         ("float", 100.555555555e-12, "1.00555556e-10"),
@@ -268,7 +268,7 @@ def test_normalize_value_int_range():
     assert NodeType.normalize("6", range) == 6
     assert NodeType.normalize("7", range) == 7
 
-    with pytest.raises(ValueError, match=r"^8 is not in range: 0, 2, 5-7$"):
+    with pytest.raises(ValueError, match=r"^8 is not in range: 0, 2, 5\.\.7$"):
         NodeType.normalize("8", range)
 
 
@@ -288,7 +288,7 @@ def test_normalize_value_float_range():
     assert NodeType.normalize("6", range) == 6
     assert NodeType.normalize("7", range) == 7
 
-    with pytest.raises(ValueError, match=r"^8\.0 is not in range: 0, 2\.2, 5-7$"):
+    with pytest.raises(ValueError, match=r"^8\.0 is not in range: 0, 2\.2, 5\.\.7$"):
         NodeType.normalize("8", range)
 
 
@@ -364,18 +364,18 @@ def test_normalize_invalid_str():
     "str",
     "bool",
     "int<0,2,5>",
-    "int<0-5>",
-    "int<<-5>",
-    "int<-5->>",
-    "int<<--5,5->>",
-    "float<<--5.0,5.0->>",
+    "int<0..5>",
+    "int<..-5>",
+    "int<-5..>",
+    "int<..-5,5..>",
+    "float<..-5.0,5.0..>",
     "[str]",
     "[int]",
     "(str,int)",
     "(str,int,bool,float,<hello,world>)",
     "[(str,int)]",
     "[<hello,world>]",
-    "[int<0,2,5-9>]",
+    "[int<0,2,5..9>]",
     "{(str,int,int,str)}",
 ])
 def test_str(sctype):
@@ -388,8 +388,8 @@ def test_str_enum():
 
 
 def test_str_floatrange():
-    assert str(NodeType("float<0,2.1,5-9>")) == "float<0.0,2.1,5.0-9.0>"
-    assert str(NodeType("[float<0,2.1,5-9>]")) == "[float<0.0,2.1,5.0-9.0>]"
+    assert str(NodeType("float<0,2.1,5..9>")) == "float<0.0,2.1,5.0..9.0>"
+    assert str(NodeType("[float<0,2.1,5..9>]")) == "[float<0.0,2.1,5.0..9.0>]"
 
 
 def test_str_invalid():
@@ -424,7 +424,7 @@ def test_str_invalid():
     ("{(str,int)}", set, True),
     ("{(str,int)}", "str", True),
     ("{(str,int)}", "int", True),
-    ("{(str,int<0-5>)}", "int", True),
+    ("{(str,int<0..5>)}", "int", True),
     ("{(str,int)}", tuple, True),
     ("{(str,int)}", list, False),
     ("{(str,int)}", set, True),
@@ -443,7 +443,7 @@ def test_contains(sctype, check, expect):
 
 def test_parse_negative_float_range():
     # Range from -0.5 to 0.5
-    parsed = NodeType.parse("float<-0.5-0.5>")
+    parsed = NodeType.parse("float<-0.5..0.5>")
     assert isinstance(parsed, NodeRangeType)
     assert parsed.base == "float"
     assert parsed.values == [(-0.5, 0.5)]
@@ -451,7 +451,7 @@ def test_parse_negative_float_range():
 
 def test_parse_outoforder_float_range():
     # Range from -0.5 to 0.5
-    parsed = NodeType.parse("float<0.5--0.5>")
+    parsed = NodeType.parse("float<0.5..-0.5>")
     assert isinstance(parsed, NodeRangeType)
     assert parsed.base == "float"
     assert parsed.values == [(-0.5, 0.5)]
@@ -459,22 +459,22 @@ def test_parse_outoforder_float_range():
 
 def test_parse_scientific_notation_range():
     # Range from 1e-5 to 1e-2
-    parsed = NodeType.parse("float<1e-5-1e-2>")
+    parsed = NodeType.parse("float<1e-5..1e-2>")
     assert isinstance(parsed, NodeRangeType)
     assert parsed.base == "float"
     assert parsed.values == [(1e-5, 1e-2)]
-    assert str(parsed) == "float<1e-05-0.01>"
+    assert str(parsed) == "float<1e-05..0.01>"
 
 
 def test_parse_mixed_ranges_and_values():
     # Mixed single values and ranges with negatives
-    parsed = NodeType.parse("int<-10,-5,0-5>")
+    parsed = NodeType.parse("int<-10,-5,0..5>")
     assert isinstance(parsed, NodeRangeType)
     assert parsed.values == [(-10, -10), (-5, -5), (0, 5)]
 
 
 def test_normalize_negative_range():
-    rnge = NodeType.parse("int<-10-10>")
+    rnge = NodeType.parse("int<-10..10>")
     assert NodeType.normalize("-5", rnge) == -5
     assert NodeType.normalize("10", rnge) == 10
     assert NodeType.normalize("-10", rnge) == -10
@@ -483,8 +483,8 @@ def test_normalize_negative_range():
 
 
 def test_parse_open_range_high():
-    # int<0->
-    rnge = NodeType.parse("int<0->>")
+    # int<0..>
+    rnge = NodeType.parse("int<0..>")
     assert isinstance(rnge, NodeRangeType)
     assert rnge.values == [(0, None)]
 
@@ -495,8 +495,8 @@ def test_parse_open_range_high():
 
 
 def test_parse_open_negative_range_high():
-    # int<-10->
-    rnge = NodeType.parse("int<-10->>")
+    # int<-10..>
+    rnge = NodeType.parse("int<-10..>")
     assert isinstance(rnge, NodeRangeType)
     assert rnge.values == [(-10, None)]
 
@@ -507,8 +507,8 @@ def test_parse_open_negative_range_high():
 
 
 def test_parse_open_range_low():
-    # int<-5>
-    rnge = NodeType.parse("int<<--5>")
+    # int<..-5>
+    rnge = NodeType.parse("int<..-5>")
     assert isinstance(rnge, NodeRangeType)
     assert rnge.values == [(None, -5)]
 
@@ -519,8 +519,8 @@ def test_parse_open_range_low():
 
 
 def test_parse_open_negative_range_low():
-    # int<--5>
-    rnge = NodeType.parse("int<<--5>")
+    # int<..-5>
+    rnge = NodeType.parse("int<..-5>")
     assert isinstance(rnge, NodeRangeType)
     assert rnge.values == [(None, -5)]
 
@@ -531,8 +531,8 @@ def test_parse_open_negative_range_low():
 
 
 def test_parse_negative_range():
-    # int<-10--5>
-    rnge = NodeType.parse("int<-10--5>")
+    # int<-10..-5>
+    rnge = NodeType.parse("int<-10..-5>")
     assert isinstance(rnge, NodeRangeType)
     assert rnge.values == [(-10, -5)]
 
@@ -545,9 +545,9 @@ def test_parse_negative_range():
 
 
 @pytest.mark.parametrize("range_str,expect", [
-    ("int<-10--5>", [(-10, -5)]),
-    ("int<-20--15,<--5>", [(None, -5), (-20, -15)]),
-    ("float<-2.5-1.5,<-0.5>", [(None, 0.5), (-2.5, 1.5)]),
+    ("int<-10..-5>", [(-10, -5)]),
+    ("int<-20..-15,..-5>", [(None, -5), (-20, -15)]),
+    ("float<-2.5..1.5,..-0.5>", [(None, -0.5), (-2.5, 1.5)]),
 ])
 def test_parse_range(range_str, expect):
     rnge = NodeType.parse(range_str)
@@ -556,8 +556,127 @@ def test_parse_range(range_str, expect):
 
 
 def test_range_eq():
-    r0 = NodeType.parse("int<-10--5>")
-    r1 = NodeType.parse("float<-10--5>")
+    r0 = NodeType.parse("int<-10..-5>")
+    r1 = NodeType.parse("float<-10..-5>")
 
     assert r0 == NodeRangeType("int", (-10, -5))
     assert r0 != r1
+
+
+@pytest.mark.parametrize("range_str,expect", [
+    # Leading decimal point
+    ("float<.5..1.5>", [(0.5, 1.5)]),
+    ("float<-.5...5>", [(-0.5, 0.5)]),
+    # Trailing decimal point
+    ("float<1...2.>", [(1.0, 2.0)]),
+    ("float<5.>", [(5.0, 5.0)]),
+    # Explicit positive sign
+    ("float<+1..+2>", [(1.0, 2.0)]),
+    # Scientific notation, both cases
+    ("float<1E5..2E5>", [(1e5, 2e5)]),
+    ("float<1e-5..1e-2>", [(1e-5, 1e-2)]),
+    ("float<1E-5..1e-2>", [(1e-5, 1e-2)]),
+    ("float<+1.5e3..+2.5e3>", [(1.5e3, 2.5e3)]),
+    # Mix of scientific notation single values and ranges
+    ("float<1e-5,2e-3..4e-2>", [(1e-5, 1e-5), (0.002, 0.04)]),
+])
+def test_parse_float_range_formats(range_str, expect):
+    """Well-formed floating point range specifiers should parse correctly."""
+    parsed = NodeType.parse(range_str)
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.base == "float"
+    assert parsed.values == expect
+
+
+@pytest.mark.parametrize("range_str,expect", [
+    ("int<+0,+2,+5..+9>", [(0, 0), (2, 2), (5, 9)]),
+    ("int<+5..+9>", [(5, 9)]),
+])
+def test_parse_int_range_formats(range_str, expect):
+    """Well-formed integer range specifiers should parse correctly."""
+    parsed = NodeType.parse(range_str)
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.base == "int"
+    assert parsed.values == expect
+
+
+@pytest.mark.parametrize("range_str,match", [
+    # Float value in an int range
+    ("int<1.5..2>", r"^invalid literal for int\(\) with base 10: '1\.5'$"),
+    ("int<1.5>", r"^invalid literal for int\(\) with base 10: '1\.5'$"),
+    ("int<0..2.5>", r"^invalid literal for int\(\) with base 10: '2\.5'$"),
+    # Dash used instead of '..' as the range separator
+    ("int<5-7>", r"^invalid literal for int\(\) with base 10: '5-7'$"),
+    ("float<5-7>", r"^could not convert string to float: '5-7'$"),
+    # Non-numeric garbage
+    ("float<abc..2>", r"^could not convert string to float: 'abc\.\.2'$"),
+    ("int<abc>", r"^invalid literal for int\(\) with base 10: 'abc'$"),
+    # Empty range specifier
+    ("int<>", r"^invalid literal for int\(\) with base 10: ''$"),
+    ("float<>", r"^could not convert string to float: ''$"),
+    # Too many dots / malformed decimals
+    ("float<1..2..3>", r"^could not convert string to float: '1\.\.2\.\.3'$"),
+    ("int<1.2.3>", r"^invalid literal for int\(\) with base 10: '1\.2\.3'$"),
+    # Interior whitespace is not stripped by the range regex
+    ("int< 0 .. 5 >", r"^invalid literal for int\(\) with base 10: ' 0 \.\. 5 '$"),
+])
+def test_parse_invalid_range(range_str, match):
+    """Poorly formatted numbers inside a range must raise a ValueError."""
+    with pytest.raises(ValueError, match=match):
+        NodeType.parse(range_str)
+
+
+@pytest.mark.parametrize("range_str", [
+    "int<..>",
+    "float<..>",
+    "int<..,0..5>",
+    "float<1..2,..>",
+])
+def test_parse_fully_unbounded_range(range_str):
+    """A range with both ends open (<..>) is not a valid, bounded range."""
+    with pytest.raises(ValueError, match=r"^range cannot be fully unbounded$"):
+        NodeType.parse(range_str)
+
+
+def test_parse_bare_unbounded_enum():
+    """A bare <..> with no base type is parsed as an enum, not a range."""
+    parsed = NodeType.parse("<..>")
+    assert isinstance(parsed, NodeEnumType)
+    assert parsed.values == set([".."])
+
+
+def test_noderange_empty():
+    with pytest.raises(ValueError, match=r"^range cannot be empty set$"):
+        NodeRangeType("int")
+
+
+def test_noderange_fully_unbounded():
+    with pytest.raises(ValueError, match=r"^range cannot be fully unbounded$"):
+        NodeRangeType("int", (None, None))
+
+
+@pytest.mark.parametrize("range_str,value,expect", [
+    ("float<0.0..1.0>", "0.5", 0.5),
+    ("float<0.0..1.0>", ".5", 0.5),
+    ("float<0.0..1.0>", "5e-1", 0.5),
+    ("float<-1.5..1.5>", "-1.5", -1.5),
+    ("float<0.0..1.0>", 0.5, 0.5),
+])
+def test_normalize_float_range_values(range_str, value, expect):
+    """Well-formed floats normalize against a float range."""
+    assert NodeType.normalize(value, NodeType.parse(range_str)) == expect
+
+
+@pytest.mark.parametrize("range_str,value,match", [
+    # Malformed value fails base conversion before the range check
+    ("float<0.0..1.0>", "abc", r"^\"abc\" unable to convert to float$"),
+    ("int<0..10>", "1.5", r"^\"1\.5\" unable to convert to int$"),
+    ("int<0..10>", "5.0", r"^\"5\.0\" unable to convert to int$"),
+    # Well-formed but out of range
+    ("float<0.0..1.0>", "1.5", r"^1\.5 is not in range: 0\.0\.\.1\.0$"),
+    ("float<0.0..1.0>", "-0.1", r"^-0\.1 is not in range: 0\.0\.\.1\.0$"),
+])
+def test_normalize_float_range_invalid(range_str, value, match):
+    """Poorly formatted or out-of-range values raise on normalize."""
+    with pytest.raises(ValueError, match=match):
+        NodeType.normalize(value, NodeType.parse(range_str))
