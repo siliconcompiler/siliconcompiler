@@ -970,10 +970,11 @@ proc sc_is_inside_die { x y } {
 
 proc sc_get_pexmap { map } {
     global sc_pdk
+    global sc_tool
     upvar $map pexmap
 
     set pexmap [dict create]
-    foreach pex [sc_cfg_get library $sc_pdk tool openroad rclayer] {
+    foreach pex [sc_cfg_get library $sc_pdk tool $sc_tool rclayer] {
         lassign $pex pex_corner pex_type pex_layer pex_res pex_cap
         dict set pexmap $pex_type $pex_corner $pex_layer "$pex_res $pex_cap"
     }
@@ -999,6 +1000,14 @@ proc sc_setup_pex { args } {
     }
 
     sc_get_pexmap pexmap
+
+    if {
+        ![dict exists $pexmap routing $pexcorner] &&
+        ![dict exists $pexmap via $pexcorner]
+    } {
+        utl::warn FLW 10 "No parasitic estimation layers defined for pex corner\
+            '$pexcorner' (scene: $scene_name); skipping set_layer_rc for this corner"
+    }
 
     if { [dict exists $pexmap routing $pexcorner] } {
         dict for {layer pex} [dict get $pexmap routing $pexcorner] {
