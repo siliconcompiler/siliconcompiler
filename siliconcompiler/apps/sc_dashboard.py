@@ -106,7 +106,7 @@ To include another project object to compare to:
 
     try:
         dashboard = WebDashboard(project, port=cli.get("cmdarg", "port"), graph_projs=graph_projs)
-    except NotImplementedError as e:
+    except ModuleNotFoundError as e:
         cli.logger.error(e)
         return 1
 

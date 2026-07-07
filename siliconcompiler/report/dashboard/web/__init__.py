@@ -46,7 +46,7 @@ class WebDashboard(AbstractDashboard):
         try:
             from streamlit.web import bootstrap  # noqa: F401
         except ModuleNotFoundError:
-            raise NotImplementedError('streamlit is not available for dashboard')
+            raise ModuleNotFoundError('streamlit is not available for dashboard')
 
         super().__init__(project)
 

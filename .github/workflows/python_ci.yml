@@ -63,7 +63,7 @@ jobs:
           . .venv/bin/activate
           python3 --version
           pip install --upgrade pip
-          pip install -e .[test]
+          pip install -e .[test,dashboard]
 
       - name: Run Python tests
         timeout-minutes: 15
@@ -85,7 +85,7 @@ jobs:
           .\venv\Scripts\activate
           python3 --version
           python.exe -m pip install --upgrade pip
-          pip install -e .[test]
+          pip install -e .[test,dashboard]
 
       - name: Run Python tests (windows)
         if: runner.os == 'Windows'

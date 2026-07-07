@@ -60,13 +60,6 @@ dependencies = [
 
     "pyslang == 11.0.0",
 
-    # dashboard
-    "streamlit == 1.58.0",
-    "streamlit_agraph == 0.0.45",
-    "streamlit-antd-components == 0.3.2",
-    "streamlit_javascript == 0.1.5",
-    "streamlit-autorefresh == 1.0.1",
-
     # CLI dashboard
     "rich >= 14.0.0, < 16.0.0"
 ]
@@ -132,6 +125,14 @@ optimizer = [
 ]
 cocotb = [
     "cocotb >= 2.0.1, < 2.1.0; python_version >= '3.7' and python_version <= '3.13'"
+]
+dashboard = [
+    # dashboard
+    "streamlit == 1.58.0",
+    "streamlit_agraph == 0.0.45",
+    "streamlit-antd-components == 0.3.2",
+    "streamlit_javascript == 0.1.5",
+    "streamlit-autorefresh == 1.0.1"
 ]
 
 [tool.setuptools]
