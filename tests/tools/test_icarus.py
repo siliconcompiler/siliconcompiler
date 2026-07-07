@@ -100,7 +100,11 @@ def test_runtime_args_timescale(heartbeat_design):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_timescale_applied_to_vcd(heartbeat_design):
+@pytest.mark.parametrize("unit,precision,expected", [
+    ("1ns", "1ps", "1ps"),
+    ("1us", "1ns", "1ns"),
+])
+def test_timescale_applied_to_vcd(heartbeat_design, unit, precision, expected):
     # Compile with tracing enabled and a configured timescale, then run the
     # simulation and confirm the timescale actually reaches the simulator by
     # inspecting the precision recorded in the VCD header.
@@ -115,14 +119,14 @@ def test_timescale_applied_to_vcd(heartbeat_design):
 
     task = compile.CompileTask.find_task(proj)
     task.set_trace_enabled(True)
-    task.set_icarus_timescale("1ns", "1ps")
+    task.set_icarus_timescale(unit, precision)
 
     assert proj.run()
 
     vcd = proj.find_result("vcd", step="simulate", directory="reports")
     assert vcd is not None and os.path.isfile(vcd)
-    # VCD records the timescale precision, so the header reflects "1ps".
-    assert _vcd_timescale(vcd) == "1ps"
+    # VCD records the timescale precision.
+    assert _vcd_timescale(vcd) == expected
 
 
 def test_timescale_file_generation(heartbeat_design):
