@@ -32,6 +32,14 @@ class OpenROADPDK(PDK):
                                    "The name of the signal layer to be used for RC extraction.")
         self.define_tool_parameter("openroad", "rclayer_clock", "str",
                                    "The name of the clock layer to be used for RC extraction.")
+        self.define_tool_parameter("openroad", "rclayer", "{(str,<via,routing>,str,float,float)}",
+                                   "Per-layer resistance and capacitance used to estimate "
+                                   "parasitics before extraction (applied via set_layer_rc). "
+                                   "Each tuple is (pexcorner, layertype, layer, resistance, "
+                                   "capacitance), where layertype is 'routing' or 'via'. "
+                                   "Resistance is ohm/um for a minimum-width routing layer or "
+                                   "ohm/cut for a via. Capacitance is F/um for a minimum-width "
+                                   "routing layer and is ignored for vias.")
 
         self.define_tool_parameter("openroad", "pin_layer_horizontal", "[str]",
                                    "A list of layers designated for horizontal pins.")
@@ -66,6 +74,36 @@ class OpenROADPDK(PDK):
             self.set("tool", "openroad", "rclayer_signal", signal)
         if clock:
             self.set("tool", "openroad", "rclayer_clock", clock)
+
+    def add_openroad_rclayer(self, corner: str, layertype: str, layer: str,
+                             resistance: float, capacitance: Optional[float] = None,
+                             clobber: bool = False):
+        """
+        Adds a per-layer parasitic estimate used to seed ``set_layer_rc`` for a PEX corner.
+
+        These values drive pre-route parasitic estimation; they are not the
+        signoff extraction model.
+
+        Args:
+            corner (str): Name of the PEX corner the values apply to.
+            layertype (str): Either "routing" or "via".
+            layer (str): Name of the routing or via (cut) layer.
+            resistance (float): Resistance, in ohm/um for a minimum-width routing
+                layer or ohm/cut for a via.
+            capacitance (float, optional): Capacitance in F/um for a minimum-width
+                routing layer. Not applicable to vias (forced to None).
+            clobber (bool, optional): If True, replaces the existing rclayer set
+                instead of adding to it. Defaults to False.
+        """
+        if layertype == "via":
+            capacitance = None  # Capacitance is not applicable for via layers
+
+        if clobber:
+            self.set("tool", "openroad", "rclayer",
+                     (corner, layertype, layer, resistance, capacitance))
+        else:
+            self.add("tool", "openroad", "rclayer",
+                     (corner, layertype, layer, resistance, capacitance))
 
     def unset_openroad_globalroutingderating(self):
         """

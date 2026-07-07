@@ -1221,6 +1221,8 @@ class APRTask(OpenROADTask):
 
         self.add_parameter("rsz_parasitics", "file",
                            "file used to specify the parasitics for estimation", copy=False)
+        self.add_parameter("rsz_default_pex_corner", "str",
+                           "default corner to use for parasitic extraction")
         self.add_parameter("power_corner", "str",
                            "corner to use for power analysis")
 
@@ -1389,6 +1391,12 @@ class APRTask(OpenROADTask):
 
         # Set power corner
         self.set("var", "power_corner", self._get_constraint_by_check("power"), clobber=False)
+        pexmap = self._get_pex_mapping()
+        if None in pexmap:
+            self.set("var", "rsz_default_pex_corner", pexmap[None], clobber=False)
+            self.add_required_key("var", "rsz_default_pex_corner")
+        if self.pdk.get("tool", "openroad", "rclayer"):
+            self.add_required_key(self.pdk, "tool", "openroad", "rclayer")
 
         if self.get("var", "reports"):
             self.add_required_key("var", "reports")
@@ -1435,7 +1443,8 @@ class APRTask(OpenROADTask):
 
     def pre_process(self):
         super().pre_process()
-        self._build_pex_estimation_file()
+        if not self.pdk.get("tool", "openroad", "rclayer"):
+            self._build_pex_estimation_file()
 
     def __import_globalconnect_filesets(self):
         for lib in self.project.get("asic", "asiclib"):
@@ -1562,6 +1571,10 @@ class APRTask(OpenROADTask):
             if pexcorner:
                 corners[constraint] = pexcorner
 
+        default_corner = self._get_constraint_by_check("setup")
+        if default_corner in corners:
+            corners[None] = corners[default_corner]
+
         return corners
 
     def _get_constraint_by_check(self, check: str) -> str:
@@ -1579,10 +1592,6 @@ class APRTask(OpenROADTask):
 
     def _build_pex_estimation_file(self):
         corners = self._get_pex_mapping()
-
-        default_corner = self._get_constraint_by_check("setup")
-        if default_corner in corners:
-            corners[None] = corners[default_corner]
 
         path = os.path.join(self.nodeworkdir, "inputs", "sc_parasitics.tcl")
         self.set("var", "rsz_parasitics", path)

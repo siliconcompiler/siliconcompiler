@@ -8,6 +8,8 @@ from siliconcompiler.flows.asicflow import ASICFlow
 
 from siliconcompiler.scheduler import SchedulerNode
 
+from siliconcompiler.tools.openroad import OpenROADPDK
+from siliconcompiler.tools.openroad import OpenROADStdCellLibrary
 from siliconcompiler.tools.openroad import _apr
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad import metrics
@@ -124,6 +126,284 @@ def test_openroad_pin_placement(asic_heartbeat):
     assert log.count("Pin clk placed at") == 1
     assert log.count("Pin nreset placed at") == 1
     assert log.count("Pin out placed at") == 1
+
+
+def test_openroad_pdk_add_rclayer_routing():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rclayer('typical', 'routing', 'm1', 0.1, 0.2)
+    assert pdk.get('tool', 'openroad', 'rclayer') == [('typical', 'routing', 'm1', 0.1, 0.2)]
+
+
+def test_openroad_pdk_add_rclayer_via_ignores_capacitance():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rclayer('typical', 'via', 'v1', 0.3, 0.4)
+    assert pdk.get('tool', 'openroad', 'rclayer') == [('typical', 'via', 'v1', 0.3, None)]
+
+
+def test_openroad_pdk_add_rclayer_default_capacitance():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rclayer('typical', 'routing', 'm1', 0.1)
+    assert pdk.get('tool', 'openroad', 'rclayer') == [('typical', 'routing', 'm1', 0.1, None)]
+
+
+def test_openroad_pdk_add_rclayer_accumulates():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rclayer('typical', 'routing', 'm1', 0.1, 0.2)
+    pdk.add_openroad_rclayer('typical', 'via', 'v1', 0.3, 0.4)
+    assert sorted(pdk.get('tool', 'openroad', 'rclayer')) == [
+        ('typical', 'routing', 'm1', 0.1, 0.2),
+        ('typical', 'via', 'v1', 0.3, None),
+    ]
+
+
+def test_openroad_pdk_add_rclayer_clobber():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rclayer('typical', 'routing', 'm1', 0.1, 0.2)
+    pdk.add_openroad_rclayer('typical', 'routing', 'm2', 0.5, clobber=True)
+    assert pdk.get('tool', 'openroad', 'rclayer') == [('typical', 'routing', 'm2', 0.5, None)]
+
+
+def test_openroad_pdk_add_rclayer_invalid_layertype():
+    pdk = OpenROADPDK()
+    with pytest.raises(ValueError):
+        pdk.add_openroad_rclayer('typical', 'bad', 'm1', 0.1, 0.2)
+
+
+def test_openroad_pdk_set_rclayers():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_rclayers(signal='m3', clock='m5')
+    assert pdk.get('tool', 'openroad', 'rclayer_signal') == 'm3'
+    assert pdk.get('tool', 'openroad', 'rclayer_clock') == 'm5'
+
+
+def test_openroad_pdk_set_rclayers_signal_only():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_rclayers(signal='m3')
+    assert pdk.get('tool', 'openroad', 'rclayer_signal') == 'm3'
+    assert pdk.get('tool', 'openroad', 'rclayer_clock') is None
+
+
+def test_openroad_pdk_set_rclayers_clock_only():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_rclayers(clock='m5')
+    assert pdk.get('tool', 'openroad', 'rclayer_signal') is None
+    assert pdk.get('tool', 'openroad', 'rclayer_clock') == 'm5'
+
+
+def test_openroad_pdk_set_globalroutingderating():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_globalroutingderating('m1', 0.5)
+    pdk.set_openroad_globalroutingderating('m2', 0.6)
+    assert sorted(pdk.get('tool', 'openroad', 'globalroutingderating')) == \
+        [('m1', 0.5), ('m2', 0.6)]
+
+
+def test_openroad_pdk_set_globalroutingderating_clobber():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_globalroutingderating('m1', 0.5)
+    pdk.set_openroad_globalroutingderating('m9', 0.9, clobber=True)
+    assert pdk.get('tool', 'openroad', 'globalroutingderating') == [('m9', 0.9)]
+
+
+def test_openroad_pdk_unset_globalroutingderating():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_globalroutingderating('m1', 0.5)
+    pdk.unset_openroad_globalroutingderating()
+    assert pdk.get('tool', 'openroad', 'globalroutingderating') == []
+
+
+def test_openroad_pdk_add_pinlayers():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_pinlayers(horizontal='m1', vertical=['m2', 'm3'])
+    assert pdk.get('tool', 'openroad', 'pin_layer_horizontal') == ['m1']
+    assert pdk.get('tool', 'openroad', 'pin_layer_vertical') == ['m2', 'm3']
+
+
+def test_openroad_pdk_add_pinlayers_accumulates():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_pinlayers(horizontal='m1')
+    pdk.add_openroad_pinlayers(horizontal='m2')
+    assert pdk.get('tool', 'openroad', 'pin_layer_horizontal') == ['m1', 'm2']
+
+
+def test_openroad_pdk_add_pinlayers_clobber():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_pinlayers(horizontal='m1', vertical='m2')
+    pdk.add_openroad_pinlayers(horizontal='m5', vertical='m6', clobber=True)
+    assert pdk.get('tool', 'openroad', 'pin_layer_horizontal') == ['m5']
+    assert pdk.get('tool', 'openroad', 'pin_layer_vertical') == ['m6']
+
+
+def test_openroad_pdk_set_rcxmaxlayer():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_rcxmaxlayer('m8')
+    assert pdk.get('tool', 'openroad', 'rcx_maxlayer') == 'm8'
+
+
+def test_openroad_pdk_set_processnode():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_processnode('n7')
+    assert pdk.get('tool', 'openroad', 'drt_process_node') == 'n7'
+
+
+def test_openroad_pdk_set_detailedroutedisableviagen():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_detailedroutedisableviagen(True)
+    assert pdk.get('tool', 'openroad', 'drt_disable_via_gen') is True
+
+
+def test_openroad_pdk_set_detailedrouteviarepair():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_detailedrouteviarepair('v1')
+    assert pdk.get('tool', 'openroad', 'drt_repair_pdn_vias') == 'v1'
+
+
+def test_openroad_pdk_set_detailedrouteviainpinlayers():
+    pdk = OpenROADPDK()
+    pdk.set_openroad_detailedrouteviainpinlayers('m1', 'm2')
+    assert pdk.get('tool', 'openroad', 'drt_via_in_pin_layers') == ('m1', 'm2')
+
+
+def test_openroad_stdcell_set_tiehigh_cell():
+    lib = OpenROADStdCellLibrary()
+    lib.set_openroad_tiehigh_cell('TIEHI', 'Y')
+    assert lib.get('tool', 'openroad', 'tiehigh_cell') == ('TIEHI', 'Y')
+
+
+def test_openroad_stdcell_set_tielow_cell():
+    lib = OpenROADStdCellLibrary()
+    lib.set_openroad_tielow_cell('TIELO', 'Y')
+    assert lib.get('tool', 'openroad', 'tielow_cell') == ('TIELO', 'Y')
+
+
+def test_openroad_stdcell_set_placement_density():
+    lib = OpenROADStdCellLibrary()
+    lib.set_openroad_placement_density(0.7)
+    assert lib.get('tool', 'openroad', 'place_density') == 0.7
+
+
+def test_openroad_stdcell_cell_padding_default():
+    lib = OpenROADStdCellLibrary()
+    assert lib.get('tool', 'openroad', 'global_cell_padding') == 0
+    assert lib.get('tool', 'openroad', 'detailed_cell_padding') == 0
+
+
+def test_openroad_stdcell_set_cell_padding():
+    lib = OpenROADStdCellLibrary()
+    lib.set_openroad_cell_padding(2, 1)
+    assert lib.get('tool', 'openroad', 'global_cell_padding') == 2
+    assert lib.get('tool', 'openroad', 'detailed_cell_padding') == 1
+
+
+def test_openroad_stdcell_set_macro_placement_halo():
+    lib = OpenROADStdCellLibrary()
+    lib.set_openroad_macro_placement_halo(1.5, 2.5)
+    assert lib.get('tool', 'openroad', 'macro_placement_halo') == (1.5, 2.5)
+
+
+def test_openroad_stdcell_set_tracks_file(tmp_path):
+    tracks = tmp_path / "tracks.tcl"
+    tracks.write_text("track info")
+    lib = OpenROADStdCellLibrary()
+    lib.set_name('mylib')
+    lib.set_dataroot('root', str(tmp_path))
+    with lib.active_dataroot('root'):
+        lib.set_openroad_tracks_file('tracks.tcl')
+    assert lib.get('tool', 'openroad', 'tracks') == 'tracks.tcl'
+    assert lib.find_files('tool', 'openroad', 'tracks') == str(tracks)
+
+
+def test_openroad_stdcell_set_tracks_file_explicit_dataroot(tmp_path):
+    tracks = tmp_path / "tracks.tcl"
+    tracks.write_text("track info")
+    lib = OpenROADStdCellLibrary()
+    lib.set_name('mylib')
+    lib.set_dataroot('root', str(tmp_path))
+    lib.set_openroad_tracks_file('tracks.tcl', dataroot='root')
+    assert lib.get('tool', 'openroad', 'tracks') == 'tracks.tcl'
+    assert lib.find_files('tool', 'openroad', 'tracks') == str(tracks)
+
+
+def test_openroad_stdcell_set_tapcells_file(tmp_path):
+    tap = tmp_path / "tap.lef"
+    tap.write_text("tap info")
+    lib = OpenROADStdCellLibrary()
+    lib.set_name('mylib')
+    lib.set_dataroot('root', str(tmp_path))
+    with lib.active_dataroot('root'):
+        lib.set_openroad_tapcells_file('tap.lef')
+    assert lib.get('tool', 'openroad', 'tapcells') == 'tap.lef'
+    assert lib.find_files('tool', 'openroad', 'tapcells') == str(tap)
+
+
+def _make_lib_with_fileset(tmp_path, fileset='rtl'):
+    src = tmp_path / "gc.tcl"
+    src.write_text("connect")
+    lib = OpenROADStdCellLibrary()
+    lib.set_name('mylib')
+    lib.set_dataroot('root', str(tmp_path))
+    with lib.active_dataroot('root'):
+        with lib.active_fileset(fileset):
+            lib.add_file('gc.tcl', filetype='tcl')
+    return lib
+
+
+def test_openroad_stdcell_add_globalconnectfileset(tmp_path):
+    lib = _make_lib_with_fileset(tmp_path)
+    lib.add_openroad_globalconnectfileset('rtl')
+    assert lib.get('tool', 'openroad', 'global_connect_fileset') == ['rtl']
+
+
+def test_openroad_stdcell_add_globalconnectfileset_clobber(tmp_path):
+    lib = _make_lib_with_fileset(tmp_path)
+    lib.add_openroad_globalconnectfileset('rtl')
+    lib.add_openroad_globalconnectfileset('rtl', clobber=True)
+    assert lib.get('tool', 'openroad', 'global_connect_fileset') == ['rtl']
+
+
+def test_openroad_stdcell_add_globalconnectfileset_missing(tmp_path):
+    lib = _make_lib_with_fileset(tmp_path)
+    with pytest.raises(LookupError):
+        lib.add_openroad_globalconnectfileset('missing')
+
+
+def test_openroad_stdcell_add_powergridfileset(tmp_path):
+    lib = _make_lib_with_fileset(tmp_path)
+    lib.add_openroad_powergridfileset('rtl')
+    assert lib.get('tool', 'openroad', 'power_grid_fileset') == ['rtl']
+
+
+def test_openroad_stdcell_add_powergridfileset_clobber(tmp_path):
+    lib = _make_lib_with_fileset(tmp_path)
+    lib.add_openroad_powergridfileset('rtl')
+    lib.add_openroad_powergridfileset('rtl', clobber=True)
+    assert lib.get('tool', 'openroad', 'power_grid_fileset') == ['rtl']
+
+
+def test_openroad_stdcell_add_powergridfileset_missing(tmp_path):
+    lib = _make_lib_with_fileset(tmp_path)
+    with pytest.raises(LookupError):
+        lib.add_openroad_powergridfileset('missing')
+
+
+def test_openroad_stdcell_add_scan_chain_cells():
+    lib = OpenROADStdCellLibrary()
+    lib.add_openroad_scan_chain_cells('SC1')
+    assert lib.get('tool', 'openroad', 'scan_chain_cells') == ['SC1']
+    lib.add_openroad_scan_chain_cells(['SC2', 'SC3'])
+    assert sorted(lib.get('tool', 'openroad', 'scan_chain_cells')) == ['SC1', 'SC2', 'SC3']
+    lib.add_openroad_scan_chain_cells('SC9', clobber=True)
+    assert lib.get('tool', 'openroad', 'scan_chain_cells') == ['SC9']
+
+
+def test_openroad_stdcell_add_multibit_flipflops():
+    lib = OpenROADStdCellLibrary()
+    lib.add_openroad_multibit_flipflops('FF1')
+    assert lib.get('tool', 'openroad', 'multibit_ff_cells') == ['FF1']
+    lib.add_openroad_multibit_flipflops(['FF2', 'FF3'])
+    assert sorted(lib.get('tool', 'openroad', 'multibit_ff_cells')) == ['FF1', 'FF2', 'FF3']
+    lib.add_openroad_multibit_flipflops('FF9', clobber=True)
+    assert lib.get('tool', 'openroad', 'multibit_ff_cells') == ['FF9']
 
 
 def test_openroad_write_data_parameter_abstractlefbloatlayers():
