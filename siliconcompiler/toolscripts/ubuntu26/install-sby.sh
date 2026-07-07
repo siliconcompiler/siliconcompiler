@@ -19,7 +19,7 @@ sudo apt-get update
 # used by the default sby engine (see below).
 sudo apt-get install -y git python3 python3-click python3-venv python3-pip \
                         build-essential cmake pkg-config ninja-build \
-                        libgmp-dev libmpfr-dev
+                        libgmp-dev
 
 mkdir -p deps
 cd deps
