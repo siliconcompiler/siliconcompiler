@@ -728,13 +728,29 @@ proc sc_setup_global_routing { } {
 proc sc_setup_parasitics { } {
     global sc_tool
     global sc_pdk
+    global sc_scenarios
 
     set sc_rc_signal [sc_get_layer_name [sc_cfg_get library $sc_pdk tool $sc_tool rclayer_signal]]
     set sc_rc_clk [sc_get_layer_name [sc_cfg_get library $sc_pdk tool $sc_tool rclayer_clock]]
 
-    set sc_parasitics [sc_cfg_tool_task_get var rsz_parasitics]
-    utl::info FLW 1 "Sourcing parasitic estimation from: $sc_parasitics"
-    source $sc_parasitics
+    if { [sc_has_pexmap] } {
+        set default_corner [sc_cfg_tool_task_get var rsz_default_pex_corner]
+        if { $default_corner != {} } {
+            utl::info FLW 1 "Setting parasitic estimation for default scenes"
+            sc_setup_pex -pexcorner $default_corner
+        }
+        foreach scene $sc_scenarios {
+            set pexcorner [sc_cfg_get constraint timing scenario $scene pexcorner]
+            if { $pexcorner != {} } {
+                utl::info FLW 1 "Setting parasitic estimation for $scene"
+                sc_setup_pex -scene $scene -pexcorner $pexcorner
+            }
+        }
+    } else {
+        set sc_parasitics [sc_cfg_tool_task_get var rsz_parasitics]
+        utl::info FLW 1 "Sourcing parasitic estimation from: $sc_parasitics"
+        source $sc_parasitics
+    }
 
     set_wire_rc -clock -layer $sc_rc_clk
     set_wire_rc -signal -layer $sc_rc_signal
@@ -950,4 +966,88 @@ proc sc_is_inside_die { x y } {
         return false
     }
     return true
+}
+
+proc sc_get_pexmap { map } {
+    global sc_pdk
+    global sc_tool
+    upvar $map pexmap
+
+    set pexmap [dict create]
+    foreach pex [sc_cfg_get library $sc_pdk tool $sc_tool rclayer] {
+        lassign $pex pex_corner pex_type pex_layer pex_res pex_cap
+        dict set pexmap $pex_type $pex_corner $pex_layer "$pex_res $pex_cap"
+    }
+}
+
+proc sc_has_pexmap { } {
+    sc_get_pexmap pexmap
+    return [expr { [dict size $pexmap] > 0 }]
+}
+
+proc sc_setup_pex { args } {
+    sta::parse_key_args "sc_setup_pex" args \
+        keys {-pexcorner -scene} \
+        flags {-verbose}
+    sta::check_argc_eq0 "sc_setup_pex" $args
+    set pexcorner $keys(-pexcorner)
+
+    set scene_name "default"
+    set corner_args []
+    if { [info exists keys(-scene)] } {
+        set scene_name $keys(-scene)
+        lappend corner_args -corner $keys(-scene)
+    }
+
+    sc_get_pexmap pexmap
+
+    if {
+        ![dict exists $pexmap routing $pexcorner] &&
+        ![dict exists $pexmap via $pexcorner]
+    } {
+        utl::warn FLW 10 "No parasitic estimation layers defined for pex corner\
+            '$pexcorner' (scene: $scene_name); skipping set_layer_rc for this corner"
+    }
+
+    if { [dict exists $pexmap routing $pexcorner] } {
+        dict for {layer pex} [dict get $pexmap routing $pexcorner] {
+            lassign $pex res cap
+
+            if { [info exists flags(-verbose)] } {
+                if { $cap == {} } {
+                    utl::info FLW 10 "Setting routing RC | $scene_name | Layer: $layer |\
+                        Res: [sta::format_resistance $res 6]\
+                        [sta::unit_scale_abbrev_suffix resistance]/um"
+                } else {
+                    utl::info FLW 10 "Setting routing RC | $scene_name | Layer: $layer |\
+                        Res: [sta::format_resistance $res 6]\
+                        [sta::unit_scale_abbrev_suffix resistance]/um |\
+                        Cap: [sta::format_capacitance $cap 6]\
+                        [sta::unit_scale_abbrev_suffix capacitance]/um"
+                }
+            }
+            set res [sta::resistance_sta_ui $res]
+            if { $cap != {} } {
+                set cap [sta::capacitance_sta_ui $cap]
+            }
+            set rc_args []
+            if { $cap != {} } {
+                lappend rc_args -capacitance $cap
+            }
+            set_layer_rc {*}$corner_args -layer $layer -resistance $res {*}$rc_args
+        }
+    }
+
+    if { [dict exists $pexmap via $pexcorner] } {
+        dict for {layer pex} [dict get $pexmap via $pexcorner] {
+            lassign $pex res cap
+            if { [info exists flags(-verbose)] } {
+                utl::info FLW 10 "Setting via RC     | $scene_name | Via: $layer   |\
+                    Res: [sta::format_resistance $res 6]\
+                    [sta::unit_scale_abbrev_suffix resistance]"
+            }
+            set res [sta::resistance_sta_ui $res]
+            set_layer_rc {*}$corner_args -via $layer -resistance $res
+        }
+    }
 }
