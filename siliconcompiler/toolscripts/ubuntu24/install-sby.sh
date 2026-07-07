@@ -14,10 +14,10 @@ fi
 
 sudo apt-get update
 
-# sby is pure python; it drives yosys / yosys-smtbmc (installed separately) and
-# needs click at runtime. The remaining packages build the bitwuzla SMT solver
-# used by the default sby engine (see below).
-sudo apt-get install -y git python3 python3-click python3-venv python3-pip \
+# sby is pure python and drives yosys / yosys-smtbmc (installed separately); its
+# 'click' dependency is bundled into the tool prefix below. The remaining
+# packages build the bitwuzla SMT solver used by the default sby engine.
+sudo apt-get install -y git python3 python3-venv python3-pip \
                         build-essential cmake pkg-config ninja-build \
                         libgmp-dev
 
@@ -30,6 +30,12 @@ cd sby
 git checkout $(python3 ${src_path}/_tools.py --tool sby --field git-commit)
 $SUDO_INSTALL make install PREFIX="$PREFIX"
 cd -
+
+# sby imports 'click' at runtime. The apt python3-click package installs outside
+# $PREFIX and is not copied into the combined tool image, so bundle click next
+# to sby_core.py (already on sby's sys.path) where it travels with $PREFIX and
+# stays importable by whichever python ends up running sby.
+$SUDO_INSTALL python3 -m pip install --target "$PREFIX/share/yosys/python3" "click==8.1.7"
 
 # --- Bitwuzla (SMT solver for the default 'smtbmc bitwuzla' engine) ---
 # Built here, not as its own tool: the CI image build does not support chaining
