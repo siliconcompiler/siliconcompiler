@@ -40,6 +40,10 @@ class CompileTask(VerilatorTask):
         self.add_parameter("initialize_random", "bool",
                            "true/false, when true registers will reset with a random value")
 
+        self.add_parameter("timescale", "(str,str)",
+                           "default simulation timescale as a (unit, precision) pair (e.g. "
+                           "(\"1ns\", \"1ps\")). Passed to Verilator via --timescale.")
+
     def set_verilator_mode(self, mode: str,
                            step: Optional[str] = None,
                            index: Optional[str] = None):
@@ -159,6 +163,24 @@ class CompileTask(VerilatorTask):
         """
         self.set("var", "pins_bv", width, step=step, index=index)
 
+    def set_verilator_timescale(self, unit: str, precision: str,
+                                step: Optional[str] = None,
+                                index: Optional[str] = None):
+        """
+        Sets the default simulation timescale.
+
+        Emits ``--timescale <unit>/<precision>`` to Verilator, setting the
+        default time unit and precision for modules that do not specify their
+        own ``timescale`` directive.
+
+        Args:
+            unit (str): The time unit (e.g. "1ns").
+            precision (str): The time precision (e.g. "1ps").
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "timescale", (unit, precision), step=step, index=index)
+
     def set_verilator_initializerandom(self, enable: bool,
                                        step: Optional[str] = None,
                                        index: Optional[str] = None):
@@ -202,6 +224,8 @@ class CompileTask(VerilatorTask):
             self.add_required_key("var", "trace_type")
         self.add_required_key("var", "initialize_random")
         self.add_required_key("var", "main")
+        if self.get("var", "timescale"):
+            self.add_required_key("var", "timescale")
 
         self._setup_c_file_requirement()
 
@@ -223,6 +247,11 @@ class CompileTask(VerilatorTask):
 
         if self.get("var", "main"):
             options.extend(['--main', '--timing'])
+
+        timescale = self.get("var", "timescale")
+        if timescale:
+            unit, precision = timescale
+            options.extend(['--timescale', f'{unit}/{precision}'])
 
         options.extend(['--exe', '--build'])
 

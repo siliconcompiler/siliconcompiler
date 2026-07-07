@@ -19,7 +19,8 @@ cd yosys-slang
 git checkout $(python3 ${src_path}/_tools.py --tool yosys-slang --field git-commit)
 git submodule update --init --recursive
 
-make -j${NPROC:-$(nproc)}
+cmake -B build .
+make -C build -j${NPROC:-$(nproc)}
 
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
@@ -28,5 +29,5 @@ else
     SUDO_INSTALL=""
 fi
 
-$SUDO_INSTALL make install
+$SUDO_INSTALL make -C build install
 cd -

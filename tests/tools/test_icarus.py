@@ -7,6 +7,15 @@ import os.path
 from siliconcompiler import Project, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.icarus import compile
+from siliconcompiler.tools.execute.exec_input import ExecInputTask
+
+
+def _vcd_timescale(path):
+    """Returns the timescale recorded in a VCD file's ``$timescale`` header."""
+    with open(path) as f:
+        text = f.read()
+    body = text.split("$timescale", 1)[1].split("$end", 1)[0]
+    return "".join(body.split())
 
 
 @pytest.mark.eda
@@ -63,6 +72,89 @@ def test_runtime_args(heartbeat_design):
             '-DSILICONCOMPILER_TRACE_DIR="reports"',
             '-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"',
             heartbeat_design.get_file("rtl", "verilog")[0]]
+
+
+def test_runtime_args_timescale(heartbeat_design):
+    proj = Project(heartbeat_design)
+    heartbeat_design.set_param("N", "8", "rtl")
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", compile.CompileTask())
+    proj.set_flow(flow)
+    compile.CompileTask.find_task(proj).set_icarus_timescale("1ns", "1ps")
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get_runtime_arguments() == [
+            '-o', 'outputs/heartbeat.vvp',
+            '-s', 'heartbeat',
+            '-Pheartbeat.N=8',
+            '-DSILICONCOMPILER_TRACE_DIR="reports"',
+            '-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"',
+            '-f', 'sc_timescale.f',
+            heartbeat_design.get_file("rtl", "verilog")[0]]
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("unit,precision,expected", [
+    ("1ns", "1ps", "1ps"),
+    ("1us", "1ns", "1ns"),
+])
+def test_timescale_applied_to_vcd(heartbeat_design, unit, precision, expected):
+    # Compile with tracing enabled and a configured timescale, then run the
+    # simulation and confirm the timescale actually reaches the simulator by
+    # inspecting the precision recorded in the VCD header.
+    proj = Project(heartbeat_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("compile", compile.CompileTask())
+    flow.node("simulate", ExecInputTask())
+    flow.edge("compile", "simulate")
+    proj.set_flow(flow)
+
+    task = compile.CompileTask.find_task(proj)
+    task.set_trace_enabled(True)
+    task.set_icarus_timescale(unit, precision)
+
+    assert proj.run()
+
+    vcd = proj.find_result("vcd", step="simulate", directory="reports")
+    assert vcd is not None and os.path.isfile(vcd)
+    # VCD records the timescale precision.
+    assert _vcd_timescale(vcd) == expected
+
+
+def test_timescale_file_generation(heartbeat_design):
+    proj = Project(heartbeat_design)
+    heartbeat_design.set_param("N", "8", "rtl")
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", compile.CompileTask())
+    proj.set_flow(flow)
+    compile.CompileTask.find_task(proj).set_icarus_timescale("1ns", "1ps")
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        node.task.pre_process()
+
+    with open("sc_timescale.f") as f:
+        assert f.read() == "+timescale+1ns/1ps\n"
+
+
+def test_icarus_parameter_timescale():
+    task = compile.CompileTask()
+    task.set_icarus_timescale('1ns', '1ps')
+    assert task.get("var", "timescale") == ('1ns', '1ps')
+    task.set_icarus_timescale('10ps', '1ps', step='compile', index='1')
+    assert task.get("var", "timescale", step='compile', index='1') == ('10ps', '1ps')
+    assert task.get("var", "timescale") == ('1ns', '1ps')
 
 
 def test_icarus_parameter_verilog_generation():
