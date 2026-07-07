@@ -152,6 +152,21 @@ class CocotbTask(Task):
 
         return ",".join(module_names), module_dirs
 
+    def _get_libdirs(self):
+        """
+        Collect user-provided library directories from all filesets.
+
+        These directories are added to PYTHONPATH so cocotb can import
+        Python modules that the testbench depends on.
+
+        Returns:
+            list: A list of library directory paths.
+        """
+        libdirs = []
+        for lib, fileset in self.project.get_filesets():
+            libdirs.extend(lib.get_libdir(fileset=fileset))
+        return libdirs
+
     def _get_toplevel_lang(self):
         """
         Determine the HDL toplevel language from the design schema.
@@ -219,6 +234,8 @@ class CocotbTask(Task):
         for lib, fileset in self.project.get_filesets():
             if lib.has_file(fileset=fileset, filetype="python"):
                 self.add_required_key(lib, "fileset", fileset, "file", "python")
+            if lib.has_libdir(fileset=fileset):
+                self.add_required_key(lib, "fileset", fileset, "libdir")
 
         if self.get("var", "cocotb_random_seed") is not None:
             self.add_required_key("var", "cocotb_random_seed")
@@ -227,22 +244,52 @@ class CocotbTask(Task):
         self.__setup_cocotb_environment()
 
     def get_runtime_environmental_variables(self, include_path: bool = True) -> Dict[str, str]:
+        """
+        Build the environment variables required to run a cocotb simulation.
+
+        Extends the base environment with the cocotb library directory on
+        PATH, the test-module and user library directories on PYTHONPATH,
+        and the Python executable used by the GPI bridge. PATH and PYTHONPATH
+        entries are added idempotently so repeated calls do not duplicate them.
+
+        Args:
+            include_path (bool): If True, includes the PATH variable.
+
+        Returns:
+            dict: A dictionary of environment variable names to their values.
+        """
         envs = super().get_runtime_environmental_variables(include_path)
 
-        _, module_dirs = self._get_test_modules()
-        libs_dir = cocotb_tools.config.libs_dir
-
+        ##########################################
         # PATH: add cocotb libs directory
-        current_path = os.environ.get("PATH", "")
-        new_path = f"{libs_dir}{os.pathsep}{current_path}"
-        envs["PATH"] = new_path
+        ##########################################
+        if include_path:
+            libs_dir = str(cocotb_tools.config.libs_dir)
+            path_parts = envs.get("PATH", "").split(os.pathsep)
+            if libs_dir not in path_parts:
+                path_parts.insert(0, libs_dir)
+            envs["PATH"] = os.pathsep.join(p for p in path_parts if p)
 
-        # PYTHONPATH: add directories containing test modules
-        current_pythonpath = os.environ.get("PYTHONPATH", "")
-        pythonpath_parts = module_dirs + ([current_pythonpath] if current_pythonpath else [])
-        envs["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
+        ##########################################
+        # PYTHONPATH: add dirs to python path
+        ##########################################
+        python_path = [p for p in envs.get("PYTHONPATH", "").split(os.pathsep) if p]
 
-        # PYGPI_PYTHON_BIN: Python executable
+        # Get test module directories
+        _, module_dirs = self._get_test_modules()
+        # Get lib directories
+        user_lib_dirs = self._get_libdirs()
+
+        for path in module_dirs + user_lib_dirs:
+            if path not in python_path:
+                python_path.append(path)
+
+        # Set new python path
+        envs["PYTHONPATH"] = os.pathsep.join(python_path)
+
+        ##########################################
+        # PYGPI_PYTHON_BIN: set python executable
+        ##########################################
         envs["PYGPI_PYTHON_BIN"] = sys.executable
 
         return envs

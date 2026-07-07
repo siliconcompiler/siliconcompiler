@@ -1,4 +1,5 @@
 from .asap7_demo import asap7_demo
+from .dvflow_cocotb import dvflow_cocotb
 from .freepdk45_demo import freepdk45_demo
 from .gf180_demo import gf180_demo
 from .ihp130_demo import ihp130_demo
@@ -11,6 +12,7 @@ from ._utils import asic_target  # noqa: F401
 
 __all__ = [
     "asap7_demo",
+    "dvflow_cocotb",
     "freepdk45_demo",
     "gf180_demo",
     "ihp130_demo",
