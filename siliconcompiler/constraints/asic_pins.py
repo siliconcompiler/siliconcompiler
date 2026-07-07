@@ -39,7 +39,7 @@ class ASICPinConstraint(NamedSchema):
         schema.insert(
             'width',
             Parameter(
-                'float<0.0->>',
+                'float<0.0..>',
                 unit='um',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
@@ -56,7 +56,7 @@ class ASICPinConstraint(NamedSchema):
         schema.insert(
             'length',
             Parameter(
-                'float<0.0->>',
+                'float<0.0..>',
                 unit='um',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
@@ -101,7 +101,7 @@ class ASICPinConstraint(NamedSchema):
         schema.insert(
             'side',
             Parameter(
-                'int<1->>',
+                'int<1..>',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: pin side",
@@ -117,7 +117,7 @@ class ASICPinConstraint(NamedSchema):
         schema.insert(
             'order',
             Parameter(
-                'int<0->>',
+                'int<0..>',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: pin order",

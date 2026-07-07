@@ -1807,7 +1807,7 @@ def schema_flowgraph(schema: FlowgraphNodeSchema):
     edit.insert(
         'weight', metric,
         Parameter(
-            'float<0.0->>',
+            'float<0.0..>',
             scope=Scope.GLOBAL,
             defvalue=0.0,
             shorthelp="Flowgraph: Metric weights",

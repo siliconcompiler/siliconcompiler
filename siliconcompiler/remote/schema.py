@@ -27,7 +27,7 @@ class ServerSchema(CommandLineSchema, BaseSchema):
         schema.insert(
             'option', 'port',
             Parameter(
-                'int<1-65535>',
+                'int<1..65535>',
                 scope=Scope.GLOBAL,
                 defvalue=8080,
                 require='all',
@@ -79,7 +79,7 @@ class ServerSchema(CommandLineSchema, BaseSchema):
         schema.insert(
             'option', 'checkinterval',
             Parameter(
-                'int<1->>',
+                'int<1..>',
                 defvalue=30,
                 shorthelp="Interval for client",
                 switch="-checkinterval <int>",

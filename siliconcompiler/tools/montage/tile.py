@@ -14,7 +14,7 @@ class TileTask(ImageMagickTask):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("bins", "(int<1->>,int<1->>)",
+        self.add_parameter("bins", "(int<1..>,int<1..>)",
                            "Number of bins along the (x, y)-axis. If left unset, the grid size is "
                            "auto-detected from the incoming tile images.")
 
