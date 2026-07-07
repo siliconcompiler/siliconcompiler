@@ -20,7 +20,6 @@ find . \( \
     -or -path "*build/*" \
     -or -path "./tests/flows/data/sv/*" \
     -or -path "./examples/aes/aes.v" \
-    -or -path "./examples/sva_sby/*.sv" \
     -or -path "./tests/flows/data/bad.v" \
     -or -path "./tests/tools/data/gh1789/encode_stream_sc_module_8.v" \
     -or -path "./siliconcompiler/tools/surelog/templates/output.v" \

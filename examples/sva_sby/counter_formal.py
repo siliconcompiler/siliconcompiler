@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2020-2025 Silicon Compiler Authors. All Rights Reserved.
+# Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 
 import sys
 

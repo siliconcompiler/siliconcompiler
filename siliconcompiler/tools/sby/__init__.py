@@ -69,8 +69,8 @@ class SBYTask(Task):
     def setup(self):
         super().setup()
 
-        # The upstream sby git build reports a versionless "SBY" banner, so no
-        # vswitch/version specifiers: the version check is skipped entirely.
+        # sby reports the yosys release it was built against (e.g. "SBY v0.66");
+        # we rely on the pinned toolchain rather than gating on a runtime version.
         self.set_exe("sby")
 
         self.add_regex("warnings", r"^SBY .* WARNING")
