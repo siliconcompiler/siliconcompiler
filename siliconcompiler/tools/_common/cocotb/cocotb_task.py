@@ -164,8 +164,7 @@ class CocotbTask(Task):
         """
         libdirs = []
         for lib, fileset in self.project.get_filesets():
-            for libdir in lib.get_libdir(fileset=fileset):
-                libdirs.append(libdir)
+            libdirs.extend(lib.get_libdir(fileset=fileset))
         return libdirs
 
     def _get_toplevel_lang(self):

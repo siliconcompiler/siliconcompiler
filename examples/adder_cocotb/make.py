@@ -4,14 +4,14 @@
 """
 Example demonstrating cocotb integration with SiliconCompiler.
 
-This example shows how to use the ``cocotb_dvflow`` helper to run Python-based
+This example shows how to use the ``dvflow_cocotb`` helper to run Python-based
 cocotb testbenches against a design, using either the Icarus Verilog or
 Verilator simulation flow.
 """
 
 from siliconcompiler import Design, Sim
 
-from siliconcompiler.targets.cocotb_dvflow import cocotb_dvflow
+from siliconcompiler.targets.dvflow_cocotb import dvflow_cocotb
 
 
 class Adder(Design):
@@ -77,7 +77,7 @@ def sim_icarus(seed: int = None, trace: bool = True):
     project.add_fileset("testbench.cocotb")
 
     # Call cocotb target function to setup the project for a cocotb run
-    cocotb_dvflow(
+    dvflow_cocotb(
         project=project,
         trace=trace,
         timescale=("1ns", "1ps"),
@@ -130,7 +130,7 @@ def sim_verilator(seed: int = None, trace: bool = True, trace_type: str = "vcd")
     project.add_fileset("testbench.cocotb")
 
     # Call cocotb target function to setup the project for a cocotb run
-    cocotb_dvflow(
+    dvflow_cocotb(
         project=project,
         trace=trace,
         trace_type=trace_type,

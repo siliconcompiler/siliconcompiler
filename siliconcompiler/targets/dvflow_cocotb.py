@@ -11,7 +11,7 @@ from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask as 
 from siliconcompiler.tools.verilator.cocotb_exec import CocotbExecTask as VerilatorCocotbExecTask
 
 
-def cocotb_dvflow(
+def dvflow_cocotb(
     project: Sim,
     trace: bool = True,
     trace_type: str = "fst",
@@ -56,9 +56,6 @@ def cocotb_dvflow(
     if timescale is not None:
         compile_task.set_icarus_timescale(unit=timescale[0], precision=timescale[1])
 
-    if seed is not None:
-        IcarusCocotbExecTask.find_task(project).set_cocotb_randomseed(seed)
-
     ####################################
     # Setup verilator flow
     ####################################
@@ -71,12 +68,16 @@ def cocotb_dvflow(
     if timescale is not None:
         compile_task.set_verilator_timescale(unit=timescale[0], precision=timescale[1])
 
-    cocotb_task = VerilatorCocotbExecTask.find_task(project)
-    cocotb_task.set_cocotb_trace(
+    VerilatorCocotbExecTask.find_task(project).set_cocotb_trace(
         enable=trace,
         trace_type=trace_type
     )
 
+    ####################################
+    # Set cocotb settings for flows
+    ####################################
+
     # Optionally set a random seed for reproducibility
     if seed is not None:
-        cocotb_task.set_cocotb_randomseed(seed)
+        IcarusCocotbExecTask.find_task(project).set_cocotb_randomseed(seed)
+        VerilatorCocotbExecTask.find_task(project).set_cocotb_randomseed(seed)
