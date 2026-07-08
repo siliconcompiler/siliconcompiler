@@ -20,16 +20,12 @@ def test_parameters():
     task.set_sby_depth(45)
     assert task.get("var", "depth") == 45
 
-    # default engine
+    # boolector is currently the only supported engine
     assert task.get("var", "engine") == ["smtbmc boolector"]
 
-    # append to the default engine list
-    task.add_sby_engine("smtbmc bitwuzla")
-    assert task.get("var", "engine") == ["smtbmc boolector", "smtbmc bitwuzla"]
-
-    # clobber replaces it
-    task.add_sby_engine("smtbmc bitwuzla", clobber=True)
-    assert task.get("var", "engine") == ["smtbmc bitwuzla"]
+    # add_sby_engine replaces the list when clobbering
+    task.add_sby_engine("smtbmc boolector", clobber=True)
+    assert task.get("var", "engine") == ["smtbmc boolector"]
 
 
 def test_formalflow_modes():

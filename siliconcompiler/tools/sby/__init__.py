@@ -2,9 +2,8 @@
 SymbiYosys (sby) is a front-end driver program for Yosys-based formal
 hardware verification flows. It reads a job configuration file, runs
 Yosys to elaborate the design into a formal model, and dispatches one
-or more proof engines (smtbmc with boolector/bitwuzla/z3, btor, abc,
-aiger, ...) to prove or disprove the SystemVerilog assertions in the
-design.
+or more proof engines (smtbmc, btor, abc, aiger, ...) to prove or
+disprove the SystemVerilog assertions in the design.
 
 Documentation: https://symbiyosys.readthedocs.io
 
@@ -37,7 +36,11 @@ class SBYTask(Task):
                            "mode, or the induction length in prove mode.",
                            defvalue=20)
 
-        self.add_parameter("engine", "[<smtbmc bitwuzla,smtbmc boolector>]",
+        # Only boolector is offered for now: yosys' smtbmc in this release drives
+        # the solver through the legacy '--smt2' CLI, which the rewritten bitwuzla
+        # (every numbered release) dropped. bitwuzla can be re-added once yosys is
+        # bumped to a smtbmc that speaks bitwuzla's native '--lang' interface.
+        self.add_parameter("engine", "[<smtbmc boolector>]",
                            "Engine lines for the [engines] section of the sby job file. "
                            "Each entry is one line.",
                            defvalue=["smtbmc boolector"])
@@ -54,7 +57,7 @@ class SBYTask(Task):
         self.set("var", "depth", depth)
 
     def add_sby_engine(self, engine, clobber=False):
-        """Adds an sby engine line, e.g. 'smtbmc bitwuzla'.
+        """Adds an sby engine line, e.g. 'smtbmc boolector'.
 
         Args:
             engine (Union[str, List[str]]): engine line(s) for the [engines] section.

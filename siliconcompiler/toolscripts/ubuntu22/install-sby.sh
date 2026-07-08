@@ -36,11 +36,9 @@ cd -
 # stays importable by whichever python ends up running sby.
 $SUDO_INSTALL python3 -m pip install --target "$PREFIX/share/yosys/python3" "click==8.1.7"
 
-# --- Boolector (SMT solver for the default 'smtbmc boolector' engine) ---
-# Built here, not as its own tool: the CI image build does not support chaining
-# docker-depends (sby already depends on yosys). yosys' smtbmc driver in this
-# release speaks the classic '--smt2' CLI, which the rewritten bitwuzla dropped,
-# so boolector is used.
+# --- Boolector (the SMT solver the default 'smtbmc boolector' engine uses) ---
+# Built here, not as its own tool, because the CI image build does not support
+# chaining docker-depends (sby already depends on yosys).
 git clone $(python3 ${src_path}/_tools.py --tool boolector --field git-url) boolector
 cd boolector
 git checkout $(python3 ${src_path}/_tools.py --tool boolector --field git-commit)
