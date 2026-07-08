@@ -397,7 +397,7 @@ class Checklist(NamedSchema):
                         error = True
                         continue
 
-                    if job_data.get("metric", metric, field='type') == 'int':
+                    if job_data.get("metric", metric, field='type').startswith('int'):
                         goal = int(m.group(3))
                         number_format = 'd'
                     else:

@@ -12,6 +12,12 @@ from the code diffs, not the commit messages). Dates are the git commit dates of
 the version bump. Version numbering was not strictly linear during early
 development, so a few dates are non-monotonic relative to the semver ordering.
 
+## 0.56.0 — 2026-07-07
+- Added value ranges/limits to numeric schema types via a new `NodeRangeType`
+  and `int<...>`/`float<...>` type syntax (e.g. `int<0..100>`, `float<0.0..1.0>`,
+  open-ended `int<0..>`); `str<...>` is treated as an enum. Ranges are validated
+  on set and encoded into the serialized type string.
+
 ## 0.55.0 — 2026-07-01
 - Changed the global-value key from `'global'` to `'*'` to avoid name conflicts,
   with legacy read support for older manifests.
