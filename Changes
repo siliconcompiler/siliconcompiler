@@ -8,6 +8,34 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.0 (2026-07-08)
+=========================================
+
+**Major:**
+
+ * Removed support for Python 3.9.
+ * Changed the global-value key from `global` to `*` to avoid name conflicts, with legacy read support for older manifests.
+ * Added `rename_node` to allow flowgraph nodes to be renamed.
+ * Added value ranges and limits to schema types using Ada-style notation, e.g. `int<0..100>`, `float<..1.0>`, and enums like `str<a,b,c>`.
+ * Moved the dashboard to an optional dependency.
+
+**Minor:**
+
+ * Added language detection to targets.
+ * Added a warning when installed pip package versions are out of sync.
+ * Made `get_cores` aware of the scheduler's processor affinity.
+ * Allowed partial matches when setting and getting flows.
+ * Made filelist generation depth first.
+ * Added Ubuntu 26 tool install scripts.
+ * Fixed warnings about leaked resources and mishandled `atexit` cleanup.
+
+ * Tools:
+
+  * openroad: added a parasitic extraction (PEX) interface to the PDK with a warning when no corner is found, and added a dedicated cleanup task that moves logic cleanup out of floorplanning.
+  * montage: added a `convert` tool, automatic montage handling, and host-scaled ImageMagick resource limits via a private `policy.xml`.
+  * icarus/verilator: added a parameter to set the timescale for compilation.
+
+
 SiliconCompiler 0.37.12 (2026-06-09)
 =========================================
 
