@@ -33,8 +33,10 @@ def dvflow_cocotb(
             * project (Sim): The simulation project to configure.
             * trace (bool): Enable waveform tracing. Defaults to True.
             * trace_type (str): Waveform format for Verilator, 'vcd' or 'fst'. Defaults to "fst".
-            * timescale (tuple[str, str]): Simulation timescale as a (unit, precision) pair, e.g. ("1ns", "1ps"). If None, no timescale is set. Defaults to None.
-            * seed (int): Random seed for cocotb test reproducibility. If None, cocotb generates a random seed. Defaults to None.
+            * timescale (tuple[str, str]): Simulation timescale as a (unit, precision) pair, e.g.
+                ("1ns", "1ps"). If None, no timescale is set. Defaults to None.
+            * seed (int): Random seed for cocotb test reproducibility. If None, cocotb generates a
+                random seed. Defaults to None.
             * np (int): Number of parallel simulation nodes in each flow. Defaults to 1.
         """
 
