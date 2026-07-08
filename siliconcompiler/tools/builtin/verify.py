@@ -57,7 +57,7 @@ class VerifyTask(BuiltinTask):
                 raise ValueError(
                     f"Missing metric for {metric} in {step}/{index}")
 
-            goal = NodeType.normalize(goal, metric_param.get(field='type'))
+            goal = NodeType.normalize(goal, NodeType.parse(metric_param.get(field='type')))
             if not utils.safecompare(value, op, goal):
                 raise ValueError(f"{self.step}/{self.index} fails '{metric}' "
                                  f"metric: {value}{op}{goal}")
