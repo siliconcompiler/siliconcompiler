@@ -39,4 +39,4 @@ Support apps
 
 .. scapp::
   :app: python3 -m siliconcompiler.tools.openroad.utils.rcx_merge
-  :title: OpenrROAD OpenRCX Merge Utility
+  :title: OpenROAD OpenRCX Merge Utility
