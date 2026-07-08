@@ -5,12 +5,13 @@ import os.path
 from siliconcompiler import Project
 
 
-def _assert_clean(design, jobname="job0"):
+def _assert_clean(design, steps, jobname="job0"):
     manifest = f'build/{design}/{jobname}/{design}.pkg.json'
     assert os.path.isfile(manifest)
 
     project = Project.from_manifest(manifest).history(jobname)
-    assert project.get('metric', 'errors', step='formal', index='0') == 0
+    for step in steps:
+        assert project.get('metric', 'errors', step=step, index='0') == 0
 
 
 @pytest.mark.eda
@@ -20,7 +21,7 @@ def test_py_counter_formal():
     from sva_sby import counter_formal
     counter_formal.main()
 
-    _assert_clean("counter")
+    _assert_clean("counter", ["bmc"])
 
 
 @pytest.mark.eda
@@ -30,8 +31,8 @@ def test_py_fifo():
     from sva_sby import fifo
     fifo.main()
 
-    for mode in ("bmc", "prove", "cover"):
-        _assert_clean("fifo", jobname=f"job_{mode}")
+    # all three modes run as parallel nodes in the same job
+    _assert_clean("fifo", ["bmc", "prove", "cover"])
 
 
 @pytest.mark.eda
@@ -41,7 +42,7 @@ def test_py_demo():
     from sva_sby import demo
     demo.main()
 
-    _assert_clean("demo")
+    _assert_clean("demo", ["bmc"])
 
 
 @pytest.mark.eda
@@ -51,7 +52,7 @@ def test_py_prove():
     from sva_sby import prove
     prove.main()
 
-    _assert_clean("prove")
+    _assert_clean("prove", ["prove"])
 
 
 @pytest.mark.eda
@@ -61,4 +62,4 @@ def test_py_cover():
     from sva_sby import cover
     cover.main()
 
-    _assert_clean("cover")
+    _assert_clean("cover", ["cover"])

@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 
-import sys
-
 from siliconcompiler import Design, Project
-from siliconcompiler.flows.formalflow import FormalFlow
+from siliconcompiler.flows.propertycheckflow import PropertyCheckFlow, PropertyCheckMode
 
 
-def main(mode="bmc"):
+def main(modes=PropertyCheckMode.BMC):
     """
     Formally verifies the 'counter' design with SymbiYosys.
 
     This script sets up a design with RTL that carries SVA assertions
     (guarded by `ifdef FORMAL), wraps it in a project, and runs the
-    FormalFlow, which drives yosys + sby + an SMT solver. Supported
-    modes: bmc (default), prove, cover.
+    PropertyCheckFlow, which drives yosys + sby + an SMT solver. Each
+    selected PropertyCheckMode (bmc/prove/cover) runs as its own parallel
+    node.
 
     The sby, yosys, and solver executables are located through the
     environment (PATH), so activate the desired formal toolchain before
@@ -30,16 +29,16 @@ def main(mode="bmc"):
     design.set_topmodule("counter", fileset="rtl")
     design.add_file("counter.v", dataroot="sva_sby", fileset="rtl")
 
-    # Create a project and select the formal verification flow.
+    # Create a project and select the property-checking flow.
     project = Project(design)
     project.add_fileset("rtl")
-    project.set_flow(FormalFlow(mode=mode))
+    project.set_flow(PropertyCheckFlow(modes=modes))
 
     # Execute the flow; raises on a failed proof.
-    assert project.run(), "formal verification failed"
+    project.run()
 
     project.summary()
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "bmc")
+    main()

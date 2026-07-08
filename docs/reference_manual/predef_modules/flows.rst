@@ -132,11 +132,11 @@ simulator (and optionally cocotb-based testbenches).
 Formal Verification Flows
 -------------------------
 
-Flows for formally verifying the SVA assertions in an RTL design using
+Flows for formally verifying the SVA properties in an RTL design using
 SymbiYosys (sby).
 
 .. schema::
-  :root: siliconcompiler.flows.formalflow/FormalFlow
+  :root: siliconcompiler.flows.propertycheckflow/PropertyCheckFlow
 
 DRC Flows
 ---------

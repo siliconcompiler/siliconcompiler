@@ -3,7 +3,7 @@ import os
 import pytest
 
 from siliconcompiler import Design, Project, Flowgraph
-from siliconcompiler.flows.formalflow import FormalFlow
+from siliconcompiler.flows.propertycheckflow import PropertyCheckFlow, PropertyCheckMode
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.sby import bmc, cover, prove
 
@@ -28,13 +28,21 @@ def test_parameters():
     assert task.get("var", "engine") == ["smtbmc boolector"]
 
 
-def test_formalflow_modes():
-    assert FormalFlow().name == "formalflow-bmc"
-    assert FormalFlow(mode="prove").name == "formalflow-prove"
-    assert FormalFlow(mode="cover").name == "formalflow-cover"
+def test_propertycheckflow_modes():
+    def steps(flow):
+        return sorted({step for step, index in flow.get_nodes()})
 
-    with pytest.raises(ValueError, match="Unsupported formal mode"):
-        FormalFlow(mode="lint")
+    bmc_m, prove_m, cover_m = (PropertyCheckMode.BMC,
+                               PropertyCheckMode.PROVE,
+                               PropertyCheckMode.COVER)
+
+    # each selected mode becomes a parallel node named after it
+    assert steps(PropertyCheckFlow()) == ["bmc"]
+    assert steps(PropertyCheckFlow(modes=bmc_m | cover_m)) == ["bmc", "cover"]
+    assert steps(PropertyCheckFlow(modes=bmc_m | prove_m | cover_m)) == ["bmc", "cover", "prove"]
+
+    with pytest.raises(ValueError, match="requires at least one mode"):
+        PropertyCheckFlow(modes=bmc_m & cover_m)
 
 
 def test_sby_file_generation(gcd_design, monkeypatch):
@@ -98,9 +106,12 @@ def test_sby_params_and_timeout(gcd_design, monkeypatch):
         with open("gcd.sby") as f:
             job = f.read().splitlines()
 
-    # node timeout is written into the job; params become chparam lines
-    assert "timeout 120" in job
-    assert "chparam -set N 64 gcd" in job
+    # node timeout is written into the [options] section
+    assert job[3] == "timeout 120"
+    # the design param becomes a chparam line after the read_verilog lines
+    script = job[job.index("[script]") + 1:]
+    sources = gcd_design.get_file(fileset="rtl", filetype="verilog")
+    assert script[len(sources)] == "chparam -set N 64 gcd"
 
 
 def test_runtime_args(gcd_design):
@@ -120,7 +131,7 @@ def test_runtime_args(gcd_design):
             'gcd.sby']
 
 
-def _counter_project(datadir, mode, rtl="sby/counter.v"):
+def _counter_project(datadir, modes, rtl="sby/counter.v"):
     design = Design("counter")
     design.set_dataroot("root", datadir)
     design.set_topmodule("counter", fileset="rtl")
@@ -128,22 +139,38 @@ def _counter_project(datadir, mode, rtl="sby/counter.v"):
 
     proj = Project(design)
     proj.add_fileset("rtl")
-    proj.set_flow(FormalFlow(mode=mode))
+    proj.set_flow(PropertyCheckFlow(modes=modes))
     return proj
 
 
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
+def test_version(gcd_design):
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", bmc.BMCTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.check_exe_version(node.task.get_exe_version()) is True
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_bmc_pass(datadir):
-    proj = _counter_project(datadir, "bmc")
+    proj = _counter_project(datadir, PropertyCheckMode.BMC)
     assert proj.run()
 
-    assert proj.history("job0").get('metric', 'errors', step='formal', index='0') == 0
+    assert proj.history("job0").get('metric', 'errors', step='bmc', index='0') == 0
 
-    # sby writes "<status> <count> <count>"; the first token is the verdict
-    with open("build/counter/job0/formal/0/sby/status") as f:
-        assert f.read().split()[0] == "PASS"
+    with open("build/counter/job0/bmc/0/sby/status") as f:
+        assert f.read().strip() == "PASS 0 0"
 
 
 @pytest.mark.eda
@@ -151,22 +178,22 @@ def test_bmc_pass(datadir):
 @pytest.mark.timeout(300)
 def test_bmc_fail_produces_trace(datadir):
     # counter_fail.v tightens the bound so the assertion is violated
-    proj = _counter_project(datadir, "bmc", rtl="sby/counter_fail.v")
+    proj = _counter_project(datadir, PropertyCheckMode.BMC, rtl="sby/counter_fail.v")
     with pytest.raises(RuntimeError):
         proj.run()
 
-    with open("build/counter/job0/formal/0/sby/status") as f:
-        assert f.read().split()[0] == "FAIL"
+    with open("build/counter/job0/bmc/0/sby/status") as f:
+        assert f.read().strip() == "FAIL 2 0"
 
     # counterexample trace is preserved for debugging
-    assert os.path.exists("build/counter/job0/formal/0/reports/trace.vcd")
+    assert os.path.exists("build/counter/job0/bmc/0/reports/trace.vcd")
 
 
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_prove_pass(datadir):
-    proj = _counter_project(datadir, "prove")
+    proj = _counter_project(datadir, PropertyCheckMode.PROVE)
     assert proj.run()
 
-    assert proj.history("job0").get('metric', 'errors', step='formal', index='0') == 0
+    assert proj.history("job0").get('metric', 'errors', step='prove', index='0') == 0

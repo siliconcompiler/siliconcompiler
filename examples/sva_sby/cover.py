@@ -2,7 +2,7 @@
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import Design, Project
-from siliconcompiler.flows.formalflow import FormalFlow
+from siliconcompiler.flows.propertycheckflow import PropertyCheckFlow, PropertyCheckMode
 
 
 def main():
@@ -20,9 +20,9 @@ def main():
 
     project = Project(design)
     project.add_fileset("rtl")
-    project.set_flow(FormalFlow(mode="cover"))
+    project.set_flow(PropertyCheckFlow(modes=PropertyCheckMode.COVER))
 
-    assert project.run(), "formal verification failed"
+    project.run()
 
     project.summary()
 

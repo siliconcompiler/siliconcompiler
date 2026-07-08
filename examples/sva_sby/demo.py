@@ -2,7 +2,7 @@
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import Design, Project
-from siliconcompiler.flows.formalflow import FormalFlow
+from siliconcompiler.flows.propertycheckflow import PropertyCheckFlow, PropertyCheckMode
 from siliconcompiler.tools.sby.bmc import BMCTask
 
 
@@ -20,12 +20,12 @@ def main():
 
     project = Project(design)
     project.add_fileset("rtl")
-    project.set_flow(FormalFlow(mode="bmc"))
+    project.set_flow(PropertyCheckFlow(modes=PropertyCheckMode.BMC))
 
     # the official demo.sby checks 100 cycles
     BMCTask.find_task(project).set_sby_depth(100)
 
-    assert project.run(), "formal verification failed"
+    project.run()
 
     project.summary()
 
