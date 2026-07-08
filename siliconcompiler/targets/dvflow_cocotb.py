@@ -19,28 +19,26 @@ def dvflow_cocotb(
     seed: Optional[int] = None,
     np: int = 1
 ):
-    """Configures a simulation project for a cocotb design verification run.
-
-    Registers both the Icarus and Verilator cocotb flows on the project
-    (Icarus is selected as the active flow; Verilator is added as a
-    dependency so it can be selected later via
-    ``project.set_flow("verilatorcocotbdvflow")``) and applies the shared
-    trace, timescale, and seed settings to the compile and execution tasks
-    of each flow.
-
-    Args:
-        project (Sim): The simulation project to configure.
-        trace (bool, optional): Enable waveform tracing. Defaults to True.
-        trace_type (str, optional): Waveform format for Verilator, 'vcd' or
-            'fst'. Defaults to "fst".
-        timescale (tuple[str, str], optional): Simulation timescale as a
-            (unit, precision) pair, e.g. ("1ns", "1ps"). If None, no
-            timescale is set. Defaults to None.
-        seed (int, optional): Random seed for cocotb test reproducibility.
-            If None, cocotb generates a random seed. Defaults to None.
-        np (int, optional): Number of parallel simulation nodes in each
-            flow. Defaults to 1.
     """
+        Configures a simulation project for a cocotb design verification run.
+
+        Registers both the Icarus and Verilator cocotb flows on the project
+        (Icarus is selected as the active flow; Verilator is added as a
+        dependency so it can be selected later via
+        ``project.set_flow("verilatorcocotbdvflow")``) and applies the shared
+        trace, timescale, and seed settings to the compile and execution tasks
+        of each flow.
+
+        Parameters:
+            * project (Sim): The simulation project to configure.
+            * trace (bool): Enable waveform tracing. Defaults to True.
+            * trace_type (str): Waveform format for Verilator, 'vcd' or 'fst'. Defaults to "fst".
+            * timescale (tuple[str, str]): Simulation timescale as a (unit, precision) pair, e.g.
+                ("1ns", "1ps"). If None, no timescale is set. Defaults to None.
+            * seed (int): Random seed for cocotb test reproducibility. If None, cocotb generates a
+                random seed. Defaults to None.
+            * np (int): Number of parallel simulation nodes in each flow. Defaults to 1.
+        """
 
     # Add cocotb flows
     project.set_flow(IcarusCocotbDVFlow(np=np))
