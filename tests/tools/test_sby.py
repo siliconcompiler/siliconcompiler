@@ -145,8 +145,9 @@ def test_bmc_pass(datadir):
 
     assert proj.history("job0").get('metric', 'errors', step='formal', index='0') == 0
 
+    # sby writes "<status> <count> <count>"; the first token is the verdict
     with open("build/counter/job0/formal/0/sby/status") as f:
-        assert f.read().strip() == "PASS"
+        assert f.read().split()[0] == "PASS"
 
 
 @pytest.mark.eda
@@ -159,7 +160,7 @@ def test_bmc_fail_produces_trace(datadir):
         proj.run()
 
     with open("build/counter/job0/formal/0/sby/status") as f:
-        assert f.read().strip() == "FAIL"
+        assert f.read().split()[0] == "FAIL"
 
     # counterexample trace is preserved for debugging
     assert os.path.exists("build/counter/job0/formal/0/reports/trace.vcd")
