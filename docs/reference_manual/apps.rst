@@ -36,3 +36,7 @@ Support apps
 .. scapp::
   :app: python3 -m siliconcompiler.apps.utils.cleanup
   :title: cleanup
+
+.. scapp::
+  :app: python3 -m siliconcompiler.tools.openroad.utils.rcx_merge
+  :title: OpenROAD OpenRCX Merge Utility

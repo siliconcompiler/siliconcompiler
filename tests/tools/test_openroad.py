@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
+import re
 import pytest
 
 from siliconcompiler import Flowgraph
@@ -32,6 +33,11 @@ from siliconcompiler.tools.openroad import repair_design
 from siliconcompiler.tools.openroad import repair_timing
 from siliconcompiler.tools.openroad import screenshot
 from siliconcompiler.tools.openroad import synth_cleanup
+from siliconcompiler.tools.openroad.utils import rcx_merge
+from siliconcompiler.tools.openroad.utils.rcx_merge import (
+    merge_openrcx_rules,
+    RCXMergeError,
+)
 
 
 @pytest.mark.eda
@@ -1937,3 +1943,362 @@ def test_openroad_sc_show_tcl_removed(scroot):
                                "scripts", "sc_show.tcl")
     assert not os.path.exists(script_path), \
         f"{script_path} should be removed; sc_open.tcl is now the single entry script"
+
+
+# ---------------------------------------------------------------------------
+# OpenRCX per-corner rules merge utility (utils/rcx_merge.py)
+# ---------------------------------------------------------------------------
+def _single_corner(layer_count, corner_tag):
+    """Build a minimal single-corner OpenRCX rules file body."""
+    return (
+        "Extraction Rules for OpenRCX\n"
+        "\n"
+        "DIAGMODEL ON\n"
+        "\n"
+        f"LayerCount {layer_count}\n"
+        "DensityRate 1  0\n"
+        "\n"
+        "DensityModel 0\n"
+        "\n"
+        "Metal 1 RESOVER\n"
+        f"WIDTH Table 1 entries:  0.17 {corner_tag}\n"
+        "END DensityModel 0\n"
+    )
+
+
+def _write_rules(name, contents):
+    with open(name, "w") as fid:
+        fid.write(contents)
+    return name
+
+
+def test_rcx_merge_three_corners():
+    files = [
+        _write_rules("min.rules", _single_corner(6, "MIN")),
+        _write_rules("typ.rules", _single_corner(6, "TYP")),
+        _write_rules("max.rules", _single_corner(6, "MAX")),
+    ]
+
+    merged = merge_openrcx_rules(files)
+
+    expected = (
+        "Extraction Rules for OpenRCX\n"
+        "\n"
+        "DIAGMODEL ON\n"
+        "\n"
+        "LayerCount 6\n"
+        "DensityRate 3  0 1 2\n"
+        "\n"
+        "DensityModel 0\n"
+        "\n"
+        "Metal 1 RESOVER\n"
+        "WIDTH Table 1 entries:  0.17 MIN\n"
+        "END DensityModel 0\n"
+        "\n"
+        "DensityModel 1\n"
+        "\n"
+        "Metal 1 RESOVER\n"
+        "WIDTH Table 1 entries:  0.17 TYP\n"
+        "END DensityModel 1\n"
+        "\n"
+        "DensityModel 2\n"
+        "\n"
+        "Metal 1 RESOVER\n"
+        "WIDTH Table 1 entries:  0.17 MAX\n"
+        "END DensityModel 2\n"
+    )
+
+    assert merged == expected
+
+
+def test_rcx_merge_single_corner():
+    files = [_write_rules("typ.rules", _single_corner(2, "TYP"))]
+
+    merged = merge_openrcx_rules(files)
+
+    assert "DensityRate 1  0\n" in merged
+    assert merged.count("DensityModel 0") == 2  # begin + end marker
+    assert "END DensityModel 0\n" in merged
+
+
+def test_rcx_merge_body_is_copied_verbatim():
+    files = [
+        _write_rules("min.rules", _single_corner(6, "MIN")),
+        _write_rules("typ.rules", _single_corner(6, "TYP")),
+    ]
+
+    merged = merge_openrcx_rules(files)
+
+    # Each corner keeps its own distinct payload line.
+    assert "WIDTH Table 1 entries:  0.17 MIN" in merged
+    assert "WIDTH Table 1 entries:  0.17 TYP" in merged
+
+    # Corner indices are assigned in file order.
+    assert merged.index("0.17 MIN") < merged.index("0.17 TYP")
+
+
+def test_rcx_merge_corner_names_emit_documentation_line():
+    files = [
+        _write_rules("min.rules", _single_corner(6, "MIN")),
+        _write_rules("typ.rules", _single_corner(6, "TYP")),
+        _write_rules("max.rules", _single_corner(6, "MAX")),
+    ]
+
+    merged = merge_openrcx_rules(files, corner_names=["min", "typ", "max"])
+
+    assert "Corners 3 :  min typ max\n" in merged
+
+
+def test_rcx_merge_mismatched_layer_count_raises():
+    files = [
+        _write_rules("a.rules", _single_corner(6, "A")),
+        _write_rules("b.rules", _single_corner(5, "B")),
+    ]
+
+    with pytest.raises(RCXMergeError, match="LayerCount"):
+        merge_openrcx_rules(files)
+
+
+def test_rcx_merge_mismatched_corner_names_raises():
+    files = [_write_rules("a.rules", _single_corner(6, "A"))]
+
+    with pytest.raises(RCXMergeError, match="corner names"):
+        merge_openrcx_rules(files, corner_names=["min", "typ"])
+
+
+def test_rcx_merge_empty_inputs_raises():
+    with pytest.raises(RCXMergeError, match="at least one"):
+        merge_openrcx_rules([])
+
+
+def test_rcx_merge_missing_density_model_raises():
+    bad = (
+        "Extraction Rules for OpenRCX\n"
+        "\n"
+        "LayerCount 6\n"
+        "DensityRate 1  0\n"
+    )
+    path = _write_rules("bad.rules", bad)
+
+    with pytest.raises(RCXMergeError, match="DensityModel"):
+        merge_openrcx_rules([path])
+
+
+def test_rcx_merge_missing_layer_count_raises():
+    bad = (
+        "Extraction Rules for OpenRCX\n"
+        "\n"
+        "DensityModel 0\n"
+        "END DensityModel 0\n"
+    )
+    path = _write_rules("bad.rules", bad)
+
+    with pytest.raises(RCXMergeError, match="LayerCount"):
+        merge_openrcx_rules([path])
+
+
+def test_rcx_merge_multiple_blocks_in_one_file_raises():
+    two_block = _single_corner(6, "A") + "\n" + (
+        "DensityModel 0\n"
+        "END DensityModel 0\n"
+    )
+    path = _write_rules("two.rules", two_block)
+
+    with pytest.raises(RCXMergeError, match="exactly one"):
+        merge_openrcx_rules([path])
+
+
+def test_rcx_merge_cli(monkeypatch):
+    files = [
+        _write_rules("min.rules", _single_corner(6, "MIN")),
+        _write_rules("typ.rules", _single_corner(6, "TYP")),
+        _write_rules("max.rules", _single_corner(6, "MAX")),
+    ]
+
+    monkeypatch.setattr(
+        "sys.argv", ["sc-rcx-merge", "-o", "merged.rules"] + files)
+    assert rcx_merge.main() == 0
+
+    with open("merged.rules") as fid:
+        merged = fid.read()
+
+    assert "DensityRate 3  0 1 2\n" in merged
+    assert "END DensityModel 2\n" in merged
+    assert merged == merge_openrcx_rules(files)
+
+
+def test_rcx_merge_cli_corner_names(monkeypatch, capsys):
+    files = [
+        _write_rules("min.rules", _single_corner(6, "MIN")),
+        _write_rules("typ.rules", _single_corner(6, "TYP")),
+    ]
+    monkeypatch.setattr(
+        "sys.argv", ["sc-rcx-merge", "-c", "min,typ"] + files)
+    assert rcx_merge.main() == 0
+
+    assert "Corners 2 :  min typ" in capsys.readouterr().out
+
+
+def test_rcx_merge_cli_stdout(monkeypatch, capsys):
+    path = _write_rules("typ.rules", _single_corner(2, "TYP"))
+    monkeypatch.setattr("sys.argv", ["sc-rcx-merge", path])
+    assert rcx_merge.main() == 0
+
+    assert "DensityRate 1  0" in capsys.readouterr().out
+
+
+# A small, self-contained multi-corner rules file that mirrors the exact
+# layout OpenROAD's OpenRCX emits (as in the rcx_v2 ext_pattern.rules.3corners
+# reference): the "Extraction Rules for OpenRCX" header, blank-line spacing,
+# a "DensityRate 3  0 1 2" line, and one "DensityModel <n>" block per corner
+# separated by a single blank line. It is written out here by hand (no shared
+# code with the merge implementation) so the round-trip test below acts as an
+# independent oracle for the output format.
+_REFERENCE_3CORNERS = """\
+Extraction Rules for OpenRCX
+
+DIAGMODEL ON
+
+LayerCount 6
+DensityRate 3  0 1 2
+
+DensityModel 0
+
+Metal 1 RESOVER
+WIDTH Table 1 entries:  0.17
+
+Metal 1 RESOVER 0
+DIST count 3 width 0.17
+0 0 0 0.0681705
+0 0.31 0 0.0681705
+1.92 0 1.92 0.0681705
+END DIST
+
+Metal 1 OVER
+WIDTH Table 1 entries:  0.17
+
+Metal 1 OVER 0
+DIST count 2 width 0.17
+0.17 8.61372e-05 9.44952e-06 0.0340853
+2.04 0 3.91595e-05 0.0340853
+END DIST
+
+Metal 1 UNDER
+WIDTH Table 0 entries:
+
+Metal 1 DIAGUNDER
+WIDTH Table 0 entries:
+END DensityModel 0
+
+DensityModel 1
+
+Metal 1 RESOVER
+WIDTH Table 1 entries:  0.17
+
+Metal 1 RESOVER 0
+DIST count 3 width 0.17
+0 0 0 0.0791705
+0 0.31 0 0.0791705
+1.92 0 1.92 0.0791705
+END DIST
+
+Metal 1 OVER
+WIDTH Table 1 entries:  0.17
+
+Metal 1 OVER 0
+DIST count 2 width 0.17
+0.17 9.61372e-05 9.44952e-06 0.0440853
+2.04 0 3.91595e-05 0.0440853
+END DIST
+
+Metal 1 UNDER
+WIDTH Table 0 entries:
+
+Metal 1 DIAGUNDER
+WIDTH Table 0 entries:
+END DensityModel 1
+
+DensityModel 2
+
+Metal 1 RESOVER
+WIDTH Table 1 entries:  0.17
+
+Metal 1 RESOVER 0
+DIST count 3 width 0.17
+0 0 0 0.0981705
+0 0.31 0 0.0981705
+1.92 0 1.92 0.0981705
+END DIST
+
+Metal 1 OVER
+WIDTH Table 1 entries:  0.17
+
+Metal 1 OVER 0
+DIST count 2 width 0.17
+0.17 1.06137e-04 9.44952e-06 0.0540853
+2.04 0 3.91595e-05 0.0540853
+END DIST
+
+Metal 1 UNDER
+WIDTH Table 0 entries:
+
+Metal 1 DIAGUNDER
+WIDTH Table 0 entries:
+END DensityModel 2
+"""
+
+
+def _split_multicorner(text):
+    """Split a multi-corner rules file into a list of single-corner texts."""
+    lines = text.splitlines()
+
+    layer_count = None
+    for line in lines:
+        m = re.match(r"^\s*LayerCount\s+(\d+)\s*$", line)
+        if m:
+            layer_count = int(m.group(1))
+            break
+
+    header = (
+        "Extraction Rules for OpenRCX\n"
+        "\n"
+        "DIAGMODEL ON\n"
+        "\n"
+        f"LayerCount {layer_count}\n"
+        "DensityRate 1  0\n"
+        "\n"
+    )
+
+    blocks = []
+    current = None
+    for line in lines:
+        if current is None:
+            if re.match(r"^\s*DensityModel\s+\d+\s*$", line):
+                current = ["DensityModel 0"]
+        else:
+            if re.match(r"^\s*END\s+DensityModel\s+\d+\s*$", line):
+                current.append("END DensityModel 0")
+                blocks.append(current)
+                current = None
+            else:
+                current.append(line)
+
+    return [header + "\n".join(b) + "\n" for b in blocks]
+
+
+def test_rcx_merge_roundtrip_reference():
+    """Splitting a multi-corner rules file and re-merging reproduces it.
+
+    Uses an inline reference that matches the OpenRCX output format, so the
+    round-trip confirms the merge emits the exact multi-corner layout without
+    depending on any external file.
+    """
+    original = _REFERENCE_3CORNERS
+
+    per_corner = _split_multicorner(original)
+    assert len(per_corner) == 3
+
+    files = [_write_rules(f"corner{i}.rules", text)
+             for i, text in enumerate(per_corner)]
+
+    assert merge_openrcx_rules(files) == original
