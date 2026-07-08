@@ -36,6 +36,24 @@ cd -
 # stays importable by whichever python ends up running sby.
 $SUDO_INSTALL python3 -m pip install --target "$PREFIX/share/yosys/python3" "click==8.1.7"
 
+# boolector bundles lingeling (2018-era C) and declares cmake_minimum_required
+# floors that current toolchains reject: gcc >= 14 turns several legacy warnings
+# (implicit-function-declaration, implicit-int, incompatible-pointer-types,
+# int-conversion) into hard errors, and cmake >= 4 drops pre-3.5 compatibility.
+# Ubuntu 26 ships both (gcc 15, cmake 4). Wrap gcc/cc to keep those diagnostics
+# as warnings, and restore the old cmake policy floor, so the solver still
+# builds. Both are no-ops on the older toolchains in Ubuntu 22/24.
+compat_flags="-Wno-error=implicit-function-declaration -Wno-error=implicit-int"
+compat_flags="$compat_flags -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
+mkdir -p ccshim
+for cc in gcc cc; do
+    ccpath=$(command -v "$cc") || continue
+    printf '#!/bin/sh\nexec "%s" "$@" %s\n' "$ccpath" "$compat_flags" > "ccshim/$cc"
+    chmod +x "ccshim/$cc"
+done
+export PATH="$PWD/ccshim:$PATH"
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
 # --- Boolector (the SMT solver the default 'smtbmc boolector' engine uses) ---
 # Built here, not as its own tool, because the CI image build does not support
 # chaining docker-depends (sby already depends on yosys).
