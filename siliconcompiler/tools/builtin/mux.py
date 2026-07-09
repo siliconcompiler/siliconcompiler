@@ -38,7 +38,6 @@ class MuxTask(BuiltinTask):
         candidates = [(step, index) for step, index in nodelist if not failed[step][index]]
         if candidates:
             for metric, op in operations:
-                print(metric, op)
                 if op not in ('minimum', 'maximum'):
                     raise ValueError(f'Invalid operation: {op}')
 
