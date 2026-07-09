@@ -917,6 +917,7 @@ class ASICSynthesis(ASICSynthesisBase):
         # parallel preserve_modules is consumed by sc_synth_asic.tcl). Parameter kept for API
         # compatibility but currently inert.
 
+        self.add_required_key("var", "autoname")
         self.add_required_key("var", "tie_undef")
         self.add_required_key("var", "add_tieoffs")
         self.add_required_key("var", "opt_undriven")

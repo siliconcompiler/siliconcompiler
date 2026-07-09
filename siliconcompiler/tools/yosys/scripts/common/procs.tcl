@@ -1,5 +1,5 @@
 # This file contains a set of procedures that are shared
-# between syn_asic.tcl and syn_fpga.tcl
+# between sc_lec.tcl, sc_screenshot.tcl, sc_synth_asic.tcl, and sc_synth_fpga.tcl
 
 proc sc_post_techmap { { opt_args "" } } {
     # perform techmap in case previous techmaps introduced constructs
