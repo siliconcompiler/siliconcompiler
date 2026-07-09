@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.1 (2026-07-09)
+=========================================
+
+**Minor:**
+
+ * Added a formal property check flow (`PropertyCheckFlow`) for BMC, cover, and prove modes.
+
+ * Tools:
+
+  * sby: added a SymbiYosys formal verification tool with install scripts for Ubuntu 22/24/26.
+  * yosys: refactored synthesis scripts and shared TCL procs, and added tests for slang usage.
+
+
 SiliconCompiler 0.38.0 (2026-07-08)
 =========================================
 
