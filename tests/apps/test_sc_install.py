@@ -54,6 +54,238 @@ def test_install_failed(call, monkeypatch, capfd):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_install_skips_when_up_to_date(monkeypatch, datadir, capfd):
+    """A second install of an unchanged tool is skipped unless -force is given."""
+    script = os.path.join(datadir, "echo_prefix.sh")
+
+    def return_os():
+        return {"echo": script}
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    build_dir = os.path.abspath("build_track")
+
+    # First install builds the tool and records the manifest.
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+    assert "is already up to date" not in capfd.readouterr().out
+
+    # Second install with an unchanged script is skipped.
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+    out = capfd.readouterr().out
+    assert "echo is already up to date" in out
+    assert "# Up to date: echo" in out
+
+    # -force rebuilds regardless of the manifest.
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir, '-force'])
+    assert sc_install.main() == 0
+    assert "is already up to date" not in capfd.readouterr().out
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_install_rebuilds_when_fingerprint_changes(monkeypatch, datadir, tmp_path, capfd):
+    """Changing the install script contents invalidates the manifest and forces a rebuild."""
+    import shutil as _shutil
+    script = str(tmp_path / "install-echo.sh")
+    _shutil.copy(os.path.join(datadir, "echo_prefix.sh"), script)
+    os.chmod(script, 0o755)
+
+    def return_os():
+        return {"echo": script}
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    build_dir = os.path.abspath("build_track_fp")
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+
+    # Mutate the script so its fingerprint changes.
+    with open(script, "a") as f:
+        f.write("\n# changed\n")
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+    assert "is already up to date" not in capfd.readouterr().out
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_install_rebuilds_when_prefix_changes(monkeypatch, datadir, capfd):
+    """Installing to a different prefix is not skipped even if the script is unchanged."""
+    script = os.path.join(datadir, "echo_prefix.sh")
+
+    def return_os():
+        return {"echo": script}
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    build_dir = os.path.abspath("build_track_prefix")
+
+    monkeypatch.setattr('sys.argv', [
+        'sc-install', 'echo', '-build_dir', build_dir, '-prefix', os.path.abspath('p1')])
+    assert sc_install.main() == 0
+
+    monkeypatch.setattr('sys.argv', [
+        'sc-install', 'echo', '-build_dir', build_dir, '-prefix', os.path.abspath('p2')])
+    assert sc_install.main() == 0
+    assert "is already up to date" not in capfd.readouterr().out
+
+
+def test_expand_docker_depends():
+    """Transitive docker-depends closure handles str, list, chains, and cycles."""
+    data = {
+        "sby": {"docker-depends": "yosys"},
+        "yosys": {},
+        "boolector": {},
+        "leaf": {"docker-depends": ["a", "b"]},
+        "a": {"docker-depends": "yosys"},
+        "b": {},
+        # cycle: c -> d -> c
+        "c": {"docker-depends": "d"},
+        "d": {"docker-depends": "c"},
+    }
+    assert sc_install._expand_docker_depends({"sby", "boolector"}, data) == \
+        {"sby", "yosys", "boolector"}
+    assert sc_install._expand_docker_depends({"leaf"}, data) == \
+        {"leaf", "a", "b", "yosys"}
+    # cycle terminates
+    assert sc_install._expand_docker_depends({"c"}, data) == {"c", "d"}
+    # unknown names are preserved but contribute no dependencies
+    assert sc_install._expand_docker_depends({"unknown"}, data) == {"unknown"}
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_fingerprint_tracks_docker_depends(monkeypatch, tmp_path):
+    """A tool's fingerprint changes when a docker-depends dependency's version changes."""
+    import json as _json
+    scripts_dir = tmp_path / "toolscripts"
+    scripts_dir.mkdir()
+
+    tools_data = {
+        "child": {"git-url": "https://example/child.git", "git-commit": "v1"},
+        "parent": {"git-url": "https://example/parent.git", "git-commit": "v1",
+                   "docker-depends": "child"},
+    }
+    tools_json = scripts_dir / "_tools.json"
+    tools_json.write_text(_json.dumps(tools_data))
+
+    # parent's install script only references itself, not the dependency.
+    script = scripts_dir / "install-parent.sh"
+    script.write_text("#!/bin/sh\n_tools.py --tool parent --field git-commit\n")
+
+    monkeypatch.setattr(sc_install, "_get_tool_script_dir", lambda: scripts_dir)
+
+    fp_before = sc_install.compute_fingerprint("parent", str(script))
+
+    # Bump only the dependency's pinned version.
+    tools_data["child"]["git-commit"] = "v2"
+    tools_json.write_text(_json.dumps(tools_data))
+
+    fp_after = sc_install.compute_fingerprint("parent", str(script))
+    assert fp_before != fp_after
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_fingerprint_tracks_tool_without_self_reference(monkeypatch, tmp_path):
+    """The tool's own version is tracked even if its script never references it."""
+    import json as _json
+    scripts_dir = tmp_path / "toolscripts"
+    scripts_dir.mkdir()
+
+    tools_data = {"montage": {"version": "1.0", "docker-depends": "dep"},
+                  "dep": {"version": "1.0"}}
+    tools_json = scripts_dir / "_tools.json"
+    tools_json.write_text(_json.dumps(tools_data))
+
+    # Script installs via apt and never mentions _tools.py / --tool.
+    script = scripts_dir / "install-montage.sh"
+    script.write_text("#!/bin/sh\nsudo apt-get install -y imagemagick\n")
+
+    monkeypatch.setattr(sc_install, "_get_tool_script_dir", lambda: scripts_dir)
+
+    fp_before = sc_install.compute_fingerprint("montage", str(script))
+
+    # Bump the tool's own pinned version -> fingerprint must change.
+    tools_data["montage"]["version"] = "2.0"
+    tools_json.write_text(_json.dumps(tools_data))
+    assert sc_install.compute_fingerprint("montage", str(script)) != fp_before
+
+    # And bumping its docker-depends dependency must also change it.
+    tools_data["montage"]["version"] = "1.0"
+    tools_data["dep"]["version"] = "2.0"
+    tools_json.write_text(_json.dumps(tools_data))
+    assert sc_install.compute_fingerprint("montage", str(script)) != fp_before
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_fingerprint_plugin_overrides_builtin(monkeypatch, datadir, capfd):
+    """A fingerprint plugin takes precedence over the built-in provider."""
+    script = os.path.join(datadir, "echo_prefix.sh")
+
+    def return_os():
+        return {"echo": script}
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    calls = []
+    fp_value = ["v1"]
+
+    def fingerprint_plugin(tool, script_path):
+        calls.append((tool, script_path))
+        return fp_value[0]
+
+    def get_plugins(system, name=None):
+        if name == "fingerprint":
+            return [fingerprint_plugin]
+        return []
+    monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
+
+    build_dir = os.path.abspath("build_track_plugin")
+
+    # First install uses the plugin fingerprint and records it.
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+    assert calls and calls[0][0] == "echo"
+
+    # Same plugin fingerprint -> skipped.
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+    assert "echo is already up to date" in capfd.readouterr().out
+
+    # Plugin reports a new fingerprint -> rebuilt.
+    fp_value[0] = "v2"
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+    assert "is already up to date" not in capfd.readouterr().out
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_fingerprint_plugin_falls_back_to_builtin(monkeypatch, datadir, capfd):
+    """When a plugin returns None the built-in fingerprint is used."""
+    script = os.path.join(datadir, "echo_prefix.sh")
+
+    def return_os():
+        return {"echo": script}
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    def fingerprint_plugin(tool, script_path):
+        return None
+
+    def get_plugins(system, name=None):
+        if name == "fingerprint":
+            return [fingerprint_plugin]
+        return []
+    monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
+
+    build_dir = os.path.abspath("build_track_fallback")
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+
+    # Built-in fingerprint (script unchanged) -> skipped on second run.
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+    assert "echo is already up to date" in capfd.readouterr().out
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 @mock.patch("subprocess.call")
 def test_install_two_tools(call, monkeypatch, capfd):
     def return_os():

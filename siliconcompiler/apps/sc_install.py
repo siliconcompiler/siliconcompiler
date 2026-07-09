@@ -1,6 +1,8 @@
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 import argparse
 import glob
+import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -90,6 +92,155 @@ class ChoiceOptional(Container):
         """
         items = set(choices)
         return sorted(items)
+
+
+_MANIFEST_VERSION = 1
+
+
+def _get_manifest_path(build_dir: str) -> Path:
+    """Return the path to the install-tracking manifest for a given build directory."""
+    return Path(build_dir) / ".sc_install_manifest.json"
+
+
+def _load_manifest(build_dir: str) -> Dict[str, dict]:
+    """
+    Load the install-tracking manifest, returning an empty mapping if it is missing or unreadable.
+
+    Parameters:
+        build_dir (str): Base build directory where the manifest is stored.
+
+    Returns:
+        dict: Mapping from tool name to its recorded install state.
+    """
+    path = _get_manifest_path(build_dir)
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return data.get("tools", {})
+
+
+def _save_manifest(build_dir: str, tools: Dict[str, dict]) -> None:
+    """
+    Persist the install-tracking manifest for the given build directory.
+
+    Parameters:
+        build_dir (str): Base build directory where the manifest is stored.
+        tools (dict): Mapping from tool name to its recorded install state.
+    """
+    path = _get_manifest_path(build_dir)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w") as f:
+            json.dump({"version": _MANIFEST_VERSION, "tools": tools}, f, indent=2)
+    except OSError as e:
+        print(f"Warning: unable to update install manifest: {e}", file=sys.stderr)
+
+
+def _expand_docker_depends(names: Set[str], data: Dict[str, dict]) -> Set[str]:
+    """
+    Expand a set of tool names with their transitive ``docker-depends`` ancestors.
+
+    The ``docker-depends`` field in ``_tools.json`` may be absent, a single tool name, or
+    a list of tool names. This walks the dependency graph so that a dependent tool's
+    fingerprint reflects the pinned versions of everything it is built against (e.g. a
+    ``yosys`` bump must invalidate ``sby``). Cycles and unknown names are handled safely.
+
+    Parameters:
+        names (Set[str]): Starting tool names.
+        data (Dict[str, dict]): Parsed ``_tools.json`` contents.
+
+    Returns:
+        Set[str]: `names` plus all transitive `docker-depends` ancestors.
+    """
+    result: Set[str] = set()
+    stack = list(names)
+    while stack:
+        name = stack.pop()
+        if name in result:
+            continue
+        result.add(name)
+        depends = data.get(name, {}).get("docker-depends", [])
+        if isinstance(depends, str):
+            depends = [depends]
+        stack.extend(depends)
+    return result
+
+
+def compute_fingerprint(tool: str, script: str) -> Optional[str]:
+    """
+    Built-in fingerprint provider for a tool's install script.
+
+    The fingerprint combines the install script contents with the pinned version
+    metadata (git-commit/version/git-url) of the tool itself and its transitive
+    ``docker-depends`` ancestors. This ensures the fingerprint changes when the install
+    procedure, the tool's pinned upstream version, or any dependency's pinned version
+    changes.
+
+    This is the default provider registered under the ``siliconcompiler.install``
+    ``fingerprint`` plugin group; plugins that supply their own tools may register a
+    replacement (see :func:`_get_fingerprint`).
+
+    Parameters:
+        tool (str): Tool identifier (used by plugins; the built-in relies on the script).
+        script (str): Path to the install script.
+
+    Returns:
+        Optional[str]: Hex digest fingerprint, or `None` if the script cannot be read
+        (in which case the caller should treat the tool as always needing a rebuild).
+    """
+    try:
+        with open(script, "rb") as f:
+            script_bytes = f.read()
+    except OSError:
+        return None
+
+    h = hashlib.sha256()
+    h.update(script_bytes)
+
+    tools_json = _get_tool_script_dir() / "_tools.json"
+    if tools_json.exists():
+        try:
+            with open(tools_json) as f:
+                data = json.load(f)
+            names = _expand_docker_depends({tool}, data)
+            subset = {name: data[name] for name in sorted(names) if name in data}
+            h.update(json.dumps(subset, sort_keys=True).encode("utf-8"))
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    return h.hexdigest()
+
+
+def _get_fingerprint(tool: str, script: str) -> Optional[str]:
+    """
+    Resolve the install fingerprint for a tool via the fingerprint plugin group.
+
+    Plugins registered under the ``siliconcompiler.install`` group with the name
+    ``fingerprint`` are consulted first, in discovery order; the first one returning a
+    non-``None`` value wins, letting external tool packages override how their tools are
+    fingerprinted. If no plugin claims the tool, the built-in
+    :func:`compute_fingerprint` is used as a fallback so that script-based tracking is
+    always available.
+
+    Each plugin is a callable ``(tool: str, script: str) -> Optional[str]``.
+
+    Parameters:
+        tool (str): Tool identifier.
+        script (str): Path to the install script.
+
+    Returns:
+        Optional[str]: The resolved fingerprint, or `None` if it cannot be computed (the
+        tool is then always rebuilt and never recorded in the manifest).
+    """
+    for plugin in get_plugins("install", name="fingerprint"):
+        fingerprint = plugin(tool, script)
+        if fingerprint is not None:
+            return fingerprint
+    return compute_fingerprint(tool, script)
 
 
 def install_tool(tool: str, script: str, build_dir: str, prefix: str,
@@ -216,7 +367,8 @@ def print_machine_info() -> None:
 
 def __print_summary(successful: Optional[Set[str]],
                     failed: Optional[str],
-                    notstarted: Optional[Set[str]]) -> None:
+                    notstarted: Optional[Set[str]],
+                    skipped: Optional[Set[str]] = None) -> None:
     """
     Prints a fixed-width summary banner listing installed, failed, and pending tools.
 
@@ -227,11 +379,17 @@ def __print_summary(successful: Optional[Set[str]],
                                 under "Failed to install".
         notstarted (Optional[Set[str]]): Set of tool names that were not started or are pending;
                                          when provided, they are shown under "Pending".
+        skipped (Optional[Set[str]]): Set of tool names that were already up to date and skipped;
+                                      when provided, they are shown under "Up to date".
     """
     max_len = 64
     print("#"*max_len)
     if successful:
         msg = f"Installed: {', '.join(sorted(successful))}"
+        print(f"# {msg}")
+
+    if skipped:
+        msg = f"Up to date: {', '.join(sorted(skipped))}"
         print(f"# {msg}")
 
     if failed:
@@ -323,6 +481,9 @@ To limit parallel build jobs (useful for memory-constrained systems):
 To combine options (custom location with limited parallelism):
     sc-install -prefix /opt/tools -jobs 8 openroad yosys
 
+To force a rebuild even if the tool is already up to date:
+    sc-install -force yosys
+
 To show the install script:
     sc-install -show openroad
 
@@ -378,6 +539,11 @@ Tool groups:
         metavar="<int>")
 
     parser.add_argument(
+        "-force",
+        action="store_true",
+        help="Force a rebuild even if the tool is already up to date")
+
+    parser.add_argument(
         "-show",
         action="store_true",
         help="Show the install script and exit")
@@ -407,9 +573,13 @@ Tool groups:
 
     tools_handled = set()
     tools_completed = set()
+    tools_skipped = set()
     if args.jobs is not None and args.jobs < 1:
         print("Error: -jobs must be a positive integer", file=sys.stderr)
         return 1
+
+    prefix = str(args.prefix)
+    manifest = {} if args.show else _load_manifest(args.build_dir)
     for tool in args.tool:
         if tool in tools_handled:
             continue
@@ -417,15 +587,26 @@ Tool groups:
         if args.show:
             show_tool(tool, tools[tool])
         else:
-            if not install_tool(tool, tools[tool], args.build_dir, args.prefix, args.jobs):
-                notstarted = set(args.tool) - tools_completed - tools_handled
-                __print_summary(tools_completed, tool, notstarted)
+            fingerprint = _get_fingerprint(tool, tools[tool])
+            record = manifest.get(tool)
+            if (not args.force and fingerprint is not None and record and
+                    record.get("fingerprint") == fingerprint and
+                    record.get("prefix") == prefix):
+                print(f"{tool} is already up to date (use -force to rebuild)")
+                tools_skipped.add(tool)
+                continue
+            if not install_tool(tool, tools[tool], args.build_dir, prefix, args.jobs):
+                notstarted = set(args.tool) - tools_completed - tools_skipped - tools_handled
+                __print_summary(tools_completed, tool, notstarted, tools_skipped)
                 return 1
             else:
                 tools_completed.add(tool)
+                if fingerprint is not None:
+                    manifest[tool] = {"fingerprint": fingerprint, "prefix": prefix}
+                    _save_manifest(args.build_dir, manifest)
 
     if not args.show:
-        __print_summary(tools_completed, None, None)
+        __print_summary(tools_completed, None, None, tools_skipped)
 
         msgs = []
         for env, path in (
