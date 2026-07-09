@@ -59,16 +59,17 @@ class SBYTask(Task):
         """Sets the solver unrolling depth (cycles for bmc/cover, induction length for prove)."""
         self.set("var", "depth", depth, step=step, index=index)
 
-    def add_sby_engine(self, engine: Union[str, List[str]], clobber: bool = False,
-                       step: Optional[str] = None, index: Optional[str] = None):
+    def add_sby_engine(self, engine: Union[str, List[str]],
+                       step: Optional[str] = None, index: Optional[str] = None,
+                       clobber: bool = False):
         """Adds an sby engine line, e.g. 'smtbmc boolector'.
 
         Args:
             engine (Union[str, List[str]]): engine line(s) for the [engines] section.
-            clobber (bool, optional): If True, overwrites the existing engine list.
-                                      If False, appends to it. Defaults to False.
             step (str, optional): The step to apply the value to.
             index (str, optional): The index to apply the value to.
+            clobber (bool, optional): If True, overwrites the existing engine list.
+                                      If False, appends to it. Defaults to False.
         """
         if clobber:
             self.set("var", "engine", engine, step=step, index=index)

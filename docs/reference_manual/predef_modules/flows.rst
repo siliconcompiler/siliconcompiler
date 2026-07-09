@@ -136,7 +136,7 @@ Flows for formally verifying the SVA properties in an RTL design using
 SymbiYosys (sby).
 
 .. schema::
-  :root: siliconcompiler.flows.propertycheckflow/PropertyCheckFlow
+  :root: siliconcompiler.flows.formalflow/PropertyCheckFlow
 
 DRC Flows
 ---------

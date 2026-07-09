@@ -66,7 +66,7 @@ class PropertyCheckFlow(Flowgraph):
                 added = True
 
         if not added:
-            raise ValueError("PropertyCheckFlow requires at least one mode")
+            raise ValueError("requires at least one mode")
 
     @classmethod
     def make_docs(cls):

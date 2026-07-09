@@ -34,7 +34,7 @@ from siliconcompiler.flows.elaborationflow import (
     ChiselElaborationFlow,
     BluespecElaborationFlow
 )
-from siliconcompiler.flows.propertycheckflow import PropertyCheckFlow
+from siliconcompiler.flows.formalflow import PropertyCheckFlow
 from siliconcompiler.flows.fpgaflow import (
     FPGAXilinxFlow,
     FPGANextPNRFlow,

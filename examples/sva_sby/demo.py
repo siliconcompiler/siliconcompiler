@@ -2,7 +2,7 @@
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import Design, Project
-from siliconcompiler.flows.propertycheckflow import PropertyCheckFlow, PropertyCheckMode
+from siliconcompiler.flows.formalflow import PropertyCheckFlow, PropertyCheckMode
 from siliconcompiler.tools.sby.bmc import BMCTask
 
 

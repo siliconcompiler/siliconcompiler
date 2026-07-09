@@ -3,7 +3,7 @@ import os
 import pytest
 
 from siliconcompiler import Design, Project, Flowgraph
-from siliconcompiler.flows.propertycheckflow import PropertyCheckFlow, PropertyCheckMode
+from siliconcompiler.flows.formalflow import PropertyCheckFlow, PropertyCheckMode
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.sby import bmc, cover, prove
 
@@ -20,10 +20,15 @@ def test_parameters():
     task.set_sby_depth(45)
     assert task.get("var", "depth") == 45
 
-    # boolector is currently the only supported engine
+    # boolector is the default (and currently only supported) engine
     assert task.get("var", "engine") == ["smtbmc boolector"]
 
-    # add_sby_engine replaces the list when clobbering
+    # without clobber the engine line is appended; the param is a single-member
+    # enum for now, so boolector is the only legal value to append
+    task.add_sby_engine("smtbmc boolector")
+    assert task.get("var", "engine") == ["smtbmc boolector", "smtbmc boolector"]
+
+    # with clobber the engine list is replaced
     task.add_sby_engine("smtbmc boolector", clobber=True)
     assert task.get("var", "engine") == ["smtbmc boolector"]
 
@@ -41,7 +46,7 @@ def test_propertycheckflow_modes():
     assert steps(PropertyCheckFlow(modes=bmc_m | cover_m)) == ["bmc", "cover"]
     assert steps(PropertyCheckFlow(modes=bmc_m | prove_m | cover_m)) == ["bmc", "cover", "prove"]
 
-    with pytest.raises(ValueError, match="requires at least one mode"):
+    with pytest.raises(ValueError, match=r"^requires at least one mode$"):
         PropertyCheckFlow(modes=bmc_m & cover_m)
 
 
@@ -129,6 +134,31 @@ def test_runtime_args(gcd_design):
             '-f',
             '-d', 'sby',
             'gcd.sby']
+
+
+def test_pre_process_requires_sources(monkeypatch, tmp_path):
+    # a fileset with a topmodule but no verilog/systemverilog sources
+    design = Design("nosrc")
+    design.set_dataroot("root", str(tmp_path))
+    design.set_topmodule("nosrc", fileset="rtl")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("formal", bmc.BMCTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "formal", "0")
+    with node.runtime():
+        assert node.setup() is True
+
+        node.task.setup_work_directory(node.workdir)
+        monkeypatch.chdir(node.workdir)
+
+        with pytest.raises(ValueError,
+                           match=r"at least one verilog/systemverilog source file"):
+            node.task.pre_process()
 
 
 def _counter_project(datadir, modes, rtl="sby/counter.v"):
