@@ -16,7 +16,7 @@ set sc_optmode [sc_cfg_get option optmode]
 # Helper function
 ########################################################
 
-source "$sc_refdir/procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 ########################################################
 # Design Inputs

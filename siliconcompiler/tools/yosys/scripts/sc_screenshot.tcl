@@ -27,7 +27,7 @@ set sc_design [sc_top]
 # Helper function
 ########################################################
 
-source "$sc_refdir/procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 ########################################################
 # Design Inputs

@@ -22,7 +22,7 @@ set sc_optmode [sc_cfg_get option optmode]
 # Helper function
 ########################################################
 
-source "$sc_refdir/procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 ####################
 # DESIGNER's CHOICE
@@ -308,7 +308,7 @@ yosys dfflibmap {*}$dfflibmap_dont_use {*}$dfflibmap_liberty
 # techmapping
 sc_post_techmap
 
-source "$sc_refdir/syn_strategies.tcl"
+source "$sc_refdir/common/syn_strategies.tcl"
 
 set script ""
 set sc_strategy [sc_cfg_tool_task_get var strategy]

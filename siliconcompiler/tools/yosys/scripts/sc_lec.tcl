@@ -8,7 +8,7 @@ yosys echo on
 # Helper function
 ########################################################
 
-source "$sc_refdir/procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 set sc_libraries [sc_cfg_tool_task_get var synthesis_libraries]
 set sc_logiclibs [sc_cfg_get asic asiclib]
