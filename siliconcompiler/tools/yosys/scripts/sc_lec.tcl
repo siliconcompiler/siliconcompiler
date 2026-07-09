@@ -13,30 +13,17 @@ source "$sc_refdir/common/procs.tcl"
 set sc_libraries [sc_cfg_tool_task_get var synthesis_libraries]
 set sc_logiclibs [sc_cfg_get asic asiclib]
 
-set sc_blackboxes []
-foreach lib $sc_logiclibs {
-    if { [sc_cfg_exists library $lib tool yosys blackbox_fileset] } {
-        set lib_fileset [sc_cfg_get library $lib tool yosys blackbox_fileset]
-        foreach lib_f [sc_cfg_get_fileset $lib $lib_fileset verilog] {
-            lappend sc_blackboxes $lib_f
-        }
-    }
-}
-
 set sc_induction_steps [sc_cfg_tool_task_get {var} induction_steps]
 
 proc sc_prepare_libraries { } {
     global sc_libraries
     global sc_logiclibs
-    global sc_blackboxes
 
     foreach lib_file $sc_libraries {
         yosys read_liberty -ignore_miss_func -ignore_miss_dir $lib_file
     }
-    foreach bb_file $sc_blackboxes {
-        puts "Reading blackbox model file: $bb_file"
-        yosys read_verilog -sv $bb_file
-    }
+
+    sc_read_blackboxes
 
     foreach lib $sc_logiclibs {
         foreach phy_type "filler decap antenna tap" {

@@ -143,6 +143,136 @@ proc sc_fpga_get_dsp_options { sc_syn_dsp_options } {
     return $option_text
 }
 
+#########################
+# Library / design reading
+#########################
+
+proc sc_get_input_verilog { } {
+    # Determine the input design source for the current top module.
+    global sc_topmodule
+
+    set input_verilog "inputs/$sc_topmodule.v"
+    if { ![file exists $input_verilog] } {
+        set input_verilog "inputs/$sc_topmodule.sv"
+    }
+    return $input_verilog
+}
+
+proc sc_read_design_verilog { } {
+    # Read the input design, either via the slang plugin or read_verilog.
+    global sc_topmodule
+    global sc_designlib
+
+    set input_verilog [sc_get_input_verilog]
+
+    set use_slang false
+    if { [sc_cfg_tool_task_get var use_slang] } {
+        if { ![sc_load_plugin slang] } {
+            puts "WARNING: Unable to load slang plugin reverting back to yosys read_verilog"
+        } else {
+            set use_slang true
+        }
+    }
+
+    if { $use_slang } {
+        # This needs some reordering of loaded to ensure blackboxes are handled
+        # before this
+        set slang_params []
+        set fileset [lindex [sc_cfg_get option fileset] 0]
+        if { [sc_cfg_exists library $sc_designlib fileset $fileset param] } {
+            dict for {key value} [sc_cfg_get library $sc_designlib fileset $fileset param] {
+                lappend slang_params -G "${key}=${value}"
+            }
+        }
+        yosys slang_version
+        yosys read_slang \
+            -D SYNTHESIS \
+            --keep-hierarchy \
+            --ignore-assertions \
+            --allow-use-before-declare \
+            --top $sc_topmodule \
+            {*}$slang_params \
+            $input_verilog
+        yosys setattr -unset init
+    } else {
+        # Use -noblackbox to correctly interpret empty modules as empty,
+        # actual black boxes are read in later
+        # https://github.com/YosysHQ/yosys/issues/1468
+        yosys read_verilog -noblackbox -sv $input_verilog
+
+        # Override top level parameters
+        sc_apply_params
+    }
+}
+
+proc sc_get_blackboxes { } {
+    # Collect blackbox model files from the asic libraries. Two mechanisms are
+    # supported: libraries that declare a yosys blackbox_fileset, and macro
+    # libraries that export their blackbox verilog via output files.
+    set blackboxes []
+
+    foreach lib [sc_cfg_get asic asiclib] {
+        if { [sc_cfg_exists library $lib tool yosys blackbox_fileset] } {
+            set lib_fileset [sc_cfg_get library $lib tool yosys blackbox_fileset]
+            foreach lib_f [sc_cfg_get_fileset $lib $lib_fileset verilog] {
+                lappend blackboxes $lib_f
+            }
+        }
+    }
+
+    if { [sc_cfg_exists asic macrolib] } {
+        foreach lib [sc_get_asic_libraries macro] {
+            if { [sc_cfg_exists library $lib output blackbox verilog] } {
+                foreach lib_f [sc_cfg_get library $lib output blackbox verilog] {
+                    lappend blackboxes $lib_f
+                }
+            }
+        }
+    }
+
+    return $blackboxes
+}
+
+proc sc_read_blackboxes { } {
+    # Read the blackbox model files, tagging them as blackboxes.
+    foreach bb_file [sc_get_blackboxes] {
+        yosys log "Reading blackbox model file: $bb_file"
+        yosys read_verilog -setattr blackbox -sv $bb_file
+    }
+}
+
+proc sc_read_liberty { } {
+    # Read the synthesis liberty files: once to establish cell structure, and
+    # again with unit delays for timing-aware mapping.
+    foreach lib_file [sc_cfg_tool_task_get var synthesis_libraries] {
+        yosys read_liberty -overwrite -setattr liberty_cell -lib $lib_file
+        yosys read_liberty -overwrite -setattr liberty_cell \
+            -unit_delay -wb -ignore_miss_func -ignore_buses $lib_file
+    }
+}
+
+proc sc_get_dont_use_args { libs groups } {
+    # Build a list of -dont_use arguments for the given libraries and cell groups.
+    set dont_use []
+    foreach lib $libs {
+        foreach group $groups {
+            foreach cell [sc_cfg_get library $lib asic cells $group] {
+                lappend dont_use -dont_use $cell
+            }
+        }
+    }
+    return $dont_use
+}
+
+proc sc_get_liberty_args { lib_files } {
+    # Build a list of -liberty arguments for the given liberty files.
+    set liberty []
+    foreach lib_file $lib_files {
+        lappend liberty -liberty $lib_file
+    }
+    return $liberty
+}
+
 proc sc_preserve_modules { } {
     foreach pmodule [sc_cfg_tool_task_get var preserve_modules] {
         foreach module [sc_get_modules $pmodule] {

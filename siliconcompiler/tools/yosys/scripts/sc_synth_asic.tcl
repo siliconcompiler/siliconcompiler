@@ -35,16 +35,6 @@ set sc_libraries [sc_cfg_tool_task_get var synthesis_libraries]
 
 set sc_abc_constraints [sc_cfg_tool_task_get var abc_constraint_file]
 
-set sc_blackboxes []
-foreach lib $sc_logiclibs {
-    if { [sc_cfg_exists library $lib tool yosys blackbox_fileset] } {
-        set lib_fileset [sc_cfg_get library $lib tool yosys blackbox_fileset]
-        foreach lib_f [sc_cfg_get_fileset $lib $lib_fileset verilog] {
-            lappend sc_blackboxes $lib_f
-        }
-    }
-}
-
 set sc_memory_libmap_files [sc_cfg_tool_task_get var memory_libmap]
 set sc_memory_techmap_files [sc_cfg_tool_task_get var memory_techmap]
 
@@ -52,75 +42,14 @@ set sc_memory_techmap_files [sc_cfg_tool_task_get var memory_techmap]
 # Read Libraries
 ########################################################
 
-foreach lib_file $sc_libraries {
-    yosys read_liberty -overwrite -setattr liberty_cell -lib $lib_file
-    yosys read_liberty -overwrite -setattr liberty_cell \
-        -unit_delay -wb -ignore_miss_func -ignore_buses $lib_file
-}
-foreach bb_file $sc_blackboxes {
-    yosys log "Reading blackbox model file: $bb_file"
-    yosys read_verilog -setattr blackbox -sv $bb_file
-}
+sc_read_liberty
+sc_read_blackboxes
 
 ########################################################
 # Design Inputs
 ########################################################
 
-set input_verilog "inputs/$sc_topmodule.v"
-if { ![file exists $input_verilog] } {
-    set input_verilog "inputs/$sc_topmodule.sv"
-    if { ![file exists $input_verilog] } {
-        set input_verilog []
-        if { [sc_cfg_exists input rtl systemverilog] } {
-            lappend input_verilog {*}[sc_cfg_get input rtl systemverilog]
-        }
-        if { [sc_cfg_exists input rtl verilog] } {
-            lappend input_verilog {*}[sc_cfg_get input rtl verilog]
-        }
-    }
-}
-
-set use_slang false
-if { [sc_cfg_tool_task_get var use_slang] } {
-    if { ![sc_load_plugin slang] } {
-        puts "WARNING: Unable to load slang plugin reverting back to yosys read_verilog"
-    } else {
-        set use_slang true
-    }
-}
-
-if { $use_slang } {
-    # This needs some reordering of loaded to ensure blackboxes are handled
-    # before this
-    set slang_params []
-    set fileset [lindex [sc_cfg_get option fileset] 0]
-    if { [sc_cfg_exists library $sc_designlib fileset $fileset param] } {
-        dict for {key value} [sc_cfg_get library $sc_designlib fileset $fileset param] {
-            lappend slang_params -G "${key}=${value}"
-        }
-    }
-    yosys slang_version
-    yosys read_slang \
-        -D SYNTHESIS \
-        --keep-hierarchy \
-        --ignore-assertions \
-        --allow-use-before-declare \
-        --top $sc_topmodule \
-        {*}$slang_params \
-        {*}$input_verilog
-    yosys setattr -unset init
-} else {
-    # Use -noblackbox to correctly interpret empty modules as empty,
-    # actual black boxes are read in later
-    # https://github.com/YosysHQ/yosys/issues/1468
-    yosys read_verilog -noblackbox -sv {*}$input_verilog
-
-    ########################################################
-    # Override top level parameters
-    ########################################################
-
-    sc_apply_params
-}
+sc_read_design_verilog
 
 ########################################################
 # Synthesis
@@ -274,16 +203,8 @@ if { [sc_cfg_tool_task_get var autoname] } {
 }
 
 if { [sc_cfg_tool_task_get var map_clockgates] } {
-    set clockgate_dont_use []
-    foreach lib $sc_logiclibs {
-        foreach cell [sc_cfg_get library $lib asic cells dontuse] {
-            lappend clockgate_dont_use -dont_use $cell
-        }
-    }
-    set clockgate_liberty []
-    foreach lib_file $sc_libraries {
-        lappend clockgate_dont_use "-liberty" $lib_file
-    }
+    set clockgate_dont_use [sc_get_dont_use_args $sc_logiclibs dontuse]
+    set clockgate_liberty [sc_get_liberty_args $sc_libraries]
 
     yosys clockgate \
         {*}$clockgate_dont_use \
@@ -291,16 +212,8 @@ if { [sc_cfg_tool_task_get var map_clockgates] } {
         -min_net_size [sc_cfg_tool_task_get var min_clockgate_fanout]
 }
 
-set dfflibmap_dont_use []
-foreach lib $sc_logiclibs {
-    foreach cell [sc_cfg_get library $lib asic cells dontuse] {
-        lappend dfflibmap_dont_use -dont_use $cell
-    }
-}
-set dfflibmap_liberty []
-foreach lib_file $sc_libraries {
-    lappend dfflibmap_liberty "-liberty" $lib_file
-}
+set dfflibmap_dont_use [sc_get_dont_use_args $sc_logiclibs dontuse]
+set dfflibmap_liberty [sc_get_liberty_args $sc_libraries]
 
 yosys dfflibmap {*}$dfflibmap_dont_use {*}$dfflibmap_liberty
 
@@ -344,17 +257,14 @@ if { $script != "" } {
     lappend abc_args "-script" $script
 }
 # Synthesize to main library only
+set abc_libraries []
 foreach lib_file [sc_cfg_tool_task_get var synthesis_libraries] {
     if { [string first "sc_${sc_mainlib}_" [lindex [file split $lib_file] end]] == 0 } {
-        lappend abc_args "-liberty" $lib_file
+        lappend abc_libraries $lib_file
     }
 }
-set abc_dont_use []
-foreach group "dontuse hold clkbuf clkgate clklogic" {
-    foreach cell [sc_cfg_get library $sc_mainlib asic cells $group] {
-        lappend abc_dont_use -dont_use $cell
-    }
-}
+lappend abc_args {*}[sc_get_liberty_args $abc_libraries]
+set abc_dont_use [sc_get_dont_use_args $sc_mainlib "dontuse hold clkbuf clkgate clklogic"]
 
 yosys abc -showtmp {*}$abc_args {*}$abc_dont_use
 
@@ -397,10 +307,7 @@ if {
 
 yosys clean -purge
 
-set stat_libs []
-foreach lib_file $sc_libraries {
-    lappend stat_libs "-liberty" $lib_file
-}
+set stat_libs [sc_get_liberty_args $sc_libraries]
 # turn off echo to prevent the stat command from showing up in the json file
 yosys echo off
 yosys tee -o ./reports/stat.json stat -json -top $sc_topmodule {*}$stat_libs
