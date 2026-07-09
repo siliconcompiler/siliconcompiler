@@ -2,6 +2,7 @@ import argparse
 import json
 import glob
 import os.path
+import sys
 
 
 if __name__ == "__main__":
@@ -14,8 +15,8 @@ if __name__ == "__main__":
     toolsroot = os.path.join(scroot, "siliconcompiler", "toolscripts")
     buildroot = os.path.join(scroot, "setup")
 
-    with open(os.path.join(toolsroot, "_tools.json")) as f:
-        tool_data = json.load(f)
+    sys.path.insert(0, toolsroot)
+    import _tools
 
     matrix = []
 
@@ -32,14 +33,10 @@ if __name__ == "__main__":
             toolname = scriptname[8:-3]
             if args.tool and args.tool != toolname:
                 continue
-            if toolname not in tool_data:
+            if not _tools.has_tool(toolname):
                 continue
-            prebuild = []
-            if "docker-depends" in tool_data[toolname]:
-                prebuild = tool_data[toolname]["docker-depends"]
-                if isinstance(prebuild, str):
-                    prebuild = [prebuild]
-                prebuild = [f"install-{pretool}.sh" for pretool in prebuild]
+            prebuild = [f"install-{pretool}.sh"
+                        for pretool in _tools.get_transitive_docker_depends(toolname)]
 
             for runon, arm64 in (("ubuntu-latest", False), ("ubuntu-24.04-arm", True)):
                 if arm64 and osname not in ("ubuntu22", "ubuntu24", "ubuntu26"):

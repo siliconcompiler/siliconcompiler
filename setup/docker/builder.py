@@ -171,8 +171,6 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
     }
 
     if reference_tool:
-        if isinstance(reference_tool, str):
-            reference_tool = [reference_tool]
         for ref_tool in reference_tool:
             template_opts['depends_tools'].append(_get_tool_images(tool=ref_tool))
 
@@ -267,7 +265,7 @@ def _get_tools(allow_skip=False):
         if not os.path.exists(os.path.join(_install_script_path, f'install-{tool}.sh')):
             continue
         if allow_skip or not _tools.get_field(tool, 'docker-skip'):
-            tools.append((tool, _tools.get_field(tool, 'docker-depends')))
+            tools.append((tool, _tools.get_docker_depends(tool)))
     return tools
 
 
@@ -335,13 +333,9 @@ def _get_tool_image_check_tag(tool):
             for file in sorted(files):
                 hash.update(get_file_hash(file).encode('utf-8'))
 
-    depends_on = _tools.get_field(tool, 'docker-depends')
-    if depends_on:
-        if isinstance(depends_on, str):
-            depends_on = [depends_on]
-        for depend in depends_on:
-            depends_hash = _get_tool_image_check_tag(depend)
-            hash.update(depends_hash.encode('utf-8'))
+    for depend in _tools.get_docker_depends(tool):
+        depends_hash = _get_tool_image_check_tag(depend)
+        hash.update(depends_hash.encode('utf-8'))
 
     return hash.hexdigest()
 
@@ -409,6 +403,10 @@ if __name__ == '__main__':
     }
 
     for tool, _ in _get_tools():
+        # Validate the dependency graph, raises on cycles or unknown tools
+        _tools.get_transitive_docker_depends(tool)
+
+    for tool, _ in _get_tools():
         tool_image_name, version, _ = tool_image_details(tool)
         _images[tool] = {
             'tool': tool,
@@ -432,12 +430,66 @@ if __name__ == '__main__':
     }
 
     if args.json_tools:
+        image_available = {}
+
+        def needs_build(check_tool):
+            if args.reportall:
+                return True
+            if check_tool not in image_available:
+                image_available[check_tool] = check_image(_images[check_tool]['check_name'])
+            return not image_available[check_tool]
+
+        def chain_entry(chain_tool, action):
+            if chain_tool not in _images:
+                raise ValueError(f'{chain_tool} is not an available tool image, '
+                                 'check docker-depends and --include_tools')
+            return {
+                'tool': chain_tool,
+                'name': _images[chain_tool]['name'],
+                'check_name': _images[chain_tool]['check_name'],
+                'action': action
+            }
+
         json_tools = {'include': []}
-        for tool, depends in _get_tools():
-            if (not depends and not args.with_dependencies) or (depends and args.with_dependencies):
-                tool_info = _images[tool]
-                if args.reportall or not check_image(tool_info['check_name']):
+        if not args.with_dependencies:
+            # Tools without dependencies, all built in parallel
+            for tool, depends in _get_tools():
+                if depends:
+                    continue
+                if needs_build(tool):
+                    tool_info = dict(_images[tool])
+                    tool_info['chain'] = json.dumps([chain_entry(tool, 'build')])
                     json_tools['include'].append(tool_info)
+        else:
+            # Tools with dependencies, grouped into chains of arbitrary depth.
+            # Each chain job builds the tools it owns in dependency order and
+            # only requires (checks) images built elsewhere.
+            dependent_tools = [tool for tool, depends in _get_tools() if depends]
+            build_tools = [tool for tool in dependent_tools if needs_build(tool)]
+
+            # Tools which are built as part of another tool's chain
+            # do not get their own matrix entry
+            interior_tools = set()
+            for tool in build_tools:
+                for depend in _tools.get_transitive_docker_depends(tool):
+                    if depend in build_tools:
+                        interior_tools.add(depend)
+
+            for tool in build_tools:
+                if tool in interior_tools:
+                    continue
+                chain = []
+                for depend in _tools.get_transitive_docker_depends(tool):
+                    if depend in build_tools:
+                        # Missing dependent tool owned by this chain
+                        chain.append(chain_entry(depend, 'build'))
+                    else:
+                        # Built in the independent tools job or already available
+                        chain.append(chain_entry(depend, 'require'))
+                chain.append(chain_entry(tool, 'build'))
+                tool_info = dict(_images[tool])
+                tool_info['chain'] = json.dumps(chain)
+                json_tools['include'].append(tool_info)
         if len(json_tools['include']) == 0:
             print(json.dumps({}))
         else:

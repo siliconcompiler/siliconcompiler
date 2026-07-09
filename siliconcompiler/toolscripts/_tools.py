@@ -146,6 +146,49 @@ def get_tools():
     return list(tools.keys())
 
 
+def get_docker_depends(tool):
+    '''
+    Returns the direct docker build dependencies of a tool as a list.
+    '''
+    depends = get_field(tool, "docker-depends")
+    if not depends:
+        return []
+    if isinstance(depends, str):
+        return [depends]
+    return list(depends)
+
+
+def get_transitive_docker_depends(tool):
+    '''
+    Returns all docker build dependencies of a tool, direct and indirect,
+    in dependencies-first (topological) order, deduplicated.
+    The tool itself is not included.
+    Raises ValueError on an unknown tool or a dependency cycle.
+    '''
+    order = []
+    seen = set()
+    stack = []
+
+    def visit(t):
+        if not has_tool(t):
+            via = ' -> '.join([*stack, t])
+            raise ValueError(f"{t} is not a supported tool (via {via})")
+        if t in stack:
+            cycle = ' -> '.join(stack[stack.index(t):] + [t])
+            raise ValueError(f"docker-depends cycle detected: {cycle}")
+        if t in seen:
+            return
+        stack.append(t)
+        for dep in get_docker_depends(t):
+            visit(dep)
+        stack.pop()
+        seen.add(t)
+        order.append(t)
+
+    visit(tool)
+    return order[:-1]
+
+
 if __name__ == "__main__":
     supported_tools = ", ".join(get_tools())
     supported_fields = set()

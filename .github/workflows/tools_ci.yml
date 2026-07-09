@@ -112,44 +112,20 @@ jobs:
   build_tool:
     if: ${{ needs.build_tool_builder.outputs.tools_matrix != '{}' }}
 
-    name: Build ${{ matrix.tool }} tool
-    runs-on: ubuntu-latest
+    name: Build tools
     needs: build_tool_builder
 
     permissions:
       contents: read
       packages: write
 
-    strategy:
-        fail-fast: false
-        matrix: ${{ fromJson(needs.build_tool_builder.outputs.tools_matrix) }}
-
-    steps:
-      - name: Download docker artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: tools
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.PACKAGES_ACTOR }}
-          password: ${{ secrets.PACKAGES_TOKEN }}
-
-      - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.3.0
-        with:
-          context: ./sc_${{ matrix.tool }}/
-          push: true
-          provenance: false
-          tags: |
-            ${{ matrix.name }}
-            ${{ matrix.check_name }}
+    secrets: inherit
+    uses: ./.github/workflows/tools_builder_image.yml
+    with:
+      matrix: ${{ needs.build_tool_builder.outputs.tools_matrix }}
 
   build_tool_with_deps:
-    name: Build ${{ matrix.tool }} tool
-    runs-on: ubuntu-latest
+    name: Build dependent tools
     needs: [build_tool_builder, build_tool]
 
     if: always() && !cancelled() && needs.build_tool_builder.outputs.tools_with_deps_matrix != '{}'
@@ -158,32 +134,10 @@ jobs:
       contents: read
       packages: write
 
-    strategy:
-        fail-fast: false
-        matrix: ${{ fromJson(needs.build_tool_builder.outputs.tools_with_deps_matrix) }}
-
-    steps:
-      - name: Download docker artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: tools
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.PACKAGES_ACTOR }}
-          password: ${{ secrets.PACKAGES_TOKEN }}
-
-      - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.3.0
-        with:
-          context: ./sc_${{ matrix.tool }}/
-          push: true
-          provenance: false
-          tags: |
-            ${{ matrix.name }}
-            ${{ matrix.check_name }}
+    secrets: inherit
+    uses: ./.github/workflows/tools_builder_image.yml
+    with:
+      matrix: ${{ needs.build_tool_builder.outputs.tools_with_deps_matrix }}
 
   build_sc_tools:
     name: Build SC Tools
