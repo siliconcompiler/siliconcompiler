@@ -25,7 +25,7 @@ foreach lib $sc_logiclibs {
 
 set sc_induction_steps [sc_cfg_tool_task_get {var} induction_steps]
 
-proc prepare_libraries { } {
+proc sc_prepare_libraries { } {
     global sc_libraries
     global sc_logiclibs
     global sc_blackboxes
@@ -50,7 +50,7 @@ proc prepare_libraries { } {
     }
 }
 
-proc prepare_design { type v_files } {
+proc sc_prepare_design { type v_files } {
     global sc_cfg
     global sc_topmodule
 
@@ -65,7 +65,7 @@ proc prepare_design { type v_files } {
     ########################################################
     sc_apply_params
 
-    prepare_libraries
+    sc_prepare_libraries
 
     yosys proc
     yosys rmports
@@ -94,14 +94,14 @@ if { [file exists "inputs/${sc_topmodule}.lec.vg"] } {
     set gold_source "inputs/${sc_topmodule}.v"
 }
 
-prepare_design gold $gold_source
-prepare_design gate $gate_source
+sc_prepare_design gold $gold_source
+sc_prepare_design gate $gate_source
 
 yosys design -copy-from gold -as gold gold
 yosys design -copy-from gate -as gate gate
 
 # Rebuild the database due to -stash
-prepare_libraries
+sc_prepare_libraries
 
 yosys equiv_make gold gate equiv
 

@@ -122,111 +122,6 @@ if { $use_slang } {
     sc_apply_params
 }
 
-####################
-# Helper functions
-####################
-proc preserve_modules { } {
-    foreach pmodule [sc_cfg_tool_task_get var preserve_modules] {
-        foreach module [get_modules $pmodule] {
-            yosys log "Preserving module hierarchy: $module"
-            yosys select -module $module
-            yosys setattr -mod -set keep_hierarchy 1
-            yosys select -clear
-        }
-    }
-}
-
-proc get_modules { { find "*" } } {
-    yosys echo off
-    set modules_ls [yosys tee -q -s result.string ls]
-    yosys echo on
-    # Grab only the modules and not the header and footer
-    set modules [list]
-    foreach module [lrange [split $modules_ls \n] 2 end-1] {
-        set module [string trim $module]
-        if { [string length $module] == 0 } {
-            continue
-        }
-        lappend modules $module
-    }
-    set modules [lsearch -all -inline $modules $find]
-    if { [llength $modules] == 0 } {
-        yosys log "Warning: Unable to find modules matching: $find"
-    }
-    return [lsort $modules]
-}
-
-proc sc_annotate_gate_cost_equivalent { } {
-    yosys cellmatch -derive_luts =A:liberty_cell
-    # find a reference nand2 gate
-    set found_cell ""
-    set found_cell_area ""
-    # iterate over all cells with a nand2 signature
-    yosys echo off
-    set nand2_cells [yosys tee -q -s result.string select -list-mod =*/a:lut=4'b0111 %m]
-    yosys echo on
-    foreach cell $nand2_cells {
-        if { ![rtlil::has_attr -mod $cell area] } {
-            puts "WARNING: Cell $cell missing area information"
-            continue
-        }
-        set area [rtlil::get_attr -string -mod $cell area]
-        if { $found_cell == "" || $area < $found_cell_area } {
-            set found_cell $cell
-            set found_cell_area $area
-        }
-    }
-    if { $found_cell == "" } {
-        set found_cell_area 1
-        puts "WARNING: reference nand2 cell not found, using $found_cell_area as area"
-    } else {
-        puts "Using nand2 reference cell ($found_cell) with area: $found_cell_area"
-    }
-
-    # convert the area on all Liberty cells to a gate number equivalent
-    yosys echo off
-    set cells [yosys tee -q -s result.string select -list-mod =A:area =A:liberty_cell %i]
-    yosys echo on
-    foreach cell $cells {
-        set area [rtlil::get_attr -mod -string $cell area]
-        set gate_eq [expr { int(max(1, ceil($area / $found_cell_area))) }]
-        puts "Setting gate_cost_equivalent for $cell as $gate_eq"
-        rtlil::set_attr -mod -uint $cell gate_cost_equivalent $gate_eq
-    }
-}
-
-#########################
-# Schema helper functions
-#########################
-
-proc sc_has_tie_cell { type } {
-    upvar sc_mainlib sc_mainlib
-
-    return [sc_cfg_exists library $sc_mainlib tool yosys tie${type}_cell]
-}
-
-proc sc_get_tie_cell { type } {
-    upvar sc_mainlib sc_mainlib
-
-    set cell_port [sc_cfg_get library $sc_mainlib tool yosys tie${type}_cell]
-    set cell [lindex $cell_port 0]
-    set port [lindex $cell_port 1]
-
-    return "$cell $port"
-}
-
-proc has_buffer_cell { } {
-    upvar sc_mainlib sc_mainlib
-
-    return [sc_cfg_exists library $sc_mainlib tool yosys buffer_cell]
-}
-
-proc get_buffer_cell { } {
-    upvar sc_mainlib sc_mainlib
-
-    return [sc_cfg_get library $sc_mainlib tool yosys buffer_cell]
-}
-
 ########################################################
 # Synthesis
 ########################################################
@@ -242,7 +137,7 @@ proc get_buffer_cell { } {
 yosys hierarchy -top $sc_topmodule
 
 # Mark modules to keep from getting removed in flattening
-preserve_modules
+sc_preserve_modules
 
 # Handle tristate buffers
 set sc_tbuf "false"
@@ -310,7 +205,7 @@ yosys check
 if { [sc_cfg_tool_task_get var lock_design] } {
     if { [sc_load_plugin moosic] } {
         # moosic cannot handle hierarchy
-        foreach module [get_modules "*"] {
+        foreach module [sc_get_modules "*"] {
             yosys select -module $module
             yosys setattr -mod -unset keep_hierarchy
             yosys select -clear
@@ -354,7 +249,7 @@ if { $sc_tbuf == "true" } {
     set sc_tbuf_techmap [sc_cfg_get library $sc_mainlib tool yosys tristatebuffermap]
     # Map tristate buffers
     yosys techmap -map $sc_tbuf_techmap
-    post_techmap -fast
+    sc_post_techmap -fast
 }
 
 if { [sc_cfg_tool_task_get var map_adders] } {
@@ -363,12 +258,12 @@ if { [sc_cfg_tool_task_get var map_adders] } {
     yosys extract_fa
     # map full adders
     yosys techmap -map $sc_adder_techmap
-    post_techmap -fast
+    sc_post_techmap -fast
 }
 
 foreach mapfile [sc_cfg_get library $sc_mainlib tool yosys techmap] {
     yosys techmap -map $mapfile
-    post_techmap -fast
+    sc_post_techmap -fast
 }
 
 if { [sc_cfg_tool_task_get var autoname] } {
@@ -411,7 +306,7 @@ yosys dfflibmap {*}$dfflibmap_dont_use {*}$dfflibmap_liberty
 
 # perform final techmap and opt in case previous techmaps introduced constructs that need
 # techmapping
-post_techmap
+sc_post_techmap
 
 source "$sc_refdir/syn_strategies.tcl"
 
@@ -494,10 +389,10 @@ if { [sc_cfg_tool_task_get var add_tieoffs] && [llength $yosys_hilomap_args] != 
 }
 
 if {
-    [has_buffer_cell] &&
+    [sc_has_buffer_cell] &&
     [sc_cfg_tool_task_get var add_buffers]
 } {
-    yosys insbuf -buf {*}[get_buffer_cell]
+    yosys insbuf -buf {*}[sc_get_buffer_cell]
 }
 
 yosys clean -purge

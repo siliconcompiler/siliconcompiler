@@ -157,7 +157,7 @@ if {
         yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
             {*}[sc_fpga_get_dsp_options $sc_syn_dsp_options]
 
-        post_techmap
+        sc_post_techmap
     }
 
     #Mimic ICE40 flow by running an alumacc and memory -nomap passes
@@ -174,7 +174,7 @@ if {
     set sc_syn_memory_library [sc_cfg_get library $sc_fpgalib tool yosys memory_techmap]
 
     if { [sc_map_memory $sc_syn_memory_libmap $sc_syn_memory_library $sc_do_rom_map] } {
-        post_techmap
+        sc_post_techmap
     }
 
     #After doing memory mapping, turn any remaining
@@ -189,7 +189,7 @@ if {
     if { $sc_syn_flop_library != {} } {
         yosys techmap -map $sc_syn_flop_library
 
-        post_techmap
+        sc_post_techmap
     }
 
     #Perform preliminary buffer insertion before passing to ABC to help reduce

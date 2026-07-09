@@ -1,7 +1,7 @@
 # This file contains a set of procedures that are shared
 # between syn_asic.tcl and syn_fpga.tcl
 
-proc post_techmap { { opt_args "" } } {
+proc sc_post_techmap { { opt_args "" } } {
     # perform techmap in case previous techmaps introduced constructs
     # that need techmapping
     yosys techmap
@@ -141,4 +141,102 @@ proc sc_fpga_get_dsp_options { sc_syn_dsp_options } {
         lappend option_text -D $dsp_option
     }
     return $option_text
+}
+
+proc sc_preserve_modules { } {
+    foreach pmodule [sc_cfg_tool_task_get var preserve_modules] {
+        foreach module [sc_get_modules $pmodule] {
+            yosys log "Preserving module hierarchy: $module"
+            yosys select -module $module
+            yosys setattr -mod -set keep_hierarchy 1
+            yosys select -clear
+        }
+    }
+}
+
+proc sc_get_modules { { find "*" } } {
+    yosys echo off
+    set modules_ls [yosys tee -q -s result.string ls]
+    yosys echo on
+    # Grab only the modules and not the header and footer
+    set modules [list]
+    foreach module [lrange [split $modules_ls \n] 2 end-1] {
+        set module [string trim $module]
+        if { [string length $module] == 0 } {
+            continue
+        }
+        lappend modules $module
+    }
+    set modules [lsearch -all -inline $modules $find]
+    if { [llength $modules] == 0 } {
+        yosys log "Warning: Unable to find modules matching: $find"
+    }
+    return [lsort $modules]
+}
+
+proc sc_annotate_gate_cost_equivalent { } {
+    yosys cellmatch -derive_luts =A:liberty_cell
+    # find a reference nand2 gate
+    set found_cell ""
+    set found_cell_area ""
+    # iterate over all cells with a nand2 signature
+    yosys echo off
+    set nand2_cells [yosys tee -q -s result.string select -list-mod =*/a:lut=4'b0111 %m]
+    yosys echo on
+    foreach cell $nand2_cells {
+        if { ![rtlil::has_attr -mod $cell area] } {
+            puts "WARNING: Cell $cell missing area information"
+            continue
+        }
+        set area [rtlil::get_attr -string -mod $cell area]
+        if { $found_cell == "" || $area < $found_cell_area } {
+            set found_cell $cell
+            set found_cell_area $area
+        }
+    }
+    if { $found_cell == "" } {
+        set found_cell_area 1
+        puts "WARNING: reference nand2 cell not found, using $found_cell_area as area"
+    } else {
+        puts "Using nand2 reference cell ($found_cell) with area: $found_cell_area"
+    }
+
+    # convert the area on all Liberty cells to a gate number equivalent
+    yosys echo off
+    set cells [yosys tee -q -s result.string select -list-mod =A:area =A:liberty_cell %i]
+    yosys echo on
+    foreach cell $cells {
+        set area [rtlil::get_attr -mod -string $cell area]
+        set gate_eq [expr { int(max(1, ceil($area / $found_cell_area))) }]
+        puts "Setting gate_cost_equivalent for $cell as $gate_eq"
+        rtlil::set_attr -mod -uint $cell gate_cost_equivalent $gate_eq
+    }
+}
+
+proc sc_has_tie_cell { type } {
+    upvar sc_mainlib sc_mainlib
+
+    return [sc_cfg_exists library $sc_mainlib tool yosys tie${type}_cell]
+}
+
+proc sc_get_tie_cell { type } {
+    upvar sc_mainlib sc_mainlib
+
+    set cell_port [sc_cfg_get library $sc_mainlib tool yosys tie${type}_cell]
+    set cell [lindex $cell_port 0]
+    set port [lindex $cell_port 1]
+
+    return "$cell $port"
+}
+
+proc sc_has_buffer_cell { } {
+    upvar sc_mainlib sc_mainlib
+
+    return [sc_cfg_exists library $sc_mainlib tool yosys buffer_cell]
+}
+
+proc sc_get_buffer_cell { } {
+    upvar sc_mainlib sc_mainlib
+
+    return [sc_cfg_get library $sc_mainlib tool yosys buffer_cell]
 }
