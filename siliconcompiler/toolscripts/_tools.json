@@ -149,6 +149,18 @@
     "docker-depends": "yosys",
     "auto-update": true
   },
+  "sby": {
+    "git-url": "https://github.com/YosysHQ/sby.git",
+    "git-commit": "v0.66",
+    "docker-depends": "yosys",
+    "auto-update": true
+  },
+  "boolector": {
+    "git-url": "https://github.com/Boolector/boolector.git",
+    "git-commit": "3.2.4",
+    "docker-depends": "sby",
+    "auto-update": true
+  },
   "yosys-moosic": {
     "git-url": "https://github.com/gadfort/moosic-yosys-plugin.git",
     "git-commit": "fbe57eaae507f50e2504777b2438fa9eb451dab9",
