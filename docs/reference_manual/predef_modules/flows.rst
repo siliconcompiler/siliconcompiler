@@ -129,6 +129,15 @@ simulator (and optionally cocotb-based testbenches).
 .. schema::
   :root: siliconcompiler.flows.dvflow/XDMXyceDVFlow
 
+Formal Verification Flows
+-------------------------
+
+Flows for formally verifying the SVA properties in an RTL design using
+SymbiYosys (sby).
+
+.. schema::
+  :root: siliconcompiler.flows.formalflow/PropertyCheckFlow
+
 DRC Flows
 ---------
 
