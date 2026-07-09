@@ -16,7 +16,7 @@ set sc_optmode [sc_cfg_get option optmode]
 # Helper function
 ########################################################
 
-source "$sc_refdir/procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 ########################################################
 # Design Inputs
@@ -25,52 +25,7 @@ source "$sc_refdir/procs.tcl"
 # TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
 # that a flag we might want here?
 
-set input_verilog "inputs/$sc_topmodule.v"
-if { ![file exists $input_verilog] } {
-    set input_verilog "inputs/$sc_topmodule.sv"
-}
-
-set use_slang false
-if { [sc_cfg_tool_task_get var use_slang] } {
-    if { ![sc_load_plugin slang] } {
-        puts "WARNING: Unable to load slang plugin reverting back to yosys read_verilog"
-    } else {
-        set use_slang true
-    }
-}
-
-if { $use_slang } {
-    # This needs some reordering of loaded to ensure blackboxes are handled
-    # before this
-    set slang_params []
-    set fileset [lindex [sc_cfg_get option fileset] 0]
-    if { [sc_cfg_exists library $sc_designlib fileset $fileset param] } {
-        dict for {key value} [sc_cfg_get library $sc_designlib fileset $fileset param] {
-            lappend slang_params -G "${key}=${value}"
-        }
-    }
-    yosys slang_version
-    yosys read_slang \
-        -D SYNTHESIS \
-        --keep-hierarchy \
-        --ignore-assertions \
-        --allow-use-before-declare \
-        --top $sc_topmodule \
-        {*}$slang_params \
-        $input_verilog
-    yosys setattr -unset init
-} else {
-    # Use -noblackbox to correctly interpret empty modules as empty,
-    # actual black boxes are read in later
-    # https://github.com/YosysHQ/yosys/issues/1468
-    yosys read_verilog -noblackbox -sv $input_verilog
-
-    ########################################################
-    # Override top level parameters
-    ########################################################
-
-    sc_apply_params
-}
+sc_read_design_verilog
 
 set sc_fpgalib [sc_cfg_get fpga device]
 set sc_partname [sc_cfg_get library $sc_fpgalib fpga partname]
@@ -157,7 +112,7 @@ if {
         yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
             {*}[sc_fpga_get_dsp_options $sc_syn_dsp_options]
 
-        post_techmap
+        sc_post_techmap
     }
 
     #Mimic ICE40 flow by running an alumacc and memory -nomap passes
@@ -174,7 +129,7 @@ if {
     set sc_syn_memory_library [sc_cfg_get library $sc_fpgalib tool yosys memory_techmap]
 
     if { [sc_map_memory $sc_syn_memory_libmap $sc_syn_memory_library $sc_do_rom_map] } {
-        post_techmap
+        sc_post_techmap
     }
 
     #After doing memory mapping, turn any remaining
@@ -189,7 +144,7 @@ if {
     if { $sc_syn_flop_library != {} } {
         yosys techmap -map $sc_syn_flop_library
 
-        post_techmap
+        sc_post_techmap
     }
 
     #Perform preliminary buffer insertion before passing to ABC to help reduce

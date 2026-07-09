@@ -27,7 +27,7 @@ set sc_design [sc_top]
 # Helper function
 ########################################################
 
-source "$sc_refdir/procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 ########################################################
 # Design Inputs
@@ -56,9 +56,6 @@ sc_apply_params
 # Read Libraries
 ########################################################
 
-set sc_logiclibs [sc_get_asic_libraries logic]
-set sc_macrolibs [sc_get_asic_libraries macro]
-
 set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
 if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
     set sc_macro_libraries \
@@ -67,22 +64,10 @@ if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
     set sc_macro_libraries []
 }
 
-set sc_blackboxes []
-foreach lib $sc_macrolibs {
-    if { [sc_cfg_exists library $lib output blackbox verilog] } {
-        foreach lib_f [sc_cfg_get library $lib output blackbox verilog] {
-            lappend sc_blackboxes $lib_f
-        }
-    }
-}
-
 foreach lib_file "$sc_libraries $sc_macro_libraries" {
-    yosys read_liberty -lib $lib_file
+    yosys read_liberty -lib -ignore_miss_func -ignore_miss_dir $lib_file
 }
-foreach bb_file $sc_blackboxes {
-    yosys log "Reading blackbox model file: $bb_file"
-    yosys read_verilog -sv $bb_file
-}
+sc_read_blackboxes
 
 ########################################################
 # Screenshot

@@ -9,6 +9,7 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.yosys.lec_asic import ASICLECTask
 from siliconcompiler.tools.slang import elaborate
 from siliconcompiler.tools.yosys import YosysFPGA
+from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
 from siliconcompiler.tools.yosys.syn_fpga import FPGASynthesis
 
 from tools.inputimporter import ImporterTask
@@ -85,6 +86,56 @@ def test_yosys_lec_broken(datadir):
 
     assert proj.run()
     assert proj.history("job0").get('metric', 'drvs', step='lec', index='0') == 2
+
+
+def _run_asic_synthesis(design, use_slang):
+    '''Run an elaborate -> synthesis flow and return the lines of synthesis.log.'''
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("elab_and_synth")
+    flow.node('elaborate', elaborate.Elaborate())
+    flow.node("synthesis", ASICSynthesis())
+    flow.edge('elaborate', 'synthesis')
+    proj.set_flow(flow)
+
+    ASICSynthesis.find_task(proj).set_yosys_useslang(use_slang)
+
+    proj.run()
+
+    node = SchedulerNode(proj, step='synthesis', index='0')
+    log_file = os.path.join(node.workdir, 'synthesis.log')
+    assert os.path.exists(log_file), "synthesis log file was not created"
+
+    with sc_open(log_file) as f:
+        return f.readlines()
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_synthesis_uses_slang(heartbeat_design):
+    '''The slang frontend is used to read the design when use_slang is set.'''
+    lines = _run_asic_synthesis(heartbeat_design, use_slang=True)
+
+    assert any("read_slang" in line for line in lines), \
+        "expected the slang frontend (read_slang) to be used"
+    assert not any("read_verilog -noblackbox" in line for line in lines), \
+        "did not expect the design to be read with read_verilog when slang is enabled"
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_synthesis_does_not_use_slang(heartbeat_design):
+    '''The design is read with read_verilog when use_slang is not set.'''
+    lines = _run_asic_synthesis(heartbeat_design, use_slang=False)
+
+    assert any("read_verilog -noblackbox" in line for line in lines), \
+        "expected the design to be read with read_verilog when slang is disabled"
+    assert not any("read_slang" in line for line in lines), \
+        "did not expect the slang frontend (read_slang) to be used"
 
 
 class DummyYosysFPGA(YosysFPGA):
