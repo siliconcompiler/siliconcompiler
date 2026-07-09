@@ -151,9 +151,9 @@ proc sc_get_input_verilog { } {
     # Determine the input design source for the current top module.
     global sc_topmodule
 
-    set input_verilog "inputs/$sc_topmodule.v"
+    set input_verilog "inputs/$sc_topmodule.sv"
     if { ![file exists $input_verilog] } {
-        set input_verilog "inputs/$sc_topmodule.sv"
+        set input_verilog "inputs/$sc_topmodule.v"
     }
     return $input_verilog
 }
@@ -192,13 +192,13 @@ proc sc_read_design_verilog { } {
             --allow-use-before-declare \
             --top $sc_topmodule \
             {*}$slang_params \
-            $input_verilog
+            {*}$input_verilog
         yosys setattr -unset init
     } else {
         # Use -noblackbox to correctly interpret empty modules as empty,
         # actual black boxes are read in later
         # https://github.com/YosysHQ/yosys/issues/1468
-        yosys read_verilog -noblackbox -sv $input_verilog
+        yosys read_verilog -noblackbox -sv {*}$input_verilog
 
         # Override top level parameters
         sc_apply_params
