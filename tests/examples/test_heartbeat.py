@@ -99,7 +99,6 @@ def test_py_make_fpga():
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_make_screenshot(monkeypatch):
     from heartbeat import make

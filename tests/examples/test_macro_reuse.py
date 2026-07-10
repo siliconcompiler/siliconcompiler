@@ -4,7 +4,6 @@ import os.path
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_make_top():
     from macro_reuse import make

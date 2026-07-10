@@ -44,7 +44,6 @@ def test_py_gcd():
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_gcd_skywater():
     from gcd import gcd_skywater
@@ -69,7 +68,6 @@ def test_py_gcd_gf180():
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_gcd_ihp130():
     from gcd import gcd_ihp130
@@ -83,7 +81,6 @@ def test_py_gcd_ihp130():
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_gcd_hls():
     from gcd import gcd_hls
@@ -93,7 +90,6 @@ def test_py_gcd_hls():
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_gcd_chisel():
     from gcd import gcd_chisel

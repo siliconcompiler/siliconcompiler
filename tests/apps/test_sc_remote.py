@@ -613,8 +613,8 @@ def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
              os.path.abspath('add_this_too_too')])
 
 
-@pytest.mark.parametrize("args", itertools.permutations(
-        ['configure', 'reconnect', 'cancel', 'delete'], r=2))
+@pytest.mark.parametrize("args", list(itertools.permutations(
+        ['configure', 'reconnect', 'cancel', 'delete'], r=2)))
 def test_exclusive_args(args, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-remote',
