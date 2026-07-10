@@ -34,26 +34,6 @@ cd keplerformal
 git checkout $(python3 ${src_path}/_tools.py --tool keplerformal --field git-commit)
 git submodule update --init --recursive
 
-git apply - <<EOF
-diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 65d0d04..a67d38f 100644
---- a/CMakeLists.txt
-+++ b/CMakeLists.txt
-@@ -26,9 +26,9 @@ add_subdirectory(thirdparty)
- 
- # option(ENABLE_UNIT_TESTS ON)
- # if(ENABLE_UNIT_TESTS)
--include(CTest)
--enable_testing()
--add_subdirectory(test)
-+# include(CTest)
-+# enable_testing()
-+# add_subdirectory(test)
- # endif()
- 
- option(CODE_COVERAGE "Enable coverage reporting" OFF)
-EOF
-
 cmake_args=""
 if [ ! -z ${PREFIX} ]; then
     cmake_args="-DCMAKE_INSTALL_PREFIX=$PREFIX"
@@ -65,6 +45,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_FLAGS_RELEASE="-Ofast -march=native -ffast-math -flto" \
     -DCMAKE_EXE_LINKER_FLAGS="-flto" \
 	-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
+    -DENABLE_UNIT_TESTS=OFF \
     $cmake_args
 make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
