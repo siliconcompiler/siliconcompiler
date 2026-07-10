@@ -179,6 +179,14 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_required_key("var", "write_sdf")
 
     def __has_openrcx(self):
+        """Check if the OpenRCX files are available in the PDK.
+
+        Returns:
+            bool: True if OpenRCX files are present, False otherwise.
+        """
+        if not self.pdk.valid("pdk", "pexmodelfileset", "openroad"):
+            return False
+
         for corner in self.pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
             for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", corner):
                 if self.pdk.get("fileset", fileset, "file", "openrcx"):
