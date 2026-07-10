@@ -76,7 +76,7 @@ def _make_gcd(examples_root):
     pytest.param("asap7", marks=pytest.mark.timeout(1200)),
     pytest.param("skywater130", marks=pytest.mark.timeout(600)),
     pytest.param("gf180", marks=pytest.mark.timeout(1200)),
-    pytest.param("ihp130", marks=(pytest.mark.quick, pytest.mark.timeout(300))),
+    pytest.param("ihp130", marks=pytest.mark.timeout(300)),
 ))
 def test_target_signoff(name, examples_root):
     cfg = _SIGNOFF[name]
