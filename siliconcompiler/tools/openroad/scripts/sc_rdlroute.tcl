@@ -127,10 +127,12 @@ foreach obstruction [[ord::get_db_block] getObstructions] {
 }
 utl::info FLW 1 "Deleted $removed_obs routing obstructions"
 
-if { [sc_cfg_tool_task_get var fin_add_fill] } {
-    set sc_fillrules \
-        [lindex [sc_cfg_get pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill] 0]
-    density_fill -rules $sc_fillrules
+set sc_fillrules [sc_cfg_get_fileset $sc_pdk $aprfileset fill]
+if {
+    [sc_cfg_tool_task_get var fin_add_fill] &&
+    [llength $sc_fillrules] > 0
+} {
+    density_fill -rules [lindex $sc_fillrules 0]
 }
 
 utl::pop_metrics_stage

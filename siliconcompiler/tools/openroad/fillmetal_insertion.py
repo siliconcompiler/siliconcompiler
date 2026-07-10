@@ -64,22 +64,15 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
         self.add_required_key("var", "fin_add_fill")
 
         if self.get("var", "fin_add_fill"):
+            # The metal fill rules are shipped by the PDK as a fill file (filetype
+            # "fill") inside the OpenROAD APR tech fileset. Mark it required so it is
+            # hashed (cache) and copied (remote runs). If no PDK provides one, there
+            # is nothing to do and the task is skipped.
             found = False
-            # for fileset in self.pdk.get("pdk", "fill", "runsetfileset", "openroad"):
-            #     if self.pdk.valid("fileset", fileset, "file", "fill"):
-            #         self.add_required_key(self.pdk, "fileset", fileset, "file", "fill")
-            #         found = True
+            for fileset in self.pdk.get("pdk", "aprtechfileset", "openroad"):
+                if self.pdk.has_file(fileset=fileset, filetype="fill"):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "fill")
+                    found = True
 
             if not found:
-                raise TaskSkip("no metal fill script is available")
-            # if self.pdk.valid("chip.get('pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill'):
-            #     chip.add('tool', tool, 'task', task, 'require',
-            #             ",".join(['pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill']),
-            #             step=step, index=index)
-            # else:
-            #     if not has_pre_post_script(chip):
-            #         # nothing to do so we can skip
-            #         return "no fill script is available"
-
-            #     chip.set('tool', tool, 'task', task, 'var', 'fin_add_fill', False,
-            #             step=step, index=index)
+                raise TaskSkip("no metal fill rules are available")

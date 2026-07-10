@@ -15,15 +15,14 @@ source "$sc_refdir/apr/preamble.tcl"
 # Do fill
 ###############################
 
-set sc_libtype [sc_cfg_get library $sc_mainlib asic libarch]
+set sc_aprfileset [sc_cfg_get library $sc_pdk pdk aprtechfileset openroad]
+set sc_fillrules [sc_cfg_get_fileset $sc_pdk $sc_aprfileset fill]
 
 if {
     [sc_cfg_tool_task_get var fin_add_fill] &&
-    [sc_cfg_exists pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill]
+    [llength $sc_fillrules] > 0
 } {
-    set sc_fillrules \
-        [lindex [sc_cfg_get pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill] 0]
-    density_fill -rules $sc_fillrules
+    density_fill -rules [lindex $sc_fillrules 0]
 }
 
 # estimate for metrics

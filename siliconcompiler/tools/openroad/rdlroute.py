@@ -73,4 +73,4 @@ class RDLRouteTask(OpenROADTask):
                 if lib.has_file(fileset=fileset, filetype="lef"):
                     self.add_required_key(lib, "fileset", fileset, "file", "lef")
 
-        self.set("var", "fin_add_fill", False)
+        self.set_openroad_addfill(False)
