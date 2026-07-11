@@ -25,11 +25,23 @@ sudo apt-get install -y git
 mkdir -p deps
 cd deps
 
+python3 -m venv .yosys --clear
+. .yosys/bin/activate
+python3 -m pip install cmake==3.31.6
+
 git clone $(python3 ${src_path}/_tools.py --tool yosys --field git-url) yosys
 cd yosys
 git checkout $(python3 ${src_path}/_tools.py --tool yosys --field git-commit)
 git submodule update --init --recursive
 
-make -j${NPROC:-$(nproc)} PREFIX="$PREFIX"
-$SUDO_INSTALL make install PREFIX="$PREFIX"
+mkdir build
+cd build
+
+cmake -DCMAKE_BUILD_TYPE=Release \
+    -D CMAKE_INSTALL_PREFIX="$PREFIX" \
+	..
+
+make -j${NPROC:-$(nproc)}
+$SUDO_INSTALL make install
+
 cd -
