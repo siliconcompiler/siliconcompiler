@@ -18,7 +18,7 @@ sudo apt-get update
 sudo apt-get install -y build-essential clang bison flex \
 	libreadline-dev gawk tcl-dev libffi-dev git libfl-dev \
 	graphviz xdot pkg-config python3 libboost-system-dev \
-	libboost-python-dev libboost-filesystem-dev zlib1g-dev
+	libboost-python-dev libboost-filesystem-dev zlib1g-dev cmake
 
 sudo apt-get install -y git
 
@@ -30,6 +30,14 @@ cd yosys
 git checkout $(python3 ${src_path}/_tools.py --tool yosys --field git-commit)
 git submodule update --init --recursive
 
-make -j${NPROC:-$(nproc)} PREFIX="$PREFIX"
-$SUDO_INSTALL make install PREFIX="$PREFIX"
+mkdir build
+cd build
+
+cmake -DCMAKE_BUILD_TYPE=Release \
+    -D CMAKE_INSTALL_PREFIX="$PREFIX" \
+	..
+
+make -j${NPROC:-$(nproc)}
+$SUDO_INSTALL make install
+
 cd -

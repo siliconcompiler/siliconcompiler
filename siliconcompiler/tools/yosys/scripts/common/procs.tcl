@@ -63,6 +63,13 @@ proc sc_get_scratchpad { name } {
     return $value
 }
 
+proc sc_load_slang { } {
+    if { [sc_cfg_get record toolversion] >= 0.67 } {
+        return 1
+    }
+    return [sc_load_plugin slang]
+}
+
 proc sc_load_plugin { name } {
     catch { yosys tee -q -s sc.load.test plugin -i $name }
     set load_test [sc_get_scratchpad sc.load.test]
@@ -167,7 +174,7 @@ proc sc_read_design_verilog { } {
 
     set use_slang false
     if { [sc_cfg_tool_task_get var use_slang] } {
-        if { ![sc_load_plugin slang] } {
+        if { ![sc_load_slang] } {
             puts "WARNING: Unable to load slang plugin reverting back to yosys read_verilog"
         } else {
             set use_slang true

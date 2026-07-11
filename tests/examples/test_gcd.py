@@ -28,8 +28,8 @@ def test_py_gcd():
     # "No timescale set..."
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2 ABC Warnings
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 2
+    # 4 ABC Warnings
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
 
     assert project.get('metric', 'warnings', step='floorplan.init', index='0') == 1
 
