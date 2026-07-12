@@ -62,7 +62,7 @@ def get_changed_tools(tools_v1: str, tools_v2: str) -> Set[str]:
 def main() -> int:
     """Parse command line arguments and compare tool configurations."""
     workflows = {
-        "asic": ("openroad", "yosys", "sv2v", "klayout", "yosys-slang", "surelog", "chisel"),
+        "asic": ("openroad", "yosys", "sv2v", "klayout", "surelog", "chisel"),
     }
 
     parser = argparse.ArgumentParser(
