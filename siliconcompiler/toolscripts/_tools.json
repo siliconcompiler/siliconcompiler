@@ -151,7 +151,7 @@
   },
   "sby": {
     "git-url": "https://github.com/YosysHQ/sby.git",
-    "git-commit": "v0.66",
+    "git-commit": "v0.67",
     "docker-depends": "yosys",
     "auto-update": true
   },
