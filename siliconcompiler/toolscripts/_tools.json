@@ -143,12 +143,6 @@
     "git-url": "https://github.com/gtkwave/gtkwave.git",
     "auto-update": false
   },
-  "yosys-slang": {
-    "git-url": "https://github.com/povik/sv-elab.git",
-    "git-commit": "2026-07-07",
-    "docker-depends": "yosys",
-    "auto-update": true
-  },
   "sby": {
     "git-url": "https://github.com/YosysHQ/sby.git",
     "git-commit": "v0.67",
