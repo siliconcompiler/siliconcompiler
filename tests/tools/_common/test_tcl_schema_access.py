@@ -236,6 +236,33 @@ def test_get_filesets_multiple_top_filesets(cfg):
     ]
 
 
+def test_get_filesets_multiple_libraries(cfg):
+    # -library may name several libraries; all are traversed with the same
+    # filesets and share one visited set, so a common dependency dedups.
+    cfg.eval(
+        """
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_shared rtl}}
+        dict set sc_cfg library lib_b fileset rtl depfileset {{lib_shared rtl}}
+        dict set sc_cfg library lib_shared fileset rtl topmodule s
+        """
+    )
+
+    assert _pairs(cfg, "sc_get_filesets -library {lib_a lib_b} -filesets rtl") == [
+        ("lib_shared", "rtl"),
+        ("lib_a", "rtl"),
+        ("lib_b", "rtl"),
+    ]
+
+
+def test_get_filesets_requires_filesets_when_library_given(cfg):
+    cfg.eval("dict set sc_cfg library lib_a fileset rtl topmodule top")
+
+    with pytest.raises(
+            tkinter.TclError,
+            match=r"-filesets must be given when -library is given"):
+        cfg.eval("sc_get_filesets -library lib_a")
+
+
 def test_get_filesets_alias_swaps_library_and_fileset(cfg):
     # option,alias replaces the (lib_b, rtl) dependency edge with (lib_c, alt).
     cfg.eval(

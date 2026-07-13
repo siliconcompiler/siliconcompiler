@@ -198,26 +198,32 @@ proc sc_get_filesets_recurse { library filesets aliases visited_var filelist_var
 # been resolved, so no cycle detection is performed.
 #
 # With no arguments the top-level design (option,design) and its selected
-# filesets (option,fileset) are used. If -library is given, -filesets must also
-# be given.
+# filesets (option,fileset) are used. -library may name one or more libraries
+# (e.g. -library "lib_a lib_b"), all of which are traversed with the same
+# -filesets and share a single visited set so dependencies dedup across them.
+# If -library is given, -filesets must also be given.
 proc sc_get_filesets { args } {
     sc::parse_args opts {
         -library  {default {}}
         -filesets {default {}}
     } $args
-    set library [dict get $opts library]
+    set libraries [dict get $opts library]
     set filesets [dict get $opts filesets]
 
-    if { [llength $library] == 0 } {
-        set library [sc_cfg_get option design]
+    if { [llength $libraries] == 0 } {
+        set libraries [sc_cfg_get option design]
         if { [llength $filesets] == 0 } {
             set filesets [sc_cfg_get option fileset]
         }
+    } elseif { [llength $filesets] == 0 } {
+        error "sc_get_filesets: -filesets must be given when -library is given"
     }
 
     set aliases [sc_get_fileset_aliases]
     set visited [dict create]
     set filelist []
-    sc_get_filesets_recurse $library $filesets $aliases visited filelist
+    foreach library $libraries {
+        sc_get_filesets_recurse $library $filesets $aliases visited filelist
+    }
     return $filelist
 }
