@@ -399,7 +399,7 @@ def test_install_group(call, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic'])
     assert sc_install.main() == 0
-    assert call.call_count == 5
+    assert call.call_count == 4
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -422,7 +422,7 @@ def test_install_groups(call, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic', 'fpga'])
     assert sc_install.main() == 0
-    assert call.call_count == 8
+    assert call.call_count == 7
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -715,8 +715,8 @@ def test_groups(monkeypatch):
         return [sc_install.get_install_groups]
     monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
 
-    tools_asic = ("sv2v", "yosys", "yosys-slang", "openroad", "klayout")
-    tools_fpga = ("sv2v", "yosys", "yosys-slang", "vpr", "wildebeest", "opensta")
+    tools_asic = ("sv2v", "yosys", "openroad", "klayout")
+    tools_fpga = ("sv2v", "yosys", "vpr", "wildebeest", "opensta")
 
     recommend = sc_install._recommended_tool_groups(tools_asic)
     assert 'asic' in recommend
@@ -906,7 +906,6 @@ def test_jobs_with_group(call, monkeypatch):
     def return_os():
         return {
             "yosys": "yosys.sh",
-            "yosys-slang": "yosys-slang.sh",
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
             "klayout": "klayout.sh"
@@ -919,7 +918,7 @@ def test_jobs_with_group(call, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic', '-jobs', str(jobs_count)])
     assert sc_install.main() == 0
 
-    assert call.call_count == 5
+    assert call.call_count == 4
     # Check that NPROC was set in all calls
     for call_arg in call.call_args_list:
         call_kwargs = call_arg.kwargs

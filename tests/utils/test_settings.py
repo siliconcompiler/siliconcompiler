@@ -203,5 +203,202 @@ def test_filepath_none():
     manager.set('memory', 'test', 123)
     assert manager.get('memory', 'test') == 123
 
+
+# ---------------------------------------------------------------------------
+# System settings layer (defaults + system priority)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def system_file(tmp_path):
+    """Fixture to provide a path for a system settings file."""
+    return str(tmp_path / "system.json")
+
+
+def _write_json(path, data):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+
+def test_backward_compat_no_system_layer(settings_file):
+    """Old settings.json files behave exactly as before when no system file."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("schema-options", "remote", True)
+    manager.save()
+
+    reloaded = SettingsManager(settings_file, logging.getLogger())
+    assert reloaded.get("schema-options", "remote") is True
+    assert reloaded.get("schema-options", "missing", default="d") == "d"
+    assert reloaded.get_category("schema-options") == {"remote": True}
+
+
+def test_backward_compat_missing_system_file(settings_file, system_file):
+    """A non-existent system file is a no-op, not an error."""
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    assert manager.get("any", "key", default="d") == "d"
+    assert manager._SettingsManager__system_settings == {}
+    assert manager._SettingsManager__priority == {}
+
+
+def test_backward_compat_user_priority_wrapper_is_plain(settings_file):
+    """A priority-wrapper shape in a USER file is treated as an ordinary value."""
+    _write_json(settings_file, {"record": {"region": {"value": "eu", "system_priority": True}}})
+    manager = SettingsManager(settings_file, logging.getLogger())
+    # Priority flags are only honored in the system file; the user file is untouched.
+    assert manager._SettingsManager__priority == {}
+    assert manager.get("record", "region") == {"value": "eu", "system_priority": True}
+    manager.set("record", "region", "us")
+    assert manager.get("record", "region") == "us"
+
+
+def test_system_default_used_when_user_absent(settings_file, system_file):
+    """System values act as defaults when the user has not set them."""
+    _write_json(system_file, {"record": {"region": "us-east-1"}})
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    assert manager.get("record", "region") == "us-east-1"
+
+
+def test_user_overrides_plain_system_default(settings_file, system_file):
+    """Plain (non-priority) system values are overridable by the user."""
+    _write_json(system_file, {"record": {"region": "us-east-1"}})
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    manager.set("record", "region", "eu-west-1")
+    assert manager.get("record", "region") == "eu-west-1"
+
+
+def test_system_priority_wins(settings_file, system_file, caplog):
+    """A system-priority key always returns the system value and ignores user writes."""
+    _write_json(system_file, {
+        "record": {"region": {"value": "us-east-1", "system_priority": True}},
+    })
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+
+    with caplog.at_level(logging.WARNING):
+        manager.set("record", "region", "eu-west-1")
+    assert "system priority" in caplog.text
+
+    assert manager.get("record", "region") == "us-east-1"
+    # The write did not land in the user layer.
+    assert "record" not in manager._SettingsManager__settings
+
+
+def test_system_priority_without_value_returns_default(settings_file, system_file):
+    """A priority wrapper with no value returns default and ignores the user."""
+    _write_json(system_file, {"record": {"region": {"system_priority": True}}})
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    manager.set("record", "region", "eu-west-1")
+    assert manager.get("record", "region", default="local") == "local"
+
+
+def test_explicit_non_priority_wrapper(settings_file, system_file):
+    """A wrapper with system_priority=false is an ordinary, overridable default."""
+    _write_json(system_file, {
+        "record": {"region": {"value": "us-east-1", "system_priority": False}},
+    })
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    assert manager.get("record", "region") == "us-east-1"
+    manager.set("record", "region", "eu-west-1")
+    assert manager.get("record", "region") == "eu-west-1"
+
+
+def test_get_category_merges_layers(settings_file, system_file):
+    """get_category merges system defaults with user overrides, respecting priority."""
+    _write_json(system_file, {
+        "showtask": {
+            "gds": {"value": "klayout", "system_priority": True},
+            "def": "openroad",
+        },
+    })
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    manager.set("showtask", "def", "innovus")   # override plain default
+    manager.set("showtask", "vcd", "gtkwave")    # new user-only key
+    manager.set("showtask", "gds", "magic")      # attempt to override priority -> ignored
+
+    assert manager.get_category("showtask") == {
+        "gds": "klayout",     # system priority -> system wins
+        "def": "innovus",     # user override
+        "vcd": "gtkwave",     # user only
+    }
+
+
+def test_delete_system_priority_key_ignored(settings_file, system_file, caplog):
+    """System-priority settings cannot be deleted."""
+    _write_json(system_file, {
+        "record": {"region": {"value": "us-east-1", "system_priority": True}},
+    })
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    with caplog.at_level(logging.WARNING):
+        manager.delete("record", "region")
+    assert "system priority" in caplog.text
+    assert manager.get("record", "region") == "us-east-1"
+
+
+def test_save_never_persists_system_layer(settings_file, system_file):
+    """Saving only writes the user layer; system defaults/priorities are not copied in."""
+    _write_json(system_file, {
+        "record": {"region": {"value": "us-east-1", "system_priority": True}},
+    })
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    manager.set("showtask", "vcd", "gtkwave")
+    manager.save()
+
+    with open(settings_file, encoding="utf-8") as f:
+        on_disk = json.load(f)
+    assert on_disk == {"showtask": {"vcd": "gtkwave"}}
+    assert "record" not in on_disk
+
+
+def test_malformed_system_file_ignored(settings_file, system_file, caplog):
+    """A malformed system file is ignored, and the user layer still works."""
+    with open(system_file, "w", encoding="utf-8") as f:
+        f.write("{ not valid json")
+    with caplog.at_level(logging.ERROR):
+        manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    assert "malformed" in caplog.text
+    assert manager._SettingsManager__system_settings == {}
+    manager.set("record", "region", "eu")
+    assert manager.get("record", "region") == "eu"
+
+
+def test_system_file_not_a_dict_ignored(settings_file, system_file, caplog):
+    """A system file that is valid JSON but not an object is ignored."""
+    _write_json(system_file, ["not", "a", "dict"])
+    with caplog.at_level(logging.WARNING):
+        manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    assert "did not contain" in caplog.text
+    assert manager._SettingsManager__system_settings == {}
+
+
+def test_non_dict_category_ignored(settings_file, system_file, caplog):
+    """A system category that is not a JSON object is skipped, others still load."""
+    _write_json(system_file, {
+        "bogus": "not-an-object",
+        "record": {"region": "us-east-1"},
+    })
+    with caplog.at_level(logging.WARNING):
+        manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    assert "bogus" in caplog.text
+    assert "bogus" not in manager._SettingsManager__system_settings
+    assert manager.get("record", "region") == "us-east-1"
+
+
+def test_mixed_priority_and_plain_in_category(settings_file, system_file):
+    """A category may mix priority wrappers, plain wrappers, and bare values."""
+    _write_json(system_file, {
+        "a": {
+            "priority_key": {"value": 1, "system_priority": True},
+            "plain_key": {"value": 2, "system_priority": False},
+            "bare_key": 3,
+        },
+    })
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    manager.set("a", "priority_key", 99)
+    manager.set("a", "plain_key", 99)
+    manager.set("a", "bare_key", 99)
+    assert manager.get("a", "priority_key") == 1   # system priority -> system wins
+    assert manager.get("a", "plain_key") == 99     # overridable
+    assert manager.get("a", "bare_key") == 99      # overridable
+    assert manager._SettingsManager__priority == {"a": {"priority_key"}}
+
     # Save should be a safe no-op
     manager.save()

@@ -36,6 +36,56 @@ The JSON structure generally looks like this:
    The settings manager uses a "last-write-wins" policy per key and protects file integrity with strict error handling.
    If the settings file becomes malformed, the manager will log an error and start with an empty configuration to prevent crashes.
 
+System-Wide Defaults
+--------------------
+
+In addition to the per-user file, SiliconCompiler can read a **system-wide settings file** managed by an administrator.
+This is useful on shared machines—such as an HPC login node—where an administrator wants to provide sensible defaults (for example, cluster-wide Slurm ``sharedpaths``) to every user without asking each of them to configure their own ``~/.sc/settings.json``.
+
+The system-wide file uses the same JSON structure as the per-user file. Its location is resolved in the following order:
+
+1. The ``SC_SYSTEM_SETTINGS`` environment variable, if set, is used verbatim as the path to the file.
+   This is the recommended override for non-root installs, virtual environments, containers, and continuous integration.
+2. Otherwise, a platform-specific default location is used:
+
+   * Linux/macOS: ``/etc/siliconcompiler/settings.json``
+   * Windows: ``%PROGRAMDATA%\siliconcompiler\settings.json`` (typically ``C:\ProgramData\siliconcompiler\settings.json``)
+
+.. note::
+   The default system location (``/etc``) requires administrator privileges to write, which is intentional: only an administrator should be able to change machine-wide defaults.
+   Users who need their own machine-wide file without root access should point ``SC_SYSTEM_SETTINGS`` at a writable location.
+
+Precedence and System Priority
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, system-wide values act as **defaults** that a user may override in their own ``~/.sc/settings.json``. When resolving a setting, SiliconCompiler applies the following precedence:
+
+1. If the setting has **system priority**, the system value is used and the user value is ignored.
+2. Otherwise, the user value is used if present.
+3. Otherwise, the (plain) system default is used if present.
+4. Otherwise, the built-in default is used.
+
+An administrator can promote any default to a **system-priority** (non-overridable) value by co-locating a flag with the value.
+Instead of writing a bare value, write an object with a ``"system_priority"`` flag (and, optionally, a ``"value"``):
+
+.. code-block:: json
+
+    {
+        "record": {
+            "region": {"value": "us-east-1", "system_priority": true}
+        },
+        "scheduler-slurm": {
+            "sharedpaths": ["/nfs/tools"]
+        }
+    }
+
+In this example every user is pinned to ``region = us-east-1`` (it cannot be overridden), while ``sharedpaths`` is a plain default that users may override.
+Attempts to change or delete a system-priority setting are ignored with a warning.
+A priority wrapper may also omit ``"value"`` (e.g. ``{"system_priority": true}``) to force a setting to stay unset, so callers fall back to their built-in default.
+
+.. note::
+   Priority flags are only honored in the **system** file. A value written in this ``{"value": ..., "system_priority": ...}`` shape inside a user's ``settings.json`` is treated as an ordinary dictionary value, so existing user files are unaffected by this feature. User files are never modified to include system defaults; saving only ever writes the user's own values.
+
 Concurrency & Safety
 --------------------
 

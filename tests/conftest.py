@@ -170,6 +170,10 @@ def mock_home(monkeypatch, test_dir):
     monkeypatch.setattr(Path, 'home', _mock_home)
     monkeypatch.setenv("HOME", str(test_dir))
 
+    # Ensure a developer's ambient system settings file is never picked up
+    # during tests; individual tests can opt back in with monkeypatch.setenv.
+    monkeypatch.delenv("SC_SYSTEM_SETTINGS", raising=False)
+
 
 @pytest.fixture(scope='session')
 def scroot():

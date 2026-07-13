@@ -32,9 +32,9 @@ def get_install_groups() -> Dict[str, List[str]]:
         dict: Mapping from group name (str) to a list of tool identifiers (List[str]).
     """
     return {
-        "asic": ["sv2v", "yosys", "yosys-slang", "openroad", "klayout"],
-        "asic-hls": ["bambu", "yosys", "yosys-slang", "openroad", "klayout"],
-        "fpga": ["sv2v", "yosys", "yosys-slang", "wildebeest", "vpr", "opensta"],
+        "asic": ["sv2v", "yosys", "openroad", "klayout"],
+        "asic-hls": ["bambu", "yosys", "openroad", "klayout"],
+        "fpga": ["sv2v", "yosys", "wildebeest", "vpr", "opensta"],
         "digital-simulation": ["verilator", "icarus", "surfer"],
         "analog-simulation": ["xyce"]
     }
