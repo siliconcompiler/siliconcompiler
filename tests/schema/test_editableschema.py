@@ -3,6 +3,7 @@ import pytest
 from siliconcompiler.schema import BaseSchema, NamedSchema
 from siliconcompiler.schema import Parameter
 from siliconcompiler.schema import EditableSchema
+from siliconcompiler.schema import SchemaFrozenError
 
 
 @pytest.mark.parametrize("child", (BaseSchema(), Parameter("str")))
@@ -389,3 +390,27 @@ def test_rename_bad_type():
     obj = BaseSchema()
     with pytest.raises(TypeError, match=r'^schema must be a named schema$'):
         EditableSchema(obj).rename("this")
+
+
+def test_insert_on_frozen_raises():
+    schema = BaseSchema()
+    EditableSchema(schema).insert("existing", Parameter("str"))
+    schema._freeze()
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        EditableSchema(schema).insert("newkey", Parameter("str"))
+
+
+def test_remove_on_frozen_raises():
+    schema = BaseSchema()
+    EditableSchema(schema).insert("existing", Parameter("str"))
+    schema._freeze()
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        EditableSchema(schema).remove("existing")
+
+
+def test_insert_allowed_after_unfreeze():
+    schema = BaseSchema()
+    schema._freeze()
+    schema._unfreeze()
+    EditableSchema(schema).insert("newkey", Parameter("str"))
+    assert "newkey" in schema.getkeys()

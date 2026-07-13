@@ -141,3 +141,49 @@ How do I...
     .. code-block:: python
 
        project.option.write_defaults()
+
+... avoid rebuilding an expensive object (such as a PDK) many times?
+
+    If a schema object is a pure function of its construction arguments, base it
+    on ``CachedSchema``. Instances are built once per unique (hashable) set of
+    arguments, and the shared, frozen instance is returned on subsequent
+    constructions. This is useful for heavy objects, like PDKs, that would
+    otherwise be re-created dozens of times while loading a target.
+
+    .. code-block:: python
+
+       from siliconcompiler import PDK
+       from siliconcompiler.schema import CachedSchema
+
+       class MyPDK(PDK, CachedSchema):
+           def __init__(self):
+               super().__init__("mypdk")
+               # ... expensive schema population ...
+
+       MyPDK() is MyPDK()   # True -- same shared instance, built only once
+
+    The shared instance is *frozen*: calling ``set``, ``add``, ``unset``,
+    ``remove``, or using ``EditableSchema`` on it raises a
+    ``SchemaFrozenError``. This protects the shared object from accidental
+    modification.
+
+... get a modifiable version of a frozen (cached) object?
+
+    Use ``copy()``. A copy is always mutable and fully independent of the shared
+    instance, so you are free to modify it. Objects reloaded from a manifest
+    (for example, inside a run) are likewise mutable.
+
+    .. code-block:: python
+
+       my_pdk = MyPDK()          # frozen, shared
+       local = my_pdk.copy()     # mutable, independent
+       local.set("pdk", "foundry", "virtual")
+
+    To modify a frozen object in place (for example, to write resolved file
+    paths or hashes back into a shared object during a run), use the ``_thaw``
+    context manager, which restores the frozen state on exit:
+
+    .. code-block:: python
+
+       with my_pdk._thaw():
+           my_pdk.set(*keypath, hashes, field="filehash")
