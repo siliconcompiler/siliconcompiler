@@ -680,7 +680,9 @@ class Parameter:
         if requires_set:
             for step, indexdata in self.__node.items():
                 for param in indexdata.values():
-                    value = param.get()
+                    # set() re-normalizes into a fresh container, so a defensive
+                    # copy of the current value is unnecessary here.
+                    value = param._getunsafe()
                     param.set(value)
 
     def gettcl(self, step: Optional[str] = None,

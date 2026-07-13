@@ -93,10 +93,32 @@ class NodeListValue:
             for val in self.__values:
                 vals.append(val.get(field=field))
             return vals
-        if self.__base.get("value") is None:
+        if self.__base._getunsafe("value") is None:
             return []
 
         return [self.__base.get(field=field)]
+
+    def _getunsafe(self, field: Optional[str] = 'value'):
+        """
+        Returns the value in the specified field without making a defensive
+        copy.
+
+        This is intended for internal use only where the returned value is read
+        but never mutated. Callers must not modify the returned value.
+
+        Args:
+            field (str): name of schema field.
+        """
+
+        if self.__values:
+            vals = []
+            for val in self.__values:
+                vals.append(val._getunsafe(field=field))
+            return vals
+        if self.__base._getunsafe("value") is None:
+            return []
+
+        return [self.__base._getunsafe(field=field)]
 
     def gettcl(self) -> str:
         """
@@ -105,7 +127,7 @@ class NodeListValue:
         Args:
             field (str): name of schema field.
         """
-        return NodeType.to_tcl(self.get(), self.type)
+        return NodeType.to_tcl(self._getunsafe(), self.type)
 
     def set(self, value, field: str = 'value') \
             -> Tuple[Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"], ...]:
@@ -290,10 +312,34 @@ class NodeSetValue:
         if self.__values:
             for val in self.__values:
                 vals.append(val.get(field=field))
-        elif self.__base.get("value") is None:
+        elif self.__base._getunsafe("value") is None:
             pass
         else:
             vals.append(self.__base.get(field=field))
+
+        return vals
+
+    def _getunsafe(self, field: Optional[str] = 'value'):
+        """
+        Returns the value in the specified field without making a defensive
+        copy.
+
+        This is intended for internal use only where the returned value is read
+        but never mutated. Callers must not modify the returned value.
+
+        Args:
+            field (str): name of schema field.
+        """
+
+        vals = []
+
+        if self.__values:
+            for val in self.__values:
+                vals.append(val._getunsafe(field=field))
+        elif self.__base._getunsafe("value") is None:
+            pass
+        else:
+            vals.append(self.__base._getunsafe(field=field))
 
         return vals
 
@@ -304,7 +350,7 @@ class NodeSetValue:
         Args:
             field (str): name of schema field.
         """
-        return NodeType.to_tcl(self.get(), [self.__base.type])
+        return NodeType.to_tcl(self._getunsafe(), [self.__base.type])
 
     def set(self, value, field: str = 'value') \
             -> Tuple[Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"], ...]:
@@ -318,7 +364,7 @@ class NodeSetValue:
 
         current_values = []
         if field == "value":
-            current_values = [v.get() for v in self.__values]
+            current_values = [v._getunsafe() for v in self.__values]
 
         modified = list()
         m = 0
@@ -349,7 +395,7 @@ class NodeSetValue:
 
         current_values = []
         if field == "value":
-            current_values = [v.get() for v in self.__values]
+            current_values = [v._getunsafe() for v in self.__values]
 
         modified = list()
         if field == 'value':
@@ -492,10 +538,25 @@ class NodeValue:
         Args:
             field (str): name of schema field.
         """
+        if field == 'value':
+            return copy.deepcopy(self.__value)
+        return self._getunsafe(field)
+
+    def _getunsafe(self, field: Optional[str] = 'value'):
+        """
+        Returns the value in the specified field without making a defensive
+        copy.
+
+        This is intended for internal use only where the returned value is read
+        but never mutated. Callers must not modify the returned value.
+
+        Args:
+            field (str): name of schema field.
+        """
         if field is None:
             return self
         if field == 'value':
-            return copy.deepcopy(self.__value)
+            return self.__value
         if field == 'signature':
             return self.__signature
         raise ValueError(f"{field} is not a valid field")
@@ -507,7 +568,7 @@ class NodeValue:
         Args:
             field (str): name of schema field.
         """
-        return NodeType.to_tcl(self.get(), self.__type)
+        return NodeType.to_tcl(self._getunsafe(), self.__type)
 
     def set(self, value, field: str = 'value') -> "NodeValue":
         """
@@ -674,6 +735,13 @@ class PathNodeValue(NodeValue):
         if field == 'dataroot':
             return self.__dataroot
         return super().get(field=field)
+
+    def _getunsafe(self, field: Optional[str] = 'value'):
+        if field == 'filehash':
+            return self.__filehash
+        if field == 'dataroot':
+            return self.__dataroot
+        return super()._getunsafe(field=field)
 
     def set(self, value, field: str = 'value') -> "PathNodeValue":
         if field == 'filehash':
@@ -953,6 +1021,13 @@ class FileNodeValue(PathNodeValue):
         if field == 'author':
             return self.__author.copy()
         return super().get(field=field)
+
+    def _getunsafe(self, field: Optional[str] = 'value'):
+        if field == 'date':
+            return self.__date
+        if field == 'author':
+            return self.__author
+        return super()._getunsafe(field=field)
 
     def set(self, value, field: str = 'value') -> "FileNodeValue":
         if field == 'date':

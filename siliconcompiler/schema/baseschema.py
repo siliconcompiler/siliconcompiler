@@ -1029,7 +1029,7 @@ class BaseSchema:
         is_list = True
         if not isinstance(paths, list):
             is_list = False
-            if paths.get():
+            if paths._getunsafe():
                 paths = [paths]
             else:
                 paths = []
@@ -1090,11 +1090,11 @@ class BaseSchema:
                                 f"Dataroot {dataroot} not found: {dataroot_except}") \
                                     from dataroot_except
                         raise FileNotFoundError(
-                            f'Could not find "{path.get()}" in {dataroot} '
+                            f'Could not find "{path._getunsafe()}" in {dataroot} '
                             f'{self.__format_key(*keypath)}: {report_paths}')
                     else:
                         raise FileNotFoundError(
-                            f'Could not find "{path.get()}" {self.__format_key(*keypath)}: '
+                            f'Could not find "{path._getunsafe()}" {self.__format_key(*keypath)}: '
                             f'{report_paths}')
             resolved_paths.append(resolved)
 
