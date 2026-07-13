@@ -4670,3 +4670,27 @@ def test_cached_composed_with_namedschema():
     assert dup._is_frozen is False
     dup.set("val", "mine")
     assert a.get("val") == "populated"
+
+
+class _CachedLib(NamedSchema, CachedSchema):
+    def __init__(self, name="libname"):
+        super().__init__(name)
+        EditableSchema(self).insert("val", Parameter("str"))
+        self.set("val", "built")
+
+
+def test_cached_from_manifest_is_unfrozen_and_distinct():
+    # Loading a cached object from disk must produce a fresh, mutable instance,
+    # not the shared frozen singleton (which _from_dict would otherwise clobber).
+    lib = _CachedLib("orig")
+    assert lib._is_frozen is True
+
+    loaded = _CachedLib.from_manifest(cfg=lib.getdict())
+    assert loaded is not lib
+    assert loaded._is_frozen is False
+    loaded.set("val", "changed")
+    assert loaded.get("val") == "changed"
+
+    # the shared singleton is untouched and still frozen
+    assert _CachedLib("orig").get("val") == "built"
+    assert _CachedLib("orig")._is_frozen is True

@@ -202,6 +202,21 @@ class BaseSchema:
                 "_thaw() to modify in place.")
 
     @staticmethod
+    def __instantiate(cls: Type[TSchema]) -> TSchema:
+        """
+        Constructs a schema object while loading from disk. Objects loaded from
+        disk are repopulated in place, so cached (:class:`CachedSchema`) classes
+        must be built fresh and unfrozen rather than returning the shared,
+        frozen singleton.
+        """
+        if isinstance(cls, CachedSchemaMeta):
+            # Loading from disk repopulates the object in place, so it must not
+            # return the shared, frozen singleton. Copy it to get a fresh,
+            # mutable instance (copy() unfreezes).
+            return cls().copy()
+        return cls()
+
+    @staticmethod
     @cache
     def __get_child_classes() -> Dict[str, Type["BaseSchema"]]:
         """
@@ -369,7 +384,7 @@ class BaseSchema:
                     for cls in clss:
                         # Create object and connect to schema
                         try:
-                            obj = cls()
+                            obj = BaseSchema.__instantiate(cls)
                             break
                         except Exception:
                             continue
@@ -422,7 +437,7 @@ class BaseSchema:
         schema = None
         for new_cls in new_clss:
             try:
-                schema = new_cls()
+                schema = BaseSchema.__instantiate(new_cls)
                 break
             except Exception:
                 pass
@@ -1525,6 +1540,10 @@ class CachedSchemaMeta(type):
     Because instances are cached and shared, all construction arguments must be
     hashable and the returned object is frozen to guard against accidental
     in-place mutation. Use :meth:`BaseSchema.copy` to obtain a mutable version.
+
+    Deserialization (loading from disk) copies the shared instance to get a
+    fresh, unfrozen object to repopulate, rather than returning the shared
+    singleton.
     """
 
     @lru_cache(maxsize=None)
