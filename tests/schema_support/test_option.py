@@ -457,8 +457,7 @@ def test_load_default_options_bad_jsondata():
 
 
 def test_write_defaults_no_data(monkeypatch):
-    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
-                        os.path.abspath("options.json"))
+    _redirect_settings(monkeypatch, os.path.abspath("options.json"))
     assert not os.path.isfile(os.path.abspath("options.json"))
 
     OptionSchema().write_defaults()
