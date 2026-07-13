@@ -587,8 +587,12 @@ class ASICPinConstraints(BaseSchema):
 
         npins = len(pins)
         if pitch is not None:
+            if pitch <= 0:
+                raise ValueError("pitch must be a positive value")
             span = npins * pitch
         elif side_width is not None:
+            if side_width <= 0:
+                raise ValueError("side_width must be a positive value")
             span = side_width
             pitch = side_width / npins
         else:
@@ -603,6 +607,8 @@ class ASICPinConstraints(BaseSchema):
             project.constraint.area.get_dieboundingbox(step=step, index=index)
 
         # Sides 1/3 (left/right) vary along y; sides 2/4 (top/bottom) vary along x.
+        if side not in (1, 2, 3, 4):
+            raise ValueError(f"{side} is a not a recognized side")
         vertical = side in (1, 3)
         if vertical:
             perp = min_x if side == 1 else max_x

@@ -466,3 +466,28 @@ def test_make_buspinconstraints_step_index(asic_pins):
         (0.0, 85.0), (0.0, 95.0), (0.0, 105.0), (0.0, 115.0)]
     for c in cons:
         assert c.get_placement() is None
+
+
+def test_make_buspinconstraints_zero_pitch(asic_pins):
+    with pytest.raises(ValueError, match=r"^pitch must be a positive value$"):
+        asic_pins.make_buspinconstraints(["a", "b"], "left", pitch=0)
+
+
+def test_make_buspinconstraints_negative_pitch(asic_pins):
+    with pytest.raises(ValueError, match=r"^pitch must be a positive value$"):
+        asic_pins.make_buspinconstraints(["a", "b"], "left", pitch=-5)
+
+
+def test_make_buspinconstraints_zero_side_width(asic_pins):
+    with pytest.raises(ValueError, match=r"^side_width must be a positive value$"):
+        asic_pins.make_buspinconstraints(["a", "b"], "left", side_width=0)
+
+
+def test_make_buspinconstraints_negative_side_width(asic_pins):
+    with pytest.raises(ValueError, match=r"^side_width must be a positive value$"):
+        asic_pins.make_buspinconstraints(["a", "b"], "left", side_width=-40)
+
+
+def test_make_buspinconstraints_unsupported_side(asic_pins):
+    with pytest.raises(ValueError, match=r"^5 is a not a recognized side$"):
+        asic_pins.make_buspinconstraints(["a", "b"], 5, pitch=10)
