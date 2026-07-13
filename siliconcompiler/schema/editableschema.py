@@ -5,7 +5,7 @@
 # that have isolated Python environments.
 
 from .parameter import Parameter
-from .baseschema import BaseSchema
+from .baseschema import BaseSchema, SchemaFrozenError
 from .namedschema import NamedSchema
 
 from typing import Union, Tuple
@@ -110,6 +110,10 @@ class EditableSchema:
         if not isinstance(value, (Parameter, BaseSchema)):
             raise ValueError(f"Value ({type(value)}) must be schema type: Parameter, BaseSchema")
 
+        if self.__schema._is_frozen:
+            raise SchemaFrozenError(
+                f"cannot insert [{','.join(keypath)}]: schema is frozen")
+
         self.__insert(keypath, value, keypath, clobber=clobber)
 
     def remove(self, *keypath: str) -> None:
@@ -129,6 +133,10 @@ class EditableSchema:
 
         if any([not isinstance(key, str) for key in keypath]):
             raise ValueError("Keypath must only be strings")
+
+        if self.__schema._is_frozen:
+            raise SchemaFrozenError(
+                f"cannot remove [{','.join(keypath)}]: schema is frozen")
 
         self.__remove(keypath, keypath)
 

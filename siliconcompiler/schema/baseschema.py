@@ -26,7 +26,7 @@ except ModuleNotFoundError:
 import os.path
 
 from enum import Enum, auto
-from functools import cache
+from functools import cache, lru_cache
 from typing import Dict, Type, Tuple, TypeVar, Union, Set, Callable, List, Optional, \
     TextIO, Iterable, Any
 
@@ -35,6 +35,14 @@ from .journal import Journal
 from ._metadata import version
 
 TSchema = TypeVar('TSchema', bound='BaseSchema')
+
+
+class SchemaFrozenError(RuntimeError):
+    """
+    Raised when an attempt is made to modify a frozen (immutable) schema.
+
+    See :meth:`BaseSchema._freeze` and :class:`CachedSchema`.
+    """
 
 
 class LazyLoad(Enum):
@@ -81,6 +89,7 @@ class BaseSchema:
         self.__active: Optional[Dict] = None
         self.__key: Optional[str] = None
         self.__lazy: Optional[Tuple[Optional[Tuple[int, ...]], Dict]] = None
+        self.__frozen: bool = False
 
     @property
     def __is_root(self) -> bool:
@@ -106,6 +115,91 @@ class BaseSchema:
             # Guard against partially setup parents during serialization
             return tuple()
         return tuple([*parentpath, key])
+
+    def __child_schemas(self) -> "List[BaseSchema]":
+        '''
+        Returns the immediate child :class:`BaseSchema` objects held by this
+        schema (manifest entries and the default template).
+        '''
+        children = [value for value in self.__manifest.values()
+                    if isinstance(value, BaseSchema)]
+        if isinstance(self.__default, BaseSchema):
+            children.append(self.__default)
+        return children
+
+    def __iter_subtree(self) -> "List[BaseSchema]":
+        '''
+        Returns this schema followed by every nested child schema (depth first).
+        '''
+        nodes = [self]
+        for child in self.__child_schemas():
+            nodes.extend(child.__iter_subtree())
+        return nodes
+
+    @property
+    def _is_frozen(self) -> bool:
+        '''
+        Returns True if this schema is frozen and cannot be modified.
+        '''
+        try:
+            return self.__frozen
+        except AttributeError:
+            # Guard against partially constructed objects during serialization
+            return False
+
+    def _freeze(self) -> None:
+        '''
+        Marks this schema and all of its child schemas as frozen, preventing
+        further modification via :meth:`set`, :meth:`add`, :meth:`unset`,
+        :meth:`remove`, or :class:`EditableSchema`.
+
+        This is used to protect shared/cached schema objects (see
+        :class:`CachedSchema`) from accidental in-place mutation. A frozen
+        object can still be copied via :meth:`copy` or serialized and
+        deserialized; the resulting object is always mutable.
+        '''
+        for node in self.__iter_subtree():
+            node.__frozen = True
+
+    def _unfreeze(self) -> None:
+        '''
+        Clears the frozen state on this schema and all of its child schemas,
+        making it mutable again.
+        '''
+        for node in self.__iter_subtree():
+            node.__frozen = False
+
+    @contextlib.contextmanager
+    def _thaw(self):
+        '''
+        Context manager that temporarily unfreezes this schema (and its
+        children), restoring the previous frozen state on exit.
+
+        This is the sanctioned mechanism for mutating a frozen object in place,
+        for example when writing resolved file paths or hashes back into a
+        shared object during a run:
+
+        >>> with pdk._thaw():
+        ...     pdk.set(*keypath, hashes, field="filehash")
+        '''
+        snapshot = [(node, node._is_frozen) for node in self.__iter_subtree()]
+        for node, _ in snapshot:
+            node.__frozen = False
+        try:
+            yield self
+        finally:
+            for node, was_frozen in snapshot:
+                node.__frozen = was_frozen
+
+    def __assert_mutable(self, action: str, keypath: Tuple[str, ...]) -> None:
+        '''
+        Raises :class:`SchemaFrozenError` if this schema is frozen.
+        '''
+        if self._is_frozen:
+            raise SchemaFrozenError(
+                f"cannot {action} {self.__format_key(*keypath)}: "
+                "schema is frozen. Use copy() to obtain a mutable version or "
+                "_thaw() to modify in place.")
 
     @staticmethod
     @cache
@@ -452,6 +546,11 @@ class BaseSchema:
                     raise KeyError
                 key_param = self.__default.copy(key=complete_path)
                 self.__manifest[keypath[0]] = key_param
+                # Keep lazily-materialized children as frozen as their parent so
+                # freezing cannot be escaped by reaching a not-yet-instantiated
+                # keypath (e.g. via get(field="schema")).
+                if self._is_frozen and isinstance(key_param, BaseSchema):
+                    key_param._freeze()
             elif use_default and self.__default:
                 key_param = self.__default
             else:
@@ -560,6 +659,8 @@ class BaseSchema:
 
         *keypath, value = args
 
+        self.__assert_mutable("set", tuple(keypath))
+
         try:
             param: Parameter = self.__search(*keypath, insert_defaults=True)
         except KeyError:
@@ -606,6 +707,8 @@ class BaseSchema:
 
         *keypath, value = args
 
+        self.__assert_mutable("add to", tuple(keypath))
+
         try:
             param: Parameter = self.__search(*keypath, insert_defaults=True)
         except KeyError:
@@ -651,6 +754,8 @@ class BaseSchema:
                 on a per-node basis.
         '''
 
+        self.__assert_mutable("unset", tuple(keypath))
+
         try:
             param = self.__search(*keypath, use_default=True)
         except KeyError:
@@ -671,6 +776,8 @@ class BaseSchema:
         Args:
             keypath (list): Parameter keypath to clear.
         '''
+
+        self.__assert_mutable("remove", tuple(keypath))
 
         search_path = keypath[0:-1]
         removal_key = keypath[-1]
@@ -894,6 +1001,10 @@ class BaseSchema:
 
         if key:
             schema_copy.__key = key[-1]
+
+        # A copy is always mutable, even when derived from a frozen (cached)
+        # object, so callers are free to modify their own instance.
+        schema_copy._unfreeze()
 
         return schema_copy
 
@@ -1401,3 +1512,38 @@ class BaseSchema:
             if table:
                 return table
             return None
+
+
+class CachedSchemaMeta(type):
+    """
+    Metaclass that memoizes instances of :class:`CachedSchema` subclasses.
+
+    Instantiating a class that uses this metaclass with the same arguments
+    returns the same (frozen) instance every time, so schema objects that are a
+    pure function of their construction arguments are built once and reused.
+
+    Because instances are cached and shared, all construction arguments must be
+    hashable and the returned object is frozen to guard against accidental
+    in-place mutation. Use :meth:`BaseSchema.copy` to obtain a mutable version.
+    """
+
+    @lru_cache(maxsize=None)
+    def __call__(cls, *args, **kwargs):
+        obj = super().__call__(*args, **kwargs)
+        obj._freeze()
+        return obj
+
+
+class CachedSchema(BaseSchema, metaclass=CachedSchemaMeta):
+    """
+    Base for schema objects that are a pure function of their construction
+    arguments -- built once, reused.
+
+    Subclasses are instantiated once per unique set of (hashable) construction
+    arguments; subsequent instantiations with the same arguments return the same
+    shared, frozen instance. This is useful for heavy objects (such as PDKs)
+    that are otherwise rebuilt many times over the course of loading a target.
+
+    The shared instance is frozen; obtain a mutable, independent object with
+    :meth:`copy`.
+    """

@@ -10,6 +10,8 @@ from siliconcompiler.schema import BaseSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter, PerNode
 from siliconcompiler.schema import Journal
+from siliconcompiler.schema import NamedSchema
+from siliconcompiler.schema import CachedSchema, CachedSchemaMeta, SchemaFrozenError
 
 
 @pytest.fixture
@@ -4409,3 +4411,262 @@ def test_from_dict_with_nofailure():
 
     assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
     assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema1
+
+
+def _freezable_schema(value="hello"):
+    """Two-level schema with a scalar, a list and a nested child."""
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("scalar", Parameter("str"))
+    edit.insert("mylist", Parameter("[str]"))
+    edit.insert("child", "leaf", Parameter("str"))
+    schema.set("scalar", value)
+    schema.add("mylist", "a")
+    schema.set("child", "leaf", "nested")
+    return schema
+
+
+def test_not_frozen_by_default():
+    assert _freezable_schema()._is_frozen is False
+
+
+def test_freeze_sets_flag():
+    schema = _freezable_schema()
+    schema._freeze()
+    assert schema._is_frozen is True
+
+
+def test_freeze_is_recursive():
+    schema = _freezable_schema()
+    child = schema.get("child", field="schema")
+    assert child._is_frozen is False
+    schema._freeze()
+    assert child._is_frozen is True
+
+
+def test_unfreeze():
+    schema = _freezable_schema()
+    schema._freeze()
+    schema._unfreeze()
+    assert schema._is_frozen is False
+    assert schema.get("child", field="schema")._is_frozen is False
+
+
+def test_frozen_set_raises():
+    schema = _freezable_schema()
+    schema._freeze()
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        schema.set("scalar", "world")
+    assert schema.get("scalar") == "hello"
+
+
+def test_frozen_add_raises():
+    schema = _freezable_schema()
+    schema._freeze()
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        schema.add("mylist", "b")
+    assert schema.get("mylist") == ["a"]
+
+
+def test_frozen_unset_raises():
+    schema = _freezable_schema()
+    schema._freeze()
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        schema.unset("scalar")
+
+
+def test_frozen_remove_raises():
+    schema = _freezable_schema()
+    schema._freeze()
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        schema.remove("scalar")
+
+
+def test_frozen_set_on_child_raises():
+    schema = _freezable_schema()
+    schema._freeze()
+    child = schema.get("child", field="schema")
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        child.set("leaf", "changed")
+
+
+def test_mutation_allowed_before_freeze():
+    schema = _freezable_schema()
+    schema.set("scalar", "before")
+    assert schema.get("scalar") == "before"
+
+
+def test_lazy_materialized_child_inherits_frozen():
+    schema = BaseSchema()
+    EditableSchema(schema).insert("lib", "default", "leaf", Parameter("str"))
+    schema._freeze()
+    child = schema.get("lib", "anytoolname", field="schema")
+    assert child._is_frozen is True
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        child.set("leaf", "x")
+
+
+def test_thaw_allows_mutation():
+    schema = _freezable_schema()
+    schema._freeze()
+    with schema._thaw():
+        schema.set("scalar", "thawed")
+    assert schema.get("scalar") == "thawed"
+
+
+def test_thaw_restores_frozen_state():
+    schema = _freezable_schema()
+    schema._freeze()
+    with schema._thaw():
+        pass
+    assert schema._is_frozen is True
+    with pytest.raises(SchemaFrozenError):
+        schema.set("scalar", "nope")
+
+
+def test_thaw_restores_on_exception():
+    schema = _freezable_schema()
+    schema._freeze()
+    with pytest.raises(ValueError):
+        with schema._thaw():
+            raise ValueError("boom")
+    assert schema._is_frozen is True
+
+
+def test_thaw_restores_child_state():
+    schema = _freezable_schema()
+    schema._freeze()
+    child = schema.get("child", field="schema")
+    with schema._thaw():
+        assert child._is_frozen is False
+        child.set("leaf", "viathaw")
+    assert child._is_frozen is True
+    assert schema.get("child", "leaf") == "viathaw"
+
+
+def test_thaw_on_unfrozen_stays_unfrozen():
+    schema = _freezable_schema()
+    with schema._thaw():
+        schema.set("scalar", "ok")
+    assert schema._is_frozen is False
+
+
+def test_copy_of_frozen_is_mutable():
+    schema = _freezable_schema()
+    schema._freeze()
+    dup = schema.copy()
+    assert dup._is_frozen is False
+    dup.set("scalar", "changed")
+    assert dup.get("scalar") == "changed"
+    assert schema.get("scalar") == "hello"
+    assert schema._is_frozen is True
+
+
+def test_copy_of_frozen_is_mutable_recursively():
+    schema = _freezable_schema()
+    schema._freeze()
+    dup = schema.copy()
+    assert dup.get("child", field="schema")._is_frozen is False
+    dup.set("child", "leaf", "changed")
+    assert dup.get("child", "leaf") == "changed"
+
+
+def test_from_dict_of_frozen_produces_mutable():
+    schema = _freezable_schema()
+    schema._freeze()
+    manifest = schema.getdict()
+
+    reloaded = _freezable_schema()
+    reloaded._from_dict(manifest, [], None)
+    assert reloaded._is_frozen is False
+    reloaded.set("scalar", "reloaded")
+    assert reloaded.get("scalar") == "reloaded"
+
+
+class _Widget(CachedSchema):
+    def __init__(self, name="default"):
+        super().__init__()
+        edit = EditableSchema(self)
+        edit.insert("name", Parameter("str"))
+        self.set("name", name)
+
+
+def test_cached_same_args_same_instance():
+    assert _Widget("a") is _Widget("a")
+
+
+def test_cached_different_args_different_instance():
+    assert _Widget("a") is not _Widget("b")
+
+
+def test_cached_instance_is_frozen():
+    assert _Widget("frozen")._is_frozen is True
+
+
+def test_cached_instance_populated():
+    assert _Widget("populated").get("name") == "populated"
+
+
+def test_cached_instance_cannot_be_mutated():
+    with pytest.raises(SchemaFrozenError):
+        _Widget("immutable").set("name", "other")
+
+
+def test_cached_copy_is_mutable_and_independent():
+    w = _Widget("shared")
+    dup = w.copy()
+    assert dup is not w
+    assert dup._is_frozen is False
+    dup.set("name", "mine")
+    assert dup.get("name") == "mine"
+    assert w.get("name") == "shared"
+
+
+def test_cached_metaclass_type():
+    assert isinstance(_Widget, CachedSchemaMeta)
+
+
+def test_cached_built_once():
+    calls = []
+
+    class _CountingWidget(CachedSchema):
+        def __init__(self):
+            calls.append(1)
+            super().__init__()
+
+    for _ in range(5):
+        _CountingWidget()
+    assert sum(calls) == 1
+
+
+def test_cached_unhashable_arg_raises():
+    class _Bad(CachedSchema):
+        def __init__(self, data):
+            super().__init__()
+
+    with pytest.raises(TypeError):
+        _Bad(["unhashable"])
+
+
+def test_cached_composed_with_namedschema():
+    # The real-world pattern: compose CachedSchema with a heavy named schema
+    # (e.g. a PDK) to get a built-once, frozen, shared instance.
+    class _CachedNamed(NamedSchema, CachedSchema):
+        def __init__(self, name):
+            super().__init__(name)
+            edit = EditableSchema(self)
+            edit.insert("val", Parameter("str"))
+            self.set("val", "populated")
+
+    a = _CachedNamed("libname")
+    b = _CachedNamed("libname")
+    assert a is b
+    assert a._is_frozen is True
+    assert a.name == "libname"
+    assert a.get("val") == "populated"
+    assert _CachedNamed("other") is not a
+
+    dup = a.copy()
+    assert dup._is_frozen is False
+    dup.set("val", "mine")
+    assert a.get("val") == "populated"
