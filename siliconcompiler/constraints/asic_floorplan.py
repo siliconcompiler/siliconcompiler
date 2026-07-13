@@ -414,7 +414,8 @@ class ASICAreaConstraint(BaseSchema):
         """
         return self.get("diearea", step=step, index=index)
 
-    def get_dieboundingbox(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+    def get_dieboundingbox(self, step: Optional[str] = None,
+                           index: Optional[Union[str, int]] = None) \
             -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """
         Retrieves the bounding box of the core area.
@@ -440,7 +441,8 @@ class ASICAreaConstraint(BaseSchema):
 
         return ((min_x, min_y), (max_x, max_y))
 
-    def get_diesize(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> Tuple[float, float]:
+    def get_diesize(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> \
+            Tuple[float, float]:
         """
         Retrieves the size (width and height) of the die area.
 
@@ -494,7 +496,8 @@ class ASICAreaConstraint(BaseSchema):
         """
         return self.get("corearea", step=step, index=index)
 
-    def get_coreboundingbox(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+    def get_coreboundingbox(self, step: Optional[str] = None,
+                            index: Optional[Union[str, int]] = None) \
             -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """
         Retrieves the bounding box of the core area.
@@ -520,7 +523,8 @@ class ASICAreaConstraint(BaseSchema):
 
         return ((min_x, min_y), (max_x, max_y))
 
-    def get_coresize(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> Tuple[float, float]:
+    def get_coresize(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> \
+            Tuple[float, float]:
         """
         Retrieves the size (width and height) of the core area.
 

@@ -297,10 +297,12 @@ class ASICPinConstraint(NamedSchema):
 
         Args:
             side (Union[int, str]): The side of the block, either as an integer or a string
-                                     ('left', 'west', 'top', 'north', 'right', 'east', 'bottom', 'south').
+                                     ('left', 'west', 'top', 'north', 'right', 'east', 'bottom',
+                                     'south').
 
         Returns:
-            int: The normalized integer representation of the side (1 for left, 2 for top, 3 for right, 4 for bottom).
+            int: The normalized integer representation of the side
+                (1 for left, 2 for top, 3 for right, 4 for bottom).
 
         Raises:
             TypeError: If `side` is not an int or string.
@@ -426,7 +428,8 @@ class ASICPinConstraints(BaseSchema):
 
         EditableSchema(self).insert(pin.name, pin, clobber=True)
 
-    def get_pinconstraint(self, pin: Optional[str] = None) -> Union[ASICPinConstraint, Dict[str, ASICPinConstraint]]:
+    def get_pinconstraint(self, pin: Optional[str] = None) -> \
+            Union[ASICPinConstraint, Dict[str, ASICPinConstraint]]:
         """
         Retrieves one or all pin constraints from the configuration.
 
