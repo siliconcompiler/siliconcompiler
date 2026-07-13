@@ -290,9 +290,6 @@ class SettingsManager:
         category exists in neither layer.
         """
         with self.__settings_lock:
-            if category not in self.__settings:
-                self.__settings[category] = {}
-
             return self._merge_category(category)
 
     def _merge_category(self, category: str):
