@@ -12,7 +12,7 @@ from logging.handlers import QueueHandler
 from multiprocessing.managers import SyncManager, RemoteError
 
 from siliconcompiler.utils.settings import SettingsManager
-from siliconcompiler.utils import default_sc_path
+from siliconcompiler.utils import default_sc_path, default_sc_system_path
 
 from siliconcompiler.report.dashboard.cli.board import Board
 
@@ -151,7 +151,9 @@ class MPManager(metaclass=_ManagerSingleton):
         self.__board = None
 
         # Settings
-        self.__settings = SettingsManager(default_sc_path("settings.json"), self.__logger)
+        self.__settings = SettingsManager(
+            default_sc_path("settings.json"), self.__logger,
+            system_filepath=default_sc_system_path())
         self.__transient_settings = SettingsManager(None, self.__logger)
 
         # Register cleanup function to run at exit

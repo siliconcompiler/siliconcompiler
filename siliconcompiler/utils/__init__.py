@@ -5,6 +5,7 @@ import pathlib
 import psutil
 import shutil
 import stat
+import sys
 import traceback
 
 import os.path
@@ -232,6 +233,40 @@ def default_sc_path(path: str) -> str:
         str: The absolute path joined with the default SC directory.
     """
     return os.path.join(default_sc_dir(), path)
+
+
+def default_sc_system_path() -> str:
+    """
+    Returns the path to the system-wide SiliconCompiler settings file.
+
+    This file holds administrator-managed defaults that apply to all users on a
+    machine (for example, cluster-wide Slurm defaults on a shared HPC login
+    node). It is resolved in the following order:
+
+    1. The ``SC_SYSTEM_SETTINGS`` environment variable, if set, is used
+       verbatim as the path to the settings file. This is the escape hatch for
+       non-root installs, virtual environments, containers, and testing.
+    2. Otherwise, a platform-specific default location is used:
+
+       * POSIX (Linux/macOS): ``/etc/siliconcompiler/settings.json``
+       * Windows: ``%PROGRAMDATA%\\siliconcompiler\\settings.json``
+         (typically ``C:\\ProgramData\\siliconcompiler\\settings.json``)
+
+    The returned path is not guaranteed to exist; callers are expected to
+    handle a missing file gracefully.
+
+    Returns:
+        str: The absolute path to the system-wide settings file.
+    """
+    env_path = os.environ.get("SC_SYSTEM_SETTINGS")
+    if env_path:
+        return env_path
+
+    if sys.platform == "win32":
+        program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
+        return os.path.join(program_data, "siliconcompiler", "settings.json")
+
+    return os.path.join(os.sep, "etc", "siliconcompiler", "settings.json")
 
 
 def default_credentials_file() -> str:
