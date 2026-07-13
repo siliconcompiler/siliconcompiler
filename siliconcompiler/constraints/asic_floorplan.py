@@ -414,6 +414,50 @@ class ASICAreaConstraint(BaseSchema):
         """
         return self.get("diearea", step=step, index=index)
 
+    def get_dieboundingbox(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> Tuple[Tuple[float, float], Tuple[float, float]]:
+        """
+        Retrieves the bounding box of the core area.
+
+        Args:
+            step (str, optional): The step in a workflow to retrieve from.
+                                  Defaults to None.
+            index (Union[str, int], optional): The index within a step to
+                                               retrieve from. Defaults to None.
+
+        Returns:
+            Tuple[Tuple[float, float], Tuple[float, float]]: A tuple containing the
+            lower-left and upper-right coordinates of the core area's bounding box.
+        """
+        corearea = self.get_diearea(step=step, index=index)
+        if not corearea:
+            return ((0.0, 0.0), (0.0, 0.0))
+
+        min_x = min(point[0] for point in corearea)
+        min_y = min(point[1] for point in corearea)
+        max_x = max(point[0] for point in corearea)
+        max_y = max(point[1] for point in corearea)
+
+        return ((min_x, min_y), (max_x, max_y))
+
+    def get_diesize(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> Tuple[float, float]:
+        """
+        Retrieves the size (width and height) of the die area.
+
+        Args:
+            step (str, optional): The step in a workflow to retrieve from.
+                                  Defaults to None.
+            index (Union[str, int], optional): The index within a step to
+                                               retrieve from. Defaults to None.
+
+        Returns:
+            Tuple[float, float]: A tuple containing the width and height of the die area.
+        """
+        (min_x, min_y), (max_x, max_y) = self.get_dieboundingbox(step=step, index=index)
+        width = max_x - min_x
+        height = max_y - min_y
+        return (width, height)
+
     def set_corearea(self,
                      points: List[Tuple[float, float]],
                      step: Optional[str] = None, index: Optional[Union[str, int]] = None):
@@ -449,6 +493,50 @@ class ASICAreaConstraint(BaseSchema):
                                        the coordinates that define the core area.
         """
         return self.get("corearea", step=step, index=index)
+
+    def get_coreboundingbox(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> Tuple[Tuple[float, float], Tuple[float, float]]:
+        """
+        Retrieves the bounding box of the core area.
+
+        Args:
+            step (str, optional): The step in a workflow to retrieve from.
+                                  Defaults to None.
+            index (Union[str, int], optional): The index within a step to
+                                               retrieve from. Defaults to None.
+
+        Returns:
+            Tuple[Tuple[float, float], Tuple[float, float]]: A tuple containing the
+            lower-left and upper-right coordinates of the core area's bounding box.
+        """
+        corearea = self.get_corearea(step=step, index=index)
+        if not corearea:
+            return ((0.0, 0.0), (0.0, 0.0))
+
+        min_x = min(point[0] for point in corearea)
+        min_y = min(point[1] for point in corearea)
+        max_x = max(point[0] for point in corearea)
+        max_y = max(point[1] for point in corearea)
+
+        return ((min_x, min_y), (max_x, max_y))
+
+    def get_coresize(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> Tuple[float, float]:
+        """
+        Retrieves the size (width and height) of the core area.
+
+        Args:
+            step (str, optional): The step in a workflow to retrieve from.
+                                  Defaults to None.
+            index (Union[str, int], optional): The index within a step to
+                                               retrieve from. Defaults to None.
+
+        Returns:
+            Tuple[float, float]: A tuple containing the width and height of the core area.
+        """
+        (min_x, min_y), (max_x, max_y) = self.get_coreboundingbox(step=step, index=index)
+        width = max_x - min_x
+        height = max_y - min_y
+        return (width, height)
 
     def calc_diearea(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
             -> float:
