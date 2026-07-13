@@ -616,6 +616,92 @@ def test_get_filesets_with_deps():
     ]
 
 
+def test_get_filesets_explicit_filesets():
+    # An explicit fileset list overrides option,fileset while still defaulting
+    # to the main design.
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    with design.active_fileset("sdc"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    assert proj.get_filesets(filesets=["sdc"]) == [
+        (design, "sdc"),
+    ]
+
+
+def test_get_filesets_explicit_multiple_filesets():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    with design.active_fileset("sdc"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.get_filesets(filesets=["rtl", "sdc"]) == [
+        (design, "rtl"),
+        (design, "sdc"),
+    ]
+
+
+def test_get_filesets_explicit_design_uses_option_fileset():
+    # Passing the main design explicitly behaves like the default: filesets
+    # fall back to option,fileset.
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    assert proj.get_filesets(library=design) == [
+        (design, "rtl"),
+    ]
+
+
+def test_get_filesets_explicit_library_and_filesets():
+    # A non-design library can be used as the traversal root, pulling in its own
+    # dependencies.
+    subdep = Design("subdep")
+    with subdep.active_fileset("rtl"):
+        subdep.set_topmodule("top")
+
+    dep = Design("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+        dep.add_depfileset(subdep, "rtl")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    assert proj.get_filesets(library=dep, filesets=["rtl"]) == [
+        (subdep, "rtl"),
+        (dep, "rtl"),
+    ]
+
+
+def test_get_filesets_library_without_filesets_raises():
+    dep = Design("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    with pytest.raises(ValueError,
+                       match=r"^Filesets must be specified if library is provided$"):
+        proj.get_filesets(library=dep)
+
+
 def test_add_alias_invalid_src_type():
     proj = Project()
     with pytest.raises(TypeError, match=r"^source dep is not a valid type$"):
