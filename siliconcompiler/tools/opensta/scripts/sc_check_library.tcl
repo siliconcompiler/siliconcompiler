@@ -30,16 +30,16 @@ puts "Defining timing corners: $sc_scenarios"
 define_corners {*}$sc_scenarios
 foreach corner $sc_scenarios {
     foreach lib $sc_targetlibs {
-        set lib_filesets []
         foreach libcorner [sc_cfg_get constraint timing scenario $corner libcorner] {
-            if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
-                lappend lib_filesets \
-                    {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
+            if { ![sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
+                continue
             }
-        }
-        foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
-            puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
-            read_liberty -corner $corner $lib_file
+            set lib_filesets \
+                [sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
+            foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
+                puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
+                read_liberty -corner $corner $lib_file
+            }
         }
     }
 }
