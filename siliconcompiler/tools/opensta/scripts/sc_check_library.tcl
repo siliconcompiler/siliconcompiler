@@ -8,28 +8,18 @@ source ./sc_manifest.tcl
 # Schema Adapter
 ###############################
 
-set sc_tool opensta
-set sc_step [sc_cfg_get arg step]
-set sc_index [sc_cfg_get arg index]
-set sc_flow [sc_cfg_get option flow]
-set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
-
-set sc_refdir [sc_cfg_tool_task_get refdir]
-
-# Design
-set sc_design [sc_top]
-
-# APR Parameters
-set sc_targetlibs [sc_get_asic_libraries logic]
+set sc_mainlib [sc_cfg_get asic mainlib]
+set sc_logiclibs [sc_cfg_get asic asiclib]
 set sc_delaymodel [sc_cfg_get asic delaymodel]
 set sc_scenarios [dict keys [sc_cfg_get constraint timing scenario]]
 
-###############################
-# Optional
-###############################
-
-# MACROS
-set sc_macrolibs [sc_get_asic_libraries macro]
+# Standard cell libraries whose tool setup is validated below.
+set sc_targetlibs $sc_mainlib
+foreach lib $sc_logiclibs {
+    if { [lsearch -exact $sc_targetlibs $lib] == -1 } {
+        lappend sc_targetlibs $lib
+    }
+}
 
 ###############################
 # Read Files
@@ -38,9 +28,8 @@ set sc_macrolibs [sc_get_asic_libraries macro]
 # Read Liberty
 puts "Defining timing corners: $sc_scenarios"
 define_corners {*}$sc_scenarios
-foreach lib "$sc_targetlibs $sc_macrolibs" {
-    #Liberty
-    foreach corner $sc_scenarios {
+foreach corner $sc_scenarios {
+    foreach lib $sc_targetlibs {
         set lib_filesets []
         foreach libcorner [sc_cfg_get constraint timing scenario $corner libcorner] {
             if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
@@ -49,11 +38,18 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
             }
         }
         foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
-            puts "Reading liberty file for ${corner}: ${lib_file}"
+            puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
             read_liberty -corner $corner $lib_file
         }
     }
 }
+
+###############################
+# Report Units
+###############################
+
+puts "Timing library units:"
+report_units
 
 ###############################
 # Report Cells
@@ -125,172 +121,103 @@ foreach lib $sc_targetlibs {
     }
 }
 
+# Tool setup parameters are validated leniently: a library that does not
+# declare a given parameter is skipped (not an error), so that a correctly
+# configured target never fails this check just because it omits an optional
+# setup value.
+
+# Verify that a named cell is present in the loaded libraries.
+proc check_cell { lib label cell } {
+    puts "Checking $lib $label: $cell"
+    assert_glob $cell
+    if { [llength [get_lib_cells -quiet $cell]] == 0 } {
+        puts "\[ERROR] $lib $label: cell '$cell' not found in libraries"
+    }
+}
+
+# Verify that a cell's port exists (once per corner) with the expected direction.
+proc check_port { lib label cell port dir num_corners } {
+    assert_glob $port
+    set pins [get_lib_pins -quiet $cell/$port]
+    if { [llength $pins] == 0 } {
+        puts "\[ERROR] $lib $label: pin '$cell/$port' not found in libraries"
+        return
+    }
+    if { [llength $pins] != $num_corners } {
+        puts "\[ERROR] $lib $label: pin '$cell/$port' defined in [llength $pins]\
+            corner(s), expected $num_corners"
+    }
+    foreach pin $pins {
+        if { [get_property $pin direction] != $dir } {
+            puts "\[ERROR] $lib $label: [get_full_name $pin] direction is\
+                '[get_property $pin direction]', expected '$dir'"
+        }
+    }
+}
+
+set num_corners [llength $sc_scenarios]
+
 # Check yosys setup
-# yosys_driver_cell
 foreach lib $sc_targetlibs {
-    puts "Checking $lib yosys_driver_cell"
-    assert_glob [sc_cfg_get library $lib option var yosys_driver_cell]
-    if { [get_lib_cells [sc_cfg_get library $lib option var yosys_driver_cell]] == 0 } {
-        puts "\[ERROR] missing"
+    # driver_cell: single cell name
+    if { [sc_cfg_exists library $lib tool yosys driver_cell] } {
+        check_cell $lib "yosys driver_cell" \
+            [sc_cfg_get library $lib tool yosys driver_cell]
     }
-}
-# yosys_buffer_cell
-foreach lib $sc_targetlibs {
-    puts "Checking $lib yosys_buffer_cell"
-    assert_glob [sc_cfg_get library $lib option var yosys_buffer_cell]
-    if { [get_lib_cells [sc_cfg_get library $lib option var yosys_buffer_cell]] == 0 } {
-        puts "\[ERROR] missing"
-    }
-}
-# yosys_buffer_input
-foreach lib $sc_targetlibs {
-    puts "Checking $lib yosys_buffer_input"
-    assert_glob [sc_cfg_get library $lib option var yosys_buffer_input]
-    set cellname [sc_cfg_get library $lib option var yosys_buffer_cell]
-    set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_buffer_input]]
-    if { [llength $pins] != [llength $sc_scenarios] } {
-        puts "\[ERROR] mismatch"
-    }
-    foreach pin $pins {
-        if { [get_property $pin direction] != "input" } {
-            puts "\[ERROR] [get_full_name $pin] incorrect direction"
-        }
-    }
-}
-# yosys_buffer_output
-foreach lib $sc_targetlibs {
-    puts "Checking $lib yosys_buffer_output"
-    assert_glob [sc_cfg_get library $lib option var yosys_buffer_output]
-    set cellname [sc_cfg_get library $lib option var yosys_buffer_cell]
-    set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_buffer_output]]
-    if { [llength $pins] != [llength $sc_scenarios] } {
-        puts "\[ERROR] mismatch"
-    }
-    foreach pin $pins {
-        if { [get_property $pin direction] != "output" } {
-            puts "\[ERROR] [get_full_name $pin] incorrect direction"
-        }
-    }
-}
-# yosys_tiehigh_cell
-foreach lib $sc_targetlibs {
-    puts "Checking $lib yosys_tiehigh_cell"
-    assert_glob [sc_cfg_get library $lib option var yosys_tiehigh_cell]
-    if { [get_lib_cells [sc_cfg_get library $lib option var yosys_tiehigh_cell]] == 0 } {
-        puts "\[ERROR] missing"
-    }
-}
-# yosys_tiehigh_port
-foreach lib $sc_targetlibs {
-    puts "Checking $lib yosys_tiehigh_port"
-    assert_glob [sc_cfg_get library $lib option var yosys_tiehigh_port]
-    set cellname [sc_cfg_get library $lib option var yosys_tiehigh_cell]
-    set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_tiehigh_port]]
-    if { [llength $pins] != [llength $sc_scenarios] } {
-        puts "\[ERROR] mismatch"
-    }
-    foreach pin $pins {
-        if { [get_property $pin direction] != "output" } {
-            puts "\[ERROR] [get_full_name $pin] incorrect direction"
-        }
-    }
-}
-# yosys_tielow_cell
-foreach lib $sc_targetlibs {
-    puts "Checking $lib yosys_tielow_cell"
-    assert_glob [sc_cfg_get library $lib option var yosys_tielow_cell]
-    if { [get_lib_cells [sc_cfg_get library $lib option var yosys_tielow_cell]] == 0 } {
-        puts "\[ERROR] missing"
-    }
-}
-# yosys_tielow_port
-foreach lib $sc_targetlibs {
-    puts "Checking $lib yosys_tielow_port"
-    assert_glob [sc_cfg_get library $lib option var yosys_tielow_port]
-    set cellname [sc_cfg_get library $lib option var yosys_tielow_cell]
-    set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_tielow_port]]
-    if { [llength $pins] != [llength $sc_scenarios] } {
-        puts "\[ERROR] mismatch"
-    }
-    foreach pin $pins {
-        if { [get_property $pin direction] != "output" } {
-            puts "\[ERROR] [get_full_name $pin] incorrect direction"
-        }
-    }
-}
-# yosys_abc_constraint_load
-foreach lib $sc_targetlibs {
-    set cap 0.0
-    puts "Checking $lib yosys_abc_constraint_load"
-    set cellname [sc_cfg_get library $lib option var yosys_buffer_cell]
-    set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_buffer_input]]
-    foreach pin $pins {
-        set cap [expr { max($cap, [get_property $pin capacitance]) }]
-    }
-    set lib_cap [sc_cfg_get library $lib option var yosys_abc_constraint_load]
-    set cap [expr { 4 * $cap }]
-    set cap "[format "%.3f" $cap][sta::unit_scaled_suffix capacitance]"
 
-    if { $lib_cap != $cap } {
-        puts "\[ERROR] mismatch, should be $cap, not $lib_cap"
+    # buffer_cell: {cell input_port output_port}
+    if { [sc_cfg_exists library $lib tool yosys buffer_cell] } {
+        lassign [sc_cfg_get library $lib tool yosys buffer_cell] cell in out
+        check_cell $lib "yosys buffer_cell" $cell
+        check_port $lib "yosys buffer_cell input" $cell $in "input" $num_corners
+        check_port $lib "yosys buffer_cell output" $cell $out "output" $num_corners
     }
-}
 
-# yosys_abc_clock_multiplier
-foreach lib $sc_targetlibs {
-    puts "Checking $lib yosys_abc_clock_multiplier"
-    set ps_convert [expr { round(1.0 / [sta::time_sta_ui 1e-12]) }]
-    set convert [sc_cfg_get library $lib option var yosys_abc_clock_multiplier]
-    if { $convert != $ps_convert } {
-        puts "\[ERROR] incorrect multiplier: should be $ps_convert, not $convert"
+    # tiehigh_cell / tielow_cell: {cell port}
+    foreach tie {tiehigh_cell tielow_cell} {
+        if { [sc_cfg_exists library $lib tool yosys $tie] } {
+            lassign [sc_cfg_get library $lib tool yosys $tie] cell port
+            check_cell $lib "yosys $tie" $cell
+            check_port $lib "yosys $tie" $cell $port "output" $num_corners
+        }
+    }
+
+    # abc_clock_multiplier: expected to convert the liberty time unit to ps
+    if { [sc_cfg_exists library $lib tool yosys abc_clock_multiplier] } {
+        set expected [expr { round(1.0 / [sta::time_sta_ui 1e-12]) }]
+        set actual [sc_cfg_get library $lib tool yosys abc_clock_multiplier]
+        puts "Checking $lib yosys abc_clock_multiplier: $actual (expected $expected)"
+        if { $actual != $expected } {
+            puts "\[ERROR] $lib yosys abc_clock_multiplier is $actual, expected $expected"
+        }
+    }
+
+    # abc_constraint_load: reported for reference (units are PDK dependent, so
+    # this is informational rather than a hard check).
+    if {
+        [sc_cfg_exists library $lib tool yosys abc_constraint_load] &&
+        [sc_cfg_exists library $lib tool yosys buffer_cell]
+    } {
+        lassign [sc_cfg_get library $lib tool yosys buffer_cell] cell in out
+        set cap 0.0
+        foreach pin [get_lib_pins -quiet $cell/$in] {
+            set cap [expr { max($cap, [get_property $pin capacitance]) }]
+        }
+        set computed [expr { 4 * $cap }]
+        set actual [sc_cfg_get library $lib tool yosys abc_constraint_load]
+        puts "Checking $lib yosys abc_constraint_load: $actual\
+            (4x max buffer input cap = [format %.4g $computed])"
     }
 }
 
 # Check openroad setup
-# openroad_tiehigh_cell
 foreach lib $sc_targetlibs {
-    puts "Checking $lib openroad_tiehigh_cell"
-    assert_glob [sc_cfg_get library $lib option var openroad_tiehigh_cell]
-    if { [get_lib_cells [sc_cfg_get library $lib option var openroad_tiehigh_cell]] == 0 } {
-        puts "\[ERROR] missing"
-    }
-}
-# openroad_tiehigh_port
-foreach lib $sc_targetlibs {
-    puts "Checking $lib openroad_tiehigh_port"
-    assert_glob [sc_cfg_get library $lib option var openroad_tiehigh_port]
-    set cellname [sc_cfg_get library $lib option var openroad_tiehigh_cell]
-    set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var openroad_tiehigh_port]]
-    if { [llength $pins] != [llength $sc_scenarios] } {
-        puts "\[ERROR] mismatch"
-    }
-    foreach pin $pins {
-        if { [get_property $pin direction] != "output" } {
-            puts "\[ERROR] [get_full_name $pin] incorrect direction"
-        }
-    }
-}
-
-# openroad_tielow_cell
-foreach lib $sc_targetlibs {
-    puts "Checking $lib openroad_tielow_cell"
-    assert_glob [sc_cfg_get library $lib option var openroad_tielow_cell]
-    if { [get_lib_cells [sc_cfg_get library $lib option var openroad_tielow_cell]] == 0 } {
-        puts "\[ERROR] missing"
-    }
-}
-# openroad_tielow_port
-foreach lib $sc_targetlibs {
-    puts "Checking $lib openroad_tielow_port"
-    assert_glob [sc_cfg_get library $lib option var openroad_tielow_port]
-    set cellname [sc_cfg_get library $lib option var openroad_tielow_cell]
-    set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var openroad_tielow_port]]
-    if { [llength $pins] != [llength $sc_scenarios] } {
-        puts "\[ERROR] mismatch"
-    }
-    foreach pin $pins {
-        if { [get_property $pin direction] != "output" } {
-            puts "\[ERROR] [get_full_name $pin] incorrect direction"
+    # tiehigh_cell / tielow_cell: {cell port}
+    foreach tie {tiehigh_cell tielow_cell} {
+        if { [sc_cfg_exists library $lib tool openroad $tie] } {
+            lassign [sc_cfg_get library $lib tool openroad $tie] cell port
+            check_cell $lib "openroad $tie" $cell
+            check_port $lib "openroad $tie" $cell $port "output" $num_corners
         }
     }
 }

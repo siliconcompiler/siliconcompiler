@@ -81,7 +81,7 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. sctool::
   :root: siliconcompiler.tools.opensta
-  :tasks: timing/TimingTask timing/FPGATimingTask
+  :tasks: timing/TimingTask timing/FPGATimingTask check_library/CheckLibraryTask
 
 .. sctool::
   :root: siliconcompiler.tools.sby
