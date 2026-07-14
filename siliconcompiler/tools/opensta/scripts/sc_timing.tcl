@@ -8,7 +8,6 @@ source ./sc_manifest.tcl
 # Schema Adapter
 ###############################
 
-
 # APR Parameters
 set sc_timing_mode [sc_cfg_tool_task_get var timing_mode]
 
