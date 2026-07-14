@@ -69,7 +69,8 @@ if { [sc_cfg_tool_task_get var write_spef] } {
     foreach pexcorner [sc_cfg_tool_task_get var pex_corners] {
         set pex_model [lindex [sc_cfg_get_fileset $sc_pdk $pexfileset openrcx] 0]
         puts "Writing SPEF for $pexcorner"
-        extract_parasitics -ext_model_file $pex_model
+        set_extraction_rules_file $pex_model
+        extract_parasitics
         write_spef "outputs/${sc_topmodule}.${pexcorner}.spef"
     }
 
