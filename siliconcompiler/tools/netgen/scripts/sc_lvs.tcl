@@ -2,7 +2,13 @@ source ./sc_manifest.tcl
 
 set sc_pdk [sc_cfg_get asic pdk]
 set fileset [sc_cfg_get library $sc_pdk pdk lvs runsetfileset netgen basic]
-set sc_runset [sc_cfg_get_fileset $sc_pdk $fileset tcl]
+set sc_runset []
+if { [llength $fileset] != 0 } {
+    foreach fs [sc_get_filesets -library $sc_pdk -filesets $fileset] {
+        lassign $fs fs_lib fs_name
+        lappend sc_runset {*}[sc_cfg_get_fileset $fs_lib $fs_name tcl]
+    }
+}
 
 if { [sc_cfg_tool_task_exists var exclude] } {
     set sc_exclude [sc_cfg_tool_task_get var exclude]
@@ -16,8 +22,9 @@ if { [file exists "inputs/${sc_topmodule}.vg"] } {
     set schematic_file "inputs/${sc_topmodule}.vg"
 } else {
     set schematic_file []
-    foreach fileset [sc_cfg_get option fileset] {
-        foreach file [sc_cfg_get_fileset $sc_designlib $fileset verilog] {
+    foreach fs [sc_get_filesets] {
+        lassign $fs fs_lib fs_name
+        foreach file [sc_cfg_get_fileset $fs_lib $fs_name verilog] {
             lappend schematic_file $file
         }
     }

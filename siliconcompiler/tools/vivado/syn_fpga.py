@@ -52,7 +52,6 @@ class SynthesisTask(VivadoTask):
 
         # sc_syn_fpga.tcl applies the design's xdc constraint files; declare them
         # required so they are hashed (cache) and copied (remote runs).
-        design = self.project.design
-        for fileset in self.project.get("option", "fileset"):
-            if design.has_file(fileset=fileset, filetype="xdc"):
-                self.add_required_key(design, "fileset", fileset, "file", "xdc")
+        for lib, fileset in self.project.get_filesets():
+            if lib.has_file(fileset=fileset, filetype="xdc"):
+                self.add_required_key(lib, "fileset", fileset, "file", "xdc")

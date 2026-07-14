@@ -16,11 +16,14 @@ add_files -norecurse -fileset [get_filesets sources_1] "inputs/${sc_topmodule}.v
 set_property top $sc_topmodule [current_fileset]
 
 # add constraints
-foreach xdc_file [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] xdc] {
-    if { [string equal [get_filesets -quiet constrs_1] ""] } {
-        create_fileset -constrset constrs_1
+foreach fs [sc_get_filesets] {
+    lassign $fs fs_lib fs_name
+    foreach xdc_file [sc_cfg_get_fileset $fs_lib $fs_name xdc] {
+        if { [string equal [get_filesets -quiet constrs_1] ""] } {
+            create_fileset -constrset constrs_1
+        }
+        add_files -norecurse -fileset [get_filesets constrs_1] $xdc_file
     }
-    add_files -norecurse -fileset [current_fileset] $xdc_file
 }
 
 # run synthesis

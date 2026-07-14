@@ -207,17 +207,26 @@ class InitFloorplanTask(APRTask,
         if self.get("var", "routingblockage"):
             self.add_required_key("var", "routingblockage")
 
+        # sc_init_floorplan.tcl reads the padring/bumpmap files from the design's
+        # filesets, resolving aliases and depfilesets; mirror that here so the
+        # files are hashed (cache) and copied (remote runs).
         if self.get("var", "padringfileset"):
             self.add_required_key("var", "padringfileset")
 
-            for fileset in self.get("var", "padringfileset"):
-                self.add_required_key(self.project.design, "fileset", fileset, "file", "tcl")
+            for fs_lib, fs in self.project.get_filesets(library=self.project.design,
+                                                        filesets=self.get("var",
+                                                                          "padringfileset")):
+                if fs_lib.has_file(fileset=fs, filetype="tcl"):
+                    self.add_required_key(fs_lib, "fileset", fs, "file", "tcl")
 
         if self.get("var", "bumpmapfileset"):
             self.add_required_key("var", "bumpmapfileset")
 
-            for fileset in self.get("var", "bumpmapfileset"):
-                self.add_required_key(self.project.design, "fileset", fileset, "file", "bmap")
+            for fs_lib, fs in self.project.get_filesets(library=self.project.design,
+                                                        filesets=self.get("var",
+                                                                          "bumpmapfileset")):
+                if fs_lib.has_file(fileset=fs, filetype="bmap"):
+                    self.add_required_key(fs_lib, "fileset", fs, "file", "bmap")
 
         # Mark requires for components, pin, and floorplan placements
         for component in self.project.constraint.component.get_component().values():

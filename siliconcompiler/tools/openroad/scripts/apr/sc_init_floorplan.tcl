@@ -98,7 +98,11 @@ if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
 
     set bmaps_read []
     set bumpmapfileset [sc_cfg_tool_task_get var bumpmapfileset]
-    set bmapfiles [sc_cfg_get_fileset $sc_designlib $bumpmapfileset bmap]
+    set bmapfiles []
+    foreach fs [sc_get_filesets -library $sc_designlib -filesets $bumpmapfileset] {
+        lassign $fs fs_lib fs_name
+        lappend bmapfiles {*}[sc_cfg_get_fileset $fs_lib $fs_name bmap]
+    }
     foreach bmap_file $bmapfiles {
         if { [lsearch -exact $bmaps_read $bmap_file] != -1 } {
             continue
@@ -441,7 +445,11 @@ if { [llength [sc_cfg_tool_task_get var padringfileset]] > 0 } {
 
     set padringfiles_read []
     set padringfileset [sc_cfg_tool_task_get var padringfileset]
-    set padringfiles [sc_cfg_get_fileset $sc_designlib $padringfileset tcl]
+    set padringfiles []
+    foreach fs [sc_get_filesets -library $sc_designlib -filesets $padringfileset] {
+        lassign $fs fs_lib fs_name
+        lappend padringfiles {*}[sc_cfg_get_fileset $fs_lib $fs_name tcl]
+    }
     foreach padring_file $padringfiles {
         if { [lsearch -exact $padringfiles_read $padring_file] != -1 } {
             continue

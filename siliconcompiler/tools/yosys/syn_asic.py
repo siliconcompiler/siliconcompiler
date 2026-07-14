@@ -53,9 +53,12 @@ class _ASICTask(ASICTask, YosysTask):
             bb_filesets = lib_obj.get("tool", "yosys", "blackbox_fileset")
             if bb_filesets:
                 self.add_required_key(lib_obj, "tool", "yosys", "blackbox_fileset")
-                for bb_fileset in bb_filesets:
-                    if lib_obj.has_file(fileset=bb_fileset, filetype="verilog"):
-                        self.add_required_key(lib_obj, "fileset", bb_fileset, "file", "verilog")
+                # sc_get_blackboxes resolves aliases and depfilesets, so mirror that
+                # here when declaring the required verilog keys.
+                for bb_lib, bb_fileset in self.project.get_filesets(library=lib_obj,
+                                                                    filesets=bb_filesets):
+                    if bb_lib.has_file(fileset=bb_fileset, filetype="verilog"):
+                        self.add_required_key(bb_lib, "fileset", bb_fileset, "file", "verilog")
 
     def _determine_synthesis_corner(self):
         if self.get("var", "synthesis_corner"):
