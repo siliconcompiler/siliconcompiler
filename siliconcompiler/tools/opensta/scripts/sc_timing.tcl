@@ -8,8 +8,6 @@ source ./sc_manifest.tcl
 # Schema Adapter
 ###############################
 
-set sc_topmodulelib [sc_cfg_get option design]
-set sc_filesets [sc_cfg_get option fileset]
 
 # APR Parameters
 set sc_timing_mode [sc_cfg_tool_task_get var timing_mode]
@@ -90,8 +88,9 @@ if { [file exists "inputs/${sc_topmodule}.vg"] } {
     puts "Reading netlist verilog: inputs/${sc_topmodule}.vg"
     read_verilog "inputs/${sc_topmodule}.vg"
 } else {
-    foreach fileset $sc_filesets {
-        foreach verilog [sc_cfg_get_fileset $sc_topmodulelib $fileset verilog] {
+    foreach fs [sc_get_filesets] {
+        lassign $fs fs_lib fs_name
+        foreach verilog [sc_cfg_get_fileset $fs_lib $fs_name verilog] {
             puts "Reading netlist verilog: ${verilog}"
             read_verilog $verilog
         }
@@ -107,7 +106,12 @@ if { [file exists "inputs/${sc_topmodule}.sdc"] } {
     read_sdc "inputs/${sc_topmodule}.sdc"
 } else {
     set sdc_files []
-    foreach sdc [sc_cfg_get_fileset $sc_topmodulelib [sc_cfg_get option fileset] sdc] {
+    set base_sdcs []
+    foreach fs [sc_get_filesets] {
+        lassign $fs fs_lib fs_name
+        lappend base_sdcs {*}[sc_cfg_get_fileset $fs_lib $fs_name sdc]
+    }
+    foreach sdc $base_sdcs {
         # read step constraint if exists
         puts "Reading SDC: ${sdc}"
         read_sdc $sdc
@@ -115,13 +119,18 @@ if { [file exists "inputs/${sc_topmodule}.sdc"] } {
     }
 
     if { $sc_timing_mode != {} } {
-        set sdcfileset [sc_cfg_get constraint timing mode $sc_timing_mode sdcfileset]
-        foreach sdc [sc_cfg_get_fileset $sc_topmodulelib $sdcfileset sdc] {
-            if { [lsearch -exact $sdc_files $sdc] == -1 } {
-                # read step constraint if exists
-                puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
-                lappend sdc_files $sdc
-                read_sdc $sdc
+        foreach sdcinfo [sc_cfg_get constraint timing mode $sc_timing_mode sdcfileset] {
+            lassign $sdcinfo mode_lib mode_fileset
+            foreach fs [sc_get_filesets -library $mode_lib -filesets $mode_fileset] {
+                lassign $fs fs_lib fs_name
+                foreach sdc [sc_cfg_get_fileset $fs_lib $fs_name sdc] {
+                    if { [lsearch -exact $sdc_files $sdc] == -1 } {
+                        # read step constraint if exists
+                        puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
+                        lappend sdc_files $sdc
+                        read_sdc $sdc
+                    }
+                }
             }
         }
     }

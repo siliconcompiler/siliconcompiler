@@ -35,8 +35,14 @@ if { [sc_cfg_tool_task_get var write_cdl] } {
     set sc_cdl_masters []
     foreach lib $sc_logiclibs {
         set filesets [sc_cfg_get library $lib asic aprfileset]
-        foreach cdl_file [sc_cfg_get_fileset $lib $filesets cdl] {
-            lappend sc_cdl_masters $cdl_file
+        if { [llength $filesets] == 0 } {
+            continue
+        }
+        foreach fs [sc_get_filesets -library $lib -filesets $filesets] {
+            lassign $fs fs_lib fs_name
+            foreach cdl_file [sc_cfg_get_fileset $fs_lib $fs_name cdl] {
+                lappend sc_cdl_masters $cdl_file
+            }
         }
     }
     write_cdl -masters $sc_cdl_masters "outputs/${sc_topmodule}.cdl"

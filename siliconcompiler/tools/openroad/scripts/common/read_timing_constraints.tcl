@@ -17,7 +17,11 @@ if { [sc_cfg_tool_task_get var load_sdcs] } {
                 lappend sc_modes $mode
             }
         }
-        set base_sdcs [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] sdc]
+        set base_sdcs []
+        foreach fs [sc_get_filesets] {
+            lassign $fs fs_lib fs_name
+            lappend base_sdcs {*}[sc_cfg_get_fileset $fs_lib $fs_name sdc]
+        }
         set sc_modes [lsort -unique $sc_modes]
         foreach mode $sc_modes {
             puts "Creating mode: $mode"
@@ -35,7 +39,10 @@ if { [sc_cfg_tool_task_get var load_sdcs] } {
                 lappend mode_sdcs {*}$base_sdcs
                 foreach sdcinfo [sc_cfg_get constraint timing mode $mode sdcfileset] {
                     lassign $sdcinfo lib mode_fileset
-                    lappend mode_sdcs {*}[sc_cfg_get_fileset $lib $mode_fileset sdc]
+                    foreach fs [sc_get_filesets -library $lib -filesets $mode_fileset] {
+                        lassign $fs fs_lib fs_name
+                        lappend mode_sdcs {*}[sc_cfg_get_fileset $fs_lib $fs_name sdc]
+                    }
                 }
             }
 
@@ -74,7 +81,11 @@ if { [sc_cfg_tool_task_get var load_sdcs] } {
             puts "Reading SDC: ${sdc}"
             read_sdc $sdc
         } else {
-            set sdcs [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] sdc]
+            set sdcs []
+            foreach fs [sc_get_filesets] {
+                lassign $fs fs_lib fs_name
+                lappend sdcs {*}[sc_cfg_get_fileset $fs_lib $fs_name sdc]
+            }
             if { [llength $sdcs] > 0 } {
                 foreach sdc $sdcs {
                     puts "Reading SDC: ${sdc}"

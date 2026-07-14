@@ -1415,8 +1415,14 @@ class APRTask(OpenROADTask):
 
         if self.get("var", "global_connect_fileset"):
             self.add_required_key("var", "global_connect_fileset")
+            # sc_global_connections resolves aliases and depfilesets for each
+            # global connect fileset; mirror that here so the files are hashed
+            # (cache) and copied (remote runs).
             for lib, fileset in self.get("var", "global_connect_fileset"):
-                self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
+                libobj = self.project.get_library(lib)
+                for fs_lib, fs in self.project.get_filesets(library=libobj, filesets=fileset):
+                    if fs_lib.has_file(fileset=fs, filetype="tcl"):
+                        self.add_required_key(fs_lib, "fileset", fs, "file", "tcl")
 
         libcorners = set()
         for scenario in self.project.constraint.timing.get_scenario().values():
@@ -1508,7 +1514,12 @@ class APRTask(OpenROADTask):
                     mode_obj = self.project.constraint.timing.get_mode(mode)
                     for lib, fileset in mode_obj.get_sdcfileset():
                         libobj = self.project.get_library(lib)
-                        self.add_required_key(libobj, "fileset", fileset, "file", "sdc")
+                        # read_timing_constraints.tcl resolves aliases and
+                        # depfilesets for the mode sdcfileset; mirror that here.
+                        for fs_lib, fs in self.project.get_filesets(library=libobj,
+                                                                    filesets=fileset):
+                            if fs_lib.has_file(fileset=fs, filetype="sdc"):
+                                self.add_required_key(fs_lib, "fileset", fs, "file", "sdc")
 
         load_vg = False
         load_tech = True

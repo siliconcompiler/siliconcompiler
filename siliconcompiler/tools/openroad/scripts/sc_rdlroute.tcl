@@ -54,9 +54,12 @@ if { [file exists "inputs/${sc_topmodule}.vg"] } {
     puts "Reading netlist verilog: inputs/${sc_topmodule}.v"
     read_verilog "inputs/${sc_topmodule}.v"
 } else {
-    foreach netlist [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] verilog] {
-        puts "Reading netlist verilog: ${netlist}"
-        read_verilog $netlist
+    foreach fs [sc_get_filesets] {
+        lassign $fs fs_lib fs_name
+        foreach netlist [sc_cfg_get_fileset $fs_lib $fs_name verilog] {
+            puts "Reading netlist verilog: ${netlist}"
+            read_verilog $netlist
+        }
     }
 }
 link_design $sc_topmodule

@@ -221,8 +221,13 @@ proc sc_get_blackboxes { } {
     foreach lib [sc_cfg_get asic asiclib] {
         if { [sc_cfg_exists library $lib tool yosys blackbox_fileset] } {
             set lib_fileset [sc_cfg_get library $lib tool yosys blackbox_fileset]
-            foreach lib_f [sc_cfg_get_fileset $lib $lib_fileset verilog] {
-                lappend blackboxes $lib_f
+            if { [llength $lib_fileset] != 0 } {
+                foreach fs [sc_get_filesets -library $lib -filesets $lib_fileset] {
+                    lassign $fs fs_lib fs_name
+                    foreach lib_f [sc_cfg_get_fileset $fs_lib $fs_name verilog] {
+                        lappend blackboxes $lib_f
+                    }
+                }
             }
         }
     }

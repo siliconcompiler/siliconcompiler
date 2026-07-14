@@ -105,6 +105,12 @@ class TimingTaskBase(OpenSTATask):
 
         if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
             self.add_input_file(ext="vg")
+        else:
+            # sc_timing.tcl reads the netlist from the design filesets when no vg
+            # input is present; declare them required so they are hashed (cache)
+            # and copied (remote runs).
+            for obj, key in self.get_fileset_file_keys("verilog"):
+                self.add_required_key(obj, *key)
 
         if self.get("var", "timing_mode"):
             self.add_required_key("var", "timing_mode")
@@ -293,6 +299,19 @@ class TimingTask(TimingTaskBase):
         else:
             for obj, key in self.get_fileset_file_keys("sdc"):
                 self.add_required_key(obj, *key)
+
+            # sc_timing.tcl also reads the timing mode's sdcfileset, resolving
+            # aliases and depfilesets; mirror that here so the files are hashed
+            # (cache) and copied (remote runs).
+            timing_mode = self.get("var", "timing_mode")
+            if timing_mode:
+                mode_obj = self.project.constraint.timing.get_mode(timing_mode)
+                for lib, fileset in mode_obj.get_sdcfileset():
+                    libobj = self.project.get_library(lib)
+                    for fs_lib, fs in self.project.get_filesets(library=libobj,
+                                                                filesets=fileset):
+                        if fs_lib.has_file(fileset=fs, filetype="sdc"):
+                            self.add_required_key(fs_lib, "fileset", fs, "file", "sdc")
 
         # per-corner liberty files are read by sc_timing.tcl; declare them required
         # so they are hashed (cache) and copied (remote runs).
