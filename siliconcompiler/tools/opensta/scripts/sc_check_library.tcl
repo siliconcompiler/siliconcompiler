@@ -55,6 +55,45 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
     }
 }
 
+###############################
+# Report Cells
+###############################
+
+set report_fh [open reports/libraries.rpt w]
+foreach cell [get_lib_cells *] {
+    set desc ""
+    if { [get_property $cell is_buffer] } {
+        set desc " (buffer)"
+    } elseif { [get_property $cell is_inverter] } {
+        set desc " (inverter)"
+    } elseif {
+        [llength [get_lib_pins -quiet [get_full_name $cell]/* -filter is_register_clock==1]] != 0
+    } {
+        set desc " (register)"
+    }
+    puts $report_fh "[get_full_name $cell]$desc"
+
+    set pins [get_lib_pins -quiet [get_full_name $cell]/*]
+    if { [llength $pins] == 0 } {
+        puts $report_fh "  No pins"
+        continue
+    }
+    foreach pin $pins {
+        puts $report_fh "  [get_full_name $pin] [get_property $pin direction]"
+        set cap [expr { [sta::capacitance_ui_sta [get_property $pin capacitance]] / 1e-15 }]
+        puts $report_fh "    Capacitance:      [format %.3f $cap]fF"
+        set res [sta::resistance_ui_sta [get_property $pin drive_resistance]]
+        puts $report_fh "    Drive resistance: [format %.3f $res]ohm"
+        set delay [expr { [sta::time_ui_sta [get_property $pin intrinsic_delay]] / 1e-12 }]
+        puts $report_fh "    Intrinsic delay:  [format %.3f $delay]ps"
+    }
+}
+close $report_fh
+
+###############################
+# Check Cells
+###############################
+
 proc assert_glob { str } {
     if { [string first "*" $str] != -1 } {
         puts "\[ERROR] Regex detected: $str"

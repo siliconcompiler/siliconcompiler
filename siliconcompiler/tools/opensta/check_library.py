@@ -3,7 +3,9 @@ from siliconcompiler.tools.opensta import OpenSTATask
 
 class CheckLibraryTask(OpenSTATask):
     '''
-    Check setup information about the timing libraries.
+    Check setup information about the timing libraries and report the
+    characteristics (pins, capacitance, drive resistance, intrinsic delay)
+    of every library cell.
     '''
     def task(self):
         return "check_libraries"
