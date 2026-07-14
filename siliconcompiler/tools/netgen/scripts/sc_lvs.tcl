@@ -22,8 +22,9 @@ if { [file exists "inputs/${sc_topmodule}.vg"] } {
     set schematic_file "inputs/${sc_topmodule}.vg"
 } else {
     set schematic_file []
-    foreach fileset [sc_cfg_get option fileset] {
-        foreach file [sc_cfg_get_fileset $sc_designlib $fileset verilog] {
+    foreach fs [sc_get_filesets] {
+        lassign $fs fs_lib fs_name
+        foreach file [sc_cfg_get_fileset $fs_lib $fs_name verilog] {
             lappend schematic_file $file
         }
     }

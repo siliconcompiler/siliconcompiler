@@ -309,7 +309,7 @@ class TimingTask(TimingTaskBase):
                 for lib, fileset in mode_obj.get_sdcfileset():
                     libobj = self.project.get_library(lib)
                     for fs_lib, fs in self.project.get_filesets(library=libobj,
-                                                                filesets=fileset):
+                                                                filesets=[fileset]):
                         if fs_lib.has_file(fileset=fs, filetype="sdc"):
                             self.add_required_key(fs_lib, "fileset", fs, "file", "sdc")
 

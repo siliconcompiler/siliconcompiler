@@ -22,7 +22,7 @@ foreach fs [sc_get_filesets] {
         if { [string equal [get_filesets -quiet constrs_1] ""] } {
             create_fileset -constrset constrs_1
         }
-        add_files -norecurse -fileset [current_fileset] $xdc_file
+        add_files -norecurse -fileset [get_filesets constrs_1] $xdc_file
     }
 }
 
