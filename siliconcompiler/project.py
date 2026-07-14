@@ -695,7 +695,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def get_filesets(self,
                      library: Optional[Union[str, Design]] = None,
-                     filesets: Optional[List[str]] = None) -> List[Tuple[NamedSchema, str]]:
+                     filesets: Optional[List[str]] = None) -> List[Tuple[Design, str]]:
         """
         Returns the filesets selected for this project, resolving any aliases.
 
@@ -710,8 +710,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 If None, defaults to all filesets defined in the project options.
 
         Returns:
-            List[Tuple[NamedSchema, str]]: A list of tuples, where each tuple
-            contains the parent library (`NamedSchema`) and the fileset name (str).
+            List[Tuple[Design, str]]: A list of tuples, where each tuple
+            contains the parent library (`Design`) and the fileset name (str).
 
         Raises:
             KeyError: If an alias points to a library that is not loaded.
