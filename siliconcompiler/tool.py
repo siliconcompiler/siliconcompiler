@@ -51,7 +51,7 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 if TYPE_CHECKING:
     from siliconcompiler.scheduler import SchedulerNode
-    from siliconcompiler import Project
+    from siliconcompiler import Project, Design
 
 TTask = TypeVar('TTask', bound='Task')
 TOpenTask = TypeVar('TOpenTask', bound='OpenTask')
@@ -2198,7 +2198,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         if source_file:
             self.add("report", metric, source_file)
 
-    def get_fileset_file_keys(self, filetype: str) -> List[Tuple[NamedSchema, Tuple[str, ...]]]:
+    def get_fileset_file_keys(self, filetype: str) -> List[Tuple["Design", Tuple[str, ...]]]:
         """
         Collect a set of keys for a particular filetype.
 
