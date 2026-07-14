@@ -36,8 +36,9 @@ foreach blockage [sc_cfg_tool_task_get var placementblockage] {
 # Initialize floorplan
 ###############################
 
-if { [sc_cfg_exists input asic floorplan] } {
-    set def [lindex [sc_cfg_get input asic floorplan] 0]
+set sc_floorplan_def [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] def]
+if { [llength $sc_floorplan_def] > 0 } {
+    set def [lindex $sc_floorplan_def 0]
     puts "Reading floorplan DEF: ${def}"
     read_def -floorplan_initialize $def
 } else {
