@@ -228,6 +228,14 @@ class InitFloorplanTask(APRTask,
                 if fs_lib.has_file(fileset=fs, filetype="bmap"):
                     self.add_required_key(fs_lib, "fileset", fs, "file", "bmap")
 
+        # sc_init_floorplan.tcl seeds the floorplan from a design DEF when one is
+        # present in the active filesets; declare it required so it is hashed and copied.
+        floorplan_def = False
+        for lib, fileset in self.project.get_filesets():
+            if lib.has_file(fileset=fileset, filetype="def"):
+                self.add_required_key(lib, "fileset", fileset, "file", "def")
+                floorplan_def = True
+
         # Mark requires for components, pin, and floorplan placements
         for component in self.project.constraint.component.get_component().values():
             if component.get_placement(step=self.step, index=self.index) is not None:
@@ -256,15 +264,18 @@ class InitFloorplanTask(APRTask,
                 if pin.get_shape(step=self.step, index=self.index) != "square":
                     self.add_required_key(pin, "length")
 
-        self.add_required_key(self.mainlib, "asic", "site")
-        if self.project.constraint.area.get_diearea(step=self.step, index=self.index) and \
-                self.project.constraint.area.get_corearea(step=self.step, index=self.index):
-            self.add_required_key(self.project.constraint.area, "diearea")
-            self.add_required_key(self.project.constraint.area, "corearea")
-        else:
-            self.add_required_key(self.project.constraint.area, "aspectratio")
-            self.add_required_key(self.project.constraint.area, "density")
-            self.add_required_key(self.project.constraint.area, "coremargin")
+        # The die/core geometry and site come from the DEF when one is provided, so the
+        # area/site floorplanning keys are only required when initializing from scratch.
+        if not floorplan_def:
+            self.add_required_key(self.mainlib, "asic", "site")
+            if self.project.constraint.area.get_diearea(step=self.step, index=self.index) and \
+                    self.project.constraint.area.get_corearea(step=self.step, index=self.index):
+                self.add_required_key(self.project.constraint.area, "diearea")
+                self.add_required_key(self.project.constraint.area, "corearea")
+            else:
+                self.add_required_key(self.project.constraint.area, "aspectratio")
+                self.add_required_key(self.project.constraint.area, "density")
+                self.add_required_key(self.project.constraint.area, "coremargin")
 
         if self.mainlib.get("tool", "openroad", "tracks"):
             self.add_required_key(self.mainlib, "tool", "openroad", "tracks")

@@ -213,9 +213,8 @@ proc sc_read_design_verilog { } {
 }
 
 proc sc_get_blackboxes { } {
-    # Collect blackbox model files from the asic libraries. Two mechanisms are
-    # supported: libraries that declare a yosys blackbox_fileset, and macro
-    # libraries that export their blackbox verilog via output files.
+    # Collect blackbox model files from the asic libraries that declare a
+    # yosys blackbox_fileset.
     set blackboxes []
 
     foreach lib [sc_cfg_get asic asiclib] {
@@ -227,16 +226,6 @@ proc sc_get_blackboxes { } {
                     foreach lib_f [sc_cfg_get_fileset $fs_lib $fs_name verilog] {
                         lappend blackboxes $lib_f
                     }
-                }
-            }
-        }
-    }
-
-    if { [sc_cfg_exists asic macrolib] } {
-        foreach lib [sc_get_asic_libraries macro] {
-            if { [sc_cfg_exists library $lib output blackbox verilog] } {
-                foreach lib_f [sc_cfg_get library $lib output blackbox verilog] {
-                    lappend blackboxes $lib_f
                 }
             }
         }

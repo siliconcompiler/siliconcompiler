@@ -54,6 +54,19 @@ class RDLRouteTask(OpenROADTask):
                 if lib.has_file(fileset=fileset, filetype="verilog"):
                     self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
+        # sc_rdlroute.tcl seeds the floorplan from a design DEF when one is present
+        # in the active filesets; declare it required so it is hashed and copied.
+        floorplan_def = False
+        for lib, fileset in self.project.get_filesets():
+            if lib.has_file(fileset=fileset, filetype="def"):
+                self.add_required_key(lib, "fileset", fileset, "file", "def")
+                floorplan_def = True
+
+        # Without a DEF the die area is initialized from constraint,area,diearea, so it is
+        # only required when not seeding the floorplan from a DEF.
+        if not floorplan_def:
+            self.add_required_key(self.project.constraint.area, "diearea")
+
         self.add_output_file(ext="vg")
         self.add_output_file(ext="def.gz")
         self.add_output_file(ext="odb.gz")
