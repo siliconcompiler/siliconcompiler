@@ -2,6 +2,25 @@ from typing import List, Tuple, Optional, Union
 from siliconcompiler import Task
 
 
+def distinct(values: List[str]) -> List[str]:
+    """Return ``values`` with duplicates removed, preserving first-seen order.
+
+    Frontend command lines are assembled by iterating over every selected
+    fileset, so the same include directory, define, or source file can be
+    contributed more than once (e.g. by a library shared between filesets).
+    Passing duplicates to a tool is at best wasteful and at worst an error, so
+    the collected lists are run through this helper before being emitted.
+    """
+    seen = set()
+    result = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
+
+
 class PlusArgs(Task):
     '''Mixin task for tools that support Verilog-style plusargs.
 
