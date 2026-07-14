@@ -10,6 +10,7 @@ from siliconcompiler.utils import sc_open
 
 from siliconcompiler import Task
 from siliconcompiler.asic import ASICTask
+from siliconcompiler.tools._common import distinct
 
 
 class ConvertTask(ASICTask, Task):
@@ -89,6 +90,8 @@ class ConvertTask(ASICTask, Task):
         for lib, fileset in filesets:
             idirs.extend(lib.get_idir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
+        idirs = distinct(idirs)
+        defines = distinct(defines)
 
         for idir in idirs:
             options.append(f"-I{idir}")
@@ -96,13 +99,14 @@ class ConvertTask(ASICTask, Task):
         for define in defines:
             options.append(f"-D{define}")
 
+        sources = []
         for lib, fileset in filesets:
             if lib.get_file(fileset=fileset, filetype="c"):
-                for value in lib.get_file(fileset=fileset, filetype="c"):
-                    options.append(value)
+                sources.extend(lib.get_file(fileset=fileset, filetype="c"))
             elif lib.get_file(fileset=fileset, filetype="llvm"):
-                for value in lib.get_file(fileset=fileset, filetype="llvm"):
-                    options.append(value)
+                sources.extend(lib.get_file(fileset=fileset, filetype="llvm"))
+        for value in distinct(sources):
+            options.append(value)
 
         options.append('--soft-float')
         options.append('--memory-allocation-policy=NO_BRAM')

@@ -6,6 +6,7 @@ import os.path
 from siliconcompiler import sc_open
 
 from siliconcompiler import Task
+from siliconcompiler.tools._common import distinct
 
 
 class ConvertTask(Task):
@@ -80,6 +81,8 @@ class ConvertTask(Task):
         for lib, fileset in filesets:
             idirs.extend(lib.get_idir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
+        idirs = distinct(idirs)
+        defines = distinct(defines)
 
         bsc_path = ':'.join(idirs + ['%/Libraries'])
         options.extend(['-p', bsc_path])
@@ -91,9 +94,8 @@ class ConvertTask(Task):
 
         sources = []
         for lib, fileset in filesets:
-            if lib.get_file(fileset=fileset, filetype="bsv"):
-                for value in lib.get_file(fileset=fileset, filetype="bsv"):
-                    sources.append(value)
+            sources.extend(lib.get_file(fileset=fileset, filetype="bsv"))
+        sources = distinct(sources)
         if len(sources) != 1:
             raise ValueError('Bluespec only supports one source file!')
         options.extend(sources)

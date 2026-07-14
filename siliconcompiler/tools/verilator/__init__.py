@@ -16,6 +16,7 @@ Installation: https://verilator.org/guide/latest/install.html
 import os.path
 
 from siliconcompiler import Task
+from siliconcompiler.tools._common import distinct
 
 
 class VerilatorTask(Task):
@@ -98,21 +99,19 @@ class VerilatorTask(Task):
         for cmdfile in self.find_files("var", "config"):
             options.append(cmdfile)
 
+        ctrlfiles = []
         for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="verilatorctrlfile"):
-                options.append(value)
+            ctrlfiles.extend(lib.get_file(fileset=fileset, filetype="verilatorctrlfile"))
+        for value in distinct(ctrlfiles):
+            options.append(value)
 
         idirs = []
         defines = []
-        params = []
         for lib, fileset in filesets:
             idirs.extend(lib.get_idir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
-        fileset = self.project.get("option", "fileset")[0]
-
-        design = self.project.design
-        for param in design.getkeys("fileset", fileset, "param"):
-            params.append((param, design.get("fileset", fileset, "param", param)))
+        idirs = distinct(idirs)
+        defines = distinct(defines)
 
         fileset = self.project.get("option", "fileset")[0]
         design = self.project.design
@@ -137,15 +136,17 @@ class VerilatorTask(Task):
             #######################
             # Sources
             #######################
-            for lib, fileset in filesets:
-                for value in lib.get_file(fileset=fileset, filetype="systemverilog"):
-                    options.append(value)
-            for lib, fileset in filesets:
-                for value in lib.get_file(fileset=fileset, filetype="verilog"):
-                    options.append(value)
+            sources = []
+            for filetype in ("systemverilog", "verilog"):
+                for lib, fileset in filesets:
+                    sources.extend(lib.get_file(fileset=fileset, filetype=filetype))
+            for value in distinct(sources):
+                options.append(value)
 
+        cmdfiles = []
         for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="commandfile"):
-                options.extend(['-f', value])
+            cmdfiles.extend(lib.get_file(fileset=fileset, filetype="commandfile"))
+        for value in distinct(cmdfiles):
+            options.extend(['-f', value])
 
         return options

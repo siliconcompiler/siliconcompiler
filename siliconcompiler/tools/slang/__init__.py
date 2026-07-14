@@ -19,6 +19,7 @@ except ModuleNotFoundError:
     pyslang = None
 
 from siliconcompiler import Task
+from siliconcompiler.tools._common import distinct
 
 
 class SlangTask(Task):
@@ -92,6 +93,9 @@ class SlangTask(Task):
             idirs.extend(lib.get_idir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
             undefines.extend(lib.get("fileset", fileset, "undefine"))
+        idirs = distinct(idirs)
+        defines = distinct(defines)
+        undefines = distinct(undefines)
 
         params = []
         fileset = self.project.get("option", "fileset")[0]
@@ -122,20 +126,20 @@ class SlangTask(Task):
         #######################
         cmdfiles = []
         for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="commandfile"):
-                cmdfiles.append(value)
+            cmdfiles.extend(lib.get_file(fileset=fileset, filetype="commandfile"))
+        cmdfiles = distinct(cmdfiles)
         if cmdfiles:
             options.extend(['-F', f'{",".join(cmdfiles)}'])
 
         #######################
         # Sources
         #######################
-        for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="systemverilog"):
-                options.append(value)
-        for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="verilog"):
-                options.append(value)
+        sources = []
+        for filetype in ("systemverilog", "verilog"):
+            for lib, fileset in filesets:
+                sources.extend(lib.get_file(fileset=fileset, filetype=filetype))
+        for value in distinct(sources):
+            options.append(value)
 
         #######################
         # Top Module

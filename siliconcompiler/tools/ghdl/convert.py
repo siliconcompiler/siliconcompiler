@@ -1,5 +1,6 @@
 from typing import Optional
 from siliconcompiler import Task
+from siliconcompiler.tools._common import distinct
 
 
 class ConvertTask(Task):
@@ -110,15 +111,18 @@ class ConvertTask(Task):
         defines = []
         for lib, fileset in filesets:
             defines.extend(lib.get("fileset", fileset, "define"))
+        defines = distinct(defines)
 
         # Add defines
         for define in defines:
             options.append(f'-g{define}')
 
         # Add sources
+        sources = []
         for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="vhdl"):
-                options.append(value)
+            sources.extend(lib.get_file(fileset=fileset, filetype="vhdl"))
+        for value in distinct(sources):
+            options.append(value)
 
         # Set top module
         options.append('-e')

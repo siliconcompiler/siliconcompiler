@@ -9,6 +9,7 @@ from siliconcompiler import sc_open
 from siliconcompiler import utils
 
 from siliconcompiler import Task
+from siliconcompiler.tools._common import distinct
 
 
 class ElaborateTask(Task):
@@ -179,6 +180,8 @@ class ElaborateTask(Task):
         for lib, fileset in filesets:
             idirs.extend(lib.get_idir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
+        idirs = distinct(idirs)
+        defines = distinct(defines)
 
         params = []
         fileset = self.project.get("option", "fileset")[0]
@@ -203,19 +206,21 @@ class ElaborateTask(Task):
         #######################
         # Command files
         #######################
+        cmdfiles = []
         for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="commandfile"):
-                options.extend(['-f', value])
+            cmdfiles.extend(lib.get_file(fileset=fileset, filetype="commandfile"))
+        for value in distinct(cmdfiles):
+            options.extend(['-f', value])
 
         #######################
         # Sources
         #######################
-        for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="systemverilog"):
-                options.append(value)
-        for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="verilog"):
-                options.append(value)
+        sources = []
+        for filetype in ("systemverilog", "verilog"):
+            for lib, fileset in filesets:
+                sources.extend(lib.get_file(fileset=fileset, filetype=filetype))
+        for value in distinct(sources):
+            options.append(value)
 
         #######################
         # Top Module
