@@ -11,14 +11,7 @@ def distinct(values: List[str]) -> List[str]:
     Passing duplicates to a tool is at best wasteful and at worst an error, so
     the collected lists are run through this helper before being emitted.
     """
-    seen = set()
-    result = []
-    for value in values:
-        if value in seen:
-            continue
-        seen.add(value)
-        result.append(value)
-    return result
+    return list(dict.fromkeys(values))
 
 
 class PlusArgs(Task):
