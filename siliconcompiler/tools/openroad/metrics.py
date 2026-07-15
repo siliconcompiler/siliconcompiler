@@ -25,6 +25,8 @@ class MetricsTask(APRTask, OpenROADSTAParameter):
             'floating_nets',
             'overdriven_nets',
             "logicdepth",
+            'design_stats',
+            'scenarios',
 
             # Images
             'snapshot',

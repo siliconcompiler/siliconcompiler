@@ -5,16 +5,31 @@
 set fields "{capacitance slew input_pins hierarcial_pins net fanout}"
 set sta_top_n_paths [sc_cfg_tool_task_get var sta_top_n_paths]
 
+if { [sc_cfg_tool_task_check_in_list scenarios var reports] } {
+    sc_report_banner "Timing scenarios" \
+        reports/constraints/scenarios.rpt
+    sc_report_scenarios
+}
+
 if { [sc_cfg_tool_task_check_in_list setup var reports] } {
     sc_report_banner "Setup timing" \
         reports/timing/setup.rpt \
         reports/timing/setup.topN.rpt \
+        reports/timing/setup.failing.rpt \
+        reports/timing/setup.endpoints.rpt \
         reports/timing/worst_slack.setup.rpt \
         reports/timing/total_negative_slack.setup.rpt
     tee -file reports/timing/setup.rpt \
-        "report_checks -fields $fields -path_delay max -format full_clock_expanded"
+        "report_checks -sort_by_slack -fields $fields -path_delay max -format full_clock_expanded"
     tee -file reports/timing/setup.topN.rpt -quiet \
-        "report_checks -fields $fields -path_delay max -group_path_count $sta_top_n_paths"
+        "report_checks -sort_by_slack -fields $fields -path_delay max \
+        -group_path_count $sta_top_n_paths"
+    tee -quiet -file reports/timing/setup.failing.rpt \
+        "report_checks -sort_by_slack -path_delay max -slack_max 0 -endpoint_path_count 1 \
+        -group_path_count $sta_top_n_paths -format short"
+    tee -quiet -file reports/timing/setup.endpoints.rpt \
+        "report_checks -sort_by_slack -path_delay max -endpoint_path_count 1 \
+        -group_path_count $sta_top_n_paths -format end"
 
     tee -file reports/timing/worst_slack.setup.rpt \
         "report_worst_slack -max"
@@ -29,22 +44,37 @@ if { [sc_cfg_tool_task_check_in_list setup var reports] } {
         tee -quiet -file reports/timing/setup.histogram.rpt \
             "report_timing_histogram -num_bins 20 -setup"
     }
+
+    sc_report_scene_timing -delay max -name setup \
+        -fields $fields -top_paths $sta_top_n_paths
 }
 
 if { [sc_cfg_tool_task_check_in_list hold var reports] } {
     sc_report_banner "Hold timing" \
         reports/timing/hold.rpt \
         reports/timing/hold.topN.rpt \
-        reports/timing/worst_slack.hold.rpt
+        reports/timing/hold.failing.rpt \
+        reports/timing/hold.endpoints.rpt \
+        reports/timing/worst_slack.hold.rpt \
+        reports/timing/total_negative_slack.hold.rpt
     tee -quiet -file reports/timing/hold.rpt \
-        "report_checks -fields $fields -path_delay min -format full_clock_expanded"
+        "report_checks -sort_by_slack -fields $fields -path_delay min -format full_clock_expanded"
     tee -file reports/timing/hold.topN.rpt -quiet \
-        "report_checks -fields $fields -path_delay min -group_path_count $sta_top_n_paths"
+        "report_checks -sort_by_slack -fields $fields -path_delay min \
+        -group_path_count $sta_top_n_paths"
+    tee -quiet -file reports/timing/hold.failing.rpt \
+        "report_checks -sort_by_slack -path_delay min -slack_max 0 -endpoint_path_count 1 \
+        -group_path_count $sta_top_n_paths -format short"
+    tee -quiet -file reports/timing/hold.endpoints.rpt \
+        "report_checks -sort_by_slack -path_delay min -endpoint_path_count 1 \
+        -group_path_count $sta_top_n_paths -format end"
 
     tee -file reports/timing/worst_slack.hold.rpt \
         "report_worst_slack -min"
     report_worst_slack_metric -hold
 
+    tee -file reports/timing/total_negative_slack.hold.rpt \
+        "report_tns -min"
     report_tns_metric -hold
 
     if { [sc_check_version 24 3 3932] && [llength [all_clocks]] > 0 } {
@@ -52,6 +82,9 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
         tee -quiet -file reports/timing/hold.histogram.rpt \
             "report_timing_histogram -num_bins 20 -hold"
     }
+
+    sc_report_scene_timing -delay min -name hold \
+        -fields $fields -top_paths $sta_top_n_paths
 }
 
 if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
@@ -59,10 +92,11 @@ if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
         reports/timing/unconstrained.rpt \
         reports/timing/unconstrained.topN.rpt
     tee -file reports/timing/unconstrained.rpt \
-        "report_checks -fields $fields -unconstrained -format full_clock_expanded \
+        "report_checks -sort_by_slack -fields $fields -unconstrained -format full_clock_expanded \
         -path_group unconstrained"
     tee -file reports/timing/unconstrained.topN.rpt -quiet \
-        "report_checks -fields $fields -unconstrained -group_path_count $sta_top_n_paths"
+        "report_checks -sort_by_slack -fields $fields -unconstrained \
+        -group_path_count $sta_top_n_paths"
 }
 
 if {
@@ -112,20 +146,38 @@ if {
 utl::metric_int "timing__clocks" [llength [all_clocks]]
 
 if { [sc_cfg_tool_task_check_in_list fmax var reports] } {
-    sc_report_banner "Fmax"
+    set fmax_report ""
+    if { [llength [all_clocks]] > 0 } {
+        sc_report_banner "Fmax" \
+            reports/clocks/fmax.rpt
+        set fmax_report [open reports/clocks/fmax.rpt w]
+        puts $fmax_report [format "%-30s %12s %12s %12s %10s" \
+            "clock" "period" "min_period" "fmax_mhz" "registers"]
+    } else {
+        sc_report_banner "Fmax"
+    }
     # Model on: https://github.com/The-OpenROAD-Project/OpenSTA/blob/f913c3ddbb3e7b4364ed4437c65ac78c4da9174b/tcl/Search.tcl#L1078
     set fmax_metric 0
     foreach clk [sta::sort_by_name [all_clocks]] {
         set clk_name [get_name $clk]
+        set period [get_property $clk period]
+        set regs [llength [all_registers -clock $clk]]
         set min_period [sta::find_clk_min_period $clk 1]
         if { $min_period == 0.0 } {
+            puts $fmax_report [format "%-30s %12.4f %12s %12s %10d" \
+                $clk_name $period "-" "-" $regs]
             continue
         }
         set fmax [expr { 1.0 / $min_period }]
-        set regs [llength [all_registers -clock $clk]]
         utl::metric_float "timing__fmax__clock:${clk_name}" $fmax
         puts "$clk_name fmax = [format %.2f [expr { $fmax / 1e6 }]] MHz (registers: $regs)"
+        puts $fmax_report [format "%-30s %12.4f %12.4f %12.2f %10d" \
+            $clk_name $period [sta::time_sta_ui $min_period] \
+            [expr { $fmax / 1e6 }] $regs]
         set fmax_metric [expr { max($fmax_metric, $fmax) }]
+    }
+    if { $fmax_report != "" } {
+        close $fmax_report
     }
     if { $fmax_metric == 0 } {
         # attempt to compute based on combinatorial path
@@ -194,11 +246,66 @@ if { [sc_cfg_tool_task_check_in_list power var reports] } {
     }
 
     report_power_metric -corner [sc_cfg_tool_task_get var power_corner]
+
+    puts "report: reports/power/activity_annotation.rpt"
+    tee -quiet -file reports/power/activity_annotation.rpt \
+        "report_activity_annotation"
 }
 
 sc_report_banner "Design area"
 report_design_area
 report_design_area_metrics
+
+if { [sc_cfg_tool_task_check_in_list design_stats var reports] } {
+    sc_report_banner "Design statistics" \
+        reports/design/area.rpt \
+        reports/design/registers.rpt \
+        reports/design/high_fanout.rpt \
+        reports/design/logic_depth.rpt
+
+    tee -quiet -file reports/design/area.rpt {report_design_area}
+
+    set regs []
+    foreach inst [all_registers] {
+        lappend regs [get_full_name $inst]
+    }
+    set fid [open reports/design/registers.rpt w]
+    foreach reg [lsort $regs] {
+        puts $fid $reg
+    }
+    close $fid
+    puts "Registers: [llength $regs]"
+
+    set net_fanouts []
+    foreach net [[ord::get_db_block] getNets] {
+        set sig_type [$net getSigType]
+        if { $sig_type == "POWER" || $sig_type == "GROUND" || $sig_type == "CLOCK" } {
+            continue
+        }
+        set loads 0
+        foreach iterm [$net getITerms] {
+            if { [$iterm isInputSignal] } {
+                incr loads
+            }
+        }
+        foreach bterm [$net getBTerms] {
+            if { [$bterm getIoType] == "OUTPUT" } {
+                incr loads
+            }
+        }
+        lappend net_fanouts [list [$net getName] $loads]
+    }
+    set net_fanouts [lsort -integer -decreasing -index 1 $net_fanouts]
+    set fid [open reports/design/high_fanout.rpt w]
+    puts $fid [format "%-60s %8s" "net" "fanout"]
+    foreach net_info [lrange $net_fanouts 0 49] {
+        lassign $net_info net_name net_fanout
+        puts $fid [format "%-60s %8d" $net_name $net_fanout]
+    }
+    close $fid
+
+    sc_count_logic_depth -report reports/design/logic_depth.rpt
+}
 
 if { ![sc_check_version 26 2 219] } {
     # get number of nets in design

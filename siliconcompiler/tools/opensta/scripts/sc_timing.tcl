@@ -300,11 +300,11 @@ sc_report_banner "Setup timing" \
     reports/timing/setup.topN.rpt \
     reports/timing/worst_slack.setup.rpt \
     reports/timing/total_negative_slack.setup.rpt
-puts "$PREFIX report_checks -path_delay max"
-report_checks -fields $fields -path_delay max -format full_clock_expanded \
+puts "$PREFIX report_checks -sort_by_slack -path_delay max"
+report_checks -sort_by_slack -fields $fields -path_delay max -format full_clock_expanded \
     > reports/timing/setup.rpt
 sc_display_report reports/timing/setup.rpt
-report_checks -path_delay max -group_path_count $opensta_top_n_paths \
+report_checks -sort_by_slack -path_delay max -group_path_count $opensta_top_n_paths \
     > reports/timing/setup.topN.rpt
 
 puts "$PREFIX setupslack"
@@ -322,10 +322,10 @@ sc_report_banner "Hold timing" \
     reports/timing/hold.rpt \
     reports/timing/hold.topN.rpt \
     reports/timing/worst_slack.hold.rpt
-puts "$PREFIX report_checks -path_delay min"
-report_checks -fields $fields -path_delay min -format full_clock_expanded \
+puts "$PREFIX report_checks -sort_by_slack -path_delay min"
+report_checks -sort_by_slack -fields $fields -path_delay min -format full_clock_expanded \
     > reports/timing/hold.rpt
-report_checks -path_delay min -group_path_count $opensta_top_n_paths \
+report_checks -sort_by_slack -path_delay min -group_path_count $opensta_top_n_paths \
     > reports/timing/hold.topN.rpt
 
 puts "$PREFIX holdslack"
@@ -341,10 +341,10 @@ puts "tns [sta::time_sta_ui [sta::total_negative_slack_cmd min]]"
 sc_report_banner "Unconstrained paths" \
     reports/timing/unconstrained.rpt \
     reports/timing/unconstrained.topN.rpt
-report_checks -fields $fields -unconstrained -format full_clock_expanded \
+report_checks -sort_by_slack -fields $fields -unconstrained -format full_clock_expanded \
     -path_group unconstrained > reports/timing/unconstrained.rpt
 sc_display_report reports/timing/unconstrained.rpt
-report_checks -unconstrained -group_path_count $opensta_top_n_paths \
+report_checks -sort_by_slack -unconstrained -group_path_count $opensta_top_n_paths \
     > reports/timing/unconstrained.topN.rpt
 
 if { [llength [all_clocks]] > 0 } {

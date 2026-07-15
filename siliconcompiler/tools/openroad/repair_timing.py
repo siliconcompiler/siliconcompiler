@@ -95,6 +95,8 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
             'floating_nets',
             'overdriven_nets',
             "logicdepth",
+            'design_stats',
+            'scenarios',
 
             # Images
             'snapshot',

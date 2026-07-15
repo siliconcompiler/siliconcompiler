@@ -343,6 +343,7 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
         self.set_script("apr/sc_macro_placement.tcl")
 
         self._set_reports([
+            'scenarios',
             'setup',
             'unconstrained',
             'floating_nets',

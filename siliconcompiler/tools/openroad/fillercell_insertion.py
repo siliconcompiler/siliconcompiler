@@ -19,6 +19,7 @@ class FillCellTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter, OpenROAD
         self.set_script("apr/sc_fillercell_insertion.tcl")
 
         self._set_reports([
+            'scenarios',
             'setup',
             'hold',
             'unconstrained',

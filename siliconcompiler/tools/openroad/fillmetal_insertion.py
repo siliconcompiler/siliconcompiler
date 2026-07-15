@@ -38,6 +38,7 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
         self.set_script("apr/sc_fillmetal_insertion.tcl")
 
         self._set_reports([
+            'scenarios',
             'setup',
             'hold',
             'unconstrained',

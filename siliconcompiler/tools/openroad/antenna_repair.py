@@ -54,6 +54,7 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
         self.set_script("apr/sc_antenna_repair.tcl")
 
         self._set_reports([
+            'scenarios',
             'setup',
             'hold',
             'unconstrained',

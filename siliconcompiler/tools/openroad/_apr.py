@@ -1191,6 +1191,8 @@ class APRTask(OpenROADTask):
             "fmax",
             "power",
             "logicdepth",
+            "design_stats",
+            "scenarios",
             "check_setup",
             "report_buffers",
             "placement_density",
@@ -1650,10 +1652,12 @@ class APRTask(OpenROADTask):
         Extract metrics
         '''
 
+        scenario_corners = self.project.getkeys('constraint', 'timing', 'scenario')
         metric_reports = {
             "setuptns": [
                 "timing/total_negative_slack.setup.rpt",
                 "timing/setup.rpt",
+                "timing/setup.failing.rpt",
                 "timing/setup.histogram.rpt",
                 "images/timing/setup.histogram.png"
             ],
@@ -1661,6 +1665,10 @@ class APRTask(OpenROADTask):
                 "timing/worst_slack.setup.rpt",
                 "timing/setup.rpt",
                 "timing/setup.topN.rpt",
+                "timing/setup.failing.rpt",
+                "timing/setup.endpoints.rpt",
+                *[f"timing/setup.{corner}.rpt" for corner in scenario_corners],
+                *[f"timing/setup.topN.{corner}.rpt" for corner in scenario_corners],
                 "timing/setup.histogram.rpt",
                 "images/timing/setup.histogram.png"
             ],
@@ -1673,13 +1681,28 @@ class APRTask(OpenROADTask):
             "setuppaths": [
                 "timing/setup.rpt",
                 "timing/setup.topN.rpt",
+                "timing/setup.failing.rpt",
+                "timing/setup.endpoints.rpt",
+                *[f"timing/setup.{corner}.rpt" for corner in scenario_corners],
+                *[f"timing/setup.topN.{corner}.rpt" for corner in scenario_corners],
                 "timing/setup.histogram.rpt",
                 "images/timing/setup.histogram.png"
+            ],
+            "holdtns": [
+                "timing/total_negative_slack.hold.rpt",
+                "timing/hold.rpt",
+                "timing/hold.failing.rpt",
+                "timing/hold.histogram.rpt",
+                "images/timing/hold.histogram.png"
             ],
             "holdslack": [
                 "timing/worst_slack.hold.rpt",
                 "timing/hold.rpt",
                 "timing/hold.topN.rpt",
+                "timing/hold.failing.rpt",
+                "timing/hold.endpoints.rpt",
+                *[f"timing/hold.{corner}.rpt" for corner in scenario_corners],
+                *[f"timing/hold.topN.{corner}.rpt" for corner in scenario_corners],
                 "timing/hold.histogram.rpt",
                 "images/timing/hold.histogram.png"
             ],
@@ -1692,8 +1715,18 @@ class APRTask(OpenROADTask):
             "holdpaths": [
                 "timing/hold.rpt",
                 "timing/hold.topN.rpt",
+                "timing/hold.failing.rpt",
+                "timing/hold.endpoints.rpt",
+                *[f"timing/hold.{corner}.rpt" for corner in scenario_corners],
+                *[f"timing/hold.topN.{corner}.rpt" for corner in scenario_corners],
                 "timing/hold.histogram.rpt",
                 "images/timing/hold.histogram.png"
+            ],
+            "registers": [
+                "design/registers.rpt"
+            ],
+            "logicdepth": [
+                "design/logic_depth.rpt"
             ],
             "unconstrained": [
                 "timing/unconstrained.rpt",
