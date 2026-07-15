@@ -200,7 +200,7 @@ def asic(pdk: str = "freepdk45", N: Optional[str] = None, jobname: Optional[str]
     # Load the target, which automatically selects the default 'asicflow'.
     asic_target(project, pdk=pdk)
 
-    # Set the jobname, if specificed
+    # Set the jobname, if specified
     if jobname:
         project.option.set_jobname(jobname)
 
