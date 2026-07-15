@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.2 (2026-07-15)
+=========================================
+
+**Minor:**
+
+ * Added a cached schema class to speed up loading, with support for frozen schemas.
+ * Added system-wide settings, letting an administrator provide machine-wide defaults.
+ * Added tool-install checks to avoid rebuilding already-installed tools.
+
+ * Tools:
+
+  * opensta: added support for reading VCD files for switching-activity-driven timing analysis.
+  * yosys: removed the standalone yosys-slang plugin now that it ships with yosys 0.67.
+
+
 SiliconCompiler 0.38.1 (2026-07-09)
 =========================================
 
