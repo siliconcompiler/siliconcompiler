@@ -4,6 +4,9 @@
 
 set sc_default_mode "**sc_default_mode**"
 
+# Record every SDC read so sc_report_scenarios can list them
+set sc_sdc_files_read []
+
 if { [sc_cfg_tool_task_get var load_sdcs] } {
     if { [sc_has_sta_mcmm_support] } {
         if { ![sc_cfg_exists constraint timing mode] } {
@@ -49,6 +52,7 @@ if { [sc_cfg_tool_task_get var load_sdcs] } {
             foreach sdc $mode_sdcs {
                 puts "Reading SDC into mode ($mode): ${sdc}"
                 read_sdc -mode $mode $sdc
+                lappend sc_sdc_files_read "($mode) $sdc"
             }
 
             if { [llength $mode_sdcs] == 0 } {
@@ -80,6 +84,7 @@ if { [sc_cfg_tool_task_get var load_sdcs] } {
             set sdc "inputs/${sc_topmodule}.sdc"
             puts "Reading SDC: ${sdc}"
             read_sdc $sdc
+            lappend sc_sdc_files_read $sdc
         } else {
             set sdcs []
             foreach fs [sc_get_filesets] {
@@ -90,6 +95,7 @@ if { [sc_cfg_tool_task_get var load_sdcs] } {
                 foreach sdc $sdcs {
                     puts "Reading SDC: ${sdc}"
                     read_sdc $sdc
+                    lappend sc_sdc_files_read $sdc
                 }
             } else {
                 # fall back on default auto generated constraints file
@@ -97,6 +103,7 @@ if { [sc_cfg_tool_task_get var load_sdcs] } {
                 puts "Reading SDC: ${sdc}"
                 utl::warn FLW 1 "Defaulting back to default SDC"
                 read_sdc "${sdc}"
+                lappend sc_sdc_files_read "(generic fallback) $sdc"
             }
         }
     }

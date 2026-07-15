@@ -110,7 +110,7 @@ def test_py_make_power():
     assert os.path.isfile('build/heartbeat/sim/simulate/0/reports/heartbeat8_tb.vcd')
 
     # Timing signoff annotated the VCD and reported activity coverage.
-    annotation = 'build/heartbeat/timingsignoff/signoff/0/reports/activity_annotation.rpt'
+    annotation = 'build/heartbeat/timingsignoff/signoff/0/reports/power/activity_annotation.rpt'
     assert os.path.isfile(annotation)
 
     # Every pin's activity should be annotated from the VCD (a wrong scope would

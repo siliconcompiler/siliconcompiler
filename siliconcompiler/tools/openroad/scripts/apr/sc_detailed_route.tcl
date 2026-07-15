@@ -59,8 +59,7 @@ if { [sc_check_version 24 3 7648] } {
 sc_report_args -command detailed_route -args $drt_arguments
 detailed_route \
     -save_guide_updates \
-    -output_drc "reports/${sc_topmodule}_drc.rpt" \
-    -output_maze "reports/${sc_topmodule}_maze.log" \
+    -output_drc "reports/checks/${sc_topmodule}.drc.rpt" \
     -verbose 1 \
     {*}$drt_arguments
 

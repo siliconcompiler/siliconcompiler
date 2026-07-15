@@ -43,7 +43,7 @@ if { [sc_cfg_tool_task_get var enable_scan_chains] } {
 
     sc_report_args -command set_dft_config -args $dft_args
     set_dft_config -clock_mixing clock_mix {*}$dft_args
-    tee -file reports/scan_chain_config.rpt {report_dft_config}
+    tee -file reports/checks/scan_chain_config.rpt {report_dft_config}
     scan_replace
 }
 
@@ -66,7 +66,7 @@ sc_global_placement
 ###############################
 
 if { [sc_cfg_tool_task_get var enable_scan_chains] } {
-    tee -file reports/scan_chain.rpt {preview_dft -verbose}
+    tee -file reports/checks/scan_chain.rpt {preview_dft -verbose}
     insert_dft
 
     set new_ios [sc_get_unplaced_io_nets]

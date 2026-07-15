@@ -78,6 +78,7 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.set_script("apr/sc_power_grid.tcl")
 
         self._set_reports([
+            'scenarios',
             'floating_nets',
             'overdriven_nets',
 

@@ -49,14 +49,14 @@ if { [sc_cfg_tool_task_get {var} grt_allow_congestion] } {
 sc_report_args -command global_route -args $sc_grt_arguments
 if {
     [catch {
-        global_route -guide_file "reports/route.guide" \
+        global_route \
             -congestion_iterations [sc_cfg_tool_task_get var grt_overflow_iter] \
-            -congestion_report_file "reports/${sc_topmodule}_congestion.rpt" \
+            -congestion_report_file "reports/route/${sc_topmodule}.congestion.rpt" \
             -verbose \
             {*}$sc_grt_arguments
     }]
 } {
-    set err_db "reports/${sc_topmodule}.globalroute-error.odb"
+    set err_db "reports/route/${sc_topmodule}.globalroute-error.odb"
     write_db $err_db
     utl::error FLW 1 \
         "Global routing failed, saving database to $err_db"

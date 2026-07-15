@@ -79,6 +79,8 @@ class RepairDesignTask(APRTask, OpenROADSTAParameter, OpenROADRSZDRVParameter):
             'floating_nets',
             'overdriven_nets',
             "logicdepth",
+            'design_stats',
+            'scenarios',
 
             # Images
             'snapshot',

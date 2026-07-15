@@ -85,12 +85,12 @@ sc_image_setup_default
 gui::set_display_controls "Shape Types/Pin*" visible false
 
 foreach net $nets {
-    file mkdir reports/${net}
+    file mkdir reports/power/irdrop/${net}
     foreach corner $sc_scenarios {
         analyze_power_grid -net $net -corner $corner -allow_reuse
 
-        set gif [save_animated_gif -start "reports/${net}/${corner}.gif"]
-        set gif_log [save_animated_gif -start "reports/${net}/${corner}_log.gif"]
+        set gif [save_animated_gif -start "reports/power/irdrop/${net}/${corner}.gif"]
+        set gif_log [save_animated_gif -start "reports/power/irdrop/${net}/${corner}_log.gif"]
 
         foreach layer [[ord::get_db_tech] getLayers] {
             if { [$layer getRoutingLevel] == 0 } {
@@ -114,7 +114,7 @@ foreach net $nets {
             }
 
             # Save CSV
-            gui::dump_heatmap IRDrop reports/${net}/${corner}.${layer_name}.csv
+            gui::dump_heatmap IRDrop reports/power/irdrop/${net}/${corner}.${layer_name}.csv
 
             set box [[ord::get_db_block] getDieArea]
             set x [ord::dbu_to_microns [$box xMax]]
@@ -124,7 +124,7 @@ foreach net $nets {
             sc_save_image \
                 -title "IR drop for $net on $layer_name for $corner heatmap" \
                 -gif $gif \
-                reports/${net}/${corner}.${layer_name}.png
+                reports/power/irdrop/${net}/${corner}.${layer_name}.png
 
             gui::set_heatmap IRDrop LogScale 1
             gui::set_heatmap IRDrop rebuild
@@ -132,7 +132,7 @@ foreach net $nets {
             sc_save_image \
                 -title "IR drop for $net on $layer_name for $corner heatmap" \
                 -gif $gif_log \
-                reports/${net}/${corner}.${layer_name}_log.png
+                reports/power/irdrop/${net}/${corner}.${layer_name}_log.png
 
             gui::set_display_controls "Heat Maps/IR Drop" visible false
 

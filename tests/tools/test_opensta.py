@@ -133,6 +133,47 @@ def test_opensta_parameter_write_liberty():
     assert task.get("var", "write_liberty") is True
 
 
+def test_opensta_parameter_skip_report():
+    task = timing.TimingTask()
+    task.add_opensta_skipreport('clock_skew')
+    assert task.get("var", "skip_reports") == ['clock_skew']
+    task.add_opensta_skipreport(['setup', 'hold'], step='timing', index='1')
+    assert task.get("var", "skip_reports", step='timing', index='1') == ['setup', 'hold']
+    assert task.get("var", "skip_reports") == ['clock_skew']
+    task.add_opensta_skipreport('fmax', clobber=True)
+    assert task.get("var", "skip_reports") == ['fmax']
+
+
+def test_opensta_parameter_skip_report_wildcard():
+    task = timing.TimingTask()
+    task.add_opensta_skipreport('*skew*')
+    assert task.get("var", "skip_reports") == ['clock_skew']
+    with pytest.raises(ValueError,
+                       match="Report type pattern 'nomatch\\*' did not match any supported"):
+        task.add_opensta_skipreport('nomatch*')
+
+
+def test_opensta_reports_computed_at_setup():
+    proj = ASIC(Design("testdesign"))
+    with proj.design.active_fileset("rtl"):
+        proj.design.set_topmodule("top")
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("testflow")
+    flow.node("timing", timing.TimingTask())
+    proj.set_flow(flow)
+
+    task = timing.TimingTask.find_task(proj)
+    task.add_opensta_skipreport(['power', 'design_stats'])
+
+    with task.runtime(SchedulerNode(proj, "timing", "0")) as runtask:
+        runtask.setup()
+
+    reports = set(task.get("var", "reports", step="timing", index="0"))
+    assert reports == set(timing.TimingTaskBase.REPORT_TYPES) - {'power', 'design_stats'}
+
+
 def test_timing_write_sdf_and_liberty():
     """Test that both write_sdf and write_liberty can be enabled together."""
     design = Design("test")

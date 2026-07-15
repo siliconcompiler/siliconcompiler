@@ -18,6 +18,7 @@ class EndCapTapCellTask(APRTask, OpenROADSTAParameter):
         self.set_script("apr/sc_endcap_tapcell_insertion.tcl")
 
         self._set_reports([
+            'scenarios',
             'floating_nets',
             'overdriven_nets',
 

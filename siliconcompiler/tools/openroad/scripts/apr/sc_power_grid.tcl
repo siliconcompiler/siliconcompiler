@@ -81,8 +81,8 @@ foreach pdnconfig_set [sc_cfg_tool_task_get var pdn_fileset] {
         }
     }
 }
-tee -quiet -file reports/power_grid_configuration.rpt {pdngen -report_only}
-pdngen -failed_via_report "reports/${sc_topmodule}_pdngen_failed_vias.rpt"
+tee -quiet -file reports/setup/power_grid_configuration.rpt {pdngen -report_only}
+pdngen -failed_via_report "reports/checks/${sc_topmodule}.pdngen_failed_vias.rpt"
 
 ###############################
 # Remove blockages
@@ -120,7 +120,7 @@ foreach net [sc_psm_check_nets] {
     catch {
         check_power_grid \
             -floorplanning \
-            -error_file "reports/check_power_grid_${net}.rpt" \
+            -error_file "reports/checks/check_power_grid_${net}.rpt" \
             -net $net \
             {*}$check_args
     }

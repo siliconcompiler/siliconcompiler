@@ -108,6 +108,8 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
             'floating_nets',
             'overdriven_nets',
             "logicdepth",
+            'design_stats',
+            'scenarios',
 
             # Images
             'snapshot',

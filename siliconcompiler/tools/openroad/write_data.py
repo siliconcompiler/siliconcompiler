@@ -129,6 +129,8 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
             'floating_nets',
             'overdriven_nets',
             "logicdepth",
+            'design_stats',
+            'scenarios',
 
             # Images
             'snapshot',

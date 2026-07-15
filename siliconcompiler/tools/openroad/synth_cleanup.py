@@ -50,6 +50,7 @@ class CleanupSynthTask(APRTask, OpenROADSTAParameter):
         self.set_script("apr/sc_cleanup_synth.tcl")
 
         self._set_reports([
+            'scenarios',
             'check_setup',
             'setup',
             'unconstrained',
