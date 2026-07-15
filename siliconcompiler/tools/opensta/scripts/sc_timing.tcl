@@ -234,6 +234,12 @@ if { [llength $sc_power_activities] == 0 } {
             }
         }
     }
+    # Warn: activities were explicitly configured, so falling back to default
+    # toggle rates would produce misleading power numbers.
+    if { !$sc_read_vcd } {
+        puts "Warning: power_activities is configured but no VCD files were\
+            resolved from the referenced filesets"
+    }
 }
 
 # Report how much of the design's switching activity was annotated from the VCD

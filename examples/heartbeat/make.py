@@ -400,7 +400,11 @@ def power(pnr_jobname: Optional[str] = None, sim_jobname: Optional[str] = None):
         sim_jobname = "sim"
         pnr_jobname = sim_postpnr(pnr_jobname=pnr_jobname, jobname=sim_jobname, show_vcd=False)
     elif pnr_jobname is None:
-        pnr_jobname = "pnr"
+        # Reusing an existing simulation: the netlist and parasitics must come
+        # from the matching implementation, so require it explicitly rather than
+        # silently pairing the VCD with the default "pnr" job.
+        raise ValueError(
+            "pnr_jobname is required when reusing an existing sim_jobname")
 
     # Load the completed implementation manifest to locate its outputs (netlist,
     # the implementation-generated SDC and extracted parasitics).
