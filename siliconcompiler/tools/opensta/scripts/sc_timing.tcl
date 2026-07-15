@@ -98,7 +98,6 @@ if { [file exists "inputs/${sc_topmodule}.vg"] } {
 link_design $sc_topmodule
 
 # Read SDC (in order of priority)
-# TODO: add logic for reading from ['constraint', ...] once we support MCMM
 if { [file exists "inputs/${sc_topmodule}.sdc"] } {
     # get from previous step
     puts "Reading SDC: inputs/${sc_topmodule}.sdc"
@@ -134,13 +133,6 @@ if { [file exists "inputs/${sc_topmodule}.sdc"] } {
         }
     }
 }
-# } else {
-#     # fall back on default auto generated constraints file
-#     set sdc "[sc_cfg_tool_task_get file opensta_generic_sdc]"
-#     puts "Reading SDC: ${sdc}"
-#     puts "Warning: Defaulting back to default SDC"
-#     read_sdc "${sdc}"
-# }
 
 # Create path groups
 if { [llength [sta::path_group_names]] == 0 } {
@@ -178,7 +170,7 @@ if { $opensta_timing_mode == "asic" } {
 
         set spef_file "inputs/${sc_topmodule}.${pex_corner}.spef"
         if { [file exists $spef_file] } {
-            puts "Reading SPEF ($corner): $spef_file"
+            puts "Reading SPEF ($corner / $pex_corner): $spef_file"
             read_spef -corner $corner $spef_file
         }
     }
@@ -188,7 +180,7 @@ if { $opensta_timing_mode == "asic" } {
 
         set input_sdf_file "inputs/${sc_topmodule}.${pex_corner}.sdf"
         if { [file exists $input_sdf_file] } {
-            puts "Reading SDF ($corner): $input_sdf_file"
+            puts "Reading SDF ($corner / $pex_corner): $input_sdf_file"
             read_sdf -corner $corner $input_sdf_file
         }
     }
@@ -196,10 +188,65 @@ if { $opensta_timing_mode == "asic" } {
     foreach corner $sc_scenarios {
         set input_sdf_file "inputs/${sc_topmodule}.typical.sdf"
         if { [file exists $input_sdf_file] } {
-            puts "Reading SDF ($corner): $input_sdf_file"
+            puts "Reading SDF ($corner / typical): $input_sdf_file"
             read_sdf -corner $corner $input_sdf_file
         }
     }
+}
+
+###############################
+# Read power activities (VCD)
+###############################
+# Vector-based power analysis: annotate switching activity from a VCD so the
+# report_power calls below use real activity instead of default toggle rates.
+
+set sc_power_activities [sc_cfg_tool_task_get var power_activities]
+set sc_read_vcd false
+if { [llength $sc_power_activities] == 0 } {
+    # Default: read the VCD from the active filesets (or the step input) with no
+    # scope, i.e. the VCD hierarchy is assumed to match the design top.
+    set vcd_files []
+    set input_vcd "inputs/${sc_topmodule}.vcd"
+    if { [file exists $input_vcd] } {
+        lappend vcd_files $input_vcd
+    } else {
+        foreach fs [sc_get_filesets] {
+            lassign $fs fs_lib fs_name
+            lappend vcd_files {*}[sc_cfg_get_fileset $fs_lib $fs_name vcd]
+        }
+    }
+    foreach vcd $vcd_files {
+        puts "Reading power activities (VCD): $vcd"
+        read_vcd $vcd
+        set sc_read_vcd true
+    }
+} else {
+    # Configured: each entry maps a VCD scope (the instance path of the design
+    # top within the VCD) to a (library, fileset) source containing the VCD.
+    foreach activity $sc_power_activities {
+        lassign $activity scope act_lib act_fileset
+        foreach fs [sc_get_filesets -library $act_lib -filesets $act_fileset] {
+            lassign $fs fs_lib fs_name
+            foreach vcd [sc_cfg_get_fileset $fs_lib $fs_name vcd] {
+                puts "Reading power activities (VCD) for scope '$scope': $vcd"
+                read_vcd -scope $scope $vcd
+                set sc_read_vcd true
+            }
+        }
+    }
+    # Warn: activities were explicitly configured, so falling back to default
+    # toggle rates would produce misleading power numbers.
+    if { !$sc_read_vcd } {
+        puts "Warning: power_activities is configured but no VCD files were\
+            resolved from the referenced filesets"
+    }
+}
+
+# Report how much of the design's switching activity was annotated from the VCD
+if { $sc_read_vcd } {
+    puts "Reporting power activity annotation coverage"
+    report_activity_annotation -report_annotated -report_unannotated > \
+        reports/activity_annotation.rpt
 }
 
 ###############################

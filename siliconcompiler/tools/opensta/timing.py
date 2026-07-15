@@ -34,6 +34,12 @@ class TimingTaskBase(OpenSTATask):
         self.add_parameter("write_liberty", "bool", "if true will write liberty for every corner",
                            defvalue=False)
 
+        self.add_parameter("power_activities", "[(str,str,str)]",
+                           "list of (VCD scope, library, fileset) tuples specifying VCD files to "
+                           "read for vector-based power analysis. The scope is the instance path "
+                           "of the design top within the VCD. If empty, a VCD is read from the "
+                           "active filesets (or the step input) with no scope.")
+
     def set_opensta_topnpaths(self, n: int,
                               step: Optional[str] = None,
                               index: Optional[str] = None):
@@ -98,6 +104,28 @@ class TimingTaskBase(OpenSTATask):
         """
         self.set("var", "write_liberty", enable, step=step, index=index)
 
+    def add_opensta_poweractivity(self, scope: str, library: str, fileset: str,
+                                  clobber: bool = False,
+                                  step: Optional[str] = None,
+                                  index: Optional[str] = None):
+        """
+        Adds a VCD source for vector-based power analysis.
+
+        Args:
+            scope (str): The instance path of the design top within the VCD.
+            library (str): The library (design) providing the VCD fileset.
+            fileset (str): The fileset containing the VCD file.
+            clobber (bool): If True, overwrites any existing entries. If False (default),
+                the entry is appended.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        if clobber:
+            return self.set("var", "power_activities", (scope, library, fileset),
+                            step=step, index=index)
+        return self.add("var", "power_activities", (scope, library, fileset),
+                        step=step, index=index)
+
     def setup(self):
         super().setup()
 
@@ -130,6 +158,25 @@ class TimingTaskBase(OpenSTATask):
         if self.get("var", "write_liberty"):
             for corner in self.project.getkeys('constraint', 'timing', 'scenario'):
                 self.add_output_file(ext=f"{corner}.lib")
+
+        # VCD power activities are read by sc_timing.tcl; declare the source files
+        # required so they are hashed (cache) and copied (remote runs). The
+        # power_activities var itself is optional (defaults to an empty list), but
+        # is required once activities are configured.
+        power_activities = self.get("var", "power_activities")
+        if power_activities:
+            self.add_required_key("var", "power_activities")
+            for _, lib_name, fileset in power_activities:
+                lib = self.project.get_library(lib_name)
+                for fs_lib, fs in self.project.get_filesets(library=lib, filesets=[fileset]):
+                    self.add_required_key(fs_lib, "fileset", fs, "file", "vcd")
+        elif f"{self.design_topmodule}.vcd" in self.get_files_from_input_nodes():
+            # default: VCD delivered from a previous node in the same flowgraph
+            self.add_input_file(ext="vcd")
+        else:
+            # default: VCD provided via the active filesets
+            for obj, key in self.get_fileset_file_keys("vcd"):
+                self.add_required_key(obj, *key)
 
     def post_process(self):
         super().post_process()

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import Design, FPGADevice
+from typing import Optional
+
+from siliconcompiler import Design, FPGADevice, Flowgraph
 from siliconcompiler import Lint, Sim
 from siliconcompiler import ASIC, FPGA
 
@@ -10,10 +12,11 @@ from siliconcompiler.flows.dvflow import DVFlow
 from siliconcompiler.flows.fpgaflow import FPGAXilinxFlow
 from siliconcompiler.flows.highresscreenshotflow import HighResScreenshotFlow
 
-from siliconcompiler.targets import asic_target
+from siliconcompiler.targets import asic_target, skywater130_demo
 from siliconcompiler.tools.verilator.compile import CompileTask
 from siliconcompiler.tools.builtin.importfiles import ImportFilesTask
 from siliconcompiler.tools.klayout.screenshot import ScreenshotTask
+from siliconcompiler.tools.opensta.timing import TimingTask
 
 
 class HeartbeatDesign(Design):
@@ -47,11 +50,21 @@ class HeartbeatDesign(Design):
                 self.add_file("heartbeat.v")
                 self.set_param("N", "8")  # Default parameter value
 
+            # RTL sources with fixed N=8
+            with self.active_fileset("rtl.8"):
+                self.set_topmodule("heartbeat8")
+                self.add_file("heartbeat8.v")
+
             # Testbench for Icarus Verilog
             with self.active_fileset("testbench.icarus.v"):
                 self.set_topmodule("heartbeat_tb")
                 self.add_file("testbench.v")
                 self.set_param("N", "8")
+
+            # Testbench for fixed N=8
+            with self.active_fileset("testbench.8"):
+                self.set_topmodule("heartbeat8_tb")
+                self.add_file("testbench8.v")
 
             # C++ Testbench for Verilator
             with self.active_fileset("testbench.verilator.cc"):
@@ -73,12 +86,17 @@ class HeartbeatDesign(Design):
             with self.active_fileset("sdc.asap7"):
                 self.add_file("heartbeat_asap7.sdc")
 
+            # ASIC timing constraints for the Skywater130 technology
+            # (the generic clock constraints are reused).
+            with self.active_fileset("sdc.skywater130"):
+                self.add_file("heartbeat.sdc")
+
             # FPGA timing and pin constraints for a Xilinx Artix-7 device.
             with self.active_fileset("fpga.xc7a100tcsg324"):
                 self.add_file("heartbeat.xdc")
 
 
-def lint(N: str = None):
+def lint(N: Optional[str] = None):
     """Runs the linting flow on the Heartbeat design.
 
     Linting checks the Verilog source code for syntax errors and style
@@ -112,7 +130,7 @@ def lint(N: str = None):
     project.summary()
 
 
-def syn(pdk: str = "freepdk45", N: str = None):
+def syn(pdk: str = "freepdk45", N: Optional[str] = None):
     """Runs the synthesis flow for the Heartbeat design.
 
     Synthesis converts the RTL Verilog code into a gate-level netlist
@@ -149,7 +167,8 @@ def syn(pdk: str = "freepdk45", N: str = None):
     project.summary()
 
 
-def asic(pdk: str = "freepdk45", N: str = None):
+def asic(pdk: str = "freepdk45", N: Optional[str] = None, jobname: Optional[str] = None,
+         fileset: str = "rtl"):
     """Runs the full ASIC implementation flow for the Heartbeat design.
 
     This flow includes synthesis, floorplanning, placement, clock tree synthesis,
@@ -160,6 +179,8 @@ def asic(pdk: str = "freepdk45", N: str = None):
             Defaults to "freepdk45".
         N (str, optional): The value for the Verilog parameter 'N'.
             Defaults to None, which uses the value set in the design schema.
+        jobname (str, optional): The name of the job.
+        fileset (str, optional): The RTL fileset to implement. Defaults to "rtl".
     """
     # Create a project instance for an ASIC flow.
     project = ASIC()
@@ -169,15 +190,19 @@ def asic(pdk: str = "freepdk45", N: str = None):
     project.set_design(hb)
 
     # Add the necessary filesets.
-    project.add_fileset("rtl")
+    project.add_fileset(fileset)
     project.add_fileset(f"sdc.{pdk}")
 
     # Optionally override the 'N' parameter.
     if N is not None:
-        hb.set_param("N", N, fileset="rtl")
+        hb.set_param("N", N, fileset=fileset)
 
     # Load the target, which automatically selects the default 'asicflow'.
     asic_target(project, pdk=pdk)
+
+    # Set the jobname, if specified
+    if jobname:
+        project.option.set_jobname(jobname)
 
     # Run the full place-and-route flow.
     project.run()
@@ -187,7 +212,7 @@ def asic(pdk: str = "freepdk45", N: str = None):
     project.snapshot()
 
 
-def sim(N: str = None, tool: str = "verilator", tb_type: str = "v"):
+def sim(N: Optional[str] = None, tool: str = "verilator", tb_type: str = "v"):
     """Runs a simulation of the Heartbeat design.
 
     After the simulation completes, it attempts to open the generated
@@ -244,7 +269,7 @@ def sim(N: str = None, tool: str = "verilator", tb_type: str = "v"):
         project.show(vcd)
 
 
-def fpga(N: str = None):
+def fpga(N: Optional[str] = None):
     """Runs the FPGA implementation flow for the Heartbeat design.
 
     This flow targets a Xilinx Artix-7 FPGA (xc7a100tcsg324) and generates
@@ -279,6 +304,168 @@ def fpga(N: str = None):
     # Run the FPGA flow (synthesis, place, route, bitstream generation).
     project.run()
     project.summary()
+
+
+def sim_postpnr(pnr_jobname: Optional[str] = None,
+                jobname: str = "sim", show_vcd: bool = True) -> str:
+    """Runs a gate-level (post-PnR) simulation of the Heartbeat design.
+
+    The implemented gate-level netlist is simulated against the Skywater130
+    standard-cell Verilog models to capture a switching-activity waveform (VCD)
+    that can later drive vector-based power analysis.
+
+    If ``pnr_jobname`` is not provided, the ASIC implementation flow is run
+    automatically (via :func:`asic`) under the job name ``"pnr"``; otherwise the
+    netlist is reused from the named existing job.
+
+    Args:
+        pnr_jobname (str, optional): Job name of an existing ASIC implementation
+            run to reuse. If None, :func:`asic` is run first.
+        jobname (str): Job name for this simulation. Defaults to "sim".
+        show_vcd (bool): If True, open the captured waveform in a viewer once the
+            simulation completes. Defaults to True.
+
+    Returns:
+        str: The job name of the ASIC implementation whose netlist was simulated.
+    """
+    # Ensure an implemented netlist exists; run PnR if one was not provided.
+    if pnr_jobname is None:
+        pnr_jobname = "pnr"
+        asic(pdk="skywater130", N=None, jobname=pnr_jobname, fileset="rtl.8")
+
+    # Load the completed implementation manifest to locate its outputs and the
+    # standard-cell library (no project setup needed).
+    impl = ASIC.from_manifest(
+        filepath=f"build/heartbeat/{pnr_jobname}/heartbeat.pkg.json")
+    netlist = impl.find_result("lec.vg", step="write.views")
+
+    # The standard-cell simulation models live in the main library's 'rtl'
+    # fileset; depend on it so the netlist's cell instances resolve.
+    mainlib = impl.get_library(impl.get("asic", "mainlib"))
+
+    gate = HeartbeatDesign()
+    # Gate-level netlist (absolute path from find_result, so no dataroot needed)
+    # plus the standard-cell simulation models.
+    with gate.active_fileset("netlist"):
+        gate.add_file(netlist)
+        gate.add_depfileset(mainlib, "rtl")
+
+    sim = Sim(gate)
+    sim.add_fileset(["testbench.8", "netlist"])
+    sim.set_flow(DVFlow(tool="icarus"))
+    sim.option.set_jobname(jobname)
+
+    sim.run()
+    sim.summary()
+
+    vcd = sim.find_result(step="simulate", index="0", directory="reports",
+                          filename="heartbeat8_tb.vcd")
+
+    # If a VCD file is found, open it with the default waveform viewer.
+    if show_vcd and vcd:
+        sim.show(vcd)
+
+    return pnr_jobname
+
+
+def power(pnr_jobname: Optional[str] = None, sim_jobname: Optional[str] = None):
+    """Runs vector-based (VCD-driven) power signoff for the Heartbeat design.
+
+    Chains three flows on the Skywater130 PDK to obtain a power estimate driven
+    by real switching activity rather than default toggle rates:
+
+        1. **asicflow** (:func:`asic`): RTL-to-GDS implementation, producing a
+           gate-level netlist and extracted parasitics (SPEF).
+        2. **dvflow** (:func:`sim_postpnr`): gate-level simulation of the
+           netlist, capturing a switching-activity waveform (VCD).
+        3. **timing signoff**: OpenSTA reads the netlist and SDC from the design
+           filesets, the SPEF from the staged step inputs and the VCD (via
+           ``read_vcd``), and reports vector-based power.
+
+    Any prerequisite job that is not supplied is run automatically: if
+    ``sim_jobname`` is None the simulation (and, if needed, the implementation)
+    is run; if only ``pnr_jobname`` is None the implementation is run.
+
+    Gate-level simulation is demonstrated with Skywater130 because it is the demo
+    PDK that ships behavioral Verilog cell models (FreePDK45/Nangate45 does not).
+
+    Args:
+        pnr_jobname (str, optional): Job name of an existing ASIC implementation
+            run to reuse.
+        sim_jobname (str, optional): Job name of an existing gate-level
+            simulation to reuse.
+    """
+    # Ensure the simulation (and, transitively, the implementation) exist.
+    if sim_jobname is None:
+        sim_jobname = "sim"
+        pnr_jobname = sim_postpnr(pnr_jobname=pnr_jobname, jobname=sim_jobname, show_vcd=False)
+    elif pnr_jobname is None:
+        # Reusing an existing simulation: the netlist and parasitics must come
+        # from the matching implementation, so require it explicitly rather than
+        # silently pairing the VCD with the default "pnr" job.
+        raise ValueError(
+            "pnr_jobname is required when reusing an existing sim_jobname")
+
+    # Load the completed implementation manifest to locate its outputs (netlist,
+    # the implementation-generated SDC and extracted parasitics).
+    impl = ASIC.from_manifest(
+        filepath=f"build/heartbeat/{pnr_jobname}/heartbeat.pkg.json")
+    netlist = impl.find_result("lec.vg", step="write.views")
+    sdc = impl.find_result("sdc", step="write.views")
+    spef = impl.find_result("typical.spef", step="write.views")
+
+    # Load the simulation manifest to locate the captured waveform.
+    sim = Sim.from_manifest(
+        filepath=f"build/heartbeat/{sim_jobname}/heartbeat.pkg.json")
+    vcd = sim.find_result(step="simulate", index="0", directory="reports",
+                          filename="heartbeat8_tb.vcd")
+
+    # ------------------------------------------------------------------
+    # Timing signoff: netlist + SDC (filesets) + SPEF (inputs) + VCD -> power
+    # ------------------------------------------------------------------
+    signoff = ASIC()
+    sign_d = HeartbeatDesign()
+    # netlist, sdc and vcd are absolute paths from find_result, so no dataroot
+    # is needed.
+    #
+    # The netlist is read as verilog straight from this fileset; STA resolves the
+    # cell instances from the Liberty models, so no cell Verilog is needed here.
+    with sign_d.active_fileset("netlist"):
+        sign_d.set_topmodule("heartbeat8")
+        sign_d.add_file(netlist)
+    # The implementation-generated SDC (with propagated clocks) is the correct
+    # constraint set for signoff.
+    with sign_d.active_fileset("sdc.netlist"):
+        sign_d.add_file(sdc)
+    # Register the captured VCD in its own fileset but do NOT make it active: it
+    # requires a scope, so it is consumed only via the scoped power-activity
+    # configuration below (never as a plain active fileset).
+    sign_d.add_file(vcd, fileset="sim.vcd", filetype="vcd")
+    signoff.set_design(sign_d)
+    signoff.add_fileset(["netlist", "sdc.netlist"])
+
+    # Reuse the Skywater130 target for libraries, corners and the delay model,
+    # then replace its flow with the timing-signoff flow.
+    skywater130_demo(signoff)
+
+    signoff_flow = Flowgraph("timingsignoff")
+    # Stage the parasitics into the timing node's inputs; sc_timing.tcl reads
+    # the per-corner SPEF from the step inputs (there is no SPEF fileset type).
+    signoff_flow.node("stage", ImportFilesTask())
+    signoff_flow.node("signoff", TimingTask())
+    signoff_flow.edge("stage", "signoff")
+    signoff.set_flow(signoff_flow)
+    signoff.option.set_jobname("timingsignoff")
+
+    ImportFilesTask.find_task(signoff).add_import_file(spef)
+
+    # Annotate switching activity from the VCD. The DUT is instantiated in the
+    # testbench as heartbeat8_tb/DUT, so that is the scope of the design top.
+    TimingTask.find_task(signoff).add_opensta_poweractivity(
+        "heartbeat8_tb/DUT", sign_d.name, "sim.vcd")
+
+    signoff.run()
+    signoff.summary()
 
 
 def check():
