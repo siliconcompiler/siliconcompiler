@@ -30,6 +30,17 @@ proc sc_design_area { } {
     return $area
 }
 
+proc sc_report_banner { title args } {
+    set width 60
+    puts ""
+    puts [string repeat "=" $width]
+    puts "== $title"
+    foreach report $args {
+        puts "== report: $report"
+    }
+    puts [string repeat "=" $width]
+}
+
 proc sc_display_report { report } {
     if { ![file exists $report] } {
         return

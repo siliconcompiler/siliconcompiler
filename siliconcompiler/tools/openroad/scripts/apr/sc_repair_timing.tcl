@@ -65,7 +65,7 @@ if { ![sc_cfg_tool_task_get var rsz_skip_drv_repair] } {
         -verbose \
         {*}$repair_design_args
 
-    sc_detailed_placement -congestion_report reports/congestion.drv.rpt
+    sc_detailed_placement -congestion_report reports/route/congestion.drv.rpt
 
     # Restore dont use
     sc_set_dont_use
@@ -90,7 +90,7 @@ if { ![sc_cfg_tool_task_get var rsz_skip_setup_repair] } {
         -repair_tns $rsz_repair_tns \
         {*}$repair_timing_args
 
-    sc_detailed_placement -congestion_report reports/congestion.setup_repair.rpt
+    sc_detailed_placement -congestion_report reports/route/congestion.setup_repair.rpt
 
     # Restore dont use
     sc_set_dont_use
@@ -115,7 +115,7 @@ if { ![sc_cfg_tool_task_get var rsz_skip_hold_repair] } {
         -repair_tns $rsz_repair_tns \
         {*}$repair_timing_args
 
-    sc_detailed_placement -congestion_report reports/congestion.hold_repair.rpt
+    sc_detailed_placement -congestion_report reports/route/congestion.hold_repair.rpt
 
     # Restore dont use
     sc_set_dont_use
@@ -139,7 +139,7 @@ if { ![sc_cfg_tool_task_get var rsz_skip_recover_power] } {
         -hold_margin $rsz_hold_slack_margin \
         {*}$repair_timing_args
 
-    sc_detailed_placement -congestion_report reports/congestion.power_recovery.rpt
+    sc_detailed_placement -congestion_report reports/route/congestion.power_recovery.rpt
 
     # Restore dont use
     sc_set_dont_use

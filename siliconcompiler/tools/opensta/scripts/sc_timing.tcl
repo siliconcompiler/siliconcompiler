@@ -245,8 +245,10 @@ if { [llength $sc_power_activities] == 0 } {
 # Report how much of the design's switching activity was annotated from the VCD
 if { $sc_read_vcd } {
     puts "Reporting power activity annotation coverage"
+    puts "report: reports/power/activity_annotation.rpt"
+    file mkdir reports/power
     report_activity_annotation -report_annotated -report_unannotated > \
-        reports/activity_annotation.rpt
+        reports/power/activity_annotation.rpt
 }
 
 ###############################
@@ -279,6 +281,12 @@ if { [sc_cfg_tool_task_get var write_liberty] } {
 # Report Metrics
 ###############################
 
+file mkdir \
+    reports/checks \
+    reports/clocks \
+    reports/power \
+    reports/timing
+
 set opensta_top_n_paths [sc_cfg_tool_task_get var top_n_paths]
 
 set fields "{capacitance slew input_pins hierarcial_pins net fanout}"
@@ -287,34 +295,42 @@ set PREFIX "SC_METRIC:"
 puts "$PREFIX timeunit"
 puts [sta::unit_scale_abbreviation time]
 
+sc_report_banner "Setup timing" \
+    reports/timing/setup.rpt \
+    reports/timing/setup.topN.rpt \
+    reports/timing/worst_slack.setup.rpt \
+    reports/timing/total_negative_slack.setup.rpt
 puts "$PREFIX report_checks -path_delay max"
 report_checks -fields $fields -path_delay max -format full_clock_expanded \
-    > reports/setup.rpt
-sc_display_report reports/setup.rpt
-report_checks -path_delay max -group_count $opensta_top_n_paths \
-    > reports/setup.topN.rpt
+    > reports/timing/setup.rpt
+sc_display_report reports/timing/setup.rpt
+report_checks -path_delay max -group_path_count $opensta_top_n_paths \
+    > reports/timing/setup.topN.rpt
 
 puts "$PREFIX setupslack"
-report_worst_slack -max > reports/worst_slack.setup.rpt
-sc_display_report reports/worst_slack.setup.rpt
+report_worst_slack -max > reports/timing/worst_slack.setup.rpt
+sc_display_report reports/timing/worst_slack.setup.rpt
 
 puts "$PREFIX setuppaths"
 puts [sta::endpoint_violation_count max]
 
 puts "$PREFIX setuptns"
-report_tns > reports/total_negative_slack.rpt
-sc_display_report reports/total_negative_slack.rpt
+report_tns > reports/timing/total_negative_slack.setup.rpt
+sc_display_report reports/timing/total_negative_slack.setup.rpt
 
+sc_report_banner "Hold timing" \
+    reports/timing/hold.rpt \
+    reports/timing/hold.topN.rpt \
+    reports/timing/worst_slack.hold.rpt
 puts "$PREFIX report_checks -path_delay min"
 report_checks -fields $fields -path_delay min -format full_clock_expanded \
-    > reports/hold.rpt
-sc_display_report reports/hold.rpt
-report_checks -path_delay min -group_count $opensta_top_n_paths \
-    > reports/hold.topN.rpt
+    > reports/timing/hold.rpt
+report_checks -path_delay min -group_path_count $opensta_top_n_paths \
+    > reports/timing/hold.topN.rpt
 
 puts "$PREFIX holdslack"
-report_worst_slack -min > reports/worst_slack.hold.rpt
-sc_display_report reports/worst_slack.hold.rpt
+report_worst_slack -min > reports/timing/worst_slack.hold.rpt
+sc_display_report reports/timing/worst_slack.hold.rpt
 
 puts "$PREFIX holdpaths"
 puts [sta::endpoint_violation_count max]
@@ -322,26 +338,34 @@ puts [sta::endpoint_violation_count max]
 puts "$PREFIX holdtns"
 puts "tns [sta::time_sta_ui [sta::total_negative_slack_cmd min]]"
 
+sc_report_banner "Unconstrained paths" \
+    reports/timing/unconstrained.rpt \
+    reports/timing/unconstrained.topN.rpt
 report_checks -fields $fields -unconstrained -format full_clock_expanded \
-    -path_group unconstrained > reports/unconstrained.rpt
-sc_display_report reports/unconstrained.rpt
-report_checks -unconstrained -group_count $opensta_top_n_paths \
-    > reports/unconstrained.topN.rpt
+    -path_group unconstrained > reports/timing/unconstrained.rpt
+sc_display_report reports/timing/unconstrained.rpt
+report_checks -unconstrained -group_path_count $opensta_top_n_paths \
+    > reports/timing/unconstrained.topN.rpt
 
 if { [llength [all_clocks]] > 0 } {
+    sc_report_banner "Clock skew" \
+        reports/clocks/skew.setup.rpt \
+        reports/clocks/skew.hold.rpt
     puts "$PREFIX setupskew"
-    report_clock_skew -setup -digits 4 > reports/skew.setup.rpt
-    sc_display_report reports/skew.setup.rpt
+    report_clock_skew -setup -digits 4 > reports/clocks/skew.setup.rpt
+    sc_display_report reports/clocks/skew.setup.rpt
     puts "$PREFIX holdskew"
-    report_clock_skew -hold -digits 4 > reports/skew.hold.rpt
-    sc_display_report reports/skew.hold.rpt
+    report_clock_skew -hold -digits 4 > reports/clocks/skew.hold.rpt
+    sc_display_report reports/clocks/skew.hold.rpt
 }
 
+sc_report_banner "DRV violators" \
+    reports/checks/drv_violators.rpt
 puts "$PREFIX drvs"
 report_check_types -max_slew -max_capacitance -max_fanout -violators -no_line_splits \
-    > reports/drv_violators.rpt
-sc_display_report reports/drv_violators.rpt
+    > reports/checks/drv_violators.rpt
 
+sc_report_banner "Fmax"
 # Model on: https://github.com/The-OpenROAD-Project/OpenSTA/blob/f913c3ddbb3e7b4364ed4437c65ac78c4da9174b/tcl/Search.tcl#L1078
 set fmax_metric 0
 foreach clk [sta::sort_by_name [all_clocks]] {
@@ -363,6 +387,7 @@ if { $fmax_metric > 0 } {
 puts "$PREFIX logicdepth"
 puts [sc_count_logic_depth]
 
+sc_report_banner "Power"
 puts "$PREFIX power"
 foreach scene $sc_scenarios {
     if {
@@ -373,10 +398,12 @@ foreach scene $sc_scenarios {
         continue
     }
     puts "Power for scene: $scene"
-    report_power -corner $scene > reports/power.${scene}.rpt
-    sc_display_report reports/power.${scene}.rpt
+    puts "report: reports/power/${scene}.rpt"
+    report_power -corner $scene > reports/power/${scene}.rpt
+    sc_display_report reports/power/${scene}.rpt
 }
 
+sc_report_banner "Design statistics"
 puts "$PREFIX cells"
 puts [llength [get_cells *]]
 

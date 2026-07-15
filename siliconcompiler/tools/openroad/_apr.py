@@ -1652,7 +1652,7 @@ class APRTask(OpenROADTask):
 
         metric_reports = {
             "setuptns": [
-                "timing/total_negative_slack.rpt",
+                "timing/total_negative_slack.setup.rpt",
                 "timing/setup.rpt",
                 "timing/setup.histogram.rpt",
                 "images/timing/setup.histogram.png"
@@ -1665,7 +1665,7 @@ class APRTask(OpenROADTask):
                 "images/timing/setup.histogram.png"
             ],
             "setupskew": [
-                "timing/skew.setup.rpt",
+                "clocks/skew.setup.rpt",
                 "timing/worst_slack.setup.rpt",
                 "timing/setup.rpt",
                 "timing/setup.topN.rpt"
@@ -1684,7 +1684,7 @@ class APRTask(OpenROADTask):
                 "images/timing/hold.histogram.png"
             ],
             "holdskew": [
-                "timing/skew.hold.rpt",
+                "clocks/skew.hold.rpt",
                 "timing/worst_slack.hold.rpt",
                 "timing/hold.rpt",
                 "timing/hold.topN.rpt"
@@ -1706,15 +1706,15 @@ class APRTask(OpenROADTask):
                     for corner in self.project.getkeys('constraint', 'timing', 'scenario')]
             ],
             "drvs": [
-                "timing/drv_violators.rpt",
-                "floating_nets.rpt",
-                "overdriven_nets.rpt",
-                "overdriven_nets_with_parallel.rpt",
-                f"{self.design_topmodule}_antenna.rpt",
-                f"{self.design_topmodule}_antenna_post_repair.rpt"
+                "checks/drv_violators.rpt",
+                "checks/floating_nets.rpt",
+                "checks/overdriven_nets.rpt",
+                "checks/overdriven_nets_with_parallel.rpt",
+                f"route/{self.design_topmodule}.antenna.rpt",
+                f"route/{self.design_topmodule}.antenna_post_repair.rpt"
             ],
             "drcs": [
-                f"{self.design_topmodule}_drc.rpt",
+                f"checks/{self.design_topmodule}.drc.rpt",
                 f"markers/{self.design_topmodule}.drc.rpt",
                 f"markers/{self.design_topmodule}.drc.json",
                 f"images/markers/{self.design_topmodule}.DRC.png"
@@ -2013,4 +2013,5 @@ class APRTask(OpenROADTask):
             process_cell(module)
 
         if cellarea_report.size() > 0:
-            cellarea_report.write_report("reports/hierarchical_cell_area.json")
+            os.makedirs("reports/design", exist_ok=True)
+            cellarea_report.write_report("reports/design/hierarchical_cell_area.json")

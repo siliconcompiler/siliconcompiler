@@ -661,7 +661,8 @@ proc sc_setup_sta { } {
 
     # Check timing setup
     if { [sc_cfg_tool_task_check_in_list check_setup var reports] } {
-        tee -file "reports/check_timing_setup.rpt" {check_setup -verbose}
+        file mkdir reports/constraints
+        tee -file "reports/constraints/check_timing.rpt" {check_setup -verbose}
     }
 
     if { [llength [all_clocks]] == 0 } {
@@ -890,8 +891,9 @@ proc sc_set_dont_use { args } {
     }
 
     if { [info exists keys(-report)] } {
-        puts "Dont use report: reports/$keys(-report).rpt"
-        tee -quiet -file reports/$keys(-report).rpt {report_dont_use}
+        file mkdir reports/setup
+        puts "Dont use report: reports/setup/$keys(-report).rpt"
+        tee -quiet -file reports/setup/$keys(-report).rpt {report_dont_use}
     }
 }
 
@@ -905,6 +907,17 @@ proc sc_setup_detailed_route { } {
         utl::info FLW 1 "Marking $layer as a unidirectional routing layer"
         detailed_route_set_unidirectional_layer $layer
     }
+}
+
+proc sc_report_banner { title args } {
+    set width 60
+    puts ""
+    puts [string repeat "=" $width]
+    puts "== $title"
+    foreach report $args {
+        puts "== report: $report"
+    }
+    puts [string repeat "=" $width]
 }
 
 proc sc_report_args { args } {
@@ -940,7 +953,8 @@ proc sc_global_connections { args } {
             }
         }
     }
-    tee -file reports/global_connections.rpt {report_global_connect}
+    file mkdir reports/setup
+    tee -quiet -file reports/setup/global_connections.rpt {report_global_connect}
 }
 
 proc sc_format_area { area } {

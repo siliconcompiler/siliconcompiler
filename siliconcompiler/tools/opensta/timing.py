@@ -272,7 +272,7 @@ class TimingTaskBase(OpenSTATask):
                                    source_file=self.__report_map(skew),
                                    source_unit=timescale)
 
-        drv_report = "reports/drv_violators.rpt"
+        drv_report = "reports/checks/drv_violators.rpt"
         if os.path.exists(drv_report):
             drv_count = 0
             with sc_open(drv_report) as f:
@@ -284,17 +284,22 @@ class TimingTaskBase(OpenSTATask):
 
     def __report_map(self, metric):
         corners = self.project.getkeys('constraint', 'timing', 'scenario')
+        power_reports = [f"reports/power/{corner}.rpt" for corner in corners]
         mapping = {
-            "power": [f"reports/power.{corner}.rpt" for corner in corners],
-            "unconstrained": ["reports/unconstrained.rpt", "reports/unconstrained.topN.rpt"],
-            "setuppaths": ["reports/setup.rpt", "reports/setup.topN.rpt"],
-            "holdpaths": ["reports/hold.rpt", "reports/hold.topN.rpt"],
-            "holdslack": ["reports/hold.rpt", "reports/hold.topN.rpt"],
-            "setupslack": ["reports/setup.rpt", "reports/setup.topN.rpt"],
-            "setuptns": ["reports/setup.rpt", "reports/setup.topN.rpt"],
-            "holdtns": ["reports/hold.rpt", "reports/hold.topN.rpt"],
-            "setupskew": ["reports/skew.setup.rpt", "reports/setup.rpt", "reports/setup.topN.rpt"],
-            "holdskew": ["reports/skew.hold.rpt", "reports/hold.rpt", "reports/hold.topN.rpt"]
+            "peakpower": power_reports,
+            "leakagepower": power_reports,
+            "unconstrained": ["reports/timing/unconstrained.rpt",
+                              "reports/timing/unconstrained.topN.rpt"],
+            "setuppaths": ["reports/timing/setup.rpt", "reports/timing/setup.topN.rpt"],
+            "holdpaths": ["reports/timing/hold.rpt", "reports/timing/hold.topN.rpt"],
+            "holdslack": ["reports/timing/hold.rpt", "reports/timing/hold.topN.rpt"],
+            "setupslack": ["reports/timing/setup.rpt", "reports/timing/setup.topN.rpt"],
+            "setuptns": ["reports/timing/setup.rpt", "reports/timing/setup.topN.rpt"],
+            "holdtns": ["reports/timing/hold.rpt", "reports/timing/hold.topN.rpt"],
+            "setupskew": ["reports/clocks/skew.setup.rpt",
+                          "reports/timing/setup.rpt", "reports/timing/setup.topN.rpt"],
+            "holdskew": ["reports/clocks/skew.hold.rpt",
+                         "reports/timing/hold.rpt", "reports/timing/hold.topN.rpt"]
         }
 
         if metric in mapping:

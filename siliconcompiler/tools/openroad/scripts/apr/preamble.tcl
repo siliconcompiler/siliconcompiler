@@ -17,6 +17,21 @@ source "$sc_refdir/common/debugging.tcl"
 source "$sc_refdir/common/procs.tcl"
 
 ###############################
+# Setup report directories
+###############################
+
+file mkdir \
+    reports/checks \
+    reports/clocks \
+    reports/constraints \
+    reports/design \
+    reports/markers \
+    reports/power \
+    reports/route \
+    reports/setup \
+    reports/timing
+
+###############################
 # Design information
 ###############################
 
@@ -86,24 +101,24 @@ if { [llength $openroad_dont_touch] > 0 } {
     # set don't touch list
     set_dont_touch $openroad_dont_touch
 }
-tee -quiet -file reports/dont_touch.start.rpt {report_dont_touch}
-tee -quiet -file reports/dont_use.start.rpt {report_dont_use}
-tee -file reports/global_connections.start.rpt {report_global_connect}
+tee -quiet -file reports/setup/dont_touch.start.rpt {report_dont_touch}
+tee -quiet -file reports/setup/dont_use.start.rpt {report_dont_use}
+tee -quiet -file reports/setup/global_connections.start.rpt {report_global_connect}
 if { [sc_cfg_tool_task_check_in_list report_buffers var reports] && [sc_check_version 24 3 7677] } {
-    tee -quiet -file reports/report_buffers.rpt {report_buffers -filtered}
+    tee -quiet -file reports/setup/buffers.rpt {report_buffers -filtered}
 }
-tee -quiet -file reports/report_units.rpt {report_units}
+tee -quiet -file reports/setup/units.rpt {report_units}
 
-tee -quiet -file reports/report_layer_rc.rpt {report_layer_rc}
+tee -quiet -file reports/setup/layer_rc.rpt {report_layer_rc}
 if { [sc_has_sta_mcmm_support] } {
     foreach scene $sc_scenarios {
-        tee -quiet -append -file reports/report_layer_rc.rpt "puts \"Scene: $scene\""
-        tee -quiet -append -file reports/report_layer_rc.rpt "report_layer_rc -corner $scene"
+        tee -quiet -append -file reports/setup/layer_rc.rpt "puts \"Scene: $scene\""
+        tee -quiet -append -file reports/setup/layer_rc.rpt "report_layer_rc -corner $scene"
     }
 } else {
     foreach corner [sta::corners] {
         set corner_name [$corner name]
-        tee -quiet -append -file reports/report_layer_rc.rpt "puts \"Corner: $corner_name\""
-        tee -quiet -append -file reports/report_layer_rc.rpt "report_layer_rc -corner $corner_name"
+        tee -quiet -append -file reports/setup/layer_rc.rpt "puts \"Corner: $corner_name\""
+        tee -quiet -append -file reports/setup/layer_rc.rpt "report_layer_rc -corner $corner_name"
     }
 }
