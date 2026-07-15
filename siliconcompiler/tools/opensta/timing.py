@@ -1,10 +1,13 @@
+import fnmatch
 import re
 
 import os.path
 
-from typing import Optional
+from typing import List, Optional, Union
 
 from siliconcompiler import sc_open
+from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema.parametertype import NodeType
 
 from siliconcompiler.tools.opensta import OpenSTATask
 
@@ -15,6 +18,21 @@ class TimingTaskBase(OpenSTATask):
     '''
     Base class for generating static timing reports.
     '''
+
+    REPORT_TYPES = (
+        "setup",
+        "hold",
+        "unconstrained",
+        "clock_skew",
+        "drv_violations",
+        "fmax",
+        "power",
+        "logicdepth",
+        "check_setup",
+        "design_stats",
+        "scenarios"
+    )
+
     def __init__(self):
         super().__init__()
 
@@ -39,6 +57,11 @@ class TimingTaskBase(OpenSTATask):
                            "read for vector-based power analysis. The scope is the instance path "
                            "of the design top within the VCD. If empty, a VCD is read from the "
                            "active filesets (or the step input) with no scope.")
+
+        self.add_parameter("reports", f"{{<{','.join(self.REPORT_TYPES)}>}}",
+                           "list of reports to generate, auto generated")
+        self.add_parameter("skip_reports", f"{{<{','.join(self.REPORT_TYPES)}>}}",
+                           "list of reports to skip")
 
     def set_opensta_topnpaths(self, n: int,
                               step: Optional[str] = None,
@@ -126,6 +149,43 @@ class TimingTaskBase(OpenSTATask):
         return self.add("var", "power_activities", (scope, library, fileset),
                         step=step, index=index)
 
+    def add_opensta_skipreport(self, report_type: Union[List[str], str],
+                               step: Optional[str] = None, index: Optional[str] = None,
+                               clobber: bool = False) -> None:
+        """
+        Adds or sets report types to be skipped during OpenSTA execution.
+
+        Args:
+            report_type: The name of the report(s) to skip (e.g., 'clock_skew').
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing list of skipped reports.
+                     If False, appends to the existing list.
+        """
+        if isinstance(report_type, str):
+            patterns = [report_type]
+        else:
+            patterns = list(report_type)
+
+        if any("*" in pattern for pattern in patterns):
+            enum_type = list(
+                NodeType.parse(BaseSchema.get(self, "var", "skip_reports", field="type")))[0]
+            supported_report_types = sorted(NodeType.parse(enum_type).values)
+            expanded: List[str] = []
+            for pattern in patterns:
+                matches = fnmatch.filter(supported_report_types, pattern)
+                if not matches:
+                    raise ValueError(
+                        f"Report type pattern '{pattern}' did not match any supported "
+                        f"report types: {supported_report_types}")
+                expanded.extend(matches)
+            report_type = expanded
+
+        if clobber:
+            self.set("var", "skip_reports", report_type, step=step, index=index)
+        else:
+            self.add("var", "skip_reports", report_type, step=step, index=index)
+
     def setup(self):
         super().setup()
 
@@ -148,6 +208,13 @@ class TimingTaskBase(OpenSTATask):
         self.add_required_key("var", "unique_path_groups_per_clock")
         # NOTE: opensta_generic_sdc is intentionally not required — the opensta scripts only read it
         # in a commented-out fallback (the live reader is OpenROAD's separate same-named parameter).
+
+        skip_reports = set(self.get("var", "skip_reports"))
+        self.set("var", "reports", set(self.REPORT_TYPES).difference(skip_reports))
+        if self.get("var", "reports"):
+            self.add_required_key("var", "reports")
+        if skip_reports:
+            self.add_required_key("var", "skip_reports")
 
         self.add_required_key("var", "write_sdf")
         if self.get("var", "write_sdf"):
@@ -285,21 +352,39 @@ class TimingTaskBase(OpenSTATask):
     def __report_map(self, metric):
         corners = self.project.getkeys('constraint', 'timing', 'scenario')
         power_reports = [f"reports/power/{corner}.rpt" for corner in corners]
+        setup_reports = [
+            "reports/timing/setup.rpt",
+            "reports/timing/setup.topN.rpt",
+            "reports/timing/setup.failing.rpt",
+            "reports/timing/setup.endpoints.rpt",
+            *[f"reports/timing/setup.{corner}.rpt" for corner in corners],
+            *[f"reports/timing/setup.topN.{corner}.rpt" for corner in corners]
+        ]
+        hold_reports = [
+            "reports/timing/hold.rpt",
+            "reports/timing/hold.topN.rpt",
+            "reports/timing/hold.failing.rpt",
+            "reports/timing/hold.endpoints.rpt",
+            *[f"reports/timing/hold.{corner}.rpt" for corner in corners],
+            *[f"reports/timing/hold.topN.{corner}.rpt" for corner in corners]
+        ]
         mapping = {
             "peakpower": power_reports,
             "leakagepower": power_reports,
             "unconstrained": ["reports/timing/unconstrained.rpt",
                               "reports/timing/unconstrained.topN.rpt"],
-            "setuppaths": ["reports/timing/setup.rpt", "reports/timing/setup.topN.rpt"],
-            "holdpaths": ["reports/timing/hold.rpt", "reports/timing/hold.topN.rpt"],
-            "holdslack": ["reports/timing/hold.rpt", "reports/timing/hold.topN.rpt"],
-            "setupslack": ["reports/timing/setup.rpt", "reports/timing/setup.topN.rpt"],
-            "setuptns": ["reports/timing/setup.rpt", "reports/timing/setup.topN.rpt"],
-            "holdtns": ["reports/timing/hold.rpt", "reports/timing/hold.topN.rpt"],
-            "setupskew": ["reports/clocks/skew.setup.rpt",
-                          "reports/timing/setup.rpt", "reports/timing/setup.topN.rpt"],
-            "holdskew": ["reports/clocks/skew.hold.rpt",
-                         "reports/timing/hold.rpt", "reports/timing/hold.topN.rpt"]
+            "setuppaths": setup_reports,
+            "holdpaths": hold_reports,
+            "holdslack": hold_reports,
+            "setupslack": setup_reports,
+            "setuptns": ["reports/timing/total_negative_slack.setup.rpt", *setup_reports],
+            "holdtns": ["reports/timing/total_negative_slack.hold.rpt", *hold_reports],
+            "setupskew": ["reports/clocks/skew.setup.rpt", *setup_reports],
+            "holdskew": ["reports/clocks/skew.hold.rpt", *hold_reports],
+            "fmax": ["reports/clocks/fmax.rpt"],
+            "logicdepth": ["reports/design/logic_depth.rpt"],
+            "registers": ["reports/design/registers.rpt"],
+            "cellarea": ["reports/design/area.rpt"]
         }
 
         if metric in mapping:
