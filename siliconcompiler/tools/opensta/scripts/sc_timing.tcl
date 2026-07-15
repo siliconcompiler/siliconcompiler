@@ -239,7 +239,8 @@ if { [llength $sc_power_activities] == 0 } {
 # Report how much of the design's switching activity was annotated from the VCD
 if { $sc_read_vcd } {
     puts "Reporting power activity annotation coverage"
-    report_activity_annotation -report_annotated -report_unannotated > reports/activity_annotation.rpt
+    report_activity_annotation -report_annotated -report_unannotated > \
+        reports/activity_annotation.rpt
 }
 
 ###############################
