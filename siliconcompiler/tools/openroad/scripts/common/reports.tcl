@@ -214,7 +214,8 @@ if { [llength [all_clocks]] > 0 } {
 
 # get logic depth of design
 if { [sc_cfg_tool_task_check_in_list logicdepth var reports] } {
-    utl::metric_int "design__logic__depth" [sc_count_logic_depth]
+    utl::metric_int "design__logic__depth" \
+        [sc_count_logic_depth -report reports/design/logic_depth.rpt]
 }
 
 if { [sc_cfg_tool_task_check_in_list power var reports] } {

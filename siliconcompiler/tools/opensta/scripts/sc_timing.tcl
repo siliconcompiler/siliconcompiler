@@ -376,7 +376,7 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
     sc_display_report reports/timing/worst_slack.hold.rpt
 
     puts "$PREFIX holdpaths"
-    puts [sta::endpoint_violation_count max]
+    puts [sta::endpoint_violation_count min]
 
     puts "$PREFIX holdtns"
     report_tns -min > reports/timing/total_negative_slack.hold.rpt
@@ -460,7 +460,7 @@ if { [sc_cfg_tool_task_check_in_list fmax var reports] } {
 # get logic depth of design
 if { [sc_cfg_tool_task_check_in_list logicdepth var reports] } {
     puts "$PREFIX logicdepth"
-    puts [sc_count_logic_depth]
+    puts [sc_count_logic_depth -report reports/design/logic_depth.rpt]
 }
 
 if { [sc_cfg_tool_task_check_in_list power var reports] } {
