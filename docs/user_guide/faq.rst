@@ -187,3 +187,39 @@ How do I...
 
        with my_pdk._thaw():
            my_pdk.set(*keypath, hashes, field="filehash")
+
+... harden a parameterized module so I can reuse it as a macro?
+
+    A hardened macro has no parameters, so a parameterized module cannot be
+    hardened directly. Use :class:`.Uniquified`, which generates a parameter-free
+    variant per used parameter combination plus a wrapper that dispatches to
+    them. See the :ref:`uniquify tutorial <uniquify_modules>` and the
+    :ref:`Uniquify API <uniquify_api>`.
+
+    .. code-block:: python
+
+       from siliconcompiler.tools.slang.utils.macro import Uniquified
+
+       uq = Uniquified(parent_design, ["mymodule"])
+       uq.build(target=freepdk45_demo)   # harden every used parameterization
+       uq.wireup(project)                # alias wrappers + inject macros
+
+... find out which parameter values my module is actually instantiated with?
+
+    Construct :class:`.Uniquified` (construction only elaborates and generates in
+    memory -- no disk writes, no tools) and read its state:
+
+    .. code-block:: python
+
+       uq = Uniquified(parent_design, ["mymodule"])
+       print(uq.variants)   # {'mymodule': ['mymodule__N8', 'mymodule__N16']}
+
+... rebuild only some hardened variants?
+
+    Pass ``macros`` to :meth:`.Uniquified.build` as a variant name, a module
+    name, or a glob; add ``rebuild=True`` to force a rebuild even if a cached
+    macro exists.
+
+    .. code-block:: python
+
+       uq.build(target=freepdk45_demo, macros="mymodule__N8", rebuild=True)

@@ -92,11 +92,11 @@ def test_py_make_sim_verilator_cc():
 @pytest.mark.timeout(1200)
 def test_py_make_sim_postpnr():
     from heartbeat import make
-    # Auto-runs PnR ('pnr') then the gate-level simulation ('sim').
+    # Auto-runs PnR (job 'heartbeat__N8') then the gate-level simulation ('sim').
     make.sim_postpnr(show_vcd=False)
 
-    assert os.path.isfile('build/heartbeat/pnr/heartbeat.pkg.json')
-    assert os.path.isfile('build/heartbeat/sim/simulate/0/reports/heartbeat8_tb.vcd')
+    assert os.path.isfile('build/heartbeat/heartbeat__N8/heartbeat.pkg.json')
+    assert os.path.isfile('build/heartbeat/sim/simulate/0/reports/heartbeat_tb.vcd')
 
 
 @pytest.mark.eda
@@ -107,7 +107,7 @@ def test_py_make_power():
     make.power()
 
     # Gate-level simulation produced a switching-activity waveform.
-    assert os.path.isfile('build/heartbeat/sim/simulate/0/reports/heartbeat8_tb.vcd')
+    assert os.path.isfile('build/heartbeat/sim/simulate/0/reports/heartbeat_tb.vcd')
 
     # Timing signoff annotated the VCD and reported activity coverage.
     annotation = 'build/heartbeat/timingsignoff/signoff/0/reports/power/activity_annotation.rpt'
