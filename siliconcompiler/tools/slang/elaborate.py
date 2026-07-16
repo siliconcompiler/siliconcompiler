@@ -151,21 +151,20 @@ class Elaborate(SlangTask):
                     if orig in dropped:
                         continue
 
-                    files = []
                     if add_source:
                         files = self.__get_files(manager, orig)
-
-                    out.write(
-                        "////////////////////////////////////////////////////////////////\n")
-                    out.write("// Start:\n")
-                    print_files(out, files)
+                        out.write(
+                            "////////////////////////////////////////////////////////////////\n")
+                        out.write("// Start:\n")
+                        print_files(out, files)
 
                     out.write(make_writer().print(member).str() + '\n')
 
-                    out.write("// End:\n")
-                    print_files(out, files)
-                    out.write(
-                        "////////////////////////////////////////////////////////////////\n")
+                    if add_source:
+                        out.write("// End:\n")
+                        print_files(out, files)
+                        out.write(
+                            "////////////////////////////////////////////////////////////////\n")
 
         if ok:
             return 0
@@ -277,21 +276,20 @@ class Elaborate(SlangTask):
     def __get_files(self, manager, node):
         files = set()
 
-        from queue import Queue
-        nodes = Queue(maxsize=0)
-        nodes.put(node)
+        from collections import deque
+        nodes = deque([node])
 
         def proc_range(range):
             files.add(manager.getFileName(range.start))
             files.add(manager.getFileName(range.end))
 
-        while not nodes.empty():
-            node = nodes.get()
+        while nodes:
+            node = nodes.popleft()
             proc_range(node.sourceRange)
             for token in node:
                 if isinstance(token, pyslang.parsing.Token):
                     proc_range(token.range)
                 else:
-                    nodes.put(token)
+                    nodes.append(token)
 
         return sorted([os.path.abspath(f) for f in files if os.path.isfile(f)])
