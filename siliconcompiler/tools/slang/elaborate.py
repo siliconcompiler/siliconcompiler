@@ -85,49 +85,112 @@ class Elaborate(SlangTask):
 
         add_source = self.get("var", "include_source_paths")
 
+        # Determine which definitions are actually reachable from the elaborated
+        # top module. Unreachable module/interface/program definitions are
+        # dropped from the output; packages, $unit-scope declarations and
+        # anything that is not an instantiable definition are always kept.
+        dropped = self.__unused_definitions()
+
         def print_files(out, files):
             for src_file in files:
                 out.write(f'//   File: {src_file}\n')
 
+        def make_writer():
+            writer = pyslang.syntax.SyntaxPrinter(manager)
+
+            writer.setIncludeMissing(False)
+            writer.setIncludeSkipped(False)
+            writer.setIncludeDirectives(False)
+
+            writer.setExpandMacros(True)
+            writer.setExpandIncludes(True)
+            writer.setIncludeTrivia(True)
+            writer.setIncludeComments(True)
+            writer.setSquashNewlines(True)
+
+            return writer
+
         with open(f'outputs/{self._output_file()}', 'w') as out:
             for tree in self._compilation.getSyntaxTrees():
-                files = []
-                if add_source:
-                    files = self.__get_files(manager, tree)
+                for member in tree.root.members:
+                    if member in dropped:
+                        continue
 
-                writer = pyslang.syntax.SyntaxPrinter(manager)
+                    files = []
+                    if add_source:
+                        files = self.__get_files(manager, member)
 
-                writer.setIncludeMissing(False)
-                writer.setIncludeSkipped(False)
-                writer.setIncludeDirectives(False)
+                    out.write(
+                        "////////////////////////////////////////////////////////////////\n")
+                    out.write("// Start:\n")
+                    print_files(out, files)
 
-                writer.setExpandMacros(True)
-                writer.setExpandIncludes(True)
-                writer.setIncludeTrivia(True)
-                writer.setIncludeComments(True)
-                writer.setSquashNewlines(True)
+                    out.write(make_writer().print(member).str() + '\n')
 
-                out.write("////////////////////////////////////////////////////////////////\n")
-                out.write("// Start:\n")
-                print_files(out, files)
-
-                out.write(writer.print(tree).str() + '\n')
-
-                out.write("// End:\n")
-                print_files(out, files)
-                out.write("////////////////////////////////////////////////////////////////\n")
+                    out.write("// End:\n")
+                    print_files(out, files)
+                    out.write(
+                        "////////////////////////////////////////////////////////////////\n")
 
         if ok:
             return 0
         else:
             return 1
 
-    def __get_files(self, manager, tree):
+    def __unused_definitions(self):
+        '''
+        Returns the set of definition syntax nodes (modules, interfaces,
+        programs, ...) that are not reachable from the elaborated top module(s)
+        and can therefore be omitted from the output.
+
+        Packages, $unit-scope declarations and anything that is not an
+        instantiable definition are never included in this set, so they are
+        always retained by the caller.
+        '''
+        def get_syntax(symbol):
+            if hasattr(symbol, "getSyntax"):
+                return symbol.getSyntax()
+            return getattr(symbol, "syntax", None)
+
+        # Every instantiable definition known to the compilation.
+        all_defs = set()
+        for defn in self._compilation.getDefinitions():
+            syntax = get_syntax(defn)
+            if syntax is not None:
+                all_defs.add(syntax)
+
+        # Walk the elaborated hierarchy from the top module(s) and record the
+        # definitions that are actually instantiated.
+        used = set()
+        seen = set()
+
+        def visit(instance):
+            body = instance.body
+            if body in seen:
+                return
+            seen.add(body)
+
+            defn = getattr(body, "definition", None)
+            if defn is not None:
+                syntax = get_syntax(defn)
+                if syntax is not None:
+                    used.add(syntax)
+
+            for member in body:
+                if isinstance(member, pyslang.ast.InstanceSymbol):
+                    visit(member)
+
+        for top in self._compilation.getRoot().topInstances:
+            visit(top)
+
+        return all_defs - used
+
+    def __get_files(self, manager, node):
         files = set()
 
         from queue import Queue
         nodes = Queue(maxsize=0)
-        nodes.put(tree.root)
+        nodes.put(node)
 
         def proc_range(range):
             files.add(manager.getFileName(range.start))

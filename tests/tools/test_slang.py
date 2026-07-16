@@ -6,6 +6,7 @@ import os.path
 
 from queue import Queue
 
+from siliconcompiler import Design
 from siliconcompiler import Flowgraph
 from siliconcompiler import Project
 from siliconcompiler.tools.slang import lint
@@ -66,6 +67,58 @@ def test_elaborate(heartbeat_design):
 
     assert proj.find_result("v", step="elaborate") == \
         os.path.abspath("build/heartbeat/job0/elaborate/0/outputs/heartbeat.v")
+
+
+def test_elaborate_drops_unused_modules():
+    """Only the top module and the submodules it instantiates should be
+    written to the elaborated output; unused modules present in the sources
+    must be dropped, while packages are always retained.
+
+    The unused module lives in its own file, so this also verifies that the
+    emitted source-path annotations only reference files that actually
+    contributed a module to the output."""
+    with open("used.v", "w") as src:
+        src.write(
+            "package pkg; parameter W = 1; endpackage\n"
+            "module used_child(input a, output b); assign b = ~a; endmodule\n"
+            "module top(input x, output y);\n"
+            "  used_child u0(.a(x), .b(y));\n"
+            "endmodule\n"
+        )
+    with open("unused.v", "w") as src:
+        src.write(
+            "module unused_child(input a, output b); assign b = a; endmodule\n"
+        )
+
+    design = Design("top")
+    design.set_dataroot("unused-test", os.getcwd())
+    with design.active_fileset("rtl"), design.active_dataroot("unused-test"):
+        design.set_topmodule("top")
+        design.add_file("used.v")
+        design.add_file("unused.v")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("elaborate")
+    flow.node("elaborate", elaborate.Elaborate())
+    proj.set_flow(flow)
+
+    assert proj.run()
+
+    result = proj.find_result("v", step="elaborate")
+    with open(result) as fout:
+        content = fout.read()
+
+    # Only reachable modules (and packages) are emitted.
+    assert "module top" in content
+    assert "module used_child" in content
+    assert "package pkg" in content
+    assert "module unused_child" not in content
+
+    # The file that only held the dropped module must not be annotated.
+    assert "used.v" in content
+    assert "unused.v" not in content
 
 
 def test_slang_duplicate_inputs(heartbeat_design):
