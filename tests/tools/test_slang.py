@@ -121,6 +121,72 @@ def test_elaborate_drops_unused_modules():
     assert "unused.v" not in content
 
 
+def test_elaborate_bakes_top_param_overrides():
+    """The emitted top module advertises the parameters it was elaborated with.
+
+    ``top`` selects a submodule via ``generate`` on parameter ``MODE``. The
+    fileset overrides ``MODE`` to 1 (so ``impl_b`` is used and ``impl_a`` is
+    pruned). Because the top is emitted with ``MODE``'s default rewritten to 1,
+    re-elaborating the output file standalone -- with only its own defaults --
+    reproduces the same hierarchy instead of reaching the pruned ``impl_a``.
+    """
+    with open("design.sv", "w") as src:
+        src.write(
+            "module impl_a(input x, output y); assign y = x; endmodule\n"
+            "module impl_b(input x, output y); assign y = ~x; endmodule\n"
+            "module top #(parameter integer MODE = 0)(input x, output y);\n"
+            "  if (MODE == 0) begin : g\n"
+            "    impl_a u(.x(x), .y(y));\n"
+            "  end else begin : g\n"
+            "    impl_b u(.x(x), .y(y));\n"
+            "  end\n"
+            "endmodule\n"
+        )
+
+    design = Design("top")
+    design.set_dataroot("param-test", os.getcwd())
+    with design.active_fileset("rtl"), design.active_dataroot("param-test"):
+        design.set_topmodule("top")
+        design.add_file("design.sv")
+        design.set_param("MODE", "1")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("elaborate")
+    flow.node("elaborate", elaborate.Elaborate())
+    proj.set_flow(flow)
+
+    assert proj.run()
+
+    result = proj.find_result("sv", step="elaborate")
+    with open(result) as fout:
+        content = fout.read()
+
+    # Default baked to the elaborated value; the selected branch kept, the
+    # other pruned.
+    assert "MODE = 1" in content
+    assert "MODE = 0" not in content
+    assert "module impl_b" in content
+    assert "module impl_a" not in content
+
+    # Re-elaborating the emitted file on its own (defaults only, no -G) must
+    # succeed without reaching the pruned module -- i.e. no unknown modules.
+    driver = pyslang.driver.Driver()
+    driver.addStandardArgs()
+    opts = pyslang.driver.CommandLineOptions()
+    opts.ignoreProgramName = True
+    args = shlex.join(["--single-unit", "--top", "top", os.path.abspath(result)])
+    assert driver.parseCommandLine(args, opts)
+    assert driver.processOptions()
+    assert driver.parseAllSources()
+    compilation = driver.createCompilation()
+    severities = [driver.diagEngine.getSeverity(d.code, d.location)
+                  for d in compilation.getAllDiagnostics()]
+    assert pyslang.DiagnosticSeverity.Error not in severities
+    assert pyslang.DiagnosticSeverity.Fatal not in severities
+
+
 def test_slang_duplicate_inputs(heartbeat_design):
     heartbeat_design.copy_fileset("rtl", "rtl_double")
     heartbeat_design.add_file(heartbeat_design.get_file("rtl", "verilog"), "rtl_double")

@@ -91,6 +91,27 @@ class Elaborate(SlangTask):
         # anything that is not an instantiable definition are always kept.
         dropped = self.__unused_definitions()
 
+        # The top module's parameter defaults are rewritten to the values it was
+        # actually elaborated with (from the fileset's -G overrides). Otherwise
+        # the emitted top still advertises its original defaults, so a downstream
+        # tool that re-elaborates this file from the top picks a different
+        # configuration than we pruned for -- referencing modules we dropped.
+        overrides = self.__top_param_overrides()
+
+        # Spliced-in nodes keep pointing at the throwaway syntax tree they were
+        # parsed from, and the rewritten tree points at those; both must outlive
+        # printing or pyslang reads freed memory. Hold every such tree here for
+        # the duration of the write loop.
+        keepalive = []
+
+        def rewrite_defaults(node, rewriter):
+            if node in overrides and node.initializer is not None:
+                tree, replacement = self.__equals_value(overrides[node])
+                if replacement is not None:
+                    keepalive.append(tree)
+                    rewriter.replace(node.initializer, replacement)
+            return None
+
         def print_files(out, files):
             for src_file in files:
                 out.write(f'//   File: {src_file}\n')
@@ -112,13 +133,27 @@ class Elaborate(SlangTask):
 
         with open(f'outputs/{self._output_file()}', 'w') as out:
             for tree in self._compilation.getSyntaxTrees():
-                for member in tree.root.members:
-                    if member in dropped:
+                # Rewriting produces a new tree whose members are positionally
+                # 1:1 with the original (only parameter defaults change), so the
+                # identity-based ``dropped`` check stays keyed on the original
+                # nodes while the rewritten node is what gets printed.
+                orig_members = list(tree.root.members)
+                if overrides:
+                    # Retain the rewritten tree: its member nodes read from it
+                    # while printing, so it must not be collected mid-loop.
+                    rewritten = pyslang.syntax.rewrite(tree, rewrite_defaults)
+                    keepalive.append(rewritten)
+                    printed = list(rewritten.root.members)
+                else:
+                    printed = orig_members
+
+                for orig, member in zip(orig_members, printed):
+                    if orig in dropped:
                         continue
 
                     files = []
                     if add_source:
-                        files = self.__get_files(manager, member)
+                        files = self.__get_files(manager, orig)
 
                     out.write(
                         "////////////////////////////////////////////////////////////////\n")
@@ -159,31 +194,85 @@ class Elaborate(SlangTask):
             if syntax is not None:
                 all_defs.add(syntax)
 
-        # Walk the elaborated hierarchy from the top module(s) and record the
-        # definitions that are actually instantiated.
+        # Record the definitions actually instantiated under the top module(s).
+        # ``visit`` descends through every scope -- generate blocks, interfaces
+        # and deeply nested instances -- which a hand-rolled walk over
+        # instance-body members would miss. It is run per top instance rather
+        # than from the root: slang also elaborates other top-level modules
+        # (for diagnostics) even when --top is set, and visiting the root would
+        # sweep those uninstantiated modules back in.
         used = set()
-        seen = set()
 
-        def visit(instance):
-            body = instance.body
-            if body in seen:
-                return
-            seen.add(body)
-
-            defn = getattr(body, "definition", None)
-            if defn is not None:
-                syntax = get_syntax(defn)
+        def visitor(symbol):
+            if type(symbol).__name__ == "InstanceSymbol":
+                syntax = get_syntax(symbol.definition)
                 if syntax is not None:
                     used.add(syntax)
 
-            for member in body:
-                if isinstance(member, pyslang.ast.InstanceSymbol):
-                    visit(member)
-
         for top in self._compilation.getRoot().topInstances:
-            visit(top)
+            top.visit(visitor)
 
         return all_defs - used
+
+    def __top_param_overrides(self):
+        '''
+        Maps each top-module parameter declarator (that has a default) to the
+        concrete value the module was elaborated with, rendered as a
+        SystemVerilog literal.
+
+        Only overridable module parameters are considered -- localparams are
+        elaboration-internal and never appear in the parameter port list.
+        '''
+        def get_syntax(symbol):
+            if hasattr(symbol, "getSyntax"):
+                return symbol.getSyntax()
+            return getattr(symbol, "syntax", None)
+
+        overrides = {}
+        for top in self._compilation.getRoot().topInstances:
+            definition = getattr(top, "definition", None)
+            syntax = get_syntax(definition) if definition is not None else None
+            header = getattr(syntax, "header", None)
+            params = getattr(header, "parameters", None)
+            if params is None:
+                continue
+
+            values = {}
+            for param in top.body.parameters:
+                if getattr(param, "isLocalParam", False):
+                    continue
+                values[param.name] = str(param.value)
+
+            for declaration in params.declarations:
+                if type(declaration).__name__ != "ParameterDeclarationSyntax":
+                    continue
+                for declarator in declaration.declarators:
+                    name = declarator.name.value
+                    if declarator.initializer is not None and name in values:
+                        overrides[declarator] = values[name]
+
+        return overrides
+
+    @staticmethod
+    def __equals_value(value):
+        '''
+        Parses ``value`` as a SystemVerilog parameter default and returns
+        ``(tree, node)`` where ``node`` is the ``EqualsValueClauseSyntax``
+        (``= <value>``) to splice in as a parameter default. The owning ``tree``
+        is returned alongside because the node stays bound to it and the caller
+        must keep it alive until printing is done. Returns ``(None, None)`` if
+        ``value`` cannot be parsed.
+        '''
+        tree = pyslang.syntax.SyntaxTree.fromText(
+            f"module __sc_p #(parameter __sc_v = {value})();endmodule")
+        header = getattr(tree.root, "header", None)
+        params = getattr(header, "parameters", None)
+        if params is None:
+            return None, None
+        for declaration in params.declarations:
+            if type(declaration).__name__ == "ParameterDeclarationSyntax":
+                return tree, declaration.declarators[0].initializer
+        return None, None
 
     def __get_files(self, manager, node):
         files = set()
