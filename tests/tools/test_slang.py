@@ -11,6 +11,7 @@ from siliconcompiler import Flowgraph
 from siliconcompiler import Project
 from siliconcompiler.tools.slang import lint
 from siliconcompiler.tools.slang import elaborate
+from siliconcompiler.utils.paths import workdir
 
 
 @pytest.mark.parametrize("task", [elaborate.Elaborate, lint.Lint])
@@ -172,20 +173,7 @@ def test_elaborate_bakes_top_param_overrides():
     # Re-elaborating the emitted file on its own (defaults only, no -G) must
     # succeed without reaching the pruned module -- i.e. no unknown modules --
     # and the baked default must resolve MODE back to 1.
-    driver = pyslang.driver.Driver()
-    driver.addStandardArgs()
-    opts = pyslang.driver.CommandLineOptions()
-    opts.ignoreProgramName = True
-    args = shlex.join(["--single-unit", "--top", "top", os.path.abspath(result)])
-    assert driver.parseCommandLine(args, opts)
-    assert driver.processOptions()
-    assert driver.parseAllSources()
-    compilation = driver.createCompilation()
-    severities = [driver.diagEngine.getSeverity(d.code, d.location)
-                  for d in compilation.getAllDiagnostics()]
-    assert pyslang.DiagnosticSeverity.Error not in severities
-    assert pyslang.DiagnosticSeverity.Fatal not in severities
-
+    compilation = _assert_reelaborates_clean(result)
     top_inst = compilation.getRoot().topInstances[0]
     mode = {p.name: p for p in top_inst.body.parameters}["MODE"]
     assert mode.value.value.toString(pyslang.LiteralBase.Decimal, False) == "1"
@@ -230,7 +218,8 @@ def _elaborate_typed(params):
 
 
 def _assert_reelaborates_clean(path):
-    """Re-elaborate a standalone file (defaults only) and assert no errors."""
+    """Re-elaborate a standalone file (defaults only), assert no errors, and
+    return the resulting compilation for further inspection."""
     driver = pyslang.driver.Driver()
     driver.addStandardArgs()
     opts = pyslang.driver.CommandLineOptions()
@@ -244,6 +233,7 @@ def _assert_reelaborates_clean(path):
                   for d in compilation.getAllDiagnostics()]
     assert pyslang.DiagnosticSeverity.Error not in severities
     assert pyslang.DiagnosticSeverity.Fatal not in severities
+    return compilation
 
 
 def test_elaborate_typed_param_overrides_render_valid_sv():
@@ -261,8 +251,15 @@ def test_elaborate_typed_param_overrides_render_valid_sv():
     assert "mode_e'(" in content
     assert "..." not in content
 
-    # The emitted file re-elaborates standalone (defaults only) without errors.
-    _assert_reelaborates_clean(result)
+    # The emitted file re-elaborates standalone (defaults only) without errors,
+    # and the baked defaults resolve to the overridden values.
+    compilation = _assert_reelaborates_clean(result)
+    params = {p.name: p
+              for p in compilation.getRoot().topInstances[0].body.parameters}
+    assert params["MODE"].value.value.toString(
+        pyslang.LiteralBase.Decimal, False) == "2"       # enum value C
+    assert params["WIDE"].value.value.toString(
+        pyslang.LiteralBase.Hex, True) == "160'hdeadbeef"
 
 
 def test_elaborate_leaves_untouched_params_verbatim():
@@ -340,6 +337,18 @@ def test_elaborate_errors_on_unrenderable_param():
 
     with pytest.raises(RuntimeError):
         proj.run()
+
+    # Confirm it failed for the intended reason (our explicit render error),
+    # not an incidental elaboration failure. The message is logged to the node
+    # log file -- the RuntimeError itself only carries a generic summary, and
+    # the node runs in a separate process so caplog does not see it.
+    logtext = ""
+    logdir = workdir(proj, step="elaborate", index="0")
+    for name in os.listdir(logdir):
+        if name.endswith(".log"):
+            with open(os.path.join(logdir, name)) as fout:
+                logtext += fout.read()
+    assert "cannot rewrite the default of top parameter 'P'" in logtext
 
 
 def test_elaborate_prunes_deep_hierarchy_keeps_interface():
