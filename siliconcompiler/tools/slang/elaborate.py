@@ -93,25 +93,28 @@ class Elaborate(SlangTask):
         # anything that is not an instantiable definition are always kept.
         dropped = self.__unused_definitions()
 
-        # The top module's parameter defaults are rewritten to the values it was
-        # actually elaborated with (from the fileset's -G overrides). Otherwise
-        # the emitted top still advertises its original defaults, so a downstream
-        # tool that re-elaborates this file from the top picks a different
-        # configuration than we pruned for -- referencing modules we dropped.
-        overrides = self.__top_param_overrides()
-
-        # Spliced-in nodes keep pointing at the throwaway syntax tree they were
-        # parsed from, and the rewritten tree points at those; both must outlive
-        # printing or pyslang reads freed memory. Hold every such tree here for
-        # the duration of the write loop.
-        keepalive = []
+        # Only the parameters the fileset actually overrode (-G) have their
+        # default rewritten to the elaborated value. Otherwise the emitted top
+        # still advertises its original defaults, so a downstream tool that
+        # re-elaborates this file from the top picks a different configuration
+        # than we pruned for -- referencing modules we dropped. Parameters SC
+        # did not override keep their original source default verbatim.
+        overrides, keepalive, unrenderable = self.__top_param_overrides()
+        if unrenderable:
+            # Refuse to emit a file with a silently-wrong default: fail loudly
+            # naming the parameter(s) whose elaborated value we could not turn
+            # into valid SystemVerilog.
+            for name in unrenderable:
+                self.logger.error(
+                    f"cannot rewrite the default of top parameter '{name}': "
+                    f"its elaborated value could not be rendered as valid "
+                    f"SystemVerilog")
+            return 1
 
         def rewrite_defaults(node, rewriter):
-            if node in overrides and node.initializer is not None:
-                tree, replacement = self.__equals_value(overrides[node])
-                if replacement is not None:
-                    keepalive.append(tree)
-                    rewriter.replace(node.initializer, replacement)
+            replacement = overrides.get(node)
+            if replacement is not None and node.initializer is not None:
+                rewriter.replace(node.initializer, replacement)
             return None
 
         def print_files(out, files):
@@ -215,21 +218,45 @@ class Elaborate(SlangTask):
 
         return all_defs - used
 
+    def __overridden_param_names(self):
+        '''
+        Returns the set of top-module parameter names the active fileset
+        overrode via ``-G`` -- the only parameters whose emitted default can
+        legitimately differ from the source.
+        '''
+        filesets = self.project.get("option", "fileset")
+        if not filesets:
+            return set()
+        design = self.project.design
+        return set(design.getkeys("fileset", filesets[0], "param"))
+
     def __top_param_overrides(self):
         '''
-        Maps each top-module parameter declarator (that has a default) to the
-        concrete value the module was elaborated with, rendered as a
-        SystemVerilog literal.
+        Builds the parameter-default rewrites for the top module(s).
 
-        Only overridable module parameters are considered -- localparams are
-        elaboration-internal and never appear in the parameter port list.
+        Returns ``(overrides, keepalive, unrenderable)`` where ``overrides`` maps
+        each affected parameter declarator to its replacement
+        ``EqualsValueClauseSyntax`` node, ``keepalive`` holds the throwaway
+        syntax trees those nodes stay bound to (they must outlive printing), and
+        ``unrenderable`` lists the names of overridden parameters whose
+        elaborated value could not be rendered as valid SystemVerilog.
+
+        Only parameters the fileset actually overrode are considered; every
+        other parameter keeps its original source default. Localparams never
+        appear in the parameter port list and are ignored.
         '''
         def get_syntax(symbol):
             if hasattr(symbol, "getSyntax"):
                 return symbol.getSyntax()
             return getattr(symbol, "syntax", None)
 
+        names = self.__overridden_param_names()
         overrides = {}
+        keepalive = []
+        unrenderable = []
+        if not names:
+            return overrides, keepalive, unrenderable
+
         for top in self._compilation.getRoot().topInstances:
             definition = getattr(top, "definition", None)
             syntax = get_syntax(definition) if definition is not None else None
@@ -238,21 +265,63 @@ class Elaborate(SlangTask):
             if params is None:
                 continue
 
-            values = {}
+            symbols = {}
             for param in top.body.parameters:
                 if getattr(param, "isLocalParam", False):
                     continue
-                values[param.name] = str(param.value)
+                symbols[param.name] = param
 
             for declaration in params.declarations:
                 if type(declaration).__name__ != "ParameterDeclarationSyntax":
                     continue
+                type_text = pyslang.syntax.SyntaxPrinter().print(
+                    declaration.type).str().strip()
                 for declarator in declaration.declarators:
                     name = declarator.name.value
-                    if declarator.initializer is not None and name in values:
-                        overrides[declarator] = values[name]
+                    if name not in names or name not in symbols:
+                        continue
+                    if declarator.initializer is None:
+                        continue
 
-        return overrides
+                    literal = self.__param_literal(symbols[name], type_text)
+                    tree, node = self.__equals_value(literal) \
+                        if literal is not None else (None, None)
+                    if node is None:
+                        unrenderable.append(name)
+                        continue
+                    overrides[declarator] = node
+                    keepalive.append(tree)
+
+        return overrides, keepalive, unrenderable
+
+    @staticmethod
+    def __param_literal(param, type_text):
+        '''
+        Renders a parameter's elaborated value as a valid SystemVerilog literal,
+        or returns ``None`` if it cannot be rendered safely.
+
+        Integral values (including enums) are rendered at full precision -- the
+        default ``str()`` abbreviates wide values with ``...`` which is not valid
+        Verilog. Enum values are wrapped in a cast to their declared type since a
+        bare integer does not implicitly convert to an enum.
+        '''
+        ptype = param.type
+        value = param.value
+
+        if ptype.isString:
+            return str(value)
+
+        inner = getattr(value, "value", None)
+        if isinstance(inner, pyslang.SVInt):
+            literal = inner.toString(pyslang.LiteralBase.Hex, True)
+            if ptype.isEnum:
+                return f"{type_text}'({literal})"
+            return literal
+
+        if getattr(ptype, "isFloating", False):
+            return str(value)
+
+        return None
 
     @staticmethod
     def __equals_value(value):
@@ -266,6 +335,10 @@ class Elaborate(SlangTask):
         '''
         tree = pyslang.syntax.SyntaxTree.fromText(
             f"module __sc_p #(parameter __sc_v = {value})();endmodule")
+        # Reject anything that does not parse cleanly rather than splice in a
+        # node that would emit malformed SystemVerilog.
+        if list(tree.diagnostics):
+            return None, None
         header = getattr(tree.root, "header", None)
         params = getattr(header, "parameters", None)
         if params is None:

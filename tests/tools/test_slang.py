@@ -163,15 +163,15 @@ def test_elaborate_bakes_top_param_overrides():
     with open(result) as fout:
         content = fout.read()
 
-    # Default baked to the elaborated value; the selected branch kept, the
-    # other pruned.
-    assert "MODE = 1" in content
-    assert "MODE = 0" not in content
+    # The selected branch is kept and the other pruned; the original default
+    # (0) is gone from the declaration.
     assert "module impl_b" in content
     assert "module impl_a" not in content
+    assert "MODE = 0" not in content
 
     # Re-elaborating the emitted file on its own (defaults only, no -G) must
-    # succeed without reaching the pruned module -- i.e. no unknown modules.
+    # succeed without reaching the pruned module -- i.e. no unknown modules --
+    # and the baked default must resolve MODE back to 1.
     driver = pyslang.driver.Driver()
     driver.addStandardArgs()
     opts = pyslang.driver.CommandLineOptions()
@@ -185,6 +185,97 @@ def test_elaborate_bakes_top_param_overrides():
                   for d in compilation.getAllDiagnostics()]
     assert pyslang.DiagnosticSeverity.Error not in severities
     assert pyslang.DiagnosticSeverity.Fatal not in severities
+
+    top_inst = compilation.getRoot().topInstances[0]
+    mode = {p.name: p for p in top_inst.body.parameters}["MODE"]
+    assert mode.value.value.toString(pyslang.LiteralBase.Decimal, False) == "1"
+
+
+_TYPED_PARAM_SRC = (
+    "package p;\n"
+    "  typedef enum logic [1:0] {A = 0, B = 1, C = 2} mode_e;\n"
+    "  typedef logic [159:0] wide_t;\n"
+    "endpackage\n"
+    "module top import p::*; #(\n"
+    "  parameter mode_e MODE = A,\n"
+    "  parameter wide_t WIDE = 160'h0\n"
+    ")(input x, output y);\n"
+    "  assign y = x ^ (|WIDE) ^ (MODE == C);\n"
+    "endmodule\n"
+)
+
+
+def _elaborate_typed(params):
+    """Run the elaborate task on the typed-parameter design with the given
+    fileset param overrides ({} for none) and return the output file path."""
+    with open("typed.sv", "w") as src:
+        src.write(_TYPED_PARAM_SRC)
+
+    design = Design("top")
+    design.set_dataroot("typed-test", os.getcwd())
+    with design.active_fileset("rtl"), design.active_dataroot("typed-test"):
+        design.set_topmodule("top")
+        design.add_file("typed.sv")
+        for name, value in params.items():
+            design.set_param(name, value)
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    flow = Flowgraph("elaborate")
+    flow.node("elaborate", elaborate.Elaborate())
+    proj.set_flow(flow)
+    assert proj.run()
+
+    return proj.find_result("sv", step="elaborate")
+
+
+def _assert_reelaborates_clean(path):
+    """Re-elaborate a standalone file (defaults only) and assert no errors."""
+    driver = pyslang.driver.Driver()
+    driver.addStandardArgs()
+    opts = pyslang.driver.CommandLineOptions()
+    opts.ignoreProgramName = True
+    args = shlex.join(["--single-unit", "--top", "top", os.path.abspath(path)])
+    assert driver.parseCommandLine(args, opts)
+    assert driver.processOptions()
+    assert driver.parseAllSources()
+    compilation = driver.createCompilation()
+    severities = [driver.diagEngine.getSeverity(d.code, d.location)
+                  for d in compilation.getAllDiagnostics()]
+    assert pyslang.DiagnosticSeverity.Error not in severities
+    assert pyslang.DiagnosticSeverity.Fatal not in severities
+
+
+def test_elaborate_typed_param_overrides_render_valid_sv():
+    """Overriding enum- and wide-typedef-typed top parameters must emit valid
+    SystemVerilog: enums cast to their type, wide values as full literals.
+
+    This is the ibex-style regression: a bare integer default for an enum
+    parameter (or an abbreviated wide literal) does not compile.
+    """
+    result = _elaborate_typed({"MODE": "C", "WIDE": "160'hdeadbeef"})
+    with open(result) as fout:
+        content = fout.read()
+
+    # Enum default cast to its declared type; no abbreviated "..." literal.
+    assert "mode_e'(" in content
+    assert "..." not in content
+
+    # The emitted file re-elaborates standalone (defaults only) without errors.
+    _assert_reelaborates_clean(result)
+
+
+def test_elaborate_leaves_untouched_params_verbatim():
+    """Typed parameters the fileset did NOT override keep their exact source
+    default -- the rewrite never touches them, so it can't mangle enum/typedef
+    defaults it wasn't asked to change (the ibex failure mode)."""
+    result = _elaborate_typed({})
+    with open(result) as fout:
+        content = fout.read()
+
+    assert "parameter mode_e MODE = A" in content
+    assert "parameter wide_t WIDE = 160'h0" in content
+    assert "mode_e'(" not in content
 
 
 def test_slang_duplicate_inputs(heartbeat_design):
