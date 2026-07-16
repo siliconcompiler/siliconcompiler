@@ -2,6 +2,8 @@ from typing import Optional, Union
 
 import os.path
 
+from collections import deque
+
 from siliconcompiler.tools.slang import pyslang
 
 from siliconcompiler.tools.slang import SlangTask
@@ -276,12 +278,11 @@ class Elaborate(SlangTask):
     def __get_files(self, manager, node):
         files = set()
 
-        from collections import deque
         nodes = deque([node])
 
-        def proc_range(range):
-            files.add(manager.getFileName(range.start))
-            files.add(manager.getFileName(range.end))
+        def proc_range(source_range):
+            files.add(manager.getFileName(source_range.start))
+            files.add(manager.getFileName(source_range.end))
 
         while nodes:
             node = nodes.popleft()
