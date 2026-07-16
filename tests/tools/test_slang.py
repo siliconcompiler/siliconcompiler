@@ -278,6 +278,130 @@ def test_elaborate_leaves_untouched_params_verbatim():
     assert "mode_e'(" not in content
 
 
+def _build_elaborate(top, filename, source, params=None,
+                     source_paths=True, dataroot="cov-test"):
+    """Write ``source`` to ``filename`` and return an elaborate-only project."""
+    with open(filename, "w") as fout:
+        fout.write(source)
+
+    design = Design(top)
+    design.set_dataroot(dataroot, os.getcwd())
+    with design.active_fileset("rtl"), design.active_dataroot(dataroot):
+        design.set_topmodule(top)
+        design.add_file(filename)
+        for name, value in (params or {}).items():
+            design.set_param(name, value)
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    flow = Flowgraph("elaborate")
+    flow.node("elaborate", elaborate.Elaborate())
+    proj.set_flow(flow)
+    if not source_paths:
+        elaborate.Elaborate.find_task(proj).set_slang_includesourcepaths(False)
+    return proj
+
+
+def test_elaborate_source_paths_disabled():
+    """With include_source_paths off, module text is still emitted but the
+    banner / file-annotation comments are omitted entirely."""
+    proj = _build_elaborate(
+        "top", "nosrc.v",
+        "module top(input a, output b); assign b = a; endmodule\n",
+        source_paths=False)
+
+    assert proj.run()
+
+    with open(proj.find_result("v", step="elaborate")) as fout:
+        content = fout.read()
+
+    assert "module top" in content
+    assert "// Start:" not in content
+    assert "// End:" not in content
+    assert "//   File:" not in content
+    assert "////////" not in content
+
+
+def test_elaborate_errors_on_unrenderable_param():
+    """If an overridden top parameter's value cannot be rendered as valid
+    SystemVerilog, the task must fail loudly rather than emit a bad default.
+
+    An unpacked-struct parameter elaborates fine but has no simple literal
+    form, so overriding it forces the error-out path.
+    """
+    proj = _build_elaborate(
+        "top", "err.sv",
+        "package q; typedef struct { int a; int b; } up_t; endpackage\n"
+        "module top import q::*; #(parameter up_t P = '{a: 1, b: 2})\n"
+        "  (input x, output y);\n"
+        "  assign y = x ^ (P.a == 3);\n"
+        "endmodule\n",
+        params={"P": "'{a: 3, b: 4}"})
+
+    with pytest.raises(RuntimeError):
+        proj.run()
+
+
+def test_elaborate_prunes_deep_hierarchy_keeps_interface():
+    """Pruning must descend the full hierarchy (grandchildren, interfaces) and
+    keep everything reachable while dropping an uninstantiated sibling."""
+    proj = _build_elaborate(
+        "top", "hier.sv",
+        "interface bus_if; logic v; endinterface\n"
+        "module leaf(input logic a, output logic b); assign b = ~a; endmodule\n"
+        "module mid(bus_if i, output logic o); leaf l(.a(i.v), .b(o)); endmodule\n"
+        "module unused(input logic a, output logic b); assign b = a; endmodule\n"
+        "module top(output logic o);\n"
+        "  bus_if bi();\n"
+        "  assign bi.v = 1'b1;\n"
+        "  mid m(.i(bi), .o(o));\n"
+        "endmodule\n")
+
+    assert proj.run()
+
+    with open(proj.find_result("sv", step="elaborate")) as fout:
+        content = fout.read()
+
+    assert "module top" in content
+    assert "module mid" in content
+    assert "module leaf" in content        # grandchild, reached via mid
+    assert "interface bus_if" in content    # instantiated interface
+    assert "module unused" not in content   # never instantiated
+
+
+def test_elaborate_roundtrips_systemverilog_constructs():
+    """A design using packages, enums, packed structs and '{...} assignment
+    patterns must be emitted so it re-elaborates cleanly -- the ibex-shaped
+    regression. Nothing is overridden, so these constructs are verbatim."""
+    proj = _build_elaborate(
+        "top", "sv_features.sv",
+        "package p;\n"
+        "  typedef enum logic [1:0] {A = 0, B = 1, C = 2} mode_e;\n"
+        "  typedef struct packed { logic irq; logic [4:0] cause; } exc_t;\n"
+        "  localparam exc_t ExcSoft = '{irq: 1'b1, cause: 5'd03};\n"
+        "endpackage\n"
+        "module leaf import p::*; #(parameter mode_e M = A)\n"
+        "  (input logic x, output logic y);\n"
+        "  assign y = x ^ (M == C) ^ ExcSoft.irq;\n"
+        "endmodule\n"
+        "module top import p::*; (input logic x, output logic y);\n"
+        "  leaf u(.x(x), .y(y));\n"
+        "endmodule\n")
+
+    assert proj.run()
+
+    result = proj.find_result("sv", step="elaborate")
+    with open(result) as fout:
+        content = fout.read()
+
+    # SV constructs preserved verbatim (not down-converted / mangled).
+    assert "package p" in content
+    assert "'{irq: 1'b1, cause: 5'd03}" in content
+
+    # The emitted file re-elaborates on its own without errors.
+    _assert_reelaborates_clean(result)
+
+
 def test_slang_duplicate_inputs(heartbeat_design):
     heartbeat_design.copy_fileset("rtl", "rtl_double")
     heartbeat_design.add_file(heartbeat_design.get_file("rtl", "verilog"), "rtl_double")
@@ -334,17 +458,17 @@ def test_pyslang_api_surface():
         assert hasattr(pyslang.Diags, diag), f"pyslang.Diags missing: {diag}"
 
 
-def test_pyslang_driver_parses_verilog(tmp_path):
+def test_pyslang_driver_parses_verilog():
     """Drive pyslang directly on a tiny verilog file.
 
     Mirrors the calls made in SlangTask._init_driver / _compile so a regression
     in the underlying pyslang API can be reproduced without any SC plumbing."""
-    src = tmp_path / "tiny.v"
-    src.write_text(
-        "module tiny(input clk, output reg q);\n"
-        "  always @(posedge clk) q <= ~q;\n"
-        "endmodule\n"
-    )
+    with open("tiny.v", "w") as src:
+        src.write(
+            "module tiny(input clk, output reg q);\n"
+            "  always @(posedge clk) q <= ~q;\n"
+            "endmodule\n"
+        )
 
     driver = pyslang.driver.Driver()
     driver.addStandardArgs()
@@ -352,7 +476,7 @@ def test_pyslang_driver_parses_verilog(tmp_path):
     opts = pyslang.driver.CommandLineOptions()
     opts.ignoreProgramName = True
 
-    args = shlex.join(["--single-unit", "--top", "tiny", str(src)])
+    args = shlex.join(["--single-unit", "--top", "tiny", "tiny.v"])
     assert driver.parseCommandLine(args, opts)
     assert driver.processOptions()
     assert driver.parseAllSources()
@@ -366,10 +490,10 @@ def test_pyslang_driver_parses_verilog(tmp_path):
     assert pyslang.DiagnosticSeverity.Fatal not in severities
 
 
-def test_pyslang_syntax_printer(tmp_path):
+def test_pyslang_syntax_printer():
     """SyntaxPrinter + Token live in submodules in pyslang v11+."""
-    src = tmp_path / "tiny.v"
-    src.write_text("module tiny; endmodule\n")
+    with open("tiny.v", "w") as src:
+        src.write("module tiny; endmodule\n")
 
     driver = pyslang.driver.Driver()
     driver.addStandardArgs()
@@ -377,7 +501,7 @@ def test_pyslang_syntax_printer(tmp_path):
     opts = pyslang.driver.CommandLineOptions()
     opts.ignoreProgramName = True
 
-    args = shlex.join(["--single-unit", "--top", "tiny", str(src)])
+    args = shlex.join(["--single-unit", "--top", "tiny", "tiny.v"])
     assert driver.parseCommandLine(args, opts)
     assert driver.processOptions()
     assert driver.parseAllSources()
