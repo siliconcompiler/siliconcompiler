@@ -168,7 +168,7 @@ class EditableSchema:
 
         new_schema = self.__schema.copy()
         if new_schema._parent() is not new_schema:
-            new_schema._BaseSchema__parent = None
+            EditableSchema(new_schema).remove_parent()
         return new_schema
 
     def rename(self, name: str) -> None:
@@ -183,3 +183,9 @@ class EditableSchema:
             raise ValueError("object is already in a schema")
 
         self.__schema._NamedSchema__name = name
+
+    def remove_parent(self) -> None:
+        '''
+        Removes the parent of a schema object, disconnecting it from any parent schema
+        '''
+        self.__schema._BaseSchema__parent = None

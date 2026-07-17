@@ -1,11 +1,15 @@
 import graphviz
 import pytest
 
+import copy
+import json
 import os.path
 
 from unittest.mock import patch, MagicMock
 
+from siliconcompiler import Design, Project
 from siliconcompiler.schema import NamedSchema, BaseSchema
+from siliconcompiler.schema.parameter import Parameter
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaSimpleBase, PathSchema
 
@@ -122,6 +126,25 @@ def test_remove_dep_with_object():
     assert schema.get("deps", field="lock") is True
     assert schema.get_dep() == []
     assert schema.get("deps") == []
+
+
+def test_remove_dep_multiple():
+    schema = DependencySchema()
+    dep_a = NamedSchema("a")
+    dep_b = NamedSchema("b")
+    dep_c = NamedSchema("c")
+    schema.add_dep(dep_a)
+    schema.add_dep(dep_b)
+    schema.add_dep(dep_c)
+
+    assert schema.get("deps") == ["a", "b", "c"]
+
+    # Removing one dependency leaves the others intact and ordered.
+    assert schema.remove_dep("b") is True
+    assert schema.has_dep("b") is False
+    assert schema.get("deps") == ["a", "c"]
+    assert schema.get_dep() == [dep_a, dep_c]
+    assert schema.get("deps", field="lock") is True
 
 
 def test_get_dep_empty():
@@ -397,6 +420,34 @@ def test_populate_deps_empty():
     schema._populate_deps({})
 
 
+def test_populate_deps_missing_meta():
+    class Test(NamedSchema, DependencySchema):
+        def __init__(self, name=None):
+            super().__init__()
+            self.set_name(name)
+
+    schema = Test("top")
+
+    dep00 = Test("level0-0")
+    dep01 = Test("level0-1")
+    dep10 = Test("level1-0")
+    dep11 = Test("level1-1")
+
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
+
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
+
+    cfg = schema.getdict()
+    del cfg['__meta__']['__deps__']
+    check = Test.from_manifest(name="test", cfg=cfg)
+    assert check.get_dep() == []
+    module_map = {obj.name: obj for obj in schema.get_dep()}
+    check._populate_deps(module_map)
+    assert check.get_dep() == schema.get_dep()
+
+
 def test_populate_deps():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name=None):
@@ -416,9 +467,81 @@ def test_populate_deps():
     assert schema.add_dep(dep00)
     assert schema.add_dep(dep01)
 
-    check = Test.from_manifest(name="test", cfg=schema.getdict())
-    assert check.get_dep() == []
+    cfg = schema.getdict()
+    check = Test.from_manifest(name="test", cfg=cfg)
+    assert sorted([dep.name for dep in check.get_dep()]) == ["level0-0", "level0-1"]
+
+
+def test_from_dict_with_version():
+    # from_manifest does not expose the version argument, so _from_dict is
+    # driven directly to exercise the branch that injects the schema version
+    # into each dependency's manifest before it is loaded.
+    class Test(NamedSchema, DependencySchema):
+        def __init__(self, name=None):
+            super().__init__()
+            self.set_name(name)
+
+    schema = Test("top")
+
+    dep00 = Test("level0-0")
+    dep10 = Test("level1-0")
+
+    assert dep00.add_dep(dep10)
+    assert schema.add_dep(dep00)
+
+    cfg = schema.getdict()
+
+    seen_cfgs = []
+    orig_from_manifest = NamedSchema.from_manifest.__func__
+
+    def spy(cls, *args, cfg=None, **kwargs):
+        # snapshot before loading mutates the dict in place
+        seen_cfgs.append(copy.deepcopy(cfg))
+        return orig_from_manifest(cls, *args, cfg=cfg, **kwargs)
+
+    check = Test("top")
+    with patch.object(NamedSchema, "from_manifest", classmethod(spy)):
+        check._from_dict(cfg, tuple(), version=(1, 2, 3))
+
+    # The version path still populates the dependencies correctly.
+    assert [dep.name for dep in check.get_dep(hierarchy=False)] == ["level0-0"]
+
+    # Each dependency manifest had the schema version injected before loading.
+    # Round-trip the injected field through Parameter so a malformed cfg would
+    # surface here rather than being silently accepted.
+    assert seen_cfgs
+    for depcfg in seen_cfgs:
+        assert BaseSchema._version_key in depcfg
+        param = Parameter.from_dict(depcfg[BaseSchema._version_key],
+                                    (BaseSchema._version_key,),
+                                    None)
+        assert param.get() == "1.2.3"
+
+
+def test_populate_deps_reset():
+    class Test(NamedSchema, DependencySchema):
+        def __init__(self, name=None):
+            super().__init__()
+            self.set_name(name)
+
+    schema = Test("top")
+
+    dep00 = Test("level0-0")
+    dep01 = Test("level0-1")
+    dep10 = Test("level1-0")
+    dep11 = Test("level1-1")
+
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
+
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
+
+    cfg = schema.getdict()
+    check = Test.from_manifest(name="test", cfg=cfg)
+    assert sorted([dep.name for dep in check.get_dep()]) == ["level0-0", "level0-1"]
     module_map = {obj.name: obj for obj in schema.get_dep()}
+    check._reset_deps()
     check._populate_deps(module_map)
     assert check.get_dep() == schema.get_dep()
 
@@ -442,7 +565,9 @@ def test_populate_deps_missing():
     assert schema.add_dep(dep00)
     assert schema.add_dep(dep01)
 
-    check = Test.from_manifest(name="test", cfg=schema.getdict())
+    cfg = schema.getdict()
+    del cfg['__meta__']['__deps__']
+    check = Test.from_manifest(name="test", cfg=cfg)
     with pytest.raises(ValueError, match=r"^level0-0 not available in map$"):
         check._populate_deps({})
 
@@ -475,6 +600,38 @@ def test_populate_deps_already_populated():
     assert check.get_dep() == [dep00, dep10]
 
 
+def test_populate_deps_recursive():
+    # Exercises the recursive branch of _populate_deps: a dependency that is
+    # itself an unpopulated DependencySchema must have its own deps resolved.
+    class Test(NamedSchema, DependencySchema):
+        def __init__(self, name):
+            super().__init__()
+            self.set_name(name)
+
+    top = Test("top")
+    mid = Test("mid")
+    leaf = Test("leaf")
+
+    assert mid.add_dep(leaf)
+    assert top.add_dep(mid)
+
+    # Clear the resolved object maps while leaving the "deps" name lists intact,
+    # so _populate_deps has to rebuild the hierarchy from the module map.
+    top._reset_deps()
+    mid._reset_deps()
+
+    assert top.get_dep(hierarchy=False) == []
+    assert mid.get_dep(hierarchy=False) == []
+
+    module_map = {"mid": mid, "leaf": leaf}
+    top._populate_deps(module_map)
+
+    # Direct dep resolved on top, and the nested dep resolved recursively on mid.
+    assert top.get_dep(hierarchy=False) == [mid]
+    assert mid.get_dep(hierarchy=False) == [leaf]
+    assert top.get_dep() == [mid, leaf]
+
+
 def test_check_filepaths_none():
     assert DependencySchema().check_filepaths() is True
 
@@ -499,6 +656,40 @@ def test_check_filepaths_self_fail(pcls):
         cf.return_value = False
         assert Test().check_filepaths() is False
         cf.assert_called_once()
+
+
+def test_check_filepaths_skips_non_pathschema_dep():
+    class Test(DependencySchema, PathSchema):
+        pass
+
+    dut = Test()
+    # A dependency that is not a PathSchemaBase must be skipped, not checked.
+    dut.add_dep(NamedSchema("plaindep"))
+
+    with patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.check_filepaths") as cf:
+        cf.return_value = True
+        assert dut.check_filepaths() is True
+        # Only self is checked; the plain NamedSchema dependency is skipped.
+        cf.assert_called_once()
+
+
+def test_check_filepaths_ignore_keys_forwarded():
+    class Test(NamedSchema, DependencySchema, PathSchema):
+        def __init__(self, name=None):
+            super().__init__()
+            self.set_name(name)
+
+    dut = Test("top")
+    dut.add_dep(Test("dep0"))
+
+    ignore = [("key", "path")]
+    with patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.check_filepaths") as cf:
+        cf.return_value = True
+        assert dut.check_filepaths(ignore_keys=ignore) is True
+        assert cf.call_count == 2
+        # ignore_keys is forwarded to every checked object (self and deps).
+        for call in cf.call_args_list:
+            assert call.kwargs["ignore_keys"] is ignore
 
 
 def test_check_filepaths_depth_fail():
@@ -798,3 +989,125 @@ def test_write_depgraph_visual_params_forwarded():
     assert kw["fontsize"] == "18"
     assert kw["border"] is False
     assert kw["landscape"] is True
+
+
+def test_getdict_with_nodeps():
+    class Test(NamedSchema, DependencySchema):
+        def __init__(self, name):
+            super().__init__()
+            self.set_name(name)
+
+    schema = DependencySchema()
+
+    assert "__deps__" not in schema.getdict()['__meta__']
+
+
+def test_getdict_with_deps():
+    class Test(NamedSchema, DependencySchema):
+        def __init__(self, name):
+            super().__init__()
+            self.set_name(name)
+
+    schema = DependencySchema()
+
+    dep00 = Test("level0-0")
+    dep01 = Test("level0-1")
+    dep02 = Test("level0-2")
+
+    assert dep00.add_dep(dep01)
+    assert dep01.add_dep(dep02)
+
+    assert schema.add_dep(dep00)
+
+    cfg = schema.getdict()
+
+    assert "__deps__" in cfg['__meta__']
+    dpescfg = cfg['__meta__']["__deps__"]
+    assert "level0-0" in dpescfg
+    assert "level0-1" not in dpescfg
+    assert "level0-1" in dpescfg["level0-0"]["__meta__"]["__deps__"]
+    assert "level0-2" not in dpescfg
+    assert "level0-2" in \
+        dpescfg["level0-0"]["__meta__"]["__deps__"]["level0-1"]["__meta__"]["__deps__"]
+
+
+def test_getdict_with_deps_project():
+    class Test(Design):
+        def __init__(self, name):
+            super().__init__()
+            self.set_name(name)
+
+    schema = Test("top")
+
+    dep00 = Test("level0-0")
+    dep01 = Test("level0-1")
+    dep02 = Test("level0-2")
+
+    assert dep00.add_dep(dep01)
+    assert dep01.add_dep(dep02)
+
+    assert schema.add_dep(dep00)
+
+    d = Design("test")
+    d.add_dep(schema)
+
+    Project(d)
+
+    assert "__deps__" not in schema.getdict()['__meta__']
+
+
+def test_write_manifest_self_contained_for_design_in_project(tmp_path):
+    # A design imported into a project stores its deps centrally in the project,
+    # so the project-owned manifest omits them. But writing that design's
+    # manifest *directly* must still produce a self-contained file: the on-disk
+    # manifest should embed the full, recursive dependency tree.
+    #
+    # This fails until write_manifest on a design that lives inside a project
+    # emits its dependencies; today the deps are dropped.
+    top = Design("top")
+    child = Design("child")
+    grandchild = Design("grandchild")
+
+    assert child.add_dep(grandchild)
+    assert top.add_dep(child)
+
+    Project(top)
+    assert isinstance(top._parent(root=True), Project)
+
+    path = str(tmp_path / "top.json")
+    top.write_manifest(path)
+
+    with open(path) as fout:
+        cfg = json.load(fout)
+
+    deps = cfg["__meta__"].get("__deps__", {})
+    assert "child" in deps
+    assert "grandchild" in deps["child"]["__meta__"].get("__deps__", {})
+
+
+def test_write_manifest_roundtrip_for_design_in_project(tmp_path):
+    # The self-contained manifest of a design taken from a project must reload
+    # on its own into a fully populated design hierarchy of the correct types.
+    #
+    # This fails until write_manifest on a design that lives inside a project
+    # emits its dependencies; today the reloaded design has no deps.
+    top = Design("top")
+    child = Design("child")
+    grandchild = Design("grandchild")
+
+    assert child.add_dep(grandchild)
+    assert top.add_dep(child)
+
+    Project(top)
+
+    path = str(tmp_path / "top.json")
+    top.write_manifest(path)
+
+    reload = NamedSchema.from_manifest(filepath=path)
+    assert isinstance(reload, Design)
+    assert reload.name == "top"
+    assert [dep.name for dep in reload.get_dep(hierarchy=False)] == ["child"]
+
+    reload_child = reload.get_dep("child")
+    assert isinstance(reload_child, Design)
+    assert [dep.name for dep in reload_child.get_dep(hierarchy=False)] == ["grandchild"]

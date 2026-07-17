@@ -356,6 +356,25 @@ def test_copy():
 
     copy = EditableSchema(obj).copy()
     assert copy._keypath == tuple()
+    assert copy._parent() is copy
+
+
+def test_remove_parent():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    obj = BaseSchema()
+
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test2", "test3", obj)
+
+    assert obj._keypath == ("test0", "default", "test2", "test3")
+
+    assert obj._parent() is not obj
+    EditableSchema(obj).remove_parent()
+    assert obj._parent() is obj
+    assert obj._keypath == tuple()
 
 
 def test_rename_in_schema():

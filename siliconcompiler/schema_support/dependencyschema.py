@@ -50,10 +50,49 @@ class DependencySchema(BaseSchema):
         Returns:
             The result of the parent class's _from_dict method.
         '''
+        deps = {}
+        if "__meta__" in manifest and "__deps__" in manifest["__meta__"]:
+            scversion = None
+            if version:
+                scversion = {
+                    BaseSchema._version_key:
+                        Parameter("str", defvalue=".".join(map(str, version))).getdict()
+                }
+            for name, depcfg in manifest["__meta__"]["__deps__"].items():
+                if scversion:
+                    depcfg.update(scversion)
+                deps[name] = NamedSchema.from_manifest(cfg=depcfg, lazyload=lazyload)
+            del manifest["__meta__"]["__deps__"]
+
         self.set("deps", False, field="lock")
         ret = super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
         self.set("deps", True, field="lock")
+        if deps:
+            self._reset_deps()
+            self._populate_deps(deps)
         return ret
+
+    def _getdict_meta(self):
+        from siliconcompiler import Project
+        meta = super()._getdict_meta()
+        if isinstance(self._parent(root=True), Project):
+            return meta
+
+        # Root is not project, so we need to add the deps to the meta
+        all_deps = self.get_dep(hierarchy=False)
+        if all_deps:
+            meta['__deps__'] = {}
+            for dep in all_deps:
+                meta['__deps__'][dep.name] = dep.getdict()
+
+        return meta
+
+    def write_manifest(self, filename: str) -> None:
+        # Create copy without any parent
+        depschema = EditableSchema(self).copy()
+        for dep in depschema.get_dep(hierarchy=True):
+            EditableSchema(dep).remove_parent()
+        BaseSchema.write_manifest(depschema, filename)
 
     def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
         """
