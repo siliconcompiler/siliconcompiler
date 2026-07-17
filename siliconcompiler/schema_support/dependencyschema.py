@@ -50,10 +50,71 @@ class DependencySchema(BaseSchema):
         Returns:
             The result of the parent class's _from_dict method.
         '''
+        depsdict = None
+        if "__meta__" in manifest and "__deps__" in manifest["__meta__"]:
+            depsdict = manifest["__meta__"]["__deps__"]
+
+        # Defer dependency loading while lazy loading is enforced: the parent
+        # loader stashes the manifest (including the embedded __deps__) and
+        # re-invokes this method with a non-enforced mode on elaboration.
+        process_deps = depsdict is not None and not lazyload.is_enforced
+
+        deps = {}
+        if process_deps:
+            depversion = ".".join(map(str, version)) if version else None
+            for name, depcfg in depsdict.items():
+                if depversion:
+                    # Build a fresh parameter per dependency: Parameter.from_dict
+                    # consumes the dict, so a shared instance would be exhausted
+                    # after the first dependency.
+                    depcfg[BaseSchema._version_key] = \
+                        Parameter("str", defvalue=depversion).getdict()
+                # from_manifest expects a bool; dependencies are materialized
+                # eagerly so the full graph is available once elaborated.
+                deps[name] = NamedSchema.from_manifest(cfg=depcfg, lazyload=False)
+            del manifest["__meta__"]["__deps__"]
+
         self.set("deps", False, field="lock")
         ret = super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
         self.set("deps", True, field="lock")
+        if process_deps:
+            # Reset even for an explicitly empty dependency set so stale
+            # dependencies do not survive a reload.
+            self._reset_deps()
+            if deps:
+                self._populate_deps(deps)
         return ret
+
+    def _getdict_meta(self):
+        from siliconcompiler import Project
+        meta = super()._getdict_meta()
+        if isinstance(self._parent(root=True), Project):
+            return meta
+
+        # Root is not a project, so emit a flat, de-duplicated map of the full
+        # transitive dependency set. get_dep(hierarchy=True) already collapses
+        # diamonds and tolerates cycles, so the map is finite. Each entry is
+        # serialized without its own nested __deps__ (its "deps" name list is
+        # preserved), and the graph is re-linked from this flat map on load.
+        all_deps = self.get_dep(hierarchy=True)
+        if all_deps:
+            meta['__deps__'] = {}
+            for dep in all_deps:
+                # Copy so the original is untouched, then clear the copy's
+                # dependency objects so it serializes as a flat leaf entry.
+                flat = EditableSchema(dep).copy()
+                if isinstance(flat, DependencySchema):
+                    flat._reset_deps()
+                meta['__deps__'][dep.name] = flat.getdict()
+
+        return meta
+
+    def write_manifest(self, filename: str) -> None:
+        # Detach a copy from any parent project so the dependency graph is
+        # embedded (as a flat map, see _getdict_meta) rather than deferred to
+        # the project. The original object is left untouched.
+        depschema = EditableSchema(self).copy()
+        BaseSchema.write_manifest(depschema, filename)
 
     def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
         """
@@ -244,6 +305,10 @@ class DependencySchema(BaseSchema):
         Returns:
             list: A list of dependency objects.
         '''
+
+        # Ensure a deferred (lazily-loaded) manifest is elaborated so the
+        # internal dependency map is populated before it is read.
+        self.get("deps")
 
         if name:
             if not self.has_dep(name):

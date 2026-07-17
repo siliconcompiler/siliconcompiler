@@ -356,6 +356,25 @@ def test_copy():
 
     copy = EditableSchema(obj).copy()
     assert copy._keypath == tuple()
+    assert copy._parent() is copy
+
+
+def test_remove_parent():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    obj = BaseSchema()
+
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test2", "test3", obj)
+
+    assert obj._keypath == ("test0", "default", "test2", "test3")
+
+    assert obj._parent() is not obj
+    EditableSchema(obj).remove_parent()
+    assert obj._parent() is obj
+    assert obj._keypath == tuple()
 
 
 def test_rename_in_schema():
@@ -406,6 +425,27 @@ def test_remove_on_frozen_raises():
     schema._freeze()
     with pytest.raises(SchemaFrozenError, match="frozen"):
         EditableSchema(schema).remove("existing")
+
+
+def test_remove_parent_on_frozen_raises():
+    schema = BaseSchema()
+    obj = BaseSchema()
+    EditableSchema(schema).insert("test0", obj)
+    obj._freeze()
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        EditableSchema(obj).remove_parent()
+    # The parent link must be left intact when the schema is frozen.
+    assert obj._parent() is not obj
+
+
+def test_remove_parent_allowed_after_unfreeze():
+    schema = BaseSchema()
+    obj = BaseSchema()
+    EditableSchema(schema).insert("test0", obj)
+    obj._freeze()
+    obj._unfreeze()
+    EditableSchema(obj).remove_parent()
+    assert obj._parent() is obj
 
 
 def test_insert_allowed_after_unfreeze():
