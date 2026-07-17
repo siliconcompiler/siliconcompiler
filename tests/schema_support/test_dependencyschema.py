@@ -290,27 +290,26 @@ def test_get_dep_circle():
     assert schema.get_dep() == [dep00, dep10, dep01, dep11]
 
 
-@pytest.mark.skip(reason="cyclic dependency graphs cannot yet be serialized "
-                         "into a self-contained manifest (see finding A); "
-                         "revisit once dependency serialization is reworked")
 def test_getdict_with_cycle():
-    # A cyclic dependency graph is permitted by add_dep (see test_get_dep_circle)
-    # but the nested manifest embedding recurses indefinitely on a cycle. Once
-    # dependency serialization preserves graph identity (canonical name table),
-    # this should produce a finite, reloadable manifest instead of recursing.
-    class Test(NamedSchema, DependencySchema):
-        def __init__(self, name):
-            super().__init__()
-            self.set_name(name)
-
-    dep0 = Test("dep0")
-    dep1 = Test("dep1")
+    # A cyclic dependency graph is permitted by add_dep (see test_get_dep_circle).
+    # Dependencies are serialized as a flat, de-duplicated map, so a cycle yields
+    # a finite, reloadable manifest instead of recursing indefinitely. A resolvable
+    # class (Design) is used so the graph is reconstructed on reload.
+    dep0 = Design("dep0")
+    dep1 = Design("dep1")
     assert dep0.add_dep(dep1)
     assert dep1.add_dep(dep0)
 
     cfg = dep0.getdict()
 
-    reload = Test.from_manifest(name="dep0", cfg=cfg)
+    # Flat map: both nodes present, each without a nested __deps__.
+    deps = cfg["__meta__"]["__deps__"]
+    assert set(deps) == {"dep0", "dep1"}
+    for entry in deps.values():
+        assert "__deps__" not in entry["__meta__"]
+
+    # The cyclic graph reloads into a finite, fully linked structure.
+    reload = Design.from_manifest(cfg=cfg)
     assert sorted(d.name for d in reload.get_dep()) == ["dep0", "dep1"]
 
 
@@ -1047,12 +1046,11 @@ def test_getdict_with_deps():
 
     assert "__deps__" in cfg['__meta__']
     dpescfg = cfg['__meta__']["__deps__"]
-    assert "level0-0" in dpescfg
-    assert "level0-1" not in dpescfg
-    assert "level0-1" in dpescfg["level0-0"]["__meta__"]["__deps__"]
-    assert "level0-2" not in dpescfg
-    assert "level0-2" in \
-        dpescfg["level0-0"]["__meta__"]["__deps__"]["level0-1"]["__meta__"]["__deps__"]
+    # The full transitive dependency set is emitted as a flat map, and each
+    # entry is a leaf (no nested __deps__).
+    assert set(dpescfg) == {"level0-0", "level0-1", "level0-2"}
+    for entry in dpescfg.values():
+        assert "__deps__" not in entry["__meta__"]
 
 
 def test_getdict_with_deps_project():
@@ -1104,9 +1102,13 @@ def test_write_manifest_self_contained_for_design_in_project(tmp_path):
     with open(path) as fout:
         cfg = json.load(fout)
 
+    # The full transitive dependency set is embedded as a flat map, so the
+    # manifest is self-contained (and finite regardless of graph shape).
     deps = cfg["__meta__"].get("__deps__", {})
     assert "child" in deps
-    assert "grandchild" in deps["child"]["__meta__"].get("__deps__", {})
+    assert "grandchild" in deps
+    for entry in deps.values():
+        assert "__deps__" not in entry["__meta__"]
 
 
 def test_write_manifest_roundtrip_for_design_in_project(tmp_path):

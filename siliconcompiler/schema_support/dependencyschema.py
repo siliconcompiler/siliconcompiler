@@ -91,20 +91,29 @@ class DependencySchema(BaseSchema):
         if isinstance(self._parent(root=True), Project):
             return meta
 
-        # Root is not project, so we need to add the deps to the meta
-        all_deps = self.get_dep(hierarchy=False)
+        # Root is not a project, so emit a flat, de-duplicated map of the full
+        # transitive dependency set. get_dep(hierarchy=True) already collapses
+        # diamonds and tolerates cycles, so the map is finite. Each entry is
+        # serialized without its own nested __deps__ (its "deps" name list is
+        # preserved), and the graph is re-linked from this flat map on load.
+        all_deps = self.get_dep(hierarchy=True)
         if all_deps:
             meta['__deps__'] = {}
             for dep in all_deps:
-                meta['__deps__'][dep.name] = dep.getdict()
+                # Copy so the original is untouched, then clear the copy's
+                # dependency objects so it serializes as a flat leaf entry.
+                flat = EditableSchema(dep).copy()
+                if isinstance(flat, DependencySchema):
+                    flat._reset_deps()
+                meta['__deps__'][dep.name] = flat.getdict()
 
         return meta
 
     def write_manifest(self, filename: str) -> None:
-        # Create copy without any parent
+        # Detach a copy from any parent project so the dependency graph is
+        # embedded (as a flat map, see _getdict_meta) rather than deferred to
+        # the project. The original object is left untouched.
         depschema = EditableSchema(self).copy()
-        for dep in depschema.get_dep(hierarchy=True):
-            EditableSchema(dep).remove_parent()
         BaseSchema.write_manifest(depschema, filename)
 
     def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
