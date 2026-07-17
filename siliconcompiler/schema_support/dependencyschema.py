@@ -50,26 +50,39 @@ class DependencySchema(BaseSchema):
         Returns:
             The result of the parent class's _from_dict method.
         '''
-        deps = {}
+        depsdict = None
         if "__meta__" in manifest and "__deps__" in manifest["__meta__"]:
-            scversion = None
-            if version:
-                scversion = {
-                    BaseSchema._version_key:
-                        Parameter("str", defvalue=".".join(map(str, version))).getdict()
-                }
-            for name, depcfg in manifest["__meta__"]["__deps__"].items():
-                if scversion:
-                    depcfg.update(scversion)
-                deps[name] = NamedSchema.from_manifest(cfg=depcfg, lazyload=lazyload)
+            depsdict = manifest["__meta__"]["__deps__"]
+
+        # Defer dependency loading while lazy loading is enforced: the parent
+        # loader stashes the manifest (including the embedded __deps__) and
+        # re-invokes this method with a non-enforced mode on elaboration.
+        process_deps = depsdict is not None and not lazyload.is_enforced
+
+        deps = {}
+        if process_deps:
+            depversion = ".".join(map(str, version)) if version else None
+            for name, depcfg in depsdict.items():
+                if depversion:
+                    # Build a fresh parameter per dependency: Parameter.from_dict
+                    # consumes the dict, so a shared instance would be exhausted
+                    # after the first dependency.
+                    depcfg[BaseSchema._version_key] = \
+                        Parameter("str", defvalue=depversion).getdict()
+                # from_manifest expects a bool; dependencies are materialized
+                # eagerly so the full graph is available once elaborated.
+                deps[name] = NamedSchema.from_manifest(cfg=depcfg, lazyload=False)
             del manifest["__meta__"]["__deps__"]
 
         self.set("deps", False, field="lock")
         ret = super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
         self.set("deps", True, field="lock")
-        if deps:
+        if process_deps:
+            # Reset even for an explicitly empty dependency set so stale
+            # dependencies do not survive a reload.
             self._reset_deps()
-            self._populate_deps(deps)
+            if deps:
+                self._populate_deps(deps)
         return ret
 
     def _getdict_meta(self):
@@ -283,6 +296,10 @@ class DependencySchema(BaseSchema):
         Returns:
             list: A list of dependency objects.
         '''
+
+        # Ensure a deferred (lazily-loaded) manifest is elaborated so the
+        # internal dependency map is populated before it is read.
+        self.get("deps")
 
         if name:
             if not self.has_dep(name):

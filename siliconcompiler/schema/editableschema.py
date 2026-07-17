@@ -188,4 +188,7 @@ class EditableSchema:
         '''
         Removes the parent of a schema object, disconnecting it from any parent schema
         '''
+        if self.__schema._is_frozen:
+            raise SchemaFrozenError("cannot remove parent: schema is frozen")
+
         self.__schema._BaseSchema__parent = None

@@ -427,6 +427,27 @@ def test_remove_on_frozen_raises():
         EditableSchema(schema).remove("existing")
 
 
+def test_remove_parent_on_frozen_raises():
+    schema = BaseSchema()
+    obj = BaseSchema()
+    EditableSchema(schema).insert("test0", obj)
+    obj._freeze()
+    with pytest.raises(SchemaFrozenError, match="frozen"):
+        EditableSchema(obj).remove_parent()
+    # The parent link must be left intact when the schema is frozen.
+    assert obj._parent() is not obj
+
+
+def test_remove_parent_allowed_after_unfreeze():
+    schema = BaseSchema()
+    obj = BaseSchema()
+    EditableSchema(schema).insert("test0", obj)
+    obj._freeze()
+    obj._unfreeze()
+    EditableSchema(obj).remove_parent()
+    assert obj._parent() is obj
+
+
 def test_insert_allowed_after_unfreeze():
     schema = BaseSchema()
     schema._freeze()

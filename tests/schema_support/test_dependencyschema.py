@@ -290,6 +290,30 @@ def test_get_dep_circle():
     assert schema.get_dep() == [dep00, dep10, dep01, dep11]
 
 
+@pytest.mark.skip(reason="cyclic dependency graphs cannot yet be serialized "
+                         "into a self-contained manifest (see finding A); "
+                         "revisit once dependency serialization is reworked")
+def test_getdict_with_cycle():
+    # A cyclic dependency graph is permitted by add_dep (see test_get_dep_circle)
+    # but the nested manifest embedding recurses indefinitely on a cycle. Once
+    # dependency serialization preserves graph identity (canonical name table),
+    # this should produce a finite, reloadable manifest instead of recursing.
+    class Test(NamedSchema, DependencySchema):
+        def __init__(self, name):
+            super().__init__()
+            self.set_name(name)
+
+    dep0 = Test("dep0")
+    dep1 = Test("dep1")
+    assert dep0.add_dep(dep1)
+    assert dep1.add_dep(dep0)
+
+    cfg = dep0.getdict()
+
+    reload = Test.from_manifest(name="dep0", cfg=cfg)
+    assert sorted(d.name for d in reload.get_dep()) == ["dep0", "dep1"]
+
+
 def test_write_depgraph_no_graphviz_exe():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
@@ -469,7 +493,7 @@ def test_populate_deps():
 
     cfg = schema.getdict()
     check = Test.from_manifest(name="test", cfg=cfg)
-    assert sorted([dep.name for dep in check.get_dep()]) == ["level0-0", "level0-1"]
+    assert sorted([dep.name for dep in check.get_dep(hierarchy=False)]) == ["level0-0", "level0-1"]
 
 
 def test_from_dict_with_version():
@@ -539,7 +563,7 @@ def test_populate_deps_reset():
 
     cfg = schema.getdict()
     check = Test.from_manifest(name="test", cfg=cfg)
-    assert sorted([dep.name for dep in check.get_dep()]) == ["level0-0", "level0-1"]
+    assert sorted([dep.name for dep in check.get_dep(hierarchy=False)]) == ["level0-0", "level0-1"]
     module_map = {obj.name: obj for obj in schema.get_dep()}
     check._reset_deps()
     check._populate_deps(module_map)
