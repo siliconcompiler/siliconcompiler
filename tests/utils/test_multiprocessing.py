@@ -5,9 +5,26 @@ from unittest.mock import patch
 
 import pytest
 
-from siliconcompiler.utils.multiprocessing import MPManager, MPQueueHandler, _ManagerSingleton
+from siliconcompiler.utils.multiprocessing import MPManager, MPQueueHandler, \
+    _ManagerSingleton, get_process_context
 from siliconcompiler.report.dashboard.cli.board import Board
 from siliconcompiler.utils.settings import SettingsManager
+
+
+def test_get_process_context_linux(monkeypatch):
+    '''On Linux the start method is pinned to fork so that unguarded
+    module-level proj.run() scripts keep working regardless of the interpreter
+    default (which became forkserver in Python 3.14).'''
+    monkeypatch.setattr("sys.platform", "linux")
+    assert get_process_context().get_start_method() == "fork"
+
+
+@pytest.mark.parametrize("platform", ["darwin", "win32"])
+def test_get_process_context_non_linux(monkeypatch, platform):
+    '''Off Linux fork is either unavailable (Windows) or unsafe with threads
+    (macOS), so we pin spawn explicitly rather than relying on the default.'''
+    monkeypatch.setattr("sys.platform", platform)
+    assert get_process_context().get_start_method() == "spawn"
 
 
 def test_init_singleton():
