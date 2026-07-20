@@ -107,6 +107,10 @@ jobs:
     - name: Setup env (macOS)
       if: matrix.platform.os == 'macos-latest'
       run: |
+        # aws/tap comes pre-tapped on the GitHub runner and is untrusted,
+        # which makes every brew command emit a tap-trust warning. SC does
+        # not use it, so drop it rather than weakening trust checks.
+        brew untap aws/tap || true
         # || true is needed to avoid failure on brew link error with python3.12
         brew install graphviz || true
         # klayout cask is Qt-Cocoa and requires a WindowServer session;
