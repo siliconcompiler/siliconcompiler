@@ -92,7 +92,7 @@ version.
    license-files = ["LICENSE"]
    dynamic = ["version"]
    dependencies = [
-       "siliconcompiler >= |release|",
+       "siliconcompiler == |release|",
        # Depend on other libraries you build on, e.g.:
        # "lambdapdk",
    ]
@@ -124,7 +124,8 @@ Points worth calling out:
      recursive-include mylib *.lef *.gds *.v
 
 * **Pinning SiliconCompiler** — pin ``siliconcompiler`` in ``dependencies`` to
-  the release you develop against; the current release is |release|.
+  the exact release you develop against using an ``==`` constraint; the current
+  release is |release|.
 
 .. note::
 
@@ -279,7 +280,7 @@ declares the executable, and ships any reference scripts alongside the module:
            self.set_dataroot("mytool-scripts", __file__)
            with self.active_dataroot("mytool-scripts"):
                self.set_refdir("scripts")
-               self.set_script("convert.tcl")
+           self.set_script("convert.tcl")
 
 See :ref:`tools <dev_tools>` for the full task API.
 
@@ -327,8 +328,10 @@ environment variable the modules depend on:
 
 
    def mytarget(project: ASIC):
-       # Provide a default for the external dataroot so users need not set it.
-       if os.getenv("FOUNDRY_ROOT") is None:
+       # Default the external dataroot only if the user has not already set it,
+       # in the environment or on the project.
+       if os.getenv("FOUNDRY_ROOT") is None and \
+               project.option.get_env("FOUNDRY_ROOT") is None:
            project.option.set_env("FOUNDRY_ROOT", "/opt/foundry")
 
        project.set_pdk(mypdk.MyPDK())
