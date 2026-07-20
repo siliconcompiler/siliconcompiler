@@ -1,5 +1,7 @@
 import atexit
 import logging
+import multiprocessing
+import sys
 import tempfile
 import threading
 
@@ -9,12 +11,40 @@ from typing import Union, Optional
 
 from datetime import datetime
 from logging.handlers import QueueHandler
+from multiprocessing.context import BaseContext
 from multiprocessing.managers import SyncManager, RemoteError
 
 from siliconcompiler.utils.settings import SettingsManager
 from siliconcompiler.utils import default_sc_path, default_sc_system_path
 
 from siliconcompiler.report.dashboard.cli.board import Board
+
+
+def get_process_context() -> BaseContext:
+    """Returns the multiprocessing context used to launch scheduler workers.
+
+    SiliconCompiler launches node workers and the run-check pool by handing
+    them an already-configured, non-picklable object graph (the node with its
+    log pipe attached, inherited logger handlers, etc.) and expects unguarded
+    module-level ``proj.run()`` scripts to work. Both of those require the
+    ``fork`` start method: ``spawn``/``forkserver`` re-import ``__main__`` (so
+    an unguarded script recurses into the bootstrapping error) and cannot
+    inherit the pre-attached pipe.
+
+    We therefore pin ``fork`` explicitly on Linux rather than relying on the
+    interpreter default, which changed to ``forkserver`` in Python 3.14.
+
+    Everywhere else we pin ``spawn``. Note this is deliberately keyed on the
+    platform, not on ``"fork" in get_all_start_methods()``: fork *is* available
+    on macOS, but it is unsafe there with threads (SC runs a logging
+    ``QueueListener`` and the dashboard board on threads), which is why CPython
+    itself defaults macOS to ``spawn``. Windows has no fork at all. On those
+    platforms callers must guard scripts with ``if __name__ == "__main__"``, as
+    has always been required.
+    """
+    if sys.platform.startswith("linux"):
+        return multiprocessing.get_context("fork")
+    return multiprocessing.get_context("spawn")
 
 
 class _ManagerSingleton(type):
@@ -141,7 +171,12 @@ class MPManager(metaclass=_ManagerSingleton):
                 self.__logger.warning("Manager address file not found; falling back to server mode")
                 is_server = True  # fall back to create new manager
         if is_server:
-            self.__manager = SyncManager(authkey=MPManager.__authkey)
+            # Pin the start method for the manager's server process: its
+            # start() launches a process, and under the Python 3.14 default
+            # (forkserver) that re-imports __main__ and breaks unguarded
+            # module-level proj.run() scripts. See get_process_context().
+            self.__manager = SyncManager(authkey=MPManager.__authkey,
+                                         ctx=get_process_context())
             self.__manager.start()
             MPManager._set_manager_address(self.__manager.address)
             self.__manager_server = True
