@@ -2325,6 +2325,14 @@ def test_has_library_with_none():
     assert proj._has_library(None) is False
 
 
+def test_has_library_with_unnamed_design():
+    """Test _has_library with an unnamed Design (name resolves to None)."""
+    proj = Project()
+    design = Design()
+    assert design.name is None
+    assert proj._has_library(design) is False
+
+
 def test_set_design_with_whitespace_name():
     """Test set_design with name containing whitespace."""
     proj = Project()
