@@ -1039,8 +1039,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     to which the fileset is being redirected.
                     Can be None or an empty string to indicate
                     deletion.
-            alias_fileset (Optional[str]): The name of the destination fileset. Can be None or an empty string
-                    to indicate deletion of the fileset reference.
+            alias_fileset (Optional[str]): The name of the destination fileset. Can be None
+                    or an empty string to indicate deletion of the fileset reference.
             clobber (bool): If True, any existing alias for `(src_dep, src_fileset)` will be
                     overwritten. If False, the alias will be added. Defaults to False.
 
@@ -1240,7 +1240,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     def find_result(self,
                     filetype: Optional[str] = None, step: Optional[str] = None,
                     index: str = "0", directory: str = "outputs",
-                    filename: Optional[str] = None) -> str:
+                    filename: Optional[str] = None) -> Optional[str]:
         """
         Returns the absolute path of a compilation result file.
 
