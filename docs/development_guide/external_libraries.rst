@@ -339,6 +339,24 @@ If a module points a dataroot at an environment variable such as
 ``$FOUNDRY_ROOT``, setting it here with ``project.option.set_env`` means users
 get a working default without configuring anything themselves.
 
+Publishing to PyPI
+------------------
+
+For an open-source library, publishing to `PyPI <https://pypi.org>`_ lets anyone
+install it with a plain ``pip install mylib``. Build the wheel and upload it:
+
+.. code-block:: bash
+
+   python3 -m build                 # build the wheel and sdist into dist/
+   python3 -m twine upload dist/*   # publish to PyPI
+
+Most projects prefer to automate this with a CI workflow — for example a GitHub
+Action using `pypa/gh-action-pypi-publish
+<https://github.com/pypa/gh-action-pypi-publish>`_ — that builds and publishes on
+every tagged release. Proprietary libraries skip PyPI and are shared instead
+through a private package index or straight from the git remote (see the VCS
+install form below).
+
 Installing and using the library
 --------------------------------
 
