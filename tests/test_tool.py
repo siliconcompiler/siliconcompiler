@@ -884,6 +884,9 @@ def test_get_runtime_different_types_relpath(running_node, monkeypatch):
             'path']
 
 
+# The running_node fixture setup has intermittently exceeded the 15s default
+# on loaded/slow macOS runners; give it headroom.
+@pytest.mark.timeout(30)
 def test_get_runtime_arguments_all_relative(running_node, monkeypatch):
     with open("arg2.run", "w") as f:
         f.write("testfile")
