@@ -175,10 +175,10 @@ def compute_fingerprint(tool: str, script: str) -> Optional[str]:
     Built-in fingerprint provider for a tool's install script.
 
     The fingerprint combines the install script contents with the pinned version
-    metadata (git-commit/version/git-url) of the tool itself and its transitive
-    ``docker-depends`` ancestors. This ensures the fingerprint changes when the install
-    procedure, the tool's pinned upstream version, or any dependency's pinned version
-    changes.
+    metadata (git-commit/version/git-url) of the tool itself, its transitive
+    ``docker-depends`` ancestors, and any ``build-depends`` it builds in-image. This
+    ensures the fingerprint changes when the install procedure, the tool's pinned
+    upstream version, or any dependency's pinned version changes.
 
     This is the default provider registered under the ``siliconcompiler.install``
     ``fingerprint`` plugin group; plugins that supply their own tools may register a
@@ -206,7 +206,13 @@ def compute_fingerprint(tool: str, script: str) -> Optional[str]:
         try:
             with open(tools_json) as f:
                 data = json.load(f)
-            names = _expand_docker_depends({tool}, data)
+            # Also fold in tools that this install script builds in-image but does not
+            # ``docker-depends`` on (e.g. sby builds its SMT solvers), so bumping their
+            # pinned version invalidates the image instead of leaving a stale build.
+            extra = data.get(tool, {}).get("build-depends", [])
+            if isinstance(extra, str):
+                extra = [extra]
+            names = _expand_docker_depends({tool, *extra}, data)
             subset = {name: data[name] for name in sorted(names) if name in data}
             h.update(json.dumps(subset, sort_keys=True).encode("utf-8"))
         except (OSError, json.JSONDecodeError):
