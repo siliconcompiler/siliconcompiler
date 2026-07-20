@@ -23,12 +23,7 @@ from siliconcompiler import ASIC, Design
 from siliconcompiler.tools.slang.utils.macro import Uniquified
 
 
-# The parameterized modules to uniquify. Several at once is fine; each variant
-# name is prefixed with its module.
-TARGET_MODULES = ["heartbeat", "prescaler"]
-
 _DATAROOT = "uniquify"
-_LIBDIR = os.path.join(os.path.dirname(__file__), "build", "uniquify")
 
 
 class Heartbeat(Design):
@@ -64,13 +59,14 @@ class HeartbeatTop(Design):
             self.add_depfileset(Prescaler(), depfileset="rtl", fileset="rtl")
 
 
-def uniquify(libdir=_LIBDIR):
+def uniquify():
     """Set up uniquification of the target modules on a fresh parent design.
 
-    Returns the :class:`Uniquified` handle: the wrapper/variant filesets are
-    registered on the design, but nothing is hardened yet.
+    Uniquify both parameterized submodules at once (each variant name is prefixed
+    with its module). Returns the :class:`Uniquified` handle: the wrapper/variant
+    filesets are registered on the design, but nothing is hardened yet.
     """
-    return Uniquified(HeartbeatTop(), TARGET_MODULES, libdir=libdir)
+    return Uniquified(HeartbeatTop(), ["heartbeat", "prescaler"])
 
 
 def _configure_freepdk45(project):
@@ -85,12 +81,12 @@ def _configure_freepdk45(project):
         task.set_openroad_psmenable(False)
 
 
-def harden(libdir=_LIBDIR):
+def harden():
     """Full flow: harden every variant and build the parent with the macros.
 
     Requires EDA tools (yosys/OpenROAD).
     """
-    uq = uniquify(libdir)
+    uq = uniquify()
     uq.build(target=_configure_freepdk45, parallel=True)
 
     project = ASIC(uq.design)

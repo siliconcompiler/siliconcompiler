@@ -216,9 +216,12 @@ hardened-module flow) and injects all the hardened macros:
     :lines: 88-102
 
 .. note::
-    ``wireup`` requires every used variant to have a built (or loaded) macro; an
-    unhardened but instantiated variant would trip the wrapper's ``$error``
-    branch at elaboration. Call :meth:`.Uniquified.build` first, or
+    ``wireup`` requires every used variant to have a built (or loaded) macro, and
+    raises otherwise. The generated wrapper has a branch for each *enumerated*
+    variant, so an unbuilt-but-used variant still matches its own branch (it does
+    not reach the ``$error`` default) -- what fails is the missing hardened
+    implementation. The ``$error`` branch only guards parameter combinations that
+    were never enumerated at all. Call :meth:`.Uniquified.build` first, or
     :meth:`.Uniquified.load_macros` to reuse macros from a previous run.
 
 

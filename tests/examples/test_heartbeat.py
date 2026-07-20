@@ -93,9 +93,10 @@ def test_py_make_sim_verilator_cc():
 def test_py_make_sim_postpnr():
     from heartbeat import make
     # Auto-runs PnR (job 'heartbeat__N8') then the gate-level simulation ('sim').
-    make.sim_postpnr(show_vcd=False)
+    job = make.sim_postpnr(show_vcd=False)
 
-    assert os.path.isfile('build/heartbeat/heartbeat__N8/heartbeat.pkg.json')
+    # The variant is hardened under uniquify's libdir; ask it where the manifest is.
+    assert os.path.isfile(make.uniquify_heartbeat().manifest(job))
     assert os.path.isfile('build/heartbeat/sim/simulate/0/reports/heartbeat_tb.vcd')
 
 

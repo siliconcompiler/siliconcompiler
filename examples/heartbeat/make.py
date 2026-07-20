@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
-import os
 from typing import Optional
 
 from siliconcompiler import Design, FPGADevice, Flowgraph
@@ -88,12 +87,7 @@ class HeartbeatDesign(Design):
                 self.add_file("heartbeat.xdc")
 
 
-# Root directory for uniquify's artifacts (macros + generated sources + builds).
-_UNIQUIFY_DIR = os.path.join(os.path.dirname(__file__), "build", "uniquify")
-
-
-def uniquify_heartbeat(design: Optional[HeartbeatDesign] = None,
-                       libdir: str = _UNIQUIFY_DIR) -> Uniquified:
+def uniquify_heartbeat(design: Optional[HeartbeatDesign] = None) -> Uniquified:
     """Uniquify the parameterized ``heartbeat`` module of ``design``.
 
     This replaces the hand-written ``heartbeat8.v``/``testbench8.v``. A hardened
@@ -110,14 +104,11 @@ def uniquify_heartbeat(design: Optional[HeartbeatDesign] = None,
     Args:
         design (HeartbeatDesign, optional): Design to uniquify (mutated in place
             with the new filesets). A fresh one is created if omitted.
-        libdir (str): Root directory for uniquify's artifacts (macros, generated
-            sources and hardening builds).
 
     Returns:
         Uniquified: The handle managing the wrapper/variant filesets and builds.
     """
-    return Uniquified(design or HeartbeatDesign(), ["heartbeat"],
-                      filesets=["rtl"], libdir=libdir)
+    return Uniquified(design or HeartbeatDesign(), ["heartbeat"], filesets=["rtl"])
 
 
 def lint(N: Optional[str] = None):

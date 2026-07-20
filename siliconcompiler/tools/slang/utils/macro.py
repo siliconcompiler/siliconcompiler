@@ -339,12 +339,6 @@ class Uniquified:
         ``g_<variant>/<instance>``. This is the scope needed to, e.g., map VCD
         switching activity onto the hardened netlist.
 
-        Args:
-            variant (str): A variant (macro) name.
-            parent (str, optional): The wrapper's own instance path (e.g. a
-                testbench DUT scope). If given, it is prepended to form an
-                absolute path.
-
         Only parameterized modules have a wrapper generate block; calling this for
         a variant of an unparameterized module is an error (it is instantiated
         directly, with no ``g_<variant>`` level).
@@ -400,7 +394,10 @@ class Uniquified:
                 f"no cached macro for {variant!r} and no `target` callback "
                 f"given to harden it")
 
-        project = ASIC(self._design)
+        # Use an independent copy of the design: ASIC(design) mutates the design's
+        # dependency graph, so sharing the original across parallel workers would
+        # race. The copy carries the registered hardened filesets.
+        project = ASIC(self._design.copy())
         project.add_fileset(self.hardened_filesets[variant])
         target(project)
         # Harden under <libdir>/build (== self._outdir), one job per variant (they

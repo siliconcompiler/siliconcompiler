@@ -198,10 +198,17 @@ How do I...
 
     .. code-block:: python
 
+       from siliconcompiler import ASIC
+       from siliconcompiler.targets import freepdk45_demo
        from siliconcompiler.tools.slang.utils.macro import Uniquified
 
+       # parent_design: your Design that instantiates the parameterized module.
        uq = Uniquified(parent_design, ["mymodule"])
        uq.build(target=freepdk45_demo)   # harden every used parameterization
+
+       project = ASIC(parent_design)
+       project.add_fileset("rtl")
+       freepdk45_demo(project)
        uq.wireup(project)                # alias wrappers + inject macros
 
 ... find out which parameter values my module is actually instantiated with?

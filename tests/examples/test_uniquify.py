@@ -1,7 +1,7 @@
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
 
-def test_py_uniquify_setup():
+def test_py_uniquify():
     """The example enumerates + generates and registers the new filesets."""
     from uniquify import uniquify
 

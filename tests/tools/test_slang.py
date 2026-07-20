@@ -1206,19 +1206,24 @@ _HIER_TOP = (
 )
 
 
-def _hier_designs(tmp_path):
-    """A `top` design depending on `heartbeat` in a separate fileset/design."""
-    (tmp_path / "heartbeat.v").write_text(_HIER_HEARTBEAT)
-    (tmp_path / "top.v").write_text(_HIER_TOP)
+def _hier_designs():
+    """A `top` design depending on `heartbeat` in a separate fileset/design.
+
+    Sources are written into the test's already-isolated working directory.
+    """
+    with open("heartbeat.v", "w") as fobj:
+        fobj.write(_HIER_HEARTBEAT)
+    with open("top.v", "w") as fobj:
+        fobj.write(_HIER_TOP)
 
     heartbeat = Design("heartbeat")
-    heartbeat.set_dataroot("root", str(tmp_path))
+    heartbeat.set_dataroot("root", os.getcwd())
     with heartbeat.active_fileset("rtl"), heartbeat.active_dataroot("root"):
         heartbeat.set_topmodule("heartbeat")
         heartbeat.add_file("heartbeat.v")
 
     top = Design("top")
-    top.set_dataroot("root", str(tmp_path))
+    top.set_dataroot("root", os.getcwd())
     with top.active_fileset("rtl"), top.active_dataroot("root"):
         top.set_topmodule("top")
         top.add_file("top.v")
@@ -1226,19 +1231,19 @@ def _hier_designs(tmp_path):
     return top, heartbeat
 
 
-def test_build_compilation_from_design_resolves_deps(tmp_path):
+def test_build_compilation_from_design_resolves_deps():
     """A module defined in a dependency fileset is found via the parent design."""
-    top, _ = _hier_designs(tmp_path)
+    top, _ = _hier_designs()
     combos = enumerate_module(build_compilation_from_design(top), "heartbeat")
     assert {c.name for c in combos} == {"heartbeat__N8", "heartbeat__N16"}
     n16 = next(c for c in combos if c.params["N"] == 16)
     assert n16.instances == ["top.u1", "top.u2"]
 
 
-def test_uniquified_setup_adds_filesets(tmp_path):
+def test_uniquified_setup_adds_filesets():
     """Construction enumerates + generates and registers the new filesets."""
-    top, _ = _hier_designs(tmp_path)
-    uq = macro.Uniquified(top, ["heartbeat"], libdir=str(tmp_path / "uq"))
+    top, _ = _hier_designs()
+    uq = macro.Uniquified(top, ["heartbeat"])
 
     assert uq.variants == {"heartbeat": ["heartbeat__N16", "heartbeat__N8"]}
     assert set(uq.variant_names) == {"heartbeat__N8", "heartbeat__N16"}
@@ -1257,12 +1262,12 @@ def test_uniquified_setup_adds_filesets(tmp_path):
     assert not os.path.exists(os.path.join(uq.outdir, "heartbeat.wrapper.v"))
 
 
-def test_uniquified_write_materializes_sources(tmp_path):
+def test_uniquified_write_materializes_sources():
     """Sources are written only when write() (or build/wireup) is called."""
-    top, _ = _hier_designs(tmp_path)
-    uq = macro.Uniquified(top, ["heartbeat"], libdir=str(tmp_path / "uq"))
+    top, _ = _hier_designs()
+    uq = macro.Uniquified(top, ["heartbeat"])
 
-    assert not os.path.isdir(str(tmp_path / "uq"))  # nothing on disk yet
+    assert not os.path.isdir(uq.outdir)  # nothing on disk yet
 
     uq.write()
     assert os.path.exists(os.path.join(uq.outdir, "heartbeat.wrapper.v"))
@@ -1270,11 +1275,10 @@ def test_uniquified_write_materializes_sources(tmp_path):
         assert os.path.exists(os.path.join(uq.outdir, f"{variant}.v"))
 
 
-def test_uniquified_hardened_fileset_resolves_original(tmp_path):
+def test_uniquified_hardened_fileset_resolves_original():
     """The hardening fileset elaborates the baked variant as its own top."""
-    top, _ = _hier_designs(tmp_path)
-    macro.Uniquified(top, ["heartbeat"],
-                     libdir=str(tmp_path / "uq")).write()  # register + materialize
+    top, _ = _hier_designs()
+    macro.Uniquified(top, ["heartbeat"]).write()  # register + materialize
 
     comp = build_compilation_from_design(top, "rtl.hardened.heartbeat__N16")
     # The variant is the top and has N baked in; the original parameterized
@@ -1287,10 +1291,10 @@ def test_uniquified_hardened_fileset_resolves_original(tmp_path):
                 if i.definition.name == "heartbeat"]
 
 
-def test_uniquified_select(tmp_path):
+def test_uniquified_select():
     """Target selection: all / by module / by variant glob."""
-    top, _ = _hier_designs(tmp_path)
-    uq = macro.Uniquified(top, ["heartbeat"], libdir=str(tmp_path / "uq"))
+    top, _ = _hier_designs()
+    uq = macro.Uniquified(top, ["heartbeat"])
 
     assert set(uq._select(None)) == {"heartbeat__N8", "heartbeat__N16"}
     assert set(uq._select("heartbeat")) == {"heartbeat__N8", "heartbeat__N16"}
@@ -1300,10 +1304,10 @@ def test_uniquified_select(tmp_path):
         uq._select("nope*")
 
 
-def test_uniquified_instance_path(tmp_path):
+def test_uniquified_instance_path():
     """The wrapper->variant hierarchy path is derivable from the class."""
-    top, _ = _hier_designs(tmp_path)
-    uq = macro.Uniquified(top, ["heartbeat"], libdir=str(tmp_path / "uq"))
+    top, _ = _hier_designs()
+    uq = macro.Uniquified(top, ["heartbeat"])
 
     inst = wrapper.DEFAULT_INSTANCE_NAME
     assert uq.instance_path("heartbeat__N8") == f"g_heartbeat__N8/{inst}"
@@ -1313,23 +1317,23 @@ def test_uniquified_instance_path(tmp_path):
         uq.instance_path("heartbeat__N999")
 
 
-def _leaf_designs(tmp_path):
-    """A `top` depending on an unparameterized `leaf` module."""
-    (tmp_path / "leaf.v").write_text(
-        "module leaf (input a, output b);\n    assign b = ~a;\nendmodule\n")
-    (tmp_path / "leaftop.v").write_text(
-        "module leaftop (input x, output y);\n"
-        "    leaf u0 (.a(x), .b(y));\n"
-        "endmodule\n")
+def _leaf_designs():
+    """A `top` depending on an unparameterized `leaf` module (written to cwd)."""
+    with open("leaf.v", "w") as fobj:
+        fobj.write("module leaf (input a, output b);\n    assign b = ~a;\nendmodule\n")
+    with open("leaftop.v", "w") as fobj:
+        fobj.write("module leaftop (input x, output y);\n"
+                   "    leaf u0 (.a(x), .b(y));\n"
+                   "endmodule\n")
 
     leaf = Design("leaf")
-    leaf.set_dataroot("root", str(tmp_path))
+    leaf.set_dataroot("root", os.getcwd())
     with leaf.active_fileset("rtl"), leaf.active_dataroot("root"):
         leaf.set_topmodule("leaf")
         leaf.add_file("leaf.v")
 
     top = Design("leaftop")
-    top.set_dataroot("root", str(tmp_path))
+    top.set_dataroot("root", os.getcwd())
     with top.active_fileset("rtl"), top.active_dataroot("root"):
         top.set_topmodule("leaftop")
         top.add_file("leaftop.v")
@@ -1337,10 +1341,10 @@ def _leaf_designs(tmp_path):
     return top, leaf
 
 
-def test_uniquified_unparameterized_module(tmp_path):
+def test_uniquified_unparameterized_module():
     """An unparameterized module is hardened directly: no wrapper, no variant src."""
-    top, leaf = _leaf_designs(tmp_path)
-    uq = macro.Uniquified(top, ["leaf"], libdir=str(tmp_path / "uq"))
+    top, leaf = _leaf_designs()
+    uq = macro.Uniquified(top, ["leaf"])
 
     # One variant, named after the module (no parameter suffix).
     assert uq.variants == {"leaf": ["leaf"]}
@@ -1363,15 +1367,14 @@ def test_uniquified_unparameterized_module(tmp_path):
         uq.instance_path("leaf")
 
 
-def test_uniquified_unparameterized_wireup_blackboxes(tmp_path):
+def test_uniquified_unparameterized_wireup_blackboxes():
     """wireup blackboxes an unparameterized module and injects its macro."""
-    top, leaf = _leaf_designs(tmp_path)
-    libdir = tmp_path / "uq"
-    uq = macro.Uniquified(top, ["leaf"], libdir=str(libdir))
+    top, leaf = _leaf_designs()
+    uq = macro.Uniquified(top, ["leaf"])
 
     # Seed a cached macro so no EDA is needed.
-    (libdir).mkdir(parents=True, exist_ok=True)
-    StdCellLibrary("leaf").write_manifest(str(libdir / "leaf.json"))
+    os.makedirs(uq.libdir, exist_ok=True)
+    StdCellLibrary("leaf").write_manifest(os.path.join(uq.libdir, "leaf.json"))
     uq.load_macros()
 
     project = ASIC(top)
@@ -1384,23 +1387,23 @@ def test_uniquified_unparameterized_wireup_blackboxes(tmp_path):
     assert "leaf" in project.get("asic", "asiclib")
 
 
-def test_uniquified_module_not_a_dependency(tmp_path):
+def test_uniquified_module_not_a_dependency():
     """A module that is not a resolvable dependency errors clearly."""
-    top, _ = _hier_designs(tmp_path)
+    top, _ = _hier_designs()
     with pytest.raises(UniquifyError, match="not the top of any resolved fileset"):
-        macro.Uniquified(top, ["ghost"], libdir=str(tmp_path / "uq"))
+        macro.Uniquified(top, ["ghost"])
 
 
-def test_uniquified_build_cache_then_wireup(tmp_path):
+def test_uniquified_build_cache_then_wireup():
     """Cached macros load without EDA; wireup aliases + injects them."""
-    top, _ = _hier_designs(tmp_path)
-    libdir = tmp_path / "macros"
-    libdir.mkdir()
-    uq = macro.Uniquified(top, ["heartbeat"], libdir=str(libdir))
+    top, _ = _hier_designs()
+    uq = macro.Uniquified(top, ["heartbeat"])
 
     # Seed cached macros (as a prior build would have) so no EDA is needed.
+    os.makedirs(uq.libdir, exist_ok=True)
     for variant in uq.variant_names:
-        StdCellLibrary(variant).write_manifest(str(libdir / f"{variant}.json"))
+        StdCellLibrary(variant).write_manifest(
+            os.path.join(uq.libdir, f"{variant}.json"))
 
     built = uq.build(target=None)
     assert set(built) == set(uq.variant_names)
@@ -1416,10 +1419,10 @@ def test_uniquified_build_cache_then_wireup(tmp_path):
         assert variant in asiclibs
 
 
-def test_uniquified_wireup_requires_built_macros(tmp_path):
+def test_uniquified_wireup_requires_built_macros():
     """wireup refuses to run if a used variant has no macro."""
-    top, _ = _hier_designs(tmp_path)
-    uq = macro.Uniquified(top, ["heartbeat"], libdir=str(tmp_path / "uq"))
+    top, _ = _hier_designs()
+    uq = macro.Uniquified(top, ["heartbeat"])
     project = ASIC(top)
     project.add_fileset("rtl")
     with pytest.raises(UniquifyError, match="run build"):
