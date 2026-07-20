@@ -12,6 +12,18 @@ This tutorial demonstrates how to use Silicon Compiler to harden a Verilog modul
 3. Packaging the resulting layout and timing models from **mod_and** as a hard macro
 4. Running the ASIC flow on module **top**
 
+The module hardened here (**mod_and**) has no parameters. This tutorial does each
+step by hand so the mechanism is explicit.
+
+.. seealso::
+    If your module is **parameterized** and instantiated with several different
+    parameter values, a hardened macro (which has no parameters) cannot bind to
+    those instantiations directly. The :ref:`uniquify tutorial <uniquify_modules>`
+    shows how :class:`.Uniquified` automates this whole flow -- discovering the
+    parameter values in use, generating a parameter-free hardenable variant for
+    each parameterization plus one dispatching wrapper per module, and building
+    and wiring them into the parent for you.
+
 All these steps are contained in the `python script <https://github.com/siliconcompiler/siliconcompiler/blob/main/examples/macro_reuse/make.py>`_.
 
 To run this script from its containing folder:
