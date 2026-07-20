@@ -20,17 +20,16 @@ def test_parameters():
     task.set_sby_depth(45)
     assert task.get("var", "depth") == 45
 
-    # bitwuzla is the default (and currently only supported) engine
+    # bitwuzla is the default; boolector is the other selectable engine
     assert task.get("var", "engine") == ["smtbmc bitwuzla"]
 
-    # without clobber the engine line is appended; the param is a single-member
-    # enum for now, so bitwuzla is the only legal value to append
-    task.add_sby_engine("smtbmc bitwuzla")
-    assert task.get("var", "engine") == ["smtbmc bitwuzla", "smtbmc bitwuzla"]
+    # without clobber a new engine line is appended
+    task.add_sby_engine("smtbmc boolector")
+    assert task.get("var", "engine") == ["smtbmc bitwuzla", "smtbmc boolector"]
 
     # with clobber the engine list is replaced
-    task.add_sby_engine("smtbmc bitwuzla", clobber=True)
-    assert task.get("var", "engine") == ["smtbmc bitwuzla"]
+    task.add_sby_engine("smtbmc boolector", clobber=True)
+    assert task.get("var", "engine") == ["smtbmc boolector"]
 
 
 def test_propertycheckflow_modes():

@@ -38,11 +38,12 @@ class SBYTask(Task):
                            "mode, or the induction length in prove mode.",
                            defvalue=20)
 
-        # bitwuzla is the default engine: it is the maintained successor to
-        # boolector, and yosys >= 0.67's smtbmc drives it through its native
-        # '--lang smt2' interface (0.66 could only drive it via the legacy '--smt2'
-        # CLI, which modern bitwuzla dropped -- hence the >=0.67 version floor).
-        self.add_parameter("engine", "[<smtbmc bitwuzla>]",
+        # Both bitwuzla and boolector are built into the tool image and selectable
+        # here. bitwuzla is the default: it is the maintained successor to boolector,
+        # and yosys >= 0.67's smtbmc drives it through its native '--lang smt2'
+        # interface (0.66 could only drive it via the legacy '--smt2' CLI, which modern
+        # bitwuzla dropped -- hence the >=0.67 version floor).
+        self.add_parameter("engine", "[<smtbmc bitwuzla,smtbmc boolector>]",
                            "Engine lines for the [engines] section of the sby job file. "
                            "Each entry is one line.",
                            defvalue=["smtbmc bitwuzla"])

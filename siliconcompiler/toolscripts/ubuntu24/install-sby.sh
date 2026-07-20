@@ -16,9 +16,10 @@ sudo apt-get update
 
 # sby is pure python and drives yosys / yosys-smtbmc (installed separately); its
 # 'click' dependency is bundled into the tool prefix below. The remaining packages
-# build the bitwuzla SMT solver (the default sby engine) and its GMP/MPFR deps.
+# build the two selectable SMT solvers -- bitwuzla (default) and boolector -- and
+# bitwuzla's GMP/MPFR deps. boolector links the apt libgmp.
 sudo apt-get install -y git python3 python3-pip build-essential cmake curl \
-                        ninja-build pkg-config xz-utils m4 file
+                        ninja-build pkg-config xz-utils m4 file libgmp-dev
 
 mkdir -p deps
 cd deps
@@ -39,6 +40,42 @@ $SUDO_INSTALL python3 -m pip install --target "$PREFIX/share/yosys/python3" "cli
 # meson (>= 1.1) drives the bitwuzla build; apt's meson is too old on Ubuntu 22.
 $SUDO_INSTALL python3 -m pip install --break-system-packages "meson>=1.1" 2>/dev/null || \
     $SUDO_INSTALL python3 -m pip install "meson>=1.1"
+
+# boolector bundles lingeling (2018-era C) and declares cmake_minimum_required
+# floors that current toolchains reject: gcc >= 14 turns several legacy warnings
+# (implicit-function-declaration, implicit-int, incompatible-pointer-types,
+# int-conversion) into hard errors, and cmake >= 4 drops pre-3.5 compatibility.
+# Ubuntu 26 ships both (gcc 15, cmake 4). Wrap gcc/cc to keep those diagnostics as
+# warnings and restore the old cmake policy floor so boolector still builds. Both
+# are no-ops on the older toolchains in Ubuntu 22/24, and on bitwuzla below.
+compat_flags="-Wno-error=implicit-function-declaration -Wno-error=implicit-int"
+compat_flags="$compat_flags -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
+mkdir -p ccshim
+for cc in gcc cc; do
+    ccpath=$(command -v "$cc") || continue
+    printf '#!/bin/sh\nexec "%s" "$@" %s\n' "$ccpath" "$compat_flags" > "ccshim/$cc"
+    chmod +x "ccshim/$cc"
+done
+export PATH="$PWD/ccshim:$PATH"
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
+# --- Boolector (selectable via the 'smtbmc boolector' engine) ---
+# Built here, not as its own tool, because the CI image build does not support
+# chaining docker-depends (sby already depends on yosys). Links the apt libgmp,
+# which is ABI-compatible at runtime with the newer GMP built below for bitwuzla.
+git clone $(python3 ${src_path}/_tools.py --tool boolector --field git-url) boolector
+cd boolector
+git checkout $(python3 ${src_path}/_tools.py --tool boolector --field git-commit)
+./contrib/setup-lingeling.sh
+./contrib/setup-btor2tools.sh
+args=
+if [ ! -z ${PREFIX} ]; then
+    args="--prefix $PREFIX"
+fi
+./configure.sh $args
+make -C build -j"${NPROC:-$(nproc)}"
+$SUDO_INSTALL make -C build install
+cd -
 
 # bitwuzla needs GMP >= 6.3 and MPFR >= 4.2.1, newer than Ubuntu 22 ships, and
 # both must live in $PREFIX so they travel with the tool image (only $PREFIX is
@@ -91,13 +128,11 @@ EOF
 export PKG_CONFIG_PATH="$prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 export LD_LIBRARY_PATH="$prefix/lib:${LD_LIBRARY_PATH:-}"
 
-# --- Bitwuzla (the SMT solver the default 'smtbmc bitwuzla' engine uses) ---
-# Built here, not as its own tool, because the CI image build does not support
-# chaining docker-depends (sby already depends on yosys). yosys >= 0.67 drives
-# bitwuzla via its native '--lang' interface. Modern C++/meson build, so no
-# compiler shims are needed; CaDiCaL + SymFPU are fetched by meson. Shared linking
-# uses the GMP/MPFR shared libs above (a fully static binary would also need
-# static libc/libstdc++, which the base image does not ship).
+# --- Bitwuzla (the default 'smtbmc bitwuzla' engine) ---
+# yosys >= 0.67 drives bitwuzla via its native '--lang' interface. Modern C++/meson
+# build (it does not need the compiler shim above); CaDiCaL + SymFPU are fetched by
+# meson. Shared linking uses the GMP/MPFR shared libs above (a fully static binary
+# would also need static libc/libstdc++, which the base image does not ship).
 git clone $(python3 ${src_path}/_tools.py --tool bitwuzla --field git-url) bitwuzla
 cd bitwuzla
 git checkout $(python3 ${src_path}/_tools.py --tool bitwuzla --field git-commit)
