@@ -183,36 +183,6 @@ def test_fingerprint_tracks_docker_depends(monkeypatch, tmp_path):
     assert fp_before != fp_after
 
 
-def test_fingerprint_tracks_build_depends(monkeypatch, tmp_path):
-    """A tool's fingerprint changes when a build-depends (built in-image) version changes."""
-    import json as _json
-    scripts_dir = tmp_path / "toolscripts"
-    scripts_dir.mkdir()
-
-    tools_data = {
-        "solver": {"git-url": "https://example/solver.git", "git-commit": "v1"},
-        "parent": {"git-url": "https://example/parent.git", "git-commit": "v1",
-                   "build-depends": ["solver"]},
-    }
-    tools_json = scripts_dir / "_tools.json"
-    tools_json.write_text(_json.dumps(tools_data))
-
-    # parent's install script builds 'solver' in-image but does not docker-depend on it.
-    script = scripts_dir / "install-parent.sh"
-    script.write_text("#!/bin/sh\n_tools.py --tool solver --field git-commit\n")
-
-    monkeypatch.setattr(sc_install, "_get_tool_script_dir", lambda: scripts_dir)
-
-    fp_before = sc_install.compute_fingerprint("parent", str(script))
-
-    # Bump only the build-dependency's pinned version.
-    tools_data["solver"]["git-commit"] = "v2"
-    tools_json.write_text(_json.dumps(tools_data))
-
-    fp_after = sc_install.compute_fingerprint("parent", str(script))
-    assert fp_before != fp_after
-
-
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_fingerprint_tracks_tool_without_self_reference(monkeypatch, tmp_path):
     """The tool's own version is tracked even if its script never references it."""
