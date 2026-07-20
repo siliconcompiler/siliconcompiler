@@ -188,8 +188,11 @@ Complete FPGA compilation flows. Each variant targets a different FPGA toolchain
 Utility Flows
 -------------
 
-Supporting flows for screenshots, format conversion, parasitic extraction, and
-interposer assembly.
+Supporting flows for library QA, screenshots, format conversion, parasitic
+extraction, and interposer assembly.
+
+.. schema::
+  :root: siliconcompiler.flows.checklibraryflow/CheckLibraryFlow
 
 .. schema::
   :root: siliconcompiler.flows.showflow/ShowFlow

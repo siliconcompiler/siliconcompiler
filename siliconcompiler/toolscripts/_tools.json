@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "e82300449bc71da46a0959fdb67ab6686f7b1240",
+    "git-commit": "566a2df7ea55bb44c530ff0944b9f4b69b306a23",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -17,7 +17,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "8f03c823c73a56f854b03fd2eb02e4ad4c1c06ba",
+    "git-commit": "dc5ccd2d6941289a6a7d3c918b10b493f44a7f56",
     "auto-update": true
   },
   "netgen": {
@@ -101,7 +101,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "v0.66",
+    "git-commit": "v0.67",
     "version-prefix": "",
     "auto-update": true
   },
@@ -143,15 +143,9 @@
     "git-url": "https://github.com/gtkwave/gtkwave.git",
     "auto-update": false
   },
-  "yosys-slang": {
-    "git-url": "https://github.com/povik/sv-elab.git",
-    "git-commit": "2026-07-07",
-    "docker-depends": "yosys",
-    "auto-update": true
-  },
   "sby": {
     "git-url": "https://github.com/YosysHQ/sby.git",
-    "git-commit": "v0.66",
+    "git-commit": "v0.67",
     "docker-depends": "yosys",
     "auto-update": true
   },
@@ -179,7 +173,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "405682c75dc8ca7edbc2ba94ebfe5bc5faaf0904",
+    "git-commit": "bab109ce0ea08ce6134eee38655dc87d7f6815db",
     "auto-update": false
   },
   "vcd2fst": {

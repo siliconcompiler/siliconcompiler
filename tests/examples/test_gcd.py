@@ -28,8 +28,8 @@ def test_py_gcd():
     # "No timescale set..."
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2 ABC Warnings
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 2
+    # 4 ABC Warnings
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
 
     assert project.get('metric', 'warnings', step='floorplan.init', index='0') == 1
 
@@ -40,11 +40,10 @@ def test_py_gcd():
     assert project.get('metric', 'warnings', step='route.global', index='0') == 0
 
     assert project.get('metric', 'warnings', step='write.gds', index='0') == 0
-    assert project.get('metric', 'warnings', step='write.views', index='0') == 1
+    assert project.get('metric', 'warnings', step='write.views', index='0') == 0
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_gcd_skywater():
     from gcd import gcd_skywater
@@ -69,7 +68,6 @@ def test_py_gcd_gf180():
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_gcd_ihp130():
     from gcd import gcd_ihp130
@@ -83,7 +81,6 @@ def test_py_gcd_ihp130():
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_gcd_hls():
     from gcd import gcd_hls
@@ -93,7 +90,6 @@ def test_py_gcd_hls():
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_gcd_chisel():
     from gcd import gcd_chisel

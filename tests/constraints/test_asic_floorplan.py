@@ -297,6 +297,127 @@ def test_set_corearea():
     assert schema.get_corearea() == [(0, 0), (10, 10), (20, 20), (20, 0), (0, 0)]
 
 
+def test_get_dieboundingbox_empty():
+    schema = ASICAreaConstraint()
+    assert schema.get_dieboundingbox() == ((0.0, 0.0), (0.0, 0.0))
+
+
+def test_get_dieboundingbox_rectangle():
+    schema = ASICAreaConstraint()
+    schema.set_diearea([(0, 0), (150, 100)])
+    assert schema.get_dieboundingbox() == ((0, 0), (150, 100))
+
+
+def test_get_dieboundingbox_polygon():
+    schema = ASICAreaConstraint()
+    schema.set_diearea([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)])
+    assert schema.get_dieboundingbox() == ((0, 0), (20, 20))
+
+
+@pytest.mark.parametrize("shape,expect", [
+    ([(0, 0), (150, 200)], ((0, 0), (150, 200))),
+    ([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)], ((0, 0), (20, 20))),
+])
+def test_get_dieboundingbox_step_index(shape, expect):
+    schema = ASICAreaConstraint()
+    schema.set_diearea([(0, 0), (100, 100)])
+    schema.set_diearea(shape, step="step0", index="0")
+    assert schema.get_dieboundingbox() == ((0, 0), (100, 100))
+    assert schema.get_dieboundingbox(step="step0", index="0") == expect
+
+
+def test_get_diesize_empty():
+    schema = ASICAreaConstraint()
+    assert schema.get_diesize() == (0.0, 0.0)
+
+
+def test_get_diesize_rectangle():
+    schema = ASICAreaConstraint()
+    schema.set_diearea([(0, 0), (150, 100)])
+    assert schema.get_diesize() == (150, 100)
+
+
+def test_get_diesize_polygon():
+    schema = ASICAreaConstraint()
+    schema.set_diearea([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)])
+    assert schema.get_diesize() == (20, 20)
+
+
+@pytest.mark.parametrize("shape,expect", [
+    ([(0, 0), (150, 200)], (150, 200)),
+    ([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)], (20, 20)),
+])
+def test_get_diesize_step_index(shape, expect):
+    schema = ASICAreaConstraint()
+    schema.set_diearea([(0, 0), (100, 100)])
+    schema.set_diearea(shape, step="step0", index="0")
+    assert schema.get_diesize() == (100, 100)
+    assert schema.get_diesize(step="step0", index="0") == expect
+
+
+def test_get_coreboundingbox_empty():
+    schema = ASICAreaConstraint()
+    assert schema.get_coreboundingbox() == ((0.0, 0.0), (0.0, 0.0))
+
+
+def test_get_coreboundingbox_rectangle():
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(2, 5), (148, 95)])
+    assert schema.get_coreboundingbox() == ((2, 5), (148, 95))
+
+
+def test_get_coreboundingbox_polygon():
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)])
+    assert schema.get_coreboundingbox() == ((0, 0), (20, 20))
+
+
+@pytest.mark.parametrize("shape,expect", [
+    ([(2, 5), (148, 195)], ((2, 5), (148, 195))),
+    ([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)], ((0, 0), (20, 20))),
+])
+def test_get_coreboundingbox_step_index(shape, expect):
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(0, 0), (100, 100)])
+    schema.set_corearea(shape, step="step0", index="0")
+    assert schema.get_coreboundingbox() == ((0, 0), (100, 100))
+    assert schema.get_coreboundingbox(step="step0", index="0") == expect
+
+
+def test_get_coresize_empty():
+    schema = ASICAreaConstraint()
+    assert schema.get_coresize() == (0.0, 0.0)
+
+
+def test_get_coresize_rectangle():
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(2, 5), (148, 95)])
+    assert schema.get_coresize() == (146, 90)
+
+
+def test_get_coresize_polygon():
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)])
+    assert schema.get_coresize() == (20, 20)
+
+
+@pytest.mark.parametrize("shape,expect", [
+    ([(2, 5), (148, 195)], (146, 190)),
+    ([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)], (20, 20)),
+])
+def test_get_coresize_step_index(shape, expect):
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(0, 0), (100, 100)])
+    schema.set_corearea(shape, step="step0", index="0")
+    assert schema.get_coresize() == (100, 100)
+    assert schema.get_coresize(step="step0", index="0") == expect
+
+
+def test_calc_area_empty():
+    schema = ASICAreaConstraint()
+    assert schema.calc_diearea() == 0.0
+
+
 @pytest.mark.parametrize("shape,expect", [
     ([(0, 0), (10, 10)], 100),
     ([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)], 300),

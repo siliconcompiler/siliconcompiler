@@ -518,21 +518,41 @@ proc sc_image_setup_default { } {
 # Count the logic depth of the critical path
 ###########################
 
-proc sc_count_logic_depth { } {
+proc sc_count_logic_depth { args } {
+    sta::parse_key_args "sc_count_logic_depth" args \
+        keys {-report} \
+        flags {}
+
     set count 0
+    set drivers []
     set paths [find_timing_paths -sort_by_slack]
-    if { [llength $paths] == 0 } {
-        return 0
-    }
-    set path_ref [[lindex $paths 0] path]
-    set pins [$path_ref pins]
-    foreach pin $pins {
-        if { [$pin is_driver] } {
-            incr count
+    if { [llength $paths] > 0 } {
+        set path_ref [[lindex $paths 0] path]
+        set pins [$path_ref pins]
+        foreach pin $pins {
+            if { [$pin is_driver] } {
+                incr count
+                lappend drivers [get_full_name $pin]
+            }
         }
     }
     # Subtract 1 to account for initial launch
-    return [expr { $count - 1 }]
+    set depth [expr { max($count - 1, 0) }]
+
+    if { [info exists keys(-report)] } {
+        set fid [open $keys(-report) w]
+        puts $fid "Logic depth: $depth"
+        if { [llength $drivers] > 0 } {
+            puts $fid ""
+            puts $fid "Critical path drivers:"
+            foreach driver $drivers {
+                puts $fid "  $driver"
+            }
+        }
+        close $fid
+    }
+
+    return $depth
 }
 
 ###########################
@@ -661,7 +681,7 @@ proc sc_setup_sta { } {
 
     # Check timing setup
     if { [sc_cfg_tool_task_check_in_list check_setup var reports] } {
-        tee -file "reports/check_timing_setup.rpt" {check_setup -verbose}
+        sc_report_check_timing
     }
 
     if { [llength [all_clocks]] == 0 } {
@@ -890,8 +910,9 @@ proc sc_set_dont_use { args } {
     }
 
     if { [info exists keys(-report)] } {
-        puts "Dont use report: reports/$keys(-report).rpt"
-        tee -quiet -file reports/$keys(-report).rpt {report_dont_use}
+        file mkdir reports/setup
+        puts "Dont use report: reports/setup/$keys(-report).rpt"
+        tee -quiet -file reports/setup/$keys(-report).rpt {report_dont_use}
     }
 }
 
@@ -905,6 +926,103 @@ proc sc_setup_detailed_route { } {
         utl::info FLW 1 "Marking $layer as a unidirectional routing layer"
         detailed_route_set_unidirectional_layer $layer
     }
+}
+
+proc sc_display_report { report } {
+    if { ![file exists $report] } {
+        return
+    }
+    set fid [open $report r]
+    set report_content [read $fid]
+    close $fid
+    puts $report_content
+}
+
+proc sc_report_check_timing { } {
+    sc_report_banner "Check timing setup"
+    file mkdir reports/constraints/check_timing
+    set checks "generated_clocks loops multiple_clock no_clock no_input_delay \
+        no_output_delay unconstrained_endpoints"
+    foreach check $checks {
+        puts "report: reports/constraints/check_timing/${check}.rpt"
+        tee -quiet -file reports/constraints/check_timing/${check}.rpt \
+            "check_setup -${check}"
+    }
+}
+
+proc sc_report_scene_timing { args } {
+    sta::parse_key_args "sc_report_scene_timing" args \
+        keys {-delay -name -fields -top_paths} \
+        flags {}
+
+    global sc_scenarios
+
+    if { [sc_has_sta_mcmm_support] } {
+        set scenes $sc_scenarios
+        set scene_arg "-scenes"
+    } else {
+        set scenes []
+        foreach corner [sta::corners] {
+            lappend scenes [$corner name]
+        }
+        set scene_arg "-corner"
+    }
+
+    # A single scene would just duplicate the combined timing reports
+    if { [llength $scenes] <= 1 } {
+        return
+    }
+
+    foreach scene $scenes {
+        puts "report: reports/timing/$keys(-name).${scene}.rpt"
+        tee -quiet -file reports/timing/$keys(-name).${scene}.rpt \
+            "report_checks -sort_by_slack -fields $keys(-fields) -path_delay $keys(-delay) \
+            -format full_clock_expanded $scene_arg $scene"
+        puts "report: reports/timing/$keys(-name).topN.${scene}.rpt"
+        tee -quiet -file reports/timing/$keys(-name).topN.${scene}.rpt \
+            "report_checks -sort_by_slack -fields $keys(-fields) -path_delay $keys(-delay) \
+            -group_path_count $keys(-top_paths) $scene_arg $scene"
+    }
+}
+
+proc sc_report_scenarios { } {
+    global sc_sdc_files_read
+
+    file mkdir reports/constraints
+    set fid [open reports/constraints/scenarios.rpt w]
+
+    puts $fid "Timing scenarios:"
+    foreach scenario [dict keys [sc_cfg_get constraint timing scenario]] {
+        puts $fid "  ${scenario}:"
+        puts $fid "    libcorner: [sc_cfg_get constraint timing scenario $scenario libcorner]"
+        puts $fid "    pexcorner: [sc_cfg_get constraint timing scenario $scenario pexcorner]"
+        puts $fid "    mode: [sc_cfg_get constraint timing scenario $scenario mode]"
+        puts $fid "    checks: [sc_cfg_get constraint timing scenario $scenario check]"
+    }
+
+    puts $fid ""
+    puts $fid "SDC files loaded:"
+    if { [info exists sc_sdc_files_read] && [llength $sc_sdc_files_read] > 0 } {
+        foreach sdc $sc_sdc_files_read {
+            puts $fid "  $sdc"
+        }
+    } else {
+        puts $fid "  none"
+    }
+    close $fid
+
+    sc_display_report reports/constraints/scenarios.rpt
+}
+
+proc sc_report_banner { title args } {
+    set width 60
+    puts ""
+    puts [string repeat "=" $width]
+    puts "== $title"
+    foreach report $args {
+        puts "== report: $report"
+    }
+    puts [string repeat "=" $width]
 }
 
 proc sc_report_args { args } {
@@ -927,17 +1045,21 @@ proc sc_global_connections { args } {
     set global_connect_files []
     foreach global_connect_set [sc_cfg_tool_task_get var global_connect_fileset] {
         lassign $global_connect_set lib fileset
-        foreach global_connect [sc_cfg_get_fileset $lib $fileset tcl] {
-            if { [lsearch -exact $global_connect_files $global_connect] != -1 } {
-                continue
-            }
-            puts "Loading global connect configuration: ${global_connect}"
-            source $global_connect
+        foreach fs [sc_get_filesets -library $lib -filesets $fileset] {
+            lassign $fs fs_lib fs_name
+            foreach global_connect [sc_cfg_get_fileset $fs_lib $fs_name tcl] {
+                if { [lsearch -exact $global_connect_files $global_connect] != -1 } {
+                    continue
+                }
+                puts "Loading global connect configuration: ${global_connect}"
+                source $global_connect
 
-            lappend global_connect_files $global_connect
+                lappend global_connect_files $global_connect
+            }
         }
     }
-    tee -file reports/global_connections.rpt {report_global_connect}
+    file mkdir reports/setup
+    tee -quiet -file reports/setup/global_connections.rpt {report_global_connect}
 }
 
 proc sc_format_area { area } {

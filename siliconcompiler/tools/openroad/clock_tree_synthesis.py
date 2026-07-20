@@ -30,6 +30,8 @@ class CTSTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter, OpenROADCTSPa
             'floating_nets',
             'overdriven_nets',
             "logicdepth",
+            'design_stats',
+            'scenarios',
 
             # Images
             'snapshot',

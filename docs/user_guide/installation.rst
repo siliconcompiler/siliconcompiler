@@ -13,13 +13,18 @@ Note that at any time, if you need to exit the Python virtual environment, type 
 
 .. _python_install:
 
-Ubuntu (>=18.04)
+Ubuntu (>=22.04)
 ^^^^^^^^^^^^^^^^
 Open up a terminal and enter the following command sequence.
 
+.. note::
+   SiliconCompiler requires Python 3.10 or newer. Ubuntu 22.04 is the first
+   release to ship a compatible ``python3`` by default. For Ubuntu 20.04, see the
+   section below.
+
 .. code-block:: bash
 
-    python3 --version                                      # check for Python 3
+    python3 --version                                      # check for Python 3.10+
     sudo apt update                                        # update package information
     sudo apt install python3-dev python3-pip python3-venv  # install dependencies
     python3 -m venv  ./venv                                # create a virtual env
@@ -32,27 +37,56 @@ Open up a terminal and enter the following command sequence.
 
 Skip ahead to `SC Install <sc_install>`_.
 
-RHEL (>=RHEL 7)
-^^^^^^^^^^^^^^^
-Open up a terminal and enter the following command sequence.
+Ubuntu 20.04
+^^^^^^^^^^^^
 
-.. Note: when testing on AWS I had to use a different repository name in the first command:
-.. sudo subscription-manager repos --enable rhel-server-rhui-rhscl-7-rpms
-.. However, that seemed AWS-specific, and the command used in the docs comes from Red Hat itself:
-.. https://developers.redhat.com/blog/2018/08/13/install-python3-rhel#
+.. warning::
+   Ubuntu 20.04 is only minimally supported. Pre-built tool scripts
+   (``sc-install``) still exist for it but are no longer actively maintained, so
+   some tools may fail to build. Installing the SiliconCompiler Python package
+   itself works, but consider upgrading to Ubuntu 22.04 or newer.
+
+Ubuntu 20.04 ships Python 3.8 by default, which is older than the Python 3.10
+required by SiliconCompiler. Install a newer interpreter from the ``deadsnakes``
+PPA, then create the virtual environment with it.
 
 .. code-block:: bash
 
-   sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms  # enable Red Hat Software Collections repository
-   sudo yum -y install rh-python38                                    # install Python 3.8
-   scl enable rh-python38 bash                                        # enable Python in current environment
-   python3 --version                                                  # check for Python 3
-   python3 -m venv ./venv                                             # create a virtual env
-   source ./venv/bin/activate                                         # active virtual env (bash/zsh)
+    sudo apt update                                            # update package information
+    sudo apt install software-properties-common               # provides add-apt-repository
+    sudo add-apt-repository ppa:deadsnakes/ppa                 # add the deadsnakes PPA
+    sudo apt update
+    sudo apt install python3.11 python3.11-dev python3.11-venv # install Python 3.11
+    python3.11 --version                                       # check for Python 3.10+
+    python3.11 -m venv ./venv                                  # create a virtual env
+    source ./venv/bin/activate                                 # active virtual env (bash/zsh)
 
 .. note::
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
-   You can make sure you have this dependency by running ``sudo yum install graphviz xdot``
+   You can make sure you have this dependency by running ``sudo apt install graphviz xdot``.
+
+Skip ahead to `SC Install <sc_install>`_.
+
+RHEL (>=RHEL 8)
+^^^^^^^^^^^^^^^
+Open up a terminal and enter the following command sequence. This also applies to
+compatible distributions such as Rocky Linux and AlmaLinux.
+
+.. note::
+   SiliconCompiler requires Python 3.10 or newer. The default ``python3`` on RHEL 8
+   and RHEL 9 is older than this, so install a newer interpreter (for example,
+   ``python3.11``) as shown below.
+
+.. code-block:: bash
+
+   sudo dnf install python3.11 python3.11-pip  # install Python 3.11
+   python3.11 --version                        # check for Python 3.10+
+   python3.11 -m venv ./venv                   # create a virtual env
+   source ./venv/bin/activate                  # active virtual env (bash/zsh)
+
+.. note::
+   If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
+   You can make sure you have this dependency by running ``sudo dnf install graphviz xdot``
 
 
 Skip ahead to `SC Install <sc_install>`_.

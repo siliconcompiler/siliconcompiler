@@ -5,10 +5,25 @@ import os.path
 
 from unittest.mock import patch
 
+from fasteners import InterProcessLock
+
 from siliconcompiler.schema import Scope
 from siliconcompiler.schema_support.option import OptionSchema, SchedulerSchema
 from siliconcompiler.project import Project
 from siliconcompiler.utils.multiprocessing import MPManager
+
+
+def _redirect_settings(monkeypatch, filepath):
+    """
+    Point the shared settings manager at an isolated file (and its sibling
+    lock) so write_defaults() does not touch the shared, user-global ``.sc``
+    directory. The lock is derived from the filepath at construction, so it must
+    be redirected alongside the filepath.
+    """
+    settings = MPManager.get_settings()
+    monkeypatch.setattr(settings, "_SettingsManager__filepath", filepath)
+    monkeypatch.setattr(settings, "_SettingsManager__lock",
+                        InterProcessLock(filepath + ".lock"))
 
 
 def test_keys():
@@ -442,8 +457,7 @@ def test_load_default_options_bad_jsondata():
 
 
 def test_write_defaults_no_data(monkeypatch):
-    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
-                        os.path.abspath("options.json"))
+    _redirect_settings(monkeypatch, os.path.abspath("options.json"))
     assert not os.path.isfile(os.path.abspath("options.json"))
 
     OptionSchema().write_defaults()
@@ -451,8 +465,7 @@ def test_write_defaults_no_data(monkeypatch):
 
 
 def test_write_defaults_data(monkeypatch):
-    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
-                        os.path.abspath("options.json"))
+    _redirect_settings(monkeypatch, os.path.abspath("options.json"))
 
     assert not os.path.isfile("options.json")
 
@@ -472,8 +485,7 @@ def test_write_defaults_data(monkeypatch):
 
 
 def test_write_defaults_data_not_transient(monkeypatch):
-    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
-                        os.path.abspath("options.json"))
+    _redirect_settings(monkeypatch, os.path.abspath("options.json"))
 
     assert not os.path.isfile("options.json")
 

@@ -1191,6 +1191,8 @@ class APRTask(OpenROADTask):
             "fmax",
             "power",
             "logicdepth",
+            "design_stats",
+            "scenarios",
             "check_setup",
             "report_buffers",
             "placement_density",
@@ -1415,8 +1417,13 @@ class APRTask(OpenROADTask):
 
         if self.get("var", "global_connect_fileset"):
             self.add_required_key("var", "global_connect_fileset")
+            # sc_global_connections resolves aliases and depfilesets for each
+            # global connect fileset; mirror that here so the files are hashed
+            # (cache) and copied (remote runs).
             for lib, fileset in self.get("var", "global_connect_fileset"):
-                self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
+                for fs_lib, fs in self.project.get_filesets(library=lib, filesets=[fileset]):
+                    if fs_lib.has_file(fileset=fs, filetype="tcl"):
+                        self.add_required_key(fs_lib, "fileset", fs, "file", "tcl")
 
         libcorners = set()
         for scenario in self.project.constraint.timing.get_scenario().values():
@@ -1508,7 +1515,12 @@ class APRTask(OpenROADTask):
                     mode_obj = self.project.constraint.timing.get_mode(mode)
                     for lib, fileset in mode_obj.get_sdcfileset():
                         libobj = self.project.get_library(lib)
-                        self.add_required_key(libobj, "fileset", fileset, "file", "sdc")
+                        # read_timing_constraints.tcl resolves aliases and
+                        # depfilesets for the mode sdcfileset; mirror that here.
+                        for fs_lib, fs in self.project.get_filesets(library=libobj,
+                                                                    filesets=[fileset]):
+                            if fs_lib.has_file(fileset=fs, filetype="sdc"):
+                                self.add_required_key(fs_lib, "fileset", fs, "file", "sdc")
 
         load_vg = False
         load_tech = True
@@ -1640,10 +1652,12 @@ class APRTask(OpenROADTask):
         Extract metrics
         '''
 
+        scenario_corners = self.project.getkeys('constraint', 'timing', 'scenario')
         metric_reports = {
             "setuptns": [
-                "timing/total_negative_slack.rpt",
+                "timing/total_negative_slack.setup.rpt",
                 "timing/setup.rpt",
+                "timing/setup.failing.rpt",
                 "timing/setup.histogram.rpt",
                 "images/timing/setup.histogram.png"
             ],
@@ -1651,11 +1665,15 @@ class APRTask(OpenROADTask):
                 "timing/worst_slack.setup.rpt",
                 "timing/setup.rpt",
                 "timing/setup.topN.rpt",
+                "timing/setup.failing.rpt",
+                "timing/setup.endpoints.rpt",
+                *[f"timing/setup.{corner}.rpt" for corner in scenario_corners],
+                *[f"timing/setup.topN.{corner}.rpt" for corner in scenario_corners],
                 "timing/setup.histogram.rpt",
                 "images/timing/setup.histogram.png"
             ],
             "setupskew": [
-                "timing/skew.setup.rpt",
+                "clocks/skew.setup.rpt",
                 "timing/worst_slack.setup.rpt",
                 "timing/setup.rpt",
                 "timing/setup.topN.rpt"
@@ -1663,18 +1681,33 @@ class APRTask(OpenROADTask):
             "setuppaths": [
                 "timing/setup.rpt",
                 "timing/setup.topN.rpt",
+                "timing/setup.failing.rpt",
+                "timing/setup.endpoints.rpt",
+                *[f"timing/setup.{corner}.rpt" for corner in scenario_corners],
+                *[f"timing/setup.topN.{corner}.rpt" for corner in scenario_corners],
                 "timing/setup.histogram.rpt",
                 "images/timing/setup.histogram.png"
+            ],
+            "holdtns": [
+                "timing/total_negative_slack.hold.rpt",
+                "timing/hold.rpt",
+                "timing/hold.failing.rpt",
+                "timing/hold.histogram.rpt",
+                "images/timing/hold.histogram.png"
             ],
             "holdslack": [
                 "timing/worst_slack.hold.rpt",
                 "timing/hold.rpt",
                 "timing/hold.topN.rpt",
+                "timing/hold.failing.rpt",
+                "timing/hold.endpoints.rpt",
+                *[f"timing/hold.{corner}.rpt" for corner in scenario_corners],
+                *[f"timing/hold.topN.{corner}.rpt" for corner in scenario_corners],
                 "timing/hold.histogram.rpt",
                 "images/timing/hold.histogram.png"
             ],
             "holdskew": [
-                "timing/skew.hold.rpt",
+                "clocks/skew.hold.rpt",
                 "timing/worst_slack.hold.rpt",
                 "timing/hold.rpt",
                 "timing/hold.topN.rpt"
@@ -1682,8 +1715,18 @@ class APRTask(OpenROADTask):
             "holdpaths": [
                 "timing/hold.rpt",
                 "timing/hold.topN.rpt",
+                "timing/hold.failing.rpt",
+                "timing/hold.endpoints.rpt",
+                *[f"timing/hold.{corner}.rpt" for corner in scenario_corners],
+                *[f"timing/hold.topN.{corner}.rpt" for corner in scenario_corners],
                 "timing/hold.histogram.rpt",
                 "images/timing/hold.histogram.png"
+            ],
+            "registers": [
+                "design/registers.rpt"
+            ],
+            "logicdepth": [
+                "design/logic_depth.rpt"
             ],
             "unconstrained": [
                 "timing/unconstrained.rpt",
@@ -1696,15 +1739,15 @@ class APRTask(OpenROADTask):
                     for corner in self.project.getkeys('constraint', 'timing', 'scenario')]
             ],
             "drvs": [
-                "timing/drv_violators.rpt",
-                "floating_nets.rpt",
-                "overdriven_nets.rpt",
-                "overdriven_nets_with_parallel.rpt",
-                f"{self.design_topmodule}_antenna.rpt",
-                f"{self.design_topmodule}_antenna_post_repair.rpt"
+                "checks/drv_violators.rpt",
+                "checks/floating_nets.rpt",
+                "checks/overdriven_nets.rpt",
+                "checks/overdriven_nets_with_parallel.rpt",
+                f"route/{self.design_topmodule}.antenna.rpt",
+                f"route/{self.design_topmodule}.antenna_post_repair.rpt"
             ],
             "drcs": [
-                f"{self.design_topmodule}_drc.rpt",
+                f"checks/{self.design_topmodule}.drc.rpt",
                 f"markers/{self.design_topmodule}.drc.rpt",
                 f"markers/{self.design_topmodule}.drc.json",
                 f"images/markers/{self.design_topmodule}.DRC.png"
@@ -2003,4 +2046,5 @@ class APRTask(OpenROADTask):
             process_cell(module)
 
         if cellarea_report.size() > 0:
-            cellarea_report.write_report("reports/hierarchical_cell_area.json")
+            os.makedirs("reports/design", exist_ok=True)
+            cellarea_report.write_report("reports/design/hierarchical_cell_area.json")

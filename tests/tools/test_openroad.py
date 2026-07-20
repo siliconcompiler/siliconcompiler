@@ -55,7 +55,6 @@ def test_version(asic_gcd):
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_openroad_images(asic_gcd):
     for task in APRTask.find_task(asic_gcd):

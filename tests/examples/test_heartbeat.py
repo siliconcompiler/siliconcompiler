@@ -89,6 +89,40 @@ def test_py_make_sim_verilator_cc():
 
 
 @pytest.mark.eda
+@pytest.mark.timeout(1200)
+def test_py_make_sim_postpnr():
+    from heartbeat import make
+    # Auto-runs PnR ('pnr') then the gate-level simulation ('sim').
+    make.sim_postpnr(show_vcd=False)
+
+    assert os.path.isfile('build/heartbeat/pnr/heartbeat.pkg.json')
+    assert os.path.isfile('build/heartbeat/sim/simulate/0/reports/heartbeat8_tb.vcd')
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(1800)
+def test_py_make_power():
+    from heartbeat import make
+    # Runs the full chain: PnR ('pnr') -> gate-level sim ('sim') -> signoff.
+    make.power()
+
+    # Gate-level simulation produced a switching-activity waveform.
+    assert os.path.isfile('build/heartbeat/sim/simulate/0/reports/heartbeat8_tb.vcd')
+
+    # Timing signoff annotated the VCD and reported activity coverage.
+    annotation = 'build/heartbeat/timingsignoff/signoff/0/reports/power/activity_annotation.rpt'
+    assert os.path.isfile(annotation)
+
+    # Every pin's activity should be annotated from the VCD (a wrong scope would
+    # leave pins unannotated). The report prints "unannotated <count>"; the
+    # vcd/saif/input lines only appear when non-zero, so match on content rather
+    # than a fixed line number.
+    with open(annotation) as f:
+        counts = [line.split() for line in f.read().splitlines()]
+    assert ["unannotated", "0"] in counts
+
+
+@pytest.mark.eda
 @pytest.mark.timeout(300)
 @pytest.mark.skipif(shutil.which("vivado") is None, reason="Vivado is not available in CI")
 def test_py_make_fpga():
@@ -99,7 +133,6 @@ def test_py_make_fpga():
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_make_screenshot(monkeypatch):
     from heartbeat import make

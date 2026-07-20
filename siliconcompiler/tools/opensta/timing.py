@@ -1,10 +1,13 @@
+import fnmatch
 import re
 
 import os.path
 
-from typing import Optional
+from typing import List, Optional, Union
 
 from siliconcompiler import sc_open
+from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema.parametertype import NodeType
 
 from siliconcompiler.tools.opensta import OpenSTATask
 
@@ -15,6 +18,21 @@ class TimingTaskBase(OpenSTATask):
     '''
     Base class for generating static timing reports.
     '''
+
+    REPORT_TYPES = (
+        "setup",
+        "hold",
+        "unconstrained",
+        "clock_skew",
+        "drv_violations",
+        "fmax",
+        "power",
+        "logicdepth",
+        "check_setup",
+        "design_stats",
+        "scenarios"
+    )
+
     def __init__(self):
         super().__init__()
 
@@ -33,6 +51,17 @@ class TimingTaskBase(OpenSTATask):
                            defvalue=False)
         self.add_parameter("write_liberty", "bool", "if true will write liberty for every corner",
                            defvalue=False)
+
+        self.add_parameter("power_activities", "[(str,str,str)]",
+                           "list of (VCD scope, library, fileset) tuples specifying VCD files to "
+                           "read for vector-based power analysis. The scope is the instance path "
+                           "of the design top within the VCD. If empty, a VCD is read from the "
+                           "active filesets (or the step input) with no scope.")
+
+        self.add_parameter("reports", f"{{<{','.join(self.REPORT_TYPES)}>}}",
+                           "list of reports to generate, auto generated")
+        self.add_parameter("skip_reports", f"{{<{','.join(self.REPORT_TYPES)}>}}",
+                           "list of reports to skip")
 
     def set_opensta_topnpaths(self, n: int,
                               step: Optional[str] = None,
@@ -98,6 +127,65 @@ class TimingTaskBase(OpenSTATask):
         """
         self.set("var", "write_liberty", enable, step=step, index=index)
 
+    def add_opensta_poweractivity(self, scope: str, library: str, fileset: str,
+                                  clobber: bool = False,
+                                  step: Optional[str] = None,
+                                  index: Optional[str] = None):
+        """
+        Adds a VCD source for vector-based power analysis.
+
+        Args:
+            scope (str): The instance path of the design top within the VCD.
+            library (str): The library (design) providing the VCD fileset.
+            fileset (str): The fileset containing the VCD file.
+            clobber (bool): If True, overwrites any existing entries. If False (default),
+                the entry is appended.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        if clobber:
+            return self.set("var", "power_activities", (scope, library, fileset),
+                            step=step, index=index)
+        return self.add("var", "power_activities", (scope, library, fileset),
+                        step=step, index=index)
+
+    def add_opensta_skipreport(self, report_type: Union[List[str], str],
+                               step: Optional[str] = None, index: Optional[str] = None,
+                               clobber: bool = False) -> None:
+        """
+        Adds or sets report types to be skipped during OpenSTA execution.
+
+        Args:
+            report_type: The name of the report(s) to skip (e.g., 'clock_skew').
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing list of skipped reports.
+                     If False, appends to the existing list.
+        """
+        if isinstance(report_type, str):
+            patterns = [report_type]
+        else:
+            patterns = list(report_type)
+
+        if any("*" in pattern for pattern in patterns):
+            enum_type = next(iter(
+                NodeType.parse(BaseSchema.get(self, "var", "skip_reports", field="type"))))
+            supported_report_types = sorted(enum_type.values)
+            expanded: List[str] = []
+            for pattern in patterns:
+                matches = fnmatch.filter(supported_report_types, pattern)
+                if not matches:
+                    raise ValueError(
+                        f"Report type pattern '{pattern}' did not match any supported "
+                        f"report types: {supported_report_types}")
+                expanded.extend(matches)
+            report_type = expanded
+
+        if clobber:
+            self.set("var", "skip_reports", report_type, step=step, index=index)
+        else:
+            self.add("var", "skip_reports", report_type, step=step, index=index)
+
     def setup(self):
         super().setup()
 
@@ -105,6 +193,12 @@ class TimingTaskBase(OpenSTATask):
 
         if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
             self.add_input_file(ext="vg")
+        else:
+            # sc_timing.tcl reads the netlist from the design filesets when no vg
+            # input is present; declare them required so they are hashed (cache)
+            # and copied (remote runs).
+            for obj, key in self.get_fileset_file_keys("verilog"):
+                self.add_required_key(obj, *key)
 
         if self.get("var", "timing_mode"):
             self.add_required_key("var", "timing_mode")
@@ -115,6 +209,13 @@ class TimingTaskBase(OpenSTATask):
         # NOTE: opensta_generic_sdc is intentionally not required — the opensta scripts only read it
         # in a commented-out fallback (the live reader is OpenROAD's separate same-named parameter).
 
+        skip_reports = set(self.get("var", "skip_reports"))
+        self.set("var", "reports", set(self.REPORT_TYPES).difference(skip_reports))
+        if self.get("var", "reports"):
+            self.add_required_key("var", "reports")
+        if skip_reports:
+            self.add_required_key("var", "skip_reports")
+
         self.add_required_key("var", "write_sdf")
         if self.get("var", "write_sdf"):
             for corner in self.project.getkeys('constraint', 'timing', 'scenario'):
@@ -124,6 +225,25 @@ class TimingTaskBase(OpenSTATask):
         if self.get("var", "write_liberty"):
             for corner in self.project.getkeys('constraint', 'timing', 'scenario'):
                 self.add_output_file(ext=f"{corner}.lib")
+
+        # VCD power activities are read by sc_timing.tcl; declare the source files
+        # required so they are hashed (cache) and copied (remote runs). The
+        # power_activities var itself is optional (defaults to an empty list), but
+        # is required once activities are configured.
+        power_activities = self.get("var", "power_activities")
+        if power_activities:
+            self.add_required_key("var", "power_activities")
+            for _, lib_name, fileset in power_activities:
+                lib = self.project.get_library(lib_name)
+                for fs_lib, fs in self.project.get_filesets(library=lib, filesets=[fileset]):
+                    self.add_required_key(fs_lib, "fileset", fs, "file", "vcd")
+        elif f"{self.design_topmodule}.vcd" in self.get_files_from_input_nodes():
+            # default: VCD delivered from a previous node in the same flowgraph
+            self.add_input_file(ext="vcd")
+        else:
+            # default: VCD provided via the active filesets
+            for obj, key in self.get_fileset_file_keys("vcd"):
+                self.add_required_key(obj, *key)
 
     def post_process(self):
         super().post_process()
@@ -219,7 +339,7 @@ class TimingTaskBase(OpenSTATask):
                                    source_file=self.__report_map(skew),
                                    source_unit=timescale)
 
-        drv_report = "reports/drv_violators.rpt"
+        drv_report = "reports/checks/drv_violators.rpt"
         if os.path.exists(drv_report):
             drv_count = 0
             with sc_open(drv_report) as f:
@@ -231,17 +351,40 @@ class TimingTaskBase(OpenSTATask):
 
     def __report_map(self, metric):
         corners = self.project.getkeys('constraint', 'timing', 'scenario')
+        power_reports = [f"reports/power/{corner}.rpt" for corner in corners]
+        setup_reports = [
+            "reports/timing/setup.rpt",
+            "reports/timing/setup.topN.rpt",
+            "reports/timing/setup.failing.rpt",
+            "reports/timing/setup.endpoints.rpt",
+            *[f"reports/timing/setup.{corner}.rpt" for corner in corners],
+            *[f"reports/timing/setup.topN.{corner}.rpt" for corner in corners]
+        ]
+        hold_reports = [
+            "reports/timing/hold.rpt",
+            "reports/timing/hold.topN.rpt",
+            "reports/timing/hold.failing.rpt",
+            "reports/timing/hold.endpoints.rpt",
+            *[f"reports/timing/hold.{corner}.rpt" for corner in corners],
+            *[f"reports/timing/hold.topN.{corner}.rpt" for corner in corners]
+        ]
         mapping = {
-            "power": [f"reports/power.{corner}.rpt" for corner in corners],
-            "unconstrained": ["reports/unconstrained.rpt", "reports/unconstrained.topN.rpt"],
-            "setuppaths": ["reports/setup.rpt", "reports/setup.topN.rpt"],
-            "holdpaths": ["reports/hold.rpt", "reports/hold.topN.rpt"],
-            "holdslack": ["reports/hold.rpt", "reports/hold.topN.rpt"],
-            "setupslack": ["reports/setup.rpt", "reports/setup.topN.rpt"],
-            "setuptns": ["reports/setup.rpt", "reports/setup.topN.rpt"],
-            "holdtns": ["reports/hold.rpt", "reports/hold.topN.rpt"],
-            "setupskew": ["reports/skew.setup.rpt", "reports/setup.rpt", "reports/setup.topN.rpt"],
-            "holdskew": ["reports/skew.hold.rpt", "reports/hold.rpt", "reports/hold.topN.rpt"]
+            "peakpower": power_reports,
+            "leakagepower": power_reports,
+            "unconstrained": ["reports/timing/unconstrained.rpt",
+                              "reports/timing/unconstrained.topN.rpt"],
+            "setuppaths": setup_reports,
+            "holdpaths": hold_reports,
+            "holdslack": hold_reports,
+            "setupslack": setup_reports,
+            "setuptns": ["reports/timing/total_negative_slack.setup.rpt", *setup_reports],
+            "holdtns": ["reports/timing/total_negative_slack.hold.rpt", *hold_reports],
+            "setupskew": ["reports/clocks/skew.setup.rpt", *setup_reports],
+            "holdskew": ["reports/clocks/skew.hold.rpt", *hold_reports],
+            "fmax": ["reports/clocks/fmax.rpt"],
+            "logicdepth": ["reports/design/logic_depth.rpt"],
+            "registers": ["reports/design/registers.rpt"],
+            "cellarea": ["reports/design/area.rpt"]
         }
 
         if metric in mapping:
@@ -293,6 +436,19 @@ class TimingTask(TimingTaskBase):
         else:
             for obj, key in self.get_fileset_file_keys("sdc"):
                 self.add_required_key(obj, *key)
+
+            # sc_timing.tcl also reads the timing mode's sdcfileset, resolving
+            # aliases and depfilesets; mirror that here so the files are hashed
+            # (cache) and copied (remote runs).
+            timing_mode = self.get("var", "timing_mode")
+            if timing_mode:
+                mode_obj = self.project.constraint.timing.get_mode(timing_mode)
+                for lib, fileset in mode_obj.get_sdcfileset():
+                    libobj = self.project.get_library(lib)
+                    for fs_lib, fs in self.project.get_filesets(library=libobj,
+                                                                filesets=[fileset]):
+                        if fs_lib.has_file(fileset=fs, filetype="sdc"):
+                            self.add_required_key(fs_lib, "fileset", fs, "file", "sdc")
 
         # per-corner liberty files are read by sc_timing.tcl; declare them required
         # so they are hashed (cache) and copied (remote runs).

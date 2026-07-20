@@ -18,7 +18,7 @@ source "$sc_refdir/apr/preamble.tcl"
 estimate_parasitics -global_routing
 if {
     [sc_cfg_tool_task_get var ant_check] &&
-    [check_antennas -report_file "reports/${sc_topmodule}_antenna.rpt"] != 0
+    [check_antennas -report_file "reports/route/${sc_topmodule}.antenna.rpt"] != 0
 } {
     if {
         [sc_cfg_tool_task_get var ant_repair] &&
@@ -39,7 +39,7 @@ if {
         sc_insert_fillers
 
         # Check antennas again to get final report
-        check_antennas -report_file "reports/${sc_topmodule}_antenna_post_repair.rpt"
+        check_antennas -report_file "reports/route/${sc_topmodule}.antenna_post_repair.rpt"
     }
 }
 

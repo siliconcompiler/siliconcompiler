@@ -78,6 +78,7 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.set_script("apr/sc_power_grid.tcl")
 
         self._set_reports([
+            'scenarios',
             'floating_nets',
             'overdriven_nets',
 
@@ -98,8 +99,13 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         if self.get("var", "pdn_fileset"):
             self.add_required_key("var", "pdn_fileset")
+            # sc_power_grid.tcl resolves aliases and depfilesets for each pdn
+            # fileset; mirror that here so the files are hashed (cache) and
+            # copied (remote runs).
             for lib, fileset in self.get("var", "pdn_fileset"):
-                self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
+                for fs_lib, fs in self.project.get_filesets(library=lib, filesets=[fileset]):
+                    if fs_lib.has_file(fileset=fs, filetype="tcl"):
+                        self.add_required_key(fs_lib, "fileset", fs, "file", "tcl")
 
     def __import_pdn_filesets(self):
         for lib in self.project.get("asic", "asiclib"):

@@ -1,5 +1,6 @@
 from typing import Optional, Union
 from siliconcompiler import Task
+from siliconcompiler.tools._common import distinct
 
 
 class CompileTask(Task):
@@ -169,6 +170,8 @@ endmodule
         for lib, fileset in filesets:
             idirs.extend(lib.get_idir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
+        idirs = distinct(idirs)
+        defines = distinct(defines)
         fileset = self.project.get("option", "fileset")[0]
 
         design = self.project.design
@@ -205,19 +208,21 @@ endmodule
         if self.get("var", "timescale"):
             options.extend(['-f', 'sc_timescale.f'])
 
+        cmdfiles = []
         for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="commandfile"):
-                options.extend(['-f', value])
+            cmdfiles.extend(lib.get_file(fileset=fileset, filetype="commandfile"))
+        for value in distinct(cmdfiles):
+            options.extend(['-f', value])
 
         #######################
         # Sources
         #######################
-        for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="systemverilog"):
-                options.append(value)
-        for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="verilog"):
-                options.append(value)
+        sources = []
+        for filetype in ("systemverilog", "verilog"):
+            for lib, fileset in filesets:
+                sources.extend(lib.get_file(fileset=fileset, filetype=filetype))
+        for value in distinct(sources):
+            options.append(value)
 
         # Add trace dump module if tracing is enabled
         if self.get("var", "trace"):

@@ -14,7 +14,7 @@ from siliconcompiler.utils import \
     truncate_text, safecompare, get_cores, grep, \
     get_plugins, \
     default_sc_dir, default_credentials_file, default_cache_dir, \
-    default_email_credentials_file, default_sc_path
+    default_email_credentials_file, default_sc_path, default_sc_system_path
 from siliconcompiler.utils import (
     _load_pyproject_data,
     _installed_distribution_versions,
@@ -266,6 +266,26 @@ def test_default_sc_path(path):
     with patch("pathlib.Path.home") as home:
         home.return_value = "this"
         assert default_sc_path(path) == os.path.join("this", ".sc", path)
+
+
+def test_default_sc_system_path_env_override(monkeypatch):
+    monkeypatch.setenv("SC_SYSTEM_SETTINGS", os.path.join("custom", "settings.json"))
+    assert default_sc_system_path() == os.path.join("custom", "settings.json")
+
+
+def test_default_sc_system_path_posix_default(monkeypatch):
+    monkeypatch.delenv("SC_SYSTEM_SETTINGS", raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    assert default_sc_system_path() == \
+        os.path.join(os.sep, "etc", "siliconcompiler", "settings.json")
+
+
+def test_default_sc_system_path_windows_default(monkeypatch):
+    monkeypatch.delenv("SC_SYSTEM_SETTINGS", raising=False)
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setenv("PROGRAMDATA", r"C:\ProgramData")
+    assert default_sc_system_path() == \
+        os.path.join(r"C:\ProgramData", "siliconcompiler", "settings.json")
 
 
 @pytest.mark.parametrize("args,line,expected", [

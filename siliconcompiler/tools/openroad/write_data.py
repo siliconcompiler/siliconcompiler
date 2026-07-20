@@ -129,6 +129,8 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
             'floating_nets',
             'overdriven_nets',
             "logicdepth",
+            'design_stats',
+            'scenarios',
 
             # Images
             'snapshot',
@@ -174,11 +176,31 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_required_key("var", "ord_abstract_lef_bloat_layers")
         self.add_required_key("var", "ord_abstract_lef_bloat_factor")
         self.add_required_key("var", "write_cdl")
+        if self.get("var", "write_cdl"):
+            # sc_write_data.tcl reads the CDL masters from each asiclib's
+            # aprfileset, resolving aliases and depfilesets; mirror that here so
+            # the files are hashed (cache) and copied (remote runs).
+            for lib in self.project.get("asic", "asiclib"):
+                libobj = self.project.get_library(lib)
+                filesets = libobj.get("asic", "aprfileset")
+                if not filesets:
+                    continue
+                for fs_lib, fs in self.project.get_filesets(library=libobj, filesets=filesets):
+                    if fs_lib.has_file(fileset=fs, filetype="cdl"):
+                        self.add_required_key(fs_lib, "fileset", fs, "file", "cdl")
         self.add_required_key("var", "write_spef")
         self.add_required_key("var", "write_liberty")
         self.add_required_key("var", "write_sdf")
 
     def __has_openrcx(self):
+        """Check if the OpenRCX files are available in the PDK.
+
+        Returns:
+            bool: True if OpenRCX files are present, False otherwise.
+        """
+        if not self.pdk.valid("pdk", "pexmodelfileset", "openroad"):
+            return False
+
         for corner in self.pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
             for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", corner):
                 if self.pdk.get("fileset", fileset, "file", "openrcx"):

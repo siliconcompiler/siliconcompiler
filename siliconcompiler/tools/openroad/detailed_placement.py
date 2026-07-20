@@ -20,6 +20,7 @@ class DetailedPlacementTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
         self.set_script("apr/sc_detailed_placement.tcl")
 
         self._set_reports([
+            'scenarios',
             'setup',
             'unconstrained',
             'power',

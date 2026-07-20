@@ -9,8 +9,12 @@ tkinter = pytest.importorskip("tkinter")
 
 @pytest.fixture
 def cfg(tcl_interp):
-    '''Interpreter with sc_schema_access.tcl sourced and an empty sc_cfg.'''
-    interp = tcl_interp("sc_schema_access.tcl")
+    '''Interpreter with sc_schema_access.tcl sourced and an empty sc_cfg.
+
+    sc_proc_args.tcl is sourced first since sc_get_filesets parses its keyword
+    arguments through sc::parse_args.
+    '''
+    interp = tcl_interp("sc_proc_args.tcl", "sc_schema_access.tcl")
     interp.eval("set sc_cfg [dict create]")
     return interp
 
@@ -127,3 +131,197 @@ def test_cfg_get_fileset_missing_is_skipped(cfg):
             cfg.eval("sc_cfg_get_fileset {lib_a lib_missing} rtl verilog"))
     ]
     assert files == ["only.v"]
+
+
+def _pairs(cfg, tcl):
+    '''Evaluate ``tcl`` and return its {library fileset} pairs as tuples.'''
+    return [
+        tuple(str(p) for p in cfg.tk.splitlist(pair))
+        for pair in cfg.tk.splitlist(cfg.eval(tcl))
+    ]
+
+
+def test_get_filesets_no_dependencies(cfg):
+    cfg.eval("dict set sc_cfg library lib_a fileset rtl topmodule top")
+
+    assert _pairs(cfg, "sc_get_filesets -library lib_a -filesets rtl") == [("lib_a", "rtl")]
+
+
+def test_get_filesets_orders_dependencies_first(cfg):
+    # lib_a/rtl depends on lib_b/rtl which depends on lib_c/rtl.
+    cfg.eval(
+        """
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_b rtl}}
+        dict set sc_cfg library lib_b fileset rtl depfileset {{lib_c rtl}}
+        dict set sc_cfg library lib_c fileset rtl topmodule c
+        """
+    )
+
+    # Post-order: deepest dependency first, requesting fileset last.
+    assert _pairs(cfg, "sc_get_filesets -library lib_a -filesets rtl") == [
+        ("lib_c", "rtl"),
+        ("lib_b", "rtl"),
+        ("lib_a", "rtl"),
+    ]
+
+
+def test_get_filesets_dedups_diamond(cfg):
+    # lib_a depends on both lib_b and lib_c, which both depend on lib_d.
+    cfg.eval(
+        """
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_b rtl} {lib_c rtl}}
+        dict set sc_cfg library lib_b fileset rtl depfileset {{lib_d rtl}}
+        dict set sc_cfg library lib_c fileset rtl depfileset {{lib_d rtl}}
+        dict set sc_cfg library lib_d fileset rtl topmodule d
+        """
+    )
+
+    pairs = _pairs(cfg, "sc_get_filesets -library lib_a -filesets rtl")
+    # lib_d appears exactly once, before both of its dependents.
+    assert pairs == [
+        ("lib_d", "rtl"),
+        ("lib_b", "rtl"),
+        ("lib_c", "rtl"),
+        ("lib_a", "rtl"),
+    ]
+
+
+def test_get_filesets_crosses_filesets(cfg):
+    # A dependency may pull in a differently-named fileset.
+    cfg.eval(
+        """
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_b models}}
+        dict set sc_cfg library lib_b fileset models topmodule b
+        """
+    )
+
+    assert _pairs(cfg, "sc_get_filesets -library lib_a -filesets rtl") == [
+        ("lib_b", "models"),
+        ("lib_a", "rtl"),
+    ]
+
+
+def test_get_filesets_defaults_to_project_selection(cfg):
+    # With no arguments the design and selected filesets are pulled from option.
+    cfg.eval(
+        """
+        dict set sc_cfg option design lib_a
+        dict set sc_cfg option fileset rtl
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_b rtl}}
+        dict set sc_cfg library lib_b fileset rtl topmodule b
+        """
+    )
+
+    assert _pairs(cfg, "sc_get_filesets") == [
+        ("lib_b", "rtl"),
+        ("lib_a", "rtl"),
+    ]
+
+
+def test_get_filesets_multiple_top_filesets(cfg):
+    # filesets is a list: each requested fileset is traversed in order and its
+    # dependencies pulled in ahead of it.
+    cfg.eval(
+        """
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_b rtl}}
+        dict set sc_cfg library lib_a fileset sdc topmodule top
+        dict set sc_cfg library lib_b fileset rtl topmodule b
+        """
+    )
+
+    assert _pairs(cfg, "sc_get_filesets -library lib_a -filesets {rtl sdc}") == [
+        ("lib_b", "rtl"),
+        ("lib_a", "rtl"),
+        ("lib_a", "sdc"),
+    ]
+
+
+def test_get_filesets_multiple_libraries(cfg):
+    # -library may name several libraries; all are traversed with the same
+    # filesets and share one visited set, so a common dependency dedups.
+    cfg.eval(
+        """
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_shared rtl}}
+        dict set sc_cfg library lib_b fileset rtl depfileset {{lib_shared rtl}}
+        dict set sc_cfg library lib_shared fileset rtl topmodule s
+        """
+    )
+
+    assert _pairs(cfg, "sc_get_filesets -library {lib_a lib_b} -filesets rtl") == [
+        ("lib_shared", "rtl"),
+        ("lib_a", "rtl"),
+        ("lib_b", "rtl"),
+    ]
+
+
+def test_get_filesets_requires_filesets_when_library_given(cfg):
+    cfg.eval("dict set sc_cfg library lib_a fileset rtl topmodule top")
+
+    with pytest.raises(
+            tkinter.TclError,
+            match=r"-filesets must be given when -library is given"):
+        cfg.eval("sc_get_filesets -library lib_a")
+
+
+def test_get_filesets_alias_swaps_library_and_fileset(cfg):
+    # option,alias replaces the (lib_b, rtl) dependency edge with (lib_c, alt).
+    cfg.eval(
+        """
+        dict set sc_cfg option alias {{lib_b rtl lib_c alt}}
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_b rtl}}
+        dict set sc_cfg library lib_b fileset rtl topmodule b
+        dict set sc_cfg library lib_c fileset alt topmodule c
+        """
+    )
+
+    assert _pairs(cfg, "sc_get_filesets -library lib_a -filesets rtl") == [
+        ("lib_c", "alt"),
+        ("lib_a", "rtl"),
+    ]
+
+
+def test_get_filesets_alias_empty_library_drops_dependency(cfg):
+    # An empty destination library removes the dependency entirely.
+    cfg.eval(
+        """
+        dict set sc_cfg option alias {{lib_b rtl {} {}}}
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_b rtl}}
+        dict set sc_cfg library lib_b fileset rtl topmodule b
+        """
+    )
+
+    assert _pairs(cfg, "sc_get_filesets -library lib_a -filesets rtl") == [("lib_a", "rtl")]
+
+
+def test_get_filesets_alias_empty_fileset_preserves_original(cfg):
+    # An empty destination fileset keeps the original fileset name, swapping
+    # only the library.
+    cfg.eval(
+        """
+        dict set sc_cfg option alias {{lib_b rtl lib_c {}}}
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_b rtl}}
+        dict set sc_cfg library lib_b fileset rtl topmodule b
+        dict set sc_cfg library lib_c fileset rtl topmodule c
+        """
+    )
+
+    assert _pairs(cfg, "sc_get_filesets -library lib_a -filesets rtl") == [
+        ("lib_c", "rtl"),
+        ("lib_a", "rtl"),
+    ]
+
+
+def test_get_filesets_alias_noop_when_source_equals_destination(cfg):
+    # A self-referential alias is ignored.
+    cfg.eval(
+        """
+        dict set sc_cfg option alias {{lib_b rtl lib_b rtl}}
+        dict set sc_cfg library lib_a fileset rtl depfileset {{lib_b rtl}}
+        dict set sc_cfg library lib_b fileset rtl topmodule b
+        """
+    )
+
+    assert _pairs(cfg, "sc_get_filesets -library lib_a -filesets rtl") == [
+        ("lib_b", "rtl"),
+        ("lib_a", "rtl"),
+    ]

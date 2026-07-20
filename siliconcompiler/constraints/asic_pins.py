@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Optional
+from typing import Dict, List, Union, Tuple, Optional, cast
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, \
     PerNode, Scope
@@ -290,17 +290,19 @@ class ASICPinConstraint(NamedSchema):
         """
         return self.get("layer", step=step, index=index)
 
-    def set_side(self, side: Union[int, str],
-                 step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+    @staticmethod
+    def _normalize_side(side: Union[int, str]) -> int:
         """
-        Sets the side constraint for the pin, indicating where it should be placed.
+        Normalizes the side input to an integer representation.
 
         Args:
-            side (Union[int, str]): The side of the block where the pin should be placed.
-                                    Can be an integer or a string ('left', 'west', 'top',
-                                    'north', 'right', 'east', 'bottom', 'south').
-            step (str, optional): step name.
-            index (str, optional): index name.
+            side (Union[int, str]): The side of the block, either as an integer or a string
+                                     ('left', 'west', 'top', 'north', 'right', 'east', 'bottom',
+                                     'south').
+
+        Returns:
+            int: The normalized integer representation of the side
+                (1 for left, 2 for top, 3 for right, 4 for bottom).
 
         Raises:
             TypeError: If `side` is not an int or string.
@@ -325,7 +327,25 @@ class ASICPinConstraint(NamedSchema):
         if side <= 0:
             raise ValueError("side must be a positive integer")
 
-        return self.set("side", side, step=step, index=index)
+        return side
+
+    def set_side(self, side: Union[int, str],
+                 step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """
+        Sets the side constraint for the pin, indicating where it should be placed.
+
+        Args:
+            side (Union[int, str]): The side of the block where the pin should be placed.
+                                    Can be an integer or a string ('left', 'west', 'top',
+                                    'north', 'right', 'east', 'bottom', 'south').
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Raises:
+            TypeError: If `side` is not an int or string.
+            ValueError: If `side` is an unrecognized string value or a non-positive integer.
+        """
+        return self.set("side", self._normalize_side(side), step=step, index=index)
 
     def get_side(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> int:
         """
@@ -408,7 +428,8 @@ class ASICPinConstraints(BaseSchema):
 
         EditableSchema(self).insert(pin.name, pin, clobber=True)
 
-    def get_pinconstraint(self, pin: Optional[str] = None):
+    def get_pinconstraint(self, pin: Optional[str] = None) -> \
+            Union[ASICPinConstraint, Dict[str, ASICPinConstraint]]:
         """
         Retrieves one or all pin constraints from the configuration.
 
@@ -470,6 +491,164 @@ class ASICPinConstraints(BaseSchema):
         constraint = ASICPinConstraint(pin)
         self.add_pinconstraint(constraint)
         return constraint
+
+    def _get_or_make_pinconstraint(self, pin: str) -> ASICPinConstraint:
+        """
+        Returns the pin constraint named ``pin``, creating it if it does not exist.
+        """
+        if self.valid(pin):
+            return cast(ASICPinConstraint, self.get(pin, field="schema"))
+        return self.make_pinconstraint(pin)
+
+    def make_buspinconstraints(self,
+                               pins: List[str],
+                               side: Union[int, str],
+                               layer: Optional[str] = None,
+                               center: Optional[float] = None,
+                               pitch: Optional[float] = None,
+                               side_width: Optional[float] = None,
+                               side_offset: Optional[float] = None,
+                               step: Optional[str] = None,
+                               index: Optional[Union[str, int]] = None) -> List[ASICPinConstraint]:
+        """
+        Creates and adds pin constraints for a bus, distributing the pins evenly
+        along a single side of the die.
+
+        The pins are laid out along the chosen side using two independent
+        quantities: the *spacing* between pins and the *position* of the bus
+        along the edge.
+
+        Spacing is derived from exactly one of:
+            * ``pitch``: the center-to-center spacing between adjacent pins. The
+              bus occupies a span of ``len(pins) * pitch``.
+            * ``side_width``: the total span occupied by the bus. The pitch is
+              derived as ``side_width / len(pins)`` and each pin is centered
+              within its slot.
+
+        Position is derived from at most one of:
+            * ``center``: the bus span is centered on this coordinate.
+            * ``side_offset``: the gap between the bus and a corner of the side.
+              A positive value measures from the near (lower/left) corner; a
+              negative value anchors the far end of the bus to the far
+              (upper/right) corner (e.g. ``-10`` leaves a 10um gap at the far end).
+            * neither: the bus is centered on the die edge.
+
+        If none of ``center``, ``pitch``, ``side_width`` or ``side_offset`` are
+        provided, the pins are placed using ``side`` + ``order`` only, leaving
+        the exact placement to the layout tool.
+
+        Args:
+            pins (List[str]): The pin names to constrain, in order along the side.
+            side (Union[int, str]): The side of the die to place the pins on
+                (integer or 'left'/'right'/'top'/'bottom' and compass aliases).
+            layer (str, optional): The metal layer for the pins.
+            center (float, optional): Center coordinate of the bus along the side.
+            pitch (float, optional): Center-to-center spacing between pins.
+            side_width (float, optional): Total span occupied by the bus.
+            side_offset (float, optional): Gap between the bus and a corner of
+                the side. Positive measures from the near corner, negative from
+                the far corner.
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Returns:
+            List[ASICPinConstraint]: The created/updated pin constraints, ordered
+            to match ``pins``.
+
+        Raises:
+            ValueError: If ``pins`` is empty, if both ``pitch`` and ``side_width``
+                are given, if both ``center`` and ``side_offset`` are given, if a
+                position is given without any spacing, or if the bus does not fit
+                on the requested side.
+            TypeError: If the constraint is not attached to an ASIC project.
+        """
+        if not pins:
+            raise ValueError("at least one pin is required")
+
+        side = ASICPinConstraint._normalize_side(side)
+
+        # Ordering mode: no geometry supplied, let the tool place the pins.
+        if center is None and pitch is None and side_width is None and side_offset is None:
+            constraints = []
+            for order, pin in enumerate(pins):
+                constraint = self._get_or_make_pinconstraint(pin)
+                constraint.set_side(side, step=step, index=index)
+                constraint.set_order(order, step=step, index=index)
+                if layer is not None:
+                    constraint.set_layer(layer, step=step, index=index)
+                constraints.append(constraint)
+            return constraints
+
+        # Geometric mode: compute an explicit placement for each pin.
+        if pitch is not None and side_width is not None:
+            raise ValueError("specify only one of 'pitch' or 'side_width'")
+        if center is not None and side_offset is not None:
+            raise ValueError("specify only one of 'center' or 'side_offset'")
+
+        npins = len(pins)
+        if pitch is not None:
+            if pitch <= 0:
+                raise ValueError("pitch must be a positive value")
+            span = npins * pitch
+        elif side_width is not None:
+            if side_width <= 0:
+                raise ValueError("side_width must be a positive value")
+            span = side_width
+            pitch = side_width / npins
+        else:
+            raise ValueError("'pitch' or 'side_width' is required to space the pins")
+
+        from siliconcompiler import ASIC
+        project = self._parent(root=True)
+        if not isinstance(project, ASIC):
+            raise TypeError("bus pin constraints require an ASIC project")
+
+        (min_x, min_y), (max_x, max_y) = \
+            project.constraint.area.get_dieboundingbox(step=step, index=index)
+
+        # Sides 1/3 (left/right) vary along y; sides 2/4 (top/bottom) vary along x.
+        if side not in (1, 2, 3, 4):
+            raise ValueError(f"{side} is a not a recognized side")
+        vertical = side in (1, 3)
+        if vertical:
+            perp = min_x if side == 1 else max_x
+            edge_min, edge_max = min_y, max_y
+        else:
+            perp = max_y if side == 2 else min_y
+            edge_min, edge_max = min_x, max_x
+
+        edge_length = edge_max - edge_min
+        if edge_length <= 0:
+            raise ValueError("die area must be set before placing bus pins")
+
+        # Resolve the start of the bus span along the edge. A positive offset is
+        # measured from the near (lower/left) corner of the side; a negative
+        # offset anchors the far end of the bus to the far (upper/right) corner.
+        if side_offset is not None:
+            if side_offset < 0:
+                start = edge_max + side_offset - span
+            else:
+                start = edge_min + side_offset
+        elif center is not None:
+            start = center - span / 2
+        else:
+            start = edge_min + (edge_length - span) / 2
+
+        if start < edge_min or start + span > edge_max:
+            raise ValueError("bus does not fit within the die on the requested side")
+
+        constraints = []
+        for order, pin in enumerate(pins):
+            u = start + (order + 0.5) * pitch
+            point = (perp, u) if vertical else (u, perp)
+            constraint = self._get_or_make_pinconstraint(pin)
+            constraint.set_placement(*point, step=step, index=index)
+            constraint.set_side(side, step=step, index=index)
+            constraint.set_order(order, step=step, index=index)
+            if layer is not None:
+                constraint.set_layer(layer, step=step, index=index)
+            constraints.append(constraint)
+        return constraints
 
     def copy_pinconstraint(self, pin: str, name: str, insert: bool = True) -> ASICPinConstraint:
         """

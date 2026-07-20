@@ -35,8 +35,14 @@ if { [sc_cfg_tool_task_get var write_cdl] } {
     set sc_cdl_masters []
     foreach lib $sc_logiclibs {
         set filesets [sc_cfg_get library $lib asic aprfileset]
-        foreach cdl_file [sc_cfg_get_fileset $lib $filesets cdl] {
-            lappend sc_cdl_masters $cdl_file
+        if { [llength $filesets] == 0 } {
+            continue
+        }
+        foreach fs [sc_get_filesets -library $lib -filesets $filesets] {
+            lassign $fs fs_lib fs_name
+            foreach cdl_file [sc_cfg_get_fileset $fs_lib $fs_name cdl] {
+                lappend sc_cdl_masters $cdl_file
+            }
         }
     }
     write_cdl -masters $sc_cdl_masters "outputs/${sc_topmodule}.cdl"
@@ -69,7 +75,12 @@ if { [sc_cfg_tool_task_get var write_spef] } {
     foreach pexcorner [sc_cfg_tool_task_get var pex_corners] {
         set pex_model [lindex [sc_cfg_get_fileset $sc_pdk $pexfileset openrcx] 0]
         puts "Writing SPEF for $pexcorner"
-        extract_parasitics -ext_model_file $pex_model
+        if { [sc_check_version 26 3 23] } {
+            set_extraction_rules_file $pex_model
+            extract_parasitics
+        } else {
+            extract_parasitics -ext_model_file $pex_model
+        }
         write_spef "outputs/${sc_topmodule}.${pexcorner}.spef"
     }
 

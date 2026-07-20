@@ -2,6 +2,8 @@ import pytest
 import os
 import sys
 
+from contextlib import contextmanager
+
 from siliconcompiler.apps import smake
 
 
@@ -9,6 +11,14 @@ from siliconcompiler.apps import smake
 def isolate_sys(monkeypatch):
     monkeypatch.setattr(smake.sys, "path", sys.path.copy())
     monkeypatch.setattr(smake.sys, "modules", sys.modules.copy())
+
+    @contextmanager
+    def tmpdir(*args, **kwargs):
+        path = os.path.abspath("tmp")
+        os.makedirs(path, exist_ok=True)
+        yield path
+
+    monkeypatch.setattr(smake.tempfile, "TemporaryDirectory", tmpdir)
 
 
 @pytest.mark.parametrize('target', ('asic', 'lint'))

@@ -19,6 +19,7 @@ class PinPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter, Open
         self.set_script("apr/sc_pin_placement.tcl")
 
         self._set_reports([
+            'scenarios',
             'setup',
             'unconstrained',
             'floating_nets',

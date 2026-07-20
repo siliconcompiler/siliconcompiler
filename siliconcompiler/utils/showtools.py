@@ -44,9 +44,14 @@ def showtasks():
 
     # Register VCD viewer - prefer surfer if available, otherwise fall back to gtkwave
     if which('surfer') is not None:
+        ShowTask.register_task(GTKWaveShow)
         ShowTask.register_task(SurferShow)
+    elif which('gtkwave') is not None:
+        ShowTask.register_task(SurferShow)
+        ShowTask.register_task(GTKWaveShow)
     else:
         ShowTask.register_task(GTKWaveShow)
+        ShowTask.register_task(SurferShow)
 
     # Register Screenshot tasks - same order as Show tasks
     ScreenshotTask.register_task(KlayoutScreenshot)

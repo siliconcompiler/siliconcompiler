@@ -8,35 +8,22 @@ yosys echo on
 # Helper function
 ########################################################
 
-source "$sc_refdir/procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 set sc_libraries [sc_cfg_tool_task_get var synthesis_libraries]
 set sc_logiclibs [sc_cfg_get asic asiclib]
 
-set sc_blackboxes []
-foreach lib $sc_logiclibs {
-    if { [sc_cfg_exists library $lib tool yosys blackbox_fileset] } {
-        set lib_fileset [sc_cfg_get library $lib tool yosys blackbox_fileset]
-        foreach lib_f [sc_cfg_get_fileset $lib $lib_fileset verilog] {
-            lappend sc_blackboxes $lib_f
-        }
-    }
-}
-
 set sc_induction_steps [sc_cfg_tool_task_get {var} induction_steps]
 
-proc prepare_libraries { } {
+proc sc_prepare_libraries { } {
     global sc_libraries
     global sc_logiclibs
-    global sc_blackboxes
 
     foreach lib_file $sc_libraries {
         yosys read_liberty -ignore_miss_func -ignore_miss_dir $lib_file
     }
-    foreach bb_file $sc_blackboxes {
-        puts "Reading blackbox model file: $bb_file"
-        yosys read_verilog -sv $bb_file
-    }
+
+    sc_read_blackboxes
 
     foreach lib $sc_logiclibs {
         foreach phy_type "filler decap antenna tap" {
@@ -50,7 +37,7 @@ proc prepare_libraries { } {
     }
 }
 
-proc prepare_design { type v_files } {
+proc sc_prepare_design { type v_files } {
     global sc_cfg
     global sc_topmodule
 
@@ -65,7 +52,7 @@ proc prepare_design { type v_files } {
     ########################################################
     sc_apply_params
 
-    prepare_libraries
+    sc_prepare_libraries
 
     yosys proc
     yosys rmports
@@ -94,14 +81,14 @@ if { [file exists "inputs/${sc_topmodule}.lec.vg"] } {
     set gold_source "inputs/${sc_topmodule}.v"
 }
 
-prepare_design gold $gold_source
-prepare_design gate $gate_source
+sc_prepare_design gold $gold_source
+sc_prepare_design gate $gate_source
 
 yosys design -copy-from gold -as gold gold
 yosys design -copy-from gate -as gate gate
 
 # Rebuild the database due to -stash
-prepare_libraries
+sc_prepare_libraries
 
 yosys equiv_make gold gate equiv
 

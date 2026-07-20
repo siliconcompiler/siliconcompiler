@@ -4,7 +4,7 @@ import uuid
 
 import os.path
 
-from typing import Type, Union, List, Tuple, TextIO, Optional, Dict, Set, TypeVar
+from typing import Type, Union, List, Tuple, TextIO, Optional, Dict, Set, TypeVar, cast
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
     __version__ as schema_version, \
@@ -693,7 +693,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Restore dashboard
         self.__init_dashboard()
 
-    def get_filesets(self) -> List[Tuple[NamedSchema, str]]:
+    def get_filesets(self,
+                     library: Optional[Union[str, Design]] = None,
+                     filesets: Optional[List[str]] = None) -> List[Tuple[Design, str]]:
         """
         Returns the filesets selected for this project, resolving any aliases.
 
@@ -701,9 +703,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         and applies any aliases specified in :keypath:`option,alias` to return
         the effective list of filesets and their parent libraries.
 
+        Args:
+            library (Optional[Union[str, Design]]): The library from which to retrieve filesets.
+                If None, defaults to the project's main design.
+            filesets (Optional[List[str]]): A list of fileset names to retrieve.
+                If None, defaults to all filesets defined in the project options.
+
         Returns:
-            List[Tuple[NamedSchema, str]]: A list of tuples, where each tuple
-            contains the parent library (`NamedSchema`) and the fileset name (str).
+            List[Tuple[Design, str]]: A list of tuples, where each tuple
+            contains the parent library (`Design`) and the fileset name (str).
 
         Raises:
             KeyError: If an alias points to a library that is not loaded.
@@ -724,7 +732,17 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 dst_fileset = None
             alias[(src_lib, src_fileset)] = (dst_obj, dst_fileset)
 
-        return self.design.get_fileset(self.option.get_fileset(), alias=alias)
+        if isinstance(library, str):
+            library = cast(Design, self.get_library(library))
+
+        if library is None or library is self.design:
+            library = self.design
+            if filesets is None:
+                filesets = self.option.get_fileset()
+        elif filesets is None:
+            raise ValueError("Filesets must be specified if library is provided")
+
+        return library.get_fileset(filesets, alias=alias)
 
     def _get_write_depgraph_extra(self) -> Tuple[Dict[str, Set[str]], Dict[str, Dict[str, str]]]:
         """

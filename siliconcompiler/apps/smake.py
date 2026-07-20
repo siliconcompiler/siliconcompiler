@@ -21,7 +21,7 @@ from typing import Union, Tuple, Optional, Dict, get_args, get_origin
 
 from pathlib import Path
 
-from inspect import getmembers, isfunction, getfullargspec
+from inspect import getmembers, isfunction, getfullargspec, getfile
 
 from siliconcompiler._metadata import detailed_version as version
 from siliconcompiler.schema import utils
@@ -54,6 +54,7 @@ def __process_file(path: Union[Path, str], dir: str) -> Tuple[Dict, Optional[str
     """
     if not os.path.exists(path):
         raise FileNotFoundError(f"Specified file '{path}' does not exist.")
+    path = Path(path).absolute()
 
     mod_name, _ = os.path.splitext(os.path.basename(path))
 
@@ -72,6 +73,8 @@ def __process_file(path: Union[Path, str], dir: str) -> Tuple[Dict, Optional[str
     args = {}
     for name, func in getmembers(make, isfunction):
         if name.startswith('_'):
+            continue
+        if Path(getfile(func)).absolute() != path:
             continue
 
         # Use the function's docstring for help text.
@@ -273,12 +276,15 @@ To run a target with arguments, use:
                         raise ValueError(f"invalid truth value {val!r}")
                     arg_type = str2bool
 
-                subparse.add_argument(
-                    f'--{subarg}',
-                    dest=f'sub_{arg}_{subarg}',
-                    metavar=f'<{subarg}>',
-                    type=arg_type,
-                    **add_args)
+                try:
+                    subparse.add_argument(
+                        f'--{subarg}',
+                        dest=f'sub_{arg}_{subarg}',
+                        metavar=f'<{subarg}>',
+                        type=arg_type,
+                        **add_args)
+                except TypeError:
+                    pass
 
         # --- Parse arguments and execute the target ---
         args = parser.parse_args()

@@ -15,6 +15,7 @@ from siliconcompiler.flows.asicflow import (
     FillerCellFlow,
     MetalFillFlow
 )
+from siliconcompiler.flows.checklibraryflow import CheckLibraryFlow
 from siliconcompiler.flows.drcflow import DRCFlow, KlayoutDRCFlow, MagicDRCFlow
 from siliconcompiler.flows.dvflow import (
     DVFlow,
@@ -53,6 +54,7 @@ from siliconcompiler.flows.synflow import SynthesisFlow
 
 
 @pytest.mark.parametrize("flow", [
+    CheckLibraryFlow,
     ASICFlow,
     SV2VASICFlow,
     HLSASICFlow,

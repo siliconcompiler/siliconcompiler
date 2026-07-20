@@ -54,9 +54,12 @@ if { [file exists "inputs/${sc_topmodule}.vg"] } {
     puts "Reading netlist verilog: inputs/${sc_topmodule}.v"
     read_verilog "inputs/${sc_topmodule}.v"
 } else {
-    foreach netlist [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] verilog] {
-        puts "Reading netlist verilog: ${netlist}"
-        read_verilog $netlist
+    foreach fs [sc_get_filesets] {
+        lassign $fs fs_lib fs_name
+        foreach netlist [sc_cfg_get_fileset $fs_lib $fs_name verilog] {
+            puts "Reading netlist verilog: ${netlist}"
+            read_verilog $netlist
+        }
     }
 }
 link_design $sc_topmodule
@@ -80,8 +83,9 @@ utl::push_metrics_stage "sc__step__{}"
 # Initialize floorplan
 ###########################
 
-if { [sc_cfg_exists input asic floorplan] } {
-    set def [lindex [sc_cfg_get input asic floorplan] 0]
+set sc_floorplan_def [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] def]
+if { [llength $sc_floorplan_def] > 0 } {
+    set def [lindex $sc_floorplan_def 0]
     puts "Reading floorplan DEF: ${def}"
     read_def -floorplan_initialize $def
 } else {
@@ -127,10 +131,12 @@ foreach obstruction [[ord::get_db_block] getObstructions] {
 }
 utl::info FLW 1 "Deleted $removed_obs routing obstructions"
 
-if { [sc_cfg_tool_task_get var fin_add_fill] } {
-    set sc_fillrules \
-        [lindex [sc_cfg_get pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill] 0]
-    density_fill -rules $sc_fillrules
+set sc_fillrules [sc_cfg_get_fileset $sc_pdk $aprfileset fill]
+if {
+    [sc_cfg_tool_task_get var fin_add_fill] &&
+    [llength $sc_fillrules] > 0
+} {
+    density_fill -rules [lindex $sc_fillrules 0]
 }
 
 utl::pop_metrics_stage

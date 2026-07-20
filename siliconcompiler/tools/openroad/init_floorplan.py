@@ -192,6 +192,8 @@ class InitFloorplanTask(APRTask,
             'floating_nets',
             'overdriven_nets',
             "logicdepth",
+            'design_stats',
+            'scenarios',
 
             # Images
             'snapshot',
@@ -207,17 +209,34 @@ class InitFloorplanTask(APRTask,
         if self.get("var", "routingblockage"):
             self.add_required_key("var", "routingblockage")
 
+        # sc_init_floorplan.tcl reads the padring/bumpmap files from the design's
+        # filesets, resolving aliases and depfilesets; mirror that here so the
+        # files are hashed (cache) and copied (remote runs).
         if self.get("var", "padringfileset"):
             self.add_required_key("var", "padringfileset")
 
-            for fileset in self.get("var", "padringfileset"):
-                self.add_required_key(self.project.design, "fileset", fileset, "file", "tcl")
+            for fs_lib, fs in self.project.get_filesets(library=self.project.design,
+                                                        filesets=self.get("var",
+                                                                          "padringfileset")):
+                if fs_lib.has_file(fileset=fs, filetype="tcl"):
+                    self.add_required_key(fs_lib, "fileset", fs, "file", "tcl")
 
         if self.get("var", "bumpmapfileset"):
             self.add_required_key("var", "bumpmapfileset")
 
-            for fileset in self.get("var", "bumpmapfileset"):
-                self.add_required_key(self.project.design, "fileset", fileset, "file", "bmap")
+            for fs_lib, fs in self.project.get_filesets(library=self.project.design,
+                                                        filesets=self.get("var",
+                                                                          "bumpmapfileset")):
+                if fs_lib.has_file(fileset=fs, filetype="bmap"):
+                    self.add_required_key(fs_lib, "fileset", fs, "file", "bmap")
+
+        # sc_init_floorplan.tcl seeds the floorplan from a design DEF when one is
+        # present in the active filesets; declare it required so it is hashed and copied.
+        floorplan_def = False
+        for lib, fileset in self.project.get_filesets():
+            if lib.has_file(fileset=fileset, filetype="def"):
+                self.add_required_key(lib, "fileset", fileset, "file", "def")
+                floorplan_def = True
 
         # Mark requires for components, pin, and floorplan placements
         for component in self.project.constraint.component.get_component().values():
@@ -247,15 +266,18 @@ class InitFloorplanTask(APRTask,
                 if pin.get_shape(step=self.step, index=self.index) != "square":
                     self.add_required_key(pin, "length")
 
-        self.add_required_key(self.mainlib, "asic", "site")
-        if self.project.constraint.area.get_diearea(step=self.step, index=self.index) and \
-                self.project.constraint.area.get_corearea(step=self.step, index=self.index):
-            self.add_required_key(self.project.constraint.area, "diearea")
-            self.add_required_key(self.project.constraint.area, "corearea")
-        else:
-            self.add_required_key(self.project.constraint.area, "aspectratio")
-            self.add_required_key(self.project.constraint.area, "density")
-            self.add_required_key(self.project.constraint.area, "coremargin")
+        # The die/core geometry and site come from the DEF when one is provided, so the
+        # area/site floorplanning keys are only required when initializing from scratch.
+        if not floorplan_def:
+            self.add_required_key(self.mainlib, "asic", "site")
+            if self.project.constraint.area.get_diearea(step=self.step, index=self.index) and \
+                    self.project.constraint.area.get_corearea(step=self.step, index=self.index):
+                self.add_required_key(self.project.constraint.area, "diearea")
+                self.add_required_key(self.project.constraint.area, "corearea")
+            else:
+                self.add_required_key(self.project.constraint.area, "aspectratio")
+                self.add_required_key(self.project.constraint.area, "density")
+                self.add_required_key(self.project.constraint.area, "coremargin")
 
         if self.mainlib.get("tool", "openroad", "tracks"):
             self.add_required_key(self.mainlib, "tool", "openroad", "tracks")

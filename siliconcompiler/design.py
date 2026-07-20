@@ -626,20 +626,20 @@ class Design(DependencySchema, PathSchema, NamedSchema):
 
         for lib, fileset in self.get_fileset(filesets, depalias):
             if lib.get('fileset', fileset, 'idir'):
-                if (comments):
+                if comments:
                     write_header(f"{lib.name} / {fileset} / include directories")
                 for idir in lib.find_files('fileset', fileset, 'idir'):
                     write(f"+incdir+{idir}")
 
             if lib.get('fileset', fileset, 'define'):
-                if (comments):
+                if comments:
                     write_header(f"{lib.name} / {fileset} / defines")
                 for define in lib.get('fileset', fileset, 'define'):
                     write(f"+define+{define}")
 
             for filetype in lib.getkeys('fileset', fileset, 'file'):
                 if lib.get('fileset', fileset, 'file', filetype):
-                    if (comments):
+                    if comments:
                         write_header(f"{lib.name} / {fileset} / {filetype} files")
                     for file in lib.find_files('fileset', fileset, 'file', filetype):
                         write(file)
@@ -838,8 +838,8 @@ class Design(DependencySchema, PathSchema, NamedSchema):
                       alias: Alias,
                       filelist: List[Tuple[str, str]],
                       visited: Set[Tuple[str, Union[Tuple[str, ...], str]]],
-                      mapping: Dict[str, NamedSchema]) -> \
-            List[Tuple[NamedSchema, str]]:
+                      mapping: Dict[str, "Design"]) -> \
+            List[Tuple["Design", str]]:
         """
         Private recursive method to compute the full list of (design, fileset)
         tuples required for a given set of top-level filesets.
@@ -848,15 +848,15 @@ class Design(DependencySchema, PathSchema, NamedSchema):
 
         Args:
             filesets (Union[Iterable[str], str]): List of top-level filesets to evaluate.
-            alias (Dict[Tuple[str, str], Tuple[NamedSchema, str]]): Map of aliased
+            alias (Dict[Tuple[str, str], Tuple[Design, str]]): Map of aliased
                 (design, fileset) tuples to substitute during traversal.
-            visited (Set[Tuple[NamedSchema, str]]): Internal list used to track
-                visited (design, fileset) nodes during recursion.
-            mapping (Dict[str, NamedSchema]): Internal dictionary mapping design names to
+            visited (Set[Tuple[str, str]]): Internal list used to track
+                visited (design name, fileset) nodes during recursion.
+            mapping (Dict[str, Design]): Internal dictionary mapping design names to
                 design objects, used to resolve dependencies during recursion.
 
         Returns:
-            List[Tuple[NamedSchema, str]]: A flattened, unique list of
+            List[Tuple[Design, str]]: A flattened, unique list of
             (Design, fileset) tuples.
         """
         if self.name is None:
@@ -918,7 +918,7 @@ class Design(DependencySchema, PathSchema, NamedSchema):
     def get_fileset(self,
                     filesets: Union[List[str], str],
                     alias: Optional[Alias] = None) -> \
-            List[Tuple[NamedSchema, str]]:
+            List[Tuple["Design", str]]:
         """
         Computes the full, recursive list of (design, fileset) tuples
         required for a given set of top-level filesets.
@@ -930,14 +930,14 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         Args:
             filesets (Union[List[str], str]): A single fileset name or a list of
                 fileset names to evaluate.
-            alias (Dict[Tuple[str, str], Tuple[NamedSchema, str]], optional): A dictionary
+            alias (Dict[Tuple[str, str], Tuple[Design, str]], optional): A dictionary
                 mapping (design_name, fileset_name) tuples to be substituted during
                 traversal. The value should be a (Design object, new_fileset_name)
                 tuple. This is useful for swapping out library implementations.
                 Defaults to None.
 
         Returns:
-            List[Tuple[NamedSchema, str]]: A flattened, unique list of
+            List[Tuple[Design, str]]: A flattened, unique list of
             (Design, fileset) tuples representing all dependencies.
         """
         if alias is None:

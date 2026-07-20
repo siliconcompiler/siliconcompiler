@@ -1,6 +1,9 @@
 import logging
 import os
 import pytest
+import subprocess
+import sys
+import textwrap
 import time
 
 import os.path
@@ -1663,3 +1666,59 @@ def test_logger_cleanup_on_manifest_exception(basic_project):
 
     # Handler should be cleaned up
     assert isinstance(scheduler._Scheduler__joblog_handler, logging.NullHandler)
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"),
+                    reason="unguarded module-level run() is only supported on linux, "
+                           "where the fork start method is pinned")
+def test_unguarded_run_with_non_fork_default():
+    '''Regression: an unguarded module-level ``proj.run()`` script must succeed
+    even when the interpreter's default start method is not fork.
+
+    Python 3.14 changed the POSIX default to ``forkserver``; both it and
+    ``spawn`` re-import ``__main__`` and would recurse into the multiprocessing
+    "bootstrapping phase" RuntimeError for a script without an
+    ``if __name__ == "__main__"`` guard. SiliconCompiler pins fork on Linux for
+    every process it launches (node workers, the run-check pool and the
+    SyncManager), so this must work regardless of the default. This runs twice:
+    a clean run and a re-run (the re-run exercises the check pool, which is
+    skipped on a clean run).'''
+    # The test already runs in its own isolated cwd (autouse test_wrapper
+    # fixture), so write the script and let its build dir land there.
+    script = Path("unguarded_flow.py")
+    # NOTE: deliberately NO ``if __name__ == "__main__"`` guard, and the default
+    # start method is forced to spawn to emulate a hostile (non-fork) default.
+    script.write_text(textwrap.dedent(
+        """
+        import multiprocessing
+        multiprocessing.set_start_method("spawn", force=True)
+
+        from siliconcompiler import Design, Project, Flowgraph
+        from siliconcompiler.tools.builtin.nop import NOPTask
+
+        design = Design("testdesign")
+        with design.active_fileset("rtl"):
+            design.set_topmodule("designtop")
+
+        proj = Project(design)
+        proj.add_fileset("rtl")
+
+        flow = Flowgraph("testflow")
+        flow.node("stepone", NOPTask())
+        flow.node("steptwo", NOPTask())
+        flow.edge("stepone", "steptwo")
+        proj.set_flow(flow)
+
+        proj.run()
+        print("SC_RUN_OK")
+        """))
+
+    for run in ("clean", "rerun"):
+        proc = subprocess.run(
+            [sys.executable, str(script)],
+            capture_output=True, text=True, timeout=120)
+        combined = proc.stdout + proc.stderr
+        assert proc.returncode == 0, f"[{run}] failed:\n{combined}"
+        assert "SC_RUN_OK" in proc.stdout, f"[{run}] missing success marker:\n{combined}"
+        assert "bootstrapping phase" not in combined, \
+            f"[{run}] hit the multiprocessing guard error:\n{combined}"
