@@ -15,10 +15,10 @@ fi
 sudo apt-get update
 
 # sby is pure python and drives yosys / yosys-smtbmc (installed separately); its
-# 'click' dependency is bundled into the tool prefix below. The remaining
-# packages build the boolector SMT solver used by the default sby engine.
-sudo apt-get install -y git python3 python3-pip \
-                        build-essential cmake libgmp-dev curl
+# 'click' dependency is bundled into the tool prefix below. The remaining packages
+# build the bitwuzla SMT solver (the default sby engine) and its GMP/MPFR deps.
+sudo apt-get install -y git python3 python3-pip build-essential cmake curl \
+                        ninja-build pkg-config xz-utils m4 file
 
 mkdir -p deps
 cd deps
@@ -36,38 +36,72 @@ cd -
 # stays importable by whichever python ends up running sby.
 $SUDO_INSTALL python3 -m pip install --target "$PREFIX/share/yosys/python3" "click==8.1.7"
 
-# boolector bundles lingeling (2018-era C) and declares cmake_minimum_required
-# floors that current toolchains reject: gcc >= 14 turns several legacy warnings
-# (implicit-function-declaration, implicit-int, incompatible-pointer-types,
-# int-conversion) into hard errors, and cmake >= 4 drops pre-3.5 compatibility.
-# Ubuntu 26 ships both (gcc 15, cmake 4). Wrap gcc/cc to keep those diagnostics
-# as warnings, and restore the old cmake policy floor, so the solver still
-# builds. Both are no-ops on the older toolchains in Ubuntu 22/24.
-compat_flags="-Wno-error=implicit-function-declaration -Wno-error=implicit-int"
-compat_flags="$compat_flags -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
-mkdir -p ccshim
-for cc in gcc cc; do
-    ccpath=$(command -v "$cc") || continue
-    printf '#!/bin/sh\nexec "%s" "$@" %s\n' "$ccpath" "$compat_flags" > "ccshim/$cc"
-    chmod +x "ccshim/$cc"
-done
-export PATH="$PWD/ccshim:$PATH"
-export CMAKE_POLICY_VERSION_MINIMUM=3.5
+# meson (>= 1.1) drives the bitwuzla build; apt's meson is too old on Ubuntu 22.
+$SUDO_INSTALL python3 -m pip install --break-system-packages "meson>=1.1" 2>/dev/null || \
+    $SUDO_INSTALL python3 -m pip install "meson>=1.1"
 
-# --- Boolector (the SMT solver the default 'smtbmc boolector' engine uses) ---
+# bitwuzla needs GMP >= 6.3 and MPFR >= 4.2.1, newer than Ubuntu 22 ships, and
+# both must live in $PREFIX so they travel with the tool image (only $PREFIX is
+# copied, like click above). Build them from source into $PREFIX on every release
+# for a uniform, self-contained result. '-std=gnu17' keeps GMP's configure probes
+# valid under the C23 default of gcc >= 15. GMP/MPFR ship no pkg-config files, so
+# write them for bitwuzla's meson to find the right versions.
+prefix="${PREFIX:-/usr/local}"
+$SUDO_INSTALL mkdir -p "$prefix/lib/pkgconfig"
+
+curl -fL https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz -o gmp.tar.xz
+tar xf gmp.tar.xz
+cd gmp-6.3.0
+./configure CC="gcc -std=gnu17" CXX="g++ -std=gnu++17" \
+    --prefix="$prefix" --enable-static --enable-shared --enable-cxx
+make -j"${NPROC:-$(nproc)}"
+$SUDO_INSTALL make install
+cd -
+$SUDO_INSTALL tee "$prefix/lib/pkgconfig/gmp.pc" >/dev/null <<EOF
+prefix=$prefix
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+Name: GMP
+Description: GNU MP
+Version: 6.3.0
+Libs: -L\${libdir} -lgmp
+Cflags: -I\${includedir}
+EOF
+
+curl -fL https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.2.tar.xz -o mpfr.tar.xz
+tar xf mpfr.tar.xz
+cd mpfr-4.2.2
+./configure CC="gcc -std=gnu17" --prefix="$prefix" --with-gmp="$prefix" \
+    --enable-static --enable-shared
+make -j"${NPROC:-$(nproc)}"
+$SUDO_INSTALL make install
+cd -
+$SUDO_INSTALL tee "$prefix/lib/pkgconfig/mpfr.pc" >/dev/null <<EOF
+prefix=$prefix
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+Name: MPFR
+Description: GNU MPFR
+Version: 4.2.2
+Requires: gmp
+Libs: -L\${libdir} -lmpfr
+Cflags: -I\${includedir}
+EOF
+
+export PKG_CONFIG_PATH="$prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+export LD_LIBRARY_PATH="$prefix/lib:${LD_LIBRARY_PATH:-}"
+
+# --- Bitwuzla (the SMT solver the default 'smtbmc bitwuzla' engine uses) ---
 # Built here, not as its own tool, because the CI image build does not support
-# chaining docker-depends (sby already depends on yosys).
-git clone $(python3 ${src_path}/_tools.py --tool boolector --field git-url) boolector
-cd boolector
-git checkout $(python3 ${src_path}/_tools.py --tool boolector --field git-commit)
-./contrib/setup-lingeling.sh
-./contrib/setup-btor2tools.sh
-
-args=
-if [ ! -z ${PREFIX} ]; then
-    args="--prefix $PREFIX"
-fi
-./configure.sh $args
-make -C build -j"${NPROC:-$(nproc)}"
-$SUDO_INSTALL make -C build install
+# chaining docker-depends (sby already depends on yosys). yosys >= 0.67 drives
+# bitwuzla via its native '--lang' interface. Modern C++/meson build, so no
+# compiler shims are needed; CaDiCaL + SymFPU are fetched by meson. Shared linking
+# uses the GMP/MPFR shared libs above (a fully static binary would also need
+# static libc/libstdc++, which the base image does not ship).
+git clone $(python3 ${src_path}/_tools.py --tool bitwuzla --field git-url) bitwuzla
+cd bitwuzla
+git checkout $(python3 ${src_path}/_tools.py --tool bitwuzla --field git-commit)
+meson setup build ${PREFIX:+--prefix "$PREFIX"} --buildtype=release -Ddefault_library=shared
+ninja -C build -j"${NPROC:-$(nproc)}"
+$SUDO_INSTALL ninja -C build install
 cd -

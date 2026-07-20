@@ -38,14 +38,14 @@ class SBYTask(Task):
                            "mode, or the induction length in prove mode.",
                            defvalue=20)
 
-        # Only boolector is offered for now: yosys' smtbmc in this release drives
-        # the solver through the legacy '--smt2' CLI, which the rewritten bitwuzla
-        # (every numbered release) dropped. bitwuzla can be re-added once yosys is
-        # bumped to a smtbmc that speaks bitwuzla's native '--lang' interface.
-        self.add_parameter("engine", "[<smtbmc boolector>]",
+        # bitwuzla is the default engine: it is the maintained successor to
+        # boolector, and yosys >= 0.67's smtbmc drives it through its native
+        # '--lang smt2' interface (0.66 could only drive it via the legacy '--smt2'
+        # CLI, which modern bitwuzla dropped -- hence the >=0.67 version floor).
+        self.add_parameter("engine", "[<smtbmc bitwuzla>]",
                            "Engine lines for the [engines] section of the sby job file. "
                            "Each entry is one line.",
-                           defvalue=["smtbmc boolector"])
+                           defvalue=["smtbmc bitwuzla"])
 
     def tool(self):
         return "sby"
@@ -62,7 +62,7 @@ class SBYTask(Task):
     def add_sby_engine(self, engine: Union[str, List[str]],
                        step: Optional[str] = None, index: Optional[str] = None,
                        clobber: bool = False):
-        """Adds an sby engine line, e.g. 'smtbmc boolector'.
+        """Adds an sby engine line, e.g. 'smtbmc bitwuzla'.
 
         Args:
             engine (Union[str, List[str]]): engine line(s) for the [engines] section.
@@ -79,10 +79,11 @@ class SBYTask(Task):
     def setup(self):
         super().setup()
 
-        # sby reports the yosys release it was built against, e.g. "SBY v0.66";
-        # parse_version/normalize_version reduce that to "0.66".
+        # sby reports the yosys release it was built against, e.g. "SBY v0.67";
+        # parse_version/normalize_version reduce that to "0.67". 0.67 is the first
+        # release whose smtbmc drives the default bitwuzla engine via '--lang'.
         self.set_exe("sby", vswitch="--version")
-        self.add_version(">=0.66")
+        self.add_version(">=0.67")
 
         self.add_regex("warnings", r"^SBY .* WARNING")
 
