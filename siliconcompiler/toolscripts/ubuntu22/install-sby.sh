@@ -19,7 +19,7 @@ sudo apt-get update
 # build the two selectable SMT solvers -- bitwuzla (default) and boolector -- and
 # bitwuzla's GMP/MPFR deps. boolector links the apt libgmp.
 sudo apt-get install -y git python3 python3-pip build-essential cmake curl \
-                        ninja-build pkg-config xz-utils m4 file libgmp-dev
+                        ninja-build pkg-config xz-utils m4 file libgmp-dev python3-venv
 
 mkdir -p deps
 cd deps
@@ -36,10 +36,6 @@ cd -
 # to sby_core.py (already on sby's sys.path) where it travels with $PREFIX and
 # stays importable by whichever python ends up running sby.
 $SUDO_INSTALL python3 -m pip install --target "$PREFIX/share/yosys/python3" "click==8.1.7"
-
-# meson (>= 1.1) drives the bitwuzla build; apt's meson is too old on Ubuntu 22.
-$SUDO_INSTALL python3 -m pip install --break-system-packages "meson>=1.1" 2>/dev/null || \
-    $SUDO_INSTALL python3 -m pip install "meson>=1.1"
 
 # boolector bundles lingeling (2018-era C) and declares cmake_minimum_required
 # floors that current toolchains reject: gcc >= 14 turns several legacy warnings
@@ -81,10 +77,9 @@ cd -
 # both must live in $PREFIX so they travel with the tool image (only $PREFIX is
 # copied, like click above). Build them from source into $PREFIX on every release
 # for a uniform, self-contained result. '-std=gnu17' keeps GMP's configure probes
-# valid under the C23 default of gcc >= 15. GMP/MPFR ship no pkg-config files, so
-# write them for bitwuzla's meson to find the right versions.
+# valid under the C23 default of gcc >= 15. Both install their own pkg-config
+# files (gmp.pc/mpfr.pc), which bitwuzla's meson discovers via PKG_CONFIG_PATH.
 prefix="${PREFIX:-/usr/local}"
-$SUDO_INSTALL mkdir -p "$prefix/lib/pkgconfig"
 
 curl -fL https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz -o gmp.tar.xz
 tar xf gmp.tar.xz
@@ -94,16 +89,6 @@ cd gmp-6.3.0
 make -j"${NPROC:-$(nproc)}"
 $SUDO_INSTALL make install
 cd -
-$SUDO_INSTALL tee "$prefix/lib/pkgconfig/gmp.pc" >/dev/null <<EOF
-prefix=$prefix
-libdir=\${prefix}/lib
-includedir=\${prefix}/include
-Name: GMP
-Description: GNU MP
-Version: 6.3.0
-Libs: -L\${libdir} -lgmp
-Cflags: -I\${includedir}
-EOF
 
 curl -fL https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.2.tar.xz -o mpfr.tar.xz
 tar xf mpfr.tar.xz
@@ -113,20 +98,19 @@ cd mpfr-4.2.2
 make -j"${NPROC:-$(nproc)}"
 $SUDO_INSTALL make install
 cd -
-$SUDO_INSTALL tee "$prefix/lib/pkgconfig/mpfr.pc" >/dev/null <<EOF
-prefix=$prefix
-libdir=\${prefix}/lib
-includedir=\${prefix}/include
-Name: MPFR
-Description: GNU MPFR
-Version: 4.2.2
-Requires: gmp
-Libs: -L\${libdir} -lmpfr
-Cflags: -I\${includedir}
-EOF
 
 export PKG_CONFIG_PATH="$prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 export LD_LIBRARY_PATH="$prefix/lib:${LD_LIBRARY_PATH:-}"
+
+# meson (pinned) drives the bitwuzla build; install it in a throwaway venv so the
+# system python is left untouched. Preserve the venv on PATH under sudo (as the
+# other tool scripts do) so 'ninja install' -- which reinvokes meson -- finds it.
+python3 -m venv .mesonvenv --clear
+. .mesonvenv/bin/activate
+python3 -m pip install "meson==1.8.0"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL="sudo -E PATH=$PATH"
+fi
 
 # --- Bitwuzla (the default 'smtbmc bitwuzla' engine) ---
 # yosys >= 0.67 drives bitwuzla via its native '--lang' interface. Modern C++/meson
