@@ -1343,7 +1343,7 @@ def _leaf_designs():
 
 def test_uniquified_unparameterized_module():
     """An unparameterized module is hardened directly: no wrapper, no variant src."""
-    top, leaf = _leaf_designs()
+    top, _leaf = _leaf_designs()
     uq = macro.Uniquified(top, ["leaf"])
 
     # One variant, named after the module (no parameter suffix).
@@ -1369,7 +1369,7 @@ def test_uniquified_unparameterized_module():
 
 def test_uniquified_unparameterized_wireup_blackboxes():
     """wireup blackboxes an unparameterized module and injects its macro."""
-    top, leaf = _leaf_designs()
+    top, _leaf = _leaf_designs()
     uq = macro.Uniquified(top, ["leaf"])
 
     # Seed a cached macro so no EDA is needed.

@@ -112,7 +112,8 @@ class Uniquified:
         # module -> [Parameterization]
         self._combos: Dict[str, List[Parameterization]] = {}
         # module -> generated {"wrapper", "variants"} (in memory until write())
-        self._generated: Dict[str, wrapper.GeneratedModule] = {}
+        # None for unparameterized modules (nothing generated -- see _setup).
+        self._generated: Dict[str, Optional[wrapper.GeneratedModule]] = {}
         # variant name -> built/loaded macro
         self._macros: Dict[str, StdCellLibrary] = {}
 

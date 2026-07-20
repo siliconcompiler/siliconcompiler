@@ -30,8 +30,9 @@ from siliconcompiler.tools._common import distinct
 if TYPE_CHECKING:
     from siliconcompiler import Design
 
-# A concrete parameter value, as recovered from the elaborated design.
-ParamValue = Union[int, float, str]
+# A concrete parameter value, as recovered from the elaborated design. ``bool``
+# is handled distinctly from ``int`` by the type tagging and literal formatting.
+ParamValue = Union[bool, int, float, str]
 # A pyslang Compilation / symbol; typed loosely since pyslang has no stubs.
 Compilation = Any
 
@@ -50,7 +51,8 @@ class ParamPort:
 
     Attributes:
         name (str): Port name.
-        direction (str): One of ``"input"``, ``"output"``, ``"inout"``.
+        direction (str): One of ``"input"``, ``"output"``, ``"inout"``,
+            ``"ref"`` (or the lower-cased pyslang direction for anything else).
         width (int): Resolved bit width (>= 1), constant for this combination.
     """
 

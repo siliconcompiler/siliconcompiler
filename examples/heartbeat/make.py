@@ -357,11 +357,19 @@ def sim_postpnr(pnr_jobname: Optional[str] = None,
             asic_target(project, pdk="skywater130")
 
         built = uq.build(target=_target)
-        # heartbeat has a single parameterization, so one variant was built; its
-        # name is the jobname of the implementation to simulate.
-        (pnr_jobname,) = built
+        # heartbeat has a single parameterization, so exactly one variant is
+        # built; its name is the jobname of the implementation to simulate.
+        if len(built) != 1:
+            raise ValueError(
+                f"expected exactly one hardened variant, got {sorted(built)}")
+        pnr_jobname = next(iter(built))
     else:
         uq.load_macros()
+
+    if pnr_jobname not in uq.macros:
+        raise ValueError(
+            f"no hardened macro for job {pnr_jobname!r}; run sim_postpnr() "
+            f"without pnr_jobname to build it")
     macro = uq.macros[pnr_jobname]
 
     gate = design
