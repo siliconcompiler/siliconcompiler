@@ -3,6 +3,10 @@
 Hardening parameterized modules (uniquify)
 ==========================================
 
+.. note::
+    **Beta feature.** Uniquify (:class:`.Uniquified`) is new; its API and
+    generated output may change in a future release.
+
 The :ref:`hardened-module tutorial <hardened_modules>` hardened a single,
 *unparameterized* module and instantiated it in a parent -- packaging the macro,
 blackboxing the RTL and injecting the library all by hand. This tutorial tackles

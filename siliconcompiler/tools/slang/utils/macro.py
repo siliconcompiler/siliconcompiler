@@ -54,6 +54,9 @@ _GENERATED_DATAROOT = "uniquify-generated"
 class Uniquified:
     """Uniquify parameterized modules of a design and integrate the results.
 
+    .. note::
+        **Beta feature.** This API is new and may change in a future release.
+
     Construction performs *setup* only -- enumeration, code generation (in
     memory) and fileset registration on ``design``. It writes nothing to disk and
     runs no EDA tools; the generated sources are materialized on the first
