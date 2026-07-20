@@ -733,7 +733,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             alias[(src_lib, src_fileset)] = (dst_obj, dst_fileset)
 
         if isinstance(library, str):
-            library = cast(Design, self.get_library(library))
+            library = self.get_library(library)
 
         if library is None or library is self.design:
             library = self.design
@@ -1019,8 +1019,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     def add_alias(self,
                   src_dep: Union[Design, str],
                   src_fileset: str,
-                  alias_dep: Union[Design, str],
-                  alias_fileset: str,
+                  alias_dep: Optional[Union[Design, str]],
+                  alias_fileset: Optional[str],
                   clobber: bool = False):
         """
         Adds an aliased fileset mapping to the project.
@@ -1032,16 +1032,17 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         Args:
             src_dep (Union[Design, str]): The source design library (object or name)
-                                                from which the fileset is being aliased.
+                    from which the fileset is being aliased.
             src_fileset (str): The name of the source fileset to alias.
-            alias_dep (Union[Design, str]): The destination design library (object or name)
-                                                  to which the fileset is being redirected.
-                                                  Can be None or an empty string to indicate
-                                                  deletion.
-            alias_fileset (str): The name of the destination fileset. Can be None or an empty string
-                                 to indicate deletion of the fileset reference.
+            alias_dep (Optional[Union[Design, str]]): The destination design library
+                    (object or name)
+                    to which the fileset is being redirected.
+                    Can be None or an empty string to indicate
+                    deletion.
+            alias_fileset (Optional[str]): The name of the destination fileset. Can be None
+                    or an empty string to indicate deletion of the fileset reference.
             clobber (bool): If True, any existing alias for `(src_dep, src_fileset)` will be
-                            overwritten. If False, the alias will be added. Defaults to False.
+                    overwritten. If False, the alias will be added. Defaults to False.
 
         Raises:
             TypeError: If `src_dep` or `alias_dep` are not valid types (string or Design).
@@ -1102,7 +1103,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         alias = (src_dep_name, src_fileset, alias_dep_name, alias_fileset)
         return self.option.add_alias(alias, clobber=clobber)
 
-    def get_library(self, library: str) -> NamedSchema:
+    def get_library(self, library: str) -> Design:
         """
         Retrieves a library by name from the project.
 
@@ -1110,7 +1111,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             library (str): The name of the library to retrieve.
 
         Returns:
-            NamedSchema: The `NamedSchema` object representing the library.
+            Design: The `Design` object representing the library.
 
         Raises:
             KeyError: If the specified library is not found in the project.
@@ -1122,15 +1123,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if not self._has_library(library):
             raise KeyError(f"{library} is not a valid library")
 
-        return self.get("library", library, field="schema")
+        return cast(Design, self.get("library", library, field="schema"))
 
-    def _has_library(self, library: Union[str, NamedSchema]) -> bool:
+    def _has_library(self, library: Optional[Union[str, Design]]) -> bool:
         """
         Checks if a library with the given name exists and is loaded in the project.
 
         Args:
-            library (Union[str, NamedSchema]): The name of the library (string)
-                                               or a `NamedSchema` object representing the library.
+            library (Union[str, Design, None]): The name of the library (string)
+                                                or a `Design` object representing the library.
 
         Returns:
             bool: True if the library exists, False otherwise.
@@ -1138,7 +1139,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if isinstance(library, NamedSchema):
             library = library.name
 
-        return library in self.getkeys("library")
+        return library is not None and library in self.getkeys("library")
 
     def _summary_headers(self) -> List[Tuple[str, str]]:
         """
@@ -1195,7 +1196,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         return [("Design", self.option.get_design())]
 
-    def summary(self, jobname: str = None, fd: TextIO = None) -> None:
+    def summary(self, jobname: Optional[str] = None, fd: Optional[TextIO] = None) -> None:
         '''
         Prints a summary of the compilation manifest and results.
 
@@ -1237,9 +1238,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             fd=fd)
 
     def find_result(self,
-                    filetype: str = None, step: str = None,
+                    filetype: Optional[str] = None, step: Optional[str] = None,
                     index: str = "0", directory: str = "outputs",
-                    filename: str = None) -> str:
+                    filename: Optional[str] = None) -> Optional[str]:
         """
         Returns the absolute path of a compilation result file.
 
@@ -1299,7 +1300,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return None
 
-    def snapshot(self, path: str = None, jobname: str = None, display: bool = True) -> None:
+    def snapshot(self, path: Optional[str] = None, jobname: Optional[str] = None,
+                 display: bool = True) -> None:
         '''
         Creates a snapshot image summarizing a job's progress and key information.
 
