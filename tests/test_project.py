@@ -1013,6 +1013,9 @@ def test_has_library_not_found():
     assert proj._has_library("test") is True
 
 
+# Trivial in-memory test, but observed to trip the 15s default on a heavily
+# starved macOS runner (not genuine slowness); small headroom absorbs that.
+@pytest.mark.timeout(30)
 def test_has_library_not_found_with_object():
     proj = Project()
     design = Design("test")

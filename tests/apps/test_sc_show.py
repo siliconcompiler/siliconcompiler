@@ -74,6 +74,9 @@ def test_sc_show_design_only_screenshot(flags, monkeypatch, make_manifests, asic
     assert "Screenshot file: test.png" in capsys.readouterr().out
 
 
+# Spawns the sc-show app and builds manifests; needs headroom over the 15s
+# default on loaded/slow macOS runners where it has intermittently timed out.
+@pytest.mark.timeout(60)
 @pytest.mark.parametrize('flags', [
     ['build/gcd/job0/route.detailed/0/outputs/gcd.def'],
     ['build/gcd/job0/route.detailed/0/outputs/gcd.def'],

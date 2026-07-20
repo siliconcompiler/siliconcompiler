@@ -1578,14 +1578,25 @@ def test_run_breakpoint_logs_raw_output(tmp_path, monkeypatch):
 
     # printf is universally available on POSIX and lets us emit raw escape
     # bytes without depending on the shell's quoting.
-    rc = dut_tool._run_breakpoint(
-        "/usr/bin/printf",
-        ["\\033[31mERR\\033[0m hello\\n"],
-        log_path)
-
-    assert rc == 0
-    with open(log_path, "rb") as f:
-        contents = f.read()
+    #
+    # Retry the capture until the PTY delivers output. ``printf`` exits in
+    # well under a millisecond, and on macOS/BSD closing the slave (child
+    # exit) before the parent's first ``read`` can make the master report
+    # EOF and drop the buffered tail — the same class of race the keystroke
+    # test documents. A real breakpoint session is a long-lived interactive
+    # shell, so this only bites a synthetic fast-exiting child; retrying
+    # keeps the byte assertions meaningful without weakening them.
+    contents = b""
+    for _ in range(5):
+        rc = dut_tool._run_breakpoint(
+            "/usr/bin/printf",
+            ["\\033[31mERR\\033[0m hello\\n"],
+            log_path)
+        assert rc == 0
+        with open(log_path, "rb") as f:
+            contents = f.read()
+        if contents:
+            break
     # Raw bytes preserved: both the ANSI escape sequences and the payload.
     assert b"\x1b[31m" in contents
     assert b"\x1b[0m" in contents
