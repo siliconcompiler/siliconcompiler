@@ -112,7 +112,7 @@ test = [
 lint = [
     "flake8 == 7.3.0",
     "tclint == 0.8.0",
-    "codespell == 2.4.2"
+    "codespell == 2.4.3"
 ]
 docs = [
     "Sphinx >= 7.4, <8.3",
@@ -128,7 +128,7 @@ cocotb = [
 ]
 dashboard = [
     # dashboard
-    "streamlit == 1.59.1",
+    "streamlit == 1.59.2",
     "streamlit_agraph == 0.0.45",
     "streamlit-antd-components == 0.3.2",
     "streamlit_javascript == 0.1.5",
