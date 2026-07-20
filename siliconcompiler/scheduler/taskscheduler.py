@@ -19,7 +19,7 @@ from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter, \
     SCBlankColorlessLoggerFormatter, SCTeeLoggerHandler
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
 from siliconcompiler.scheduler import SCRuntimeError
 
 if TYPE_CHECKING:
@@ -135,7 +135,7 @@ class TaskScheduler:
                 threads = self.__max_threads
             task["threads"] = max(1, min(threads, self.__max_threads))
 
-            task["proc"] = multiprocessing.Process(target=task["node"].run)
+            task["proc"] = get_process_context().Process(target=task["node"].run)
             self.__nodes[(step, index)] = task
 
         # Create ordered list of nodes
@@ -404,7 +404,7 @@ class TaskScheduler:
 
         # Start the process
         info["running"] = True
-        info["parent_pipe"], pipe = multiprocessing.Pipe()
+        info["parent_pipe"], pipe = get_process_context().Pipe()
         info["node"].set_queue(pipe, self.__log_queue)
         info["proc"].start()
 

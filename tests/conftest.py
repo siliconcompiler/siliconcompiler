@@ -436,6 +436,24 @@ def disable_mp_process():
         def is_alive(self):
             return False
 
-    with patch("multiprocessing.Process") as proc:
-        proc.side_effect = FakeProc
+    # The scheduler launches node workers via get_process_context().Process
+    # (a context-specific Process class), not the module-level
+    # multiprocessing.Process, so we fake the context: Process runs the target
+    # inline while Pipe/Pool delegate to a real context.
+    real_ctx = multiprocessing.get_context()
+
+    class FakeContext:
+        Process = FakeProc
+
+        def Pipe(self, *args, **kwargs):
+            return real_ctx.Pipe(*args, **kwargs)
+
+        def Pool(self, *args, **kwargs):
+            return real_ctx.Pool(*args, **kwargs)
+
+    fake_ctx = FakeContext()
+    with patch("siliconcompiler.scheduler.taskscheduler.get_process_context",
+               return_value=fake_ctx), \
+         patch("siliconcompiler.scheduler.scheduler.get_process_context",
+               return_value=fake_ctx):
         yield
