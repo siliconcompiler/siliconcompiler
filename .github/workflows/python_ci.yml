@@ -47,6 +47,10 @@ jobs:
       - name: Install Dependencies (macos)
         if: matrix.os == 'macos-latest'
         run: |
+          # aws/tap comes pre-tapped on the GitHub runner and is untrusted,
+          # which makes every brew command emit a tap-trust warning. SC does
+          # not use it, so drop it rather than weakening trust checks.
+          brew untap aws/tap || true
           brew install graphviz
 
       - name: Set up Python ${{ matrix.python }}
