@@ -17,6 +17,7 @@ from siliconcompiler.tools.verilator.compile import CompileTask
 from siliconcompiler.tools.builtin.importfiles import ImportFilesTask
 from siliconcompiler.tools.klayout.screenshot import ScreenshotTask
 from siliconcompiler.tools.opensta.timing import TimingTask
+from siliconcompiler.tools.slang.utils.macro import Uniquified
 
 
 class HeartbeatDesign(Design):
@@ -50,21 +51,11 @@ class HeartbeatDesign(Design):
                 self.add_file("heartbeat.v")
                 self.set_param("N", "8")  # Default parameter value
 
-            # RTL sources with fixed N=8
-            with self.active_fileset("rtl.8"):
-                self.set_topmodule("heartbeat8")
-                self.add_file("heartbeat8.v")
-
             # Testbench for Icarus Verilog
             with self.active_fileset("testbench.icarus.v"):
                 self.set_topmodule("heartbeat_tb")
                 self.add_file("testbench.v")
                 self.set_param("N", "8")
-
-            # Testbench for fixed N=8
-            with self.active_fileset("testbench.8"):
-                self.set_topmodule("heartbeat8_tb")
-                self.add_file("testbench8.v")
 
             # C++ Testbench for Verilator
             with self.active_fileset("testbench.verilator.cc"):
@@ -94,6 +85,30 @@ class HeartbeatDesign(Design):
             # FPGA timing and pin constraints for a Xilinx Artix-7 device.
             with self.active_fileset("fpga.xc7a100tcsg324"):
                 self.add_file("heartbeat.xdc")
+
+
+def uniquify_heartbeat(design: Optional[HeartbeatDesign] = None) -> Uniquified:
+    """Uniquify the parameterized ``heartbeat`` module of ``design``.
+
+    This replaces the hand-written ``heartbeat8.v``/``testbench8.v``. A hardened
+    macro has no parameters, so a post-synthesis netlist named ``heartbeat`` has
+    no ``N`` and the parameterized testbench (``heartbeat #(.N(8))``) cannot bind
+    to it. uniquify solves that: it elaborates the parameterized ``heartbeat``
+    (``N`` defaults to 8 in the ``rtl`` fileset) and registers filesets for
+
+    * ``rtl.hardened.heartbeat__N8`` -- a parameter-free variant to harden, and
+    * ``rtl.heartbeat.wrapper`` -- a wrapper that keeps the ``N`` parameter and
+      forwards to the variant, so the regular ``testbench.v`` binds to the
+      hardened netlist.
+
+    Args:
+        design (HeartbeatDesign, optional): Design to uniquify (mutated in place
+            with the new filesets). A fresh one is created if omitted.
+
+    Returns:
+        Uniquified: The handle managing the wrapper/variant filesets and builds.
+    """
+    return Uniquified(design or HeartbeatDesign(), ["heartbeat"], filesets=["rtl"])
 
 
 def lint(N: Optional[str] = None):
@@ -328,30 +343,48 @@ def sim_postpnr(pnr_jobname: Optional[str] = None,
     Returns:
         str: The job name of the ASIC implementation whose netlist was simulated.
     """
-    # Ensure an implemented netlist exists; run PnR if one was not provided.
+    # Uniquify: registers the variant + wrapper filesets on `design`. The same
+    # design is reused for hardening and gate sim so all filesets are in scope.
+    design = HeartbeatDesign()
+    uq = uniquify_heartbeat(design)
+
+    # Ensure a hardened macro exists; harden the variants if a job was not
+    # provided. build() runs each variant under jobname=<variant> for an isolated
+    # build dir, and returns/persists the {variant: macro} it built.
     if pnr_jobname is None:
-        pnr_jobname = "pnr"
-        asic(pdk="skywater130", N=None, jobname=pnr_jobname, fileset="rtl.8")
+        def _target(project):
+            project.add_fileset("sdc.skywater130")
+            asic_target(project, pdk="skywater130")
 
-    # Load the completed implementation manifest to locate its outputs and the
-    # standard-cell library (no project setup needed).
-    impl = ASIC.from_manifest(
-        filepath=f"build/heartbeat/{pnr_jobname}/heartbeat.pkg.json")
-    netlist = impl.find_result("lec.vg", step="write.views")
+        built = uq.build(target=_target)
+        # heartbeat has a single parameterization, so exactly one variant is
+        # built; its name is the jobname of the implementation to simulate.
+        if len(built) != 1:
+            raise ValueError(
+                f"expected exactly one hardened variant, got {sorted(built)}")
+        pnr_jobname = next(iter(built))
+    else:
+        uq.load_macros()
 
-    # The standard-cell simulation models live in the main library's 'rtl'
-    # fileset; depend on it so the netlist's cell instances resolve.
-    mainlib = impl.get_library(impl.get("asic", "mainlib"))
+    if pnr_jobname not in uq.macros:
+        raise ValueError(
+            f"no hardened macro for job {pnr_jobname!r}; run sim_postpnr() "
+            f"without pnr_jobname to build it")
+    macro = uq.macros[pnr_jobname]
 
-    gate = HeartbeatDesign()
-    # Gate-level netlist (absolute path from find_result, so no dataroot needed)
-    # plus the standard-cell simulation models.
+    gate = design
+    # Gate-level sim: the wrapper (restores the ``N`` parameter for the
+    # testbench) plus the macro's 'rtl' fileset, which carries the hardened
+    # netlist (module ``heartbeat__N8``) and, bundled as a recoverable
+    # dependency, the standard-cell simulation models -- no PDK/impl lookup.
     with gate.active_fileset("netlist"):
-        gate.add_file(netlist)
-        gate.add_depfileset(mainlib, "rtl")
+        gate.add_depfileset(gate, depfileset="rtl.heartbeat.wrapper")
+        gate.add_depfileset(macro, "rtl")
 
     sim = Sim(gate)
-    sim.add_fileset(["testbench.8", "netlist"])
+    # The regular parameterized testbench (heartbeat_tb) now drives the gate
+    # netlist through the wrapper -- no dedicated heartbeat8_tb needed.
+    sim.add_fileset(["testbench.icarus.v", "netlist"])
     sim.set_flow(DVFlow(tool="icarus"))
     sim.option.set_jobname(jobname)
 
@@ -359,7 +392,7 @@ def sim_postpnr(pnr_jobname: Optional[str] = None,
     sim.summary()
 
     vcd = sim.find_result(step="simulate", index="0", directory="reports",
-                          filename="heartbeat8_tb.vcd")
+                          filename="heartbeat_tb.vcd")
 
     # If a VCD file is found, open it with the default waveform viewer.
     if show_vcd and vcd:
@@ -406,46 +439,42 @@ def power(pnr_jobname: Optional[str] = None, sim_jobname: Optional[str] = None):
         raise ValueError(
             "pnr_jobname is required when reusing an existing sim_jobname")
 
-    # Load the completed implementation manifest to locate its outputs (netlist,
-    # the implementation-generated SDC and extracted parasitics).
-    impl = ASIC.from_manifest(
-        filepath=f"build/heartbeat/{pnr_jobname}/heartbeat.pkg.json")
-    netlist = impl.find_result("lec.vg", step="write.views")
-    sdc = impl.find_result("sdc", step="write.views")
+    # The hardened macro carries the structural netlist and SDC filesets we need
+    # for signoff; recover the uniquify handle (regenerating is cheap and
+    # deterministic) and load the persisted macro. heartbeat has a single
+    # parameterization, hence one variant.
+    uq = uniquify_heartbeat()
+    (variant_name,) = uq.variant_names
+    uq.load_macros()
+    macro = uq.macros[variant_name]
+
+    # SPEF (extracted parasitics) is not part of the macro; get it from the
+    # implementation run (located under uniquify's libdir).
+    impl = ASIC.from_manifest(filepath=uq.manifest(pnr_jobname))
     spef = impl.find_result("typical.spef", step="write.views")
 
     # Load the simulation manifest to locate the captured waveform.
     sim = Sim.from_manifest(
         filepath=f"build/heartbeat/{sim_jobname}/heartbeat.pkg.json")
     vcd = sim.find_result(step="simulate", index="0", directory="reports",
-                          filename="heartbeat8_tb.vcd")
+                          filename="heartbeat_tb.vcd")
 
     # ------------------------------------------------------------------
-    # Timing signoff: netlist + SDC (filesets) + SPEF (inputs) + VCD -> power
+    # Timing signoff: netlist + SDC (macro filesets) + SPEF (inputs) + VCD -> power
     # ------------------------------------------------------------------
     signoff = ASIC()
-    sign_d = HeartbeatDesign()
-    # netlist, sdc and vcd are absolute paths from find_result, so no dataroot
-    # is needed.
-    #
-    # The netlist is read as verilog straight from this fileset; STA resolves the
-    # cell instances from the Liberty models, so no cell Verilog is needed here.
-    with sign_d.active_fileset("netlist"):
-        sign_d.set_topmodule("heartbeat8")
-        sign_d.add_file(netlist)
-    # The implementation-generated SDC (with propagated clocks) is the correct
-    # constraint set for signoff.
-    with sign_d.active_fileset("sdc.netlist"):
-        sign_d.add_file(sdc)
-    # Register the captured VCD in its own fileset but do NOT make it active: it
-    # requires a scope, so it is consumed only via the scoped power-activity
-    # configuration below (never as a plain active fileset).
-    sign_d.add_file(vcd, fileset="sim.vcd", filetype="vcd")
-    signoff.set_design(sign_d)
-    signoff.add_fileset(["netlist", "sdc.netlist"])
+    # The macro is self-contained and already provides the 'netlist' (structural,
+    # for STA) and 'sdc' filesets, so use it as the signoff design directly
+    # instead of rebuilding them. Register the captured VCD in its own fileset but
+    # do NOT make it active: it requires a scope, so it is consumed only via the
+    # scoped power-activity configuration below.
+    macro.add_file(vcd, fileset="sim.vcd", filetype="vcd")
+    signoff.set_design(macro)
+    signoff.add_fileset(["netlist", "sdc"])
 
-    # Reuse the Skywater130 target for libraries, corners and the delay model,
-    # then replace its flow with the timing-signoff flow.
+    # Reuse the Skywater130 target for the standard-cell Liberty, corners and
+    # delay model (STA resolves the netlist's cells from these); its flow is
+    # replaced with the timing-signoff flow below.
     skywater130_demo(signoff)
 
     signoff_flow = Flowgraph("timingsignoff")
@@ -459,10 +488,13 @@ def power(pnr_jobname: Optional[str] = None, sim_jobname: Optional[str] = None):
 
     ImportFilesTask.find_task(signoff).add_import_file(spef)
 
-    # Annotate switching activity from the VCD. The DUT is instantiated in the
-    # testbench as heartbeat8_tb/DUT, so that is the scope of the design top.
+    # Annotate switching activity from the VCD. The testbench instantiates the
+    # wrapper as heartbeat_tb/DUT, and the wrapper forwards to the hardened
+    # variant in its generate block; uniquify knows that internal path, so the
+    # netlist (signoff top) lives at heartbeat_tb/DUT/g_<variant>/<instance>.
+    scope = uq.instance_path(variant_name, parent="heartbeat_tb/DUT")
     TimingTask.find_task(signoff).add_opensta_poweractivity(
-        "heartbeat8_tb/DUT", sign_d.name, "sim.vcd")
+        scope, macro.name, "sim.vcd")
 
     signoff.run()
     signoff.summary()
