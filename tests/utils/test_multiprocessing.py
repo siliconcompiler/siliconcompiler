@@ -14,9 +14,15 @@ from siliconcompiler.utils.settings import SettingsManager
 def test_get_process_context_linux(monkeypatch):
     '''On Linux the start method is pinned to fork so that unguarded
     module-level proj.run() scripts keep working regardless of the interpreter
-    default (which became forkserver in Python 3.14).'''
+    default (which became forkserver in Python 3.14).
+
+    Assert on the requested method name rather than the returned context so the
+    test is portable: Windows has no fork context, so actually calling
+    get_context("fork") there raises ValueError.'''
     monkeypatch.setattr("sys.platform", "linux")
-    assert get_process_context().get_start_method() == "fork"
+    with patch("siliconcompiler.utils.multiprocessing.multiprocessing.get_context") as get_ctx:
+        get_process_context()
+        get_ctx.assert_called_once_with("fork")
 
 
 @pytest.mark.parametrize("platform", ["darwin", "win32"])
@@ -24,7 +30,9 @@ def test_get_process_context_non_linux(monkeypatch, platform):
     '''Off Linux fork is either unavailable (Windows) or unsafe with threads
     (macOS), so we pin spawn explicitly rather than relying on the default.'''
     monkeypatch.setattr("sys.platform", platform)
-    assert get_process_context().get_start_method() == "spawn"
+    with patch("siliconcompiler.utils.multiprocessing.multiprocessing.get_context") as get_ctx:
+        get_process_context()
+        get_ctx.assert_called_once_with("spawn")
 
 
 def test_init_singleton():
