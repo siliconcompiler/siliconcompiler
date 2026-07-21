@@ -364,8 +364,11 @@ class Board:
         Initializes the Board.
 
         Args:
-            manager: A multiprocessing.Manager object to create shared state
-                     (events, dicts, locks) between processes.
+            manager: Unused, retained for call-site compatibility
+                (``MPManager.get_dashboard``). The board and its render thread
+                live entirely in the main process, so its state is held in
+                plain in-process primitives (see ``__init__`` below) rather than
+                SyncManager proxies; no manager is needed.
         """
         self._console = Console(theme=Board.__theme)
 
