@@ -4,6 +4,7 @@ import queue
 import re
 import time
 import threading
+import types
 
 import os.path
 
@@ -391,20 +392,28 @@ class Board:
         else:
             Board._symbols.clear()
 
-        # Cross-process "please repaint" signal, fired both by new log lines
-        # and by job-data changes (_update_render_data). It must stay a manager
-        # Event so the render loop is woken regardless of which process
-        # produced the update. Whether that repaint also needs to reload job
-        # data is decided separately via the data_modified flag below.
-        self._render_event = manager.Event()
-        self._render_stop_event = manager.Event()
+        # "Please repaint" signal, fired both by new log lines and by job-data
+        # changes (_update_render_data). Whether that repaint also needs to
+        # reload job data is decided separately via the data_modified flag below.
+        #
+        # These are deliberately plain in-process ``threading``/``queue``
+        # primitives, not SyncManager proxies. The board and its render thread
+        # live entirely in the main process (workers drop the dashboard handler
+        # and let the parent own all dispatch), so proxies would buy nothing --
+        # and under the ``fork`` start method they are actively dangerous: a
+        # forked node worker inherits the manager's live socket connection, and
+        # concurrent use from the render thread and the child corrupts the
+        # manager's framed protocol, deadlocking every proxy on a recv that
+        # never returns. Plain primitives are fork-immune (and faster).
+        self._render_event = threading.Event()
+        self._render_stop_event = threading.Event()
         self._render_thread = None
 
         # Holds thread job data
-        self._board_info = manager.Namespace()
+        self._board_info = types.SimpleNamespace()
         self._board_info.data_modified = False
-        self._job_data = manager.dict()
-        self._job_data_lock = manager.Lock()
+        self._job_data = {}
+        self._job_data_lock = threading.Lock()
 
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
@@ -414,7 +423,7 @@ class Board:
         # _job_data_lock, so the cache itself does not need its own lock.
         self._topology_cache: Dict[str, _FlowTopology] = {}
 
-        self._log_handler_queue = manager.Queue()
+        self._log_handler_queue = queue.Queue()
 
         # The log buffer shares the render event so a new log line wakes the
         # loop to repaint promptly. It does not touch data_modified, so a

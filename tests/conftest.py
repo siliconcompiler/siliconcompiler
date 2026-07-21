@@ -445,6 +445,12 @@ def disable_mp_process():
     class FakeContext:
         Process = FakeProc
 
+        def get_start_method(self, *args, **kwargs):
+            return real_ctx.get_start_method(*args, **kwargs)
+
+        def Queue(self, *args, **kwargs):
+            return real_ctx.Queue(*args, **kwargs)
+
         def Pipe(self, *args, **kwargs):
             return real_ctx.Pipe(*args, **kwargs)
 
