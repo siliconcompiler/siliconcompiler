@@ -87,7 +87,22 @@ class TaskScheduler:
             to_steps=self.__project.option.get_to(),
             prune_nodes=self.__project.option.get_prune())
 
-        self.__log_queue = MPManager.get_manager().Queue()
+        # Queue for collecting log records from node worker processes.
+        #
+        # Under the ``fork`` start method (Linux) a worker inherits the parent's
+        # live SyncManager socket connections. A manager-backed queue would then
+        # have the worker's QueueHandler.put() and the parent's
+        # QueueListener.get() drive the *same* inherited connection from two
+        # processes at once, corrupting the manager's framed protocol and
+        # deadlocking every manager proxy (including the dashboard Board and its
+        # lock) on a recv that never returns. A plain pipe-backed queue is
+        # fork-safe (and faster), so use it on the fork path. Spawn cannot
+        # inherit fds and needs the picklable manager queue; it re-connects with
+        # a fresh connection per worker, so it is unaffected.
+        if get_process_context().get_start_method() == "fork":
+            self.__log_queue = get_process_context().Queue()
+        else:
+            self.__log_queue = MPManager.get_manager().Queue()
 
         self.__nodes: Dict[Tuple[str, str], Dict[str, Any]] = {}
         self.__startTimes: Dict[Optional[Tuple[str, str]], float] = {}
