@@ -2,7 +2,8 @@ import logging
 
 import pytest
 
-from siliconcompiler.utils.logging import SCSuppressLoggerFilter, SCTeeLoggerHandler
+from siliconcompiler.utils.logging import (
+    SCSuppressLoggerFilter, SCTeeLoggerHandler, SCHistoryLogHandler)
 
 
 # ---------------------------------------------------------------------------
@@ -172,3 +173,77 @@ def test_tee_tolerates_handler_emit_failure(logger):
     tee.handle(_make_record(msg="survive"))
 
     assert good.records == ["survive"]
+
+
+# ---------------------------------------------------------------------------
+# SCHistoryLogHandler
+# ---------------------------------------------------------------------------
+
+def test_history_retains_emitted_records():
+    h = SCHistoryLogHandler()
+    h.emit(_make_record(msg="one"))
+    h.emit(_make_record(msg="two"))
+
+    assert [r.getMessage() for r in h.records] == ["one", "two"]
+
+
+def test_history_records_are_a_copy():
+    """The ``records`` property must return a snapshot, not the live buffer,
+    so a caller iterating it while new records arrive is unaffected."""
+    h = SCHistoryLogHandler()
+    h.emit(_make_record(msg="one"))
+
+    snapshot = h.records
+    h.emit(_make_record(msg="two"))
+
+    assert [r.getMessage() for r in snapshot] == ["one"]
+
+
+def test_history_is_bounded_and_keeps_most_recent():
+    h = SCHistoryLogHandler(capacity=3)
+    for i in range(5):
+        h.emit(_make_record(msg=f"msg{i}"))
+
+    assert [r.getMessage() for r in h.records] == ["msg2", "msg3", "msg4"]
+
+
+def test_history_clear_drops_all_records():
+    h = SCHistoryLogHandler()
+    h.emit(_make_record(msg="one"))
+    h.emit(_make_record(msg="two"))
+
+    h.clear()
+    assert h.records == []
+
+    # Still usable after clearing.
+    h.emit(_make_record(msg="three"))
+    assert [r.getMessage() for r in h.records] == ["three"]
+
+
+def test_history_drain_returns_and_clears():
+    h = SCHistoryLogHandler()
+    h.emit(_make_record(msg="one"))
+    h.emit(_make_record(msg="two"))
+
+    drained = h.drain()
+    assert [r.getMessage() for r in drained] == ["one", "two"]
+    # Buffer is empty after draining.
+    assert h.records == []
+
+    # A second drain returns nothing; the handler is still usable.
+    assert h.drain() == []
+    h.emit(_make_record(msg="three"))
+    assert [r.getMessage() for r in h.drain()] == ["three"]
+
+
+def test_history_captures_through_logger():
+    h = SCHistoryLogHandler()
+    logger = logging.getLogger("test_history_captures_through_logger")
+    logger.handlers = []
+    logger.setLevel(logging.INFO)
+    logger.addHandler(h)
+
+    logger.info("captured %s", "value")
+    logger.warning("warned")
+
+    assert [r.getMessage() for r in h.records] == ["captured value", "warned"]
