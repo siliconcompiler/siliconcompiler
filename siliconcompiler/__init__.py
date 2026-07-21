@@ -9,7 +9,6 @@ from siliconcompiler.pdk import PDK
 from siliconcompiler.flowgraph import Flowgraph
 from siliconcompiler.checklist import Checklist
 from siliconcompiler.library import StdCellLibrary
-from siliconcompiler.schematic import Schematic
 
 # Tasks
 from siliconcompiler.tool import Task, OpenTask, ShowTask, ScreenshotTask, TaskSkip
@@ -34,7 +33,6 @@ __all__ = [
     "Flowgraph",
     "Checklist",
     "FPGADevice",
-    "Schematic",
     "StdCellLibrary",
 
     "Task",

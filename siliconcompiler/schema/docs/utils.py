@@ -152,7 +152,7 @@ class KeyPath:
     def keypath(key_path, refdoc, key_text=None):
         '''Helper function for displaying Schema keypaths.'''
         from siliconcompiler import Project, ASIC, FPGA, Lint, Sim
-        from siliconcompiler import PDK, StdCellLibrary, Schematic, Design
+        from siliconcompiler import PDK, StdCellLibrary, Design
 
         text_parts = []
         key_parts = []
@@ -174,8 +174,6 @@ class KeyPath:
                 schema = PDK()
             elif schema_name == "StdCellLibrary":
                 schema = StdCellLibrary()
-            elif schema_name == "Schematic":
-                schema = Schematic()
             elif schema_name == "Design":
                 schema = Design()
             else:
