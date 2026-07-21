@@ -1471,9 +1471,15 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                           f'({e.available_mb:.1f} MB available)')
                         self.__terminate_exe(proc)
                         raise
-
-                    # Read any remaining I/O
-                    read_stdio(stdout_reader, stderr_reader, flush=True)
+                    finally:
+                        # Drain any remaining I/O, including a buffered trailing
+                        # partial line, so output emitted right before the
+                        # process exits reaches the log. This runs on the normal
+                        # exit path AND after an abnormal termination
+                        # (timeout/OOM/ctrl-c), where the process has already
+                        # been terminated above and its final output would
+                        # otherwise be lost.
+                        read_stdio(stdout_reader, stderr_reader, flush=True)
 
                     retcode = proc.returncode
 

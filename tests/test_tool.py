@@ -2103,6 +2103,98 @@ def test_run_task_carriage_return_terminates_lines(running_node, monkeypatch, pa
             f"Missing \\r-terminated frame {frame!r} in log records: {info_msgs}"
 
 
+def test_run_task_timeout_flushes_trailing_output(running_node, monkeypatch, patch_psutil,
+                                                  caplog):
+    """Output emitted just before a timeout kills the process (including an
+    unterminated trailing line) must still reach the log via the final
+    flush-drain, rather than being dropped on the abnormal-exit path."""
+
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    trailing = "fatal: stuck here with no newline"
+    stdout_path = "running.log"
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            pid = 1
+
+            def poll(self):
+                # Emit an unterminated line, then block long enough to trip
+                # the timeout before the process would otherwise exit.
+                with open(stdout_path, 'a') as f:
+                    f.write(trailing)
+                time.sleep(3)
+                return None
+
+            def wait(self, timeout=None):
+                pass
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with caplog.at_level(logging.INFO):
+        with running_node.task.runtime(running_node) as runtool:
+            with pytest.raises(TaskTimeout):
+                runtool.run_task('.', False, False, None, 1)
+
+    msgs = [r.getMessage() for r in caplog.records]
+    assert any(trailing in msg for msg in msgs), \
+        f"Trailing output before timeout was dropped from logs: {msgs}"
+
+
+def test_run_task_oom_flushes_trailing_output(running_node, monkeypatch, patch_psutil,
+                                              caplog):
+    """Output emitted just before an out-of-memory kill (including an
+    unterminated trailing line) must still reach the log via the final
+    flush-drain."""
+
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    trailing = "allocating one buffer too many"
+    stdout_path = "running.log"
+
+    def dummy_virtual_memory():
+        class Memory:
+            percent = 99.5
+            available = 100 * 1024 * 1024  # 100 MiB, below the kill limit
+        return Memory
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', dummy_virtual_memory)
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            pid = 1
+
+            def poll(self):
+                with open(stdout_path, 'a') as f:
+                    f.write(trailing)
+                return None
+
+            def wait(self, timeout=None):
+                pass
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    monkeypatch.setattr(Task, '_Task__IO_POLL_INTERVAL', 0)
+
+    with caplog.at_level(logging.INFO):
+        with running_node.task.runtime(running_node) as runtool:
+            with pytest.raises(TaskOutOfMemoryError):
+                runtool.run_task('.', False, False, None, None)
+
+    msgs = [r.getMessage() for r in caplog.records]
+    assert any(trailing in msg for msg in msgs), \
+        f"Trailing output before OOM kill was dropped from logs: {msgs}"
+
+
 def test_select_input_nodes_entry(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.select_input_nodes() == []
