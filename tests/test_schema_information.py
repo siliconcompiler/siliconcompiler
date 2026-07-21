@@ -10,7 +10,7 @@ from siliconcompiler.schema.parametertype import NodeType
 
 from siliconcompiler import Project
 from siliconcompiler import FPGA, ASIC, Sim, Lint
-from siliconcompiler import Design, PDK, StdCellLibrary, FPGADevice, Schematic
+from siliconcompiler import Design, PDK, StdCellLibrary, FPGADevice
 
 
 # Composite schema to allow for a single check
@@ -28,7 +28,6 @@ class CompositeProject(BaseSchema):
         EditableSchema(self).insert("library", "pdk", PDK())
         EditableSchema(self).insert("library", "fpgadevice", FPGADevice())
         EditableSchema(self).insert("library", "stdcelllibrary", StdCellLibrary())
-        EditableSchema(self).insert("library", "schematic", Schematic())
 
 
 @pytest.fixture

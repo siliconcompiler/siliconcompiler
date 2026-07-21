@@ -325,11 +325,6 @@ Supporting Classes
     :members:
     :show-inheritance:
 
-.. autoclass:: siliconcompiler.Schematic
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
 Inheritance
 ===========
 

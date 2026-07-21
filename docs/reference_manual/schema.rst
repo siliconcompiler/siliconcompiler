@@ -140,11 +140,6 @@ General
   :schema_only:
   :ref_root: Design
 
-.. schema::
-  :root: siliconcompiler/Schematic
-  :schema_only:
-  :ref_root: Schematic
-
 ASIC Specific
 ^^^^^^^^^^^^^
 

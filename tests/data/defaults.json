@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.56.0",
+              "value": "0.57.0",
               "signature": null
             }
           }
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.56.0",
+              "value": "0.57.0",
               "signature": null
             }
           }
@@ -6759,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.56.0",
+              "value": "0.57.0",
               "signature": null
             }
           }
@@ -11415,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.56.0",
+              "value": "0.57.0",
               "signature": null
             }
           }
@@ -14387,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.56.0",
+              "value": "0.57.0",
               "signature": null
             }
           }
@@ -21516,213 +21516,6 @@
         "name": "stdcelllibrary",
         "class": "siliconcompiler.library/StdCellLibrary",
         "sctype": "StdCellLibrary"
-      }
-    },
-    "schematic": {
-      "schematic": {
-        "hierchar": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [],
-          "shorthelp": "Schematic hierarchy character",
-          "example": [
-            "api: schematic.set('schematic', 'hierchar', '/')"
-          ],
-          "help": "Specifies the character used to express hierarchy. If\nthe hierarchy character is used as part of a name, it must be\nescaped with a backslash('').",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "buschar": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [],
-          "shorthelp": "Schematic bus character",
-          "example": [
-            "api: schematic.set('schematic', 'buschar', '[]')"
-          ],
-          "help": "Specifies the character used to express bus bits. If the\nbus character is used as part of a name, it must be\nescaped with a backslash('').",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "pin": {
-          "default": {
-            "direction": {
-              "type": "<inout,input,output>",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [],
-              "shorthelp": "Pin direction",
-              "example": [
-                "api: schematic.set('schematic','pin', 'A', 'direction', 'input')"
-              ],
-              "help": "Direction of pin specified on a per pin basis.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "bitrange": {
-              "type": "(int,int)",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [],
-              "shorthelp": "Pin bitrange",
-              "example": [
-                "api: schematic.set('schematic','pin', 'A', 'bitrange', (7,0)"
-              ],
-              "help": "Pin vector size, specified as a (max,min) tuple. A range of (0,0)\nindicates a scalar single bit pin.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            }
-          }
-        },
-        "net": {
-          "default": {
-            "bitrange": {
-              "type": "(int,int)",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [],
-              "shorthelp": "Net bit range",
-              "example": [
-                "api: schematic.set('schematic', 'net', 'net0', 'bitrange', (7,0)"
-              ],
-              "help": "Net vector bit range specified as (max,min) tuple.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            }
-          }
-        },
-        "part": {
-          "default": {
-            "pin": {
-              "default": {
-                "bitrange": {
-                  "type": "(int,int)",
-                  "require": false,
-                  "scope": "global",
-                  "lock": false,
-                  "switch": [],
-                  "shorthelp": "Library part pin bitrange",
-                  "example": [
-                    "api: schematic.set('schematic', 'part', 'INV', 'pin', 'A', 'bitrange', (7,0)"
-                  ],
-                  "help": "Part pin vector size, specified as a (max,min) tuple. A range of (0,0)\nindicates a scalar single bit pin.",
-                  "notes": null,
-                  "pernode": "never",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": null,
-                        "signature": null
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "component": {
-          "default": {
-            "partname": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [],
-              "shorthelp": "Component part name",
-              "example": [
-                "api: schematic.set('schematic','component','i0','partname','INV')"
-              ],
-              "help": "Partname (cellname) of a component (instance) specified on a\nper instance basis.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "connection": {
-              "default": {
-                "type": "str",
-                "require": false,
-                "scope": "global",
-                "lock": false,
-                "switch": [],
-                "shorthelp": "Component pin connections",
-                "example": [
-                  "api: schematic.set('schematic','component','i0','connection', 'A[0]', 'in[0]')",
-                  "api: schematic.set('schematic','component','i0','connection', 'CLK', 'clk_in')"
-                ],
-                "help": "Net connections specified on a per instance and per instance-pin basis.\nPin and net names must include the appropriate bit index in cases of pin or\nnet vectors. Bit index optional for scalar nets and pins.",
-                "notes": null,
-                "pernode": "never",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "__meta__": {
-        "class": "siliconcompiler.schematic/Schematic",
-        "sctype": "Schematic"
       }
     }
   },
