@@ -305,12 +305,18 @@ class Scheduler:
         except KeyboardInterrupt:
             pass
         except SCRuntimeError:
+            # Stop the dashboard before propagating so the terminal handler is
+            # un-suppressed and the full log tail is dumped to scrollback;
+            # otherwise an early failure's output stays hidden behind the
+            # (now torn-down) live screen.
+            if self.__project._Project__dashboard:
+                self.__project._Project__dashboard.stop(force=True)
             raise
         except Exception as e:
             utils.print_traceback(self.__logger, e)
 
             if self.__project._Project__dashboard:
-                self.__project._Project__dashboard.stop()
+                self.__project._Project__dashboard.stop(force=True)
 
             MPManager.error(str(e) or "uncaught exception")
 

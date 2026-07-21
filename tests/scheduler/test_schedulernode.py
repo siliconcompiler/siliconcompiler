@@ -1777,7 +1777,9 @@ def test_run_with_queue(project):
          patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
         node.run()
         call_exec.assert_called_once()
-        call_remove_logger.assert_called_once()
+        # The child strips every inherited handler before installing the
+        # QueueHandler: the console StreamHandler and the SCHistoryLogHandler.
+        assert call_remove_logger.call_count == 2
         assert pipe.calls == 1
 
 

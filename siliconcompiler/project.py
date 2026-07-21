@@ -26,7 +26,7 @@ from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.scheduler import Scheduler, SCRuntimeError
-from siliconcompiler.utils.logging import get_stream_handler
+from siliconcompiler.utils.logging import get_stream_handler, SCHistoryLogHandler
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir, workdir
@@ -148,6 +148,13 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         self._logger_console = get_stream_handler(self, in_run=False, step=None, index=None)
         self.__logger.addHandler(self._logger_console)
+
+        # Retain a bounded history of records so a late-attaching sink (the CLI
+        # dashboard log pane) can be seeded with what preceded it, and so the
+        # full tail survives a teardown even when the terminal handler was
+        # suppressed while the dashboard owned the screen.
+        self._logger_history = SCHistoryLogHandler()
+        self.__logger.addHandler(self._logger_history)
 
     def __init_dashboard(self):
         """
@@ -567,6 +574,12 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 scheduler = Scheduler(self)
             scheduler.run()
         except SCRuntimeError as e:
+            # Tear the dashboard down first: this restores (un-suppresses) the
+            # terminal handler and dumps the full log tail to scrollback, so
+            # the messages below and the propagating error are actually visible
+            # instead of being swallowed while the dashboard owns the screen.
+            if self.__dashboard:
+                self.__dashboard.stop(force=True)
             self.logger.error(f"Run failed: {e.msg}")
             if scheduler and scheduler.log:
                 self.logger.error(f"Job log: {os.path.abspath(scheduler.log)}")
@@ -651,6 +664,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Remove logger objects since they are not serializable
         del state["_Project__logger"]
         del state["_logger_console"]
+        del state["_logger_history"]
 
         # Remove dashboard
         del state["_Project__dashboard"]

@@ -536,14 +536,20 @@ class Board:
 
         self._update_render_data(project, complete=True)
 
-    def stop(self):
+    def stop(self, force: bool = False):
         """
         Stops the dashboard rendering thread and cleans up the terminal display.
+
+        Args:
+            force (bool): When True, tear down even if some jobs are still
+                incomplete. The completeness guard exists so a stray stop()
+                does not kill the live view mid-run; a genuine failure teardown
+                passes force=True to bypass it.
         """
         if not self.is_running():
             return
 
-        if self._job_data:
+        if not force and self._job_data:
             if any([not job.complete for job in self._job_data.values()]):
                 return
 
@@ -570,6 +576,29 @@ class Board:
                 self._console.print(self._get_rendable())
             except Exception:
                 pass
+
+        # On a failure teardown (force=True), dump the full retained log buffer
+        # to normal-terminal scrollback. The final frame above only shows the
+        # log lines that fit the visible pane; on an early failure the tail
+        # that explains it has usually scrolled past that window, so reprinting
+        # the entire buffer ensures it survives. This is deliberately skipped
+        # for a normal teardown or a Ctrl+C interrupt (force=False): those are
+        # not failures and the live view already served the log.
+        try:
+            lines = self._log_handler.get_lines() if force else []
+            if lines:
+                self._console.rule("[bold]Full log")
+                for line in lines:
+                    try:
+                        # highlight=False keeps rich from recoloring numbers/
+                        # paths inside the line, matching the live log pane
+                        # (which renders each line as a plain table cell).
+                        self._console.print(f"[white]{line}[/]", highlight=False)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
         try:
             self._console.show_cursor()
         except Exception:
