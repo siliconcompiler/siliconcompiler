@@ -2119,11 +2119,12 @@ def test_run_task_timeout_flushes_trailing_output(running_node, monkeypatch, pat
             pid = 1
 
             def poll(self):
-                # Emit an unterminated line, then block long enough to trip
-                # the timeout before the process would otherwise exit.
+                # Emit an unterminated line, then block just long enough to
+                # trip the timeout (0.5s below) before the process would
+                # otherwise exit. Kept short to avoid slowing the suite.
                 with open(stdout_path, 'a') as f:
                     f.write(trailing)
-                time.sleep(3)
+                time.sleep(1)
                 return None
 
             def wait(self, timeout=None):
@@ -2139,7 +2140,7 @@ def test_run_task_timeout_flushes_trailing_output(running_node, monkeypatch, pat
     with caplog.at_level(logging.INFO):
         with running_node.task.runtime(running_node) as runtool:
             with pytest.raises(TaskTimeout):
-                runtool.run_task('.', False, False, None, 1)
+                runtool.run_task('.', False, False, None, 0.5)
 
     msgs = [r.getMessage() for r in caplog.records]
     assert any(trailing in msg for msg in msgs), \

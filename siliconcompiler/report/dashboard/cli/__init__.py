@@ -167,7 +167,10 @@ class CliDashboard(AbstractDashboard):
                 # window; new records keep accumulating from here on.
                 for record in handler.drain():
                     try:
-                        self._dashboard_handler.emit(record)
+                        # handle() (not emit()) applies the handler's level and
+                        # filters and acquires its lock, per the logging
+                        # contract — safer than driving emit() directly.
+                        self._dashboard_handler.handle(record)
                     except Exception:
                         pass
                 break

@@ -595,7 +595,14 @@ class Board:
                         # (which renders each line as a plain table cell).
                         self._console.print(f"[white]{line}[/]", highlight=False)
                     except Exception:
-                        pass
+                        # Malformed/unterminated markup in a buffered line must
+                        # not drop it from the dump (that would defeat the whole
+                        # point). Fall back to printing it verbatim as plain
+                        # text with markup disabled.
+                        try:
+                            self._console.print(line, markup=False, highlight=False)
+                        except Exception:
+                            pass
         except Exception:
             pass
 
