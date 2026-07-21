@@ -161,15 +161,15 @@ class CliDashboard(AbstractDashboard):
         # re-dispatched to the other sinks.
         for handler in list(self._logger.handlers):
             if isinstance(handler, SCHistoryLogHandler):
-                for record in handler.records:
+                # drain() snapshots and clears atomically, so the backlog is
+                # not seeded (and reprinted) again on a later re-attach and a
+                # record emitted concurrently is never lost in a read/clear
+                # window; new records keep accumulating from here on.
+                for record in handler.drain():
                     try:
                         self._dashboard_handler.emit(record)
                     except Exception:
                         pass
-                # Drop the drained backlog so these records are not seeded
-                # (and reprinted) again on a later re-attach; new records keep
-                # accumulating in the handler from here on.
-                handler.clear()
                 break
 
         self._logger.addHandler(self._dashboard_handler)

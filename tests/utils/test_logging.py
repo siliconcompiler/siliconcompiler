@@ -220,6 +220,22 @@ def test_history_clear_drops_all_records():
     assert [r.getMessage() for r in h.records] == ["three"]
 
 
+def test_history_drain_returns_and_clears():
+    h = SCHistoryLogHandler()
+    h.emit(_make_record(msg="one"))
+    h.emit(_make_record(msg="two"))
+
+    drained = h.drain()
+    assert [r.getMessage() for r in drained] == ["one", "two"]
+    # Buffer is empty after draining.
+    assert h.records == []
+
+    # A second drain returns nothing; the handler is still usable.
+    assert h.drain() == []
+    h.emit(_make_record(msg="three"))
+    assert [r.getMessage() for r in h.drain()] == ["three"]
+
+
 def test_history_captures_through_logger():
     h = SCHistoryLogHandler()
     logger = logging.getLogger("test_history_captures_through_logger")

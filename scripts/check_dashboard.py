@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
-Manual demo for the two logging fixes. TEMPORARY — delete when done.
+Manual scenario-validation tool for the CLI dashboard logging behavior.
 
-Run it in a REAL terminal (a TTY) so the CLI dashboard actually renders:
+A persistent developer utility: run it by hand in a REAL terminal (a TTY) to
+eyeball the dashboard scenarios that automated tests can only assert on
+indirectly (they run headless, with no live screen). Keep it around for
+verifying dashboard/logging changes.
 
-    python demo_logging_fix.py            # dashboard on (the interesting case)
-    python demo_logging_fix.py --lines 60 # more log lines to overflow the pane
-    python demo_logging_fix.py --nodashboard   # baseline: plain terminal logging
-    python demo_logging_fix.py --hang     # then hit Ctrl+C — see below
-    python demo_logging_fix.py --multi    # several runs sharing ONE dashboard
-    python demo_logging_fix.py --multi --jobs 4 --nodes 6  # bigger multi run
+    python scripts/check_dashboard.py            # dashboard on (the interesting case)
+    python scripts/check_dashboard.py --lines 60 # more log lines to overflow the pane
+    python scripts/check_dashboard.py --nodashboard   # baseline: plain terminal logging
+    python scripts/check_dashboard.py --hang     # then hit Ctrl+C — see below
+    python scripts/check_dashboard.py --multi    # several runs sharing ONE dashboard
+    python scripts/check_dashboard.py --multi --jobs 4 --nodes 6  # bigger multi run
 
 What it does
 ------------

@@ -28,17 +28,46 @@ class SCHistoryLogHandler(logging.Handler):
 
     @property
     def records(self):
-        """List of retained records, oldest first."""
-        return list(self.__records)
+        """List of retained records, oldest first.
+
+        Taken under the handler lock so the snapshot cannot race with a
+        concurrent ``emit`` or ``clear``.
+        """
+        self.acquire()
+        try:
+            return list(self.__records)
+        finally:
+            self.release()
 
     def clear(self):
         """Drop all retained records.
 
         Called once a consumer (the dashboard log pane) has drained the
         history into its own buffer, so the same records are not handed out —
-        and re-rendered — again on a later attach.
+        and re-rendered — again on a later attach. Held under the handler lock
+        so it cannot race with a concurrent ``emit``.
         """
-        self.__records.clear()
+        self.acquire()
+        try:
+            self.__records.clear()
+        finally:
+            self.release()
+
+    def drain(self):
+        """Atomically return all retained records and clear the buffer.
+
+        The snapshot and the clear happen under the handler lock together, so
+        a record emitted concurrently is either fully included in the returned
+        list or retained for the next drain — never lost in a window between a
+        separate ``records`` read and ``clear`` call.
+        """
+        self.acquire()
+        try:
+            records = list(self.__records)
+            self.__records.clear()
+            return records
+        finally:
+            self.release()
 
 
 class SCSuppressLoggerFilter(logging.Filter):
