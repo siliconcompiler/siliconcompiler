@@ -17,6 +17,7 @@ from io import BytesIO
 from urllib.parse import urlparse
 
 from siliconcompiler.package import RemoteResolver
+from siliconcompiler.utils import tar_extract_kwargs
 
 
 def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
@@ -136,12 +137,12 @@ class HTTPResolver(RemoteResolver):
         # Attempt to extract as a tarball, fall back to zip
         try:
             with tarfile.open(fileobj=fileobj, mode='r:gz') as tar_ref:
-                tar_ref.extractall(path=self.cache_path)
+                tar_ref.extractall(path=self.cache_path, **tar_extract_kwargs())
         except tarfile.ReadError:
             fileobj.seek(0)
             try:
                 with tarfile.open(fileobj=fileobj, mode='r:bz2') as tar_ref:
-                    tar_ref.extractall(path=self.cache_path)
+                    tar_ref.extractall(path=self.cache_path, **tar_extract_kwargs())
             except tarfile.ReadError:
                 fileobj.seek(0)
                 try:

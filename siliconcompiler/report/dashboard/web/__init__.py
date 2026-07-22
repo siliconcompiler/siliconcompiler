@@ -133,7 +133,11 @@ class WebDashboard(AbstractDashboard):
         # Temporarily override the SIGINT handler for graceful shutdown
         self.__signal_handler = signal.signal(signal.SIGINT, WebDashboard.__signal_handler)
 
-        self.__dashboard.start()
+        # Local import avoids a circular import at module load time
+        # (utils.multiprocessing imports this package's cli board).
+        from siliconcompiler.utils.multiprocessing import forking
+        with forking():
+            self.__dashboard.start()
 
     def update_manifest(self, payload=None):
         """

@@ -327,6 +327,20 @@ class ASICTimingScenarioSchema(NamedSchema):
         warnings.warn("This function is deprecated and will be removed in a future version, "
                       "use TimingModeSchema instead", DeprecationWarning, stacklevel=2)
 
+        return self._add_sdcfileset(design=design, fileset=fileset, clobber=clobber,
+                                    step=step, index=index)
+
+    def _add_sdcfileset(self,
+                        design: Union[Design, str],
+                        fileset: str,
+                        clobber: bool = False,
+                        step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """Non-deprecated implementation of :meth:`add_sdcfileset`.
+
+        Kept separate so internal callers (e.g. legacy manifest import) can
+        migrate a scenario's SDC filesets onto the mode without emitting the
+        public method's ``DeprecationWarning``.
+        """
         mode = self.get_mode(step=step, index=index)
         if mode is None:
             raise ValueError("Mode not defined")
@@ -754,6 +768,6 @@ class ASICTimingConstraintSchema(BaseSchema):
                     if scenario.get_mode(step=step, index=index) is None:
                         scenario.set_mode("_importcreated_", step=step, index=index)
                     for design, fileset in value:
-                        scenario.add_sdcfileset(design, fileset, step=step, index=index)
+                        scenario._add_sdcfileset(design, fileset, step=step, index=index)
 
         return ret

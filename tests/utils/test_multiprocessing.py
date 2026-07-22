@@ -1,4 +1,5 @@
 import logging
+import warnings
 
 from multiprocessing.managers import RemoteError
 from unittest.mock import patch
@@ -6,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from siliconcompiler.utils.multiprocessing import MPManager, MPQueueHandler, \
-    _ManagerSingleton, get_process_context
+    _ManagerSingleton, get_process_context, forking
 from siliconcompiler.report.dashboard.cli.board import Board
 from siliconcompiler.utils.settings import SettingsManager
 
@@ -306,3 +307,40 @@ def test_stop_runs_housekeeping_after_interrupt():
         MPManager.stop()
         unreg.assert_called_once_with(MPManager.stop)
     assert _ManagerSingleton.has_cls(MPManager) is False
+
+
+@pytest.mark.parametrize("func", ["fork", "forkpty"])
+def test_forking_suppresses_fork_thread_warning(func):
+    message = f"This process (pid=1) is multi-threaded, use of {func}() may " \
+              "lead to deadlocks in the child."
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        with forking():
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+    assert caught == []
+
+
+def test_forking_propagates_unrelated_warnings():
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        with forking():
+            warnings.warn("an unrelated deprecation", DeprecationWarning, stacklevel=2)
+            warnings.warn("a user warning", UserWarning, stacklevel=2)
+    messages = [str(w.message) for w in caught]
+    assert "an unrelated deprecation" in messages
+    assert "a user warning" in messages
+
+
+def test_forking_restores_filters_after_normal_exit():
+    before = warnings.filters[:]
+    with forking():
+        pass
+    assert warnings.filters == before
+
+
+def test_forking_restores_filters_after_exception():
+    before = warnings.filters[:]
+    with pytest.raises(RuntimeError, match=r"^boom$"):
+        with forking():
+            raise RuntimeError("boom")
+    assert warnings.filters == before

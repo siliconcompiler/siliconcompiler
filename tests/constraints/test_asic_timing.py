@@ -7,6 +7,13 @@ from siliconcompiler.constraints import ASICTimingScenarioSchema, ASICTimingCons
     TimingModeSchema
 
 
+# The scenario-level SDC fileset accessors are deprecated in favor of
+# TimingModeSchema; the tests below exercise that deprecated path deliberately
+# and assert the DeprecationWarning fires.
+def _deprecated():
+    return pytest.warns(DeprecationWarning, match="use TimingModeSchema instead")
+
+
 def test_timing_scenario_keys():
     assert ASICTimingScenarioSchema().allkeys() == set([
         ('check',),
@@ -237,7 +244,8 @@ def test_timing_scenario_sdcfileset_invalid_type_design():
 
     scene.set_mode("testmode")
 
-    with pytest.raises(TypeError, match=r"^design must be a design object or string$"):
+    with _deprecated(), \
+            pytest.raises(TypeError, match=r"^design must be a design object or string$"):
         scene.add_sdcfileset(1.0, "fileset")
 
 
@@ -247,7 +255,7 @@ def test_timing_scenario_sdcfileset_invalid_type_fileset():
 
     scene.set_mode("testmode")
 
-    with pytest.raises(TypeError, match=r"^fileset must be a string$"):
+    with _deprecated(), pytest.raises(TypeError, match=r"^fileset must be a string$"):
         scene.add_sdcfileset("test", 1.0)
 
 
@@ -258,9 +266,11 @@ def test_timing_scenario_sdcfileset_design_obj():
     scene.set_mode("testmode")
 
     design = Design("test")
-    assert scene.add_sdcfileset(design, "rtl")
+    with _deprecated():
+        assert scene.add_sdcfileset(design, "rtl")
     assert root.get("mode", "testmode", "sdcfileset") == [("test", "rtl")]
-    assert scene.get_sdcfileset() == [("test", "rtl")]
+    with _deprecated():
+        assert scene.get_sdcfileset() == [("test", "rtl")]
 
 
 def test_timing_scenario_sdcfileset_design_str():
@@ -269,9 +279,11 @@ def test_timing_scenario_sdcfileset_design_str():
 
     scene.set_mode("testmode")
 
-    assert scene.add_sdcfileset("test", "rtl")
+    with _deprecated():
+        assert scene.add_sdcfileset("test", "rtl")
     assert root.get("mode", "testmode", "sdcfileset") == [("test", "rtl")]
-    assert scene.get_sdcfileset() == [("test", "rtl")]
+    with _deprecated():
+        assert scene.get_sdcfileset() == [("test", "rtl")]
 
 
 def test_timing_scenario_sdcfileset_design_step_index():
@@ -280,13 +292,17 @@ def test_timing_scenario_sdcfileset_design_step_index():
 
     scene.set_mode("testmode")
 
-    assert scene.add_sdcfileset("test", "rtl")
-    assert scene.add_sdcfileset("test1", "rtl1", step="step0", index="1")
+    with _deprecated():
+        assert scene.add_sdcfileset("test", "rtl")
+    with _deprecated():
+        assert scene.add_sdcfileset("test1", "rtl1", step="step0", index="1")
     assert root.get("mode", "testmode", "sdcfileset") == [("test", "rtl")]
-    assert scene.get_sdcfileset() == [("test", "rtl")]
+    with _deprecated():
+        assert scene.get_sdcfileset() == [("test", "rtl")]
     assert root.get("mode", "testmode", "sdcfileset", step="step0", index="1") == \
         [("test1", "rtl1")]
-    assert scene.get_sdcfileset(step="step0", index="1") == [("test1", "rtl1")]
+    with _deprecated():
+        assert scene.get_sdcfileset(step="step0", index="1") == [("test1", "rtl1")]
 
 
 def test_timing_scenario_sdcfileset_design_clobber():
@@ -295,13 +311,20 @@ def test_timing_scenario_sdcfileset_design_clobber():
 
     scene.set_mode("testmode")
 
-    assert scene.add_sdcfileset("test", "rtl")
-    assert scene.add_sdcfileset("test1", "rtl1", step="step0", index="1")
-    assert scene.get_sdcfileset() == [("test", "rtl")]
-    assert scene.get_sdcfileset(step="step0", index="1") == [("test1", "rtl1")]
-    assert scene.add_sdcfileset("test1", "rtl", step="step0", index="1", clobber=True)
-    assert scene.get_sdcfileset() == [("test", "rtl")]
-    assert scene.get_sdcfileset(step="step0", index="1") == [("test1", "rtl")]
+    with _deprecated():
+        assert scene.add_sdcfileset("test", "rtl")
+    with _deprecated():
+        assert scene.add_sdcfileset("test1", "rtl1", step="step0", index="1")
+    with _deprecated():
+        assert scene.get_sdcfileset() == [("test", "rtl")]
+    with _deprecated():
+        assert scene.get_sdcfileset(step="step0", index="1") == [("test1", "rtl1")]
+    with _deprecated():
+        assert scene.add_sdcfileset("test1", "rtl", step="step0", index="1", clobber=True)
+    with _deprecated():
+        assert scene.get_sdcfileset() == [("test", "rtl")]
+    with _deprecated():
+        assert scene.get_sdcfileset(step="step0", index="1") == [("test1", "rtl")]
 
 
 def test_timing_constraint_keys():
