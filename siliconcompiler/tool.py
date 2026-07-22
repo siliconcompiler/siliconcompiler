@@ -42,7 +42,7 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils, NodeStatus, Flowgraph
 from siliconcompiler import sc_open
 from siliconcompiler.utils import paths
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.multiprocessing import MPManager, forking
 
 from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema_support.record import RecordTool, RecordSchema
@@ -225,7 +225,8 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     except OSError:
         tty_fd = -1
 
-    pid, master_fd = pty.fork()
+    with forking():
+        pid, master_fd = pty.fork()
     if pid == 0:
         # Child: replace ourselves with the target binary. argv[0] is set to
         # ``exe`` so diagnostic output identifies the tool by its real name.

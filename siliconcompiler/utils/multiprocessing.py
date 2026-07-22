@@ -55,12 +55,15 @@ def forking() -> Iterator[None]:
 
     SiliconCompiler pins the ``fork`` start method on Linux (see
     :func:`get_process_context`) while running a logging ``QueueListener`` and
-    the dashboard board on threads. Every worker launch therefore trips
-    CPython's "This process is multi-threaded, use of fork() may lead to
-    deadlocks in the child" ``DeprecationWarning`` (emitted by ``os.fork`` since
-    Python 3.12). The fork paths are deliberately engineered to be fork-safe, so
-    silence that warning at the point of the fork rather than leaking it onto
-    downstream users' consoles or forcing them to configure a global filter.
+    the dashboard board on threads. Every worker launch (and every ``pty.fork``
+    used to run a tool under a pseudo-terminal) therefore trips CPython's "This
+    process is multi-threaded, use of fork()/forkpty() may lead to deadlocks in
+    the child" ``DeprecationWarning`` (emitted by ``os.fork``/``os.forkpty``
+    since Python 3.12). The fork paths are deliberately engineered to be
+    fork-safe (workers fork-then-run carefully; the pty child immediately
+    ``execvp``s), so silence that warning at the point of the fork rather than
+    leaking it onto downstream users' consoles or forcing them to configure a
+    global filter.
 
     Only the fork-with-threads warning is suppressed; any other warning raised
     while forking still propagates.
@@ -68,7 +71,8 @@ def forking() -> Iterator[None]:
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
-            message=r".* is multi-threaded, use of fork\(\) may lead to deadlocks in the child",
+            message=r".* is multi-threaded, use of fork(pty)?\(\) may lead to deadlocks "
+                    r"in the child",
             category=DeprecationWarning)
         yield
 
