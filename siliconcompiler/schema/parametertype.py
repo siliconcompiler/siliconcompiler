@@ -1,6 +1,15 @@
 import re
 from collections.abc import Iterable
 from pathlib import Path, PureWindowsPath
+from typing import Optional, Union
+
+# A schema type in any of its accepted representations: an encoded string, a
+# NodeType wrapper, or a parsed structure (scalar name, container, enum/range).
+SchemaType = Union[str, "NodeType", list, set, tuple, "NodeEnumType", "NodeRangeType"]
+
+# A candidate accepted by NodeType.astype/contains/istype: a class, a
+# NodeEnumType/NodeRangeType instance, or a string token resolving to one.
+TypeCheck = Union[str, type, "NodeEnumType", "NodeRangeType"]
 
 
 class NodeType:
@@ -116,10 +125,47 @@ class NodeType:
         raise ValueError(f"{sctype} not a recognized type")
 
     @staticmethod
-    def contains(value, check):
+    def astype(spec: TypeCheck) -> TypeCheck:
+        """
+        Resolve a friendly type token into the object used for type checks by
+        :meth:`contains` and :meth:`istype`.
+
+        This lets callers use plain strings everywhere instead of importing the
+        ``NodeEnumType`` / ``NodeRangeType`` classes:
+
+        - ``'enum'`` resolves to ``NodeEnumType``
+        - ``'range'`` resolves to ``NodeRangeType``
+        - ``'list'``, ``'set'``, ``'tuple'`` resolve to the container classes
+
+        Scalar type names (``'int'``, ``'float'``, ``'str'``, ``'bool'``,
+        ``'file'``, ``'dir'``) and anything already resolved (a class, or a
+        ``NodeEnumType`` / ``NodeRangeType`` instance) are returned unchanged.
+
+        Args:
+            spec (str or type): the token or type to resolve.
+        """
+
+        if isinstance(spec, str):
+            return {
+                "list": list,
+                "set": set,
+                "tuple": tuple,
+                "enum": NodeEnumType,
+                "range": NodeRangeType,
+            }.get(spec, spec)
+        return spec
+
+    @staticmethod
+    def contains(value: SchemaType, check: TypeCheck) -> bool:
         """
         Check if the type contains a specific type.
+
+        ``check`` may be a class (``list``, ``tuple``, ``set``,
+        ``NodeEnumType``, ``NodeRangeType``) or the equivalent string token
+        accepted by :meth:`astype` (e.g. ``'enum'``, ``'list'``), as well as a
+        scalar type name (``'int'``, ``'file'``, ...).
         """
+        check = NodeType.astype(check)
         if check in (list, tuple, set, NodeEnumType, NodeRangeType):
             if isinstance(value, check):
                 return True
@@ -132,6 +178,86 @@ class NodeType:
         if isinstance(value, NodeRangeType):
             return value.base == check
         return value == check
+
+    @staticmethod
+    def istype(sctype: SchemaType, *types: TypeCheck) -> bool:
+        """
+        Check whether the top-level type is exactly one of ``types``.
+
+        Unlike :meth:`contains`, this does not recurse into container types, so
+        ``istype('[int]', 'int')`` is ``False`` while ``istype('[int]', list)``
+        is ``True``. This makes it the right check for asking "is this
+        parameter a scalar ``int``" without matching ``[int]``/``(int,int)``.
+
+        Accepted checks are the scalar type names (``'int'``, ``'float'``,
+        ``'str'``, ``'bool'``, ``'file'``, ``'dir'``), plus any token accepted
+        by :meth:`astype` for containers, enums and ranges (``'list'``,
+        ``'set'``, ``'tuple'``, ``'enum'``, ``'range'``, or the equivalent
+        classes). Range types match their numeric base (``'int'``/``'float'``)
+        as well as ``'range'``/``NodeRangeType``.
+
+        Args:
+            sctype (str, NodeType, or type): the type to inspect.
+            *types: one or more candidate types to match against.
+        """
+
+        if isinstance(sctype, NodeType):
+            sctype = sctype.type
+        elif isinstance(sctype, str):
+            sctype = NodeType.parse(sctype)
+
+        types = tuple(NodeType.astype(check) for check in types)
+
+        if isinstance(sctype, list):
+            return list in types
+        if isinstance(sctype, set):
+            return set in types
+        if isinstance(sctype, tuple):
+            return tuple in types
+        if isinstance(sctype, NodeRangeType):
+            return NodeRangeType in types or sctype.base in types
+        if isinstance(sctype, NodeEnumType):
+            return NodeEnumType in types
+        if isinstance(sctype, str):
+            return sctype in types
+        return False
+
+    @staticmethod
+    def basetype(sctype: SchemaType) -> Optional[str]:
+        """
+        Return the underlying scalar base type name of a type, unwrapping any
+        container nesting (list, set, tuple) and range/enum wrappers.
+
+        - Range types return their numeric base (``'int'``/``'float'``).
+        - Enum types return ``'enum'``.
+        - Homogeneous containers return their element base (``'[int]'`` ->
+          ``'int'``).
+        - Heterogeneous tuples (e.g. ``'(str,int)'``) return ``None`` since they
+          have no single base type.
+
+        Args:
+            sctype (str, NodeType, or type): the type to inspect.
+        """
+
+        if isinstance(sctype, NodeType):
+            sctype = sctype.type
+        elif isinstance(sctype, str):
+            sctype = NodeType.parse(sctype)
+
+        if isinstance(sctype, list):
+            return NodeType.basetype(sctype[0])
+        if isinstance(sctype, set):
+            return NodeType.basetype(next(iter(sctype)))
+        if isinstance(sctype, tuple):
+            bases = {NodeType.basetype(subtype) for subtype in sctype}
+            return bases.pop() if len(bases) == 1 else None
+        if isinstance(sctype, NodeRangeType):
+            return sctype.base
+        if isinstance(sctype, NodeEnumType):
+            return 'enum'
+        if isinstance(sctype, str):
+            return sctype
+        return None
 
     @staticmethod
     def to_tcl(value, sctype):

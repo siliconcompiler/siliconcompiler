@@ -8,6 +8,7 @@ import argparse
 import copy
 import re
 import shlex
+import warnings
 
 from enum import Enum
 from typing import Tuple, Optional, Union, List, Dict, Any, Set
@@ -172,10 +173,10 @@ class Parameter:
         allowed = []
         if NodeType.contains(self.__type, NodeEnumType):
             type_str = "enum"
-            if self.is_list():
+            if self.istype("list"):
                 type_str = "[enum]"
                 values = list(self.__type)[0].values
-            elif self.is_set():
+            elif self.istype("set"):
                 type_str = "{enum}"
                 values = list(self.__type)[0].values
             else:
@@ -462,7 +463,7 @@ class Parameter:
         self.__assert_step_index(field, step, index)
 
         if field in self.__defvalue.fields:
-            if not self.is_list() and field == 'value':
+            if not self.istype("list", "set") and field == 'value':
                 raise ValueError("add can only be used on lists or sets")
 
             if isinstance(index, int):
@@ -548,7 +549,7 @@ class Parameter:
 
         if values_only:
             dictvals = {}
-            is_list = self.is_list()
+            is_list = self.istype("list", "set")
             for value, step, index in self.getvalues(return_defvalue=include_default):
                 if is_list:
                     if value:
@@ -747,12 +748,42 @@ class Parameter:
         return copy.deepcopy(self)
 
     # Utility functions
+    def istype(self, *types) -> bool:
+        """
+        Returns true if this parameter's top-level type is exactly one of
+        ``types``.
+
+        This does not recurse into container types, so ``istype('int')`` is
+        ``False`` for a ``[int]`` parameter. See :meth:`NodeType.istype` for the
+        accepted checks (scalar names, the ``'list'``/``'set'``/``'tuple'``
+        container tokens, and ``'enum'``/``'range'``).
+        """
+
+        return NodeType.istype(self.__type, *types)
+
+    def basetype(self) -> Optional[str]:
+        """
+        Returns the underlying scalar base type name of this parameter,
+        unwrapping any container nesting and range/enum wrappers (e.g. ``[int]``
+        and ``int<0..>`` both return ``'int'``). Returns ``None`` for
+        heterogeneous tuples. See :meth:`NodeType.basetype`.
+        """
+
+        return NodeType.basetype(self.__type)
+
     def is_list(self) -> bool:
         """
         Returns true is this parameter is a list type
+
+        .. deprecated::
+            Use :meth:`istype` instead, e.g. ``param.istype('list', 'set')``.
         """
 
-        return isinstance(self.__type, (list, set))
+        warnings.warn(
+            "is_list is deprecated, use istype('list', 'set') instead",
+            DeprecationWarning,
+            stacklevel=2)
+        return NodeType.istype(self.__type, "list", "set")
 
     @property
     def is_file(self) -> bool:

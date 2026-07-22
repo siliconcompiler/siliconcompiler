@@ -789,10 +789,52 @@ def test_is_set():
 
 def test_is_list():
     param = Parameter("str")
-    assert not param.is_list()
+    with pytest.warns(DeprecationWarning, match="is_list is deprecated"):
+        assert not param.is_list()
 
     param = Parameter("[str]")
-    assert param.is_list()
+    with pytest.warns(DeprecationWarning, match="is_list is deprecated"):
+        assert param.is_list()
+
+
+def test_is_list_deprecated():
+    """is_list warns but still reports list and set container types."""
+    with pytest.warns(DeprecationWarning,
+                      match=r"is_list is deprecated, use istype\('list', 'set'\) instead"):
+        assert Parameter("{str}").is_list()
+
+
+@pytest.mark.parametrize("sctype,check,expect", [
+    ("int", ("int",), True),
+    ("int", ("float",), False),
+    ("int", ("int", "float"), True),
+    ("[int]", ("int",), False),
+    ("[int]", ("list",), True),
+    ("[int]", ("list", "set"), True),
+    ("{int}", ("set",), True),
+    ("{int}", ("list", "set"), True),
+    ("(int,str)", ("tuple",), True),
+    ("int<0..10>", ("int",), True),
+    ("int<0..10>", ("range",), True),
+    ("<a,b>", ("enum",), True),
+])
+def test_istype(sctype, check, expect):
+    """Parameter.istype forwards to NodeType.istype on the parameter's type."""
+    assert Parameter(sctype).istype(*check) is expect
+
+
+@pytest.mark.parametrize("sctype,expect", [
+    ("int", "int"),
+    ("float", "float"),
+    ("[int]", "int"),
+    ("{str}", "str"),
+    ("int<0..10>", "int"),
+    ("<a,b>", "enum"),
+    ("(str,int)", None),
+])
+def test_basetype(sctype, expect):
+    """Parameter.basetype forwards to NodeType.basetype on the parameter's type."""
+    assert Parameter(sctype).basetype() == expect
 
 
 @pytest.mark.parametrize("sctype", (
