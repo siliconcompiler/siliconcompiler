@@ -240,12 +240,22 @@ A hard-IP library looks like:
                    self.add_file("mymacro.gds")
                    self.add_asic_aprfileset()
 
-           # Large timing decks come from an external dataroot.
+           # Timing models come from an external dataroot. Keep each format in
+           # its own fileset, tagged by corner and delay model with
+           # add_asic_libcornerfileset(corner, model). Liberty (.lib) uses a
+           # model like "nldm"; a compiled binary timing model (here ".bin")
+           # uses the "<model>-bin" variant.
            self.set_dataroot("foundry", "$FOUNDRY_ROOT/tech/mylib/v1p0")
            with self.active_dataroot("foundry"):
-               with self.active_fileset("models.timing.typical.nldm"):
-                   self.add_file("lib/mymacro_typical.lib")
-                   self.add_asic_libcornerfileset("typical", "nldm")
+               for corner in ("slow", "typical", "fast"):
+                   with self.active_fileset(f"models.timing.{corner}.nldm"):
+                       self.add_file(f"lib/mymacro_{corner}.lib.gz")
+                       self.add_asic_libcornerfileset(corner, "nldm")
+
+                   # Compiled binary timing model for the same corner.
+                   with self.active_fileset(f"models.timing.{corner}.nldm-bin"):
+                       self.add_file(f"bin/mymacro_{corner}.bin", filetype="bin")
+                       self.add_asic_libcornerfileset(corner, "nldm-bin")
 
 The tool mixins (``OpenROADStdCellLibrary``, ``KLayoutLibrary``, ...) attach
 tool-specific parameters so the library carries everything a flow needs. PDKs
@@ -282,6 +292,15 @@ declares the executable, and ships any reference scripts alongside the module:
                self.set_refdir("scripts")
            self.set_script("convert.tcl")
 
+       def runtime_options(self):
+           options = super().runtime_options()
+           # Each token is its own list item — never "-flag value" as one string.
+           options.append("-batch")
+           options.extend(["-log", "convert.log"])
+           return options
+
+A task with no external executable overrides ``run()`` (returning an exit code)
+instead of declaring an ``exe``; everything else about the class is the same.
 See :ref:`tools <dev_tools>` for the full task API.
 
 A **flow** is a :class:`.Flowgraph` subclass that wires tasks into a graph of
@@ -305,6 +324,47 @@ and the package's own:
            self.edge("elaborate", "convert")
 
 See :ref:`flows <dev_flows>` for composing larger graphs.
+
+.. _ext_lib_delaymodel:
+
+ASIC timing models and the delay model
+--------------------------------------
+
+Standard-cell timing ships in more than one format. Liberty (``.lib``) is read
+by the open-source tools; some libraries also provide a compiled, binary timing
+model (here ``.bin``) that a tool can load without parsing Liberty. A library
+keeps each format in its own fileset, tagged with a **corner** and a **delay
+model** using ``add_asic_libcornerfileset(corner, model)`` (see the library
+example above). By convention the compiled variant of a delay model is named
+``<model>-bin``:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Delay model
+     - Fileset
+     - Files
+   * - ``nldm``
+     - ``models.timing.<corner>.nldm``
+     - Liberty (``.lib``)
+   * - ``nldm-bin``
+     - ``models.timing.<corner>.nldm-bin``
+     - compiled (``.bin``)
+   * - ``ccs``
+     - ``models.timing.<corner>.ccs``
+     - CCS Liberty (``.lib``)
+   * - ``ccs-bin``
+     - ``models.timing.<corner>.ccs-bin``
+     - compiled (``.bin``)
+
+A :ref:`target <ext_lib_target>` chooses one with
+``project.set_asic_delaymodel("nldm")`` (or ``"nldm-bin"`` for a flow that reads
+the compiled files). ``delaymodel`` is a free-form string, so ``<model>-bin``
+works purely by matching the fileset name you registered — there is no built-in
+handling of the compiled format. Tool drivers resolve the files by looking up
+``(corner, delaymodel)``, with no auto-select helper; for how a driver consumes
+these filesets in Python and TCL, see
+:ref:`Reading ASIC standard-cell timing <dev_tools_asic_timing>`.
 
 .. _ext_lib_target:
 
@@ -337,6 +397,10 @@ environment variable the modules depend on:
        project.set_pdk(mypdk.MyPDK())
        project.set_mainlib(mymacro.MyMacro())
        project.set_flow(MyFlow())
+
+       # Pick the timing view the tools read (see the delay-model section above);
+       # use "nldm-bin" instead for a flow that reads the compiled timing model.
+       project.set_asic_delaymodel("nldm")
 
 If a module points a dataroot at an environment variable such as
 ``$FOUNDRY_ROOT``, setting it here with ``project.option.set_env`` means users
