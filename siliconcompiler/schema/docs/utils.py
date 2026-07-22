@@ -152,7 +152,7 @@ class KeyPath:
     def keypath(key_path, refdoc, key_text=None):
         '''Helper function for displaying Schema keypaths.'''
         from siliconcompiler import Project, ASIC, FPGA, Lint, Sim
-        from siliconcompiler import PDK, StdCellLibrary, Schematic, Design
+        from siliconcompiler import PDK, StdCellLibrary, Design
 
         text_parts = []
         key_parts = []
@@ -174,8 +174,6 @@ class KeyPath:
                 schema = PDK()
             elif schema_name == "StdCellLibrary":
                 schema = StdCellLibrary()
-            elif schema_name == "Schematic":
-                schema = Schematic()
             elif schema_name == "Design":
                 schema = Design()
             else:
@@ -238,6 +236,8 @@ def parse_rst(state, content, dest, errorloc):
 
 def build_schema_value_table(params, refdoc, keypath_prefix=None, trim_prefix=None):
     '''Helper function for displaying values set in schema as a docutils table.'''
+    from siliconcompiler.schema.parametertype import NodeType
+
     table = [[strong('Keypath'), strong('Type'), strong('Value')]]
 
     if not keypath_prefix:
@@ -288,17 +288,24 @@ def build_schema_value_table(params, refdoc, keypath_prefix=None, trim_prefix=No
                 continue
 
             val_type = param.get(field='type')
+            param_type = NodeType.parse(val_type)
+            is_list = NodeType.istype(param_type, "list")
+            is_set = NodeType.istype(param_type, "set")
             if param.is_path:
-                val_node = format_value_file(val_type.startswith('['), value,
+                # Paths can be scalars, lists or (ordered) sets. Treat both list
+                # and set containers as collections so each file is rendered
+                # individually; value and its dataroot come back as parallel,
+                # order-preserving lists.
+                val_node = format_value_file(is_list or is_set, value,
                                              param.get(field='dataroot',
                                                        step=step, index=index))
             else:
-                val_node = format_value(val_type.startswith('['), val_type.startswith('{'), value)
+                val_node = format_value(is_list, is_set, value)
 
-            if "<" in val_type:
-                if val_type.startswith('['):
+            if NodeType.contains(param_type, "enum"):
+                if is_list:
                     val_type = "[enum]"
-                elif val_type.startswith('{'):
+                elif is_set:
                     val_type = "{enum}"
                 else:
                     val_type = "enum"

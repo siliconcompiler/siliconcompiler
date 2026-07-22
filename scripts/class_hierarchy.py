@@ -13,7 +13,7 @@ except ModuleNotFoundError:
 # Import all the classes
 from siliconcompiler import (Project, ASIC, FPGA, Lint, Sim, Design, PDK,
                              Flowgraph, Checklist, StdCellLibrary, FPGADevice,
-                             Task, ShowTask, ScreenshotTask, Schematic)
+                             Task, ShowTask, ScreenshotTask)
 from siliconcompiler.asic import ASICTask
 from siliconcompiler.constraints import (ASICTimingConstraintSchema, ASICAreaConstraint,
                                          ASICComponentConstraints, ASICPinConstraints,
@@ -44,7 +44,7 @@ def generate_class_hierarchy(classes, output_file="class_hierarchy"):
     TOP_LEVEL_CLASSES = {
         'Project', 'ASIC', 'FPGA', 'Lint', 'Sim', 'Design', 'PDK',
         'Flowgraph', 'Checklist', 'StdCellLibrary', 'FPGADevice',
-        'Task', 'ShowTask', 'ScreenshotTask', 'Schematic'
+        'Task', 'ShowTask', 'ScreenshotTask'
     }
 
     added_nodes = set()
@@ -115,7 +115,7 @@ if __name__ == "__main__":
         # The list of classes from methods.py
         classes_to_graph = [
             Project, ASIC, FPGA, Lint, Sim,
-            Design, PDK, Flowgraph, Checklist, StdCellLibrary, FPGADevice, Schematic,
+            Design, PDK, Flowgraph, Checklist, StdCellLibrary, FPGADevice,
             Task, ShowTask, ScreenshotTask,
             ASICTask,
             ASICTimingConstraintSchema, ASICAreaConstraint, ASICComponentConstraints,

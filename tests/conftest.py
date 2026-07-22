@@ -23,7 +23,8 @@ from siliconcompiler import utils, ASIC, Design, Project
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
+from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager, \
+    get_process_context
 from siliconcompiler.apps import sc_server
 from siliconcompiler.schema import BaseSchema
 
@@ -439,11 +440,20 @@ def disable_mp_process():
     # The scheduler launches node workers via get_process_context().Process
     # (a context-specific Process class), not the module-level
     # multiprocessing.Process, so we fake the context: Process runs the target
-    # inline while Pipe/Pool delegate to a real context.
-    real_ctx = multiprocessing.get_context()
+    # inline while get_start_method/Queue/Pipe/Pool delegate to the real
+    # context. Delegate to siliconcompiler's get_process_context() (not the
+    # interpreter default) so the faked start method matches what the scheduler
+    # actually uses -- e.g. "fork" on Linux, not the 3.14 "forkserver" default.
+    real_ctx = get_process_context()
 
     class FakeContext:
         Process = FakeProc
+
+        def get_start_method(self, *args, **kwargs):
+            return real_ctx.get_start_method(*args, **kwargs)
+
+        def Queue(self, *args, **kwargs):
+            return real_ctx.Queue(*args, **kwargs)
 
         def Pipe(self, *args, **kwargs):
             return real_ctx.Pipe(*args, **kwargs)

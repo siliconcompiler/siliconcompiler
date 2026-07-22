@@ -1,11 +1,12 @@
 import logging
+import multiprocessing
 
 import pytest
 
 from threading import Lock
 from unittest.mock import MagicMock
 
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
 from siliconcompiler import NodeStatus
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.scheduler import TaskScheduler
@@ -111,6 +112,61 @@ def test_run(large_flow, make_tasks):
 
     for step, index in large_flow.get("flowgraph", "testflow", field="schema").get_nodes():
         assert large_flow.get("record", "status", step=step, index=index) == NodeStatus.SUCCESS
+
+
+def test_log_queue_matches_start_method(large_flow, make_tasks):
+    """The per-scheduler log queue must be fork-safe for the active start method.
+
+    Under ``fork`` a node worker inherits the parent's live SyncManager socket
+    connection; a manager-backed queue then has the worker's put() and the
+    parent's QueueListener get() drive the *same* inherited connection from two
+    processes at once, corrupting the manager's framed protocol and deadlocking
+    the run. So on the fork path the queue must be a plain pipe-backed
+    multiprocessing queue. Spawn/forkserver cannot inherit fds and need the
+    picklable manager queue (reconnected fresh per worker, hence safe).
+
+    This runs on every OS and asserts whichever choice this platform's start
+    method requires.
+    """
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    log_queue = scheduler._TaskScheduler__log_queue
+
+    if get_process_context().get_start_method() == "fork":
+        assert type(log_queue).__module__ == "multiprocessing.queues", \
+            f"fork log queue must be a plain multiprocessing queue (a manager " \
+            f"proxy deadlocks across fork), got {type(log_queue)!r}"
+    else:
+        # spawn / forkserver: a picklable manager queue is required and safe.
+        assert type(log_queue).__module__ == "multiprocessing.managers", \
+            f"spawn log queue must be a picklable manager queue, " \
+            f"got {type(log_queue)!r}"
+
+
+@pytest.mark.skipif(
+    "fork" not in multiprocessing.get_all_start_methods(),
+    reason="fork start method not available on this platform (e.g. Windows)")
+def test_log_queue_is_plain_on_fork(large_flow, make_tasks, monkeypatch):
+    """Force the fork path and assert a plain, non-manager queue is chosen.
+
+    Complements ``test_log_queue_matches_start_method`` by exercising the
+    fork-safety invariant even on platforms whose *default* start method is not
+    fork (macOS), so a regression that reintroduces a manager-backed queue on
+    the fork path is caught on both Linux and macOS CI. Only the queue-selection
+    logic is exercised -- no worker is actually forked.
+    """
+    fork_ctx = multiprocessing.get_context("fork")
+    monkeypatch.setattr(taskscheduler_module, "get_process_context",
+                        lambda: fork_ctx)
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    log_queue = scheduler._TaskScheduler__log_queue
+
+    assert type(log_queue).__module__ != "multiprocessing.managers", \
+        f"fork path must not select a SyncManager proxy queue, " \
+        f"got {type(log_queue)!r}"
+    assert type(log_queue).__module__ == "multiprocessing.queues", \
+        f"fork path must select a plain multiprocessing queue, " \
+        f"got {type(log_queue)!r}"
 
 
 @pytest.mark.timeout(180)

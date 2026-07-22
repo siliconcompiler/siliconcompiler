@@ -5,6 +5,7 @@ from typing import List, Tuple, TextIO, Union, Optional, TYPE_CHECKING
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
+from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.utils import truncate_text, units
@@ -269,7 +270,7 @@ class MetricSchema(BaseSchema):
                                        self.get(metric, field="unit"))
         elif metric in ['exetime', 'tasktime', 'totaltime']:
             return units.format_time(self.get(metric, step=step, index=index))
-        elif self.get(metric, field="type") == 'int':
+        elif NodeType.istype(self.get(metric, field="type"), 'int'):
             return str(self.get(metric, step=step, index=index))
         else:
             return units.format_si(self.get(metric, step=step, index=index),

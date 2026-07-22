@@ -36,7 +36,7 @@ from pathlib import Path
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
-from siliconcompiler.schema.parametertype import NodeType, NodeEnumType
+from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import utils, NodeStatus, Flowgraph
@@ -1471,9 +1471,15 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                           f'({e.available_mb:.1f} MB available)')
                         self.__terminate_exe(proc)
                         raise
-
-                    # Read any remaining I/O
-                    read_stdio(stdout_reader, stderr_reader, flush=True)
+                    finally:
+                        # Drain any remaining I/O, including a buffered trailing
+                        # partial line, so output emitted right before the
+                        # process exits reaches the log. This runs on the normal
+                        # exit path AND after an abnormal termination
+                        # (timeout/OOM/ctrl-c), where the process has already
+                        # been terminated above and its final output would
+                        # otherwise be lost.
+                        read_stdio(stdout_reader, stderr_reader, flush=True)
 
                     retcode = proc.returncode
 
@@ -2392,15 +2398,15 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
                 val_type = param.get(field="type")
                 encode_type = NodeType.parse(val_type)
-                if NodeType.contains(encode_type, NodeEnumType):
+                if NodeType.contains(encode_type, "enum"):
                     try:
-                        if val_type.startswith('['):
-                            allowed = list(encode_type)[0].values
+                        if NodeType.istype(encode_type, "list"):
+                            allowed = next(iter(encode_type)).values
                             val_type = "[enum]"
-                        elif val_type.startswith('{'):
-                            allowed = list(encode_type)[0].values
+                        elif NodeType.istype(encode_type, "set"):
+                            allowed = next(iter(encode_type)).values
                             val_type = "{enum}"
-                        elif val_type.startswith('('):
+                        elif NodeType.istype(encode_type, "tuple"):
                             allowed = []
                             val_type = val_type
                         else:

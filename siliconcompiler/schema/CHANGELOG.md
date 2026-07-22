@@ -12,6 +12,11 @@ from the code diffs, not the commit messages). Dates are the git commit dates of
 the version bump. Version numbering was not strictly linear during early
 development, so a few dates are non-monotonic relative to the semver ordering.
 
+## 0.57.0 — 2026-07-21
+- Removed the standalone `Schematic` schema class (`schematic,*` section) and its
+  top-level API; schematic capture is a design-entry concern that belongs outside
+  the build tool.
+
 ## 0.56.0 — 2026-07-07
 - Added value ranges/limits to numeric schema types via a new `NodeRangeType`
   and `int<...>`/`float<...>` type syntax (e.g. `int<0..100>`, `float<0.0..1.0>`,

@@ -411,6 +411,7 @@ def test_str_invalid():
     ("bool", list, False),
     ("bool", tuple, False),
     ("bool", NodeEnumType, False),
+    ("bool", "enum", False),
     ("(str,int)", "str", True),
     ("(str,int)", "int", True),
     ("(str,int)", tuple, True),
@@ -428,17 +429,60 @@ def test_str_invalid():
     ("{(str,int)}", tuple, True),
     ("{(str,int)}", list, False),
     ("{(str,int)}", set, True),
+    ("{(str,int)}", "tuple", True),
+    ("{(str,int)}", "list", False),
+    ("{(str,int)}", "set", True),
     ("{(str,int)}", "bool", False),
     ("(str,int,bool,float,<hello,world>)", "str", True),
     ("(str,int,bool,float,<hello,world>)", "int", True),
     ("(str,int,bool,float,<hello,world>)", "bool", True),
     ("(str,int,bool,float,<hello,world>)", "float", True),
+    ("(str,int,bool,float,<hello,world>)", "enum", True),
     ("(str,int,bool,float,<hello,world>)", NodeEnumType, True),
     ("(str,int,bool,float,<hello,world>)", tuple, True),
-    ("(str,int,bool,float,<hello,world>)", list, False)
+    ("(str,int,bool,float,<hello,world>)", "tuple", True),
+    ("(str,int,bool,float,<hello,world>)", list, False),
+    ("(str,int,bool,float,<hello,world>)", "list", False),
+    ("(str,int,bool,float,<hello,world>)", "set", False),
+    ("(str,int,bool,float,<hello,world>)", set, False),
+    # Remaining scalar bases (float/file/dir) matched directly
+    ("float", "float", True),
+    ("float", "int", False),
+    ("file", "file", True),
+    ("file", "dir", False),
+    ("dir", "dir", True),
+    ("dir", "file", False),
+    # Enum scalar, via 'enum' token and the NodeEnumType class
+    ("<one,two>", "enum", True),
+    ("<one,two>", NodeEnumType, True),
+    ("<one,two>", "str", False),
+    ("int", "enum", False),
+    ("[<one,two>]", "enum", True),
+    ("[<one,two>]", NodeEnumType, True),
+    # Range scalar matches its numeric base, 'range' token, and NodeRangeType
+    ("int<0..10>", "int", True),
+    ("int<0..10>", "float", False),
+    ("int<0..10>", "range", True),
+    ("int<0..10>", NodeRangeType, True),
+    ("float<0.0..1.0>", "float", True),
+    ("int", "range", False),
+    # Simple single-element containers, via class and string token (recursing)
+    ("[int]", "int", True),
+    ("[int]", list, True),
+    ("[int]", "list", True),
+    ("[int]", set, False),
+    ("[int]", "set", False),
+    ("{int}", "int", True),
+    ("{int}", set, True),
+    ("{int}", "set", True),
+    ("{int}", list, False),
+    ("{int}", "list", False),
+    ("[file]", "file", True),
 ])
 def test_contains(sctype, check, expect):
+    # Parsed structure and NodeType wrapper inputs must give the same result.
     assert NodeType.contains(NodeType.parse(sctype), check) is expect
+    assert NodeType.contains(NodeType(sctype), check) is expect
 
 
 def test_parse_negative_float_range():
@@ -680,3 +724,158 @@ def test_normalize_float_range_invalid(range_str, value, match):
     """Poorly formatted or out-of-range values raise on normalize."""
     with pytest.raises(ValueError, match=match):
         NodeType.normalize(value, NodeType.parse(range_str))
+
+
+@pytest.mark.parametrize("sctype,check,expect", [
+    # Scalar exact match
+    ("int", "int", True),
+    ("int", "float", False),
+    ("float", "float", True),
+    ("float", "int", False),
+    ("str", "str", True),
+    ("bool", "bool", True),
+    ("file", "file", True),
+    ("dir", "dir", True),
+    ("file", "dir", False),
+    ("str", "enum", False),
+    # Range types match on their numeric base
+    ("int<0..10>", "int", True),
+    ("int<0..10>", "float", False),
+    ("float<0.0..1.0>", "float", True),
+    ("float<0.0..1.0>", "int", False),
+    ("int<0..10>", NodeRangeType, True),
+    ("float<0.0..1.0>", NodeRangeType, True),
+    ("int", NodeRangeType, False),
+    # Enum types match 'enum' or the NodeEnumType class
+    ("<one,two,three>", "enum", True),
+    ("<one,two,three>", "str", False),
+    ("<one,two,three>", NodeEnumType, True),
+    ("int", NodeEnumType, False),
+    # Containers never match a scalar name (this is the precision contains lacks)
+    ("[int]", "int", False),
+    ("{int}", "int", False),
+    ("(int,int)", "int", False),
+    ("[<one,two>]", "enum", False),
+    # Containers match their own class only, non-recursively
+    ("[int]", list, True),
+    ("[int]", set, False),
+    ("[int]", tuple, False),
+    ("{int}", set, True),
+    ("{int}", list, False),
+    ("(int,str)", tuple, True),
+    ("(int,str)", list, False),
+    ("int", list, False),
+    ("int", set, False),
+    ("int", tuple, False),
+    # The same checks expressed as astype string tokens instead of classes
+    ("int<0..10>", "range", True),
+    ("int", "range", False),
+    ("<one,two,three>", "enum", True),
+    ("[<one,two>]", "enum", False),
+    ("[int]", "list", True),
+    ("[int]", "set", False),
+    ("[int]", "tuple", False),
+    ("{int}", "set", True),
+    ("{int}", "list", False),
+    ("(int,str)", "tuple", True),
+    ("(int,str)", "list", False),
+    ("int", "list", False),
+    ("int", "set", False),
+    ("int", "tuple", False),
+])
+def test_istype(sctype, check, expect):
+    """istype matches the top-level type only, without recursing into containers.
+
+    Checks are exercised both as classes (``list``, ``NodeEnumType``, ...) and
+    as the equivalent :meth:`astype` string tokens (``'list'``, ``'enum'``, ...).
+    """
+    assert NodeType.istype(sctype, check) is expect
+
+
+def test_istype_multiple_checks():
+    """istype accepts several candidate types and matches any of them."""
+    assert NodeType.istype("int", "int", "float") is True
+    assert NodeType.istype("float", "int", "float") is True
+    assert NodeType.istype("str", "int", "float") is False
+    assert NodeType.istype("int", "int", "float", "str", "bool") is True
+    assert NodeType.istype("[int]", list, set, tuple) is True
+    assert NodeType.istype("int", list, set, tuple) is False
+
+
+def test_istype_no_checks():
+    """istype with no candidate types matches nothing."""
+    assert NodeType.istype("int") is False
+    assert NodeType.istype("[int]") is False
+
+
+def test_istype_accepts_nodetype_and_type_objects():
+    """istype works on NodeType instances and raw parsed type objects."""
+    assert NodeType.istype(NodeType("int"), "int") is True
+    assert NodeType.istype(NodeType("[int]"), list) is True
+    assert NodeType.istype(NodeType.parse("int<0..10>"), "int") is True
+    assert NodeType.istype(NodeType.parse("<one,two>"), "enum") is True
+
+
+@pytest.mark.parametrize("sctype,expect", [
+    # Scalars return themselves
+    ("int", "int"),
+    ("float", "float"),
+    ("str", "str"),
+    ("bool", "bool"),
+    ("file", "file"),
+    ("dir", "dir"),
+    # Range types collapse to their numeric base
+    ("int<0..10>", "int"),
+    ("float<0.0..1.0>", "float"),
+    # Enum types collapse to 'enum'
+    ("<one,two,three>", "enum"),
+    # Homogeneous containers return their element base
+    ("[int]", "int"),
+    ("{str}", "str"),
+    ("[file]", "file"),
+    ("{dir}", "dir"),
+    ("[<one,two>]", "enum"),
+    ("[int<0..10>]", "int"),
+    ("(int,int)", "int"),
+    ("(str,str)", "str"),
+    # Nested containers recurse to the leaf
+    ("[[int]]", "int"),
+    # Heterogeneous tuples have no single base
+    ("(str,int)", None),
+    ("(int,float)", None),
+])
+def test_basetype(sctype, expect):
+    """basetype unwraps containers and range/enum wrappers to the scalar base."""
+    assert NodeType.basetype(sctype) == expect
+
+
+def test_basetype_accepts_nodetype_and_type_objects():
+    """basetype works on NodeType instances and raw parsed type objects."""
+    assert NodeType.basetype(NodeType("int")) == "int"
+    assert NodeType.basetype(NodeType("[int]")) == "int"
+    assert NodeType.basetype(NodeType.parse("int<0..10>")) == "int"
+    assert NodeType.basetype(NodeType.parse("(str,int)")) is None
+
+
+@pytest.mark.parametrize("spec,expect", [
+    # String tokens resolve to their classes
+    ("list", list),
+    ("set", set),
+    ("tuple", tuple),
+    ("enum", NodeEnumType),
+    ("range", NodeRangeType),
+    # Scalar names pass through unchanged
+    ("int", "int"),
+    ("float", "float"),
+    ("file", "file"),
+    # Unknown strings pass through unchanged
+    ("bogus", "bogus"),
+    # Classes and instances pass through unchanged
+    (list, list),
+    (NodeEnumType, NodeEnumType),
+    (NodeRangeType, NodeRangeType),
+    (enum1, enum1),
+])
+def test_astype(spec, expect):
+    """astype maps friendly tokens to check objects and passes the rest through."""
+    assert NodeType.astype(spec) == expect

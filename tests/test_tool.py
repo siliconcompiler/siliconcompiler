@@ -884,6 +884,9 @@ def test_get_runtime_different_types_relpath(running_node, monkeypatch):
             'path']
 
 
+# The running_node fixture setup has intermittently exceeded the 15s default
+# on loaded/slow macOS runners; give it headroom.
+@pytest.mark.timeout(30)
 def test_get_runtime_arguments_all_relative(running_node, monkeypatch):
     with open("arg2.run", "w") as f:
         f.write("testfile")
@@ -1578,14 +1581,25 @@ def test_run_breakpoint_logs_raw_output(tmp_path, monkeypatch):
 
     # printf is universally available on POSIX and lets us emit raw escape
     # bytes without depending on the shell's quoting.
-    rc = dut_tool._run_breakpoint(
-        "/usr/bin/printf",
-        ["\\033[31mERR\\033[0m hello\\n"],
-        log_path)
-
-    assert rc == 0
-    with open(log_path, "rb") as f:
-        contents = f.read()
+    #
+    # Retry the capture until the PTY delivers output. ``printf`` exits in
+    # well under a millisecond, and on macOS/BSD closing the slave (child
+    # exit) before the parent's first ``read`` can make the master report
+    # EOF and drop the buffered tail — the same class of race the keystroke
+    # test documents. A real breakpoint session is a long-lived interactive
+    # shell, so this only bites a synthetic fast-exiting child; retrying
+    # keeps the byte assertions meaningful without weakening them.
+    contents = b""
+    for _ in range(5):
+        rc = dut_tool._run_breakpoint(
+            "/usr/bin/printf",
+            ["\\033[31mERR\\033[0m hello\\n"],
+            log_path)
+        assert rc == 0
+        with open(log_path, "rb") as f:
+            contents = f.read()
+        if contents:
+            break
     # Raw bytes preserved: both the ANSI escape sequences and the payload.
     assert b"\x1b[31m" in contents
     assert b"\x1b[0m" in contents
@@ -2087,6 +2101,99 @@ def test_run_task_carriage_return_terminates_lines(running_node, monkeypatch, pa
     for frame in ("Building... 0%", "Building... 50%", "Building... 100%"):
         assert frame in info_msgs, \
             f"Missing \\r-terminated frame {frame!r} in log records: {info_msgs}"
+
+
+def test_run_task_timeout_flushes_trailing_output(running_node, monkeypatch, patch_psutil,
+                                                  caplog):
+    """Output emitted just before a timeout kills the process (including an
+    unterminated trailing line) must still reach the log via the final
+    flush-drain, rather than being dropped on the abnormal-exit path."""
+
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    trailing = "fatal: stuck here with no newline"
+    stdout_path = "running.log"
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            pid = 1
+
+            def poll(self):
+                # Emit an unterminated line, then block just long enough to
+                # trip the timeout (0.5s below) before the process would
+                # otherwise exit. Kept short to avoid slowing the suite.
+                with open(stdout_path, 'a') as f:
+                    f.write(trailing)
+                time.sleep(1)
+                return None
+
+            def wait(self, timeout=None):
+                pass
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with caplog.at_level(logging.INFO):
+        with running_node.task.runtime(running_node) as runtool:
+            with pytest.raises(TaskTimeout):
+                runtool.run_task('.', False, False, None, 0.5)
+
+    msgs = [r.getMessage() for r in caplog.records]
+    assert any(trailing in msg for msg in msgs), \
+        f"Trailing output before timeout was dropped from logs: {msgs}"
+
+
+def test_run_task_oom_flushes_trailing_output(running_node, monkeypatch, patch_psutil,
+                                              caplog):
+    """Output emitted just before an out-of-memory kill (including an
+    unterminated trailing line) must still reach the log via the final
+    flush-drain."""
+
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    trailing = "allocating one buffer too many"
+    stdout_path = "running.log"
+
+    def dummy_virtual_memory():
+        class Memory:
+            percent = 99.5
+            available = 100 * 1024 * 1024  # 100 MiB, below the kill limit
+        return Memory
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', dummy_virtual_memory)
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            pid = 1
+
+            def poll(self):
+                with open(stdout_path, 'a') as f:
+                    f.write(trailing)
+                return None
+
+            def wait(self, timeout=None):
+                pass
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    monkeypatch.setattr(Task, '_Task__IO_POLL_INTERVAL', 0)
+
+    with caplog.at_level(logging.INFO):
+        with running_node.task.runtime(running_node) as runtool:
+            with pytest.raises(TaskOutOfMemoryError):
+                runtool.run_task('.', False, False, None, None)
+
+    msgs = [r.getMessage() for r in caplog.records]
+    assert any(trailing in msg for msg in msgs), \
+        f"Trailing output before OOM kill was dropped from logs: {msgs}"
 
 
 def test_select_input_nodes_entry(running_node):
