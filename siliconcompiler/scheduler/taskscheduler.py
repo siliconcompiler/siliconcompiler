@@ -19,7 +19,7 @@ from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter, \
     SCBlankColorlessLoggerFormatter, SCTeeLoggerHandler
-from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
+from siliconcompiler.utils.multiprocessing import MPManager, get_process_context, forking
 from siliconcompiler.scheduler import SCRuntimeError
 
 if TYPE_CHECKING:
@@ -421,7 +421,8 @@ class TaskScheduler:
         info["running"] = True
         info["parent_pipe"], pipe = get_process_context().Pipe()
         info["node"].set_queue(pipe, self.__log_queue)
-        info["proc"].start()
+        with forking():
+            info["proc"].start()
 
     def __launch_nodes(self) -> bool:
         """

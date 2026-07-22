@@ -842,7 +842,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             # [job_hash]/[design]/[job_name]/[step]/[index]/...
             try:
                 with tarfile.open(results_path, 'r:gz') as tar:
-                    tar.extractall(path=tmpdir)
+                    tar.extractall(path=tmpdir, **utils.tar_extract_kwargs())
             except tarfile.TarError as e:
                 self.__logger.error(f'Failed to extract data from {results_path}: {e}')
                 return

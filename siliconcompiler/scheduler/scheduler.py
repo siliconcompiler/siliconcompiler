@@ -25,7 +25,7 @@ from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceiv
 
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
-from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
+from siliconcompiler.utils.multiprocessing import MPManager, get_process_context, forking
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
 from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.utils.curation import collect
@@ -718,7 +718,7 @@ class Scheduler:
         # Call this in case this was invoked without __main__
         multiprocessing.freeze_support()
 
-        with get_process_context().Pool(pool_size) as pool:
+        with forking(), get_process_context().Pool(pool_size) as pool:
             while True:
                 # Filter nodes
                 filter_nodes(nodes)
