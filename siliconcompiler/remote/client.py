@@ -23,6 +23,7 @@ from siliconcompiler.schema import Journal, Parameter
 from siliconcompiler.package import PythonPathResolver, FileResolver, KeyPathResolver
 
 from siliconcompiler.utils.logging import get_console_formatter
+from siliconcompiler.utils.multiprocessing import forking
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
@@ -676,7 +677,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self.__project._logger_console.setFormatter(
             get_console_formatter(self.__project, True, self.STEP_NAME, None))
         if not self.__download_pool:
-            self.__download_pool = multiprocessing.Pool()
+            with forking():
+                self.__download_pool = multiprocessing.Pool()
 
         if self.__check_interval is None:
             check_info = self.__check()
@@ -842,7 +844,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             # [job_hash]/[design]/[job_name]/[step]/[index]/...
             try:
                 with tarfile.open(results_path, 'r:gz') as tar:
-                    tar.extractall(path=tmpdir)
+                    tar.extractall(path=tmpdir, **utils.tar_extract_kwargs())
             except tarfile.TarError as e:
                 self.__logger.error(f'Failed to extract data from {results_path}: {e}')
                 return

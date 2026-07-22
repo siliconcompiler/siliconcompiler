@@ -6,6 +6,7 @@ import psutil
 import shutil
 import stat
 import sys
+import tarfile
 import traceback
 
 import os.path
@@ -34,6 +35,28 @@ from siliconcompiler.utils.paths import builddir
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
+
+
+def tar_extract_kwargs(filter: str = "data") -> Dict[str, str]:
+    """Returns keyword arguments selecting a PEP 706 extraction filter.
+
+    ``TarFile.extractall``/``extract`` gained the ``filter`` argument in Python
+    3.12 (backported to the 3.10.12+ and 3.11.4+ security releases). Passing it
+    silences the ``DeprecationWarning`` emitted on 3.12/3.13 about the extraction
+    default changing in 3.14, and ``"data"`` matches the new 3.14 default.
+
+    On older point releases the argument does not exist and passing it raises
+    ``TypeError``; those versions also predate the warning, so return no kwargs
+    and let the legacy default apply.
+
+    Args:
+        filter (str): The extraction filter to request (``"data"``, ``"tar"`` or
+            ``"fully_trusted"``). Defaults to ``"data"``, the safest option and
+            the Python 3.14 default.
+    """
+    if hasattr(tarfile, "data_filter"):
+        return {"filter": filter}
+    return {}
 
 
 def link_symlink_copy(srcfile, dstfile):

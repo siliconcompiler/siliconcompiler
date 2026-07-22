@@ -28,6 +28,7 @@ from siliconcompiler.scheduler import TaskScheduler
 
 from siliconcompiler.remote import JobStatus, NodeStatus
 from siliconcompiler.remote.schema import ServerSchema
+from siliconcompiler.utils import tar_extract_kwargs
 from siliconcompiler.utils.paths import jobdir
 
 
@@ -265,7 +266,7 @@ class Server(ServerSchema):
         # Move the uploaded archive and un-zip it.
         # (Contents will be encrypted for authenticated jobs)
         with tarfile.open(tmp_file, "r:gz") as tar:
-            tar.extractall(path=job_dir)
+            tar.extractall(path=job_dir, **tar_extract_kwargs())
 
         # Delete the temporary file if it still exists.
         if os.path.exists(tmp_file):
