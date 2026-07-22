@@ -147,6 +147,12 @@
     "git-url": "https://github.com/YosysHQ/sby.git",
     "git-commit": "v0.67",
     "docker-depends": "yosys",
+    "build-depends": ["bitwuzla", "boolector"],
+    "auto-update": true
+  },
+  "bitwuzla": {
+    "git-url": "https://github.com/bitwuzla/bitwuzla.git",
+    "git-commit": "0.9.1",
     "auto-update": true
   },
   "boolector": {
