@@ -6,11 +6,11 @@ class _OptProperty:
     Base class for optimization properties.
 
     Args:
-        key (Tuple[str]): The schema key associated with this property.
+        key (Tuple[str, ...]): The schema key associated with this property.
         step (str, optional): The step associated with this property.
         index (str, optional): The index associated with this property.
     """
-    def __init__(self, key: Tuple[str], step: Optional[str] = None, index: Optional[str] = None):
+    def __init__(self, key: Tuple[str, ...], step: Optional[str] = None, index: Optional[str] = None):
         self.__key = key
         self.__step = step
         self.__index = index
@@ -25,7 +25,7 @@ class _OptProperty:
         return self.__name
 
     @property
-    def key(self) -> Tuple[str]:
+    def key(self) -> Tuple[str, ...]:
         """
         Returns the schema key associated with this property.
         """
@@ -89,13 +89,13 @@ class Parameter(_OptProperty):
     Represents a parameter to be optimized.
 
     Args:
-        key (Tuple[str]): The schema key for the parameter.
+        key (Tuple[str, ...]): The schema key for the parameter.
         values (List, optional): The list of possible values for the parameter.
         type (str): The type of the parameter (e.g., 'int', 'float', 'bool').
         step (str, optional): The step associated with this parameter.
         index (str, optional): The index associated with this parameter.
     """
-    def __init__(self, key: Tuple[str], values: Optional[List], type: str,
+    def __init__(self, key: Tuple[str, ...], values: Optional[List], type: str,
                  step: Optional[str] = None, index: Optional[str] = None):
         super().__init__(key, step=step, index=index)
         self.__values = values
@@ -121,12 +121,12 @@ class Assertion(_OptProperty):
     Represents an assertion or constraint on a metric.
 
     Args:
-        key (Tuple[str]): The schema key for the metric being asserted.
+        key (Tuple[str, ...]): The schema key for the metric being asserted.
         criteria (Callable[[Union[float, int]], bool]): A function that evaluates the metric value.
         step (str, optional): The step associated with this assertion.
         index (str, optional): The index associated with this assertion.
     """
-    def __init__(self, key: Tuple[str], criteria: Callable[[Union[float, int]], bool],
+    def __init__(self, key: Tuple[str, ...], criteria: Callable[[Union[float, int]], bool],
                  step: Optional[str] = None, index: Optional[str] = None):
         super().__init__(key, step=step, index=index)
         self.__criteria = criteria
@@ -144,13 +144,13 @@ class Goal(_OptProperty):
     Represents an optimization goal.
 
     Args:
-        key (Tuple[str]): The schema key for the metric being optimized.
+        key (Tuple[str, ...]): The schema key for the metric being optimized.
         goal (str): The direction of optimization ('min' or 'max').
         stop_goal (Union[float, int], optional): A target value to stop optimization early.
         step (str, optional): The step associated with this goal.
         index (str, optional): The index associated with this goal.
     """
-    def __init__(self, key: Tuple[str], goal: str, stop_goal: Optional[Union[float, int]] = None,
+    def __init__(self, key: Tuple[str, ...], goal: str, stop_goal: Optional[Union[float, int]] = None,
                  step: Optional[str] = None, index: Optional[str] = None):
         super().__init__(key, step=step, index=index)
         self.__goal = goal

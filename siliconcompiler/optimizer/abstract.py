@@ -86,14 +86,14 @@ class AbstractOptimizer(ResultOptimizer):
         """
         return f"{self.__project.name}_{self.opt_hash}"
 
-    def __check_key_step(self, key: Tuple[str], step: Optional[str], index: Optional[str]) -> None:
+    def __check_key_step(self, key: Tuple[str, ...], step: Optional[str], index: Optional[str]) -> None:
         """
         Validates that the key, step, and index exist in the project schema/flowgraph.
         """
         if not self.project.valid(*key):
             raise KeyError(f"Invalid key: [{','.join(key)}]")
 
-        flow = self.project.get("flowgraph", self.project.option.get_flow(), field="schema")
+        flow = self.project.get_flow()
         nodes = flow.get_nodes()
         if step is not None:
             for s, _ in nodes:
