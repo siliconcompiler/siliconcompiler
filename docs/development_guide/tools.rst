@@ -188,9 +188,8 @@ into *libcorner filesets*, keyed by ``(corner, delaymodel)`` via
 :meth:`.StdCellLibrary.add_asic_libcornerfileset` (see
 :ref:`Timing models and the delay model <lib_delaymodel>` for the library side).
 
-There is **no helper that auto-selects a fileset from the delay model** — a
-driver looks the fileset up by name, keyed on ``(corner, delaymodel)``. Every
-built-in ASIC driver (OpenROAD, OpenSTA) does this the same way. In Python,
+A driver looks the timing fileset up by name, keyed on ``(corner, delaymodel)``.
+Every built-in ASIC driver (OpenROAD, OpenSTA) does this the same way. In Python,
 inside :meth:`.Task.setup()`, read ``asic,delaymodel``, walk the timing scenarios
 and their library corners, and declare the matching filesets' files as required
 inputs:

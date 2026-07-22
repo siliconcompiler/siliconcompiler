@@ -154,9 +154,8 @@ uses a model such as ``nldm`` or ``ccs``, and the compiled files use the
 A :ref:`target <dev_targets>` chooses which set the tools read with
 ``project.set_asic_delaymodel("nldm")`` (or ``"nldm-bin"`` for a flow that reads
 the compiled files). Each tool driver then resolves the files by looking up
-``(corner, delaymodel)`` — there is no automatic selection helper, so a custom
-driver mirrors the built-in ones. For how a driver consumes these filesets in
-Python and TCL, see
+``(corner, delaymodel)``, the same way the built-in drivers do. For how a driver
+consumes these filesets in Python and TCL, see
 :ref:`Reading ASIC standard-cell timing <dev_tools_asic_timing>`.
 
 Useful APIs

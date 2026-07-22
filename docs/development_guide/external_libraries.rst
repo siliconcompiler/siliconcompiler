@@ -362,10 +362,9 @@ example above). By convention the compiled variant of a delay model is named
 A :ref:`target <ext_lib_target>` chooses one with
 ``project.set_asic_delaymodel("nldm")`` (or ``"nldm-bin"`` for a flow that reads
 the compiled files). ``delaymodel`` is a free-form string, so ``<model>-bin``
-works purely by matching the fileset name you registered — there is no built-in
-handling of the compiled format. Tool drivers resolve the files by looking up
-``(corner, delaymodel)``, with no auto-select helper; for how a driver consumes
-these filesets in Python and TCL, see
+works purely by matching the fileset name you registered. Tool drivers resolve
+the files by looking up ``(corner, delaymodel)``; for how a driver consumes these
+filesets in Python and TCL, see
 :ref:`Reading ASIC standard-cell timing <dev_tools_asic_timing>`.
 
 .. _ext_lib_target:
