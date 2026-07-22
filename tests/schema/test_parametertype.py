@@ -480,7 +480,9 @@ def test_str_invalid():
     ("[file]", "file", True),
 ])
 def test_contains(sctype, check, expect):
+    # Parsed structure and NodeType wrapper inputs must give the same result.
     assert NodeType.contains(NodeType.parse(sctype), check) is expect
+    assert NodeType.contains(NodeType(sctype), check) is expect
 
 
 def test_parse_negative_float_range():

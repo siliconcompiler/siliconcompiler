@@ -165,6 +165,9 @@ class NodeType:
         accepted by :meth:`astype` (e.g. ``'enum'``, ``'list'``), as well as a
         scalar type name (``'int'``, ``'file'``, ...).
         """
+        if isinstance(value, NodeType):
+            value = value.type
+
         check = NodeType.astype(check)
         if check in (list, tuple, set, NodeEnumType, NodeRangeType):
             if isinstance(value, check):
