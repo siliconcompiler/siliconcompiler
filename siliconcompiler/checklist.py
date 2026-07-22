@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Tuple, List, Optional, Union, Dict, Iterable
 
 from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope, BaseSchema
+from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 from siliconcompiler import NodeStatus, utils
 from siliconcompiler.utils.paths import cwdirsafe
@@ -397,7 +398,7 @@ class Checklist(NamedSchema):
                         error = True
                         continue
 
-                    if job_data.get("metric", metric, field='type').startswith('int'):
+                    if NodeType.istype(job_data.get("metric", metric, field='type'), 'int'):
                         goal = int(m.group(3))
                         number_format = 'd'
                     else:

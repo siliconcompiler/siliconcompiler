@@ -236,6 +236,8 @@ def parse_rst(state, content, dest, errorloc):
 
 def build_schema_value_table(params, refdoc, keypath_prefix=None, trim_prefix=None):
     '''Helper function for displaying values set in schema as a docutils table.'''
+    from siliconcompiler.schema.parametertype import NodeType
+
     table = [[strong('Keypath'), strong('Type'), strong('Value')]]
 
     if not keypath_prefix:
@@ -286,17 +288,20 @@ def build_schema_value_table(params, refdoc, keypath_prefix=None, trim_prefix=No
                 continue
 
             val_type = param.get(field='type')
+            param_type = NodeType.parse(val_type)
+            is_list = NodeType.istype(param_type, "list")
+            is_set = NodeType.istype(param_type, "set")
             if param.is_path:
-                val_node = format_value_file(val_type.startswith('['), value,
+                val_node = format_value_file(is_list, value,
                                              param.get(field='dataroot',
                                                        step=step, index=index))
             else:
-                val_node = format_value(val_type.startswith('['), val_type.startswith('{'), value)
+                val_node = format_value(is_list, is_set, value)
 
-            if "<" in val_type:
-                if val_type.startswith('['):
+            if NodeType.contains(param_type, "enum"):
+                if is_list:
                     val_type = "[enum]"
-                elif val_type.startswith('{'):
+                elif is_set:
                     val_type = "{enum}"
                 else:
                     val_type = "enum"

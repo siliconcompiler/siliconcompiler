@@ -1278,7 +1278,7 @@ class BaseSchema:
                     self, *keypath, missing_ok=True, step=step, index=index,
                     dataroots=dataroots, collection_dir=collection_dir, cwd=cwd)
 
-                if not param.is_list():
+                if not param.istype("list", "set"):
                     check_files = [check_files]
                     found_files = [found_files]
 

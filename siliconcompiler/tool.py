@@ -36,7 +36,7 @@ from pathlib import Path
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
-from siliconcompiler.schema.parametertype import NodeType, NodeEnumType
+from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import utils, NodeStatus, Flowgraph
@@ -2398,15 +2398,15 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
                 val_type = param.get(field="type")
                 encode_type = NodeType.parse(val_type)
-                if NodeType.contains(encode_type, NodeEnumType):
+                if NodeType.contains(encode_type, "enum"):
                     try:
-                        if val_type.startswith('['):
+                        if NodeType.istype(encode_type, "list"):
                             allowed = list(encode_type)[0].values
                             val_type = "[enum]"
-                        elif val_type.startswith('{'):
+                        elif NodeType.istype(encode_type, "set"):
                             allowed = list(encode_type)[0].values
                             val_type = "{enum}"
-                        elif val_type.startswith('('):
+                        elif NodeType.istype(encode_type, "tuple"):
                             allowed = []
                             val_type = val_type
                         else:

@@ -282,7 +282,7 @@ class CommandLineSchema(BaseSchema):
                     logger.info(msg)
 
                 # Storing in manifest
-                if param.is_list():
+                if param.istype("list", "set"):
                     schema.add(*valkeypath, item, step=step, index=index)
                 else:
                     schema.set(*valkeypath, item, step=step, index=index)
