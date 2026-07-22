@@ -359,6 +359,114 @@ def test_stop_dashboard(dashboard):
     assert not dashboard.is_running()
 
 
+def test_set_logger_seeds_log_pane_from_history(dashboard):
+    """When the dashboard attaches, the log pane should be seeded with the
+    records retained by an SCHistoryLogHandler already on the logger, so it
+    shows continuity from before the dashboard opened rather than blank."""
+    from siliconcompiler.utils.logging import SCHistoryLogHandler
+
+    logger = logging.getLogger("test_seed")
+    logger.setLevel(logging.INFO)
+
+    history = SCHistoryLogHandler()
+    for i in range(3):
+        history.emit(logging.LogRecord(
+            "test_seed", logging.INFO, "path", i, f"pre-dashboard {i}", (), None))
+    logger.addHandler(history)
+
+    try:
+        dashboard.set_logger(logger)
+    finally:
+        logger.removeHandler(history)
+
+    text = "\n".join(dashboard._dashboard._log_handler.get_lines())
+    for i in range(3):
+        assert f"pre-dashboard {i}" in text
+
+
+def test_stop_dumps_full_log_buffer(dashboard):
+    """Board.stop must reprint the entire retained log buffer to the normal
+    terminal, not just the lines that fit the visible pane, so an early
+    failure's tail survives the teardown."""
+    board = dashboard._dashboard
+
+    for i in range(40):
+        board._log_handler.add_line(f"log line {i}")
+
+    io_file = io.StringIO()
+    board._console = Console(file=io_file, width=120)
+
+    # Present a fake "running" thread so stop() runs its teardown path
+    # deterministically without spawning a real render thread that would
+    # concurrently write to the console under test.
+    class FakeThread:
+        def is_alive(self):
+            return True
+
+        def join(self, *args, **kwargs):
+            pass
+
+    board._render_thread = FakeThread()
+    board.stop(force=True)
+
+    out = io_file.getvalue()
+    for i in range(40):
+        assert f"log line {i}" in out, f"line {i} missing from teardown dump"
+
+
+def test_stop_without_force_does_not_dump_log(dashboard):
+    """A normal teardown or Ctrl+C interrupt (force=False) must NOT reprint the
+    full log buffer — that dump is reserved for failure teardowns."""
+    board = dashboard._dashboard
+
+    for i in range(40):
+        board._log_handler.add_line(f"log line {i}")
+
+    io_file = io.StringIO()
+    board._console = Console(file=io_file, width=120)
+
+    class FakeThread:
+        def is_alive(self):
+            return True
+
+        def join(self, *args, **kwargs):
+            pass
+
+    board._render_thread = FakeThread()
+    board.stop(force=False)
+
+    out = io_file.getvalue()
+    assert "Full log" not in out
+    # Early lines that would only appear in a full dump must be absent.
+    assert "log line 0" not in out
+
+
+def test_stop_without_force_skips_incomplete(dashboard, mock_running_job_lg):
+    """Without force, stop() must not tear down while a job is incomplete;
+    force=True bypasses that guard."""
+    board = dashboard._dashboard
+
+    class FakeThread:
+        def is_alive(self):
+            return True
+
+        def join(self, *args, **kwargs):
+            pass
+
+    board._render_thread = FakeThread()
+
+    mock_running_job_lg.complete = False
+    board._job_data["design1/job1"] = mock_running_job_lg
+
+    assert not board._render_stop_event.is_set()
+
+    board.stop()  # no force -> guard skips teardown
+    assert not board._render_stop_event.is_set()
+
+    board.stop(force=True)  # bypasses the completeness guard
+    assert board._render_stop_event.is_set()
+
+
 def test_log_buffer_handler():
     event = threading.Event()
     buffer = LogBuffer(queue.Queue(), n=2, event=event)

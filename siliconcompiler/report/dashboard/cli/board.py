@@ -4,6 +4,7 @@ import queue
 import re
 import time
 import threading
+import types
 
 import os.path
 
@@ -363,8 +364,11 @@ class Board:
         Initializes the Board.
 
         Args:
-            manager: A multiprocessing.Manager object to create shared state
-                     (events, dicts, locks) between processes.
+            manager: Unused, retained for call-site compatibility
+                (``MPManager.get_dashboard``). The board and its render thread
+                live entirely in the main process, so its state is held in
+                plain in-process primitives (see ``__init__`` below) rather than
+                SyncManager proxies; no manager is needed.
         """
         self._console = Console(theme=Board.__theme)
 
@@ -391,20 +395,28 @@ class Board:
         else:
             Board._symbols.clear()
 
-        # Cross-process "please repaint" signal, fired both by new log lines
-        # and by job-data changes (_update_render_data). It must stay a manager
-        # Event so the render loop is woken regardless of which process
-        # produced the update. Whether that repaint also needs to reload job
-        # data is decided separately via the data_modified flag below.
-        self._render_event = manager.Event()
-        self._render_stop_event = manager.Event()
+        # "Please repaint" signal, fired both by new log lines and by job-data
+        # changes (_update_render_data). Whether that repaint also needs to
+        # reload job data is decided separately via the data_modified flag below.
+        #
+        # These are deliberately plain in-process ``threading``/``queue``
+        # primitives, not SyncManager proxies. The board and its render thread
+        # live entirely in the main process (workers drop the dashboard handler
+        # and let the parent own all dispatch), so proxies would buy nothing --
+        # and under the ``fork`` start method they are actively dangerous: a
+        # forked node worker inherits the manager's live socket connection, and
+        # concurrent use from the render thread and the child corrupts the
+        # manager's framed protocol, deadlocking every proxy on a recv that
+        # never returns. Plain primitives are fork-immune (and faster).
+        self._render_event = threading.Event()
+        self._render_stop_event = threading.Event()
         self._render_thread = None
 
         # Holds thread job data
-        self._board_info = manager.Namespace()
+        self._board_info = types.SimpleNamespace()
         self._board_info.data_modified = False
-        self._job_data = manager.dict()
-        self._job_data_lock = manager.Lock()
+        self._job_data = {}
+        self._job_data_lock = threading.Lock()
 
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
@@ -414,7 +426,7 @@ class Board:
         # _job_data_lock, so the cache itself does not need its own lock.
         self._topology_cache: Dict[str, _FlowTopology] = {}
 
-        self._log_handler_queue = manager.Queue()
+        self._log_handler_queue = queue.Queue()
 
         # The log buffer shares the render event so a new log line wakes the
         # loop to repaint promptly. It does not touch data_modified, so a
@@ -524,14 +536,20 @@ class Board:
 
         self._update_render_data(project, complete=True)
 
-    def stop(self):
+    def stop(self, force: bool = False):
         """
         Stops the dashboard rendering thread and cleans up the terminal display.
+
+        Args:
+            force (bool): When True, tear down even if some jobs are still
+                incomplete. The completeness guard exists so a stray stop()
+                does not kill the live view mid-run; a genuine failure teardown
+                passes force=True to bypass it.
         """
         if not self.is_running():
             return
 
-        if self._job_data:
+        if not force and self._job_data:
             if any([not job.complete for job in self._job_data.values()]):
                 return
 
@@ -558,6 +576,36 @@ class Board:
                 self._console.print(self._get_rendable())
             except Exception:
                 pass
+
+        # On a failure teardown (force=True), dump the full retained log buffer
+        # to normal-terminal scrollback. The final frame above only shows the
+        # log lines that fit the visible pane; on an early failure the tail
+        # that explains it has usually scrolled past that window, so reprinting
+        # the entire buffer ensures it survives. This is deliberately skipped
+        # for a normal teardown or a Ctrl+C interrupt (force=False): those are
+        # not failures and the live view already served the log.
+        try:
+            lines = self._log_handler.get_lines() if force else []
+            if lines:
+                self._console.rule("[bold]Full log")
+                for line in lines:
+                    try:
+                        # highlight=False keeps rich from recoloring numbers/
+                        # paths inside the line, matching the live log pane
+                        # (which renders each line as a plain table cell).
+                        self._console.print(f"[white]{line}[/]", highlight=False)
+                    except Exception:
+                        # Malformed/unterminated markup in a buffered line must
+                        # not drop it from the dump (that would defeat the whole
+                        # point). Fall back to printing it verbatim as plain
+                        # text with markup disabled.
+                        try:
+                            self._console.print(line, markup=False, highlight=False)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
         try:
             self._console.show_cursor()
         except Exception:

@@ -1,4 +1,5 @@
 from siliconcompiler import NodeStatus
+from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.utils import units
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -110,7 +111,7 @@ def _format_value(metric, value, metric_unit, metric_type, format_as_string):
     elif metric in ['exetime', 'tasktime', 'totaltime']:
         if format_as_string:
             return units.format_time(value)
-    elif metric_type == 'int':
+    elif NodeType.istype(metric_type, 'int'):
         if format_as_string:
             return str(value)
     else:

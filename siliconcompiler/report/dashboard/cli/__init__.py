@@ -3,7 +3,7 @@ import atexit
 from typing import TYPE_CHECKING
 
 from siliconcompiler.report.dashboard import AbstractDashboard
-from siliconcompiler.utils.logging import SCSuppressLoggerFilter
+from siliconcompiler.utils.logging import SCSuppressLoggerFilter, SCHistoryLogHandler
 
 if TYPE_CHECKING:
     from siliconcompiler import Project
@@ -153,6 +153,28 @@ class CliDashboard(AbstractDashboard):
         # explicit synchronization.
         self._dashboard_handler = self._dashboard.make_log_hander(
             formatter_source=self._terminal_handler)
+
+        # Seed the log pane with the history that preceded the dashboard so it
+        # shows continuity from the start rather than starting blank. Records
+        # are fed through the dashboard handler directly (not the logger) so
+        # they get the same color/markup processing as live lines without being
+        # re-dispatched to the other sinks.
+        for handler in list(self._logger.handlers):
+            if isinstance(handler, SCHistoryLogHandler):
+                # drain() snapshots and clears atomically, so the backlog is
+                # not seeded (and reprinted) again on a later re-attach and a
+                # record emitted concurrently is never lost in a read/clear
+                # window; new records keep accumulating from here on.
+                for record in handler.drain():
+                    try:
+                        # handle() (not emit()) applies the handler's level and
+                        # filters and acquires its lock, per the logging
+                        # contract — safer than driving emit() directly.
+                        self._dashboard_handler.handle(record)
+                    except Exception:
+                        pass
+                break
+
         self._logger.addHandler(self._dashboard_handler)
 
         # Silence the terminal handler so log emits don't corrupt the live
@@ -214,7 +236,7 @@ class CliDashboard(AbstractDashboard):
         """
         self._dashboard.end_of_run(self._project)
 
-    def stop(self):
+    def stop(self, force=False):
         """
         Stops the dashboard and restores normal terminal logging.
 
@@ -228,10 +250,16 @@ class CliDashboard(AbstractDashboard):
         shutdown, surfacing as "Exception ignored in atexit callback"
         (issue #5035). The ``try``/``finally`` guarantees the hook is released
         regardless.
+
+        Args:
+            force (bool): When True, tear down even if nodes have not completed.
+                Used on failure paths so an early failure still restores the
+                terminal and dumps the full log tail instead of leaving the
+                dashboard up with the output hidden behind it.
         """
         try:
             self._dashboard.end_of_run(self._project)
-            self._dashboard.stop()
+            self._dashboard.stop(force=force)
         except Exception:
             pass
         finally:
