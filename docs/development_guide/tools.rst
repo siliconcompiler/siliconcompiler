@@ -217,7 +217,7 @@ The reference script performs the identical lookup against the manifest with the
 
   set sc_delaymodel [sc_cfg_get asic delaymodel]
   foreach corner $sc_scenarios {
-      foreach lib $sc_logiclibs {
+      foreach lib $sc_asiclibs {
           set lib_filesets []
           foreach libcorner [sc_cfg_get constraint timing scenario $corner libcorner] {
               if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
@@ -244,9 +244,10 @@ use it whenever that fileset exists:
 
 .. code-block:: python
 
-  model = self.project.get("asic", "delaymodel")
-  if lib.valid("asic", "libcornerfileset", corner, f"{model}-bin"):
-      model = f"{model}-bin"   # prefer the compiled model when available
+  delaymodel = self.project.get("asic", "delaymodel")
+  if not delaymodel.endswith("-bin") and \
+          lib.valid("asic", "libcornerfileset", corner, f"{delaymodel}-bin"):
+      delaymodel = f"{delaymodel}-bin"   # prefer the compiled model when available
 
 That way a target can leave ``delaymodel`` as ``nldm`` and the driver still picks
 up ``nldm-bin`` automatically when the library ships it.
