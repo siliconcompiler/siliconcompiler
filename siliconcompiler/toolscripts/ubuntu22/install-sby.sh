@@ -73,7 +73,7 @@ make -C build -j"${NPROC:-$(nproc)}"
 $SUDO_INSTALL make -C build install
 cd -
 
-# bitwuzla needs GMP >= 6.3 and MPFR >= 4.2.1, newer than Ubuntu 22 ships, and
+# bitwuzla needs GMP >= 6.3 and MPFR >= 4.2.1, newer than some releases ship, and
 # both must live in $PREFIX so they travel with the tool image (only $PREFIX is
 # copied, like click above). Build them from source into $PREFIX on every release
 # for a uniform, self-contained result. '-std=gnu17' keeps GMP's configure probes
