@@ -5,7 +5,7 @@ from typing import Callable, Literal, Tuple, List, Optional, Dict, Union
 
 from siliconcompiler import Project
 from siliconcompiler.schema import EditableSchema
-from siliconcompiler.schema.parametertype import NodeType, NodeEnumType, NodeRangeType
+from siliconcompiler.schema.parametertype import NodeType
 
 from siliconcompiler.optimizer.datastore import Parameter, Goal, Assertion
 from siliconcompiler.optimizer.result import ResultOptimizer
@@ -130,10 +130,10 @@ class AbstractOptimizer(ResultOptimizer):
         value_type = self.__project.get(*key, field='type')
         if not values:
             nodetype = NodeType.parse(value_type)
-            if isinstance(nodetype, NodeEnumType):
+            if NodeType.istype(nodetype, "enum"):
                 value_type = "str"
                 values = nodetype.values
-            elif isinstance(nodetype, NodeRangeType):
+            elif NodeType.istype(nodetype, "range"):
                 if nodetype.base not in ('int', 'float'):
                     raise TypeError(f"Range type with base type {nodetype.base} is not supported")
                 candidatevals = []
@@ -156,7 +156,7 @@ class AbstractOptimizer(ResultOptimizer):
                 else:
                     values = candidatevals
                     value_type = "enum"
-            elif nodetype == "bool":
+            elif NodeType.istype(nodetype, "bool"):
                 values = [True, False]
         if not values:
             raise ValueError("values cannot be empty")
