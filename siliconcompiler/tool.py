@@ -2401,10 +2401,10 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 if NodeType.contains(encode_type, "enum"):
                     try:
                         if NodeType.istype(encode_type, "list"):
-                            allowed = list(encode_type)[0].values
+                            allowed = next(iter(encode_type)).values
                             val_type = "[enum]"
                         elif NodeType.istype(encode_type, "set"):
-                            allowed = list(encode_type)[0].values
+                            allowed = next(iter(encode_type)).values
                             val_type = "{enum}"
                         elif NodeType.istype(encode_type, "tuple"):
                             allowed = []

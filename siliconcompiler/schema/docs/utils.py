@@ -292,7 +292,11 @@ def build_schema_value_table(params, refdoc, keypath_prefix=None, trim_prefix=No
             is_list = NodeType.istype(param_type, "list")
             is_set = NodeType.istype(param_type, "set")
             if param.is_path:
-                val_node = format_value_file(is_list, value,
+                # Paths can be scalars, lists or (ordered) sets. Treat both list
+                # and set containers as collections so each file is rendered
+                # individually; value and its dataroot come back as parallel,
+                # order-preserving lists.
+                val_node = format_value_file(is_list or is_set, value,
                                              param.get(field='dataroot',
                                                        step=step, index=index))
             else:

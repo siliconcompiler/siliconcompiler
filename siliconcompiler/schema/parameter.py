@@ -175,10 +175,10 @@ class Parameter:
             type_str = "enum"
             if self.istype("list"):
                 type_str = "[enum]"
-                values = list(self.__type)[0].values
+                values = next(iter(self.__type)).values
             elif self.istype("set"):
                 type_str = "{enum}"
-                values = list(self.__type)[0].values
+                values = next(iter(self.__type)).values
             else:
                 values = self.__type.values
             allowed = sorted(values)
