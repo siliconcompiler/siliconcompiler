@@ -109,6 +109,70 @@ User Classes
     :inherited-members:
 
 
+.. _tool_extension_classes:
+
+Tool Extension Classes
+======================
+
+These classes extend :class:`.StdCellLibrary`, :class:`.PDK`, and
+:class:`.FPGADevice` with tool-specific parameters. Mix the ones for the tools a
+library targets into its class (see
+:ref:`Packaging an External Library <dev_external_libraries>`). Only the
+tool-specific additions are shown below; the inherited base-class API is
+documented above.
+
+StdCellLibrary mixins
+^^^^^^^^^^^^^^^^^^^^^^
+
+Mixins that extend :class:`.StdCellLibrary`.
+
+.. autoclass:: siliconcompiler.tools.openroad.OpenROADStdCellLibrary
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.KLayoutLibrary
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.yosys.YosysStdCellLibrary
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.bambu.BambuStdCellLibrary
+    :members:
+    :show-inheritance:
+
+PDK mixins
+^^^^^^^^^^
+
+Mixins that extend :class:`.PDK`.
+
+.. autoclass:: siliconcompiler.tools.openroad.OpenROADPDK
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.KLayoutPDK
+    :members:
+    :show-inheritance:
+
+FPGADevice mixins
+^^^^^^^^^^^^^^^^^^
+
+Mixins that extend :class:`.FPGADevice`.
+
+.. autoclass:: siliconcompiler.tools.yosys.YosysFPGA
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.vpr.VPRFPGA
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.opensta.OpenSTAFPGA
+    :members:
+    :show-inheritance:
+
+
 ASIC Constraint Classes
 =======================
 

@@ -257,8 +257,10 @@ A hard-IP library looks like:
                        self.add_file(f"bin/mymacro_{corner}.bin", filetype="bin")
                        self.add_asic_libcornerfileset(corner, "nldm-bin")
 
-The tool mixins (``OpenROADStdCellLibrary``, ``KLayoutLibrary``, ...) attach
-tool-specific parameters so the library carries everything a flow needs. PDKs
+The tool mixins (:class:`~siliconcompiler.tools.openroad.OpenROADStdCellLibrary`,
+:class:`~siliconcompiler.tools.klayout.KLayoutLibrary`, ...) attach tool-specific
+parameters so the library carries everything a flow needs; see
+:ref:`Tool Extension Classes <tool_extension_classes>` for the full list. PDKs
 follow the same recipe with :class:`.PDK` and the tool ``*PDK`` mixins; see
 :ref:`pdks <dev_pdks>`.
 
