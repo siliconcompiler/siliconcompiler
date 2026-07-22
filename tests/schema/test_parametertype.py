@@ -724,7 +724,7 @@ def test_normalize_float_range_invalid(range_str, value, match):
         NodeType.normalize(value, NodeType.parse(range_str))
 
 
-@pytest.mark.parametrize("type,check,expect", [
+@pytest.mark.parametrize("sctype,check,expect", [
     # Scalar exact match
     ("int", "int", True),
     ("int", "float", False),
@@ -781,13 +781,13 @@ def test_normalize_float_range_invalid(range_str, value, match):
     ("int", "set", False),
     ("int", "tuple", False),
 ])
-def test_istype(type, check, expect):
+def test_istype(sctype, check, expect):
     """istype matches the top-level type only, without recursing into containers.
 
     Checks are exercised both as classes (``list``, ``NodeEnumType``, ...) and
     as the equivalent :meth:`astype` string tokens (``'list'``, ``'enum'``, ...).
     """
-    assert NodeType.istype(type, check) is expect
+    assert NodeType.istype(sctype, check) is expect
 
 
 def test_istype_multiple_checks():
@@ -814,7 +814,7 @@ def test_istype_accepts_nodetype_and_type_objects():
     assert NodeType.istype(NodeType.parse("<one,two>"), "enum") is True
 
 
-@pytest.mark.parametrize("type,expect", [
+@pytest.mark.parametrize("sctype,expect", [
     # Scalars return themselves
     ("int", "int"),
     ("float", "float"),
@@ -842,9 +842,9 @@ def test_istype_accepts_nodetype_and_type_objects():
     ("(str,int)", None),
     ("(int,float)", None),
 ])
-def test_basetype(type, expect):
+def test_basetype(sctype, expect):
     """basetype unwraps containers and range/enum wrappers to the scalar base."""
-    assert NodeType.basetype(type) == expect
+    assert NodeType.basetype(sctype) == expect
 
 
 def test_basetype_accepts_nodetype_and_type_objects():

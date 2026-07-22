@@ -804,6 +804,29 @@ def test_is_list_deprecated():
         assert Parameter("{str}").is_list()
 
 
+@pytest.mark.parametrize("sctype,expect", [
+    # Any list container is a list, regardless of element type
+    ("[file]", True),
+    ("[dir]", True),
+    ("[int]", True),
+    ("[str]", True),
+    ("[<a,b>]", True),
+    # Sets count too
+    ("{file}", True),
+    ("{dir}", True),
+    ("{str}", True),
+    # Scalars and tuples are not
+    ("file", False),
+    ("dir", False),
+    ("int", False),
+    ("(str,int)", False),
+])
+def test_is_list_container_types(sctype, expect):
+    """is_list is true for any list/set container, including lists of files."""
+    with pytest.warns(DeprecationWarning):
+        assert Parameter(sctype).is_list() is expect
+
+
 @pytest.mark.parametrize("sctype,check,expect", [
     ("int", ("int",), True),
     ("int", ("float",), False),
