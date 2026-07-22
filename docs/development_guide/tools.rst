@@ -46,10 +46,6 @@ First, you tell SiliconCompiler about the tool's executable and how to check its
 .. code-block:: python
 
   def setup(self):
-      # Get the tool and task name for the current step.
-      tool = self.tool
-      task = self.task
-
       # 1. Point to the executable.
       self.set_exe('my_tool_binary')
 
@@ -80,7 +76,7 @@ Next, you define what the specific task needs to run and what it will produce.
       # 5. Define required schema parameters.
       #    This ensures the flow will fail early if a critical setting is missing.
       self.add_required_key('asic', 'pdk')
-      self.add_required_key('asic', 'logiclib')
+      self.add_required_key('asic', 'asiclib')
 
       # 6. For script-based tools (like TCL), define the entry script.
       self.set_script('run_my_tool.tcl')
@@ -105,14 +101,15 @@ This method generates the command-line options for the tool. It is called at exe
       '''
       cmdlist = []
 
-      # Get a list of all Verilog source files.
+      # Each option token is its own list item — never "-flag value" as a
+      # single string.
       cmdlist.append("verilog.v")
 
       # Add the output file path.
-      cmdlist.append('-o verilog.vg')
+      cmdlist.extend(['-o', 'verilog.vg'])
 
       # Add the top module name.
-      cmdlist.append(f'-top {self.design_topmodule}')
+      cmdlist.extend(['-top', self.design_topmodule])
 
       return cmdlist
 
@@ -142,7 +139,7 @@ pre_process() and run()
 """""""""""""""""""""""
 
 * :meth:`.Task.pre_process()`: A hook that runs immediately before the tool executable is launched. Useful for last-minute adjustments based on results from prior steps.
-* :meth:`.Task.pre_process()`: For pure-Python tools. If this method is defined, SiliconCompiler will execute this Python function instead of an external command-line executable. It should return 0 on success.
+* :meth:`.Task.run()`: For pure-Python tools. If this method is defined, SiliconCompiler will execute this Python function instead of an external command-line executable. It should return 0 on success.
 
 Version Handling
 ^^^^^^^^^^^^^^^^
@@ -174,9 +171,85 @@ Your TCL script is responsible for reading from this dictionary and applying the
   set sc_asiclibs [sc_cfg_get asic asiclib]
   set sc_pdk      [sc_cfg_get asic pdk]
 
-  # Now use these TCL variables to run tool-specific commands
-  read_liberty -lib $sc_asiclibs
+  # These variables hold library *names*. Use the sc_cfg_get_fileset helper to
+  # resolve a library + fileset into actual files before passing them to tool
+  # commands such as read_liberty or read_lef.
   ...
+
+.. _dev_tools_asic_timing:
+
+Reading ASIC standard-cell timing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An ASIC tool that needs standard-cell timing — synthesis, static timing
+analysis, place-and-route — reads the library's timing files for the active
+**delay model** and timing corners. A standard-cell library groups those files
+into *libcorner filesets*, keyed by ``(corner, delaymodel)`` via
+:meth:`.StdCellLibrary.add_asic_libcornerfileset` (see
+:ref:`Timing models and the delay model <lib_delaymodel>` for the library side).
+
+There is **no helper that auto-selects a fileset from the delay model** — a
+driver looks the fileset up by name, keyed on ``(corner, delaymodel)``. Every
+built-in ASIC driver (OpenROAD, OpenSTA) does this the same way. In Python,
+inside :meth:`.Task.setup()`, read ``asic,delaymodel``, walk the timing scenarios
+and their library corners, and declare the matching filesets' files as required
+inputs:
+
+.. code-block:: python
+
+  def setup(self):
+      super().setup()
+      # ... exe / script setup ...
+      delaymodel = self.project.get("asic", "delaymodel")
+      for libname in self.project.get("asic", "asiclib"):
+          lib = self.project.get_library(libname)
+          for scenario in self.project.constraint.timing.get_scenario().values():
+              for corner in scenario.get_libcorner(self.step, self.index):
+                  if not lib.valid("asic", "libcornerfileset", corner, delaymodel):
+                      continue
+                  for fileset in lib.get("asic", "libcornerfileset", corner, delaymodel):
+                      self.add_required_key(lib, "fileset", fileset, "file", "liberty")
+
+The reference script performs the identical lookup against the manifest with the
+``sc_cfg_*`` helpers, then reads each file:
+
+.. code-block:: tcl
+
+  set sc_delaymodel [sc_cfg_get asic delaymodel]
+  foreach corner $sc_scenarios {
+      foreach lib $sc_logiclibs {
+          set lib_filesets []
+          foreach libcorner [sc_cfg_get constraint timing scenario $corner libcorner] {
+              if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
+                  lappend lib_filesets \
+                      {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
+              }
+          }
+          foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
+              read_liberty -corner $corner $lib_file
+          }
+      }
+  }
+
+A library may also provide a compiled, binary timing model (here ``.bin``) that a
+tool loads faster than parsing Liberty. It is shipped under a ``<model>-bin``
+variant (``nldm-bin``, ``ccs-bin``); the target selects it with
+``set_asic_delaymodel("nldm-bin")``, and the driver performs the same
+``(corner, delaymodel)`` lookup but loads the compiled files with the tool's own
+reader in place of ``read_liberty``.
+
+If a tool always prefers the compiled model, the driver can select it *itself*
+instead of relying on the target — append ``-bin`` to the active delay model and
+use it whenever that fileset exists:
+
+.. code-block:: python
+
+  model = self.project.get("asic", "delaymodel")
+  if lib.valid("asic", "libcornerfileset", corner, f"{model}-bin"):
+      model = f"{model}-bin"   # prefer the compiled model when available
+
+That way a target can leave ``delaymodel`` as ``nldm`` and the driver still picks
+up ``nldm-bin`` automatically when the library ships it.
 
 API Quick Reference
 -------------------
