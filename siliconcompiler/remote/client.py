@@ -23,6 +23,7 @@ from siliconcompiler.schema import Journal, Parameter
 from siliconcompiler.package import PythonPathResolver, FileResolver, KeyPathResolver
 
 from siliconcompiler.utils.logging import get_console_formatter
+from siliconcompiler.utils.multiprocessing import forking
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
@@ -676,7 +677,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self.__project._logger_console.setFormatter(
             get_console_formatter(self.__project, True, self.STEP_NAME, None))
         if not self.__download_pool:
-            self.__download_pool = multiprocessing.Pool()
+            with forking():
+                self.__download_pool = multiprocessing.Pool()
 
         if self.__check_interval is None:
             check_info = self.__check()

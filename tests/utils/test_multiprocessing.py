@@ -316,7 +316,7 @@ def test_forking_suppresses_fork_thread_warning(func):
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         with forking():
-            warnings.warn(message, DeprecationWarning)
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
     assert caught == []
 
 
@@ -324,8 +324,8 @@ def test_forking_propagates_unrelated_warnings():
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         with forking():
-            warnings.warn("an unrelated deprecation", DeprecationWarning)
-            warnings.warn("a user warning", UserWarning)
+            warnings.warn("an unrelated deprecation", DeprecationWarning, stacklevel=2)
+            warnings.warn("a user warning", UserWarning, stacklevel=2)
     messages = [str(w.message) for w in caught]
     assert "an unrelated deprecation" in messages
     assert "a user warning" in messages
@@ -340,7 +340,7 @@ def test_forking_restores_filters_after_normal_exit():
 
 def test_forking_restores_filters_after_exception():
     before = warnings.filters[:]
-    with pytest.raises(RuntimeError, match="^boom$"):
+    with pytest.raises(RuntimeError, match=r"^boom$"):
         with forking():
             raise RuntimeError("boom")
     assert warnings.filters == before

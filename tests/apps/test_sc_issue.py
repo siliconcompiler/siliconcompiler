@@ -285,6 +285,8 @@ def test_sc_issue_run_with_git_installed_version(monkeypatch, project):
     import shutil
     import os
 
+    from siliconcompiler.utils import tar_extract_kwargs
+
     # First generate a testcase
     monkeypatch.setattr('sys.argv', ['sc-issue',
                                      '-cfg',
@@ -299,7 +301,7 @@ def test_sc_issue_run_with_git_installed_version(monkeypatch, project):
     # Extract and modify the issue.json to remove git commit
     test_dir = 'test_issue_orig'
     with tarfile.open('test_issue_orig.tar.gz', 'r:gz') as f:
-        f.extractall(path='.')
+        f.extractall(path='.', **tar_extract_kwargs())
 
     with open(f'{test_dir}/issue.json', 'r') as f:
         issue_info = json.load(f)
