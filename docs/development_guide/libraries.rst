@@ -127,6 +127,37 @@ To use either of these libraries in your design, you would instantiate the class
   # Now, the 'fakeip.v' source file will be included during compilation.
   # project.run()
 
+.. _lib_delaymodel:
+
+Timing models and the delay model
+---------------------------------
+
+A standard-cell library can provide its timing in several formats. Liberty
+(``.lib``) is read by the open-source tools; some libraries also provide a
+compiled, binary timing model (here ``.bin``) that a tool can load without
+parsing Liberty. Each format goes in its own fileset, tagged by corner and
+**delay model** with :meth:`.StdCellLibrary.add_asic_libcornerfileset`: Liberty
+uses a model such as ``nldm`` or ``ccs``, and the compiled files use the
+``<model>-bin`` variant (``nldm-bin``, ``ccs-bin``).
+
+.. code-block:: python
+
+  with self.active_fileset(f"models.timing.{corner}.nldm"):
+      self.add_file(f"lib/mylib_{corner}.lib.gz")
+      self.add_asic_libcornerfileset(corner, "nldm")
+
+  # Compiled binary timing model for the same corner.
+  with self.active_fileset(f"models.timing.{corner}.nldm-bin"):
+      self.add_file(f"bin/mylib_{corner}.bin", filetype="bin")
+      self.add_asic_libcornerfileset(corner, "nldm-bin")
+
+A :ref:`target <dev_targets>` chooses which set the tools read with
+``project.set_asic_delaymodel("nldm")`` (or ``"nldm-bin"`` for a flow that reads
+the compiled files). Each tool driver then resolves the files by looking up
+``(corner, delaymodel)``, the same way the built-in drivers do. For how a driver
+consumes these filesets in Python and TCL, see
+:ref:`Reading ASIC standard-cell timing <dev_tools_asic_timing>`.
+
 Useful APIs
 -----------
 
