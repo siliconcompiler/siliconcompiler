@@ -42,7 +42,11 @@ from siliconcompiler.flows.fpgaflow import (
     FPGAVPRFlow,
     FPGAVPROpenSTAFlow
 )
-from siliconcompiler.flows.generate_openroad_rcx import GenerateOpenRCXFlow
+from siliconcompiler.flows.openroad_pex import (
+    GenerateOpenRCXFlow,
+    GeneratePEXEstimateFlow,
+    PEXCalibrateFlow
+)
 from siliconcompiler.flows.highresscreenshotflow import HighResScreenshotFlow
 from siliconcompiler.flows.img2streamflow import Img2StreamFlow
 from siliconcompiler.flows.interposerflow import InterposerFlow
@@ -89,6 +93,8 @@ from siliconcompiler.flows.synflow import SynthesisFlow
     FPGAVPRFlow,
     FPGAVPROpenSTAFlow,
     GenerateOpenRCXFlow,
+    GeneratePEXEstimateFlow,
+    PEXCalibrateFlow,
     HighResScreenshotFlow,
     Img2StreamFlow,
     InterposerFlow,
@@ -107,3 +113,24 @@ def test_default_valid(flow: Flowgraph):
         flows = [flows]
     for flow in flows:
         assert flow.validate()
+
+
+def test_pex_calibrate_flow_structure():
+    # PEXCalibrateFlow builds on ASICFlow by dropping the write steps and
+    # calibrating on the routed database. It locates that database by the
+    # ASICFlow node names ("write.views"/"write.gds"), so a rename in ASICFlow
+    # would break construction here. This test pins the invariant so such a
+    # rename is caught immediately instead of only in the nightly EDA survey.
+    flow = PEXCalibrateFlow()
+
+    # The calibrate node exists and is fed by the routed database (a single
+    # upstream node), not by a write step.
+    calibrate = flow.get_graph_node("calibrate", "0")
+    assert calibrate is not None
+    inputs = calibrate.get_input()
+    assert len(inputs) == 1
+
+    # The view/GDS write steps are removed.
+    for removed in ("write.views", "write.gds"):
+        with pytest.raises(ValueError):
+            flow.get_graph_node(removed, "0")

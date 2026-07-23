@@ -204,7 +204,13 @@ extraction, and interposer assembly.
   :root: siliconcompiler.flows.img2streamflow/Img2StreamFlow
 
 .. schema::
-  :root: siliconcompiler.flows.generate_openroad_rcx/GenerateOpenRCXFlow
+  :root: siliconcompiler.flows.openroad_pex/GenerateOpenRCXFlow
+
+.. schema::
+  :root: siliconcompiler.flows.openroad_pex/GeneratePEXEstimateFlow
+
+.. schema::
+  :root: siliconcompiler.flows.openroad_pex/PEXCalibrateFlow
 
 .. schema::
   :root: siliconcompiler.flows.interposerflow/InterposerFlow

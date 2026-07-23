@@ -3,9 +3,11 @@ import os
 import re
 import pytest
 
+from siliconcompiler import Design
 from siliconcompiler import Flowgraph
 
 from siliconcompiler.flows.asicflow import ASICFlow
+from siliconcompiler.flows.openroad_pex import GeneratePEXEstimateFlow, PEXCalibrateFlow
 
 from siliconcompiler.scheduler import SchedulerNode
 
@@ -26,8 +28,7 @@ from siliconcompiler.tools.openroad import init_floorplan
 from siliconcompiler.tools.openroad import macro_placement
 from siliconcompiler.tools.openroad import power_grid_analysis
 from siliconcompiler.tools.openroad import power_grid
-from siliconcompiler.tools.openroad import rcx_bench
-from siliconcompiler.tools.openroad import rcx_extract
+from siliconcompiler.tools.openroad import pex
 from siliconcompiler.tools.openroad import rdlroute
 from siliconcompiler.tools.openroad import repair_design
 from siliconcompiler.tools.openroad import repair_timing
@@ -38,6 +39,7 @@ from siliconcompiler.tools.openroad.utils.rcx_merge import (
     merge_openrcx_rules,
     RCXMergeError,
 )
+from siliconcompiler.tools.openroad.utils import pex_calibrate as pc
 
 
 @pytest.mark.eda
@@ -133,6 +135,106 @@ def test_openroad_pin_placement(asic_heartbeat):
     assert log.count("Pin out placed at") == 1
 
 
+_CAP_UNIT_SCALE = {"": 1.0, "m": 1e-3, "u": 1e-6, "n": 1e-9, "p": 1e-12, "f": 1e-15, "a": 1e-18}
+
+
+def _read_layer_rc_caps(path):
+    """Parse per-layer capacitance out of OpenROAD's report_layer_rc tables.
+
+    Returns ``{layer: cap_F_per_um}``. The report prints in the design's
+    capacitance unit, which is PDK-dependent (fF/um on freepdk45, pF/um on
+    gf180), so the unit prefix is read from the header rather than assumed. The
+    file holds one routing table per scene plus an unscened default; the
+    capacitance for a layer must be identical in all of them, which is asserted
+    here rather than silently collapsed. The via table has no capacitance column
+    and so never matches the row pattern.
+    """
+    # Unit row, e.g. "  |  (kohm/um) |  (fF/um)" - only the capacitance column
+    # ends in "F/um", so the resistance column cannot be mistaken for it.
+    header = re.compile(r'\((\w?)F/um\)')
+    row = re.compile(r'^\s*(\w+)\s*\|\s*[\d.eE+-]+\s*\|\s*([\d.eE+-]+)\s*$')
+    scale = None
+    caps = {}
+    with open(path) as fid:
+        for line in fid:
+            unit = header.search(line)
+            if unit:
+                scale = _CAP_UNIT_SCALE[unit.group(1).lower()]
+                continue
+            match = row.match(line)
+            if not match or match.group(1) == "Layer":
+                continue
+            assert scale is not None, f"no capacitance unit header seen before {line!r}"
+            layer, cap = match.group(1), float(match.group(2)) * scale
+            # Same layer in a later (per-scene) table must report the same value.
+            assert caps.setdefault(layer, cap) == cap, \
+                f"{layer} capacitance differs between report_layer_rc tables"
+    assert caps, f"parsed no routing capacitances from {path}"
+    return caps
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_openroad_rccorrection_scales_set_layer_rc(asic_heartbeat):
+    """The PDK's rccorrection must actually reach set_layer_rc.
+
+    This is the payoff of the whole PEX calibration path (pdk rccorrection ->
+    sc_get_corrmap -> sc_setup_pex -> set_layer_rc); everything else only checks
+    that the factors are *derived* correctly. Runs one APR node and reads back
+    OpenROAD's own report_layer_rc output, which the APR preamble always writes.
+    """
+    pdk = asic_heartbeat.get_library(str(asic_heartbeat.get("asic", "pdk")))
+    model = {layer: cap for corner, layertype, layer, _, cap
+             in pdk.get("tool", "openroad", "rclayer")
+             if corner == "typical" and layertype == "routing"}
+    assert model["metal1"] and model["metal2"], "fixture PDK must model metal1/metal2"
+
+    # Correct metal2 only: metal1 is the control that must come through untouched.
+    pdk.add_openroad_rccorrection("typical", "metal2", cap_factor=0.5)
+
+    asic_heartbeat.option.add_to("floorplan.init")
+    job = asic_heartbeat.run()
+    assert job
+
+    report = job.find_result(step="floorplan.init", index="0",
+                             directory="reports/setup", filename="layer_rc.rpt")
+    assert report, "APR preamble did not write reports/setup/layer_rc.rpt"
+    caps = _read_layer_rc_caps(report)
+
+    # abs=0 so the (femtofarad-scale) comparison is governed by rel, not by
+    # pytest.approx's 1e-12 default absolute tolerance, which would make any
+    # assertion on these magnitudes pass vacuously. The report carries 3
+    # significant figures, hence rel=0.01.
+    assert caps["metal2"] == pytest.approx(0.5 * model["metal2"], rel=0.01, abs=0)
+    assert caps["metal1"] == pytest.approx(model["metal1"], rel=0.01, abs=0)
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_openroad_apply_pex_correction_false_bypasses_rccorrection(asic_heartbeat):
+    """apply_pex_correction=False must fall back to the raw rclayer values."""
+    pdk = asic_heartbeat.get_library(str(asic_heartbeat.get("asic", "pdk")))
+    model = {layer: cap for corner, layertype, layer, _, cap
+             in pdk.get("tool", "openroad", "rclayer")
+             if corner == "typical" and layertype == "routing"}
+    pdk.add_openroad_rccorrection("typical", "metal2", cap_factor=0.5)
+
+    for task in APRTask.find_task(asic_heartbeat):
+        task.set_openroad_applypexcorrection(False)
+
+    asic_heartbeat.option.add_to("floorplan.init")
+    job = asic_heartbeat.run()
+    assert job
+
+    report = job.find_result(step="floorplan.init", index="0",
+                             directory="reports/setup", filename="layer_rc.rpt")
+    caps = _read_layer_rc_caps(report)
+    # The 0.5 factor is present in the PDK but must not be applied.
+    assert caps["metal2"] == pytest.approx(model["metal2"], rel=0.01, abs=0)
+
+
 def test_openroad_pdk_add_rclayer_routing():
     pdk = OpenROADPDK()
     pdk.add_openroad_rclayer('typical', 'routing', 'm1', 0.1, 0.2)
@@ -172,6 +274,156 @@ def test_openroad_pdk_add_rclayer_invalid_layertype():
     pdk = OpenROADPDK()
     with pytest.raises(ValueError):
         pdk.add_openroad_rclayer('typical', 'bad', 'm1', 0.1, 0.2)
+
+
+def test_openroad_pdk_unset_rclayer():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rclayer('typical', 'routing', 'm1', 0.1, 0.2)
+    pdk.unset_openroad_rclayer()
+    assert pdk.get('tool', 'openroad', 'rclayer') == []
+
+
+def test_openroad_pdk_add_rccorrection_cap_only_records_none():
+    # Common case: only cap_factor prescribed. res_factor must be recorded as
+    # None (the caller's value, not coerced to 1.0), keeping all four fields.
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.696)
+    assert pdk.get('tool', 'openroad', 'rccorrection') == \
+        [('typical', 'metal2', None, 0.696)]
+
+
+def test_openroad_pdk_add_rccorrection_res_only_records_none():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rccorrection('typical', 'metal3', res_factor=1.1)
+    assert pdk.get('tool', 'openroad', 'rccorrection') == \
+        [('typical', 'metal3', 1.1, None)]
+
+
+def test_openroad_pdk_add_rccorrection_accumulates():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.7)
+    pdk.add_openroad_rccorrection('typical', 'metal4', res_factor=1.0, cap_factor=0.5)
+    assert sorted(pdk.get('tool', 'openroad', 'rccorrection')) == [
+        ('typical', 'metal2', None, 0.7),
+        ('typical', 'metal4', 1.0, 0.5),
+    ]
+
+
+def test_openroad_pdk_add_rccorrection_clobber():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.7)
+    pdk.add_openroad_rccorrection('typical', 'metal3', cap_factor=0.6, clobber=True)
+    assert pdk.get('tool', 'openroad', 'rccorrection') == \
+        [('typical', 'metal3', None, 0.6)]
+
+
+def test_openroad_pdk_rccorrection_tcl_preserves_none_position():
+    # An interior None (res omitted) must hold its slot in the Tcl list, or the
+    # runtime reads cap_factor as res_factor. gettcl emits {} for the
+    # unprescribed field so the tuple stays four elements wide.
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.696)
+    param = pdk.get('tool', 'openroad', 'rccorrection', field=None)
+    assert param.gettcl() == '[list [list "typical" "metal2" {} 0.696]]'
+
+
+def test_openroad_pdk_unset_rccorrection():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.7)
+    pdk.unset_openroad_rccorrection()
+    assert pdk.get('tool', 'openroad', 'rccorrection') == []
+
+
+def test_openroad_pdk_add_rccorrection_replaces_same_layer():
+    # Only one correction can apply to a layer; a second add for the same
+    # (corner, layer) must win outright rather than leaving two entries whose
+    # winner depends on Tcl dict iteration order.
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.7)
+    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.4)
+    assert pdk.get('tool', 'openroad', 'rccorrection') == \
+        [('typical', 'metal2', None, 0.4)]
+
+
+def test_openroad_pdk_add_rccorrection_same_layer_other_corner_kept():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.7)
+    pdk.add_openroad_rccorrection('slow', 'metal2', cap_factor=0.4)
+    assert sorted(pdk.get('tool', 'openroad', 'rccorrection')) == [
+        ('slow', 'metal2', None, 0.4),
+        ('typical', 'metal2', None, 0.7),
+    ]
+
+
+def test_openroad_pdk_add_rccorrection_rejects_negative():
+    # A negative multiplier is never meaningful and would silently invert the
+    # estimate; the schema range rejects it at the setter.
+    pdk = OpenROADPDK()
+    with pytest.raises(ValueError):
+        pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=-0.5)
+    with pytest.raises(ValueError):
+        pdk.add_openroad_rccorrection('typical', 'metal2', res_factor=-1.0)
+
+
+class _FakeCorrLogger:
+    def __init__(self):
+        self.warnings = []
+
+    def warning(self, msg):
+        self.warnings.append(msg)
+
+
+class _FakeCorrPDK:
+    def __init__(self, rclayer):
+        self._rclayer = rclayer
+
+    def get(self, *keys):
+        assert keys == ("tool", "openroad", "rclayer")
+        return self._rclayer
+
+
+class _FakeCorrTask:
+    def __init__(self, logger, pdk, pex_corners):
+        self.logger = logger
+        self.pdk = pdk
+        self._corners = pex_corners
+
+    def get(self, *keys):
+        assert keys == ("var", "pex_corners")
+        return self._corners
+
+
+def _run_corr_warn(rclayer, pex_corners):
+    logger = _FakeCorrLogger()
+    task = _FakeCorrTask(logger, _FakeCorrPDK(rclayer), pex_corners)
+    pex.CalibratePEXTask._warn_uncovered_pex_corners(task)
+    return logger.warnings
+
+
+_TWO_CORNER_RCLAYER = [
+    ("typical", "routing", "metal2", 3.5, 1.2e-16),
+    ("slow", "routing", "metal2", 4.0, 1.3e-16),
+]
+
+
+def test_warn_uncovered_pex_corner_partial():
+    # 'slow' has an estimate model but this survey only calibrates 'typical'.
+    warnings = _run_corr_warn(_TWO_CORNER_RCLAYER, ["typical"])
+    assert len(warnings) == 1
+    assert "slow" in warnings[0]
+
+
+def test_warn_uncovered_pex_corner_full_coverage():
+    # Every modeled corner is covered by the survey -> silent.
+    warnings = _run_corr_warn(_TWO_CORNER_RCLAYER, ["typical", "slow"])
+    assert warnings == []
+
+
+def test_warn_uncovered_pex_corner_single():
+    # Only one modeled corner, and it is covered -> silent.
+    warnings = _run_corr_warn(
+        [("typical", "routing", "metal2", 3.5, 1.2e-16)], ["typical"])
+    assert warnings == []
 
 
 def test_openroad_pdk_set_rclayers():
@@ -1454,7 +1706,7 @@ def test_openroad_power_grid_parameter_pdn_enable():
 
 
 def test_openroad_rcx_bench_parameter_max_layer():
-    task = rcx_bench.ORXBenchTask()
+    task = pex.ORXBenchTask()
     task.set_openroad_benchmaxlayer('m1')
     assert task.get("var", "max_layer") == 'm1'
     task.set_openroad_benchmaxlayer('m2', step='rcx_bench', index='1')
@@ -1463,7 +1715,7 @@ def test_openroad_rcx_bench_parameter_max_layer():
 
 
 def test_openroad_rcx_bench_parameter_bench_length():
-    task = rcx_bench.ORXBenchTask()
+    task = pex.ORXBenchTask()
     task.set_openroad_benchlength(100.0)
     assert task.get("var", "bench_length") == 100.0
     task.set_openroad_benchlength(200.0, step='rcx_bench', index='1')
@@ -1472,12 +1724,124 @@ def test_openroad_rcx_bench_parameter_bench_length():
 
 
 def test_openroad_rcx_extract_parameter_corner():
-    task = rcx_extract.ORXExtractTask()
+    task = pex.ORXExtractTask()
     task.set_openroad_rcxcorner('test_corner')
     assert task.get("var", "corner") == 'test_corner'
     task.set_openroad_rcxcorner('other_corner', step='rcx_extract', index='1')
     assert task.get("var", "corner", step='rcx_extract', index='1') == 'other_corner'
     assert task.get("var", "corner") == 'test_corner'
+
+
+##############################################################################
+# PEX task setup
+##############################################################################
+def _setup_node(project, step):
+    """Run a node's setup() and return the configured task."""
+    node = SchedulerNode(project, step, "0")
+    with node.runtime():
+        node.setup()
+        return node.task
+
+
+def test_openroad_pex_bench_extract_setup(asic_gcd):
+    asic_gcd.set_flow(GeneratePEXEstimateFlow())
+    task = _setup_node(asic_gcd, "extract")
+
+    assert [str(s) for s in task.get("script")] == ["pex/sc_pex_extract.tcl"]
+    # set_extraction_rules_file only exists from 26Q3-23; the base tool floor
+    # (>=24Q3) would let the task launch and then fail on an unknown command.
+    assert task.get("version") == [">=26Q3-23"]
+    # Every corner the PDK ships a deck for, not just the scenario corners.
+    assert task.get("var", "pex_corners") == ["typical"]
+    assert task.get("output") == ["gcd.rclayer.csv"]
+    require = task.get("require")
+    assert "library,freepdk45,pdk,pexmodelfileset,openroad,typical" in require
+
+
+def test_openroad_pex_bench_extract_setup_requires_openrcx(asic_gcd):
+    asic_gcd.set_flow(GeneratePEXEstimateFlow())
+    pdk = asic_gcd.get_library(str(asic_gcd.get("asic", "pdk")))
+    for corner in pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
+        pdk.unset("pdk", "pexmodelfileset", "openroad", corner)
+
+    with pytest.raises(ValueError, match="OpenRCX extraction deck"):
+        _setup_node(asic_gcd, "extract")
+
+
+def test_openroad_calibrate_pex_setup(asic_gcd):
+    asic_gcd.set_flow(PEXCalibrateFlow())
+    task = _setup_node(asic_gcd, "calibrate")
+
+    assert [str(s) for s in task.get("script")] == ["apr/sc_calibrate_pex.tcl"]
+    # Needs both the mcmm scene API (26Q1-1133) and set_extraction_rules_file.
+    assert task.get("version") == [">=26Q3-23"]
+    assert task.get("var", "pex_corners") == ["typical"]
+    # Terminal analysis node: the calibration CSVs and no design views.
+    assert task.get("output") == ["gcd.perlayer.csv", "gcd.nets.csv"]
+    assert not task.get("var", "ord_enable_images")
+
+
+def test_openroad_calibrate_pex_setup_requires_openrcx(asic_gcd):
+    asic_gcd.set_flow(PEXCalibrateFlow())
+    pdk = asic_gcd.get_library(str(asic_gcd.get("asic", "pdk")))
+    for corner in pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
+        pdk.unset("pdk", "pexmodelfileset", "openroad", corner)
+
+    with pytest.raises(ValueError, match="OpenRCX extraction deck"):
+        _setup_node(asic_gcd, "calibrate")
+
+
+def test_openroad_calibrate_pex_hashes_rccorrection(asic_gcd):
+    # Recalibrating must invalidate cached nodes, so the PDK's rccorrection has
+    # to be a required key (part of the node hash) like the rclayer it scales.
+    asic_gcd.set_flow(PEXCalibrateFlow())
+    pdk = asic_gcd.get_library(str(asic_gcd.get("asic", "pdk")))
+    pdk.add_openroad_rccorrection("typical", "metal2", cap_factor=0.5)
+
+    require = _setup_node(asic_gcd, "calibrate").get("require")
+    assert "library,freepdk45,tool,openroad,rccorrection" in require
+    assert "library,freepdk45,tool,openroad,rclayer" in require
+
+
+def _gf180_project(design, flow):
+    """A gf180 ASIC project with ``flow`` set - a multi-corner, filler-cell PDK."""
+    from siliconcompiler import ASIC
+    from siliconcompiler.targets import gf180_demo
+
+    project = ASIC(design)
+    project.add_fileset(["rtl", "sdc"])
+    gf180_demo(project)
+    project.set_flow(flow)
+    return project
+
+
+def test_openroad_pex_bench_extract_setup_multicorner(gcd_design):
+    # freepdk45 ships exactly one pex corner, so a multi-corner PDK is the only
+    # way to check that the bench characterizes *every* corner the deck ships
+    # rather than one of them.
+    project = _gf180_project(gcd_design, GeneratePEXEstimateFlow())
+    pdk = project.get_library(str(project.get("asic", "pdk")))
+    deck_corners = set(pdk.getkeys("pdk", "pexmodelfileset", "openroad"))
+    assert len(deck_corners) > 1, "gf180 fixture must ship more than one pex corner"
+
+    task = _setup_node(project, "extract")
+    assert set(task.get("var", "pex_corners")) == deck_corners
+
+
+def test_openroad_calibrate_pex_keeps_cell_required_keys(gcd_design):
+    # CalibratePEXTask suppresses the standard PNR outputs. The library cell
+    # lists the APR preamble reads must survive that override, or a change to a
+    # filler/tap list would not invalidate the node. (gf180 rather than freepdk45
+    # because it is the fixture PDK that actually declares those cell lists.)
+    def cell_keys(flow, step):
+        project = _gf180_project(gcd_design, flow)
+        return {key for key in _setup_node(project, step).get("require")
+                if ",asic,cells," in key}
+
+    calibrate_keys = cell_keys(PEXCalibrateFlow(), "calibrate")
+    apr_keys = cell_keys(ASICFlow(), "place.detailed")
+    assert apr_keys, "gf180 fixture must declare some asic,cells keys"
+    assert calibrate_keys == apr_keys
 
 
 def test_openroad_rdlroute_parameter_rdlroute():
@@ -2301,3 +2665,537 @@ def test_rcx_merge_roundtrip_reference():
              for i, text in enumerate(per_corner)]
 
     assert merge_openrcx_rules(files) == original
+
+
+##############################################################################
+# pex_calibrate utility
+##############################################################################
+##############################################################################
+# Target resolution
+##############################################################################
+def test_resolve_target_callable():
+    def my_target(project):
+        pass
+    assert pc.resolve_target(my_target) is my_target
+
+
+def test_resolve_target_bad_name():
+    with pytest.raises(pc.PEXCalibrateError):
+        pc.resolve_target("definitely_not_a_real_target_module")
+
+
+def test_resolve_target_wrong_type():
+    with pytest.raises(pc.PEXCalibrateError):
+        pc.resolve_target(123)
+
+
+def test_resolve_target_bare_name():
+    assert pc.resolve_target("freepdk45_demo").__name__ == "freepdk45_demo"
+
+
+def test_resolve_target_module_function():
+    fn = pc.resolve_target("siliconcompiler.targets.freepdk45_demo:freepdk45_demo")
+    assert fn.__name__ == "freepdk45_demo"
+
+
+def test_resolve_target_dotted():
+    fn = pc.resolve_target("siliconcompiler.targets.freepdk45_demo.freepdk45_demo")
+    assert fn.__name__ == "freepdk45_demo"
+
+
+##############################################################################
+# PDK introspection
+##############################################################################
+def _make_gf180_project():
+    from siliconcompiler import ASIC
+    from siliconcompiler.targets import gf180_demo
+    project = ASIC(pc._bench_design())
+    project.add_fileset("rtl")
+    gf180_demo(project)
+    return project
+
+
+def test_derive_pdk_name():
+    assert pc.derive_pdk_name("freepdk45_demo") == "freepdk45"
+
+
+##############################################################################
+# Designs
+##############################################################################
+def test_demo_designs_build():
+    # Construction is network-free (git dataroots fetch lazily at run time).
+    designs = [design_cls() for design_cls in pc.DEMO_DESIGNS.values()]
+    tops = {d.get_topmodule("rtl") for d in designs}
+    assert tops == {"gcd", "picorv32", "aes_cipher_top", "jpeg_encoder"}
+    for design in designs:
+        assert design.has_fileset("rtl")
+        # The demo designs ship no SDC - the survey routes them without one.
+        assert not design.has_fileset("sdc")
+
+
+def test_design_from_dir_missing():
+    with pytest.raises(pc.PEXCalibrateError):
+        pc.design_from_dir("no_such_design_dir")
+
+
+def test_design_from_dir_builds():
+    os.makedirs("foo", exist_ok=True)
+    with open("foo/foo.v", "w") as fid:
+        fid.write("module foo ();\nendmodule\n")
+    with open("foo/foo.sdc", "w") as fid:
+        fid.write("\n")
+    design = pc.design_from_dir("foo")
+    assert isinstance(design, Design)
+    assert design.get_topmodule("rtl") == "foo"
+    assert design.has_fileset("rtl")
+    # A sibling <name>.sdc is auto-detected into an sdc fileset.
+    assert design.has_fileset("sdc")
+
+
+def test_design_from_dir_no_sdc():
+    os.makedirs("bar", exist_ok=True)
+    with open("bar/bar.v", "w") as fid:
+        fid.write("module bar ();\nendmodule\n")
+    design = pc.design_from_dir("bar")
+    assert design.has_fileset("rtl")
+    # No sibling <name>.sdc -> no sdc fileset (the survey routes it untimed).
+    assert not design.has_fileset("sdc")
+
+
+def _routing(res, cap, source="bench"):
+    return {"res": res, "cap": cap, "layertype": "routing", "source": source}
+
+
+def _via(res, source="pdk"):
+    return {"res": res, "cap": None, "layertype": "via", "source": source}
+
+
+##############################################################################
+# CSV data files (round-trip)
+##############################################################################
+def test_rclayer_csv_round_trip():
+    model = {
+        "typical": {
+            "metal2": _routing(3.5714, 1.19382e-16),
+            "metal3": _routing(3.5714, 1.55445e-16),
+            "MetalTop": _routing(0.03, 2.0e-16, source="pdk"),
+            "Via1": _via(5.0),
+        },
+        "fast": {"metal2": _routing(3.0, 1.0e-16)},
+    }
+    pc.write_rclayer_csv("m.csv", model)
+    assert pc.read_rclayer_csv("m.csv") == model
+
+
+def test_rccorr_csv_round_trip():
+    # The CSV is the calibration, so every field compute_factors emits must
+    # survive it: a cache hit and a fresh derivation have to be interchangeable.
+    factors = {
+        "typical": {
+            "metal2": {"cap_factor": 0.696, "res_factor": 1.0, "nseg": 1234},
+            "metal3": {"cap_factor": 0.641, "res_factor": 1.0, "nseg": 56},
+        },
+    }
+    pc.write_rccorr_csv("c.csv", factors)
+    assert pc.read_rccorr_csv("c.csv") == factors
+
+
+def test_rccorr_csv_unknown_fields_stay_none():
+    # An unknown res_factor/nseg is written empty, not fabricated as 1.0, so a
+    # diagnostic that was never measured cannot be read back as authoritative.
+    pc.write_rccorr_csv("c3.csv", {"typical": {"metal2": {"cap_factor": 0.5}}})
+    got = pc.read_rccorr_csv("c3.csv")["typical"]["metal2"]
+    assert got == {"cap_factor": 0.5, "res_factor": None, "nseg": None}
+
+
+def test_write_rccorr_skips_none_cap_factor():
+    factors = {"typical": {
+        "metal2": {"cap_factor": None, "res_factor": 1.0},
+        "metal3": {"cap_factor": 0.5, "res_factor": 1.0},
+    }}
+    pc.write_rccorr_csv("c2.csv", factors)
+    got = pc.read_rccorr_csv("c2.csv")
+    assert "metal2" not in got["typical"]
+    assert got["typical"]["metal3"]["cap_factor"] == 0.5
+
+
+##############################################################################
+# Factor math and line rendering
+##############################################################################
+def test_compute_factors():
+    # pooled: sum_len, sum_cap (F), sum_res (ohm), nseg
+    pooled = {"metal2": [100.0, 50.0e-15, 357.14, 10]}
+    rcmodel = {"metal2": (3.5714, 1.0e-15), "metal9": (0.03, 1.0e-15)}
+    factors = pc.compute_factors(pooled, rcmodel)
+    # metal9 absent from pooled -> not characterized
+    assert set(factors) == {"metal2"}
+    # golden_cap = 50e-15 / 100 = 0.5e-15; cap_factor = 0.5e-15 / 1e-15 = 0.5
+    assert abs(factors["metal2"]["cap_factor"] - 0.5) < 1e-9
+    assert factors["metal2"]["nseg"] == 10
+
+
+def test_pool_perlayer_sums_across_designs():
+    # Per (corner, layer): the four sums accumulate and nseg is integer-summed;
+    # a layer present in only one design carries through unchanged.
+    d1 = {"typical": {"metal2": [100.0, 10.0e-15, 300.0, 5],
+                      "metal3": [50.0, 4.0e-15, 100.0, 2]}}
+    d2 = {"typical": {"metal2": [200.0, 20.0e-15, 600.0, 7],
+                      "metal4": [30.0, 1.0e-15, 40.0, 1]}}
+    pooled = pc._pool_perlayer([d1, d2])
+    assert pooled["typical"]["metal2"] == [300.0, 30.0e-15, 900.0, 12]
+    assert pooled["typical"]["metal3"] == [50.0, 4.0e-15, 100.0, 2]
+    assert pooled["typical"]["metal4"] == [30.0, 1.0e-15, 40.0, 1]
+
+
+def test_pool_perlayer_empty():
+    assert pc._pool_perlayer([]) == {}
+
+
+def test_pool_then_compute_factors():
+    # The survey's core path (pool across designs, then divide by the rclayer
+    # model) is otherwise only exercised in the nightly EDA run. Two designs
+    # whose pooled cap/len ratio is 0.5e-15 F/um and whose res/len reproduces
+    # the model exactly (res_factor ~ 1.0).
+    d1 = {"typical": {"metal2": [100.0, 30.0e-15, 357.14, 3]}}
+    d2 = {"typical": {"metal2": [100.0, 70.0e-15, 357.14, 7]}}
+    pooled = pc._pool_perlayer([d1, d2])
+    factors = pc.compute_factors(pooled["typical"], {"metal2": (3.5714, 1.0e-15)})
+    # sum_cap=100e-15, sum_len=200 -> golden 0.5e-15/um; /1e-15 -> 0.5
+    assert abs(factors["metal2"]["cap_factor"] - 0.5) < 1e-9
+    assert factors["metal2"]["nseg"] == 10
+    # sum_res=714.28, sum_len=200 -> 3.5714 ohm/um; /3.5714 -> 1.0
+    assert abs(factors["metal2"]["res_factor"] - 1.0) < 1e-6
+
+
+def test_format_rclayer_lines():
+    out = pc.format_rclayer_lines({"typical": {"metal2": _routing(3.5714, 1.19382e-16)}})
+    assert "corner 'typical'" in out
+    assert 'pdk.add_openroad_rclayer("typical", "routing", "metal2"' in out
+    # No factors passed -> no coverage claim either way.
+    assert "WARNING" not in out
+
+
+def test_format_rclayer_lines_warns_on_uncalibrated_corner():
+    # A modeled corner the survey did not cover gets a raw bench value with no
+    # correction, which can be worse than what the PDK already had. Pasting it
+    # blind is the one way this tool can make the estimate worse, so say so.
+    model = {
+        "typical": {"metal2": _routing(3.5714, 1.19382e-16)},
+        "slow": {"metal2": _routing(4.0, 1.3e-16)},
+    }
+    factors = {"typical": {"metal2": {"cap_factor": 0.7, "res_factor": 1.0, "nseg": 9}}}
+    lines = pc.format_rclayer_lines(model, factors).splitlines()
+
+    warnings = [ln for ln in lines if "WARNING" in ln]
+    assert len(warnings) == 1
+    assert "'slow'" in warnings[0]
+    # The warning precedes the corner's own entries, not the calibrated corner's.
+    assert lines.index(warnings[0]) > lines.index(
+        next(ln for ln in lines if 'pdk.add_openroad_rclayer("typical"' in ln))
+
+
+def test_format_rclayer_lines_preserved_via_and_note():
+    model = {"typical": {
+        "metal2": _routing(3.5714, 1.19382e-16),
+        "MetalTop": _routing(0.03, 2.0e-16, source="pdk"),
+        "Via1": _via(5.0),
+    }}
+    lines = pc.format_rclayer_lines(model).splitlines()
+    bench = next(ln for ln in lines if '"metal2"' in ln)
+    top = next(ln for ln in lines if '"MetalTop"' in ln)
+    via = next(ln for ln in lines if '"Via1"' in ln)
+    # Bench line carries no preservation note.
+    assert "not characterized by OpenRCX" not in bench
+    # Preserved routing + via lines are noted as not from OpenRCX.
+    assert "not characterized by OpenRCX" in top
+    assert "not characterized by OpenRCX" in via
+    # Via is emitted with the via layertype and no capacitance argument.
+    assert 'pdk.add_openroad_rclayer("typical", "via", "Via1", 5)' in via
+
+
+def test_merge_preserved():
+    model = {"typ": {"Metal1": _routing(1.0, 1.0e-16)}}
+
+    class _FakePDK:
+        def get(self, *keys):
+            assert keys == ("tool", "openroad", "rclayer")
+            return [
+                ("typ", "routing", "Metal1", 9.0, 9.0e-16),   # already benched -> skip
+                ("typ", "via", "Via1", 5.0, None),            # preserve
+                ("typ", "routing", "MetalTop", 0.03, 2.0e-16),  # preserve (bench missed)
+                ("other", "via", "Via1", 1.0, None),          # whole corner not benched
+            ]
+
+    pc._merge_preserved(model, _FakePDK())
+    # Benched entry untouched.
+    assert model["typ"]["Metal1"] == _routing(1.0, 1.0e-16)
+    # Via and uncharacterized top metal preserved from the PDK.
+    assert model["typ"]["Via1"] == _via(5.0)
+    assert model["typ"]["MetalTop"] == _routing(0.03, 2.0e-16, source="pdk")
+    # A corner the bench never covered is preserved wholesale, so the emitted
+    # model stays a complete picture of the PDK's rclayer and pasting it cannot
+    # drop that corner's estimate.
+    assert model["other"] == {"Via1": _via(1.0)}
+
+
+def test_merge_preserved_gf180_vias():
+    # Real PDK: the bench walks routing segments only, so gf180's Via1-Via4
+    # rclayer must be preserved from the PDK (source="pdk").
+    project = _make_gf180_project()
+    pdk = project.get_library(project.get("asic", "pdk"))
+    # Pretend the bench characterized the routing layers for corner 'typ'.
+    model = {"typ": {f"Metal{i}": _routing(1.0, 1.0e-16) for i in range(1, 6)}}
+    pc._merge_preserved(model, pdk)
+    for via in ("Via1", "Via2", "Via3", "Via4"):
+        assert model["typ"][via]["layertype"] == "via"
+        assert model["typ"][via]["source"] == "pdk"
+        assert model["typ"][via]["cap"] is None
+
+
+def test_format_rccorr_lines():
+    out = pc.format_rccorr_lines(
+        {"typical": {"metal2": {"cap_factor": 0.696, "res_factor": 1.0}}})
+    assert 'pdk.add_openroad_rccorrection("typical", "metal2", cap_factor=0.6960)' in out
+
+
+##############################################################################
+# Orchestration: caching / rerun / print (no EDA - the flows are stubbed)
+##############################################################################
+# Stand-in survey design: the flows are stubbed out, so only the list length
+# matters - but it must be non-empty, since calibrate() rejects an empty survey.
+_DUMMY_DESIGN = pc._bench_design()
+
+
+def _stub_flows(monkeypatch, counter):
+    monkeypatch.setattr(pc, "derive_pdk_name", lambda target: "testpdk")
+
+    def fake_bench(target):
+        counter["bench"] += 1
+        return {"typical": {"metal2": _routing(3.5, 1.2e-16)}}
+
+    def fake_survey(target, designs, initial_rclayer=None):
+        counter["survey"] += 1
+        return {"typical": {"metal2": [100.0, 12.0e-15, 350.0, 5]}}, object()
+
+    def fake_factors(pooled, pdk):
+        return {"typical": {"metal2": {"cap_factor": 0.6, "res_factor": 1.0, "nseg": 5}}}
+
+    monkeypatch.setattr(pc, "run_bench", fake_bench)
+    monkeypatch.setattr(pc, "run_survey", fake_survey)
+    monkeypatch.setattr(pc, "compute_all_factors", fake_factors)
+
+
+def test_calibrate_caches_reuses_and_reruns(monkeypatch):
+    counter = {"bench": 0, "survey": 0}
+    _stub_flows(monkeypatch, counter)
+
+    def target(project):
+        pass
+
+    # Fresh: computes both phases and writes both files.
+    model, factors = pc.calibrate(target, designs=[_DUMMY_DESIGN], outdir="out")
+    assert counter == {"bench": 1, "survey": 1}
+    assert os.path.isfile("out/testpdk.rclayer.csv")
+    assert os.path.isfile("out/testpdk.rccorr.csv")
+    assert model == {"typical": {"metal2": _routing(3.5, 1.2e-16)}}
+    assert factors["typical"]["metal2"]["cap_factor"] == 0.6
+
+    # Reuse: both files present, nothing recomputed.
+    model2, factors2 = pc.calibrate(target, designs=[_DUMMY_DESIGN], outdir="out")
+    assert counter == {"bench": 1, "survey": 1}
+    assert model2 == model
+    assert factors2["typical"]["metal2"]["cap_factor"] == 0.6
+    assert model2["typical"]["metal2"]["source"] == "bench"
+
+    # Partial: drop only the correction file -> reuse the model, rerun the survey.
+    os.remove("out/testpdk.rccorr.csv")
+    pc.calibrate(target, designs=[_DUMMY_DESIGN], outdir="out")
+    assert counter == {"bench": 1, "survey": 2}
+
+    # rerun: recompute both.
+    pc.calibrate(target, designs=[_DUMMY_DESIGN], outdir="out", rerun=True)
+    assert counter == {"bench": 2, "survey": 3}
+
+
+def test_calibrate_rejects_empty_designs(monkeypatch):
+    # None means "use the demo survey"; an explicitly empty list would otherwise
+    # produce an empty calibration and cache it.
+    counter = {"bench": 0, "survey": 0}
+    _stub_flows(monkeypatch, counter)
+
+    with pytest.raises(pc.PEXCalibrateError, match="designs is empty"):
+        pc.calibrate(lambda project: None, designs=[], outdir="out")
+    assert counter == {"bench": 0, "survey": 0}
+
+
+def test_run_survey_rejects_empty_designs():
+    with pytest.raises(pc.PEXCalibrateError, match="at least one design"):
+        pc.run_survey(lambda project: None, [])
+
+
+def test_calibrate_does_not_cache_an_empty_survey(monkeypatch):
+    # A phase that yields nothing must fail loudly instead of writing a
+    # header-only CSV that every later run silently reuses.
+    counter = {"bench": 0, "survey": 0}
+    _stub_flows(monkeypatch, counter)
+    monkeypatch.setattr(pc, "compute_all_factors", lambda pooled, pdk: {})
+
+    with pytest.raises(pc.PEXCalibrateError, match="no correction factors"):
+        pc.calibrate(lambda project: None, designs=[_DUMMY_DESIGN], outdir="out")
+
+    # The model CSV is written (that phase succeeded); the survey CSV is not.
+    assert os.path.isfile("out/testpdk.rclayer.csv")
+    assert not os.path.isfile("out/testpdk.rccorr.csv")
+
+
+def test_derive_pdk_name_requires_a_pdk():
+    # A target that never selects a PDK would otherwise name its data files
+    # "None.rclayer.csv".
+    with pytest.raises(pc.PEXCalibrateError, match="selects no PDK"):
+        pc.derive_pdk_name(lambda project: None)
+
+
+def test_calibrate_prints(monkeypatch, capsys):
+    counter = {"bench": 0, "survey": 0}
+    _stub_flows(monkeypatch, counter)
+
+    def target(project):
+        pass
+
+    pc.calibrate(target, designs=[_DUMMY_DESIGN], outdir="out")
+    out = capsys.readouterr().out
+    # A single run emits both paste-able blocks (no separate --print needed).
+    assert 'pdk.add_openroad_rclayer("typical", "routing", "metal2"' in out
+    assert 'pdk.add_openroad_rccorrection("typical", "metal2", cap_factor=0.6000)' in out
+
+
+def test_main_print_only(monkeypatch, capsys):
+    monkeypatch.setattr(pc, "derive_pdk_name", lambda target: "testpdk")
+    os.makedirs("out", exist_ok=True)
+    pc.write_rclayer_csv("out/testpdk.rclayer.csv", {"typical": {"metal2": _routing(3.5, 1.2e-16)}})
+    pc.write_rccorr_csv("out/testpdk.rccorr.csv",
+                        {"typical": {"metal2": {"cap_factor": 0.6, "res_factor": 1.0}}})
+
+    assert pc.main(["t", "-o", "out", "--print"]) == 0
+    out = capsys.readouterr().out
+    assert 'pdk.add_openroad_rclayer("typical", "routing", "metal2"' in out
+    assert 'pdk.add_openroad_rccorrection("typical", "metal2", cap_factor=0.6000)' in out
+
+
+def test_main_plumbs_cli_flags(monkeypatch, tmp_path):
+    # The CLI is the documented entry point; check every flag reaches calibrate()
+    # with the value the help text promises.
+    seen = {}
+
+    def fake_calibrate(target, designs=None, outdir=None, rerun=False, score=False):
+        seen.update(target=target, designs=designs, outdir=outdir, rerun=rerun, score=score)
+        return {}, {}
+
+    monkeypatch.setattr(pc, "calibrate", fake_calibrate)
+    design_dir = tmp_path / "widget"
+    design_dir.mkdir()
+    (design_dir / "widget.v").write_text("module widget ();\nendmodule\n")
+
+    assert pc.main(["my_pkg:my_target", "-o", "outdir", "--rerun", "--score",
+                    "--design", str(design_dir)]) == 0
+    assert seen["target"] == "my_pkg:my_target"
+    assert seen["outdir"] == "outdir"
+    assert seen["rerun"] is True
+    assert seen["score"] is True
+    assert [design.name for design in seen["designs"]] == ["widget"]
+
+
+def test_main_reports_bad_design_dir(monkeypatch):
+    # A PEXCalibrateError must surface as a CLI usage error, not a traceback.
+    monkeypatch.setattr(pc, "calibrate", lambda *args, **kwargs: ({}, {}))
+    with pytest.raises(SystemExit):
+        pc.main(["t", "--design", "no_such_design_dir"])
+
+
+def test_main_print_only_missing_files(monkeypatch):
+    monkeypatch.setattr(pc, "derive_pdk_name", lambda target: "testpdk")
+    with pytest.raises(SystemExit):
+        pc.main(["t", "-o", "nonexistent_dir", "--print"])
+
+
+##############################################################################
+# Scoring (quantify the win) - EDA-free math + wiring
+##############################################################################
+def test_apply_factors_cap_only_and_clears_previous():
+    pdk = OpenROADPDK()
+    pdk.add_openroad_rccorrection("typical", "metal9", cap_factor=0.5)  # cleared
+    pc.apply_factors(pdk, {"typical": {
+        "metal2": {"cap_factor": 0.7, "res_factor": 1.0},
+        "metal3": {"cap_factor": None, "res_factor": 1.0},  # no cap -> skipped
+    }})
+    assert pdk.get("tool", "openroad", "rccorrection") == [("typical", "metal2", None, 0.7)]
+
+
+def test_read_nets():
+    with open("nets.csv", "w") as fid:
+        fid.write("pexcorner,scene,net,sigtype,golden_cap_F,est_cap_F\n")
+        fid.write("typical,s,n1,SIGNAL,1.0e-15,1.5e-15\n")
+        fid.write("typical,s,n2,CLOCK,2.0e-15,2.0e-15\n")
+        # No estimate available for this net: the Tcl writes the field empty.
+        fid.write("typical,s,n3,SIGNAL,3.0e-15,\n")
+    assert pc._read_nets("nets.csv") == [
+        ("typical", "SIGNAL", 1.0e-15, 1.5e-15),
+        ("typical", "CLOCK", 2.0e-15, 2.0e-15),
+        ("typical", "SIGNAL", 3.0e-15, None),
+    ]
+
+
+def test_score_errors_skips_missing_estimate():
+    # A net with no estimate must not be scored as a 100% under-estimate.
+    rows = [("typ", "SIGNAL", 1.0, 1.5),
+            ("typ", "SIGNAL", 1.0, None)]
+    assert pc._score_errors(rows) == {"typ": [0.5]}
+
+
+def test_score_errors_filters_sigtype_and_zero_golden():
+    rows = [("typ", "SIGNAL", 1.0, 1.5),   # 0.5
+            ("typ", "CLOCK", 2.0, 1.0),    # 0.5
+            ("typ", "POWER", 1.0, 5.0),    # non signal/clock -> skip
+            ("typ", "SIGNAL", 0.0, 1.0)]   # golden 0 -> skip
+    assert pc._score_errors(rows) == {"typ": [0.5, 0.5]}
+
+
+def test_score_summary_stats():
+    rows = [("typ", "SIGNAL", 1.0, 1.0),   # 0.0
+            ("typ", "SIGNAL", 1.0, 1.5),   # 0.5
+            ("typ", "SIGNAL", 1.0, 2.0)]   # 1.0
+    summ = pc._score_summary(rows)["typ"]
+    assert summ["nnets"] == 3
+    assert abs(summ["mean"] - 0.5) < 1e-9
+    assert summ["median"] == 0.5
+    assert summ["p90"] == 1.0
+
+
+def test_print_score_table(capsys):
+    before = {"typical": {"median": 0.30, "p90": 0.60, "mean": 0.35}}
+    after = {"typical": {"median": 0.10, "p90": 0.25, "mean": 0.15}}
+    pc.print_score(before, after)
+    out = capsys.readouterr().out
+    assert "typical" in out and "median" in out and "p90" in out
+    assert "30.0%" in out and "10.0%" in out
+
+
+def test_calibrate_score_path(monkeypatch, capsys):
+    counter = {"bench": 0, "survey": 0}
+    _stub_flows(monkeypatch, counter)
+    calls = []
+
+    def fake_survey_nets(target, designs, model, factors=None):
+        calls.append(factors is not None)
+        return ({"typical": {"median": 0.5, "p90": 0.8, "mean": 0.55}} if factors is None
+                else {"typical": {"median": 0.1, "p90": 0.2, "mean": 0.12}})
+
+    monkeypatch.setattr(pc, "_survey_nets", fake_survey_nets)
+
+    def target(project):
+        pass
+
+    pc.calibrate(target, designs=[_DUMMY_DESIGN], outdir="out", score=True)
+    # before (uncorrected, factors=None) then after (calibrated, factors set)
+    assert calls == [False, True]
+    assert "typical" in capsys.readouterr().out

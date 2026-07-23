@@ -150,7 +150,7 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_output_file(ext="lef")
         self.add_output_file(ext="lvs.vg")
 
-        if not self.__has_openrcx():
+        if not self._has_openrcx():
             self.set("var", "write_spef", False)
 
         self.set("var", "use_spef", self.get("var", "write_spef"))
@@ -191,18 +191,3 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_required_key("var", "write_spef")
         self.add_required_key("var", "write_liberty")
         self.add_required_key("var", "write_sdf")
-
-    def __has_openrcx(self):
-        """Check if the OpenRCX files are available in the PDK.
-
-        Returns:
-            bool: True if OpenRCX files are present, False otherwise.
-        """
-        if not self.pdk.valid("pdk", "pexmodelfileset", "openroad"):
-            return False
-
-        for corner in self.pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
-            for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", corner):
-                if self.pdk.get("fileset", fileset, "file", "openrcx"):
-                    return True
-        return False

@@ -40,3 +40,7 @@ Support apps
 .. scapp::
   :app: python3 -m siliconcompiler.tools.openroad.utils.rcx_merge
   :title: OpenROAD OpenRCX Merge Utility
+
+.. scapp::
+  :app: python3 -m siliconcompiler.tools.openroad.utils.pex_calibrate
+  :title: OpenROAD PEX Estimate Calibration Utility

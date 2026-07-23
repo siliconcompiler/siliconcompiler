@@ -1105,6 +1105,45 @@ proc sc_get_pexmap { map } {
     }
 }
 
+proc sc_get_corrmap { map } {
+    # Build the per-layer parasitic correction map:
+    #   corrmap[corner][layer] = [list res_factor cap_factor]
+    # Entries are keyed by layer name (names are unique across routing and via
+    # layers). Layers with no entry are left absent and default to 1.0 in
+    # sc_setup_pex, so an empty rccorrection is a no-op. An unprescribed factor
+    # is stored as None (empty) in the schema; it is normalized to 1.0 here so
+    # the map always holds numeric factors. Setting the task's
+    # 'apply_pex_correction' var to false forces the map empty, which is the
+    # escape hatch for running a node against the raw, uncorrected rclayer
+    # (see APRTask.set_openroad_applypexcorrection). The var is absent for
+    # non-APR tasks, in which case the correction applies.
+    global sc_pdk
+    global sc_tool
+    upvar $map corrmap
+
+    set corrmap [dict create]
+    if {
+        [sc_cfg_tool_task_exists var apply_pex_correction] &&
+        ![sc_cfg_tool_task_get var apply_pex_correction]
+    } {
+        return
+    }
+    if { ![sc_cfg_exists library $sc_pdk tool $sc_tool rccorrection] } {
+        return
+    }
+    foreach corr [sc_cfg_get library $sc_pdk tool $sc_tool rccorrection] {
+        lassign $corr corr_corner corr_layer corr_res corr_cap
+        # An unprescribed (None -> empty) factor is a no-op (1.0).
+        if { $corr_res eq {} } {
+            set corr_res 1.0
+        }
+        if { $corr_cap eq {} } {
+            set corr_cap 1.0
+        }
+        dict set corrmap $corr_corner $corr_layer [list $corr_res $corr_cap]
+    }
+}
+
 proc sc_has_pexmap { } {
     sc_get_pexmap pexmap
     return [expr { [dict size $pexmap] > 0 }]
@@ -1125,6 +1164,7 @@ proc sc_setup_pex { args } {
     }
 
     sc_get_pexmap pexmap
+    sc_get_corrmap corrmap
 
     if {
         ![dict exists $pexmap routing $pexcorner] &&
@@ -1134,9 +1174,33 @@ proc sc_setup_pex { args } {
             '$pexcorner' (scene: $scene_name); skipping set_layer_rc for this corner"
     }
 
+    # A correction naming a layer that has no rclayer entry silently does
+    # nothing, which is how a misspelled layer name hides. Surface it.
+    if { [dict exists $corrmap $pexcorner] } {
+        dict for {layer factors} [dict get $corrmap $pexcorner] {
+            if {
+                ![dict exists $pexmap routing $pexcorner $layer] &&
+                ![dict exists $pexmap via $pexcorner $layer]
+            } {
+                utl::warn FLW 10 "Parasitic correction for layer '$layer' (pex corner\
+                    '$pexcorner') has no matching rclayer entry and will be ignored"
+            }
+        }
+    }
+
     if { [dict exists $pexmap routing $pexcorner] } {
         dict for {layer pex} [dict get $pexmap routing $pexcorner] {
             lassign $pex res cap
+
+            # Apply per-layer calibration correction. An absent layer is treated
+            # as factors of 1.0 (no correction).
+            if { [dict exists $corrmap $pexcorner $layer] } {
+                lassign [dict get $corrmap $pexcorner $layer] res_factor cap_factor
+                set res [expr { $res * $res_factor }]
+                if { $cap != {} } {
+                    set cap [expr { $cap * $cap_factor }]
+                }
+            }
 
             if { [info exists flags(-verbose)] } {
                 if { $cap == {} } {
@@ -1166,6 +1230,14 @@ proc sc_setup_pex { args } {
     if { [dict exists $pexmap via $pexcorner] } {
         dict for {layer pex} [dict get $pexmap via $pexcorner] {
             lassign $pex res cap
+
+            # Apply per-layer calibration correction. An absent via is treated
+            # as a resistance factor of 1.0 (no correction).
+            if { [dict exists $corrmap $pexcorner $layer] } {
+                lassign [dict get $corrmap $pexcorner $layer] res_factor cap_factor
+                set res [expr { $res * $res_factor }]
+            }
+
             if { [info exists flags(-verbose)] } {
                 utl::info FLW 10 "Setting via RC     | $scene_name | Via: $layer   |\
                     Res: [sta::format_resistance $res 6]\
