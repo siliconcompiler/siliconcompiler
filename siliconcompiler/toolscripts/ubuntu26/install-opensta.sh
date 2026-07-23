@@ -75,7 +75,15 @@ git submodule update --init --recursive
 
 mkdir -p build
 cd build
-cmake .. $cmake_args
+# tcl-tclreadline 2.4.x (Ubuntu 26) moved its shared libs out of the default
+# linker path into the Tcl package dir, so OpenSTA's find_library() misses them
+# at build time and ld.so misses them at run time. Point CMake at wherever dpkg
+# actually installed the lib, and bake that dir into the binary's rpath so the
+# loader can find libtclreadline-*.so (no-op on 22/24 where it's already on the
+# standard path).
+TCLRL_DIR=$(dirname "$(dpkg -L tcl-tclreadline | grep -m1 '/libtclreadline\.so$')")
+cmake .. $cmake_args -DCMAKE_LIBRARY_PATH="$TCLRL_DIR" \
+    -DCMAKE_INSTALL_RPATH="$TCLRL_DIR" -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
 make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 
