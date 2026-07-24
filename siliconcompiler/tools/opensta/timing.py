@@ -210,7 +210,12 @@ class TimingTaskBase(OpenSTATask):
         # in a commented-out fallback (the live reader is OpenROAD's separate same-named parameter).
 
         skip_reports = set(self.get("var", "skip_reports"))
-        self.set("var", "reports", set(self.REPORT_TYPES).difference(skip_reports))
+        # Iterate the ordered REPORT_TYPES rather than a Python set: a set's
+        # iteration order is hash-randomized and varies between processes, which
+        # makes the scheduler's order-sensitive value comparison flag the node
+        # as "modified from previous run" on every incremental re-run. The
+        # reports var is itself a deduplicated, order-preserving set.
+        self.set("var", "reports", [r for r in self.REPORT_TYPES if r not in skip_reports])
         if self.get("var", "reports"):
             self.add_required_key("var", "reports")
         if skip_reports:

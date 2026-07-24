@@ -1475,7 +1475,12 @@ class APRTask(OpenROADTask):
                 "clock_placement",
                 "clock_trees"))
 
-        do_reports = set(task_reports).difference(skip_reports)
+        # Iterate the ordered task_reports rather than a Python set: a set's
+        # iteration order is hash-randomized and varies between processes, which
+        # makes the scheduler's order-sensitive value comparison flag the node
+        # as "modified from previous run" on every incremental re-run. The
+        # reports var is itself a deduplicated, order-preserving set.
+        do_reports = [r for r in task_reports if r not in skip_reports]
         self.set("var", "reports", do_reports)
 
         if "power" in self.get("var", "reports"):
