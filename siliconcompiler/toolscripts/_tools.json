@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "566a2df7ea55bb44c530ff0944b9f4b69b306a23",
+    "git-commit": "d29ff495a43f59ba89b61b79137f34c3df4a8259",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -147,7 +147,10 @@
     "git-url": "https://github.com/YosysHQ/sby.git",
     "git-commit": "v0.67",
     "docker-depends": "yosys",
-    "build-depends": ["bitwuzla", "boolector"],
+    "build-depends": [
+      "bitwuzla",
+      "boolector"
+    ],
     "auto-update": true
   },
   "bitwuzla": {
