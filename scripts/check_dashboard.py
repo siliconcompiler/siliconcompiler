@@ -13,6 +13,8 @@ verifying dashboard/logging changes.
     python scripts/check_dashboard.py --hang     # then hit Ctrl+C — see below
     python scripts/check_dashboard.py --multi    # several runs sharing ONE dashboard
     python scripts/check_dashboard.py --multi --jobs 4 --nodes 6  # bigger multi run
+    python scripts/check_dashboard.py --serial   # several run() calls, one after another
+    python scripts/check_dashboard.py --serial --jobs 5 --nodes 6  # bigger serial run
 
 What it does
 ------------
@@ -47,6 +49,24 @@ its render thread live entirely in the main process, the concurrency here is
 threads — each run still forks its own node workers internally, but they all
 feed the one main-process dashboard. Expect --jobs progress bars advancing
 together, each labelled design_k/job0, then all completing.
+
+What to look for (--serial — end-of-run teardown between sequential runs)
+------------------------------------------------------------------------
+This exercises the "auto-disconnect at end of run" behavior. Each run() now
+tears the dashboard down in its finally (the summary hack is gone): the logger
+is restored and the atexit hook is unregistered, then the shared Board stops
+once its jobs are complete. So between serial runs you should see:
+* the live view come down and the terminal become usable again — a between-runs
+  banner line prints to NORMAL scrollback (not hidden behind the live view);
+* the next run() re-open a fresh dashboard cycle for the next design;
+* a per-run report of whether the finished Project is reclaimed once its
+  reference is dropped. The end-of-run stop() releases the dashboard's atexit
+  pin, but today the project is still NOT reclaimed — run() leaves other
+  framework-level references behind (a separate leak this demo surfaces), so
+  expect "reclaimed: False".
+On an interactive TTY (screen=True) expect an alt-screen flip per run — that is
+the known/parked cost of tearing down per run; a future screen=False switch
+removes it.
 """
 
 import argparse
@@ -109,6 +129,7 @@ def _build_work_project(name, nodes):
     design.set_topmodule("top", fileset="rtl")
     proj = Project(design)
     proj.add_fileset("rtl")
+    proj.option.set_clean(True)
 
     flow = Flowgraph("workflow")
     prev = None
@@ -153,6 +174,55 @@ def run_multi(jobs, nodes):
     return 0
 
 
+def run_serial(jobs, nodes):
+    """Run `jobs` projects one after another in the SAME process to exercise
+    end-of-run dashboard teardown between sequential run() calls.
+
+    After each run() the dashboard is stopped in run()'s finally: the logger is
+    restored (terminal usable again) and the dashboard's atexit hook is
+    unregistered. The next run() re-opens a fresh dashboard cycle.
+
+    As a diagnostic, we also drop the only reference to each finished project,
+    force a GC, and REPORT whether it was reclaimed. Note: the end-of-run stop()
+    releases the dashboard's atexit pin, but as of today a project is still NOT
+    reclaimed after run() — run() leaves other framework-level references behind
+    (independent of the dashboard). So expect "reclaimed: False" here; that is a
+    separate leak, surfaced by this demo, not a dashboard-teardown failure.
+    """
+    import gc
+    import weakref
+
+    reclaimed = []
+    for k in range(jobs):
+        proj = _build_work_project(f"design_{k}", nodes)
+        ref = weakref.ref(proj)
+
+        # print(f"\n>>> serial run {k + 1}/{jobs}: design_{k}")
+        proj.run()
+
+        # Should land on the NORMAL terminal (dashboard released the screen and
+        # the logger at end of run), not be swallowed by the live view.
+        proj.logger.info(f"[design_{k}] back on the normal terminal after run()")
+        # import time; time.sleep(1)  # let the log flush before we drop the reference
+
+        # Drop the only strong reference and observe whether the project is
+        # reclaimable now that the dashboard has torn itself down.
+        del proj
+        gc.collect()
+        gcd = ref() is None
+        reclaimed.append(gcd)
+        # print(f">>> design_{k} reclaimed after run(): {gcd}")
+
+    n_reclaimed = sum(reclaimed)
+    print(f"\n>>> {jobs} serial runs complete; "
+          f"{n_reclaimed}/{jobs} projects reclaimed after their run()")
+    if n_reclaimed != jobs:
+        print(">>> (residual references outside the dashboard still pin the "
+              "project — a separate leak from the dashboard teardown)")
+    # Exit status reflects the runs succeeding, not the (known) residual leak.
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--lines", type=int, default=40,
@@ -163,14 +233,19 @@ def main():
                         help="sleep after logging so you can test Ctrl+C (no dump expected)")
     parser.add_argument("--multi", action="store_true",
                         help="run several SCs concurrently in ONE shared dashboard")
+    parser.add_argument("--serial", action="store_true",
+                        help="run several SCs one after another (end-of-run teardown demo)")
     parser.add_argument("--jobs", type=int, default=3,
-                        help="--multi: number of concurrent runs (default 3)")
+                        help="--multi/--serial: number of runs (default 3)")
     parser.add_argument("--nodes", type=int, default=4,
-                        help="--multi: chained nodes per run (default 4)")
+                        help="--multi/--serial: chained nodes per run (default 4)")
     args = parser.parse_args()
 
     if args.multi:
         return run_multi(args.jobs, args.nodes)
+
+    if args.serial:
+        return run_serial(args.jobs, args.nodes)
 
     NoisyFailTask._lines = args.lines
     NoisyFailTask._hang = args.hang

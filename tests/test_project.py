@@ -1130,7 +1130,9 @@ def test_summary_select_job():
         history.assert_called_once_with("thatjob")
 
 
-def test_summary_stop_dashboard():
+def test_summary_does_not_stop_dashboard():
+    """summary() is a pure reporting call: the dashboard is torn down at the
+    end of run(), so summary() must not touch it (no is_running/stop calls)."""
     proj = Project(Design("testdesign"))
     proj._record_history()
 
@@ -1141,23 +1143,7 @@ def test_summary_stop_dashboard():
         is_running.return_value = True
         proj.summary()
 
-        is_running.assert_called_once()
-        stop.assert_called_once()
-        history.assert_called_once_with("job0")
-
-
-def test_summary_stop_dashboard_not_running():
-    proj = Project(Design("testdesign"))
-    proj._record_history()
-
-    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop, \
-            patch("siliconcompiler.Project.history") as history:
-        history.return_value = proj
-        is_running.return_value = False
-        proj.summary()
-
-        is_running.assert_called_once()
+        is_running.assert_not_called()
         stop.assert_not_called()
         history.assert_called_once_with("job0")
 
@@ -1842,7 +1828,8 @@ def test_run_with_dashboard_running():
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as \
             update_manifest, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run:
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop:
         is_running.return_value = True
         proj._record_history()
 
@@ -1856,6 +1843,8 @@ def test_run_with_dashboard_running():
         assert set_logger.call_count == 2
         update_manifest.assert_called_once()
         end_of_run.assert_called_once()
+        # Dashboard is torn down at the end of run() (removes the summary hack).
+        stop.assert_called_once()
 
 
 def test_run_with_dashboard_notrunning():
@@ -1879,7 +1868,8 @@ def test_run_with_dashboard_notrunning():
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as \
             update_manifest, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run:
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop:
         is_running.return_value = False
         proj._record_history()
 
@@ -1892,6 +1882,8 @@ def test_run_with_dashboard_notrunning():
         set_logger.assert_called_once()
         update_manifest.assert_called_once()
         end_of_run.assert_called_once()
+        # Dashboard is torn down at the end of run() (removes the summary hack).
+        stop.assert_called_once()
 
 
 def test_run_with_nodashboard():
@@ -1916,7 +1908,8 @@ def test_run_with_nodashboard():
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as \
             update_manifest, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run:
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop:
         is_running.return_value = False
         proj._record_history()
 
@@ -1928,6 +1921,7 @@ def test_run_with_nodashboard():
         set_logger.assert_not_called()
         update_manifest.assert_not_called()
         end_of_run.assert_not_called()
+        stop.assert_not_called()
 
 
 def test_reset_job_params():

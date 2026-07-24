@@ -586,9 +586,16 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             raise RuntimeError(f"Run failed: {e.msg}") from None
         finally:
             if self.__dashboard:
-                # Update dashboard
+                # Update the dashboard with the final state, then tear it down.
+                # stop() detaches the logger (restoring normal terminal output)
+                # and unregisters the atexit hook, so this project is no longer
+                # pinned and can be garbage collected. The shared Board is a
+                # process-wide singleton: its completeness guard keeps it alive
+                # for any other concurrent runs and only truly stops it once all
+                # jobs are done; MPManager.stop() is the process-exit backstop.
                 self.__dashboard.update_manifest()
                 self.__dashboard.end_of_run()
+                self.__dashboard.stop()
 
         self.__reset_job_params()
 
@@ -1242,10 +1249,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self.logger.warning(f"{org_job} not found in history, picking {jobname}")
 
         history = self.history(jobname)
-
-        if not fd:
-            if self.__dashboard and self.__dashboard.is_running():
-                self.__dashboard.stop()
 
         history.get("metric", field='schema').summary(
             headers=history._summary_headers(),
