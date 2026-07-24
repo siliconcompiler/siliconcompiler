@@ -2,7 +2,7 @@ import atexit
 
 from typing import TYPE_CHECKING
 
-from siliconcompiler.report.dashboard import AbstractDashboard
+from siliconcompiler.report.dashboard import AbstractDashboard, weak_atexit_call
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter, SCHistoryLogHandler
 
 if TYPE_CHECKING:
@@ -50,9 +50,12 @@ class CliDashboard(AbstractDashboard):
             # Attach logger when already running
             self.set_logger(self._project.logger)
 
-        # Ensure the dashboard is properly stopped on program exit
-        self.__exit_registered = True
-        atexit.register(self.stop)
+        # Ensure the dashboard is properly stopped on program exit. Register
+        # via a weakref trampoline so the atexit registry does not pin this
+        # dashboard (and, transitively, its project) alive for the whole
+        # process — a bound-method registration would leak both.
+        self.__atexit_func = weak_atexit_call(self.stop)
+        atexit.register(self.__atexit_func)
 
     @staticmethod
     def should_disable(project: "Project") -> bool:
@@ -190,10 +193,10 @@ class CliDashboard(AbstractDashboard):
         `Board` object to start its live-rendering thread.
         """
 
-        if not self.__exit_registered:
+        if self.__atexit_func is None:
             # Ensure the dashboard is properly stopped on program exit
-            self.__exit_registered = True
-            atexit.register(self.stop)
+            self.__atexit_func = weak_atexit_call(self.stop)
+            atexit.register(self.__atexit_func)
 
         self.set_logger(self._project.logger)
 
@@ -245,8 +248,8 @@ class CliDashboard(AbstractDashboard):
         The ``Board`` is built from :class:`MPManager` shared proxy objects
         (events, dicts, queues) which can be torn down before this runs during
         multiprocess exit; touching them then raises. If that exception were
-        allowed to propagate before the ``atexit.unregister`` below, the bound
-        ``self.stop`` would stay registered and fire again at interpreter
+        allowed to propagate before the ``atexit.unregister`` below, the
+        trampoline would stay registered and fire again at interpreter
         shutdown, surfacing as "Exception ignored in atexit callback"
         (issue #5035). The ``try``/``finally`` guarantees the hook is released
         regardless.
@@ -265,9 +268,9 @@ class CliDashboard(AbstractDashboard):
         finally:
             self._detach_logger()
 
-            if self.__exit_registered:
-                atexit.unregister(self.stop)
-                self.__exit_registered = False
+            if self.__atexit_func is not None:
+                atexit.unregister(self.__atexit_func)
+                self.__atexit_func = None
 
     def _detach_logger(self):
         """

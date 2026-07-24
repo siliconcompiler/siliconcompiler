@@ -1,5 +1,70 @@
+import weakref
+
 from abc import ABC, abstractmethod
 from enum import Enum
+
+
+def _dead_ref():
+    """Stand-in for a resolved-empty weak reference (used after unpickling)."""
+    return None
+
+
+class WeakAtexitCall:
+    """
+    A picklable, zero-argument trampoline that invokes a bound method through
+    a :class:`weakref.WeakMethod`, suitable for :func:`atexit.register`.
+
+    Registering a bound method directly with ``atexit`` (e.g.
+    ``atexit.register(self.stop)``) stores a strong reference to the instance
+    in the atexit registry, keeping it — and everything it transitively
+    references — alive until interpreter exit. For a dashboard that means the
+    whole :class:`~siliconcompiler.Project` leaks and can never be garbage
+    collected.
+
+    This trampoline holds only a weak reference to the bound method. When
+    invoked at exit it resolves the weak reference and calls the method only
+    if the instance is still alive; otherwise it is a harmless no-op, letting
+    the garbage collector reclaim the instance early.
+
+    A :class:`weakref.WeakMethod` cannot be pickled, and the reference would be
+    meaningless in another process, so the trampoline pickles as a dead no-op.
+    This matters because it is stored on the dashboard instance, and a
+    dashboard may itself be pickled to a subprocess (e.g. the
+    :class:`~siliconcompiler.report.dashboard.web.WebDashboard` sent to the
+    Streamlit process). The subprocess never re-registers atexit hooks, so the
+    dead stand-in is correct there.
+    """
+
+    def __init__(self, method):
+        self._ref = weakref.WeakMethod(method)
+
+    def __call__(self):
+        target = self._ref()
+        if target is not None:
+            target()
+
+    def __getstate__(self):
+        # A WeakMethod is not picklable and carries no meaning across a
+        # process boundary; drop it so an embedding object can still be
+        # pickled to a subprocess.
+        return {}
+
+    def __setstate__(self, state):
+        self._ref = _dead_ref
+
+
+def weak_atexit_call(method):
+    """
+    Build a :class:`WeakAtexitCall` trampoline for ``method``.
+
+    Args:
+        method: A bound method to invoke at interpreter exit.
+
+    Returns:
+        WeakAtexitCall: A picklable, zero-argument callable to pass to
+        ``atexit.register`` (and later ``atexit.unregister``).
+    """
+    return WeakAtexitCall(method)
 
 
 class DashboardType(Enum):
