@@ -2520,29 +2520,49 @@ def test_should_disable_with_breakpoint(project_logger, caplog):
 # ---------------------------------------------------------------------------
 
 def test_init_registers_atexit_hook(mock_project, fake_console):
-    """__init__ registers stop() with atexit so the dashboard is torn down
-    on program exit."""
+    """__init__ registers a weakref trampoline with atexit so the dashboard is
+    torn down on program exit without the atexit registry pinning it alive."""
     with patch("siliconcompiler.report.dashboard.cli.atexit") as mock_atexit, \
             patch("threading.Thread"):
         dash = CliDashboard(mock_project)
 
-    assert dash._CliDashboard__exit_registered is True
-    mock_atexit.register.assert_called_once_with(dash.stop)
+    hook = dash._CliDashboard__atexit_func
+    assert hook is not None
+    mock_atexit.register.assert_called_once_with(hook)
+
+
+def test_atexit_hook_does_not_pin_dashboard(mock_project, fake_console):
+    """The atexit hook must not keep the dashboard alive: dropping the last
+    strong reference lets the garbage collector reclaim it (and, transitively,
+    its project) even though the hook is still registered. Regression test for
+    the WeakMethod trampoline."""
+    import gc
+    import weakref
+
+    with patch("threading.Thread"):
+        dash = CliDashboard(mock_project)
+
+    ref = weakref.ref(dash)
+    del dash
+    gc.collect()
+
+    assert ref() is None
 
 
 def test_stop_unregisters_atexit_hook(mock_project, fake_console):
     """stop() must release the atexit hook it registered in __init__ so the
-    bound method does not fire again at interpreter shutdown."""
+    trampoline does not fire again at interpreter shutdown."""
     with patch("threading.Thread"):
         dash = CliDashboard(mock_project)
 
-    assert dash._CliDashboard__exit_registered is True
+    hook = dash._CliDashboard__atexit_func
+    assert hook is not None
 
     with patch("siliconcompiler.report.dashboard.cli.atexit") as mock_atexit:
         dash.stop()
 
-    assert dash._CliDashboard__exit_registered is False
-    mock_atexit.unregister.assert_called_once_with(dash.stop)
+    assert dash._CliDashboard__atexit_func is None
+    mock_atexit.unregister.assert_called_once_with(hook)
 
 
 def test_stop_unregisters_atexit_when_teardown_raises(mock_project, fake_console):
@@ -2554,13 +2574,15 @@ def test_stop_unregisters_atexit_when_teardown_raises(mock_project, fake_console
     with patch("threading.Thread"):
         dash = CliDashboard(mock_project)
 
+    hook = dash._CliDashboard__atexit_func
+
     with patch.object(dash._dashboard, "end_of_run", side_effect=EOFError), \
             patch.object(dash._dashboard, "stop", side_effect=EOFError), \
             patch("siliconcompiler.report.dashboard.cli.atexit") as mock_atexit:
         dash.stop()  # must not raise
 
-    assert dash._CliDashboard__exit_registered is False
-    mock_atexit.unregister.assert_called_once_with(dash.stop)
+    assert dash._CliDashboard__atexit_func is None
+    mock_atexit.unregister.assert_called_once_with(hook)
 
 
 def test_stop_restores_logger_when_teardown_raises(mock_project, fake_console):
@@ -2587,12 +2609,14 @@ def test_stop_is_idempotent(mock_project, fake_console):
     with patch("threading.Thread"):
         dash = CliDashboard(mock_project)
 
+    hook = dash._CliDashboard__atexit_func
+
     with patch("siliconcompiler.report.dashboard.cli.atexit") as mock_atexit:
         dash.stop()
         dash.stop()
 
-    assert dash._CliDashboard__exit_registered is False
-    mock_atexit.unregister.assert_called_once_with(dash.stop)
+    assert dash._CliDashboard__atexit_func is None
+    mock_atexit.unregister.assert_called_once_with(hook)
 
 
 def test_nodashboard_after_construction_releases_hook(mock_project, fake_console):
@@ -2610,4 +2634,4 @@ def test_nodashboard_after_construction_releases_hook(mock_project, fake_console
         mock_project.set("option", "nodashboard", True)
 
     assert mock_project._Project__dashboard is None
-    assert dash._CliDashboard__exit_registered is False
+    assert dash._CliDashboard__atexit_func is None
