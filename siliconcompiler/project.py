@@ -586,16 +586,23 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             raise RuntimeError(f"Run failed: {e.msg}") from None
         finally:
             if self.__dashboard:
-                # Push the final manifest, then tear the dashboard down. stop()
-                # already finalizes the run (it calls end_of_run() internally),
-                # detaches the logger (restoring normal terminal output), and
-                # unregisters the atexit hook, so this project is no longer
-                # pinned and can be garbage collected. The shared Board is a
-                # process-wide singleton: its completeness guard keeps it alive
-                # for any other concurrent runs and only truly stops it once all
-                # jobs are done; MPManager.stop() is the process-exit backstop.
-                self.__dashboard.update_manifest()
-                self.__dashboard.stop()
+                # Push the final manifest (best-effort), then ALWAYS tear the
+                # dashboard down. stop() finalizes the run (it calls end_of_run()
+                # internally), detaches the logger (restoring normal terminal
+                # output), and unregisters the atexit hook, so this project is no
+                # longer pinned and can be garbage collected. update_manifest()
+                # does a schema retraversal that can raise (I/O / serialization);
+                # a failing final repaint must not skip teardown, nor mask the
+                # run's own result or error, so it is guarded. The shared Board
+                # is a process-wide singleton: its completeness guard keeps it
+                # alive for other concurrent runs and only truly stops it once
+                # all jobs are done; MPManager.stop() is the process-exit backstop.
+                try:
+                    self.__dashboard.update_manifest()
+                except Exception:
+                    pass
+                finally:
+                    self.__dashboard.stop()
 
         self.__reset_job_params()
 

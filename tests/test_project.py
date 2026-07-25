@@ -1884,6 +1884,36 @@ def test_run_with_dashboard_notrunning():
         stop.assert_called_once()
 
 
+def test_run_dashboard_stopped_when_update_manifest_raises():
+    """A failing final update_manifest() in run()'s teardown must not skip
+    stop() (which restores the terminal, unregisters the atexit hook, and
+    unpins the project) nor fail the otherwise-successful run."""
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    proj.set_flow(flow)
+
+    with patch("siliconcompiler.scheduler.Scheduler.run"), \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard"), \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger"), \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as \
+            update_manifest, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop:
+        is_running.return_value = True
+        update_manifest.side_effect = RuntimeError("manifest boom")
+        proj._record_history()
+
+        proj.run()  # must not raise despite update_manifest() blowing up
+
+        update_manifest.assert_called_once()
+        stop.assert_called_once()
+
+
 def test_run_with_nodashboard():
     design = Design("testdesign")
     design.set_topmodule("top", fileset="test")
