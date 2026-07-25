@@ -4,6 +4,12 @@ import glob
 import os.path
 
 
+# Tools that cannot be built for aarch64 and are therefore skipped in the arm64
+# matrix. bambu requires x86 32-bit multilib / -m32 code generation, which is
+# not packaged for arm64 (g++-11-multilib does not exist there).
+AARCH64_UNSUPPORTED = {"bambu"}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("tool", nargs='?', default=None)
@@ -43,6 +49,8 @@ if __name__ == "__main__":
 
             for runon, arm64 in (("ubuntu-latest", False), ("ubuntu-24.04-arm", True)):
                 if arm64 and osname not in ("ubuntu22", "ubuntu24", "ubuntu26"):
+                    continue
+                if arm64 and toolname in AARCH64_UNSUPPORTED:
                     continue
 
                 arch = "x86_64"

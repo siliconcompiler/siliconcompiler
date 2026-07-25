@@ -4,7 +4,7 @@ set -ex
 
 sudo apt-get update
 
-sudo apt-get install -y munge libmunge-dev build-essential libmariadb-dev lbzip2 libjson-c-dev
+sudo apt-get install -y munge libmunge-dev build-essential libmariadb-dev lbzip2 libjson-c-dev file
 sudo apt-get install -y libdbus-1-dev
 
 # Get directory of script
@@ -36,7 +36,10 @@ if [ ! -z ${PREFIX} ]; then
     cfg_args="--prefix=$PREFIX"
 fi
 
-./configure $cfg_args
+# GCC 15 (Ubuntu 26.04) defaults to C23, where an empty parameter list means
+# "takes no arguments"; Slurm's K&R-style function-pointer calls then fail to
+# compile. Build against C17 and keep the GCC 14 type checks as warnings.
+./configure CFLAGS="-std=gnu17 -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration" $cfg_args
 
 make -j${NPROC:-$(nproc)}
 

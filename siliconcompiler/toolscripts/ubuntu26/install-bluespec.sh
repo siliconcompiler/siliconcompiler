@@ -28,6 +28,11 @@ cd bluespec
 git checkout $(python3 ${src_path}/_tools.py --tool bluespec --field git-commit)
 git submodule update --init --recursive
 
+# GCC 14+ (Ubuntu 26.04) promotes -Wincompatible-pointer-types (and related
+# type checks) to hard errors, which breaks the vendored ABC/STP C sources.
+# Downgrade them back to warnings for the whole build.
+export CFLAGS="${CFLAGS:-} -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-function-declaration -Wno-error=implicit-int"
+
 make -j${NPROC:-$(nproc)} install-src
 
 if [ -z ${PREFIX} ]; then

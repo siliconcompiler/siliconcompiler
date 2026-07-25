@@ -15,6 +15,10 @@ sudo apt-get update
 
 sudo apt-get install -y git curl
 sudo apt-get install -y make pandoc groff bsdmainutils
+# Ubuntu 26.04 aarch64: OpenROAD's Qt GUI link fails on missing -lfontconfig /
+# -lxkbcommon / -lxkbcommon-x11 because DependencyInstaller.sh does not pull
+# these -dev packages on arm64. Installing them explicitly is a no-op on x86.
+sudo apt-get install -y libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev
 
 mkdir -p deps
 cd deps

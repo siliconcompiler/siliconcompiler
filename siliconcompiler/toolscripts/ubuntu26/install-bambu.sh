@@ -20,7 +20,7 @@ sudo apt-get install -y autoconf autoconf-archive automake libtool \
     graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev \
     libfl-dev
 sudo apt-get install -y \
-    gcc-11 gcc-11-multilib g++-11 g++-11-multilib \
+    gcc-11 gcc-11-multilib g++-11 g++-11-multilib gcc-11-plugin-dev \
     llvm-17 llvm-17-dev libllvm17 \
     clang-17 libclang-17-dev
 

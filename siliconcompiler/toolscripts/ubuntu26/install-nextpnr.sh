@@ -30,7 +30,10 @@ if [ ! -z ${PREFIX} ]; then
     args=-DCMAKE_INSTALL_PREFIX="$PREFIX"
 fi
 
-cmake -S . -B build -DARCH=ice40 $args
+# Boost 1.90 (Ubuntu 26.04) ships a CMake package config that nextpnr's
+# find_package(Boost COMPONENTS system ...) cannot resolve. Force CMake's
+# classic FindBoost module to locate the libraries directly.
+cmake -S . -B build -DARCH=ice40 -DBoost_NO_BOOST_CMAKE=ON $args
 cmake --build build -j${NPROC:-$(nproc)}
 
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"

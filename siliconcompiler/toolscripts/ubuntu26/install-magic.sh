@@ -30,6 +30,8 @@ if [ ! -z ${PREFIX} ]; then
     args=--prefix="$PREFIX"
 fi
 
-LD_FLAGS=-shared ./configure $args
+# GCC 15 (Ubuntu 26.04) defaults to C23, where `bool` is a keyword and Magic's
+# `typedef unsigned char bool;` no longer compiles. Build against C17 instead.
+LD_FLAGS=-shared CFLAGS="-std=gnu17" ./configure $args
 make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install

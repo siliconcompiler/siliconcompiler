@@ -14,7 +14,9 @@ fi
 
 sudo apt-get update
 
-sudo apt-get install -y llvm-dev clang gnat libgnat-9 libz-dev
+# Ubuntu 26.04 dropped the versioned libgnat-9 package; the gnat metapackage
+# already pulls the matching libgnat runtime, so it is no longer listed here.
+sudo apt-get install -y llvm-dev clang gnat libz-dev
 
 sudo apt-get install -y git build-essential
 
