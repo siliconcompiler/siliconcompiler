@@ -25,15 +25,18 @@ git clone $(python3 ${src_path}/_tools.py --tool nextpnr --field git-url) nextpn
 cd nextpnr
 git checkout $(python3 ${src_path}/_tools.py --tool nextpnr --field git-commit)
 
+# Boost 1.90 (Ubuntu 26.04) made Boost.System header-only, so there is no
+# boost_system library for find_package to locate (it fails with
+# "missing: system"). nextpnr only needs the headers, which still come in via
+# the Boost::headers target, so drop system from the component list.
+sed -i '/set(boost_libs/ s/ system//' CMakeLists.txt
+
 args=
 if [ ! -z ${PREFIX} ]; then
     args=-DCMAKE_INSTALL_PREFIX="$PREFIX"
 fi
 
-# Boost 1.90 (Ubuntu 26.04) ships a CMake package config that nextpnr's
-# find_package(Boost COMPONENTS system ...) cannot resolve. Force CMake's
-# classic FindBoost module to locate the libraries directly.
-cmake -S . -B build -DARCH=ice40 -DBoost_NO_BOOST_CMAKE=ON $args
+cmake -S . -B build -DARCH=ice40 $args
 cmake --build build -j${NPROC:-$(nproc)}
 
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"

@@ -9,6 +9,13 @@ import os.path
 # not packaged for arm64 (g++-11-multilib does not exist there).
 AARCH64_UNSUPPORTED = {"bambu"}
 
+# Tools that cannot be built for a specific (os, arch) combination. bluespec's
+# vendored MINISAT clashes with the newer glibc <time.h> on ubuntu26/aarch64
+# (it builds fine on ubuntu22/24 aarch64 and on all x86_64).
+OS_ARCH_UNSUPPORTED = {
+    ("ubuntu26", "aarch64"): {"bluespec"},
+}
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -56,6 +63,9 @@ if __name__ == "__main__":
                 arch = "x86_64"
                 if arm64:
                     arch = "aarch64"
+
+                if toolname in OS_ARCH_UNSUPPORTED.get((osname, arch), ()):
+                    continue
 
                 matrix.append({
                     "script": ",".join([*prebuild, scriptname]),

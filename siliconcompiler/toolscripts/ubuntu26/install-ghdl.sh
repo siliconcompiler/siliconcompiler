@@ -16,7 +16,9 @@ sudo apt-get update
 
 # Ubuntu 26.04 dropped the versioned libgnat-9 package; the gnat metapackage
 # already pulls the matching libgnat runtime, so it is no longer listed here.
-sudo apt-get install -y llvm-dev clang gnat libz-dev
+# Ubuntu 26.04 also defaults to LLVM 21, but GHDL v5.1.1 only supports up to
+# LLVM 20, so install the versioned llvm-20 packages explicitly.
+sudo apt-get install -y llvm-20-dev clang-20 gnat libz-dev
 
 sudo apt-get install -y git build-essential
 
@@ -32,7 +34,7 @@ if [ ! -z ${PREFIX} ]; then
     args=--prefix="$PREFIX"
 fi
 
-./configure --with-llvm-config $args
+./configure --with-llvm-config=llvm-config-20 $args
 make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 cd -
