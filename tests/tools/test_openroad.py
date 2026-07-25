@@ -64,10 +64,10 @@ def test_openroad_images(asic_gcd):
 
     images_count = {
         'floorplan.init': 2,
-        'place.detailed': 6,
-        'cts.clock_tree_synthesis': 10,
-        'route.detailed': 12,
-        'write.views': 28,
+        'place.detailed': 7,
+        'cts.clock_tree_synthesis': 11,
+        'route.detailed': 13,
+        'write.views': 29,
     }
 
     for step in images_count.keys():
