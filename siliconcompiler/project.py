@@ -586,15 +586,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             raise RuntimeError(f"Run failed: {e.msg}") from None
         finally:
             if self.__dashboard:
-                # Update the dashboard with the final state, then tear it down.
-                # stop() detaches the logger (restoring normal terminal output)
-                # and unregisters the atexit hook, so this project is no longer
+                # Push the final manifest, then tear the dashboard down. stop()
+                # already finalizes the run (it calls end_of_run() internally),
+                # detaches the logger (restoring normal terminal output), and
+                # unregisters the atexit hook, so this project is no longer
                 # pinned and can be garbage collected. The shared Board is a
                 # process-wide singleton: its completeness guard keeps it alive
                 # for any other concurrent runs and only truly stops it once all
                 # jobs are done; MPManager.stop() is the process-exit backstop.
                 self.__dashboard.update_manifest()
-                self.__dashboard.end_of_run()
                 self.__dashboard.stop()
 
         self.__reset_job_params()

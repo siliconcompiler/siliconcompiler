@@ -2549,6 +2549,33 @@ def test_atexit_hook_does_not_pin_dashboard(mock_project, fake_console):
     assert ref() is None
 
 
+def test_weak_atexit_call_tolerates_non_bound_method():
+    """weak_atexit_call must not choke on a non-bound callable. WeakMethod
+    rejects anything without __self__/__func__ (e.g. a plain function or a
+    unittest.mock double). This happens in practice when CliDashboard.stop is
+    patched at the class level while a dashboard is (re)constructed — e.g. the
+    deepcopy in Project._record_history rebuilds the dashboard. The trampoline
+    must build and, when invoked, call through to the callable."""
+    from unittest.mock import MagicMock
+    from siliconcompiler.report.dashboard import weak_atexit_call
+
+    target = MagicMock()
+    trampoline = weak_atexit_call(target)  # must not raise
+    trampoline()
+    target.assert_called_once_with()
+
+
+def test_construct_with_patched_stop_does_not_raise(mock_project, fake_console):
+    """Constructing a CliDashboard while CliDashboard.stop is class-patched with
+    a MagicMock must not raise (regression for the WeakMethod TypeError that
+    broke Project._record_history's deepcopy-rebuilt dashboard)."""
+    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop"), \
+            patch("threading.Thread"):
+        dash = CliDashboard(mock_project)  # must not raise
+
+    assert dash._CliDashboard__atexit_func is not None
+
+
 def test_stop_unregisters_atexit_hook(mock_project, fake_console):
     """stop() must release the atexit hook it registered in __init__ so the
     trampoline does not fire again at interpreter shutdown."""

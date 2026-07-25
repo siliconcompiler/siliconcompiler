@@ -59,11 +59,9 @@ once its jobs are complete. So between serial runs you should see:
 * the live view come down and the terminal become usable again — a between-runs
   banner line prints to NORMAL scrollback (not hidden behind the live view);
 * the next run() re-open a fresh dashboard cycle for the next design;
-* a per-run report of whether the finished Project is reclaimed once its
-  reference is dropped. The end-of-run stop() releases the dashboard's atexit
-  pin, but today the project is still NOT reclaimed — run() leaves other
-  framework-level references behind (a separate leak this demo surfaces), so
-  expect "reclaimed: False".
+* a per-run report that the finished Project is reclaimed once its reference is
+  dropped. The end-of-run stop() unregisters the (weakref) atexit trampoline and
+  the non-pinning hook lets GC reclaim the project — so expect "reclaimed: True".
 On an interactive TTY (screen=True) expect an alt-screen flip per run — that is
 the known/parked cost of tearing down per run; a future screen=False switch
 removes it.
@@ -183,11 +181,10 @@ def run_serial(jobs, nodes):
     unregistered. The next run() re-opens a fresh dashboard cycle.
 
     As a diagnostic, we also drop the only reference to each finished project,
-    force a GC, and REPORT whether it was reclaimed. Note: the end-of-run stop()
-    releases the dashboard's atexit pin, but as of today a project is still NOT
-    reclaimed after run() — run() leaves other framework-level references behind
-    (independent of the dashboard). So expect "reclaimed: False" here; that is a
-    separate leak, surfaced by this demo, not a dashboard-teardown failure.
+    force a GC, and REPORT whether it was reclaimed. The end-of-run stop()
+    unregisters the (weakref) atexit trampoline, and because that hook never
+    pinned the dashboard/project, GC reclaims the project — so expect
+    "reclaimed: True".
     """
     import gc
     import weakref
@@ -217,9 +214,8 @@ def run_serial(jobs, nodes):
     print(f"\n>>> {jobs} serial runs complete; "
           f"{n_reclaimed}/{jobs} projects reclaimed after their run()")
     if n_reclaimed != jobs:
-        print(">>> (residual references outside the dashboard still pin the "
-              "project — a separate leak from the dashboard teardown)")
-    # Exit status reflects the runs succeeding, not the (known) residual leak.
+        print(">>> (unexpected: a project was NOT reclaimed — something still "
+              "pins it after run(); the atexit hook should no longer)")
     return 0
 
 

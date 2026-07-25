@@ -1828,7 +1828,6 @@ def test_run_with_dashboard_running():
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as \
             update_manifest, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop:
         is_running.return_value = True
         proj._record_history()
@@ -1842,8 +1841,8 @@ def test_run_with_dashboard_running():
         set_logger.assert_called()
         assert set_logger.call_count == 2
         update_manifest.assert_called_once()
-        end_of_run.assert_called_once()
-        # Dashboard is torn down at the end of run() (removes the summary hack).
+        # stop() finalizes the run (calls end_of_run internally) and tears the
+        # dashboard down at the end of run() — this removes the summary hack.
         stop.assert_called_once()
 
 
@@ -1868,7 +1867,6 @@ def test_run_with_dashboard_notrunning():
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as \
             update_manifest, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop:
         is_running.return_value = False
         proj._record_history()
@@ -1881,8 +1879,8 @@ def test_run_with_dashboard_notrunning():
         open_dashboard.assert_called_once()
         set_logger.assert_called_once()
         update_manifest.assert_called_once()
-        end_of_run.assert_called_once()
-        # Dashboard is torn down at the end of run() (removes the summary hack).
+        # stop() finalizes the run (calls end_of_run internally) and tears the
+        # dashboard down at the end of run() — this removes the summary hack.
         stop.assert_called_once()
 
 
