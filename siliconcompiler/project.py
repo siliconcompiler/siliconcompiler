@@ -599,8 +599,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 # all jobs are done; MPManager.stop() is the process-exit backstop.
                 try:
                     self.__dashboard.update_manifest()
-                except Exception:
-                    pass
+                except Exception as e:
+                    # Best-effort final repaint: never fail or mask the run, but
+                    # record why it was skipped for diagnostics.
+                    self.logger.debug(f"Failed to update dashboard at end of run: {e}")
                 finally:
                     self.__dashboard.stop()
 
