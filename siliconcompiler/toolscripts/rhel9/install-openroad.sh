@@ -14,6 +14,11 @@ fi
 sudo yum install -y git curl --skip-broken
 sudo yum install -y make pandoc groff util-linux --skip-broken
 
+# OpenROAD's DependencyInstaller pulls xcb-util-*-devel, which live in Rocky 9's
+# CodeReady Builder (CRB) repository; enable it so those packages resolve
+# (epel-release, installed in the base image, ships the /usr/bin/crb helper).
+sudo /usr/bin/crb enable || sudo dnf config-manager --set-enabled crb
+
 mkdir -p deps
 cd deps
 

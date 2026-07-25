@@ -41,24 +41,25 @@ git clone $(python3 ${src_path}/_tools.py --tool xyce --field git-url) xyce
 cd xyce
 git checkout $(python3 ${src_path}/_tools.py --tool xyce --field git-commit)
 
-# Build Trilinos
-cd trilinos
-mkdir build
-cd build
+# Build Trilinos inside the Xyce tree (we are in deps/xyce) so both the -C cache
+# file (xyce/cmake/...) and the Trilinos source (deps/trilinos, ../../trilinos)
+# resolve correctly.
+mkdir trilinos-build
+cd trilinos-build
 cmake \
     -D CMAKE_INSTALL_PREFIX="$PREFIX/trilinos" \
     -D AMD_LIBRARY_DIRS="/usr/lib" \
     -D TPL_AMD_INCLUDE_DIRS="/usr/include/suitesparse" \
-    -C "../cmake/trilinos/trilinos-base.cmake" \
-    ..
+    -C ../cmake/trilinos/trilinos-base.cmake \
+    ../../trilinos
 cmake --build . -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
-cd ../..
+
+cd ..
 
 # Build Xyce
-cd xyce
-mkdir build
-cd build
+mkdir xyce-build
+cd xyce-build
 cmake \
     -D CMAKE_INSTALL_PREFIX="$PREFIX" \
     -D Trilinos_ROOT=$PREFIX/trilinos \

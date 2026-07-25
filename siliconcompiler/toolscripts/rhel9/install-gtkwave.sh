@@ -28,7 +28,9 @@ if [ ! -z ${PREFIX} ]; then
     args=--prefix="$PREFIX"
 fi
 
-wget http://ftp.gnu.org/pub/gnu/gperf/gperf-3.1.tar.gz
+# ftp.gnu.org is unreachable from the CI runners (it resolves to IPv6, which the
+# runner lacks); fetch gperf from the GNU mirror redirector over HTTPS instead.
+wget https://ftpmirror.gnu.org/gperf/gperf-3.1.tar.gz
 tar xvf gperf-3.1.tar.gz
 cd gperf-3.1
 ./configure $args
