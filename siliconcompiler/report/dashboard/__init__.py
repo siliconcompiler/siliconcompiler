@@ -36,7 +36,14 @@ class WeakAtexitCall:
     """
 
     def __init__(self, method):
-        self._ref = weakref.WeakMethod(method)
+        try:
+            self._ref = weakref.WeakMethod(method)
+        except TypeError:
+            # ``method`` is not a bound method (e.g. a plain function, or a
+            # unittest.mock double swapped in for one). Such a callable pins no
+            # instance, so there is nothing to weaken — resolve to it directly
+            # behind the same zero-arg protocol WeakMethod provides.
+            self._ref = lambda: method
 
     def __call__(self):
         target = self._ref()

@@ -586,9 +586,25 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             raise RuntimeError(f"Run failed: {e.msg}") from None
         finally:
             if self.__dashboard:
-                # Update dashboard
-                self.__dashboard.update_manifest()
-                self.__dashboard.end_of_run()
+                # Push the final manifest (best-effort), then ALWAYS tear the
+                # dashboard down. stop() finalizes the run (it calls end_of_run()
+                # internally), detaches the logger (restoring normal terminal
+                # output), and unregisters the atexit hook, so this project is no
+                # longer pinned and can be garbage collected. update_manifest()
+                # does a schema retraversal that can raise (I/O / serialization);
+                # a failing final repaint must not skip teardown, nor mask the
+                # run's own result or error, so it is guarded. The shared Board
+                # is a process-wide singleton: its completeness guard keeps it
+                # alive for other concurrent runs and only truly stops it once
+                # all jobs are done; MPManager.stop() is the process-exit backstop.
+                try:
+                    self.__dashboard.update_manifest()
+                except Exception as e:
+                    # Best-effort final repaint: never fail or mask the run, but
+                    # record why it was skipped for diagnostics.
+                    self.logger.debug(f"Failed to update dashboard at end of run: {e}")
+                finally:
+                    self.__dashboard.stop()
 
         self.__reset_job_params()
 
@@ -1242,10 +1258,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self.logger.warning(f"{org_job} not found in history, picking {jobname}")
 
         history = self.history(jobname)
-
-        if not fd:
-            if self.__dashboard and self.__dashboard.is_running():
-                self.__dashboard.stop()
 
         history.get("metric", field='schema').summary(
             headers=history._summary_headers(),
