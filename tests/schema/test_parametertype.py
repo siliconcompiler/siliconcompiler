@@ -236,6 +236,10 @@ def test_normalize(type, value, expect):
         ("[str]", ["test"], "[list \"test\"]"),
         ("[str]", None, "[list ]"),
         ("{str}", None, "[list ]"),
+        # An empty (but non-None) container is an empty Tcl list, not a list
+        # holding one empty element ([list {}]).
+        ("[str]", [], "[list ]"),
+        ("{str}", set(), "[list ]"),
         ("[bool]", [False], "[list false]"),
         ("[int]", [12], "[list 12]"),
         ("{int}", set([12]), "[list 12]"),
