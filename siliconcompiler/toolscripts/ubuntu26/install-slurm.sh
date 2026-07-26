@@ -39,7 +39,7 @@ fi
 # GCC 15 (Ubuntu 26.04) defaults to C23, where an empty parameter list means
 # "takes no arguments"; Slurm's K&R-style function-pointer calls then fail to
 # compile. Build against C17 and keep the GCC 14 type checks as warnings.
-./configure CFLAGS="-std=gnu17 -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration" $cfg_args
+./configure CFLAGS="${CFLAGS:-} -std=gnu17 -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration" $cfg_args
 
 make -j${NPROC:-$(nproc)}
 

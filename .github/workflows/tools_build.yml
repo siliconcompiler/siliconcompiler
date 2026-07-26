@@ -33,6 +33,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.tools }}-${{ inputs.os }}-${{ inputs.arch }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   matrix:
     name: 'Generate build matrix'
@@ -47,11 +50,15 @@ jobs:
 
       - name: Generate tool docker files
         id: matrix
+        env:
+          TOOLS: ${{ inputs.tools }}
+          OS: ${{ inputs.os }}
+          ARCH: ${{ inputs.arch }}
         run: |
           matrix=$(python3 .github/workflows/bin/build_matrix.py \
-            --tools "${{ inputs.tools }}" \
-            --os "${{ inputs.os }}" \
-            --arch "${{ inputs.arch }}")
+            --tools "$TOOLS" \
+            --os "$OS" \
+            --arch "$ARCH")
           echo "tools=${matrix}" >> $GITHUB_OUTPUT
 
   build:

@@ -37,15 +37,10 @@ grep -rlE '\bstruct termio\b|\bTC[GS]ETA' . | xargs -r sed -i -E \
     -e 's/\bTCSETAW\b/TCSETSW/g' \
     -e 's/\bTCSETA\b/TCSETS/g'
 
-args=
-if [ ! -z ${PREFIX} ]; then
-    args=--prefix="$PREFIX"
-fi
-
 # GCC 15 (Ubuntu 26.04) defaults to C23, where `bool` is a keyword and Magic's
 # `typedef unsigned char bool;` no longer compiles. Magic's configure ignores
 # $CFLAGS from the environment, so fold -std=gnu17 into $CC to force C17 on
 # every compile.
-LD_FLAGS=-shared CC="${CC:-gcc} -std=gnu17" ./configure $args
+LD_FLAGS=-shared CC="${CC:-gcc} -std=gnu17" ./configure ${PREFIX:+--prefix="$PREFIX"}
 make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
