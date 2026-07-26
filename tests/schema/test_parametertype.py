@@ -237,7 +237,14 @@ def test_normalize(type, value, expect):
         ("[[str]]", [["test", "test0"], ["test"]],
             "[list [list \"test\" \"test0\"] [list \"test\"]]"),
         ("(str,str)", ("test0", "test1"), "[list \"test0\" \"test1\"]"),
-        (NodeType("(str,float)"), ("1", 2.5), "[list \"1\" 2.5]")
+        (NodeType("(str,float)"), ("1", 2.5), "[list \"1\" 2.5]"),
+        # A None field must hold its position with an explicit empty element
+        # ({}) so the tuple arity survives the round-trip to Tcl.
+        ("(int,str)", (None, "test"), "[list {} \"test\"]"),
+        ("(int,str)", (12, None), "[list 12 {}]"),
+        ("(int,str,int)", (12, None, 5), "[list 12 {} 5]"),
+        ("(int,str,int)", (None, None, None), "[list {} {} {}]"),
+        ("(str,float)", (None, 2.5), "[list {} 2.5]"),
     ])
 def test_to_tcl(type, value, expect):
     assert NodeType.to_tcl(value, NodeType.parse(type)) == expect

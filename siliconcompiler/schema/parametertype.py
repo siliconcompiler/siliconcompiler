@@ -290,7 +290,13 @@ class NodeType:
         if isinstance(sctype, tuple):
             if value is None:
                 return '[list ]'
-            valstr = ' '.join(NodeType.to_tcl(v, subtype) for v, subtype in zip(value, sctype))
+            # A tuple is fixed-arity, so a None field must hold its position. A
+            # bare None serializes to '' and collapses in the '[list ...]' join,
+            # shifting every later field left; emit an explicit empty element
+            # ({}) instead so the arity survives the round-trip to Tcl.
+            valstr = ' '.join(
+                '{}' if v is None else NodeType.to_tcl(v, subtype)
+                for v, subtype in zip(value, sctype))
             return f'[list {valstr}]'
 
         if value is None:
