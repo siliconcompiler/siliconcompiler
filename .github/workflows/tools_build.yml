@@ -4,18 +4,37 @@ on:
   # Manual Dispatch
   workflow_dispatch:
     inputs:
-      tool:
+      tools:
         type: string
         default: ''
-        description: tool to build
+        description: 'Comma-separated tools to build (empty = all), e.g. "magic,ghdl"'
+      os:
+        type: string
+        default: ''
+        description: 'Comma-separated OSes (empty = all), e.g. "ubuntu26,rhel9"'
+      arch:
+        type: string
+        default: ''
+        description: 'Comma-separated arches (empty = all): x86_64,aarch64'
+
+  # Weekly full-matrix build to catch tool-build regressions. Only fires from
+  # the default branch; scheduled runs pass no inputs, so the whole matrix runs.
+  schedule:
+    - cron: '0 4 * * 0'
 
 defaults:
   run:
     shell: bash
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # Fold the dispatch inputs into the group so runs targeting different
+  # tool/os/arch subsets run concurrently instead of cancelling each other;
+  # re-dispatching the same selection still supersedes the in-progress run.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.tools }}-${{ inputs.os }}-${{ inputs.arch }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   matrix:
@@ -31,9 +50,16 @@ jobs:
 
       - name: Generate tool docker files
         id: matrix
+        env:
+          TOOLS: ${{ inputs.tools }}
+          OS: ${{ inputs.os }}
+          ARCH: ${{ inputs.arch }}
         run: |
-          tools=$(python3 .github/workflows/bin/build_matrix.py ${{ inputs.tool }})
-          echo "tools=${tools}" >> $GITHUB_OUTPUT
+          matrix=$(python3 .github/workflows/bin/build_matrix.py \
+            --tools "$TOOLS" \
+            --os "$OS" \
+            --arch "$ARCH")
+          echo "tools=${matrix}" >> $GITHUB_OUTPUT
 
   build:
     name: Build ${{ matrix.name }}

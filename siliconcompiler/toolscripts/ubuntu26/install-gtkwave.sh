@@ -35,6 +35,9 @@ fi
 cd gtkwave3-gtk3
 
 ./autogen.sh
-./configure --enable-gtk3 $args
+# GCC 14+ (Ubuntu 26.04) promotes -Wincompatible-pointer-types to a hard error,
+# which breaks GTKWave's GTK3 callback casts. Downgrade it back to a warning.
+CFLAGS="${CFLAGS:-} -Wno-error=incompatible-pointer-types -Wno-error=int-conversion" \
+    ./configure --enable-gtk3 $args
 make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install

@@ -45,6 +45,11 @@ git clone $(python3 ${src_path}/_tools.py --tool xyce --field git-url) xyce
 cd xyce
 git checkout $(python3 ${src_path}/_tools.py --tool xyce --field git-commit)
 
+# GCC 15 (Ubuntu 26.04) eagerly diagnoses errors in uninstantiated template
+# bodies (-Wtemplate-body), which trips on Trilinos 14.4's kokkos-kernels
+# headers. Revert to instantiation-time checking so the build proceeds.
+export CXXFLAGS="${CXXFLAGS:-} -Wno-template-body"
+
 # Build Trilinos
 mkdir trilinos-build
 cd trilinos-build

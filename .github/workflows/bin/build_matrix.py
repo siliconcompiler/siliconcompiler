@@ -4,10 +4,47 @@ import glob
 import os.path
 
 
+# Tools that cannot be built for aarch64 and are therefore skipped in the arm64
+# matrix. bambu requires x86 32-bit multilib / -m32 code generation, which is
+# not packaged for arm64 (g++-11-multilib does not exist there).
+AARCH64_UNSUPPORTED = {"bambu"}
+
+# Tools that cannot be built for a specific (os, arch) combination:
+#  - bluespec: vendored MINISAT clashes with the newer glibc <time.h> on
+#    ubuntu26/aarch64 (builds fine on ubuntu22/24 aarch64 and on all x86_64).
+#  - openroad: on ubuntu26/aarch64 its hermetic bazel LLVM toolchain links an
+#    older sysroot than glibc 2.41, so the final link fails on versioned glibc
+#    symbols (upstream issue; x86_64 builds fine).
+OS_ARCH_UNSUPPORTED = {
+    ("ubuntu26", "aarch64"): {"bluespec", "openroad"},
+}
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("tool", nargs='?', default=None)
+    parser = argparse.ArgumentParser(
+        description="Generate the tool-build matrix, optionally filtered.")
+    parser.add_argument(
+        "tool", nargs='?', default=None,
+        help="(deprecated) single tool name; prefer --tools")
+    parser.add_argument(
+        "--tools", default="",
+        help="comma-separated tool names to build (empty = all)")
+    parser.add_argument(
+        "--os", dest="oses", default="",
+        help="comma-separated OS names, e.g. ubuntu26,rhel9 (empty = all)")
+    parser.add_argument(
+        "--arch", default="",
+        help="comma-separated arches: x86_64,aarch64 (empty = all)")
     args = parser.parse_args()
+
+    def _split(value):
+        return {item.strip() for item in value.split(",") if item.strip()}
+
+    tools = _split(args.tools)
+    if args.tool:
+        tools.add(args.tool)
+    oses = _split(args.oses)
+    arches = _split(args.arch)
 
     binroot = os.path.abspath(os.path.dirname(__file__))
     scroot = os.path.dirname(os.path.dirname(os.path.dirname(binroot)))
@@ -26,11 +63,13 @@ if __name__ == "__main__":
             continue
 
         osname = os.path.basename(f)
+        if oses and osname not in oses:
+            continue
 
         for script in glob.glob(os.path.join(f, "install-*.sh")):
             scriptname = os.path.basename(script)
             toolname = scriptname[8:-3]
-            if args.tool and args.tool != toolname:
+            if tools and toolname not in tools:
                 continue
             if toolname not in tool_data:
                 continue
@@ -44,10 +83,18 @@ if __name__ == "__main__":
             for runon, arm64 in (("ubuntu-latest", False), ("ubuntu-24.04-arm", True)):
                 if arm64 and osname not in ("ubuntu22", "ubuntu24", "ubuntu26"):
                     continue
+                if arm64 and toolname in AARCH64_UNSUPPORTED:
+                    continue
 
                 arch = "x86_64"
                 if arm64:
                     arch = "aarch64"
+
+                if arches and arch not in arches:
+                    continue
+
+                if toolname in OS_ARCH_UNSUPPORTED.get((osname, arch), ()):
+                    continue
 
                 matrix.append({
                     "script": ",".join([*prebuild, scriptname]),
