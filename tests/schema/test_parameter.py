@@ -1117,7 +1117,9 @@ def test_tcl_never():
 def test_tcl_empty():
     param = Parameter("str")
 
-    assert param.gettcl() == ''
+    # An unset value serializes to an explicit empty Tcl element ({}) so it is
+    # a valid empty value in 'dict set' and never collapses in a join.
+    assert param.gettcl() == '{}'
 
 
 def test_tcl_int():

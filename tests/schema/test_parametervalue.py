@@ -27,7 +27,9 @@ def test_gettcl():
 
 
 def test_gettcl_unset():
-    assert NodeValue("str").gettcl() == ""
+    # An unset scalar serializes to an explicit empty Tcl element ({}) so it
+    # remains a valid empty value in 'dict set' and never collapses in a join.
+    assert NodeValue("str").gettcl() == "{}"
 
 
 def test_set():
