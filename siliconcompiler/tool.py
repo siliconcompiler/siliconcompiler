@@ -1076,10 +1076,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if valstr is None:
                 continue
 
-            # Ensure empty values are represented as empty Tcl lists
-            if valstr == '':
-                valstr = '{}'
-
             tcl_set_cmds.append(f"dict set sc_cfg {keystr} {valstr}")
 
         if template:

@@ -290,11 +290,18 @@ class NodeType:
         if isinstance(sctype, tuple):
             if value is None:
                 return '[list ]'
-            valstr = ' '.join(NodeType.to_tcl(v, subtype) for v, subtype in zip(value, sctype))
+            # Recurse into each field of the tuple. A None field serializes to
+            # an explicit empty element ({} for a scalar, '[list ]' for a
+            # container), so its position survives the round-trip to Tcl.
+            valstr = ' '.join(NodeType.to_tcl(v, subtype)
+                              for v, subtype in zip(value, sctype))
             return f'[list {valstr}]'
 
         if value is None:
-            return ''
+            # Emit an explicit empty Tcl element rather than '' so a None never
+            # collapses in a '[list ...]' join (which would shift later tuple
+            # fields) and is written as a valid empty value in 'dict set'.
+            return '{}'
 
         if sctype == 'str' or isinstance(sctype, NodeEnumType):
             # Escape string by surrounding it with "" and escaping the few

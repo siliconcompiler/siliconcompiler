@@ -205,7 +205,15 @@ def test_normalize(type, value, expect):
 @pytest.mark.parametrize(
     "type,value,expect", [
         ("str", "test", "\"test\""),
-        ("str", None, ""),
+        # A None scalar serializes to an explicit empty Tcl element ({}) so it
+        # never collapses in a '[list ...]' join or 'dict set'.
+        ("str", None, "{}"),
+        ("int", None, "{}"),
+        # An empty string is a real value, distinct from None: it must remain a
+        # quoted empty string ("") and not become {}.
+        ("str", "", "\"\""),
+        ("[str]", [""], "[list \"\"]"),
+        ("(str,str)", ("", None), "[list \"\" {}]"),
         ("str", "\"test\"", "\"\\\"test\\\"\""),
         ("str", "test[0]", "\"test\\[0]\""),
         ("str", "test$next[0]", "\"test\\$next\\[0]\""),
@@ -228,16 +236,49 @@ def test_normalize(type, value, expect):
         ("[str]", ["test"], "[list \"test\"]"),
         ("[str]", None, "[list ]"),
         ("{str}", None, "[list ]"),
+        # An empty (but non-None) container is an empty Tcl list, not a list
+        # holding one empty element ([list {}]).
+        ("[str]", [], "[list ]"),
+        ("{str}", set(), "[list ]"),
         ("[bool]", [False], "[list false]"),
         ("[int]", [12], "[list 12]"),
         ("{int}", set([12]), "[list 12]"),
         ("{int}", set([15, 12]), "[list 12 15]"),
-        ("[int]", [None], "[list ]"),
+        # A None element keeps its position as an empty element, rather than
+        # collapsing the surrounding list.
+        ("[int]", [None], "[list {}]"),
+        ("{str}", set([None]), "[list {}]"),
         ("(int,str)", None, "[list ]"),
         ("[[str]]", [["test", "test0"], ["test"]],
             "[list [list \"test\" \"test0\"] [list \"test\"]]"),
         ("(str,str)", ("test0", "test1"), "[list \"test0\" \"test1\"]"),
-        (NodeType("(str,float)"), ("1", 2.5), "[list \"1\" 2.5]")
+        (NodeType("(str,float)"), ("1", 2.5), "[list \"1\" 2.5]"),
+        # A None field must hold its position with an explicit empty element
+        # ({}) so the tuple arity survives the round-trip to Tcl.
+        ("(int,str)", (None, "test"), "[list {} \"test\"]"),
+        ("(int,str)", (12, None), "[list 12 {}]"),
+        ("(int,str,int)", (12, None, 5), "[list 12 {} 5]"),
+        ("(int,str,int)", (None, None, None), "[list {} {} {}]"),
+        ("(str,float)", (None, 2.5), "[list {} 2.5]"),
+        # A None field whose subtype is itself a container serializes to the
+        # empty container, not {}, so the nesting survives the round-trip.
+        ("(int,(int,str))", (1, None), "[list 1 [list ]]"),
+        ("(int,[str])", (1, None), "[list 1 [list ]]"),
+        ("(int,{str})", (1, None), "[list 1 [list ]]"),
+        ("(int,(int,str))", (1, (2, None)), "[list 1 [list 2 {}]]"),
+        # Containers of tuples: recursion composes the other direction too, and
+        # a None field inside an element still holds its position.
+        ("[(int,str)]", [(1, "a"), (2, None)],
+            "[list [list 1 \"a\"] [list 2 {}]]"),
+        ("{(int,str)}", set([(1, "a")]), "[list [list 1 \"a\"]]"),
+        # A ranged base type inside a container is unwrapped per element.
+        ("[int<0..5>]", [3], "[list 3]"),
+        # An enum value routes through the string-escaping path.
+        ("<a,b>", None, "{}"),
+        ("[<a,b>]", ["a"], "[list \"a\"]"),
+        # File env-var substitution and bracket escaping (parallel to dir).
+        ("file", "$TEST/test.txt", "\"$env(TEST)/test.txt\""),
+        ("file", "/usr/test[0].txt", "\"/usr/test\\[0].txt\""),
     ])
 def test_to_tcl(type, value, expect):
     assert NodeType.to_tcl(value, NodeType.parse(type)) == expect
