@@ -22,6 +22,10 @@ sudo apt-get install -y llvm-20-dev clang-20 gnat libz-dev
 
 sudo apt-get install -y git build-essential
 
+# GHDL's LLVM backend build invokes `clang++` (unversioned); provide it from the
+# pinned clang-20 toolchain so it matches llvm-config-20.
+sudo ln -sf "$(command -v clang++-20 || echo /usr/lib/llvm-20/bin/clang++)" /usr/local/bin/clang++
+
 mkdir -p deps
 cd deps
 

@@ -24,7 +24,7 @@ sudo apt-get install -y \
     libxcb-sync-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-image0-dev \
     libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev \
     libxcb-shape0-dev libxcb-util-dev libxcb-xinerama0-dev libxcb-xkb-dev \
-    libxcb-cursor-dev
+    libxcb-cursor-dev libx11-xcb-dev libsm-dev libice-dev
 
 mkdir -p deps
 cd deps

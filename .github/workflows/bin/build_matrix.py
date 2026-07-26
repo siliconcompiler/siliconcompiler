@@ -18,9 +18,30 @@ OS_ARCH_UNSUPPORTED = {
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("tool", nargs='?', default=None)
+    parser = argparse.ArgumentParser(
+        description="Generate the tool-build matrix, optionally filtered.")
+    parser.add_argument(
+        "tool", nargs='?', default=None,
+        help="(deprecated) single tool name; prefer --tools")
+    parser.add_argument(
+        "--tools", default="",
+        help="comma-separated tool names to build (empty = all)")
+    parser.add_argument(
+        "--os", dest="oses", default="",
+        help="comma-separated OS names, e.g. ubuntu26,rhel9 (empty = all)")
+    parser.add_argument(
+        "--arch", default="",
+        help="comma-separated arches: x86_64,aarch64 (empty = all)")
     args = parser.parse_args()
+
+    def _split(value):
+        return {item.strip() for item in value.split(",") if item.strip()}
+
+    tools = _split(args.tools)
+    if args.tool:
+        tools.add(args.tool)
+    oses = _split(args.oses)
+    arches = _split(args.arch)
 
     binroot = os.path.abspath(os.path.dirname(__file__))
     scroot = os.path.dirname(os.path.dirname(os.path.dirname(binroot)))
@@ -39,11 +60,13 @@ if __name__ == "__main__":
             continue
 
         osname = os.path.basename(f)
+        if oses and osname not in oses:
+            continue
 
         for script in glob.glob(os.path.join(f, "install-*.sh")):
             scriptname = os.path.basename(script)
             toolname = scriptname[8:-3]
-            if args.tool and args.tool != toolname:
+            if tools and toolname not in tools:
                 continue
             if toolname not in tool_data:
                 continue
@@ -63,6 +86,9 @@ if __name__ == "__main__":
                 arch = "x86_64"
                 if arm64:
                     arch = "aarch64"
+
+                if arches and arch not in arches:
+                    continue
 
                 if toolname in OS_ARCH_UNSUPPORTED.get((osname, arch), ()):
                     continue

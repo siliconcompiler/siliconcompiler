@@ -25,6 +25,18 @@ git clone $(python3 ${src_path}/_tools.py --tool magic --field git-url) magic
 cd magic
 git checkout $(python3 ${src_path}/_tools.py --tool magic --field git-commit)
 
+# Ubuntu 26.04's glibc removed the legacy System V <termio.h>. Migrate Magic's
+# SYSV terminal code to the equivalent POSIX termios API: swap the header (and
+# pull in <sys/ioctl.h> for ioctl()), the struct, and the TC*A ioctl requests.
+grep -rl '#include <termio.h>' . | xargs -r sed -i \
+    's|#include <termio.h>|#include <termios.h>\n#include <sys/ioctl.h>|'
+grep -rlE '\bstruct termio\b|\bTC[GS]ETA' . | xargs -r sed -i -E \
+    -e 's/\bstruct termio\b/struct termios/g' \
+    -e 's/\bTCGETA\b/TCGETS/g' \
+    -e 's/\bTCSETAF\b/TCSETSF/g' \
+    -e 's/\bTCSETAW\b/TCSETSW/g' \
+    -e 's/\bTCSETA\b/TCSETS/g'
+
 args=
 if [ ! -z ${PREFIX} ]; then
     args=--prefix="$PREFIX"
