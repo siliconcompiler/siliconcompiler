@@ -240,8 +240,47 @@ def test_runtime_args_trace(heartbeat_design, monkeypatch):
             '--cc',
             '-o', '../outputs/heartbeat.vexe',
             '--trace',
+            '--trace-structs',
             '-CFLAGS', '\'-DSILICONCOMPILER_TRACE_DIR="reports"\' '
                        '\'-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"\'']
+
+
+def test_runtime_args_trace_fst_depth_2_no_structs(heartbeat_design, monkeypatch):
+    proj = Project(heartbeat_design)
+    heartbeat_design.set_param("N", "8", "rtl")
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", compile.CompileTask())
+    proj.set_flow(flow)
+    task = compile.CompileTask.find_task(proj)
+    task.set_verilator_trace(True)
+    task.set_verilator_tracetype("fst")
+    task.set_verilator_trace_structs(False)
+    task.set_verilator_trace_depth(2)
+
+    def limit_cpu(*args, **kwargs):
+        return 2
+
+    monkeypatch.setattr(utils, 'get_cores', limit_cpu)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get_runtime_arguments() == [
+            '-sv',
+            '--top-module', 'heartbeat',
+            '-GN=8',
+            heartbeat_design.get_file("rtl", "verilog")[0],
+            '--exe',
+            '--build',
+            '-j', '2',
+            '--cc',
+            '-o', '../outputs/heartbeat.vexe',
+            '--trace-fst',
+            '--trace-depth', '2',
+            '-CFLAGS', '\'-DSILICONCOMPILER_TRACE_DIR="reports"\' '
+                       '\'-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.fst"\'']
 
 
 def test_runtime_args_timescale(heartbeat_design, monkeypatch):
@@ -296,19 +335,39 @@ def test_verilator_parameter_mode():
 def test_verilator_parameter_trace():
     task = compile.CompileTask()
     task.set_verilator_trace(True)
-    assert task.get("var", "trace") is True
+    assert task.get_verilator_trace() is True
     task.set_verilator_trace(False, step='compile', index='1')
-    assert task.get("var", "trace", step='compile', index='1') is False
-    assert task.get("var", "trace") is True
+    assert task.get_verilator_trace(step='compile', index='1') is False
+    assert task.get_verilator_trace() is True
 
 
 def test_verilator_parameter_trace_type():
     task = compile.CompileTask()
     task.set_verilator_tracetype('fst')
-    assert task.get("var", "trace_type") == 'fst'
+    assert task.get_verilator_tracetype() == 'fst'
     task.set_verilator_tracetype('vcd', step='compile', index='1')
-    assert task.get("var", "trace_type", step='compile', index='1') == 'vcd'
-    assert task.get("var", "trace_type") == 'fst'
+    assert task.get_verilator_tracetype(step='compile', index='1') == 'vcd'
+    assert task.get_verilator_tracetype() == 'fst'
+
+
+def test_verilator_parameter_trace_structs():
+    task = compile.CompileTask()
+    assert task.get_verilator_trace_structs() is True
+    task.set_verilator_trace_structs(False)
+    assert task.get_verilator_trace_structs() is False
+    task.set_verilator_trace_structs(True, step='compile', index='1')
+    assert task.get_verilator_trace_structs(step='compile', index='1') is True
+    assert task.get_verilator_trace_structs() is False
+
+
+def test_verilator_parameter_trace_depth():
+    task = compile.CompileTask()
+    assert task.get_verilator_trace_depth() is None
+    task.set_verilator_trace_depth(3)
+    assert task.get_verilator_trace_depth() == 3
+    task.set_verilator_trace_depth(5, step='compile', index='1')
+    assert task.get_verilator_trace_depth(step='compile', index='1') == 5
+    assert task.get_verilator_trace_depth() == 3
 
 
 def test_verilator_parameter_cincludes():
