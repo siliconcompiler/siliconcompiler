@@ -9,11 +9,14 @@ import os.path
 # not packaged for arm64 (g++-11-multilib does not exist there).
 AARCH64_UNSUPPORTED = {"bambu"}
 
-# Tools that cannot be built for a specific (os, arch) combination. bluespec's
-# vendored MINISAT clashes with the newer glibc <time.h> on ubuntu26/aarch64
-# (it builds fine on ubuntu22/24 aarch64 and on all x86_64).
+# Tools that cannot be built for a specific (os, arch) combination:
+#  - bluespec: vendored MINISAT clashes with the newer glibc <time.h> on
+#    ubuntu26/aarch64 (builds fine on ubuntu22/24 aarch64 and on all x86_64).
+#  - openroad: on ubuntu26/aarch64 its hermetic bazel LLVM toolchain links an
+#    older sysroot than glibc 2.41, so the final link fails on versioned glibc
+#    symbols (upstream issue; x86_64 builds fine).
 OS_ARCH_UNSUPPORTED = {
-    ("ubuntu26", "aarch64"): {"bluespec"},
+    ("ubuntu26", "aarch64"): {"bluespec", "openroad"},
 }
 
 

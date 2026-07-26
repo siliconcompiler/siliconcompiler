@@ -17,6 +17,11 @@ on:
         default: ''
         description: 'Comma-separated arches (empty = all): x86_64,aarch64'
 
+  # Weekly full-matrix build to catch tool-build regressions. Only fires from
+  # the default branch; scheduled runs pass no inputs, so the whole matrix runs.
+  schedule:
+    - cron: '0 4 * * 0'
+
 defaults:
   run:
     shell: bash
