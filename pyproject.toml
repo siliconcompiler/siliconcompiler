@@ -38,7 +38,7 @@ dependencies = [
     "aiohttp >= 3.10.11, < 3.15.0",
     "distro >= 1.9.0, < 2.0.0",
     "docker >= 7.1.0, < 8.0.0",
-    "fastjsonschema >= 2.20.0, < 2.22.0",
+    "fastjsonschema >= 2.20.0, < 2.23.0",
     "graphviz >= 0.20, < 0.22",
     "orjson >= 3.11.0, < 4",
     "packaging >= 21.3, < 27",
@@ -128,7 +128,7 @@ cocotb = [
 ]
 dashboard = [
     # dashboard
-    "streamlit == 1.59.2",
+    "streamlit == 1.60.0",
     "streamlit_agraph == 0.0.45",
     "streamlit-antd-components == 0.3.2",
     "streamlit_javascript == 0.1.5",
