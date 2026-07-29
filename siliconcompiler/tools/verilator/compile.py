@@ -19,6 +19,12 @@ class CompileTask(VerilatorTask):
         self.add_parameter("trace_type", "<vcd,fst>",
                            "specifies type of wave file to create when [trace] is set",
                            defvalue="vcd")
+        self.add_parameter("trace_structs", "bool",
+                           "Enable tracing structure names",
+                           defvalue=True)
+        self.add_parameter("trace_depth", "int",
+                           "Specify the number of levels deep to enable tracing")
+
         self.add_parameter("main", "bool",
                            "if true, generate a toplevel C++ wrapper and relax the C++ file "
                            "requirement. See --main in Verilator docs for more info",
@@ -70,6 +76,18 @@ class CompileTask(VerilatorTask):
         """
         self.set("var", "trace", enable, step=step, index=index)
 
+    def get_verilator_trace(self,
+                            step: Optional[str] = None,
+                            index: Optional[str] = None) -> bool:
+        """
+        Returns whether trace generation is enabled.
+
+        Args:
+            step (str, optional): The specific step to read the configuration from.
+            index (str, optional): The specific index to read the configuration from.
+        """
+        return self.get("var", "trace", step=step, index=index)
+
     def set_verilator_tracetype(self, trace_type: str,
                                 step: Optional[str] = None,
                                 index: Optional[str] = None):
@@ -82,6 +100,71 @@ class CompileTask(VerilatorTask):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "trace_type", trace_type, step=step, index=index)
+
+    def get_verilator_tracetype(self,
+                                step: Optional[str] = None,
+                                index: Optional[str] = None) -> str:
+        """
+        Returns the type of wave file to create when trace is enabled.
+
+        Args:
+            step (str, optional): The specific step to read the configuration from.
+            index (str, optional): The specific index to read the configuration from.
+        """
+        return self.get("var", "trace_type", step=step, index=index)
+
+    def set_verilator_trace_structs(self, enable: bool,
+                                    step: Optional[str] = None,
+                                    index: Optional[str] = None):
+        """
+        Enables or disables the decomposition of structures & packed arrays
+        in fields in the output traces.
+
+        Args:
+            enable (bool): Whether to decompose structures in the output trace.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "trace_structs", enable, step=step, index=index)
+
+    def get_verilator_trace_structs(self,
+                                    step: Optional[str] = None,
+                                    index: Optional[str] = None) -> bool:
+        """
+        Returns whether structures & packed arrays are decomposed into fields
+        in the output traces.
+
+        Args:
+            step (str, optional): The specific step to read the configuration from.
+            index (str, optional): The specific index to read the configuration from.
+        """
+        return self.get("var", "trace_structs", step=step, index=index)
+
+    def set_verilator_trace_depth(self, level: int,
+                                  step: Optional[str] = None,
+                                  index: Optional[str] = None):
+        """
+        Specify the depth limit at which to stop tracing module signals.
+
+        Args:
+            level (int): The number of levels of hierarchy to trace.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "trace_depth", level, step=step, index=index)
+
+    def get_verilator_trace_depth(self,
+                                  step: Optional[str] = None,
+                                  index: Optional[str] = None) -> Optional[int]:
+        """
+        Returns the depth limit at which to stop tracing module signals,
+        or None if no limit is set.
+
+        Args:
+            step (str, optional): The specific step to read the configuration from.
+            index (str, optional): The specific index to read the configuration from.
+        """
+        return self.get("var", "trace_depth", step=step, index=index)
 
     def set_verilator_main(self, enable: bool,
                            step: Optional[str] = None,
@@ -222,6 +305,10 @@ class CompileTask(VerilatorTask):
         # trace_type is only read when tracing is enabled
         if self.get("var", "trace"):
             self.add_required_key("var", "trace_type")
+            self.add_required_key("var", "trace_structs")
+            if self.get("var", "trace_depth") is not None:
+                self.add_required_key("var", "trace_depth")
+
         self.add_required_key("var", "initialize_random")
         self.add_required_key("var", "main")
         if self.get("var", "timescale"):
@@ -297,6 +384,12 @@ class CompileTask(VerilatorTask):
                 c_flags.append("-DSILICONCOMPILER_TRACE_DIR=\"reports\"")
                 c_flags.append(
                     f"-DSILICONCOMPILER_TRACE_FILE=\"reports/{self.design_topmodule}.{ext}\"")
+
+            if self.get("var", "trace_structs"):
+                options.append("--trace-structs")
+
+            if (level := self.get("var", "trace_depth")) is not None:
+                options.extend(("--trace-depth", level))
 
         if c_includes:
             c_flags.extend([f'-I{include}' for include in c_includes])
