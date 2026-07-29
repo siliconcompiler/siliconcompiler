@@ -55,6 +55,7 @@ class Show3DBloxTask(BaseShowTask, OpenROADTask):
 
     def setup(self):
         super().setup()
+        self.set_threads(clobber=True)
         self.set_script("sc_open_3dblox.tcl")
 
     def get_supported_task_extentions(self):

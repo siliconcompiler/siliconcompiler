@@ -127,6 +127,7 @@ class Open3DBloxTask(OpenTask):
 
     def setup(self):
         super().setup()
+        self.set_threads(clobber=True)
         self.set_script("sc_open_3dblox.tcl")
 
         # Set minimum version
