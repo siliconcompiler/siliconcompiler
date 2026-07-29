@@ -1379,7 +1379,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def show(self, filename: Optional[str] = None, screenshot: bool = False,
              extension: Optional[str] = None, tool: Optional[str] = None,
-             open: bool = False) -> str:
+             open: bool = False) -> Optional[str]:
         '''
         Opens a graphical viewer for a specified file or the last generated layout.
 
@@ -1529,7 +1529,13 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if not proj.option.get_nodashboard():
             proj.option.set_nodashboard(not screenshot)
 
-        jobname = f"_{task.task()}_{sc_jobname}_{sc_step}_{sc_index}_{task.tool()}"
+        jobname = f"_{task.task()}_{sc_jobname}_"
+        if sc_step is not None:
+            jobname += f"{sc_step}_"
+        if sc_index is not None:
+            jobname += f"{sc_index}_"
+        jobname += f"{task.tool()}"
+
         proj.option.set_jobname(jobname)
 
         # Setup in task variables
