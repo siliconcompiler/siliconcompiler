@@ -55,8 +55,7 @@ class Show3DBloxTask(BaseShowTask, OpenROADTask):
 
     def setup(self):
         super().setup()
-        self.set_threads()
-        self.set_script("sc_show_3dblox.tcl")
+        self.set_script("sc_open_3dblox.tcl")
 
     def get_supported_task_extentions(self):
         return ["3dbx"]
@@ -68,4 +67,30 @@ class Show3DBloxTask(BaseShowTask, OpenROADTask):
         except ValueError:
             pass
         options.append("-gui")
+        return options
+
+
+class Show3DBloxWebTask(Show3DBloxTask):
+    '''
+    Show a 3D view of the design in openroad with webviewer
+    '''
+    def __init__(self):
+        super().__init__()
+
+    def task(self) -> str:
+        return "show3dbloxweb"
+
+    def setup(self):
+        super().setup()
+
+        # Set minimum version
+        self.add_version(">=26Q2-565", clobber=True)
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        try:
+            options.remove("-gui")
+        except ValueError:
+            pass
+        options.append("-web")
         return options

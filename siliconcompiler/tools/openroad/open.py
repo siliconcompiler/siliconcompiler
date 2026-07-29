@@ -113,3 +113,24 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
         vars = super().get_tcl_variables(manifest)
         vars.setdefault("sc_do_screenshot", "false")
         return vars
+
+
+class Open3DBloxTask(OpenTask):
+    '''
+    Open a 3D view of the design in openroad.
+    '''
+    def __init__(self):
+        super().__init__()
+
+    def task(self) -> str:
+        return "open3dblox"
+
+    def setup(self):
+        super().setup()
+        self.set_script("sc_open_3dblox.tcl")
+
+        # Set minimum version
+        self.add_version(">=26Q2-565", clobber=True)
+
+    def get_supported_task_extentions(self):
+        return ["3dbx"]

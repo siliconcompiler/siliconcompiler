@@ -6,9 +6,11 @@ from siliconcompiler.tools.klayout.show import ShowTask as KlayoutShow
 from siliconcompiler.tools.klayout.screenshot import ScreenshotTask as KlayoutScreenshot
 
 from siliconcompiler.tools.openroad.open import OpenTask as OpenROADOpen
+from siliconcompiler.tools.openroad.open import Open3DBloxTask as OpenROADOpen3DBlox
 from siliconcompiler.tools.openroad.show import ShowTask as OpenROADShow
 from siliconcompiler.tools.openroad.show import Show3DBloxTask as OpenROADShow3DBlox
 from siliconcompiler.tools.openroad.show import WebTask as OpenROADWeb
+from siliconcompiler.tools.openroad.show import Show3DBloxWebTask as OpenROADShow3DBloxWeb
 from siliconcompiler.tools.openroad.screenshot import ScreenshotTask as OpenROADScreenshot
 
 from siliconcompiler.tools.graphviz.show import ShowTask as GraphvizShow
@@ -33,11 +35,13 @@ def showtasks():
     """
     # Register Open tasks
     OpenTask.register_task(OpenROADOpen)
+    OpenTask.register_task(OpenROADOpen3DBlox)
 
     # Register Show tasks - core tools first
     ShowTask.register_task(KlayoutShow)
     ShowTask.register_task(OpenROADWeb)
     ShowTask.register_task(OpenROADShow)
+    ShowTask.register_task(OpenROADShow3DBloxWeb)
     ShowTask.register_task(OpenROADShow3DBlox)
     ShowTask.register_task(GraphvizShow)
     ShowTask.register_task(VPRShow)
