@@ -863,6 +863,9 @@ proc sc_set_gui_title { } {
     if { [sc_cfg_exists "tool" $sc_tool "task" $sc_task "var" "show_job"] } {
         set job [sc_cfg_get "tool" $sc_tool "task" $sc_task "var" "show_job"]
     }
+    if { [string index $job 0] == "_" } {
+        set job [string range $job 1 end]
+    }
 
     set title "OpenROAD - ${job} / ${step}${index}"
     gui::set_title $title
