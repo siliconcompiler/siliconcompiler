@@ -182,6 +182,38 @@ def test_find_resolver_python():
     assert Resolver.find_resolver("python://siliconcompiler") is PythonPathResolver
 
 
+@pytest.mark.parametrize("source,resolver", [
+    ("http://host/file", "HTTPResolver"),
+    ("https://host/file", "HTTPResolver"),
+    ("git://host/repo", "GitResolver"),
+    ("git+https://host/repo", "GitResolver"),
+    ("git+ssh://host/repo", "GitResolver"),
+    ("ssh://host/repo", "GitResolver"),
+    ("github://owner/repo/ref/file", "GithubResolver"),
+    ("github+private://owner/repo/ref/file", "GithubResolver"),
+    ("scp://host/file", "SCPResolver")
+])
+def test_find_resolver_builtin_without_plugins(source, resolver):
+    """The remote resolvers are registered in code, so they work with no plugins at all."""
+    assert Resolver.find_resolver(source).__name__ == resolver
+
+
+def test_find_resolver_plugin(fake_plugins):
+    """A plugin can add a new scheme and override a built-in one."""
+    class PluginResolver(Resolver):
+        pass
+
+    def get_resolver():
+        return {"myscheme": PluginResolver, "https": PluginResolver}
+
+    fake_plugins("path_resolver", "myscheme", get_resolver)
+
+    assert Resolver.find_resolver("myscheme://host/file") is PluginResolver
+    assert Resolver.find_resolver("https://host/file") is PluginResolver
+    # Schemes the plugin does not claim keep their built-in resolver
+    assert Resolver.find_resolver("scp://host/file").__name__ == "SCPResolver"
+
+
 def test_file_env_var():
     resolver = FileResolver("test", None, "$THIS_PATH/hello")
     assert resolver.source == "file://$THIS_PATH/hello"

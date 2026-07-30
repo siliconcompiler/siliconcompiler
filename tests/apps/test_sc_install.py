@@ -246,7 +246,7 @@ def test_fingerprint_tracks_tool_without_self_reference(monkeypatch, tmp_path):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
-def test_fingerprint_plugin_overrides_builtin(monkeypatch, datadir, capfd):
+def test_fingerprint_plugin_overrides_builtin(monkeypatch, datadir, capfd, fake_plugins):
     """A fingerprint plugin takes precedence over the built-in provider."""
     script = os.path.join(datadir, "echo_prefix.sh")
 
@@ -261,11 +261,7 @@ def test_fingerprint_plugin_overrides_builtin(monkeypatch, datadir, capfd):
         calls.append((tool, script_path))
         return fp_value[0]
 
-    def get_plugins(system, name=None):
-        if name == "fingerprint":
-            return [fingerprint_plugin]
-        return []
-    monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
+    fake_plugins("install", "fingerprint", fingerprint_plugin)
 
     build_dir = os.path.abspath("build_track_plugin")
 
@@ -287,7 +283,7 @@ def test_fingerprint_plugin_overrides_builtin(monkeypatch, datadir, capfd):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
-def test_fingerprint_plugin_falls_back_to_builtin(monkeypatch, datadir, capfd):
+def test_fingerprint_plugin_falls_back_to_builtin(monkeypatch, datadir, capfd, fake_plugins):
     """When a plugin returns None the built-in fingerprint is used."""
     script = os.path.join(datadir, "echo_prefix.sh")
 
@@ -298,11 +294,7 @@ def test_fingerprint_plugin_falls_back_to_builtin(monkeypatch, datadir, capfd):
     def fingerprint_plugin(tool, script_path):
         return None
 
-    def get_plugins(system, name=None):
-        if name == "fingerprint":
-            return [fingerprint_plugin]
-        return []
-    monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
+    fake_plugins("install", "fingerprint", fingerprint_plugin)
 
     build_dir = os.path.abspath("build_track_fallback")
 
@@ -736,14 +728,10 @@ def test_debug_machine_unsupported_install(monkeypatch, capsys, sys, dist, ver):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
-def test_groups(monkeypatch):
+def test_groups(monkeypatch, fake_plugins):
     def os_info_name():
         return "<os>"
     monkeypatch.setattr(sc_install, '_get_os_name', os_info_name)
-
-    def get_plugins(*_args, **_kwargs):
-        return [sc_install.get_install_groups]
-    monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
 
     tools_asic = ("sv2v", "yosys", "openroad", "klayout")
     tools_fpga = ("sv2v", "yosys", "vpr", "wildebeest", "opensta")
@@ -795,21 +783,66 @@ def test_show(monkeypatch, capsys, scroot):
     assert file_content in capsys.readouterr().out
 
 
-def test_get_tools_list(monkeypatch):
-    def get_plugins(*_args, **_kwargs):
-        def tools0(osname):
-            return {"tool0": "script0.sh", "tool1": "script1.sh"}
+def test_get_tools_list(monkeypatch, fake_plugins):
+    # "<os>" has no toolscripts directory, so the built-in contributes nothing
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "<os>")
 
-        def tools1(osname):
-            return {"tool2": "script2.sh", "tool3": "script3.sh"}
-        return [tools0, tools1]
-    monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
+    def tools0(osname):
+        return {"tool0": "script0.sh", "tool1": "script1.sh"}
+
+    def tools1(osname):
+        return {"tool2": "script2.sh", "tool3": "script3.sh"}
+
+    fake_plugins("install", "tools", tools0)
+    fake_plugins("install", "tools", tools1)
+
     assert sc_install._get_tools_list() == {
         "tool0": "script0.sh",
         "tool1": "script1.sh",
         "tool2": "script2.sh",
         "tool3": "script3.sh"
     }
+
+
+def test_get_tools_list_builtin_without_plugins(monkeypatch, fake_plugins):
+    """The bundled toolscripts are found in code, with no plugins at all."""
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "ubuntu22")
+
+    tools = sc_install._get_tools_list()
+    assert "yosys" in tools
+    assert tools["yosys"].endswith("ubuntu22/install-yosys.sh")
+
+
+def test_get_tools_list_plugin_overrides_builtin(monkeypatch, fake_plugins):
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "ubuntu22")
+
+    def tools(osname):
+        return {"yosys": "myscript.sh", "mytool": "mytool.sh"}
+
+    fake_plugins("install", "tools", tools)
+
+    found = sc_install._get_tools_list()
+    assert found["yosys"] == "myscript.sh"
+    assert found["mytool"] == "mytool.sh"
+    # Tools the plugin does not claim keep their built-in script
+    assert found["openroad"].endswith("ubuntu22/install-openroad.sh")
+
+
+def test_recommended_tool_groups_plugin_overrides_builtin(monkeypatch, fake_plugins):
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "<os>")
+
+    def groups():
+        return {"asic": ["mytool"], "mygroup": ["mytool"]}
+
+    fake_plugins("install", "groups", groups)
+
+    recommend = sc_install._recommended_tool_groups(["mytool", "sv2v", "yosys"])
+    assert recommend["asic"] == ["mytool"]
+    assert recommend["mygroup"] == ["mytool"]
+    # Groups the plugin does not claim keep their built-in definition
+    assert recommend["analog-simulation"] == \
+        "analog-simulation group is not available for <os> " \
+        "due to lack of support for the following tools: xyce"
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")

@@ -1,5 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import pytest
+import subprocess
+import sys
 
 import os.path
 
@@ -290,3 +292,32 @@ def test_show_task_core_tools_ordered():
 
     assert prev_order == curr_order, \
         f"Core tool registration order should be stable: {prev_order} vs {curr_order}"
+
+
+# The viewer preference in showtools only takes effect if the module is imported after
+# the subclass recursion in __populate_tasks has run, so this has to be checked in a
+# fresh interpreter where nothing has imported showtools yet.
+VCD_PREFERENCE_PROBE = """
+import sys, shutil
+want = sys.argv[1] if len(sys.argv) > 1 else None
+shutil.which = lambda name, *a, **k: ("/usr/bin/" + name) if name == want else None
+
+from unittest.mock import patch
+import siliconcompiler.utils as utils
+with patch.object(utils, "entry_points", lambda group: []):
+    from siliconcompiler import ShowTask
+    assert "siliconcompiler.utils.showtools" not in sys.modules, "showtools imported early"
+    print(ShowTask.get_task("vcd").tool())
+"""
+
+
+@pytest.mark.parametrize("available,expected", [
+    ("surfer", "surfer"),
+    ("gtkwave", "gtkwave")
+])
+def test_vcd_viewer_preference(available, expected):
+    """The installed VCD viewer is preferred, with no plugins involved."""
+    proc = subprocess.run([sys.executable, "-c", VCD_PREFERENCE_PROBE, available],
+                          capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.strip() == expected

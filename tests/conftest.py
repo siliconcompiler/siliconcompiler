@@ -147,6 +147,45 @@ def disable_or_images(monkeypatch, request):
     monkeypatch.setattr(Project, '_init_run', mock_init)
 
 
+class _FakeEntryPoint:
+    '''
+    Stand-in for importlib.metadata.EntryPoint that hands back an already-loaded object.
+    '''
+
+    def __init__(self, name, obj):
+        self.name = name
+        self.__obj = obj
+
+    def load(self):
+        return self.__obj
+
+
+@pytest.fixture
+def fake_plugins(monkeypatch):
+    '''
+    Register fake siliconcompiler entry points.
+
+    SiliconCompiler registers no entry points of its own, so discovery is empty unless a
+    test opts in. The returned callable takes the plugin group suffix (for example
+    "showtask"), the entry point name, and the object the entry point should load to.
+    '''
+
+    registry = {}
+
+    def register(system, name, obj):
+        registry.setdefault(system, []).append(_FakeEntryPoint(name, obj))
+
+    def fake_entry_points(group):
+        prefix = "siliconcompiler."
+        if not group.startswith(prefix):
+            return []
+        return list(registry.get(group[len(prefix):], []))
+
+    monkeypatch.setattr(utils, "entry_points", fake_entry_points)
+
+    return register
+
+
 @pytest.fixture
 def project_logger(monkeypatch):
     def setup(proj):
