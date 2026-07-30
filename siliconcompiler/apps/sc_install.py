@@ -40,7 +40,7 @@ def get_install_groups() -> Dict[str, List[str]]:
     }
 
 
-def get_install_tools(osname: str) -> Dict[str, str]:
+def get_install_tools(osname: Optional[str]) -> Dict[str, str]:
     tools_root = _get_tool_script_dir()
 
     script_dir = None
@@ -180,9 +180,9 @@ def compute_fingerprint(tool: str, script: str) -> Optional[str]:
     ensures the fingerprint changes when the install procedure, the tool's pinned
     upstream version, or any dependency's pinned version changes.
 
-    This is the default provider registered under the ``siliconcompiler.install``
-    ``fingerprint`` plugin group; plugins that supply their own tools may register a
-    replacement (see :func:`_get_fingerprint`).
+    This is the built-in fingerprint provider; plugins that supply their own tools may
+    register a replacement under the ``siliconcompiler.install`` ``fingerprint`` group
+    (see :func:`_get_fingerprint`).
 
     Parameters:
         tool (str): Tool identifier (used by plugins; the built-in relies on the script).
@@ -414,8 +414,10 @@ def _get_tool_script_dir() -> Path:
 
 
 def _get_tools_list() -> Dict[str, str]:
-    tools = {}
     os = _get_os_name()
+
+    # Built-in tools first, so plugins can override the scripts they supply.
+    tools = get_install_tools(os)
     for plugin in get_plugins("install", name="tools"):
         tools.update(plugin(os))
 
@@ -423,7 +425,8 @@ def _get_tools_list() -> Dict[str, str]:
 
 
 def _recommended_tool_groups(tools) -> Dict[str, List[str]]:
-    groups = {}
+    # Built-in groups first, so plugins can override them.
+    groups = get_install_groups()
     for plugin in get_plugins("install", name="groups"):
         groups.update(plugin())
 

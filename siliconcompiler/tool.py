@@ -2760,7 +2760,8 @@ class OpenTask(Task):
         This method recursively finds all subclasses and also loads tasks from
         any installed plugins. Tasks are registered in a stable order:
         1. Core siliconcompiler tasks (sorted by module path)
-        2. Plugin-provided tasks (in plugin load order)
+        2. The built-in siliconcompiler viewers, in their preferred order
+        3. Plugin-provided tasks (in plugin load order)
 
         This ensures that later-registered extensions take precedence over
         earlier core tasks when multiple tools support the same extension.
@@ -2791,6 +2792,16 @@ class OpenTask(Task):
         # Register core tasks first
         for c in core_classes:
             cls.register_task(c)
+
+        # Register the built-in viewers, in the order showtools prefers.
+        #
+        # Imported here rather than at module scope because showtools imports from
+        # siliconcompiler, which imports this module. The import must also stay below the
+        # recursion above: it is what pulls the viewer modules in, and if it ran first the
+        # recursion would register them in module-path order and showtools could no longer
+        # influence which one wins (re-registering a task does not reorder it).
+        from siliconcompiler.utils.showtools import showtasks
+        showtasks()
 
         # Support non-SC defined tasks from plugins (these override core tasks)
         # Sort plugins deterministically for consistent ordering

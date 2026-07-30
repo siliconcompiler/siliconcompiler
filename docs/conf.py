@@ -23,8 +23,7 @@ sys.path.insert(0, sc_root)
 import siliconcompiler  # noqa E402
 sys.path.insert(0, os.path.join(sc_root, 'docs', '_ext'))
 
-from siliconcompiler.schema.docs import get_codeurl  # noqa E402
-from siliconcompiler.utils import get_plugins  # noqa E402
+from siliconcompiler.schema.docs import get_codeurl, resolve_codeurl  # noqa E402
 
 
 # -- Project information -----------------------------------------------------
@@ -177,11 +176,7 @@ def linkcode_resolve(domain, info):
         # e.g. object is a typing.Union
         return None
 
-    path = None
-    for link in get_plugins("docs", name="linkcode"):
-        path = link(file=file)
-        if path:
-            break
+    path = resolve_codeurl(file)
 
     if path:
         start, end = lines[1], lines[1] + len(lines[0]) - 1

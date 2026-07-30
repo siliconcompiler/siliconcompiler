@@ -7,6 +7,7 @@ import psutil
 import sys
 import types
 
+from importlib.metadata import entry_points
 from unittest.mock import patch
 
 from siliconcompiler import utils
@@ -231,10 +232,41 @@ def test_get_cores_empty_affinity_falls_back(monkeypatch):
 
 def test_get_plugin():
     assert [] == get_plugins("nothingtofind")
-    assert len(get_plugins("showtask")) > 0
-    assert len(get_plugins("path_resolver")) > 0
 
-    assert len(get_plugins("path_resolver", "https")) == 1
+
+def test_no_internal_entrypoints():
+    """
+    siliconcompiler must not register its own plugin groups; built-ins are wired up in
+    code so they work regardless of how siliconcompiler was installed. External packages
+    may still register into these groups.
+
+    A failure here usually means stale install metadata from before the entry points were
+    removed - reinstall siliconcompiler to regenerate it.
+    """
+    for group in ("showtask", "path_resolver", "docs", "install"):
+        for entry in entry_points(group=f"siliconcompiler.{group}"):
+            # Match the module, not the string prefix, so external packages named
+            # siliconcompiler_something are not flagged.
+            module = entry.value.split(":")[0].strip()
+            assert module != "siliconcompiler" and not module.startswith("siliconcompiler."), \
+                f"siliconcompiler.{group} must not be registered by siliconcompiler itself"
+
+
+def test_get_plugin_discovery(fake_plugins):
+    def first():
+        pass
+
+    def second():
+        pass
+
+    fake_plugins("path_resolver", "https", first)
+    fake_plugins("path_resolver", "other", second)
+
+    assert get_plugins("path_resolver") == [first, second]
+    assert get_plugins("path_resolver", "https") == [first]
+    assert get_plugins("path_resolver", "other") == [second]
+    assert get_plugins("path_resolver", "notthere") == []
+    assert get_plugins("nothingtofind") == []
 
 
 def test_default_sc_dir():

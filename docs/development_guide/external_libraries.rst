@@ -129,11 +129,33 @@ Points worth calling out:
 
 .. note::
 
-   More advanced packages can also register SiliconCompiler *entry points* to
-   plug into documentation source links, ``show``/``open`` tasks, and
-   tool-install helpers (the ``siliconcompiler.docs``, ``siliconcompiler.showtask``,
-   and ``siliconcompiler.install`` groups), plus ``[project.scripts]`` for CLI
-   apps.
+   More advanced packages can also register SiliconCompiler *entry points* to plug into
+   documentation source links, ``show``/``open`` tasks, data source resolvers, and
+   tool-install helpers, plus ``[project.scripts]`` for CLI apps. SiliconCompiler
+   registers its own built-ins in code before consulting these groups, so an entry point
+   you provide takes precedence wherever the two overlap.
+
+   .. code-block:: toml
+
+      # pyproject.toml
+      [project.entry-points."siliconcompiler.showtask"]
+      mylib = "mylib.showtools:showtasks"
+
+      [project.entry-points."siliconcompiler.path_resolver"]
+      myscheme = "mylib.resolver:get_resolver"
+
+      [project.entry-points."siliconcompiler.docs"]
+      linkcode = "mylib.docs:get_codeurl"
+
+      [project.entry-points."siliconcompiler.install"]
+      tools = "mylib.install:get_install_tools"
+      groups = "mylib.install:get_install_groups"
+      fingerprint = "mylib.install:compute_fingerprint"
+
+   The names in the ``siliconcompiler.docs`` and ``siliconcompiler.install`` groups are
+   fixed, since SiliconCompiler looks them up by name. Names in the
+   ``siliconcompiler.showtask`` and ``siliconcompiler.path_resolver`` groups are
+   free-form; pick something unique to your package.
 
 .. _ext_lib_path_mixin:
 

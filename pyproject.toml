@@ -83,22 +83,6 @@ sc-show = "siliconcompiler.apps.sc_show:main"
 sc-install = "siliconcompiler.apps.sc_install:main"
 smake = "siliconcompiler.apps.smake:main"
 
-[project.entry-points."siliconcompiler.showtask"]
-scsetup = "siliconcompiler.utils.showtools:showtasks"
-
-[project.entry-points."siliconcompiler.path_resolver"]
-https = "siliconcompiler.package.https:get_resolver"
-git = "siliconcompiler.package.git:get_resolver"
-github = "siliconcompiler.package.github:get_resolver"
-scp = "siliconcompiler.package.scp:get_resolver"
-
-[project.entry-points."siliconcompiler.docs"]
-linkcode = "siliconcompiler.schema.docs:get_codeurl"
-
-[project.entry-points."siliconcompiler.install"]
-groups = "siliconcompiler.apps.sc_install:get_install_groups"
-tools = "siliconcompiler.apps.sc_install:get_install_tools"
-
 [project.optional-dependencies]
 test = [
     "pytest == 9.1.1",

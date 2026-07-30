@@ -86,9 +86,14 @@ class Resolver:
         Scans for and registers all available resolver plugins.
 
         This method populates the internal `_RESOLVERS` dictionary with both
-        built-in resolvers (file, key, python) and any resolvers provided
-        by external plugins.
+        built-in resolvers (file, key, python, http, git, github, scp) and any
+        resolvers provided by external plugins. Built-ins are registered first,
+        so a plugin claiming the same scheme takes precedence.
         """
+        # Imported here because each of these modules imports RemoteResolver from
+        # this module.
+        from siliconcompiler.package import git, github, https, scp
+
         settings = MPManager().get_transient_settings()
         if settings.get_category("resolvers"):
             # Already populated
@@ -100,7 +105,8 @@ class Resolver:
         settings.set("resolvers", "python", PythonPathResolver)
         settings.set("resolvers", "dataroot", DatarootResolver)
 
-        for resolver in get_plugins("path_resolver"):
+        builtins = (https.get_resolver, git.get_resolver, github.get_resolver, scp.get_resolver)
+        for resolver in (*builtins, *get_plugins("path_resolver")):
             for scheme, res in resolver().items():
                 settings.set("resolvers", scheme, res)
 

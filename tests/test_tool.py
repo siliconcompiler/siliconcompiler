@@ -3210,6 +3210,41 @@ def test_find_task_missing():
         FauxTask.find_task(Project())
 
 
+def register_plugin_showtask():
+    """
+    Stand-in for an external package's siliconcompiler.showtask entry point.
+
+    The task class is defined here rather than at module scope so it is not picked up by
+    the subclass recursion in unrelated tests.
+    """
+
+    class PluginShow(ShowTask):
+        def tool(self):
+            return "pluginviewer"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["gds"]
+
+    ShowTask.register_task(PluginShow)
+
+
+def test_showtask_builtin_without_plugins(fake_plugins):
+    """The built-in viewers are registered in code, so they work with no plugins at all."""
+    assert ShowTask.get_task("gds").tool() == "klayout"
+    assert ScreenshotTask.get_task("gds").tool() == "klayout"
+    assert OpenTask.get_task("odb").tool() == "openroad"
+
+
+def test_showtask_plugin_overrides_builtin(fake_plugins):
+    """A plugin viewer wins over the built-in for an extension they both support."""
+    fake_plugins("showtask", "myviewer", register_plugin_showtask)
+
+    assert ShowTask.get_task("gds").tool() == "pluginviewer"
+
+
 def test_showtask_default_discovery():
     """Test that it picks a tool (order indeterminate but valid) when no setting exists."""
 
