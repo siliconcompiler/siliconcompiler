@@ -123,7 +123,12 @@ foreach extra_map [sc_cfg_tool_task_get var synth_extra_map] {
 yosys techmap {*}$tech_map_args
 
 yosys opt -fast
-yosys abc -fast
+if { [sc_check_version 0 67 86] } {
+    # abc -fast was removed after 0.67
+    yosys abc
+} else {
+    yosys abc -fast
+}
 yosys opt -fast
 
 yosys hierarchy -check
