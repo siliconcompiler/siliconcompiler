@@ -56,7 +56,13 @@ def resolve_codeurl(file: str) -> Optional[str]:
     """
     from siliconcompiler.utils import get_plugins
 
-    for docs_link in (get_codeurl, *get_plugins("docs", name="linkcode")):
+    src_link = get_codeurl(file=file)
+    if src_link:
+        return src_link
+
+    # Only scan for plugins once the built-in has declined the file, so the common case
+    # does not pay for entry point discovery and plugin imports.
+    for docs_link in get_plugins("docs", name="linkcode"):
         src_link = docs_link(file=file)
         if src_link:
             return src_link

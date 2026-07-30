@@ -245,7 +245,10 @@ def test_no_internal_entrypoints():
     """
     for group in ("showtask", "path_resolver", "docs", "install"):
         for entry in entry_points(group=f"siliconcompiler.{group}"):
-            assert not entry.value.startswith("siliconcompiler"), \
+            # Match the module, not the string prefix, so external packages named
+            # siliconcompiler_something are not flagged.
+            module = entry.value.split(":")[0].strip()
+            assert module != "siliconcompiler" and not module.startswith("siliconcompiler."), \
                 f"siliconcompiler.{group} must not be registered by siliconcompiler itself"
 
 

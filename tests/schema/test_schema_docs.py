@@ -35,7 +35,7 @@ def test_get_codeurl_with_no_file():
     assert docs.get_codeurl("/notafile") is None
 
 
-def test_resolve_codeurl_builtin_without_plugins(monkeypatch):
+def test_resolve_codeurl_builtin_without_plugins(monkeypatch, fake_plugins):
     """Files in the siliconcompiler tree resolve with no plugins at all."""
     monkeypatch.setattr(docs, "sc_version", "sc_version")
     assert docs.resolve_codeurl(__file__) == \

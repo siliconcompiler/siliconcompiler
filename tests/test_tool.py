@@ -3231,7 +3231,7 @@ def register_plugin_showtask():
     ShowTask.register_task(PluginShow)
 
 
-def test_showtask_builtin_without_plugins():
+def test_showtask_builtin_without_plugins(fake_plugins):
     """The built-in viewers are registered in code, so they work with no plugins at all."""
     assert ShowTask.get_task("gds").tool() == "klayout"
     assert ScreenshotTask.get_task("gds").tool() == "klayout"

@@ -193,7 +193,7 @@ def test_find_resolver_python():
     ("github+private://owner/repo/ref/file", "GithubResolver"),
     ("scp://host/file", "SCPResolver")
 ])
-def test_find_resolver_builtin_without_plugins(source, resolver):
+def test_find_resolver_builtin_without_plugins(source, resolver, fake_plugins):
     """The remote resolvers are registered in code, so they work with no plugins at all."""
     assert Resolver.find_resolver(source).__name__ == resolver
 
