@@ -44,9 +44,6 @@ set sc_pdk [sc_cfg_get asic pdk]
 set sc_logiclibs [sc_cfg_get asic asiclib]
 set sc_delaymodel [sc_cfg_get asic delaymodel]
 
-# Threads
-set_thread_count [sc_cfg_tool_task_get threads]
-
 ###############################
 # Read Files
 ###############################

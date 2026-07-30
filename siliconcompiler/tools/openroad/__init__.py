@@ -504,6 +504,8 @@ class OpenROADTask(ASICTask):
     def runtime_options(self):
         options = super().runtime_options()
         options.append("-no_init")
+        options.extend(["-threads", self.get_threads()])
+
         options.extend(["-metrics", "reports/metrics.json"])
 
         if not self.has_breakpoint():

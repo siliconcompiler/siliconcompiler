@@ -40,8 +40,6 @@ read_lef $sc_techlef
 # Run task
 ###############################
 
-set_thread_count [sc_cfg_tool_task_get threads]
-
 utl::set_metrics_stage "sc__step__{}"
 source "${sc_refdir}/rcx/sc_${sc_task}.tcl"
 utl::pop_metrics_stage
