@@ -9,7 +9,6 @@ source ./sc_manifest.tcl
 ###############################
 
 set sc_pdk [sc_cfg_get asic pdk]
-set sc_threads [sc_cfg_tool_task_get threads]
 
 ##############################
 # Setup debugging
@@ -26,8 +25,6 @@ source "$sc_refdir/common/procs.tcl"
 ###############################
 # Common Setup
 ###############################
-
-set_thread_count $sc_threads
 
 # Read techlef
 set aprfileset [sc_cfg_get library $sc_pdk pdk aprtechfileset openroad]

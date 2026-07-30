@@ -79,7 +79,7 @@ class Show3DBloxWebTask(Show3DBloxTask):
         super().__init__()
 
     def task(self) -> str:
-        return "show3dbloxweb"
+        return "web3dblox"
 
     def setup(self):
         super().setup()

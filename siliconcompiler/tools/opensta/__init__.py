@@ -42,10 +42,10 @@ class OpenSTATask(Task):
     def runtime_options(self):
         options = super().runtime_options()
         options.append("-no_init")
+        options.extend(["-threads", self.get_threads()])
+
         if not self.has_breakpoint():
             options.append("-exit")
-
-        options.extend(["-threads", self.get_threads()])
 
         return options
 
