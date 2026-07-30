@@ -22,17 +22,6 @@ cd deps
 pkg_version=$(python3 ${src_path}/_tools.py --tool klayout --field version)
 version=$(lsb_release -sr)
 
-# KLayout does not publish a versioned Ubuntu-26 .deb, and the Ubuntu-24 build is
-# not installable on 26.04 (it pins Qt5/libgit2-1.7/libruby3.2/libpython3.12).
-# Use the distro package from the 26.04 universe repository instead.
-if [ "$version" = "26.04" ]; then
-    sudo add-apt-repository -y universe
-    sudo apt-get update
-    sudo apt-get install -y klayout
-    cd -
-    exit 0
-fi
-
 if [ "$version" = "18.04" ]; then
     url="https://www.klayout.org/downloads/Ubuntu-18/klayout_${pkg_version}-1_amd64.deb"
 elif [ "$version" = "20.04" ]; then
@@ -41,6 +30,8 @@ elif [ "$version" = "22.04" ]; then
     url="https://www.klayout.org/downloads/Ubuntu-22/klayout_${pkg_version}-1_amd64.deb"
 elif [ "$version" = "24.04" ]; then
     url="https://www.klayout.org/downloads/Ubuntu-24/klayout_${pkg_version}-1_amd64.deb"
+elif [ "$version" = "26.04" ]; then
+    url="https://www.klayout.org/downloads/Ubuntu-26/klayout_${pkg_version}-1_amd64.deb"
 else
     echo "Script doesn't support Ubuntu version $version."
 fi
