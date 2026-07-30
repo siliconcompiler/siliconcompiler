@@ -810,7 +810,7 @@ def test_get_tools_list_builtin_without_plugins(monkeypatch, fake_plugins):
 
     tools = sc_install._get_tools_list()
     assert "yosys" in tools
-    assert tools["yosys"].endswith("ubuntu22/install-yosys.sh")
+    assert tools["yosys"].endswith(os.path.join("ubuntu22", "install-yosys.sh"))
 
 
 def test_get_tools_list_plugin_overrides_builtin(monkeypatch, fake_plugins):
@@ -825,7 +825,7 @@ def test_get_tools_list_plugin_overrides_builtin(monkeypatch, fake_plugins):
     assert found["yosys"] == "myscript.sh"
     assert found["mytool"] == "mytool.sh"
     # Tools the plugin does not claim keep their built-in script
-    assert found["openroad"].endswith("ubuntu22/install-openroad.sh")
+    assert found["openroad"].endswith(os.path.join("ubuntu22", "install-openroad.sh"))
 
 
 def test_recommended_tool_groups_plugin_overrides_builtin(monkeypatch, fake_plugins):
