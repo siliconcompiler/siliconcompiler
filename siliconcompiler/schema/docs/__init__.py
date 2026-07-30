@@ -1,6 +1,7 @@
 import os.path
 
 from pathlib import PureWindowsPath
+from typing import Optional
 
 import siliconcompiler
 from siliconcompiler import __version__ as sc_version
@@ -36,3 +37,28 @@ def get_codeurl(file=None):
             return None
 
     return f"{base_url}/{file}"
+
+
+def resolve_codeurl(file: str) -> Optional[str]:
+    """
+    Resolves a source file to a browsable URL.
+
+    :func:`get_codeurl` is consulted first, so files inside the siliconcompiler tree
+    always link to the siliconcompiler repository. Files outside that tree are handed
+    to the ``siliconcompiler.docs`` ``linkcode`` plugins, in discovery order, until one
+    claims the file.
+
+    Args:
+        file (str): Path to the source file.
+
+    Returns:
+        Optional[str]: The URL for the file, or None if nothing can resolve it.
+    """
+    from siliconcompiler.utils import get_plugins
+
+    for docs_link in (get_codeurl, *get_plugins("docs", name="linkcode")):
+        src_link = docs_link(file=file)
+        if src_link:
+            return src_link
+
+    return None

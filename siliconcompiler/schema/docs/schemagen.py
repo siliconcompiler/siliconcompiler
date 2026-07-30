@@ -21,7 +21,7 @@ from siliconcompiler.schema.docschema import DocsSchema
 from siliconcompiler.schema.docs.utils import parse_rst, link, para, \
     literalblock, build_section_with_target, KeyPath, build_section, \
     image
-from siliconcompiler.utils import get_plugins
+from siliconcompiler.schema.docs import resolve_codeurl
 
 # near top-level scope
 logger = sphinx_logging.getLogger(__name__)
@@ -105,12 +105,8 @@ class SchemaGen(SphinxDirective):
             if docstring:
                 parse_rst(self.state, docstring, schema_sec, docsfile)
 
-            src_link = None
             src_file = inspect.getfile(schema_cls)
-            for docs_link in get_plugins("docs", name="linkcode"):
-                src_link = docs_link(file=src_file)
-                if src_link:
-                    break
+            src_link = resolve_codeurl(src_file)
 
             if src_link:
                 p = para('File: ')
@@ -237,12 +233,8 @@ class ToolGen(SchemaGen):
         if docstring:
             parse_rst(self.state, docstring, sec, inspect.getfile(tool_mod))
 
-        src_link = None
         src_file = inspect.getfile(tool_mod)
-        for docs_link in get_plugins("docs", name="linkcode"):
-            src_link = docs_link(file=src_file)
-            if src_link:
-                break
+        src_link = resolve_codeurl(src_file)
 
         if src_link:
             p = para('File: ')
@@ -304,12 +296,8 @@ class TargetGen(SchemaGen):
         if docstring:
             parse_rst(self.state, docstring, target_doc, docsfile)
 
-        src_link = None
         src_file = inspect.getfile(target)
-        for docs_link in get_plugins("docs", name="linkcode"):
-            src_link = docs_link(file=src_file)
-            if src_link:
-                break
+        src_link = resolve_codeurl(src_file)
 
         if src_link:
             p = para('File: ')
