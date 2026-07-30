@@ -63,8 +63,47 @@ proc sc_get_scratchpad { name } {
     return $value
 }
 
+proc sc_check_version { min_major min_minor { min_patch 0 } } {
+    # Yosys reports its version as <major>.<minor> with an optional commit
+    # count for development builds: 0.67, 0.67+7, or 0.67-7
+    set version [sc_cfg_get record toolversion]
+
+    if {
+        ![regexp {^(\d+)\.(\d+)(?:[-+](\d+))?} $version \
+            match yosys_major yosys_minor yosys_patch]
+    } {
+        puts "WARNING: Unknown yosys version format: $version"
+        return false
+    }
+
+    # Force decimal interpretation to avoid leading zeros being read as octal
+    set yosys_major [scan $yosys_major %d]
+    set yosys_minor [scan $yosys_minor %d]
+    if { $yosys_patch == "" } {
+        set yosys_patch 0
+    } else {
+        set yosys_patch [scan $yosys_patch %d]
+    }
+
+    if { $yosys_major > $min_major } {
+        return true
+    }
+    if { $yosys_major == $min_major } {
+        if { $yosys_minor > $min_minor } {
+            return true
+        }
+        if { $yosys_minor == $min_minor } {
+            if { $yosys_patch >= $min_patch } {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
 proc sc_load_slang { } {
-    if { [sc_cfg_get record toolversion] >= 0.67 } {
+    if { [sc_check_version 0 67] } {
         return 1
     }
     return [sc_load_plugin slang]
