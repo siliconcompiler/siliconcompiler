@@ -127,6 +127,7 @@ def test_routing_flow_node_order():
     expected = {
         "antenna_repair": [("repair_timing", "0")],
         "detailed": [("antenna_repair", "0")],
+        "detailed_antenna_repair": [("detailed", "0")],
         "global": [],
         "repair_timing": [("global", "0")],
     }
@@ -134,10 +135,15 @@ def test_routing_flow_node_order():
     for step, inputs in expected.items():
         assert flow.get_graph_node(step, "0").get_input() == inputs, step
 
-    # The repair node is its own task, not a second instance of the cts one: the
-    # schema namespace is keyed on the task name, so sharing it would let the two
-    # nodes clobber each other's setup()-time defaults.
+    # Antenna repair on the detailed routes is the last word on routing.
+    assert flow.get_exit_nodes() == (("detailed_antenna_repair", "0"),)
+
+    # Each repair node is its own task, not a second instance of an existing one: the
+    # schema namespace is keyed on the task name, so sharing it would let two nodes
+    # clobber each other's defaults.
     assert flow.get_graph_node("repair_timing", "0").get("task") == "post_route_repair_timing"
+    assert flow.get_graph_node("detailed_antenna_repair", "0").get("task") == \
+        "detailed_route_antenna_repair"
 
     # ASICFlow keeps the route.global / route.detailed node names other code and
     # tests key off.

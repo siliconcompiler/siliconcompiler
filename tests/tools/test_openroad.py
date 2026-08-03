@@ -2354,14 +2354,21 @@ def test_openroad_repair_timing_parameter_skip_recover_power():
 
 
 # ----------------------------------------------------------------------
-# DetailedRouteTask: post-route antenna repair loop
+# DetailedRouteAntennaRepairTask
 # ----------------------------------------------------------------------
 
 
-def test_openroad_detailed_route_antenna_parameters():
-    """detailed_route drives the post-route antenna loop, so it carries the shared
-    antenna check/repair/margin knobs."""
-    task = detailed_route.DetailedRouteTask()
+def test_openroad_detailed_route_antenna_repair_identity():
+    """Its own node and task, so route.detailed reports pure routing results and the
+    diode/reroute cost is attributable on its own."""
+    task = detailed_route.DetailedRouteAntennaRepairTask()
+    assert task.task() == "detailed_route_antenna_repair"
+    assert task.tool() == "openroad"
+    assert task.task() != detailed_route.DetailedRouteTask().task()
+
+
+def test_openroad_detailed_route_antenna_repair_parameters():
+    task = detailed_route.DetailedRouteAntennaRepairTask()
     assert task.get("var", "ant_check") is True
     assert task.get("var", "ant_repair") is True
     # ORFS passes no -ratio_margin in either antenna loop.
@@ -2373,8 +2380,8 @@ def test_openroad_detailed_route_antenna_parameters():
     assert not task.valid("var", "ant_iterations")
 
 
-def test_openroad_detailed_route_parameter_ant_reroute_iterations():
-    task = detailed_route.DetailedRouteTask()
+def test_openroad_detailed_route_antenna_repair_parameter_reroute_iterations():
+    task = detailed_route.DetailedRouteAntennaRepairTask()
     task.set_openroad_antrerouteiterations(3)
     assert task.get("var", "ant_reroute_iterations") == 3
     task.set_openroad_antrerouteiterations(0, step='detailed', index='1')
@@ -2382,10 +2389,50 @@ def test_openroad_detailed_route_parameter_ant_reroute_iterations():
     assert task.get("var", "ant_reroute_iterations") == 3
 
 
-def test_openroad_detailed_route_can_insert_fillers():
-    """The loop brackets itself with remove_fillers/sc_insert_fillers, which reads
-    dpl_use_decap_fillers."""
-    assert detailed_route.DetailedRouteTask().valid("var", "dpl_use_decap_fillers")
+def test_openroad_detailed_route_antenna_repair_reroutes_like_detailed_route():
+    """The reroute has to use the same detailed router settings the initial route
+    used, which is why the task derives from DetailedRouteTask."""
+    task = detailed_route.DetailedRouteAntennaRepairTask()
+    assert isinstance(task, detailed_route.DetailedRouteTask)
+    for var in ("drt_disable_via_gen", "drt_process_node", "drt_report_interval"):
+        assert task.valid("var", var), var
+    # The loop brackets itself with remove_fillers/sc_insert_fillers.
+    assert task.valid("var", "dpl_use_decap_fillers")
+
+
+def test_openroad_detailed_route_has_no_antenna_vars():
+    """Antenna repair moved out of detailed_route into its own node."""
+    task = detailed_route.DetailedRouteTask()
+    for var in ("ant_check", "ant_repair", "ant_margin", "ant_reroute_iterations"):
+        assert not task.valid("var", var), var
+
+
+def test_openroad_detailed_route_antenna_repair_skips_when_disabled(asic_gcd):
+    for task in APRTask.find_task(asic_gcd):
+        if task.task() == "detailed_route_antenna_repair":
+            task.set_openroad_antcheck(False)
+
+    node = SchedulerNode(asic_gcd, "route.detailed_antenna_repair", "0")
+    with node.runtime():
+        with pytest.raises(TaskSkip):
+            node.task.setup()
+        assert node.setup() is False
+
+
+def test_openroad_detailed_route_antenna_repair_runs_by_default(asic_gcd):
+    node = SchedulerNode(asic_gcd, "route.detailed_antenna_repair", "0")
+    with node.runtime():
+        assert node.setup() is True
+
+
+def test_openroad_detailed_route_antenna_repair_uses_its_own_script(asic_gcd):
+    """set_script does not clobber by default, so without an explicit clobber the
+    parent's script would win and the node would re-run a full detailed route."""
+    repair = _setup_node(asic_gcd, "route.detailed_antenna_repair")
+    route = _setup_node(asic_gcd, "route.detailed")
+
+    assert repair.get("script") == ["apr/sc_detailed_route_antenna_repair.tcl"]
+    assert route.get("script") == ["apr/sc_detailed_route.tcl"]
 
 
 def test_openroad_antenna_repair_parameters_unchanged():
