@@ -99,20 +99,85 @@ proc sc_global_placement { args } {
 ###########################
 
 # Upstream passes -resistance_aware on every global_route call including the
-# incremental ones, so this has to be reachable from tasks that do not
-# necessarily declare the global routing variables.
+# incremental ones issued around detailed placement, hence a shared proc.
 proc sc_grt_resistance_aware_args { } {
-    if { ![sc_cfg_tool_task_exists {var} grt_resistance_aware] } {
-        return []
+    if {
+        [sc_cfg_tool_task_get {var} grt_resistance_aware] &&
+        [sc_check_version 24 3 9363]
+    } {
+        return [list -resistance_aware]
     }
-    if { ![sc_cfg_tool_task_get {var} grt_resistance_aware] } {
-        return []
+    return []
+}
+
+###########################
+# Antenna repair
+###########################
+
+# Repair antenna violations with the main library's antenna cell.
+#
+# Filler cells have to come out first so the inserted diodes have sites to be
+# placed in, and go back in afterwards. Both the pre-route and post-route antenna
+# steps need that bracketing, which is why it lives here rather than in either
+# script.
+#
+#   -iterations <n>          passed to repair_antennas as -iterations
+#   -reroute_iterations <n>  bound on the repair/reroute loop, defaults to 1
+#   -reroute <script>        evaluated in the caller's scope after each repair that
+#                            inserted diodes, to route the modified nets
+#
+# Returns 1 if a repair was attempted, 0 if there is no antenna cell to use.
+proc sc_repair_antennas { args } {
+    sta::parse_key_args "sc_repair_antennas" args \
+        keys {-iterations -reroute_iterations -reroute} \
+        flags {}
+    sta::check_argc_eq0 "sc_repair_antennas" $args
+
+    global sc_mainlib
+
+    set antenna_cells [sc_cfg_get library $sc_mainlib asic cells antenna]
+    if { [llength $antenna_cells] == 0 } {
+        utl::info FLW 1 "No antenna cell available, skipping antenna repair"
+        return 0
     }
-    if { ![sc_check_version 24 3 9363] } {
-        utl::warn FLW 1 "global_route -resistance_aware requires OpenROAD 24Q3-9363 or newer"
-        return []
+    set antenna_cell [lindex $antenna_cells 0]
+
+    set reroute_iterations 1
+    if { [info exists keys(-reroute_iterations)] } {
+        set reroute_iterations $keys(-reroute_iterations)
     }
-    return [list -resistance_aware]
+    if { $reroute_iterations < 1 } {
+        return 0
+    }
+
+    set repair_args [list $antenna_cell -ratio_margin [sc_cfg_tool_task_get {var} ant_margin]]
+    if { [info exists keys(-iterations)] } {
+        lappend repair_args -iterations $keys(-iterations)
+    }
+
+    # Remove filler cells so the diodes have sites to be placed in
+    remove_fillers
+
+    for { set iter 1 } { $iter <= $reroute_iterations } { incr iter } {
+        if { $iter > 1 && [check_antennas] == 0 } {
+            break
+        }
+        puts "Starting antenna repair iteration $iter of $reroute_iterations\
+            with ${antenna_cell} cell"
+        sc_report_args -command repair_antennas -args $repair_args
+        if { ![repair_antennas {*}$repair_args] } {
+            utl::info FLW 1 "No diodes inserted, ending antenna repair"
+            break
+        }
+        if { [info exists keys(-reroute)] } {
+            uplevel 1 $keys(-reroute)
+        }
+    }
+
+    # Add filler cells back
+    sc_insert_fillers
+
+    return 1
 }
 
 ###########################

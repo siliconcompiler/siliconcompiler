@@ -14,6 +14,24 @@ from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.tools.openroad import OpenROADTask
 
 
+# Optimization moves repair_timing -sequence accepts, from Resizer::moveTypeFromString.
+# "size" is an alias that expands to sizeup plus size_down_fanout.
+RSZ_MOVES = (
+    "buffer",
+    "unbuffer",
+    "swap",
+    "size",
+    "sizeup",
+    "sizeup_match",
+    "size_down",
+    "size_down_fanout",
+    "clone",
+    "split",
+    "vt_swap",
+    "reroute",
+)
+
+
 class OpenROADSTAParameter(OpenROADTask):
     """
     Mixin class for defining Static Timing Analysis (STA) parameters.
@@ -408,10 +426,14 @@ class OpenROADRSZDRVParameter(OpenROADTask):
         # than the timing-only one.
         self.add_parameter("rsz_match_cell_footprint", "bool",
                            "true/false, when true only cells sharing the same liberty footprint "
-                           "are considered when swapping gates", defvalue=False)
+                           "are considered when swapping gates",
+                           defvalue=self._default_match_cell_footprint())
         self.add_parameter("rsz_max_utilization", "float<0.0..100.0>",
                            "maximum percentage of the core area the resizer is allowed to use, "
                            "unset uses the tool default")
+
+    def _default_match_cell_footprint(self) -> bool:
+        return False
 
     def set_openroad_rszcapmargin(self, margin: float,
                                   step: Optional[str] = None, index: Optional[str] = None):
@@ -504,12 +526,10 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         self.add_parameter("rsz_skip_crit_vt_swap", "bool",
                            "true/false, skip the final critical threshold voltage (VT) swap "
                            "optimization", defvalue=False)
-        self.add_parameter("rsz_sequence", "[str]",
+        self.add_parameter("rsz_sequence", f"[<{','.join(RSZ_MOVES)}>]",
                            "explicit order of setup optimization moves, an empty list uses the "
-                           "tool default. Supported moves are: unbuffer, vt_swap, sizeup, "
-                           "sizeup_match, size_down, size, swap, buffer, split, clone, and "
-                           "reroute. Requires OpenROAD 24Q3-5705 or newer, and the individual "
-                           "move names have their own version requirements",
+                           "tool default. Requires OpenROAD 24Q3-5705 or newer, and the "
+                           "individual move names have their own version requirements",
                            defvalue=[])
         self.add_parameter("rsz_repair_tns", "float<0.0..100.0>",
                            "percentage of violating nets to attempt to repair (0 - 100)",
@@ -976,12 +996,6 @@ class OpenROADGRTGeneralParameter(OpenROADTask):
                            "minimum layer to use for global routing of clock nets")
         self.add_parameter("grt_clock_max_layer", "str",
                            "maximum layer to use for global routing of clock nets")
-        # On the general mixin rather than OpenROADGRTParameter because the flag is
-        # also passed on every incremental global route, which happens in tasks that
-        # do not otherwise drive global routing.
-        self.add_parameter("grt_resistance_aware", "bool",
-                           "true/false, when true global routing will consider wire resistance",
-                           defvalue=False)
 
     def set_openroad_grtmacroextension(self, extension: int,
                                        step: Optional[str] = None, index: Optional[str] = None):
@@ -1043,18 +1057,6 @@ class OpenROADGRTGeneralParameter(OpenROADTask):
         """
         self.set("var", "grt_clock_max_layer", layer, step=step, index=index)
 
-    def set_openroad_grtresistanceaware(self, enable: bool,
-                                        step: Optional[str] = None, index: Optional[str] = None):
-        """
-        Enables or disables resistance-aware global routing.
-
-        Args:
-            enable (bool): True to enable, False to disable.
-            step (str, optional): The specific step to apply this configuration to.
-            index (str, optional): The specific index to apply this configuration to.
-        """
-        self.set("var", "grt_resistance_aware", enable, step=step, index=index)
-
     def setup(self):
         super().setup()
 
@@ -1076,7 +1078,6 @@ class OpenROADGRTGeneralParameter(OpenROADTask):
         self.add_required_key("var", "grt_clock_min_layer")
         self.add_required_key("var", "grt_signal_max_layer")
         self.add_required_key("var", "grt_clock_max_layer")
-        self.add_required_key("var", "grt_resistance_aware")
 
 
 class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
@@ -1095,13 +1096,6 @@ class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
         self.add_parameter("grt_seed", "int",
                            "random seed for global routing, useful for perturbation studies, "
                            "unset uses the tool default")
-        self.add_parameter("grt_use_cugr", "bool",
-                           "true/false, when true use the CUGR global routing solver instead of "
-                           "FastRoute. CUGR runs a full 3D maze pass per iteration, so consider "
-                           "lowering grt_overflow_iter alongside it. Upstream considers CUGR not "
-                           "ready for production: on OpenROAD 26Q3-1034 it routes, but the "
-                           "routing congestion heatmap crashes and the resizer cannot build "
-                           "buffered nets from its guides", defvalue=False)
 
     def set_openroad_grtallowcongestion(self, allow: bool,
                                         step: Optional[str] = None, index: Optional[str] = None):
@@ -1139,24 +1133,11 @@ class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
         """
         self.set("var", "grt_seed", seed, step=step, index=index)
 
-    def set_openroad_grtusecugr(self, enable: bool,
-                                step: Optional[str] = None, index: Optional[str] = None):
-        """
-        Selects the CUGR global routing solver instead of FastRoute.
-
-        Args:
-            enable (bool): True to use CUGR, False to use FastRoute.
-            step (str, optional): The specific step to apply this configuration to.
-            index (str, optional): The specific index to apply this configuration to.
-        """
-        self.set("var", "grt_use_cugr", enable, step=step, index=index)
-
     def setup(self):
         super().setup()
 
         self.add_required_key("var", "grt_allow_congestion")
         self.add_required_key("var", "grt_overflow_iter")
-        self.add_required_key("var", "grt_use_cugr")
         if self.get("var", "grt_seed") is not None:
             self.add_required_key("var", "grt_seed")
 
@@ -1537,6 +1518,13 @@ class APRTask(OpenROADTask):
                            "used to indicate if global routing information should be loaded",
                            defvalue=False)
 
+        # Alongside load_grt_setup rather than on the global routing mixins: the flag
+        # is also passed on the incremental global routes that sc_detailed_placement
+        # issues, and that is reachable from any APR task.
+        self.add_parameter("grt_resistance_aware", "bool",
+                           "true/false, when true global routing will consider wire resistance",
+                           defvalue=False)
+
         self.add_parameter("load_sdcs", "bool",
                            "used to indicate if SDC files should be loaded before APR",
                            defvalue=True)
@@ -1570,6 +1558,22 @@ class APRTask(OpenROADTask):
             index: The specific index to apply this configuration to.
         """
         self.set("var", "enablehier", enable, step=step, index=index)
+
+    def set_openroad_grtresistanceaware(self, enable: bool,
+                                        step: Optional[str] = None,
+                                        index: Optional[str] = None):
+        """
+        Enables or disables resistance-aware global routing.
+
+        Applies to the main global route and to the incremental global routes issued
+        around detailed placement.
+
+        Args:
+            enable: True to enable, False to disable.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "grt_resistance_aware", enable, step=step, index=index)
 
     def set_openroad_applypexcorrection(self, enable: bool,
                                         step: Optional[str] = None,
@@ -1749,6 +1753,7 @@ class APRTask(OpenROADTask):
         self.add_required_key("var", "ord_enable_images")
         self.add_required_key("var", "ord_heatmap_bins")
         self.add_required_key("var", "load_grt_setup")
+        self.add_required_key("var", "grt_resistance_aware")
         self.add_required_key("var", "load_sdcs")
 
         if not self.get("var", "global_connect_fileset"):

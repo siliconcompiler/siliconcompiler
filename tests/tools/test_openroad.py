@@ -26,6 +26,8 @@ from siliconcompiler.tools.openroad import show as openroad_show
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.tools.openroad import write_data
 from siliconcompiler.tools.openroad import antenna_repair
+from siliconcompiler.tools.openroad import clock_tree_synthesis
+from siliconcompiler.tools.openroad import detailed_placement
 from siliconcompiler.tools.openroad import detailed_route
 from siliconcompiler.tools.openroad import fillmetal_insertion
 from siliconcompiler.tools.openroad import global_placement
@@ -1230,9 +1232,10 @@ def test_openroad_apr_parameter_grt_overflow_iter():
 
 
 def test_openroad_apr_parameter_grt_resistance_aware():
-    # On the general mixin, not OpenROADGRTParameter, because it is also passed on
-    # incremental global routes issued from tasks that do not drive global routing.
-    task = _apr.OpenROADGRTGeneralParameter()
+    # On APRTask alongside load_grt_setup, not on the global routing mixins, because
+    # it is also passed on the incremental global routes sc_detailed_placement issues
+    # and that is reachable from any APR task.
+    task = _apr.APRTask()
     assert task.get("var", "grt_resistance_aware") is False
     task.set_openroad_grtresistanceaware(True)
     assert task.get("var", "grt_resistance_aware") is True
@@ -1251,31 +1254,29 @@ def test_openroad_apr_parameter_grt_seed():
     assert task.get("var", "grt_seed") == 42
 
 
-def test_openroad_apr_parameter_grt_use_cugr():
-    task = _apr.OpenROADGRTParameter()
-    assert task.get("var", "grt_use_cugr") is False
-    task.set_openroad_grtusecugr(True)
-    assert task.get("var", "grt_use_cugr") is True
-    task.set_openroad_grtusecugr(False, step='grt', index='1')
-    assert task.get("var", "grt_use_cugr", step='grt', index='1') is False
-    assert task.get("var", "grt_use_cugr") is True
-
-
 def test_openroad_global_route_has_grt_knobs():
-    """The seed and solver knobs only make sense where global_route is driven."""
+    """The seed only makes sense where global_route is driven; resistance-aware is on
+    every APR task because sc_detailed_placement can reach it."""
     task = global_route.GlobalRouteTask()
     assert task.get("var", "grt_seed") is None
-    assert task.get("var", "grt_use_cugr") is False
     assert task.get("var", "grt_resistance_aware") is False
 
 
-def test_openroad_post_route_repair_timing_has_resistance_aware():
-    """The post-route repair node issues incremental global routes, so it needs the
-    resistance-aware flag but not the solver or seed knobs."""
-    task = repair_timing.PostRouteRepairTimingTask()
-    assert task.get("var", "grt_resistance_aware") is False
-    assert not task.valid("var", "grt_use_cugr")
-    assert not task.valid("var", "grt_seed")
+@pytest.mark.parametrize("task_cls", [
+    detailed_placement.DetailedPlacementTask,
+    clock_tree_synthesis.CTSTask,
+    repair_timing.RepairTimingTask,
+    repair_timing.PostRouteRepairTimingTask,
+])
+def test_openroad_detailed_placement_callers_have_resistance_aware(task_cls):
+    """sc_detailed_placement reads grt_resistance_aware unconditionally, so every task
+    that calls it must declare the var."""
+    assert task_cls().get("var", "grt_resistance_aware") is False
+
+
+def test_openroad_post_route_repair_timing_has_no_seed():
+    """The seed belongs to the task that actually drives global_route."""
+    assert not repair_timing.PostRouteRepairTimingTask().valid("var", "grt_seed")
 
 
 def test_openroad_apr_parameter_ant_check():
@@ -2452,32 +2453,42 @@ def test_openroad_post_route_repair_timing_has_grt_setup():
     assert not repair_timing.RepairTimingTask().valid("var", "grt_signal_min_layer")
 
 
-def test_openroad_post_route_repair_timing_setup_defaults(asic_gcd):
-    """setup() installs the ORFS-equivalent defaults for this stage."""
-    task = _setup_node(asic_gcd, "route.repair_timing")
+def test_openroad_post_route_repair_timing_stage_defaults():
+    """The ORFS-equivalent defaults for this stage are declared via _default_*
+    overrides, so they are visible on the class without running setup()."""
+    task = repair_timing.PostRouteRepairTimingTask()
 
     assert task.get("var", "rsz_skip_wns_repair") is False
     assert task.get("var", "rsz_skip_recover_power") is True
     assert task.get("var", "rsz_match_cell_footprint") is True
-    assert task.get("var", "load_grt_setup") is True
 
 
-def test_openroad_post_route_repair_timing_defaults_do_not_leak(asic_gcd):
-    """The post-route defaults must not bleed into the cts repair_timing node."""
-    _setup_node(asic_gcd, "route.repair_timing")
-    cts = _setup_node(asic_gcd, "cts.repair_timing")
+def test_openroad_post_route_repair_timing_defaults_do_not_leak():
+    """The post-route defaults must not move the cts repair_timing node's."""
+    cts = repair_timing.RepairTimingTask()
 
     assert cts.get("var", "rsz_skip_wns_repair") is True
     assert cts.get("var", "rsz_match_cell_footprint") is False
     assert cts.get("var", "rsz_skip_recover_power") is False
-    assert cts.get("var", "load_grt_setup") is False
+
+
+def test_openroad_post_route_repair_timing_loads_grt_setup(asic_gcd):
+    """Incremental global routing needs the routing layers applied, which
+    load_grt_setup gates. That one is still set during setup()."""
+    for task in APRTask.find_task(asic_gcd):
+        if task.task() == "post_route_repair_timing":
+            task.set_openroad_rszenable(True)
+
+    assert _setup_node(asic_gcd, "route.repair_timing").get("var", "load_grt_setup") is True
+    assert _setup_node(asic_gcd, "cts.repair_timing").get("var", "load_grt_setup") is False
 
 
 def test_openroad_post_route_repair_timing_user_value_wins(asic_gcd):
-    """The setup() defaults use clobber=False, so they are defaults and not
-    overrides. The whole opt-in design depends on this."""
+    """The stage defaults are ordinary defvalues, so an explicit setting overrides
+    them. The opt-in design depends on this."""
     for task in APRTask.find_task(asic_gcd):
         if task.task() == "post_route_repair_timing":
+            task.set_openroad_rszenable(True)
             task.set_openroad_skipwnsrepair(True)
             task.set_openroad_skiprecoverpower(False)
             task.set_openroad_rszmatchcellfootprint(False)
@@ -2489,12 +2500,15 @@ def test_openroad_post_route_repair_timing_user_value_wins(asic_gcd):
 
 
 def test_openroad_post_route_repair_timing_skips_when_disabled(asic_gcd):
+    """rsz_enable cannot change after setup, so the node is dropped there rather
+    than in pre_process, and no work directory is built for it."""
     node = SchedulerNode(asic_gcd, "route.repair_timing", "0")
     with node.runtime():
-        node.setup()
         assert node.task.get("var", "rsz_enable") is False
         with pytest.raises(TaskSkip):
-            node.task.pre_process()
+            node.task.setup()
+        # setup() is what the scheduler catches, so it must not reach pre_process.
+        assert node.setup() is False
 
 
 def test_openroad_post_route_repair_timing_runs_when_enabled(asic_gcd):
@@ -2504,10 +2518,8 @@ def test_openroad_post_route_repair_timing_runs_when_enabled(asic_gcd):
 
     node = SchedulerNode(asic_gcd, "route.repair_timing", "0")
     with node.runtime():
-        node.setup()
+        assert node.setup() is True
         assert node.task.get("var", "rsz_enable") is True
-        # No TaskSkip; pre_process falls through to APRTask's own work.
-        node.task.pre_process()
 
 
 def test_openroad_screenshot_parameter_vertical_resolution():

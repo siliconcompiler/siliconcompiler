@@ -41,26 +41,18 @@ if { [sc_cfg_tool_task_get {var} rsz_skip_buffer_removal] } {
 if { [sc_cfg_tool_task_get {var} rsz_skip_buffering] } {
     lappend repair_common_args "-skip_buffering"
 }
-if { [sc_cfg_tool_task_get {var} rsz_skip_vt_swap] } {
-    if { [sc_check_version 24 3 7918] } {
-        lappend repair_common_args "-skip_vt_swap"
-    } else {
-        utl::warn FLW 1 "repair_timing -skip_vt_swap requires OpenROAD 24Q3-7918 or newer"
-    }
+if { [sc_cfg_tool_task_get {var} rsz_skip_vt_swap] && [sc_check_version 24 3 7918] } {
+    lappend repair_common_args "-skip_vt_swap"
 }
-if { [sc_cfg_tool_task_get {var} rsz_skip_crit_vt_swap] } {
-    if { [sc_check_version 24 3 8690] } {
-        lappend repair_common_args "-skip_crit_vt_swap"
-    } else {
-        utl::warn FLW 1 "repair_timing -skip_crit_vt_swap requires OpenROAD 24Q3-8690 or newer"
-    }
+if { [sc_cfg_tool_task_get {var} rsz_skip_crit_vt_swap] && [sc_check_version 24 3 8690] } {
+    lappend repair_common_args "-skip_crit_vt_swap"
 }
 set rsz_match_cell_footprint [sc_cfg_tool_task_get {var} rsz_match_cell_footprint]
 if { $rsz_match_cell_footprint } {
     lappend repair_common_args "-match_cell_footprint"
 }
 set rsz_max_utilization [sc_cfg_tool_task_get {var} rsz_max_utilization]
-if { $rsz_max_utilization != "" } {
+if { $rsz_max_utilization != {} } {
     lappend repair_common_args "-max_utilization" $rsz_max_utilization
 }
 # Forwarded verbatim, deliberately not version checked.
@@ -72,13 +64,8 @@ if { [sc_cfg_tool_task_get {var} rsz_skip_last_gasp] } {
     lappend repair_timing_args "-skip_last_gasp"
 }
 set rsz_sequence [sc_cfg_tool_task_get {var} rsz_sequence]
-if { [llength $rsz_sequence] != 0 } {
-    if { [sc_check_version 24 3 5705] } {
-        lappend repair_timing_args "-sequence" [join $rsz_sequence " "]
-    } else {
-        utl::warn FLW 1 "rsz_sequence requires OpenROAD 24Q3-5705 or newer for\
-            repair_timing -sequence"
-    }
+if { [llength $rsz_sequence] != 0 && [sc_check_version 24 3 5705] } {
+    lappend repair_timing_args "-sequence" [join $rsz_sequence " "]
 }
 
 # Worst negative slack repair, a setup pass restricted to the moves that disturb
@@ -87,13 +74,8 @@ if { [llength $rsz_sequence] != 0 } {
 set repair_wns_args $repair_common_args
 lappend repair_wns_args "-skip_last_gasp" "-repair_tns" 0
 set rsz_wns_sequence [sc_cfg_tool_task_get {var} rsz_wns_sequence]
-if { [llength $rsz_wns_sequence] != 0 } {
-    if { [sc_check_version 24 3 5705] } {
-        lappend repair_wns_args "-sequence" [join $rsz_wns_sequence " "]
-    } else {
-        utl::warn FLW 1 "rsz_wns_sequence requires OpenROAD 24Q3-5705 or newer for\
-            repair_timing -sequence"
-    }
+if { [llength $rsz_wns_sequence] != 0 && [sc_check_version 24 3 5705] } {
+    lappend repair_wns_args "-sequence" [join $rsz_wns_sequence " "]
 }
 
 # Hold repair only, these have no effect on setup repair.
@@ -102,7 +84,7 @@ if { [sc_cfg_tool_task_get {var} rsz_allow_setup_violations] } {
     lappend repair_hold_args "-allow_setup_violations"
 }
 set rsz_max_buffer_percent [sc_cfg_tool_task_get {var} rsz_max_buffer_percent]
-if { $rsz_max_buffer_percent != "" } {
+if { $rsz_max_buffer_percent != {} } {
     lappend repair_hold_args "-max_buffer_percent" $rsz_max_buffer_percent
 }
 

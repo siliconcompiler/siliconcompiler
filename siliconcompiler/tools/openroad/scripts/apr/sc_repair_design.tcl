@@ -44,7 +44,7 @@ if { [sc_cfg_tool_task_get {var} rsz_match_cell_footprint] } {
     lappend repair_design_args "-match_cell_footprint"
 }
 set rsz_max_utilization [sc_cfg_tool_task_get {var} rsz_max_utilization]
-if { $rsz_max_utilization != "" } {
+if { $rsz_max_utilization != {} } {
     lappend repair_design_args "-max_utilization" $rsz_max_utilization
 }
 
