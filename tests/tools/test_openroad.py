@@ -26,6 +26,7 @@ from siliconcompiler.tools.openroad import show as openroad_show
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.tools.openroad import write_data
 from siliconcompiler.tools.openroad import antenna_repair
+from siliconcompiler.tools.openroad import detailed_route
 from siliconcompiler.tools.openroad import fillmetal_insertion
 from siliconcompiler.tools.openroad import global_placement
 from siliconcompiler.tools.openroad import global_route
@@ -1224,6 +1225,26 @@ def test_openroad_apr_parameter_grt_overflow_iter():
     assert task.get("var", "grt_overflow_iter") == 100
 
 
+def test_openroad_apr_parameter_ant_check():
+    task = _apr.OpenROADANTCheckParameter()
+    assert task.get("var", "ant_check") is True
+    task.set_openroad_antcheck(False)
+    assert task.get("var", "ant_check") is False
+    task.set_openroad_antcheck(True, step='ant', index='1')
+    assert task.get("var", "ant_check", step='ant', index='1') is True
+    assert task.get("var", "ant_check") is False
+
+
+def test_openroad_apr_parameter_ant_repair():
+    task = _apr.OpenROADANTCheckParameter()
+    assert task.get("var", "ant_repair") is True
+    task.set_openroad_antrepair(False)
+    assert task.get("var", "ant_repair") is False
+    task.set_openroad_antrepair(True, step='ant', index='1')
+    assert task.get("var", "ant_repair", step='ant', index='1') is True
+    assert task.get("var", "ant_repair") is False
+
+
 def test_openroad_apr_parameter_ant_iterations():
     task = _apr.OpenROADANTParameter()
     task.set_openroad_antiterations(3)
@@ -2276,6 +2297,51 @@ def test_openroad_repair_timing_parameter_skip_recover_power():
     task.set_openroad_skiprecoverpower(False, step='repair_timing', index='1')
     assert task.get("var", "rsz_skip_recover_power", step='repair_timing', index='1') is False
     assert task.get("var", "rsz_skip_recover_power") is True
+
+
+# ----------------------------------------------------------------------
+# DetailedRouteTask: post-route antenna repair loop
+# ----------------------------------------------------------------------
+
+
+def test_openroad_detailed_route_antenna_parameters():
+    """detailed_route drives the post-route antenna loop, so it carries the shared
+    antenna check/repair/margin knobs."""
+    task = detailed_route.DetailedRouteTask()
+    assert task.get("var", "ant_check") is True
+    assert task.get("var", "ant_repair") is True
+    # ORFS passes no -ratio_margin in either antenna loop.
+    assert task.get("var", "ant_margin") == 0
+    # ORFS MAX_REPAIR_ANTENNAS_ITER_DRT.
+    assert task.get("var", "ant_reroute_iterations") == 5
+    # ant_iterations bounds a single repair_antennas call and is a pre-route knob,
+    # so it deliberately stays off this task.
+    assert not task.valid("var", "ant_iterations")
+
+
+def test_openroad_detailed_route_parameter_ant_reroute_iterations():
+    task = detailed_route.DetailedRouteTask()
+    task.set_openroad_antrerouteiterations(3)
+    assert task.get("var", "ant_reroute_iterations") == 3
+    task.set_openroad_antrerouteiterations(0, step='detailed', index='1')
+    assert task.get("var", "ant_reroute_iterations", step='detailed', index='1') == 0
+    assert task.get("var", "ant_reroute_iterations") == 3
+
+
+def test_openroad_detailed_route_can_insert_fillers():
+    """The loop brackets itself with remove_fillers/sc_insert_fillers, which reads
+    dpl_use_decap_fillers."""
+    assert detailed_route.DetailedRouteTask().valid("var", "dpl_use_decap_fillers")
+
+
+def test_openroad_antenna_repair_parameters_unchanged():
+    """ant_check/ant_repair moved from AntennaRepairTask up into the shared mixin;
+    the task's own schema keys and defaults must be unchanged by that move."""
+    task = antenna_repair.AntennaRepairTask()
+    assert task.get("var", "ant_check") is True
+    assert task.get("var", "ant_repair") is True
+    assert task.get("var", "ant_margin") == 0
+    assert task.get("var", "ant_iterations") == 3
 
 
 def test_openroad_repair_timing_parameter_skip_wns_repair():
