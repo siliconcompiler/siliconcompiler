@@ -1225,6 +1225,55 @@ def test_openroad_apr_parameter_grt_overflow_iter():
     assert task.get("var", "grt_overflow_iter") == 100
 
 
+def test_openroad_apr_parameter_grt_resistance_aware():
+    # On the general mixin, not OpenROADGRTParameter, because it is also passed on
+    # incremental global routes issued from tasks that do not drive global routing.
+    task = _apr.OpenROADGRTGeneralParameter()
+    assert task.get("var", "grt_resistance_aware") is False
+    task.set_openroad_grtresistanceaware(True)
+    assert task.get("var", "grt_resistance_aware") is True
+    task.set_openroad_grtresistanceaware(False, step='grt', index='1')
+    assert task.get("var", "grt_resistance_aware", step='grt', index='1') is False
+    assert task.get("var", "grt_resistance_aware") is True
+
+
+def test_openroad_apr_parameter_grt_seed():
+    task = _apr.OpenROADGRTParameter()
+    assert task.get("var", "grt_seed") is None
+    task.set_openroad_grtseed(42)
+    assert task.get("var", "grt_seed") == 42
+    task.set_openroad_grtseed(7, step='grt', index='1')
+    assert task.get("var", "grt_seed", step='grt', index='1') == 7
+    assert task.get("var", "grt_seed") == 42
+
+
+def test_openroad_apr_parameter_grt_use_cugr():
+    task = _apr.OpenROADGRTParameter()
+    assert task.get("var", "grt_use_cugr") is False
+    task.set_openroad_grtusecugr(True)
+    assert task.get("var", "grt_use_cugr") is True
+    task.set_openroad_grtusecugr(False, step='grt', index='1')
+    assert task.get("var", "grt_use_cugr", step='grt', index='1') is False
+    assert task.get("var", "grt_use_cugr") is True
+
+
+def test_openroad_global_route_has_grt_knobs():
+    """The seed and solver knobs only make sense where global_route is driven."""
+    task = global_route.GlobalRouteTask()
+    assert task.get("var", "grt_seed") is None
+    assert task.get("var", "grt_use_cugr") is False
+    assert task.get("var", "grt_resistance_aware") is False
+
+
+def test_openroad_post_route_repair_timing_has_resistance_aware():
+    """The post-route repair node issues incremental global routes, so it needs the
+    resistance-aware flag but not the solver or seed knobs."""
+    task = repair_timing.PostRouteRepairTimingTask()
+    assert task.get("var", "grt_resistance_aware") is False
+    assert not task.valid("var", "grt_use_cugr")
+    assert not task.valid("var", "grt_seed")
+
+
 def test_openroad_apr_parameter_ant_check():
     task = _apr.OpenROADANTCheckParameter()
     assert task.get("var", "ant_check") is True

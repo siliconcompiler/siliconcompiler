@@ -976,6 +976,12 @@ class OpenROADGRTGeneralParameter(OpenROADTask):
                            "minimum layer to use for global routing of clock nets")
         self.add_parameter("grt_clock_max_layer", "str",
                            "maximum layer to use for global routing of clock nets")
+        # On the general mixin rather than OpenROADGRTParameter because the flag is
+        # also passed on every incremental global route, which happens in tasks that
+        # do not otherwise drive global routing.
+        self.add_parameter("grt_resistance_aware", "bool",
+                           "true/false, when true global routing will consider wire resistance",
+                           defvalue=False)
 
     def set_openroad_grtmacroextension(self, extension: int,
                                        step: Optional[str] = None, index: Optional[str] = None):
@@ -1037,6 +1043,18 @@ class OpenROADGRTGeneralParameter(OpenROADTask):
         """
         self.set("var", "grt_clock_max_layer", layer, step=step, index=index)
 
+    def set_openroad_grtresistanceaware(self, enable: bool,
+                                        step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables resistance-aware global routing.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "grt_resistance_aware", enable, step=step, index=index)
+
     def setup(self):
         super().setup()
 
@@ -1058,6 +1076,7 @@ class OpenROADGRTGeneralParameter(OpenROADTask):
         self.add_required_key("var", "grt_clock_min_layer")
         self.add_required_key("var", "grt_signal_max_layer")
         self.add_required_key("var", "grt_clock_max_layer")
+        self.add_required_key("var", "grt_resistance_aware")
 
 
 class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
@@ -1073,6 +1092,16 @@ class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
         self.add_parameter("grt_overflow_iter", "int<1..>",
                            "maximum number of iterations to use in global routing when attempting "
                            "to solve overflow", defvalue=100)
+        self.add_parameter("grt_seed", "int",
+                           "random seed for global routing, useful for perturbation studies, "
+                           "unset uses the tool default")
+        self.add_parameter("grt_use_cugr", "bool",
+                           "true/false, when true use the CUGR global routing solver instead of "
+                           "FastRoute. CUGR runs a full 3D maze pass per iteration, so consider "
+                           "lowering grt_overflow_iter alongside it. Upstream considers CUGR not "
+                           "ready for production: on OpenROAD 26Q3-1034 it routes, but the "
+                           "routing congestion heatmap crashes and the resizer cannot build "
+                           "buffered nets from its guides", defvalue=False)
 
     def set_openroad_grtallowcongestion(self, allow: bool,
                                         step: Optional[str] = None, index: Optional[str] = None):
@@ -1098,11 +1127,38 @@ class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
         """
         self.set("var", "grt_overflow_iter", iterations, step=step, index=index)
 
+    def set_openroad_grtseed(self, seed: int,
+                             step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the random seed for global routing.
+
+        Args:
+            seed (int): The random seed.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "grt_seed", seed, step=step, index=index)
+
+    def set_openroad_grtusecugr(self, enable: bool,
+                                step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Selects the CUGR global routing solver instead of FastRoute.
+
+        Args:
+            enable (bool): True to use CUGR, False to use FastRoute.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "grt_use_cugr", enable, step=step, index=index)
+
     def setup(self):
         super().setup()
 
         self.add_required_key("var", "grt_allow_congestion")
         self.add_required_key("var", "grt_overflow_iter")
+        self.add_required_key("var", "grt_use_cugr")
+        if self.get("var", "grt_seed") is not None:
+            self.add_required_key("var", "grt_seed")
 
 
 class OpenROADANTCheckParameter(OpenROADTask):

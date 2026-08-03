@@ -95,6 +95,27 @@ proc sc_global_placement { args } {
 }
 
 ###########################
+# Resistance aware global routing
+###########################
+
+# Upstream passes -resistance_aware on every global_route call including the
+# incremental ones, so this has to be reachable from tasks that do not
+# necessarily declare the global routing variables.
+proc sc_grt_resistance_aware_args { } {
+    if { ![sc_cfg_tool_task_exists {var} grt_resistance_aware] } {
+        return []
+    }
+    if { ![sc_cfg_tool_task_get {var} grt_resistance_aware] } {
+        return []
+    }
+    if { ![sc_check_version 24 3 9363] } {
+        utl::warn FLW 1 "global_route -resistance_aware requires OpenROAD 24Q3-9363 or newer"
+        return []
+    }
+    return [list -resistance_aware]
+}
+
+###########################
 # Detailed Placement
 ###########################
 
@@ -121,7 +142,8 @@ proc sc_detailed_placement { args } {
 
     if { $incremental_route } {
         global_route -end_incremental \
-            -congestion_report_file $keys(-congestion_report)
+            -congestion_report_file $keys(-congestion_report) \
+            {*}[sc_grt_resistance_aware_args]
     }
 
     check_placement -verbose
