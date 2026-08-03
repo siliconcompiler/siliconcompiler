@@ -21,6 +21,15 @@ cd deps
 
 pkg_version=$(python3 ${src_path}/_tools.py --tool klayout --field version)
 version=$(lsb_release -sr)
+arch=$(dpkg --print-architecture)
+
+# KLayout only publishes amd64 .debs for Ubuntu; on other architectures
+# (e.g. arm64) fall back to the distro package from the universe repository.
+if [ "$arch" != "amd64" ]; then
+    sudo apt-get install -y klayout
+    cd -
+    exit 0
+fi
 
 if [ "$version" = "18.04" ]; then
     url="https://www.klayout.org/downloads/Ubuntu-18/klayout_${pkg_version}-1_amd64.deb"

@@ -5,18 +5,23 @@ import os.path
 
 
 # Tools that cannot be built for aarch64 and are therefore skipped in the arm64
-# matrix. bambu requires x86 32-bit multilib / -m32 code generation, which is
-# not packaged for arm64 (g++-11-multilib does not exist there).
-AARCH64_UNSUPPORTED = {"bambu"}
+# matrix.
+#  - bambu requires x86 32-bit multilib / -m32 code generation, which is not
+#    packaged for arm64 (g++-11-multilib does not exist there).
+#  - openroad builds its Qt GUI against the *system* X libraries on aarch64
+#    (qt_bazel_prebuilts selects on @platforms//cpu:aarch64; x86_64 links its
+#    bundled .ifso interface stubs instead). Those libraries reference glibc
+#    symbols newer than the sysroot of OpenROAD's hermetic bazel LLVM
+#    toolchain, so lld rejects them under its default --no-allow-shlib-undefined
+#    (stat@GLIBC_2.33 and dlopen@GLIBC_2.34 from libX11 on ubuntu22, plus
+#    __isoc23_*@GLIBC_2.38 on ubuntu24/26). Upstream issue; x86_64 builds fine.
+AARCH64_UNSUPPORTED = {"bambu", "openroad"}
 
 # Tools that cannot be built for a specific (os, arch) combination:
 #  - bluespec: vendored MINISAT clashes with the newer glibc <time.h> on
 #    ubuntu26/aarch64 (builds fine on ubuntu22/24 aarch64 and on all x86_64).
-#  - openroad: on ubuntu26/aarch64 its hermetic bazel LLVM toolchain links an
-#    older sysroot than glibc 2.41, so the final link fails on versioned glibc
-#    symbols (upstream issue; x86_64 builds fine).
 OS_ARCH_UNSUPPORTED = {
-    ("ubuntu26", "aarch64"): {"bluespec", "openroad"},
+    ("ubuntu26", "aarch64"): {"bluespec"},
 }
 
 
