@@ -1,4 +1,5 @@
 import logging
+import threading
 import warnings
 
 from multiprocessing.managers import RemoteError
@@ -43,6 +44,36 @@ def test_init_singleton():
     assert man0 is man1
 
     assert MPManager in _ManagerSingleton._instances
+
+
+def test_singleton_is_not_published_until_initialized():
+    '''The outer has_cls() check skips the lock, so publishing the instance
+    before _init_singleton() finishes hands a half-built object to any other
+    thread that asks for it meanwhile -- and _init_singleton() spends that
+    window launching a manager process.'''
+    errors = []
+    instances = []
+    barrier = threading.Barrier(8)
+
+    def race():
+        barrier.wait()
+        try:
+            manager = MPManager()
+            # Touch state that only exists after _init_singleton() has run
+            assert manager.get_transient_settings() is not None
+            instances.append(manager)
+        except Exception as e:  # noqa B902
+            errors.append(f"{type(e).__name__}: {e}")
+
+    threads = [threading.Thread(target=race) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert errors == []
+    assert len(instances) == 8
+    assert len(set(id(manager) for manager in instances)) == 1
 
 
 def test_has_cls():

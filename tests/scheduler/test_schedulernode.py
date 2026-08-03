@@ -21,6 +21,7 @@ from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
 from scheduler.tools.echo import EchoTask
 
+from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, \
     SchedulerNodeReset, SchedulerNodeResetSilent
@@ -285,6 +286,77 @@ def test_halt(project):
         node.halt()
     assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
     assert os.path.exists("build/testdesign/job0/steptwo/0/outputs/testdesign.pkg.json")
+
+
+def test_halt_sends_pathcache(project):
+    '''A node that halts because a data source could not be fetched is exactly
+    the node whose resolved paths the parent needs, so halt() must report them
+    before exiting.'''
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    MPManager.get_path_cache().set("someid", "/some/path")
+    MPManager.get_path_cache().record_failure("otherid", ValueError("nope"))
+
+    sent = []
+
+    class DummyPipe:
+        def send(self, payload):
+            sent.append(payload)
+
+    node.set_queue(DummyPipe(), Queue())
+
+    with pytest.raises(SystemExit):
+        node.halt()
+
+    assert sent == [{
+        "paths": {"someid": "/some/path"},
+        "failures": {"otherid": [1, "ValueError: nope"]}
+    }]
+
+
+def test_halt_without_pipe(project):
+    '''Nothing to report to in a local run.'''
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with pytest.raises(SystemExit):
+        node.halt()
+
+
+@pytest.mark.parametrize("errorcls", (OSError, EOFError, BrokenPipeError,
+                                      ConnectionResetError, ValueError))
+def test_send_pathcache_swallows_pipe_errors(project, errorcls):
+    '''A broken or already closed pipe must never become a node failure.'''
+    node = SchedulerNode(project, "steptwo", "0")
+
+    class DeadPipe:
+        def send(self, payload):
+            raise errorcls("pipe is gone")
+
+    node.set_queue(DeadPipe(), Queue())
+
+    node._send_pathcache()
+
+
+def test_run_sends_pathcache(project):
+    node = SchedulerNode(project, "stepone", "0")
+
+    sent = []
+
+    class DummyPipe:
+        def send(self, payload):
+            sent.append(payload)
+
+    node.set_queue(DummyPipe(), Queue())
+    node.task.setup_work_directory(node.workdir)
+
+    MPManager.get_path_cache().set("someid", "/some/path")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.execute"):
+        node.run()
+
+    assert sent == [{"paths": {"someid": "/some/path"}, "failures": {}}]
 
 
 def test_halt_with_reason(project_logger, project, caplog):

@@ -17,7 +17,7 @@ from siliconcompiler import utils, sc_open
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter
 
-from siliconcompiler.package import Resolver
+from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
 from siliconcompiler.schema import Journal, Parameter
 from siliconcompiler.scheduler import send_messages
@@ -378,6 +378,11 @@ class SchedulerNode:
         try:
             if msg:
                 self.logger.error(msg)
+
+            # Report resolved paths before exiting. A node that halts because a
+            # data source could not be fetched is exactly the node whose cache
+            # the parent needs, so this cannot wait for the end of run().
+            self._send_pathcache()
 
             self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
             try:
@@ -893,8 +898,24 @@ class SchedulerNode:
         # Stop journaling
         journal.stop()
 
-        if self.__pipe:
-            self.__pipe.send(Resolver.get_cache(self.__project))
+        self._send_pathcache()
+
+    def _send_pathcache(self) -> None:
+        """
+        Sends this node's resolved data source paths back to the parent process.
+
+        A worker resolves data sources into its own copy of the cache, so the
+        results are handed back over the pipe for the parent to merge. Sending is
+        best effort: a broken or already closed pipe must never turn into a node
+        failure. Safe to call more than once.
+        """
+        if not self.__pipe:
+            return
+
+        try:
+            self.__pipe.send(MPManager.get_path_cache().export())
+        except (OSError, EOFError, BrokenPipeError, ConnectionResetError, ValueError):
+            pass
 
     @contextlib.contextmanager
     def __set_env(self):
