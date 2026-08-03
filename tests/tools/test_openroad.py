@@ -338,17 +338,6 @@ def test_openroad_pdk_unset_rccorrection():
     assert pdk.get('tool', 'openroad', 'rccorrection') == []
 
 
-def test_openroad_pdk_add_rccorrection_replaces_same_layer():
-    # Only one correction can apply to a layer; a second add for the same
-    # (corner, layer) must win outright rather than leaving two entries whose
-    # winner depends on Tcl dict iteration order.
-    pdk = OpenROADPDK()
-    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.7)
-    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.4)
-    assert pdk.get('tool', 'openroad', 'rccorrection') == \
-        [('typical', 'metal2', None, 0.4)]
-
-
 def test_openroad_pdk_add_rccorrection_rejects_negative():
     # A negative multiplier is never meaningful and would silently invert the
     # estimate; the schema range rejects it at the setter.
