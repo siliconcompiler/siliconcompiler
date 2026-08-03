@@ -487,9 +487,9 @@ class OpenROADRSZTimingParameter(OpenROADTask):
                            defvalue=0.0, unit="ns")
 
         self.add_parameter("rsz_skip_pin_swap", "bool",
-                           "true/false, skip pin swap optimization", defvalue=True)
+                           "true/false, skip pin swap optimization", defvalue=False)
         self.add_parameter("rsz_skip_gate_cloning", "bool",
-                           "true/false, skip gate cloning optimization", defvalue=True)
+                           "true/false, skip gate cloning optimization", defvalue=False)
         self.add_parameter("rsz_skip_buffer_removal", "bool",
                            "true/false, skip buffer removal optimization", defvalue=False)
         self.add_parameter("rsz_skip_buffering", "bool",

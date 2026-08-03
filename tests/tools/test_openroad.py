@@ -918,6 +918,9 @@ def test_openroad_apr_parameter_rsz_hold_slack_margin():
 
 def test_openroad_apr_parameter_rsz_skip_pin_swap():
     task = _apr.OpenROADRSZTimingParameter()
+    # Both transforms are on in ORFS and LibreLane; they were skipped in SC only
+    # because of LEC issues that have since been fixed upstream.
+    assert task.get("var", "rsz_skip_pin_swap") is False
     task.set_openroad_rszskippinswap(True)
     assert task.get("var", "rsz_skip_pin_swap") is True
     task.set_openroad_rszskippinswap(False, step='rsz', index='1')
@@ -927,6 +930,7 @@ def test_openroad_apr_parameter_rsz_skip_pin_swap():
 
 def test_openroad_apr_parameter_rsz_skip_gate_cloning():
     task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_gate_cloning") is False
     task.set_openroad_rszskipgatecloning(True)
     assert task.get("var", "rsz_skip_gate_cloning") is True
     task.set_openroad_rszskipgatecloning(False, step='rsz', index='1')
