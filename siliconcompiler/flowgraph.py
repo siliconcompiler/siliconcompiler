@@ -5,7 +5,7 @@ import logging
 
 import os.path
 
-from typing import Tuple, Union, Optional, List, Type, Set, Dict, TYPE_CHECKING
+from typing import Callable, Tuple, Union, Optional, List, Type, Set, Dict, TYPE_CHECKING
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
@@ -38,6 +38,8 @@ class Flowgraph(NamedSchema, DocsSchema):
         super().__init__()
         self.set_name(name)
 
+        self.__callback: Optional[Callable[["Flowgraph", "Task"], None]] = None
+
         schema = EditableSchema(self)
         schema.insert("default", "default", FlowgraphNodeSchema())
 
@@ -61,6 +63,10 @@ class Flowgraph(NamedSchema, DocsSchema):
         self.__cache_node_outputs = None
 
         self.__cache_tasks = None
+
+    def _set_callback(self, callback: Optional[Callable[["Flowgraph", "Task"], None]]) -> None:
+        """Registers a callback function to be executed when a node is added."""
+        self.__callback = callback
 
     @staticmethod
     def _assert_valid_step(step: str) -> None:
@@ -167,6 +173,8 @@ class Flowgraph(NamedSchema, DocsSchema):
         graph_node.set('taskmodule', task_module)
 
         self.__clear_cache()
+        if self.__callback:
+            self.__callback(self, task)
 
     def edge(self, tail: str, head: str,
              tail_index: Optional[Union[str, int]] = 0,
@@ -1193,6 +1201,17 @@ class Flowgraph(NamedSchema, DocsSchema):
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         self.__clear_cache()
         return super()._from_dict(manifest, keypath, version, lazyload)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Remove callbacks objects since they are not serializable
+        del state["_Flowgraph__callback"]
+
+        return state
+
+    def __setstate__(self, state) -> None:
+        self.__dict__ = state
+        self.__callback = None
 
 
 class RuntimeFlowgraph:

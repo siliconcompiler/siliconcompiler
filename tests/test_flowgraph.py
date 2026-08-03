@@ -6,7 +6,7 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Flowgraph
+from siliconcompiler import Flowgraph, Task
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -64,6 +64,51 @@ def test_node():
     assert flow.get("teststep", "0", "tool") == "builtin"
     assert flow.get("teststep", "0", "task") == "nop"
     assert flow.get("teststep", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
+
+
+def test_node_callback():
+    class CheckCallback:
+        callbacks = []
+
+        def callback(self, flow: Flowgraph, task: Task):
+            self.callbacks.append((flow.name, task))
+
+    check = CheckCallback()
+    task = NOPTask()
+
+    flow = Flowgraph("testflow")
+    flow._set_callback(check.callback)
+    flow.node("teststep", task)
+
+    assert flow.get("teststep", "0", "tool") == "builtin"
+    assert flow.get("teststep", "0", "task") == "nop"
+    assert flow.get("teststep", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
+    assert check.callbacks == [("testflow", task)]
+
+
+def test_node_callback_multiple():
+    class CheckCallback:
+        callbacks = []
+
+        def callback(self, flow: Flowgraph, task: Task):
+            self.callbacks.append((flow.name, task))
+
+    check = CheckCallback()
+    task0 = NOPTask()
+    task1 = NOPTask()
+
+    flow = Flowgraph("testflow")
+    flow._set_callback(check.callback)
+    flow.node("teststep0", task0)
+    flow.node("teststep1", task1)
+
+    assert flow.get("teststep0", "0", "tool") == "builtin"
+    assert flow.get("teststep0", "0", "task") == "nop"
+    assert flow.get("teststep0", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
+    assert flow.get("teststep1", "0", "tool") == "builtin"
+    assert flow.get("teststep1", "0", "task") == "nop"
+    assert flow.get("teststep1", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
+    assert check.callbacks == [("testflow", task0), ("testflow", task1)]
 
 
 def test_node_class():
@@ -261,6 +306,36 @@ def test_insert_node(large_flow):
     assert large_flow.get_node_outputs("joinone", "0") == (('newnode', '0'),)
     assert large_flow.get_node_outputs("newnode", "0") == \
         (('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2'))
+
+
+def test_insert_node_callback(large_flow):
+    class CheckCallback:
+        callbacks = []
+
+        def callback(self, flow: Flowgraph, task: Task):
+            self.callbacks.append((flow.name, task))
+
+    check = CheckCallback()
+
+    large_flow._set_callback(check.callback)
+    large_flow.insert_node(
+        "newnode", "siliconcompiler.tools.builtin.nop/NOPTask", before_step="joinone"
+    )
+
+    assert ("newnode", "0") in large_flow.get_nodes()
+    assert large_flow.get_execution_order() == (
+        (('stepone', '0'), ('stepone', '1'), ('stepone', '2')),
+        (('joinone', '0'),),
+        (('newnode', '0'),),
+        (('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2')),
+        (('jointwo', '0'),),
+        (('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2')),
+        (('jointhree', '0'),))
+    assert large_flow.get_node_outputs("joinone", "0") == (('newnode', '0'),)
+    assert large_flow.get_node_outputs("newnode", "0") == \
+        (('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2'))
+
+    assert [(name, task.task()) for name, task in check.callbacks] == [("testflow", "nop")]
 
 
 def test_insert_node_branch(large_flow):
