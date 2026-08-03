@@ -14,7 +14,6 @@ from siliconcompiler import NodeStatus
 from siliconcompiler import utils
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
-from siliconcompiler.package import Resolver
 from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter, \
@@ -324,10 +323,11 @@ class TaskScheduler:
                 # for a full second when a child died without writing.
                 if info["parent_pipe"] and info["parent_pipe"].poll(0):
                     try:
-                        packages = info["parent_pipe"].recv()
-                        if isinstance(packages, dict):
-                            for package, path in packages.items():
-                                Resolver.set_cache(self.__project, package, path)
+                        # Take the paths the node resolved, but not its failures:
+                        # a fetch that failed for one node may still succeed for
+                        # the next, so each node gets its own retry budget for now.
+                        MPManager.get_path_cache().seed(
+                            info["parent_pipe"].recv(), include_failures=False)
                     except:  # noqa E722
                         pass
 

@@ -21,17 +21,17 @@ import shutil
 import stat
 import time
 import threading
-import uuid
 
 import os.path
 
-from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING, Final
+from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING
 
 from fasteners import InterProcessLock
 from importlib.metadata import distributions, distribution
 from pathlib import Path, PureWindowsPath
 from urllib import parse as url_parse
 
+from siliconcompiler.package.cache import PathCache, DataRootResolutionError
 from siliconcompiler.utils import get_plugins, default_cache_dir
 from siliconcompiler.utils.paths import cwdirsafe
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -57,7 +57,6 @@ class Resolver:
         source (str): The URI or path specifying the data source.
         reference (str): A version, commit hash, or tag for remote sources.
     """
-    __STORAGE: Final[str] = "__Resolver_cache_id"
 
     def __init__(self, name: str,
                  schema: Optional[Union["Project", "BaseSchema"]],
@@ -152,6 +151,42 @@ class Resolver:
         return self.name
 
     @property
+    def is_retryable(self) -> bool:
+        """
+        True if a failed resolution is worth retrying.
+
+        Failures are then counted in the shared cache, delayed with a growing
+        backoff, and abandoned once the budget runs out. Only worth doing where an
+        attempt is expensive, so remote sources enable it (see
+        :class:`RemoteResolver`) while local ones leave it off: they fail
+        instantly and identically every time, so a retry cannot help.
+        """
+        return False
+
+    @property
+    def is_indirect(self) -> bool:
+        """
+        True if this resolver is an indirection rather than a location of its own.
+
+        ``dataroot://name`` and ``key://keypath`` do not name data; they name
+        something *within a schema* that in turn names data, and they hand the
+        real work to that resolver. Two consequences follow, both applied by
+        :meth:`get_path`:
+
+        * An indirection is not cached. The cache is keyed by :attr:`cache_id`, a
+          hash of the source URI and reference, which identifies a path only for a
+          source that means the same thing everywhere -- an absolute ``file://``
+          path, a ``python://`` module, a remote URL at a fixed reference. A
+          dataroot name or a keypath means something different in every project or
+          design, so caching one would let two schemas collide and hand each other
+          the wrong path. Resolving an indirection is cheap, and where it points
+          at an expensive source that resolver still caches.
+        * An indirection does not announce where data was found, because the
+          resolver it delegates to already reported the same location.
+        """
+        return False
+
+    @property
     def root(self) -> Optional[Union["Project", "BaseSchema"]]:
         """The root object (e.g., Project) providing context."""
         return self.__root
@@ -229,103 +264,89 @@ class Resolver:
         """
         raise NotImplementedError("child class must implement this")
 
-    @staticmethod
-    def __get_root_id(root: Union["Project", "BaseSchema"]) -> str:
-        """Generates or retrieves a unique ID for a root object."""
-        if not getattr(root, Resolver.__STORAGE, None):
-            setattr(root, Resolver.__STORAGE, uuid.uuid4().hex)
-        return getattr(root, Resolver.__STORAGE)
-
-    @staticmethod
-    def get_cache(root: Optional[Union["Project", "BaseSchema"]], name: Optional[str] = None) \
-            -> Union[None, str, Dict[str, str]]:
+    @property
+    def cache(self) -> PathCache:
         """
-        Gets a cached path for a given root object and resolver name.
-
-        Args:
-            root: The root object (e.g., Project).
-            name (str, optional): The name of the resolver cache to retrieve.
-                If None, returns a copy of the entire cache for the root.
-
-        Returns:
-            str or dict or None: The cached path, a copy of the cache, or None.
+        :class:`~siliconcompiler.package.cache.PathCache`: The store of paths that
+        data sources have resolved to, shared by everything in this process.
         """
-        if root is None:
-            return None
+        return MPManager.get_path_cache()
 
-        cache_id = f"resolver-cache-{Resolver.__get_root_id(root)}"
-
-        settings = MPManager().get_transient_settings()
-
-        if name is not None:
-            return settings.get(cache_id, name, None)
-
-        return settings.get_category(cache_id)
-
-    @staticmethod
-    def set_cache(root: Optional[Union["Project", "BaseSchema"]],
-                  name: str,
-                  path: Union[Path, str]) -> None:
-        """
-        Sets a cached path for a given root object and resolver name.
-
-        Args:
-            root: The root object (e.g., Project).
-            name (str): The name of the resolver cache to set.
-            path (str): The path to cache.
-        """
-        if root is None:
-            return
-
-        cache_id = f"resolver-cache-{Resolver.__get_root_id(root)}"
-
-        settings = MPManager().get_transient_settings()
-
-        settings.set(cache_id, name, str(path))
-
-    @staticmethod
-    def reset_cache(root: Optional[Union["Project", "BaseSchema"]]) -> None:
-        """
-        Resets the entire cache for a given root object.
-
-        Args:
-            root: The root object whose cache will be cleared.
-        """
-        if root is None:
-            return
-        cache_id = f"resolver-cache-{Resolver.__get_root_id(root)}"
-
-        settings = MPManager().get_transient_settings()
-
-        settings.delete(cache_id)
+    def __abandoned_message(self, cache: PathCache) -> str:
+        """Builds the error text used when a data source is given up on."""
+        source = self.source
+        if self.reference:
+            source = f"{source} ({self.reference})"
+        return (f"Unable to resolve '{self.display_name}' from {source} after "
+                f"{cache.attempts(self.cache_id)} attempt(s), giving up. "
+                f"Last error: {cache.failure(self.cache_id)}")
 
     def get_path(self) -> str:
         """
         Resolves the data source and returns its local path.
 
-        This method first checks the in-memory cache. If not found, it calls
-        the `resolve()` method and caches the result.
+        This method first checks the cache of already resolved paths. If the
+        source is not cached, it calls `resolve()` and caches the result.
+
+        Each call makes at most one attempt at resolving the source. For sources
+        where an attempt is expensive (see :attr:`is_retryable`), failures are
+        counted in the shared :class:`~siliconcompiler.package.cache.PathCache`,
+        so the repeated lookups a run performs consume a bounded budget rather
+        than re-fetching indefinitely. Once the budget is spent, later calls fail
+        immediately without touching the network.
 
         Returns:
             str: The absolute path to the resolved data on the local filesystem.
 
         Raises:
             FileNotFoundError: If the resolved path does not exist.
+            DataRootResolutionError: If the source has already failed to resolve
+                :attr:`PathCache.max_attempts` times.
         """
-        cache_path: Optional[str] = Resolver.get_cache(self.__root, self.cache_id)
-        if cache_path:
-            return cache_path
+        cache = self.cache
 
-        path = self.resolve()
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"Unable to locate '{self.display_name}' at {path}")
+        if not self.is_indirect:
+            cache_path: Optional[str] = cache.get(self.cache_id)
+            if cache_path:
+                return cache_path
+
+        if self.is_retryable:
+            if cache.is_exhausted(self.cache_id):
+                raise DataRootResolutionError(self.__abandoned_message(cache))
+
+            # Back off before re-attempting a source that has already failed.
+            # Delays live in the cache so resolvers stay a single attempt each
+            # and no data source type has to implement its own retry policy.
+            cache.wait_before_retry(self.cache_id)
+
+        try:
+            path = self.resolve()
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"Unable to locate '{self.display_name}' at {path}")
+        except Exception as e:
+            # Deliberately narrower than BaseException: a KeyboardInterrupt or
+            # SystemExit says nothing about whether the source is reachable, so
+            # it must not consume the budget or poison the cache.
+            if self.is_retryable:
+                if cache.record_failure(self.cache_id, e) >= cache.max_attempts:
+                    self.logger.error(self.__abandoned_message(cache))
+            raise
+
+        if self.is_retryable:
+            cache.clear_failure(self.cache_id)
+
+        if self.is_indirect:
+            # An indirection owns no location: the resolver it delegated to has
+            # already reported where the data is, and its schema-relative source
+            # string is not a safe cache key. See :attr:`is_indirect`.
+            return str(path)
 
         if self.changed:
             self.logger.info(f'Saved {self.display_name} data to {path}')
         else:
             self.logger.info(f'Found {self.display_name} data at {path}')
 
-        Resolver.set_cache(self.__root, self.cache_id, path)
+        cache.set(self.cache_id, path)
         return str(path)
 
     def __resolve_env(self, path: str) -> str:
@@ -355,6 +376,15 @@ class RemoteResolver(Resolver):
     both thread-safe and process-safe locking to prevent race conditions when
     multiple SC instances try to download the same resource simultaneously.
     """
+
+    @property
+    def is_retryable(self) -> bool:
+        """
+        True. Fetching a remote source is expensive, so give up on one that keeps
+        failing instead of letting every caller re-download it.
+        """
+        return True
+
     def __init__(self, name: str,
                  schema: Optional[Union["Project", "BaseSchema"]],
                  source: str,
@@ -446,12 +476,17 @@ class RemoteResolver(Resolver):
         return self.cache_dir / f"{self.cache_name}.sc_lock"
 
     def thread_lock(self) -> threading.Lock:
-        """Gets a threading.Lock specific to this resolver instance."""
-        settings = MPManager().get_transient_settings()
-        locks = settings.get_category("resolver-remote-cache-locks")
-        if self.name not in locks:
-            settings.set("resolver-remote-cache-locks", self.name, threading.Lock(), keep=True)
-        return settings.get("resolver-remote-cache-locks", self.name)
+        """
+        Gets the download lock for this resolver's data source.
+
+        The lock is keyed by :attr:`cache_id`, so resolvers for unrelated sources
+        never contend. Note this is not the same granularity as
+        :attr:`lock_file`, which is derived from :attr:`cache_name` and so also
+        varies with :attr:`name`: two resolvers naming one source differently
+        share this lock but take different lock files, because they also download
+        to different :attr:`cache_path` directories.
+        """
+        return self.cache.thread_lock(self.cache_id)
 
     @contextlib.contextmanager
     def __thread_lock(self):
@@ -470,7 +505,11 @@ class RemoteResolver(Resolver):
             if lock_acquired:
                 yield
         finally:
-            if lock.locked():
+            # Only release a lock this context actually took. threading.Lock has
+            # no notion of an owner, so releasing on the strength of locked()
+            # would let a waiter that timed out free the holder's lock and admit
+            # a third thread into the download.
+            if lock_acquired:
                 lock.release()
 
         if not lock_acquired:
@@ -844,6 +883,11 @@ class KeyPathResolver(Resolver):
     `find_files` method of the root project object to locate the corresponding file.
     """
 
+    @property
+    def is_indirect(self) -> bool:
+        """True. A keypath names something inside a schema, not a location."""
+        return True
+
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         super().__init__(name, schema, source, None)
 
@@ -877,6 +921,14 @@ class DatarootResolver(Resolver):
     """
     A resolver for finding file paths stored with other dataroots.
     """
+
+    @property
+    def is_indirect(self) -> bool:
+        """
+        True. A dataroot name is only meaningful within the schema that defines
+        it, and the dataroot it points at is resolved by its own resolver.
+        """
+        return True
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         super().__init__(name, schema, source, None)

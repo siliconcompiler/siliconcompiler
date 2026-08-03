@@ -16,8 +16,8 @@ import tarfile
 import os.path
 
 from siliconcompiler import Project
-from siliconcompiler.package import Resolver
 from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler._metadata import detailed_version
 
 
@@ -60,9 +60,9 @@ def main():
                         metavar='<directory>',
                         help="Option: user cache directory")
     parser.add_argument('-cachemap',
-                        metavar='<package>:<directory>',
+                        metavar='<cache_id>:<directory>',
                         nargs='+',
-                        help='Map of caches to prepopulate runner with')
+                        help='Map of resolved data source paths to prepopulate runner with')
     parser.add_argument('-step',
                         required=True,
                         metavar='<step>',
@@ -114,11 +114,17 @@ def main():
         for _, step, index in proj.option.scheduler.get('name', field=None).getvalues():
             proj.option.scheduler.unset('name', step=step, index=index)
 
-    # Pre-populate the package cache if a map is provided.
+    # Pre-populate the path cache if a map is provided. Keys are resolver cache
+    # IDs, which is what the cache is looked up by. A cache ID is a hex digest
+    # and so never contains a colon, while a path can (``C:\dir``), so the split
+    # is on the first colon and everything after it is the path.
     if args.cachemap:
+        cache = MPManager.get_path_cache()
         for cachepair in args.cachemap:
-            package, path = cachepair.split(':')
-            Resolver.set_cache(proj, package, path)
+            cache_id, sep, path = cachepair.partition(':')
+            if not cache_id or not sep or not path:
+                continue
+            cache.set(cache_id, path)
 
     # Instantiate the SchedulerNode for the specified step and index.
     error = True

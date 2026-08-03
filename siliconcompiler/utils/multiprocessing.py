@@ -9,7 +9,7 @@ import warnings
 
 import os.path
 
-from typing import Iterator, Union, Optional
+from typing import Iterator, Union, Optional, TYPE_CHECKING
 
 from datetime import datetime
 from logging.handlers import QueueHandler
@@ -20,6 +20,9 @@ from siliconcompiler.utils.settings import SettingsManager
 from siliconcompiler.utils import default_sc_path, default_sc_system_path
 
 from siliconcompiler.report.dashboard.cli.board import Board
+
+if TYPE_CHECKING:
+    from siliconcompiler.package.cache import PathCache
 
 
 def get_process_context() -> BaseContext:
@@ -139,14 +142,21 @@ class _ManagerSingleton(type):
         If an instance of the class does not already exist, it creates one
         and stores it. Subsequent calls will return the existing instance.
         A special '_init_singleton' method is called on the first creation.
+
+        The instance is registered only once ``_init_singleton`` has finished.
+        The outer ``has_cls`` check deliberately skips the lock, so publishing
+        any earlier would hand a half-built instance to a second thread while
+        the first is still inside ``_init_singleton`` -- which, for
+        :class:`MPManager`, spends that time launching a manager process, a
+        wide window in which every attribute is still missing.
         """
         if not _ManagerSingleton.has_cls(cls):
             with _ManagerSingleton._lock:
                 if cls not in _ManagerSingleton._instances:
                     instance = super(_ManagerSingleton, cls).__call__(*args, **kwargs)
-                    _ManagerSingleton._instances[cls] = instance
                     # Custom initializer for the singleton instance
                     instance._init_singleton()
+                    _ManagerSingleton._instances[cls] = instance
         return _ManagerSingleton._instances[cls]
 
 
@@ -221,6 +231,12 @@ class MPManager(metaclass=_ManagerSingleton):
             default_sc_path("settings.json"), self.__logger,
             system_filepath=default_sc_system_path())
         self.__transient_settings = SettingsManager(None, self.__logger)
+
+        # Cache of paths that data sources have resolved to. Imported here rather
+        # than at module scope: siliconcompiler.package imports this module, so a
+        # top-level import would close a cycle.
+        from siliconcompiler.package.cache import PathCache
+        self.__path_cache = PathCache()
 
         # Register cleanup function to run at exit
         atexit.register(MPManager.stop)
@@ -368,6 +384,20 @@ class MPManager(metaclass=_ManagerSingleton):
             SettingsManager: The singleton transient settings instance.
         """
         return MPManager().__transient_settings
+
+    @staticmethod
+    def get_path_cache() -> "PathCache":
+        """
+        Provides access to the shared cache of resolved data source paths.
+
+        There is one cache per process. Entries are keyed by a content hash of a
+        data source's URI and reference, so a single cache serves every project,
+        library and design in the process without them colliding.
+
+        Returns:
+            PathCache: The singleton path cache instance.
+        """
+        return MPManager().__path_cache
 
     @staticmethod
     def get_dashboard() -> Board:

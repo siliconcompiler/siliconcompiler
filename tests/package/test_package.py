@@ -16,6 +16,8 @@ import siliconcompiler
 from siliconcompiler.package import Resolver, RemoteResolver
 from siliconcompiler.package import FileResolver, PythonPathResolver, \
     KeyPathResolver, DatarootResolver
+from siliconcompiler.package import DataRootResolutionError
+from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
 from siliconcompiler import Project, Design
@@ -425,7 +427,7 @@ def test_get_path_usecache(project_logger, caplog):
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysCache("alwayscache", proj, "notused", "notused")
-    Resolver.set_cache(proj, resolver.cache_id, "path")
+    MPManager.get_path_cache().set(resolver.cache_id, "path")
     assert resolver.get_path() == "path"
 
     assert caplog.text == ""
@@ -567,6 +569,272 @@ def test_remote_resolve_cached():
         resolve_remote.assert_not_called()
 
 
+class FailingResolver(RemoteResolver):
+    """A remote source that never resolves, counting each attempt."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.calls = 0
+
+    def check_cache(self):
+        return False
+
+    @property
+    def cache_path(self):
+        return Path(os.path.abspath("neverthere"))
+
+    def resolve_remote(self):
+        self.calls += 1
+        raise FileNotFoundError("simulated 404")
+
+
+@pytest.fixture
+def failing_resolver():
+    """Builds a failing remote resolver with retry delays disabled."""
+    def build(root=None, source="https://filepath", reference="ref"):
+        if root is None:
+            root = Project("testproj")
+            root.option.set_cachedir(".")
+        resolver = FailingResolver("thisname", root, source, reference)
+        resolver.cache.set_retry_delay(0)
+        return resolver
+
+    return build
+
+
+def test_get_path_failure_is_bounded(failing_resolver):
+    """Repeated lookups must consume a budget, not re-download forever."""
+    resolver = failing_resolver()
+
+    for _ in range(10):
+        with pytest.raises((FileNotFoundError, DataRootResolutionError)):
+            resolver.get_path()
+
+    assert resolver.calls == 3
+    assert resolver.cache.attempts(resolver.cache_id) == 3
+    assert resolver.cache.is_exhausted(resolver.cache_id)
+
+
+def test_get_path_failure_raises_original_until_exhausted(failing_resolver):
+    resolver = failing_resolver()
+
+    # Every real attempt reports the underlying error
+    for _ in range(3):
+        with pytest.raises(FileNotFoundError, match="^simulated 404$"):
+            resolver.get_path()
+
+    # After that the source is abandoned without another attempt
+    with pytest.raises(DataRootResolutionError):
+        resolver.get_path()
+    assert resolver.calls == 3
+
+
+def test_get_path_abandoned_message(failing_resolver):
+    resolver = failing_resolver()
+
+    for _ in range(3):
+        with pytest.raises(FileNotFoundError):
+            resolver.get_path()
+
+    with pytest.raises(DataRootResolutionError, match=(
+            r"^Unable to resolve 'thisname' from https://filepath \(ref\) after 3 attempt\(s\), "
+            r"giving up\. Last error: FileNotFoundError: simulated 404$")):
+        resolver.get_path()
+
+
+def test_get_path_abandoned_is_logged(failing_resolver, project_logger, caplog):
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+    project_logger(project)
+    project.logger.setLevel(logging.INFO)
+
+    resolver = failing_resolver(root=project)
+    for _ in range(3):
+        with pytest.raises(FileNotFoundError):
+            resolver.get_path()
+
+    assert "Unable to resolve 'thisname' from https://filepath (ref) after 3 attempt(s)" \
+        in caplog.text
+
+
+def test_get_path_max_attempts_honored(failing_resolver):
+    resolver = failing_resolver()
+    resolver.cache.set_max_attempts(1)
+
+    with pytest.raises(FileNotFoundError):
+        resolver.get_path()
+    with pytest.raises(DataRootResolutionError):
+        resolver.get_path()
+
+    assert resolver.calls == 1
+
+
+def test_get_path_budget_is_shared_between_resolvers(failing_resolver):
+    """
+    The budget is tracked per source for the whole process, so two resolvers --
+    even ones belonging to different projects -- draw from one pool rather than
+    each getting their own three attempts.
+    """
+    first = failing_resolver(root=Project("testproj0"))
+    second = failing_resolver(root=Project("testproj1"))
+
+    for _ in range(2):
+        with pytest.raises(FileNotFoundError):
+            first.get_path()
+    with pytest.raises(FileNotFoundError):
+        second.get_path()
+
+    with pytest.raises(DataRootResolutionError):
+        second.get_path()
+
+    assert first.calls == 2
+    assert second.calls == 1
+
+
+def test_get_path_budget_is_per_source(failing_resolver):
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+
+    first = failing_resolver(root=project, source="https://filepath")
+    second = failing_resolver(root=project, source="https://otherpath")
+
+    for _ in range(4):
+        with pytest.raises((FileNotFoundError, DataRootResolutionError)):
+            first.get_path()
+    with pytest.raises(FileNotFoundError):
+        second.get_path()
+
+    assert first.calls == 3
+    assert second.calls == 1
+
+
+def test_get_path_retries_wait(failing_resolver):
+    """Backoff grows exponentially and is skipped on the first try."""
+    resolver = failing_resolver()
+    resolver.cache.set_retry_delay(2)
+    resolver.cache.set_retry_backoff(2)
+
+    with patch("siliconcompiler.package.cache.random.uniform",
+               side_effect=lambda low, high: (low + high) / 2), \
+         patch("siliconcompiler.package.cache.time.sleep") as sleep:
+        for _ in range(3):
+            with pytest.raises(FileNotFoundError):
+                resolver.get_path()
+
+    # First attempt is immediate; the two retries back off
+    assert [call.args[0] for call in sleep.call_args_list] == [2, 4]
+
+
+def test_get_path_retry_waits_are_randomized(failing_resolver):
+    """Two workers that failed together must not retry at the same moment."""
+    delays = set()
+
+    # A distinct source per round, so each starts with a fresh budget: the cache
+    # is process-wide, so reusing one source would exhaust it on the first round.
+    for num in range(20):
+        resolver = failing_resolver(source=f"https://filepath{num}")
+        resolver.cache.set_retry_delay(10)
+
+        with patch("siliconcompiler.package.cache.time.sleep") as sleep:
+            with pytest.raises(FileNotFoundError):
+                resolver.get_path()
+            with pytest.raises(FileNotFoundError):
+                resolver.get_path()
+
+        delays.add(sleep.call_args_list[0].args[0])
+
+    assert len(delays) > 1
+
+
+def test_get_path_success_clears_failures(failing_resolver):
+    """A source that recovers is cached and never attempted again."""
+    resolver = failing_resolver()
+
+    def flaky():
+        resolver.calls += 1
+        if resolver.calls < 3:
+            raise FileNotFoundError("simulated 404")
+        os.makedirs("neverthere", exist_ok=True)
+
+    with patch.object(FailingResolver, "resolve_remote", side_effect=flaky):
+        for _ in range(2):
+            with pytest.raises(FileNotFoundError):
+                resolver.get_path()
+        assert resolver.cache.attempts(resolver.cache_id) == 2
+
+        assert resolver.get_path() == os.path.abspath("neverthere")
+        assert resolver.calls == 3
+        assert resolver.cache.attempts(resolver.cache_id) == 0
+
+        # Now cached, so no further attempts
+        assert resolver.get_path() == os.path.abspath("neverthere")
+        assert resolver.calls == 3
+
+
+@pytest.mark.parametrize("errorcls", (KeyboardInterrupt, SystemExit))
+def test_get_path_interrupt_does_not_consume_budget(failing_resolver, errorcls):
+    """An interrupt says nothing about whether a source is reachable."""
+    resolver = failing_resolver()
+
+    def interrupt():
+        resolver.calls += 1
+        raise errorcls("interrupted")
+
+    with patch("shutil.rmtree"), \
+         patch.object(FailingResolver, "resolve_remote", side_effect=interrupt):
+        for _ in range(5):
+            with pytest.raises(errorcls):
+                resolver.get_path()
+
+    assert resolver.calls == 5
+    assert resolver.cache.attempts(resolver.cache_id) == 0
+
+
+def test_get_path_local_failure_is_not_tracked():
+    """Local sources fail instantly, so there is nothing to budget."""
+    design = Design("testdesign")
+    design.set_dataroot("dataA", "dataroot://dataB")
+    design.set_dataroot("dataB", "dataroot://dataA")
+
+    resolver = DatarootResolver("thisname", design, "dataroot://dataA")
+
+    for _ in range(5):
+        with pytest.raises(RuntimeError, match="Circular dataroot reference detected"):
+            resolver.get_path()
+
+    assert resolver.cache.attempts(resolver.cache_id) == 0
+
+
+def test_find_files_failure_is_bounded():
+    """
+    A dataroot is resolved once per path entry, so a failing dataroot used to be
+    re-downloaded once per file, on every find_files call.
+    """
+    design = Design("testdesign")
+    design.set_dataroot("remote", "https://filepath", tag="ref")
+    with design.active_fileset("rtl"), design.active_dataroot("remote"):
+        for num in range(5):
+            design.add_file(f"file{num}.v")
+
+    MPManager.get_path_cache().set_retry_delay(0)
+
+    calls = []
+
+    def fail():
+        calls.append(1)
+        raise FileNotFoundError("simulated 404")
+
+    with patch("siliconcompiler.package.https.HTTPResolver.check_cache", return_value=False), \
+         patch("siliconcompiler.package.https.HTTPResolver.resolve_remote", side_effect=fail), \
+         patch("shutil.rmtree"):
+        for _ in range(3):
+            assert design.find_files("fileset", "rtl", "file", "verilog",
+                                     missing_ok=True) == [None] * 5
+
+    # Was 5 attempts per call (once per file), 15 in total
+    assert len(calls) == 3
+
+
 def test_remote_resolve():
     project = Project("testproj")
     project.option.set_cachedir(".")
@@ -658,6 +926,8 @@ def test_remote_lock_within_lock_thread():
     resolver1.set_timeout(1)
     assert resolver1.timeout == 1
 
+    thread_lock = resolver0.thread_lock()
+
     with resolver0.lock():
         assert os.path.exists(resolver0.lock_file)
         assert not os.path.exists(resolver0.sc_lock_file)
@@ -667,8 +937,66 @@ def test_remote_lock_within_lock_thread():
             with resolver1.lock():
                 assert False, "should not get here"
 
+        # The waiter timing out must not hand away the holder's lock
+        assert thread_lock.locked()
+
+    assert not thread_lock.locked()
+
     assert os.path.exists(resolver0.lock_file)
     assert not os.path.exists(resolver0.sc_lock_file)
+
+
+def test_remote_lock_timeout_does_not_release_holder():
+    """
+    A thread that gives up waiting must not release the lock. threading.Lock has
+    no owner, so releasing it would admit a third thread into the download.
+    """
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+
+    holder = RemoteResolver("thisname", project, "https://filepath", "ref")
+    waiter = RemoteResolver("thisname", project, "https://filepath", "ref")
+    intruder = RemoteResolver("thisname", project, "https://filepath", "ref")
+
+    waiter.set_timeout(1)
+    intruder.set_timeout(1)
+
+    # Isolate the thread lock from the inter-process lock
+    @contextlib.contextmanager
+    def dummy_lock():
+        yield
+    for resolver in (holder, waiter, intruder):
+        object.__setattr__(resolver, "_RemoteResolver__file_lock", dummy_lock)
+
+    with holder.lock():
+        with pytest.raises(RuntimeError, match=r"Another thread is currently holding the lock\."):
+            with waiter.lock():
+                pytest.fail("should not get here")
+
+        with pytest.raises(RuntimeError, match=r"Another thread is currently holding the lock\."):
+            with intruder.lock():
+                pytest.fail("should not get here")
+
+
+def test_remote_thread_lock_is_per_source():
+    """Same name, different source: the two must not contend."""
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+
+    resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
+    resolver1 = RemoteResolver("thisname", project, "https://otherpath", "ref")
+
+    assert resolver0.thread_lock() is not resolver1.thread_lock()
+
+
+def test_remote_thread_lock_is_shared_per_source():
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+
+    resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
+    resolver1 = RemoteResolver("othername", project, "https://filepath", "ref")
+
+    assert resolver0.thread_lock() is resolver1.thread_lock()
 
 
 def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
@@ -699,6 +1027,9 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
                 if self.calls == 1:
                     return False
                 return True
+
+            def release(self):
+                self.released = True
 
             def locked(self):
                 return False
@@ -1081,85 +1412,142 @@ def test_keypath_resolver_no_root():
         resolver.resolve()
 
 
-def test_get_cache():
+def test_resolver_cache_property():
+    """Every resolver reads the one cache the process owns."""
     project = Project("testproj")
-    assert Resolver.get_cache(project) == {}
-    assert getattr(project, "__Resolver_cache_id")
+
+    assert Resolver("testpath", project, "source://this").cache \
+        is MPManager.get_path_cache()
 
 
-def test_get_cache_none():
-    with patch("siliconcompiler.package.Resolver._Resolver__get_root_id") as root:
-        assert Resolver.get_cache(None) is None
-        root.assert_not_called()
+def test_resolver_cache_property_no_root():
+    """A resolver without a schema context reaches the same cache."""
+    assert Resolver("testpath", None, "source://this").cache is MPManager.get_path_cache()
 
 
-def test_set_cache():
-    project = Project("testproj")
-    assert Resolver.get_cache(project) == {}
-    assert getattr(project, "__Resolver_cache_id")
-
-    Resolver.set_cache(project, "test", "path")
-    assert Resolver.get_cache(project) == {
-        "test": "path"
-    }
-    Resolver.set_cache(project, "test0", "path0")
-    assert Resolver.get_cache(project) == {
-        "test": "path",
-        "test0": "path0",
-    }
-
-
-def test_set_cache_none():
-    with patch("siliconcompiler.package.Resolver._Resolver__get_root_id") as root:
-        Resolver.set_cache(None, "test", "path")
-        root.assert_not_called()
-
-
-def test_set_cache_different_projects():
+def test_resolver_cache_shared_between_projects():
+    """
+    Cache IDs are content hashes, so two projects asking for the same source at
+    the same reference share the entry instead of each resolving it.
+    """
     project0 = Project("testproj")
     project1 = Project("testproj")
 
-    assert Resolver.get_cache(project0) == {}
-    assert Resolver.get_cache(project1) == {}
+    res0 = Resolver("name0", project0, "source://this", reference="ref")
+    res1 = Resolver("name1", project1, "source://this", reference="ref")
+    assert res0.cache_id == res1.cache_id
 
-    assert getattr(project0, "__Resolver_cache_id")
-    assert getattr(project1, "__Resolver_cache_id")
-
-    Resolver.set_cache(project0, "test", "path")
-    assert Resolver.get_cache(project0) == {
-        "test": "path"
-    }
-    assert Resolver.get_cache(project1) == {}
-
-    Resolver.set_cache(project1, "test0", "path0")
-    assert Resolver.get_cache(project0) == {
-        "test": "path"
-    }
-    assert Resolver.get_cache(project1) == {
-        "test0": "path0",
-    }
+    res0.cache.set(res0.cache_id, "/resolved/once")
+    assert res1.cache.get(res1.cache_id) == "/resolved/once"
 
 
-def test_reset_cache():
-    project = Project("testproj")
+def test_dataroot_resolver_does_not_share_cache():
+    """
+    A dataroot name means something different in every schema, so two schemas
+    using one name must not collide in the process-wide cache and hand each other
+    the wrong path.
+    """
+    os.makedirs("dataA", exist_ok=True)
+    os.makedirs("dataB", exist_ok=True)
 
-    assert Resolver.get_cache(project) == {}
+    design_a = Design("designA")
+    design_a.set_dataroot("shared_name", os.path.abspath("dataA"))
+    design_b = Design("designB")
+    design_b.set_dataroot("shared_name", os.path.abspath("dataB"))
 
-    Resolver.set_cache(project, "test", "path")
-    assert Resolver.get_cache(project) == {
-        "test": "path"
-    }
+    res_a = DatarootResolver("shared_name", design_a, "dataroot://shared_name")
+    res_b = DatarootResolver("shared_name", design_b, "dataroot://shared_name")
 
-    assert getattr(project, "__Resolver_cache_id")
+    # Same source string, so the same cache ID: the entry cannot be shared
+    assert res_a.cache_id == res_b.cache_id
+    assert res_a.is_indirect
 
-    Resolver.reset_cache(project)
-    assert Resolver.get_cache(project) == {}
+    assert res_a.get_path() == os.path.abspath("dataA")
+    assert res_b.get_path() == os.path.abspath("dataB")
 
 
-def test_reset_cache_none():
-    with patch("siliconcompiler.package.Resolver._Resolver__get_root_id") as root:
-        Resolver.reset_cache(None)
-        root.assert_not_called()
+def test_keypath_resolver_does_not_share_cache():
+    """The same keypath names a different file in every schema."""
+    os.makedirs("dataA", exist_ok=True)
+    os.makedirs("dataB", exist_ok=True)
+
+    design_a = Design("designA")
+    with design_a.active_fileset("rtl"):
+        design_a.add_idir("dataA")
+    design_b = Design("designB")
+    with design_b.active_fileset("rtl"):
+        design_b.add_idir("dataB")
+
+    res_a = KeyPathResolver("k", design_a, "key://fileset,rtl,idir")
+    res_b = KeyPathResolver("k", design_b, "key://fileset,rtl,idir")
+
+    assert res_a.cache_id == res_b.cache_id
+    assert res_a.is_indirect
+
+    assert res_a.get_path() == os.path.abspath("dataA")
+    assert res_b.get_path() == os.path.abspath("dataB")
+
+
+@pytest.mark.parametrize("build,indirect,retryable", (
+    (lambda p: Resolver("n", p, "source://x"), False, False),
+    (lambda p: FileResolver("n", p, os.path.abspath(".")), False, False),
+    (lambda p: PythonPathResolver("n", p, "python://siliconcompiler"), False, False),
+    (lambda p: RemoteResolver("n", p, "https://x", "ref"), False, True),
+    (lambda p: KeyPathResolver("n", p, "key://option,builddir"), True, False),
+    (lambda p: DatarootResolver("n", p, "dataroot://x"), True, False),
+), ids=("resolver", "file", "python", "remote", "keypath", "dataroot"))
+def test_resolver_kind_matrix(build, indirect, retryable):
+    """
+    Only an expensive source is worth retrying, and only an indirection opts out
+    of the cache and the announcement.
+    """
+    resolver = build(Project("testproj"))
+
+    assert resolver.is_indirect is indirect
+    assert resolver.is_retryable is retryable
+
+
+def test_indirect_resolver_does_not_repeat_the_log():
+    """
+    An indirection resolves every time, so it must not announce the location on
+    every call -- and the resolver it delegates to already reported it once.
+    Without this, a fileset behind a dataroot:// emitted one line per file per
+    find_files call.
+    """
+    os.makedirs("data", exist_ok=True)
+    for num in range(10):
+        Path(f"data/f{num}.v").touch()
+
+    design = Design("testdesign")
+    design.set_dataroot("inner", os.path.abspath("data"))
+    design.set_dataroot("outer", "dataroot://inner")
+    with design.active_fileset("rtl"), design.active_dataroot("outer"):
+        for num in range(10):
+            design.add_file(f"f{num}.v")
+
+    messages = []
+
+    class Collect(logging.Handler):
+        def emit(self, record):
+            messages.append(record.getMessage())
+
+    # Resolvers log under the root "siliconcompiler" logger, which does not
+    # propagate, so attach directly rather than using caplog.
+    sc_logger = logging.getLogger("siliconcompiler")
+    handler = Collect()
+    sc_logger.addHandler(handler)
+    old_level = sc_logger.level
+    sc_logger.setLevel(logging.INFO)
+    try:
+        for _ in range(3):
+            found = design.find_files("fileset", "rtl", "file", "verilog")
+            assert len(found) == 10
+    finally:
+        sc_logger.removeHandler(handler)
+        sc_logger.setLevel(old_level)
+
+    # Exactly one announcement, from the dataroot the indirection points at
+    assert len([msg for msg in messages if "data at" in msg]) == 1
 
 
 # ============================================================================

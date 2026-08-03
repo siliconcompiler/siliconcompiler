@@ -393,6 +393,64 @@ def test_process_completed_nodes_nonzero_exit_is_error(large_flow, make_tasks):
                           step=node[0], index=node[1]) == NodeStatus.ERROR
 
 
+def test_process_completed_nodes_merges_paths(large_flow, make_tasks):
+    '''A node resolves data sources in its own process, so the paths it found
+    must be merged back into the parent.'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    node = ("stepone", "0")
+    _, pipe = _setup_completed_node(scheduler, node, exitcode=0, pipe_has_data=True)
+    pipe.recv.return_value = {
+        "paths": {"someid": "/some/path"},
+        "failures": {"otherid": [3, "FileNotFoundError: simulated 404"]}
+    }
+
+    scheduler._TaskScheduler__process_completed_nodes()
+
+    assert MPManager.get_path_cache().get("someid") == "/some/path"
+
+
+def test_process_completed_nodes_ignores_failures(large_flow, make_tasks):
+    '''A fetch that failed for one node may still succeed for the next, so each
+    node keeps its own retry budget for now.'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    node = ("stepone", "0")
+    _, pipe = _setup_completed_node(scheduler, node, exitcode=0, pipe_has_data=True)
+    pipe.recv.return_value = {
+        "paths": {},
+        "failures": {"otherid": [3, "FileNotFoundError: simulated 404"]}
+    }
+
+    scheduler._TaskScheduler__process_completed_nodes()
+
+    assert MPManager.get_path_cache().attempts("otherid") == 0
+    assert not MPManager.get_path_cache().is_exhausted("otherid")
+
+
+def test_process_completed_nodes_tolerates_bad_payload(large_flow, make_tasks):
+    '''A garbled or truncated message must not take down the scheduler.'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    node = ("stepone", "0")
+    large_flow.set("record", "status", NodeStatus.SUCCESS, step=node[0], index=node[1])
+    _, pipe = _setup_completed_node(scheduler, node, exitcode=0, pipe_has_data=True)
+    pipe.recv.return_value = "not a payload"
+
+    scheduler._TaskScheduler__process_completed_nodes()
+
+    assert large_flow.get("record", "status", step=node[0], index=node[1]) == NodeStatus.SUCCESS
+
+
+def test_process_completed_nodes_tolerates_recv_error(large_flow, make_tasks):
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    node = ("stepone", "0")
+    large_flow.set("record", "status", NodeStatus.SUCCESS, step=node[0], index=node[1])
+    _, pipe = _setup_completed_node(scheduler, node, exitcode=0, pipe_has_data=True)
+    pipe.recv.side_effect = EOFError("pipe is gone")
+
+    scheduler._TaskScheduler__process_completed_nodes()
+
+    assert large_flow.get("record", "status", step=node[0], index=node[1]) == NodeStatus.SUCCESS
+
+
 def test_check(large_flow, make_tasks):
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     large_flow.set("record", "status", NodeStatus.SUCCESS, step="jointhree", index="0")
