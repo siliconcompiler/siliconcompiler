@@ -76,7 +76,8 @@ if { [llength $rsz_sequence] != 0 } {
     if { [sc_check_version 24 3 5705] } {
         lappend repair_timing_args "-sequence" [join $rsz_sequence " "]
     } else {
-        utl::warn FLW 1 "repair_timing -sequence requires OpenROAD 24Q3-5705 or newer"
+        utl::warn FLW 1 "rsz_sequence requires OpenROAD 24Q3-5705 or newer for\
+            repair_timing -sequence"
     }
 }
 
@@ -90,7 +91,8 @@ if { [llength $rsz_wns_sequence] != 0 } {
     if { [sc_check_version 24 3 5705] } {
         lappend repair_wns_args "-sequence" [join $rsz_wns_sequence " "]
     } else {
-        utl::warn FLW 1 "repair_timing -sequence requires OpenROAD 24Q3-5705 or newer"
+        utl::warn FLW 1 "rsz_wns_sequence requires OpenROAD 24Q3-5705 or newer for\
+            repair_timing -sequence"
     }
 }
 
