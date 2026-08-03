@@ -45,17 +45,10 @@ set sc_grt_arguments []
 if { [sc_cfg_tool_task_get {var} grt_allow_congestion] } {
     lappend sc_grt_arguments "-allow_congestion"
 }
-if { [sc_cfg_tool_task_get {var} grt_use_cugr] } {
-    if { [sc_check_version 24 3 8226] } {
-        lappend sc_grt_arguments "-use_cugr"
-    } else {
-        utl::warn FLW 1 "global_route -use_cugr requires OpenROAD 24Q3-8226 or newer"
-    }
-}
 lappend sc_grt_arguments {*}[sc_grt_resistance_aware_args]
 
 set grt_seed [sc_cfg_tool_task_get {var} grt_seed]
-if { $grt_seed != "" } {
+if { $grt_seed != {} } {
     utl::info FLW 1 "Setting global routing random seed to $grt_seed"
     set_global_routing_random -seed $grt_seed
 }

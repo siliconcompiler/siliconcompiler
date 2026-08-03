@@ -72,40 +72,15 @@ if { [sc_cfg_tool_task_get var ant_check] } {
     set ant_violations \
         [check_antennas -report_file "reports/route/${sc_topmodule}.antenna.rpt"]
 
-    set sc_antenna_cells [sc_cfg_get library $sc_mainlib asic cells antenna]
-    set ant_reroute_iterations [sc_cfg_tool_task_get var ant_reroute_iterations]
-    set ant_margin [sc_cfg_tool_task_get var ant_margin]
-
     # A non-zero margin means fix nets that are merely close to the limit, so the
     # repair has to be attempted even when check_antennas reports the design clean.
     if {
-        ($ant_violations != 0 || $ant_margin > 0) &&
+        ($ant_violations != 0 || [sc_cfg_tool_task_get var ant_margin] > 0) &&
         [sc_cfg_tool_task_get var ant_repair] &&
-        $ant_reroute_iterations > 0 &&
-        [llength $sc_antenna_cells] != 0
+        [sc_repair_antennas \
+            -reroute_iterations [sc_cfg_tool_task_get var ant_reroute_iterations] \
+            -reroute {detailed_route {*}$drt_arguments}]
     } {
-        set sc_antenna [lindex $sc_antenna_cells 0]
-
-        # Remove filler cells so the diodes have sites to be placed in
-        remove_fillers
-
-        for { set iter 1 } { $iter <= $ant_reroute_iterations } { incr iter } {
-            if { $iter > 1 && [check_antennas] == 0 } {
-                break
-            }
-            puts "Starting antenna repair iteration $iter of $ant_reroute_iterations\
-                with ${sc_antenna} cell"
-            if { ![repair_antennas $sc_antenna -ratio_margin $ant_margin] } {
-                utl::info FLW 1 "No diodes inserted, ending antenna repair"
-                break
-            }
-            # Route the nets the new diodes were inserted on
-            detailed_route {*}$drt_arguments
-        }
-
-        # Add filler cells back
-        sc_insert_fillers
-
         # Check antennas again to get final report
         check_antennas -report_file "reports/route/${sc_topmodule}.antenna_post_repair.rpt"
     }

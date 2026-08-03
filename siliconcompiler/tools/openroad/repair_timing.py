@@ -4,7 +4,7 @@ from siliconcompiler import TaskSkip
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADDPLParameter, \
     OpenROADRSZDRVParameter, OpenROADRSZTimingParameter, OpenROADFillCellsParameter, \
-    OpenROADGRTGeneralParameter
+    OpenROADGRTGeneralParameter, RSZ_MOVES
 
 
 class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
@@ -23,18 +23,24 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
         self.add_parameter("rsz_skip_hold_repair", "bool", "skip hold timing repair",
                            defvalue=False)
         self.add_parameter("rsz_skip_recover_power", "bool", "skip power recovery",
-                           defvalue=False)
+                           defvalue=self._default_skip_recover_power())
         # Unlike its siblings this defaults to skipped: the pass only makes sense once
         # global routing exists, since its default move sequence reroutes nets.
         self.add_parameter("rsz_skip_wns_repair", "bool",
                            "skip the disturbance minimizing worst negative slack repair pass. "
                            "This pass only applies once global routing has been performed",
-                           defvalue=True)
-        self.add_parameter("rsz_wns_sequence", "[str]",
+                           defvalue=self._default_skip_wns_repair())
+        self.add_parameter("rsz_wns_sequence", f"[<{','.join(RSZ_MOVES)}>]",
                            "order of optimization moves to use for the worst negative slack "
                            "repair pass, an empty list uses the tool default. The default "
                            "sequence requires OpenROAD 26Q2-946 or newer for the reroute move",
                            defvalue=["vt_swap", "reroute"])
+
+    def _default_skip_recover_power(self) -> bool:
+        return False
+
+    def _default_skip_wns_repair(self) -> bool:
+        return True
 
     def set_openroad_skipdrvrepair(self, skip: bool,
                                    step: Optional[str] = None,
@@ -189,6 +195,19 @@ class PostRouteRepairTimingTask(RepairTimingTask, OpenROADGRTGeneralParameter):
                            "true/false, when true perform timing repair using the global "
                            "routing parasitics", defvalue=False)
 
+    # This stage runs the WNS pass, and because of that the flow scripts skip power
+    # recovery here entirely.
+    def _default_skip_wns_repair(self) -> bool:
+        return False
+
+    def _default_skip_recover_power(self) -> bool:
+        return True
+
+    # Once the design is routed, restricting swaps to same footprint cells keeps the
+    # repair from disturbing the placement the design was routed against.
+    def _default_match_cell_footprint(self) -> bool:
+        return True
+
     def set_openroad_rszenable(self, enable: bool,
                                step: Optional[str] = None,
                                index: Optional[Union[int, str]] = None):
@@ -206,21 +225,11 @@ class PostRouteRepairTimingTask(RepairTimingTask, OpenROADGRTGeneralParameter):
         return "post_route_repair_timing"
 
     def setup(self):
-        # clobber=False so an explicit user setting always wins over these defaults.
-
-        # The flow scripts run the WNS pass here and, because of that, skip power
-        # recovery in this stage entirely.
-        self.set("var", "rsz_skip_wns_repair", False, clobber=False)
-        self.set("var", "rsz_skip_recover_power", True, clobber=False)
-        # Once the design is routed, restricting swaps to same footprint cells keeps
-        # the repair from disturbing the placement it was routed against.
-        self.set("var", "rsz_match_cell_footprint", True, clobber=False)
+        # rsz_enable cannot change between setup and execution, so drop the node here
+        # rather than in pre_process and avoid building a work directory for it.
+        if not self.get("var", "rsz_enable"):
+            raise TaskSkip("post route timing repair is disabled")
 
         super().setup()
 
         self.add_required_key("var", "rsz_enable")
-
-    def pre_process(self):
-        if not self.get("var", "rsz_enable"):
-            raise TaskSkip("post route timing repair is disabled")
-        super().pre_process()
