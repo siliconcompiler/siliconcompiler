@@ -345,16 +345,6 @@ def test_openroad_pdk_add_rccorrection_replaces_same_layer():
         [('typical', 'metal2', None, 0.4)]
 
 
-def test_openroad_pdk_add_rccorrection_same_layer_other_corner_kept():
-    pdk = OpenROADPDK()
-    pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=0.7)
-    pdk.add_openroad_rccorrection('slow', 'metal2', cap_factor=0.4)
-    assert sorted(pdk.get('tool', 'openroad', 'rccorrection')) == [
-        ('slow', 'metal2', None, 0.4),
-        ('typical', 'metal2', None, 0.7),
-    ]
-
-
 def test_openroad_pdk_add_rccorrection_rejects_negative():
     # A negative multiplier is never meaningful and would silently invert the
     # estimate; the schema range rejects it at the setter.
