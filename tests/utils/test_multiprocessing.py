@@ -51,6 +51,11 @@ def test_singleton_is_not_published_until_initialized():
     before _init_singleton() finishes hands a half-built object to any other
     thread that asks for it meanwhile -- and _init_singleton() spends that
     window launching a manager process.'''
+    # Guard against the test going vacuous: once the manager exists, every thread
+    # takes the fast path and _init_singleton() is never raced at all.
+    MPManager.stop()
+    assert not _ManagerSingleton.has_cls(MPManager)
+
     errors = []
     instances = []
     barrier = threading.Barrier(8)

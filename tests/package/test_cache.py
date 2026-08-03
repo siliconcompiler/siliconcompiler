@@ -198,7 +198,49 @@ def test_next_retry_delay_is_capped():
     for _ in range(40):
         cache.record_failure("id", ValueError("nope"))
 
-    assert cache.next_retry_delay("id") == PathCache.RETRY_MAX_DELAY
+    # Jitter still applies at the ceiling, so the delay sits in the band below it
+    delay = cache.next_retry_delay("id")
+    assert PathCache.RETRY_MAX_DELAY * (1 - PathCache.RETRY_JITTER) <= delay
+    assert delay <= PathCache.RETRY_MAX_DELAY
+
+
+def test_next_retry_delay_at_ceiling_is_still_jittered():
+    """Workers that all reached the cap must not resume in lockstep."""
+    cache = PathCache()
+    cache.set_max_attempts(50)
+    cache.set_retry_delay(2)
+    for _ in range(40):
+        cache.record_failure("id", ValueError("nope"))
+
+    assert len({cache.next_retry_delay("id") for _ in range(50)}) > 1
+
+
+@pytest.mark.parametrize("attempts", (10 ** 3, 10 ** 6, 10 ** 9))
+def test_next_retry_delay_survives_huge_attempt_counts(attempts):
+    """
+    The exponential is capped before it is raised to a power. Left unguarded it
+    exceeds the float range and raises OverflowError from inside path resolution.
+    """
+    cache = PathCache()
+    cache.set_max_attempts(10 ** 12)
+    cache.seed({"failures": {"id": [attempts, "msg"]}})
+
+    delay = cache.next_retry_delay("id")
+
+    assert delay <= PathCache.RETRY_MAX_DELAY
+    assert delay > 0
+
+
+def test_wait_before_retry_survives_huge_attempt_counts():
+    cache = PathCache()
+    cache.set_max_attempts(10 ** 12)
+    cache.seed({"failures": {"id": [10 ** 9, "msg"]}})
+
+    with patch_sleep() as sleeps:
+        cache.wait_before_retry("id")
+
+    assert len(sleeps) == 1
+    assert sleeps[0] <= PathCache.RETRY_MAX_DELAY
 
 
 def test_next_retry_delay_unknown_id():
@@ -509,7 +551,18 @@ def test_huge_backoff_is_still_capped():
     cache.record_failure("id", ValueError("nope"))
     cache.record_failure("id", ValueError("nope"))
 
-    assert cache.next_retry_delay("id") == PathCache.RETRY_MAX_DELAY
+    delay = cache.next_retry_delay("id")
+    assert PathCache.RETRY_MAX_DELAY * (1 - PathCache.RETRY_JITTER) <= delay
+    assert delay <= PathCache.RETRY_MAX_DELAY
+
+
+def test_huge_backoff_with_huge_attempts_does_not_overflow():
+    cache = PathCache()
+    cache.set_max_attempts(10 ** 6)
+    cache.set_retry_backoff(10 ** 6)
+    cache.seed({"failures": {"id": [10 ** 5, "msg"]}})
+
+    assert cache.next_retry_delay("id") <= PathCache.RETRY_MAX_DELAY
 
 
 @pytest.mark.parametrize("cache_id", (None, 5, (), True))

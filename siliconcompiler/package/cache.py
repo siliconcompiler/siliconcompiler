@@ -312,7 +312,17 @@ class PathCache:
         if base <= 0:
             return 0.0
 
-        nominal = base * (backoff ** (attempts - 1))
+        # Cap the growth before raising it to a power. A high attempt budget, or a
+        # snapshot seeded with a large attempt count, otherwise pushes the
+        # exponential past the float range and raises OverflowError from inside
+        # path resolution rather than simply returning the capped delay.
+        try:
+            nominal = min(base * (backoff ** (attempts - 1)), PathCache.RETRY_MAX_DELAY)
+        except OverflowError:
+            nominal = PathCache.RETRY_MAX_DELAY
+
+        # Jitter still applies at the ceiling: workers that all reached the cap
+        # must not resume in lockstep either.
         jitter = PathCache.RETRY_JITTER
         delay = random.uniform(nominal * (1 - jitter), nominal * (1 + jitter))
 

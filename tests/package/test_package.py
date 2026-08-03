@@ -971,11 +971,11 @@ def test_remote_lock_timeout_does_not_release_holder():
     with holder.lock():
         with pytest.raises(RuntimeError, match=r"Another thread is currently holding the lock\."):
             with waiter.lock():
-                assert False, "should not get here"
+                pytest.fail("should not get here")
 
         with pytest.raises(RuntimeError, match=r"Another thread is currently holding the lock\."):
             with intruder.lock():
-                assert False, "should not get here"
+                pytest.fail("should not get here")
 
 
 def test_remote_thread_lock_is_per_source():
@@ -1439,6 +1439,61 @@ def test_resolver_cache_shared_between_projects():
 
     res0.cache.set(res0.cache_id, "/resolved/once")
     assert res1.cache.get(res1.cache_id) == "/resolved/once"
+
+
+def test_dataroot_resolver_does_not_share_cache():
+    """
+    A dataroot name means something different in every schema, so two schemas
+    using one name must not collide in the process-wide cache and hand each other
+    the wrong path.
+    """
+    os.makedirs("dataA", exist_ok=True)
+    os.makedirs("dataB", exist_ok=True)
+
+    design_a = Design("designA")
+    design_a.set_dataroot("shared_name", os.path.abspath("dataA"))
+    design_b = Design("designB")
+    design_b.set_dataroot("shared_name", os.path.abspath("dataB"))
+
+    res_a = DatarootResolver("shared_name", design_a, "dataroot://shared_name")
+    res_b = DatarootResolver("shared_name", design_b, "dataroot://shared_name")
+
+    # Same source string, so the same cache ID: the entry cannot be shared
+    assert res_a.cache_id == res_b.cache_id
+    assert not DatarootResolver._shared_cache
+
+    assert res_a.get_path() == os.path.abspath("dataA")
+    assert res_b.get_path() == os.path.abspath("dataB")
+
+
+def test_keypath_resolver_does_not_share_cache():
+    """The same keypath names a different file in every schema."""
+    os.makedirs("dataA", exist_ok=True)
+    os.makedirs("dataB", exist_ok=True)
+
+    design_a = Design("designA")
+    with design_a.active_fileset("rtl"):
+        design_a.add_idir("dataA")
+    design_b = Design("designB")
+    with design_b.active_fileset("rtl"):
+        design_b.add_idir("dataB")
+
+    res_a = KeyPathResolver("k", design_a, "key://fileset,rtl,idir")
+    res_b = KeyPathResolver("k", design_b, "key://fileset,rtl,idir")
+
+    assert res_a.cache_id == res_b.cache_id
+    assert not KeyPathResolver._shared_cache
+
+    assert res_a.get_path() == os.path.abspath("dataA")
+    assert res_b.get_path() == os.path.abspath("dataB")
+
+
+def test_portable_sources_do_share_cache():
+    """A source that means the same thing everywhere is still cached once."""
+    assert Resolver._shared_cache
+    assert RemoteResolver._shared_cache
+    assert FileResolver._shared_cache
+    assert PythonPathResolver._shared_cache
 
 
 # ============================================================================
