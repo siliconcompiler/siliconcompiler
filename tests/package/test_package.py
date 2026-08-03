@@ -1460,7 +1460,7 @@ def test_dataroot_resolver_does_not_share_cache():
 
     # Same source string, so the same cache ID: the entry cannot be shared
     assert res_a.cache_id == res_b.cache_id
-    assert not DatarootResolver._shared_cache
+    assert DatarootResolver._indirect
 
     assert res_a.get_path() == os.path.abspath("dataA")
     assert res_b.get_path() == os.path.abspath("dataB")
@@ -1482,18 +1482,61 @@ def test_keypath_resolver_does_not_share_cache():
     res_b = KeyPathResolver("k", design_b, "key://fileset,rtl,idir")
 
     assert res_a.cache_id == res_b.cache_id
-    assert not KeyPathResolver._shared_cache
+    assert KeyPathResolver._indirect
 
     assert res_a.get_path() == os.path.abspath("dataA")
     assert res_b.get_path() == os.path.abspath("dataB")
 
 
-def test_portable_sources_do_share_cache():
-    """A source that means the same thing everywhere is still cached once."""
-    assert Resolver._shared_cache
-    assert RemoteResolver._shared_cache
-    assert FileResolver._shared_cache
-    assert PythonPathResolver._shared_cache
+def test_direct_sources_are_cached():
+    """A source that names a location of its own is cached and announced."""
+    assert not Resolver._indirect
+    assert not RemoteResolver._indirect
+    assert not FileResolver._indirect
+    assert not PythonPathResolver._indirect
+
+
+def test_indirect_resolver_does_not_repeat_the_log():
+    """
+    An indirection resolves every time, so it must not announce the location on
+    every call -- and the resolver it delegates to already reported it once.
+    Without this, a fileset behind a dataroot:// emitted one line per file per
+    find_files call.
+    """
+    os.makedirs("data", exist_ok=True)
+    for num in range(10):
+        Path(f"data/f{num}.v").touch()
+
+    design = Design("testdesign")
+    design.set_dataroot("inner", os.path.abspath("data"))
+    design.set_dataroot("outer", "dataroot://inner")
+    with design.active_fileset("rtl"), design.active_dataroot("outer"):
+        for num in range(10):
+            design.add_file(f"f{num}.v")
+
+    messages = []
+
+    class Collect(logging.Handler):
+        def emit(self, record):
+            messages.append(record.getMessage())
+
+    # Resolvers log under the root "siliconcompiler" logger, which does not
+    # propagate, so attach directly rather than using caplog.
+    sc_logger = logging.getLogger("siliconcompiler")
+    handler = Collect()
+    sc_logger.addHandler(handler)
+    old_level = sc_logger.level
+    sc_logger.setLevel(logging.INFO)
+    try:
+        for _ in range(3):
+            found = design.find_files("fileset", "rtl", "file", "verilog")
+            assert len(found) == 10
+    finally:
+        sc_logger.removeHandler(handler)
+        sc_logger.setLevel(old_level)
+
+    # Exactly one announcement, from the dataroot the indirection points at
+    assert len([msg for msg in messages if "data at" in msg]) == 1
 
 
 # ============================================================================

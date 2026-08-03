@@ -64,19 +64,24 @@ class Resolver:
     #: off for local ones, which fail instantly and identically every time.
     _track_failures: bool = False
 
-    #: Whether a resolved path may be shared through the process-wide cache.
+    #: Whether this resolver is an indirection rather than a location of its own.
     #:
-    #: The cache is keyed by :attr:`cache_id`, a hash of the source URI and its
-    #: reference, which identifies a path only when the source means the same
-    #: thing everywhere. That holds for an absolute ``file://`` path, a
-    #: ``python://`` module or a remote URL at a fixed reference, but not for a
-    #: source resolved *relative to a schema* -- ``dataroot://name`` and
-    #: ``key://keypath`` name something different in each project or design.
-    #: Sharing those would let two schemas collide on one entry and hand each
-    #: other the wrong path, so they opt out and resolve every time. They are
-    #: cheap to resolve, and where they delegate to an expensive source the
-    #: inner resolver still caches.
-    _shared_cache: bool = True
+    #: ``dataroot://name`` and ``key://keypath`` do not name data; they name
+    #: something *within a schema* that in turn names data, and they hand the real
+    #: work to that resolver. Two consequences follow, both handled by
+    #: :meth:`get_path`:
+    #:
+    #: * They are not cached. The cache is keyed by :attr:`cache_id`, a hash of
+    #:   the source URI and reference, which identifies a path only for a source
+    #:   that means the same thing everywhere -- an absolute ``file://`` path, a
+    #:   ``python://`` module, a remote URL at a fixed reference. A dataroot name
+    #:   or a keypath means something different in every project or design, so
+    #:   caching one would let two schemas collide and hand each other the wrong
+    #:   path. Resolving an indirection is cheap, and where it points at an
+    #:   expensive source that resolver still caches.
+    #: * They do not announce where data was found, because the resolver they
+    #:   delegate to already reported the same location.
+    _indirect: bool = False
 
     def __init__(self, name: str,
                  schema: Optional[Union["Project", "BaseSchema"]],
@@ -289,7 +294,7 @@ class Resolver:
         """
         cache = self.cache
 
-        if self._shared_cache:
+        if not self._indirect:
             cache_path: Optional[str] = cache.get(self.cache_id)
             if cache_path:
                 return cache_path
@@ -316,14 +321,21 @@ class Resolver:
                     self.logger.error(self.__abandoned_message(cache))
             raise
 
+        if self._track_failures:
+            cache.clear_failure(self.cache_id)
+
+        if self._indirect:
+            # An indirection owns no location: the resolver it delegated to has
+            # already reported where the data is, and its schema-relative source
+            # string is not a safe cache key. See :attr:`_indirect`.
+            return str(path)
+
         if self.changed:
             self.logger.info(f'Saved {self.display_name} data to {path}')
         else:
             self.logger.info(f'Found {self.display_name} data at {path}')
 
-        cache.clear_failure(self.cache_id)
-        if self._shared_cache:
-            cache.set(self.cache_id, path)
+        cache.set(self.cache_id, path)
         return str(path)
 
     def __resolve_env(self, path: str) -> str:
@@ -856,9 +868,8 @@ class KeyPathResolver(Resolver):
     `find_files` method of the root project object to locate the corresponding file.
     """
 
-    # The same keypath names a different file in every schema, so this cannot be
-    # shared through a cache keyed only by the source string.
-    _shared_cache: bool = False
+    # A keypath names something inside a schema, not a location of its own.
+    _indirect: bool = True
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         super().__init__(name, schema, source, None)
@@ -894,10 +905,9 @@ class DatarootResolver(Resolver):
     A resolver for finding file paths stored with other dataroots.
     """
 
-    # A dataroot name is only meaningful within the schema that defines it, so
-    # this cannot be shared through a cache keyed only by the source string. The
-    # dataroot it points at is resolved by its own resolver, which still caches.
-    _shared_cache: bool = False
+    # A dataroot name is only meaningful within the schema that defines it, and
+    # the dataroot it points at is resolved by its own resolver.
+    _indirect: bool = True
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         super().__init__(name, schema, source, None)
