@@ -950,6 +950,126 @@ def test_openroad_apr_parameter_rsz_recover_power():
     assert task.get("var", "rsz_recover_power") == 50
 
 
+def test_openroad_apr_parameter_rsz_skip_buffer_removal():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_buffer_removal") is False
+    task.set_openroad_rszskipbufferremoval(True)
+    assert task.get("var", "rsz_skip_buffer_removal") is True
+    task.set_openroad_rszskipbufferremoval(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_buffer_removal", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_buffer_removal") is True
+
+
+def test_openroad_apr_parameter_rsz_skip_buffering():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_buffering") is False
+    task.set_openroad_rszskipbuffering(True)
+    assert task.get("var", "rsz_skip_buffering") is True
+    task.set_openroad_rszskipbuffering(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_buffering", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_buffering") is True
+
+
+def test_openroad_apr_parameter_rsz_skip_last_gasp():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_last_gasp") is False
+    task.set_openroad_rszskiplastgasp(True)
+    assert task.get("var", "rsz_skip_last_gasp") is True
+    task.set_openroad_rszskiplastgasp(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_last_gasp", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_last_gasp") is True
+
+
+def test_openroad_apr_parameter_rsz_skip_vt_swap():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_vt_swap") is False
+    task.set_openroad_rszskipvtswap(True)
+    assert task.get("var", "rsz_skip_vt_swap") is True
+    task.set_openroad_rszskipvtswap(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_vt_swap", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_vt_swap") is True
+
+
+def test_openroad_apr_parameter_rsz_skip_crit_vt_swap():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_crit_vt_swap") is False
+    task.set_openroad_rszskipcritvtswap(True)
+    assert task.get("var", "rsz_skip_crit_vt_swap") is True
+    task.set_openroad_rszskipcritvtswap(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_crit_vt_swap", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_crit_vt_swap") is True
+
+
+def test_openroad_apr_parameter_rsz_sequence():
+    task = _apr.OpenROADRSZTimingParameter()
+    # Empty by default so OpenROAD picks its own move ordering.
+    assert task.get("var", "rsz_sequence") == []
+    task.set_openroad_rszsequence(["vt_swap", "reroute"])
+    assert task.get("var", "rsz_sequence") == ["vt_swap", "reroute"]
+    task.set_openroad_rszsequence("sizeup", step='rsz', index='1')
+    assert task.get("var", "rsz_sequence", step='rsz', index='1') == ["sizeup"]
+    assert task.get("var", "rsz_sequence") == ["vt_swap", "reroute"]
+
+
+def test_openroad_apr_parameter_rsz_allow_setup_violations():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_allow_setup_violations") is False
+    task.set_openroad_rszallowsetupviolations(True)
+    assert task.get("var", "rsz_allow_setup_violations") is True
+    task.set_openroad_rszallowsetupviolations(False, step='rsz', index='1')
+    assert task.get("var", "rsz_allow_setup_violations", step='rsz', index='1') is False
+    assert task.get("var", "rsz_allow_setup_violations") is True
+
+
+def test_openroad_apr_parameter_rsz_max_buffer_percent():
+    task = _apr.OpenROADRSZTimingParameter()
+    # Unset, not 0: 0 is a meaningful value, so it cannot be the sentinel.
+    assert task.get("var", "rsz_max_buffer_percent") is None
+    task.set_openroad_rszmaxbufferpercent(20)
+    assert task.get("var", "rsz_max_buffer_percent") == 20
+    task.set_openroad_rszmaxbufferpercent(50, step='rsz', index='1')
+    assert task.get("var", "rsz_max_buffer_percent", step='rsz', index='1') == 50
+    assert task.get("var", "rsz_max_buffer_percent") == 20
+
+
+def test_openroad_apr_parameter_rsz_extra_args():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_extra_args") == []
+    task.add_openroad_rszextraargs(["-max_passes", "5"])
+    task.add_openroad_rszextraargs("-skip_size_down")
+    assert task.get("var", "rsz_extra_args") == ["-max_passes", "5", "-skip_size_down"]
+    task.add_openroad_rszextraargs("-max_iterations", clobber=True)
+    assert task.get("var", "rsz_extra_args") == ["-max_iterations"]
+
+
+def test_openroad_apr_parameter_rsz_match_cell_footprint():
+    task = _apr.OpenROADRSZDRVParameter()
+    assert task.get("var", "rsz_match_cell_footprint") is False
+    task.set_openroad_rszmatchcellfootprint(True)
+    assert task.get("var", "rsz_match_cell_footprint") is True
+    task.set_openroad_rszmatchcellfootprint(False, step='rsz', index='1')
+    assert task.get("var", "rsz_match_cell_footprint", step='rsz', index='1') is False
+    assert task.get("var", "rsz_match_cell_footprint") is True
+
+
+def test_openroad_apr_parameter_rsz_max_utilization():
+    task = _apr.OpenROADRSZDRVParameter()
+    assert task.get("var", "rsz_max_utilization") is None
+    task.set_openroad_rszmaxutilization(80)
+    assert task.get("var", "rsz_max_utilization") == 80
+    task.set_openroad_rszmaxutilization(90, step='rsz', index='1')
+    assert task.get("var", "rsz_max_utilization", step='rsz', index='1') == 90
+    assert task.get("var", "rsz_max_utilization") == 80
+
+
+def test_openroad_repair_design_has_footprint_and_utilization():
+    """repair_design needs -match_cell_footprint/-max_utilization too, so they live
+    on the DRV mixin rather than the timing-only one."""
+    task = repair_design.RepairDesignTask()
+    assert task.get("var", "rsz_match_cell_footprint") is False
+    assert task.get("var", "rsz_max_utilization") is None
+
+
 def test_openroad_apr_parameter_pad_detail_place():
     task = _apr.OpenROADDPLParameter()
     task.set_openroad_paddetailplace(1)
