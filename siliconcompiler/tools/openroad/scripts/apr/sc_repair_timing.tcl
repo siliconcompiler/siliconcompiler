@@ -27,12 +27,67 @@ set rsz_cap_margin [sc_cfg_tool_task_get {var} rsz_cap_margin]
 set rsz_repair_tns [sc_cfg_tool_task_get {var} rsz_repair_tns]
 set rsz_recover_power [sc_cfg_tool_task_get {var} rsz_recover_power]
 
-set repair_timing_args []
+# Flags shared by every repair_timing invocation in this script.
+set repair_common_args []
 if { [sc_cfg_tool_task_get {var} rsz_skip_pin_swap] } {
-    lappend repair_timing_args "-skip_pin_swap"
+    lappend repair_common_args "-skip_pin_swap"
 }
 if { [sc_cfg_tool_task_get {var} rsz_skip_gate_cloning] } {
-    lappend repair_timing_args "-skip_gate_cloning"
+    lappend repair_common_args "-skip_gate_cloning"
+}
+if { [sc_cfg_tool_task_get {var} rsz_skip_buffer_removal] } {
+    lappend repair_common_args "-skip_buffer_removal"
+}
+if { [sc_cfg_tool_task_get {var} rsz_skip_buffering] } {
+    lappend repair_common_args "-skip_buffering"
+}
+if { [sc_cfg_tool_task_get {var} rsz_skip_vt_swap] } {
+    if { [sc_check_version 24 3 7918] } {
+        lappend repair_common_args "-skip_vt_swap"
+    } else {
+        utl::warn FLW 1 "repair_timing -skip_vt_swap requires OpenROAD 24Q3-7918 or newer"
+    }
+}
+if { [sc_cfg_tool_task_get {var} rsz_skip_crit_vt_swap] } {
+    if { [sc_check_version 24 3 8690] } {
+        lappend repair_common_args "-skip_crit_vt_swap"
+    } else {
+        utl::warn FLW 1 "repair_timing -skip_crit_vt_swap requires OpenROAD 24Q3-8690 or newer"
+    }
+}
+set rsz_match_cell_footprint [sc_cfg_tool_task_get {var} rsz_match_cell_footprint]
+if { $rsz_match_cell_footprint } {
+    lappend repair_common_args "-match_cell_footprint"
+}
+set rsz_max_utilization [sc_cfg_tool_task_get {var} rsz_max_utilization]
+if { $rsz_max_utilization != "" } {
+    lappend repair_common_args "-max_utilization" $rsz_max_utilization
+}
+# Forwarded verbatim, deliberately not version checked.
+lappend repair_common_args {*}[sc_cfg_tool_task_get {var} rsz_extra_args]
+
+# Setup and hold repair.
+set repair_timing_args $repair_common_args
+if { [sc_cfg_tool_task_get {var} rsz_skip_last_gasp] } {
+    lappend repair_timing_args "-skip_last_gasp"
+}
+set rsz_sequence [sc_cfg_tool_task_get {var} rsz_sequence]
+if { [llength $rsz_sequence] != 0 } {
+    if { [sc_check_version 24 3 5705] } {
+        lappend repair_timing_args "-sequence" [join $rsz_sequence " "]
+    } else {
+        utl::warn FLW 1 "repair_timing -sequence requires OpenROAD 24Q3-5705 or newer"
+    }
+}
+
+# Hold repair only, these have no effect on setup repair.
+set repair_hold_args $repair_timing_args
+if { [sc_cfg_tool_task_get {var} rsz_allow_setup_violations] } {
+    lappend repair_hold_args "-allow_setup_violations"
+}
+set rsz_max_buffer_percent [sc_cfg_tool_task_get {var} rsz_max_buffer_percent]
+if { $rsz_max_buffer_percent != "" } {
+    lappend repair_hold_args "-max_buffer_percent" $rsz_max_buffer_percent
 }
 
 set repair_design_args []
@@ -43,6 +98,12 @@ if { $rsz_cap_margin > 0 } {
 set rsz_slew_margin [sc_cfg_tool_task_get {var} rsz_slew_margin]
 if { $rsz_slew_margin > 0 } {
     lappend repair_design_args "-slew_margin" $rsz_slew_margin
+}
+if { $rsz_match_cell_footprint } {
+    lappend repair_design_args "-match_cell_footprint"
+}
+if { $rsz_max_utilization != "" } {
+    lappend repair_design_args "-max_utilization" $rsz_max_utilization
 }
 
 set total_insts [llength [[ord::get_db_block] getInsts]]
@@ -106,14 +167,14 @@ if { ![sc_cfg_tool_task_get var rsz_skip_hold_repair] } {
     # Enable hold cells
     sc_set_dont_use -hold -scanchain -multibit -report dont_use.repair_timing.hold
 
-    sc_report_args -command repair_timing -args $repair_timing_args
+    sc_report_args -command repair_timing -args $repair_hold_args
     repair_timing \
         -hold \
         -verbose \
         -setup_margin $rsz_setup_slack_margin \
         -hold_margin $rsz_hold_slack_margin \
         -repair_tns $rsz_repair_tns \
-        {*}$repair_timing_args
+        {*}$repair_hold_args
 
     sc_detailed_placement -congestion_report reports/route/congestion.hold_repair.rpt
 
@@ -131,13 +192,15 @@ if { ![sc_cfg_tool_task_get var rsz_skip_recover_power] } {
     # Enable cells
     sc_set_dont_use -hold -scanchain -multibit -report dont_use.repair_timing.power
 
-    sc_report_args -command repair_timing -args $repair_timing_args
+    # Power recovery ignores the setup and hold move controls, so only the
+    # shared flags are forwarded, mirroring ORFS recover_power_helper.
+    sc_report_args -command repair_timing -args $repair_common_args
     repair_timing \
         -recover_power $rsz_recover_power \
         -verbose \
         -setup_margin $rsz_setup_slack_margin \
         -hold_margin $rsz_hold_slack_margin \
-        {*}$repair_timing_args
+        {*}$repair_common_args
 
     sc_detailed_placement -congestion_report reports/route/congestion.power_recovery.rpt
 
