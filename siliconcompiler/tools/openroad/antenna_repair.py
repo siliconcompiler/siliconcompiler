@@ -16,6 +16,11 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
         return "antenna_repair"
 
     def setup(self):
+        # ant_check cannot change between setup and execution, so drop the node here
+        # rather than in pre_process and avoid building a work directory for it.
+        if not self.get("var", "ant_check"):
+            raise TaskSkip("antenna repair is disabled")
+
         super().setup()
 
         self.set_script("apr/sc_antenna_repair.tcl")
@@ -46,8 +51,3 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
             'clock_trees',
             'module_view'
         ])
-
-    def pre_process(self):
-        if not self.get("var", "ant_check"):
-            raise TaskSkip("antenna repair is disabled")
-        super().pre_process()
