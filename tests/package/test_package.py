@@ -1460,7 +1460,7 @@ def test_dataroot_resolver_does_not_share_cache():
 
     # Same source string, so the same cache ID: the entry cannot be shared
     assert res_a.cache_id == res_b.cache_id
-    assert DatarootResolver._indirect
+    assert res_a.is_indirect
 
     assert res_a.get_path() == os.path.abspath("dataA")
     assert res_b.get_path() == os.path.abspath("dataB")
@@ -1482,18 +1482,29 @@ def test_keypath_resolver_does_not_share_cache():
     res_b = KeyPathResolver("k", design_b, "key://fileset,rtl,idir")
 
     assert res_a.cache_id == res_b.cache_id
-    assert KeyPathResolver._indirect
+    assert res_a.is_indirect
 
     assert res_a.get_path() == os.path.abspath("dataA")
     assert res_b.get_path() == os.path.abspath("dataB")
 
 
-def test_direct_sources_are_cached():
-    """A source that names a location of its own is cached and announced."""
-    assert not Resolver._indirect
-    assert not RemoteResolver._indirect
-    assert not FileResolver._indirect
-    assert not PythonPathResolver._indirect
+@pytest.mark.parametrize("build,indirect,retryable", (
+    (lambda p: Resolver("n", p, "source://x"), False, False),
+    (lambda p: FileResolver("n", p, os.path.abspath(".")), False, False),
+    (lambda p: PythonPathResolver("n", p, "python://siliconcompiler"), False, False),
+    (lambda p: RemoteResolver("n", p, "https://x", "ref"), False, True),
+    (lambda p: KeyPathResolver("n", p, "key://option,builddir"), True, False),
+    (lambda p: DatarootResolver("n", p, "dataroot://x"), True, False),
+), ids=("resolver", "file", "python", "remote", "keypath", "dataroot"))
+def test_resolver_kind_matrix(build, indirect, retryable):
+    """
+    Only an expensive source is worth retrying, and only an indirection opts out
+    of the cache and the announcement.
+    """
+    resolver = build(Project("testproj"))
+
+    assert resolver.is_indirect is indirect
+    assert resolver.is_retryable is retryable
 
 
 def test_indirect_resolver_does_not_repeat_the_log():

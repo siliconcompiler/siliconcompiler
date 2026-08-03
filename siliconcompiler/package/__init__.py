@@ -58,31 +58,6 @@ class Resolver:
         reference (str): A version, commit hash, or tag for remote sources.
     """
 
-    #: Whether repeated failures to resolve this kind of source are tracked and
-    #: eventually abandoned. Only worth doing where an attempt is expensive, so
-    #: it is enabled for remote sources (see :class:`RemoteResolver`) and left
-    #: off for local ones, which fail instantly and identically every time.
-    _track_failures: bool = False
-
-    #: Whether this resolver is an indirection rather than a location of its own.
-    #:
-    #: ``dataroot://name`` and ``key://keypath`` do not name data; they name
-    #: something *within a schema* that in turn names data, and they hand the real
-    #: work to that resolver. Two consequences follow, both handled by
-    #: :meth:`get_path`:
-    #:
-    #: * They are not cached. The cache is keyed by :attr:`cache_id`, a hash of
-    #:   the source URI and reference, which identifies a path only for a source
-    #:   that means the same thing everywhere -- an absolute ``file://`` path, a
-    #:   ``python://`` module, a remote URL at a fixed reference. A dataroot name
-    #:   or a keypath means something different in every project or design, so
-    #:   caching one would let two schemas collide and hand each other the wrong
-    #:   path. Resolving an indirection is cheap, and where it points at an
-    #:   expensive source that resolver still caches.
-    #: * They do not announce where data was found, because the resolver they
-    #:   delegate to already reported the same location.
-    _indirect: bool = False
-
     def __init__(self, name: str,
                  schema: Optional[Union["Project", "BaseSchema"]],
                  source: str,
@@ -174,6 +149,42 @@ class Resolver:
             if keypath:
                 return f"{self.name} [{','.join(keypath)}]"
         return self.name
+
+    @property
+    def is_retryable(self) -> bool:
+        """
+        True if a failed resolution is worth retrying.
+
+        Failures are then counted in the shared cache, delayed with a growing
+        backoff, and abandoned once the budget runs out. Only worth doing where an
+        attempt is expensive, so remote sources enable it (see
+        :class:`RemoteResolver`) while local ones leave it off: they fail
+        instantly and identically every time, so a retry cannot help.
+        """
+        return False
+
+    @property
+    def is_indirect(self) -> bool:
+        """
+        True if this resolver is an indirection rather than a location of its own.
+
+        ``dataroot://name`` and ``key://keypath`` do not name data; they name
+        something *within a schema* that in turn names data, and they hand the
+        real work to that resolver. Two consequences follow, both applied by
+        :meth:`get_path`:
+
+        * An indirection is not cached. The cache is keyed by :attr:`cache_id`, a
+          hash of the source URI and reference, which identifies a path only for a
+          source that means the same thing everywhere -- an absolute ``file://``
+          path, a ``python://`` module, a remote URL at a fixed reference. A
+          dataroot name or a keypath means something different in every project or
+          design, so caching one would let two schemas collide and hand each other
+          the wrong path. Resolving an indirection is cheap, and where it points
+          at an expensive source that resolver still caches.
+        * An indirection does not announce where data was found, because the
+          resolver it delegates to already reported the same location.
+        """
+        return False
 
     @property
     def root(self) -> Optional[Union["Project", "BaseSchema"]]:
@@ -278,7 +289,7 @@ class Resolver:
         source is not cached, it calls `resolve()` and caches the result.
 
         Each call makes at most one attempt at resolving the source. For sources
-        where an attempt is expensive (see :attr:`_track_failures`), failures are
+        where an attempt is expensive (see :attr:`is_retryable`), failures are
         counted in the shared :class:`~siliconcompiler.package.cache.PathCache`,
         so the repeated lookups a run performs consume a bounded budget rather
         than re-fetching indefinitely. Once the budget is spent, later calls fail
@@ -294,12 +305,12 @@ class Resolver:
         """
         cache = self.cache
 
-        if not self._indirect:
+        if not self.is_indirect:
             cache_path: Optional[str] = cache.get(self.cache_id)
             if cache_path:
                 return cache_path
 
-        if self._track_failures:
+        if self.is_retryable:
             if cache.is_exhausted(self.cache_id):
                 raise DataRootResolutionError(self.__abandoned_message(cache))
 
@@ -316,18 +327,18 @@ class Resolver:
             # Deliberately narrower than BaseException: a KeyboardInterrupt or
             # SystemExit says nothing about whether the source is reachable, so
             # it must not consume the budget or poison the cache.
-            if self._track_failures:
+            if self.is_retryable:
                 if cache.record_failure(self.cache_id, e) >= cache.max_attempts:
                     self.logger.error(self.__abandoned_message(cache))
             raise
 
-        if self._track_failures:
+        if self.is_retryable:
             cache.clear_failure(self.cache_id)
 
-        if self._indirect:
+        if self.is_indirect:
             # An indirection owns no location: the resolver it delegated to has
             # already reported where the data is, and its schema-relative source
-            # string is not a safe cache key. See :attr:`_indirect`.
+            # string is not a safe cache key. See :attr:`is_indirect`.
             return str(path)
 
         if self.changed:
@@ -366,9 +377,13 @@ class RemoteResolver(Resolver):
     multiple SC instances try to download the same resource simultaneously.
     """
 
-    # Fetching a remote source is expensive, so give up on one that keeps
-    # failing instead of letting every caller re-download it.
-    _track_failures: bool = True
+    @property
+    def is_retryable(self) -> bool:
+        """
+        True. Fetching a remote source is expensive, so give up on one that keeps
+        failing instead of letting every caller re-download it.
+        """
+        return True
 
     def __init__(self, name: str,
                  schema: Optional[Union["Project", "BaseSchema"]],
@@ -868,8 +883,10 @@ class KeyPathResolver(Resolver):
     `find_files` method of the root project object to locate the corresponding file.
     """
 
-    # A keypath names something inside a schema, not a location of its own.
-    _indirect: bool = True
+    @property
+    def is_indirect(self) -> bool:
+        """True. A keypath names something inside a schema, not a location."""
+        return True
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         super().__init__(name, schema, source, None)
@@ -905,9 +922,13 @@ class DatarootResolver(Resolver):
     A resolver for finding file paths stored with other dataroots.
     """
 
-    # A dataroot name is only meaningful within the schema that defines it, and
-    # the dataroot it points at is resolved by its own resolver.
-    _indirect: bool = True
+    @property
+    def is_indirect(self) -> bool:
+        """
+        True. A dataroot name is only meaningful within the schema that defines
+        it, and the dataroot it points at is resolved by its own resolver.
+        """
+        return True
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         super().__init__(name, schema, source, None)
