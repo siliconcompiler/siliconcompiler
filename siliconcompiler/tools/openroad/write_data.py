@@ -116,7 +116,11 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         self.set_script("apr/sc_write_data.tcl")
 
-        self.set("var", "pex_corners", list(self._get_pex_mapping().values()))
+        # Every corner a timing scenario asks for. Corners are never dropped
+        # here: the SPEF is a deliverable that STA reads back per scenario
+        # (use_spef), so a missing corner is an error below, not something to
+        # silently skip.
+        self.set("var", "pex_corners", sorted(set(self._get_pex_mapping().values())))
 
         self._set_reports([
             'setup',
@@ -150,6 +154,10 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_output_file(ext="lef")
         self.add_output_file(ext="lvs.vg")
 
+        # The PDK ships no extraction deck at all, so SPEF is simply unavailable.
+        # write_spef defaults on, so turn it off rather than failing every run on
+        # such a PDK. A PDK that does ship decks but is missing the one a
+        # scenario asks for is a misconfiguration and errors below.
         if not self._has_openrcx():
             self.set("var", "write_spef", False)
 
@@ -161,8 +169,18 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
             self.add_required_key("var", "pex_corners")
             self.add_required_key("var", "use_spef")
             for corner in self.get("var", "pex_corners"):
+                # Only the filesets that carry a deck: a corner may also list
+                # auxiliary filesets (a Tcl estimate model, say) with no openrcx
+                # file, and requiring those would fail setup on a valid PDK.
+                filesets = self._get_openrcx_filesets(corner)
+                if not filesets:
+                    raise ValueError(
+                        f"write_data cannot extract pex corner '{corner}': the PDK ships no "
+                        "OpenRCX extraction deck (pdk 'pexmodelfileset' / 'openrcx' file) for "
+                        "it. Add a deck for this corner, point the timing scenario at a corner "
+                        "that has one, or disable write_spef.")
                 self.add_required_key(self.pdk, "pdk", "pexmodelfileset", "openroad", corner)
-                for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", corner):
+                for fileset in filesets:
                     self.add_required_key(self.pdk, "fileset", fileset, "file", "openrcx")
             for corner in self.get("var", "pex_corners"):
                 self.add_output_file(ext=f"{corner}.spef")

@@ -31,6 +31,7 @@ Python::
 import argparse
 import csv
 import importlib
+import math
 import os
 import sys
 
@@ -447,9 +448,14 @@ def _score_errors(rows):
 
 
 def _percentile(sorted_vals, frac):
+    """Nearest-rank percentile of a pre-sorted list (``frac`` in 0..1)."""
     if not sorted_vals:
         return None
-    return sorted_vals[min(len(sorted_vals) - 1, int(frac * len(sorted_vals)))]
+    # ceil(frac * n) - 1: p50 of 10 samples is the 5th value and p90 the 9th.
+    # Truncating instead would return the 10th (the max) as p90 whenever
+    # frac * n lands on an integer.
+    rank = math.ceil(frac * len(sorted_vals))
+    return sorted_vals[min(len(sorted_vals), max(rank, 1)) - 1]
 
 
 def _score_summary(rows):
@@ -500,6 +506,12 @@ def _survey_nets(target, designs, initial_rclayer, factors=None):
         csv_path = project.find_result(filetype="nets.csv", step="calibrate")
         if csv_path:
             rows.extend(_read_nets(csv_path))
+        else:
+            # A skipped design is not fatal here (the score is a summary, not the
+            # deliverable), but if the before and after passes skip different
+            # designs they compare different net populations, so make it visible.
+            _log(f"  WARNING: design '{design.name}' produced no nets.csv; it is excluded "
+                 f"from the '{'after' if scoring else 'before'}' score")
     return _score_summary(rows)
 
 

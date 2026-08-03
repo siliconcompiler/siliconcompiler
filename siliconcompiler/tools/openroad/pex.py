@@ -192,6 +192,12 @@ class ORXExtractTask(PEXBaseTask):
         self.add_required_key("var", "corner")
 
         corner = self.get("var", "corner")
+        if not corner:
+            # Without this the task would declare '<top>.None.spef' as its input
+            # and fail on a missing file with no hint at the real cause.
+            raise ValueError(
+                "rcx_extract requires the parasitic corner to be set "
+                "(see set_openroad_rcxcorner).")
 
         self.add_input_file(ext="def.gz")
         self.add_input_file(ext=f"{corner}.spef")
@@ -273,14 +279,22 @@ class CalibratePEXTask(APRTask, OpenROADSTAParameter):
                 "calibrate_pex requires an OpenRCX extraction deck "
                 "(pdk 'pexmodelfileset' / 'openrcx' file) to build the golden reference.")
 
-        # Calibrate the scenario corners that actually ship an OpenRCX deck; a
-        # scenario pointing at a corner with no deck has no golden reference.
-        corners = sorted({corner for corner in self._get_pex_mapping().values()
-                          if self._get_openrcx_filesets(corner)})
+        # Every corner a timing scenario asks for. Corners are not dropped: a
+        # scenario pointing at a corner with no deck has no golden reference, and
+        # quietly calibrating the rest would emit a correction that silently
+        # omits that corner, so name it instead.
+        corners = sorted(set(self._get_pex_mapping().values()))
         if not corners:
             raise ValueError(
-                "calibrate_pex found no timing scenario whose pex corner has an OpenRCX "
-                "extraction deck (pdk 'pexmodelfileset' / 'openrcx' file).")
+                "calibrate_pex found no timing scenario with a pex corner "
+                "(constraint 'timing' scenario 'pexcorner').")
+        missing = [corner for corner in corners if not self._get_openrcx_filesets(corner)]
+        if missing:
+            raise ValueError(
+                f"calibrate_pex cannot calibrate pex corner(s) {', '.join(missing)}: the PDK "
+                "ships no OpenRCX extraction deck (pdk 'pexmodelfileset' / 'openrcx' file) for "
+                "them. Add a deck for these corners or point the timing scenarios at corners "
+                "that have one.")
         self.set("var", "pex_corners", corners)
         self.add_required_key("var", "pex_corners")
 

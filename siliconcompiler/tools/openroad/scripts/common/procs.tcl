@@ -1175,7 +1175,10 @@ proc sc_setup_pex { args } {
     }
 
     # A correction naming a layer that has no rclayer entry silently does
-    # nothing, which is how a misspelled layer name hides. Surface it.
+    # nothing, which is how a misspelled layer name hides. Surface it. This proc
+    # runs for the default corner and again per scene, so scenes sharing a pex
+    # corner repeat the message - a few extra lines is the right trade for a
+    # stateless check.
     if { [dict exists $corrmap $pexcorner] } {
         dict for {layer factors} [dict get $corrmap $pexcorner] {
             if {
@@ -1232,9 +1235,10 @@ proc sc_setup_pex { args } {
             lassign $pex res cap
 
             # Apply per-layer calibration correction. An absent via is treated
-            # as a resistance factor of 1.0 (no correction).
+            # as a resistance factor of 1.0 (no correction). Capacitance does not
+            # apply to vias, so only the resistance factor is read.
             if { [dict exists $corrmap $pexcorner $layer] } {
-                lassign [dict get $corrmap $pexcorner $layer] res_factor cap_factor
+                set res_factor [lindex [dict get $corrmap $pexcorner $layer] 0]
                 set res [expr { $res * $res_factor }]
             }
 

@@ -1,5 +1,7 @@
 import pytest
 
+import re
+
 from siliconcompiler import Flowgraph
 
 from siliconcompiler.flows.asicflow import (
@@ -123,14 +125,19 @@ def test_pex_calibrate_flow_structure():
     # rename is caught immediately instead of only in the nightly EDA survey.
     flow = PEXCalibrateFlow()
 
-    # The calibrate node exists and is fed by the routed database (a single
-    # upstream node), not by a write step.
+    # The calibrate node is fed by exactly the node that fed ASICFlow's view
+    # write - i.e. the routed database - and not by a write step. Derived from
+    # ASICFlow rather than hardcoded so a rename of that node shows up here as a
+    # mismatch rather than as a stale literal.
+    routed_node = ASICFlow().get_graph_node("write.views", "0").get_input()
+    assert len(routed_node) == 1
     calibrate = flow.get_graph_node("calibrate", "0")
     assert calibrate is not None
-    inputs = calibrate.get_input()
-    assert len(inputs) == 1
+    assert calibrate.get_input() == routed_node
 
     # The view/GDS write steps are removed.
     for removed in ("write.views", "write.gds"):
-        with pytest.raises(ValueError):
+        with pytest.raises(
+                ValueError,
+                match=rf"^{re.escape(removed)}/0 is not a valid node in pex_calibrate\.$"):
             flow.get_graph_node(removed, "0")

@@ -166,6 +166,13 @@ foreach pexcorner $sc_pex_corners {
     # input and must match the bench conversion in sc_pex_extract.tcl.
     dict for {layer vals} $perlayer {
         lassign $vals sum_len sum_cap sum_res nseg
+        # A layer whose every segment measured zero length carries no per-length
+        # information, and pooling its capacitance against a length of 0 would
+        # inflate the ratio for the layer. Skip it, as the bench walk in
+        # pex/sc_pex_extract.tcl does.
+        if { $sum_len <= 0 } {
+            continue
+        }
         puts $layer_fp [format "%s,%s,%.6e,%.6e,%.6e,%d" \
             $pexcorner $layer $sum_len [expr { $sum_cap * 1e-15 }] $sum_res $nseg]
     }

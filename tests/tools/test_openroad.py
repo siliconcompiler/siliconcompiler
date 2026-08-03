@@ -7,7 +7,11 @@ from siliconcompiler import Design
 from siliconcompiler import Flowgraph
 
 from siliconcompiler.flows.asicflow import ASICFlow
-from siliconcompiler.flows.openroad_pex import GeneratePEXEstimateFlow, PEXCalibrateFlow
+from siliconcompiler.flows.openroad_pex import (
+    GenerateOpenRCXFlow,
+    GeneratePEXEstimateFlow,
+    PEXCalibrateFlow
+)
 
 from siliconcompiler.scheduler import SchedulerNode
 
@@ -349,10 +353,15 @@ def test_openroad_pdk_add_rccorrection_rejects_negative():
     # A negative multiplier is never meaningful and would silently invert the
     # estimate; the schema range rejects it at the setter.
     pdk = OpenROADPDK()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError,
+                       match=r"^error while adding to \[tool,openroad,rccorrection\]: "
+                             r"-0\.5 is not in range: 0\.0\.\.$"):
         pdk.add_openroad_rccorrection('typical', 'metal2', cap_factor=-0.5)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError,
+                       match=r"^error while adding to \[tool,openroad,rccorrection\]: "
+                             r"-1\.0 is not in range: 0\.0\.\.$"):
         pdk.add_openroad_rccorrection('typical', 'metal2', res_factor=-1.0)
+    assert pdk.get('tool', 'openroad', 'rccorrection') == []
 
 
 class _FakeCorrLogger:
@@ -1725,12 +1734,48 @@ def test_openroad_rcx_extract_parameter_corner():
 ##############################################################################
 # PEX task setup
 ##############################################################################
+def _rcx_project(design):
+    """A project running the OpenRCX deck-generation flow (NOP for the PEX tool)."""
+    from siliconcompiler import ASIC
+    from siliconcompiler.targets import freepdk45_demo
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    project = ASIC(design)
+    project.add_fileset(["rtl", "sdc"])
+    freepdk45_demo(project)
+    project.set_flow(GenerateOpenRCXFlow(NOPTask()))
+    return project
+
+
 def _setup_node(project, step):
     """Run a node's setup() and return the configured task."""
     node = SchedulerNode(project, step, "0")
     with node.runtime():
         node.setup()
         return node.task
+
+
+def test_openroad_rcx_extract_setup(gcd_design):
+    project = _rcx_project(gcd_design)
+    project.get("tool", "openroad", "task", "rcx_extract",
+                field="schema").set_openroad_rcxcorner("cmax")
+
+    task = _setup_node(project, "extract")
+    assert [str(s) for s in task.get("script")] == ["pex/sc_rcx_extract.tcl"]
+    assert task.get("input") == ["gcd.def.gz", "gcd.cmax.spef"]
+    assert task.get("output") == ["gcd.cmax.rcx"]
+
+
+def test_openroad_rcx_extract_setup_requires_corner(gcd_design):
+    # The task names its SPEF input and RCX output after the corner. Unset, it
+    # would declare '<top>.None.spef' and fail on a missing input file with no
+    # hint at the real cause.
+    project = _rcx_project(gcd_design)
+
+    with pytest.raises(ValueError,
+                       match=r"^rcx_extract requires the parasitic corner to be set "
+                             r"\(see set_openroad_rcxcorner\)\.$"):
+        _setup_node(project, "extract")
 
 
 def test_openroad_pex_bench_extract_setup(asic_gcd):
@@ -1754,7 +1799,10 @@ def test_openroad_pex_bench_extract_setup_requires_openrcx(asic_gcd):
     for corner in pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
         pdk.unset("pdk", "pexmodelfileset", "openroad", corner)
 
-    with pytest.raises(ValueError, match="OpenRCX extraction deck"):
+    with pytest.raises(ValueError,
+                       match=r"^pex_bench_extract requires an OpenRCX extraction deck "
+                             r"\(pdk 'pexmodelfileset' / 'openrcx' file\) to derive the "
+                             r"estimate model\.$"):
         _setup_node(asic_gcd, "extract")
 
 
@@ -1777,7 +1825,10 @@ def test_openroad_calibrate_pex_setup_requires_openrcx(asic_gcd):
     for corner in pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
         pdk.unset("pdk", "pexmodelfileset", "openroad", corner)
 
-    with pytest.raises(ValueError, match="OpenRCX extraction deck"):
+    with pytest.raises(ValueError,
+                       match=r"^calibrate_pex requires an OpenRCX extraction deck "
+                             r"\(pdk 'pexmodelfileset' / 'openrcx' file\) to build the golden "
+                             r"reference\.$"):
         _setup_node(asic_gcd, "calibrate")
 
 
@@ -1793,15 +1844,22 @@ def test_openroad_calibrate_pex_hashes_rccorrection(asic_gcd):
     assert "library,freepdk45,tool,openroad,rclayer" in require
 
 
-def _gf180_project(design, flow):
-    """A gf180 ASIC project with ``flow`` set - a multi-corner, filler-cell PDK."""
+def _gf180_project(design=None, flow=None):
+    """A gf180 ASIC project - a multi-corner, filler-cell PDK.
+
+    Defaults to the calibration utility's fileless bench design; pass a real
+    design and/or a flow when the test needs them.
+    """
     from siliconcompiler import ASIC
     from siliconcompiler.targets import gf180_demo
 
+    if design is None:
+        design = pc._bench_design()
     project = ASIC(design)
-    project.add_fileset(["rtl", "sdc"])
+    project.add_fileset(["rtl"] + (["sdc"] if design.has_fileset("sdc") else []))
     gf180_demo(project)
-    project.set_flow(flow)
+    if flow:
+        project.set_flow(flow)
     return project
 
 
@@ -1816,6 +1874,80 @@ def test_openroad_pex_bench_extract_setup_multicorner(gcd_design):
 
     task = _setup_node(project, "extract")
     assert set(task.get("var", "pex_corners")) == deck_corners
+
+
+def test_openroad_pex_bench_extract_skips_corner_without_a_deck(gcd_design):
+    # The bench characterizes the corners the *PDK* declares, so a declared
+    # corner whose filesets carry no OpenRCX deck (a Tcl-only estimate model,
+    # say) is skipped rather than demanded. Contrast the corners a user wires to
+    # a timing scenario, which are never dropped - see the calibrate and
+    # write_data tests below.
+    project = _gf180_project(gcd_design, GeneratePEXEstimateFlow())
+    pdk = project.get_library(str(project.get("asic", "pdk")))
+    pdk.set("pdk", "pexmodelfileset", "openroad", "wst", ["openroad.pex.deckless"])
+
+    task = _setup_node(project, "extract")
+    assert set(task.get("var", "pex_corners")) == {"bst", "typ"}
+
+
+def test_openroad_calibrate_pex_requires_a_deck_for_every_scenario_corner(gcd_design):
+    # A timing scenario's pex corner is a deliberate user choice, so a corner
+    # with no golden reference is named rather than quietly excluded - excluding
+    # it would emit a calibration that silently omits the corner.
+    project = _gf180_project(gcd_design, PEXCalibrateFlow())
+    pdk = project.get_library(str(project.get("asic", "pdk")))
+    pdk.unset("pdk", "pexmodelfileset", "openroad", "wst")
+
+    with pytest.raises(
+            ValueError,
+            match=r"^calibrate_pex cannot calibrate pex corner\(s\) wst: the PDK ships no "
+                  r"OpenRCX extraction deck \(pdk 'pexmodelfileset' / 'openrcx' file\) for "
+                  r"them\. Add a deck for these corners or point the timing scenarios at "
+                  r"corners that have one\.$"):
+        _setup_node(project, "calibrate")
+
+
+def test_openroad_write_data_extracts_every_scenario_corner(gcd_design):
+    # gf180 wires three timing scenarios to three distinct pex corners, each with
+    # its own deck. All three must be extracted: dropping one would leave that
+    # scenario's STA reading no SPEF at all.
+    project = _gf180_project(gcd_design, ASICFlow())
+    task = _setup_node(project, "write.views")
+
+    assert task.get("var", "pex_corners") == ["bst", "typ", "wst"]
+    assert task.get("var", "write_spef")
+    assert [out for out in task.get("output") if out.endswith(".spef")] == \
+        ["gcd.bst.spef", "gcd.typ.spef", "gcd.wst.spef"]
+
+
+def test_openroad_write_data_requires_a_deck_for_every_scenario_corner(gcd_design):
+    # Same rule as calibrate_pex: a scenario corner without a deck is named, not
+    # silently dropped from the SPEF set.
+    project = _gf180_project(gcd_design, ASICFlow())
+    pdk = project.get_library(str(project.get("asic", "pdk")))
+    pdk.unset("pdk", "pexmodelfileset", "openroad", "wst")
+
+    with pytest.raises(
+            ValueError,
+            match=r"^write_data cannot extract pex corner 'wst': the PDK ships no OpenRCX "
+                  r"extraction deck \(pdk 'pexmodelfileset' / 'openrcx' file\) for it\. Add a "
+                  r"deck for this corner, point the timing scenario at a corner that has one, "
+                  r"or disable write_spef\.$"):
+        _setup_node(project, "write.views")
+
+
+def test_openroad_write_data_no_deck_at_all_disables_spef(gcd_design):
+    # A PDK that ships no deck at all cannot write SPEF; write_spef defaults on,
+    # so it is turned off rather than failing every run on such a PDK.
+    project = _gf180_project(gcd_design, ASICFlow())
+    pdk = project.get_library(str(project.get("asic", "pdk")))
+    for corner in list(pdk.getkeys("pdk", "pexmodelfileset", "openroad")):
+        pdk.unset("pdk", "pexmodelfileset", "openroad", corner)
+
+    task = _setup_node(project, "write.views")
+    assert not task.get("var", "write_spef")
+    assert not task.get("var", "use_spef")
+    assert not [out for out in task.get("output") if out.endswith(".spef")]
 
 
 def test_openroad_calibrate_pex_keeps_cell_required_keys(gcd_design):
@@ -2670,12 +2802,17 @@ def test_resolve_target_callable():
 
 
 def test_resolve_target_bad_name():
-    with pytest.raises(pc.PEXCalibrateError):
+    with pytest.raises(
+            pc.PEXCalibrateError,
+            match=r"^could not resolve target 'definitely_not_a_real_target_module': "
+                  r"No module named 'siliconcompiler\.targets\."
+                  r"definitely_not_a_real_target_module'$"):
         pc.resolve_target("definitely_not_a_real_target_module")
 
 
 def test_resolve_target_wrong_type():
-    with pytest.raises(pc.PEXCalibrateError):
+    with pytest.raises(pc.PEXCalibrateError,
+                       match=r"^target must be a callable or string, got int$"):
         pc.resolve_target(123)
 
 
@@ -2696,15 +2833,6 @@ def test_resolve_target_dotted():
 ##############################################################################
 # PDK introspection
 ##############################################################################
-def _make_gf180_project():
-    from siliconcompiler import ASIC
-    from siliconcompiler.targets import gf180_demo
-    project = ASIC(pc._bench_design())
-    project.add_fileset("rtl")
-    gf180_demo(project)
-    return project
-
-
 def test_derive_pdk_name():
     assert pc.derive_pdk_name("freepdk45_demo") == "freepdk45"
 
@@ -2724,7 +2852,11 @@ def test_demo_designs_build():
 
 
 def test_design_from_dir_missing():
-    with pytest.raises(pc.PEXCalibrateError):
+    # The message carries the resolved absolute path, which is the test's cwd.
+    with pytest.raises(
+            pc.PEXCalibrateError,
+            match=rf"^design directory not found: "
+                  rf"{re.escape(os.path.join(os.getcwd(), 'no_such_design_dir'))}$"):
         pc.design_from_dir("no_such_design_dir")
 
 
@@ -2931,7 +3063,7 @@ def test_merge_preserved():
 def test_merge_preserved_gf180_vias():
     # Real PDK: the bench walks routing segments only, so gf180's Via1-Via4
     # rclayer must be preserved from the PDK (source="pdk").
-    project = _make_gf180_project()
+    project = _gf180_project()
     pdk = project.get_library(project.get("asic", "pdk"))
     # Pretend the bench characterized the routing layers for corner 'typ'.
     model = {"typ": {f"Metal{i}": _routing(1.0, 1.0e-16) for i in range(1, 6)}}
@@ -3013,13 +3145,16 @@ def test_calibrate_rejects_empty_designs(monkeypatch):
     counter = {"bench": 0, "survey": 0}
     _stub_flows(monkeypatch, counter)
 
-    with pytest.raises(pc.PEXCalibrateError, match="designs is empty"):
+    with pytest.raises(pc.PEXCalibrateError,
+                       match=r"^designs is empty; pass None for the bundled demo survey or at "
+                             r"least one design$"):
         pc.calibrate(lambda project: None, designs=[], outdir="out")
     assert counter == {"bench": 0, "survey": 0}
 
 
 def test_run_survey_rejects_empty_designs():
-    with pytest.raises(pc.PEXCalibrateError, match="at least one design"):
+    with pytest.raises(pc.PEXCalibrateError,
+                       match=r"^the calibration survey needs at least one design$"):
         pc.run_survey(lambda project: None, [])
 
 
@@ -3030,7 +3165,9 @@ def test_calibrate_does_not_cache_an_empty_survey(monkeypatch):
     _stub_flows(monkeypatch, counter)
     monkeypatch.setattr(pc, "compute_all_factors", lambda pooled, pdk: {})
 
-    with pytest.raises(pc.PEXCalibrateError, match="no correction factors"):
+    with pytest.raises(pc.PEXCalibrateError,
+                       match=r"^the calibration survey produced no correction factors; no "
+                             r"surveyed layer matched a corner in the initial rclayer model$"):
         pc.calibrate(lambda project: None, designs=[_DUMMY_DESIGN], outdir="out")
 
     # The model CSV is written (that phase succeeded); the survey CSV is not.
@@ -3041,7 +3178,10 @@ def test_calibrate_does_not_cache_an_empty_survey(monkeypatch):
 def test_derive_pdk_name_requires_a_pdk():
     # A target that never selects a PDK would otherwise name its data files
     # "None.rclayer.csv".
-    with pytest.raises(pc.PEXCalibrateError, match="selects no PDK"):
+    # The message quotes the target itself, which for a lambda is a repr.
+    with pytest.raises(pc.PEXCalibrateError,
+                       match=r"^target '.*' selects no PDK \(\[asic,pdk\] is unset\); a PEX "
+                             r"calibration needs a PDK with an OpenRCX deck$"):
         pc.derive_pdk_name(lambda project: None)
 
 
@@ -3095,17 +3235,21 @@ def test_main_plumbs_cli_flags(monkeypatch, tmp_path):
     assert [design.name for design in seen["designs"]] == ["widget"]
 
 
-def test_main_reports_bad_design_dir(monkeypatch):
+def test_main_reports_bad_design_dir(monkeypatch, capsys):
     # A PEXCalibrateError must surface as a CLI usage error, not a traceback.
     monkeypatch.setattr(pc, "calibrate", lambda *args, **kwargs: ({}, {}))
-    with pytest.raises(SystemExit):
+    # argparse exits 2 on a usage error; the reason goes to stderr.
+    with pytest.raises(SystemExit, match=r"^2$"):
         pc.main(["t", "--design", "no_such_design_dir"])
+    assert "design directory not found" in capsys.readouterr().err
 
 
-def test_main_print_only_missing_files(monkeypatch):
+def test_main_print_only_missing_files(monkeypatch, capsys):
     monkeypatch.setattr(pc, "derive_pdk_name", lambda target: "testpdk")
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"^2$"):
         pc.main(["t", "-o", "nonexistent_dir", "--print"])
+    assert "data files not found in nonexistent_dir; run without --print first" in \
+        capsys.readouterr().err
 
 
 ##############################################################################
@@ -3148,6 +3292,20 @@ def test_score_errors_filters_sigtype_and_zero_golden():
             ("typ", "POWER", 1.0, 5.0),    # non signal/clock -> skip
             ("typ", "SIGNAL", 0.0, 1.0)]   # golden 0 -> skip
     assert pc._score_errors(rows) == {"typ": [0.5, 0.5]}
+
+
+def test_percentile_nearest_rank():
+    values = [float(v) for v in range(1, 11)]
+    # p50 is the 5th of 10 samples and p90 the 9th. Truncating the rank instead
+    # of rounding it up would report the 10th - the maximum - as p90, hiding the
+    # tail the score is meant to expose.
+    assert pc._percentile(values, 0.5) == 5.0
+    assert pc._percentile(values, 0.9) == 9.0
+    # Ends and degenerate inputs stay in range.
+    assert pc._percentile(values, 0.0) == 1.0
+    assert pc._percentile(values, 1.0) == 10.0
+    assert pc._percentile([7.0], 0.9) == 7.0
+    assert pc._percentile([], 0.5) is None
 
 
 def test_score_summary_stats():

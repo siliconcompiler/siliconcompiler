@@ -30,7 +30,14 @@ set bench_length [sc_cfg_tool_task_get var bench_length]
 # top routing layer in the tech.
 if { [sc_cfg_tool_task_exists var max_layer] && [sc_cfg_tool_task_get var max_layer] != "" } {
     set max_layer [sc_get_layer_name [sc_cfg_tool_task_get var max_layer]]
-    set top_metal [[[ord::get_db_tech] findLayer $max_layer] getRoutingLevel]
+    # sc_get_layer_name returns a non-integer name unchanged, so a misspelled
+    # layer reaches findLayer and yields NULL; name it rather than failing on an
+    # opaque error from getRoutingLevel.
+    set max_layer_obj [[ord::get_db_tech] findLayer $max_layer]
+    if { $max_layer_obj == "NULL" } {
+        utl::error FLW 1 "'$max_layer' is not a valid layer in this technology."
+    }
+    set top_metal [$max_layer_obj getRoutingLevel]
 } else {
     set top_metal 0
     foreach layer [[ord::get_db_tech] getLayers] {

@@ -260,7 +260,9 @@ Guidance for the survey:
   ``<pdk>.rccorr.csv`` is the per-layer sample count to judge that by.
 * Your PDK must ship an OpenRCX deck
   (``pdk.add_pexmodelfileset("openroad", ...)`` with an ``openrcx`` file) -- it
-  is the golden reference for both phases.
+  is the golden reference for both phases. A deck is needed for every corner a
+  timing scenario names: a scenario pointing at a corner with no deck fails
+  setup rather than being quietly dropped from the calibration.
 
 What gets calibrated (and what does not)
 ----------------------------------------
