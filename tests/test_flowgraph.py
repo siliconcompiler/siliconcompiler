@@ -772,6 +772,36 @@ def test_graph_invalid_subgraph_type():
         flow.graph(apr_flow)
 
 
+def test_graph_callback():
+    class CheckCallback:
+        callbacks = []
+
+        def callback(self, flow: Flowgraph, task: Task):
+            self.callbacks.append((flow.name, task))
+
+    check = CheckCallback()
+    task = NOPTask()
+
+    flow = Flowgraph("testflow")
+    flow._set_callback(check.callback)
+    flow.node("teststep", task)
+
+    other_flow = Flowgraph("rtl")
+    other_task = NOPTask()
+    other_flow.node("import", other_task)
+
+    flow.graph(other_flow)
+
+    assert flow.get("teststep", "0", "tool") == "builtin"
+    assert flow.get("teststep", "0", "task") == "nop"
+    assert flow.get("teststep", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
+    assert flow.get("import", "0", "tool") == "builtin"
+    assert flow.get("import", "0", "task") == "nop"
+    assert flow.get("import", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
+    assert [(flow, task.task()) for flow, task in check.callbacks] == \
+        [("testflow", "nop"), ("testflow", "nop")]
+
+
 def test_validate(large_flow):
     assert large_flow.validate()
 

@@ -222,6 +222,22 @@ def test_flow_modified():
     assert project.getkeys("tool", "builtin", "task") == ("minimum", "nop")
 
 
+def test_flow_modified_graph():
+    project = Project()
+    flow = Flowgraph("testflow")
+    flow.node("teststep", NOPTask())
+
+    flow2 = Flowgraph("testflow2")
+    flow2.node("teststep2", MinimumTask())
+
+    project.set_flow(flow)
+    assert project.get("option", "flow") == "testflow"
+    assert project.get("flowgraph", "testflow", field="schema") is flow
+    assert project.getkeys("tool", "builtin", "task") == ("nop",)
+    flow.graph(flow2)
+    assert project.getkeys("tool", "builtin", "task") == ("minimum", "nop")
+
+
 def test_get_flow_no_selection():
     with pytest.raises(KeyError, match=r"^'no flow is currently selected'$"):
         Project().get_flow()

@@ -468,6 +468,9 @@ class Flowgraph(NamedSchema, DocsSchema):
                     self.add(newstep, index, 'input', (newin, in_index))
 
         self.__clear_cache()
+        if self.__callback:
+            for task in subflow.get_all_tasks():
+                self.__callback(self, task())
 
     def get_nodes(self) -> Tuple[Tuple[str, str], ...]:
         '''
