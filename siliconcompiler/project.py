@@ -186,6 +186,36 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         self.option._add_callback("nodashboard", self.__init_dashboard)
 
+    def __init_flowgraph_callbacks(self):
+        """
+        Initializes and registers callback functions for flowgraph changes.
+
+        This internal method links flowgraph modifications to actions that
+        should be performed when tasks are added or modified in the flowgraph.
+
+        Currently, it registers a callback to handle flowgraph changes by
+        invoking the `__handle_flowgraph_change` method whenever a task is
+        added or modified in any flowgraph.
+        """
+        for flow in self.getkeys("flowgraph"):
+            flow_obj: Flowgraph = self.get("flowgraph", flow, field="schema")
+            flow_obj._set_callback(self.__handle_flowgraph_change)
+
+    def __handle_flowgraph_change(self, flow: Flowgraph, task: Task):
+        # Instantiate tasks
+        edit_schema = EditableSchema(self)
+        for task_cls in flow.get_all_tasks():
+            task = task_cls()
+            if not self.valid("tool", task.tool(), "task", task.task()):
+                edit_schema.insert("tool", task.tool(), "task", task.task(), task)
+            else:
+                existing_task: Task = self.get("tool", task.tool(), "task", task.task(),
+                                               field="schema")
+                if type(existing_task) is not type(task):
+                    raise TypeError(f"Task {task.tool()}/{task.task()} already exists with "
+                                    f"different type {type(existing_task).__name__}, "
+                                    f"imported type is {type(task).__name__}")
+
     def set(self, *args, field='value', clobber=True, step=None, index=None):
         if args[0:1] == ("option",):
             return self.option.set(*args[1:], field=field, clobber=clobber, step=step, index=index)
@@ -324,6 +354,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 hist: "Project" = self.get("history", history, field="schema")
                 hist.__logger = self.__logger
 
+        self.__init_flowgraph_callbacks()
+
         return ret
 
     def add_dep(self, obj):
@@ -402,22 +434,12 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if flow.name in self.getkeys("flowgraph"):
             return
 
-        edit_schema = EditableSchema(self)
-
-        # Instantiate tasks
         for task_cls in flow.get_all_tasks():
-            task = task_cls()
-            if not self.valid("tool", task.tool(), "task", task.task()):
-                edit_schema.insert("tool", task.tool(), "task", task.task(), task)
-            else:
-                existing_task: Task = self.get("tool", task.tool(), "task", task.task(),
-                                               field="schema")
-                if type(existing_task) is not type(task):
-                    raise TypeError(f"Task {task.tool()}/{task.task()} already exists with "
-                                    f"different type {type(existing_task).__name__}, "
-                                    f"imported type is {type(task).__name__}")
+            self.__handle_flowgraph_change(flow, task_cls())
 
+        edit_schema = EditableSchema(self)
         edit_schema.insert("flowgraph", flow.name, flow)
+        flow._set_callback(self.__handle_flowgraph_change)
 
     def check_manifest(self) -> bool:
         """
@@ -719,6 +741,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Restore callbacks
         self.__init_option_callbacks()
+        self.__init_flowgraph_callbacks()
 
         # Restore dashboard
         self.__init_dashboard()
