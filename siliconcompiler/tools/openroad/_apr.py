@@ -1105,31 +1105,47 @@ class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
         self.add_required_key("var", "grt_overflow_iter")
 
 
-class OpenROADANTParameter(OpenROADTask):
+class OpenROADANTCheckParameter(OpenROADTask):
     """
-    Mixin class for defining Antenna repair parameters.
+    Mixin class for defining antenna check and repair parameters shared by every
+    task that can check or repair antenna violations.
     """
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("ant_iterations", "int<1..>",
-                           "maximum number of repair iterations to use during antenna repairs",
-                           defvalue=3)
+        self.add_parameter("ant_check", "bool",
+                           "true/false, flag to indicate whether to check for antenna violations",
+                           defvalue=True)
+        self.add_parameter("ant_repair", "bool",
+                           "true/false, flag to indicate whether to repair antenna violations",
+                           defvalue=True)
         self.add_parameter("ant_margin", "float<0.0..100.0>",
                            "adds a margin to the antenna ratios (0 - 100)",
                            defvalue=0)
 
-    def set_openroad_antiterations(self, iterations: int,
-                                   step: Optional[str] = None, index: Optional[str] = None):
+    def set_openroad_antcheck(self, enable: bool,
+                              step: Optional[str] = None, index: Optional[str] = None):
         """
-        Sets the maximum number of antenna repair iterations.
+        Enables or disables checking for antenna violations.
 
         Args:
-            iterations (int): The number of iterations.
+            enable (bool): True to check, False to skip.
             step (str, optional): The specific step to apply this configuration to.
             index (str, optional): The specific index to apply this configuration to.
         """
-        self.set("var", "ant_iterations", iterations, step=step, index=index)
+        self.set("var", "ant_check", enable, step=step, index=index)
+
+    def set_openroad_antrepair(self, enable: bool,
+                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables repairing antenna violations.
+
+        Args:
+            enable (bool): True to repair, False to skip.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "ant_repair", enable, step=step, index=index)
 
     def set_openroad_antmargin(self, margin: float,
                                step: Optional[str] = None, index: Optional[str] = None):
@@ -1146,8 +1162,38 @@ class OpenROADANTParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_key("var", "ant_iterations")
+        self.add_required_key("var", "ant_check")
+        self.add_required_key("var", "ant_repair")
         self.add_required_key("var", "ant_margin")
+
+
+class OpenROADANTParameter(OpenROADANTCheckParameter):
+    """
+    Mixin class for defining Antenna repair parameters.
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("ant_iterations", "int<1..>",
+                           "maximum number of repair iterations to use during antenna repairs",
+                           defvalue=3)
+
+    def set_openroad_antiterations(self, iterations: int,
+                                   step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the maximum number of antenna repair iterations.
+
+        Args:
+            iterations (int): The number of iterations.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "ant_iterations", iterations, step=step, index=index)
+
+    def setup(self):
+        super().setup()
+
+        self.add_required_key("var", "ant_iterations")
 
 
 class _OpenROADDRTCommonParameter(OpenROADTask):

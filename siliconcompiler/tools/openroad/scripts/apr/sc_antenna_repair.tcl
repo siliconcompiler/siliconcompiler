@@ -30,7 +30,7 @@ if {
         remove_fillers
 
         puts "Starting antenna repair with ${sc_antenna} cell"
-        repair_antenna \
+        repair_antennas \
             $sc_antenna \
             -iterations [sc_cfg_tool_task_get var ant_iterations] \
             -ratio_margin [sc_cfg_tool_task_get var ant_margin]
