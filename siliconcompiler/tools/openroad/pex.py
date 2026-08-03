@@ -184,6 +184,32 @@ class ORXExtractTask(PEXBaseTask):
     def task(self):
         return "rcx_extract"
 
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import Flowgraph, Design, ASIC
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.targets import freepdk45_demo
+        design = Design("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = ASIC(design)
+        proj.add_fileset("docs")
+        freepdk45_demo(proj)
+        flow = Flowgraph("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        # setup() requires the parasitic corner (it names the SPEF input and the
+        # RCX output) and docs generation has no caller to set it, so seed a
+        # placeholder in the same style as <step>/<index>. Flowgraph.node()
+        # records only the task module, so the corner has to be set on the task
+        # the project instantiated rather than on the instance passed to node()
+        # -- hence the keypath set_openroad_rcxcorner() wraps.
+        node.task.set("var", "corner", "<corner>")
+        node.setup()
+        return node.task
+
     def setup(self):
         super().setup()
 

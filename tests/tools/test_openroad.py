@@ -1744,6 +1744,25 @@ def _setup_node(project, step):
         return node.task
 
 
+@pytest.mark.parametrize("task_cls", [
+    pex.PEXBenchTask,
+    pex.PEXBenchExtractTask,
+    pex.ORXBenchTask,
+    pex.ORXExtractTask,
+    pex.CalibratePEXTask
+])
+def test_openroad_pex_task_make_docs(task_cls):
+    # The Sphinx build calls make_docs() on every task listed in
+    # docs/reference_manual/predef_modules/tools.rst, and nothing else in the
+    # suite exercises it. A setup() that raises on an unset parameter therefore
+    # breaks only the docs build - which no test catches without this.
+    task = task_cls.make_docs()
+    assert task.task()
+    # The docs project is freepdk45, which ships an OpenRCX deck, so the
+    # deck-required guards in these setups must be satisfied.
+    assert task.get("output", step="<step>", index="<index>")
+
+
 def test_openroad_rcx_extract_setup(gcd_design):
     project = _rcx_project(gcd_design)
     project.get("tool", "openroad", "task", "rcx_extract",
