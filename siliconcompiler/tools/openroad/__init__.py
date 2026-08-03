@@ -149,12 +149,6 @@ class OpenROADPDK(PDK):
                 prescribed; applied as 1.0).
             clobber (bool, optional): If True, replaces the entire rccorrection
                 set instead of adding to it. Defaults to False.
-
-        Note:
-            Re-adding a ``(corner, layer)`` pair replaces its factors rather than
-            accumulating a second entry: only one correction can apply to a
-            layer, and two conflicting entries would otherwise resolve by
-            iteration order.
         """
         # An unprescribed factor is recorded as None (not coerced) so the stored
         # value reflects exactly what the caller passed; sc_setup_pex applies a
