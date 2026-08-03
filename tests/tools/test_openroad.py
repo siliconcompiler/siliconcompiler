@@ -5,6 +5,7 @@ import pytest
 
 from siliconcompiler import Design
 from siliconcompiler import Flowgraph
+from siliconcompiler import TaskSkip
 
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.flows.openroad_pex import (
@@ -2177,6 +2178,119 @@ def test_openroad_repair_timing_parameter_skip_recover_power():
     assert task.get("var", "rsz_skip_recover_power") is True
 
 
+def test_openroad_repair_timing_parameter_skip_wns_repair():
+    task = repair_timing.RepairTimingTask()
+    # Skipped by default: the pass only applies once global routing exists.
+    assert task.get("var", "rsz_skip_wns_repair") is True
+    task.set_openroad_skipwnsrepair(False)
+    assert task.get("var", "rsz_skip_wns_repair") is False
+    task.set_openroad_skipwnsrepair(True, step='repair_timing', index='1')
+    assert task.get("var", "rsz_skip_wns_repair", step='repair_timing', index='1') is True
+    assert task.get("var", "rsz_skip_wns_repair") is False
+
+
+def test_openroad_repair_timing_parameter_wns_sequence():
+    task = repair_timing.RepairTimingTask()
+    assert task.get("var", "rsz_wns_sequence") == ["vt_swap", "reroute"]
+    task.set_openroad_rszwnssequence(["sizeup"])
+    assert task.get("var", "rsz_wns_sequence") == ["sizeup"]
+    task.set_openroad_rszwnssequence("vt_swap", step='repair_timing', index='1')
+    assert task.get("var", "rsz_wns_sequence", step='repair_timing', index='1') == ["vt_swap"]
+    assert task.get("var", "rsz_wns_sequence") == ["sizeup"]
+
+
+# ----------------------------------------------------------------------
+# PostRouteRepairTimingTask
+# ----------------------------------------------------------------------
+
+
+def test_openroad_post_route_repair_timing_identity():
+    """A distinct task() name is required: the schema namespace is keyed on it, so
+    sharing "repair_timing" with the cts node would let the two clobber each
+    other's setup()-time defaults."""
+    task = repair_timing.PostRouteRepairTimingTask()
+    assert task.task() == "post_route_repair_timing"
+    assert task.tool() == "openroad"
+    assert task.task() != repair_timing.RepairTimingTask().task()
+
+
+def test_openroad_post_route_repair_timing_parameter_enable():
+    task = repair_timing.PostRouteRepairTimingTask()
+    assert task.get("var", "rsz_enable") is False
+    task.set_openroad_rszenable(True)
+    assert task.get("var", "rsz_enable") is True
+    task.set_openroad_rszenable(False, step='repair_timing', index='1')
+    assert task.get("var", "rsz_enable", step='repair_timing', index='1') is False
+    assert task.get("var", "rsz_enable") is True
+
+
+def test_openroad_post_route_repair_timing_has_grt_setup():
+    """The node runs incremental global routing through sc_detailed_placement, which
+    needs the routing layers applied via load_grt_setup."""
+    task = repair_timing.PostRouteRepairTimingTask()
+    assert task.valid("var", "grt_signal_min_layer")
+    # The plain cts node deliberately does not carry the GRT setup.
+    assert not repair_timing.RepairTimingTask().valid("var", "grt_signal_min_layer")
+
+
+def test_openroad_post_route_repair_timing_setup_defaults(asic_gcd):
+    """setup() installs the ORFS-equivalent defaults for this stage."""
+    task = _setup_node(asic_gcd, "route.repair_timing")
+
+    assert task.get("var", "rsz_skip_wns_repair") is False
+    assert task.get("var", "rsz_skip_recover_power") is True
+    assert task.get("var", "rsz_match_cell_footprint") is True
+    assert task.get("var", "load_grt_setup") is True
+
+
+def test_openroad_post_route_repair_timing_defaults_do_not_leak(asic_gcd):
+    """The post-route defaults must not bleed into the cts repair_timing node."""
+    _setup_node(asic_gcd, "route.repair_timing")
+    cts = _setup_node(asic_gcd, "cts.repair_timing")
+
+    assert cts.get("var", "rsz_skip_wns_repair") is True
+    assert cts.get("var", "rsz_match_cell_footprint") is False
+    assert cts.get("var", "rsz_skip_recover_power") is False
+    assert cts.get("var", "load_grt_setup") is False
+
+
+def test_openroad_post_route_repair_timing_user_value_wins(asic_gcd):
+    """The setup() defaults use clobber=False, so they are defaults and not
+    overrides. The whole opt-in design depends on this."""
+    for task in APRTask.find_task(asic_gcd):
+        if task.task() == "post_route_repair_timing":
+            task.set_openroad_skipwnsrepair(True)
+            task.set_openroad_skiprecoverpower(False)
+            task.set_openroad_rszmatchcellfootprint(False)
+
+    task = _setup_node(asic_gcd, "route.repair_timing")
+    assert task.get("var", "rsz_skip_wns_repair") is True
+    assert task.get("var", "rsz_skip_recover_power") is False
+    assert task.get("var", "rsz_match_cell_footprint") is False
+
+
+def test_openroad_post_route_repair_timing_skips_when_disabled(asic_gcd):
+    node = SchedulerNode(asic_gcd, "route.repair_timing", "0")
+    with node.runtime():
+        node.setup()
+        assert node.task.get("var", "rsz_enable") is False
+        with pytest.raises(TaskSkip):
+            node.task.pre_process()
+
+
+def test_openroad_post_route_repair_timing_runs_when_enabled(asic_gcd):
+    for task in APRTask.find_task(asic_gcd):
+        if task.task() == "post_route_repair_timing":
+            task.set_openroad_rszenable(True)
+
+    node = SchedulerNode(asic_gcd, "route.repair_timing", "0")
+    with node.runtime():
+        node.setup()
+        assert node.task.get("var", "rsz_enable") is True
+        # No TaskSkip; pre_process falls through to APRTask's own work.
+        node.task.pre_process()
+
+
 def test_openroad_screenshot_parameter_vertical_resolution():
     task = screenshot.ScreenshotTask()
     task.set_openroad_verticalresolution(1024)
@@ -2218,6 +2332,7 @@ def test_openroad_open_basics():
     global_route.GlobalRouteTask,
     repair_design.RepairDesignTask,
     repair_timing.RepairTimingTask,
+    repair_timing.PostRouteRepairTimingTask,
     macro_placement.MacroPlacementTask,
     metrics.MetricsTask,
     write_data.WriteViewsTask,

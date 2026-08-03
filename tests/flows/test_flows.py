@@ -117,6 +117,34 @@ def test_default_valid(flow: Flowgraph):
         assert flow.validate()
 
 
+def test_routing_flow_node_order():
+    # The route stage mirrors the OpenROAD flow scripts' global route stage: repair
+    # the design on global routing parasitics, then repair antennas, then detail
+    # route. Pin the chain so an accidental reorder is caught here rather than only
+    # showing up as a QoR shift in the nightly EDA survey.
+    flow = RoutingFlow()
+
+    expected = {
+        "antenna_repair": [("repair_timing", "0")],
+        "detailed": [("antenna_repair", "0")],
+        "global": [],
+        "repair_timing": [("global", "0")],
+    }
+    assert {step for step, _ in flow.get_nodes()} == set(expected)
+    for step, inputs in expected.items():
+        assert flow.get_graph_node(step, "0").get_input() == inputs, step
+
+    # The repair node is its own task, not a second instance of the cts one: the
+    # schema namespace is keyed on the task name, so sharing it would let the two
+    # nodes clobber each other's setup()-time defaults.
+    assert flow.get_graph_node("repair_timing", "0").get("task") == "post_route_repair_timing"
+
+    # ASICFlow keeps the route.global / route.detailed node names other code and
+    # tests key off.
+    asic_route = {step for step, _ in ASICFlow().get_nodes() if step.startswith("route.")}
+    assert asic_route == {f"route.{step}" for step in expected}
+
+
 def test_pex_calibrate_flow_structure():
     # PEXCalibrateFlow builds on ASICFlow by dropping the write steps and
     # calibrating on the routed database. It locates that database by the

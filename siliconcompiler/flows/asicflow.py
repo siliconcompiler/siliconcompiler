@@ -327,7 +327,12 @@ class RoutingFlow(Flowgraph):
 
     This flow is useful for quickly checking that a design can be successfully
     routed without running synthesis or timing analysis. It includes global
-    routing, antenna repair, and detailed routing.
+    routing, timing repair on the global routing parasitics, antenna repair, and
+    detailed routing.
+
+    The ``repair_timing`` node is opt-in and is skipped unless its ``rsz_enable``
+    variable is set, since repairing an already routed design changes both the
+    quality of results and the runtime.
     '''
 
     def __init__(self, name: str = 'routingflow', np: int = 1):
@@ -342,8 +347,10 @@ class RoutingFlow(Flowgraph):
 
         for n in range(np):
             self.node("global", global_route.GlobalRouteTask(), index=n)
+            self.node("repair_timing", repair_timing.PostRouteRepairTimingTask(), index=n)
+            self.edge("global", "repair_timing", tail_index=n, head_index=n)
             self.node("antenna_repair", antenna_repair.AntennaRepairTask(), index=n)
-            self.edge("global", "antenna_repair", tail_index=n, head_index=n)
+            self.edge("repair_timing", "antenna_repair", tail_index=n, head_index=n)
             self.node("detailed", detailed_route.DetailedRouteTask(), index=n)
             self.edge("antenna_repair", "detailed", tail_index=n, head_index=n)
 

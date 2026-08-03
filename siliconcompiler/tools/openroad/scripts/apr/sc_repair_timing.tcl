@@ -80,6 +80,20 @@ if { [llength $rsz_sequence] != 0 } {
     }
 }
 
+# Worst negative slack repair, a setup pass restricted to the moves that disturb
+# placement and routing the least. Built from the shared flags so it picks up
+# neither rsz_sequence nor rsz_skip_last_gasp from the main setup pass.
+set repair_wns_args $repair_common_args
+lappend repair_wns_args "-skip_last_gasp" "-repair_tns" 0
+set rsz_wns_sequence [sc_cfg_tool_task_get {var} rsz_wns_sequence]
+if { [llength $rsz_wns_sequence] != 0 } {
+    if { [sc_check_version 24 3 5705] } {
+        lappend repair_wns_args "-sequence" [join $rsz_wns_sequence " "]
+    } else {
+        utl::warn FLW 1 "repair_timing -sequence requires OpenROAD 24Q3-5705 or newer"
+    }
+}
+
 # Hold repair only, these have no effect on setup repair.
 set repair_hold_args $repair_timing_args
 if { [sc_cfg_tool_task_get {var} rsz_allow_setup_violations] } {
@@ -177,6 +191,29 @@ if { ![sc_cfg_tool_task_get var rsz_skip_hold_repair] } {
         {*}$repair_hold_args
 
     sc_detailed_placement -congestion_report reports/route/congestion.hold_repair.rpt
+
+    # Restore dont use
+    sc_set_dont_use
+}
+
+if { ![sc_cfg_tool_task_get var rsz_skip_wns_repair] } {
+    ###############################
+    # WNS Repair
+    ###############################
+
+    # Enable ffs for resizing
+    sc_set_dont_use -scanchain -multibit -report dont_use.repair_timing.wns
+
+    estimate_parasitics $parasitics_stage
+
+    sc_report_args -command repair_timing -args $repair_wns_args
+    repair_timing \
+        -setup \
+        -verbose \
+        -setup_margin $rsz_setup_slack_margin \
+        {*}$repair_wns_args
+
+    sc_detailed_placement -congestion_report reports/route/congestion.wns_repair.rpt
 
     # Restore dont use
     sc_set_dont_use
