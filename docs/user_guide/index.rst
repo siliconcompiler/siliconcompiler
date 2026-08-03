@@ -35,6 +35,7 @@ You will also want to look at API References for details.
    Job status emails <tutorials/emails>
    Instantiating a hardened module in a design <tutorials/hardened>
    Hardening parameterized modules (uniquify) <tutorials/uniquify>
+   Calibrating the parasitic estimate (PEX) <tutorials/pex_calibration>
 ..   Multi-job flows and automation <tutorials/multi_job_flows>
 ..   Parallel job execution <tutorials/parallel>
 ..   Building a simple SoC <tutorials/picorv32_ram>

@@ -40,6 +40,20 @@ class OpenROADPDK(PDK):
                                    "Resistance is ohm/um for a minimum-width routing layer or "
                                    "ohm/cut for a via. Capacitance is F/um for a minimum-width "
                                    "routing layer and is ignored for vias.")
+        self.define_tool_parameter("openroad", "rccorrection",
+                                   "{(str,str,float<0.0..>,float<0.0..>)}",
+                                   "Per-layer multiplicative correction applied to the estimated "
+                                   "parasitics (the 'rclayer' values) before set_layer_rc. Each "
+                                   "tuple is (pexcorner, layer, res_factor, cap_factor); an "
+                                   "unprescribed factor is recorded as None and applied as 1.0 "
+                                   "(no correction) at runtime, and the "
+                                   "cap_factor is ignored for via layers. Layer names are unique "
+                                   "across routing and via layers, so no layer type is needed. "
+                                   "These factors close the gap between OpenROAD's pre-route "
+                                   "estimate and signoff extraction and are calibrated from a "
+                                   "survey of routed designs; see the pex_calibration example. "
+                                   "They do not change the physical 'rclayer' model, only the "
+                                   "estimation applied on top of it.")
 
         self.define_tool_parameter("openroad", "pin_layer_horizontal", "[str]",
                                    "A list of layers designated for horizontal pins.")
@@ -104,6 +118,64 @@ class OpenROADPDK(PDK):
         else:
             self.add("tool", "openroad", "rclayer",
                      (corner, layertype, layer, resistance, capacitance))
+
+    def add_openroad_rccorrection(self, corner: str, layer: str,
+                                  res_factor: Optional[float] = None,
+                                  cap_factor: Optional[float] = None,
+                                  clobber: bool = False):
+        """
+        Adds a per-layer correction factor applied to the estimated parasitics.
+
+        The factors multiply the physical ``rclayer`` resistance/capacitance
+        before ``set_layer_rc`` is called, closing the gap between OpenROAD's
+        pre-route estimate and signoff extraction. They do not modify the
+        physical ``rclayer`` model. A factor left as ``None`` is recorded as
+        ``None`` (the caller's value is not altered) and applied as 1.0 (no
+        correction) at runtime, so calibrating capacitance only (the common case)
+        leaves resistance untouched, and the default state is identical to
+        running without any correction. The layer is identified by name only
+        (names are unique across routing and via layers); ``cap_factor`` is
+        ignored for via layers. Calibrate these from a survey of routed designs;
+        see the "Calibrating the parasitic estimate (PEX)" tutorial
+        (``pex_calibration``).
+
+        Args:
+            corner (str): Name of the PEX corner the factors apply to.
+            layer (str): Name of the routing or via (cut) layer.
+            res_factor (float, optional): Multiplier applied to the estimated
+                resistance. Defaults to None (not prescribed; applied as 1.0).
+            cap_factor (float, optional): Multiplier applied to the estimated
+                capacitance. Ignored for via layers. Defaults to None (not
+                prescribed; applied as 1.0).
+            clobber (bool, optional): If True, replaces the entire rccorrection
+                set instead of adding to it. Defaults to False.
+        """
+        # An unprescribed factor is recorded as None (not coerced) so the stored
+        # value reflects exactly what the caller passed; sc_setup_pex applies a
+        # None/empty factor as 1.0 (no correction). Tuple serialization preserves
+        # interior None positions, so a partially-prescribed factor round-trips.
+        entry = (corner, layer, res_factor, cap_factor)
+
+        if clobber:
+            self.set("tool", "openroad", "rccorrection", entry)
+        else:
+            self.add("tool", "openroad", "rccorrection", entry)
+
+    def unset_openroad_rclayer(self):
+        """
+        Unsets all per-layer parasitic estimate values.
+
+        Clears the entire ``rclayer`` set (the companion to
+        :meth:`unset_openroad_rccorrection`), which is the natural reset before
+        re-seeding a freshly calibrated model.
+        """
+        self.unset("tool", "openroad", "rclayer")
+
+    def unset_openroad_rccorrection(self):
+        """
+        Unsets all per-layer parasitic correction factors.
+        """
+        self.unset("tool", "openroad", "rccorrection")
 
     def unset_openroad_globalroutingderating(self):
         """
@@ -429,6 +501,22 @@ class OpenROADTask(ASICTask):
 
     def tool(self):
         return "openroad"
+
+    def _get_openrcx_filesets(self, corner: str) -> List[str]:
+        """Return the PDK filesets carrying an OpenRCX deck for ``corner``."""
+        if not self.pdk.valid("pdk", "pexmodelfileset", "openroad", corner):
+            return []
+        return [fileset for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", corner)
+                if self.pdk.get("fileset", fileset, "file", "openrcx")]
+
+    def _has_openrcx(self) -> bool:
+        """Check whether the PDK ships an OpenRCX extraction deck."""
+        if not self.pdk.valid("pdk", "pexmodelfileset", "openroad"):
+            return False
+        for corner in self.pdk.getkeys("pdk", "pexmodelfileset", "openroad"):
+            if self._get_openrcx_filesets(corner):
+                return True
+        return False
 
     def setup(self):
         super().setup()

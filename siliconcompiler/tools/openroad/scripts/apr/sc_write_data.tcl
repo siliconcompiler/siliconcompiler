@@ -69,10 +69,13 @@ if { [sc_has_routing] || [sc_has_global_routing] } {
 }
 
 if { [sc_cfg_tool_task_get var write_spef] } {
-    set pexfileset [sc_cfg_get library $sc_pdk pdk pexmodelfileset openroad]
     # just need to define a corner
     define_process_corner -ext_model_index 0 X
     foreach pexcorner [sc_cfg_tool_task_get var pex_corners] {
+        # The deck is per pex corner: looking pexmodelfileset up without the
+        # corner returns the whole corner -> fileset mapping, which would pool
+        # every corner's deck and extract them all with whichever came first.
+        set pexfileset [sc_cfg_get library $sc_pdk pdk pexmodelfileset openroad $pexcorner]
         set pex_model [lindex [sc_cfg_get_fileset $sc_pdk $pexfileset openrcx] 0]
         puts "Writing SPEF for $pexcorner"
         if { [sc_check_version 26 3 23] } {

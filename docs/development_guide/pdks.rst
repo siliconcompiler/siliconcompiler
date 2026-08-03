@@ -130,6 +130,20 @@ These methods are used to group files for different tools and design views.
     add_runsetfileset
     add_waiverfileset
 
+.. seealso::
+
+   Once a PDK ships an OpenRCX signoff deck (``add_pexmodelfileset("openroad",
+   ...)`` with an ``openrcx`` file), OpenROAD's pre-route parasitic *estimate*
+   can be derived and calibrated directly from that deck instead of hand-tuned.
+   The OpenROAD-specific PDK subclass
+   (:class:`~siliconcompiler.tools.openroad.OpenROADPDK`) exposes the knobs that
+   result -- :meth:`~siliconcompiler.tools.openroad.OpenROADPDK.add_openroad_rclayer`
+   (the per-layer estimate model) and
+   :meth:`~siliconcompiler.tools.openroad.OpenROADPDK.add_openroad_rccorrection`
+   (the calibrated correction on top of it). See the
+   :ref:`pex_calibration` tutorial for how to generate the values to paste into
+   a PDK setup.
+
 Manufacturing Calculations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

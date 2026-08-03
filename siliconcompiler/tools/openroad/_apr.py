@@ -1244,8 +1244,16 @@ class APRTask(OpenROADTask):
                            "Enable hierarchical design support in OpenROAD when linking",
                            defvalue=self._default_enable_hier())
 
+        self.add_parameter("apply_pex_correction", "bool",
+                           "apply the calibrated per-layer pex correction "
+                           "(pdk 'rccorrection') to the pre-route parasitic estimate",
+                           defvalue=self._default_apply_pex_correction())
+
     def _default_enable_hier(self) -> bool:
         return False
+
+    def _default_apply_pex_correction(self) -> bool:
+        return True
 
     def set_openroad_enablehier(self, enable: bool,
                                 step: Optional[str] = None, index: Optional[str] = None):
@@ -1258,6 +1266,26 @@ class APRTask(OpenROADTask):
             index: The specific index to apply this configuration to.
         """
         self.set("var", "enablehier", enable, step=step, index=index)
+
+    def set_openroad_applypexcorrection(self, enable: bool,
+                                        step: Optional[str] = None,
+                                        index: Optional[str] = None):
+        """
+        Enables or disables the calibrated per-layer pex correction.
+
+        When enabled (the default) the PDK's ``rccorrection`` factors scale the
+        ``rclayer`` values before ``set_layer_rc``, so the pre-route parasitic
+        estimate tracks signoff extraction. Disable it to run a node against the
+        raw, uncalibrated estimate. A PDK with no ``rccorrection`` is unaffected
+        either way.
+
+        Args:
+            enable: True to apply the correction, False to use the raw rclayer
+                    values.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "apply_pex_correction", enable, step=step, index=index)
 
     def add_openroad_skipreport(self, report_type: Union[List[str], str],
                                 step: Optional[str] = None, index: Optional[str] = None,
@@ -1391,6 +1419,7 @@ class APRTask(OpenROADTask):
 
         self._add_pnr_inputs()
         self._add_pnr_outputs()
+        self._add_pnr_cell_keys()
 
         # Set power corner
         self.set("var", "power_corner", self._get_constraint_by_check("power"), clobber=False)
@@ -1400,6 +1429,11 @@ class APRTask(OpenROADTask):
             self.add_required_key("var", "rsz_default_pex_corner")
         if self.pdk.get("tool", "openroad", "rclayer"):
             self.add_required_key(self.pdk, "tool", "openroad", "rclayer")
+        if self.pdk.get("tool", "openroad", "rccorrection"):
+            # Recalibrating the estimate must invalidate cached nodes, so the
+            # correction has to be part of the node hash like the rclayer it
+            # scales.
+            self.add_required_key(self.pdk, "tool", "openroad", "rccorrection")
 
         if self.get("var", "reports"):
             self.add_required_key("var", "reports")
@@ -1407,6 +1441,7 @@ class APRTask(OpenROADTask):
             self.add_required_key("var", "skip_reports")
 
         self.add_required_key("var", "enablehier")
+        self.add_required_key("var", "apply_pex_correction")
         self.add_required_key("var", "ord_enable_images")
         self.add_required_key("var", "ord_heatmap_bins")
         self.add_required_key("var", "load_grt_setup")
@@ -1566,6 +1601,12 @@ class APRTask(OpenROADTask):
                         self.add_required_key(lib, "fileset", fs, "file", "lef")
 
     def _add_pnr_outputs(self):
+        """Declare the design views a place-and-route node writes.
+
+        A terminal analysis node that emits no design views overrides this with a
+        no-op; the cell-list dependencies live in :meth:`_add_pnr_cell_keys` so
+        that they survive such an override.
+        """
         if self.get("var", "load_sdcs"):
             self.add_output_file(ext="sdc")
         self.add_output_file(ext="vg")
@@ -1573,6 +1614,12 @@ class APRTask(OpenROADTask):
         self.add_output_file(ext="def.gz")
         self.add_output_file(ext="odb.gz")
 
+    def _add_pnr_cell_keys(self):
+        """Declare the library cell lists the APR preamble reads.
+
+        These feed dont-use/filler handling in every APR node, so they must be
+        hashed whether or not the node writes design views.
+        """
         for lib in self.project.get("asic", "asiclib"):
             libobj = self.project.get_library(lib)
             for celltype in ["decap", "tie", "filler", "tap", "endcap", "antenna", "physicalonly"]:
