@@ -1,8 +1,10 @@
-from typing import Optional, Union
+from typing import List, Optional, Union
 
+from siliconcompiler import TaskSkip
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADDPLParameter, \
-    OpenROADRSZDRVParameter, OpenROADRSZTimingParameter, OpenROADFillCellsParameter
+    OpenROADRSZDRVParameter, OpenROADRSZTimingParameter, OpenROADFillCellsParameter, \
+    OpenROADGRTGeneralParameter
 
 
 class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
@@ -22,6 +24,17 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
                            defvalue=False)
         self.add_parameter("rsz_skip_recover_power", "bool", "skip power recovery",
                            defvalue=False)
+        # Unlike its siblings this defaults to skipped: the pass only makes sense once
+        # global routing exists, since its default move sequence reroutes nets.
+        self.add_parameter("rsz_skip_wns_repair", "bool",
+                           "skip the disturbance minimizing worst negative slack repair pass. "
+                           "This pass only applies once global routing has been performed",
+                           defvalue=True)
+        self.add_parameter("rsz_wns_sequence", "[str]",
+                           "order of optimization moves to use for the worst negative slack "
+                           "repair pass, an empty list uses the tool default. The default "
+                           "sequence requires OpenROAD 26Q2-946 or newer for the reroute move",
+                           defvalue=["vt_swap", "reroute"])
 
     def set_openroad_skipdrvrepair(self, skip: bool,
                                    step: Optional[str] = None,
@@ -75,6 +88,37 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
         """
         self.set("var", "rsz_skip_recover_power", skip, step=step, index=index)
 
+    def set_openroad_skipwnsrepair(self, skip: bool,
+                                   step: Optional[str] = None,
+                                   index: Optional[Union[int, str]] = None):
+        """
+        Enables or disables skipping the worst negative slack repair pass.
+
+        This pass minimizes placement and routing disturbance and is only
+        meaningful once global routing has been performed.
+
+        Args:
+            skip (bool): True to skip the pass, False to perform it.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_skip_wns_repair", skip, step=step, index=index)
+
+    def set_openroad_rszwnssequence(self, moves: Union[str, List[str]],
+                                    step: Optional[str] = None,
+                                    index: Optional[Union[int, str]] = None):
+        """
+        Sets the order of optimization moves for the worst negative slack repair pass.
+
+        An empty list restores the tool default ordering.
+
+        Args:
+            moves (Union[str, List[str]]): The ordered move name(s).
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_wns_sequence", moves, step=step, index=index)
+
     def task(self):
         return "repair_timing"
 
@@ -116,3 +160,67 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
         self.add_required_key("var", "rsz_skip_setup_repair")
         self.add_required_key("var", "rsz_skip_hold_repair")
         self.add_required_key("var", "rsz_skip_recover_power")
+        self.add_required_key("var", "rsz_skip_wns_repair")
+        if not self.get("var", "rsz_skip_wns_repair") and self.get("var", "rsz_wns_sequence"):
+            self.add_required_key("var", "rsz_wns_sequence")
+
+
+class PostRouteRepairTimingTask(RepairTimingTask, OpenROADGRTGeneralParameter):
+    '''
+    Perform timing repair using global routing parasitics
+
+    This mirrors the repair sequence the OpenROAD flow scripts run in their global
+    route stage: DRV repair, setup repair, and hold repair, each followed by an
+    incremental global route and detailed placement, and then a final worst negative
+    slack pass that only swaps threshold voltages and reroutes so placement and
+    routing are barely perturbed.
+
+    The pass is opt-in: it changes the quality of results and the runtime of an
+    already routed design, so ``rsz_enable`` must be set for the node to run.
+    Otherwise the node is skipped and its inputs are forwarded unchanged.
+
+    The default ``rsz_wns_sequence`` uses the ``reroute`` move, which requires
+    OpenROAD 26Q2-946 or newer.
+    '''
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("rsz_enable", "bool",
+                           "true/false, when true perform timing repair using the global "
+                           "routing parasitics", defvalue=False)
+
+    def set_openroad_rszenable(self, enable: bool,
+                               step: Optional[str] = None,
+                               index: Optional[Union[int, str]] = None):
+        """
+        Enables or disables the post global route timing repair.
+
+        Args:
+            enable (bool): True to perform the repair, False to skip the node.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_enable", enable, step=step, index=index)
+
+    def task(self):
+        return "post_route_repair_timing"
+
+    def setup(self):
+        # clobber=False so an explicit user setting always wins over these defaults.
+
+        # The flow scripts run the WNS pass here and, because of that, skip power
+        # recovery in this stage entirely.
+        self.set("var", "rsz_skip_wns_repair", False, clobber=False)
+        self.set("var", "rsz_skip_recover_power", True, clobber=False)
+        # Once the design is routed, restricting swaps to same footprint cells keeps
+        # the repair from disturbing the placement it was routed against.
+        self.set("var", "rsz_match_cell_footprint", True, clobber=False)
+
+        super().setup()
+
+        self.add_required_key("var", "rsz_enable")
+
+    def pre_process(self):
+        if not self.get("var", "rsz_enable"):
+            raise TaskSkip("post route timing repair is disabled")
+        super().pre_process()
