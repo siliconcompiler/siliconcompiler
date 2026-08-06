@@ -295,6 +295,7 @@ def dashboard_large(mock_project, fake_console):
         return dashboard
 
 
+@pytest.mark.timeout(30)
 def test_init(dashboard):
     dashboard = dashboard._dashboard
 
@@ -305,6 +306,7 @@ def test_init(dashboard):
     assert dashboard._active
 
 
+@pytest.mark.timeout(30)
 def test_no_tty(mock_project, monkeypatch):
     monkeypatch.setattr(Console, "is_terminal", False)
 
@@ -314,6 +316,7 @@ def test_no_tty(mock_project, monkeypatch):
     assert not dashboard._dashboard._active
 
 
+@pytest.mark.timeout(30)
 def test_set_get_logger(dashboard):
     logger = logging.getLogger("test")
     assert dashboard._logger is not logger
@@ -321,6 +324,7 @@ def test_set_get_logger(dashboard):
     assert dashboard._logger is logger
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize(
     "status",
     [
@@ -337,17 +341,20 @@ def test_format_status(status):
     assert f"[node.{status}]{status.upper()}[/]" == Board.format_status(status)
 
 
+@pytest.mark.timeout(30)
 def test_format_status_unknown():
     assert "[node.notarealstatus]NOTAREALSTATUS[/]" in Board.format_status(
         "notarealstatus"
     )
 
 
+@pytest.mark.timeout(30)
 def test_format_node():
     assert Board.format_node("design1", "job1", "step1", 1, False) == "step1/1"
     assert Board.format_node("design1", "job1", "step1", 1, True) == "design1/job1/step1/1"
 
 
+@pytest.mark.timeout(30)
 def test_stop_dashboard(dashboard):
     dashboard = dashboard._dashboard
 
@@ -359,6 +366,7 @@ def test_stop_dashboard(dashboard):
     assert not dashboard.is_running()
 
 
+@pytest.mark.timeout(30)
 def test_set_logger_seeds_log_pane_from_history(dashboard):
     """When the dashboard attaches, the log pane should be seeded with the
     records retained by an SCHistoryLogHandler already on the logger, so it
@@ -384,6 +392,7 @@ def test_set_logger_seeds_log_pane_from_history(dashboard):
         assert f"pre-dashboard {i}" in text
 
 
+@pytest.mark.timeout(30)
 def test_stop_dumps_full_log_buffer(dashboard):
     """Board.stop must reprint the entire retained log buffer to the normal
     terminal, not just the lines that fit the visible pane, so an early
@@ -414,6 +423,7 @@ def test_stop_dumps_full_log_buffer(dashboard):
         assert f"log line {i}" in out, f"line {i} missing from teardown dump"
 
 
+@pytest.mark.timeout(30)
 def test_stop_without_force_does_not_dump_log(dashboard):
     """A normal teardown or Ctrl+C interrupt (force=False) must NOT reprint the
     full log buffer — that dump is reserved for failure teardowns."""
@@ -441,6 +451,7 @@ def test_stop_without_force_does_not_dump_log(dashboard):
     assert "log line 0" not in out
 
 
+@pytest.mark.timeout(30)
 def test_stop_without_force_skips_incomplete(dashboard, mock_running_job_lg):
     """Without force, stop() must not tear down while a job is incomplete;
     force=True bypasses that guard."""
@@ -467,6 +478,7 @@ def test_stop_without_force_skips_incomplete(dashboard, mock_running_job_lg):
     assert board._render_stop_event.is_set()
 
 
+@pytest.mark.timeout(30)
 def test_log_buffer_handler():
     event = threading.Event()
     buffer = LogBuffer(queue.Queue(), n=2, event=event)
@@ -483,6 +495,7 @@ def test_log_buffer_handler():
     assert "msg2" in lines[1]
 
 
+@pytest.mark.timeout(30)
 def test_update_render_data(dashboard, mock_running_job_lg):
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
@@ -506,6 +519,7 @@ def test_update_render_data(dashboard, mock_running_job_lg):
             assert not dashboard._board_info.data_modified
 
 
+@pytest.mark.timeout(30)
 def test_layout_small_width():
     layout = Layout()
     layout.update(height=2, width=100, visible_jobs=10, visible_bars=1)
@@ -513,6 +527,7 @@ def test_layout_small_width():
     assert layout.job_board_show_log is False
 
 
+@pytest.mark.timeout(30)
 def test_layout_progress_bar_only():
     """When the console is way to small for any job, display only the progress bar"""
     layout = Layout()
@@ -524,6 +539,7 @@ def test_layout_progress_bar_only():
     assert layout.job_board_show_log is True
 
 
+@pytest.mark.timeout(30)
 def test_layout_truncate_jobs():
     """When the console is not big enough for all the jobs, display the
     progress bar and as many jobs as possible.
@@ -539,6 +555,7 @@ def test_layout_truncate_jobs():
     assert layout.job_board_show_log is True
 
 
+@pytest.mark.timeout(30)
 def test_layout_log_fill():
     """On large console that fit all jobs, display job and progress bar,
     then fill the available with the log.
@@ -556,6 +573,7 @@ def test_layout_log_fill():
     assert layout.job_board_show_log is True
 
 
+@pytest.mark.timeout(30)
 def test_layout_log_fill_lots_of_jobs():
     """On large console that fit all jobs, display job and progress bar,
     then fill the available with the log.
@@ -573,6 +591,7 @@ def test_layout_log_fill_lots_of_jobs():
     assert layout.job_board_show_log is True
 
 
+@pytest.mark.timeout(30)
 def test_render_log_basic(mock_running_job_lg, dashboard_medium):
     dashboard = dashboard_medium._dashboard
 
@@ -609,6 +628,7 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
         assert consoleprint[n].strip() == ""  # padding
 
 
+@pytest.mark.timeout(30)
 def test_render_log_basic_eol(mock_running_job_lg, dashboard_medium):
     dashboard = dashboard_medium._dashboard
     dashboard._console.width = 20
@@ -650,6 +670,7 @@ def test_render_log_basic_eol(mock_running_job_lg, dashboard_medium):
         assert consoleprint[n].strip() == ""  # padding
 
 
+@pytest.mark.timeout(30)
 def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
     """Test that it truncates all but the last 10 lines"""
     dashboard = dashboard_medium._dashboard
@@ -692,6 +713,7 @@ def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
             assert f"log row {start_index + i}" in line
 
 
+@pytest.mark.timeout(30)
 def test_render_log_only(mock_running_job_lg, dashboard_medium):
     dashboard = dashboard_medium._dashboard
     dashboard._layout.show_jobboard = False
@@ -735,6 +757,7 @@ def test_render_log_only(mock_running_job_lg, dashboard_medium):
             assert f"log row {start_index + i}" in line
 
 
+@pytest.mark.timeout(30)
 def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
     """Test that the job dashboard is created properly"""
     dashboard = dashboard_medium._dashboard
@@ -822,6 +845,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
         assert actual == expected, f"line {i} does not match"
 
 
+@pytest.mark.timeout(30)
 def test_render_job_dashboard_hide_before_from(mock_running_job_lg, dashboard_medium):
     """Test that the job dashboard is created properly"""
     dashboard = dashboard_medium._dashboard
@@ -888,6 +912,7 @@ def test_render_job_dashboard_hide_before_from(mock_running_job_lg, dashboard_me
         assert actual == expected, f"line {i} does not match {actual} != {expected}"
 
 
+@pytest.mark.timeout(30)
 def test_render_job_dashboard_select_logs(mock_running_job_lg, dashboard_medium):
     """Test that the job dashboard is created properly"""
     dashboard = dashboard_medium._dashboard
@@ -977,6 +1002,7 @@ def test_render_job_dashboard_select_logs(mock_running_job_lg, dashboard_medium)
         assert actual == expected, f"line {i} does not match"
 
 
+@pytest.mark.timeout(30)
 def test_render_job_dashboard_select_no_logs(mock_running_job_lg, dashboard_medium):
     """Test that the job dashboard is created properly"""
     dashboard = dashboard_medium._dashboard
@@ -1063,6 +1089,7 @@ def test_render_job_dashboard_select_no_logs(mock_running_job_lg, dashboard_medi
         assert actual == expected, f"line {i} does not match"
 
 
+@pytest.mark.timeout(30)
 def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg_second,
                                         dashboard_medium):
     """Test that the job dashboard is created properly"""
@@ -1229,6 +1256,7 @@ def _runtime_strings(progress):
             for task in progress._tasks.values()]
 
 
+@pytest.mark.timeout(30)
 def test_progress_bar_runtime_serial_shows_single_value(dashboard_medium):
     """Serial (non-parallel) runs should display only the total time."""
     dashboard = dashboard_medium._dashboard
@@ -1252,6 +1280,7 @@ def test_progress_bar_runtime_serial_shows_single_value(dashboard_medium):
     assert runtimes == [("0:15.0", "")]
 
 
+@pytest.mark.timeout(30)
 def test_progress_bar_runtime_parallel_completed_shows_total_and_wall(dashboard_medium):
     """A completed parallel job should display total / wall when they differ."""
     dashboard = dashboard_medium._dashboard
@@ -1276,6 +1305,7 @@ def test_progress_bar_runtime_parallel_completed_shows_total_and_wall(dashboard_
     assert runtimes == [("0:10.0", "0:30.0")]
 
 
+@pytest.mark.timeout(30)
 def test_progress_bar_runtime_in_progress_with_running_node(dashboard_medium):
     """In-progress jobs combine done totaltime baseline with active elapsed time."""
     dashboard = dashboard_medium._dashboard
@@ -1303,6 +1333,7 @@ def test_progress_bar_runtime_in_progress_with_running_node(dashboard_medium):
     assert runtimes == [("0:13.0", "")]
 
 
+@pytest.mark.timeout(30)
 def test_progress_bar_runtime_in_progress_parallel_running(dashboard_medium):
     """Two nodes running in parallel: total counts both, wall counts the longest."""
     dashboard = dashboard_medium._dashboard
@@ -1330,6 +1361,7 @@ def test_progress_bar_runtime_in_progress_parallel_running(dashboard_medium):
     assert runtimes == [("0:14.0", "0:16.0")]
 
 
+@pytest.mark.timeout(30)
 def test_progress_bar_runtime_resumed_job_uses_recorded_totaltime(dashboard_medium):
     """A resumed job: prior-session done nodes contribute via totaltime metric.
 
@@ -1364,6 +1396,7 @@ def test_progress_bar_runtime_resumed_job_uses_recorded_totaltime(dashboard_medi
     assert runtimes == [("1:35.0", "")]
 
 
+@pytest.mark.timeout(30)
 def test_progress_bar_runtime_sequential_done_one_running_no_wall(dashboard_medium):
     """No two tasks ever overlapped (sequential done + single running) => single value."""
     dashboard = dashboard_medium._dashboard
@@ -1388,6 +1421,7 @@ def test_progress_bar_runtime_sequential_done_one_running_no_wall(dashboard_medi
     assert runtimes[0][1] == ""  # cpu column empty -> no parallelism
 
 
+@pytest.mark.timeout(30)
 def test_progress_bar_runtime_two_running_triggers_wall(dashboard_medium):
     """Two simultaneously-running nodes (no done history) trigger wall display."""
     dashboard = dashboard_medium._dashboard
@@ -1411,6 +1445,7 @@ def test_progress_bar_runtime_two_running_triggers_wall(dashboard_medium):
     assert runtimes[0][1] != ""  # cpu column populated -> parallelism detected
 
 
+@pytest.mark.timeout(30)
 def test_progress_bar_runtime_overlapping_done_triggers_wall(dashboard_medium):
     """Two completed nodes with overlapping wall intervals trigger wall display."""
     dashboard = dashboard_medium._dashboard
@@ -1433,6 +1468,7 @@ def test_progress_bar_runtime_overlapping_done_triggers_wall(dashboard_medium):
     assert runtimes[0][1] != ""
 
 
+@pytest.mark.timeout(30)
 def test_progress_bar_runtime_no_data_shows_zero(dashboard_medium):
     """Pending job with no data: both total and wall are 0, single value displayed."""
     dashboard = dashboard_medium._dashboard
@@ -1454,6 +1490,7 @@ def test_progress_bar_runtime_no_data_shows_zero(dashboard_medium):
     assert runtimes == [("0:00.0", "")]
 
 
+@pytest.mark.timeout(30)
 def test_get_job_records_totaltime_metric(mock_project, fake_console):
     """_get_job should populate node['time']['totaltime'] from the totaltime metric."""
     mock_project.set("record", "status", "success", step="route.global", index=0)
@@ -1469,6 +1506,7 @@ def test_get_job_records_totaltime_metric(mock_project, fake_console):
     assert matched[0]["time"]["totaltime"] == 42.0
 
 
+@pytest.mark.timeout(30)
 def test_render_job_dashboard_multi_job_limit_progress(
         mock_running_job_lg, mock_running_job_lg_second,
         dashboard_xsmall):
@@ -1501,6 +1539,7 @@ def test_render_job_dashboard_multi_job_limit_progress(
     assert len(progress._tasks) == 1
 
 
+@pytest.mark.timeout(30)
 def test_get_rendable_xsmall_dashboard_running(mock_running_job_lg, dashboard_xsmall):
     """Test that on xtra small dashboard display only the progress bar."""
     dashboard = dashboard_xsmall._dashboard
@@ -1528,6 +1567,7 @@ def test_get_rendable_xsmall_dashboard_running(mock_running_job_lg, dashboard_xs
     progress.renderables[0]
 
 
+@pytest.mark.timeout(30)
 def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_small):
     """On smaller dashboards that barely fit the jobs, don't display the log"""
     dashboard = dashboard_small._dashboard
@@ -1568,6 +1608,7 @@ def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_sma
     assert log.row_count == 6
 
 
+@pytest.mark.timeout(30)
 def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_medium):
     """On medium and large dashboards display everything, with proper padding."""
     dashboard = dashboard_medium._dashboard
@@ -1610,6 +1651,7 @@ def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_me
     assert log.row_count == 19
 
 
+@pytest.mark.timeout(30)
 def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed, dashboard_xsmall):
     dashboard = dashboard_xsmall._dashboard
 
@@ -1627,6 +1669,7 @@ def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed
     assert isinstance(rendable.renderables[0], Group)
 
 
+@pytest.mark.timeout(30)
 def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed, dashboard_small):
     dashboard = dashboard_small._dashboard
 
@@ -1651,6 +1694,7 @@ def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed,
     assert isinstance(rendable.renderables[2], Table)
 
 
+@pytest.mark.timeout(30)
 def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed, dashboard_medium):
     dashboard = dashboard_medium._dashboard
 
@@ -1675,6 +1719,7 @@ def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed
     assert isinstance(rendable.renderables[2], Table)
 
 
+@pytest.mark.timeout(30)
 def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, dashboard_xsmall):
     dashboard = dashboard_xsmall._dashboard
 
@@ -1695,6 +1740,7 @@ def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, das
     assert isinstance(progress.renderables[1], Padding)
 
 
+@pytest.mark.timeout(30)
 def test_layout_limit_jobs():
     layout = Layout()
 
@@ -1704,6 +1750,7 @@ def test_layout_limit_jobs():
     assert layout.log_height == 3
 
 
+@pytest.mark.timeout(30)
 def test_layout_1to1_jobs():
     layout = Layout()
 
@@ -1713,6 +1760,7 @@ def test_layout_1to1_jobs():
     assert layout.log_height == 10
 
 
+@pytest.mark.timeout(30)
 def test_layout_normal_size():
     layout = Layout()
 
@@ -1722,6 +1770,7 @@ def test_layout_normal_size():
     assert layout.log_height == 26
 
 
+@pytest.mark.timeout(30)
 def test_get_job(mock_project, fake_console):
     dashboard = MPManager.get_dashboard()
 
@@ -1738,6 +1787,7 @@ def test_get_job(mock_project, fake_console):
     assert len(job.nodes) == 21
 
 
+@pytest.mark.timeout(30)
 def test_get_job_with_skipped(mock_project, fake_console):
     mock_project.set("record", "status", "skipped", step="route.detailed", index=0)
 
@@ -1756,6 +1806,7 @@ def test_get_job_with_skipped(mock_project, fake_console):
     assert len(job.nodes) == 20
 
 
+@pytest.mark.timeout(30)
 def test_get_job_with_status(mock_project, fake_console):
     mock_project.set("record", "status", "success", step="route.global", index=0)
     mock_project.set("record", "status", "skipped", step="route.detailed", index=0)
@@ -1776,6 +1827,7 @@ def test_get_job_with_status(mock_project, fake_console):
     assert len(job.nodes) == 20
 
 
+@pytest.mark.timeout(30)
 def test_get_job_topology_cached(mock_project, fake_console):
     """Repeated _get_job calls on the same project must reuse the cached
     flowgraph topology rather than re-running the recursive distance walk.
@@ -1801,6 +1853,7 @@ def test_get_job_topology_cached(mock_project, fake_console):
     assert dashboard._topology_cache[project_id] is cached
 
 
+@pytest.mark.timeout(30)
 def test_get_job_topology_invalidated_by_skipped(mock_project, fake_console):
     """Introducing a SKIPPED node changes which inputs downstream nodes see
     (RuntimeFlowgraph.get_node_inputs walks past skipped predecessors), so
@@ -1819,6 +1872,7 @@ def test_get_job_topology_invalidated_by_skipped(mock_project, fake_console):
     assert first.signature != second.signature
 
 
+@pytest.mark.timeout(30)
 def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
                                                   monkeypatch):
     """The recursive `get_node_distance` walk inside `_get_flow_topology`
@@ -1866,6 +1920,7 @@ def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
     )
 
 
+@pytest.mark.timeout(30)
 def test_get_job_status_counts_correct_with_cache(mock_project, fake_console):
     """Status-derived counters (success/error/finished/visible) must update
     on every call even when the topology cache is reused — they are
@@ -1888,6 +1943,7 @@ def test_get_job_status_counts_correct_with_cache(mock_project, fake_console):
     assert job2.finished == 2
 
 
+@pytest.mark.timeout(30)
 def test_get_job_priority_reflects_status_changes(mock_project, fake_console):
     """node_priority is recomputed from cached node_dists on every call so
     that running/error nodes float to the top of the display even though
@@ -1918,6 +1974,7 @@ def test_get_job_priority_reflects_status_changes(mock_project, fake_console):
     assert after_priorities[target] == 0
 
 
+@pytest.mark.timeout(30)
 def test_get_job_separate_projects_use_separate_cache_entries(
         mock_project, fake_console):
     """The cache key is design/jobname; two distinct projects must each
@@ -1933,6 +1990,7 @@ def test_get_job_separate_projects_use_separate_cache_entries(
     assert "test_design/test_job" in dashboard._topology_cache
 
 
+@pytest.mark.timeout(30)
 def test_render_help_full_height(mock_project, fake_console):
     """Test rendering help display with full height (banner, authors, version, table)"""
     dashboard = MPManager.get_dashboard()
@@ -1951,6 +2009,7 @@ def test_render_help_full_height(mock_project, fake_console):
     assert isinstance(help_group[3], Table)   # Help table
 
 
+@pytest.mark.timeout(30)
 def test_render_help_medium_height(mock_project, fake_console):
     """Test rendering help display with medium height (banner, authors, table)"""
     dashboard = MPManager.get_dashboard()
@@ -1968,6 +2027,7 @@ def test_render_help_medium_height(mock_project, fake_console):
     assert isinstance(help_group[2], Table)   # Help table
 
 
+@pytest.mark.timeout(30)
 def test_render_help_small_height(mock_project, fake_console):
     """Test rendering help display with small height (banner and table only)"""
     dashboard = MPManager.get_dashboard()
@@ -1984,6 +2044,7 @@ def test_render_help_small_height(mock_project, fake_console):
     assert isinstance(help_group[1], Table)   # Help table
 
 
+@pytest.mark.timeout(30)
 def test_render_help_minimal_height(mock_project, fake_console):
     """Test rendering help display with minimal height (table only)"""
     dashboard = MPManager.get_dashboard()
@@ -1999,6 +2060,7 @@ def test_render_help_minimal_height(mock_project, fake_console):
     assert isinstance(help_group[0], Table)   # Help table
 
 
+@pytest.mark.timeout(30)
 def test_render_help_table_content(mock_project, fake_console):
     """Test that help table contains expected key bindings"""
     dashboard = MPManager.get_dashboard()
@@ -2031,6 +2093,7 @@ def test_render_help_table_content(mock_project, fake_console):
     assert "Toggle showing log details" in output
 
 
+@pytest.mark.timeout(30)
 def test_handle_keyboard_toggle_help(mock_project, fake_console):
     """Test keyboard handler toggles help view on 'h' key"""
     dashboard = MPManager.get_dashboard()
@@ -2048,6 +2111,7 @@ def test_handle_keyboard_toggle_help(mock_project, fake_console):
     assert dashboard._Board__view == View.NORMAL
 
 
+@pytest.mark.timeout(30)
 def test_handle_keyboard_toggle_help_uppercase(mock_project, fake_console):
     """Test keyboard handler handles uppercase 'H' key"""
     dashboard = MPManager.get_dashboard()
@@ -2060,6 +2124,7 @@ def test_handle_keyboard_toggle_help_uppercase(mock_project, fake_console):
     assert dashboard._Board__view == View.HELP
 
 
+@pytest.mark.timeout(30)
 def test_handle_keyboard_toggle_progress_bar(mock_project, fake_console):
     """Test keyboard handler toggles progress bar on 'j' key"""
     dashboard = MPManager.get_dashboard()
@@ -2072,6 +2137,7 @@ def test_handle_keyboard_toggle_progress_bar(mock_project, fake_console):
     assert dashboard._layout.show_progress_bar != initial_state
 
 
+@pytest.mark.timeout(30)
 def test_handle_keyboard_toggle_log(mock_project, fake_console):
     """Test keyboard handler toggles log on 'l' key"""
     dashboard = MPManager.get_dashboard()
@@ -2084,6 +2150,7 @@ def test_handle_keyboard_toggle_log(mock_project, fake_console):
     assert dashboard._layout.show_log != initial_state
 
 
+@pytest.mark.timeout(30)
 def test_handle_keyboard_toggle_jobboard(mock_project, fake_console):
     """Test keyboard handler toggles jobboard on 'n' key"""
     dashboard = MPManager.get_dashboard()
@@ -2096,6 +2163,7 @@ def test_handle_keyboard_toggle_jobboard(mock_project, fake_console):
     assert dashboard._layout.show_jobboard != initial_state
 
 
+@pytest.mark.timeout(30)
 def test_handle_keyboard_no_key(mock_project, fake_console):
     """Test keyboard handler does nothing when no key is pressed"""
     dashboard = MPManager.get_dashboard()
@@ -2115,6 +2183,7 @@ def test_handle_keyboard_no_key(mock_project, fake_console):
     assert dashboard._layout.show_jobboard == initial_jobboard
 
 
+@pytest.mark.timeout(30)
 def test_handle_keyboard_unknown_key(mock_project, fake_console):
     """Test keyboard handler ignores unknown keys"""
     dashboard = MPManager.get_dashboard()
@@ -2134,6 +2203,7 @@ def test_handle_keyboard_unknown_key(mock_project, fake_console):
     assert dashboard._layout.show_jobboard == initial_jobboard
 
 
+@pytest.mark.timeout(30)
 def test_get_rendable_help_view(mock_project, mock_running_job_lg, dashboard_medium):
     """Test that _get_rendable returns help when view is HELP"""
     dashboard = dashboard_medium._dashboard
@@ -2159,6 +2229,7 @@ def test_get_rendable_help_view(mock_project, mock_running_job_lg, dashboard_med
     assert rendable.renderables[-1].title == "Dashboard Help"
 
 
+@pytest.mark.timeout(30)
 def test_log_buffer_get_lines_with_limit():
     """Test LogBuffer.get_lines with a specific line limit"""
     event = threading.Event()
@@ -2174,6 +2245,7 @@ def test_log_buffer_get_lines_with_limit():
     assert "line 14" in lines[-1]
 
 
+@pytest.mark.timeout(30)
 def test_log_buffer_get_lines_all():
     """Test LogBuffer.get_lines returns all lines when no limit specified"""
     event = threading.Event()
@@ -2187,6 +2259,7 @@ def test_log_buffer_get_lines_all():
     assert len(lines) == 8
 
 
+@pytest.mark.timeout(30)
 def test_log_buffer_queue_not_empty():
     """Test LogBuffer handles non-empty queue after get_lines"""
     event = threading.Event()
@@ -2203,6 +2276,7 @@ def test_log_buffer_queue_not_empty():
     assert event.is_set()
 
 
+@pytest.mark.timeout(30)
 def test_render_log_zero_height(mock_running_job_lg, dashboard_medium):
     """Test _render_log returns None when log_height is 0"""
     dashboard = dashboard_medium._dashboard
@@ -2214,6 +2288,7 @@ def test_render_log_zero_height(mock_running_job_lg, dashboard_medium):
     assert result is None
 
 
+@pytest.mark.timeout(30)
 def test_render_job_dashboard_zero_height(mock_project, mock_running_job_lg, dashboard_medium):
     """Test _render_job_dashboard returns None when job_board_height is 0"""
     dashboard = dashboard_medium._dashboard
@@ -2231,6 +2306,7 @@ def test_render_job_dashboard_zero_height(mock_project, mock_running_job_lg, das
     assert result is None
 
 
+@pytest.mark.timeout(30)
 def test_render_job_dashboard_no_nodes(mock_project, dashboard_medium):
     """Test _render_job_dashboard returns None when there are no nodes"""
     dashboard = dashboard_medium._dashboard
@@ -2254,6 +2330,7 @@ def test_render_job_dashboard_no_nodes(mock_project, dashboard_medium):
     assert result is None
 
 
+@pytest.mark.timeout(30)
 def test_update_rendable_data_no_jobs(mock_project, fake_console):
     """Test _update_rendable_data returns early when no jobs"""
     dashboard = MPManager.get_dashboard()
@@ -2277,6 +2354,7 @@ def _info_record(msg="hello"):
         msg=msg, args=None, exc_info=None)
 
 
+@pytest.mark.timeout(30)
 def test_log_buffer_handler_uses_own_formatter_when_no_source():
     buffer = LogBuffer(queue.Queue(), n=10)
     handler = buffer.make_handler(None)
@@ -2285,6 +2363,7 @@ def test_log_buffer_handler_uses_own_formatter_when_no_source():
     assert handler.format(_info_record("hi")) == "OWN:hi"
 
 
+@pytest.mark.timeout(30)
 def test_log_buffer_handler_delegates_to_formatter_source():
     """When formatter_source is set, the handler formats with the source's
     current formatter rather than its own."""
@@ -2298,6 +2377,7 @@ def test_log_buffer_handler_delegates_to_formatter_source():
     assert handler.format(_info_record("hi")) == "SRC:hi"
 
 
+@pytest.mark.timeout(30)
 def test_log_buffer_handler_tracks_source_formatter_changes():
     """The whole point of formatter_source: when the source's formatter is
     swapped out mid-run, the dashboard handler picks up the new formatter
@@ -2313,6 +2393,7 @@ def test_log_buffer_handler_tracks_source_formatter_changes():
     assert handler.format(_info_record("hi")) == "B:hi"
 
 
+@pytest.mark.timeout(30)
 def test_log_buffer_handler_falls_back_when_source_has_no_formatter():
     """If formatter_source is set but the source has no formatter attached,
     fall back to the handler's own formatter rather than raising."""
@@ -2329,6 +2410,7 @@ def test_log_buffer_handler_falls_back_when_source_has_no_formatter():
 # CliDashboard set_logger / _detach_logger
 # ---------------------------------------------------------------------------
 
+@pytest.mark.timeout(30)
 def test_set_logger_adds_dashboard_handler_without_removing_terminal(
         mock_project, fake_console):
     """Attaching must not swap or detach the project's terminal handler —
@@ -2347,6 +2429,7 @@ def test_set_logger_adds_dashboard_handler_without_removing_terminal(
     assert dash._terminal_handler is terminal
 
 
+@pytest.mark.timeout(30)
 def test_set_logger_installs_active_suppress_filter(mock_project, fake_console):
     """The terminal handler stays attached but is silenced via a filter so
     its writes don't corrupt the rich Live display."""
@@ -2359,6 +2442,7 @@ def test_set_logger_installs_active_suppress_filter(mock_project, fake_console):
     assert dash._suppress_filter.active is True
 
 
+@pytest.mark.timeout(30)
 def test_set_logger_idempotent_on_repeat_call(mock_project, fake_console):
     """Calling set_logger twice with the same logger must not double-attach
     the handler or stack duplicate filters."""
@@ -2375,6 +2459,7 @@ def test_set_logger_idempotent_on_repeat_call(mock_project, fake_console):
     assert mock_project._logger_console.filters.count(dash._suppress_filter) == 1
 
 
+@pytest.mark.timeout(30)
 def test_set_logger_moves_handler_when_swapping_loggers(mock_project, fake_console):
     """Re-attaching to a different logger must move the dashboard handler
     rather than leaving it leaked on the old one. The project's logger is
@@ -2395,6 +2480,7 @@ def test_set_logger_moves_handler_when_swapping_loggers(mock_project, fake_conso
     assert dash._logger is other
 
 
+@pytest.mark.timeout(30)
 def test_set_logger_none_detaches(mock_project, fake_console):
     with patch("threading.Thread"):
         dash = CliDashboard(mock_project)
@@ -2411,6 +2497,7 @@ def test_set_logger_none_detaches(mock_project, fake_console):
     assert dash._suppress_filter.active is False
 
 
+@pytest.mark.timeout(30)
 def test_detach_logger_undoes_attach(mock_project, fake_console):
     with patch("threading.Thread"):
         dash = CliDashboard(mock_project)
@@ -2427,6 +2514,7 @@ def test_detach_logger_undoes_attach(mock_project, fake_console):
     assert dash._suppress_filter.active is False
 
 
+@pytest.mark.timeout(30)
 def test_detach_logger_is_idempotent(mock_project, fake_console):
     """Calling _detach_logger when nothing is attached must not raise."""
     with patch("threading.Thread"):
@@ -2436,6 +2524,7 @@ def test_detach_logger_is_idempotent(mock_project, fake_console):
     dash._detach_logger()
 
 
+@pytest.mark.timeout(30)
 def test_attach_detach_attach_cycle(mock_project, fake_console):
     """A second attach after detach should produce the same end-state as
     the first — this is what the future user-quit + resume path relies on."""
@@ -2460,6 +2549,7 @@ def test_attach_detach_attach_cycle(mock_project, fake_console):
         assert first_handler not in mock_project.logger.handlers
 
 
+@pytest.mark.timeout(30)
 def test_terminal_output_suppressed_during_attach_resumed_after_detach(
         mock_project, fake_console):
     """End-to-end: records reach the terminal stream before attach, are
@@ -2486,6 +2576,7 @@ def test_terminal_output_suppressed_during_attach_resumed_after_detach(
     assert "AFTER" in captured.getvalue()
 
 
+@pytest.mark.timeout(30)
 def test_should_disable_no_flow():
     design = Design("testdesign")
     with design.active_fileset("rtl"):
@@ -2498,12 +2589,14 @@ def test_should_disable_no_flow():
     assert CliDashboard.should_disable(proj) is False
 
 
+@pytest.mark.timeout(30)
 def test_should_disable_no_breakpoint():
     proj = _project_with_flow()
 
     assert CliDashboard.should_disable(proj) is False
 
 
+@pytest.mark.timeout(30)
 def test_should_disable_with_breakpoint(project_logger, caplog):
     proj = _project_with_flow()
 
@@ -2519,6 +2612,7 @@ def test_should_disable_with_breakpoint(project_logger, caplog):
 # CliDashboard atexit lifecycle (issue #5035)
 # ---------------------------------------------------------------------------
 
+@pytest.mark.timeout(30)
 def test_init_registers_atexit_hook(mock_project, fake_console):
     """__init__ registers a weakref trampoline with atexit so the dashboard is
     torn down on program exit without the atexit registry pinning it alive."""
@@ -2531,6 +2625,7 @@ def test_init_registers_atexit_hook(mock_project, fake_console):
     mock_atexit.register.assert_called_once_with(hook)
 
 
+@pytest.mark.timeout(30)
 def test_atexit_hook_does_not_pin_dashboard(mock_project, fake_console):
     """The atexit hook must not keep the dashboard alive: dropping the last
     strong reference lets the garbage collector reclaim it (and, transitively,
@@ -2549,6 +2644,7 @@ def test_atexit_hook_does_not_pin_dashboard(mock_project, fake_console):
     assert ref() is None
 
 
+@pytest.mark.timeout(30)
 def test_weak_atexit_call_tolerates_non_bound_method():
     """weak_atexit_call must not choke on a non-bound callable. WeakMethod
     rejects anything without __self__/__func__ (e.g. a plain function or a
@@ -2565,6 +2661,7 @@ def test_weak_atexit_call_tolerates_non_bound_method():
     target.assert_called_once_with()
 
 
+@pytest.mark.timeout(30)
 def test_construct_with_patched_stop_does_not_raise(mock_project, fake_console):
     """Constructing a CliDashboard while CliDashboard.stop is class-patched with
     a MagicMock must not raise (regression for the WeakMethod TypeError that
@@ -2576,6 +2673,7 @@ def test_construct_with_patched_stop_does_not_raise(mock_project, fake_console):
     assert dash._CliDashboard__atexit_func is not None
 
 
+@pytest.mark.timeout(30)
 def test_stop_unregisters_atexit_hook(mock_project, fake_console):
     """stop() must release the atexit hook it registered in __init__ so the
     trampoline does not fire again at interpreter shutdown."""
@@ -2592,6 +2690,7 @@ def test_stop_unregisters_atexit_hook(mock_project, fake_console):
     mock_atexit.unregister.assert_called_once_with(hook)
 
 
+@pytest.mark.timeout(30)
 def test_stop_unregisters_atexit_when_teardown_raises(mock_project, fake_console):
     """Even when the underlying dashboard teardown raises (e.g. MPManager
     proxy objects torn down during multiprocess exit), stop() must not
@@ -2612,6 +2711,7 @@ def test_stop_unregisters_atexit_when_teardown_raises(mock_project, fake_console
     mock_atexit.unregister.assert_called_once_with(hook)
 
 
+@pytest.mark.timeout(30)
 def test_stop_restores_logger_when_teardown_raises(mock_project, fake_console):
     """A raising dashboard teardown must not leave the dashboard log sink
     attached — the logger is restored via the finally block."""
@@ -2630,6 +2730,7 @@ def test_stop_restores_logger_when_teardown_raises(mock_project, fake_console):
     assert dash._suppress_filter.active is False
 
 
+@pytest.mark.timeout(30)
 def test_stop_is_idempotent(mock_project, fake_console):
     """Calling stop() twice must only unregister the hook once and must not
     raise on the second call."""
@@ -2646,6 +2747,7 @@ def test_stop_is_idempotent(mock_project, fake_console):
     mock_atexit.unregister.assert_called_once_with(hook)
 
 
+@pytest.mark.timeout(30)
 def test_nodashboard_after_construction_releases_hook(mock_project, fake_console):
     """Setting option 'nodashboard' after a dashboard was constructed runs
     Project.__init_dashboard, which stops the old dashboard. That teardown

@@ -1814,6 +1814,7 @@ def test_openroad_pex_bench_extract_setup_requires_openrcx(asic_gcd):
         _setup_node(asic_gcd, "extract")
 
 
+@pytest.mark.timeout(30)
 def test_openroad_calibrate_pex_setup(asic_gcd):
     asic_gcd.set_flow(PEXCalibrateFlow())
     task = _setup_node(asic_gcd, "calibrate")
@@ -1827,6 +1828,7 @@ def test_openroad_calibrate_pex_setup(asic_gcd):
     assert not task.get("var", "ord_enable_images")
 
 
+@pytest.mark.timeout(30)
 def test_openroad_calibrate_pex_setup_requires_openrcx(asic_gcd):
     asic_gcd.set_flow(PEXCalibrateFlow())
     pdk = asic_gcd.get_library(str(asic_gcd.get("asic", "pdk")))
@@ -1840,6 +1842,7 @@ def test_openroad_calibrate_pex_setup_requires_openrcx(asic_gcd):
         _setup_node(asic_gcd, "calibrate")
 
 
+@pytest.mark.timeout(30)
 def test_openroad_calibrate_pex_hashes_rccorrection(asic_gcd):
     # Recalibrating must invalidate cached nodes, so the PDK's rccorrection has
     # to be a required key (part of the node hash) like the rclayer it scales.
@@ -1898,6 +1901,7 @@ def test_openroad_pex_bench_extract_skips_corner_without_a_deck(gcd_design):
     assert set(task.get("var", "pex_corners")) == {"bst", "typ"}
 
 
+@pytest.mark.timeout(30)
 def test_openroad_calibrate_pex_requires_a_deck_for_every_scenario_corner(gcd_design):
     # A timing scenario's pex corner is a deliberate user choice, so a corner
     # with no golden reference is named rather than quietly excluded - excluding
@@ -1958,6 +1962,7 @@ def test_openroad_write_data_no_deck_at_all_disables_spef(gcd_design):
     assert not [out for out in task.get("output") if out.endswith(".spef")]
 
 
+@pytest.mark.timeout(30)
 def test_openroad_calibrate_pex_keeps_cell_required_keys(gcd_design):
     # CalibratePEXTask suppresses the standard PNR outputs. The library cell
     # lists the APR preamble reads must survive that override, or a change to a
