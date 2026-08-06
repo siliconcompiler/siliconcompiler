@@ -202,19 +202,25 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             flow_obj._set_callback(self.__handle_flowgraph_change)
 
     def __handle_flowgraph_change(self, flow: Flowgraph, task: Task):
-        # Instantiate tasks
-        edit_schema = EditableSchema(self)
-        for task_cls in flow.get_all_tasks():
-            task = task_cls()
-            if not self.valid("tool", task.tool(), "task", task.task()):
-                edit_schema.insert("tool", task.tool(), "task", task.task(), task)
-            else:
-                existing_task: Task = self.get("tool", task.tool(), "task", task.task(),
-                                               field="schema")
-                if type(existing_task) is not type(task):
-                    raise TypeError(f"Task {task.tool()}/{task.task()} already exists with "
-                                    f"different type {type(existing_task).__name__}, "
-                                    f"imported type is {type(task).__name__}")
+        """
+        Registers the task a flowgraph just gained under ['tool', ...,'task', ...].
+
+        Handles only the one task it is handed. Every caller already reports each
+        task it adds -- :meth:`Flowgraph.node` the single new one, subflow
+        insertion and :meth:`__import_flow` one call per task -- so walking the
+        whole flow here would re-instantiate every task on every node added,
+        making a flow import quadratic in the number of nodes.
+        """
+        if not self.valid("tool", task.tool(), "task", task.task()):
+            EditableSchema(self).insert("tool", task.tool(), "task", task.task(), task)
+            return
+
+        existing_task: Task = self.get("tool", task.tool(), "task", task.task(),
+                                       field="schema")
+        if type(existing_task) is not type(task):
+            raise TypeError(f"Task {task.tool()}/{task.task()} already exists with "
+                            f"different type {type(existing_task).__name__}, "
+                            f"imported type is {type(task).__name__}")
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
         if args[0:1] == ("option",):
