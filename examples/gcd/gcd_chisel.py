@@ -31,9 +31,11 @@ def main():
         design.set_topmodule("GCD")
         design.add_file("GCD.scala")
 
-    # Configure the SDC (timing constraints) file.
+    # Configure the SDC (timing constraints) file. Chisel names the clock port
+    # of a Module 'clock', so this flow needs its own constraints rather than
+    # the 'clk' used by the hand-written gcd.v.
     with design.active_dataroot("gcd"), design.active_fileset("sdc"):
-        design.add_file("gcd.sdc")
+        design.add_file("gcd_chisel.sdc")
 
     # --- Project Setup ---
     # Create an ASIC project from the design configuration.

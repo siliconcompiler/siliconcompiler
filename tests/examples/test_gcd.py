@@ -36,9 +36,9 @@ def test_py_gcd():
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
     # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
+    # 1x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -72,7 +72,9 @@ def test_py_gcd():
 
     assert project.get('metric', 'warnings', step='route.global', index='0') == 0
     assert project.get('metric', 'warnings', step='route.antenna_repair', index='0') == 0
-    assert project.get('metric', 'warnings', step='route.detailed', index='0') == 0
+
+    # 1x [EST-0026] Missing route to pin req_rdy$_DFF_P_/Q in net req_rdy
+    assert project.get('metric', 'warnings', step='route.detailed', index='0') == 1
 
     # Skipped ("no metal fill rules are available" from freepdk45), so no metrics
     # are recorded for this node.
@@ -104,9 +106,9 @@ def test_py_gcd_skywater():
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
     # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 9 multi-output cells (for example, "sky130_fd_sc_hd__fa_1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
+    # 1x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -136,8 +138,7 @@ def test_py_gcd_skywater():
     assert project.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 2
 
     # 1x [RSZ-0062] Unable to repair all setup violations
-    # 1x [RSZ-0066] Unable to repair all hold violations
-    assert project.get('metric', 'warnings', step='cts.repair_timing', index='0') == 2
+    assert project.get('metric', 'warnings', step='cts.repair_timing', index='0') == 1
 
     assert project.get('metric', 'warnings', step='cts.fillcell', index='0') == 0
 
@@ -202,10 +203,10 @@ def test_py_gcd_gf180():
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
     # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 4 multi-output cells
     #    (for example, "gf180mcu_fd_sc_mcu9t5v0__addf_2")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
+    # 1x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -246,7 +247,7 @@ def test_py_gcd_gf180():
     # 8x [DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported, reported
     #    twice each for the Via1, Via2, Via3 and Via4 cut layers
     # 9x [EST-0026] Missing route to pin, reported three times each for
-    #    _205_/A2, _252_/Z and place143/I
+    #    _361_/B1, an a_lt_b input flop output and _274_/A2
     assert project.get('metric', 'warnings', step='route.detailed', index='0') == 17
 
     # Skipped ("no metal fill rules are available" from gf180), so no metrics are
@@ -283,10 +284,10 @@ def test_py_gcd_ihp130():
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
     # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    # 1x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # Unlike the other PDKs there is no multi-output cell warning here, because
     # ABC does not map any full adders for this library.
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 3
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -325,9 +326,9 @@ def test_py_gcd_ihp130():
 
     # 10x [DRT-0349] LEF58_ENCLOSURE with no CUTCLASS is not supported, for the
     #     Cont, Via1, Via2, Via3, Via4, TopVia1 and TopVia2 cut layers
-    #  6x [EST-0026] Missing route to pin, reported three times each for
-    #     _389_/Y and _397_/A1
-    assert project.get('metric', 'warnings', step='route.detailed', index='0') == 16
+    # 18x [EST-0026] Missing route to pin, reported three times each for six
+    #     pins, one of which is a clock buffer output
+    assert project.get('metric', 'warnings', step='route.detailed', index='0') == 28
 
     # Skipped ("no metal fill rules are available" from ihp130), so no metrics
     # are recorded for this node.
@@ -356,9 +357,9 @@ def test_py_gcd_hls():
 
     # 4x Replacing memory with list of registers, for genblk1.in1_sign,
     #    genblk1.xdenom_arr, genblk1.temp and genblk1.quot
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
+    # 1x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 6
 
     # 1x [STA-0441] gcd_hls.sdc:3 set_input_delay relative to a clock defined on
     #    the same port/pin not allowed
@@ -393,9 +394,9 @@ def test_py_gcd_hls():
     assert project.get('metric', 'warnings', step='route.global', index='0') == 0
     assert project.get('metric', 'warnings', step='route.antenna_repair', index='0') == 0
 
-    # 8x [EST-0026] Missing route to pin, one per pin, spread across the
-    #    Datapath temp/reg_out arrays and a handful of unnamed logic cells
-    assert project.get('metric', 'warnings', step='route.detailed', index='0') == 8
+    # 14x [EST-0026] Missing route to pin, one per pin, spread across the
+    #     Datapath temp array, a clock leaf net and assorted logic cells
+    assert project.get('metric', 'warnings', step='route.detailed', index='0') == 14
 
     # Skipped ("no metal fill rules are available" from freepdk45), so no metrics
     # are recorded for this node.
@@ -417,23 +418,23 @@ def test_py_gcd_chisel():
 
     # Warning counts pinned per node. This flow starts from GCD.scala, so the
     # design is whatever the Chisel compiler emits rather than the hand-written
-    # gcd.v used by test_py_gcd(), and the counts differ accordingly.
-    #
-    # Note that gcd.sdc constrains a port named 'clk' but the Chisel-generated
-    # Verilog names its clock 'clock'. The constraint therefore never attaches,
-    # which is the source of the STA-0366 and CTS-0083/0082 warnings below.
+    # gcd.v used by test_py_gcd(), and the counts differ accordingly. It also
+    # uses gcd_chisel.sdc rather than gcd.sdc, because Chisel names the clock
+    # port of a Module 'clock' rather than 'clk'.
 
     # The Chisel convert task defines no warning regex, so it records no metrics.
     assert project.get('metric', 'warnings', step='convert', index='0') is None
 
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 3
+    # 1x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 2
 
-    # 1x [STA-0366] gcd.sdc:1 port 'clk' not found
+    # 1x [STA-0441] gcd_chisel.sdc:3 set_input_delay relative to a clock defined
+    #    on the same port/pin not allowed
     assert project.get('metric', 'warnings', step='synthesis.timing', index='0') == 1
 
-    # 1x [STA-0366] same missing port, reported again when OpenROAD reads the SDC
+    # 1x [STA-0441] same set_input_delay constraint, reported again when OpenROAD
+    #    reads the SDC
     assert project.get('metric', 'warnings', step='cleanup.clean', index='0') == 1
 
     # 1x [IFP-0028] Core area lower left (1.000, 1.000) snapped to (1.140, 1.400)
@@ -453,18 +454,16 @@ def test_py_gcd_chisel():
 
     # 1x [CTS-0132] -balance_levels is obsolete
     # 1x [CTS-0128] -obstruction_aware is obsolete
-    # 1x [CTS-0083] No clock nets have been found
-    # 1x [CTS-0082] No valid clock nets in the design
-    # 1x [STA-0450] virtual clock core_clock can not be propagated
-    # The last three all follow from the unmatched 'clk' constraint noted above.
-    assert project.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 5
+    assert project.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 2
 
     assert project.get('metric', 'warnings', step='cts.repair_timing', index='0') == 0
     assert project.get('metric', 'warnings', step='cts.fillcell', index='0') == 0
 
     assert project.get('metric', 'warnings', step='route.global', index='0') == 0
     assert project.get('metric', 'warnings', step='route.antenna_repair', index='0') == 0
-    assert project.get('metric', 'warnings', step='route.detailed', index='0') == 0
+
+    # 2x [EST-0026] Missing route to pin, for _303_/Z and a y[7] flop output
+    assert project.get('metric', 'warnings', step='route.detailed', index='0') == 2
 
     # Skipped ("no metal fill rules are available" from freepdk45), so no metrics
     # are recorded for this node.
