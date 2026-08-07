@@ -40,6 +40,7 @@ def email_creds(monkeypatch):
     return default_email_credentials_file()
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize(
     'event', events
 )
@@ -57,6 +58,7 @@ def test_email_all(asic_gcd, email_creds, event):
         context.sendmail.assert_called()
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize(
     'event', events
 )
@@ -74,6 +76,7 @@ def test_email_none(asic_gcd, email_creds, event):
         context.sendmail.assert_not_called()
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize(
     'event,check_event', [v for v in combinations_with_replacement(events, 2) if v[0] == v[1]]
 )
@@ -91,6 +94,7 @@ def test_email_single_match(asic_gcd, email_creds, event, check_event):
         context.sendmail.assert_called()
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize(
     'event,check_event', [v for v in combinations_with_replacement(events, 2) if v[0] != v[1]]
 )
@@ -108,6 +112,7 @@ def test_email_single_not_match(asic_gcd, email_creds, event, check_event):
         context.sendmail.assert_not_called()
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize(
     'event', events
 )
@@ -125,6 +130,7 @@ def test_email_missing_credentials(asic_gcd, event):
         context.sendmail.assert_not_called()
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize(
     'event', events
 )
@@ -141,6 +147,7 @@ def test_email_missing_email(asic_gcd, email_creds, event):
         context.sendmail.assert_not_called()
 
 
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize(
     'event', events
 )
@@ -157,6 +164,7 @@ def test_email_missing_event(asic_gcd, email_creds, event):
         context.sendmail.assert_not_called()
 
 
+@pytest.mark.timeout(30)
 def test_email_step_index(asic_gcd, email_creds):
     asic_gcd.set('option', 'scheduler', 'msgevent', 'all', step='syn', index='0')
     asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')

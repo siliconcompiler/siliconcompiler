@@ -96,6 +96,7 @@ def test_sc_show(flags, monkeypatch, make_manifests, asic_gcd):
                                      open=False)
 
 
+@pytest.mark.timeout(90)
 def test_sc_show_double_flags(monkeypatch, make_manifests, asic_gcd):
     '''Test sc-show app on a few sets of flags.'''
     make_manifests(asic_gcd)
