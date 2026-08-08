@@ -425,9 +425,10 @@ def test_py_gcd_hls():
 
 @pytest.mark.eda
 @pytest.mark.timeout(300)
-def test_py_gcd_chisel():
+def test_py_gcd_chisel(sbt_download_guard):
     from gcd import gcd_chisel
-    gcd_chisel.main()
+    with sbt_download_guard():
+        gcd_chisel.main()
 
     assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/GCD.gds.gz')
 
