@@ -5,6 +5,12 @@ A complete set of supported tools can be found in :ref:`tools <builtin_tools>`.
 Integrating a New Tool
 ======================
 
+.. seealso::
+   Contributing this back to the project? :ref:`How to Contribute a New Module
+   <module_placement>` covers where it belongs and `CONTRIBUTING.md
+   <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_
+   covers the process: branches, tests, the four lint gates, and the docs build.
+
 To add support for a new EDA tool, you need to create a Python-based "driver" that teaches SiliconCompiler how to interact with it. Think of a driver as a universal adapter: it translates SiliconCompiler's standardized hardware compilation flow into the specific commands, scripts, and file formats that a particular tool understands.
 
 A complete driver consists of:

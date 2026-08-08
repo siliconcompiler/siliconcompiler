@@ -11,6 +11,20 @@ This could be a hard macro with pre-defined physical layouts (GDS, LEF), a stand
 By packaging IP into a :class:`.Design`, you make it easy to manage, version, and reuse across different projects.
 Libraries are loaded into a project using the :meth:`.Project.add_dep()` method.
 
+.. seealso::
+   Writing the module is only half the job -- where it ships matters too. Open
+   PDKs and standard cell libraries belong in `lambdapdk
+   <https://github.com/siliconcompiler/lambdapdk>`_, closed or proprietary ones
+   in your own package (see :ref:`Packaging an External Library
+   <dev_external_libraries>`), and tools, flows and targets in the
+   SiliconCompiler repository itself. :ref:`Where does my module go?
+   <module_placement>` walks through the choice.
+
+   Contributing the module back? `CONTRIBUTING.md
+   <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_
+   covers the pull request process, the four lint gates every PR is checked
+   against, and how to build the docs.
+
 Types of Libraries
 ------------------
 

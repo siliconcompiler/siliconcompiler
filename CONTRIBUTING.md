@@ -86,7 +86,7 @@ $ python3 -m pip install --upgrade pip setuptools
 
 - Install the development dependencies
 ```sh
-$ python3 -m pip install -e .[test,docs]
+$ python3 -m pip install -e .[test,lint,docs]
 ```
 
 ## Start coding
@@ -132,28 +132,77 @@ $ pytest
 
 - Create a [pull request](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request) through github.
 
-## Running linter
+## Running the linters
 
-- Running linter on complete project
+Every pull request is gated on four separate lint jobs, covering Python, Verilog,
+TCL and spelling. All four are worth running locally, because a failure in any of
+them blocks the PR.
+
+First install the lint tooling:
+
 ```sh
-$ flake8 .
+$ python3 -m pip install -e .[lint]
 ```
 
-- Running linter on a specific module
+**Python** — `flake8`, on the whole project or a single file:
+
 ```sh
-$ flake8 siliconcompiler/schema.py
+$ flake8 --statistics .
+$ flake8 siliconcompiler/schema/baseschema.py
 ```
 
+**TCL** — `tclfmt` checks formatting, `tclint` checks for problems:
+
+```sh
+$ tclfmt --check .
+$ tclint .
+```
+
+**Spelling** — `codespell` runs over the whole repository, prose included:
+
+```sh
+$ codespell
+```
+
+**Verilog** — this one needs
+[Verible](https://github.com/chipsalliance/verible), which is not a Python
+package. CI installs it with
+`./siliconcompiler/toolscripts/ubuntu20/install-verible.sh`.
+
+Note that the format check works by *rewriting* files and then failing if
+anything changed, so run it before committing and include whatever it reformats:
+
+```sh
+$ ./.github/workflows/bin/format_verilog.sh > files.txt
+$ git diff --exit-code
+$ verible-verilog-lint --rules_config .github/workflows/config/verible.rules `cat files.txt`
+```
 
 ## Building the docs
 
-- Build the docs in the ``docs`` directory using [Sphinx](https://www.sphinx-doc.org/en/stable/).
+The docs build needs the `docs` extra and Graphviz:
 
 ```sh
+$ python3 -m pip install -e .[docs]
+$ sudo apt install graphviz xdot     # macOS: brew install graphviz
 $ cd docs
 $ make html
 ```
-- Open ``_build/html/index.html`` in your browser to view the docs.
+
+Open `_build/html/index.html` in your browser to view the result. To exercise the
+search box, serve the directory instead of opening the file directly --
+`python3 -m http.server -d _build/html` -- because search result summaries are
+fetched with JavaScript, which browsers block on `file://` URLs.
+
+**Warnings are errors.** `docs/Makefile` passes `-W --keep-going` to Sphinx, and
+Read the Docs is configured with `fail_on_warning`, so a broken cross-reference
+or malformed directive fails the build rather than quietly shipping. If your
+change adds a warning, the build goes red on your PR.
+
+Some documentation defects are valid reStructuredText that simply means
+something other than what you intended, which no Sphinx warning can catch. Those
+are covered by `tests/docs/test_rst_lint.py`, which runs as part of the normal
+test suite.
 
 
 ## Resources ###
