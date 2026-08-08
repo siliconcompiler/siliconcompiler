@@ -1,13 +1,25 @@
 from sphinx.util.docutils import SphinxDirective
 import os
 
-from sphinx.util.nodes import nested_parse_with_titles
-from docutils.statemachine import ViewList
+from sphinx.addnodes import pending_xref
 
 from siliconcompiler.schema.docs.utils import nodes, link
 from siliconcompiler.schema.docs import sc_root as SC_ROOT
 
 from siliconcompiler.schema.docs import get_codeurl
+
+
+# Tools that ship an install script but have no driver page to link to, and are
+# not expected to grow one. Everything else is required to resolve, so adding an
+# install script for a genuinely undocumented tool fails the build until it is
+# either documented or listed here deliberately.
+TOOLS_WITHOUT_DOCS = {
+    'slurm',            # a scheduler backend, not a tool driver
+    'vcd2fst',          # waveform conversion utility invoked by other tools
+    'verible',          # used by CI lint, not by any flow
+    'wildebeest',
+    'yosys-moosic',     # yosys plugin, documented as part of yosys
+}
 
 
 # Main Sphinx plugin
@@ -70,10 +82,21 @@ class InstallScripts(SphinxDirective):
             row = nodes.row()
             entryrow = nodes.entry()
 
-            rst = ViewList()
-            # use fake filename 'inline' for error # reporting
-            rst.append(f':ref:`{tool} <tool-{tool}>`', 'inline', 0)
-            nested_parse_with_titles(self.state, rst, entryrow)
+            # Link to the tool's driver page. Tools on the allowlist render as
+            # plain text instead; every other tool must resolve, so a missing
+            # driver page is reported rather than silently linking nowhere.
+            xref = pending_xref('',
+                                refdoc=self.env.docname,
+                                refdomain='std',
+                                reftype='ref',
+                                reftarget=f'tool-{tool}',
+                                refexplicit=True,
+                                refwarn=tool not in TOOLS_WITHOUT_DOCS)
+            xref += nodes.inline(text=tool)
+
+            para = nodes.paragraph()
+            para += xref
+            entryrow += para
 
             row += entryrow
             for platform in platforms:

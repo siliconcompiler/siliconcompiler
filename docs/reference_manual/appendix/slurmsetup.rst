@@ -126,10 +126,9 @@ If your system has other core resources that the cluster may need to access, you
 slurm.conf
 **********
 
-The most reliable way of setting up a comprehensive `slurm.conf` file is by using Slurm's "configurator" web tool, but the large number of fields can be confusing if you are new to Slurm.
+The most reliable way of setting up a comprehensive `slurm.conf` file is by using Slurm's "configurator" tool, but the large number of fields can be confusing if you are new to Slurm.
 
-If you want to use the "configurator" tool, it is available online on the Slurm website in a `"normal" <https://slurm.schedmd.com/configurator.html>`_ and `"easy" <https://slurm.schedmd.com/configurator.html>`_ version.
-It is a simple HTML page, though, so you can also run it locally by installing the Slurm documentation package::
+The "configurator" is a self-contained HTML page that ships with the Slurm documentation package, so you can run it locally::
 
     apt-get install slurm-wlm-doc
 

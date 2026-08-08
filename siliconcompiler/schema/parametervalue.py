@@ -63,7 +63,7 @@ class NodeListValue:
         Args:
             manifest (dict): Manifest to decide.
             keypath (list of str): Path to the current keypath.
-            version (packaging.Version): Version of the dictionary schema
+            version (packaging.version.Version): Version of the dictionary schema
             sctype (str): schema type for this value
         '''
 
@@ -282,7 +282,7 @@ class NodeSetValue:
         Args:
             manifest (dict): Manifest to decide.
             keypath (list of str): Path to the current keypath.
-            version (packaging.Version): Version of the dictionary schema
+            version (packaging.version.Version): Version of the dictionary schema
             sctype (str): schema type for this value
         '''
 
@@ -492,7 +492,7 @@ class NodeValue:
         Args:
             manifest (dict): Manifest to decide.
             keypath (list of str): Path to the current keypath.
-            version (packaging.Version): Version of the dictionary schema
+            version (packaging.version.Version): Version of the dictionary schema
             sctype (str): schema type for this value
         '''
 
@@ -525,7 +525,7 @@ class NodeValue:
         Args:
             manifest (dict): Manifest to decide.
             keypath (list of str): Path to the current keypath.
-            version (packaging.Version): Version of the dictionary schema
+            version (packaging.version.Version): Version of the dictionary schema
         '''
 
         self.set(manifest["value"], field="value")

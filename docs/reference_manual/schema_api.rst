@@ -300,6 +300,13 @@ Core Schema Classes
 .. autoclass:: siliconcompiler.schema.parametertype.NodeEnumType
     :members:
 
+.. autoclass:: siliconcompiler.schema.parametertype.NodeRangeType
+    :members:
+
+.. autoclass:: siliconcompiler.schema.baseschema.LazyLoad
+    :members:
+    :undoc-members:
+
 .. autoclass:: siliconcompiler.schema.parameter.Scope
     :members:
     :undoc-members:
@@ -385,9 +392,43 @@ Supporting Classes
     :members:
     :show-inheritance:
 
+.. autoclass:: siliconcompiler.schema_support.record.RecordTime
+    :members:
+    :undoc-members:
+
+.. autoclass:: siliconcompiler.schema_support.record.RecordTool
+    :members:
+    :undoc-members:
+
 .. autoclass:: siliconcompiler.schema_support.metric.MetricSchema
     :members:
     :show-inheritance:
+
+.. autoclass:: siliconcompiler.metrics.asic.ASICMetricsSchema
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.metrics.fpga.FPGAMetricsSchema
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.constraints.timing_mode.TimingModeSchema
+    :members:
+    :show-inheritance:
+
+Execution and settings
+======================
+
+.. autoclass:: siliconcompiler.scheduler.schedulernode.SchedulerNode
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.scheduler.slurm.SlurmSchedulerNode
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.utils.settings.SettingsManager
+    :members:
 
 Inheritance
 ===========

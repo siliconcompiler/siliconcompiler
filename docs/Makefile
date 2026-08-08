@@ -3,7 +3,12 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS    ?=
+# -W turns warnings into errors so broken references and malformed markup fail
+# the build instead of scrolling past. --keep-going reports every problem in one
+# run rather than stopping at the first. Nitpicky mode (-n) is deliberately not
+# enabled: it adds ~1800 warnings, most of them unresolved type names in
+# docstrings, which would drown the signal.
+SPHINXOPTS    ?= -W --keep-going
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build

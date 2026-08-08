@@ -51,6 +51,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.imgconverter',
     'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
     "sphinx.ext.linkcode",
     'siliconcompiler.schema.docs.schemagen',
     'clientservergen',
@@ -70,6 +71,20 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv/**']
 pygments_style = 'friendly'
 
 suppress_warnings = []
+
+# Resolve standard-library types so they link to the Python documentation
+# instead of rendering as dead text.
+#
+# Deliberately limited to one mapping. An unreachable inventory logs a warning
+# with no subtype, so it cannot be filtered with suppress_warnings, and with
+# SPHINXOPTS set to -W that turns a transient network failure into a failed docs
+# build. Every additional mapping is another host that can take the build down,
+# so a new one needs to earn its keep: packaging and pandas were tried and
+# dropped, resolving one name between them.
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+}
+intersphinx_timeout = 15
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -147,7 +162,37 @@ latex_elements = {
 
 latex_use_modindex = False
 
-linkcheck_timeout = 5
+# Some vendor documentation sites are slow; 5s produced spurious timeouts.
+linkcheck_timeout = 15
+
+# External links flake, so linkcheck runs on a schedule rather than per-PR --
+# see .github/workflows/docs_linkcheck.yml.
+linkcheck_retries = 2
+
+# GitHub rewrites Markdown heading anchors to "user-content-*" in the HTML it
+# serves and restores the original ids client-side. linkcheck fetches the raw
+# HTML, so it can never resolve an anchor into a README and reports every one as
+# broken. Check that those pages exist, but not their fragments.
+linkcheck_anchors_ignore_for_url = [
+    r"https://github\.com/.*",
+]
+
+# Being rate-limited by a host is not a broken link; back off and retry rather
+# than failing the run.
+linkcheck_rate_limit_timeout = 60.0
+
+# Skip the auto-generated "File: <source>.py" links emitted by autodoc/linkcode
+# and the schema generators. There are ~1100 of them, they are all mechanically
+# constructed by get_codeurl() from a single version tag, and hammering
+# github.com with them is what gets a linkcheck run rate-limited before it
+# reaches anything interesting.
+#
+# The install-script links (.sh) are deliberately *not* skipped even though they
+# are generated the same way: there are only ~130, they exercise the same
+# version tag, and a stale entry in the install table is user-facing.
+linkcheck_ignore = [
+    r"https://github\.com/siliconcompiler/[^/]+/blob/v[0-9][^\s]*\.py(#L\d+(-L\d+)?)?$",
+]
 
 # Modified from: https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-1048104024
 code_url = get_codeurl()
