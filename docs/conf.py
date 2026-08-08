@@ -113,6 +113,10 @@ html_static_path = ['_static']
 html_css_files = [
     'css/custom.css',
 ]
+
+# Rank hand-written prose above the auto-generated reference tree. See the
+# comment block in the scorer itself for why this is needed.
+html_search_scorer = '_static/search_scorer.js'
 html_context = {"default_mode": "light"}
 html_use_modindex = True
 html_copy_source = False

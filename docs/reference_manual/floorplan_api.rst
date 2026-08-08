@@ -1,3 +1,4 @@
+:no-search:
 
 Leflib API
 ------------
