@@ -27,7 +27,7 @@ def test_version(gcd_design):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_chisel(datadir):
+def test_chisel(datadir, sbt_download_guard):
     design = Design("gcd")
     design.set_dataroot("root", datadir)
     with design.active_dataroot("root"), design.active_fileset("rtl"):
@@ -41,7 +41,8 @@ def test_chisel(datadir):
     flow.node("convert", convert.ConvertTask())
     proj.set_flow(flow)
 
-    assert proj.run()
+    with sbt_download_guard():
+        assert proj.run()
 
     # check that compilation succeeded
     assert proj.find_result('v', step='convert') == \

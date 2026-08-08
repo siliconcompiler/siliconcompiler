@@ -1,7 +1,9 @@
 import logging
 import os
 import pytest
+import glob
 import json
+import re
 import multiprocessing
 import platform
 import shutil
@@ -12,6 +14,7 @@ import time
 
 import os.path
 
+from contextlib import contextmanager
 from uuid import uuid4
 from pathlib import Path
 from pyvirtualdisplay import Display
@@ -430,6 +433,50 @@ def run_cli():
         return proc
 
     return run
+
+
+@pytest.fixture
+def sbt_download_guard(request):
+    '''Returns a context manager that converts an sbt dependency download
+    failure into a skip.
+
+    Wrap the run of any Chisel-based flow in it. If the run fails and the log of
+    a node that failed shows sbt failing to fetch its dependencies, the test is
+    skipped; every other failure propagates unchanged.'''
+
+    # sbt resolves its own launcher and the Chisel jars from Maven Central (and
+    # friends) on every run, so a rate limit (HTTP 429) or a network hiccup
+    # fails the convert node for reasons unrelated to SiliconCompiler.
+    errors = (
+        "download error: Caught java.io.IOException",
+        "could not retrieve sbt",
+    )
+
+    @contextmanager
+    def guard():
+        try:
+            yield
+        except Exception as e:
+            # Only the logs of the nodes that actually failed count: coursier
+            # reports the same download errors for mirrors it then successfully
+            # falls back from, so those messages also sit in the logs of nodes
+            # that ran fine and must not mask an unrelated failure.
+            failed = re.search(r"due to errors in: (.*)", str(e))
+            for node in failed.group(1).split(",") if failed else []:
+                step, _, index = node.strip().partition("/")
+                for log in glob.glob(os.path.join("**", step, index, "*.log"), recursive=True):
+                    try:
+                        with open(log, errors="ignore") as f:
+                            text = f.read()
+                    except OSError:
+                        continue
+                    for error in errors:
+                        if error in text:
+                            pytest.skip(f"{request.node.nodeid}: sbt failed to download its "
+                                        f"dependencies ({error}) in {log}")
+            raise
+
+    return guard
 
 
 @pytest.fixture
