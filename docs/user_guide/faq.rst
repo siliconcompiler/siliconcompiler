@@ -107,6 +107,8 @@ Build directory
 
     project.option.set_builddir(<dirpath>)
 
+See :ref:`Directory structures <build_directory>` for what a run writes there.
+
 Cache directory
 ^^^^^^^^^^^^^^^
 
@@ -115,6 +117,8 @@ Cache directory
 .. code-block:: python
 
     project.option.set_cachedir(<dirpath>)
+
+Defaults to ``~/.sc/cache``; see :ref:`the SC home directory <sc_home>`.
 
 Use the manifest from a previous run
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

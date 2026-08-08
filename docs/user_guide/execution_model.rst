@@ -5,7 +5,7 @@ Compilation Process
 ###################
 
 The complete SiliconCompiler compilation is handled by a single call to the :meth:`.Project.run()` function.
-Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <node>` and :term:`edges <edge>` is traversed and "executed."
+Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <flowgraph node>` and :term:`edges <edge>` is traversed and "executed."
 
 The static flowgraph approach was chosen for a number reasons:
 
@@ -22,7 +22,7 @@ Nodes and Edges
 
 A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where:
 
-* A :term:`node` is an executable :term:`tool` performing some (":term:`task`"), and
+* A :term:`node <flowgraph node>` is an executable :term:`tool` performing some (":term:`task`"), and
 * An :term:`edge` is the connection between those tasks, specifying execution order.
 
 .. image:: _images/flowgraph_diagram.png

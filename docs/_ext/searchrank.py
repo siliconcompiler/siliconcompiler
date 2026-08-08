@@ -13,8 +13,11 @@ script exists so the balance can be re-measured rather than assumed.
 
 Usage::
 
-    cd docs && make html
+    cd docs && rm -rf _build && make html
     python3 _ext/searchrank.py _build/html/searchindex.js
+
+Measure from a clean build. An incremental build reuses cached index data for
+pages it did not rebuild, which is enough to shift rankings by a place or two.
 
 This is a port of the ranking in ``sphinx/themes/basic/static/searchtools.js``
 (``Search._performSearch`` plus ``performTermsSearch``) together with the
@@ -25,6 +28,15 @@ omits the object-search branch, which only fires for API-shaped queries.
 import json
 import pathlib
 import sys
+
+import snowballstemmer
+
+# ``terms`` and ``titleterms`` are keyed by stem, not by word, so the query has
+# to be stemmed the same way before it can be looked up. Sphinx's English search
+# language uses the Porter stemmer; searchtools.js runs a JavaScript port of the
+# same algorithm in the browser. Skipping this step silently under-reports every
+# query whose stem differs from the word ("credentials" -> "credenti").
+_STEMMER = snowballstemmer.stemmer("porter")
 
 # Predominantly auto-generated pages, by docname prefix. Keep in sync with
 # the _generated list in docs/_static/search_scorer.js.
@@ -101,14 +113,15 @@ def search(idx, query, apply_scorer=True):
             best[file] = max(best.get(file, 0), score)
 
     terms, titleterms = idx["terms"], idx["titleterms"]
-    add(terms.get(q), TERM)
-    add(titleterms.get(q), TITLE)
+    stem = _STEMMER.stemWord(q)
+    add(terms.get(stem), TERM)
+    add(titleterms.get(stem), TITLE)
     if len(q) > 2:
-        if q not in terms:
+        if stem not in terms:
             for term, files in terms.items():
                 if q in term:
                     add(files, PARTIAL_TERM)
-        if q not in titleterms:
+        if stem not in titleterms:
             for term, files in titleterms.items():
                 if q in term:
                     add(files, PARTIAL_TITLE)

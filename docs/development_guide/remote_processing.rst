@@ -16,7 +16,8 @@ SiliconCompiler supports a remote compilation model, allowing you to leverage cl
 Step 1: Configure Your Remote Server
 ------------------------------------
 
-All remote server settings are managed through a ``credentials.json`` file located in your home directory (``$HOME/.sc/`` on Linux/macOS or ``C:\Users\<USERNAME>\.sc\`` on Windows).
+All remote server settings are managed through a ``credentials`` file located in your home directory (``$HOME/.sc/`` on Linux/macOS or ``C:\Users\<USERNAME>\.sc\`` on Windows).
+The file holds JSON, but has no file extension.
 
 While you can create this file manually, the recommended method is to use the interactive ``sc-remote`` command.
 
@@ -38,7 +39,7 @@ You will be prompted to enter your server's details. Follow the prompts based on
   Remote server address: https://your-secure-server.com
   Remote username: your-username
   Remote password: your-key
-  Remote configuration saved to: /home/user/.sc/credentials.json
+  Remote configuration saved to: /home/user/.sc/credentials
 
 * **Public/Unauthenticated Server:** Enter the server address and press Enter to leave the username and password fields blank.
 
@@ -47,12 +48,12 @@ You will be prompted to enter your server's details. Follow the prompts based on
   Remote server address: https://server.siliconcompiler.com
   Remote username:
   Remote password:
-  Remote configuration saved to: /home/user/.sc/credentials.json
+  Remote configuration saved to: /home/user/.sc/credentials
 
 Method 2: Manual Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you prefer, you can create the ``credentials.json`` file manually in the appropriate directory.
+If you prefer, you can create the ``credentials`` file manually in the appropriate directory.
 The file must contain the following JSON structure:
 
 .. code-block::

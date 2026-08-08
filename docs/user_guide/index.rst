@@ -16,15 +16,16 @@ You will also want to look at API References for details.
    Quickstart guide <quickstart>
    Docker guide <docker>
 
-.. _tutorials:
-
 .. toctree::
    :caption: Fundamentals
    :maxdepth: 1
 
    Design & compilation data <data_model>
    Compilation process <execution_model>
+   Directory structures <directories>
 ..   <wip> Audit Model (aka The Checklist) <checklist>
+
+.. _tutorials:
 
 .. toctree::
    :caption: Tutorials

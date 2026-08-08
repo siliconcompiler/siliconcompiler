@@ -14,7 +14,7 @@ The Schema is designed to capture everything needed to produce a repeatable buil
 * **Target Technology**: Information about the target process design kit (PDK).
 * **Metrics & Results**: Data gathered from the compilation, such as cell area, timing, and power.
 
-This data is stored in Schema parameters, which are accessed through a simple and consistent set of API methods.
+This data is stored in Schema :term:`parameters <parameter>`, which are accessed through a simple and consistent set of API methods.
 
 .. image:: _images/schema_diagram.png
    :scale: 50%
@@ -24,13 +24,15 @@ The diagram above illustrates how different types of data are organized within t
 
 The following sections detail how to interact with the Schema.
 
+.. _schema_access:
+
 Working with the Schema
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 You interact with the Schema's parameters through a Project object.
-Parameters are organized hierarchically and accessed using a "keypath"—a list of strings that specifies the unique location of a parameter.
+The recommended way to do so is through **typed accessors** -- named methods, grouped by area, that set and read one parameter each.
 
-The following example demonstrates how to create a Project object and manipulate the :keypath:`option,fileset` parameter, which tracks the types of input files for the compilation.
+The following example creates a Project and manipulates :keypath:`option,fileset`, which selects which :term:`filesets <fileset>` of the design to compile.
 
 .. code-block:: python
 
@@ -39,19 +41,60 @@ The following example demonstrates how to create a Project object and manipulate
     # Create a project, which contains a schema.
     >>> project = Project()
 
-    # The 'fileset' parameter is initially empty.
-    >>> print(project.get('option', 'fileset'))
+    # The 'fileset' option is initially empty.
+    >>> print(project.option.get_fileset())
     []
 
-    # Use the set() method to assign a value.
-    >>> project.set('option', 'fileset', 'rtl')
-    >>> print(project.get('option', 'fileset'))
-    ['rtl']
+    # Append values with the matching add_ accessor.
+    >>> project.option.add_fileset('rtl')
+    >>> project.option.add_fileset('sdc')
+    >>> print(project.option.get_fileset())
+    ['rtl', 'sdc']
 
-    # Use the add() method to append a new value to the list.
-    >>> project.add('option', 'fileset', 'sdc')
+Typed accessors are ordinary Python methods, so they are discoverable by autocompletion, checked by your editor, and documented with their own argument types.
+Each one is listed in the :ref:`Python API <schema_api>` reference.
+
+Keypaths: the layer underneath
+------------------------------
+
+Underneath, every parameter lives at a **keypath** -- an ordered list of strings giving its unique location in the Schema, written in this documentation as :keypath:`option,fileset`.
+The generic :meth:`.BaseSchema.get`, :meth:`.BaseSchema.set`, and :meth:`.BaseSchema.add` methods address parameters by keypath directly:
+
+.. code-block:: python
+
+    # The same parameter the accessors above operated on.
     >>> print(project.get('option', 'fileset'))
     ['rtl', 'sdc']
+
+There is no second copy of the data and no conversion between the two forms: ``project.option.get_fileset()`` and ``project.get('option', 'fileset')`` read the same stored value.
+The typed accessor is a thin, named wrapper around the keypath call.
+
+.. admonition:: Which should you write?
+   :class: tip
+
+   **Prefer the typed accessor whenever one exists.** It is the supported,
+   self-documenting interface, and it is what the
+   :ref:`tutorials <tutorials>` and the ``examples/`` directory use.
+
+   **Reach for a keypath when there is no accessor to use.** Two cases account
+   for most of them:
+
+   * **Reading results.** :term:`Metrics <metric>` and :term:`records <record>`
+     are keyed by name and recorded per :term:`flowgraph node`, so they are read
+     with an explicit keypath plus a step and index::
+
+         >>> project.get('metric', 'cellarea', step='synthesis', index='0')
+         67.032
+
+   * **Parameters an accessor has not been written for.** The Schema is larger
+     than the accessor surface; the keypath API reaches every parameter in the
+     :ref:`Schema Reference <schema>`, including those contributed by tools and
+     PDKs.
+
+   Keypaths are not deprecated or discouraged in these cases -- they are the
+   general mechanism the accessors are built on. What you should avoid is using
+   a keypath for a parameter that already has an accessor, because the accessor
+   carries the type and the name checking that a bare string list cannot.
 
 The Manifest: Saving and Loading the Schema
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -65,8 +108,11 @@ If you ran the :ref:`asic demo <asic_demo>`, you can find the project manifest h
 
     build/<design>/job0/<design>.pkg.json
 
+Every :term:`flowgraph node` also writes its own manifest, capturing the schema
+as that node received and left it.
+See :ref:`Directory structures <directory_structures>` for the full build tree.
+
 The :meth:`.BaseSchema.write_manifest`, :meth:`.BaseSchema.read_manifest`, and :meth:`.BaseSchema.from_manifest` methods handle serializing the Schema to and from disk.
-While JSON is the default, other supported formats include Tcl, YAML, and CSV.
 
 Writing and Reading a Manifest
 ------------------------------
@@ -74,11 +120,12 @@ Writing and Reading a Manifest
 .. code-block:: python
 
     >>> from siliconcompiler import Project
+    >>> from siliconcompiler.flows.asicflow import ASICFlow
 
     # Create and configure a project.
     >>> project = Project()
-    >>> project.set('option', 'design', 'my_design')
-    >>> project.set('option', 'flow', 'asicflow')
+    >>> project.option.set_design('my_design')
+    >>> project.set_flow(ASICFlow())
 
     # Write the entire schema configuration to a file.
     >>> project.write_manifest('manifest.json')
@@ -86,12 +133,12 @@ Writing and Reading a Manifest
     # You can later reload this configuration into a new project.
     >>> new_project = Project()
     >>> new_project.read_manifest('manifest.json')
-    >>> print(new_project.get('option', 'design'))
+    >>> print(new_project.option.get_design())
     my_design
 
     # Or you can directly load it
     >>> new_project = Project.from_manifest('manifest.json')
-    >>> print(new_project.get('option', 'design'))
+    >>> print(new_project.option.get_design())
     my_design
 
 The manifest.json file written by the code above would contain a record of all schema parameters, including the design name we configured:

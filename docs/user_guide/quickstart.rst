@@ -138,9 +138,13 @@ You can use this job ID to interact with a running job using the :ref:`sc-remote
     sc-remote -jobid 0123456789abcdeffedcba9876543210 -delete
 
     # Reconnect to an active job.
-    sc-remote -jobid 0123456789abcdeffedcba9876543210 -reconnect -cfg [build/design/jobname/import/0/outputs/design.pkg.json]
+    sc-remote -jobid 0123456789abcdeffedcba9876543210 -reconnect -cfg build/<design>/<jobname>/<design>.pkg.json
 
 The :ref:`sc-remote <app-sc-remote>` app also accepts a `-credentials` input parameter which works the same way as the :keypath:`option,credentials` parameter.
+
+.. seealso::
+   :ref:`Directory structures <directory_structures>` explains the build tree
+   these paths refer to, and where else a run writes.
 
 .. _start_the_results:
 
