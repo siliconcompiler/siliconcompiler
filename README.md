@@ -24,18 +24,21 @@ SiliconCompiler is a modular hardware build system ("make for silicon"). The pro
 |**FPGA APR**| VPR, nextpnr, Vivado
 |**Layout Viewer**| Klayout, OpenROAD, Cadence, Synopsys
 |**DRC/LVS**| Klayout, Magic, Synopsys, Siemens
-|**PDKs**| sky130, ihp130, gf180, asap7, freepdk45, gf12lp, gf22fdx, intel16
+|**Open PDKs**| sky130, ihp130, gf180, asap7, freepdk45, gt2n, interposer — all shipped by [lambdapdk](https://github.com/siliconcompiler/lambdapdk)
+|**Foundry PDKs**| gf12lp, gf22fdx, intel16 — require a foundry agreement; package them yourself following the [external library guide](https://docs.siliconcompiler.com/en/latest/development_guide/external_libraries.html)
 
 # Getting Started
 
 SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
 Linux platforms. For working Python 3.10-3.14 environment, just use pip.
+On Windows, use remote or Docker execution — local tool flows are supported on Linux and macOS.
 
 ```sh
 pip install --upgrade siliconcompiler
 ```
 
 Converting RTL into DRC clean GDS takes 13 lines of simple Python code.
+(`asicflow` closes routing design rule violations, reported as the `drvs` metric; signoff DRC and LVS run in the separate `signoffflow`.)
 
 ```python
 from siliconcompiler import ASIC, Design               # import python package
@@ -58,28 +61,30 @@ project.show()                                         # show layout
 
 # Why SiliconCompiler?
 
-* **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/stable/reference_manual/core_api.html)
-* **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/stable/reference_manual/schema.html) supports ASIC and FPGA design and simulation
-* **Speed:** Flowgraph [execution model](https://docs.siliconcompiler.com/en/stable/user_guide/execution_model.html) enables cloud scale execution.
-* **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/stable/development_guide/remote_processing.html) enables "zero install" compilation
+* **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/latest/reference_manual/schema_api.html)
+* **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html) supports ASIC and FPGA design and simulation
+* **Speed:** Flowgraph [execution model](https://docs.siliconcompiler.com/en/latest/user_guide/execution_model.html) enables cloud scale execution.
+* **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/latest/development_guide/remote_processing.html) enables "zero install" compilation
 * **Modularity:** [Tool abstraction layer](https://docs.siliconcompiler.com/en/latest/development_guide/tools.html) makes it easy to add/port new tools to the project.
-* **Provenance:** [Compilation manifests](https://docs.siliconcompiler.com/en/stable/user_guide/data_model.html) created automatically during execution.
+* **Provenance:** [Compilation manifests](https://docs.siliconcompiler.com/en/latest/user_guide/data_model.html) created automatically during execution.
 * **Documented:** An extensive set of auto-generated high quality [reference documents](https://docs.siliconcompiler.com/).
 * **In-use:** Actively used by Zero ASIC for commercial tapeouts at advanced process nodes.
 
 # Documentation
 
+New here? Start with the [Quickstart guide](https://docs.siliconcompiler.com/en/latest/user_guide/quickstart.html), which walks through the example above line by line.
+
 The full reference manual and tutorials can be found [HERE](https://docs.siliconcompiler.com/).
 
 # License
 
-[Apache License 2.0](LICENSE)
+[Apache License 2.0](https://github.com/siliconcompiler/siliconcompiler/blob/main/LICENSE)
 
 # How to Cite
 
 If you want to cite our work, please use the following paper:
 
-A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silicon Compilation](docs/papers/sc_dac2022.pdf)", 59th Design Automation Conference (DAC), 10-14 July 2022, San Francisco, CA, USA. Published, 7/2022.
+A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silicon Compilation](https://github.com/siliconcompiler/siliconcompiler/blob/main/docs/papers/sc_dac2022.pdf)", 59th Design Automation Conference (DAC), 10-14 July 2022, San Francisco, CA, USA. Published, 7/2022.
 
 Bibtex:
 ```
@@ -95,7 +100,7 @@ Bibtex:
 
 # Installation
 
-Complete installation instructions are available in the [Installation Guide](https://docs.siliconcompiler.com/en/stable/user_guide/installation.html).
+Complete installation instructions are available in the [Installation Guide](https://docs.siliconcompiler.com/en/latest/user_guide/installation.html).
 
 To install the project from source (recommended for developers only).
 
@@ -113,15 +118,15 @@ pip install -e .[docs]       # Optional install step for generating docs
 # EDA Tool Installation
 
 Installation instructions for all external tools can be found in the
-[External Tools](https://docs.siliconcompiler.com/en/stable/user_guide/installation.html#external-tools) section
-of the user guide. We have included shell setup scripts (Ubuntu) for most of the supported tools, which can be accessed via [sc-install](https://docs.siliconcompiler.com/en/latest/reference_manual/apps.html#apps-sc-install-ref).
-See the [./siliconcompiler/toolscripts](./siliconcompiler/toolscripts) directory for a complete set of scripts and [./siliconcompiler/toolscripts/_tools.json](./siliconcompiler/toolscripts/_tools.json) for the currently recommended tool versions.
+[External Tools](https://docs.siliconcompiler.com/en/latest/user_guide/installation.html#external-tools) section
+of the user guide. We have included shell setup scripts (Ubuntu) for most of the supported tools, which can be accessed via [sc-install](https://docs.siliconcompiler.com/en/latest/reference_manual/apps.html#app-sc-install).
+See the [siliconcompiler/toolscripts](https://github.com/siliconcompiler/siliconcompiler/tree/main/siliconcompiler/toolscripts) directory for a complete set of scripts and [siliconcompiler/toolscripts/_tools.json](https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/toolscripts/_tools.json) for the currently recommended tool versions.
 
 # Contributing
 
 SiliconCompiler is an open-source project and welcomes contributions. To find out
 how to contribute to the project, see our
-[Contributing Guidelines](./CONTRIBUTING.md).
+[Contributing Guidelines](https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md).
 
 # Issues / Bugs
 
@@ -136,5 +141,4 @@ for tracking requests and bugs.
 | **Documentation**|  https://docs.siliconcompiler.com
 | **Sources**|  https://github.com/siliconcompiler/siliconcompiler
 | **Issues**|  https://github.com/siliconcompiler/siliconcompiler/issues
-| **RFCs**|  https://github.com/siliconcompiler/rfcs
 | **Discussion**| https://github.com/siliconcompiler/siliconcompiler/discussions

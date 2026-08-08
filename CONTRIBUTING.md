@@ -107,7 +107,7 @@ $ git checkout -b your-branch-name origin/main
 $ git push --set-upstream fork your-branch-name
 ```
 
-- Push your commits to your SiliCompiler branch on GitHub (team contributors)
+- Push your commits to your SiliconCompiler branch on GitHub (team contributors)
 ```sh
 $ git push -u origin your-branch-name
 ```
