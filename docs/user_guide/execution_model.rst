@@ -83,10 +83,6 @@ At this point, you can visually examine your flowgraph by using :meth:`.Flowgrap
 .. image:: _images/flowgraph.svg
        :align: center
 
-.. note::
-
-   **[In Progress]** Insert link to tutorial which has step-by-step instruction on how to set up this flow with libs and pdk through run and execution.
-
 .. _using_index_for_opt:
 
 Using Index for Optimization
@@ -105,6 +101,3 @@ The snippet below shows how a massively parallel optimization flow can be progra
    :end-before: write_flowgraph
 
 .. image:: _images/flowgraph_doe.svg
-
-.. note::
-   **[In Progress]** Provide pointer to a tutorial on optimizing a metric

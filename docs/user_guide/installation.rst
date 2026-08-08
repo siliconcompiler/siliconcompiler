@@ -8,7 +8,7 @@ Installing Python
 -----------------
 
 Before installing the SiliconCompiler package you will need to set up a Python environment.
-The following sections will walk you through how to install the appropriate python dependencies and start a [Python virtual environment](https://docs.python.org/3/library/venv.html).
+The following sections will walk you through how to install the appropriate python dependencies and start a `Python virtual environment <https://docs.python.org/3/library/venv.html>`_.
 Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter.
 
 .. _python_install:
@@ -35,7 +35,7 @@ Open up a terminal and enter the following command sequence.
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
    You can make sure you have this dependency by running ``sudo apt install graphviz xdot``.
 
-Skip ahead to `SC Install <sc_install>`_.
+Skip ahead to :ref:`SC Install <sc_install>`.
 
 Ubuntu 20.04
 ^^^^^^^^^^^^
@@ -65,7 +65,7 @@ PPA, then create the virtual environment with it.
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
    You can make sure you have this dependency by running ``sudo apt install graphviz xdot``.
 
-Skip ahead to `SC Install <sc_install>`_.
+Skip ahead to :ref:`SC Install <sc_install>`.
 
 RHEL (>=RHEL 8)
 ^^^^^^^^^^^^^^^
@@ -89,19 +89,25 @@ compatible distributions such as Rocky Linux and AlmaLinux.
    You can make sure you have this dependency by running ``sudo dnf install graphviz xdot``
 
 
-Skip ahead to `SC Install <sc_install>`_.
+Skip ahead to :ref:`SC Install <sc_install>`.
 
-macOS (>=10.15)
-^^^^^^^^^^^^^^^
+macOS
+^^^^^
 Open up a terminal and enter the following command sequence.
+
+.. note::
+   These instructions use `Homebrew <https://brew.sh>`_, which supports only the
+   most recent macOS releases. Both Apple Silicon and Intel Macs are supported,
+   but they install Homebrew to different prefixes -- the installer prints the
+   correct ``shellenv`` line for your machine under "Next steps".
 
 .. code-block:: bash
 
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   export PATH="/usr/local/opt/python/libexec/bin:$PATH"
+   eval "$(/opt/homebrew/bin/brew shellenv)"              # Apple Silicon; Intel Macs use /usr/local/bin/brew
    brew update
    brew install python
-   python3 --version                                      # check for Python 3
+   python3 --version                                      # check for Python 3.10+
    python3 -m venv  ./venv                                # create a virtual env
    source ./venv/bin/activate                             # active virtual env
 
@@ -110,7 +116,7 @@ Open up a terminal and enter the following command sequence.
    You can make sure you have this dependency by running ``brew install graphviz xdot``
 
 
-Skip ahead to `SC Install <sc_install>`_.
+Skip ahead to :ref:`SC Install <sc_install>`.
 
 Windows (>= Windows 10)
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -122,10 +128,12 @@ Open up a Windows shell by:
 2. Typing 'cmd', and pressing enter.
 
 From the command shell, enter the following sequence to create and activate a virtual environment.
+Note that the Python.org installer provides ``python``, not ``python3`` -- on Windows, ``python3`` usually opens the Microsoft Store instead of running the interpreter.
 
 .. code-block:: doscon
 
-  python3 -m venv  .\venv
+  python --version                                       # check for Python 3.10+
+  python -m venv  .\venv
   .\venv\Scripts\activate
 
 .. note::
@@ -140,8 +148,8 @@ Installing SiliconCompiler
 After you've got the python dependencies installed, you will need to install SiliconCompiler.
 There are a few different ways to do this:
 
-1. The `recommended method <install_recommended_method>`_ is to install the last stable version published to `pypi.org <https://pypi.org/project/siliconcompiler/>`_, or
-2. You can install `directly from the git repository <install_from_git>`_ (best for developers).
+1. The :ref:`recommended method <install_recommended_method>` is to install the last stable version published to `pypi.org <https://pypi.org/project/siliconcompiler/>`_, or
+2. You can install :ref:`directly from the git repository <install_from_git>` (best for developers).
 
 .. _install_recommended_method:
 
@@ -171,7 +179,7 @@ Finally, to clone and install SiliconCompiler, run the following:
 
 .. parsed-literal::
 
-   (venv) git clone -b v\ |release| https://github.com/siliconcompiler/siliconcompiler
+   (venv) git clone -b v\ |release| https\://github.com/siliconcompiler/siliconcompiler
    (venv) cd siliconcompiler
    (venv) pip install --upgrade pip
    (venv) pip install -e .

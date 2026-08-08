@@ -40,12 +40,11 @@ Windows
 ^^^^^^^
 On a PowerShell terminal:
 
-# Create and activate a Python virtual environment
+.. code-block:: powershell
 
-.. code-block:: shell
-
-    python3 -m venv .venv
-    .venv\Scripts\activate
+    # Create and activate a Python virtual environment
+    python -m venv .venv
+    .\.venv\Scripts\Activate.ps1
 
     # Install SiliconCompiler
     pip install siliconcompiler
@@ -58,6 +57,6 @@ Execute the following command in the same terminal:
 
 .. code-block:: bash
 
-    sc -target asic_demo -scheduler docker
+    python3 -m siliconcompiler.demos.asic_demo -scheduler docker
 
 If the setup is successful, you will see compilation output in your terminal as SiliconCompiler executes the demonstration flow.

@@ -18,4 +18,4 @@ The tutorial runs the same design with three different approaches:
 
 3.) One asynchronous for loop leveraging the Python multiprocessing package to launch N independent flows.
 
-Run the program on your machine to see what kind of speedup you get! Here is `example code <https://github.com/siliconcompiler/siliconcompiler/blob/main/examples/heartbeat/parallel.py>`_.
+For a working demonstration of the second approach, see :ref:`Using Index for Optimization <using_index_for_opt>`, which builds a massively parallel synthesis sweep out of the same flowgraph primitives.

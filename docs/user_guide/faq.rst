@@ -43,7 +43,7 @@ How do I...
       from siliconcompiler import ASIC
       project = ASIC(design)
 
-... active filesets?
+... activate filesets?
 
    .. code-block:: python
 

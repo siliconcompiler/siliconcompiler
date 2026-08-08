@@ -52,7 +52,8 @@ ASIC APR       OpenROAD, Synopsys, Cadence
 FPGA APR       VPR, nextpnr, Vivado
 Layout Viewer  Klayout, OpenROAD, Cadence, Synopsys
 DRC/LVS        Klayout, Magic, Synopsys, Siemens
-PDKs           sky130, ihp130, gf180, asap7, freepdk45, gf12lp, gf22fdx, intel16
+Open PDKs      sky130, ihp130, gf180, asap7, freepdk45, gt2n, interposer -- all shipped by `lambdapdk <https://github.com/siliconcompiler/lambdapdk>`_
+Foundry PDKs   gf12lp, gf22fdx, intel16 -- require a foundry agreement; see :ref:`packaging an external library <dev_external_libraries>`
 ============== =========================================================
 
 Authors

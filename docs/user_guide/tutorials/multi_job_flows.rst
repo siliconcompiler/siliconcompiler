@@ -22,8 +22,4 @@ Complex iterative compilation flows can be created with Python programs that:
 
 .. image:: ../../_images/complex.png
 
-.. note::
-
-   **[In Progress]** This tutorial requires a more detailed step-by-step guide.
-
 
