@@ -1,5 +1,22 @@
 :orphan:
 
+.. TODO (docs audit, later phase): expand this into a real step-by-step guide and
+   un-orphan it. The three patterns to cover, each with a working example already
+   in the repo:
+     1. Chaining flows -- examples/gcd/gcd_skywater.py runs asicflow as job
+        "rtl2gds", then feeds find_result() outputs into a new fileset and runs
+        SignoffFlow as job "signoff".
+     2. Sweeping a parameter -- examples/oh_experiments/adder_sweep.py runs one
+        job per data width and reads cellarea back via project.history(jobname).
+        examples/oh_experiments/check_area.py is the fresh-project-per-run variant.
+     3. Hierarchical builds -- examples/macro_reuse/make.py hardens a child in one
+        job and consumes it in the parent's job (see the hardened tutorial).
+   Pull code via literalinclude from those examples rather than pasting it, and
+   replace the non-code line `project.set('some parameter..')` below.
+   Mechanism worth stating: history is keyed by jobname and recorded in a finally
+   block (so failed jobs are still queryable), and reusing a jobname logs
+   "Overwriting job <name>" and replaces the earlier record.
+
 ###############################
 Multi-Job Flows and Automation
 ###############################
