@@ -44,4 +44,5 @@ To learn how to use SiliconCompiler, see the :ref:`user guide <user_guide>`.
    appendix/slurmsetup
    appendix/licenses
    appendix/changelog
+   appendix/schema_changelog
    appendix/dashboard_how_to_guide
