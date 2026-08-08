@@ -194,6 +194,12 @@ output.
        flow: the file sent to the foundry for manufacturing.
        (OASIS is a more modern alternative with the same role.)
 
+    LEC
+       Logical Equivalence Check -- formal proof that two representations of a
+       design, typically the :term:`RTL` and a synthesized :term:`netlist`,
+       implement identical logic. Catches the class of bug where an
+       optimization silently changed behavior.
+
     LEF
        Library Exchange Format -- a text format describing the abstract physical
        view of cells and macros: outline, pin positions, and blockages, without

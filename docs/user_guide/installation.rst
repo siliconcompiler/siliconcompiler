@@ -226,5 +226,30 @@ You can use the provided :ref:`sc-install <app-sc-install>` application to insta
 
 .. installscripts::
 
+**Reading the table.** Each row is a tool; each column is a platform. A cell
+links to the install script for that combination, and a **blank cell means no
+script is provided** -- not that the tool is unavailable. You may still be able
+to install it from your distribution's packages or from the tool's own
+instructions, linked from the :ref:`pre-defined tool drivers <builtin_tools>`.
+
+Coverage is not uniform, and the gaps matter for the ASIC flow:
+
+* **RHEL 9, Ubuntu 22.04 / 24.04 / 26.04** have scripts for the full ASIC
+  toolchain.
+* **RHEL 8 and Ubuntu 20.04** have scripts for KLayout only. There are no
+  scripts for Yosys, OpenROAD or OpenSTA on those platforms, so the ASIC flow
+  cannot be installed this way -- use a newer distribution, the
+  :ref:`Docker image <docker>`, or a :ref:`remote run <choose_run_mode>`.
+
+.. note::
+   **Windows.** SiliconCompiler itself installs and runs on Windows, and is
+   tested there on every commit, but that testing does not cover running EDA
+   tools. No install scripts are provided for Windows and the local flows are
+   not supported on it.
+
+   To compile a design from Windows, use a :ref:`remote run <choose_run_mode>`,
+   the :ref:`Docker image <docker>`, or WSL. KLayout is the exception worth
+   installing natively: it has Windows builds, and :ref:`sc-show <app-sc-show>`
+   will use it to view results downloaded from a remote run.
 
 See :ref:`Quickstart guide <quickstart_guide>` next to see how to run locally on your machine with these tools.

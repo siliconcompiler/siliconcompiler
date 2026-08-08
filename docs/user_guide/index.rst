@@ -46,4 +46,5 @@ You will also want to look at API References for details.
    :maxdepth: 1
 
    glossary
-   faq
+   Frequently asked questions <faq>
+   How do I…? <howto>

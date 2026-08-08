@@ -38,7 +38,7 @@ pip install --upgrade siliconcompiler
 ```
 
 Converting RTL into DRC clean GDS takes 13 lines of simple Python code.
-(`asicflow` closes routing design rule violations, reported as the `drvs` metric; signoff DRC and LVS run in the separate `signoffflow`.)
+(`asicflow` reports geometric violations from detailed routing as the `drcs` metric, and electrical ones — slew, capacitance, fanout, antenna — as `drvs`. Signoff DRC and LVS run in the separate `signoffflow`.)
 
 ```python
 from siliconcompiler import ASIC, Design               # import python package
