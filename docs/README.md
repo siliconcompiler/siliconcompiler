@@ -73,11 +73,16 @@ worth following:
 - **Pull code in, do not paste it.** Prefer `literalinclude` from a file under
   `examples/` so the code cannot rot independently of the page that shows it.
 
-  Address the code by name — `:pyobject:`, or `:start-after:`/`:end-before:`
-  with a comment that is already in the file. **`:lines:` is a trap**: inserting
-  a line anywhere above the range silently shifts it, and the page then renders
-  the wrong code with a clean build. Adding one docstring to
-  `examples/uniquify/uniquify.py` moved all seven ranges in `uniquify.rst`.
+  Address the code by name — `:pyobject:`, or `:start-at:`/`:end-at:`/
+  `:end-before:` anchored on a line that is already in the file. **`:lines:` is
+  a trap**: inserting a line anywhere above the range silently shifts it, and
+  the page then renders the wrong code with a clean build. There are none left
+  in `docs/`; keep it that way.
+
+  This is not hypothetical. Before they were converted, four of the ranges in
+  `hardened.rst`/`uniquify.rst` had already drifted and were rendering
+  half-docstrings and the wrong two lines — for long enough to be on `main`,
+  with every build green.
 - **Diagrams are `.dot` sources, rendered at build time.** Commit the `.dot` and
   point at it; do not commit the rendered image:
 

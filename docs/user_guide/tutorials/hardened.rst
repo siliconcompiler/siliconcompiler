@@ -51,7 +51,8 @@ Import the modules to be used:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 21-22
+    :start-at: from siliconcompiler import Design, ASIC, StdCellLibrary
+    :end-at: from siliconcompiler.targets import skywater130_demo
 
 
 Files used
@@ -108,7 +109,8 @@ This generates the physical layout required for the macro.
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 53-70
+    :start-at: def build_and
+    :end-before: # --- Packaging the Macro ---
 
 .. figure:: /_screenshots/hardened/and.png
     :align: center
@@ -123,7 +125,8 @@ We gather the results from the previous build step and register them into the li
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 72-95
+    :start-at: # --- Packaging the Macro ---
+    :end-at: return library
 
 Step 4: Running the ASIC flow on module **top**
 -----------------------------------------------
@@ -144,7 +147,8 @@ Critical steps here include:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 121
+    :start-at: project.constraint.area.set_diearea_rectangle
+    :end-at: project.constraint.area.set_diearea_rectangle
 
 .. figure:: /_screenshots/hardened/top.png
     :align: center
