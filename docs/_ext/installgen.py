@@ -13,12 +13,26 @@ from siliconcompiler.schema.docs import get_codeurl
 # not expected to grow one. Everything else is required to resolve, so adding an
 # install script for a genuinely undocumented tool fails the build until it is
 # either documented or listed here deliberately.
+#
+# Each entry carries a one-line description, rendered as a legend beneath the
+# table. Without it these rows are the only ones a reader cannot click through,
+# leaving a bare name with nothing to say what it is. Requiring the description
+# here means a new exemption cannot be added silently.
 TOOLS_WITHOUT_DOCS = {
-    'slurm',            # a scheduler backend, not a tool driver
-    'vcd2fst',          # waveform conversion utility invoked by other tools
-    'verible',          # used by CI lint, not by any flow
-    'wildebeest',
-    'yosys-moosic',     # yosys plugin, documented as part of yosys
+    'slurm':
+        'Workload manager for HPC clusters. SiliconCompiler dispatches jobs to it '
+        'rather than driving it as a compilation tool; see the Slurm setup appendix.',
+    'vcd2fst':
+        'Converts VCD waveform files to the more compact FST format. Invoked by '
+        'other tasks rather than run directly.',
+    'verible':
+        'SystemVerilog parser, style linter and formatter. Used by '
+        "SiliconCompiler's own lint gate in CI, not by any compilation flow.",
+    'wildebeest':
+        'FPGA synthesis tool, built on Yosys.',
+    'yosys-moosic':
+        'Yosys plugin for logic locking and supply-chain security. Installed '
+        'alongside Yosys and driven through it.',
 }
 
 
@@ -111,7 +125,32 @@ class InstallScripts(SphinxDirective):
 
         table += tgroup
 
-        return [table]
+        # Legend for the rows that are plain text rather than links, so a reader
+        # is not left guessing why those names alone are not clickable.
+        unlinked = sorted(set(scripts) & set(TOOLS_WITHOUT_DOCS))
+        if not unlinked:
+            return [table]
+
+        legend = nodes.definition_list()
+        for tool in unlinked:
+            item = nodes.definition_list_item()
+            term = nodes.term()
+            term += nodes.literal(text=tool)
+            item += term
+            definition = nodes.definition()
+            para = nodes.paragraph()
+            para += nodes.Text(TOOLS_WITHOUT_DOCS[tool])
+            definition += para
+            item += definition
+            legend += item
+
+        intro = nodes.paragraph()
+        intro += nodes.Text(
+            'The following entries have an install script but no driver page, so '
+            'they appear above without a link. They are supporting tools rather '
+            'than flow steps:')
+
+        return [table, intro, legend]
 
 
 def setup(app):

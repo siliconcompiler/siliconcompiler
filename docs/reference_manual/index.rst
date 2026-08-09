@@ -32,7 +32,7 @@ To learn how to use SiliconCompiler, see the :ref:`user guide <user_guide>`.
    schema_api
    apps
    server_api
-   floorplan_api
+   leflib_api
    uniquify_api
 
 .. toctree::

@@ -224,8 +224,6 @@ You can use the provided :ref:`sc-install <app-sc-install>` application to insta
    If you should run into issues, please consult the official download instructions for the tool itself.
    All official tool documentation links can be found in the :ref:`pre-defined tool drivers <builtin_tools>` section.
 
-.. installscripts::
-
 **Reading the table.** Each row is a tool; each column is a platform. A cell
 links to the install script for that combination, and a **blank cell means no
 script is provided** -- not that the tool is unavailable. You may still be able
@@ -240,6 +238,8 @@ Coverage is not uniform, and the gaps matter for the ASIC flow:
   scripts for Yosys, OpenROAD or OpenSTA on those platforms, so the ASIC flow
   cannot be installed this way -- use a newer distribution, the
   :ref:`Docker image <docker>`, or a :ref:`remote run <choose_run_mode>`.
+
+.. installscripts::
 
 .. note::
    **Windows.** SiliconCompiler itself installs and runs on Windows, and is

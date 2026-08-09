@@ -35,7 +35,7 @@ var Scorer = {
     "reference_manual/apps",
     "reference_manual/server_api",
     "reference_manual/uniquify_api",
-    "reference_manual/floorplan_api",
+    "reference_manual/leflib_api",
   ],
 
   /*

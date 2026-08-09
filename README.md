@@ -128,10 +128,25 @@ SiliconCompiler is an open-source project and welcomes contributions. To find ou
 how to contribute to the project, see our
 [Contributing Guidelines](https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md).
 
-# Issues / Bugs
+# Getting help
+
+**[Discussions](https://github.com/siliconcompiler/siliconcompiler/discussions)
+is the best place to ask a question.** The
+[Help (Q&A)](https://github.com/siliconcompiler/siliconcompiler/discussions/categories/help-q-a)
+category is actively answered and is worth searching before you post — the answer
+to "how do I harden a macro", "how are filesets ordered" or "why won't this PDK
+build" is often already there.
+
+Also useful:
+
+- [Frequently asked questions](https://docs.siliconcompiler.com/en/latest/user_guide/faq.html)
+- [How do I…?](https://docs.siliconcompiler.com/en/latest/user_guide/howto.html) — a task-oriented reference
+- [Glossary](https://docs.siliconcompiler.com/en/latest/user_guide/glossary.html)
 
 We use [GitHub Issues](https://github.com/siliconcompiler/siliconcompiler/issues)
-for tracking requests and bugs.
+for tracking requests and bugs. If you hit a tool failure,
+[`sc-issue`](https://docs.siliconcompiler.com/en/latest/reference_manual/apps.html#app-sc-issue)
+packages a runnable test case to attach.
 
 # More information
 
@@ -139,6 +154,6 @@ for tracking requests and bugs.
 |-----------|-----|
 | **Website**|  https://www.siliconcompiler.com
 | **Documentation**|  https://docs.siliconcompiler.com
+| **Discussions**| https://github.com/siliconcompiler/siliconcompiler/discussions
 | **Sources**|  https://github.com/siliconcompiler/siliconcompiler
 | **Issues**|  https://github.com/siliconcompiler/siliconcompiler/issues
-| **Discussion**| https://github.com/siliconcompiler/siliconcompiler/discussions
