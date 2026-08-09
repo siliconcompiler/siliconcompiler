@@ -13,33 +13,11 @@ For questions rather than method calls -- what a target is, whether the public
 server is confidential, why a run failed -- see the
 :ref:`Frequently Asked Questions <faq>`.
 
-Recipes
-=======
+Entries are grouped by what you are trying to do, roughly in the order people
+need them.
 
-Set up a new tool
-^^^^^^^^^^^^^^^^^
-
-See :ref:`Tools <dev_tools>`
-
-Set up a new flow
-^^^^^^^^^^^^^^^^^
-
-See :ref:`Flows <dev_flows>`
-
-Set up a new PDK
-^^^^^^^^^^^^^^^^
-
-See :ref:`PDKs <dev_pdks>`
-
-Set up a new library
-^^^^^^^^^^^^^^^^^^^^
-
-See :ref:`Libraries <dev_libraries>`
-
-Set up a new target
-^^^^^^^^^^^^^^^^^^^
-
-See :ref:`Targets <dev_targets>`
+Set up a build
+==============
 
 Create a design object
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -49,6 +27,24 @@ Create a design object
    from siliconcompiler import Design
    design = Design('<design>')
 
+Dataroot: register a new source of files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   design.set_dataroot("<name>", "<path>", tag="<version>")
+
+The path may be a local directory, a git URL, or an archive URL. ``tag`` applies
+to remote sources only, and is a git commit, branch, or tag. See
+:term:`dataroot`.
+
+Dataroot relative to my current file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   design.set_dataroot('<name>', __file__)
+
 Create an ASIC project object
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -57,12 +53,45 @@ Create an ASIC project object
    from siliconcompiler import ASIC
    project = ASIC(design)
 
-Activate filesets
-^^^^^^^^^^^^^^^^^
+Add files to a fileset
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. index:: ! add_file, ! source files, ! add sources, ! filetype
+
+Group a design's files into named :term:`filesets <fileset>` and register them
+against a :term:`dataroot` so the paths survive being run from elsewhere. The
+:term:`fileset` and filetype are inferred from the extension:
 
 .. code-block:: python
 
-   project.add_fileset("rtl")
+   design.set_dataroot("mydesign", __file__)
+
+   with design.active_dataroot("mydesign"), design.active_fileset("rtl"):
+       design.set_topmodule("mydesign")
+       design.add_file("rtl/mydesign.v")        # -> fileset "rtl", type verilog
+
+   with design.active_dataroot("mydesign"), design.active_fileset("sdc"):
+       design.add_file("constraints/mydesign.sdc")
+
+   with design.active_dataroot("mydesign"), design.active_fileset("testbench"):
+       design.add_file("tb/mydesign_tb.sv")
+
+Pass ``filetype=`` explicitly when the extension does not imply it. A design may
+carry as many filesets as you like -- only the ones you activate are compiled.
+
+Activate filesets
+^^^^^^^^^^^^^^^^^
+
+.. index:: ! active fileset, ! select fileset, ! which files are compiled
+
+Choose which of the design's filesets this run compiles:
+
+.. code-block:: python
+
+   project.add_fileset(["rtl", "sdc"])     # ignores "testbench"
+
+This is how one design serves several flows: an ASIC build activates ``rtl`` and
+``sdc``, while a simulation activates ``rtl`` and ``testbench``.
 
 Run a compilation
 ^^^^^^^^^^^^^^^^^
@@ -70,6 +99,9 @@ Run a compilation
 .. code-block:: python
 
    project.run()
+
+See what happened
+=================
 
 Display my layout
 ^^^^^^^^^^^^^^^^^
@@ -114,37 +146,6 @@ Either way the full tool log is always written to
 ``<step>.log`` in the node directory -- see
 :ref:`Directory structures <directory_structures>`.
 
-Check my setup before running
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. index:: ! check_manifest, ! validate, ! preflight
-
-.. code-block:: python
-
-    project.check_manifest()
-
-Build directory
-^^^^^^^^^^^^^^^
-
-.. index:: ! builddir, ! build tree, ! output directory
-
-.. code-block:: python
-
-    project.option.set_builddir("/path/to/build")
-
-See :ref:`Directory structures <build_directory>` for what a run writes there.
-
-Cache directory
-^^^^^^^^^^^^^^^
-
-.. index:: ! cachedir, ! package cache, ! download cache
-
-.. code-block:: python
-
-    project.option.set_cachedir("/path/to/cache")
-
-Defaults to ``~/.sc/cache``; see :ref:`the SC home directory <sc_home>`.
-
 Use the manifest from a previous run
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -156,16 +157,29 @@ Use the manifest from a previous run
 
     project = Project.from_manifest("build/<design>/<jobname>/<design>.pkg.json")
 
-Control the thread parallelism for a task
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Control a run
+=============
 
-.. index:: ! threads, ! cores, ! parallelism
+Run only part of the flow
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index:: ! from, ! to, ! prune, ! partial run, ! rerun a step, ! only synthesis, ! resume
+
+A re-run resumes by default: nodes that already completed are reused, so
+restarting from a step re-runs it and everything downstream.
 
 .. code-block:: python
 
-   from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
+   project.option.add_from("synthesis")    # start here, reusing earlier results
+   project.option.add_to("synthesis")      # and stop here
 
-   ASICSynthesis.find_task(project).set_threads(4, step="synthesis", index="0")
+:keypath:`option,from` and :keypath:`option,to` take **step names only**, not
+indices -- a deliberate choice to keep them simple. To drop individual
+(step, index) nodes, use :keypath:`option,prune`:
+
+.. code-block:: python
+
+   project.option.add_prune(("floorplan.init", "0"))
 
 Start a fresh run
 ^^^^^^^^^^^^^^^^^
@@ -193,23 +207,53 @@ Start a fresh run using the previous run information
    project.option.set_jobincr(True)
    project.option.add_from('floorplan')
 
-Dataroot: register a new source of files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Control how much of the machine a run uses
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index:: ! threads, ! cores, ! parallelism, ! maxnodes, ! maxthreads, ! CPU usage, ! concurrency
+
+Two job-wide limits, both defaulting to the number of available CPU cores:
 
 .. code-block:: python
 
-   design.set_dataroot("<name>", "<path>", tag="<version>")
+   project.option.scheduler.set_maxnodes(4)     # concurrent nodes in the job
+   project.option.scheduler.set_maxthreads(8)   # threads available to each task
 
-The path may be a local directory, a git URL, or an archive URL. ``tag`` applies
-to remote sources only, and is a git commit, branch, or tag. See
-:term:`dataroot`.
+:keypath:`option,scheduler,maxnodes` bounds how many
+:term:`flowgraph nodes <flowgraph node>` run at once;
+:keypath:`option,scheduler,maxthreads` bounds each task's own threading. On a
+machine you are still using for other work, lowering both is usually what you
+want -- otherwise a wide flow will happily take every core.
 
-Dataroot relative to my current file
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To override the thread count for one task rather than the whole job:
 
 .. code-block:: python
 
-   design.set_dataroot('<name>', __file__)
+   from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
+
+   ASICSynthesis.find_task(project).set_threads(4, step="synthesis", index="0")
+
+Build directory
+^^^^^^^^^^^^^^^
+
+.. index:: ! builddir, ! build tree, ! output directory
+
+.. code-block:: python
+
+    project.option.set_builddir("/path/to/build")
+
+See :ref:`Directory structures <build_directory>` for what a run writes there.
+
+Cache directory
+^^^^^^^^^^^^^^^
+
+.. index:: ! cachedir, ! package cache, ! download cache
+
+.. code-block:: python
+
+    project.option.set_cachedir("/path/to/cache")
+
+Defaults to ``~/.sc/cache``; see :ref:`the SC home directory <sc_home>`.
 
 Preserve options across sessions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -220,6 +264,95 @@ Options such as scheduler information can be preserved :ref:`across sessions
 .. code-block:: python
 
    project.option.write_defaults()
+
+Check my setup before running
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index:: ! check_manifest, ! validate, ! preflight
+
+.. code-block:: python
+
+    project.check_manifest()
+
+Extend SiliconCompiler
+======================
+
+Set up a new tool
+^^^^^^^^^^^^^^^^^
+
+See :ref:`Tools <dev_tools>`
+
+Set up a new flow
+^^^^^^^^^^^^^^^^^
+
+See :ref:`Flows <dev_flows>`
+
+Set up a new PDK
+^^^^^^^^^^^^^^^^
+
+See :ref:`PDKs <dev_pdks>`
+
+Set up a new library
+^^^^^^^^^^^^^^^^^^^^
+
+See :ref:`Libraries <dev_libraries>`
+
+Set up a new target
+^^^^^^^^^^^^^^^^^^^
+
+See :ref:`Targets <dev_targets>`
+
+Reuse a block as a hardened macro
+=================================
+
+Harden a parameterized module so I can reuse it as a macro
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A hardened macro has no parameters, so a parameterized module cannot be
+hardened directly. Use :class:`.Uniquified`, which generates a parameter-free
+variant per used parameter combination plus a wrapper that dispatches to
+them. See the :ref:`uniquify tutorial <uniquify_modules>` and the
+:ref:`Uniquify API <uniquify_api>`.
+
+.. code-block:: python
+
+   from siliconcompiler import ASIC
+   from siliconcompiler.targets import freepdk45_demo
+   from siliconcompiler.tools.slang.utils.macro import Uniquified
+
+   # parent_design: your Design that instantiates the parameterized module.
+   uq = Uniquified(parent_design, ["mymodule"])
+   uq.build(target=freepdk45_demo)   # harden every used parameterization
+
+   project = ASIC(parent_design)
+   project.add_fileset("rtl")
+   freepdk45_demo(project)
+   uq.wireup(project)                # alias wrappers + inject macros
+
+Find out which parameter values my module is instantiated with
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Construct :class:`.Uniquified` (construction only elaborates and generates in
+memory -- no disk writes, no tools) and read its state:
+
+.. code-block:: python
+
+   uq = Uniquified(parent_design, ["mymodule"])
+   print(uq.variants)   # {'mymodule': ['mymodule__N8', 'mymodule__N16']}
+
+Rebuild only some hardened variants
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pass ``macros`` to :meth:`.Uniquified.build` as a variant name, a module
+name, or a glob; add ``rebuild=True`` to force a rebuild even if a cached
+macro exists.
+
+.. code-block:: python
+
+   uq.build(target=freepdk45_demo, macros="mymodule__N8", rebuild=True)
+
+Schema internals
+================
 
 Avoid rebuilding an expensive object (such as a PDK) many times
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -275,49 +408,3 @@ context manager, which restores the frozen state on exit:
    guarantee, and mutating a shared instance affects every holder of it.
    ``copy()`` is the supported answer; reach for ``_thaw()`` only when you
    genuinely need the mutation to be visible through the shared object.
-
-Harden a parameterized module so I can reuse it as a macro
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-A hardened macro has no parameters, so a parameterized module cannot be
-hardened directly. Use :class:`.Uniquified`, which generates a parameter-free
-variant per used parameter combination plus a wrapper that dispatches to
-them. See the :ref:`uniquify tutorial <uniquify_modules>` and the
-:ref:`Uniquify API <uniquify_api>`.
-
-.. code-block:: python
-
-   from siliconcompiler import ASIC
-   from siliconcompiler.targets import freepdk45_demo
-   from siliconcompiler.tools.slang.utils.macro import Uniquified
-
-   # parent_design: your Design that instantiates the parameterized module.
-   uq = Uniquified(parent_design, ["mymodule"])
-   uq.build(target=freepdk45_demo)   # harden every used parameterization
-
-   project = ASIC(parent_design)
-   project.add_fileset("rtl")
-   freepdk45_demo(project)
-   uq.wireup(project)                # alias wrappers + inject macros
-
-Find out which parameter values my module is instantiated with
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Construct :class:`.Uniquified` (construction only elaborates and generates in
-memory -- no disk writes, no tools) and read its state:
-
-.. code-block:: python
-
-   uq = Uniquified(parent_design, ["mymodule"])
-   print(uq.variants)   # {'mymodule': ['mymodule__N8', 'mymodule__N16']}
-
-Rebuild only some hardened variants
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Pass ``macros`` to :meth:`.Uniquified.build` as a variant name, a module
-name, or a glob; add ``rebuild=True`` to force a rebuild even if a cached
-macro exists.
-
-.. code-block:: python
-
-   uq.build(target=freepdk45_demo, macros="mymodule__N8", rebuild=True)
