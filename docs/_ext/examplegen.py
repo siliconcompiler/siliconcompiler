@@ -139,9 +139,14 @@ class ScExamples(SphinxDirective):
         self.env.note_dependency(root)
         self.env.note_dependency(__file__)
 
+        # Hidden directories are tooling, not examples: a developer who runs
+        # pytest from examples/ leaves a .pytest_cache behind, and failing the
+        # docs build on it would be a false positive. No real example starts
+        # with a dot, so this costs the gate nothing.
         directories = sorted(
             os.path.join(root, d) for d in os.listdir(root)
-            if d not in SKIP and os.path.isdir(os.path.join(root, d)))
+            if d not in SKIP and not d.startswith(".")
+            and os.path.isdir(os.path.join(root, d)))
 
         content = ViewList()
         for directory in directories:
