@@ -13,7 +13,16 @@ sc_root = os.path.dirname(os.path.dirname(os.path.abspath(siliconcompiler.__file
 def relpath(file):
     file = os.path.abspath(file)
     if file.startswith(sc_root):
-        return PureWindowsPath(os.path.relpath(file, sc_root)).as_posix()
+        rel = PureWindowsPath(os.path.relpath(file, sc_root)).as_posix()
+        # An in-tree virtual environment (a very common editable-install layout)
+        # puts every installed package underneath sc_root, so a path check alone
+        # would claim third-party files such as lambdapdk's and generate
+        # siliconcompiler URLs for them that 404. Decline those so
+        # resolve_codeurl falls through to the plugins, which know the real home
+        # of each package.
+        if any(part in ("site-packages", "dist-packages") for part in rel.split("/")):
+            return None
+        return rel
     return None
 
 

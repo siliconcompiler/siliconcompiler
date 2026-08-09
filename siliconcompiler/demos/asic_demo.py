@@ -37,7 +37,7 @@ if __name__ == "__main__":
         "asic_demo",
         description="\"Self-test\" target which builds a small 8-bit counter design as an ASIC, "
                     "targeting the Skywater130 PDK.",
-        switchlist=["-remote"])
+        switchlist=["-remote", "-scheduler"])
     proj.run()
     proj.summary()
     proj.snapshot()

@@ -1,0 +1,24 @@
+// Approach 2: index parallelism inside one job. The four synthesis indices have
+// no edges between them, so the scheduler runs them concurrently; "min" picks
+// the best result.
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
+digraph indexed {
+	rankdir=LR;
+	node [shape=box, style=filled, color=white, fontname="Helvetica"];
+	graph [fontname="Helvetica"];
+
+	subgraph cluster_job {
+		style=filled; color=lightgrey; label="job N8  (syn_np=4)";
+		elaborate;
+		s0 [label="synthesis/0"];
+		s1 [label="synthesis/1"];
+		s2 [label="synthesis/2"];
+		s3 [label="synthesis/3"];
+		min;
+		timing;
+
+		elaborate -> s0; elaborate -> s1; elaborate -> s2; elaborate -> s3;
+		s0 -> min; s1 -> min; s2 -> min; s3 -> min;
+		min -> timing;
+	}
+}

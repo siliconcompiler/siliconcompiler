@@ -16,7 +16,8 @@ SiliconCompiler supports a remote compilation model, allowing you to leverage cl
 Step 1: Configure Your Remote Server
 ------------------------------------
 
-All remote server settings are managed through a ``credentials.json`` file located in your home directory (``$HOME/.sc/`` on Linux/macOS or ``C:\Users\<USERNAME>\.sc\`` on Windows).
+All remote server settings are managed through a ``credentials`` file located in your home directory (``$HOME/.sc/`` on Linux/macOS or ``C:\Users\<USERNAME>\.sc\`` on Windows).
+The file holds JSON, but has no file extension.
 
 While you can create this file manually, the recommended method is to use the interactive ``sc-remote`` command.
 
@@ -29,30 +30,30 @@ Open your terminal and run the following command:
 
   sc-remote -configure
 
-ou will be prompted to enter your server's details. Follow the prompts based on the type of server you are connecting to:
+You will be prompted to enter your server's details. Follow the prompts based on the type of server you are connecting to:
 
 * **Private/Authenticated Server:** Provide the server address, your username, and your password/API key when prompted.
 
 .. code-block:: bash
 
-  Remote server address: [https://your-secure-server.com](https://your-secure-server.com)
+  Remote server address: https://your-secure-server.com
   Remote username: your-username
   Remote password: your-key
-  Remote configuration saved to: /home/user/.sc/credentials.json
+  Remote configuration saved to: /home/user/.sc/credentials
 
 * **Public/Unauthenticated Server:** Enter the server address and press Enter to leave the username and password fields blank.
 
 .. code-block:: bash
 
-  Remote server address: [https://server.siliconcompiler.com](https://server.siliconcompiler.com)
+  Remote server address: https://server.siliconcompiler.com
   Remote username:
   Remote password:
-  Remote configuration saved to: /home/user/.sc/credentials.json
+  Remote configuration saved to: /home/user/.sc/credentials
 
 Method 2: Manual Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you prefer, you can create the ``credentials.json`` file manually in the appropriate directory.
+If you prefer, you can create the ``credentials`` file manually in the appropriate directory.
 The file must contain the following JSON structure:
 
 .. code-block::
@@ -79,13 +80,20 @@ A successful connection will typically display a status message or an empty list
 Step 3: Run a Remote Job
 ------------------------
 
-To send a compilation job to the configured remote server, simply add the ``-remote`` flag to your ``sc`` command.
+To send a compilation job to the configured remote server, set the :keypath:`option,remote` parameter in your build script:
+
+.. code-block:: python
+
+  project.option.set_remote(True)
+
+Build scripts that expose a command line through :meth:`.CommandLineSchema.create_cmdline` -- including the bundled demos -- also accept a ``-remote`` flag:
 
 .. code-block:: bash
 
-  sc -target asic_demo -remote
+  python -m siliconcompiler.demos.asic_demo -remote
 
 The job will be packaged, sent to the remote server for processing, and the results will be streamed back to your local machine.
+Results are downloaded for each flowgraph node as it completes, so a finished remote job leaves the same build directory contents behind as a local run.
 
 Troubleshooting
 ---------------

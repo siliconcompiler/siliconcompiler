@@ -3891,6 +3891,36 @@ def test_generate_doc_detailed():
         nested_parse_with_titles.assert_called_once()
 
 
+def test_generate_doc_sections_titled_by_keypath(sphinx_doc):
+    """Generated sections are titled with the full keypath, not the leaf key.
+
+    Leaf keys repeat heavily across the schema, and sections sharing a title are
+    indistinguishable in search results and score identically, so a query for a
+    common key returns a wall of identical entries.
+    """
+    pytest.importorskip("sphinx")
+    from docutils import nodes
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    child = BaseSchema()
+    EditableSchema(child).insert("fileset", Parameter("str"))
+    edit.insert("option", child)
+
+    with patch("sphinx.util.nodes.nested_parse_with_titles"):
+        sections = schema._generate_doc(sphinx_doc)
+
+    assert [str(s[0][0]) for s in sections] == ["option"]
+
+    leaves = [s for s in sections[0] if isinstance(s, nodes.section)]
+    assert [str(s[0][0]) for s in leaves] == ["option,fileset"]
+
+    # The section's own id is the cross-reference target the :keypath: role and
+    # the search index resolve through, so it has to carry the whole keypath
+    # too -- a leaf-key id would collide across the nine "fileset" parameters.
+    assert leaves[0]["ids"] == ["param-baseschema-option-fileset"]
+
+
 def test_generate_doc_not_detailed_empty(sphinx_doc):
     pytest.importorskip("sphinx")
 

@@ -8,7 +8,7 @@ Installing Python
 -----------------
 
 Before installing the SiliconCompiler package you will need to set up a Python environment.
-The following sections will walk you through how to install the appropriate python dependencies and start a [Python virtual environment](https://docs.python.org/3/library/venv.html).
+The following sections will walk you through how to install the appropriate python dependencies and start a `Python virtual environment <https://docs.python.org/3/library/venv.html>`_.
 Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter.
 
 .. _python_install:
@@ -35,7 +35,7 @@ Open up a terminal and enter the following command sequence.
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
    You can make sure you have this dependency by running ``sudo apt install graphviz xdot``.
 
-Skip ahead to `SC Install <sc_install>`_.
+Skip ahead to :ref:`SC Install <sc_install>`.
 
 Ubuntu 20.04
 ^^^^^^^^^^^^
@@ -65,7 +65,7 @@ PPA, then create the virtual environment with it.
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
    You can make sure you have this dependency by running ``sudo apt install graphviz xdot``.
 
-Skip ahead to `SC Install <sc_install>`_.
+Skip ahead to :ref:`SC Install <sc_install>`.
 
 RHEL (>=RHEL 8)
 ^^^^^^^^^^^^^^^
@@ -89,19 +89,26 @@ compatible distributions such as Rocky Linux and AlmaLinux.
    You can make sure you have this dependency by running ``sudo dnf install graphviz xdot``
 
 
-Skip ahead to `SC Install <sc_install>`_.
+Skip ahead to :ref:`SC Install <sc_install>`.
 
-macOS (>=10.15)
-^^^^^^^^^^^^^^^
+macOS
+^^^^^
 Open up a terminal and enter the following command sequence.
+
+.. note::
+   These instructions use `Homebrew <https://brew.sh>`_, which supports only the
+   most recent macOS releases. Both Apple Silicon and Intel Macs are supported,
+   but they install Homebrew to different prefixes -- the installer prints the
+   correct ``shellenv`` line for your machine under "Next steps".
 
 .. code-block:: bash
 
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   export PATH="/usr/local/opt/python/libexec/bin:$PATH"
+   # /opt/homebrew on Apple Silicon, /usr/local on Intel -- try both
+   eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"
    brew update
    brew install python
-   python3 --version                                      # check for Python 3
+   python3 --version                                      # check for Python 3.10+
    python3 -m venv  ./venv                                # create a virtual env
    source ./venv/bin/activate                             # active virtual env
 
@@ -110,7 +117,7 @@ Open up a terminal and enter the following command sequence.
    You can make sure you have this dependency by running ``brew install graphviz xdot``
 
 
-Skip ahead to `SC Install <sc_install>`_.
+Skip ahead to :ref:`SC Install <sc_install>`.
 
 Windows (>= Windows 10)
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -122,10 +129,12 @@ Open up a Windows shell by:
 2. Typing 'cmd', and pressing enter.
 
 From the command shell, enter the following sequence to create and activate a virtual environment.
+Note that the Python.org installer provides ``python``, not ``python3`` -- on Windows, ``python3`` usually opens the Microsoft Store instead of running the interpreter.
 
 .. code-block:: doscon
 
-  python3 -m venv  .\venv
+  python --version                                       # check for Python 3.10+
+  python -m venv  .\venv
   .\venv\Scripts\activate
 
 .. note::
@@ -140,8 +149,8 @@ Installing SiliconCompiler
 After you've got the python dependencies installed, you will need to install SiliconCompiler.
 There are a few different ways to do this:
 
-1. The `recommended method <install_recommended_method>`_ is to install the last stable version published to `pypi.org <https://pypi.org/project/siliconcompiler/>`_, or
-2. You can install `directly from the git repository <install_from_git>`_ (best for developers).
+1. The :ref:`recommended method <install_recommended_method>` is to install the last stable version published to `pypi.org <https://pypi.org/project/siliconcompiler/>`_, or
+2. You can install :ref:`directly from the git repository <install_from_git>` (best for developers).
 
 .. _install_recommended_method:
 
@@ -171,7 +180,7 @@ Finally, to clone and install SiliconCompiler, run the following:
 
 .. parsed-literal::
 
-   (venv) git clone -b v\ |release| https://github.com/siliconcompiler/siliconcompiler
+   (venv) git clone -b v\ |release| https\://github.com/siliconcompiler/siliconcompiler
    (venv) cd siliconcompiler
    (venv) pip install --upgrade pip
    (venv) pip install -e .
@@ -187,14 +196,17 @@ Now that you have installed SiliconCompiler, you can test your installation by r
 
 .. code-block:: bash
 
-    python3 -m siliconcompiler.demos.asic_demo -remote
+    python -m siliconcompiler.demos.asic_demo -remote
 
+``python`` rather than ``python3``: a virtual environment provides both on every
+platform, and Windows has only ``python``. Outside an activated environment on
+Linux or macOS, use ``python3``.
 
 Your remote job should only take a few minutes to run if the servers aren't too busy.
 It should end with a results directory where you can find ``png`` file which displays your results.
 It should look something like this:
 
-.. image:: ../_images/selftest_screenshot.png
+.. image:: /_screenshots/asic_demo_result.png
 
 See :ref:`Quickstart guide <quickstart_guide>` next to go through the design and run details of the quick demo above.
 
@@ -216,7 +228,32 @@ You can use the provided :ref:`sc-install <app-sc-install>` application to insta
    If you should run into issues, please consult the official download instructions for the tool itself.
    All official tool documentation links can be found in the :ref:`pre-defined tool drivers <builtin_tools>` section.
 
+**Reading the table.** Each row is a tool; each column is a platform. A cell
+links to the install script for that combination, and a **blank cell means no
+script is provided** -- not that the tool is unavailable. You may still be able
+to install it from your distribution's packages or from the tool's own
+instructions, linked from the :ref:`pre-defined tool drivers <builtin_tools>`.
+
+Coverage is not uniform, and the gaps matter for the ASIC flow:
+
+* **RHEL 9, Ubuntu 22.04 / 24.04 / 26.04** have scripts for the full ASIC
+  toolchain.
+* **RHEL 8 and Ubuntu 20.04** have scripts for KLayout only. There are no
+  scripts for Yosys, OpenROAD or OpenSTA on those platforms, so the ASIC flow
+  cannot be installed this way -- use a newer distribution, the
+  :ref:`Docker image <docker>`, or a :ref:`remote run <choose_run_mode>`.
+
 .. installscripts::
 
+.. note::
+   **Windows.** SiliconCompiler itself installs and runs on Windows, and is
+   tested there on every commit, but that testing does not cover running EDA
+   tools. No install scripts are provided for Windows and the local flows are
+   not supported on it.
+
+   To compile a design from Windows, use a :ref:`remote run <choose_run_mode>`,
+   the :ref:`Docker image <docker>`, or WSL. KLayout is the exception worth
+   installing natively: it has Windows builds, and :ref:`sc-show <app-sc-show>`
+   will use it to view results downloaded from a remote run.
 
 See :ref:`Quickstart guide <quickstart_guide>` next to see how to run locally on your machine with these tools.

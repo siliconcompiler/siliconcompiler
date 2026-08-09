@@ -37,7 +37,8 @@ like flow building blocks, the schema and other API references.
 Help
 ----
 
-- Search :ref:`glossary <glossary>`,
-- Review :ref:`faq <faq>`, or
+- Look up a term in the :ref:`glossary <glossary>`,
+- Read the :ref:`frequently asked questions <faq>`,
+- Find the call you need in :ref:`How do I…? <howto>`, or
 - `File an issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_: if you can't find something, or something is not working, the SiliconCompiler team is happy to help!
 

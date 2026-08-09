@@ -5,7 +5,7 @@ Compilation Process
 ###################
 
 The complete SiliconCompiler compilation is handled by a single call to the :meth:`.Project.run()` function.
-Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <node>` and :term:`edges <edge>` is traversed and "executed."
+Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <flowgraph node>` and :term:`edges <edge>` is traversed and "executed."
 
 The static flowgraph approach was chosen for a number reasons:
 
@@ -22,11 +22,10 @@ Nodes and Edges
 
 A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where:
 
-* A :term:`node` is an executable :term:`tool` performing some (":term:`task`"), and
+* A :term:`node <flowgraph node>` is an executable :term:`tool` performing some (":term:`task`"), and
 * An :term:`edge` is the connection between those tasks, specifying execution order.
 
-.. image:: _images/flowgraph_diagram.png
-   :scale: 35%
+.. graphviz:: _images/concepts/flowgraph.dot
    :align: center
 
 Tasks
@@ -36,11 +35,10 @@ SiliconCompiler breaks down a "task" into an atomic combination of a step and an
 1. A :term:`step` is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and
 2. An :term:`index` is defined as variant of a step operating on identical data.
 
-An example of this might be two parallel synthesis runs with different settings after an import task.
+An example of this might be two parallel synthesis runs with different settings after elaboration.
 The two synthesis "tasks" might be called ``syn/0`` and ``syn/1``, where:
 
-.. image:: _images/flowgraph_step_index_diagram.png
-   :scale: 40%
+.. graphviz:: _images/concepts/step_index.dot
    :align: center
 
 See :ref:`using index for optimization <using_index_for_opt>` for more information on why using indices to build your flowgraph are helpful.
@@ -80,12 +78,9 @@ At this point, you can visually examine your flowgraph by using :meth:`.Flowgrap
 
   flow.write_flowgraph("flowgraph.svg", landscape=True)
 
-.. image:: _images/flowgraph.svg
-       :align: center
-
-.. note::
-
-   **[In Progress]** Insert link to tutorial which has step-by-step instruction on how to set up this flow with libs and pdk through run and execution.
+.. scflowgraph:: examples/heartbeat_flowgraph.py
+   :landscape:
+   :align: center
 
 .. _using_index_for_opt:
 
@@ -102,9 +97,13 @@ The snippet below shows how a massively parallel optimization flow can be progra
 .. literalinclude:: examples/flowgraph_doe.py
    :caption: Snippet from `examples/flowgraph_doe.py <https://github.com/siliconcompiler/siliconcompiler/blob/main/docs/user_guide/examples/flowgraph_doe.py>`_ that sets up parallel synthesis runs for optimization
    :start-after: # create node for optimized (or minimum in this case) metric
-   :end-before: write_flowgraph
+   :end-before: if __name__
 
-.. image:: _images/flowgraph_doe.svg
+.. scflowgraph:: examples/flowgraph_doe.py
+   :align: center
 
-.. note::
-   **[In Progress]** Provide pointer to a tutorial on optimizing a metric
+.. seealso::
+   :ref:`Parallel Job Execution <parallel_execution>` runs this pattern as a
+   worked example and compares it against the two other ways of parallelizing a
+   sweep, and :ref:`Multi-Job Flows <multi_job_sweep>` covers reading the
+   resulting metrics back out to drive a decision.

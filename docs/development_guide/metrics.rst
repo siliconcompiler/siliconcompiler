@@ -1,3 +1,5 @@
+.. _dev_metrics:
+
 Working with Metrics
 ====================
 

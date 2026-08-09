@@ -1498,9 +1498,13 @@ class BaseSchema:
             for name, obj in self.__manifest.items():
                 root = self._parent(root=True)
 
-                section = build_section_with_target(name,
-                                                    get_key_ref(list(self._keypath) + [name],
-                                                                ref=root),
+                # Title each section with its full keypath rather than the bare
+                # leaf key. Leaf keys repeat heavily across the schema (fileset
+                # and dataroot each appear nine times), and identical titles are
+                # indistinguishable in search results and share a single score.
+                keypath = [*self._keypath, name]
+                section = build_section_with_target(",".join(keypath),
+                                                    get_key_ref(keypath, ref=root),
                                                     doc.state.document)
                 if isinstance(obj, Parameter):
                     for n in Parameter._generate_doc(obj, doc):

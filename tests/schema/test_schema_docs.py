@@ -17,6 +17,25 @@ def test_relpath_no_file():
     assert docs.relpath("./notafile") is None
 
 
+@pytest.mark.parametrize("packages", ("site-packages", "dist-packages"))
+def test_relpath_declines_installed_packages(packages):
+    """An in-tree venv puts other projects' files under sc_root; they are not ours."""
+    assert docs.relpath(
+        os.path.join(docs.sc_root, ".venv", "lib", "python3.11",
+                     packages, "lambdapdk", "sky130", "__init__.py")) is None
+
+
+@pytest.mark.parametrize("packages", ("site-packages", "dist-packages"))
+def test_resolve_codeurl_installed_package_uses_plugin(packages, fake_plugins, monkeypatch):
+    """Declining in relpath is what lets a plugin claim the file instead."""
+    monkeypatch.setattr(docs, "sc_version", "sc_version")
+    fake_plugins("docs", "linkcode", lambda file=None: f"https://example.com/{file}")
+
+    installed = os.path.join(docs.sc_root, ".venv", "lib", "python3.11",
+                             packages, "lambdapdk", "sky130", "__init__.py")
+    assert docs.resolve_codeurl(installed) == f"https://example.com/{installed}"
+
+
 def test_get_codeurl(monkeypatch):
     monkeypatch.setattr(docs, "sc_version", "sc_version")
     assert docs.get_codeurl() == \

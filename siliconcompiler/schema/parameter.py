@@ -602,7 +602,7 @@ class Parameter:
         Args:
             manifest (dict): Manifest to decide.
             keypath (list of str): Path to the current keypath.
-            version (packaging.Version): Version of the dictionary schema
+            version (Tuple[int, ...]): Version of the dictionary schema
         '''
 
         # create a dummy param
@@ -620,7 +620,7 @@ class Parameter:
         Args:
             manifest (dict): Manifest to decide.
             keypath (list of str): Path to the current keypath.
-            version (packaging.Version): Version of the dictionary schema
+            version (Tuple[int, ...]): Version of the dictionary schema
         '''
 
         if self.__lock:

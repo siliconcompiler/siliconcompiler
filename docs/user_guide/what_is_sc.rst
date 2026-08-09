@@ -23,8 +23,7 @@ The SiliconCompiler project is based on a standardized :ref:`Schema <schema>` th
 
 To simplify flow development, the project incorporates a simple object oriented :ref:`Python API<schema_api>`. The API includes abstracted set/get access to the Schema, a flowgraph based parallel programming model, and a suite of utility functions for compilation setup and metric tracking.
 
-.. image:: /_images/sc_overview.png
-   :scale: 60%
+.. graphviz:: /_images/concepts/stack.dot
    :align: center
 
 The expansive data schema, standardized plug-in interfaces, and built-in dynamic module search functionality enables SiliconCompiler to scale effectively to a large number of tools and PDKs.
@@ -33,8 +32,7 @@ The reference manual serves as a good starting point for folks who want to add t
 
 To further reduce design access barriers, the project also supports a :ref:`client-server <remote_processing>` execution model that leverages the cloud to: 1) reduce tool installation barriers, 2) reduce the barrier to massively parallel elastic compute, and 3) address the NDA barrier for PDK and EDA tools.
 
-.. image:: /_images/sc_arch.svg
-   :scale: 75%
+.. graphviz:: /_images/concepts/remote.dot
    :align: center
 
 Supported Technologies
@@ -52,7 +50,8 @@ ASIC APR       OpenROAD, Synopsys, Cadence
 FPGA APR       VPR, nextpnr, Vivado
 Layout Viewer  Klayout, OpenROAD, Cadence, Synopsys
 DRC/LVS        Klayout, Magic, Synopsys, Siemens
-PDKs           sky130, ihp130, gf180, asap7, freepdk45, gf12lp, gf22fdx, intel16
+Open PDKs      sky130, ihp130, gf180, asap7, freepdk45, gt2n, interposer -- all shipped by `lambdapdk <https://github.com/siliconcompiler/lambdapdk>`_
+Foundry PDKs   gf12lp, gf22fdx, intel16 -- require a foundry agreement; see :ref:`packaging an external library <dev_external_libraries>`
 ============== =========================================================
 
 Authors

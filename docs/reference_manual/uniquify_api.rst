@@ -35,3 +35,10 @@ Packaging a macro
 =================
 
 .. autofunction:: siliconcompiler.tools.slang.utils.macro.build_macro
+
+Exceptions
+==========
+
+.. autoexception:: siliconcompiler.tools.slang.utils.uniquify.UniquifyError
+    :members:
+    :show-inheritance:

@@ -32,7 +32,9 @@ To run this script from its containing folder:
 
     smake build_top
 
-or to use docker:
+or, on a machine with nothing installed but Docker, run the whole script inside
+the image (see :ref:`Two ways to use the image <docker_two_ways>` -- this is the
+second one, not the Docker scheduler):
 
 .. code-block:: bash
 
@@ -90,12 +92,13 @@ Parent Module (top.v)
     :caption: Design setup for top
     :lines: 36-48
 
-Dependency graph from **top**:
+Calling :meth:`.DependencySchema.write_depgraph()` on **top** draws what it now
+depends on -- useful for checking that a module you expected to be linked in
+actually is:
 
-.. figure:: _images/hardened/depgraph.png
+.. scdepgraph:: examples/macro_reuse/make.py
+    :variable: Top()
     :align: center
-
-    Dependency graph from ``Top().write_depgraph``
 
 Step 2: Synthesize, Place & Route module **mod_and**
 ----------------------------------------------------
@@ -107,7 +110,7 @@ This generates the physical layout required for the macro.
     :language: python
     :lines: 51-68
 
-.. figure:: _images/hardened/and.png
+.. figure:: /_screenshots/hardened/and.png
     :align: center
     :scale: 50%
 
@@ -143,7 +146,7 @@ Critical steps here include:
     :language: python
     :lines: 119
 
-.. figure:: _images/hardened/top.png
+.. figure:: /_screenshots/hardened/top.png
     :align: center
     :scale: 50%
 

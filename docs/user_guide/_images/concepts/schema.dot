@@ -1,0 +1,66 @@
+// How the schema is organised: a tree of parameters, reached by a small,
+// uniform set of methods. The structure shown is real -- constraint,timing,
+// scenario really does hold libcorner/pexcorner/voltage/temperature.
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
+digraph schema {
+	rankdir=TB;
+	// newrank lets a rankset span clusters; without it, pinning m and root
+	// into the same rank evicts both from their clusters and the grey
+	// panels disappear.
+	newrank=true;
+	bgcolor="#f0f0f0";
+	graph [fontname="Helvetica", pad=0.35, ranksep=0.4, nodesep=0.25];
+	node [shape=box, style="filled,rounded", fontname="Helvetica", fontsize=11,
+	      color="#999999", height=0.36];
+	edge [color="#666666", arrowsize=0.7];
+
+	subgraph cluster_methods {
+		label="  METHODS";
+		labeljust=l; fontsize=11; fontcolor="#333333";
+		style=filled; color="#e4e4e4";
+
+		m [shape=box, style=filled, fillcolor="#a2c4c9", color="#6b9aa0",
+		   fontname="Courier", fontsize=11, height=0,
+		   label="get()\lset()\ladd()\lgetkeys()\l"];
+	}
+
+	subgraph cluster_params {
+		label="  PARAMETERS -- describe the design and the compilation";
+		labeljust=l; fontsize=11; fontcolor="#333333";
+		style=filled; color="#e4e4e4";
+
+		root [label="schema", fillcolor="#cfe2f3", color="#7aa6c2"];
+
+		option     [label="option",     fillcolor="#fff2cc"];
+		constraint [label="constraint", fillcolor="#fff2cc"];
+		flowgraph  [label="flowgraph",  fillcolor="#fff2cc"];
+		metric     [label="metric",     fillcolor="#fff2cc"];
+		more       [label="…",          fillcolor="#fff2cc", color="#cccccc"];
+
+		root -> option;
+		root -> constraint;
+		root -> flowgraph;
+		root -> metric;
+		root -> more;
+
+		area   [label="area",   fillcolor="#e6e0f8"];
+		timing [label="timing", fillcolor="#e6e0f8"];
+		cmore  [label="…",      fillcolor="#e6e0f8", color="#cccccc"];
+		constraint -> area;
+		constraint -> timing;
+		constraint -> cmore;
+
+		scenario [label="scenario", fillcolor="#e6e0f8"];
+		timing -> scenario;
+
+		leaf [shape=box, style=filled, fillcolor="#d9ead3", color="#93c47d",
+		      label="libcorner\lpexcorner\lvoltage\ltemperature\l…\l"];
+		scenario -> leaf [label="  leaf parameters", fontsize=9, fontcolor="#666666"];
+	}
+
+	// Pinning the methods box into the root's rank puts it to the left of the
+	// tree; the flat edge then reads as "these calls address that tree".
+	{ rank=same; m; root; }
+	m -> root [label="  addressed by keypath  ", fontsize=9, fontcolor="#666666",
+	           color="#666666"];
+}

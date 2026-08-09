@@ -1,0 +1,21 @@
+// Pattern 2: sweeping a parameter. The same flow runs once per variant, each
+// under its own jobname, and the results are read back out of history().
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
+digraph sweep {
+	rankdir=LR;
+	node [shape=box, style=filled, color=white, fontname="Helvetica"];
+	graph [fontname="Helvetica"];
+
+	design [label="one Design\lrtl.8  rtl.16\lrtl.32  rtl.64\l", shape=folder, style=filled, fillcolor=white];
+
+	subgraph cluster_8  { style=filled; color=lightgrey; label="job: N8";  j8  [label="synthesis"]; }
+	subgraph cluster_16 { style=filled; color=lightgrey; label="job: N16"; j16 [label="synthesis"]; }
+	subgraph cluster_32 { style=filled; color=lightgrey; label="job: N32"; j32 [label="synthesis"]; }
+	subgraph cluster_64 { style=filled; color=lightgrey; label="job: N64"; j64 [label="synthesis"]; }
+
+	compare [label="your code\lhistory(\"N8\").get(\"metric\", \"cellarea\", …)\l… compare, plot, choose\l",
+	         shape=note, style=filled, fillcolor="#fff3c4", color="#b8860b"];
+
+	design -> j8; design -> j16; design -> j32; design -> j64;
+	j8 -> compare; j16 -> compare; j32 -> compare; j64 -> compare;
+}
