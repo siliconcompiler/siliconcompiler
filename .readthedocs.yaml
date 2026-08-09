@@ -21,7 +21,15 @@ build:
       # 0.35.0`, and the whole install aborts with ResolutionImpossible before
       # Sphinx ever runs. Short-lived branches happen to keep their tag, so this
       # only bites long-running ones.
-      - git fetch --unshallow --tags || git fetch --tags
+      #
+      # Branch on shallowness rather than falling back on error: --unshallow is
+      # fatal on a complete repository, but a fetch that fails for any other
+      # reason has to stop the build. Swallowing it would leave the repository
+      # tagless and hand back the same unreadable ResolutionImpossible.
+      - >-
+        if [ "$(git rev-parse --is-shallow-repository)" = true ];
+        then git fetch --unshallow --tags;
+        else git fetch --tags; fi
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
