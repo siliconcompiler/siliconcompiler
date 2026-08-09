@@ -18,7 +18,7 @@ designs (see the ``designs`` argument of ``calibrate``). For the full write-up
 see the "Calibrating the parasitic estimate (PEX)" tutorial (``pex_calibration``)
 in the documentation.
 
-Requires: yosys, openroad; freepdk45 (via lambdapdk)
+Requires: yosys, openroad, opensta; freepdk45 (via lambdapdk)
 """
 
 from siliconcompiler.tools.openroad.utils import pex_calibrate

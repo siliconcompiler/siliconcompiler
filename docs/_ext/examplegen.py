@@ -162,7 +162,9 @@ class ScExamples(SphinxDirective):
                     "to say about it. The first line becomes the summary.")
 
             summary, body, requires = _split_requires(doc)
-            url = get_codeurl(script)
+            # get_codeurl points at the file; the gallery links the directory,
+            # and GitHub 301s /blob/<ref>/<dir> to /tree/. Link the target.
+            url = os.path.dirname(get_codeurl(script)).replace("/blob/", "/tree/", 1)
 
             content.append(f".. _example-{name}:", script)
             content.append("", script)
@@ -179,7 +181,7 @@ class ScExamples(SphinxDirective):
                 content.append(f":Requires: {requires}", script)
                 content.append("", script)
             content.append(
-                f":Source: `examples/{name} <{os.path.dirname(url)}>`__ "
+                f":Source: `examples/{name} <{url}>`__ "
                 f"(entry point ``{os.path.basename(script)}``)", script)
             content.append("", script)
 

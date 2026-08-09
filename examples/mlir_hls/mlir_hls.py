@@ -5,7 +5,7 @@ The design's ``rtl`` fileset holds a ``.ll`` file rather than Verilog.
 ``HLSASICFlow`` runs the HLS tool over it to produce RTL, then hands that to the
 usual synthesis, place and route steps.
 
-Requires: bambu, yosys, openroad, klayout; freepdk45 (via lambdapdk)
+Requires: bambu, yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
 """
 
 # Import necessary classes from the siliconcompiler library.

@@ -99,12 +99,18 @@ A cluster run is one you walk away from:
 
 :ref:`Job status emails <emails>` covers what arrives.
 
-Submitting without waiting
-==========================
+Delaying the start
+==================
 
-:meth:`~.SchedulerSchema.set_defer` submits the work and returns rather than
-blocking until it completes -- for jobs longer than the session you are willing
-to keep open.
+:meth:`~.SchedulerSchema.set_defer` takes a time and passes it to Slurm as
+``--begin``, so the job is queued but does not start until then -- useful for
+holding a long build until a shared machine is quiet.
+
+.. note::
+   This does **not** detach the run. SiliconCompiler still waits for the job to
+   finish, so the process stays alive for the delay *and* the build. There is
+   currently no fire-and-forget submission; use your shell or the scheduler
+   directly if you need one.
 
 Setting up Slurm
 ================
@@ -117,5 +123,5 @@ resources. Add hosts afterwards.
 .. seealso::
    :ref:`Remote processing <remote_processing>` is the other way to run
    elsewhere -- a SiliconCompiler server rather than a batch scheduler, and no
-   shared filesystem required. :ref:`Docker <docker>` runs the tools locally
+   shared filesystem on your side (the server may still need one behind it). :ref:`Docker <docker>` runs the tools locally
    without installing them.

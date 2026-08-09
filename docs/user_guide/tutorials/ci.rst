@@ -51,10 +51,10 @@ resolves the exact digest for a tool set, which you call rather than reimplement
 
    jobs:
      image:
-       uses: siliconcompiler/siliconcompiler/.github/workflows/docker_image.yml@main
+       uses: siliconcompiler/siliconcompiler/.github/workflows/docker_image.yml@v0.38.2
        with:
-         sc_version: latest        # or a tag such as v0.38.2
-         tool: tools               # the image with the EDA tools in it
+         sc_version: v0.38.2       # 'latest' resolves to the newest release
+         tool: runner              # SiliconCompiler + the tools; see below
 
      build:
        needs: image
@@ -64,17 +64,36 @@ resolves the exact digest for a tool set, which you call rather than reimplement
          - uses: actions/checkout@v4
          - run: python make.py
 
-``sc_tool`` comes back as a digest-pinned name -- for example
-``ghcr.io/siliconcompiler/sc_tools:af23682…`` -- so the job is reproducible and
-moves forward only when you change ``sc_version``. Behind
+Pin both: the ``@`` ref decides which workflow definition runs, and
+``sc_version`` decides which image it resolves. A tag is the readable choice; a
+commit SHA is the strict one, since a tag can be moved. ``latest`` and ``@main``
+are convenient and reproducible only until someone releases.
+
+``sc_tool`` comes back fully qualified -- ``ghcr.io/siliconcompiler/sc_runner:v0.38.2``
+for ``runner``, or a digest-pinned ``sc_tools:af23682…`` for ``tools`` -- so the
+job moves forward only when you change ``sc_version``. Behind
 `docker_image.yml <https://github.com/siliconcompiler/siliconcompiler/blob/main/.github/workflows/docker_image.yml>`_
 is ``setup/docker/builder.py``, which derives the image from the tool versions
 pinned in ``_tools.json``, so the container and the tool pins cannot disagree.
 
-Two images are published and they are not interchangeable: ``sc_tools`` carries
-the EDA tools and is what a build job wants, while ``sc_runner`` is the smaller
-package-only image the :ref:`Docker scheduler <docker_two_ways>` launches per
-node.
+Two images are published and they are **not** interchangeable:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Image
+     - Contains
+   * - ``tool: runner``
+     - ``sc_runner`` -- the EDA tools **plus** SiliconCompiler, at the release
+       the image was built for. Run a build script with nothing to install.
+   * - ``tool: tools``
+     - ``sc_tools`` -- the EDA tools and **not** the SiliconCompiler package.
+       For jobs that install it themselves: testing a checkout, or pinning a
+       version other than the image's.
+
+Getting this backwards is the easy mistake: ``sc_tools`` followed by
+``python make.py`` fails on ``ImportError: siliconcompiler``.
 
 Or build your own with :ref:`sc-install <app-sc-install>` and reuse it. Either
 way the install happens once, not once per job.
@@ -90,8 +109,14 @@ CI can restore:
        path: ~/.sc/cache
        key: sc-cache-${{ hashFiles('**/make.py') }}
    - run: python make.py
-     env:
-       SC_CACHEDIR: ~/.sc/cache
+
+``~/.sc/cache`` is the default location, so caching that path is enough. To put
+it somewhere else, set it in the script -- there is no environment variable for
+it:
+
+.. code-block:: python
+
+   project.option.set_cachedir("/mnt/ci-cache")
 
 Without this every job re-downloads the PDK, which usually costs more than the
 build.
@@ -101,14 +126,15 @@ Failing for the right reason
 
 :meth:`.Project.run` raises on a failed run, so a build that cannot complete
 fails the job by itself. What it will *not* do is fail because the result got
-worse -- that is yours to assert:
+worse -- that is yours to assert. Read the metrics from the history object
+``run()`` returns, not from the live project, which is reset when the job ends:
 
 .. code-block:: python
 
-   project.run()
+   history = project.run()
    project.summary()
 
-   slack = project.get("metric", "setupslack", step="route", index="0")
+   slack = history.get("metric", "setupslack", step="route", index="0")
    assert slack >= 0, f"timing did not close: {slack}"
 
 For anything beyond a couple of assertions, :ref:`checklists <checklists>` are

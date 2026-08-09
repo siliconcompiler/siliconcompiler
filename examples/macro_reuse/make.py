@@ -15,7 +15,7 @@ Usage:
       ghcr.io/siliconcompiler/sc_runner:latest \
       python3 make.py
 
-Requires: yosys, openroad, klayout; skywater130 (via lambdapdk)
+Requires: yosys, openroad, opensta, klayout; skywater130 (via lambdapdk)
 """
 
 from siliconcompiler import Design, ASIC, StdCellLibrary

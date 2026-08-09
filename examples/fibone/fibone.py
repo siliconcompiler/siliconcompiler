@@ -17,7 +17,7 @@ def main():
     to handle high-level synthesis from BSV before proceeding with the
     standard synthesis, place, and route steps.
 
-    Requires: bsc (Bluespec), yosys, openroad, klayout; freepdk45 (via lambdapdk)
+    Requires: bsc (Bluespec), yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     '''
 
     # --- Design Setup ---

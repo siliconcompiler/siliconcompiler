@@ -17,7 +17,7 @@ def main():
     convert VHDL source code into Verilog before running the standard
     synthesis, place, and route steps.
 
-    Requires: ghdl, yosys, openroad, klayout; freepdk45 (via lambdapdk)
+    Requires: ghdl, yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     '''
 
     # --- Design Setup ---

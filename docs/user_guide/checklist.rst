@@ -33,7 +33,8 @@ later:
      - The machine-checkable form -- ``drcs==0``, ``setupslack>=0``. Compared
        against recorded :term:`metrics <metric>`.
    * - ``task``
-     - Which (step, index) the metrics come from
+     - Which ``(job, step, index)`` the metrics come from -- a triple, because a
+       checklist can be settled across several jobs
    * - ``report``
      - The report files that evidence the answer
    * - ``requirement``
@@ -76,18 +77,32 @@ distinction is deliberate. See :ref:`the FAQ <faq>` on what each one counts.
 Using one
 =========
 
-A checklist is a dependency, like a flow or a library:
+A checklist is a dependency, like a flow or a library. The shipped ones declare
+*criteria* but not which nodes produce them, so binding each automated item to a
+``(job, step, index)`` is part of using one:
 
 .. code-block:: python
 
    from siliconcompiler.checklists.oh_tapeout import OHTapeoutChecklist
 
-   project.add_dep(OHTapeoutChecklist())
+   checklist = OHTapeoutChecklist()
+   project.add_dep(checklist)
 
    project.run()
 
-   if not project.get("checklist", "oh_tapeout", field="schema").check():
+   # Without this the item has no task to read metrics from, and check()
+   # passes it vacuously.
+   checklist.get_criteria("setup_time").add_task(("job0", "timing", "0"))
+
+   if not checklist.check():
        raise SystemExit("signoff failed")
+
+.. warning::
+   An item with no ``task`` is **not** checked -- ``check()`` has nothing to read
+   and moves on. A checklist attached but never bound therefore reports success
+   while verifying nothing, which is the worst possible failure mode for a
+   signoff gate. Bind every automated item, and confirm the result changes when
+   you break something.
 
 :meth:`.Checklist.check` walks each item, reads the metrics from the job
 history for the tasks the item names, and compares them against the criteria. It
@@ -121,7 +136,7 @@ Subclass :class:`.Checklist` and declare the items:
            item = self.make_criteria("no_setup_violations")
            item.set_description("Setup timing closed at the slow corner?")
            item.add_criteria("setupslack>=0")
-           item.add_task(("signoff", "timing", "0"))
+           item.add_task(("signoff", "timing", "0"))   # (job, step, index)
 
 The criteria strings are metric comparisons, so anything recorded as a
 :term:`metric` can be gated on -- including metrics your own tool driver adds.

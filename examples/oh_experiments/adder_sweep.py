@@ -7,7 +7,8 @@ plots cell area per width with matplotlib, falling back to printing if it is not
 installed. ``check_area.py`` alongside it reads the same metric back out of a
 finished build.
 
-Requires: yosys, openroad; freepdk45 (via lambdapdk); matplotlib to plot
+Requires: yosys, opensta; freepdk45 (via lambdapdk). matplotlib is optional --
+without it the results are printed instead of plotted.
 """
 
 # Import necessary classes from the siliconcompiler library.

@@ -197,11 +197,14 @@ output.
        rules the foundry requires for manufacturability.
 
     formal verification
-       Proving a property holds for *every* reachable state of a design, rather
-       than for the stimulus a :term:`testbench` happens to apply. Complements
-       simulation instead of replacing it: simulation finds the bugs you thought
-       to look for, formal finds the ones you did not. :term:`LEC` is one
-       specialized case.
+       Reasoning mathematically about a model of the design under stated
+       assumptions, rather than exercising it with the stimulus a
+       :term:`testbench` happens to apply. Covers bounded model checking (is
+       this true for the first N cycles?), unbounded proof (is it true in every
+       reachable state?) and equivalence checking such as :term:`LEC`.
+       Complements simulation instead of replacing it: simulation finds the bugs
+       you thought to look for, formal finds the ones you did not -- within
+       whatever the assumptions and the bound allow.
 
     FPGA
        Field-Programmable Gate Array -- a chip whose logic is configured after

@@ -9,14 +9,15 @@ Every directory below is a working, tested design in the
 folder of the repository. They run in CI, so they compile against the current
 release rather than the one they were written for.
 
-This page is generated from those directories. A new example appears here by
-existing -- there is no list to keep in step.
+This page is generated from those directories, so a new example appears here
+automatically and the folder listing and this page cannot drift out of sync.
 
 Running one
 ===========
 
-Clone the repository, or find the folder inside your installed package, and run
-the script named as the entry point:
+``examples/`` is not shipped inside the installed package, so clone the
+repository (or open the source link on any entry below) and run the script named
+as the entry point:
 
 .. code-block:: bash
 

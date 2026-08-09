@@ -122,8 +122,13 @@ Installing the tools
 
    sc-install -group fpga
 
-That covers ``yosys``, ``nextpnr``, ``icepack`` and ``vpr``. See
-:ref:`External Tools <external_tools>` for what is script-installable on your
+That covers ``sv2v``, ``yosys``, ``wildebeest``, ``vpr`` and ``opensta`` -- the
+VPR path. **It does not include** ``nextpnr`` or ``icepack``, which the iCE40
+example above needs; install those from your package manager or the
+`nextpnr <https://github.com/YosysHQ/nextpnr>`_ and
+`icestorm <https://github.com/YosysHQ/icestorm>`_ projects.
+
+See :ref:`External Tools <external_tools>` for what is script-installable on your
 platform, and :ref:`Docker <docker>` to skip installing entirely. Vivado is a
 vendor tool and has to be installed and licensed separately.
 

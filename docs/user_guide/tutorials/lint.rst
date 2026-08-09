@@ -67,12 +67,14 @@ select -- and you get the diagnosis with the source line:
 
 Both counts are recorded as :term:`metrics <metric>` -- :keypath:`metric,errors`
 and :keypath:`metric,warnings` -- so they appear in
-:meth:`.Project.summary()` and can be read back the same way as any other
-result:
+:meth:`.Project.summary()` and can be read back afterwards. Read them from the
+**history object** :meth:`.Project.run` returns: job-scoped metrics are reset on
+the live project when the job finishes, so the completed values live there.
 
 .. code-block:: python
 
-   project.get("metric", "errors", step="lint", index="0")
+   history = project.run()
+   history.get("metric", "errors", step="lint", index="0")
 
 That is what makes linting worth scripting rather than running by hand: the
 result is a number you can gate on.

@@ -2,8 +2,8 @@
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 """Formal property checking with SymbiYosys.
 
-Five scripts, each a ``PropertyCheckFlow`` in a different mode. Run any of them
-directly:
+Five scripts covering the available ``PropertyCheckFlow`` modes -- singly, in
+combination, and selectable. Run any of them directly:
 
 * ``demo.py`` -- bounded model check: is the assertion true for 100 cycles?
 * ``prove.py`` -- unbounded proof by k-induction: is it true for *all*
@@ -16,7 +16,8 @@ directly:
 The first three mirror the official SymbiYosys quickstart, so they are directly
 comparable with its ``.sby`` files.
 
-Requires: sby, yosys
+Requires: sby, yosys, and an SMT solver -- bitwuzla by default (boolector is
+the other supported choice; see the ``engine`` parameter).
 """
 
 from siliconcompiler import Design, Sim

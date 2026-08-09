@@ -58,9 +58,11 @@ Each node is a :term:`task` -- a tool driver class, not a tool name. That is wha
 lets a flow be checked before anything runs: the task knows what it needs and
 what it produces.
 
-Nodes with no edge between them have no ordering constraint, so the scheduler
-runs them at the same time. Parallelism is a property of the graph, not
-something you switch on.
+Nodes with no edge between them carry no ordering constraint, so the scheduler
+*may* run them together. Whether it does depends on
+:keypath:`option,scheduler,maxnodes`, the resources available, and how wide the
+rest of the flow is -- leaving an edge out permits concurrency rather than
+guaranteeing it.
 
 A worked example
 ================

@@ -82,7 +82,7 @@ Child Module (and.v)
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
     :caption: Design setup for mod_and
-    :lines: 25-35
+    :pyobject: And
 
 Parent Module (top.v)
 ^^^^^^^^^^^^^^^^^^^^^
@@ -90,7 +90,7 @@ Parent Module (top.v)
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
     :caption: Design setup for top
-    :lines: 38-50
+    :pyobject: Top
 
 Calling :meth:`.DependencySchema.write_depgraph()` on **top** draws what it now
 depends on -- useful for checking that a module you expected to be linked in
@@ -136,7 +136,7 @@ Critical steps here include:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 98-125
+    :pyobject: build_top
 
 .. note::
     Setting the core and die area explicitly is crucial for macro placement.

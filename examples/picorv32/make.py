@@ -9,7 +9,7 @@ and building a design out of other designs -- are what the example is for.
 
 Walked through in :ref:`Building Your Own SoC <picorv32_example>`.
 
-Requires: yosys, openroad, klayout; freepdk45, asap7 or gf180 (via lambdapdk)
+Requires: yosys, openroad, opensta, klayout; freepdk45, asap7 or gf180 (via lambdapdk)
 """
 
 # Import necessary classes from the siliconcompiler library.

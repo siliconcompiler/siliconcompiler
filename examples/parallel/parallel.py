@@ -16,7 +16,7 @@ Run one approach at a time::
 
 See the "Parallel Job Execution" tutorial for the accompanying discussion.
 
-Requires: yosys; freepdk45 (via lambdapdk)
+Requires: yosys, opensta; freepdk45 (via lambdapdk)
 """
 
 import sys

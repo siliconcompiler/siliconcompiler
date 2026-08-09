@@ -130,10 +130,11 @@ Checking configuration without running
    project.check_manifest()
 
 .. warning::
-   Run this **after** :meth:`.Project.run()`, or on a project you have finished
-   configuring, not as a pre-flight check on a fresh one. Library dependency
-   resolution happens inside ``run()``, so calling it earlier reports errors
-   about a configuration that is actually correct.
+   Run this **after** :meth:`.Project.run()`. Library dependency resolution
+   happens inside ``run()``, so a call before it reports errors about a
+   configuration that is actually correct -- it is not a usable pre-flight
+   check. To validate a configuration before building, use
+   ``design.check_filepaths()`` above.
 
 Asking for help
 ===============
