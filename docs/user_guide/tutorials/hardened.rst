@@ -32,7 +32,9 @@ To run this script from its containing folder:
 
     smake build_top
 
-or to use docker:
+or, on a machine with nothing installed but Docker, run the whole script inside
+the image (see :ref:`Two ways to use the image <docker_two_ways>` -- this is the
+second one, not the Docker scheduler):
 
 .. code-block:: bash
 
