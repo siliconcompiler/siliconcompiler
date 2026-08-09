@@ -16,6 +16,8 @@ def main():
     It shows how SiliconCompiler uses a specialized flow to automatically
     convert VHDL source code into Verilog before running the standard
     synthesis, place, and route steps.
+
+    Requires: ghdl, yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     '''
 
     # --- Design Setup ---

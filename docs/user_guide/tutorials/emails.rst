@@ -1,3 +1,5 @@
+.. _emails:
+
 Job Status Emails
 -----------------
 

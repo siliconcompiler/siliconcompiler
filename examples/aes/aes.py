@@ -12,6 +12,8 @@ def main():
     This script demonstrates a standard RTL-to-GDSII compilation flow
     for an AES (Advanced Encryption Standard) core. It takes Verilog source
     code and timing constraints as input and produces a final GDSII layout file.
+
+    Requires: yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     '''
 
     # --- Design Setup ---

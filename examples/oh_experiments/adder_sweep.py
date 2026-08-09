@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+"""Sweep an adder's datawidth and plot area against it.
+
+Synthesizes ``oh_add`` from the `oh <https://github.com/aolofsson/oh>`_ library
+at four datawidths -- sources fetched from GitHub at a pinned commit -- and
+plots cell area per width with matplotlib, falling back to printing if it is not
+installed. ``check_area.py`` alongside it reads the same metric back out of a
+finished build.
+
+Requires: yosys, opensta; freepdk45 (via lambdapdk). matplotlib is optional --
+without it the results are printed instead of plotted.
+"""
 
 # Import necessary classes from the siliconcompiler library.
 from siliconcompiler import ASIC, Design

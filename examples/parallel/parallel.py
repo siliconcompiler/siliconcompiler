@@ -15,6 +15,8 @@ Run one approach at a time::
     ./parallel.py processes
 
 See the "Parallel Job Execution" tutorial for the accompanying discussion.
+
+Requires: yosys, opensta; freepdk45 (via lambdapdk)
 """
 
 import sys

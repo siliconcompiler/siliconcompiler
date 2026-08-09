@@ -51,7 +51,8 @@ Import the modules to be used:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 19-20
+    :start-at: from siliconcompiler import Design, ASIC, StdCellLibrary
+    :end-at: from siliconcompiler.targets import skywater130_demo
 
 
 Files used
@@ -82,7 +83,7 @@ Child Module (and.v)
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
     :caption: Design setup for mod_and
-    :lines: 23-33
+    :pyobject: And
 
 Parent Module (top.v)
 ^^^^^^^^^^^^^^^^^^^^^
@@ -90,7 +91,7 @@ Parent Module (top.v)
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
     :caption: Design setup for top
-    :lines: 36-48
+    :pyobject: Top
 
 Calling :meth:`.DependencySchema.write_depgraph()` on **top** draws what it now
 depends on -- useful for checking that a module you expected to be linked in
@@ -108,7 +109,8 @@ This generates the physical layout required for the macro.
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 51-68
+    :start-at: def build_and
+    :end-before: # --- Packaging the Macro ---
 
 .. figure:: /_screenshots/hardened/and.png
     :align: center
@@ -123,7 +125,8 @@ We gather the results from the previous build step and register them into the li
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 70-93
+    :start-at: # --- Packaging the Macro ---
+    :end-at: return library
 
 Step 4: Running the ASIC flow on module **top**
 -----------------------------------------------
@@ -136,7 +139,7 @@ Critical steps here include:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 96-123
+    :pyobject: build_top
 
 .. note::
     Setting the core and die area explicitly is crucial for macro placement.
@@ -144,7 +147,8 @@ Critical steps here include:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 119
+    :start-at: project.constraint.area.set_diearea_rectangle
+    :end-at: project.constraint.area.set_diearea_rectangle
 
 .. figure:: /_screenshots/hardened/top.png
     :align: center

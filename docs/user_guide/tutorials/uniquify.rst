@@ -93,12 +93,13 @@ needs a design to alias). The parent depends on their RTL so it elaborates.
 .. literalinclude:: examples/uniquify/uniquify.py
     :language: python
     :caption: The parameterized modules
-    :lines: 34-51
+    :start-at: class Heartbeat(Design):
+    :end-before: class HeartbeatTop
 
 .. literalinclude:: examples/uniquify/uniquify.py
     :language: python
     :caption: The parent design
-    :lines: 54-64
+    :pyobject: HeartbeatTop
 
 
 Step 2: Construct the ``Uniquified`` helper
@@ -112,7 +113,7 @@ and registers the new filesets on the design.
 .. literalinclude:: examples/uniquify/uniquify.py
     :language: python
     :caption: Setting up uniquification
-    :lines: 26-28,67-73
+    :pyobject: uniquify
 
 The filesets registered on the design are:
 
@@ -132,7 +133,7 @@ variants and fileset names, then writes the sources so you can read a wrapper:
 .. literalinclude:: examples/uniquify/uniquify.py
     :language: python
     :caption: Inspecting the results
-    :lines: 105-120
+    :pyobject: main
 
 For this design that reports three ``heartbeat`` variants (``N`` = 8, 24, 48 --
 the duplicate ``N=24`` merged) and two ``prescaler`` variants:
@@ -185,12 +186,13 @@ each variant's ASIC run -- exactly as you would for a normal build:
 .. literalinclude:: examples/uniquify/uniquify.py
     :language: python
     :caption: The target used for each variant (and the parent)
-    :lines: 76-85
+    :pyobject: _configure_freepdk45
 
 .. literalinclude:: examples/uniquify/uniquify.py
     :language: python
     :caption: Hardening every variant
-    :lines: 93-94
+    :start-at: uq.build(
+    :end-at: uq.build(
 
 Each variant is built under its own job (``jobname=<variant>``) beneath the
 helper's ``libdir``, and the resulting macro is persisted so a later run reuses
@@ -213,7 +215,7 @@ hardened-module flow) and injects all the hardened macros:
 .. literalinclude:: examples/uniquify/uniquify.py
     :language: python
     :caption: Building the parent with the wrappers and macros
-    :lines: 88-102
+    :pyobject: harden
 
 .. note::
     ``wireup`` requires every used variant to have a built (or loaded) macro, and

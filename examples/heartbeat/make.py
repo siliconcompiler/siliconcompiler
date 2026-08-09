@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
+"""One small design, taken through nearly everything SiliconCompiler does.
+
+``heartbeat`` is the design the :ref:`Quickstart <quickstart_guide>` builds. This
+script drives it through every project type in the tool, each exposed as an
+:ref:`smake <howto_smake>` target::
+
+    smake lint          # Lint:  slang, bundled -- no tools to install
+    smake syn           # ASIC:  synthesis only
+    smake asic          # ASIC:  RTL to GDSII
+    smake fpga          # FPGA:  bitstream for a Xilinx Artix-7
+    smake sim           # Sim:   RTL simulation, opens the waveform
+    smake sim_postpnr   # Sim:   gate-level, against Skywater130 cell models
+    smake power         # three chained jobs: VCD-driven power signoff
+    smake screenshot    # render the finished layout
+    smake check         # verify every referenced file resolves
+
+It is therefore the best single place to see how the project types differ, and
+what ``smake`` is for.
+
+Requires: nothing for lint; verilator or icarus (sim); yosys, openroad, opensta,
+klayout (syn/asic); vivado (fpga); freepdk45 and skywater130 (via lambdapdk)
+"""
 
 from typing import Optional
 

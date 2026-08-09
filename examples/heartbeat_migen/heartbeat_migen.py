@@ -56,6 +56,8 @@ def main():
     """
     Generates Verilog from a Migen module and runs it through a full
     ASIC compilation flow using SiliconCompiler.
+
+    Requires: migen (pip), yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     """
     # --- Verilog Generation ---
     # Instantiate the Migen Heartbeat module.

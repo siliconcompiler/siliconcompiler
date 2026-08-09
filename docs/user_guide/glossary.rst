@@ -179,6 +179,13 @@ output.
 
 .. glossary::
 
+    bitstream
+       The configuration file loaded onto an :term:`FPGA` to make it behave as
+       your design. It is the FPGA flow's final output, in the role
+       :term:`GDSII` plays for an ASIC -- with the difference that you can
+       produce one, load it, and change your mind, which is why FPGA builds are
+       measured in minutes rather than months.
+
     DEF
        Design Exchange Format -- a text format describing the physical
        implementation of a design: component placement, routing, and pin
@@ -189,10 +196,32 @@ output.
        Design Rule Check -- verification that a layout obeys the geometric
        rules the foundry requires for manufacturability.
 
+    formal verification
+       Reasoning mathematically about a model of the design under stated
+       assumptions, rather than exercising it with the stimulus a
+       :term:`testbench` happens to apply. Covers bounded model checking (is
+       this true for the first N cycles?), unbounded proof (is it true in every
+       reachable state?) and equivalence checking such as :term:`LEC`.
+       Complements simulation instead of replacing it: simulation finds the bugs
+       you thought to look for, formal finds the ones you did not -- within
+       whatever the assumptions and the bound allow.
+
+    FPGA
+       Field-Programmable Gate Array -- a chip whose logic is configured after
+       manufacture by loading a :term:`bitstream`, rather than fixed at tapeout.
+       The compilation flow is the same shape as an ASIC's, but targets a
+       specific device instead of a :term:`PDK`.
+
     GDSII
        The standard binary layout format, and the usual final output of an ASIC
        flow: the file sent to the foundry for manufacturing.
        (OASIS is a more modern alternative with the same role.)
+
+    LUT
+       Look-Up Table -- the small programmable truth table that is an
+       :term:`FPGA`'s basic logic element, in the role a :term:`standard cell`
+       plays in an ASIC. FPGA resource reports are counted in LUTs, and a design
+       "fits" when it needs no more than the device has.
 
     LEC
        Logical Equivalence Check -- formal proof that two representations of a
@@ -237,3 +266,15 @@ output.
     STA
        Static Timing Analysis -- verifying that a design meets its timing
        constraints by analyzing every path, without simulating any vectors.
+
+    testbench
+       Code that drives a design under simulation and checks what comes back.
+       In SiliconCompiler it lives in its own :term:`fileset` beside the
+       :term:`RTL`, so the same :term:`design` can carry several -- one per
+       simulator, or one per scenario -- and a run selects among them.
+
+    VCD
+       Value Change Dump -- the standard waveform format, a record of every
+       signal transition in a simulation. Useful twice: for looking at what the
+       design did, and as switching activity for power analysis, which is far
+       more accurate than the default assumptions.
