@@ -23,14 +23,18 @@ shows::
 The picture and the code excerpt above it can no longer disagree.
 
 ``:variable:`` names something the script defines. Write it with trailing
-parentheses -- ``Top()`` -- to have the directive call it, which is how a class
-such as a :class:`Design` subclass is rendered. The RST then says exactly what
-was drawn.
+parentheses -- ``Top()``, ``_configure("rtl.memory")`` -- to have the directive
+call it, which is how a class such as a :class:`Design` subclass, or a function
+that assembles a project, is rendered. Arguments must be literals (they are read
+with :func:`ast.literal_eval`, so no expressions and no keywords). The RST then
+says exactly what was drawn.
 """
 
+import ast
 import hashlib
 import importlib.util
 import os
+import re
 
 from docutils.parsers.rst import directives
 
@@ -58,6 +62,27 @@ class ScGraph(SphinxDirective):
         "align": directives.unchanged,
     }
 
+    #: ``name`` or ``name(literal, ...)``.
+    TARGET = re.compile(r"^(\w+)(?:\((.*)\))?$", re.DOTALL)
+
+    def _parse_target(self, target):
+        """Split a ``:variable:`` value into a name and the literal args to call it with.
+
+        Returns ``(name, None)`` for a bare name, meaning "do not call".
+        """
+        match = self.TARGET.match(target.strip())
+        if not match:
+            raise self.error(f"cannot parse :variable: '{target}'")
+        name, args = match.groups()
+        if args is None:
+            return name, None
+        try:
+            # A trailing comma makes the single-argument case a tuple too.
+            return name, ast.literal_eval(f"({args},)") if args.strip() else ()
+        except (ValueError, SyntaxError):
+            raise self.error(
+                f"arguments to '{name}' must be literals, got '{args}'")
+
     def run(self):
         _, script = self.env.relfn2path(self.arguments[0])
         script = os.path.abspath(script)
@@ -67,8 +92,7 @@ class ScGraph(SphinxDirective):
         self.env.note_dependency(__file__)
 
         target = self.options.get("variable", self.default_variable)
-        call = target.endswith("()")
-        name = target[:-2] if call else target
+        name, args = self._parse_target(target)
 
         # Load under a private name so importing it cannot collide with, or be
         # satisfied from, anything already in sys.modules.
@@ -89,8 +113,8 @@ class ScGraph(SphinxDirective):
                     f"{self.arguments[0]} defines no '{name}'; "
                     "set :variable: to the name of the object to render")
             obj = getattr(module, name)
-            if call:
-                obj = obj()
+            if args is not None:
+                obj = obj(*args)
 
             if not hasattr(obj, self.writer):
                 raise self.error(

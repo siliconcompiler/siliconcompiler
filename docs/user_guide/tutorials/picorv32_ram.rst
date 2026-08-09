@@ -122,6 +122,26 @@ So ``rtl.memory`` is not a modified copy of ``rtl``; it is ``rtl`` plus a
 library plus a wrapper. Swapping between the two configurations is a fileset
 argument, nothing more.
 
+:meth:`.Project.write_depgraph()` draws what a project resolved to, which is the
+quickest way to confirm a design is composed the way you think it is. Call it on
+a project you have added filesets to -- no run required::
+
+   project.write_depgraph("picorv32.png")
+
+.. scdepgraph:: picorv32_depgraph.py
+   :variable: project("rtl.memory")
+   :align: center
+
+Reading down from the design: ``rtl.memory`` pulls in both ``picorv32/rtl`` and
+``la_spram/rtl``, and the SRAM brings a dependency of its own that you never had
+to name. The ``sdc.freepdk45`` branch is the constraint fileset added alongside
+the RTL one -- change the PDK and that branch changes with it.
+
+The graph above is drawn before ``asic_target`` is applied, so it is the design's
+own shape. Call it *after* the target and the PDK, the standard cell library and
+every macro library the target registers join the picture -- the honest view of a
+build, and a considerably wider one.
+
 .. note::
    This SRAM is soft -- it is RTL, synthesized along with everything else. That
    is the simplest thing that works, and it is what makes this example run on any

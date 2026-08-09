@@ -93,6 +93,10 @@ worth following:
   .. scdepgraph:: examples/macro_reuse/make.py
      :variable: Top()
   ```
+
+  Trailing parentheses mean "call this"; arguments must be literals, so
+  `:variable: _project("rtl.memory")` renders one particular configuration and
+  the RST says which.
 - **Screenshots live in `_screenshots/`, and only screenshots do.** Everything
   under `_images/` is a `.dot` source; everything under `_screenshots/` is a
   committed capture that nothing can regenerate and that therefore goes stale on
