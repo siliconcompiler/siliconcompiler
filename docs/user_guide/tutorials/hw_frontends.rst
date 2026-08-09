@@ -1,3 +1,5 @@
+.. _hw_frontends:
+
 Hardware Design Frontends
 ===================================
 
