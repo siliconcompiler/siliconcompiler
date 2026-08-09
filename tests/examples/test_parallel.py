@@ -9,7 +9,7 @@ import os.path
 @pytest.mark.timeout(900)
 @pytest.mark.parametrize("approach", ("serial", "indexed", "processes"))
 def test_py_parallel(approach):
-    from parallel import APPROACHES, DATAWIDTHS
+    from parallel.parallel import APPROACHES, DATAWIDTHS
 
     APPROACHES[approach]()
 
