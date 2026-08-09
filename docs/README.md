@@ -84,6 +84,19 @@ worth following:
   is editing one text file — nobody has to remember to re-run `dot` and commit
   the result, and the change shows up as a readable diff. `:align:`, `:alt:`,
   `:caption:`, `:class:` and `:name:` are passed through.
+
+  A flowgraph or dependency graph is not a hand-drawn diagram — its source is the
+  Python that builds it. Render those from the example script the page already
+  shows, using the `scflowgraph` and `scdepgraph` directives in `_ext/graphgen.py`:
+
+  ```rst
+  .. scdepgraph:: examples/macro_reuse/make.py
+     :variable: Top()
+  ```
+- **Screenshots live in `_screenshots/`, and only screenshots do.** Everything
+  under `_images/` is a `.dot` source; everything under `_screenshots/` is a
+  committed capture that nothing can regenerate and that therefore goes stale on
+  its own. See `_screenshots/README.md` before adding one.
 - **Link new pages from somewhere a reader will be.** A page reachable only
   through the toctree tends to go unread; ask what already links to it.
 - **Docstrings are Google style**, rendered by the bundled

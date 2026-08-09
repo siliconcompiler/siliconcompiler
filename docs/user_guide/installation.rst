@@ -202,7 +202,7 @@ Your remote job should only take a few minutes to run if the servers aren't too 
 It should end with a results directory where you can find ``png`` file which displays your results.
 It should look something like this:
 
-.. image:: ../_images/selftest_screenshot.png
+.. image:: /_screenshots/asic_demo_result.png
 
 See :ref:`Quickstart guide <quickstart_guide>` next to go through the design and run details of the quick demo above.
 

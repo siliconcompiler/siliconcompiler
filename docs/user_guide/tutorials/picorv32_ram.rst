@@ -7,7 +7,7 @@ Building Your Own SoC
 This tutorial builds an ASIC containing a PicoRV32 RISC-V CPU core, and then the
 same core wired to an SRAM -- the first step toward a real system-on-chip.
 
-.. image:: ../../_images/picorv32_ram_screenshot.png
+.. image:: /_screenshots/picorv32_ram_layout.png
    :align: center
 
 It is the natural next step after the :ref:`Quickstart <quickstart_guide>`,
@@ -86,7 +86,7 @@ the filesets, apply a target:
    :language: python
    :pyobject: asic
 
-.. image:: ../../_images/picorv32_screenshot.png
+.. image:: /_screenshots/picorv32_layout.png
    :align: center
 
 I/O signals are placed around the edges of the die area without a pin
