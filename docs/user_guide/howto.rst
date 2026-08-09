@@ -305,6 +305,56 @@ See :ref:`Targets <dev_targets>`
 Reuse a block as a hardened macro
 =================================
 
+Use a macro I already have
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index:: ! hard macro, ! use a macro, ! instantiate a macro, ! LEF, ! blackbox, ! add_asiclib, ! add_alias, ! macro placement
+
+.. warning::
+   Adding a ``.lef`` to your design's own fileset does **not** work::
+
+       design.add_file("mymacro.lef", fileset="rtl")   # wrong
+
+   The parent will synthesize the macro's RTL anyway, and place-and-route then
+   fails with ``LEF master ... not found``. A macro is a *library*, not a source
+   file.
+
+Package the views into a :class:`.StdCellLibrary`:
+
+.. code-block:: python
+
+   from siliconcompiler import StdCellLibrary
+
+   macro = StdCellLibrary("mymacro")
+   macro.set_dataroot("macro", __file__)
+   macro.add_asic_pdk("skywater130")            # must match the parent's PDK
+
+   with macro.active_dataroot("macro"), macro.active_fileset("models.physical"):
+       macro.add_file("mymacro.lef")            # abstract view for place & route
+       macro.add_file("mymacro.gds")            # layout, merged into the final GDS
+       macro.add_asic_aprfileset()
+
+   with macro.active_dataroot("macro"), macro.active_fileset("models.timing.typical"):
+       macro.add_file("mymacro_typical.lib")    # timing view
+       macro.add_asic_libcornerfileset("typical", "nldm")
+
+Then, in the parent project, do two things -- **both are required**:
+
+.. code-block:: python
+
+   project.add_alias(mymacro_design, "rtl", None, None)   # 1. blackbox the RTL
+   project.add_asiclib(macro)                             # 2. inject the views
+
+   # Macros need room. Too small a die and the placer cannot fit them.
+   project.constraint.area.set_diearea_rectangle(250, 250, coremargin=10)
+
+Without the alias the parent re-synthesizes the block instead of instantiating
+the hardened version; without the library the tools have no physical or timing
+view of it.
+
+:ref:`Instantiating a hardened module <hardened_modules>` works through this
+end to end, including producing the macro from a first build.
+
 Harden a parameterized module so I can reuse it as a macro
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
