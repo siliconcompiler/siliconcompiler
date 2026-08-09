@@ -46,7 +46,7 @@ Approach 1: Serial
 The baseline: each datawidth runs to completion before the next one starts, and
 within a job only one :term:`flowgraph node` runs at a time.
 
-.. image:: _images/parallel/serial.svg
+.. graphviz:: _images/parallel/serial.dot
    :align: center
 
 .. literalinclude:: examples/parallel/parallel.py
@@ -67,7 +67,7 @@ Approach 2: Index Parallelism -- Inside a Job
 input data. They have no edges between them, so the scheduler is free to run them
 concurrently, and a ``minimum`` node picks the best result.
 
-.. image:: _images/parallel/indexed.svg
+.. graphviz:: _images/parallel/indexed.dot
    :align: center
 
 Flows expose this through ``_np`` arguments -- ``syn_np`` here, and
@@ -104,7 +104,7 @@ Index parallelism cannot help when the runs differ in their *inputs*: four
 datawidths are four different elaborations, so they are four different flows.
 Because they share nothing, they can run as independent processes.
 
-.. image:: _images/parallel/processes.svg
+.. graphviz:: _images/parallel/processes.dot
    :align: center
 
 .. literalinclude:: examples/parallel/parallel.py

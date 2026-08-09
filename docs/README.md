@@ -72,6 +72,18 @@ worth following:
   catches it.
 - **Pull code in, do not paste it.** Prefer `literalinclude` from a file under
   `examples/` so the code cannot rot independently of the page that shows it.
+- **Diagrams are `.dot` sources, rendered at build time.** Commit the `.dot` and
+  point at it; do not commit the rendered image:
+
+  ```rst
+  .. graphviz:: _images/multi_job/together.dot
+     :align: center
+  ```
+
+  `sphinx.ext.graphviz` renders it to SVG during the build, so editing a diagram
+  is editing one text file — nobody has to remember to re-run `dot` and commit
+  the result, and the change shows up as a readable diff. `:align:`, `:alt:`,
+  `:caption:`, `:class:` and `:name:` are passed through.
 - **Link new pages from somewhere a reader will be.** A page reachable only
   through the toctree tends to go unread; ask what already links to it.
 - **Docstrings are Google style**, rendered by the bundled

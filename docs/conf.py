@@ -54,11 +54,13 @@ extensions = [
     'sphinx.ext.imgconverter',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.graphviz',
     "sphinx.ext.linkcode",
     'siliconcompiler.schema.docs.schemagen',
     'clientservergen',
     'requirements',
-    'installgen'
+    'installgen',
+    'flowgraphgen'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -87,6 +89,12 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
 }
 intersphinx_timeout = 15
+
+# Diagrams are kept as .dot sources and rendered at build time by
+# sphinx.ext.graphviz, so they can be edited without anyone remembering to re-run
+# `dot` and commit the result. SVG rather than the default PNG: it stays sharp at
+# any zoom and the text in it is selectable and searchable.
+graphviz_output_format = 'svg'
 
 # -- Options for HTML output -------------------------------------------------
 

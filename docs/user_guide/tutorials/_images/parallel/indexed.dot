@@ -1,7 +1,7 @@
 // Approach 2: index parallelism inside one job. The four synthesis indices have
 // no edges between them, so the scheduler runs them concurrently; "min" picks
 // the best result.
-// Rendered with: dot -Tsvg indexed.dot -o indexed.svg
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
 digraph indexed {
 	rankdir=LR;
 	node [shape=box, style=filled, color=white, fontname="Helvetica"];

@@ -1,0 +1,29 @@
+// A step run at two indices. Both nodes run the same task on the same inputs;
+// only the index differs, which is what lets them run concurrently.
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
+digraph step_index {
+	bgcolor="#f0f0f0";
+	graph [fontname="Helvetica", pad=0.35, ranksep=0.25, nodesep=0.5];
+	node [shape=oval, style=filled, fillcolor=white, color=black,
+	      fontname="Helvetica", width=2.0, height=1.0];
+	edge [fontname="Helvetica", fontsize=11];
+
+	elab [label="elaborate/0\n(elaborate_tool)"];
+	syn0 [label="syn/0\n(synth_tool)"];
+	syn1 [label="syn/1\n(synth_tool)"];
+
+	elab -> syn0;
+	elab -> syn1;
+
+	// The annotation for each node, pulled tight against it: minlen=0 keeps the
+	// note in the rank immediately below rather than a full level away.
+	note0 [shape=box, style=filled, fillcolor="#d9d9d9", color="#d9d9d9",
+	       fontname="Helvetica-Oblique", fontsize=11, height=0, width=0,
+	       label="Task = synth_tool\lStep = syn\lIndex = 0\l"];
+	note1 [shape=box, style=filled, fillcolor="#d9d9d9", color="#d9d9d9",
+	       fontname="Helvetica-Oblique", fontsize=11, height=0, width=0,
+	       label="Task = synth_tool\lStep = syn\lIndex = 1\l"];
+
+	syn0 -> note0 [style=invis];
+	syn1 -> note1 [style=invis];
+}

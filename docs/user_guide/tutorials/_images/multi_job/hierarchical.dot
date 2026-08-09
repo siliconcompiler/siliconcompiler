@@ -1,6 +1,6 @@
 // Pattern 3: hierarchical builds. A child is implemented in its own job and
 // consumed by the parent as a library, never as RTL.
-// Rendered with: dot -Tsvg hierarchical.dot -o hierarchical.svg
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
 digraph hierarchical {
 	rankdir=LR;
 	node [shape=box, style=filled, color=white, fontname="Helvetica"];

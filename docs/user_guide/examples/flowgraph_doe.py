@@ -36,4 +36,5 @@ for index in range(7):
     for metric in ('cellarea', 'peakpower', 'standbypower'):
         flow.set('syn', str(index), 'weight', metric, 1.0)
 
-flow.write_flowgraph("flowgraph_doe.svg")
+if __name__ == "__main__":
+    flow.write_flowgraph("flowgraph_doe.svg")

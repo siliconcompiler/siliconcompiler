@@ -1,6 +1,6 @@
 // Pattern 2: sweeping a parameter. The same flow runs once per variant, each
 // under its own jobname, and the results are read back out of history().
-// Rendered with: dot -Tsvg sweep.dot -o sweep.svg
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
 digraph sweep {
 	rankdir=LR;
 	node [shape=box, style=filled, color=white, fontname="Helvetica"];

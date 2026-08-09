@@ -18,4 +18,5 @@ flow.edge('elaborate', 'syn')               # perform syn after import
 # end of flowgraph setup <docs reference>
 
 # writes out the flowgraph
-flow.write_flowgraph("heartbeat_flowgraph.svg")
+if __name__ == "__main__":
+    flow.write_flowgraph("heartbeat_flowgraph.svg")

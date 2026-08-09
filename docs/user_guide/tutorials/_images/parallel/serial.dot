@@ -1,5 +1,5 @@
 // Approach 1: completely serial. One job at a time, one node at a time.
-// Rendered with: dot -Tsvg serial.dot -o serial.svg
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
 digraph serial {
 	rankdir=LR;
 	node [shape=box, style=filled, color=white, fontname="Helvetica"];

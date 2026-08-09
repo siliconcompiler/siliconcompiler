@@ -56,7 +56,7 @@ Run one flow, then feed its outputs into another as inputs. The canonical case i
 implementation followed by signoff, because they are different flows over the
 same design.
 
-.. image:: _images/multi_job/chaining.svg
+.. graphviz:: _images/multi_job/chaining.dot
    :align: center
 
 :meth:`.Project.find_result` locates an output by extension and step, which is
@@ -83,7 +83,7 @@ Pattern 2: Sweeping a Parameter
 
 Run the same flow many times with one thing changed, then compare.
 
-.. image:: _images/multi_job/sweep.svg
+.. graphviz:: _images/multi_job/sweep.dot
    :align: center
 
 Carry each variant as its own :term:`fileset` and give each run its own jobname:
@@ -118,7 +118,7 @@ Build a block in one job, then consume its results in another. This is the
 multi-job structure behind hardened macros: the child is implemented, packaged as
 a library, and injected into the parent, which never sees its RTL.
 
-.. image:: _images/multi_job/hierarchical.svg
+.. graphviz:: _images/multi_job/hierarchical.dot
    :align: center
 
 .. code-block:: python
@@ -140,7 +140,7 @@ Putting It Together
 The three patterns compose into flows that no single flowgraph can express,
 because the decisions between jobs are ordinary Python:
 
-.. image:: _images/multi_job/together.svg
+.. graphviz:: _images/multi_job/together.dot
    :align: center
 
 Read it as an alternation. SiliconCompiler runs a job (grey); your script reads

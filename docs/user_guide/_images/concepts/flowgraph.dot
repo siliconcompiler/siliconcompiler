@@ -1,0 +1,33 @@
+// The two things a flowgraph is made of. Deliberately generic -- the concrete
+// version is rendered from a real Flowgraph further down the page.
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
+digraph flowgraph {
+	rankdir=LR;
+	bgcolor="#f0f0f0";
+	graph [fontname="Helvetica", pad=0.35, ranksep=0.7, nodesep=0.02];
+	node [shape=oval, style=filled, fillcolor=white, color=black,
+	      fontname="Helvetica", width=1.9, height=1.0];
+	edge [fontname="Helvetica", fontsize=11];
+
+	// The callouts are ordinary nodes pinned into the same rank as the thing
+	// they label, so they sit directly above it instead of wherever graphviz
+	// would drop a free-floating xlabel. Getting them to sit *close* needs both
+	// margin="0,0" (a plaintext node otherwise pads its label by ~0.11in top and
+	// bottom) and a small graph nodesep -- either one alone leaves a visible gap.
+	node [shape=plaintext, fillcolor=none, width=0, height=0, margin="0,0",
+	      fontsize=10, fontcolor="#666666"];
+	n1 [label="NODE"];
+	n2 [label="NODE"];
+
+	node [shape=oval, style=filled, fillcolor=white, fontsize=14,
+	      fontcolor=black, width=1.9, height=1.0];
+	t1 [label="Task1\n(tool1)"];
+	t2 [label="Task2\n(tool2)"];
+
+	{ rank=same; n1; t1; }
+	{ rank=same; n2; t2; }
+	n1 -> t1 [style=invis];
+	n2 -> t2 [style=invis];
+
+	t1 -> t2 [label="EDGE", fontsize=10, fontcolor="#666666"];
+}
