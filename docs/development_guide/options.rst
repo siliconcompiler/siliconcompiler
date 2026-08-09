@@ -25,7 +25,7 @@ The JSON structure generally looks like this:
             "scheduler,name": "slurm",
             "scheduler,queue": "hw_queue",
             "remote": true,
-            "optmode": "2"
+            "optmode": 2
         },
         "other-category": {
             "setting_name": "value"

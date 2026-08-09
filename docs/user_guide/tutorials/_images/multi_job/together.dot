@@ -1,0 +1,51 @@
+// Putting the three patterns together. The point of the picture is the
+// alternation: SiliconCompiler runs a job (grey), your script reads the result
+// and decides what to run next (yellow note), repeat.
+// Rendered with: dot -Tsvg together.dot -o together.svg
+digraph together {
+	rankdir=TB;
+	compound=true;
+	node [shape=box, style=filled, color=white, fontname="Helvetica"];
+	graph [fontname="Helvetica"];
+	edge [fontname="Helvetica", fontsize=10];
+
+	// ---- step 1: one synthesis job ----------------------------------------
+	subgraph cluster_syn {
+		style=filled; color=lightgrey; label="1.  job: syn";
+		elaborate -> synthesis;
+	}
+
+	// ---- step 2: your code fans the sweep out ------------------------------
+	fanout [label="2.  your code\lfor cfg in configs:\l    set_jobname(cfg); run()\l",
+	        shape=note, style=filled, fillcolor="#fff3c4", color="#b8860b"];
+
+	// ---- step 3: one implementation job per configuration ------------------
+	subgraph cluster_impl_a {
+		style=filled; color=lightgrey; label="3.  job: impl_a";
+		fa [label="floorplan.init"]; pa [label="place.global"]; ra [label="route.detailed"];
+		fa -> pa -> ra;
+	}
+	subgraph cluster_impl_n {
+		style=filled; color=lightgrey; label="3.  job: impl_n";
+		fn [label="floorplan.init"]; pn [label="place.global"]; rn [label="route.detailed"];
+		fn -> pn -> rn;
+	}
+
+	// ---- step 4: your code compares and decides ----------------------------
+	decide [label="4.  your code\lhistory(\"impl_a\") vs history(\"impl_n\")\lgood enough?\l",
+	        shape=note, style=filled, fillcolor="#fff3c4", color="#b8860b"];
+
+	// ---- step 5: signoff ---------------------------------------------------
+	subgraph cluster_signoff {
+		style=filled; color=lightgrey; label="5.  job: signoff";
+		drc -> lvs;
+	}
+
+	synthesis -> fanout;
+	fanout -> fa;
+	fanout -> fn;
+	ra -> decide;
+	rn -> decide;
+	decide -> drc [label="  yes"];
+	decide -> fanout [label="  no: adjust and re-run", style=dashed, constraint=false];
+}

@@ -1,80 +1,162 @@
-:orphan:
-
 .. _picorv32_example:
 
+#####################
 Building Your Own SoC
+#####################
+
+This tutorial builds an ASIC containing a PicoRV32 RISC-V CPU core, and then the
+same core wired to an SRAM -- the first step toward a real system-on-chip.
+
+.. image:: ../../_images/picorv32_ram_screenshot.png
+   :align: center
+
+It is the natural next step after the :ref:`Quickstart <quickstart_guide>`,
+because it introduces the two things that quickstart's single-file design does
+not: **sources fetched from another repository**, and **composing your design out
+of someone else's**.
+
+Everything here comes from
+`examples/picorv32 <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`__,
+which is three files:
+
+.. code-block:: text
+
+   examples/picorv32/
+   ├── make.py            <- the build script; everything below is in here
+   ├── picorv32.sdc       <- clock constraint
+   └── picorv32_top.v     <- wrapper that connects the core to an SRAM
+
+The CPU source is **not** among them, and does not need to be downloaded --
+see below.
+
+Running It
+==========
+
+From that directory:
+
+.. code-block:: bash
+
+   smake syn                              # synthesis only, quickest check
+   smake asic                             # full RTL-to-GDS, bare core
+   smake asic --fileset rtl.memory        # full RTL-to-GDS, core + SRAM
+
+``make.py`` exposes each function as a target;
+:ref:`smake <app-smake>` discovers them and turns their arguments into
+command-line switches. ``smake --help`` lists what is available.
+
+The default PDK is ``freepdk45``; ``asap7`` and ``gf180`` also work
+(``--pdk asap7``), because the design carries a matching constraint fileset for
+each. The full flow takes appreciably longer than the Quickstart's heartbeat --
+most of it in routing.
+
+Where the Sources Come From
+===========================
+
+The design does not vendor the CPU. It declares a :term:`dataroot` pointing at
+the upstream repository, pinned to a commit, and SiliconCompiler fetches and
+caches it on first use:
+
+.. literalinclude:: examples/picorv32/make.py
+   :language: python
+   :start-after: # Define data sources using 'dataroots'.
+   :end-before: # A 'fileset' is a collection of files
+   :dedent: 8
+
+This is the pattern to copy for any third-party RTL. Pinning the commit is what
+makes the build reproducible; without it, "the same script" silently means
+something different next month. The cache lives in
+:ref:`~/.sc/cache <sc_home>`, so the fetch happens once per machine, not once
+per run.
+
+Part 1: The Bare Core
 =====================
 
-This tutorial will walk you through the process of building an ASIC containing one PicoRV32 RISC-V CPU core and 2 kilobytes of SRAM, on an open-source 130nm Skywater process node, with SiliconCompiler's remote workflow:
+The ``rtl`` :term:`fileset` is the core on its own:
 
-.. image:: ../../_images/picorv32_ram_screenshot.png
+.. literalinclude:: examples/picorv32/make.py
+   :language: python
+   :start-after: # This block defines the base RTL fileset.
+   :end-before: # This block defines a more complex RTL configuration
+   :dedent: 8
 
-We will walk through the process of downloading the design files and writing a build script, but for your reference, you can find complete example designs which reflect the contents of this tutorial in the public SiliconCompiler repository.
-The first part of the tutorial covers building the CPU core without RAM, and the second part describes how to add an SRAM block.
-Both configurations are built by the same `picorv32 example <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`__, which exposes them as two filesets: ``rtl`` for the bare core and ``rtl.memory`` for the core wired to an SRAM.
+Building it is the same three steps as any other project -- load the design, add
+the filesets, apply a target:
 
-See the :ref:`Installation <installation>` section for information on how to install SiliconCompiler, and the :ref:`Remote Processing <remote_processing>` section for instructions on setting up the remote workflow.
-
-Download PicoRV32 Verilog Code
-------------------------------
-
-The heart of any digital design is its HDL code, typically written in a language such as Verilog or VHDL.
-High-level synthesis languages are gaining in popularity, but most of them still output their final design sources in a traditional HDL such as Verilog.
-
-PicoRV32 is an open-source implementation of a small RISC-V CPU core, the sort you might find in a low-power microcontroller.
-Its source code, license, and various tooling can be found `in its GitHub repository <https://github.com/YosysHQ/picorv32>`__.
-
-Build the PicoRV32 Core using SiliconCompiler
----------------------------------------------
-
-Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130 <schema-lambdapdk-sky130-sky130pdk>` PDK.
-Copy the following build script into the same directory which you copied ``picorv32.v`` into.
-A complete example build script can be found `in the repository <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`__.
-
-Note in the code snippet above that :keypath:`option,remote` is set to ``False``. If this is set to ``True``, this means it is set up for :ref:`remote processing <remote_processing>`, and if you run this example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy.
-We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area.
-Once the job finishes, you should receive a screenshot of your final design, and view the dashboard with ``sc-dashboard -cfg build/picorv32/job0/picorv32.pkg.json``.
-SiliconCompiler will try to open the file after the job completes, but it may not be able to do so if you are running in a headless environment.
+.. literalinclude:: examples/picorv32/make.py
+   :language: python
+   :pyobject: asic
 
 .. image:: ../../_images/picorv32_screenshot.png
+   :align: center
 
-The full GDS-II results and intermediate build artifacts are downloaded to your local build directory as each node completes, whether you run remotely or locally.
-See the :ref:`local run <start_the_flow>` section for more information on running on your own machine.
+I/O signals are placed around the edges of the die area without a pin
+constraint, which is why they appear evenly distributed rather than grouped.
 
-Adding an SRAM block
---------------------
+Part 2: Adding an SRAM
+======================
 
-A CPU core is not very useful without any memory.
-Indeed, a real system-on-chip would need quite a few supporting IP blocks to be useful in the real world.
-At the very least, you would want a SPI interface for communicating with external non-volatile memory, a UART to get data in and out of the core, a debugging interface, and a small on-die cache.
+A CPU core is not much use without memory. A real SoC would also want a SPI
+interface for external non-volatile memory, a UART, a debug interface and a
+cache -- this adds the first of those pieces.
 
-In this tutorial, we'll take the first step by adding a small (2 kilobyte) SRAM block and wiring it to the CPU's memory interface.
-This will teach you how to import and place a hard IP block in your design.
+The SRAM does not have to be built or downloaded. ``lambdalib`` ships a
+single-port RAM, and the ``rtl.memory`` fileset composes it with the core:
 
-The open-source Skywater130 PDK does not currently include foundry-published memory macros.
-Instead, they have a set of OpenRAM configurations which are blessed by the maintainers.
-You can use `those configurations <https://github.com/VLSIDA/OpenRAM/tree/stable/technology/sky130>`__ to generate RAM macros from scratch if you are willing to install the `OpenRAM utility <https://github.com/VLSIDA/OpenRAM>`__, or you can `download pre-built files <https://github.com/VLSIDA/sky130_sram_macros>`__.
+.. literalinclude:: examples/picorv32/make.py
+   :language: python
+   :start-after: # This block defines a more complex RTL configuration
+   :end-before: # Define Synopsys Design Constraints (SDC)
+   :dedent: 8
 
-We will use the `sky130_sram_2kbyte_1rw1r_32x512_8 <https://github.com/VLSIDA/sky130_sram_macros/tree/main/sky130_sram_2kbyte_1rw1r_32x512_8>`__ block in this example.
+Two things are worth pulling out of that block, because together they are the
+whole mechanism for building a design out of other designs:
 
-Create a Python script called ``sky130_sram_2k.py`` to describe the RAM macro in a format which can be imported by SiliconCompiler.
-Example files for the complete SoC design can be found `in the repository <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`__.
+* :meth:`.Design.add_depfileset` **declares a dependency on another design's
+  fileset.** ``add_depfileset(self, "rtl")`` pulls in this design's own bare-core
+  fileset, and ``add_depfileset(Spram(), "rtl")`` pulls in the RAM. Their sources
+  are resolved and compiled with yours -- you never name their files.
+* The **top module changes** to ``picorv32_top``, the local wrapper that
+  instantiates the core and the RAM and connects them.
 
-With all of that done, your project directory tree should look something like this::
+So ``rtl.memory`` is not a modified copy of ``rtl``; it is ``rtl`` plus a
+library plus a wrapper. Swapping between the two configurations is a fileset
+argument, nothing more.
 
-    <rundir>
-    ├── sky130_sram_2k.bb.v
-    ├── sky130_sram_2k.py
-    ├── picorv32.py
-    ├── picorv32_ram.py
-    └── picorv32_top.v
+.. note::
+   This SRAM is soft -- it is RTL, synthesized along with everything else. That
+   is the simplest thing that works, and it is what makes this example run on any
+   of the three PDKs. A production SoC would use a **hardened** memory macro
+   instead, with fixed timing and area; see
+   :ref:`Instantiating a hardened module <hardened_modules>` for how a
+   pre-implemented block is packaged and placed.
 
-Your ``picorv32_ram.py`` build script should take about 20 minutes to run on the cloud servers if they are not too busy, with most of that time spent in the routing task.
-As with the previous designs, you should see updates on its progress printed every 30 seconds, and you should receive a screenshot once the job is complete and a report in the build directory:
+Results
+=======
 
-.. image:: ../../_images/picorv32_ram_screenshot.png
+Outputs land in ``build/picorv32/job0/``. The final layout is under
+``write.gds/0/outputs/``, and metrics are summarised at the end of the run by
+:meth:`.Project.summary`. To open the layout:
 
-Extending your design
----------------------
+.. code-block:: bash
 
-Now that you have a basic understanding of how to assemble modular designs using SiliconCompiler, why not try building a design of your own creation, or adding a custom accelerator to your new CPU core?
+   sc-show -design picorv32                        # the finished GDS
+   sc-show -design picorv32 -arg_step floorplan.init   # an intermediate stage
+
+:ref:`sc-show <app-sc-show>` needs a viewer -- :ref:`KLayout <tool-klayout>` is
+the usual choice. :ref:`Directory structures <build_directory>` explains the rest
+of the tree, and :ref:`Working with Metrics <dev_metrics>` covers what the
+summary is showing you.
+
+Extending Your Design
+=====================
+
+You now have the two techniques that hierarchical design rests on: pulling
+sources from another repository, and composing filesets from other designs. From
+here:
+
+* :ref:`Instantiating a hardened module <hardened_modules>` -- replace the soft
+  SRAM with a hardened macro.
+* :ref:`Multi-Job Flows <multi_job_flows>` -- run implementation and signoff as
+  separate jobs, or sweep a parameter across many.
+* :ref:`Parallel Job Execution <parallel_execution>` -- run those jobs
+  concurrently.

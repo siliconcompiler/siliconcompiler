@@ -102,8 +102,8 @@ The snippet below shows how a massively parallel optimization flow can be progra
 
 .. image:: _images/flowgraph_doe.svg
 
-.. TODO (docs audit, later phase): add a pointer here to a tutorial on optimizing
-   a metric. No such tutorial exists yet and none of the 13 tutorials proposed in
-   the docs audit covers it, so the tutorial has to be written before this link
-   can be added. Tracked separately from the "authoring a custom flow end to end"
-   tutorial, which covers the earlier TODO in this file.
+.. seealso::
+   :ref:`Parallel Job Execution <parallel_execution>` runs this pattern as a
+   worked example and compares it against the two other ways of parallelizing a
+   sweep, and :ref:`Multi-Job Flows <multi_job_sweep>` covers reading the
+   resulting metrics back out to drive a decision.

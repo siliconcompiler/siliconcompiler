@@ -1,0 +1,33 @@
+// Approach 3: process parallelism across jobs. Each datawidth is an independent
+// flow in its own OS process; nothing is shared, so all of them start at once.
+// Rendered with: dot -Tsvg processes.dot -o processes.svg
+digraph processes {
+	rankdir=LR;
+	node [shape=box, style=filled, color=white, fontname="Helvetica"];
+	graph [fontname="Helvetica"];
+
+	pool [label="multiprocessing.Pool", shape=ellipse, style=filled, color=darkgrey, fontcolor=white];
+
+	subgraph cluster_8 {
+		style=filled; color=lightgrey; label="process 1  --  job N8";
+		e8 [label="elaborate"]; s8 [label="synthesis"]; t8 [label="timing"];
+		e8 -> s8 -> t8;
+	}
+	subgraph cluster_16 {
+		style=filled; color=lightgrey; label="process 2  --  job N16";
+		e16 [label="elaborate"]; s16 [label="synthesis"]; t16 [label="timing"];
+		e16 -> s16 -> t16;
+	}
+	subgraph cluster_32 {
+		style=filled; color=lightgrey; label="process 3  --  job N32";
+		e32 [label="elaborate"]; s32 [label="synthesis"]; t32 [label="timing"];
+		e32 -> s32 -> t32;
+	}
+	subgraph cluster_64 {
+		style=filled; color=lightgrey; label="process 4  --  job N64";
+		e64 [label="elaborate"]; s64 [label="synthesis"]; t64 [label="timing"];
+		e64 -> s64 -> t64;
+	}
+
+	pool -> e8; pool -> e16; pool -> e32; pool -> e64;
+}
