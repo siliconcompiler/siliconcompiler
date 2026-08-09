@@ -255,8 +255,11 @@ linkcheck_retries = 2
 # serves and restores the original ids client-side. linkcheck fetches the raw
 # HTML, so it can never resolve an anchor into a README and reports every one as
 # broken. Check that those pages exist, but not their fragments.
+# Only the Markdown-rendering pages need this. Issue and source links serve
+# their anchors in the HTML linkcheck sees, so they stay checked.
 linkcheck_anchors_ignore_for_url = [
-    r"https://github\.com/.*",
+    r"https://github\.com/[^/]+/[^/]+/?$",   # repository landing page (its README)
+    r"https://github\.com/.*\.md$",          # any other Markdown file
 ]
 
 # Being rate-limited by a host is not a broken link; back off and retry rather

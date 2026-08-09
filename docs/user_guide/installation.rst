@@ -104,7 +104,8 @@ Open up a terminal and enter the following command sequence.
 .. code-block:: bash
 
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   eval "$(/opt/homebrew/bin/brew shellenv)"              # Apple Silicon; Intel Macs use /usr/local/bin/brew
+   # /opt/homebrew on Apple Silicon, /usr/local on Intel -- try both
+   eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"
    brew update
    brew install python
    python3 --version                                      # check for Python 3.10+
@@ -195,8 +196,11 @@ Now that you have installed SiliconCompiler, you can test your installation by r
 
 .. code-block:: bash
 
-    python3 -m siliconcompiler.demos.asic_demo -remote
+    python -m siliconcompiler.demos.asic_demo -remote
 
+``python`` rather than ``python3``: a virtual environment provides both on every
+platform, and Windows has only ``python``. Outside an activated environment on
+Linux or macOS, use ``python3``.
 
 Your remote job should only take a few minutes to run if the servers aren't too busy.
 It should end with a results directory where you can find ``png`` file which displays your results.

@@ -35,7 +35,7 @@ def _sources():
 # almost always meant :ref:`Some text <a_label>`. A genuine relative link
 # carries a dot, a slash or a scheme, so requiring none of those keeps this
 # from firing on real URLs.
-BAD_REF = re.compile(r"`[^`<>\n]+ <([A-Za-z0-9_]+)>`_")
+BAD_REF = re.compile(r"`[^`<>\n]+ <([A-Za-z0-9_-]+)>`_")
 
 
 def test_no_external_link_syntax_pointing_at_internal_labels():

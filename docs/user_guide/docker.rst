@@ -108,6 +108,6 @@ Execute the following command in the same terminal:
 
 .. code-block:: bash
 
-    python3 -m siliconcompiler.demos.asic_demo -scheduler docker
+    python -m siliconcompiler.demos.asic_demo -scheduler docker
 
 If the setup is successful, you will see compilation output in your terminal as SiliconCompiler executes the demonstration flow.

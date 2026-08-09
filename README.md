@@ -74,7 +74,7 @@ project.show()                                         # show layout
 
 New here? Start with the [Quickstart guide](https://docs.siliconcompiler.com/en/latest/user_guide/quickstart.html), which walks through the example above line by line.
 
-The full reference manual and tutorials can be found [HERE](https://docs.siliconcompiler.com/).
+The [SiliconCompiler reference manual and tutorials](https://docs.siliconcompiler.com/) cover the rest.
 
 # License
 

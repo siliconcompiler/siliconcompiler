@@ -135,7 +135,7 @@ Next, we load a **target**, which bundles a Process Design Kit (PDK), standard c
 Configuring the Run
 ^^^^^^^^^^^^^^^^^^^
 
-:meth:`.Project.option` is used to configure various settings.
+:attr:`.Project.option` is used to configure various settings.
 This is the line that chooses between the two modes described :ref:`above <choose_run_mode>`:
 
 .. code-block:: python

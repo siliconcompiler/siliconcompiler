@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Three ways to run the same sweep, from slowest to fastest.
+"""Three ways to get parallelism out of the same sweep: synthesizing ``adder.v``
+at several datawidths.
 
-The workload is identical in all three: synthesize ``adder.v`` at several
-datawidths. What changes is how much of the machine is allowed to work at once.
+``serial`` and ``processes`` do identical work and differ only in scheduling, so
+their times compare directly. ``indexed`` deliberately does *more* -- four
+synthesis variants per datawidth instead of one -- because that is what index
+parallelism is for: exploring alternatives inside a job, not splitting fixed
+work. Compare it on time-per-variant, not on total time.
 
 Run one approach at a time::
 
@@ -79,7 +83,9 @@ def run_indexed():
 
     for n in DATAWIDTHS:
         # Four synthesis indices per job. The jobs still run one after another,
-        # but each one now uses several cores instead of one.
+        # but each one now uses several cores instead of one -- and produces four
+        # variants rather than one, which is why this run is not a like-for-like
+        # timing comparison against the other two.
         project = make_project(design, n, syn_np=4)
         project.run()
 

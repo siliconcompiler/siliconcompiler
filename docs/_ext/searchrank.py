@@ -96,7 +96,7 @@ def search(idx, query, apply_scorer=True):
     # has to be a main entry ("!" in the index directive) to be worth adding.
     non_main = []
     for entry, found in idx["indexentries"].items():
-        if q in entry and len(q) >= len(entry) / 2:
+        if q in entry.lower() and len(q) >= len(entry) / 2:
             for file, _anchor, is_main in found:
                 row = [round(100 * len(q) / len(entry)), docnames[file], titles[file]]
                 (results if is_main else non_main).append(row)

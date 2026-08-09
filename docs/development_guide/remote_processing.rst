@@ -90,7 +90,7 @@ Build scripts that expose a command line through :meth:`.CommandLineSchema.creat
 
 .. code-block:: bash
 
-  python3 -m siliconcompiler.demos.asic_demo -remote
+  python -m siliconcompiler.demos.asic_demo -remote
 
 The job will be packaged, sent to the remote server for processing, and the results will be streamed back to your local machine.
 Results are downloaded for each flowgraph node as it completes, so a finished remote job leaves the same build directory contents behind as a local run.

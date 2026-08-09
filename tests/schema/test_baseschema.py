@@ -3911,8 +3911,14 @@ def test_generate_doc_sections_titled_by_keypath(sphinx_doc):
         sections = schema._generate_doc(sphinx_doc)
 
     assert [str(s[0][0]) for s in sections] == ["option"]
-    assert [str(s[0][0]) for s in sections[0] if isinstance(s, nodes.section)] == \
-        ["option,fileset"]
+
+    leaves = [s for s in sections[0] if isinstance(s, nodes.section)]
+    assert [str(s[0][0]) for s in leaves] == ["option,fileset"]
+
+    # The section's own id is the cross-reference target the :keypath: role and
+    # the search index resolve through, so it has to carry the whole keypath
+    # too -- a leaf-key id would collide across the nine "fileset" parameters.
+    assert leaves[0]["ids"] == ["param-baseschema-option-fileset"]
 
 
 def test_generate_doc_not_detailed_empty(sphinx_doc):

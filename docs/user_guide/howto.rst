@@ -342,7 +342,9 @@ Then, in the parent project, do two things -- **both are required**:
 
 .. code-block:: python
 
-   project.add_alias(mymacro_design, "rtl", None, None)   # 1. blackbox the RTL
+   # MyMacro() is the Design holding the macro's RTL -- the same sources the
+   # parent would otherwise synthesize, and what the alias tells it to skip.
+   project.add_alias(MyMacro(), "rtl", None, None)        # 1. blackbox the RTL
    project.add_asiclib(macro)                             # 2. inject the views
 
    # Macros need room. Too small a die and the placer cannot fit them.

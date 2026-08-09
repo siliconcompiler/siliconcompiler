@@ -22,8 +22,10 @@ single script:
    ./parallel.py indexed
    ./parallel.py processes
 
-Each prints its own wall-clock time, so the three are directly comparable on your
-machine.
+Each prints its own wall-clock time. ``serial`` and ``processes`` run identical
+work and differ only in how it is scheduled, so those two compare directly.
+``indexed`` is not a like-for-like third measurement -- it deliberately
+synthesizes four variants per datawidth, for the reason given in that section.
 
 The Workload
 ============

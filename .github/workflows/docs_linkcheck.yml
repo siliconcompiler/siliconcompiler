@@ -19,7 +19,12 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      # This job installs the package and runs a Sphinx build, which executes
+      # extension and example code. Do not leave a credentialed remote behind
+      # for that to find; the issue-filing step below supplies its own token.
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install dependencies
         run: |

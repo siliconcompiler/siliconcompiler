@@ -66,7 +66,7 @@ EDA tools:
 
 .. code-block:: bash
 
-   python3 -m siliconcompiler.demos.asic_demo -scheduler docker
+   python -m siliconcompiler.demos.asic_demo -scheduler docker
 
 Installing the tools natively is the better answer if you expect to keep
 building, but it is not a five-minute detour, so it is not the one to start on
