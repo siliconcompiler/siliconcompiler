@@ -11,6 +11,17 @@ build:
     python: "3.11"
   apt_packages:
     - xdot
+  jobs:
+    post_checkout:
+      # setuptools_scm derives the version from the nearest reachable tag, but
+      # Read the Docs checks out with `git clone --depth 1` followed by
+      # `git fetch --depth 50 --prune-tags`. A branch that has drifted further
+      # than that window has no tag in its history, so the version falls back to
+      # 0.1.devN -- which then cannot satisfy lambdapdk's `siliconcompiler >=
+      # 0.35.0`, and the whole install aborts with ResolutionImpossible before
+      # Sphinx ever runs. Short-lived branches happen to keep their tag, so this
+      # only bites long-running ones.
+      - git fetch --unshallow --tags || git fetch --tags
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
