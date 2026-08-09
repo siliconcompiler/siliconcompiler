@@ -171,7 +171,7 @@
   },
   "wildebeest": {
     "git-url": "https://github.com/zeroasiccorp/wildebeest.git",
-    "git-commit": "f38169c47c11c53604d4d88ba330d7a16b423bb1",
+    "git-commit": "91b1abb0caab100ecf49bf2254119dacdd73b83d",
     "docker-depends": "yosys",
     "auto-update": true
   },
