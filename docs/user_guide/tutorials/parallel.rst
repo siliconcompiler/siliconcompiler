@@ -124,10 +124,19 @@ process boundary has to be picklable:
    :end-before: def run_processes
    :dedent: 4
 
+.. warning::
+   **Do not use** :class:`multiprocessing.Pool` **for this.** Its workers are
+   daemonic, and a daemonic process may not have children. :meth:`.Project.run()`
+   forks a worker per :term:`flowgraph node`, so inside a ``Pool`` it fails with
+   ``daemonic processes are not allowed to have children`` before any tool
+   starts. :class:`~concurrent.futures.ProcessPoolExecutor` does not make its
+   workers daemonic, which is why it is used above. Plain
+   :class:`multiprocessing.Process` also works.
+
 .. note::
    **Guard your script.** SiliconCompiler forks its own node workers on Linux,
-   but a script that itself uses ``multiprocessing`` must be import-safe: on
-   macOS and Windows the child re-imports the file, and without
+   but a script that itself starts processes must be import-safe: on macOS and
+   Windows the child re-imports the file, and without
    ``if __name__ == "__main__":`` it recurses instead of running.
 
 Choosing Between Them

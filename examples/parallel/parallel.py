@@ -17,13 +17,15 @@ Run one approach at a time::
 See the "Parallel Job Execution" tutorial for the accompanying discussion.
 """
 
-import multiprocessing
 import sys
 import time
+
+from concurrent.futures import ProcessPoolExecutor
 
 from siliconcompiler import ASIC, Design
 from siliconcompiler.flows.synflow import SynthesisFlow
 from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler.utils.multiprocessing import get_process_context
 
 DATAWIDTHS = (8, 16, 32, 64)
 
@@ -104,7 +106,18 @@ def _run_one(n):
 def run_processes():
     # Each datawidth is an independent flow with no data shared between them,
     # so they can run as separate processes.
-    with multiprocessing.Pool(len(DATAWIDTHS)) as pool:
+    #
+    # Two constraints shape this, and both come from run() starting processes of
+    # its own inside each worker:
+    #
+    # ProcessPoolExecutor, not multiprocessing.Pool -- Pool's workers are
+    # daemonic, and a daemonic process may not have children, so run() dies with
+    # "daemonic processes are not allowed to have children".
+    #
+    # get_process_context(), not the interpreter default -- SiliconCompiler pins
+    # the same context for its own workers, and the default changed to forkserver
+    # on Linux in Python 3.14.
+    with ProcessPoolExecutor(len(DATAWIDTHS), mp_context=get_process_context()) as pool:
         for n, area in pool.map(_run_one, DATAWIDTHS):
             print(f"N={n:<3} cellarea={area}")
 
@@ -116,8 +129,8 @@ APPROACHES = {
 }
 
 
-# The guard is required. SiliconCompiler forks its own workers on Linux, but a
-# script that itself uses multiprocessing must still be import-safe: on macOS
+# The guard is required. SiliconCompiler forks its own node workers on Linux, but a
+# script that itself starts processes must still be import-safe: on macOS
 # and Windows the child re-imports this file, and without the guard it would
 # recurse instead of running.
 if __name__ == "__main__":
