@@ -1,0 +1,61 @@
+// Where the work actually runs. Each program's run() call is a job, and a job
+// fans out into the tasks of its flowgraph. option,remote decides whether that
+// happens on your machine or on a server.
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
+digraph remote {
+	rankdir=LR;
+	bgcolor="#f0f0f0";
+	graph [fontname="Helvetica", pad=0.35, ranksep=0.5, nodesep=0.18];
+	node [shape=box, style="filled,rounded", fontname="Helvetica", fontsize=11,
+	      color="#999999", height=0.4];
+	edge [color="#666666", arrowsize=0.7, fontname="Helvetica", fontsize=9,
+	      fontcolor="#666666"];
+
+	subgraph cluster_local {
+		label="  LOCAL -- your machine";
+		labeljust=l; fontsize=11; fontcolor="#333333";
+		style=filled; color="#e4e4e4";
+
+		p1 [label="program", fillcolor="#cfe2f3"];
+		p2 [label="program", fillcolor="#cfe2f3"];
+		p3 [label="program", fillcolor="#cfe2f3"];
+
+		lsched [label="local scheduler", fillcolor="#fff2cc"];
+		ljob   [label="job", fillcolor="#b6d7a8"];
+		lt1 [label="task", fillcolor="#9fc5e8"];
+		lt2 [label="task", fillcolor="#9fc5e8"];
+
+		p3 -> lsched [label="  remote = False  "];
+		lsched -> ljob;
+		ljob -> lt1;
+		ljob -> lt2;
+	}
+
+	subgraph cluster_remote {
+		label="  REMOTE";
+		labeljust=l; fontsize=11; fontcolor="#333333";
+		style=filled; color="#e4e4e4";
+
+		server [label="sc-server", fillcolor="#f4cccc"];
+		csched [label="cloud scheduler", fillcolor="#fff2cc"];
+
+		job1 [label="job", fillcolor="#b6d7a8"];
+		job2 [label="job", fillcolor="#b6d7a8"];
+
+		t1 [label="task", fillcolor="#9fc5e8"];
+		t2 [label="task", fillcolor="#9fc5e8"];
+		t3 [label="task", fillcolor="#9fc5e8"];
+		t4 [label="task", fillcolor="#9fc5e8"];
+
+		server -> csched;
+		csched -> job1;
+		csched -> job2;
+		job1 -> t1;
+		job1 -> t2;
+		job2 -> t3;
+		job2 -> t4;
+	}
+
+	p1 -> server [dir=both, label="  remote = True  "];
+	p2 -> server [dir=both];
+}

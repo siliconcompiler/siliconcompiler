@@ -1,0 +1,83 @@
+// What sits on top of what. Read top to bottom: your program calls the Python
+// API, which populates the schema, which drives tool drivers, which run the
+// tools against a PDK.
+// Rendered at build time by sphinx.ext.graphviz; do not commit an image.
+digraph stack {
+	rankdir=TB;
+	newrank=true;
+	bgcolor="#f0f0f0";
+	graph [fontname="Helvetica", pad=0.35, ranksep=0.3, nodesep=0.18];
+	node [shape=box, style=filled, fontname="Helvetica", fontsize=11,
+	      color="#999999", height=0.5];
+	edge [color="#666666", arrowsize=0.7, fontname="Helvetica", fontsize=9,
+	      fontcolor="#666666"];
+
+	you   [label="your build script", fillcolor="#d5a6bd", fontcolor=white, width=6.4];
+	api   [label="SiliconCompiler Python API   (Design, Project, ASIC, …)",
+	       fillcolor="#b6d7a8", width=6.4];
+	sch   [label="Schema and run-time scheduler", fillcolor="#b6d7a8", width=6.4];
+
+	drv1 [label="driver", fillcolor="#9fc5e8", width=1.1];
+	drv2 [label="driver", fillcolor="#9fc5e8", width=1.1];
+	drv3 [label="driver", fillcolor="#9fc5e8", width=1.1];
+	drv4 [label="driver", fillcolor="#9fc5e8", width=1.1];
+	tl1  [label="tool",   fillcolor="#ea9999", width=1.1];
+	tl2  [label="tool",   fillcolor="#ea9999", width=1.1];
+	tl3  [label="tool",   fillcolor="#ea9999", width=1.1];
+	tl4  [label="tool",   fillcolor="#ea9999", width=1.1];
+
+	pdk  [label="PDKs, standard cell libraries, IP", fillcolor="#ea9999", width=6.4];
+
+	// manifest and files are pinned beside the run-time and the driver row.
+
+	you -> api [dir=both, arrowsize=0.5];
+	api -> sch [dir=both, arrowsize=0.5];
+	sch -> drv1 [dir=both, arrowsize=0.5];
+	sch -> drv2 [dir=both, arrowsize=0.5];
+	sch -> drv3 [dir=both, arrowsize=0.5];
+	sch -> drv4 [dir=both, arrowsize=0.5];
+	drv1 -> tl1 [dir=both, arrowsize=0.5];
+	drv2 -> tl2 [dir=both, arrowsize=0.5];
+	drv3 -> tl3 [dir=both, arrowsize=0.5];
+	drv4 -> tl4 [dir=both, arrowsize=0.5];
+	tl1 -> pdk [dir=both, arrowsize=0.5];
+	tl2 -> pdk [dir=both, arrowsize=0.5];
+	tl3 -> pdk [dir=both, arrowsize=0.5];
+	tl4 -> pdk [dir=both, arrowsize=0.5];
+
+	subgraph cluster_outputs {
+		label="  outputs";
+		labeljust=l; fontsize=9; fontcolor="#666666";
+		style=filled; color="#e4e4e4";
+		manifest [label="JSON manifest", fillcolor="#d5a6bd", fontcolor=white, width=1.6];
+		files    [label="files", fillcolor="#d5a6bd", fontcolor=white, width=1.6];
+		manifest -> files [style=invis];
+	}
+
+	{ rank=same; drv1; drv2; drv3; drv4; }
+	{ rank=same; tl1; tl2; tl3; tl4; }
+
+	// The outputs sit beside the run-time rather than under it: manifest is
+	// pinned into the scheduler's rank (newrank lets that cross the cluster),
+	// gds falls one rank below it, and constraint=false keeps both edges from
+	// dragging the cluster downwards.
+	{ rank=same; sch; manifest; }
+	sch:e -> manifest:w [label="  writes  ", constraint=false];
+	sch:e -> files:w    [label="  writes  ", constraint=false];
+
+	// Colour key. Ordinary nodes pinned into a row so it reads as a caption
+	// rather than part of the stack.
+	subgraph cluster_key {
+		label="legend";
+		labeljust=l; fontsize=9; fontcolor="#666666";
+		style=filled; color="#e4e4e4";
+		node [fontsize=9, height=0.3, width=1.5];
+		k1 [label="SiliconCompiler", fillcolor="#b6d7a8"];
+		k2 [label="tool drivers",    fillcolor="#9fc5e8"];
+		k3 [label="third party",     fillcolor="#ea9999"];
+		k4 [label="yours / outputs", fillcolor="#d5a6bd", fontcolor=white];
+		k1 -> k2 -> k3 -> k4 [style=invis];
+		{ rank=same; k1; k2; k3; k4; }
+	}
+	pdk -> k1 [style=invis];
+}

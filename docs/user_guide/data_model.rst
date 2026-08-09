@@ -16,8 +16,7 @@ The Schema is designed to capture everything needed to produce a repeatable buil
 
 This data is stored in Schema :term:`parameters <parameter>`, which are accessed through a simple and consistent set of API methods.
 
-.. image:: _images/schema_diagram.png
-   :scale: 50%
+.. graphviz:: _images/concepts/schema.dot
    :align: center
 
 The diagram above illustrates how different types of data are organized within the Schema and accessed via methods.
