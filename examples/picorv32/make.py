@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
+"""A RISC-V CPU core, optionally wired to an SRAM.
+
+Sources are fetched from the upstream PicoRV32 repository at a pinned commit
+rather than vendored, and the ``rtl.memory`` fileset composes the core with a
+single-port RAM from ``lambdalib``. Those two techniques -- third-party sources
+and building a design out of other designs -- are what the example is for.
+
+Walked through in :ref:`Building Your Own SoC <picorv32_example>`.
+
+Requires: yosys, openroad, klayout; freepdk45, asap7 or gf180 (via lambdapdk)
+"""
 
 # Import necessary classes from the siliconcompiler library.
 from siliconcompiler import Design

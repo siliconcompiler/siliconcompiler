@@ -60,7 +60,8 @@ extensions = [
     'clientservergen',
     'requirements',
     'installgen',
-    'graphgen'
+    'graphgen',
+    'examplegen'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -51,7 +51,7 @@ Import the modules to be used:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 19-20
+    :lines: 21-22
 
 
 Files used
@@ -82,7 +82,7 @@ Child Module (and.v)
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
     :caption: Design setup for mod_and
-    :lines: 23-33
+    :lines: 25-35
 
 Parent Module (top.v)
 ^^^^^^^^^^^^^^^^^^^^^
@@ -90,7 +90,7 @@ Parent Module (top.v)
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
     :caption: Design setup for top
-    :lines: 36-48
+    :lines: 38-50
 
 Calling :meth:`.DependencySchema.write_depgraph()` on **top** draws what it now
 depends on -- useful for checking that a module you expected to be linked in
@@ -108,7 +108,7 @@ This generates the physical layout required for the macro.
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 51-68
+    :lines: 53-70
 
 .. figure:: /_screenshots/hardened/and.png
     :align: center
@@ -123,7 +123,7 @@ We gather the results from the previous build step and register them into the li
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 70-93
+    :lines: 72-95
 
 Step 4: Running the ASIC flow on module **top**
 -----------------------------------------------
@@ -136,7 +136,7 @@ Critical steps here include:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 96-123
+    :lines: 98-125
 
 .. note::
     Setting the core and die area explicitly is crucial for macro placement.
@@ -144,7 +144,7 @@ Critical steps here include:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 119
+    :lines: 121
 
 .. figure:: /_screenshots/hardened/top.png
     :align: center

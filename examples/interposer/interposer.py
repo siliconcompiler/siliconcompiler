@@ -19,6 +19,8 @@ def main():
     connections between other dies (chiplets) and a package substrate. This
     design flow focuses on the physical routing of these connections (Redistribution
     Layers or RDL) rather than logic synthesis.
+
+    Requires: openroad, klayout; interposer (via lambdapdk)
     '''
 
     # --- Design Setup ---

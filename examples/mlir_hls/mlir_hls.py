@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""High-level synthesis from LLVM IR to GDSII.
+
+The design's ``rtl`` fileset holds a ``.ll`` file rather than Verilog.
+``HLSASICFlow`` runs the HLS tool over it to produce RTL, then hands that to the
+usual synthesis, place and route steps.
+
+Requires: bambu, yosys, openroad, klayout; freepdk45 (via lambdapdk)
+"""
 
 # Import necessary classes from the siliconcompiler library.
 from siliconcompiler import ASIC, Design

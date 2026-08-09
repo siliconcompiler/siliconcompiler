@@ -23,7 +23,7 @@ You will also want to look at API References for details.
    Design & compilation data <data_model>
    Compilation process <execution_model>
    Directory structures <directories>
-..   <wip> Audit Model (aka The Checklist) <checklist>
+   Checklists and signoff <checklist>
 
 .. _tutorials:
 
@@ -31,6 +31,9 @@ You will also want to look at API References for details.
    :caption: Tutorials
    :maxdepth: 1
 
+   Lint your RTL <tutorials/lint>
+   Simulate and verify <tutorials/simulate>
+   Build for an FPGA <tutorials/fpga>
    Hardware design frontends <tutorials/hw_frontends>
    Multi-job flows and automation <tutorials/multi_job_flows>
    Parallel job execution <tutorials/parallel>
@@ -40,6 +43,12 @@ You will also want to look at API References for details.
    Instantiating a hardened module in a design <tutorials/hardened>
    Hardening parameterized modules (uniquify) <tutorials/uniquify>
    Calibrating the parasitic estimate (PEX) <tutorials/pex_calibration>
+
+.. toctree::
+   :caption: Examples
+   :maxdepth: 1
+
+   Example designs <examples>
 
 .. toctree::
    :caption: Appendix

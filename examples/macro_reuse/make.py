@@ -14,6 +14,8 @@ Usage:
     docker run --rm -v "$(pwd):/sc_work" \
       ghcr.io/siliconcompiler/sc_runner:latest \
       python3 make.py
+
+Requires: yosys, openroad, klayout; skywater130 (via lambdapdk)
 """
 
 from siliconcompiler import Design, ASIC, StdCellLibrary

@@ -160,6 +160,45 @@ Use the manifest from a previous run
 Control a run
 =============
 
+.. _howto_smake:
+
+Run a build script's targets without editing it
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index:: ! smake, ! make.py, ! build targets, ! run an example
+
+A build script usually holds more than one thing you might want to do -- lint,
+synthesize, run the full flow, sweep a parameter. Writing each as a function and
+editing the bottom of the file to pick one gets old quickly.
+
+:ref:`smake <app-smake>` runs those functions by name. Point it at a ``make.py``
+and every top-level function becomes a target, with its arguments turned into
+command-line switches and its docstring into help text:
+
+.. code-block:: bash
+
+   smake --help                        # what this script can do
+   smake syn                           # call syn()
+   smake asic --fileset rtl.memory     # call asic(fileset="rtl.memory")
+
+Nothing special is needed in the script -- these are ordinary functions:
+
+.. code-block:: python
+
+   def syn(fileset: str = "rtl", pdk: str = "freepdk45"):
+       """Synthesis only, the quickest check."""
+       ...
+
+Functions whose names start with ``_`` are helpers, not targets, and are left
+out of ``--help``. ``smake -C <dir>`` runs a script in another directory, and
+``smake -f <file>`` uses a file that is not called ``make.py``.
+
+This is why several :ref:`examples <examples>` ship a ``make.py`` rather than a
+script with one entry point: ``examples/heartbeat/make.py`` exposes ten targets
+covering every project type. ``python3 make.py`` still works, but runs whatever
+the ``__main__`` block chooses -- usually one of the targets, not the one you
+meant.
+
 Run only part of the flow
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 

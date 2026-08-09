@@ -16,6 +16,8 @@ def main():
     for a specific iCE40 FPGA part, and generates a bitstream file that
 
     can be programmed onto the hardware.
+
+    Requires: yosys, nextpnr, icepack -- no PDK; targets a Lattice iCE40 UP5K
     '''
 
     # --- Design Setup ---

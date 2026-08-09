@@ -1,7 +1,25 @@
 #!/usr/bin/env python3
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
+"""Formal property checking with SymbiYosys.
 
-from siliconcompiler import Design, Project
+Five scripts, each a ``PropertyCheckFlow`` in a different mode. Run any of them
+directly:
+
+* ``demo.py`` -- bounded model check: is the assertion true for 100 cycles?
+* ``prove.py`` -- unbounded proof by k-induction: is it true for *all*
+  reachable states?
+* ``cover.py`` -- cover: is a stated condition reachable at all?
+* ``fifo.py`` -- all three modes at once, against a FIFO carrying named
+  assertions.
+* ``counter_formal.py`` -- the same on a counter, with the mode as an argument.
+
+The first three mirror the official SymbiYosys quickstart, so they are directly
+comparable with its ``.sby`` files.
+
+Requires: sby, yosys
+"""
+
+from siliconcompiler import Design, Sim
 from siliconcompiler.flows.formalflow import PropertyCheckFlow, PropertyCheckMode
 from siliconcompiler.tools.sby.bmc import BMCTask
 
@@ -18,7 +36,7 @@ def main():
     design.set_topmodule("demo", fileset="rtl")
     design.add_file("demo.sv", dataroot="sva_sby", fileset="rtl")
 
-    project = Project(design)
+    project = Sim(design)
     project.add_fileset("rtl")
     project.set_flow(PropertyCheckFlow(modes=PropertyCheckMode.BMC))
 

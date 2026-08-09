@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import Design, Project
+from siliconcompiler import Design, Sim
 from siliconcompiler.flows.formalflow import PropertyCheckFlow, PropertyCheckMode
 
 
@@ -30,7 +30,7 @@ def main(modes=PropertyCheckMode.BMC):
     design.add_file("counter.v", dataroot="sva_sby", fileset="rtl")
 
     # Create a project and select the property-checking flow.
-    project = Project(design)
+    project = Sim(design)
     project.add_fileset("rtl")
     project.set_flow(PropertyCheckFlow(modes=modes))
 

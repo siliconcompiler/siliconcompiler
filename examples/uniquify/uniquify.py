@@ -15,6 +15,8 @@ The whole lifecycle is driven by the :class:`Uniquified` helper on the
 1. construct -- enumerate + generate, and register the new filesets,
 2. build     -- harden each variant into a macro (needs EDA tools),
 3. wireup    -- alias the wrappers in and inject the macros into the parent.
+
+Requires: yosys, openroad, klayout; skywater130 (via lambdapdk)
 """
 
 import os

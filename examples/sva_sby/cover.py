@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import Design, Project
+from siliconcompiler import Design, Sim
 from siliconcompiler.flows.formalflow import PropertyCheckFlow, PropertyCheckMode
 
 
@@ -18,7 +18,7 @@ def main():
     design.set_topmodule("top", fileset="rtl")
     design.add_file("cover.sv", dataroot="sva_sby", fileset="rtl")
 
-    project = Project(design)
+    project = Sim(design)
     project.add_fileset("rtl")
     project.set_flow(PropertyCheckFlow(modes=PropertyCheckMode.COVER))
 

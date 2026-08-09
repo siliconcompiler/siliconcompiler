@@ -16,6 +16,8 @@ def main():
     It shows how to create a custom compilation flow in SiliconCompiler
     to handle high-level synthesis from BSV before proceeding with the
     standard synthesis, place, and route steps.
+
+    Requires: bsc (Bluespec), yosys, openroad, klayout; freepdk45 (via lambdapdk)
     '''
 
     # --- Design Setup ---

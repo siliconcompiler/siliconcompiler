@@ -72,6 +72,12 @@ worth following:
   catches it.
 - **Pull code in, do not paste it.** Prefer `literalinclude` from a file under
   `examples/` so the code cannot rot independently of the page that shows it.
+
+  Address the code by name — `:pyobject:`, or `:start-after:`/`:end-before:`
+  with a comment that is already in the file. **`:lines:` is a trap**: inserting
+  a line anywhere above the range silently shifts it, and the page then renders
+  the wrong code with a clean build. Adding one docstring to
+  `examples/uniquify/uniquify.py` moved all seven ranges in `uniquify.rst`.
 - **Diagrams are `.dot` sources, rendered at build time.** Commit the `.dot` and
   point at it; do not commit the rendered image:
 

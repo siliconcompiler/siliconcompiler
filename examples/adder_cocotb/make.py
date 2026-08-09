@@ -7,6 +7,8 @@ Example demonstrating cocotb integration with SiliconCompiler.
 This example shows how to use the ``dvflow_cocotb`` helper to run Python-based
 cocotb testbenches against a design, using either the Icarus Verilog or
 Verilator simulation flow.
+
+Requires: cocotb (pip), plus icarus or verilator -- no PDK needed
 """
 
 from siliconcompiler import Design, Sim

@@ -12,6 +12,9 @@ def main():
     This script sets up a basic ASIC project, configures the design
     with its RTL and SDC files, loads the FreePDK45 demo target,
     runs the compilation flow, and displays a summary and the final layout.
+
+    Requires: yosys, openroad, klayout; freepdk45 (the other scripts here
+    target gf180, ihp130 and skywater130)
     """
     # --- Design Setup ---
     # Create a design object to hold the configuration.
