@@ -88,18 +88,21 @@ def test_resolve_codeurl_plugin(fake_plugins, monkeypatch):
         "tests/schema/test_schema_docs.py"
 
 
-@pytest.mark.parametrize("scm,expected", [
+# sc_version is the last tag and sc_scm_version is the full setuptools_scm
+# version. They are deliberately different in every dev case below: setting both
+# to the same string would let an implementation that reads the wrong one pass.
+@pytest.mark.parametrize("release,scm,expected", [
     # A release: the tag is correct and more readable than a hash.
-    ("0.38.2", "v0.38.2"),
+    ("0.38.2", "0.38.2", "v0.38.2"),
     # Between releases: the tag does not contain what was built from, so link
     # the commit. Linking v0.38.2 here is what 404'd three example links.
-    ("0.38.3.dev153+g03290aacd", "03290aacd"),
-    ("0.39.0.dev1+g0123456789abcdef0123456789abcdef01234567",
+    ("0.38.2", "0.38.3.dev153+g03290aacd", "03290aacd"),
+    ("0.38.2", "0.39.0.dev1+g0123456789abcdef0123456789abcdef01234567",
      "0123456789abcdef0123456789abcdef01234567"),
 ])
-def test_git_ref_prefers_commit_for_dev_builds(monkeypatch, scm, expected):
+def test_git_ref_prefers_commit_for_dev_builds(monkeypatch, release, scm, expected):
     monkeypatch.delenv("READTHEDOCS", raising=False)
-    monkeypatch.setattr(docs, "sc_version", scm)
+    monkeypatch.setattr(docs, "sc_version", release)
     monkeypatch.setattr(docs, "sc_scm_version", scm)
     assert docs._git_ref() == expected
 

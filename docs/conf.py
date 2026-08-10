@@ -298,11 +298,13 @@ linkcheck_allowed_redirects = {
     # GitHub bounces an unauthenticated client through the login page. The link
     # is correct; the checker simply is not signed in.
     r"https://github\.com/.*/issues/new/choose": r"https://github\.com/login.*",
-    # A Read the Docs root redirects to its default version. Ours are fixed at
+    # A Read the Docs *root* redirects to its default version. Ours are fixed at
     # source; these belong to lambdapdk and other projects we do not publish.
-    r"https://[^/]+\.readthedocs\.io/?": r"https://[^/]+\.readthedocs\.io/en/.*",
+    # Anchored: Sphinx matches these with re.match, so without the $ this would
+    # also wave through a moved deep page, which is a link worth reporting.
+    r"https://[^/]+\.readthedocs\.io/?$": r"https://[^/]+\.readthedocs\.io/en/[^/]+/$",
     # In the historical package changelog, which is a record and not edited.
-    r"https://psutil\.readthedocs\.io/en/latest/": r"https://psutil\.io/",
+    r"https://psutil\.readthedocs\.io/en/latest/$": r"https://psutil\.io/$",
 }
 
 # Being rate-limited by a host is not a broken link; back off and retry rather
