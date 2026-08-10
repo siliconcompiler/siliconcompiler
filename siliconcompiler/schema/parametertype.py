@@ -263,6 +263,34 @@ class NodeType:
         return None
 
     @staticmethod
+    def _tcl_ascii(value: str) -> str:
+        r'''Escape non-ASCII characters as Tcl ``\uXXXX``.
+
+        Tcl decodes a script using the *system* encoding, which follows the
+        host's locale. A manifest written as UTF-8 and read back under LANG=C
+        does not merely display oddly -- it decodes to a different string:
+        "café-Ω µm" comes back with a length of 12 instead of 9, so a path or a
+        design name silently stops matching. Escaping sidesteps the question,
+        because an ASCII file decodes the same way under every locale.
+
+        Must be applied *after* the backslash doubling in to_tcl, so that the
+        backslashes introduced here survive as escapes.
+        '''
+        out = []
+        for char in value:
+            point = ord(char)
+            if point < 0x80:
+                out.append(char)
+            elif point <= 0xFFFF:
+                out.append(f"\\u{point:04x}")
+            else:
+                # Tcl 8.6 has no \U; emit the surrogate pair it expects.
+                point -= 0x10000
+                out.append(f"\\u{0xD800 + (point >> 10):04x}"
+                           f"\\u{0xDC00 + (point & 0x3FF):04x}")
+        return "".join(out)
+
+    @staticmethod
     def to_tcl(value, sctype):
         '''
         Recursive helper function for converting Python values to safe TCL
@@ -315,7 +343,7 @@ class NodeType:
                                 .replace('[', '\\[')    # escape '[' to avoid command substitution
                                 .replace('$', '\\$')    # escape '$' to avoid variable substitution
                                 .replace('"', '\\"'))   # escape '"' to avoid string terminating
-            return '"' + escaped_val + '"'
+            return '"' + NodeType._tcl_ascii(escaped_val) + '"'
 
         if sctype == 'bool':
             return 'true' if value else 'false'
@@ -335,7 +363,7 @@ class NodeType:
                                                         # insert '\')
                                 .replace('[', '\\[')    # escape '[' to avoid command substitution
                                 .replace('"', '\\"'))   # escape '"' to avoid string terminating
-            return '"' + escaped_val + '"'
+            return '"' + NodeType._tcl_ascii(escaped_val) + '"'
 
         raise TypeError(f'{sctype} is not a supported type')
 

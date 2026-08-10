@@ -1136,10 +1136,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         if suffix == "json":
             schema.write_manifest(manifest_path)
         else:
+            # Pin UTF-8 rather than taking the platform default. A design name
+            # or file path with a non-ASCII character would otherwise fail to
+            # write on any host whose locale is not UTF-8 -- LANG=C in a
+            # minimal container, or a Windows code page -- and it would fail
+            # mid-run, while writing the node's manifest. Python 3.15 makes
+            # UTF-8 the default and hides this; the versions SC supports today
+            # do not.
             fopen_args = {}
             if suffix == "csv":
                 fopen_args['newline'] = ''
-            with open(manifest_path, 'w', **fopen_args) as fout:
+            with open(manifest_path, 'w', encoding='UTF-8', **fopen_args) as fout:
                 if suffix == "yaml":
                     self.__write_yaml_manifest(fout, schema)
                 elif suffix == "tcl":

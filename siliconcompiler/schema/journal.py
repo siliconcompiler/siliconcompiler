@@ -168,7 +168,11 @@ class Journal:
             schema (:class:`BaseSchema`): schema to replay transactions to
             filepath (path): path to manifest
         '''
-        with open(filepath, "r") as fid:
+        # Manifests are written as UTF-8 (BaseSchema.__open_file); read them as
+        # UTF-8 rather than as whatever the host's locale happens to be. A
+        # server running under LANG=C decoded this as ASCII and failed the whole
+        # job on the first non-ASCII byte in a node's journal.
+        with open(filepath, "r", encoding="utf-8") as fid:
             data = json.load(fid)
         if "__journal__" not in data:
             return

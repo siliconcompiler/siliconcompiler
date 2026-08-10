@@ -18,9 +18,11 @@ except ModuleNotFoundError:
 
 try:
     import orjson as json
+    import json as stdlib_json
     _has_orjson = True
 except ModuleNotFoundError:
     import json
+    stdlib_json = json
     _has_orjson = False
 
 import os.path
@@ -519,11 +521,26 @@ class BaseSchema:
                     return pathlib.PureWindowsPath(obj).as_posix()
                 raise TypeError
 
+            manifest = self.getdict()
             if _has_orjson:
-                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2,
+                manifest_str = json.dumps(manifest, option=json.OPT_INDENT_2,
                                           default=default).decode()
+                # orjson emits UTF-8 and has no ensure_ascii; the stdlib escapes
+                # non-ASCII by default. Without this the manifest's encoding
+                # depends on which JSON library happened to be installed, and an
+                # ASCII manifest is the thing that lets any reader decode it
+                # whatever the host locale claims -- a server running under
+                # LANG=C failed a whole job on one Greek letter in a journal.
+                #
+                # Re-serializing rather than post-processing the string: only
+                # \uXXXX is a legal JSON escape, so backslashreplace (which works
+                # per byte, and yields \xNN) produces a manifest that will not
+                # parse. isascii() is a C-level scan, and the slow path only runs
+                # on the rare manifest that needs it.
+                if not manifest_str.isascii():
+                    manifest_str = stdlib_json.dumps(manifest, indent=2, default=default)
             else:
-                manifest_str = json.dumps(self.getdict(), indent=2, default=default)
+                manifest_str = json.dumps(manifest, indent=2, default=default)
             fout.write(manifest_str)
         finally:
             fout.close()
