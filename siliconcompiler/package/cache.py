@@ -9,7 +9,8 @@ gives a run one place to record
 * how many times resolving it has *failed*, so a source that cannot be fetched
   is retried a bounded number of times -- with a randomized, exponentially
   growing delay between attempts -- and then abandoned with an actionable error
-  rather than re-downloaded by every caller, and
+  rather than re-downloaded by every caller, immediately where the failure is one
+  no retry could fix (see :class:`PermanentResolutionError`), and
 * the per-source download mutex used to keep threads from fetching the same
   source concurrently.
 
@@ -33,7 +34,7 @@ import random
 import threading
 import time
 
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Set, Tuple, Union
 
 from pathlib import Path
 
@@ -45,6 +46,36 @@ class DataRootResolutionError(RuntimeError):
     Once a source has failed :attr:`PathCache.max_attempts` times, further
     attempts are abandoned and this error is raised instead of retrying, so a
     broken or unreachable data source cannot be re-fetched indefinitely.
+    """
+
+
+class PermanentResolutionError(Exception):
+    """
+    Base for a resolution failure that means the *answer* is wrong, not the
+    connection.
+
+    A retry budget exists for failures that a second attempt might survive: a
+    dropped connection, a truncated download, a server having a bad minute. Some
+    failures are settled on the first attempt instead -- an archive whose
+    contents the extraction filter refuses, a URL the server says does not exist
+    -- and re-fetching one only spends the same bandwidth to reach the same
+    conclusion. Resolvers raise this, or any subclass, to say so; see
+    :meth:`~siliconcompiler.package.Resolver.is_permanent_failure`.
+    """
+
+
+class DataSourceUnavailableError(PermanentResolutionError, FileNotFoundError):
+    """
+    Raised when a data source answers, but with an answer no retry will change.
+
+    An HTTP 404 is a complete answer: the source is telling us the thing is not
+    there. Which answers count is the fetching resolver's judgement, not this
+    class's -- see
+    :data:`siliconcompiler.package.https._TERMINAL_STATUSES` for the HTTP list, and
+    note that a refusal which a credential could lift (401, 403) is not on it.
+
+    Also a ``FileNotFoundError``, because that is what a missing data source has
+    always raised and callers still catch it.
     """
 
 
@@ -84,6 +115,7 @@ class PathCache:
     def __init__(self):
         self.__paths: Dict[str, str] = {}
         self.__failures: Dict[str, Tuple[int, str]] = {}
+        self.__permanent: Set[str] = set()
         self.__max_attempts: int = PathCache.DEFAULT_MAX_ATTEMPTS
         self.__retry_delay: float = PathCache.DEFAULT_RETRY_DELAY
         self.__retry_backoff: float = PathCache.DEFAULT_RETRY_BACKOFF
@@ -151,17 +183,35 @@ class PathCache:
                 return None
             return self.__failures[cache_id][1]
 
-    def is_exhausted(self, cache_id: str) -> bool:
+    def is_permanent(self, cache_id: str) -> bool:
         """
-        Returns True if a data source has used up its attempt budget.
+        Returns True if a data source failed in a way no retry could fix.
 
         Args:
             cache_id (str): The resolver cache ID of the data source.
 
         Returns:
-            bool: True if the source has failed :attr:`max_attempts` times.
+            bool: True if the source's last failure was recorded through
+                :meth:`record_permanent_failure`.
         """
-        return self.attempts(cache_id) >= self.max_attempts
+        with self.__lock:
+            return cache_id in self.__permanent
+
+    def is_exhausted(self, cache_id: str) -> bool:
+        """
+        Returns True if a data source has used up its attempt budget.
+
+        A permanent failure exhausts the budget on the spot, however many
+        attempts are left: see :class:`PermanentResolutionError`.
+
+        Args:
+            cache_id (str): The resolver cache ID of the data source.
+
+        Returns:
+            bool: True if the source has failed permanently, or has failed
+                :attr:`max_attempts` times.
+        """
+        return self.is_permanent(cache_id) or self.attempts(cache_id) >= self.max_attempts
 
     def record_failure(self, cache_id: str, error: BaseException) -> int:
         """
@@ -183,6 +233,26 @@ class PathCache:
             self.__failures[cache_id] = (attempts, f"{type(error).__name__}: {error}")
             return attempts
 
+    def record_permanent_failure(self, cache_id: str, error: BaseException) -> int:
+        """
+        Records a failure that leaves nothing for a retry to accomplish.
+
+        The failure is counted like any other, so the attempt total stays an
+        honest record of what was tried, and the source is additionally marked
+        exhausted: :meth:`is_exhausted` is True from here on no matter how much
+        budget was left.
+
+        Args:
+            cache_id (str): The resolver cache ID of the data source.
+            error (BaseException): The error that caused the failure.
+
+        Returns:
+            int: The total number of failures recorded for this source.
+        """
+        with self.__lock:
+            self.__permanent.add(cache_id)
+            return self.record_failure(cache_id, error)
+
     def clear_failure(self, cache_id: str) -> None:
         """
         Forgets any recorded failures for a data source.
@@ -192,6 +262,7 @@ class PathCache:
         """
         with self.__lock:
             self.__failures.pop(cache_id, None)
+            self.__permanent.discard(cache_id)
 
     # ------------------------------------------------------------------
     # Retry policy
@@ -360,17 +431,20 @@ class PathCache:
         with self.__lock:
             return {
                 "paths": dict(self.__paths),
-                "failures": {key: list(value) for key, value in self.__failures.items()}
+                "failures": {key: list(value) for key, value in self.__failures.items()},
+                "permanent": sorted(self.__permanent)
             }
 
     def seed(self, payload: Optional[Dict[str, Any]], include_failures: bool = True) -> None:
         """
         Merges a snapshot produced by :meth:`export` into this cache.
 
-        Resolved paths are always merged. Failures are merged only when
-        ``include_failures`` is True; a caller that considers failures local to
-        the process that saw them (for example a scheduler merging results from
-        one node, where the next node may well succeed) can leave them behind.
+        Resolved paths are always merged. Failures, and the marks saying which of
+        them were permanent, are merged only when ``include_failures`` is True; a
+        caller that considers failures local to the process that saw them (for
+        example a scheduler merging results from one node, where the next node may
+        well succeed) can leave them behind. A permanent mark is kept only for a
+        source that has a failure to go with it, in this payload or already here.
 
         A snapshot arrives from another process, over a pipe or a command line,
         so every part of it is treated as untrusted: anything unrecognized is
@@ -396,33 +470,42 @@ class PathCache:
                 return
 
             failures = payload.get("failures", None)
-            if not isinstance(failures, dict):
-                return
+            if isinstance(failures, dict):
+                for key, value in failures.items():
+                    if not isinstance(key, str):
+                        continue
+                    # Accept only a real two-element sequence. A bare string would
+                    # happily unpack into two characters, so reject anything that is
+                    # not a list or tuple before looking at it.
+                    if not isinstance(value, (list, tuple)) or len(value) != 2:
+                        continue
+                    try:
+                        attempts = int(value[0])
+                    except (TypeError, ValueError):
+                        continue
+                    attempts = max(0, attempts)
+                    # Keep whichever side has seen more failures so a merge can only
+                    # ever tighten the remaining budget.
+                    known, _ = self.__failures.get(key, (0, ""))
+                    if attempts >= known:
+                        self.__failures[key] = (attempts, str(value[1]))
 
-            for key, value in failures.items():
-                if not isinstance(key, str):
-                    continue
-                # Accept only a real two-element sequence. A bare string would
-                # happily unpack into two characters, so reject anything that is
-                # not a list or tuple before looking at it.
-                if not isinstance(value, (list, tuple)) or len(value) != 2:
-                    continue
-                try:
-                    attempts = int(value[0])
-                except (TypeError, ValueError):
-                    continue
-                attempts = max(0, attempts)
-                # Keep whichever side has seen more failures so a merge can only
-                # ever tighten the remaining budget.
-                known, _ = self.__failures.get(key, (0, ""))
-                if attempts >= known:
-                    self.__failures[key] = (attempts, str(value[1]))
+            # Merged after the failures, and only for a source one of them
+            # accounts for. A mark on its own would exhaust a source with no error
+            # to report it by, so a truncated payload could retire a data source
+            # for the rest of the process and leave the abandonment message with
+            # nothing to say.
+            permanent = payload.get("permanent", None)
+            if isinstance(permanent, (list, tuple, set)):
+                self.__permanent.update(key for key in permanent
+                                        if isinstance(key, str) and key in self.__failures)
 
     def clear(self) -> None:
         """Removes all cached paths and recorded failures."""
         with self.__lock:
             self.__paths.clear()
             self.__failures.clear()
+            self.__permanent.clear()
 
     # ------------------------------------------------------------------
     # Download mutex

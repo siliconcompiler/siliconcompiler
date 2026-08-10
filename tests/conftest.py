@@ -10,6 +10,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tarfile
 import time
 
 import os.path
@@ -553,3 +554,53 @@ def disable_mp_process():
          patch("siliconcompiler.scheduler.scheduler.get_process_context",
                return_value=fake_ctx):
         yield
+
+
+@pytest.fixture
+def broken_tarfile_data_filter(monkeypatch):
+    """
+    Makes this interpreter look like one that misreads relative symlinks.
+
+    Python 3.8.17, 3.9.17, 3.10.12 and 3.11.4 shipped the first PEP 706 backport,
+    which resolved a symlink's target from the extraction root instead of from the
+    directory holding the link (fixed by CPython gh-107845). A relative symlink
+    into a sibling directory -- as the IHP130 PDK ships -- looked to them like an
+    escape from the destination. ``requires-python`` admits those releases, so the
+    workaround in :func:`siliconcompiler.utils.tar_extract_kwargs` has to be
+    exercised somewhere other than on them.
+
+    A release older still -- anything before the backport -- has no extraction
+    filter to stand in for, and extracts the link without complaint, so there is
+    nothing for these tests to exercise there.
+
+    Yields:
+        The stand-in filter, for a test that wants to pass it to ``extractall``
+        directly rather than through ``tar_extract_kwargs``.
+    """
+    if not hasattr(tarfile, "data_filter"):
+        pytest.skip("release predates the PEP 706 extraction filters")
+
+    real = tarfile.data_filter
+
+    def broken(member, dest_path):
+        # Only the containment checks are reproduced, in the order the old filter
+        # ran them -- a member's own name before its link target. Everything else
+        # is left to the real filter.
+        dest = os.path.realpath(dest_path)
+
+        name = member.name.lstrip("/" + os.sep)
+        target = os.path.realpath(os.path.join(dest, name))
+        if os.path.commonpath([target, dest]) != dest:
+            raise tarfile.OutsideDestinationError(member, target)
+
+        if (member.issym() or member.islnk()) and not os.path.isabs(member.linkname):
+            target = os.path.realpath(os.path.join(dest, member.linkname))
+            if os.path.commonpath([target, dest]) != dest:
+                raise tarfile.LinkOutsideDestinationError(member, target)
+
+        return real(member, dest_path)
+
+    monkeypatch.setattr(tarfile, "data_filter", broken)
+    utils._data_filter_mishandles_symlinks.cache_clear()
+    yield broken
+    utils._data_filter_mishandles_symlinks.cache_clear()

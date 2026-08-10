@@ -17,7 +17,21 @@ from io import BytesIO
 from urllib.parse import urlparse
 
 from siliconcompiler.package import RemoteResolver
+from siliconcompiler.package.cache import DataSourceUnavailableError
 from siliconcompiler.utils import tar_extract_kwargs
+
+#: HTTP statuses that answer the request completely enough that asking again can
+#: only collect the same answer: the data is not there (404, 410) or the request
+#: itself is one no server will accept (400, 405, 414, 451).
+#:
+#: An allowlist rather than "any 4xx", because plenty of 4xx responses do change:
+#: 408 and 429 ask to be retried outright, 409/421/423/425 describe a passing
+#: condition, and 401/403 turn into a 200 as soon as a token is granted -- GitHub
+#: also answers 403 for rate limiting. Since the attempt budget is shared by cache
+#: ID, which covers only the source and its reference, retiring one of those would
+#: also block a later resolver that does have credentials. A 5xx stays retryable
+#: too: a server having a bad minute may not be having a bad hour.
+_TERMINAL_STATUSES = (400, 404, 405, 410, 414, 451)
 
 
 def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
@@ -101,7 +115,11 @@ class HTTPResolver(RemoteResolver):
         directory that GitHub often includes in its source archives.
 
         Raises:
-            FileNotFoundError: If the download fails (e.g., 404 error).
+            FileNotFoundError: If the download fails. One of the
+                :data:`_TERMINAL_STATUSES` raises the
+                :class:`~siliconcompiler.package.cache.DataSourceUnavailableError`
+                subclass, so the source is abandoned rather than re-requested;
+                every other status, including 401 and 403, stays retryable.
         """
         data_url = self.download_url
 
@@ -126,8 +144,11 @@ class HTTPResolver(RemoteResolver):
 
         response = requests.get(data_url, stream=True, headers=headers)
         if not response.ok:
-            raise FileNotFoundError(f'Failed to download {self.display_name} data source from '
-                                    f'{data_url}. Status code: {response.status_code}')
+            status = response.status_code
+            error = DataSourceUnavailableError if status in _TERMINAL_STATUSES \
+                else FileNotFoundError
+            raise error(f'Failed to download {self.display_name} data source from '
+                        f'{data_url}. Status code: {status}')
 
         os.makedirs(self.cache_path, exist_ok=True)
 

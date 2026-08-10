@@ -5,6 +5,8 @@ import pytest
 import shutil
 import stat
 import sys
+import tarfile
+import zipfile
 
 import os.path
 
@@ -17,6 +19,7 @@ from siliconcompiler.package import Resolver, RemoteResolver
 from siliconcompiler.package import FileResolver, PythonPathResolver, \
     KeyPathResolver, DatarootResolver
 from siliconcompiler.package import DataRootResolutionError
+from siliconcompiler.package.cache import PermanentResolutionError, DataSourceUnavailableError
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
@@ -572,9 +575,10 @@ def test_remote_resolve_cached():
 class FailingResolver(RemoteResolver):
     """A remote source that never resolves, counting each attempt."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, error=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.calls = 0
+        self.error = error if error else FileNotFoundError("simulated 404")
 
     def check_cache(self):
         return False
@@ -585,21 +589,136 @@ class FailingResolver(RemoteResolver):
 
     def resolve_remote(self):
         self.calls += 1
-        raise FileNotFoundError("simulated 404")
+        raise self.error
 
 
 @pytest.fixture
 def failing_resolver():
     """Builds a failing remote resolver with retry delays disabled."""
-    def build(root=None, source="https://filepath", reference="ref"):
+    def build(root=None, source="https://filepath", reference="ref", error=None):
         if root is None:
             root = Project("testproj")
             root.option.set_cachedir(".")
-        resolver = FailingResolver("thisname", root, source, reference)
+        resolver = FailingResolver("thisname", root, source, reference, error=error)
         resolver.cache.set_retry_delay(0)
         return resolver
 
     return build
+
+
+@pytest.mark.parametrize("error,permanent", (
+    (FileNotFoundError("404"), False),
+    (ConnectionError("reset by peer"), False),
+    (TimeoutError("no answer"), False),
+    (tarfile.ReadError("truncated"), False),
+    (zipfile.BadZipFile("truncated"), False),
+    (TypeError("neither tar nor zip"), False),
+    (PermanentResolutionError("settled"), True),
+    (DataSourceUnavailableError("no such release"), True),
+))
+def test_is_permanent_failure(error, permanent):
+    """
+    A transfer that broke may work next time; a source that has answered has
+    already said everything it is going to say.
+    """
+    resolver = Resolver("thisname", Project("testproj"), "https://filepath", "ref")
+
+    assert resolver.is_permanent_failure(error) is permanent
+
+
+# The extraction filters, and so their errors, only exist on releases carrying the
+# PEP 706 backport; an older one has no such error to classify.
+@pytest.mark.skipif(not hasattr(tarfile, "FilterError"),
+                    reason="release predates the PEP 706 extraction filters")
+@pytest.mark.parametrize("build", (
+    lambda: tarfile.LinkOutsideDestinationError(tarfile.TarInfo("pkg/link"), "/elsewhere"),
+    lambda: tarfile.AbsoluteLinkError(tarfile.TarInfo("pkg/link")),
+    lambda: tarfile.SpecialFileError(tarfile.TarInfo("pkg/dev")),
+), ids=("link-outside", "absolute-link", "special-file"))
+def test_is_permanent_failure_for_archive_contents(build):
+    """
+    An archive the extraction filter refuses will be refused just as firmly on a
+    fresh copy, so re-downloading it settles nothing.
+    """
+    resolver = Resolver("thisname", Project("testproj"), "https://filepath", "ref")
+
+    assert resolver.is_permanent_failure(build()) is True
+
+
+def test_get_path_permanent_failure_is_not_retried(failing_resolver):
+    """One attempt is all a settled failure gets, whatever the budget allows."""
+    resolver = failing_resolver(error=PermanentResolutionError("settled"))
+
+    with pytest.raises(PermanentResolutionError):
+        resolver.get_path()
+
+    for _ in range(5):
+        with pytest.raises(DataRootResolutionError):
+            resolver.get_path()
+
+    assert resolver.calls == 1
+    assert resolver.cache.attempts(resolver.cache_id) == 1
+    assert resolver.cache.is_permanent(resolver.cache_id)
+
+
+def test_get_path_permanent_failure_does_not_wait(failing_resolver):
+    """Nothing is gained by backing off before a retry that will not happen."""
+    resolver = failing_resolver(error=PermanentResolutionError("settled"))
+    resolver.cache.set_retry_delay(30)
+
+    with patch("siliconcompiler.package.cache.time.sleep") as sleep:
+        with pytest.raises(PermanentResolutionError):
+            resolver.get_path()
+        with pytest.raises(DataRootResolutionError):
+            resolver.get_path()
+
+    sleep.assert_not_called()
+
+
+def test_get_path_permanent_abandoned_message(failing_resolver):
+    resolver = failing_resolver(error=DataSourceUnavailableError("no such release"))
+
+    with pytest.raises(DataSourceUnavailableError):
+        resolver.get_path()
+
+    with pytest.raises(DataRootResolutionError, match=(
+            r"^Unable to resolve 'thisname' from https://filepath \(ref\), and retrying "
+            r"cannot change the outcome, giving up\. Error: DataSourceUnavailableError: "
+            r"no such release$")):
+        resolver.get_path()
+
+
+def test_get_path_permanent_abandoned_is_logged(failing_resolver, project_logger, caplog):
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+    project_logger(project)
+    project.logger.setLevel(logging.INFO)
+
+    resolver = failing_resolver(root=project, error=PermanentResolutionError("settled"))
+    with pytest.raises(PermanentResolutionError):
+        resolver.get_path()
+
+    # Reported on the attempt that settled it, not on some later lookup
+    assert "and retrying cannot change the outcome, giving up" in caplog.text
+
+
+def test_get_path_permanent_failure_of_a_local_source(failing_resolver):
+    """
+    A source that is not worth retrying is not worth bookkeeping either: it fails
+    the same way every time whether or not the failure was recorded.
+    """
+    class Failing(Resolver):
+        def resolve(self):
+            raise PermanentResolutionError("settled")
+
+    resolver = Failing("thisname", Project("testproj"), "source://x")
+    assert not resolver.is_retryable
+
+    for _ in range(3):
+        with pytest.raises(PermanentResolutionError):
+            resolver.get_path()
+
+    assert not resolver.cache.is_permanent(resolver.cache_id)
 
 
 def test_get_path_failure_is_bounded(failing_resolver):

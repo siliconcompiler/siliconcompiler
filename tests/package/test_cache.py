@@ -75,6 +75,40 @@ def test_record_failure_is_per_id():
     assert cache.attempts("id1") == 0
 
 
+def test_record_permanent_failure():
+    """A failure no retry could fix leaves no budget behind."""
+    cache = PathCache()
+
+    assert cache.record_permanent_failure("id", ValueError("settled")) == 1
+
+    # Counted like any other failure, so the record of what was tried stays honest
+    assert cache.attempts("id") == 1
+    assert cache.failure("id") == "ValueError: settled"
+    # ... but with none of the budget left
+    assert cache.is_permanent("id")
+    assert cache.is_exhausted("id")
+
+
+def test_record_permanent_failure_is_per_id():
+    cache = PathCache()
+    cache.record_permanent_failure("id0", ValueError("settled"))
+    cache.record_failure("id1", ValueError("nope"))
+
+    assert cache.is_permanent("id0")
+    assert not cache.is_permanent("id1")
+    assert not cache.is_permanent("id2")
+    assert not cache.is_exhausted("id1")
+
+
+def test_record_permanent_failure_after_transient_ones():
+    """A source that starts failing transiently and then settles is settled."""
+    cache = PathCache()
+    cache.record_failure("id", TimeoutError("slow"))
+
+    assert cache.record_permanent_failure("id", ValueError("settled")) == 2
+    assert cache.is_exhausted("id")
+
+
 def test_clear_failure():
     cache = PathCache()
     cache.record_failure("id", ValueError("nope"))
@@ -85,6 +119,25 @@ def test_clear_failure():
 
     # Must not raise for an unknown id
     cache.clear_failure("other")
+
+
+def test_clear_failure_forgets_permanence():
+    """A source that resolved on a later look is no longer a settled failure."""
+    cache = PathCache()
+    cache.record_permanent_failure("id", ValueError("settled"))
+    cache.clear_failure("id")
+
+    assert not cache.is_permanent("id")
+    assert not cache.is_exhausted("id")
+
+
+def test_permanent_failure_ignores_max_attempts():
+    """Raising the budget cannot revive a source whose answer will not change."""
+    cache = PathCache()
+    cache.set_max_attempts(10)
+    cache.record_permanent_failure("id", ValueError("settled"))
+
+    assert cache.is_exhausted("id")
 
 
 def test_set_max_attempts():
@@ -294,18 +347,35 @@ def test_export():
 
     assert cache.export() == {
         "paths": {"id0": "/path0"},
-        "failures": {"id1": [1, "ValueError: nope"]}
+        "failures": {"id1": [1, "ValueError: nope"]},
+        "permanent": []
     }
+
+
+def test_export_permanent_failures():
+    cache = PathCache()
+    cache.record_permanent_failure("id1", ValueError("settled"))
+    cache.record_failure("id0", ValueError("nope"))
+
+    export = cache.export()
+    assert export["failures"] == {
+        "id1": [1, "ValueError: settled"],
+        "id0": [1, "ValueError: nope"]
+    }
+    assert export["permanent"] == ["id1"]
 
 
 def test_export_is_a_copy():
     cache = PathCache()
     cache.set("id0", "/path0")
+    cache.record_permanent_failure("id1", ValueError("settled"))
 
     export = cache.export()
     export["paths"]["id0"] = "/tampered"
+    export["permanent"].append("id2")
 
     assert cache.get("id0") == "/path0"
+    assert not cache.is_permanent("id2")
 
 
 def test_seed_roundtrip():
@@ -321,10 +391,22 @@ def test_seed_roundtrip():
     assert dest.failure("id1") == "ValueError: nope"
 
 
+def test_seed_roundtrip_permanent_failure():
+    source = PathCache()
+    source.record_permanent_failure("id", ValueError("settled"))
+
+    dest = PathCache()
+    dest.seed(source.export())
+
+    assert dest.is_permanent("id")
+    assert dest.is_exhausted("id")
+
+
 def test_seed_ignore_failures():
     source = PathCache()
     source.set("id0", "/path0")
     source.record_failure("id1", ValueError("nope"))
+    source.record_permanent_failure("id2", ValueError("settled"))
 
     dest = PathCache()
     dest.seed(source.export(), include_failures=False)
@@ -332,6 +414,48 @@ def test_seed_ignore_failures():
     assert dest.get("id0") == "/path0"
     assert dest.attempts("id1") == 0
     assert dest.failure("id1") is None
+    # Permanence is a kind of failure, so it stays behind with the rest
+    assert not dest.is_permanent("id2")
+
+
+@pytest.mark.parametrize("payload", ("notalist", 5, {"id": True}, [5, None, ()]))
+def test_seed_tolerates_malformed_permanent_entries(payload):
+    cache = PathCache()
+    cache.seed({"permanent": payload})
+
+    assert not cache.is_permanent("id")
+    assert cache.export()["permanent"] == []
+
+
+@pytest.mark.parametrize("payload", (
+    {"permanent": ["id"]},                              # no failures at all
+    {"permanent": ["id"], "failures": "notadict"},      # failures unusable
+    {"permanent": ["id"], "failures": {"id": [1]}},     # failure record malformed
+    {"permanent": ["id"], "failures": {"other": [1, "ValueError: nope"]}},
+))
+def test_seed_skips_permanent_without_a_failure(payload):
+    """
+    A mark with no failure behind it would retire the source for the rest of the
+    process and leave the abandonment message with nothing to report, so a
+    truncated payload must not be able to plant one.
+    """
+    cache = PathCache()
+    cache.seed(payload)
+
+    assert not cache.is_permanent("id")
+    assert not cache.is_exhausted("id")
+    assert cache.failure("id") is None
+
+
+def test_seed_permanent_backed_by_a_local_failure():
+    """A mark for a source this process has already seen fail does count."""
+    cache = PathCache()
+    cache.record_failure("id", ValueError("nope"))
+
+    cache.seed({"permanent": ["id"]})
+
+    assert cache.is_permanent("id")
+    assert cache.failure("id") == "ValueError: nope"
 
 
 def test_seed_keeps_highest_attempt_count():
@@ -377,11 +501,13 @@ def test_clear():
     cache = PathCache()
     cache.set("id0", "/path0")
     cache.record_failure("id1", ValueError("nope"))
+    cache.record_permanent_failure("id2", ValueError("settled"))
 
     cache.clear()
 
     assert cache.get("id0") is None
     assert cache.attempts("id1") == 0
+    assert not cache.is_permanent("id2")
 
 
 def test_clear_keeps_policy():
@@ -588,6 +714,7 @@ def test_unhashable_cache_ids(cache_id):
                  lambda: cache.failure(cache_id),
                  lambda: cache.is_exhausted(cache_id),
                  lambda: cache.record_failure(cache_id, ValueError("nope")),
+                 lambda: cache.record_permanent_failure(cache_id, ValueError("nope")),
                  lambda: cache.thread_lock(cache_id)):
         with pytest.raises(TypeError):
             call()
@@ -602,9 +729,11 @@ def test_unhashable_cache_id_leaves_cache_usable(cache_id):
     cache = PathCache()
     cache.set("good", "/path")
 
-    # clear_failure is a no-op rather than an error while nothing has failed:
-    # dict.pop with a default skips hashing on an empty dict.
-    cache.clear_failure(cache_id)
+    # While nothing has failed, clear_failure may raise or quietly do nothing,
+    # depending on the key: an empty dict.pop skips hashing altogether, and a set
+    # is looked up in a set as its frozen equivalent rather than rejected.
+    with contextlib.suppress(TypeError):
+        cache.clear_failure(cache_id)
 
     cache.record_failure("good", ValueError("nope"))
     with pytest.raises(TypeError):
@@ -615,7 +744,8 @@ def test_unhashable_cache_id_leaves_cache_usable(cache_id):
     cache.set("more", "/other")
     assert cache.export() == {
         "paths": {"good": "/path", "more": "/other"},
-        "failures": {"good": [1, "ValueError: nope"]}
+        "failures": {"good": [1, "ValueError: nope"]},
+        "permanent": []
     }
 
 
