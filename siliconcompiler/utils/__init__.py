@@ -102,7 +102,14 @@ def _symlink_safe_data_filter(member: tarfile.TarInfo,
     planted earlier, the two answers differ, and the textual one can be walked out
     of the destination. Leaving the ``..`` in place makes the path that gets checked
     the same expression the kernel will follow, so the link that is validated is
-    the link that is created.
+    the link that is created. (On Windows the two cannot diverge in the first
+    place, because ``ntpath.realpath`` collapses ``..`` before it resolves a
+    reparse point, but the check does not need to know that.)
+
+    The one thing changed about the target is its separators, since a Windows
+    symlink cannot hold a forward slash: extracting an archive's ``../a/b``
+    verbatim there yields a link the OS will not follow. The structure is left
+    alone, so this is a no-op wherever ``/`` is already the separator.
 
     Only relative symlinks are rerouted. A hard link's target genuinely is
     relative to the archive root, and an absolute target is rejected by the
@@ -120,12 +127,13 @@ def _symlink_safe_data_filter(member: tarfile.TarInfo,
     if not member.issym() or os.path.isabs(name) or os.path.isabs(member.linkname):
         return tarfile.data_filter(member, dest_path)
 
-    from_dest = os.path.join(os.path.dirname(name), member.linkname)
+    linkname = member.linkname.replace("/", os.sep)
+    from_dest = os.path.join(os.path.dirname(name), linkname)
 
     checked = tarfile.data_filter(member.replace(linkname=from_dest, deep=False), dest_path)
     if checked is None:
         return None
-    return checked.replace(linkname=member.linkname, deep=False)
+    return checked.replace(linkname=linkname, deep=False)
 
 
 def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:

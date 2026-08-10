@@ -68,10 +68,14 @@ class DataSourceUnavailableError(PermanentResolutionError, FileNotFoundError):
     """
     Raised when a data source answers, but with an answer no retry will change.
 
-    An HTTP 404 or 403 is a complete answer: the source is telling us the thing
-    is not there, or is not ours to fetch. Also a ``FileNotFoundError``, because
-    that is what a missing data source has always raised and callers still catch
-    it.
+    An HTTP 404 is a complete answer: the source is telling us the thing is not
+    there. Which answers count is the fetching resolver's judgement, not this
+    class's -- see
+    :data:`siliconcompiler.package.https._TERMINAL_STATUSES` for the HTTP list, and
+    note that a refusal which a credential could lift (401, 403) is not on it.
+
+    Also a ``FileNotFoundError``, because that is what a missing data source has
+    always raised and callers still catch it.
     """
 
 

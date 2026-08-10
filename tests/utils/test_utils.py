@@ -983,10 +983,10 @@ def test_tar_extract_kwargs():
 
 
 @needs_filters
-@pytest.mark.parametrize("filter", ("tar", "fully_trusted"))
-def test_tar_extract_kwargs_other_filters(filter):
+@pytest.mark.parametrize("extraction_filter", ("tar", "fully_trusted"))
+def test_tar_extract_kwargs_other_filters(extraction_filter):
     """Neither filter checks link targets, so neither is ever substituted."""
-    assert tar_extract_kwargs(filter) == {"filter": filter}
+    assert tar_extract_kwargs(extraction_filter) == {"filter": extraction_filter}
 
 
 def test_tar_extract_kwargs_legacy_python(monkeypatch):
@@ -1050,17 +1050,20 @@ def test_corrected_filter_extracts_valid_symlink(broken_tarfile_data_filter, sym
 
 def test_corrected_filter_preserves_linkname(broken_tarfile_data_filter):
     """
-    The link is passed on exactly as the archive stored it, redundant components
-    and all. Tidying it up would be a guess about what the archive meant, and it
-    would also decide the link textually while the check resolves it -- see
-    test_corrected_filter_still_rejects_a_link_through_a_planted_directory.
+    The link is passed on with the structure the archive gave it, redundant
+    components and all -- only its separators are localized. Tidying the structure
+    up would be a guess about what the archive meant, and it would also decide the
+    link textually while the check resolves it, as
+    test_corrected_filter_still_rejects_a_link_through_a_planted_directory shows.
     """
     member = tarfile.TarInfo("pkg/libs.tech/ngspice/install.py")
     member.type = tarfile.SYMTYPE
     member.linkname = "../xschem/./install.py"
 
     filtered = utils._symlink_safe_data_filter(member, os.path.abspath("dest"))
-    assert filtered.linkname == "../xschem/./install.py"
+    # Both halves matter: the structure is the archive's, and the separators are
+    # this platform's, which is what keeps the link followable on Windows.
+    assert filtered.linkname == "../xschem/./install.py".replace("/", os.sep)
 
 
 @pytest.mark.parametrize("linkname", (
@@ -1092,6 +1095,10 @@ def test_corrected_filter_still_rejects_escaping_name(broken_tarfile_data_filter
                  **tar_extract_kwargs())
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="ntpath.realpath collapses '..' before it resolves a reparse point, so a "
+           "symlinked directory cannot change what the path above it means")
 def test_corrected_filter_still_rejects_a_link_through_a_planted_directory(
         broken_tarfile_data_filter):
     """
