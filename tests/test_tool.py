@@ -1181,7 +1181,7 @@ def test_write_task_manifest_none(running_node):
         assert os.listdir() == []
 
 
-@pytest.mark.parametrize("suffix", ("tcl", "json", "yaml"))
+@pytest.mark.parametrize("suffix", ("tcl", "json", "yaml", "csv"))
 def test_write_task_manifest(running_node, suffix):
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", suffix)
     with running_node.task.runtime(running_node) as runtool:

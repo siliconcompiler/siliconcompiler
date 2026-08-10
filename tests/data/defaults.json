@@ -1488,7 +1488,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -5148,7 +5148,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -9150,7 +9150,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -12886,7 +12886,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -15858,7 +15858,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,
