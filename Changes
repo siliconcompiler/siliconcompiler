@@ -8,6 +8,31 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.3 (2026-08-10)
+=========================================
+
+**Major:**
+
+ * Removed the `Schematic` schema, since it was unused.
+
+**Minor:**
+
+ * Added flowgraph callbacks, allowing flows to be modified after being inserted into a project.
+ * Added a beta version of hierarchy handling to elaboration to support parameterized modules.
+ * Added `csv` as an accepted task manifest format.
+ * Fixed unsupported schedulers being silently accepted.
+ * Fixed remote package re-download and ensured cached packages are only extracted once.
+ * Expanded the documentation with new tutorials, examples, FAQs, and how-tos, along with link checking.
+ * Added Ubuntu 26 and RHEL 9 tool build fixes with build selection and a weekly build schedule.
+
+ * Tools:
+
+  * openroad: added a PEX correlation methodology, along with the `openroad_pex` flow and calibration APIs, which replaces `generate_openroad_rcx`.
+  * openroad/opensta: reorganized the generated reports to make them easier to follow.
+  * verilator: added support for `--trace-structs` and `--trace-depth`. [HU90m]
+  * sby: switched the default engine from boolector to bitwuzla.
+
+
 SiliconCompiler 0.38.2 (2026-07-15)
 =========================================
 
