@@ -277,7 +277,7 @@ latex_use_modindex = False
 linkcheck_timeout = 15
 
 # External links flake, so linkcheck runs on a schedule rather than per-PR --
-# see .github/workflows/docs_linkcheck.yml.
+# see .github/workflows/docs.yml.
 linkcheck_retries = 2
 
 # GitHub rewrites Markdown heading anchors to "user-content-*" in the HTML it
@@ -318,8 +318,14 @@ linkcheck_rate_limit_timeout = 60.0
 # The install-script links (.sh) are deliberately *not* skipped even though they
 # are generated the same way: there are only ~130, they exercise the same
 # version tag, and a stale entry in the install table is user-facing.
+#
+# The ref is a release tag on a tagged build and a commit hash otherwise (see
+# get_codeurl), so match both. Matching only the tag form is what let ~1100
+# generated links back into the run and got it rate-limited before it reached
+# the handful of hand-written links worth checking.
 linkcheck_ignore = [
-    r"https://github\.com/siliconcompiler/[^/]+/blob/v[0-9][^\s]*\.py(#L\d+(-L\d+)?)?$",
+    r"https://github\.com/siliconcompiler/[^/]+/blob/(v[0-9][^/]*|[0-9a-f]{7,40})/"
+    r"[^\s]*\.py(#L\d+(-L\d+)?)?$",
 ]
 
 # Modified from: https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-1048104024
