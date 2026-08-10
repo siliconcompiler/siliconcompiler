@@ -123,7 +123,8 @@ class Scheduler:
             elif node_scheduler is None:
                 pass
             else:
-                raise SCRuntimeError(f"Unsupported scheduler '{node_scheduler}' for node {step}/{index}")
+                raise SCRuntimeError(
+                    f"Unsupported scheduler '{node_scheduler}' for node {step}/{index}")
             self.__tasks[(step, index)] = node_cls(self.__project, step, index)
             if self.__flow.get(step, index, "tool") == "builtin":
                 self.__tasks[(step, index)].set_builtin()
