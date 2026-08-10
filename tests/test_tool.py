@@ -1193,7 +1193,7 @@ def test_write_task_manifest(running_node, suffix):
         assert os.listdir() == [f'sc_manifest.{suffix}']
 
 
-@pytest.mark.parametrize("suffix", ("tcl", "yaml"))
+@pytest.mark.parametrize("suffix", ("tcl", "yaml", "csv"))
 def test_write_task_manifest_specifies_encoding(running_node, monkeypatch, suffix):
     """The manifest writer must not take the platform's default encoding.
 
