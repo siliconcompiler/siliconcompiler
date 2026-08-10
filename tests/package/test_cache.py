@@ -427,6 +427,37 @@ def test_seed_tolerates_malformed_permanent_entries(payload):
     assert cache.export()["permanent"] == []
 
 
+@pytest.mark.parametrize("payload", (
+    {"permanent": ["id"]},                              # no failures at all
+    {"permanent": ["id"], "failures": "notadict"},      # failures unusable
+    {"permanent": ["id"], "failures": {"id": [1]}},     # failure record malformed
+    {"permanent": ["id"], "failures": {"other": [1, "ValueError: nope"]}},
+))
+def test_seed_skips_permanent_without_a_failure(payload):
+    """
+    A mark with no failure behind it would retire the source for the rest of the
+    process and leave the abandonment message with nothing to report, so a
+    truncated payload must not be able to plant one.
+    """
+    cache = PathCache()
+    cache.seed(payload)
+
+    assert not cache.is_permanent("id")
+    assert not cache.is_exhausted("id")
+    assert cache.failure("id") is None
+
+
+def test_seed_permanent_backed_by_a_local_failure():
+    """A mark for a source this process has already seen fail does count."""
+    cache = PathCache()
+    cache.record_failure("id", ValueError("nope"))
+
+    cache.seed({"permanent": ["id"]})
+
+    assert cache.is_permanent("id")
+    assert cache.failure("id") == "ValueError: nope"
+
+
 def test_seed_keeps_highest_attempt_count():
     source = PathCache()
     source.record_failure("id", ValueError("one"))

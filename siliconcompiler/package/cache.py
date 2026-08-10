@@ -439,7 +439,8 @@ class PathCache:
         them were permanent, are merged only when ``include_failures`` is True; a
         caller that considers failures local to the process that saw them (for
         example a scheduler merging results from one node, where the next node may
-        well succeed) can leave them behind.
+        well succeed) can leave them behind. A permanent mark is kept only for a
+        source that has a failure to go with it, in this payload or already here.
 
         A snapshot arrives from another process, over a pipe or a command line,
         so every part of it is treated as untrusted: anything unrecognized is
@@ -464,32 +465,36 @@ class PathCache:
             if not include_failures:
                 return
 
+            failures = payload.get("failures", None)
+            if isinstance(failures, dict):
+                for key, value in failures.items():
+                    if not isinstance(key, str):
+                        continue
+                    # Accept only a real two-element sequence. A bare string would
+                    # happily unpack into two characters, so reject anything that is
+                    # not a list or tuple before looking at it.
+                    if not isinstance(value, (list, tuple)) or len(value) != 2:
+                        continue
+                    try:
+                        attempts = int(value[0])
+                    except (TypeError, ValueError):
+                        continue
+                    attempts = max(0, attempts)
+                    # Keep whichever side has seen more failures so a merge can only
+                    # ever tighten the remaining budget.
+                    known, _ = self.__failures.get(key, (0, ""))
+                    if attempts >= known:
+                        self.__failures[key] = (attempts, str(value[1]))
+
+            # Merged after the failures, and only for a source one of them
+            # accounts for. A mark on its own would exhaust a source with no error
+            # to report it by, so a truncated payload could retire a data source
+            # for the rest of the process and leave the abandonment message with
+            # nothing to say.
             permanent = payload.get("permanent", None)
             if isinstance(permanent, (list, tuple, set)):
-                self.__permanent.update(key for key in permanent if isinstance(key, str))
-
-            failures = payload.get("failures", None)
-            if not isinstance(failures, dict):
-                return
-
-            for key, value in failures.items():
-                if not isinstance(key, str):
-                    continue
-                # Accept only a real two-element sequence. A bare string would
-                # happily unpack into two characters, so reject anything that is
-                # not a list or tuple before looking at it.
-                if not isinstance(value, (list, tuple)) or len(value) != 2:
-                    continue
-                try:
-                    attempts = int(value[0])
-                except (TypeError, ValueError):
-                    continue
-                attempts = max(0, attempts)
-                # Keep whichever side has seen more failures so a merge can only
-                # ever tighten the remaining budget.
-                known, _ = self.__failures.get(key, (0, ""))
-                if attempts >= known:
-                    self.__failures[key] = (attempts, str(value[1]))
+                self.__permanent.update(key for key in permanent
+                                        if isinstance(key, str) and key in self.__failures)
 
     def clear(self) -> None:
         """Removes all cached paths and recorded failures."""

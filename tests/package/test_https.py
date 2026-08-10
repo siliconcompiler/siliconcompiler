@@ -82,12 +82,13 @@ def _failing_resolver(status):
     return resolver
 
 
-@pytest.mark.parametrize("status", (400, 401, 403, 404, 410, 451))
+@pytest.mark.parametrize("status", (400, 404, 405, 410, 414, 451))
 @responses.activate
 def test_download_status_is_not_retried(status):
     """
-    A 4xx describes the request, not the server's health, so asking again just
-    collects the same answer -- at the cost of the whole attempt budget.
+    These answer the request completely -- the data is not there, or the request is
+    one no server will accept -- so asking again just collects the same answer, at
+    the cost of the whole attempt budget.
     """
     resolver = _failing_resolver(status)
 
@@ -102,10 +103,16 @@ def test_download_status_is_not_retried(status):
     assert resolver.cache.is_permanent(resolver.cache_id)
 
 
-@pytest.mark.parametrize("status", (408, 429, 500, 503))
+@pytest.mark.parametrize("status", (401, 403, 408, 409, 421, 423, 425, 429, 500, 503))
 @responses.activate
 def test_download_status_is_retried(status):
-    """A server having a bad minute may not be having a bad hour."""
+    """
+    A server having a bad minute may not be having a bad hour, and the rest of
+    these describe a passing condition too: 401 and 403 turn into a 200 once a
+    token is granted, and GitHub answers 403 for rate limiting. Retiring one would
+    also block a later resolver for the same source that does have credentials,
+    since the budget is keyed by source and reference alone.
+    """
     resolver = _failing_resolver(status)
 
     for _ in range(5):

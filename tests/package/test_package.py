@@ -606,11 +606,6 @@ def failing_resolver():
     return build
 
 
-def _rejected_link():
-    """The error a downloaded archive earns by holding a link out of bounds."""
-    return tarfile.LinkOutsideDestinationError(tarfile.TarInfo("pkg/link"), "/elsewhere")
-
-
 @pytest.mark.parametrize("error,permanent", (
     (FileNotFoundError("404"), False),
     (ConnectionError("reset by peer"), False),
@@ -620,25 +615,41 @@ def _rejected_link():
     (TypeError("neither tar nor zip"), False),
     (PermanentResolutionError("settled"), True),
     (DataSourceUnavailableError("no such release"), True),
-    (tarfile.LinkOutsideDestinationError(tarfile.TarInfo("pkg/link"), "/elsewhere"), True),
-    (tarfile.AbsoluteLinkError(tarfile.TarInfo("pkg/link")), True),
-    (tarfile.SpecialFileError(tarfile.TarInfo("pkg/dev")), True),
 ))
 def test_is_permanent_failure(error, permanent):
     """
-    A transfer that broke may work next time; an archive whose contents the
-    extraction filter refuses will be refused just as firmly on a fresh copy.
+    A transfer that broke may work next time; a source that has answered has
+    already said everything it is going to say.
     """
     resolver = Resolver("thisname", Project("testproj"), "https://filepath", "ref")
 
     assert resolver.is_permanent_failure(error) is permanent
 
 
+# The extraction filters, and so their errors, only exist on releases carrying the
+# PEP 706 backport; an older one has no such error to classify.
+@pytest.mark.skipif(not hasattr(tarfile, "FilterError"),
+                    reason="release predates the PEP 706 extraction filters")
+@pytest.mark.parametrize("build", (
+    lambda: tarfile.LinkOutsideDestinationError(tarfile.TarInfo("pkg/link"), "/elsewhere"),
+    lambda: tarfile.AbsoluteLinkError(tarfile.TarInfo("pkg/link")),
+    lambda: tarfile.SpecialFileError(tarfile.TarInfo("pkg/dev")),
+), ids=("link-outside", "absolute-link", "special-file"))
+def test_is_permanent_failure_for_archive_contents(build):
+    """
+    An archive the extraction filter refuses will be refused just as firmly on a
+    fresh copy, so re-downloading it settles nothing.
+    """
+    resolver = Resolver("thisname", Project("testproj"), "https://filepath", "ref")
+
+    assert resolver.is_permanent_failure(build()) is True
+
+
 def test_get_path_permanent_failure_is_not_retried(failing_resolver):
     """One attempt is all a settled failure gets, whatever the budget allows."""
-    resolver = failing_resolver(error=_rejected_link())
+    resolver = failing_resolver(error=PermanentResolutionError("settled"))
 
-    with pytest.raises(tarfile.LinkOutsideDestinationError):
+    with pytest.raises(PermanentResolutionError):
         resolver.get_path()
 
     for _ in range(5):
@@ -652,11 +663,11 @@ def test_get_path_permanent_failure_is_not_retried(failing_resolver):
 
 def test_get_path_permanent_failure_does_not_wait(failing_resolver):
     """Nothing is gained by backing off before a retry that will not happen."""
-    resolver = failing_resolver(error=_rejected_link())
+    resolver = failing_resolver(error=PermanentResolutionError("settled"))
     resolver.cache.set_retry_delay(30)
 
     with patch("siliconcompiler.package.cache.time.sleep") as sleep:
-        with pytest.raises(tarfile.LinkOutsideDestinationError):
+        with pytest.raises(PermanentResolutionError):
             resolver.get_path()
         with pytest.raises(DataRootResolutionError):
             resolver.get_path()
@@ -665,15 +676,15 @@ def test_get_path_permanent_failure_does_not_wait(failing_resolver):
 
 
 def test_get_path_permanent_abandoned_message(failing_resolver):
-    resolver = failing_resolver(error=_rejected_link())
+    resolver = failing_resolver(error=DataSourceUnavailableError("no such release"))
 
-    with pytest.raises(tarfile.LinkOutsideDestinationError):
+    with pytest.raises(DataSourceUnavailableError):
         resolver.get_path()
 
     with pytest.raises(DataRootResolutionError, match=(
             r"^Unable to resolve 'thisname' from https://filepath \(ref\), and retrying "
-            r"cannot change the outcome, giving up\. Error: LinkOutsideDestinationError: "
-            r"'pkg/link' would link to '/elsewhere', which is outside the destination$")):
+            r"cannot change the outcome, giving up\. Error: DataSourceUnavailableError: "
+            r"no such release$")):
         resolver.get_path()
 
 
@@ -683,8 +694,8 @@ def test_get_path_permanent_abandoned_is_logged(failing_resolver, project_logger
     project_logger(project)
     project.logger.setLevel(logging.INFO)
 
-    resolver = failing_resolver(root=project, error=_rejected_link())
-    with pytest.raises(tarfile.LinkOutsideDestinationError):
+    resolver = failing_resolver(root=project, error=PermanentResolutionError("settled"))
+    with pytest.raises(PermanentResolutionError):
         resolver.get_path()
 
     # Reported on the attempt that settled it, not on some later lookup

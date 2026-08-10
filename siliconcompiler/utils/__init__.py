@@ -57,8 +57,12 @@ def _data_filter_mishandles_symlinks() -> bool:
 
     Returns:
         bool: True if relative symlink targets are resolved from the wrong
-            directory.
+            directory. False on a release with no extraction filter at all, which
+            has no such check to get wrong.
     """
+    if not hasattr(tarfile, "data_filter"):
+        return False
+
     probe = tarfile.TarInfo("dir/link")
     probe.type = tarfile.SYMTYPE
     # Points at 'dir/target', a sibling of the link, and so is always safe.
@@ -92,6 +96,14 @@ def _symlink_safe_data_filter(member: tarfile.TarInfo,
     link that really does escape. The archive's own link target is put back
     afterwards, since that is what gets written to disk.
 
+    That rerouted target is joined and deliberately left unnormalized. Collapsing
+    ``a/b/../t`` to ``a/t`` would settle the link's fate textually while the check
+    that follows resolves it for real: if ``a/b`` is itself a link the archive
+    planted earlier, the two answers differ, and the textual one can be walked out
+    of the destination. Leaving the ``..`` in place makes the path that gets checked
+    the same expression the kernel will follow, so the link that is validated is
+    the link that is created.
+
     Only relative symlinks are rerouted. A hard link's target genuinely is
     relative to the archive root, and an absolute target is rejected by the
     filter itself, so both go straight through.
@@ -108,13 +120,12 @@ def _symlink_safe_data_filter(member: tarfile.TarInfo,
     if not member.issym() or os.path.isabs(name) or os.path.isabs(member.linkname):
         return tarfile.data_filter(member, dest_path)
 
-    linkname = os.path.normpath(member.linkname)
-    from_dest = os.path.normpath(os.path.join(os.path.dirname(name), linkname))
+    from_dest = os.path.join(os.path.dirname(name), member.linkname)
 
     checked = tarfile.data_filter(member.replace(linkname=from_dest, deep=False), dest_path)
     if checked is None:
         return None
-    return checked.replace(linkname=linkname, deep=False)
+    return checked.replace(linkname=member.linkname, deep=False)
 
 
 def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:

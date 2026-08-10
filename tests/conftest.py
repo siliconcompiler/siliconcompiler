@@ -569,10 +569,17 @@ def broken_tarfile_data_filter(monkeypatch):
     workaround in :func:`siliconcompiler.utils.tar_extract_kwargs` has to be
     exercised somewhere other than on them.
 
+    A release older still -- anything before the backport -- has no extraction
+    filter to stand in for, and extracts the link without complaint, so there is
+    nothing for these tests to exercise there.
+
     Yields:
         The stand-in filter, for a test that wants to pass it to ``extractall``
         directly rather than through ``tar_extract_kwargs``.
     """
+    if not hasattr(tarfile, "data_filter"):
+        pytest.skip("release predates the PEP 706 extraction filters")
+
     real = tarfile.data_filter
 
     def broken(member, dest_path):
