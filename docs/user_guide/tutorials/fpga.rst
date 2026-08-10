@@ -45,7 +45,7 @@ onto a small open architecture called **z1000**:
 
    python -m siliconcompiler.demos.fpga_demo
 
-It runs Yosys for synthesis, `VPR <https://docs.verilogtorouting.org>`_ for
+It runs Yosys for synthesis, `VPR <https://docs.verilogtorouting.org/en/latest/>`_ for
 place-and-route and OpenSTA for timing, so a clean run tells you that half of
 your toolchain is working. z1000 is a demo architecture -- 2K :term:`LUTs <LUT>`, no hard
 macros -- and exists to be a self-test, not a part you would ship to.

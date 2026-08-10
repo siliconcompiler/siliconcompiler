@@ -261,7 +261,21 @@ linkcheck_retries = 2
 linkcheck_anchors_ignore_for_url = [
     r"https://github\.com/[^/]+/[^/]+/?$",   # repository landing page (its README)
     r"https://github\.com/.*\.md$",          # any other Markdown file
+    r"https://gitlab\.com/[^/]+/[^/]+/?$",   # GitLab renders its README client-side too
 ]
+
+# Redirects we know about and do not want reported. Everything else still is:
+# a redirect is usually a link that has moved and should be updated at source.
+linkcheck_allowed_redirects = {
+    # GitHub bounces an unauthenticated client through the login page. The link
+    # is correct; the checker simply is not signed in.
+    r"https://github\.com/.*/issues/new/choose": r"https://github\.com/login.*",
+    # A Read the Docs root redirects to its default version. Ours are fixed at
+    # source; these belong to lambdapdk and other projects we do not publish.
+    r"https://[^/]+\.readthedocs\.io/?": r"https://[^/]+\.readthedocs\.io/en/.*",
+    # In the historical package changelog, which is a record and not edited.
+    r"https://psutil\.readthedocs\.io/en/latest/": r"https://psutil\.io/",
+}
 
 # Being rate-limited by a host is not a broken link; back off and retry rather
 # than failing the run.

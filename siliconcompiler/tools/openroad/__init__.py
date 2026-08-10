@@ -4,7 +4,7 @@ integrated circuit design with a complete set of features
 needed to translate a synthesized netlist to a tapeout ready
 GDSII.
 
-Documentation: https://openroad.readthedocs.io/
+Documentation: https://openroad.readthedocs.io/en/latest/
 
 Sources: https://github.com/The-OpenROAD-Project/OpenROAD
 

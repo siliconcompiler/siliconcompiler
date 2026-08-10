@@ -2,7 +2,7 @@
 Magic is a chip layout viewer, editor, and circuit verifier with
 built in DRC and LVS engines.
 
-Documentation: http://opencircuitdesign.com/magic/userguide.html
+Documentation: https://opencircuitdesign.com/magic/userguide.html
 
 Installation: https://github.com/RTimothyEdwards/magic
 
