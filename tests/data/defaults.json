@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.0",
+              "value": "0.57.1",
               "signature": null
             }
           }
@@ -1488,7 +1488,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.0",
+              "value": "0.57.1",
               "signature": null
             }
           }
@@ -5148,7 +5148,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -6759,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.0",
+              "value": "0.57.1",
               "signature": null
             }
           }
@@ -9150,7 +9150,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -11415,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.0",
+              "value": "0.57.1",
               "signature": null
             }
           }
@@ -12886,7 +12886,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -14387,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.0",
+              "value": "0.57.1",
               "signature": null
             }
           }
@@ -15858,7 +15858,7 @@
                 }
               },
               "format": {
-                "type": "<json,tcl,yaml>",
+                "type": "<csv,json,tcl,yaml>",
                 "require": false,
                 "scope": "job",
                 "lock": false,

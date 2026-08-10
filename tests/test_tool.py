@@ -1,4 +1,5 @@
 import copy
+import csv
 import hashlib
 import logging
 import pathlib
@@ -7,6 +8,7 @@ import sys
 import pytest
 import os
 import time
+import yaml
 
 import os.path
 
@@ -19,6 +21,7 @@ from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler import Task
 from siliconcompiler import Design, Project
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
+from siliconcompiler.schema._metadata import version as schema_version
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout, \
     TaskOutOfMemoryError
@@ -1181,7 +1184,7 @@ def test_write_task_manifest_none(running_node):
         assert os.listdir() == []
 
 
-@pytest.mark.parametrize("suffix", ("tcl", "json", "yaml"))
+@pytest.mark.parametrize("suffix", ("tcl", "json", "yaml", "csv"))
 def test_write_task_manifest(running_node, suffix):
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", suffix)
     with running_node.task.runtime(running_node) as runtool:
@@ -1210,6 +1213,107 @@ def test_write_task_manifest_relative(running_node):
 
     check = SafeSchema.from_manifest(filepath="sc_manifest.json")
     assert check.get("tool", "builtin", "task", "nop", "refdir") == ["."]
+
+
+@pytest.fixture
+def manifest_quoting(running_node):
+    """Factory writing a task manifest in the requested format, with task
+    variables holding a quoting-sensitive value. Returns that value.
+
+        value = manifest_quoting("yaml")
+    """
+    def _write(suffix):
+        # Exercises the quoting rules of every manifest format: spaces, Tcl
+        # substitution characters, a CSV separator and a YAML flow-style separator.
+        value = 'a b [c] {d} "e" $f,g'
+
+        nop = running_node.project.get_nop()
+        nop.add_parameter("quoting", "str", "scalar quoting check")
+        nop.add_parameter("quotinglist", "[str]", "list quoting check")
+
+        assert running_node.project.set("tool", "builtin", "task", "nop", "var", "quoting",
+                                        value)
+        assert running_node.project.set("tool", "builtin", "task", "nop", "var", "quotinglist",
+                                        ["one item", value])
+        assert running_node.project.set("tool", "builtin", "task", "nop", "format", suffix)
+
+        with running_node.task.runtime(running_node) as runtool:
+            runtool.write_task_manifest('.')
+
+        assert os.listdir() == [f'sc_manifest.{suffix}']
+
+        return value
+
+    return _write
+
+
+def test_write_task_manifest_yaml_format(manifest_quoting):
+    """The yaml manifest must be loadable and preserve values verbatim."""
+    value = manifest_quoting("yaml")
+
+    with open("sc_manifest.yaml") as f:
+        manifest = yaml.safe_load(f)
+
+    assert isinstance(manifest, dict)
+    assert manifest["schemaversion"]["node"]["default"]["default"]["value"] == schema_version
+    assert manifest["option"]["design"]["node"]["*"]["*"]["value"] == "testdesign"
+
+    var = manifest["tool"]["builtin"]["task"]["nop"]["var"]
+    assert var["quoting"]["node"]["*"]["*"]["value"] == value
+    assert var["quotinglist"]["node"]["*"]["*"]["value"] == ["one item", value]
+
+    # (step, index) tuples must be plain sequences, not '!!python/tuple' tags,
+    # which safe_load above would have rejected.
+    flow_input = manifest["flowgraph"]["testflow"]["notrunning"]["0"]["input"]
+    assert flow_input["node"]["*"]["*"]["value"] == [["running", "0"]]
+
+
+def test_write_task_manifest_tcl_format(manifest_quoting):
+    """The tcl manifest must be sourceable and preserve values verbatim."""
+    tkinter = pytest.importorskip("tkinter")
+
+    value = manifest_quoting("tcl")
+
+    interp = tkinter.Tcl()
+    # Tcl accepts forward slashes on every platform; backslashes in a Windows
+    # path would be read as escapes.
+    interp.eval("source {%s}" % os.path.abspath("sc_manifest.tcl").replace(os.sep, "/"))
+
+    # Tool variables emitted alongside the manifest dictionary
+    assert interp.getvar("sc_tool") == "builtin"
+    assert interp.getvar("sc_task") == "nop"
+    assert interp.getvar("sc_topmodule") == "designtop"
+    assert interp.getvar("sc_designlib") == "testdesign"
+
+    assert interp.eval("dict get $sc_cfg option design") == "testdesign"
+    assert interp.eval("dict get $sc_cfg tool builtin task nop var quoting") == value
+    assert interp.eval(
+        "llength [dict get $sc_cfg tool builtin task nop var quotinglist]") == "2"
+    assert interp.eval(
+        "lindex [dict get $sc_cfg tool builtin task nop var quotinglist] 1") == value
+
+    # Default keys must not leak into the manifest
+    assert interp.eval("dict exists $sc_cfg library testdesign fileset default") == "0"
+
+
+def test_write_task_manifest_csv_format(manifest_quoting):
+    """The csv manifest must be parseable and preserve values verbatim."""
+    value = manifest_quoting("csv")
+
+    with open("sc_manifest.csv", newline='') as f:
+        rows = list(csv.reader(f))
+
+    assert rows[0] == ["Keypath", "Value"]
+    assert all(len(row) == 2 for row in rows)
+
+    values = {}
+    for keypath, keyvalue in rows[1:]:
+        values.setdefault(keypath, []).append(keyvalue)
+
+    assert values["option,design"] == ["testdesign"]
+    assert values["tool,builtin,task,nop,var,quoting"] == [value]
+    # List values are expanded into one row per item
+    assert values["tool,builtin,task,nop,var,quotinglist"] == ["one item", value]
 
 
 def test_write_task_manifest_with_backup(running_node):

@@ -1,7 +1,6 @@
 import contextlib
 import copy
 import csv
-import gzip
 import json
 import logging
 import os
@@ -1027,6 +1026,12 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             def increase_indent(self, flow=False, indentless=False):
                 return super().increase_indent(flow=flow, indentless=indentless)
 
+        # Emit tuples, such as the (step, index) pairs in the flowgraph, as plain
+        # sequences. The default representer tags them '!!python/tuple', which
+        # only a python reader can load.
+        YamlIndentDumper.add_representer(
+            tuple, lambda dumper, data: dumper.represent_list(list(data)))
+
         fout.write(yaml.dump(manifest.getdict(), Dumper=YamlIndentDumper,
                              default_flow_style=False))
 
@@ -1128,27 +1133,21 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         # Generate a schema with absolute paths for the manifest
         schema = self.__abspath_schema()
 
-        if re.search(r'\.json(\.gz)?$', manifest_path):
+        if suffix == "json":
             schema.write_manifest(manifest_path)
         else:
-            # Format-specific dumping
-            if manifest_path.endswith('.gz'):
-                fout = gzip.open(manifest_path, 'wt', encoding='UTF-8')
-            elif re.search(r'\.csv$', manifest_path):
-                fout = open(manifest_path, 'w', newline='')
-            else:
-                fout = open(manifest_path, 'w')
-            try:
-                if re.search(r'(\.yaml|\.yml)(\.gz)?$', manifest_path):
+            fopen_args = {}
+            if suffix == "csv":
+                fopen_args['newline'] = ''
+            with open(manifest_path, 'w', **fopen_args) as fout:
+                if suffix == "yaml":
                     self.__write_yaml_manifest(fout, schema)
-                elif re.search(r'\.tcl(\.gz)?$', manifest_path):
+                elif suffix == "tcl":
                     self.__write_tcl_manifest(fout, schema)
-                elif re.search(r'\.csv(\.gz)?$', manifest_path):
+                elif suffix == "csv":
                     self.__write_csv_manifest(fout, schema)
                 else:
                     raise ValueError(f"{manifest_path} is not a recognized path type")
-            finally:
-                fout.close()
 
     def __abspath_schema(self) -> "Project":
         """
@@ -3139,7 +3138,7 @@ def schema_task(schema):
     schema.insert(
         'format',
         Parameter(
-            '<json,tcl,yaml>',
+            '<json,tcl,yaml,csv>',
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: file format",
