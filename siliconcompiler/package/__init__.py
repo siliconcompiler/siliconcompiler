@@ -19,19 +19,21 @@ import re
 import site
 import shutil
 import stat
+import tarfile
 import time
 import threading
 
 import os.path
 
-from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING
+from typing import Optional, List, Dict, Tuple, Type, Union, TYPE_CHECKING
 
 from fasteners import InterProcessLock
 from importlib.metadata import distributions, distribution
 from pathlib import Path, PureWindowsPath
 from urllib import parse as url_parse
 
-from siliconcompiler.package.cache import PathCache, DataRootResolutionError
+from siliconcompiler.package.cache import PathCache, DataRootResolutionError, \
+    PermanentResolutionError
 from siliconcompiler.utils import get_plugins, default_cache_dir
 from siliconcompiler.utils.paths import cwdirsafe
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -40,6 +42,12 @@ if TYPE_CHECKING:
     from siliconcompiler.project import Project
     from siliconcompiler.schema_support.pathschema import PathSchema
     from siliconcompiler.schema import BaseSchema
+
+
+#: The extraction filters, and so the errors they raise, only exist on Python
+#: releases carrying the PEP 706 backport.
+_TAR_FILTER_ERRORS: Tuple[Type[BaseException], ...] = \
+    (tarfile.FilterError,) if hasattr(tarfile, "FilterError") else ()
 
 
 class Resolver:
@@ -163,6 +171,39 @@ class Resolver:
         """
         return False
 
+    def is_permanent_failure(self, error: BaseException) -> bool:
+        """
+        True if ``error`` will recur identically however many times it is retried.
+
+        The attempt budget is for failures a second try might survive: a dropped
+        connection, a truncated transfer, a server having a bad minute. It is
+        wasted on a failure that is settled the moment it happens, and the waste
+        is not free -- abandoning a source takes
+        :attr:`PathCache.max_attempts` fetches of the same data, plus the backoff
+        between them, to arrive at the answer the first attempt already had.
+
+        Two kinds of error are treated as settled:
+
+        * :class:`~siliconcompiler.package.cache.PermanentResolutionError`, raised
+          by a resolver that has itself established the answer will not change --
+          an HTTP status saying the data is not there, for instance.
+        * ``tarfile.FilterError``, raised when the extraction filter refuses a
+          member of a downloaded archive. That verdict is a property of the
+          archive's contents, so a fresh copy of the same archive earns it again.
+
+        Anything else counts as transient, deliberately: this decides how much
+        effort a failure is worth, and treating a retryable error as settled costs
+        a run that would have recovered, while the reverse costs some bandwidth.
+        Subclasses may widen this for errors specific to how they fetch.
+
+        Args:
+            error (BaseException): The error a resolution attempt raised.
+
+        Returns:
+            bool: True if the source should be abandoned without further attempts.
+        """
+        return isinstance(error, (PermanentResolutionError, *_TAR_FILTER_ERRORS))
+
     @property
     def is_indirect(self) -> bool:
         """
@@ -277,6 +318,12 @@ class Resolver:
         source = self.source
         if self.reference:
             source = f"{source} ({self.reference})"
+        if cache.is_permanent(self.cache_id):
+            # Say why one attempt was enough, so the single try does not read as a
+            # retry budget that failed to apply.
+            return (f"Unable to resolve '{self.display_name}' from {source}, and "
+                    f"retrying cannot change the outcome, giving up. "
+                    f"Error: {cache.failure(self.cache_id)}")
         return (f"Unable to resolve '{self.display_name}' from {source} after "
                 f"{cache.attempts(self.cache_id)} attempt(s), giving up. "
                 f"Last error: {cache.failure(self.cache_id)}")
@@ -292,8 +339,9 @@ class Resolver:
         where an attempt is expensive (see :attr:`is_retryable`), failures are
         counted in the shared :class:`~siliconcompiler.package.cache.PathCache`,
         so the repeated lookups a run performs consume a bounded budget rather
-        than re-fetching indefinitely. Once the budget is spent, later calls fail
-        immediately without touching the network.
+        than re-fetching indefinitely. A failure that a retry could not fix (see
+        :meth:`is_permanent_failure`) spends the whole budget at once. Once the
+        budget is spent, later calls fail immediately without touching the network.
 
         Returns:
             str: The absolute path to the resolved data on the local filesystem.
@@ -301,7 +349,7 @@ class Resolver:
         Raises:
             FileNotFoundError: If the resolved path does not exist.
             DataRootResolutionError: If the source has already failed to resolve
-                :attr:`PathCache.max_attempts` times.
+                :attr:`PathCache.max_attempts` times, or has failed permanently.
         """
         cache = self.cache
 
@@ -328,7 +376,10 @@ class Resolver:
             # SystemExit says nothing about whether the source is reachable, so
             # it must not consume the budget or poison the cache.
             if self.is_retryable:
-                if cache.record_failure(self.cache_id, e) >= cache.max_attempts:
+                if self.is_permanent_failure(e):
+                    cache.record_permanent_failure(self.cache_id, e)
+                    self.logger.error(self.__abandoned_message(cache))
+                elif cache.record_failure(self.cache_id, e) >= cache.max_attempts:
                     self.logger.error(self.__abandoned_message(cache))
             raise
 

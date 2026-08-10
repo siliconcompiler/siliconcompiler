@@ -311,7 +311,8 @@ def test_halt_sends_pathcache(project):
 
     assert sent == [{
         "paths": {"someid": "/some/path"},
-        "failures": {"otherid": [1, "ValueError: nope"]}
+        "failures": {"otherid": [1, "ValueError: nope"]},
+        "permanent": []
     }]
 
 
@@ -356,7 +357,7 @@ def test_run_sends_pathcache(project):
     with patch("siliconcompiler.scheduler.SchedulerNode.execute"):
         node.run()
 
-    assert sent == [{"paths": {"someid": "/some/path"}, "failures": {}}]
+    assert sent == [{"paths": {"someid": "/some/path"}, "failures": {}, "permanent": []}]
 
 
 def test_halt_with_reason(project_logger, project, caplog):

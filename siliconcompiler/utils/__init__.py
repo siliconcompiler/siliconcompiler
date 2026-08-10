@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import logging
 import re
 import pathlib
@@ -37,7 +38,86 @@ if TYPE_CHECKING:
     from siliconcompiler.project import Project
 
 
-def tar_extract_kwargs(filter: str = "data") -> Dict[str, str]:
+@functools.lru_cache(maxsize=None)
+def _data_filter_mishandles_symlinks() -> bool:
+    """Reports whether this interpreter's ``data`` filter misjudges symlinks.
+
+    The first PEP 706 backport -- Python 3.8.17, 3.9.17, 3.10.12 and 3.11.4 --
+    resolved a symlink's target from the extraction root rather than from the
+    directory the link lives in, so ``filter="data"`` rejects an ordinary
+    relative symlink. Real archives trip over this: the IHP130 PDK ships
+    ``ihp-sg13g2/libs.tech/ngspice/install.py -> ../xschem/install.py``, which
+    the broken check reads as pointing a level *above* the destination. CPython
+    fixed it in gh-107845, released in the next point release of every branch,
+    but ``requires-python`` admits the broken ones.
+
+    The defect only ever rejects a safe link, never accepts an unsafe one:
+    prepending the link's own directory can only move the target deeper into the
+    destination. So this detects a false positive, not a missing check.
+
+    Returns:
+        bool: True if relative symlink targets are resolved from the wrong
+            directory.
+    """
+    probe = tarfile.TarInfo("dir/link")
+    probe.type = tarfile.SYMTYPE
+    # Points at 'dir/target', a sibling of the link, and so is always safe.
+    probe.linkname = f"..{os.sep}dir{os.sep}target"
+
+    # Two levels deep, so a single '..' escaping the destination has somewhere to
+    # land: with the filesystem root as the destination it would not.
+    dest = os.path.join(os.path.abspath(os.sep), "sc_filter_probe", "dest")
+    try:
+        tarfile.data_filter(probe, dest)
+    except tarfile.LinkOutsideDestinationError:
+        return True
+    except tarfile.FilterError:  # pragma: no cover - the probe is safe otherwise
+        return False
+    return False
+
+
+def _symlink_safe_data_filter(member: tarfile.TarInfo,
+                              dest_path: str) -> Optional[tarfile.TarInfo]:
+    """Applies the ``data`` extraction filter with its symlink check corrected.
+
+    Used in place of the plain ``"data"`` filter on the releases
+    :func:`_data_filter_mishandles_symlinks` identifies, so a valid archive still
+    extracts there.
+
+    The correction is to hand the filter a link target that is already relative
+    to ``dest_path``, which is where the broken check resolves from. It then
+    computes the same target the fixed filter would, and every other part of the
+    ``data`` filter -- name containment, permission clamping, special file
+    rejection -- stays exactly as CPython wrote it, including its rejection of a
+    link that really does escape. The archive's own link target is put back
+    afterwards, since that is what gets written to disk.
+
+    Only relative symlinks are rerouted. A hard link's target genuinely is
+    relative to the archive root, and an absolute target is rejected by the
+    filter itself, so both go straight through.
+
+    Args:
+        member (tarfile.TarInfo): The archive member about to be extracted.
+        dest_path (str): The directory being extracted into.
+
+    Returns:
+        tarfile.TarInfo: The member to extract, or None to skip it.
+    """
+    # Matches how the filter itself arrives at a relative name before it uses one.
+    name = member.name.lstrip("/" + os.sep)
+    if not member.issym() or os.path.isabs(name) or os.path.isabs(member.linkname):
+        return tarfile.data_filter(member, dest_path)
+
+    linkname = os.path.normpath(member.linkname)
+    from_dest = os.path.normpath(os.path.join(os.path.dirname(name), linkname))
+
+    checked = tarfile.data_filter(member.replace(linkname=from_dest, deep=False), dest_path)
+    if checked is None:
+        return None
+    return checked.replace(linkname=linkname, deep=False)
+
+
+def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:
     """Returns keyword arguments selecting a PEP 706 extraction filter.
 
     ``TarFile.extractall``/``extract`` gained the ``filter`` argument in Python
@@ -49,14 +129,22 @@ def tar_extract_kwargs(filter: str = "data") -> Dict[str, str]:
     ``TypeError``; those versions also predate the warning, so return no kwargs
     and let the legacy default apply.
 
+    Where the requested filter is ``"data"`` and this interpreter is one of the
+    releases that misreads relative symlinks (see
+    :func:`_data_filter_mishandles_symlinks`), a corrected equivalent is returned
+    instead of the filter's name. The filter is not weakened to do it: the same
+    ``data`` checks run, on the target the link actually points at.
+
     Args:
         filter (str): The extraction filter to request (``"data"``, ``"tar"`` or
             ``"fully_trusted"``). Defaults to ``"data"``, the safest option and
             the Python 3.14 default.
     """
-    if hasattr(tarfile, "data_filter"):
-        return {"filter": filter}
-    return {}
+    if not hasattr(tarfile, "data_filter"):
+        return {}
+    if filter == "data" and _data_filter_mishandles_symlinks():
+        return {"filter": _symlink_safe_data_filter}
+    return {"filter": filter}
 
 
 def link_symlink_copy(srcfile, dstfile):

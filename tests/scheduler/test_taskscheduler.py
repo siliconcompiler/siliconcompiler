@@ -417,12 +417,14 @@ def test_process_completed_nodes_ignores_failures(large_flow, make_tasks):
     _, pipe = _setup_completed_node(scheduler, node, exitcode=0, pipe_has_data=True)
     pipe.recv.return_value = {
         "paths": {},
-        "failures": {"otherid": [3, "FileNotFoundError: simulated 404"]}
+        "failures": {"otherid": [3, "FileNotFoundError: simulated 404"]},
+        "permanent": ["otherid"]
     }
 
     scheduler._TaskScheduler__process_completed_nodes()
 
     assert MPManager.get_path_cache().attempts("otherid") == 0
+    assert not MPManager.get_path_cache().is_permanent("otherid")
     assert not MPManager.get_path_cache().is_exhausted("otherid")
 
 

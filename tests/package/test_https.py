@@ -11,6 +11,8 @@ from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+from siliconcompiler.package import DataRootResolutionError
+from siliconcompiler.package.cache import DataSourceUnavailableError
 from siliconcompiler.package.https import HTTPResolver
 from siliconcompiler import Project
 
@@ -67,6 +69,87 @@ def test_dependency_path_download_http_failed():
                        match=r"^Failed to download sc-data data source from "
                              r"https://.*\.tar\.gz\. Status code: 400$"):
         resolver.resolve()
+
+
+def _failing_resolver(status):
+    """A resolver aimed at a URL that answers with `status` and nothing else."""
+    responses.add(responses.GET, re.compile(r".*"), status=status)
+
+    proj = Project("testproj")
+    proj.option.set_cachedir(".")
+    resolver = HTTPResolver("sc-data", proj, "https://example.com/data.tar.gz", "ref")
+    resolver.cache.set_retry_delay(0)
+    return resolver
+
+
+@pytest.mark.parametrize("status", (400, 401, 403, 404, 410, 451))
+@responses.activate
+def test_download_status_is_not_retried(status):
+    """
+    A 4xx describes the request, not the server's health, so asking again just
+    collects the same answer -- at the cost of the whole attempt budget.
+    """
+    resolver = _failing_resolver(status)
+
+    with pytest.raises(DataSourceUnavailableError):
+        resolver.get_path()
+
+    for _ in range(3):
+        with pytest.raises(DataRootResolutionError):
+            resolver.get_path()
+
+    assert len(responses.calls) == 1
+    assert resolver.cache.is_permanent(resolver.cache_id)
+
+
+@pytest.mark.parametrize("status", (408, 429, 500, 503))
+@responses.activate
+def test_download_status_is_retried(status):
+    """A server having a bad minute may not be having a bad hour."""
+    resolver = _failing_resolver(status)
+
+    for _ in range(5):
+        with pytest.raises((FileNotFoundError, DataRootResolutionError)):
+            resolver.get_path()
+
+    assert len(responses.calls) == resolver.cache.max_attempts
+    assert not resolver.cache.is_permanent(resolver.cache_id)
+
+
+def test_resolve_remote_relative_symlink(broken_tarfile_data_filter, tmpdir):
+    """
+    A PDK that ships a relative symlink -- IHP130 ships exactly one -- has to
+    unpack even on the releases whose extraction filter misreads one.
+    """
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver("test", project, "https://example.com/data.tar.gz", "v1.0")
+
+    tar_buffer = BytesIO()
+    with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
+        info = tarfile.TarInfo(name="libs.tech/xschem/install.py")
+        info.size = 5
+        tar.addfile(info, BytesIO(b"hello"))
+
+        link = tarfile.TarInfo(name="libs.tech/ngspice/install.py")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "../xschem/install.py"
+        tar.addfile(link)
+
+    import siliconcompiler.package.https as https_module
+    with patch.object(https_module, "requests") as mock_requests:
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.content = tar_buffer.getvalue()
+        mock_requests.get.return_value = mock_response
+
+        resolver.resolve_remote()
+
+    installer = os.path.join(str(resolver.cache_path), "libs.tech", "ngspice", "install.py")
+    assert os.path.islink(installer)
+    with open(installer, "rb") as f:
+        assert f.read() == b"hello"
 
 
 # ============================================================================

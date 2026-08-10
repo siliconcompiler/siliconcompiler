@@ -17,7 +17,15 @@ from io import BytesIO
 from urllib.parse import urlparse
 
 from siliconcompiler.package import RemoteResolver
+from siliconcompiler.package.cache import DataSourceUnavailableError
 from siliconcompiler.utils import tar_extract_kwargs
+
+#: HTTP statuses that describe the request rather than the server's health, and so
+#: mean the same thing however often they are asked -- excepting the two that ask
+#: for exactly that: 408 (the request took too long) and 429 (too many requests).
+#: A 5xx is left retryable: a server having a bad minute may not be having a bad
+#: hour.
+_RETRYABLE_CLIENT_ERRORS = (408, 429)
 
 
 def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
@@ -101,7 +109,10 @@ class HTTPResolver(RemoteResolver):
         directory that GitHub often includes in its source archives.
 
         Raises:
-            FileNotFoundError: If the download fails (e.g., 404 error).
+            FileNotFoundError: If the download fails. A status that will not change
+                on a retry (a 404, say) raises the
+                :class:`~siliconcompiler.package.cache.DataSourceUnavailableError`
+                subclass, so the source is abandoned rather than re-requested.
         """
         data_url = self.download_url
 
@@ -126,8 +137,12 @@ class HTTPResolver(RemoteResolver):
 
         response = requests.get(data_url, stream=True, headers=headers)
         if not response.ok:
-            raise FileNotFoundError(f'Failed to download {self.display_name} data source from '
-                                    f'{data_url}. Status code: {response.status_code}')
+            status = response.status_code
+            error = FileNotFoundError
+            if 400 <= status < 500 and status not in _RETRYABLE_CLIENT_ERRORS:
+                error = DataSourceUnavailableError
+            raise error(f'Failed to download {self.display_name} data source from '
+                        f'{data_url}. Status code: {status}')
 
         os.makedirs(self.cache_path, exist_ok=True)
 

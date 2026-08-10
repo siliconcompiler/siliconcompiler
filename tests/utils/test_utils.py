@@ -5,15 +5,17 @@ import os
 import os.path
 import psutil
 import sys
+import tarfile
 import types
 
 from importlib.metadata import entry_points
+from io import BytesIO
 from unittest.mock import patch
 
 from siliconcompiler import utils
 from siliconcompiler.utils import \
     truncate_text, safecompare, get_cores, grep, \
-    get_plugins, \
+    get_plugins, tar_extract_kwargs, \
     default_sc_dir, default_credentials_file, default_cache_dir, \
     default_email_credentials_file, default_sc_path, default_sc_system_path
 from siliconcompiler.utils import (
@@ -921,3 +923,155 @@ def test_check_python_dependencies_isolates_per_project(
         "good environment is out of sync with pyproject.toml; "
         "run 'pip install -e .' to update",
     ]
+
+
+# ============================================================================
+# tarfile extraction filter
+# ============================================================================
+
+@pytest.fixture
+def symlink_archive():
+    """
+    Builds a tarball shaped like the IHP130 PDK: a file, and a symlink reaching
+    it from a sibling directory.
+    """
+    def build(linkname, linkpath="pkg/libs.tech/ngspice/install.py"):
+        buf = BytesIO()
+        with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+            data = b"installer\n"
+            info = tarfile.TarInfo("pkg/libs.tech/xschem/install.py")
+            info.size = len(data)
+            tar.addfile(info, BytesIO(data))
+
+            link = tarfile.TarInfo(linkpath)
+            link.type = tarfile.SYMTYPE
+            link.linkname = linkname
+            tar.addfile(link)
+        buf.seek(0)
+        return buf
+
+    return build
+
+
+def _extract(archive, **kwargs):
+    """Extracts into a directory of the test's own, returning the link it holds."""
+    dest = os.path.abspath("dest")
+    os.makedirs(dest, exist_ok=True)
+    with tarfile.open(fileobj=archive, mode="r:gz") as tar:
+        tar.extractall(path=dest, **kwargs)
+    return os.path.join(dest, "pkg", "libs.tech", "ngspice", "install.py")
+
+
+def test_tar_extract_kwargs():
+    assert tar_extract_kwargs() == {"filter": "data"}
+
+
+@pytest.mark.parametrize("filter", ("tar", "fully_trusted"))
+def test_tar_extract_kwargs_other_filters(filter):
+    assert tar_extract_kwargs(filter) == {"filter": filter}
+
+
+def test_tar_extract_kwargs_legacy_python(monkeypatch):
+    """A release predating PEP 706 has no filter argument to pass."""
+    monkeypatch.delattr(tarfile, "data_filter")
+    utils._data_filter_mishandles_symlinks.cache_clear()
+
+    assert tar_extract_kwargs() == {}
+
+    utils._data_filter_mishandles_symlinks.cache_clear()
+
+
+def test_data_filter_symlinks_not_mishandled():
+    """The interpreter running the tests must carry CPython gh-107845."""
+    assert utils._data_filter_mishandles_symlinks() is False
+
+
+def test_data_filter_mishandled_symlinks_detected(broken_tarfile_data_filter):
+    assert utils._data_filter_mishandles_symlinks() is True
+
+
+def test_tar_extract_kwargs_substitutes_corrected_filter(broken_tarfile_data_filter):
+    """Only the 'data' filter checks link targets, so only it needs correcting."""
+    assert tar_extract_kwargs() == {"filter": utils._symlink_safe_data_filter}
+    assert tar_extract_kwargs("tar") == {"filter": "tar"}
+
+
+def test_data_filter_rejects_valid_symlink(broken_tarfile_data_filter, symlink_archive):
+    """The failure being worked around, so the workaround is shown to be needed."""
+    with pytest.raises(tarfile.LinkOutsideDestinationError,
+                       match=r"^'pkg/libs\.tech/ngspice/install\.py' would link to .*"
+                             r"which is outside the destination$"):
+        _extract(symlink_archive("../xschem/install.py"), filter=broken_tarfile_data_filter)
+
+
+def test_corrected_filter_extracts_valid_symlink(broken_tarfile_data_filter, symlink_archive):
+    link = _extract(symlink_archive("../xschem/install.py"), **tar_extract_kwargs())
+
+    # Written as the archive stored it, and pointing at the real file
+    assert os.path.islink(link)
+    assert os.readlink(link) == os.path.join("..", "xschem", "install.py")
+    with open(link, "rb") as f:
+        assert f.read() == b"installer\n"
+
+
+def test_corrected_filter_normalizes_linkname(broken_tarfile_data_filter, symlink_archive):
+    """Matching what a fixed data filter does with a redundant link target."""
+    link = _extract(symlink_archive("../xschem/./install.py"), **tar_extract_kwargs())
+
+    assert os.readlink(link) == os.path.join("..", "xschem", "install.py")
+
+
+@pytest.mark.parametrize("linkname", (
+    "../../../../../etc/passwd",       # climbs out of the destination
+    "../../../..",                     # climbs out to a directory
+))
+def test_corrected_filter_still_rejects_escaping_symlink(broken_tarfile_data_filter,
+                                                         symlink_archive, linkname):
+    """Correcting a false positive must not cost the check itself."""
+    with pytest.raises(tarfile.LinkOutsideDestinationError):
+        _extract(symlink_archive(linkname), **tar_extract_kwargs())
+
+
+def test_corrected_filter_still_rejects_absolute_symlink(broken_tarfile_data_filter,
+                                                         symlink_archive):
+    with pytest.raises(tarfile.AbsoluteLinkError):
+        _extract(symlink_archive("/etc/passwd"), **tar_extract_kwargs())
+
+
+def test_corrected_filter_still_rejects_escaping_name(broken_tarfile_data_filter,
+                                                      symlink_archive):
+    """A member whose own name escapes is rejected before its link is looked at."""
+    with pytest.raises(tarfile.OutsideDestinationError):
+        _extract(symlink_archive("install.py", linkpath="../evil/install.py"),
+                 **tar_extract_kwargs())
+
+
+def test_corrected_filter_passes_through_non_symlinks(broken_tarfile_data_filter):
+    """A member with no link target is handed to the filter untouched."""
+    member = tarfile.TarInfo("file.txt")
+    member.size = 5
+
+    filtered = utils._symlink_safe_data_filter(member, os.getcwd())
+    assert filtered.name == "file.txt"
+    assert filtered.linkname == ""
+
+
+def test_corrected_filter_passes_through_hard_links(broken_tarfile_data_filter):
+    """A hard link's target really is relative to the archive root."""
+    member = tarfile.TarInfo("dir/link")
+    member.type = tarfile.LNKTYPE
+    member.linkname = "dir/target"
+
+    filtered = utils._symlink_safe_data_filter(member, os.getcwd())
+    assert filtered.linkname == "dir/target"
+
+
+def test_corrected_filter_honors_a_skipped_member(broken_tarfile_data_filter, monkeypatch):
+    """A filter that skips a member returns None, which must be passed along."""
+    monkeypatch.setattr(tarfile, "data_filter", lambda member, dest: None)
+
+    member = tarfile.TarInfo("dir/link")
+    member.type = tarfile.SYMTYPE
+    member.linkname = "../dir/target"
+
+    assert utils._symlink_safe_data_filter(member, os.getcwd()) is None
