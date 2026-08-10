@@ -37,8 +37,8 @@ class OpenROADPDK(PDK):
                                    "parasitics before extraction (applied via set_layer_rc). "
                                    "Each tuple is (pexcorner, layertype, layer, resistance, "
                                    "capacitance), where layertype is 'routing' or 'via'. "
-                                   "Resistance is ohm/um for a minimum-width routing layer or "
-                                   "ohm/cut for a via. Capacitance is F/um for a minimum-width "
+                                   "Resistance is Ω/μm for a minimum-width routing layer or "
+                                   "Ω/cut for a via. Capacitance is F/μm for a minimum-width "
                                    "routing layer and is ignored for vias.")
         self.define_tool_parameter("openroad", "rccorrection",
                                    "{(str,str,float<0.0..>,float<0.0..>)}",
@@ -102,9 +102,9 @@ class OpenROADPDK(PDK):
             corner (str): Name of the PEX corner the values apply to.
             layertype (str): Either "routing" or "via".
             layer (str): Name of the routing or via (cut) layer.
-            resistance (float): Resistance, in ohm/um for a minimum-width routing
-                layer or ohm/cut for a via.
-            capacitance (float, optional): Capacitance in F/um for a minimum-width
+            resistance (float): Resistance, in Ω/μm for a minimum-width routing
+                layer or Ω/cut for a via.
+            capacitance (float, optional): Capacitance in F/μm for a minimum-width
                 routing layer. Not applicable to vias (forced to None).
             clobber (bool, optional): If True, replaces the existing rclayer set
                 instead of adding to it. Defaults to False.

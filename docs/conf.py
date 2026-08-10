@@ -233,6 +233,34 @@ latex_preamble = r"""\newcommand{\origunderscore}{}
 \let\origunderscore\_
 \renewcommand{\_}{\allowbreak\origunderscore}
 \setcounter{tocdepth}{4}
+
+% pdflatex fails hard on any character it has no definition for -- "Unicode
+% character Sigma (U+03A3) not set up for use with LaTeX", and no PDF at all.
+% Sphinx declares the punctuation and box-drawing characters our prose already
+% uses; these are the ones it does not, and that EDA writing reaches for. A
+% missing declaration is a build failure rather than a rendering glitch, so the
+% cost of listing them ahead of time is nil.
+\DeclareUnicodeCharacter{03A3}{\ensuremath{\Sigma}}
+\DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}}
+\DeclareUnicodeCharacter{03A9}{\ensuremath{\Omega}}
+\DeclareUnicodeCharacter{03BC}{\ensuremath{\mu}}
+\DeclareUnicodeCharacter{03C0}{\ensuremath{\pi}}
+\DeclareUnicodeCharacter{03C3}{\ensuremath{\sigma}}
+\DeclareUnicodeCharacter{2190}{\ensuremath{\leftarrow}}
+\DeclareUnicodeCharacter{2192}{\ensuremath{\rightarrow}}
+\DeclareUnicodeCharacter{2194}{\ensuremath{\leftrightarrow}}
+\DeclareUnicodeCharacter{21D2}{\ensuremath{\Rightarrow}}
+\DeclareUnicodeCharacter{2260}{\ensuremath{\neq}}
+\DeclareUnicodeCharacter{2264}{\ensuremath{\leq}}
+\DeclareUnicodeCharacter{2265}{\ensuremath{\geq}}
+\DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}
+% Authors reach for whichever of these their keyboard offers; Unicode treats
+% them as compatibility equivalents, so accept both spellings of each.
+\DeclareUnicodeCharacter{00B5}{\ensuremath{\mu}}
+\DeclareUnicodeCharacter{2126}{\ensuremath{\Omega}}
+\DeclareUnicodeCharacter{00C5}{\AA}
+\DeclareUnicodeCharacter{212B}{\AA}
+\DeclareUnicodeCharacter{00B0}{\ensuremath{^\circ}}
 """
 
 # Grouping the document tree into LaTeX files. List of tuples

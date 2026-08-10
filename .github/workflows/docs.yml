@@ -1,0 +1,186 @@
+name: Docs weekly checks
+
+# Deliberately not run per-PR. External links go down, get rate-limited, and
+# come back on their own, so gating merges on them would train everyone to
+# ignore a red check. A weekly run that opens an issue keeps the signal.
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  linkcheck:
+    name: Check external links
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # This job installs the package and runs a Sphinx build, which executes
+      # extension and example code. Do not leave a credentialed remote behind
+      # for that to find; the issue-filing step below supplies its own token.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz xdot
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install .[docs]
+
+      - name: Run linkcheck
+        id: linkcheck
+        run: |
+          . .venv/bin/activate
+          # linkcheck reports failures through its exit status; capture the
+          # output either way so the issue body has something useful in it.
+          set +e
+          make -C docs linkcheck 2>&1 | tee linkcheck.log
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo '### Broken links'
+            echo '```'
+            grep -E '^\(.*\) (broken|redirect)' docs/_build/linkcheck/output.txt 2>/dev/null \
+              || echo 'none'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open an issue on failure
+        if: steps.linkcheck.outputs.status != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let broken = 'See the workflow run for details.';
+            try {
+              broken = fs.readFileSync('docs/_build/linkcheck/output.txt', 'utf8')
+                         .split('\n').slice(0, 100).join('\n');
+            } catch (e) {}
+            const title = 'Docs link check failed';
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'documentation',
+            });
+            const body = `The weekly documentation link check found broken links.\n\n` +
+                         `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}` +
+                         `/actions/runs/${context.runId}\n\n\`\`\`\n${broken}\n\`\`\``;
+            const match = existing.data.find(i => i.title === title);
+            if (match) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: match.number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['documentation'],
+              });
+            }
+
+  latexpdf:
+    name: Build the PDF
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    # Weekly rather than per-PR for a different reason than linkcheck: the PDF
+    # is not flaky, it is slow, and nothing reads it between releases. What it
+    # catches is the class of failure that never shows up in the HTML build --
+    # pdflatex aborts on any character it has no definition for, so one Sigma in
+    # a docstring produces no PDF at all while `make html` stays green.
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz xdot latexmk texlive-latex-extra \
+                                  texlive-fonts-recommended tex-gyre imagemagick
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install .[docs]
+
+      - name: Build the PDF
+        id: latexpdf
+        run: |
+          . .venv/bin/activate
+          set +e
+          make -C docs latexpdf 2>&1 | tee latexpdf.log
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo '### PDF build'
+            if [ -f docs/_build/latex/siliconcompiler.pdf ]; then
+              echo "Produced \`siliconcompiler.pdf\` ($(du -h docs/_build/latex/siliconcompiler.pdf | cut -f1))."
+            else
+              echo 'No PDF produced. First LaTeX errors:'
+              echo '```'
+              grep -E '^! ' latexpdf.log | sort -u | head -20 || echo 'none captured'
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: docs-pdf
+          path: |
+            docs/_build/latex/siliconcompiler.pdf
+            latexpdf.log
+          if-no-files-found: warn
+
+      - name: Open an issue on failure
+        if: steps.latexpdf.outputs.status != '0'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            let errors = 'See the workflow run for details.';
+            try {
+              errors = fs.readFileSync('latexpdf.log', 'utf8')
+                         .split('\n').filter(l => l.startsWith('! '))
+                         .slice(0, 40).join('\n') || errors;
+            } catch (e) {}
+            const title = 'Docs PDF build failed';
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'documentation',
+            });
+            const body = `The weekly documentation PDF build failed.\n\n` +
+                         `A LaTeX error produces no PDF at all, and \`make html\` will not ` +
+                         `catch it. An undefined character is the usual cause -- see the ` +
+                         `\`DeclareUnicodeCharacter\` block in \`docs/conf.py\`.\n\n` +
+                         `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}` +
+                         `/actions/runs/${context.runId}\n\n\`\`\`\n${errors}\n\`\`\``;
+            const match = existing.data.find(i => i.title === title);
+            if (match) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: match.number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['documentation'],
+              });
+            }
