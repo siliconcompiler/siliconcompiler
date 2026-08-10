@@ -1,3 +1,4 @@
+import io
 import logging
 import pytest
 
@@ -873,6 +874,40 @@ def test_write_manifest_stdjson(monkeypatch):
     assert not os.path.isfile("test.json")
     schema.write_manifest("test.json")
     assert os.path.isfile("test.json")
+
+
+@pytest.mark.parametrize("stdjson", (False, True))
+def test_write_manifest_non_ascii(monkeypatch, stdjson):
+    """The manifest must be pure ASCII whichever JSON library is installed.
+
+    ``json.dumps`` escapes non-ASCII by default (``ensure_ascii``); orjson has
+    no such option and emits UTF-8. That made the manifest's encoding depend on
+    which library happened to be present, and a server -- which has orjson --
+    read one back with a bare ``open()`` under ``LANG=C`` and failed the whole
+    job on 'ascii' codec can't decode byte 0xce. An ASCII manifest is decodable
+    by any reader, rather than relying on every reader remembering encoding=.
+    """
+    import json
+    if stdjson:
+        from siliconcompiler.schema import baseschema
+        monkeypatch.setattr(baseschema, 'json', json)
+        monkeypatch.setattr(baseschema, '_has_orjson', False)
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    schema.set("test0", "test1", "µm_Ω")
+
+    schema.write_manifest("test.json")
+
+    raw = Path("test.json").read_bytes()
+    assert raw.isascii(), "manifest is not ASCII; a non-UTF-8 reader will fail on it"
+    assert b"\\u03a9" in raw
+
+    # Read it back the way the server did: no encoding= anywhere. The escapes
+    # must survive that, not merely be present in the file.
+    data = json.load(io.TextIOWrapper(io.BytesIO(raw), encoding="ascii"))
+    assert data["test0"]["test1"]["node"]["*"]["*"]["value"] == "µm_Ω"
 
 
 def test_write_manifest_path():

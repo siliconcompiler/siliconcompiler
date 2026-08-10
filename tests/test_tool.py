@@ -1,5 +1,6 @@
 import builtins
 import copy
+import csv
 import hashlib
 import logging
 import pathlib
@@ -8,6 +9,7 @@ import sys
 import pytest
 import os
 import time
+import yaml
 
 import os.path
 
@@ -20,6 +22,7 @@ from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler import Task
 from siliconcompiler import Design, Project
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
+from siliconcompiler.schema._metadata import version as schema_version
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout, \
     TaskOutOfMemoryError
@@ -1182,7 +1185,7 @@ def test_write_task_manifest_none(running_node):
         assert os.listdir() == []
 
 
-@pytest.mark.parametrize("suffix", ("tcl", "json", "yaml"))
+@pytest.mark.parametrize("suffix", ("tcl", "json", "yaml", "csv"))
 def test_write_task_manifest(running_node, suffix):
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", suffix)
     with running_node.task.runtime(running_node) as runtool:
@@ -1222,15 +1225,14 @@ def test_write_task_manifest_specifies_encoding(running_node, monkeypatch, suffi
         f"manifest opened with encoding={opened!r}; pass encoding='UTF-8' explicitly"
 
 
-@pytest.mark.parametrize("suffix", ("tcl", "json"))
-def test_write_task_manifest_non_ascii_roundtrip(running_node, suffix):
-    """A non-ASCII value survives being written and read back.
+def test_write_task_manifest_non_ascii_roundtrip(running_node):
+    """A non-ASCII value survives being written, as an escape.
 
-    Only tcl and json carry the character through literally. PyYAML escapes
-    non-ASCII to \\xNN unless told otherwise, so the yaml manifest is pure ASCII
-    and was never at risk -- which is why the encoding test above covers yaml
-    and this one does not.
+    Every format SC writes is ASCII: json escapes to \\uXXXX, PyYAML to \\xNN,
+    and tcl to \\uXXXX (test_write_task_manifest_tcl_is_ascii). That is what lets
+    a reader decode a manifest without knowing the host's locale.
     """
+    suffix = "json"
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", suffix)
     assert running_node.project.set("tool", "builtin", "task", "nop", "option",
                                     ["--label=\u00b5m-\u03a9"])
@@ -1238,8 +1240,78 @@ def test_write_task_manifest_non_ascii_roundtrip(running_node, suffix):
     with running_node.task.runtime(running_node) as runtool:
         runtool.write_task_manifest('.')
 
-    with open(f"sc_manifest.{suffix}", encoding="utf-8") as fobj:
-        assert "\u00b5m-\u03a9" in fobj.read()
+    with open(f"sc_manifest.{suffix}", "rb") as fobj:
+        raw = fobj.read()
+    # Escaped, not literal: SC's own manifests are written ASCII-only so that a
+    # reader with any encoding can decode them.
+    assert raw.isascii()
+    assert rb"\u00b5m-\u03a9" in raw
+
+
+def test_write_task_manifest_tcl_is_ascii(running_node):
+    """The Tcl manifest must contain no byte above 0x7f.
+
+    Tcl decodes a script with the *system* encoding, which follows the host's
+    locale. Raw UTF-8 read back under LANG=C does not merely display oddly, it
+    decodes to a different string -- a Greek/Latin mix comes back with a length of
+    12 instead of 9 -- so a path or a design name silently stops matching. An
+    ASCII file with \\uXXXX escapes decodes identically under every locale.
+    """
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "tcl")
+    assert running_node.project.set("tool", "builtin", "task", "nop", "option",
+                                    ["--label=\u00b5m-\u03a9"])
+
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.write_task_manifest('.')
+
+    with open("sc_manifest.tcl", "rb") as fobj:
+        raw = fobj.read()
+    assert raw.isascii(), "Tcl manifest is not ASCII; it will mis-decode under a non-UTF-8 locale"
+    assert b"\\u00b5m-\\u03a9" in raw
+
+
+@pytest.mark.parametrize("sysencoding", ("utf-8", "iso8859-1"))
+def test_write_task_manifest_tcl_non_ascii_roundtrip(running_node, sysencoding):
+    """Tcl reads a non-ASCII value back as the string SC wrote, under any locale.
+
+    ``encoding system`` is what Tcl decodes a sourced script with, and it
+    follows the host's locale: iso8859-1 under LANG=C, utf-8 otherwise. Setting
+    it directly covers both without a subprocess and without depending on the
+    locale the test happens to run under.
+
+    Written raw, the value comes back longer than it went in -- each non-ASCII
+    character split into its UTF-8 bytes -- so a path or a design name silently
+    stops matching, with no error to notice.
+    """
+    tkinter = pytest.importorskip("tkinter")
+
+    value = "naïve-Ω µm"
+    nop = running_node.project.get_nop()
+    nop.add_parameter("nonascii", "str", "non-ascii round-trip check")
+
+    assert running_node.project.set("tool", "builtin", "task", "nop", "format", "tcl")
+    assert running_node.project.set("tool", "builtin", "task", "nop", "var", "nonascii", value)
+
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.write_task_manifest('.')
+
+    interp = tkinter.Tcl()
+    interp.eval(f"encoding system {sysencoding}")
+    # Tcl accepts forward slashes on every platform; backslashes in a Windows
+    # path would be read as escapes.
+    interp.eval("source {%s}" % os.path.abspath("sc_manifest.tcl").replace(os.sep, "/"))
+
+    # Compare code points rather than the decoded string: the value comes back
+    # through the same encoding machinery under test, so this pins what Tcl
+    # actually holds rather than how it chooses to hand it over.
+    codepoints = interp.eval(
+        'set v [dict get $sc_cfg tool builtin task nop var nonascii]\n'
+        'set out {}\n'
+        'foreach c [split $v ""] { lappend out [scan $c %c] }\n'
+        'return $out').split()
+
+    assert codepoints == [str(ord(char)) for char in value], \
+        "Tcl decoded the manifest to a different string than SC wrote"
 
 
 def test_write_task_manifest_abspath(running_node):
@@ -1263,6 +1335,107 @@ def test_write_task_manifest_relative(running_node):
 
     check = SafeSchema.from_manifest(filepath="sc_manifest.json")
     assert check.get("tool", "builtin", "task", "nop", "refdir") == ["."]
+
+
+@pytest.fixture
+def manifest_quoting(running_node):
+    """Factory writing a task manifest in the requested format, with task
+    variables holding a quoting-sensitive value. Returns that value.
+
+        value = manifest_quoting("yaml")
+    """
+    def _write(suffix):
+        # Exercises the quoting rules of every manifest format: spaces, Tcl
+        # substitution characters, a CSV separator and a YAML flow-style separator.
+        value = 'a b [c] {d} "e" $f,g'
+
+        nop = running_node.project.get_nop()
+        nop.add_parameter("quoting", "str", "scalar quoting check")
+        nop.add_parameter("quotinglist", "[str]", "list quoting check")
+
+        assert running_node.project.set("tool", "builtin", "task", "nop", "var", "quoting",
+                                        value)
+        assert running_node.project.set("tool", "builtin", "task", "nop", "var", "quotinglist",
+                                        ["one item", value])
+        assert running_node.project.set("tool", "builtin", "task", "nop", "format", suffix)
+
+        with running_node.task.runtime(running_node) as runtool:
+            runtool.write_task_manifest('.')
+
+        assert os.listdir() == [f'sc_manifest.{suffix}']
+
+        return value
+
+    return _write
+
+
+def test_write_task_manifest_yaml_format(manifest_quoting):
+    """The yaml manifest must be loadable and preserve values verbatim."""
+    value = manifest_quoting("yaml")
+
+    with open("sc_manifest.yaml") as f:
+        manifest = yaml.safe_load(f)
+
+    assert isinstance(manifest, dict)
+    assert manifest["schemaversion"]["node"]["default"]["default"]["value"] == schema_version
+    assert manifest["option"]["design"]["node"]["*"]["*"]["value"] == "testdesign"
+
+    var = manifest["tool"]["builtin"]["task"]["nop"]["var"]
+    assert var["quoting"]["node"]["*"]["*"]["value"] == value
+    assert var["quotinglist"]["node"]["*"]["*"]["value"] == ["one item", value]
+
+    # (step, index) tuples must be plain sequences, not '!!python/tuple' tags,
+    # which safe_load above would have rejected.
+    flow_input = manifest["flowgraph"]["testflow"]["notrunning"]["0"]["input"]
+    assert flow_input["node"]["*"]["*"]["value"] == [["running", "0"]]
+
+
+def test_write_task_manifest_tcl_format(manifest_quoting):
+    """The tcl manifest must be sourceable and preserve values verbatim."""
+    tkinter = pytest.importorskip("tkinter")
+
+    value = manifest_quoting("tcl")
+
+    interp = tkinter.Tcl()
+    # Tcl accepts forward slashes on every platform; backslashes in a Windows
+    # path would be read as escapes.
+    interp.eval("source {%s}" % os.path.abspath("sc_manifest.tcl").replace(os.sep, "/"))
+
+    # Tool variables emitted alongside the manifest dictionary
+    assert interp.getvar("sc_tool") == "builtin"
+    assert interp.getvar("sc_task") == "nop"
+    assert interp.getvar("sc_topmodule") == "designtop"
+    assert interp.getvar("sc_designlib") == "testdesign"
+
+    assert interp.eval("dict get $sc_cfg option design") == "testdesign"
+    assert interp.eval("dict get $sc_cfg tool builtin task nop var quoting") == value
+    assert interp.eval(
+        "llength [dict get $sc_cfg tool builtin task nop var quotinglist]") == "2"
+    assert interp.eval(
+        "lindex [dict get $sc_cfg tool builtin task nop var quotinglist] 1") == value
+
+    # Default keys must not leak into the manifest
+    assert interp.eval("dict exists $sc_cfg library testdesign fileset default") == "0"
+
+
+def test_write_task_manifest_csv_format(manifest_quoting):
+    """The csv manifest must be parseable and preserve values verbatim."""
+    value = manifest_quoting("csv")
+
+    with open("sc_manifest.csv", newline='') as f:
+        rows = list(csv.reader(f))
+
+    assert rows[0] == ["Keypath", "Value"]
+    assert all(len(row) == 2 for row in rows)
+
+    values = {}
+    for keypath, keyvalue in rows[1:]:
+        values.setdefault(keypath, []).append(keyvalue)
+
+    assert values["option,design"] == ["testdesign"]
+    assert values["tool,builtin,task,nop,var,quoting"] == [value]
+    # List values are expanded into one row per item
+    assert values["tool,builtin,task,nop,var,quotinglist"] == ["one item", value]
 
 
 def test_write_task_manifest_with_backup(running_node):

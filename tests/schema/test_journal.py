@@ -1,5 +1,9 @@
 import json
+import os
 import pytest
+import subprocess
+import sys
+import textwrap
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema
@@ -482,6 +486,49 @@ def test_replay_file():
     assert schema.get("test0", "test1") == []
     Journal.replay_file(schema, "replay.json")
     assert schema.get("test0", "test1") == ["hello"]
+
+
+def test_replay_file_non_ascii_under_c_locale():
+    """A UTF-8 manifest replays whatever encoding the host locale names.
+
+    Manifests are written as UTF-8, but this read them back with a bare
+    ``open()``, which decodes using the locale instead. A server running under
+    ``LANG=C`` failed a whole job on 'ascii' codec can't decode byte 0xce --
+    one Greek letter in a node's journal. SC now writes ASCII manifests, so
+    this covers the ones already on disk from earlier versions.
+
+    A subprocess is unavoidable: CPython resolves the locale encoding once at
+    interpreter startup, so patching :mod:`locale` in-process does not reach
+    ``open()`` and the test would pass with the fix reverted.
+    """
+    replay = [
+        {
+            "type": "add",
+            "key": ("test0", "test1"),
+            "value": "µm_Ω",
+            "field": "value",
+            "step": None,
+            "index": None
+        }
+    ]
+    with open("replay.json", "w", encoding="utf-8") as f:
+        json.dump({"__journal__": replay}, f, ensure_ascii=False)
+
+    script = textwrap.dedent("""
+        from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Journal
+
+        schema = BaseSchema()
+        EditableSchema(schema).insert("test0", "test1", Parameter("[str]"))
+        Journal.replay_file(schema, "replay.json")
+        assert schema.get("test0", "test1") == ["\\u00b5m_\\u03a9"]
+    """)
+
+    env = dict(os.environ, LC_ALL="C", LANG="C")
+    env.pop("PYTHONUTF8", None)
+    # -X utf8=0 stops UTF-8 mode from overriding the locale we just set.
+    proc = subprocess.run([sys.executable, "-X", "utf8=0", "-c", script],
+                          capture_output=True, text=True, env=env)
+    assert proc.returncode == 0, proc.stderr
 
 
 def test_replay_file_empty():

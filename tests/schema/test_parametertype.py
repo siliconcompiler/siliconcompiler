@@ -279,6 +279,18 @@ def test_normalize(type, value, expect):
         # File env-var substitution and bracket escaping (parallel to dir).
         ("file", "$TEST/test.txt", "\"$env(TEST)/test.txt\""),
         ("file", "/usr/test[0].txt", "\"/usr/test\\[0].txt\""),
+        # Non-ASCII is escaped to \uXXXX on every path that emits a quoted
+        # string, so the manifest is ASCII whatever encoding Tcl picks up from
+        # the locale. See test_tcl_ascii_* below.
+        ("str", "\u00b5m_\u03a9", "\"\\u00b5m_\\u03a9\""),
+        ("<a,\u03a9>", "\u03a9", "\"\\u03a9\""),
+        ("file", "/usr/\u00b5.txt", "\"/usr/\\u00b5.txt\""),
+        ("dir", "/usr/\u03a9[0]", "\"/usr/\\u03a9\\[0]\""),
+        ("[str]", ["\u03a9"], "[list \"\\u03a9\"]"),
+        # The escape runs after the backslash doubling, so a literal backslash
+        # is still doubled and the \u it introduces is not doubled with it.
+        ("str", "a\\\u03a9", "\"a\\\\\\u03a9\""),
+        ("dir", "/a\\\u03a9", "\"/a\\\\\\u03a9\""),
     ])
 def test_to_tcl(type, value, expect):
     assert NodeType.to_tcl(value, NodeType.parse(type)) == expect
@@ -287,6 +299,34 @@ def test_to_tcl(type, value, expect):
 def test_to_tcl_unsupported():
     with pytest.raises(TypeError, match=r"^invalid is not a supported type$"):
         NodeType.to_tcl(12, "invalid")
+
+
+@pytest.mark.parametrize(
+    "value,expect", [
+        ("", ""),
+        ("plain", "plain"),
+        # Boundaries of the ASCII passthrough. 0x7f is the last character that
+        # may be emitted literally; 0x80 is the first that may not.
+        ("\u007f", "\u007f"),
+        ("\u0080", "\\u0080"),
+        # Latin-1 and Greek: the characters that actually turned up in SC's own
+        # help text and design names.
+        ("µ", "\\u00b5"),
+        ("é", "\\u00e9"),
+        ("Ω", "\\u03a9"),
+        # Last character of the BMP, and the first that needs a surrogate pair.
+        ("￿", "\\uffff"),
+        ("\U00010000", "\\ud800\\udc00"),
+        ("\U0001f600", "\\ud83d\\ude00"),
+        ("\U0010ffff", "\\udbff\\udfff"),
+        # Mixed input keeps the ASCII run intact between escapes.
+        ("aΩb", "a\\u03a9b"),
+        ("naïve-Ω µm", "na\\u00efve-\\u03a9 \\u00b5m"),
+    ])
+def test_tcl_ascii(value, expect):
+    """Every branch of the escaper: ASCII, BMP, and astral."""
+    assert NodeType._tcl_ascii(value) == expect
+    assert NodeType._tcl_ascii(value).isascii()
 
 
 def test_normalize_value_enum():
