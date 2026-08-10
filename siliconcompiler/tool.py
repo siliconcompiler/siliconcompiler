@@ -1,7 +1,6 @@
 import contextlib
 import copy
 import csv
-import gzip
 import json
 import logging
 import os
@@ -1026,6 +1025,12 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         class YamlIndentDumper(yaml.Dumper):
             def increase_indent(self, flow=False, indentless=False):
                 return super().increase_indent(flow=flow, indentless=indentless)
+
+        # Emit tuples, such as the (step, index) pairs in the flowgraph, as plain
+        # sequences. The default representer tags them '!!python/tuple', which
+        # only a python reader can load.
+        YamlIndentDumper.add_representer(
+            tuple, lambda dumper, data: dumper.represent_list(list(data)))
 
         fout.write(yaml.dump(manifest.getdict(), Dumper=YamlIndentDumper,
                              default_flow_style=False))
