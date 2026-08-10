@@ -60,7 +60,7 @@ jobs:
 
       - name: Open an issue on failure
         if: steps.linkcheck.outputs.status != '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
