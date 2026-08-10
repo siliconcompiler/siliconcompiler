@@ -77,3 +77,34 @@ def test_no_markdown_link_syntax():
     assert not found, (
         "Markdown link syntax in reStructuredText renders as literal text; "
         "use `text <url>`_ instead:\n  " + "\n  ".join(found))
+
+
+def test_in_repo_github_links_resolve():
+    """Catch links into our own repository that point at a file we do not have.
+
+    A ``blob/main/<path>`` link is checked only by the weekly link check, and
+    only after GitHub has agreed to answer -- a rate-limited run reports 429 and
+    tells you nothing. The path is in this repository, so it can be checked
+    here, offline, on every pull request: `quickstart.rst` pointed at
+    `siliconcompiler/targets/asic_demo.py` for as long as it took a weekly run
+    to get through, and the file had moved to `siliconcompiler/demos/`.
+    """
+    link = re.compile(
+        r"github\.com/siliconcompiler/siliconcompiler/(?:blob|tree)/main/([^\s>`)]+)")
+    found = []
+    for path in _sources():
+        with open(path, encoding="utf-8") as f:
+            for lineno, line in enumerate(f, start=1):
+                for match in link.finditer(line):
+                    target = match.group(1).rstrip(".,")
+                    # A line anchor or query string is not part of the path --
+                    # ".../make.py#L12" is a link to a real file. Without this
+                    # the first person to write one gets a spurious failure.
+                    target = target.split("#", 1)[0].split("?", 1)[0]
+                    if not os.path.exists(os.path.join(docs.sc_root, target)):
+                        rel = os.path.relpath(path, docs.sc_root)
+                        found.append(f"{rel}:{lineno}: {target}")
+
+    assert not found, (
+        "Links into this repository point at paths that do not exist:\n  "
+        + "\n  ".join(found))

@@ -233,6 +233,34 @@ latex_preamble = r"""\newcommand{\origunderscore}{}
 \let\origunderscore\_
 \renewcommand{\_}{\allowbreak\origunderscore}
 \setcounter{tocdepth}{4}
+
+% pdflatex fails hard on any character it has no definition for -- "Unicode
+% character Sigma (U+03A3) not set up for use with LaTeX", and no PDF at all.
+% Sphinx declares the punctuation and box-drawing characters our prose already
+% uses; these are the ones it does not, and that EDA writing reaches for. A
+% missing declaration is a build failure rather than a rendering glitch, so the
+% cost of listing them ahead of time is nil.
+\DeclareUnicodeCharacter{03A3}{\ensuremath{\Sigma}}
+\DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}}
+\DeclareUnicodeCharacter{03A9}{\ensuremath{\Omega}}
+\DeclareUnicodeCharacter{03BC}{\ensuremath{\mu}}
+\DeclareUnicodeCharacter{03C0}{\ensuremath{\pi}}
+\DeclareUnicodeCharacter{03C3}{\ensuremath{\sigma}}
+\DeclareUnicodeCharacter{2190}{\ensuremath{\leftarrow}}
+\DeclareUnicodeCharacter{2192}{\ensuremath{\rightarrow}}
+\DeclareUnicodeCharacter{2194}{\ensuremath{\leftrightarrow}}
+\DeclareUnicodeCharacter{21D2}{\ensuremath{\Rightarrow}}
+\DeclareUnicodeCharacter{2260}{\ensuremath{\neq}}
+\DeclareUnicodeCharacter{2264}{\ensuremath{\leq}}
+\DeclareUnicodeCharacter{2265}{\ensuremath{\geq}}
+\DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}
+% Authors reach for whichever of these their keyboard offers; Unicode treats
+% them as compatibility equivalents, so accept both spellings of each.
+\DeclareUnicodeCharacter{00B5}{\ensuremath{\mu}}
+\DeclareUnicodeCharacter{2126}{\ensuremath{\Omega}}
+\DeclareUnicodeCharacter{00C5}{\AA}
+\DeclareUnicodeCharacter{212B}{\AA}
+\DeclareUnicodeCharacter{00B0}{\ensuremath{^\circ}}
 """
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -249,7 +277,7 @@ latex_use_modindex = False
 linkcheck_timeout = 15
 
 # External links flake, so linkcheck runs on a schedule rather than per-PR --
-# see .github/workflows/docs_linkcheck.yml.
+# see .github/workflows/docs.yml.
 linkcheck_retries = 2
 
 # GitHub rewrites Markdown heading anchors to "user-content-*" in the HTML it
@@ -261,7 +289,23 @@ linkcheck_retries = 2
 linkcheck_anchors_ignore_for_url = [
     r"https://github\.com/[^/]+/[^/]+/?$",   # repository landing page (its README)
     r"https://github\.com/.*\.md$",          # any other Markdown file
+    r"https://gitlab\.com/[^/]+/[^/]+/?$",   # GitLab renders its README client-side too
 ]
+
+# Redirects we know about and do not want reported. Everything else still is:
+# a redirect is usually a link that has moved and should be updated at source.
+linkcheck_allowed_redirects = {
+    # GitHub bounces an unauthenticated client through the login page. The link
+    # is correct; the checker simply is not signed in.
+    r"https://github\.com/.*/issues/new/choose": r"https://github\.com/login.*",
+    # A Read the Docs *root* redirects to its default version. Ours are fixed at
+    # source; these belong to lambdapdk and other projects we do not publish.
+    # Anchored: Sphinx matches these with re.match, so without the $ this would
+    # also wave through a moved deep page, which is a link worth reporting.
+    r"https://[^/]+\.readthedocs\.io/?$": r"https://[^/]+\.readthedocs\.io/en/[^/]+/$",
+    # In the historical package changelog, which is a record and not edited.
+    r"https://psutil\.readthedocs\.io/en/latest/$": r"https://psutil\.io/$",
+}
 
 # Being rate-limited by a host is not a broken link; back off and retry rather
 # than failing the run.
@@ -276,8 +320,14 @@ linkcheck_rate_limit_timeout = 60.0
 # The install-script links (.sh) are deliberately *not* skipped even though they
 # are generated the same way: there are only ~130, they exercise the same
 # version tag, and a stale entry in the install table is user-facing.
+#
+# The ref is a release tag on a tagged build and a commit hash otherwise (see
+# get_codeurl), so match both. Matching only the tag form is what let ~1100
+# generated links back into the run and got it rate-limited before it reached
+# the handful of hand-written links worth checking.
 linkcheck_ignore = [
-    r"https://github\.com/siliconcompiler/[^/]+/blob/v[0-9][^\s]*\.py(#L\d+(-L\d+)?)?$",
+    r"https://github\.com/siliconcompiler/[^/]+/blob/(v[0-9][^/]*|[0-9a-f]{7,40})/"
+    r"[^\s]*\.py(#L\d+(-L\d+)?)?$",
 ]
 
 # Modified from: https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-1048104024

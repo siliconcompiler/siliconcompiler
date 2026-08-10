@@ -4,7 +4,7 @@ integrated circuit design with a complete set of features
 needed to translate a synthesized netlist to a tapeout ready
 GDSII.
 
-Documentation: https://openroad.readthedocs.io/
+Documentation: https://openroad.readthedocs.io/en/latest/
 
 Sources: https://github.com/The-OpenROAD-Project/OpenROAD
 
@@ -102,9 +102,9 @@ class OpenROADPDK(PDK):
             corner (str): Name of the PEX corner the values apply to.
             layertype (str): Either "routing" or "via".
             layer (str): Name of the routing or via (cut) layer.
-            resistance (float): Resistance, in ohm/um for a minimum-width routing
-                layer or ohm/cut for a via.
-            capacitance (float, optional): Capacitance in F/um for a minimum-width
+            resistance (float): Resistance, in Ω/μm for a minimum-width routing
+                layer or Ω/cut for a via.
+            capacitance (float, optional): Capacitance in F/μm for a minimum-width
                 routing layer. Not applicable to vias (forced to None).
             clobber (bool, optional): If True, replaces the existing rclayer set
                 instead of adding to it. Defaults to False.

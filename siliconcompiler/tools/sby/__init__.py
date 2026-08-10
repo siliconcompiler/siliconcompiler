@@ -5,7 +5,7 @@ Yosys to elaborate the design into a formal model, and dispatches one
 or more proof engines (smtbmc, btor, abc, aiger, ...) to prove or
 disprove the SystemVerilog assertions in the design.
 
-Documentation: https://symbiyosys.readthedocs.io
+Documentation: https://symbiyosys.readthedocs.io/en/latest/
 
 Sources: https://github.com/YosysHQ/sby
 
