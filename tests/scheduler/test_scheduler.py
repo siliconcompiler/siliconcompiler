@@ -13,7 +13,8 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from siliconcompiler import Project, Flowgraph, Design, NodeStatus
-from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SlurmSchedulerNode
+from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode, \
+    SlurmSchedulerNode, DockerSchedulerNode
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
@@ -268,6 +269,55 @@ def test_init_flow_runtime_not_valid(basic_project):
         with pytest.raises(SCRuntimeError,
                            match=r"^test flowgraph contains errors and cannot be run\.$"):
             Scheduler(basic_project)
+
+
+def test_init_node_cls_local(basic_project):
+    # No scheduler set, so the local node class is used
+    scheduler = Scheduler(basic_project)
+    assert type(scheduler._Scheduler__tasks[("stepone", "0")]) is SchedulerNode
+
+
+@pytest.mark.parametrize("scheduler_name,node_cls", [
+    ("slurm", SlurmSchedulerNode),
+    ("docker", DockerSchedulerNode)])
+def test_init_node_cls(basic_project, scheduler_name, node_cls):
+    basic_project.option.scheduler.set_name(scheduler_name)
+
+    scheduler = Scheduler(basic_project)
+    assert type(scheduler._Scheduler__tasks[("stepone", "0")]) is node_cls
+
+
+@pytest.mark.parametrize("scheduler_name", ("lsf", "sge"))
+def test_init_node_cls_not_implemented(basic_project, scheduler_name):
+    basic_project.option.scheduler.set_name(scheduler_name)
+
+    with pytest.raises(SCRuntimeError,
+                       match=rf"^Unsupported scheduler '{scheduler_name}' for node stepone/0$"):
+        Scheduler(basic_project)
+
+
+@pytest.mark.parametrize("scheduler_name,node_cls", [
+    ("slurm", SlurmSchedulerNode),
+    ("docker", DockerSchedulerNode)])
+def test_init_node_cls_per_node(gcd_nop_project, scheduler_name, node_cls):
+    # Only some nodes are scheduled, the rest fall back to local execution
+    gcd_nop_project.option.scheduler.set_name(scheduler_name, step="stepone")
+    gcd_nop_project.option.scheduler.set_name(scheduler_name, step="stepthree")
+
+    tasks = Scheduler(gcd_nop_project)._Scheduler__tasks
+    assert type(tasks[("stepone", "0")]) is node_cls
+    assert type(tasks[("steptwo", "0")]) is SchedulerNode
+    assert type(tasks[("stepthree", "0")]) is node_cls
+    assert type(tasks[("stepfour", "0")]) is SchedulerNode
+
+
+@pytest.mark.parametrize("scheduler_name", ("lsf", "sge"))
+def test_init_node_cls_per_node_not_implemented(gcd_nop_project, scheduler_name):
+    gcd_nop_project.option.scheduler.set_name(scheduler_name, step="stepthree")
+
+    with pytest.raises(SCRuntimeError,
+                       match=rf"^Unsupported scheduler '{scheduler_name}' for node stepthree/0$"):
+        Scheduler(gcd_nop_project)
 
 
 def test_check_display_run(basic_project):
