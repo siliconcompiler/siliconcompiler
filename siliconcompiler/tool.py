@@ -1134,10 +1134,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             # Format-specific dumping
             if manifest_path.endswith('.gz'):
                 fout = gzip.open(manifest_path, 'wt', encoding='UTF-8')
+            # Pin UTF-8 rather than taking the platform default, as the gzip
+            # branch above already does. A design name or file path with a
+            # non-ASCII character would otherwise fail to write on any host
+            # whose locale is not UTF-8 -- LANG=C in a minimal container, or a
+            # Windows code page -- and it would fail mid-run, while writing the
+            # node's manifest. Python 3.15 makes UTF-8 the default and hides
+            # this; the versions SC supports today do not.
             elif re.search(r'\.csv$', manifest_path):
-                fout = open(manifest_path, 'w', newline='')
+                fout = open(manifest_path, 'w', newline='', encoding='UTF-8')
             else:
-                fout = open(manifest_path, 'w')
+                fout = open(manifest_path, 'w', encoding='UTF-8')
             try:
                 if re.search(r'(\.yaml|\.yml)(\.gz)?$', manifest_path):
                     self.__write_yaml_manifest(fout, schema)

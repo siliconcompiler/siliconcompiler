@@ -1,3 +1,4 @@
+import builtins
 import copy
 import hashlib
 import logging
@@ -1187,6 +1188,58 @@ def test_write_task_manifest(running_node, suffix):
     with running_node.task.runtime(running_node) as runtool:
         runtool.write_task_manifest('.')
         assert os.listdir() == [f'sc_manifest.{suffix}']
+
+
+@pytest.mark.parametrize("suffix", ("tcl", "yaml"))
+def test_write_task_manifest_specifies_encoding(running_node, monkeypatch, suffix):
+    """The manifest writer must not take the platform's default encoding.
+
+    Every format except json/gz went through a bare ``open(path, 'w')``. A
+    non-ASCII value then failed to write on any host whose locale is not UTF-8 --
+    LANG=C in a minimal container, or a Windows code page -- and it failed
+    mid-run, while writing a node's manifest.
+
+    Asserting on the encoding rather than on the written bytes is deliberate:
+    Python 3.15 makes UTF-8 the default, which would let a round-trip test pass
+    on a new interpreter while the bug was still live on a supported one.
+    """
+    opened = []
+    real_open = builtins.open
+
+    def spy(file, mode="r", *args, **kwargs):
+        if "w" in mode and "b" not in mode and str(file).endswith(f"sc_manifest.{suffix}"):
+            opened.append(kwargs.get("encoding"))
+        return real_open(file, mode, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", spy)
+
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", suffix)
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.write_task_manifest('.')
+
+    assert opened, f"sc_manifest.{suffix} was never opened for writing"
+    assert all(enc and enc.lower().replace("-", "") == "utf8" for enc in opened), \
+        f"manifest opened with encoding={opened!r}; pass encoding='UTF-8' explicitly"
+
+
+@pytest.mark.parametrize("suffix", ("tcl", "json"))
+def test_write_task_manifest_non_ascii_roundtrip(running_node, suffix):
+    """A non-ASCII value survives being written and read back.
+
+    Only tcl and json carry the character through literally. PyYAML escapes
+    non-ASCII to \\xNN unless told otherwise, so the yaml manifest is pure ASCII
+    and was never at risk -- which is why the encoding test above covers yaml
+    and this one does not.
+    """
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", suffix)
+    assert running_node.project.set("tool", "builtin", "task", "nop", "option",
+                                    ["--label=\u00b5m-\u03a9"])
+
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.write_task_manifest('.')
+
+    with open(f"sc_manifest.{suffix}", encoding="utf-8") as fobj:
+        assert "\u00b5m-\u03a9" in fobj.read()
 
 
 def test_write_task_manifest_abspath(running_node):
