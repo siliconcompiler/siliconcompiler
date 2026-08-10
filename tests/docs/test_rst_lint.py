@@ -97,6 +97,10 @@ def test_in_repo_github_links_resolve():
             for lineno, line in enumerate(f, start=1):
                 for match in link.finditer(line):
                     target = match.group(1).rstrip(".,")
+                    # A line anchor or query string is not part of the path --
+                    # ".../make.py#L12" is a link to a real file. Without this
+                    # the first person to write one gets a spurious failure.
+                    target = target.split("#", 1)[0].split("?", 1)[0]
                     if not os.path.exists(os.path.join(docs.sc_root, target)):
                         rel = os.path.relpath(path, docs.sc_root)
                         found.append(f"{rel}:{lineno}: {target}")
