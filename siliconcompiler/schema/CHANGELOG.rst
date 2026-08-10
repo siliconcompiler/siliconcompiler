@@ -14,6 +14,12 @@ from the code diffs, not the commit messages). Dates are the git commit dates of
 the version bump. Version numbering was not strictly linear during early
 development, so a few dates are non-monotonic relative to the semver ordering.
 
+0.57.1 — 2026-08-10
+===================
+- Added ``csv`` to the accepted values of ``tool,<tool>,task,<task>,format``
+  (``<json,tcl,yaml>`` → ``<csv,json,tcl,yaml>``). The CSV writer already existed in
+  ``write_task_manifest`` but could never be selected through the schema.
+
 0.57.0 — 2026-07-21
 ===================
 - Removed the standalone ``Schematic`` schema class (``schematic,*`` section) and its
