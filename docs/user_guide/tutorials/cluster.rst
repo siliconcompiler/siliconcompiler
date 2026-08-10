@@ -33,8 +33,16 @@ What the schedulers are
 
 .. note::
    ``lsf`` and ``sge`` are accepted by the schema but **have no implementation**
-   -- only ``slurm`` and ``docker`` are dispatched. Setting either currently
-   falls through to running locally. If you need one of them, say so on
+   -- only ``slurm`` and ``docker`` are dispatched. Setting either is not
+   silently ignored: the run fails at start-up, before any node executes, with
+
+   .. code-block:: none
+
+      Unsupported scheduler 'lsf' for node <step>/<index>
+
+   The same applies when it is set on a single node
+   (``set_name("lsf", step="route")``) rather than on the whole run. If you
+   need one of them, say so on
    `Discussions <https://github.com/siliconcompiler/siliconcompiler/discussions>`_;
    the dispatch layer is small and the Slurm one is the template.
 
