@@ -4,6 +4,7 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
+import codecs
 import contextlib
 import copy
 import importlib
@@ -37,6 +38,28 @@ from .journal import Journal
 from ._metadata import version
 
 TSchema = TypeVar('TSchema', bound='BaseSchema')
+
+
+def _json_escape_error(exc: UnicodeEncodeError) -> Tuple[str, int]:
+    r'''Replace a run of non-ASCII characters with their JSON ``\uXXXX`` escapes.
+
+    ``encode_basestring_ascii`` is the C escaper :func:`json.dumps` itself uses,
+    so an astral character comes out as the surrogate pair JSON requires. It
+    returns a quoted string literal; the quotes are dropped because the run is
+    being spliced back into one.
+    '''
+    return stdlib_json.encoder.encode_basestring_ascii(
+        exc.object[exc.start:exc.end])[1:-1], exc.end
+
+
+# codecs keeps one process-wide registry of error handlers, so this name has to
+# be unlikely to collide with another package's. Deriving it from __name__ gets
+# that for free and keeps the module from naming the package around it -- this
+# file is loaded by tool drivers in isolated environments and cannot assume it
+# is sitting inside siliconcompiler.
+_JSON_ASCII_ERRORS = f"{__name__}.jsonescape"
+
+codecs.register_error(_JSON_ASCII_ERRORS, _json_escape_error)
 
 
 class SchemaFrozenError(RuntimeError):
@@ -532,13 +555,19 @@ class BaseSchema:
                 # whatever the host locale claims -- a server running under
                 # LANG=C failed a whole job on one Greek letter in a journal.
                 #
-                # Re-serializing rather than post-processing the string: only
-                # \uXXXX is a legal JSON escape, so backslashreplace (which works
-                # per byte, and yields \xNN) produces a manifest that will not
-                # parse. isascii() is a C-level scan, and the slow path only runs
-                # on the rare manifest that needs it.
+                # Escape in place rather than re-serializing with the stdlib:
+                # json.dumps skips its C encoder whenever indent is set, so the
+                # fallback would push the whole manifest -- megabytes of it --
+                # through the pure-Python encoder. One Greek letter in a help
+                # string made the manifest non-ASCII and cost 45% of a test
+                # suite's runtime. Only \uXXXX is a legal JSON escape, so this
+                # cannot use backslashreplace, which works per byte and yields
+                # \xNN. isascii() is a C-level scan, so ASCII manifests (the
+                # overwhelming majority) pay nothing.
                 if not manifest_str.isascii():
-                    manifest_str = stdlib_json.dumps(manifest, indent=2, default=default)
+                    manifest_str = manifest_str \
+                        .encode("ascii", _JSON_ASCII_ERRORS) \
+                        .decode("ascii")
             else:
                 manifest_str = json.dumps(manifest, indent=2, default=default)
             fout.write(manifest_str)

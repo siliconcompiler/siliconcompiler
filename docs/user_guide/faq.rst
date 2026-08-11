@@ -315,6 +315,19 @@ Nothing stops you writing your own driver for a proprietary tool and keeping it
 in your own package -- see :ref:`Setting up a Tool <dev_tools>` and
 :ref:`Packaging an External Library <dev_external_libraries>`.
 
+.. index:: ! old script, ! Chip, ! porting a script, ! legacy API
+
+I have an old script that uses ``Chip()``. How do I port it?
+------------------------------------------------------------
+
+``Chip`` was removed in v0.35.0 and split into a :term:`design` and a project.
+:ref:`Migrating from the Chip API <migration_guide>` maps the old names onto the
+new ones, method by method, and shows the same build written both ways.
+
+If a code assistant wrote the script you are porting, this is the most likely
+explanation: the ``Chip`` API is what most of the material written about
+SiliconCompiler still describes.
+
 Still stuck?
 ============
 

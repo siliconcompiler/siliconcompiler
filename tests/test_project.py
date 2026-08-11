@@ -1685,6 +1685,81 @@ def test_check_manifest_with_alias_duplicate_target(project_logger, caplog):
     assert "alias points to the same library and fileset: testdesign/rtl" in caplog.text
 
 
+def test_check_manifest_resolves_manifest(project_logger, caplog):
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = Flowgraph("testflow")
+    proj = Project(design)
+    proj.set_flow(flow)
+
+    project_logger(proj)
+    proj.logger.setLevel(logging.INFO)
+
+    # fileset is not set, but a run would infer it, so this is not an error
+    assert proj.check_manifest() is True
+    assert "Setting design fileset to: rtl" in caplog.text
+    assert "[option,fileset] has not been set" not in caplog.text
+
+    # the check must not modify the project
+    assert proj.option.get_fileset() == []
+
+
+def test_check_manifest_does_not_modify_project():
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    proj = Project(design)
+    proj.set_flow(Flowgraph("testflow"))
+
+    with patch("siliconcompiler.Project._check_manifest", autospec=True) as check:
+        check.return_value = True
+        assert proj.check_manifest() is True
+        check.assert_called_once()
+
+        # checks are performed on a copy, not on this project
+        assert check.call_args.args[0] is not proj
+
+
+def test_check_manifest_init_run_called_on_copy():
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    proj = Project(design)
+    proj.set_flow(Flowgraph("testflow"))
+
+    with patch("siliconcompiler.Project._init_run", autospec=True) as init_run, \
+            patch("siliconcompiler.Project._check_manifest", autospec=True) as check:
+        check.return_value = True
+        assert proj.check_manifest() is True
+        init_run.assert_called_once()
+
+    # the manifest is resolved on a copy of this project, not on this project
+    resolved = init_run.call_args.args[0]
+    assert isinstance(resolved, Project)
+    assert resolved is not proj
+    assert resolved.getdict() == proj.getdict()
+
+    # and it is that same copy that gets checked
+    assert check.call_args.args[0] is resolved
+
+
+def test_check_manifest_init_run_failure(project_logger, caplog):
+    proj = Project(Design("testdesign"))
+
+    project_logger(proj)
+    proj.logger.setLevel(logging.INFO)
+
+    with patch("siliconcompiler.Project._init_run", autospec=True) as init_run:
+        init_run.side_effect = ValueError("something went wrong")
+        assert proj.check_manifest() is False
+
+    assert "Failed to resolve manifest for checking: something went wrong" in caplog.text
+
+
 def test_init_run(project_logger, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):

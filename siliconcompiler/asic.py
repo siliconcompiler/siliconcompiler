@@ -217,12 +217,12 @@ class ASIC(Project):
 
         self._import_dep(obj)
 
-    def check_manifest(self) -> bool:
+    def _check_manifest(self) -> bool:
         """
         Performs a comprehensive check of the ASIC project's manifest
         for consistency and validity, extending the base Project checks.
 
-        This method first calls the :meth:`.Project.check_manifest()` method.
+        This method first calls the :meth:`.Project._check_manifest()` method.
         Then, it performs additional ASIC-specific validations:
 
             - Asserts that :keypath:`ASIC,asic,pdk` is set and refers to a
@@ -237,7 +237,7 @@ class ASIC(Project):
         Returns:
             bool: True if the manifest is valid and all checks pass, False otherwise.
         """
-        error = not super().check_manifest()
+        error = not super()._check_manifest()
 
         pdk = self.get("asic", "pdk")
         if not pdk:

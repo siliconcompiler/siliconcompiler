@@ -910,6 +910,43 @@ def test_write_manifest_non_ascii(monkeypatch, stdjson):
     assert data["test0"]["test1"]["node"]["*"]["*"]["value"] == "µm_Ω"
 
 
+def test_write_manifest_non_ascii_escapes_in_place(monkeypatch):
+    """Making the manifest ASCII must not re-serialize it.
+
+    ``json.dumps`` skips its C encoder whenever ``indent`` is set, so falling
+    back to the stdlib pushes the entire manifest -- megabytes of it, thousands
+    of times over a run -- through the pure-Python encoder. A single Greek
+    letter in one tool's help string cost 45% of a test suite's runtime that
+    way, because it made every manifest take the slow path.
+
+    Astral characters are the reason this is not simply ``backslashreplace``:
+    that escapes per byte and emits ``\\xNN``, which is not legal JSON.
+    """
+    import json
+    from siliconcompiler.schema import baseschema
+    if not baseschema._has_orjson:
+        pytest.skip("without orjson the stdlib encoder is the only path")
+
+    def reserialized(*args, **kwargs):
+        raise AssertionError("manifest was re-serialized with the pure-Python encoder")
+
+    monkeypatch.setattr(baseschema.stdlib_json, "dumps", reserialized)
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    schema.set("test0", "test1", "µm_Ω_\U0001F600")
+
+    schema.write_manifest("test.json")
+
+    raw = Path("test.json").read_bytes()
+    assert raw.isascii()
+    # The astral character must be the surrogate pair, not \U0001f600.
+    assert b"\\ud83d\\ude00" in raw
+    data = json.load(io.TextIOWrapper(io.BytesIO(raw), encoding="ascii"))
+    assert data["test0"]["test1"]["node"]["*"]["*"]["value"] == "µm_Ω_\U0001F600"
+
+
 def test_write_manifest_path():
     from siliconcompiler.schema.baseschema import _has_orjson
     assert _has_orjson

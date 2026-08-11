@@ -129,12 +129,10 @@ Checking configuration without running
 
    project.check_manifest()
 
-.. warning::
-   Run this **after** :meth:`.Project.run()`. Library dependency resolution
-   happens inside ``run()``, so a call before it reports errors about a
-   configuration that is actually correct -- it is not a usable pre-flight
-   check. To validate a configuration before building, use
-   ``design.check_filepaths()`` above.
+The check runs against the configuration :meth:`.Project.run()` would execute, so
+values a run infers for you -- the design fileset, the ASIC main library -- are
+reported as warnings rather than errors, and your project is left unmodified. To
+also confirm that the source files resolve, use ``design.check_filepaths()`` above.
 
 Asking for help
 ===============
