@@ -752,6 +752,7 @@ def test_sc_show_with_tool_task_and_extension(monkeypatch, make_manifests, asic_
                                      tool='openroad/timing', open=False)
 
 
+@pytest.mark.timeout(90)
 @pytest.mark.parametrize('flags', [
     ['-ext', 'gds'],
     ['-design', 'gcd', '-ext', 'gds'],
@@ -929,6 +930,7 @@ def _capture_show_run(monkeypatch):
     return captured
 
 
+@pytest.mark.timeout(90)
 def test_sc_show_does_not_call_reset_job_params(monkeypatch, make_manifests, asic_gcd, tmp_path):
     '''show() must mark the copied project to skip __reset_job_params before run().'''
     make_manifests(asic_gcd)
