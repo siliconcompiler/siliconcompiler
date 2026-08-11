@@ -1043,12 +1043,19 @@ def test_openroad_apr_parameter_rsz_phases():
 
 
 def test_openroad_apr_parameter_rsz_phases_rejects_unknown():
-    """The phase names are matched exactly by OpenROAD, so reject a typo at set time."""
+    """The phase names are matched exactly by OpenROAD, so reject a typo at set time.
+
+    "legacy" is the wrong case and "LEGACY_MT" is real upstream but undocumented, so
+    deliberately not offered. The member list comes from RSZ_PHASES rather than being
+    written out, so adding a phase updates the expectation with it.
+    """
     task = _apr.OpenROADRSZTimingParameter()
-    with pytest.raises(ValueError, match="not a member of"):
-        task.add_openroad_rszphases(["legacy"])
-    with pytest.raises(ValueError, match="not a member of"):
-        task.add_openroad_rszphases(["LEGACY_MT"])
+    members = ", ".join(sorted(_apr.RSZ_PHASES))
+    for bad in ("legacy", "LEGACY_MT"):
+        message = (f"error while adding to [var,rsz_phases]: "
+                   f"{bad} is not a member of: {members}")
+        with pytest.raises(ValueError, match=f"^{re.escape(message)}$"):
+            task.add_openroad_rszphases([bad])
 
 
 def test_openroad_apr_parameter_rsz_skip_size_down():
@@ -1094,10 +1101,11 @@ def test_openroad_apr_parameter_rsz_max_repairs_per_pass():
 def test_openroad_apr_parameter_rsz_effort_caps_reject_zero():
     """0 passes/iterations/repairs is not a way to disable a phase; the skips are."""
     task = _apr.OpenROADRSZTimingParameter()
-    for setter in (task.set_openroad_rszmaxpasses,
-                   task.set_openroad_rszmaxiterations,
-                   task.set_openroad_rszmaxrepairsperpass):
-        with pytest.raises(ValueError, match="not in range"):
+    for setter, var in ((task.set_openroad_rszmaxpasses, "rsz_max_passes"),
+                        (task.set_openroad_rszmaxiterations, "rsz_max_iterations"),
+                        (task.set_openroad_rszmaxrepairsperpass, "rsz_max_repairs_per_pass")):
+        message = f"error while setting [var,{var}]: 0 is not in range: 1.."
+        with pytest.raises(ValueError, match=f"^{re.escape(message)}$"):
             setter(0)
 
 
@@ -1583,7 +1591,7 @@ def test_openroad_fillmetal_insertion_skips_when_disabled(asic_gcd):
 
     node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
     with node.runtime():
-        with pytest.raises(TaskSkip, match="metal fill is disabled"):
+        with pytest.raises(TaskSkip, match="^metal fill is disabled$"):
             node.task.setup()
         assert node.setup() is False
 
@@ -1593,7 +1601,7 @@ def test_openroad_fillmetal_insertion_skips_without_pdk_rules(asic_gcd):
     node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
     with node.runtime():
         assert node.task.get("var", "fin_add_fill") is True
-        with pytest.raises(TaskSkip, match="no metal fill rules"):
+        with pytest.raises(TaskSkip, match="^no metal fill rules are available$"):
             node.task.setup()
         assert node.setup() is False
 
@@ -2517,7 +2525,8 @@ def test_openroad_detailed_route_antenna_repair_parameter_reroute_iterations():
     assert task.get("var", "ant_reroute_iterations", step='detailed', index='1') == 1
     assert task.get("var", "ant_reroute_iterations") == 3
     # ant_repair is the off switch, so 0 is not a value the schema accepts.
-    with pytest.raises(ValueError):
+    message = "error while setting [var,ant_reroute_iterations]: 0 is not in range: 1.."
+    with pytest.raises(ValueError, match=f"^{re.escape(message)}$"):
         task.set_openroad_antrerouteiterations(0)
 
 
@@ -2544,7 +2553,7 @@ def test_openroad_detailed_route_antenna_repair_skips_when_disabled(asic_gcd):
 
     node = SchedulerNode(asic_gcd, "route.detailed_antenna_repair", "0")
     with node.runtime():
-        with pytest.raises(TaskSkip):
+        with pytest.raises(TaskSkip, match="^antenna repair is disabled$"):
             node.task.setup()
         assert node.setup() is False
 
@@ -2691,7 +2700,7 @@ def test_openroad_post_route_repair_timing_skips_when_disabled(asic_gcd):
     node = SchedulerNode(asic_gcd, "route.repair_timing", "0")
     with node.runtime():
         assert node.task.get("var", "rsz_enable") is False
-        with pytest.raises(TaskSkip):
+        with pytest.raises(TaskSkip, match="^post route timing repair is disabled$"):
             node.task.setup()
         # setup() is what the scheduler catches, so it must not reach pre_process.
         assert node.setup() is False
