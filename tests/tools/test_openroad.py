@@ -1572,6 +1572,43 @@ def test_openroad_fillmetal_insertion_parameter_add_fill():
     assert task.get("var", "fin_add_fill") is True
 
 
+def test_openroad_fillmetal_insertion_skips_when_disabled(asic_gcd):
+    """fin_add_fill=False must drop the node, not run a process that fills nothing.
+
+    The reason is asserted because the ordering matters: the disabled check has to
+    come before the PDK rule lookup, or a disabled task on a PDK with no rules would
+    report the wrong cause.
+    """
+    fillmetal_insertion.FillMetalTask.find_task(asic_gcd).set_openroad_addfill(False)
+
+    node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
+    with node.runtime():
+        with pytest.raises(TaskSkip, match="metal fill is disabled"):
+            node.task.setup()
+        assert node.setup() is False
+
+
+def test_openroad_fillmetal_insertion_skips_without_pdk_rules(asic_gcd):
+    """freepdk45 ships no openroad fill file, so the enabled default still skips."""
+    node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
+    with node.runtime():
+        assert node.task.get("var", "fin_add_fill") is True
+        with pytest.raises(TaskSkip, match="no metal fill rules"):
+            node.task.setup()
+        assert node.setup() is False
+
+
+def test_openroad_fillmetal_insertion_disabled_still_runs_with_a_script(asic_gcd):
+    """A pre or post script is a reason to run even with nothing to fill."""
+    task = fillmetal_insertion.FillMetalTask.find_task(asic_gcd)
+    task.set_openroad_addfill(False)
+    task.add_prescript(__file__)
+
+    node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
+    with node.runtime():
+        assert node.setup() is True
+
+
 def test_openroad_global_placement_parameter_enable_scan_chains():
     task = global_placement.GlobalPlacementTask()
     task.set_openroad_enablescanchains(True)
@@ -2503,9 +2540,7 @@ def test_openroad_detailed_route_has_no_antenna_vars():
 
 
 def test_openroad_detailed_route_antenna_repair_skips_when_disabled(asic_gcd):
-    for task in APRTask.find_task(asic_gcd):
-        if task.task() == "detailed_route_antenna_repair":
-            task.set_openroad_antcheck(False)
+    detailed_route.DetailedRouteAntennaRepairTask.find_task(asic_gcd).set_openroad_antcheck(False)
 
     node = SchedulerNode(asic_gcd, "route.detailed_antenna_repair", "0")
     with node.runtime():
@@ -2629,9 +2664,7 @@ def test_openroad_post_route_repair_timing_defaults_do_not_leak():
 def test_openroad_post_route_repair_timing_loads_grt_setup(asic_gcd):
     """Incremental global routing needs the routing layers applied, which
     load_grt_setup gates. That one is still set during setup()."""
-    for task in APRTask.find_task(asic_gcd):
-        if task.task() == "post_route_repair_timing":
-            task.set_openroad_rszenable(True)
+    repair_timing.PostRouteRepairTimingTask.find_task(asic_gcd).set_openroad_rszenable(True)
 
     assert _setup_node(asic_gcd, "route.repair_timing").get("var", "load_grt_setup") is True
     assert _setup_node(asic_gcd, "cts.repair_timing").get("var", "load_grt_setup") is False
@@ -2640,12 +2673,11 @@ def test_openroad_post_route_repair_timing_loads_grt_setup(asic_gcd):
 def test_openroad_post_route_repair_timing_user_value_wins(asic_gcd):
     """The stage defaults are ordinary defvalues, so an explicit setting overrides
     them. The opt-in design depends on this."""
-    for task in APRTask.find_task(asic_gcd):
-        if task.task() == "post_route_repair_timing":
-            task.set_openroad_rszenable(True)
-            task.set_openroad_skipwnsrepair(True)
-            task.set_openroad_skiprecoverpower(False)
-            task.set_openroad_rszmatchcellfootprint(False)
+    task = repair_timing.PostRouteRepairTimingTask.find_task(asic_gcd)
+    task.set_openroad_rszenable(True)
+    task.set_openroad_skipwnsrepair(True)
+    task.set_openroad_skiprecoverpower(False)
+    task.set_openroad_rszmatchcellfootprint(False)
 
     task = _setup_node(asic_gcd, "route.repair_timing")
     assert task.get("var", "rsz_skip_wns_repair") is True
@@ -2666,9 +2698,7 @@ def test_openroad_post_route_repair_timing_skips_when_disabled(asic_gcd):
 
 
 def test_openroad_post_route_repair_timing_runs_when_enabled(asic_gcd):
-    for task in APRTask.find_task(asic_gcd):
-        if task.task() == "post_route_repair_timing":
-            task.set_openroad_rszenable(True)
+    repair_timing.PostRouteRepairTimingTask.find_task(asic_gcd).set_openroad_rszenable(True)
 
     node = SchedulerNode(asic_gcd, "route.repair_timing", "0")
     with node.runtime():
