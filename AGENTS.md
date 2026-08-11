@@ -187,7 +187,7 @@ the four are easy not to know about. Details in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```sh
-pip install -e .[test,lint,docs]
+pip install -e .[test,lint,docs,cocotb]
 
 flake8 --statistics .                              # 1. Python
 tclfmt --check . && tclint .                       # 2. TCL
@@ -196,11 +196,16 @@ pytest -m "not eda"                                # tests, no EDA tools needed
 cd docs && make html                               # warnings are errors
 ```
 
-The docs build needs **Python 3.13 or older**. It documents the cocotb tasks, and
-generating a task's documentation runs its `setup()`, which for those needs `cocotb`
-importable. The `docs` extra pulls it in, but `cocotb` is pinned to
-`python_version <= '3.13'`, so on 3.14 it resolves to nothing and the build fails on
-the first cocotb task. Everything else in the list is fine on 3.14.
+**`cocotb` is in that list, and the docs build needs it.** It is its own extra, not
+part of `docs`: the build documents the cocotb tasks, generating a task's
+documentation runs its `setup()`, and theirs needs `cocotb` importable. Install
+`docs` alone and the build fails on the first cocotb task.
+`.github/workflows/docs.yml` installs `.[docs,cocotb]` for the same reason.
+
+That also makes the docs build the one gate needing **Python 3.13 or older**, because
+`cocotb` is pinned to `python_version <= '3.13'`; above that it resolves to nothing
+and the extra installs successfully but empty. Everything else in the list is fine on
+3.14.
 
 The fourth gate is **Verilog**, and it is the sharpest edge: it needs
 [Verible](https://github.com/chipsalliance/verible) (not a Python package), and
