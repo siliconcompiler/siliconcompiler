@@ -131,9 +131,9 @@ def test_project_check_manifest_empty(project_logger, caplog):
     project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
-        assert proj.check_manifest() is False
+        assert proj._check_manifest() is False
 
     assert "[fpga,device] has not been set." in caplog.text
 
@@ -145,9 +145,9 @@ def test_project_check_manifest_missing_fpga(project_logger, caplog):
 
     proj.set_fpga("thisfpga")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
-        assert proj.check_manifest() is False
+        assert proj._check_manifest() is False
 
     assert "FPGA library 'thisfpga' has not been loaded." in caplog.text
 
@@ -159,9 +159,9 @@ def test_project_check_manifest_pass(project_logger, caplog):
 
     proj.set_fpga(FPGADevice("thisfpga"))
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
-        assert proj.check_manifest() is True
+        assert proj._check_manifest() is True
 
     assert caplog.text == ""
 
