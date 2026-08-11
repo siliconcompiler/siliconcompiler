@@ -1810,6 +1810,22 @@ def test_openroad_init_floorplan_derives_corearea_no_coremargin(asic_gcd):
     assert "constraint,area,coremargin" in require
 
 
+@pytest.mark.parametrize("area,expect", [
+    ("diearea", "die"),
+    ("corearea", "core"),
+])
+def test_openroad_init_floorplan_rejects_polygon(asic_gcd, area, expect):
+    # sc_init_floorplan.tcl floorplans the first two points of an outline, so a polygon has
+    # to be refused until OpenROAD's polygonal floorplan support is usable.
+    getattr(asic_gcd.constraint.area, f"set_{area}")(
+        [(0, 0), (0, 200), (200, 200), (200, 100), (300, 100), (300, 0)])
+
+    with pytest.raises(ValueError,
+                       match=rf"^openroad does not support a polygonal {expect} area yet, "
+                             rf"the {expect} area must be given as two points$"):
+        _setup_node(asic_gcd, "floorplan.init")
+
+
 def test_openroad_init_floorplan_density_sizing(asic_gcd):
     # Without a die or core area the floorplan is still sized from density.
     require = _setup_node(asic_gcd, "floorplan.init").get("require")
