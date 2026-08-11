@@ -177,7 +177,9 @@ class Scheduler:
             bool: True if the manifest is valid, False otherwise.
         """
         self.__logger.info("Checking manifest before running.")
-        return self.__project.check_manifest()
+        # _init_run() has already been called on the project, so check it directly
+        # instead of resolving a copy again.
+        return self.__project._check_manifest()
 
     def run_core(self) -> None:
         """

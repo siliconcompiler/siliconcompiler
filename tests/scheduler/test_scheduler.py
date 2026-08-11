@@ -567,6 +567,18 @@ def test_check_manifest_pass(basic_project):
         call.assert_called_once()
 
 
+def test_check_manifest_checks_project_directly(basic_project):
+    # _init_run() has already run on the project, so the checks must not
+    # resolve and check a copy again
+    scheduler = Scheduler(basic_project)
+    with patch("siliconcompiler.Project._check_manifest", autospec=True) as check, \
+            patch("siliconcompiler.Project.check_manifest", autospec=True) as public_check:
+        check.return_value = True
+        assert scheduler.check_manifest() is True
+        check.assert_called_once_with(basic_project)
+        public_check.assert_not_called()
+
+
 def test_check_manifest_fail(basic_project):
     scheduler = Scheduler(basic_project)
     with patch("siliconcompiler.scheduler.Scheduler.check_manifest",

@@ -452,6 +452,38 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         Performs a comprehensive check of the project's manifest (configuration)
         for consistency and validity.
 
+        The checks are performed against a resolved copy of this project, so the
+        configuration that :meth:`.Project.run()` would actually execute is what
+        gets validated. Values that a run would infer, such as the design fileset
+        or the ASIC main library, are therefore not reported as errors, but the
+        inference itself is still reported as a warning. This project is left
+        unmodified.
+
+        Returns:
+            bool: True if the manifest is valid and all checks pass, False otherwise.
+        """
+        # Resolve the manifest on a throwaway copy so the checks see the same
+        # configuration a run would, without modifying this project.
+        proj = self.copy()
+
+        # Preserve logger instance so messages are reported against this project
+        proj.__logger = self.__logger
+
+        # The copy is short lived and never runs, so it has no use for a dashboard
+        proj.__dashboard = None
+
+        try:
+            proj._init_run()
+        except Exception as e:
+            self.logger.error(f"Failed to resolve manifest for checking: {e}")
+            return False
+
+        return proj._check_manifest()
+
+    def _check_manifest(self) -> bool:
+        """
+        Implements the manifest checks for this project.
+
         This method verifies that essential options like 'design', 'fileset',
         and 'flow' are properly set. It also checks if the specified design
         and flowgraph are loaded, and if filesets within the selected design
@@ -459,6 +491,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         any defined fileset aliases, ensuring that source and destination
         libraries and filesets exist. Error messages are logged for any
         detected inconsistencies.
+
+        This is called after :meth:`.Project._init_run()`, so implementations can
+        rely on the manifest having been resolved.
 
         Returns:
             bool: True if the manifest is valid and all checks pass, False otherwise.
@@ -546,8 +581,12 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def _init_run(self):
         """
-        Method called before :meth:`.Project.check_manifest()` to provide a mechanism to
+        Method called before :meth:`.Project._check_manifest()` to provide a mechanism to
         setup the project correctly for a run.
+
+        Any inference made here must be reported to the user, since
+        :meth:`.Project.check_manifest()` relies on these messages to explain
+        differences between the manifest as configured and the manifest as run.
         """
         # Automatically select fileset if only one is available in the design
         if not self.option.get_fileset() and self.option.get_design() and \

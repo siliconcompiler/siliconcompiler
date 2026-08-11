@@ -249,9 +249,9 @@ def test_check_manifest_empty(project_logger, caplog):
     project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
-        assert proj.check_manifest() is False
+        assert proj._check_manifest() is False
 
     assert "[asic,pdk] has not been set" in caplog.text
     assert "[asic,mainlib] has not been set, this will be inferred" in caplog.text
@@ -266,9 +266,9 @@ def test_check_manifest_missing_pdk(project_logger, caplog):
 
     proj.set("asic", "pdk", "thispdk")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
-        assert proj.check_manifest() is False
+        assert proj._check_manifest() is False
 
     assert "thispdk library has not been loaded" in caplog.text
     assert "[asic,mainlib] has not been set, this will be inferred" in caplog.text
@@ -284,9 +284,9 @@ def test_check_manifest_incorrect_type_pdk(project_logger, caplog):
     proj.add_dep(StdCellLibrary("thislib"))
     proj.set("asic", "pdk", "thislib")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
-        assert proj.check_manifest() is False
+        assert proj._check_manifest() is False
 
     assert "thislib must be a PDK" in caplog.text
     assert "[asic,mainlib] has not been set, this will be inferred" in caplog.text
@@ -302,9 +302,9 @@ def test_check_manifest_main_libmissing(project_logger, caplog):
     proj.set_pdk(PDK("thispdk"))
     proj.set("asic", "mainlib", "thislib")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
-        assert proj.check_manifest() is False
+        assert proj._check_manifest() is False
 
     assert "thislib library has not been loaded" in caplog.text
     assert "[asic,asiclib] does not contain any libraries" in caplog.text
@@ -320,9 +320,9 @@ def test_check_manifest_asiclib_missing(project_logger, caplog):
     proj.set_pdk(PDK("thispdk"))
     proj.set("asic", "asiclib", "thislib")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
-        assert proj.check_manifest() is False
+        assert proj._check_manifest() is False
 
     assert "[asic,mainlib] has not been set, this will be inferred" in caplog.text
     assert "thislib library has not been loaded" in caplog.text
@@ -339,9 +339,9 @@ def test_check_manifest_pass(project_logger, caplog):
     proj.add_asiclib("thislib")
     proj.set_asic_delaymodel("nldm")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
-        assert proj.check_manifest() is True
+        assert proj._check_manifest() is True
 
     assert caplog.text == ""
 
@@ -355,11 +355,34 @@ def test_check_manifest_pass_missing_mainlib(project_logger, caplog):
     proj.add_asiclib(StdCellLibrary("thislib"))
     proj.set_asic_delaymodel("nldm")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
+        check_manifest.return_value = True
+        assert proj._check_manifest() is True
+
+    assert "[asic,mainlib] has not been set, this will be inferred" in caplog.text
+
+
+def test_check_manifest_mainlib_not_in_asiclib(project_logger, caplog):
+    # https://github.com/siliconcompiler/siliconcompiler/issues/5220
+    proj = ASIC()
+    project_logger(proj)
+    proj.logger.setLevel(logging.INFO)
+
+    proj.set_pdk(PDK("thispdk"))
+    proj.set_mainlib(StdCellLibrary("thislib"))
+    proj.set_asic_delaymodel("nldm")
+
+    with patch("siliconcompiler.Project._check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is True
 
-    assert "[asic,mainlib] has not been set, this will be inferred" in caplog.text
+    # a run adds mainlib to asiclib, so this is reported as an inference, not an error
+    assert "Adding thislib to [asic,asiclib]" in caplog.text
+    assert "thislib library must be added to [asic,asiclib]" not in caplog.text
+    assert "[asic,asiclib] does not contain any libraries" not in caplog.text
+
+    # the check must not modify the project
+    assert proj.get("asic", "asiclib") == []
 
 
 def test_init_run_set_mainlib(project_logger, caplog):

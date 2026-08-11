@@ -229,7 +229,7 @@ class FPGA(Project):
 
         return self.set("fpga", "device", fpga)
 
-    def check_manifest(self) -> bool:
+    def _check_manifest(self) -> bool:
         """
         Validate the project manifest for FPGA configuration and library availability.
 
@@ -240,7 +240,7 @@ class FPGA(Project):
         Returns:
             bool: `True` if the manifest is valid, `False` otherwise.
         """
-        error = not super().check_manifest()
+        error = not super()._check_manifest()
 
         if not self.get("fpga", "device"):
             self.logger.error("[fpga,device] has not been set.")
