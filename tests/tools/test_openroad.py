@@ -1744,6 +1744,85 @@ def _setup_node(project, step):
         return node.task
 
 
+def test_openroad_init_floorplan_derives_corearea_from_coremargin(asic_gcd):
+    # sc_init_floorplan.tcl only honors an explicit die area when a core area
+    # goes with it, so a die area on its own used to silently fall back to
+    # density driven sizing and discard the requested die.
+    # https://github.com/siliconcompiler/siliconcompiler/issues/5217
+    area = asic_gcd.constraint.area
+    area.set_diearea_rectangle(500, 500)
+    assert area.get_coremargin() == 1.0, "freepdk45 must supply a core margin"
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert area.get_diearea(step="floorplan.init", index="0") == [(0.0, 0.0), (500.0, 500.0)]
+    assert area.get_corearea(step="floorplan.init", index="0") == [(1.0, 1.0), (499.0, 499.0)]
+
+    assert "constraint,area,diearea" in require
+    assert "constraint,area,corearea" in require
+    # The core area was computed from the margin, so the margin is part of the node.
+    assert "constraint,area,coremargin" in require
+    assert "constraint,area,density" not in require
+
+
+def test_openroad_init_floorplan_derives_diearea_from_coremargin(asic_gcd):
+    area = asic_gcd.constraint.area
+    area.set_corearea([(10, 10), (410, 260)])
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    # The die grows around the core, the core keeps the coordinates it was given.
+    assert area.get_diearea(step="floorplan.init", index="0") == [(9.0, 9.0), (411.0, 261.0)]
+    assert area.get_corearea(step="floorplan.init", index="0") == [(10.0, 10.0), (410.0, 260.0)]
+
+    assert "constraint,area,diearea" in require
+    assert "constraint,area,corearea" in require
+    assert "constraint,area,coremargin" in require
+
+
+def test_openroad_init_floorplan_explicit_areas(asic_gcd):
+    area = asic_gcd.constraint.area
+    area.set_diearea_rectangle(500, 500, coremargin=10)
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert area.get_diearea(step="floorplan.init", index="0") == [(0.0, 0.0), (500.0, 500.0)]
+    assert area.get_corearea(step="floorplan.init", index="0") == [(10.0, 10.0), (490.0, 490.0)]
+
+    assert "constraint,area,diearea" in require
+    assert "constraint,area,corearea" in require
+    # Nothing was derived, so the margin does not affect this node.
+    assert "constraint,area,coremargin" not in require
+
+
+def test_openroad_init_floorplan_derives_corearea_no_coremargin(asic_gcd):
+    area = asic_gcd.constraint.area
+    area.set_diearea_rectangle(500, 500)
+    area.unset("coremargin")
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert area.get_diearea(step="floorplan.init", index="0") == [(0.0, 0.0), (500.0, 500.0)]
+    assert area.get_corearea(step="floorplan.init", index="0") == [(0.0, 0.0), (500.0, 500.0)]
+
+    assert "constraint,area,diearea" in require
+    assert "constraint,area,corearea" in require
+    assert "constraint,area,coremargin" in require
+
+
+def test_openroad_init_floorplan_density_sizing(asic_gcd):
+    # Without a die or core area the floorplan is still sized from density.
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert asic_gcd.constraint.area.get_diearea(step="floorplan.init", index="0") == []
+    assert asic_gcd.constraint.area.get_corearea(step="floorplan.init", index="0") == []
+
+    assert "constraint,area,aspectratio" in require
+    assert "constraint,area,density" in require
+    assert "constraint,area,coremargin" in require
+    assert "constraint,area,diearea" not in require
+
+
 @pytest.mark.parametrize("task_cls", [
     pex.PEXBenchTask,
     pex.PEXBenchExtractTask,
