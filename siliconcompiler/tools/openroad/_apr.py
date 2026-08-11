@@ -754,6 +754,10 @@ class OpenROADDPLParameter(OpenROADTask):
         self.add_parameter("dpl_max_displacement", "(float<0.0..>,float<0.0..>)",
                            "maximum cell movement in detailed placement in microns, 0 will result "
                            "in the tool default maximum displacement", defvalue=(0, 0))
+        self.add_parameter("dpl_use_diamond_legalizer", "bool",
+                           "true/false, legalize with the legacy diamond search engine instead of "
+                           "the negotiation-based legalizer the tool now defaults to",
+                           defvalue=False)
 
     def set_openroad_paddetailplace(self, padding: int,
                                     step: Optional[str] = None, index: Optional[str] = None):
@@ -780,11 +784,26 @@ class OpenROADDPLParameter(OpenROADTask):
         """
         self.set("var", "dpl_max_displacement", (x, y), step=step, index=index)
 
+    def set_openroad_dplusediamondlegalizer(self, enable: bool,
+                                            step: Optional[str] = None,
+                                            index: Optional[str] = None):
+        """
+        Selects the legacy diamond search legalizer for detailed placement.
+
+        Args:
+            enable (bool): True to use the diamond search engine, False to use the
+                negotiation-based legalizer.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "dpl_use_diamond_legalizer", enable, step=step, index=index)
+
     def setup(self):
         super().setup()
 
         self.add_required_key("var", "pad_detail_place")
         self.add_required_key("var", "dpl_max_displacement")
+        self.add_required_key("var", "dpl_use_diamond_legalizer")
 
 
 class OpenROADFillCellsParameter(OpenROADTask):

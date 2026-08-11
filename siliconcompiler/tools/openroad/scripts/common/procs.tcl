@@ -111,6 +111,24 @@ proc sc_grt_resistance_aware_args { } {
 }
 
 ###########################
+# Detailed placement legalizer
+###########################
+
+# The negotiation-based legalizer became the detailed_placement default in 26Q3-441,
+# which is also when the opt-out for the original diamond search engine was named
+# -use_diamond_legalizer. Older builds legalize with diamond search regardless, so
+# there is nothing to pass them.
+proc sc_dpl_legalizer_args { } {
+    if {
+        [sc_cfg_tool_task_get {var} dpl_use_diamond_legalizer] &&
+        [sc_check_version 26 3 441]
+    } {
+        return [list -use_diamond_legalizer]
+    }
+    return []
+}
+
+###########################
 # Resizer arguments
 ###########################
 
@@ -368,7 +386,8 @@ proc sc_detailed_placement { args } {
     }
 
     detailed_placement \
-        -max_displacement [sc_cfg_tool_task_get var dpl_max_displacement]
+        -max_displacement [sc_cfg_tool_task_get var dpl_max_displacement] \
+        {*}[sc_dpl_legalizer_args]
 
     if { $incremental_route } {
         global_route -end_incremental \

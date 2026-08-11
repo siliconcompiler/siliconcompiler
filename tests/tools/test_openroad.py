@@ -1086,6 +1086,16 @@ def test_openroad_apr_parameter_dpl_max_displacement():
     assert task.get("var", "dpl_max_displacement") == (10.0, 10.0)
 
 
+def test_openroad_apr_parameter_dpl_use_diamond_legalizer():
+    task = _apr.OpenROADDPLParameter()
+    assert task.get("var", "dpl_use_diamond_legalizer") is False
+    task.set_openroad_dplusediamondlegalizer(True)
+    assert task.get("var", "dpl_use_diamond_legalizer") is True
+    task.set_openroad_dplusediamondlegalizer(False, step='dpl', index='1')
+    assert task.get("var", "dpl_use_diamond_legalizer", step='dpl', index='1') is False
+    assert task.get("var", "dpl_use_diamond_legalizer") is True
+
+
 def test_openroad_apr_parameter_dpl_use_decap_fillers():
     task = _apr.OpenROADFillCellsParameter()
     task.set_openroad_dplusedecapfillers(True)
