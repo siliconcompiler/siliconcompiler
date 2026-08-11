@@ -282,6 +282,10 @@ def test_stop_swallows_keyboard_interrupt_in_board_stop():
     assert _ManagerSingleton.has_cls(MPManager) is False
 
 
+# Needs a manager it owns: shutdown() is bound by BaseManager.start(), so a
+# manager that merely connected to conftest's shared server has no such
+# attribute for patch.object to replace.
+@pytest.mark.isolated_manager
 def test_stop_swallows_keyboard_interrupt_in_manager_shutdown():
     '''A KeyboardInterrupt raised while shutting down the multiprocessing
     manager must not escape.'''

@@ -433,7 +433,12 @@ def test_stop_without_force_does_not_dump_log(dashboard):
         board._log_handler.add_line(f"log line {i}")
 
     io_file = io.StringIO()
-    board._console = Console(file=io_file, width=120)
+    # Pin the height, not just the width: the log panel sizes itself from the
+    # console and the buffer holds 120 lines, so on a terminal taller than ~40
+    # rows "log line 0" is legitimately on screen and the assertion below stops
+    # meaning "a full dump happened". fake_console forces is_terminal True, so
+    # an unpinned height comes from whatever terminal pytest is running in.
+    board._console = Console(file=io_file, width=120, height=25)
 
     class FakeThread:
         def is_alive(self):

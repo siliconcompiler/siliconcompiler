@@ -107,14 +107,118 @@ def limit_cpus(monkeypatch, request):
     monkeypatch.setattr(utils, 'get_cores', limit_cpu)
 
 
+class _SharedManagerServer:
+    '''
+    The session-wide manager server, see shared_manager_server().
+    '''
+
+    def __init__(self):
+        self.__start()
+
+    def __start(self) -> None:
+        # Collecting some test modules builds a Project, which leaves an
+        # MPManager behind. Drop it, or MPManager() below would hand that one
+        # back without running _init_singleton() and there would be no address
+        # to share.
+        MPManager.stop()
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
+            monkeypatch.setattr(MPManager, "_MPManager__address", None)
+            MPManager()
+
+        self.__manager = MPManager.get_manager()
+        self.address = self.__manager.address
+        assert self.address is not None, "manager server did not report an address"
+        self.__baseline = self.__manager._number_of_objects()
+
+    def __is_pristine(self) -> bool:
+        '''Is the server up and holding nothing a test put there?'''
+        process = getattr(self.__manager, "_process", None)
+        if process is None or not process.is_alive():
+            return False
+        try:
+            return self.__manager._number_of_objects() == self.__baseline
+        except OSError:
+            # Socket gone: a hard-killed server whose address still resolves.
+            return False
+
+    def reset(self) -> None:
+        '''Hand the next test a server as clean as a freshly started one.
+
+        Normally there is nothing to do -- a test's proxies are released when
+        its MPManager singleton is dropped. What survives is the occasional
+        stranded server-side refcount, from a node worker killed before it
+        could decref, plus a proxy here and there whose release has not been
+        collected yet. Rather than unpicking the server's object table by hand,
+        throw the server away and start another: measured at ~20 restarts
+        across a full run, against the ~2000 this fixture exists to avoid.
+
+        Also covers a test that shut the server down outright, which is why
+        no test needs to declare that it might.
+        '''
+        if self.__is_pristine():
+            return
+        self.stop()
+        self.__start()
+
+    def stop(self) -> None:
+        MPManager.stop()
+
+
+@pytest.fixture(autouse=True, scope="session")
+def shared_manager_server():
+    '''
+    Run one manager server process for the whole session.
+
+    isolate_statics_in_testing() drops the MPManager singleton after every
+    test, so without a pre-existing server every test that builds a Project
+    would start one of its own: ~2000 manager processes over a full run. On
+    Linux that is a fork and costs ~10ms, but macOS and Windows use spawn (see
+    get_process_context()), which boots a fresh interpreter every time. That is
+    slow on average and has a very long tail on a saturated CI runner -- long
+    enough that SyncManager.start() alone has blown the pytest timeout while
+    waiting on the new process to report its address.
+
+    Handing the tests an address up front sends them down _init_singleton()'s
+    connect() branch instead, which is a socket handshake against this one
+    server, and reset() keeps that server as clean between tests as a fresh one
+    would be. Everything else a test might dirty -- settings, the path cache,
+    the board, the logger -- is in-process state that the singleton teardown
+    already rebuilds from scratch.
+
+    A test that needs to own its manager rather than connect to this one -- one
+    asserting on the manager's own lifecycle -- opts out with
+    @pytest.mark.isolated_manager.
+    '''
+    server = _SharedManagerServer()
+    try:
+        yield server
+    finally:
+        server.stop()
+
+
 @pytest.fixture(autouse=True)
-def isolate_statics_in_testing(monkeypatch):
+def isolate_statics_in_testing(monkeypatch, request, shared_manager_server):
     '''
     Isolate static instances for testing
     '''
 
+    isolated = 'isolated_manager' in request.keywords
+
+    if not isolated:
+        # Clean up after the previous test here rather than in this fixture's
+        # own teardown. Teardown runs while the finishing test's monkeypatches
+        # are still in place -- monkeypatch is a dependency, so it is undone
+        # only once this fixture has finalized -- and talking to the manager
+        # under them is not safe: a test that fakes sys.platform makes
+        # multiprocessing reject the real address family ("Family AF_PIPE is
+        # not recognized" on Windows). By setup time every such patch is gone.
+        shared_manager_server.reset()
+
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
-    monkeypatch.setattr(MPManager, "_MPManager__address", None)
+    monkeypatch.setattr(MPManager, "_MPManager__address",
+                        None if isolated else shared_manager_server.address)
 
     BaseSchema._BaseSchema__get_child_classes.cache_clear()
     BaseSchema._BaseSchema__load_schema_class.cache_clear()
