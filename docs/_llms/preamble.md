@@ -28,7 +28,7 @@ from siliconcompiler import ASIC, Design
 from siliconcompiler.targets import skywater130_demo
 
 design = Design("heartbeat")
-design.set_dataroot("heartbeat", __file__)          # root paths are resolved against
+design.set_dataroot("heartbeat", __file__)          # the root for files below
 design.set_topmodule("heartbeat", fileset="rtl")
 design.add_file("heartbeat.v", dataroot="heartbeat", fileset="rtl")
 design.add_file("heartbeat.sdc", dataroot="heartbeat", fileset="sdc")
@@ -45,9 +45,11 @@ Four conventions this example encodes:
 - **Files live in named filesets** (`rtl`, `sdc`, `xdc`, `testbench`) rather than
   one flat list. `Design.add_file` assigns one; `Project.add_fileset` selects
   which the run uses.
-- **Paths are rooted at a dataroot**, not the working directory. An environment
-  variable dataroot (`set_dataroot("foundry", "$FOUNDRY_ROOT/...")`) is how
-  foundry data is referenced without committing it.
+- **Paths are rooted at a dataroot**, not the working directory. Passing
+  `__file__` roots them at the directory holding the script -- a file path is
+  accepted and its parent directory used -- so the build works from anywhere. An
+  environment variable dataroot (`set_dataroot("foundry", "$FOUNDRY_ROOT/...")`)
+  is how foundry data is referenced without committing it.
 - **Prefer typed accessors to raw keypaths.** `project.option.set_remote(True)`
   and `project.set('option', 'remote', True)` reach the same value; the accessor
   is the supported interface. Use a keypath when no accessor exists, which mostly
@@ -56,9 +58,10 @@ Four conventions this example encodes:
 - **A target is a function you call** with the project. Flows, tool tasks,
   libraries and PDKs are classes you subclass.
 
-Full top-level export list: `Design`, `Project`, `ASIC`, `FPGA`, `Lint`, `Sim`,
+Top-level exports, in full: `Design`, `Project`, `ASIC`, `FPGA`, `Lint`, `Sim`,
 `PDK`, `StdCellLibrary`, `FPGADevice`, `Flowgraph`, `Checklist`, `Task`,
-`TaskSkip`, `OpenTask`, `ShowTask`, `ScreenshotTask`, `NodeStatus`, `sc_open`.
+`TaskSkip`, `OpenTask`, `ShowTask`, `ScreenshotTask`, `NodeStatus`, `sc_open`,
+`__version__`.
 
 ## What no longer exists
 
@@ -66,7 +69,7 @@ This section is the reason the file is worth fetching.
 
 - **There is no `Chip` class.** `Chip('design')`, `chip.set(...)`,
   `chip.input(...)`, `chip.use(...)`, `chip.register_source(...)` and
-  `chip.load_target(...)` were removed in **v0.35.0** (August 2025). They are
+  `chip.load_target(...)` were removed in **v0.35.0** (October 2025). They are
   what most training data contains. The replacement is `Design` + a project
   class; every old name is mapped in the migration guide linked below.
 - **There is no `sc` command.** The console scripts are `sc-dashboard`,

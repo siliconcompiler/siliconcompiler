@@ -18,7 +18,7 @@ exists:
    chip.load_target('freepdk45_demo')
    chip.run()
 
-The ``Chip`` class was removed in **v0.35.0** (August 2025) and replaced by a
+The ``Chip`` class was removed in **v0.35.0** (October 2025) and replaced by a
 :class:`.Design` object plus a project object. This page maps the
 old names onto the new ones.
 

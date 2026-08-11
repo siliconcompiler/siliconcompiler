@@ -253,7 +253,7 @@ class _Markdown:
     def _table(self, node):
         rows = []
         header = 0
-        for group in node.traverse(nodes.tgroup):
+        for group in node.findall(nodes.tgroup):
             for part in group.children:
                 if isinstance(part, (nodes.thead, nodes.tbody)):
                     for row in part.children:
@@ -264,7 +264,24 @@ class _Markdown:
                         header = len(rows)
         if not rows:
             return
+
+        # A table whose every cell renders empty carries nothing. This is not
+        # hypothetical: `list-table`s used purely to lay out screenshots side by
+        # side (tutorials/emails.rst) lose all their content here, because images
+        # are skipped, and would otherwise emit rows of bare pipes.
+        if not any(cell for row in rows for cell in row):
+            return
+
         width = max(len(row) for row in rows)
+
+        # Markdown requires a delimiter row, and a table built by `list-table`
+        # without `:header-rows:` has no thead to put one after. Synthesise an
+        # empty header rather than promoting the first data row, which would
+        # silently relabel content as a heading.
+        if not header:
+            self._emit("| " + " | ".join([""] * width) + " |")
+            self._emit("|" + "|".join([" --- "] * width) + "|")
+
         for index, row in enumerate(rows):
             padded = row + [""] * (width - len(row))
             self._emit("| " + " | ".join(padded) + " |")

@@ -51,13 +51,14 @@ the target and flow you want will not fit it.
 
 Top-level exports, in full: `Design`, `Project`, `ASIC`, `FPGA`, `Lint`, `Sim`,
 `PDK`, `StdCellLibrary`, `FPGADevice`, `Flowgraph`, `Checklist`, `Task`,
-`TaskSkip`, `OpenTask`, `ShowTask`, `ScreenshotTask`, `NodeStatus`, `sc_open`.
+`TaskSkip`, `OpenTask`, `ShowTask`, `ScreenshotTask`, `NodeStatus`, `sc_open`,
+`__version__`.
 
 ## Five things generated code gets wrong
 
 **1. `Chip` does not exist.** `Chip('design')`, `chip.set(...)`,
 `chip.use(...)`, `chip.input(...)`, `chip.register_source(...)` and
-`chip.load_target(...)` were removed in **v0.35.0** (August 2025) and replaced by
+`chip.load_target(...)` were removed in **v0.35.0** (October 2025) and replaced by
 `Design` + `Project`. If you are about to write `Chip`, you are writing the old
 API. See [Migrating from the Chip API](docs/user_guide/migration.rst) for the
 old-to-new table.

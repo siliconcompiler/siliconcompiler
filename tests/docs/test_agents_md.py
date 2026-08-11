@@ -14,19 +14,31 @@ contributor to run match the ones CI actually runs.
 
 import os.path
 import re
-import tomllib
 
 import pytest
 import yaml
 
 import siliconcompiler
 from siliconcompiler.schema import docs
+# ``tomllib`` is stdlib only from 3.11, and SiliconCompiler supports 3.10, where
+# the declared ``tomli`` dependency stands in for it. Reuse the shim the package
+# already has rather than repeating the fallback: importing ``tomllib`` directly
+# here would be an ImportError at *collection* time on 3.10, failing the whole
+# session rather than this file.
+from siliconcompiler.utils import tomllib
 
 
 if not os.path.abspath(__file__).startswith(docs.sc_root):
     pytest.skip(reason="test for docs only possible in editable install",
                 allow_module_level=True)
 
+
+# The shim is None only in a tree where neither stdlib tomllib nor tomli is
+# importable. Skip rather than let the tests fail on a NoneType attribute error,
+# which says nothing about the cause.
+needs_toml = pytest.mark.skipif(
+    tomllib is None,
+    reason="no TOML reader: Python < 3.11 without the tomli dependency installed")
 
 AGENTS = os.path.join(docs.sc_root, "AGENTS.md")
 PREAMBLE = os.path.join(docs.sc_root, "docs", "_llms", "preamble.md")
@@ -60,10 +72,12 @@ def test_exported_symbols_exist(orientation):
 
     The failure this guards against is the file outliving a rename, which is
     exactly what happened to the class names it is warning the reader about.
+
+    This is a one-way check over every capitalized code span in the file, so it
+    catches a name that stops existing. It cannot catch an export the file never
+    mentioned -- that is ``test_export_list_is_complete``.
     """
     name, text = orientation
-    # The full export list both files quote, as a comma-separated run of
-    # backticked names.
     quoted = set(re.findall(r"`([A-Z][A-Za-z]+)`", text))
     # Names the files quote as *removed* are expected to be absent.
     removed = {"Chip", "ASICProject", "Library", "LibrarySchema", "Flow",
@@ -76,6 +90,35 @@ def test_exported_symbols_exist(orientation):
         f"{missing}")
 
 
+# Both files introduce their export list with this exact phrase, and the list runs
+# to the end of the paragraph. Keeping the wording identical is what lets one test
+# check both.
+EXPORT_LIST = re.compile(r"Top-level exports, in full:(.*?)\n\s*\n", re.DOTALL)
+
+
+def test_export_list_is_complete(orientation):
+    """The list says "in full", so it has to match ``__all__`` exactly.
+
+    Both directions matter. A name that disappears from the package leaves the
+    file describing an API that is gone; a name added to ``__all__`` and not here
+    leaves the file quietly incomplete while claiming otherwise. The second is the
+    one that actually happened -- ``__version__`` was missing from both files and
+    the existence check above passed anyway.
+    """
+    name, text = orientation
+    match = EXPORT_LIST.search(text)
+    assert match, (
+        f"{name} no longer contains a paragraph starting 'Top-level exports, in "
+        "full:'; this test parses that phrase to find the list")
+
+    listed = set(re.findall(r"`([A-Za-z_][A-Za-z0-9_]*)`", match.group(1)))
+    expected = set(siliconcompiler.__all__)
+    assert listed == expected, (
+        f"{name}'s export list does not match siliconcompiler.__all__.\n"
+        f"  missing from the file: {sorted(expected - listed)}\n"
+        f"  no longer exported:    {sorted(listed - expected)}")
+
+
 def test_removed_symbols_are_still_removed(orientation):
     """The negative claims have to stay true, or they mislead in reverse."""
     name, text = orientation
@@ -86,6 +129,7 @@ def test_removed_symbols_are_still_removed(orientation):
             "the file needs updating")
 
 
+@needs_toml
 def test_console_scripts_match_pyproject(orientation):
     """The entry point list is quoted as complete, so it must be."""
     name, text = orientation
@@ -98,6 +142,7 @@ def test_console_scripts_match_pyproject(orientation):
         f"declares {sorted(declared)}")
 
 
+@needs_toml
 def test_no_sc_entry_point():
     """The single most repeated wrong instruction in the project's history."""
     with open(PYPROJECT, "rb") as f:
@@ -108,9 +153,9 @@ def test_no_sc_entry_point():
 
 
 def test_in_tree_module_directories_exist(orientation):
-    """The placement policy names four in-tree directories."""
+    """The placement policy names four in-tree directories, so check four."""
     name, text = orientation
-    for directory in ("tools", "flows", "targets"):
+    for directory in ("tools", "flows", "targets", "checklists"):
         assert f"`{directory}/`" in text or f"siliconcompiler/{directory}" in text, \
             f"{name} no longer mentions siliconcompiler/{directory}/"
         assert os.path.isdir(os.path.join(docs.sc_root, "siliconcompiler", directory))
