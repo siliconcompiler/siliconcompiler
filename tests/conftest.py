@@ -206,6 +206,16 @@ def isolate_statics_in_testing(monkeypatch, request, shared_manager_server):
 
     isolated = 'isolated_manager' in request.keywords
 
+    if not isolated:
+        # Clean up after the previous test here rather than in this fixture's
+        # own teardown. Teardown runs while the finishing test's monkeypatches
+        # are still in place -- monkeypatch is a dependency, so it is undone
+        # only once this fixture has finalized -- and talking to the manager
+        # under them is not safe: a test that fakes sys.platform makes
+        # multiprocessing reject the real address family ("Family AF_PIPE is
+        # not recognized" on Windows). By setup time every such patch is gone.
+        shared_manager_server.reset()
+
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
     monkeypatch.setattr(MPManager, "_MPManager__address",
                         None if isolated else shared_manager_server.address)
@@ -218,9 +228,6 @@ def isolate_statics_in_testing(monkeypatch, request, shared_manager_server):
 
         # Cleanup afterwards
         MPManager.stop()
-
-    if not isolated:
-        shared_manager_server.reset()
 
 
 @pytest.fixture(autouse=True)
