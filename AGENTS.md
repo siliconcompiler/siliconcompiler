@@ -113,11 +113,33 @@ reason a contribution has to be restarted. Full table with links:
 exist, and a stale guide told people to make them for years. In-tree module
 directories are `siliconcompiler/tools/`, `flows/`, `targets/`, `checklists/`.
 
+## Renaming or removing public API
+
+Leave the old name working. A released accessor, class or task variable that is
+renamed or moved keeps a wrapper at the old name that warns and forwards to the
+new one, so a build script written against the old spelling keeps running and says
+why it should change:
+
+```python
+import warnings
+
+def set_openroad_oldname(self, value, step=None, index=None):
+    warnings.warn("set_openroad_oldname is deprecated, use set_openroad_newname",
+                  DeprecationWarning, stacklevel=2)
+    return self.set_openroad_newname(value, step=step, index=index)
+```
+
+`stacklevel=2` matters: it points the warning at the caller's line rather than at
+this file. `Task.get_supported_task_extentions` and `LibrarySchema` are the
+in-tree examples. Deleting outright is for names that never shipped in a release.
+Moving a method onto a base class or mixin is not a removal -- the old call site
+still resolves through the MRO -- but check that it does.
+
 ## Repo layout
 
 | Path | Contents |
 |---|---|
-| `siliconcompiler/schema/` | the schema itself; `CHANGELOG.rst` records every parameter change under its own semver |
+| `siliconcompiler/schema/` | the schema itself; `CHANGELOG.rst` records every change to it under its own semver |
 | `siliconcompiler/tools/` | one directory per EDA tool driver |
 | `siliconcompiler/flows/`, `targets/` | pre-defined flowgraphs and target bundles |
 | `siliconcompiler/apps/` | the seven CLI entry points |
@@ -136,6 +158,10 @@ documented in
 Two independent version numbers: the **package** version (`0.38.x`) and the
 **schema** version (`schemaversion`, `0.57.x`), which is what a manifest records
 and what `siliconcompiler/schema/CHANGELOG.rst` tracks.
+
+A tool's task variables are in neither. `Task.add_parameter` inserts them into one
+task, so they never reach `schemaversion` or the published schema, and adding one
+needs no CHANGELOG entry -- only the docs list below.
 
 ## Adding an example
 
@@ -181,10 +207,15 @@ git diff --exit-code
 verible-verilog-lint --rules_config .github/workflows/config/verible.rules `cat files.txt`
 ```
 
-Two rules that are not obvious from reading the tree:
+Three rules that are not obvious from reading the tree:
 
 - **The docs build treats warnings as errors** (`-W --keep-going`, plus
   `fail_on_warning` on Read the Docs). A broken cross-reference fails your PR.
+- **A new `Task` subclass has to be listed by hand** in the `:tasks:` argument of
+  [docs/reference_manual/predef_modules/tools.rst](docs/reference_manual/predef_modules/tools.rst).
+  Forget it and the task is absent from the reference manual, along with every
+  variable it declares, on a green docs build with no test to catch it. It has
+  already happened, more than once.
 - **`:lines:` is banned in `docs/`.** Address included code by name --
   `:pyobject:`, `:start-at:`/`:end-at:` -- because a line range silently shifts
   when the file above it changes, and the page then renders the wrong code with a
