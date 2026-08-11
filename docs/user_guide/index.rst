@@ -73,3 +73,4 @@ You will also want to look at API References for details.
    glossary
    Frequently asked questions <faq>
    How do I…? <howto>
+   Migrating from the Chip API <migration>

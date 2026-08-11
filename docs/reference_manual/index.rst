@@ -45,4 +45,5 @@ To learn how to use SiliconCompiler, see the :ref:`user guide <user_guide>`.
    appendix/licenses
    appendix/changelog
    appendix/schema_changelog
+   appendix/machine_readable
    appendix/dashboard_how_to_guide

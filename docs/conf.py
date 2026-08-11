@@ -61,7 +61,9 @@ extensions = [
     'requirements',
     'installgen',
     'graphgen',
-    'examplegen'
+    'examplegen',
+    'llmstxt',
+    'schemadump'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

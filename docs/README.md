@@ -60,6 +60,34 @@ those pages means editing the generator or the docstrings behind them, not the
 directory, so tutorials can pull real, tested code in with `literalinclude`
 instead of pasting snippets that drift out of date.
 
+Three files are written to the root of the built site for machine consumers
+rather than for browsers:
+
+| File | Written by | Contents |
+|---|---|---|
+| `llms.txt` | `_ext/llmstxt.py` | Curated preamble — current API, what no longer exists, module placement — plus a generated index of every page |
+| `llms-full.txt` | `_ext/llmstxt.py` | The same preamble plus the full text of every hand-written page, rendered to Markdown |
+| `schema.json` | `_ext/schemadump.py` | Every schema parameter for every documented class, keyed by keypath |
+
+The preamble is the one hand-written part, at `_llms/preamble.md`, because
+stating which API is current and which names are gone is editorial work that
+cannot be generated. The rest is derived: the page index from the toctree, and
+the schema roots from the `:root:` options on `reference_manual/schema.rst`, so
+neither can drift from the site.
+
+All three are written by the **`html` builder only** — `latexpdf`, `linkcheck`
+and the rest have nowhere to publish them. Rendering every page for
+`llms-full.txt` costs about ten seconds, so if you are rebuilding repeatedly
+while editing one page, skip it:
+
+```sh
+SC_DOCS_SKIP_ARTIFACTS=1 make html
+```
+
+That is an environment variable rather than a Sphinx setting on purpose: changing
+a config value invalidates the cache and forces a full rebuild, costing more than
+it saves. Leave it unset for anything you intend to publish.
+
 ## Writing
 
 Pages are written in
