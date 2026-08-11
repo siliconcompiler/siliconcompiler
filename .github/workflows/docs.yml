@@ -34,7 +34,7 @@ jobs:
           python3 -m venv .venv
           . .venv/bin/activate
           pip install --upgrade pip
-          pip install .[docs]
+          pip install .[docs,cocotb]
 
       - name: Run linkcheck
         id: linkcheck
@@ -114,7 +114,7 @@ jobs:
           python3 -m venv .venv
           . .venv/bin/activate
           pip install --upgrade pip
-          pip install .[docs]
+          pip install .[docs,cocotb]
 
       - name: Build the PDF
         id: latexpdf
