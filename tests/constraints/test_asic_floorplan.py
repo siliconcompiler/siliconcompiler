@@ -1,3 +1,4 @@
+import math
 import pytest
 
 from siliconcompiler.schema import PerNode, Scope
@@ -440,3 +441,195 @@ def test_calc_area_with_step_index(shape, expect):
 
     assert schema.calc_diearea() == 10000
     assert schema.calc_diearea(step="step", index="index") == expect
+
+
+def test_calc_floorplan_areas_unset():
+    # Nothing to resolve, the floorplan has to be sized from density/aspectratio.
+    assert ASICAreaConstraint().calc_floorplan_areas() is None
+
+
+def test_calc_floorplan_areas_both_set():
+    schema = ASICAreaConstraint()
+    schema.set_diearea_rectangle(100.0, 150.0, 2.0)
+    schema.set_coremargin(25.0)
+
+    # An explicit core area wins over the core margin.
+    assert schema.calc_floorplan_areas() == (
+        [(0.0, 0.0), (150.0, 100.0)],
+        [(2.0, 2.0), (148.0, 98.0)])
+
+
+def test_calc_floorplan_areas_die_with_margin():
+    schema = ASICAreaConstraint()
+    schema.set_diearea_rectangle(500.0, 500.0)
+    schema.set_coremargin(1.0)
+
+    assert schema.calc_floorplan_areas() == (
+        [(0.0, 0.0), (500.0, 500.0)],
+        [(1.0, 1.0), (499.0, 499.0)])
+
+
+def test_calc_floorplan_areas_die_without_margin():
+    schema = ASICAreaConstraint()
+    schema.set_diearea_rectangle(500.0, 500.0)
+
+    # An unset core margin is a zero margin, the die area is still honored.
+    assert schema.calc_floorplan_areas() == (
+        [(0.0, 0.0), (500.0, 500.0)],
+        [(0.0, 0.0), (500.0, 500.0)])
+
+
+def test_calc_floorplan_areas_die_polygon_with_margin():
+    schema = ASICAreaConstraint()
+    # An L shape, wound clockwise, missing its top right corner.
+    schema.set_diearea([(0, 0), (0, 200), (200, 200), (200, 100), (300, 100), (300, 0)])
+    schema.set_coremargin(5.0)
+
+    # The core follows the die outline. A bounding box inset would have put the
+    # core over the missing corner, outside the die.
+    assert schema.calc_floorplan_areas() == (
+        [(0.0, 0.0), (0.0, 200.0), (200.0, 200.0), (200.0, 100.0), (300.0, 100.0), (300.0, 0.0)],
+        [(5.0, 5.0), (5.0, 195.0), (195.0, 195.0), (195.0, 95.0), (295.0, 95.0), (295.0, 5.0)])
+
+
+def test_calc_floorplan_areas_die_polygon_counterclockwise():
+    schema = ASICAreaConstraint()
+    # The same L shape wound the other way, the core must still be inside it.
+    schema.set_diearea([(0, 0), (300, 0), (300, 100), (200, 100), (200, 200), (0, 200)])
+    schema.set_coremargin(5.0)
+
+    _, corearea = schema.calc_floorplan_areas()
+    assert corearea == [
+        (5.0, 5.0), (295.0, 5.0), (295.0, 95.0), (195.0, 95.0), (195.0, 195.0), (5.0, 195.0)]
+
+
+def test_calc_floorplan_areas_die_polygon_closed():
+    schema = ASICAreaConstraint()
+    # A repeated first vertex closes the outline, the core is closed the same way.
+    schema.set_diearea([(0, 0), (0, 100), (100, 100), (100, 0), (0, 0)])
+    schema.set_coremargin(10.0)
+
+    _, corearea = schema.calc_floorplan_areas()
+    assert corearea == [
+        (10.0, 10.0), (10.0, 90.0), (90.0, 90.0), (90.0, 10.0), (10.0, 10.0)]
+
+
+def test_calc_floorplan_areas_die_polygon_collinear_vertex():
+    schema = ASICAreaConstraint()
+    # (50, 0) adds no shape, so it drops out of the offset outline.
+    schema.set_diearea([(0, 0), (0, 100), (100, 100), (100, 0), (50, 0)])
+    schema.set_coremargin(10.0)
+
+    _, corearea = schema.calc_floorplan_areas()
+    assert corearea == [(10.0, 10.0), (10.0, 90.0), (90.0, 90.0), (90.0, 10.0)]
+
+
+def test_calc_floorplan_areas_die_polygon_diagonal():
+    schema = ASICAreaConstraint()
+    schema.set_diearea([(0, 0), (0, 100), (100, 0)])
+    schema.set_coremargin(5.0)
+
+    _, corearea = schema.calc_floorplan_areas()
+    # The diagonal edge is mitered, so its corners sit back by 5 * (1 + sqrt(2)).
+    miter = 100.0 - 5.0 * (1 + math.sqrt(2))
+    assert corearea == [
+        pytest.approx((5.0, 5.0)),
+        pytest.approx((5.0, miter)),
+        pytest.approx((miter, 5.0))]
+
+
+def test_calc_floorplan_areas_die_polygon_margin_too_large():
+    schema = ASICAreaConstraint()
+    schema.set_diearea([(0, 0), (0, 200), (200, 200), (200, 100), (300, 100), (300, 0)])
+    schema.set_coremargin(200.0)
+
+    with pytest.raises(ValueError,
+                       match=r"^core margin does not fit in the die area: "
+                             r"offset is too large for the outline$"):
+        schema.calc_floorplan_areas()
+
+
+def test_calc_floorplan_areas_core_polygon_with_margin():
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(10, 10), (10, 210), (210, 210), (210, 110), (310, 110), (310, 10)])
+    schema.set_coremargin(5.0)
+
+    diearea, corearea = schema.calc_floorplan_areas()
+    # The die grows around the core and keeps the same outline. Growing it shrinks
+    # the notch, so the reflex corner moves to (215, 115) rather than (215, 105).
+    assert diearea == [
+        (5.0, 5.0), (5.0, 215.0), (215.0, 215.0), (215.0, 115.0), (315.0, 115.0), (315.0, 5.0)]
+    assert corearea == [
+        (10.0, 10.0), (10.0, 210.0), (210.0, 210.0), (210.0, 110.0), (310.0, 110.0), (310.0, 10.0)]
+
+
+def test_calc_floorplan_areas_core_at_origin_with_margin():
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(0.0, 10.0), (100.0, 110.0)])
+    schema.set_coremargin(5.0)
+
+    # Growing the die would put it at x = -5, which OpenROAD rejects.
+    with pytest.raises(ValueError,
+                       match=r"^core margin places the die area at a negative x coordinate$"):
+        schema.calc_floorplan_areas()
+
+
+def test_calc_floorplan_areas_core_below_origin_with_margin():
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(10.0, 0.0), (110.0, 100.0)])
+    schema.set_coremargin(5.0)
+
+    with pytest.raises(ValueError,
+                       match=r"^core margin places the die area at a negative y coordinate$"):
+        schema.calc_floorplan_areas()
+
+
+def test_calc_floorplan_areas_core_with_margin():
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(10.0, 10.0), (110.0, 60.0)])
+    schema.set_coremargin(5.0)
+
+    # The core coordinates are preserved so component placements stay valid.
+    assert schema.calc_floorplan_areas() == (
+        [(5.0, 5.0), (115.0, 65.0)],
+        [(10.0, 10.0), (110.0, 60.0)])
+
+
+def test_calc_floorplan_areas_core_without_margin():
+    schema = ASICAreaConstraint()
+    schema.set_corearea([(0.0, 0.0), (100.0, 100.0)])
+
+    assert schema.calc_floorplan_areas() == (
+        [(0.0, 0.0), (100.0, 100.0)],
+        [(0.0, 0.0), (100.0, 100.0)])
+
+
+def test_calc_floorplan_areas_margin_exceeds_die_width():
+    schema = ASICAreaConstraint()
+    schema.set_diearea_rectangle(500.0, 100.0)
+    schema.set_coremargin(50.0)
+
+    with pytest.raises(ValueError,
+                       match=r"^core margin is greater than or equal to the die width$"):
+        schema.calc_floorplan_areas()
+
+
+def test_calc_floorplan_areas_margin_exceeds_die_height():
+    schema = ASICAreaConstraint()
+    schema.set_diearea_rectangle(100.0, 500.0)
+    schema.set_coremargin(50.0)
+
+    with pytest.raises(ValueError,
+                       match=r"^core margin is greater than or equal to the die height$"):
+        schema.calc_floorplan_areas()
+
+
+def test_calc_floorplan_areas_step_index():
+    schema = ASICAreaConstraint()
+    schema.set_coremargin(1.0)
+    schema.set_diearea_rectangle(500.0, 500.0, step="step0", index="0")
+
+    assert schema.calc_floorplan_areas() is None
+    assert schema.calc_floorplan_areas(step="step0", index="0") == (
+        [(0.0, 0.0), (500.0, 500.0)],
+        [(1.0, 1.0), (499.0, 499.0)])

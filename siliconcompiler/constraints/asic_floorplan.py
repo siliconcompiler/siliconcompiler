@@ -1,3 +1,5 @@
+import math
+
 from typing import Union, List, Tuple, Optional
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, PerNode, Scope
@@ -558,6 +560,234 @@ class ASICAreaConstraint(BaseSchema):
             Tuple[float, float]: A tuple containing the width and height of the core area.
         """
         return self._calc_size(self.get_coreboundingbox(step=step, index=index))
+
+    @staticmethod
+    def _calc_polygon_vertices(points: List[Tuple[float, float]]) \
+            -> List[Tuple[float, float]]:
+        """
+        Reduces an outline to the vertices that give it its shape.
+
+        Repeated points have no edge direction, and a point in the middle of a
+        straight edge does not turn the outline, so neither survives.
+
+        Args:
+            points (List[Tuple[float, float]]): The outline points, without a
+                                                repeated closing point.
+
+        Returns:
+            List[Tuple[float, float]]: The corners of the outline, in the order
+                                       they were given.
+        """
+        unique = []
+        for point in points:
+            point = tuple(point)
+            if not unique or point != unique[-1]:
+                unique.append(point)
+        if len(unique) > 1 and unique[0] == unique[-1]:
+            unique.pop()
+
+        if len(unique) < 3:
+            return unique
+
+        corners = []
+        for index, (x, y) in enumerate(unique):
+            x0, y0 = unique[index - 1]
+            x1, y1 = unique[(index + 1) % len(unique)]
+
+            # cross product of the incoming and outgoing edges
+            if (x - x0) * (y1 - y) != (y - y0) * (x1 - x):
+                corners.append((x, y))
+
+        return corners
+
+    @staticmethod
+    def _calc_signed_area(points: List[Tuple[float, float]]) -> float:
+        """
+        Computes the signed area of a closed polygon with the shoelace formula.
+
+        Args:
+            points (List[Tuple[float, float]]): The polygon vertices, without a
+                                                repeated closing vertex.
+
+        Returns:
+            float: The signed area. Positive for a counter-clockwise outline and
+                   negative for a clockwise one.
+        """
+        area = 0.0
+        for index, (x0, y0) in enumerate(points):
+            x1, y1 = points[(index + 1) % len(points)]
+            area += x0 * y1 - x1 * y0
+        return area / 2.0
+
+    @classmethod
+    def _calc_offset_polygon(cls, points: List[Tuple[float, float]], offset: float) \
+            -> List[Tuple[float, float]]:
+        """
+        Offsets a closed polygon by sliding every edge along its inward normal.
+
+        Each vertex of the result is the intersection of its two offset edges, so
+        a rectilinear outline stays rectilinear and concave corners are offset
+        into the shape rather than away from it. Mitering a concave corner keeps
+        the result inside the outline it was offset from, which is what matters
+        for a core area, but it does trim slightly more than the offset distance
+        right at that corner.
+
+        Args:
+            points (List[Tuple[float, float]]): The polygon vertices, optionally
+                                                repeating the first vertex to
+                                                close the outline.
+            offset (float): The distance to move each edge. A positive offset
+                            shrinks the polygon and a negative one grows it.
+
+        Raises:
+            ValueError: If the outline is not a polygon, or if the offset
+                        collapses or inverts it.
+
+        Returns:
+            List[Tuple[float, float]]: The offset polygon, closed the same way
+                                       the input was.
+        """
+        closed = len(points) > 1 and tuple(points[0]) == tuple(points[-1])
+        vertices = cls._calc_polygon_vertices(points[:-1] if closed else points)
+
+        if len(vertices) < 3:
+            raise ValueError("outline must have at least three vertices")
+
+        area = cls._calc_signed_area(vertices)
+        if area == 0.0:
+            raise ValueError("outline does not enclose an area")
+
+        # A counter-clockwise outline keeps its interior to the left of each edge.
+        winding = 1.0 if area > 0.0 else -1.0
+
+        # Slide every edge along its inward normal, keeping it as a point plus a
+        # unit direction so the offset vertices can be solved for below.
+        edges = []
+        for index, (x0, y0) in enumerate(vertices):
+            x1, y1 = vertices[(index + 1) % len(vertices)]
+            dx, dy = x1 - x0, y1 - y0
+            length = math.hypot(dx, dy)
+            dx, dy = dx / length, dy / length
+            edges.append((x0 - offset * winding * dy, y0 + offset * winding * dx, dx, dy))
+
+        # Every vertex becomes the intersection of the two edges that meet there.
+        offset_vertices = []
+        for index, (qx, qy, vx, vy) in enumerate(edges):
+            px, py, ux, uy = edges[index - 1]
+
+            # sin() of the angle the outline turns through at this vertex
+            turn = ux * vy - uy * vx
+            if abs(turn) < 1e-9:
+                raise ValueError("outline doubles back on itself")
+
+            distance = ((qx - px) * vy - (qy - py) * vx) / turn
+            offset_vertices.append((px + distance * ux, py + distance * uy))
+
+        # A big enough offset folds the outline over itself, which shows up as an edge
+        # that now runs backwards. Checking the direction of every edge catches that
+        # even when the folded outline keeps its winding and encloses a smaller area.
+        for index, (_, _, dx, dy) in enumerate(edges):
+            x0, y0 = offset_vertices[index]
+            x1, y1 = offset_vertices[(index + 1) % len(offset_vertices)]
+            if (x1 - x0) * dx + (y1 - y0) * dy <= 0.0:
+                raise ValueError("offset is too large for the outline")
+
+        if closed:
+            offset_vertices.append(offset_vertices[0])
+
+        return offset_vertices
+
+    def calc_floorplan_areas(self, step: Optional[str] = None,
+                             index: Optional[Union[str, int]] = None) \
+            -> Optional[Tuple[List[Tuple[float, float]], List[Tuple[float, float]]]]:
+        """
+        Resolves the die and core areas used to initialize a floorplan.
+
+        Floorplanning tools need both a die and a core outline, but only one of
+        them has to be specified since the other can be derived from the core
+        margin:
+
+        * die area and core area: both are used as specified.
+        * die area only: the core area is the die area inset by the core margin.
+        * core area only: the die area is the core area outset by the core
+          margin. The core keeps the coordinates it was given so that component
+          placements remain valid, which means the core area has to sit at least
+          one core margin away from the origin.
+
+        Rectilinear outlines are offset edge by edge, so a polygonal die yields a
+        polygonal core that follows it rather than its bounding box.
+
+        A core margin of zero is assumed when the margin has not been set.
+
+        Args:
+            step (str, optional): The step in a workflow to retrieve from.
+                                  Defaults to None.
+            index (Union[str, int], optional): The index within a step to
+                                               retrieve from. Defaults to None.
+
+        Raises:
+            ValueError: If the core margin does not leave a core area with a
+                        positive width and height, or if it places the die area
+                        at a negative coordinate.
+
+        Returns:
+            Optional[Tuple[List[Tuple[float, float]], List[Tuple[float, float]]]]:
+            The die and core areas, or None if neither area has been specified,
+            in which case the floorplan must be sized from the density and
+            aspect ratio.
+        """
+        diearea = self.get_diearea(step=step, index=index)
+        corearea = self.get_corearea(step=step, index=index)
+
+        if diearea and corearea:
+            return diearea, corearea
+
+        if not diearea and not corearea:
+            return None
+
+        coremargin = self.get_coremargin(step=step, index=index)
+        if coremargin is None:
+            coremargin = 0.0
+
+        if diearea:
+            if len(diearea) == 2:
+                # Two points are the lower left and upper right of a rectangle.
+                (die_x0, die_y0), (die_x1, die_y1) = self._calc_boundingbox(diearea)
+
+                if 2 * coremargin >= (die_x1 - die_x0):
+                    raise ValueError("core margin is greater than or equal to the die width")
+                if 2 * coremargin >= (die_y1 - die_y0):
+                    raise ValueError("core margin is greater than or equal to the die height")
+
+                corearea = [
+                    (die_x0 + coremargin, die_y0 + coremargin),
+                    (die_x1 - coremargin, die_y1 - coremargin)]
+            else:
+                try:
+                    corearea = self._calc_offset_polygon(diearea, coremargin)
+                except ValueError as e:
+                    raise ValueError(f"core margin does not fit in the die area: {e}") from e
+        else:
+            if len(corearea) == 2:
+                (core_x0, core_y0), (core_x1, core_y1) = self._calc_boundingbox(corearea)
+
+                diearea = [
+                    (core_x0 - coremargin, core_y0 - coremargin),
+                    (core_x1 + coremargin, core_y1 + coremargin)]
+            else:
+                try:
+                    diearea = self._calc_offset_polygon(corearea, -coremargin)
+                except ValueError as e:
+                    raise ValueError(f"core margin cannot be applied to the core area: {e}") from e
+
+            # OpenROAD rejects a die area with negative coordinates.
+            (die_x0, die_y0), _ = self._calc_boundingbox(diearea)
+            if die_x0 < 0.0:
+                raise ValueError("core margin places the die area at a negative x coordinate")
+            if die_y0 < 0.0:
+                raise ValueError("core margin places the die area at a negative y coordinate")
+
+        return diearea, corearea
 
     def calc_diearea(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
             -> float:
