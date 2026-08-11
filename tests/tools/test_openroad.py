@@ -1019,6 +1019,86 @@ def test_openroad_apr_parameter_rsz_sequence():
     assert task.get("var", "rsz_sequence") == ["vt_swap", "reroute"]
 
 
+def test_openroad_apr_parameter_rsz_phases():
+    task = _apr.OpenROADRSZTimingParameter()
+    # Empty by default so OpenROAD picks its own phase ordering.
+    assert task.get("var", "rsz_phases") == []
+    task.set_openroad_rszphases(["LEGACY", "LAST_GASP"])
+    assert task.get("var", "rsz_phases") == ["LEGACY", "LAST_GASP"]
+    task.set_openroad_rszphases("GLOBAL_SIZING", step='rsz', index='1')
+    assert task.get("var", "rsz_phases", step='rsz', index='1') == ["GLOBAL_SIZING"]
+    assert task.get("var", "rsz_phases") == ["LEGACY", "LAST_GASP"]
+
+
+def test_openroad_apr_parameter_rsz_phases_rejects_unknown():
+    """The phase names are matched exactly by OpenROAD, so reject a typo at set time."""
+    task = _apr.OpenROADRSZTimingParameter()
+    with pytest.raises(Exception):
+        task.set_openroad_rszphases(["legacy"])
+    with pytest.raises(Exception):
+        task.set_openroad_rszphases(["LEGACY_MT"])
+
+
+def test_openroad_apr_parameter_rsz_skip_size_down():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_size_down") is False
+    task.set_openroad_rszskipsizedown(True)
+    assert task.get("var", "rsz_skip_size_down") is True
+    task.set_openroad_rszskipsizedown(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_size_down", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_size_down") is True
+
+
+def test_openroad_apr_parameter_rsz_max_passes():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_max_passes") is None
+    task.set_openroad_rszmaxpasses(50)
+    assert task.get("var", "rsz_max_passes") == 50
+    task.set_openroad_rszmaxpasses(10, step='rsz', index='1')
+    assert task.get("var", "rsz_max_passes", step='rsz', index='1') == 10
+    assert task.get("var", "rsz_max_passes") == 50
+
+
+def test_openroad_apr_parameter_rsz_max_iterations():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_max_iterations") is None
+    task.set_openroad_rszmaxiterations(5)
+    assert task.get("var", "rsz_max_iterations") == 5
+    task.set_openroad_rszmaxiterations(2, step='rsz', index='1')
+    assert task.get("var", "rsz_max_iterations", step='rsz', index='1') == 2
+    assert task.get("var", "rsz_max_iterations") == 5
+
+
+def test_openroad_apr_parameter_rsz_max_repairs_per_pass():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_max_repairs_per_pass") is None
+    task.set_openroad_rszmaxrepairsperpass(4)
+    assert task.get("var", "rsz_max_repairs_per_pass") == 4
+    task.set_openroad_rszmaxrepairsperpass(1, step='rsz', index='1')
+    assert task.get("var", "rsz_max_repairs_per_pass", step='rsz', index='1') == 1
+    assert task.get("var", "rsz_max_repairs_per_pass") == 4
+
+
+def test_openroad_apr_parameter_rsz_effort_caps_reject_zero():
+    """0 passes/iterations/repairs is not a way to disable a phase; the skips are."""
+    task = _apr.OpenROADRSZTimingParameter()
+    for setter in (task.set_openroad_rszmaxpasses,
+                   task.set_openroad_rszmaxiterations,
+                   task.set_openroad_rszmaxrepairsperpass):
+        with pytest.raises(Exception):
+            setter(0)
+
+
+def test_openroad_apr_parameter_rsz_max_wire_length():
+    task = _apr.OpenROADRSZDRVParameter()
+    assert task.get("var", "rsz_max_wire_length") is None
+    task.set_openroad_rszmaxwirelength(500.0)
+    assert task.get("var", "rsz_max_wire_length") == 500.0
+    task.set_openroad_rszmaxwirelength(100.0, step='rsz', index='1')
+    assert task.get("var", "rsz_max_wire_length", step='rsz', index='1') == 100.0
+    assert task.get("var", "rsz_max_wire_length") == 500.0
+
+
 def test_openroad_apr_parameter_rsz_allow_setup_violations():
     task = _apr.OpenROADRSZTimingParameter()
     assert task.get("var", "rsz_allow_setup_violations") is False

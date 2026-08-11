@@ -31,6 +31,25 @@ RSZ_MOVES = (
     "reroute",
 )
 
+# Optimization phases repair_timing -phases accepts, from the RSZ-217 error message the
+# phase parser raises. Spelled in the tool's own upper case: the names are compared
+# exactly, so translating case here would put a silent transform between what a user
+# writes and what the tool matches. LEGACY_MT, MT1 and MEASURED_VT_SWAP are accepted
+# upstream but undocumented, so they are deliberately not offered.
+RSZ_PHASES = (
+    "LEGACY",
+    "WNS",
+    "WNS_PATH",
+    "WNS_CONE",
+    "TNS",
+    "ENDPOINT_FANIN",
+    "STARTPOINT_FANOUT",
+    "LAST_GASP",
+    "CRIT_VT_SWAP",
+    "REROUTE",
+    "GLOBAL_SIZING",
+)
+
 
 class OpenROADSTAParameter(OpenROADTask):
     """
@@ -431,6 +450,10 @@ class OpenROADRSZDRVParameter(OpenROADTask):
         self.add_parameter("rsz_max_utilization", "float<0.0..100.0>",
                            "maximum percentage of the core area the resizer is allowed to use, "
                            "unset uses the tool default")
+        self.add_parameter("rsz_max_wire_length", "float<0.0..>",
+                           "maximum length a wire may reach before design repair inserts a "
+                           "buffer, unset lets the tool pick the length that avoids slew "
+                           "violations", unit="um")
 
     def _default_match_cell_footprint(self) -> bool:
         return False
@@ -484,6 +507,18 @@ class OpenROADRSZDRVParameter(OpenROADTask):
         """
         self.set("var", "rsz_max_utilization", utilization, step=step, index=index)
 
+    def set_openroad_rszmaxwirelength(self, length: float,
+                                      step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the maximum wire length design repair allows before buffering.
+
+        Args:
+            length (float): The maximum wire length in um.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_max_wire_length", length, step=step, index=index)
+
     def setup(self):
         super().setup()
 
@@ -492,6 +527,8 @@ class OpenROADRSZDRVParameter(OpenROADTask):
         self.add_required_key("var", "rsz_match_cell_footprint")
         if self.get("var", "rsz_max_utilization") is not None:
             self.add_required_key("var", "rsz_max_utilization")
+        if self.get("var", "rsz_max_wire_length") is not None:
+            self.add_required_key("var", "rsz_max_wire_length")
 
 
 class OpenROADRSZTimingParameter(OpenROADTask):
@@ -521,6 +558,9 @@ class OpenROADRSZTimingParameter(OpenROADTask):
                            "true/false, skip the greedy gate resizing pass that runs at the end "
                            "of setup repair to pick up any slack the main optimization left",
                            defvalue=False)
+        self.add_parameter("rsz_skip_size_down", "bool",
+                           "true/false, skip down-sizing gates that are not on the critical path",
+                           defvalue=False)
         self.add_parameter("rsz_skip_vt_swap", "bool",
                            "true/false, skip threshold voltage (VT) swap optimization",
                            defvalue=False)
@@ -531,6 +571,20 @@ class OpenROADRSZTimingParameter(OpenROADTask):
                            "explicit order of setup optimization moves, an empty list uses the "
                            "tool default",
                            defvalue=[])
+        self.add_parameter("rsz_phases", f"[<{','.join(RSZ_PHASES)}>]",
+                           "explicit order of setup optimization phases, an empty list uses the "
+                           "tool default, note the tool appends its critical threshold voltage "
+                           "swap phase to any of its legacy phases",
+                           defvalue=[])
+        self.add_parameter("rsz_max_passes", "int<1..>",
+                           "maximum number of optimization passes timing repair may run, unset "
+                           "uses the tool default")
+        self.add_parameter("rsz_max_iterations", "int<1..>",
+                           "maximum number of optimization iterations timing repair may run, "
+                           "unset uses the tool default")
+        self.add_parameter("rsz_max_repairs_per_pass", "int<1..>",
+                           "maximum number of repairs setup repair may make in a single pass, "
+                           "unset uses the tool default")
         self.add_parameter("rsz_repair_tns", "float<0.0..100.0>",
                            "percentage of violating nets to attempt to repair (0 - 100)",
                            defvalue=100)
@@ -633,6 +687,18 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         """
         self.set("var", "rsz_skip_final_sizing", skip, step=step, index=index)
 
+    def set_openroad_rszskipsizedown(self, skip: bool,
+                                     step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables down-sizing of gates off the critical path.
+
+        Args:
+            skip (bool): True to skip down-sizing, False to perform it.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_skip_size_down", skip, step=step, index=index)
+
     def set_openroad_rszskipvtswap(self, skip: bool,
                                    step: Optional[str] = None, index: Optional[str] = None):
         """
@@ -670,6 +736,57 @@ class OpenROADRSZTimingParameter(OpenROADTask):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "rsz_sequence", moves, step=step, index=index)
+
+    def set_openroad_rszphases(self, phases: Union[str, List[str]],
+                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the explicit order of setup optimization phases.
+
+        An empty list restores the tool default ordering.
+
+        Args:
+            phases (Union[str, List[str]]): The ordered phase name(s).
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_phases", phases, step=step, index=index)
+
+    def set_openroad_rszmaxpasses(self, passes: int,
+                                  step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the maximum number of optimization passes timing repair may run.
+
+        Args:
+            passes (int): The maximum pass count.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_max_passes", passes, step=step, index=index)
+
+    def set_openroad_rszmaxiterations(self, iterations: int,
+                                      step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the maximum number of optimization iterations timing repair may run.
+
+        Args:
+            iterations (int): The maximum iteration count.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_max_iterations", iterations, step=step, index=index)
+
+    def set_openroad_rszmaxrepairsperpass(self, repairs: int,
+                                          step: Optional[str] = None,
+                                          index: Optional[str] = None):
+        """
+        Sets the maximum number of repairs setup repair may make in one pass.
+
+        Args:
+            repairs (int): The maximum repair count per pass.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_max_repairs_per_pass", repairs, step=step, index=index)
 
     def set_openroad_rszallowsetupviolations(self, allow: bool,
                                              step: Optional[str] = None,
@@ -730,6 +847,7 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         self.add_required_key("var", "rsz_skip_buffer_removal")
         self.add_required_key("var", "rsz_skip_buffering")
         self.add_required_key("var", "rsz_skip_final_sizing")
+        self.add_required_key("var", "rsz_skip_size_down")
         self.add_required_key("var", "rsz_skip_vt_swap")
         self.add_required_key("var", "rsz_skip_crit_vt_swap")
         self.add_required_key("var", "rsz_repair_tns")
@@ -738,8 +856,16 @@ class OpenROADRSZTimingParameter(OpenROADTask):
 
         if self.get("var", "rsz_sequence"):
             self.add_required_key("var", "rsz_sequence")
+        if self.get("var", "rsz_phases"):
+            self.add_required_key("var", "rsz_phases")
         if self.get("var", "rsz_max_buffer_percent") is not None:
             self.add_required_key("var", "rsz_max_buffer_percent")
+        if self.get("var", "rsz_max_passes") is not None:
+            self.add_required_key("var", "rsz_max_passes")
+        if self.get("var", "rsz_max_iterations") is not None:
+            self.add_required_key("var", "rsz_max_iterations")
+        if self.get("var", "rsz_max_repairs_per_pass") is not None:
+            self.add_required_key("var", "rsz_max_repairs_per_pass")
 
 
 class OpenROADDPLParameter(OpenROADTask):

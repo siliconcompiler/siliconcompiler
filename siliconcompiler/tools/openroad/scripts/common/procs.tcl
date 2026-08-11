@@ -151,6 +151,10 @@ proc sc_repair_design_args { } {
     if { $max_utilization != {} } {
         lappend args -max_utilization $max_utilization
     }
+    set max_wire_length [sc_cfg_tool_task_get {var} rsz_max_wire_length]
+    if { $max_wire_length != {} } {
+        lappend args -max_wire_length $max_wire_length
+    }
 
     return $args
 }
@@ -158,7 +162,8 @@ proc sc_repair_design_args { } {
 # Build the repair_timing argument list for one repair phase, from the rsz_* task
 # variables. The phase decides which variables apply:
 #
-#   setup   the main setup pass: move controls plus rsz_sequence
+#   setup   the main setup pass: move controls, rsz_sequence, and the setup-only
+#           rsz_phases / rsz_skip_size_down / rsz_max_repairs_per_pass
 #   hold    the hold pass: move controls plus the two hold-only limits
 #   wns     the worst negative slack pass: move controls, rsz_wns_sequence, and a
 #           fixed -repair_tns 0 so only the single worst endpoint is repaired
@@ -194,6 +199,16 @@ proc sc_repair_timing_args { phase } {
     if { $max_utilization != {} } {
         lappend args -max_utilization $max_utilization
     }
+    # Effort caps. Upstream feeds these to both setup and hold repair but not to power
+    # recovery, so the power phase accepts and ignores them.
+    set max_passes [sc_cfg_tool_task_get {var} rsz_max_passes]
+    if { $max_passes != {} } {
+        lappend args -max_passes $max_passes
+    }
+    set max_iterations [sc_cfg_tool_task_get {var} rsz_max_iterations]
+    if { $max_iterations != {} && [sc_check_version 24 3 9983] } {
+        lappend args -max_iterations $max_iterations
+    }
 
     switch -exact -- $phase {
         power {
@@ -207,6 +222,23 @@ proc sc_repair_timing_args { phase } {
             set sequence [sc_cfg_tool_task_get {var} rsz_sequence]
             if { [llength $sequence] != 0 && [sc_check_version 24 3 5705] } {
                 lappend args -sequence [join $sequence " "]
+            }
+            if { $phase == "setup" } {
+                # Consumed by setup repair only, ignored by hold repair.
+                if {
+                    [sc_cfg_tool_task_get {var} rsz_skip_size_down] &&
+                    [sc_check_version 24 3 6057]
+                } {
+                    lappend args -skip_size_down
+                }
+                set phases [sc_cfg_tool_task_get {var} rsz_phases]
+                if { [llength $phases] != 0 && [sc_check_version 26 1 217] } {
+                    lappend args -phases [join $phases " "]
+                }
+                set max_repairs [sc_cfg_tool_task_get {var} rsz_max_repairs_per_pass]
+                if { $max_repairs != {} && [sc_check_version 24 3 3287] } {
+                    lappend args -max_repairs_per_pass $max_repairs
+                }
             }
             if { $phase == "hold" } {
                 # Consumed by hold repair only, ignored by setup repair.
