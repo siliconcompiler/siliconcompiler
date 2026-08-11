@@ -44,6 +44,10 @@ AGENTS = os.path.join(docs.sc_root, "AGENTS.md")
 PREAMBLE = os.path.join(docs.sc_root, "docs", "_llms", "preamble.md")
 PYPROJECT = os.path.join(docs.sc_root, "pyproject.toml")
 LINT_WORKFLOW = os.path.join(docs.sc_root, ".github", "workflows", "lint.yml")
+DOCS_WORKFLOW = os.path.join(docs.sc_root, ".github", "workflows", "docs.yml")
+
+# ``pip install -e .[a,b,c]`` in a shell block, in either file.
+PIP_EXTRAS = re.compile(r"pip install\s+(?:-e\s+)?\.\[([a-z0-9,._-]+)\]")
 
 
 def _read(path):
@@ -193,6 +197,46 @@ def test_lint_gates_match_ci(agents):
         assert tools[job] in agents, (
             f"CI runs the {job} gate with {tools[job]}, which AGENTS.md does "
             "not mention")
+
+
+@needs_toml
+def test_install_command_extras_exist(agents):
+    """Every extra the install line names has to be declared."""
+    match = PIP_EXTRAS.search(agents)
+    assert match, "AGENTS.md no longer contains a 'pip install -e .[...]' command"
+
+    with open(PYPROJECT, "rb") as f:
+        declared = set(tomllib.load(f)["project"]["optional-dependencies"])
+
+    named = set(match.group(1).split(","))
+    assert named <= declared, (
+        f"AGENTS.md tells contributors to install extras {sorted(named - declared)}, "
+        "which pyproject.toml does not declare")
+
+
+def test_install_command_covers_the_docs_build(agents):
+    """The install line has to be enough to run the gates listed under it.
+
+    The docs build is the gate this keeps getting wrong, because its dependencies
+    are split across two extras and only one of them is named ``docs``. AGENTS.md
+    claimed for a while that the ``docs`` extra pulled ``cocotb`` in; it never did,
+    so a contributor following the file exactly could not build the docs on any
+    Python version. ``docs.yml`` is the authority on what the build needs.
+    """
+    workflow = _read(DOCS_WORKFLOW)
+    needed = set()
+    for match in PIP_EXTRAS.finditer(workflow):
+        needed.update(match.group(1).split(","))
+    assert needed, "could not read any 'pip install .[...]' extras out of docs.yml"
+
+    match = PIP_EXTRAS.search(agents)
+    assert match, "AGENTS.md no longer contains a 'pip install -e .[...]' command"
+
+    listed = set(match.group(1).split(","))
+    assert needed <= listed, (
+        f"docs.yml installs extras {sorted(needed - listed)} to build the docs, "
+        "which AGENTS.md's install command omits -- following AGENTS.md exactly "
+        "would fail the docs build gate")
 
 
 def test_example_command_is_runnable(orientation):
