@@ -32,8 +32,7 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
                            defvalue=self._default_skip_wns_repair())
         self.add_parameter("rsz_wns_sequence", f"[<{','.join(RSZ_MOVES)}>]",
                            "order of optimization moves to use for the worst negative slack "
-                           "repair pass, an empty list uses the tool default. The default "
-                           "sequence requires OpenROAD 26Q2-946 or newer for the reroute move",
+                           "repair pass, an empty list uses the tool default",
                            defvalue=["vt_swap", "reroute"])
 
     def _default_skip_recover_power(self) -> bool:

@@ -151,6 +151,24 @@ def test_routing_flow_node_order():
     assert asic_route == {f"route.{step}" for step in expected}
 
 
+def test_routing_flow_reduction_consumes_the_last_route_node():
+    """With np>1 the reduction has to read the end of the chain, not detailed routing.
+
+    Appending a node to the chain without moving the min edge would leave the
+    reduction picking the pre-repair database while every per-index chain still looked
+    correct, so this pins which node feeds it.
+    """
+    flow = RoutingFlow("routing", np=3)
+
+    for index in ("0", "1", "2"):
+        assert flow.get_graph_node("detailed_antenna_repair", index).get_input() == \
+            [("detailed", index)]
+
+    assert flow.get_graph_node("min", "0").get_input() == \
+        [("detailed_antenna_repair", index) for index in ("0", "1", "2")]
+    assert flow.get_exit_nodes() == (("min", "0"),)
+
+
 def test_pex_calibrate_flow_structure():
     # PEXCalibrateFlow builds on ASICFlow by dropping the write steps and
     # calibrating on the routed database. It locates that database by the

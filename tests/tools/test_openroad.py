@@ -1045,9 +1045,9 @@ def test_openroad_apr_parameter_rsz_phases():
 def test_openroad_apr_parameter_rsz_phases_rejects_unknown():
     """The phase names are matched exactly by OpenROAD, so reject a typo at set time."""
     task = _apr.OpenROADRSZTimingParameter()
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="not a member of"):
         task.add_openroad_rszphases(["legacy"])
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="not a member of"):
         task.add_openroad_rszphases(["LEGACY_MT"])
 
 
@@ -1097,7 +1097,7 @@ def test_openroad_apr_parameter_rsz_effort_caps_reject_zero():
     for setter in (task.set_openroad_rszmaxpasses,
                    task.set_openroad_rszmaxiterations,
                    task.set_openroad_rszmaxrepairsperpass):
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError, match="not in range"):
             setter(0)
 
 

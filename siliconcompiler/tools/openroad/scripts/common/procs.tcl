@@ -132,6 +132,34 @@ proc sc_dpl_legalizer_args { } {
 # Resizer arguments
 ###########################
 
+# Filter a move sequence down to what the installed OpenROAD understands.
+#
+# Unlike the -sequence flag itself, the move *names* are recent: the current
+# vocabulary arrives with the resizer rearchitecture in 26Q2-384 and "reroute" only
+# in 26Q2-946, both far above the tool's declared floor. An unknown name is a hard
+# error inside repair_timing, and rsz_wns_sequence defaults to a sequence containing
+# reroute, so an older but supported build has to be given a sequence it can parse
+# rather than the raw list.
+#
+# Dropping every move leaves the caller to omit -sequence entirely, which falls back
+# to the tool's own ordering -- the pass still runs.
+proc sc_rsz_supported_moves { moves } {
+    if { ![sc_check_version 26 2 384] } {
+        return []
+    }
+    if { [sc_check_version 26 2 946] } {
+        return $moves
+    }
+
+    set supported []
+    foreach move $moves {
+        if { $move ne "reroute" } {
+            lappend supported $move
+        }
+    }
+    return $supported
+}
+
 # Build the repair_design argument list from the rsz_* task variables.
 proc sc_repair_design_args { } {
     set args []
@@ -219,8 +247,8 @@ proc sc_repair_timing_args { phase } {
             if { [sc_cfg_tool_task_get {var} rsz_skip_final_sizing] } {
                 lappend args -skip_last_gasp
             }
-            set sequence [sc_cfg_tool_task_get {var} rsz_sequence]
-            if { [llength $sequence] != 0 && [sc_check_version 24 3 5705] } {
+            set sequence [sc_rsz_supported_moves [sc_cfg_tool_task_get {var} rsz_sequence]]
+            if { [llength $sequence] != 0 } {
                 lappend args -sequence [join $sequence " "]
             }
             if { $phase == "setup" } {
@@ -255,8 +283,8 @@ proc sc_repair_timing_args { phase } {
             # Restricted to the moves that disturb placement and routing the least,
             # so it takes rsz_wns_sequence and always skips the final sizing pass.
             lappend args -skip_last_gasp -repair_tns 0
-            set sequence [sc_cfg_tool_task_get {var} rsz_wns_sequence]
-            if { [llength $sequence] != 0 && [sc_check_version 24 3 5705] } {
+            set sequence [sc_rsz_supported_moves [sc_cfg_tool_task_get {var} rsz_wns_sequence]]
+            if { [llength $sequence] != 0 } {
                 lappend args -sequence [join $sequence " "]
             }
         }
