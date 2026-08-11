@@ -57,12 +57,12 @@ class DetailedRouteAntennaRepairTask(DetailedRouteTask, OpenROADANTCheckParamete
     Repair antenna violations on the detailed routing
 
     Checks the routed design for antenna violations and, while any remain, inserts
-    diodes and reroutes the affected nets. Repairing against the detailed routes is
-    what both reference flows do, and it is the only point in the flow where the
-    antenna ratios being checked are the ones that ship.
+    diodes and reroutes the affected nets. This is the only point in the flow where
+    the antenna ratios being checked are the ones the design ships with, since
+    earlier checks see global route guides rather than real wires.
 
     Derives from the detailed routing task so the reroute uses exactly the detailed
-    router configuration the initial route used. The loop needs the main library to
+    router configuration the initial route used. Repair needs the main library to
     declare an antenna cell; without one only the check runs.
 
     Setting ``ant_margin`` above zero also enables the repair on a design the check
@@ -72,9 +72,9 @@ class DetailedRouteAntennaRepairTask(DetailedRouteTask, OpenROADANTCheckParamete
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("ant_reroute_iterations", "int<0..>",
-                           "maximum number of antenna repair and reroute iterations to perform, "
-                           "0 disables antenna repair", defvalue=5)
+        self.add_parameter("ant_reroute_iterations", "int<1..>",
+                           "maximum number of antenna repair and reroute iterations to perform",
+                           defvalue=5)
 
     def set_openroad_antrerouteiterations(self, iterations: int,
                                           step: Optional[str] = None,
@@ -86,8 +86,10 @@ class DetailedRouteAntennaRepairTask(DetailedRouteTask, OpenROADANTCheckParamete
         distinct from ``ant_iterations``, which bounds the iterations inside a single
         ``repair_antennas`` call.
 
+        Use ``ant_repair`` to turn the repair off entirely.
+
         Args:
-            iterations (int): The number of iterations, 0 disables the repair.
+            iterations (int): The number of iterations.
             step (str, optional): The specific step to apply this configuration to.
             index (str, optional): The specific index to apply this configuration to.
         """

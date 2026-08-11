@@ -978,14 +978,14 @@ def test_openroad_apr_parameter_rsz_skip_buffering():
     assert task.get("var", "rsz_skip_buffering") is True
 
 
-def test_openroad_apr_parameter_rsz_skip_last_gasp():
+def test_openroad_apr_parameter_rsz_skip_final_sizing():
     task = _apr.OpenROADRSZTimingParameter()
-    assert task.get("var", "rsz_skip_last_gasp") is False
-    task.set_openroad_rszskiplastgasp(True)
-    assert task.get("var", "rsz_skip_last_gasp") is True
-    task.set_openroad_rszskiplastgasp(False, step='rsz', index='1')
-    assert task.get("var", "rsz_skip_last_gasp", step='rsz', index='1') is False
-    assert task.get("var", "rsz_skip_last_gasp") is True
+    assert task.get("var", "rsz_skip_final_sizing") is False
+    task.set_openroad_rszskipfinalsizing(True)
+    assert task.get("var", "rsz_skip_final_sizing") is True
+    task.set_openroad_rszskipfinalsizing(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_final_sizing", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_final_sizing") is True
 
 
 def test_openroad_apr_parameter_rsz_skip_vt_swap():
@@ -1038,16 +1038,6 @@ def test_openroad_apr_parameter_rsz_max_buffer_percent():
     task.set_openroad_rszmaxbufferpercent(50, step='rsz', index='1')
     assert task.get("var", "rsz_max_buffer_percent", step='rsz', index='1') == 50
     assert task.get("var", "rsz_max_buffer_percent") == 20
-
-
-def test_openroad_apr_parameter_rsz_extra_args():
-    task = _apr.OpenROADRSZTimingParameter()
-    assert task.get("var", "rsz_extra_args") == []
-    task.add_openroad_rszextraargs(["-max_passes", "5"])
-    task.add_openroad_rszextraargs("-skip_size_down")
-    assert task.get("var", "rsz_extra_args") == ["-max_passes", "5", "-skip_size_down"]
-    task.add_openroad_rszextraargs("-max_iterations", clobber=True)
-    assert task.get("var", "rsz_extra_args") == ["-max_iterations"]
 
 
 def test_openroad_apr_parameter_rsz_match_cell_footprint():
@@ -2384,9 +2374,12 @@ def test_openroad_detailed_route_antenna_repair_parameter_reroute_iterations():
     task = detailed_route.DetailedRouteAntennaRepairTask()
     task.set_openroad_antrerouteiterations(3)
     assert task.get("var", "ant_reroute_iterations") == 3
-    task.set_openroad_antrerouteiterations(0, step='detailed', index='1')
-    assert task.get("var", "ant_reroute_iterations", step='detailed', index='1') == 0
+    task.set_openroad_antrerouteiterations(1, step='detailed', index='1')
+    assert task.get("var", "ant_reroute_iterations", step='detailed', index='1') == 1
     assert task.get("var", "ant_reroute_iterations") == 3
+    # ant_repair is the off switch, so 0 is not a value the schema accepts.
+    with pytest.raises(ValueError):
+        task.set_openroad_antrerouteiterations(0)
 
 
 def test_openroad_detailed_route_antenna_repair_reroutes_like_detailed_route():

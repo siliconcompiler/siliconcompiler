@@ -517,8 +517,9 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         self.add_parameter("rsz_skip_buffering", "bool",
                            "true/false, skip rebuffering and load splitting optimizations",
                            defvalue=False)
-        self.add_parameter("rsz_skip_last_gasp", "bool",
-                           "true/false, skip the final greedy sizing (\"last gasp\") optimization",
+        self.add_parameter("rsz_skip_final_sizing", "bool",
+                           "true/false, skip the greedy gate resizing pass that runs at the end "
+                           "of setup repair to pick up any slack the main optimization left",
                            defvalue=False)
         self.add_parameter("rsz_skip_vt_swap", "bool",
                            "true/false, skip threshold voltage (VT) swap optimization",
@@ -528,8 +529,7 @@ class OpenROADRSZTimingParameter(OpenROADTask):
                            "optimization", defvalue=False)
         self.add_parameter("rsz_sequence", f"[<{','.join(RSZ_MOVES)}>]",
                            "explicit order of setup optimization moves, an empty list uses the "
-                           "tool default. Requires OpenROAD 24Q3-5705 or newer, and the "
-                           "individual move names have their own version requirements",
+                           "tool default",
                            defvalue=[])
         self.add_parameter("rsz_repair_tns", "float<0.0..100.0>",
                            "percentage of violating nets to attempt to repair (0 - 100)",
@@ -544,10 +544,6 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         self.add_parameter("rsz_max_buffer_percent", "float<0.0..100.0>",
                            "maximum number of buffers hold repair may insert, as a percentage of "
                            "the instance count, unset uses the tool default")
-
-        self.add_parameter("rsz_extra_args", "[str]",
-                           "additional arguments to pass along to every repair_timing call. These "
-                           "are forwarded verbatim and are not version checked")
 
     def set_openroad_rszsetupslackmargin(self, margin: float,
                                          step: Optional[str] = None, index: Optional[str] = None):
@@ -622,17 +618,20 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         """
         self.set("var", "rsz_skip_buffering", skip, step=step, index=index)
 
-    def set_openroad_rszskiplastgasp(self, skip: bool,
-                                     step: Optional[str] = None, index: Optional[str] = None):
+    def set_openroad_rszskipfinalsizing(self, skip: bool,
+                                        step: Optional[str] = None, index: Optional[str] = None):
         """
-        Enables or disables the final greedy sizing ("last gasp") optimization.
+        Enables or disables the final greedy gate resizing pass.
+
+        This pass runs at the end of setup repair and picks up slack the main
+        optimization left behind.
 
         Args:
-            skip (bool): True to skip the last gasp pass, False to perform it.
+            skip (bool): True to skip the pass, False to perform it.
             step (str, optional): The specific step to apply this configuration to.
             index (str, optional): The specific index to apply this configuration to.
         """
-        self.set("var", "rsz_skip_last_gasp", skip, step=step, index=index)
+        self.set("var", "rsz_skip_final_sizing", skip, step=step, index=index)
 
     def set_openroad_rszskipvtswap(self, skip: bool,
                                    step: Optional[str] = None, index: Optional[str] = None):
@@ -697,26 +696,6 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         """
         self.set("var", "rsz_max_buffer_percent", percentage, step=step, index=index)
 
-    def add_openroad_rszextraargs(self, args: Union[str, List[str]],
-                                  step: Optional[str] = None, index: Optional[str] = None,
-                                  clobber: bool = False):
-        """
-        Adds additional arguments to pass along to every repair_timing call.
-
-        The arguments are forwarded verbatim and are not version checked, so it is
-        up to the caller to only use flags the installed OpenROAD supports.
-
-        Args:
-            args (Union[str, List[str]]): The argument(s) to add.
-            step (str, optional): The specific step to apply this configuration to.
-            index (str, optional): The specific index to apply this configuration to.
-            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
-        """
-        if clobber:
-            self.set("var", "rsz_extra_args", args, step=step, index=index)
-        else:
-            self.add("var", "rsz_extra_args", args, step=step, index=index)
-
     def set_openroad_rszrepairtns(self, percentage: float,
                                   step: Optional[str] = None, index: Optional[str] = None):
         """
@@ -750,7 +729,7 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         self.add_required_key("var", "rsz_skip_gate_cloning")
         self.add_required_key("var", "rsz_skip_buffer_removal")
         self.add_required_key("var", "rsz_skip_buffering")
-        self.add_required_key("var", "rsz_skip_last_gasp")
+        self.add_required_key("var", "rsz_skip_final_sizing")
         self.add_required_key("var", "rsz_skip_vt_swap")
         self.add_required_key("var", "rsz_skip_crit_vt_swap")
         self.add_required_key("var", "rsz_repair_tns")
@@ -761,8 +740,6 @@ class OpenROADRSZTimingParameter(OpenROADTask):
             self.add_required_key("var", "rsz_sequence")
         if self.get("var", "rsz_max_buffer_percent") is not None:
             self.add_required_key("var", "rsz_max_buffer_percent")
-        if self.get("var", "rsz_extra_args"):
-            self.add_required_key("var", "rsz_extra_args")
 
 
 class OpenROADDPLParameter(OpenROADTask):
@@ -1094,8 +1071,7 @@ class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
                            "maximum number of iterations to use in global routing when attempting "
                            "to solve overflow", defvalue=100)
         self.add_parameter("grt_seed", "int",
-                           "random seed for global routing, useful for perturbation studies, "
-                           "unset uses the tool default")
+                           "random seed for global routing, unset uses the tool default")
 
     def set_openroad_grtallowcongestion(self, allow: bool,
                                         step: Optional[str] = None, index: Optional[str] = None):

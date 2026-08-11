@@ -21,8 +21,7 @@ set ant_violations [check_antennas -report_file "reports/route/${sc_topmodule}.a
 # has to be attempted even when check_antennas reports the design clean.
 if {
     ($ant_violations != 0 || [sc_cfg_tool_task_get var ant_margin] > 0) &&
-    [sc_cfg_tool_task_get var ant_repair] &&
-    [sc_cfg_tool_task_get var ant_reroute_iterations] > 0
+    [sc_cfg_tool_task_get var ant_repair]
 } {
     # Initializing the detailed router is not free, so only do it once a repair is
     # actually going to be attempted. The reroute needs the same configuration the

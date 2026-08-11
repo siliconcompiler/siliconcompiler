@@ -173,20 +173,18 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
 
 class PostRouteRepairTimingTask(RepairTimingTask, OpenROADGRTGeneralParameter):
     '''
-    Perform timing repair using global routing parasitics
+    Repair timing on a globally routed design
 
-    This mirrors the repair sequence the OpenROAD flow scripts run in their global
-    route stage: DRV repair, setup repair, and hold repair, each followed by an
-    incremental global route and detailed placement, and then a final worst negative
-    slack pass that only swaps threshold voltages and reroutes so placement and
-    routing are barely perturbed.
+    Runs design rule violation repair, setup repair and hold repair against the
+    global routing parasitics, each followed by an incremental global route and
+    detailed placement so the design stays routed and legal. A final worst negative
+    slack pass then targets the single worst endpoint using only threshold voltage
+    swaps and rerouting, which improves the critical path while leaving placement
+    and routing almost untouched.
 
-    The pass is opt-in: it changes the quality of results and the runtime of an
-    already routed design, so ``rsz_enable`` must be set for the node to run.
-    Otherwise the node is skipped and its inputs are forwarded unchanged.
-
-    The default ``rsz_wns_sequence`` uses the ``reroute`` move, which requires
-    OpenROAD 26Q2-946 or newer.
+    Repairing an already routed design changes both quality of results and runtime,
+    so the task is opt-in: ``rsz_enable`` must be set for it to run. Otherwise the
+    node is skipped and its inputs are forwarded unchanged.
     '''
     def __init__(self):
         super().__init__()
@@ -195,17 +193,19 @@ class PostRouteRepairTimingTask(RepairTimingTask, OpenROADGRTGeneralParameter):
                            "true/false, when true perform timing repair using the global "
                            "routing parasitics", defvalue=False)
 
-    # This stage runs the WNS pass, and because of that the flow scripts skip power
-    # recovery here entirely.
     def _default_skip_wns_repair(self) -> bool:
+        """The worst negative slack pass needs the routing its moves reroute, so it is
+        on here and off for the pre-route repair."""
         return False
 
     def _default_skip_recover_power(self) -> bool:
+        """Power recovery upsizes and downsizes across the whole design, which undoes
+        the point of a pass this careful about disturbing a routed result."""
         return True
 
-    # Once the design is routed, restricting swaps to same footprint cells keeps the
-    # repair from disturbing the placement the design was routed against.
     def _default_match_cell_footprint(self) -> bool:
+        """Restricting swaps to cells of the same footprint keeps the repair from
+        moving the placement the design was already routed against."""
         return True
 
     def set_openroad_rszenable(self, enable: bool,

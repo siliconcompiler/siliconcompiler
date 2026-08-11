@@ -111,6 +111,114 @@ proc sc_grt_resistance_aware_args { } {
 }
 
 ###########################
+# Resizer arguments
+###########################
+
+# Build the repair_design argument list from the rsz_* task variables.
+proc sc_repair_design_args { } {
+    set args []
+
+    set cap_margin [sc_cfg_tool_task_get {var} rsz_cap_margin]
+    if { $cap_margin > 0 } {
+        lappend args -cap_margin $cap_margin
+    }
+    set slew_margin [sc_cfg_tool_task_get {var} rsz_slew_margin]
+    if { $slew_margin > 0 } {
+        lappend args -slew_margin $slew_margin
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_match_cell_footprint] } {
+        lappend args -match_cell_footprint
+    }
+    set max_utilization [sc_cfg_tool_task_get {var} rsz_max_utilization]
+    if { $max_utilization != {} } {
+        lappend args -max_utilization $max_utilization
+    }
+
+    return $args
+}
+
+# Build the repair_timing argument list for one repair phase, from the rsz_* task
+# variables. The phase decides which variables apply:
+#
+#   setup   the main setup pass: move controls plus rsz_sequence
+#   hold    the hold pass: move controls plus the two hold-only limits
+#   wns     the worst negative slack pass: move controls, rsz_wns_sequence, and a
+#           fixed -repair_tns 0 so only the single worst endpoint is repaired
+#   power   power recovery, which ignores the setup and hold move controls
+#
+# Flags that the installed OpenROAD is too old to accept are dropped here rather
+# than at the call site.
+proc sc_repair_timing_args { phase } {
+    # Shared by every phase.
+    set args []
+    if { [sc_cfg_tool_task_get {var} rsz_skip_pin_swap] } {
+        lappend args -skip_pin_swap
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_gate_cloning] } {
+        lappend args -skip_gate_cloning
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_buffer_removal] } {
+        lappend args -skip_buffer_removal
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_buffering] } {
+        lappend args -skip_buffering
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_vt_swap] && [sc_check_version 24 3 7918] } {
+        lappend args -skip_vt_swap
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_crit_vt_swap] && [sc_check_version 24 3 8690] } {
+        lappend args -skip_crit_vt_swap
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_match_cell_footprint] } {
+        lappend args -match_cell_footprint
+    }
+    set max_utilization [sc_cfg_tool_task_get {var} rsz_max_utilization]
+    if { $max_utilization != {} } {
+        lappend args -max_utilization $max_utilization
+    }
+
+    switch -exact -- $phase {
+        power {
+            # Power recovery ignores everything below.
+        }
+        setup -
+        hold {
+            if { [sc_cfg_tool_task_get {var} rsz_skip_final_sizing] } {
+                lappend args -skip_last_gasp
+            }
+            set sequence [sc_cfg_tool_task_get {var} rsz_sequence]
+            if { [llength $sequence] != 0 && [sc_check_version 24 3 5705] } {
+                lappend args -sequence [join $sequence " "]
+            }
+            if { $phase == "hold" } {
+                # Consumed by hold repair only, ignored by setup repair.
+                if { [sc_cfg_tool_task_get {var} rsz_allow_setup_violations] } {
+                    lappend args -allow_setup_violations
+                }
+                set max_buffer_percent [sc_cfg_tool_task_get {var} rsz_max_buffer_percent]
+                if { $max_buffer_percent != {} } {
+                    lappend args -max_buffer_percent $max_buffer_percent
+                }
+            }
+        }
+        wns {
+            # Restricted to the moves that disturb placement and routing the least,
+            # so it takes rsz_wns_sequence and always skips the final sizing pass.
+            lappend args -skip_last_gasp -repair_tns 0
+            set sequence [sc_cfg_tool_task_get {var} rsz_wns_sequence]
+            if { [llength $sequence] != 0 && [sc_check_version 24 3 5705] } {
+                lappend args -sequence [join $sequence " "]
+            }
+        }
+        default {
+            utl::error FLW 1 "Unknown repair_timing phase: $phase"
+        }
+    }
+
+    return $args
+}
+
+###########################
 # Detailed route arguments
 ###########################
 
@@ -182,7 +290,7 @@ proc sc_detailed_route_args { } {
 # script.
 #
 #   -iterations <n>          passed to repair_antennas as -iterations
-#   -reroute_iterations <n>  bound on the repair/reroute loop, defaults to 1
+#   -reroute_iterations <n>  bound on the repair/reroute loop, at least 1, defaults to 1
 #   -reroute <script>        evaluated in the caller's scope after each repair that
 #                            inserted diodes, to route the modified nets
 #
@@ -205,9 +313,6 @@ proc sc_repair_antennas { args } {
     set reroute_iterations 1
     if { [info exists keys(-reroute_iterations)] } {
         set reroute_iterations $keys(-reroute_iterations)
-    }
-    if { $reroute_iterations < 1 } {
-        return 0
     }
 
     set repair_args [list $antenna_cell -ratio_margin [sc_cfg_tool_task_get {var} ant_margin]]
