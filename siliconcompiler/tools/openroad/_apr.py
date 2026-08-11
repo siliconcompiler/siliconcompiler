@@ -723,33 +723,45 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         """
         self.set("var", "rsz_skip_crit_vt_swap", skip, step=step, index=index)
 
-    def set_openroad_rszsequence(self, moves: Union[str, List[str]],
-                                 step: Optional[str] = None, index: Optional[str] = None):
+    def add_openroad_rszsequence(self, moves: Union[str, List[str]],
+                                 step: Optional[str] = None, index: Optional[str] = None,
+                                 clobber: bool = False):
         """
-        Sets the explicit order of setup optimization moves.
+        Adds moves to the explicit order of setup optimization moves.
 
-        An empty list restores the tool default ordering.
+        Moves are appended in call order. The default is empty, which leaves the tool
+        to pick its own ordering.
 
         Args:
-            moves (Union[str, List[str]]): The ordered move name(s).
+            moves (Union[str, List[str]]): The ordered move name(s) to add.
             step (str, optional): The specific step to apply this configuration to.
             index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
         """
-        self.set("var", "rsz_sequence", moves, step=step, index=index)
+        if clobber:
+            self.set("var", "rsz_sequence", moves, step=step, index=index)
+        else:
+            self.add("var", "rsz_sequence", moves, step=step, index=index)
 
-    def set_openroad_rszphases(self, phases: Union[str, List[str]],
-                               step: Optional[str] = None, index: Optional[str] = None):
+    def add_openroad_rszphases(self, phases: Union[str, List[str]],
+                               step: Optional[str] = None, index: Optional[str] = None,
+                               clobber: bool = False):
         """
-        Sets the explicit order of setup optimization phases.
+        Adds phases to the explicit order of setup optimization phases.
 
-        An empty list restores the tool default ordering.
+        Phases are appended in call order. The default is empty, which leaves the tool
+        to pick its own ordering.
 
         Args:
-            phases (Union[str, List[str]]): The ordered phase name(s).
+            phases (Union[str, List[str]]): The ordered phase name(s) to add.
             step (str, optional): The specific step to apply this configuration to.
             index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
         """
-        self.set("var", "rsz_phases", phases, step=step, index=index)
+        if clobber:
+            self.set("var", "rsz_phases", phases, step=step, index=index)
+        else:
+            self.add("var", "rsz_phases", phases, step=step, index=index)
 
     def set_openroad_rszmaxpasses(self, passes: int,
                                   step: Optional[str] = None, index: Optional[str] = None):

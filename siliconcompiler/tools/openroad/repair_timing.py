@@ -110,20 +110,27 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
         """
         self.set("var", "rsz_skip_wns_repair", skip, step=step, index=index)
 
-    def set_openroad_rszwnssequence(self, moves: Union[str, List[str]],
+    def add_openroad_rszwnssequence(self, moves: Union[str, List[str]],
                                     step: Optional[str] = None,
-                                    index: Optional[Union[int, str]] = None):
+                                    index: Optional[Union[int, str]] = None,
+                                    clobber: bool = False):
         """
-        Sets the order of optimization moves for the worst negative slack repair pass.
+        Adds moves to the worst negative slack repair pass move order.
 
-        An empty list restores the tool default ordering.
+        Moves are appended in call order. Unlike the other move lists this one has a
+        non-empty default, so adding extends ``vt_swap reroute`` rather than replacing
+        it -- pass clobber to supply the whole sequence instead.
 
         Args:
-            moves (Union[str, List[str]]): The ordered move name(s).
+            moves (Union[str, List[str]]): The ordered move name(s) to add.
             step (str, optional): The specific step to apply this configuration to.
             index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
         """
-        self.set("var", "rsz_wns_sequence", moves, step=step, index=index)
+        if clobber:
+            self.set("var", "rsz_wns_sequence", moves, step=step, index=index)
+        else:
+            self.add("var", "rsz_wns_sequence", moves, step=step, index=index)
 
     def task(self):
         return "repair_timing"

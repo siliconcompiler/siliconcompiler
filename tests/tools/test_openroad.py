@@ -1012,31 +1012,43 @@ def test_openroad_apr_parameter_rsz_sequence():
     task = _apr.OpenROADRSZTimingParameter()
     # Empty by default so OpenROAD picks its own move ordering.
     assert task.get("var", "rsz_sequence") == []
-    task.set_openroad_rszsequence(["vt_swap", "reroute"])
+    task.add_openroad_rszsequence(["vt_swap", "reroute"])
     assert task.get("var", "rsz_sequence") == ["vt_swap", "reroute"]
-    task.set_openroad_rszsequence("sizeup", step='rsz', index='1')
+    task.add_openroad_rszsequence("sizeup", step='rsz', index='1')
     assert task.get("var", "rsz_sequence", step='rsz', index='1') == ["sizeup"]
     assert task.get("var", "rsz_sequence") == ["vt_swap", "reroute"]
+
+
+def test_openroad_apr_parameter_rsz_sequence_appends_in_order():
+    """The move order is the point of the parameter, so appending has to preserve it."""
+    task = _apr.OpenROADRSZTimingParameter()
+    task.add_openroad_rszsequence("unbuffer")
+    task.add_openroad_rszsequence(["sizeup", "swap"])
+    assert task.get("var", "rsz_sequence") == ["unbuffer", "sizeup", "swap"]
+    task.add_openroad_rszsequence("vt_swap", clobber=True)
+    assert task.get("var", "rsz_sequence") == ["vt_swap"]
 
 
 def test_openroad_apr_parameter_rsz_phases():
     task = _apr.OpenROADRSZTimingParameter()
     # Empty by default so OpenROAD picks its own phase ordering.
     assert task.get("var", "rsz_phases") == []
-    task.set_openroad_rszphases(["LEGACY", "LAST_GASP"])
+    task.add_openroad_rszphases(["LEGACY", "LAST_GASP"])
     assert task.get("var", "rsz_phases") == ["LEGACY", "LAST_GASP"]
-    task.set_openroad_rszphases("GLOBAL_SIZING", step='rsz', index='1')
+    task.add_openroad_rszphases("GLOBAL_SIZING", step='rsz', index='1')
     assert task.get("var", "rsz_phases", step='rsz', index='1') == ["GLOBAL_SIZING"]
     assert task.get("var", "rsz_phases") == ["LEGACY", "LAST_GASP"]
+    task.add_openroad_rszphases("WNS", clobber=True)
+    assert task.get("var", "rsz_phases") == ["WNS"]
 
 
 def test_openroad_apr_parameter_rsz_phases_rejects_unknown():
     """The phase names are matched exactly by OpenROAD, so reject a typo at set time."""
     task = _apr.OpenROADRSZTimingParameter()
     with pytest.raises(Exception):
-        task.set_openroad_rszphases(["legacy"])
+        task.add_openroad_rszphases(["legacy"])
     with pytest.raises(Exception):
-        task.set_openroad_rszphases(["LEGACY_MT"])
+        task.add_openroad_rszphases(["LEGACY_MT"])
 
 
 def test_openroad_apr_parameter_rsz_skip_size_down():
@@ -2542,11 +2554,23 @@ def test_openroad_repair_timing_parameter_skip_wns_repair():
 def test_openroad_repair_timing_parameter_wns_sequence():
     task = repair_timing.RepairTimingTask()
     assert task.get("var", "rsz_wns_sequence") == ["vt_swap", "reroute"]
-    task.set_openroad_rszwnssequence(["sizeup"])
+    task.add_openroad_rszwnssequence(["sizeup"], clobber=True)
     assert task.get("var", "rsz_wns_sequence") == ["sizeup"]
-    task.set_openroad_rszwnssequence("vt_swap", step='repair_timing', index='1')
+    task.add_openroad_rszwnssequence("vt_swap", step='repair_timing', index='1', clobber=True)
     assert task.get("var", "rsz_wns_sequence", step='repair_timing', index='1') == ["vt_swap"]
     assert task.get("var", "rsz_wns_sequence") == ["sizeup"]
+
+
+def test_openroad_repair_timing_parameter_wns_sequence_appends_to_default():
+    """This is the one move list with a non-empty default, so adding extends it.
+
+    Replacing the sequence needs clobber. Pinned because the asymmetry with
+    rsz_sequence and rsz_phases -- both empty by default, where add and set coincide
+    on a fresh task -- is easy to trip over.
+    """
+    task = repair_timing.RepairTimingTask()
+    task.add_openroad_rszwnssequence("sizeup")
+    assert task.get("var", "rsz_wns_sequence") == ["vt_swap", "reroute", "sizeup"]
 
 
 # ----------------------------------------------------------------------
