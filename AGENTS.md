@@ -196,6 +196,12 @@ pytest -m "not eda"                                # tests, no EDA tools needed
 cd docs && make html                               # warnings are errors
 ```
 
+The docs build needs **Python 3.13 or older**. It documents the cocotb tasks, and
+generating a task's documentation runs its `setup()`, which for those needs `cocotb`
+importable. The `docs` extra pulls it in, but `cocotb` is pinned to
+`python_version <= '3.13'`, so on 3.14 it resolves to nothing and the build fails on
+the first cocotb task. Everything else in the list is fine on 3.14.
+
 The fourth gate is **Verilog**, and it is the sharpest edge: it needs
 [Verible](https://github.com/chipsalliance/verible) (not a Python package), and
 the format check *rewrites* files and then fails if anything changed. Run it

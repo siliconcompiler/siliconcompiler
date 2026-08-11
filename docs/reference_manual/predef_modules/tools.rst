@@ -45,7 +45,7 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. sctool::
   :root: siliconcompiler.tools.icarus
-  :tasks: compile/CompileTask
+  :tasks: cocotb_exec/CocotbExecTask compile/CompileTask
 
 .. sctool::
   :root: siliconcompiler.tools.icepack
@@ -105,7 +105,7 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. sctool::
   :root: siliconcompiler.tools.verilator
-  :tasks: cocotb_compile/CocotbCompileTask compile/CompileTask lint/LintTask
+  :tasks: cocotb_compile/CocotbCompileTask cocotb_exec/CocotbExecTask compile/CompileTask lint/LintTask
 
 .. sctool::
   :root: siliconcompiler.tools.vivado

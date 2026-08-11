@@ -102,7 +102,12 @@ docs = [
     "Sphinx >= 7.4, <8.3",
     "pip-licenses == 5.5.5",
     "pydata-sphinx-theme == 0.19.0",
-    "sc-leflib >= 0.2.0"
+    "sc-leflib >= 0.2.0",
+    # The reference manual documents the cocotb tasks, and generating a task's
+    # documentation runs its setup(), which for the exec tasks needs cocotb
+    # importable. Self-reference rather than repeating the pin, so the version and
+    # its python_version marker stay defined in one place.
+    "siliconcompiler[cocotb]"
 ]
 optimizer = [
     "google-vizier[jax] == 0.1.21; python_version >= '3.10'"
