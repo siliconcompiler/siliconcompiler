@@ -40,7 +40,9 @@ class ASICFlow(Flowgraph):
           insertion, power grid generation, and pin placement.
         * **place**: Global and detailed placement.
         * **cts**: Clock tree synthesis and post-CTS timing repair.
-        * **route**: Global and detailed routing.
+        * **route**: Global routing, optional timing repair on the global routing
+          parasitics, antenna repair, detailed routing, and antenna repair on the
+          detailed routes.
         * **dfm**: Design-for-manufacturing steps, primarily metal fill.
         * **write**: Writing out final views of the design (GDSII, etc.).
 
