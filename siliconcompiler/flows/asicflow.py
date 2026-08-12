@@ -103,27 +103,20 @@ class ASICFlow(Flowgraph):
             prev_node = "synthesis.min"
         self.rename_node("timing", "synthesis.timing")
 
-        for prefix, graph in [
-                ("cleanup", CleanupSynthFlow(np=1)),
-                ("floorplan", FloorplanningFlow(np=floorplan_np)),
-                ("place", PlacementFlow(np=place_np)),
-                ("cts", ClockTreeSynthesisFlow(np=cts_np)),
-                ("cts", FillerCellFlow(np=1)),  # use cts for now
-                ("route", RoutingFlow(np=route_np)),
-                ("dfm", MetalFillFlow(np=1))]:
-            self.graph(graph, name=prefix)
-            for node in graph.get_entry_nodes():
-                self.edge(prev_node, f"{prefix}.{node[0]}", head_index=node[1])
+        cleanup = CleanupSynthFlow(np=1)
+        self.graph(cleanup, name="cleanup")
+        for node in cleanup.get_entry_nodes():
+            self.edge(prev_node, f"cleanup.{node[0]}", head_index=node[1])
 
-            prev_node = graph.get_exit_nodes()
-            if len(prev_node) != 1:
-                raise ValueError(f"{graph.name} must have exactly one exit node.")
-            prev_node = f"{prefix}.{prev_node[0][0]}"  # Get the node name from the tuple
+        prev_node = cleanup.get_exit_nodes()
+        if len(prev_node) != 1:
+            raise ValueError(f"{cleanup.name} must have exactly one exit node.")
+        prev_node = f"cleanup.{prev_node[0][0]}"  # Get the node name from the tuple
 
-        self.node("write.views", write_data.WriteViewsTask())
-        self.edge(prev_node, "write.views")
-        self.node("write.gds", klayout_export.ExportTask())
-        self.edge(prev_node, "write.gds")
+        pnr = PNRFlow(floorplan_np=floorplan_np, place_np=place_np, cts_np=cts_np, route_np=route_np)
+        self.graph(pnr)
+        for step, index in pnr.get_entry_nodes():
+            self.edge(prev_node, step, head_index=index)
 
     @classmethod
     def make_docs(cls):
@@ -146,6 +139,70 @@ class ASICFlow(Flowgraph):
             cls(language="vhdl", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
             cls(language="hls", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3),
             cls(language="bluespec", syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+        ]
+
+
+class PNRFlow(Flowgraph):
+    '''A flow that performs only the place-and-route portion of the ASIC flow.
+
+    This flow is useful for quickly checking that a design can be successfully
+    placed and routed without running synthesis or timing analysis. It includes
+    floorplanning, placement, clock tree synthesis, and routing.
+    '''
+
+    def __init__(self, name: Optional[str] = None,
+                 floorplan_np: int = 1,
+                 place_np: int = 1,
+                 cts_np: int = 1,
+                 route_np: int = 1):
+        """
+        Initializes the PNRFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * np (int): The number of parallel jobs to launch.
+        """
+        if name is None:
+            name = "pnrflow"
+        super().__init__(name)
+
+        prev_node = None
+        for prefix, graph in [
+                ("floorplan", FloorplanningFlow(np=floorplan_np)),
+                ("place", PlacementFlow(np=place_np)),
+                ("cts", ClockTreeSynthesisFlow(np=cts_np)),
+                ("cts", FillerCellFlow(np=1)),  # use cts for now
+                ("route", RoutingFlow(np=route_np)),
+                ("dfm", MetalFillFlow(np=1))]:
+            self.graph(graph, name=prefix)
+            if prev_node is not None:
+                for node in graph.get_entry_nodes():
+                    self.edge(prev_node, f"{prefix}.{node[0]}", head_index=node[1])
+
+            prev_node = graph.get_exit_nodes()
+            if len(prev_node) != 1:
+                raise ValueError(f"{graph.name} must have exactly one exit node.")
+            prev_node = f"{prefix}.{prev_node[0][0]}"  # Get the node name from the tuple
+
+        self.node("write.views", write_data.WriteViewsTask())
+        self.edge(prev_node, "write.views")
+        self.node("write.gds", klayout_export.ExportTask())
+        self.edge(prev_node, "write.gds")
+
+    @classmethod
+    def make_docs(cls):
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create representative instances of the flow, one for each supported
+        source language, with parallel execution enabled to demonstrate the
+        flow's capabilities.
+
+        Returns:
+            A list of PNRFlow instances.
+        '''
+        return [
+            cls(floorplan_np=3, place_np=3, cts_np=3, route_np=3)
         ]
 
 
