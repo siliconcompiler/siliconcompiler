@@ -70,6 +70,44 @@ above opens it for you.
    the implemented design still matches the RTL. ``smake power`` then chains
    three jobs to turn that simulation's VCD into a vector-driven power number.
 
+Looking at the waveform
+-----------------------
+
+.. index:: ! waveform, ! VCD, ! FST, ! surfer, ! vcd2fst, ! view a waveform
+
+A simulation that only prints pass or fail tells you little when it fails. The
+viewer is `surfer <https://surfer-project.org>`_, and it is reached the same way
+as a layout viewer -- :meth:`.Project.show` picks the viewer from the file
+extension, so a run that produced a waveform needs no extra configuration:
+
+.. code-block:: python
+
+   project.run()
+   project.show()          # opens the VCD in surfer
+
+An earlier run's trace can be opened without re-simulating, either by pointing at
+the file or by letting ``sc-show`` find it in the build tree:
+
+.. code-block:: bash
+
+   sc-show build/heartbeat/job0/sim/0/reports/heartbeat.vcd
+   sc-show -design heartbeat -ext vcd
+
+Install it with the rest of the tools:
+
+.. code-block:: bash
+
+   sc-install surfer
+
+.. note::
+   VCD is a verbose format, and a long gate-level simulation can produce a file
+   large enough to be slow to load. ``vcd2fst`` converts one to the compact FST
+   format, which surfer reads just as well:
+
+   .. code-block:: bash
+
+      sc-install vcd2fst
+
 Python testbenches with cocotb
 ==============================
 

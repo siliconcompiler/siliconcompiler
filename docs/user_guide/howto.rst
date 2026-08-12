@@ -442,6 +442,54 @@ macro exists.
 
    uq.build(target=freepdk45_demo, macros="mymodule__N8", rebuild=True)
 
+Wrap a design in an IO pad ring
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index:: ! padring, ! pad ring, ! IO pads, ! bond pad, ! CELLMAP,
+   ! place_pads, ! connect_by_abutment
+
+:ref:`Implementing an IO pad ring <padring_tutorial>` walks through this end to
+end, and ``examples/padring`` is the working design it builds. In short, three
+pieces are involved:
+
+#. **The ring in RTL.** Depend on lambdalib's pad ring generator rather than
+   naming technology cells, and describe the cell order per side in a
+   ``CELLMAP``. ``lambdalib`` installs with ``lambdapdk``, so it is already
+   present::
+
+       from lambdalib.padring import Padring
+       ...
+       self.add_depfileset(Padring(), "rtl")
+
+#. **A top level whose ports are the pads.** Name them for what they carry, and
+   declare the direction each is really used in -- the ring's cells are all
+   bidirectional, but a pin on the finished part is not, and only the supplies are
+   genuinely ``inout``. Underneath, the logic talks to the ring through
+   ``din``/``dout``/``oen``/``ie`` and a technology configuration bus per side,
+   never touching a pad cell, which is what keeps it portable between
+   technologies.
+
+#. **Physical construction in TCL**, attached to the tasks that read it. These
+   are task variables, not schema keys:
+
+   .. code-block:: python
+
+      InitFloorplanTask.find_task(project).add_openroad_padringfileset("padring.sky130")
+      PowerGridTask.find_task(project).add_openroad_powergridfileset("mydesign", "pdn.sky130")
+      for task in APRTask.find_task(project):
+          task.add_openroad_globalconnectfileset("mydesign", "globalconns.sky130")
+
+   Note that the pad ring hook takes only a fileset name while the other two also
+   take the library that owns the fileset.
+
+The TCL itself places pads into IO rows, then corners, then fill, then calls
+``connect_by_abutment`` so the supply and configuration signals pass between
+neighbouring cells, then adds bond pads. The order matters. Use
+``-connect_to_pads`` on the core power rings so the core is fed from the ring.
+
+A die with a ring is usually **pad limited**: its size is set by how many pads
+must fit around the edge, not by the logic inside.
+
 Schema internals
 ================
 
