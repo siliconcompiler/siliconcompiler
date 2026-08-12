@@ -3,6 +3,7 @@ import json
 import os
 import pytest
 import requests
+import stat
 import sys
 import time
 import uuid
@@ -481,6 +482,59 @@ def test_configure_override_n(monkeypatch):
 
 
 @pytest.fixture
+def permissive_umask():
+    # Ensure the file mode comes from the write itself and not from the umask.
+    old_umask = os.umask(0o000)
+    try:
+        yield
+    finally:
+        os.umask(old_umask)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="file modes are not enforced on windows")
+def test_configure_file_is_private(monkeypatch, permissive_umask):
+    # The credentials hold a plaintext password, so the file must not be readable
+    # by other users on the machine.
+    server_name = 'https://example.com'
+    monkeypatch.setattr('sys.argv', ['sc-remote', '-configure'])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write(f'{server_name}\nci_test_user\nci_test_password\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    with open(default_credentials_file(), 'r') as cf:
+        assert json.loads(cf.read())['password'] == 'ci_test_password'
+
+    assert stat.S_IMODE(os.stat(default_credentials_file()).st_mode) == 0o600
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="file modes are not enforced on windows")
+def test_configure_file_is_private_existing_file(monkeypatch):
+    # Rerunning -configure over a file which is already exposed must tighten it.
+    os.makedirs(os.path.dirname(default_credentials_file()))
+    with open(default_credentials_file(), 'w') as cf:
+        cf.write('{"address": "old_example_address"}')
+    os.chmod(default_credentials_file(), 0o644)
+
+    server_name = 'https://example.com'
+    monkeypatch.setattr('sys.argv', ['sc-remote', '-configure'])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write(f'y\n{server_name}\nci_test_user\nci_test_password\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    assert stat.S_IMODE(os.stat(default_credentials_file()).st_mode) == 0o600
+
+
+@pytest.fixture
 def credentials_file(monkeypatch):
     cred_file = 'testing_credentials.json'
     monkeypatch.setattr('sys.argv', ['sc-remote',
@@ -611,6 +665,21 @@ def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
     assert set(generated_creds['directory_whitelist']) == \
         set([os.path.abspath('add_this'), os.path.abspath('add_this_too'),
              os.path.abspath('add_this_too_too')])
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="file modes are not enforced on windows")
+def test_configure_whitelist_file_is_private(credentials_file, monkeypatch):
+    # Updating the whitelist rewrites the whole file, including the password.
+    os.chmod(credentials_file, 0o644)
+
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', credentials_file,
+                                     '-add', './add_this'])
+
+    sc_remote.main()
+
+    assert stat.S_IMODE(os.stat(credentials_file).st_mode) == 0o600
 
 
 @pytest.mark.parametrize("args", list(itertools.permutations(

@@ -94,6 +94,17 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         return cfg_file
 
+    def __write_remote_config_file(self, cfg_file: str) -> None:
+        # The configuration can hold a plaintext password / API key, so it must
+        # not be readable by other users on the machine.
+        handle = os.open(cfg_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(handle, 'w') as f:
+            f.write(json.dumps(self.__config, indent=4))
+
+        # os.open() only applies the mode when it creates the file, but this is
+        # regularly called on a file which already exists, so tighten it again.
+        os.chmod(cfg_file, 0o600)
+
     def __init_config(self):
         cfg_file = self.__get_remote_config_file()
 
@@ -939,8 +950,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self.__config['directory_whitelist'] = []
 
         # Save the values to the target config file in JSON format.
-        with open(cfg_file, 'w') as f:
-            f.write(json.dumps(self.__config, indent=4))
+        self.__write_remote_config_file(cfg_file)
 
         # Let the user know that we finished successfully.
         self.__logger.info(f'Remote configuration saved to: {cfg_file}')
@@ -970,8 +980,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self.__config['directory_whitelist'] = list(set(self.__config['directory_whitelist']))
 
         # Save the values to the target config file in JSON format.
-        with open(cfg_file, 'w') as f:
-            f.write(json.dumps(self.__config, indent=4))
+        self.__write_remote_config_file(cfg_file)
 
     #######################################
     def __getstate__(self):
