@@ -1758,8 +1758,8 @@ def test_openroad_cleanup_synth_rejects_remove_plus_repair(asic_gcd, remove, rep
             assert node.setup() is True
         else:
             with pytest.raises(ValueError,
-                               match="^remove_synth_buffers and repair_synth_timing are "
-                                     "alternatives, not additive: .* Enable one or neither\\.$"):
+                               match=r"^remove_synth_buffers and repair_synth_timing are "
+                                     r"alternatives, not additive: .* Enable one or neither\.$"):
                 node.task.setup()
 
 

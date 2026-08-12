@@ -39,6 +39,7 @@ if { [sc_cfg_tool_task_get var repair_synth_timing] } {
     sc_report_args -command repair_timing -args $repair_args
     repair_timing -setup \
         -setup_margin [sc_cfg_tool_task_get var rsz_setup_slack_margin] \
+        -repair_tns [sc_cfg_tool_task_get var rsz_repair_tns] \
         {*}$repair_args
 }
 
