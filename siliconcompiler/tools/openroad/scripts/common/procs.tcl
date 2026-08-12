@@ -95,6 +95,335 @@ proc sc_global_placement { args } {
 }
 
 ###########################
+# Resistance aware global routing
+###########################
+
+# Upstream passes -resistance_aware on every global_route call including the
+# incremental ones issued around detailed placement, hence a shared proc.
+proc sc_grt_resistance_aware_args { } {
+    if {
+        [sc_cfg_tool_task_get {var} grt_resistance_aware] &&
+        [sc_check_version 24 3 9363]
+    } {
+        return [list -resistance_aware]
+    }
+    return []
+}
+
+###########################
+# Detailed placement legalizer
+###########################
+
+# The negotiation-based legalizer became the detailed_placement default in 26Q3-441,
+# which is also when the opt-out for the original diamond search engine was named
+# -use_diamond_legalizer. Older builds legalize with diamond search regardless, so
+# there is nothing to pass them.
+proc sc_dpl_legalizer_args { } {
+    if {
+        [sc_cfg_tool_task_get {var} dpl_use_diamond_legalizer] &&
+        [sc_check_version 26 3 441]
+    } {
+        return [list -use_diamond_legalizer]
+    }
+    return []
+}
+
+###########################
+# Resizer arguments
+###########################
+
+# Filter a move sequence down to what the installed OpenROAD understands.
+#
+# Unlike the -sequence flag itself, the move *names* are recent: the current
+# vocabulary arrives with the resizer rearchitecture in 26Q2-384 and "reroute" only
+# in 26Q2-946, both far above the tool's declared floor. An unknown name is a hard
+# error inside repair_timing, and rsz_wns_sequence defaults to a sequence containing
+# reroute, so an older but supported build has to be given a sequence it can parse
+# rather than the raw list.
+#
+# Dropping every move leaves the caller to omit -sequence entirely, which falls back
+# to the tool's own ordering -- the pass still runs.
+proc sc_rsz_supported_moves { moves } {
+    if { ![sc_check_version 26 2 384] } {
+        return []
+    }
+    if { [sc_check_version 26 2 946] } {
+        return $moves
+    }
+
+    set supported []
+    foreach move $moves {
+        if { $move ne "reroute" } {
+            lappend supported $move
+        }
+    }
+    return $supported
+}
+
+# Build the repair_design argument list from the rsz_* task variables.
+proc sc_repair_design_args { } {
+    set args []
+
+    set cap_margin [sc_cfg_tool_task_get {var} rsz_cap_margin]
+    if { $cap_margin > 0 } {
+        lappend args -cap_margin $cap_margin
+    }
+    set slew_margin [sc_cfg_tool_task_get {var} rsz_slew_margin]
+    if { $slew_margin > 0 } {
+        lappend args -slew_margin $slew_margin
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_match_cell_footprint] } {
+        lappend args -match_cell_footprint
+    }
+    set max_utilization [sc_cfg_tool_task_get {var} rsz_max_utilization]
+    if { $max_utilization != {} } {
+        lappend args -max_utilization $max_utilization
+    }
+    set max_wire_length [sc_cfg_tool_task_get {var} rsz_max_wire_length]
+    if { $max_wire_length != {} } {
+        lappend args -max_wire_length $max_wire_length
+    }
+
+    return $args
+}
+
+# Build the repair_timing argument list for one repair phase, from the rsz_* task
+# variables. The phase decides which variables apply:
+#
+#   setup   the main setup pass: move controls, rsz_sequence, and the setup-only
+#           rsz_phases / rsz_skip_size_down / rsz_max_repairs_per_pass
+#   hold    the hold pass: move controls plus the two hold-only limits
+#   wns     the worst negative slack pass: move controls, rsz_wns_sequence, and a
+#           fixed -repair_tns 0 so only the single worst endpoint is repaired
+#   power   power recovery, which ignores the setup and hold move controls
+#
+# Flags that the installed OpenROAD is too old to accept are dropped here rather
+# than at the call site.
+proc sc_repair_timing_args { phase } {
+    # Shared by every phase.
+    set args []
+    if { [sc_cfg_tool_task_get {var} rsz_skip_pin_swap] } {
+        lappend args -skip_pin_swap
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_gate_cloning] } {
+        lappend args -skip_gate_cloning
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_buffer_removal] } {
+        lappend args -skip_buffer_removal
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_buffering] } {
+        lappend args -skip_buffering
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_vt_swap] && [sc_check_version 24 3 7918] } {
+        lappend args -skip_vt_swap
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_skip_crit_vt_swap] && [sc_check_version 24 3 8690] } {
+        lappend args -skip_crit_vt_swap
+    }
+    if { [sc_cfg_tool_task_get {var} rsz_match_cell_footprint] } {
+        lappend args -match_cell_footprint
+    }
+    set max_utilization [sc_cfg_tool_task_get {var} rsz_max_utilization]
+    if { $max_utilization != {} } {
+        lappend args -max_utilization $max_utilization
+    }
+    # Effort caps. Upstream feeds these to both setup and hold repair but not to power
+    # recovery, so the power phase accepts and ignores them.
+    set max_passes [sc_cfg_tool_task_get {var} rsz_max_passes]
+    if { $max_passes != {} } {
+        lappend args -max_passes $max_passes
+    }
+    set max_iterations [sc_cfg_tool_task_get {var} rsz_max_iterations]
+    if { $max_iterations != {} && [sc_check_version 24 3 9983] } {
+        lappend args -max_iterations $max_iterations
+    }
+
+    switch -exact -- $phase {
+        power {
+            # Power recovery ignores everything below.
+        }
+        setup -
+        hold {
+            if { [sc_cfg_tool_task_get {var} rsz_skip_final_sizing] } {
+                lappend args -skip_last_gasp
+            }
+            set sequence [sc_rsz_supported_moves [sc_cfg_tool_task_get {var} rsz_sequence]]
+            if { [llength $sequence] != 0 } {
+                lappend args -sequence [join $sequence " "]
+            }
+            if { $phase == "setup" } {
+                # Consumed by setup repair only, ignored by hold repair.
+                if {
+                    [sc_cfg_tool_task_get {var} rsz_skip_size_down] &&
+                    [sc_check_version 24 3 6057]
+                } {
+                    lappend args -skip_size_down
+                }
+                set phases [sc_cfg_tool_task_get {var} rsz_phases]
+                if { [llength $phases] != 0 && [sc_check_version 26 1 217] } {
+                    lappend args -phases [join $phases " "]
+                }
+                set max_repairs [sc_cfg_tool_task_get {var} rsz_max_repairs_per_pass]
+                if { $max_repairs != {} && [sc_check_version 24 3 3287] } {
+                    lappend args -max_repairs_per_pass $max_repairs
+                }
+            }
+            if { $phase == "hold" } {
+                # Consumed by hold repair only, ignored by setup repair.
+                if { [sc_cfg_tool_task_get {var} rsz_allow_setup_violations] } {
+                    lappend args -allow_setup_violations
+                }
+                set max_buffer_percent [sc_cfg_tool_task_get {var} rsz_max_buffer_percent]
+                if { $max_buffer_percent != {} } {
+                    lappend args -max_buffer_percent $max_buffer_percent
+                }
+            }
+        }
+        wns {
+            # Restricted to the moves that disturb placement and routing the least,
+            # so it takes rsz_wns_sequence and always skips the final sizing pass.
+            lappend args -skip_last_gasp -repair_tns 0
+            set sequence [sc_rsz_supported_moves [sc_cfg_tool_task_get {var} rsz_wns_sequence]]
+            if { [llength $sequence] != 0 } {
+                lappend args -sequence [join $sequence " "]
+            }
+        }
+        default {
+            utl::error FLW 1 "Unknown repair_timing phase: $phase"
+        }
+    }
+
+    return $args
+}
+
+###########################
+# Detailed route arguments
+###########################
+
+# Build the detailed_route argument list. Shared so the antenna repair that follows
+# routing reroutes with exactly the same settings the initial route used.
+#
+# Also applies the routing layer range, which on newer OpenROAD is set through
+# set_routing_layers rather than passed as arguments.
+proc sc_detailed_route_args { } {
+    global sc_pdk
+    global sc_topmodule
+
+    set drt_arguments []
+    if { [sc_cfg_tool_task_get {var} drt_disable_via_gen] } {
+        lappend drt_arguments "-disable_via_gen"
+    }
+    set drt_process_node [sc_cfg_tool_task_get {var} drt_process_node]
+    if { $drt_process_node != {} } {
+        lappend drt_arguments "-db_process_node" $drt_process_node
+    }
+    set drt_via_in_pin_bottom_layer \
+        [sc_get_layer_name [sc_cfg_tool_task_get {var} drt_via_in_pin_bottom_layer]]
+    if { $drt_via_in_pin_bottom_layer != {} } {
+        lappend drt_arguments "-via_in_pin_bottom_layer" $drt_via_in_pin_bottom_layer
+    }
+    set drt_via_in_pin_top_layer \
+        [sc_get_layer_name [sc_cfg_tool_task_get {var} drt_via_in_pin_top_layer]]
+    if { $drt_via_in_pin_top_layer != {} } {
+        lappend drt_arguments "-via_in_pin_top_layer" $drt_via_in_pin_top_layer
+    }
+    set drt_repair_pdn_vias \
+        [sc_get_layer_name [sc_cfg_tool_task_get {var} drt_repair_pdn_vias]]
+    if { $drt_repair_pdn_vias != {} } {
+        lappend drt_arguments "-repair_pdn_vias" $drt_repair_pdn_vias
+    }
+    set drt_end_iteration [sc_cfg_tool_task_get {var} drt_end_iteration]
+    if { $drt_end_iteration != {} } {
+        lappend drt_arguments "-droute_end_iter" $drt_end_iteration
+    }
+    lappend drt_arguments -drc_report_iter_step [sc_cfg_tool_task_get {var} drt_report_interval]
+
+    set sc_minmetal [sc_get_layer_name [sc_cfg_get library $sc_pdk pdk minlayer]]
+    set sc_maxmetal [sc_get_layer_name [sc_cfg_get library $sc_pdk pdk maxlayer]]
+
+    if { [sc_check_version 24 3 7648] } {
+        set_routing_layers -signal "${sc_minmetal}-${sc_maxmetal}"
+    } else {
+        lappend drt_arguments -bottom_routing_layer $sc_minmetal
+        lappend drt_arguments -top_routing_layer $sc_maxmetal
+    }
+
+    lappend drt_arguments \
+        -save_guide_updates \
+        -output_drc "reports/checks/${sc_topmodule}.drc.rpt" \
+        -verbose 1
+
+    return $drt_arguments
+}
+
+###########################
+# Antenna repair
+###########################
+
+# Repair antenna violations with the main library's antenna cell.
+#
+# Filler cells have to come out first so the inserted diodes have sites to be
+# placed in, and go back in afterwards. Both the pre-route and post-route antenna
+# steps need that bracketing, which is why it lives here rather than in either
+# script.
+#
+#   -iterations <n>          passed to repair_antennas as -iterations
+#   -reroute_iterations <n>  bound on the repair/reroute loop, at least 1, defaults to 1
+#   -reroute <script>        evaluated in the caller's scope after each repair that
+#                            inserted diodes, to route the modified nets
+#
+# Returns 1 if a repair was attempted, 0 if there is no antenna cell to use.
+proc sc_repair_antennas { args } {
+    sta::parse_key_args "sc_repair_antennas" args \
+        keys {-iterations -reroute_iterations -reroute} \
+        flags {}
+    sta::check_argc_eq0 "sc_repair_antennas" $args
+
+    global sc_mainlib
+
+    set antenna_cells [sc_cfg_get library $sc_mainlib asic cells antenna]
+    if { [llength $antenna_cells] == 0 } {
+        utl::info FLW 1 "No antenna cell available, skipping antenna repair"
+        return 0
+    }
+    set antenna_cell [lindex $antenna_cells 0]
+
+    set reroute_iterations 1
+    if { [info exists keys(-reroute_iterations)] } {
+        set reroute_iterations $keys(-reroute_iterations)
+    }
+
+    set repair_args [list $antenna_cell -ratio_margin [sc_cfg_tool_task_get {var} ant_margin]]
+    if { [info exists keys(-iterations)] } {
+        lappend repair_args -iterations $keys(-iterations)
+    }
+
+    # Remove filler cells so the diodes have sites to be placed in
+    remove_fillers
+
+    for { set iter 1 } { $iter <= $reroute_iterations } { incr iter } {
+        if { $iter > 1 && [check_antennas] == 0 } {
+            break
+        }
+        puts "Starting antenna repair iteration $iter of $reroute_iterations\
+            with ${antenna_cell} cell"
+        sc_report_args -command repair_antennas -args $repair_args
+        if { ![repair_antennas {*}$repair_args] } {
+            utl::info FLW 1 "No diodes inserted, ending antenna repair"
+            break
+        }
+        if { [info exists keys(-reroute)] } {
+            uplevel 1 $keys(-reroute)
+        }
+    }
+
+    # Add filler cells back
+    sc_insert_fillers
+
+    return 1
+}
+
+###########################
 # Detailed Placement
 ###########################
 
@@ -117,11 +446,13 @@ proc sc_detailed_placement { args } {
     }
 
     detailed_placement \
-        -max_displacement [sc_cfg_tool_task_get var dpl_max_displacement]
+        -max_displacement [sc_cfg_tool_task_get var dpl_max_displacement] \
+        {*}[sc_dpl_legalizer_args]
 
     if { $incremental_route } {
         global_route -end_incremental \
-            -congestion_report_file $keys(-congestion_report)
+            -congestion_report_file $keys(-congestion_report) \
+            {*}[sc_grt_resistance_aware_args]
     }
 
     check_placement -verbose

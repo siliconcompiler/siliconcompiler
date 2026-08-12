@@ -45,6 +45,13 @@ set sc_grt_arguments []
 if { [sc_cfg_tool_task_get {var} grt_allow_congestion] } {
     lappend sc_grt_arguments "-allow_congestion"
 }
+lappend sc_grt_arguments {*}[sc_grt_resistance_aware_args]
+
+set grt_seed [sc_cfg_tool_task_get {var} grt_seed]
+if { $grt_seed != {} } {
+    utl::info FLW 1 "Setting global routing random seed to $grt_seed"
+    set_global_routing_random -seed $grt_seed
+}
 
 sc_report_args -command global_route -args $sc_grt_arguments
 if {

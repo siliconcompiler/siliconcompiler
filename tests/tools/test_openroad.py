@@ -5,6 +5,7 @@ import pytest
 
 from siliconcompiler import Design
 from siliconcompiler import Flowgraph
+from siliconcompiler import TaskSkip
 
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.flows.openroad_pex import (
@@ -25,6 +26,9 @@ from siliconcompiler.tools.openroad import show as openroad_show
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.tools.openroad import write_data
 from siliconcompiler.tools.openroad import antenna_repair
+from siliconcompiler.tools.openroad import clock_tree_synthesis
+from siliconcompiler.tools.openroad import detailed_placement
+from siliconcompiler.tools.openroad import detailed_route
 from siliconcompiler.tools.openroad import fillmetal_insertion
 from siliconcompiler.tools.openroad import global_placement
 from siliconcompiler.tools.openroad import global_route
@@ -916,6 +920,9 @@ def test_openroad_apr_parameter_rsz_hold_slack_margin():
 
 def test_openroad_apr_parameter_rsz_skip_pin_swap():
     task = _apr.OpenROADRSZTimingParameter()
+    # Both transforms are on in ORFS and LibreLane; they were skipped in SC only
+    # because of LEC issues that have since been fixed upstream.
+    assert task.get("var", "rsz_skip_pin_swap") is False
     task.set_openroad_rszskippinswap(True)
     assert task.get("var", "rsz_skip_pin_swap") is True
     task.set_openroad_rszskippinswap(False, step='rsz', index='1')
@@ -925,6 +932,7 @@ def test_openroad_apr_parameter_rsz_skip_pin_swap():
 
 def test_openroad_apr_parameter_rsz_skip_gate_cloning():
     task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_gate_cloning") is False
     task.set_openroad_rszskipgatecloning(True)
     assert task.get("var", "rsz_skip_gate_cloning") is True
     task.set_openroad_rszskipgatecloning(False, step='rsz', index='1')
@@ -950,6 +958,216 @@ def test_openroad_apr_parameter_rsz_recover_power():
     assert task.get("var", "rsz_recover_power") == 50
 
 
+def test_openroad_apr_parameter_rsz_skip_buffer_removal():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_buffer_removal") is False
+    task.set_openroad_rszskipbufferremoval(True)
+    assert task.get("var", "rsz_skip_buffer_removal") is True
+    task.set_openroad_rszskipbufferremoval(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_buffer_removal", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_buffer_removal") is True
+
+
+def test_openroad_apr_parameter_rsz_skip_buffering():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_buffering") is False
+    task.set_openroad_rszskipbuffering(True)
+    assert task.get("var", "rsz_skip_buffering") is True
+    task.set_openroad_rszskipbuffering(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_buffering", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_buffering") is True
+
+
+def test_openroad_apr_parameter_rsz_skip_final_sizing():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_final_sizing") is False
+    task.set_openroad_rszskipfinalsizing(True)
+    assert task.get("var", "rsz_skip_final_sizing") is True
+    task.set_openroad_rszskipfinalsizing(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_final_sizing", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_final_sizing") is True
+
+
+def test_openroad_apr_parameter_rsz_skip_vt_swap():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_vt_swap") is False
+    task.set_openroad_rszskipvtswap(True)
+    assert task.get("var", "rsz_skip_vt_swap") is True
+    task.set_openroad_rszskipvtswap(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_vt_swap", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_vt_swap") is True
+
+
+def test_openroad_apr_parameter_rsz_skip_crit_vt_swap():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_crit_vt_swap") is False
+    task.set_openroad_rszskipcritvtswap(True)
+    assert task.get("var", "rsz_skip_crit_vt_swap") is True
+    task.set_openroad_rszskipcritvtswap(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_crit_vt_swap", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_crit_vt_swap") is True
+
+
+def test_openroad_apr_parameter_rsz_sequence():
+    task = _apr.OpenROADRSZTimingParameter()
+    # Empty by default so OpenROAD picks its own move ordering.
+    assert task.get("var", "rsz_sequence") == []
+    task.add_openroad_rszsequence(["vt_swap", "reroute"])
+    assert task.get("var", "rsz_sequence") == ["vt_swap", "reroute"]
+    task.add_openroad_rszsequence("sizeup", step='rsz', index='1')
+    assert task.get("var", "rsz_sequence", step='rsz', index='1') == ["sizeup"]
+    assert task.get("var", "rsz_sequence") == ["vt_swap", "reroute"]
+
+
+def test_openroad_apr_parameter_rsz_sequence_appends_in_order():
+    """The move order is the point of the parameter, so appending has to preserve it."""
+    task = _apr.OpenROADRSZTimingParameter()
+    task.add_openroad_rszsequence("unbuffer")
+    task.add_openroad_rszsequence(["sizeup", "swap"])
+    assert task.get("var", "rsz_sequence") == ["unbuffer", "sizeup", "swap"]
+    task.add_openroad_rszsequence("vt_swap", clobber=True)
+    assert task.get("var", "rsz_sequence") == ["vt_swap"]
+
+
+def test_openroad_apr_parameter_rsz_phases():
+    task = _apr.OpenROADRSZTimingParameter()
+    # Empty by default so OpenROAD picks its own phase ordering.
+    assert task.get("var", "rsz_phases") == []
+    task.add_openroad_rszphases(["LEGACY", "LAST_GASP"])
+    assert task.get("var", "rsz_phases") == ["LEGACY", "LAST_GASP"]
+    task.add_openroad_rszphases("GLOBAL_SIZING", step='rsz', index='1')
+    assert task.get("var", "rsz_phases", step='rsz', index='1') == ["GLOBAL_SIZING"]
+    assert task.get("var", "rsz_phases") == ["LEGACY", "LAST_GASP"]
+    task.add_openroad_rszphases("WNS", clobber=True)
+    assert task.get("var", "rsz_phases") == ["WNS"]
+
+
+def test_openroad_apr_parameter_rsz_phases_rejects_unknown():
+    """The phase names are matched exactly by OpenROAD, so reject a typo at set time.
+
+    "legacy" is the wrong case and "LEGACY_MT" is real upstream but undocumented, so
+    deliberately not offered. The member list comes from RSZ_PHASES rather than being
+    written out, so adding a phase updates the expectation with it.
+    """
+    task = _apr.OpenROADRSZTimingParameter()
+    members = ", ".join(sorted(_apr.RSZ_PHASES))
+    for bad in ("legacy", "LEGACY_MT"):
+        message = (f"error while adding to [var,rsz_phases]: "
+                   f"{bad} is not a member of: {members}")
+        with pytest.raises(ValueError, match=f"^{re.escape(message)}$"):
+            task.add_openroad_rszphases([bad])
+
+
+def test_openroad_apr_parameter_rsz_skip_size_down():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_skip_size_down") is False
+    task.set_openroad_rszskipsizedown(True)
+    assert task.get("var", "rsz_skip_size_down") is True
+    task.set_openroad_rszskipsizedown(False, step='rsz', index='1')
+    assert task.get("var", "rsz_skip_size_down", step='rsz', index='1') is False
+    assert task.get("var", "rsz_skip_size_down") is True
+
+
+def test_openroad_apr_parameter_rsz_max_passes():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_max_passes") is None
+    task.set_openroad_rszmaxpasses(50)
+    assert task.get("var", "rsz_max_passes") == 50
+    task.set_openroad_rszmaxpasses(10, step='rsz', index='1')
+    assert task.get("var", "rsz_max_passes", step='rsz', index='1') == 10
+    assert task.get("var", "rsz_max_passes") == 50
+
+
+def test_openroad_apr_parameter_rsz_max_iterations():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_max_iterations") is None
+    task.set_openroad_rszmaxiterations(5)
+    assert task.get("var", "rsz_max_iterations") == 5
+    task.set_openroad_rszmaxiterations(2, step='rsz', index='1')
+    assert task.get("var", "rsz_max_iterations", step='rsz', index='1') == 2
+    assert task.get("var", "rsz_max_iterations") == 5
+
+
+def test_openroad_apr_parameter_rsz_max_repairs_per_pass():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_max_repairs_per_pass") is None
+    task.set_openroad_rszmaxrepairsperpass(4)
+    assert task.get("var", "rsz_max_repairs_per_pass") == 4
+    task.set_openroad_rszmaxrepairsperpass(1, step='rsz', index='1')
+    assert task.get("var", "rsz_max_repairs_per_pass", step='rsz', index='1') == 1
+    assert task.get("var", "rsz_max_repairs_per_pass") == 4
+
+
+def test_openroad_apr_parameter_rsz_effort_caps_reject_zero():
+    """0 passes/iterations/repairs is not a way to disable a phase; the skips are."""
+    task = _apr.OpenROADRSZTimingParameter()
+    for setter, var in ((task.set_openroad_rszmaxpasses, "rsz_max_passes"),
+                        (task.set_openroad_rszmaxiterations, "rsz_max_iterations"),
+                        (task.set_openroad_rszmaxrepairsperpass, "rsz_max_repairs_per_pass")):
+        message = f"error while setting [var,{var}]: 0 is not in range: 1.."
+        with pytest.raises(ValueError, match=f"^{re.escape(message)}$"):
+            setter(0)
+
+
+def test_openroad_apr_parameter_rsz_max_wire_length():
+    task = _apr.OpenROADRSZDRVParameter()
+    assert task.get("var", "rsz_max_wire_length") is None
+    task.set_openroad_rszmaxwirelength(500.0)
+    assert task.get("var", "rsz_max_wire_length") == 500.0
+    task.set_openroad_rszmaxwirelength(100.0, step='rsz', index='1')
+    assert task.get("var", "rsz_max_wire_length", step='rsz', index='1') == 100.0
+    assert task.get("var", "rsz_max_wire_length") == 500.0
+
+
+def test_openroad_apr_parameter_rsz_allow_setup_violations():
+    task = _apr.OpenROADRSZTimingParameter()
+    assert task.get("var", "rsz_allow_setup_violations") is False
+    task.set_openroad_rszallowsetupviolations(True)
+    assert task.get("var", "rsz_allow_setup_violations") is True
+    task.set_openroad_rszallowsetupviolations(False, step='rsz', index='1')
+    assert task.get("var", "rsz_allow_setup_violations", step='rsz', index='1') is False
+    assert task.get("var", "rsz_allow_setup_violations") is True
+
+
+def test_openroad_apr_parameter_rsz_max_buffer_percent():
+    task = _apr.OpenROADRSZTimingParameter()
+    # Unset, not 0: 0 is a meaningful value, so it cannot be the sentinel.
+    assert task.get("var", "rsz_max_buffer_percent") is None
+    task.set_openroad_rszmaxbufferpercent(20)
+    assert task.get("var", "rsz_max_buffer_percent") == 20
+    task.set_openroad_rszmaxbufferpercent(50, step='rsz', index='1')
+    assert task.get("var", "rsz_max_buffer_percent", step='rsz', index='1') == 50
+    assert task.get("var", "rsz_max_buffer_percent") == 20
+
+
+def test_openroad_apr_parameter_rsz_match_cell_footprint():
+    task = _apr.OpenROADRSZDRVParameter()
+    assert task.get("var", "rsz_match_cell_footprint") is False
+    task.set_openroad_rszmatchcellfootprint(True)
+    assert task.get("var", "rsz_match_cell_footprint") is True
+    task.set_openroad_rszmatchcellfootprint(False, step='rsz', index='1')
+    assert task.get("var", "rsz_match_cell_footprint", step='rsz', index='1') is False
+    assert task.get("var", "rsz_match_cell_footprint") is True
+
+
+def test_openroad_apr_parameter_rsz_max_utilization():
+    task = _apr.OpenROADRSZDRVParameter()
+    assert task.get("var", "rsz_max_utilization") is None
+    task.set_openroad_rszmaxutilization(80)
+    assert task.get("var", "rsz_max_utilization") == 80
+    task.set_openroad_rszmaxutilization(90, step='rsz', index='1')
+    assert task.get("var", "rsz_max_utilization", step='rsz', index='1') == 90
+    assert task.get("var", "rsz_max_utilization") == 80
+
+
+def test_openroad_repair_design_has_footprint_and_utilization():
+    """repair_design needs -match_cell_footprint/-max_utilization too, so they live
+    on the DRV mixin rather than the timing-only one."""
+    task = repair_design.RepairDesignTask()
+    assert task.get("var", "rsz_match_cell_footprint") is False
+    assert task.get("var", "rsz_max_utilization") is None
+
+
 def test_openroad_apr_parameter_pad_detail_place():
     task = _apr.OpenROADDPLParameter()
     task.set_openroad_paddetailplace(1)
@@ -966,6 +1184,16 @@ def test_openroad_apr_parameter_dpl_max_displacement():
     task.set_openroad_dplmaxdisplacement(20.0, 20.0, step='dpl', index='1')
     assert task.get("var", "dpl_max_displacement", step='dpl', index='1') == (20.0, 20.0)
     assert task.get("var", "dpl_max_displacement") == (10.0, 10.0)
+
+
+def test_openroad_apr_parameter_dpl_use_diamond_legalizer():
+    task = _apr.OpenROADDPLParameter()
+    assert task.get("var", "dpl_use_diamond_legalizer") is False
+    task.set_openroad_dplusediamondlegalizer(True)
+    assert task.get("var", "dpl_use_diamond_legalizer") is True
+    task.set_openroad_dplusediamondlegalizer(False, step='dpl', index='1')
+    assert task.get("var", "dpl_use_diamond_legalizer", step='dpl', index='1') is False
+    assert task.get("var", "dpl_use_diamond_legalizer") is True
 
 
 def test_openroad_apr_parameter_dpl_use_decap_fillers():
@@ -1101,6 +1329,74 @@ def test_openroad_apr_parameter_grt_overflow_iter():
     task.set_openroad_grtoverflowiter(200, step='grt', index='1')
     assert task.get("var", "grt_overflow_iter", step='grt', index='1') == 200
     assert task.get("var", "grt_overflow_iter") == 100
+
+
+def test_openroad_apr_parameter_grt_resistance_aware():
+    # On APRTask alongside load_grt_setup, not on the global routing mixins, because
+    # it is also passed on the incremental global routes sc_detailed_placement issues
+    # and that is reachable from any APR task.
+    task = _apr.APRTask()
+    assert task.get("var", "grt_resistance_aware") is False
+    task.set_openroad_grtresistanceaware(True)
+    assert task.get("var", "grt_resistance_aware") is True
+    task.set_openroad_grtresistanceaware(False, step='grt', index='1')
+    assert task.get("var", "grt_resistance_aware", step='grt', index='1') is False
+    assert task.get("var", "grt_resistance_aware") is True
+
+
+def test_openroad_apr_parameter_grt_seed():
+    task = _apr.OpenROADGRTParameter()
+    assert task.get("var", "grt_seed") is None
+    task.set_openroad_grtseed(42)
+    assert task.get("var", "grt_seed") == 42
+    task.set_openroad_grtseed(7, step='grt', index='1')
+    assert task.get("var", "grt_seed", step='grt', index='1') == 7
+    assert task.get("var", "grt_seed") == 42
+
+
+def test_openroad_global_route_has_grt_knobs():
+    """The seed only makes sense where global_route is driven; resistance-aware is on
+    every APR task because sc_detailed_placement can reach it."""
+    task = global_route.GlobalRouteTask()
+    assert task.get("var", "grt_seed") is None
+    assert task.get("var", "grt_resistance_aware") is False
+
+
+@pytest.mark.parametrize("task_cls", [
+    detailed_placement.DetailedPlacementTask,
+    clock_tree_synthesis.CTSTask,
+    repair_timing.RepairTimingTask,
+    repair_timing.PostRouteRepairTimingTask,
+])
+def test_openroad_detailed_placement_callers_have_resistance_aware(task_cls):
+    """sc_detailed_placement reads grt_resistance_aware unconditionally, so every task
+    that calls it must declare the var."""
+    assert task_cls().get("var", "grt_resistance_aware") is False
+
+
+def test_openroad_post_route_repair_timing_has_no_seed():
+    """The seed belongs to the task that actually drives global_route."""
+    assert not repair_timing.PostRouteRepairTimingTask().valid("var", "grt_seed")
+
+
+def test_openroad_apr_parameter_ant_check():
+    task = _apr.OpenROADANTCheckParameter()
+    assert task.get("var", "ant_check") is True
+    task.set_openroad_antcheck(False)
+    assert task.get("var", "ant_check") is False
+    task.set_openroad_antcheck(True, step='ant', index='1')
+    assert task.get("var", "ant_check", step='ant', index='1') is True
+    assert task.get("var", "ant_check") is False
+
+
+def test_openroad_apr_parameter_ant_repair():
+    task = _apr.OpenROADANTCheckParameter()
+    assert task.get("var", "ant_repair") is True
+    task.set_openroad_antrepair(False)
+    assert task.get("var", "ant_repair") is False
+    task.set_openroad_antrepair(True, step='ant', index='1')
+    assert task.get("var", "ant_repair", step='ant', index='1') is True
+    assert task.get("var", "ant_repair") is False
 
 
 def test_openroad_apr_parameter_ant_iterations():
@@ -1282,6 +1578,43 @@ def test_openroad_fillmetal_insertion_parameter_add_fill():
     task.set_openroad_addfill(False, step='fillmetal_insertion', index='1')
     assert task.get("var", "fin_add_fill", step='fillmetal_insertion', index='1') is False
     assert task.get("var", "fin_add_fill") is True
+
+
+def test_openroad_fillmetal_insertion_skips_when_disabled(asic_gcd):
+    """fin_add_fill=False must drop the node, not run a process that fills nothing.
+
+    The reason is asserted because the ordering matters: the disabled check has to
+    come before the PDK rule lookup, or a disabled task on a PDK with no rules would
+    report the wrong cause.
+    """
+    fillmetal_insertion.FillMetalTask.find_task(asic_gcd).set_openroad_addfill(False)
+
+    node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
+    with node.runtime():
+        with pytest.raises(TaskSkip, match="^metal fill is disabled$"):
+            node.task.setup()
+        assert node.setup() is False
+
+
+def test_openroad_fillmetal_insertion_skips_without_pdk_rules(asic_gcd):
+    """freepdk45 ships no openroad fill file, so the enabled default still skips."""
+    node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
+    with node.runtime():
+        assert node.task.get("var", "fin_add_fill") is True
+        with pytest.raises(TaskSkip, match="^no metal fill rules are available$"):
+            node.task.setup()
+        assert node.setup() is False
+
+
+def test_openroad_fillmetal_insertion_disabled_still_runs_with_a_script(asic_gcd):
+    """A pre or post script is a reason to run even with nothing to fill."""
+    task = fillmetal_insertion.FillMetalTask.find_task(asic_gcd)
+    task.set_openroad_addfill(False)
+    task.add_prescript(__file__)
+
+    node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
+    with node.runtime():
+        assert node.setup() is True
 
 
 def test_openroad_global_placement_parameter_enable_scan_chains():
@@ -2157,6 +2490,231 @@ def test_openroad_repair_timing_parameter_skip_recover_power():
     assert task.get("var", "rsz_skip_recover_power") is True
 
 
+# ----------------------------------------------------------------------
+# DetailedRouteAntennaRepairTask
+# ----------------------------------------------------------------------
+
+
+def test_openroad_detailed_route_antenna_repair_identity():
+    """Its own node and task, so route.detailed reports pure routing results and the
+    diode/reroute cost is attributable on its own."""
+    task = detailed_route.DetailedRouteAntennaRepairTask()
+    assert task.task() == "detailed_route_antenna_repair"
+    assert task.tool() == "openroad"
+    assert task.task() != detailed_route.DetailedRouteTask().task()
+
+
+def test_openroad_detailed_route_antenna_repair_parameters():
+    task = detailed_route.DetailedRouteAntennaRepairTask()
+    assert task.get("var", "ant_check") is True
+    assert task.get("var", "ant_repair") is True
+    # ORFS passes no -ratio_margin in either antenna loop.
+    assert task.get("var", "ant_margin") == 0
+    # ORFS MAX_REPAIR_ANTENNAS_ITER_DRT.
+    assert task.get("var", "ant_reroute_iterations") == 5
+    # ant_iterations bounds a single repair_antennas call and is a pre-route knob,
+    # so it deliberately stays off this task.
+    assert not task.valid("var", "ant_iterations")
+
+
+def test_openroad_detailed_route_antenna_repair_parameter_reroute_iterations():
+    task = detailed_route.DetailedRouteAntennaRepairTask()
+    task.set_openroad_antrerouteiterations(3)
+    assert task.get("var", "ant_reroute_iterations") == 3
+    task.set_openroad_antrerouteiterations(1, step='detailed', index='1')
+    assert task.get("var", "ant_reroute_iterations", step='detailed', index='1') == 1
+    assert task.get("var", "ant_reroute_iterations") == 3
+    # ant_repair is the off switch, so 0 is not a value the schema accepts.
+    message = "error while setting [var,ant_reroute_iterations]: 0 is not in range: 1.."
+    with pytest.raises(ValueError, match=f"^{re.escape(message)}$"):
+        task.set_openroad_antrerouteiterations(0)
+
+
+def test_openroad_detailed_route_antenna_repair_reroutes_like_detailed_route():
+    """The reroute has to use the same detailed router settings the initial route
+    used, which is why the task derives from DetailedRouteTask."""
+    task = detailed_route.DetailedRouteAntennaRepairTask()
+    assert isinstance(task, detailed_route.DetailedRouteTask)
+    for var in ("drt_disable_via_gen", "drt_process_node", "drt_report_interval"):
+        assert task.valid("var", var), var
+    # The loop brackets itself with remove_fillers/sc_insert_fillers.
+    assert task.valid("var", "dpl_use_decap_fillers")
+
+
+def test_openroad_detailed_route_has_no_antenna_vars():
+    """Antenna repair moved out of detailed_route into its own node."""
+    task = detailed_route.DetailedRouteTask()
+    for var in ("ant_check", "ant_repair", "ant_margin", "ant_reroute_iterations"):
+        assert not task.valid("var", var), var
+
+
+def test_openroad_detailed_route_antenna_repair_skips_when_disabled(asic_gcd):
+    detailed_route.DetailedRouteAntennaRepairTask.find_task(asic_gcd).set_openroad_antcheck(False)
+
+    node = SchedulerNode(asic_gcd, "route.detailed_antenna_repair", "0")
+    with node.runtime():
+        with pytest.raises(TaskSkip, match="^antenna repair is disabled$"):
+            node.task.setup()
+        assert node.setup() is False
+
+
+def test_openroad_detailed_route_antenna_repair_runs_by_default(asic_gcd):
+    node = SchedulerNode(asic_gcd, "route.detailed_antenna_repair", "0")
+    with node.runtime():
+        assert node.setup() is True
+
+
+def test_openroad_detailed_route_antenna_repair_uses_its_own_script(asic_gcd):
+    """set_script does not clobber by default, so without an explicit clobber the
+    parent's script would win and the node would re-run a full detailed route."""
+    repair = _setup_node(asic_gcd, "route.detailed_antenna_repair")
+    route = _setup_node(asic_gcd, "route.detailed")
+
+    assert repair.get("script") == ["apr/sc_detailed_route_antenna_repair.tcl"]
+    assert route.get("script") == ["apr/sc_detailed_route.tcl"]
+
+
+def test_openroad_antenna_repair_parameters_unchanged():
+    """ant_check/ant_repair moved from AntennaRepairTask up into the shared mixin;
+    the task's own schema keys and defaults must be unchanged by that move."""
+    task = antenna_repair.AntennaRepairTask()
+    assert task.get("var", "ant_check") is True
+    assert task.get("var", "ant_repair") is True
+    assert task.get("var", "ant_margin") == 0
+    assert task.get("var", "ant_iterations") == 3
+
+
+def test_openroad_repair_timing_parameter_skip_wns_repair():
+    task = repair_timing.RepairTimingTask()
+    # Skipped by default: the pass only applies once global routing exists.
+    assert task.get("var", "rsz_skip_wns_repair") is True
+    task.set_openroad_skipwnsrepair(False)
+    assert task.get("var", "rsz_skip_wns_repair") is False
+    task.set_openroad_skipwnsrepair(True, step='repair_timing', index='1')
+    assert task.get("var", "rsz_skip_wns_repair", step='repair_timing', index='1') is True
+    assert task.get("var", "rsz_skip_wns_repair") is False
+
+
+def test_openroad_repair_timing_parameter_wns_sequence():
+    task = repair_timing.RepairTimingTask()
+    assert task.get("var", "rsz_wns_sequence") == ["vt_swap", "reroute"]
+    task.add_openroad_rszwnssequence(["sizeup"], clobber=True)
+    assert task.get("var", "rsz_wns_sequence") == ["sizeup"]
+    task.add_openroad_rszwnssequence("vt_swap", step='repair_timing', index='1', clobber=True)
+    assert task.get("var", "rsz_wns_sequence", step='repair_timing', index='1') == ["vt_swap"]
+    assert task.get("var", "rsz_wns_sequence") == ["sizeup"]
+
+
+def test_openroad_repair_timing_parameter_wns_sequence_appends_to_default():
+    """This is the one move list with a non-empty default, so adding extends it.
+
+    Replacing the sequence needs clobber. Pinned because the asymmetry with
+    rsz_sequence and rsz_phases -- both empty by default, where add and set coincide
+    on a fresh task -- is easy to trip over.
+    """
+    task = repair_timing.RepairTimingTask()
+    task.add_openroad_rszwnssequence("sizeup")
+    assert task.get("var", "rsz_wns_sequence") == ["vt_swap", "reroute", "sizeup"]
+
+
+# ----------------------------------------------------------------------
+# PostRouteRepairTimingTask
+# ----------------------------------------------------------------------
+
+
+def test_openroad_post_route_repair_timing_identity():
+    """A distinct task() name is required: the schema namespace is keyed on it, so
+    sharing "repair_timing" with the cts node would let the two clobber each
+    other's setup()-time defaults."""
+    task = repair_timing.PostRouteRepairTimingTask()
+    assert task.task() == "post_route_repair_timing"
+    assert task.tool() == "openroad"
+    assert task.task() != repair_timing.RepairTimingTask().task()
+
+
+def test_openroad_post_route_repair_timing_parameter_enable():
+    task = repair_timing.PostRouteRepairTimingTask()
+    assert task.get("var", "rsz_enable") is False
+    task.set_openroad_rszenable(True)
+    assert task.get("var", "rsz_enable") is True
+    task.set_openroad_rszenable(False, step='repair_timing', index='1')
+    assert task.get("var", "rsz_enable", step='repair_timing', index='1') is False
+    assert task.get("var", "rsz_enable") is True
+
+
+def test_openroad_post_route_repair_timing_has_grt_setup():
+    """The node runs incremental global routing through sc_detailed_placement, which
+    needs the routing layers applied via load_grt_setup."""
+    task = repair_timing.PostRouteRepairTimingTask()
+    assert task.valid("var", "grt_signal_min_layer")
+    # The plain cts node deliberately does not carry the GRT setup.
+    assert not repair_timing.RepairTimingTask().valid("var", "grt_signal_min_layer")
+
+
+def test_openroad_post_route_repair_timing_stage_defaults():
+    """The ORFS-equivalent defaults for this stage are declared via _default_*
+    overrides, so they are visible on the class without running setup()."""
+    task = repair_timing.PostRouteRepairTimingTask()
+
+    assert task.get("var", "rsz_skip_wns_repair") is False
+    assert task.get("var", "rsz_skip_recover_power") is True
+    assert task.get("var", "rsz_match_cell_footprint") is True
+
+
+def test_openroad_post_route_repair_timing_defaults_do_not_leak():
+    """The post-route defaults must not move the cts repair_timing node's."""
+    cts = repair_timing.RepairTimingTask()
+
+    assert cts.get("var", "rsz_skip_wns_repair") is True
+    assert cts.get("var", "rsz_match_cell_footprint") is False
+    assert cts.get("var", "rsz_skip_recover_power") is False
+
+
+def test_openroad_post_route_repair_timing_loads_grt_setup(asic_gcd):
+    """Incremental global routing needs the routing layers applied, which
+    load_grt_setup gates. That one is still set during setup()."""
+    repair_timing.PostRouteRepairTimingTask.find_task(asic_gcd).set_openroad_rszenable(True)
+
+    assert _setup_node(asic_gcd, "route.repair_timing").get("var", "load_grt_setup") is True
+    assert _setup_node(asic_gcd, "cts.repair_timing").get("var", "load_grt_setup") is False
+
+
+def test_openroad_post_route_repair_timing_user_value_wins(asic_gcd):
+    """The stage defaults are ordinary defvalues, so an explicit setting overrides
+    them. The opt-in design depends on this."""
+    task = repair_timing.PostRouteRepairTimingTask.find_task(asic_gcd)
+    task.set_openroad_rszenable(True)
+    task.set_openroad_skipwnsrepair(True)
+    task.set_openroad_skiprecoverpower(False)
+    task.set_openroad_rszmatchcellfootprint(False)
+
+    task = _setup_node(asic_gcd, "route.repair_timing")
+    assert task.get("var", "rsz_skip_wns_repair") is True
+    assert task.get("var", "rsz_skip_recover_power") is False
+    assert task.get("var", "rsz_match_cell_footprint") is False
+
+
+def test_openroad_post_route_repair_timing_skips_when_disabled(asic_gcd):
+    """rsz_enable cannot change after setup, so the node is dropped there rather
+    than in pre_process, and no work directory is built for it."""
+    node = SchedulerNode(asic_gcd, "route.repair_timing", "0")
+    with node.runtime():
+        assert node.task.get("var", "rsz_enable") is False
+        with pytest.raises(TaskSkip, match="^post route timing repair is disabled$"):
+            node.task.setup()
+        # setup() is what the scheduler catches, so it must not reach pre_process.
+        assert node.setup() is False
+
+
+def test_openroad_post_route_repair_timing_runs_when_enabled(asic_gcd):
+    repair_timing.PostRouteRepairTimingTask.find_task(asic_gcd).set_openroad_rszenable(True)
+
+    node = SchedulerNode(asic_gcd, "route.repair_timing", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get("var", "rsz_enable") is True
+
+
 def test_openroad_screenshot_parameter_vertical_resolution():
     task = screenshot.ScreenshotTask()
     task.set_openroad_verticalresolution(1024)
@@ -2198,6 +2756,7 @@ def test_openroad_open_basics():
     global_route.GlobalRouteTask,
     repair_design.RepairDesignTask,
     repair_timing.RepairTimingTask,
+    repair_timing.PostRouteRepairTimingTask,
     macro_placement.MacroPlacementTask,
     metrics.MetricsTask,
     write_data.WriteViewsTask,

@@ -30,16 +30,7 @@ estimate_parasitics -placement
 
 sc_set_dont_use -scanchain -multibit -report dont_use.repair_drv
 
-set repair_design_args []
-
-set rsz_cap_margin [sc_cfg_tool_task_get var rsz_cap_margin]
-if { $rsz_cap_margin > 0 } {
-    lappend repair_design_args "-cap_margin" $rsz_cap_margin
-}
-set rsz_slew_margin [sc_cfg_tool_task_get {var} rsz_slew_margin]
-if { $rsz_slew_margin > 0 } {
-    lappend repair_design_args "-slew_margin" $rsz_slew_margin
-}
+set repair_design_args [sc_repair_design_args]
 
 sc_report_args -command repair_design -args $repair_design_args
 repair_design \

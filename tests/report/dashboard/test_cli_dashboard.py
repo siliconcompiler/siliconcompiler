@@ -1782,14 +1782,14 @@ def test_get_job(mock_project, fake_console):
     job = dashboard._get_job(mock_project)
     assert isinstance(job, JobData)
 
-    assert job.total == 21
+    assert job.total == 23
     assert job.error == 0
     assert job.success == 0
     assert job.skipped == 0
     assert job.finished == 0
     assert job.design == "test_design"
     assert job.complete is False
-    assert len(job.nodes) == 21
+    assert len(job.nodes) == 23
 
 
 @pytest.mark.timeout(30)
@@ -1801,14 +1801,14 @@ def test_get_job_with_skipped(mock_project, fake_console):
     job = dashboard._get_job(mock_project)
     assert isinstance(job, JobData)
 
-    assert job.total == 21
+    assert job.total == 23
     assert job.error == 0
     assert job.success == 1
     assert job.skipped == 1
     assert job.finished == 1
     assert job.design == "test_design"
     assert job.complete is False
-    assert len(job.nodes) == 20
+    assert len(job.nodes) == 22
 
 
 @pytest.mark.timeout(30)
@@ -1822,14 +1822,14 @@ def test_get_job_with_status(mock_project, fake_console):
     job = dashboard._get_job(mock_project)
     assert isinstance(job, JobData)
 
-    assert job.total == 21
+    assert job.total == 23
     assert job.error == 1
     assert job.success == 2
     assert job.skipped == 1
     assert job.finished == 3
     assert job.design == "test_design"
     assert job.complete is False
-    assert len(job.nodes) == 20
+    assert len(job.nodes) == 22
 
 
 @pytest.mark.timeout(30)
