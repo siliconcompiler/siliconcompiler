@@ -1718,6 +1718,37 @@ def test_openroad_cleanup_synth_parameter_remove_dead_logic():
     assert task.get("var", "remove_dead_logic") is True
 
 
+def test_openroad_cleanup_synth_parameter_repair_synth_timing():
+    task = synth_cleanup.CleanupSynthTask()
+    # Off by default: enabling it moves the quality of results of every design.
+    assert task.get("var", "repair_synth_timing") is False
+    task.set_openroad_repairsynthtiming(True)
+    assert task.get("var", "repair_synth_timing") is True
+    task.set_openroad_repairsynthtiming(False, step='cleanup_synth', index='1')
+    assert task.get("var", "repair_synth_timing", step='cleanup_synth', index='1') is False
+    assert task.get("var", "repair_synth_timing") is True
+
+
+def test_openroad_cleanup_synth_restricts_the_move_sequence():
+    """Only the moves a pre-placement pass can justify, and no final sizing pass.
+
+    Buffer insertion, cloning and load splitting are wire-delay driven and there is no
+    wire length yet, so the default sequence is deliberately narrower than the tool's.
+    """
+    task = synth_cleanup.CleanupSynthTask()
+    assert task.get("var", "rsz_sequence") == ["unbuffer", "sizeup"]
+    assert task.get("var", "rsz_skip_final_sizing") is True
+
+
+def test_openroad_cleanup_synth_defaults_do_not_leak_to_repair_timing():
+    """The narrowed defaults are per-task, so the resizer tasks keep the tool defaults."""
+    for task in (repair_timing.RepairTimingTask(), repair_design.RepairDesignTask()):
+        if task.valid("var", "rsz_sequence"):
+            assert task.get("var", "rsz_sequence") == [], task.task()
+        if task.valid("var", "rsz_skip_final_sizing"):
+            assert task.get("var", "rsz_skip_final_sizing") is False, task.task()
+
+
 def test_openroad_init_floorplan_parameter_padring_fileset():
     task = init_floorplan.InitFloorplanTask()
     task.add_openroad_padringfileset('fileset1')
