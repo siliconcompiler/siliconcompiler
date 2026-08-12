@@ -364,6 +364,11 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Return the image name with the hash instead of version')
 
+    parser.add_argument('--all_tool_images',
+                        action='store_true',
+                        help='Return the image names for all the tools, separated by spaces, '
+                             'regardless of build state')
+
     parser.add_argument('--include_tools',
                         nargs='+',
                         metavar='<tool>',
@@ -442,6 +447,10 @@ if __name__ == '__main__':
             print(json.dumps({}))
         else:
             print(json.dumps(json_tools))
+        exit(0)
+
+    if args.all_tool_images:
+        print(' '.join([_images[tool]['name'] for tool, _ in _get_tools()]))
         exit(0)
 
     if args.check_image:

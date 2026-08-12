@@ -47,6 +47,7 @@ jobs:
       sc_tools: ${{ steps.docker.outputs.sc_tools }}
       sc_runner: ${{ steps.docker.outputs.sc_runner }}
       has_sc_tools: ${{ steps.docker.outputs.has_sc_tools }}
+      all_tool_images: ${{ steps.docker.outputs.all_tool_images }}
 
     steps:
       - name: Checkout repository
@@ -80,6 +81,7 @@ jobs:
           echo "sc_tools=${sc_tools_name}" >> $GITHUB_OUTPUT
           echo "sc_runner=${sc_runner_name}" >> $GITHUB_OUTPUT
           echo "has_sc_tools=$(python3 setup/docker/builder.py --check_image ${sc_tools_name})" >> $GITHUB_OUTPUT
+          echo "all_tool_images=$(python3 setup/docker/builder.py --all_tool_images --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
           echo "tools_matrix=$(python3 setup/docker/builder.py $REBUILDALL --json_tools --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
           echo "tools_with_deps_matrix=$(python3 setup/docker/builder.py $REBUILDALL --json_tools --with_dependencies --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
           python3 setup/docker/builder.py --generate_files --registry ${{ env.REGISTRY }} --output_dir docker
@@ -232,6 +234,48 @@ jobs:
           provenance: false
           tags: ${{ needs.build_tool_builder.outputs.sc_tools }}
 
+  tag_release_images:
+    needs: [build_tool_builder, build_tool, build_tool_with_deps, build_sc_tools]
+    name: Tag release images
+    if: always() && !cancelled() && github.event_name == 'release'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Log in to the Container registry
+      uses: docker/login-action@v4
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.PACKAGES_ACTOR }}
+        password: ${{ secrets.PACKAGES_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v4
+
+    # Add 'latest' and the SC release version to sc_tools and the tool images, so a
+    # given SC release can be paired with the exact tool images it shipped with.
+    # imagetools copies the manifests in the registry, so no image is ever pulled.
+    - name: Tag images with latest and the ${{ github.ref_name }} release
+      run: |
+        retag() {
+          base=$(echo $1 | sed s/:.*//g)
+          echo "::group::$1 -> ${base}:latest, ${base}:$2"
+          docker buildx imagetools create --tag ${base}:latest --tag ${base}:$2 $1
+          echo "::endgroup::"
+        }
+
+        # sc_tools is tagged by content hash, so the SC version stands on its own,
+        # while the tool images carry the tool's own version and need the 'sc-' prefix
+        # to keep the two apart
+        retag ${{ needs.build_tool_builder.outputs.sc_tools }} ${{ github.ref_name }}
+        for image in ${{ needs.build_tool_builder.outputs.all_tool_images }}; do
+          retag $image sc-${{ github.ref_name }}
+        done
+
   runner_image:
     needs: [build_tool_builder, build_sc_tools]
     name: Build SC runner image
@@ -266,16 +310,8 @@ jobs:
         username: ${{ secrets.PACKAGES_ACTOR }}
         password: ${{ secrets.PACKAGES_TOKEN }}
 
-    - name: Retag primary image
+    - name: Determine runner latest tag
       run: |
-        docker pull ${{ needs.build_tool_builder.outputs.sc_tools }}
-        base_tag=$(echo ${{ needs.build_tool_builder.outputs.sc_tools }} | sed s/:.*//g)
-        latest_tag=${base_tag}:latest
-        docker tag ${{ needs.build_tool_builder.outputs.sc_tools }} $latest_tag
-        docker push $latest_tag
-        version_tag=${base_tag}:${{  github.ref_name }}
-        docker tag ${{ needs.build_tool_builder.outputs.sc_tools }} $version_tag
-        docker push $version_tag
         runner_latest_tag=$(echo ${{ needs.build_tool_builder.outputs.sc_runner }} | sed s/:.*/:latest/g)
         echo "RUNNER_TAG=${runner_latest_tag}" >> $GITHUB_ENV
 
