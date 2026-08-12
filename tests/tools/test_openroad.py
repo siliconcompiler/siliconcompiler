@@ -1740,6 +1740,29 @@ def test_openroad_cleanup_synth_restricts_the_move_sequence():
     assert task.get("var", "rsz_skip_final_sizing") is True
 
 
+@pytest.mark.parametrize("remove,repair,legal", [
+    (True, False, True),      # the shipped default
+    (False, True, True),      # keep the buffers and refine them
+    (False, False, True),     # leave the netlist as synthesized
+    (True, True, False),      # delete the buffering, then forbid replacing it
+])
+def test_openroad_cleanup_synth_rejects_remove_plus_repair(asic_gcd, remove, repair, legal):
+    """Buffer removal and timing repair are alternatives; one or neither is legal."""
+    task = synth_cleanup.CleanupSynthTask.find_task(asic_gcd)
+    task.set_openroad_removebuffers(remove)
+    task.set_openroad_repairsynthtiming(repair)
+
+    node = SchedulerNode(asic_gcd, "cleanup.clean", "0")
+    with node.runtime():
+        if legal:
+            assert node.setup() is True
+        else:
+            with pytest.raises(ValueError,
+                               match="^remove_synth_buffers and repair_synth_timing are "
+                                     "alternatives, not additive: .* Enable one or neither\\.$"):
+                node.task.setup()
+
+
 def test_openroad_cleanup_synth_defaults_do_not_leak_to_repair_timing():
     """The narrowed defaults are per-task, so the resizer tasks keep the tool defaults."""
     for task in (repair_timing.RepairTimingTask(), repair_design.RepairDesignTask()):

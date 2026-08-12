@@ -20,6 +20,9 @@ class CleanupSynthTask(APRTask, OpenROADSTAParameter,
     off in a way a liberty-accurate pass can correct, and correcting it here means
     placement is given cells that are already close to their final size. The pass is
     off by default because it moves the quality of results of every design.
+
+    Buffer removal and timing repair are alternatives rather than additive, so enabling
+    both is rejected during setup.
     """
     def __init__(self):
         super().__init__()
@@ -111,6 +114,17 @@ class CleanupSynthTask(APRTask, OpenROADSTAParameter,
             "logicdepth"
         ])
         self.set_openroad_enableimages(False)
+
+        # Removing the buffers and then repairing timing is the one combination that is
+        # worse than either alone: the buffering is deleted, and the repair is then asked
+        # to recover from that with a move sequence that deliberately cannot insert
+        # buffers. Upstream treats the two as alternatives for the same reason.
+        if self.get("var", "remove_synth_buffers") and self.get("var", "repair_synth_timing"):
+            raise ValueError(
+                "remove_synth_buffers and repair_synth_timing are alternatives, not "
+                "additive: removing the synthesis buffers discards the buffering the "
+                "repair pass would otherwise refine, and the repair cannot insert "
+                "buffers to replace them. Enable one or neither.")
 
         self.add_required_key("var", "remove_synth_buffers")
         self.add_required_key("var", "remove_dead_logic")
