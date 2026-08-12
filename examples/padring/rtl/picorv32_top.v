@@ -164,6 +164,11 @@ module picorv32_top (
     // macro the technology provides. 256 words of 32 bits, which on sky130 is
     // one macro: ask for twice the depth and it becomes two, and two of them
     // will not fit inside a ring this size.
+    //
+    // The processor drives a byte address and the memory takes a word index, so
+    // the low two bits are dropped rather than passed through. Wiring
+    // mem_addr[7:0] straight in would reach only every fourth word and alias
+    // every 256 bytes.
     la_spram #(
         .DW(32),
         .AW(8)
@@ -172,7 +177,7 @@ module picorv32_top (
         .ce(1'b1),
         .we(mem_wstrb != 4'b0),
         .wmask(mem_wstrb),
-        .addr(mem_addr_int[7:0]),
+        .addr(mem_addr_int[9:2]),  // byte address -> word index
         .din(mem_wdata),
         .dout(mem_rdata),
         .selctrl(1'b0),

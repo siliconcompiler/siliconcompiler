@@ -171,10 +171,10 @@ packages a runnable test case to attach.
 
 | Resources | Link|
 |-----------|-----|
-| **Website**|  https://www.siliconcompiler.com
-| **Documentation**|  https://docs.siliconcompiler.com
-| **Discussions**| https://github.com/siliconcompiler/siliconcompiler/discussions
-| **Sources**|  https://github.com/siliconcompiler/siliconcompiler
-| **Issues**|  https://github.com/siliconcompiler/siliconcompiler/issues
-| **Open PDKs**| https://github.com/siliconcompiler/lambdapdk — every open PDK and standard cell library SiliconCompiler ships
-| **Portable RTL libraries**| https://github.com/siliconcompiler/lambdalib — technology-independent blocks, including the pad ring
+| **Website**|  https://www.siliconcompiler.com |
+| **Documentation**|  https://docs.siliconcompiler.com |
+| **Discussions**| https://github.com/siliconcompiler/siliconcompiler/discussions |
+| **Sources**|  https://github.com/siliconcompiler/siliconcompiler |
+| **Issues**|  https://github.com/siliconcompiler/siliconcompiler/issues |
+| **Open PDKs**| https://github.com/siliconcompiler/lambdapdk — every open PDK and standard cell library SiliconCompiler ships |
+| **Portable RTL libraries**| https://github.com/siliconcompiler/lambdalib — technology-independent blocks, including the pad ring |

@@ -26,9 +26,9 @@ from siliconcompiler.tools.openroad.power_grid import PowerGridTask
 class PadringExample(Design):
     '''A RISC-V processor and its memory, wrapped in a pad ring.
 
-    Five filesets, because a pad ring needs more than RTL: the processor, the
-    die that joins it to a memory and a ring, the constraints, and three sets
-    of physical instructions for OpenROAD.
+    Six filesets, because a pad ring needs more than RTL: the processor, the die
+    that joins it to a memory and a ring, the constraints, and three sets of
+    physical instructions for OpenROAD.
     '''
 
     def __init__(self):

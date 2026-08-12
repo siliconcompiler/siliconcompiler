@@ -76,24 +76,33 @@ Looking at the waveform
 .. index:: ! waveform, ! VCD, ! FST, ! surfer, ! vcd2fst, ! view a waveform
 
 A simulation that only prints pass or fail tells you little when it fails. The
-viewer is `surfer <https://surfer-project.org>`_, and it is reached the same way
-as a layout viewer -- :meth:`.Project.show` picks the viewer from the file
-extension, so a run that produced a waveform needs no extra configuration:
+viewer is `surfer <https://surfer-project.org>`_, and it reads the VCD the
+simulation left behind.
+
+The one thing to know is that the trace is a **report**, not an output.
+:meth:`.Project.show` with no argument looks for a *result* -- a layout in a
+node's ``outputs`` directory -- so it will not find a waveform on its own. Locate
+the file and hand it over:
+
+.. literalinclude:: examples/heartbeat/make.py
+   :language: python
+   :pyobject: sim
+   :start-at: vcd = project.find_result
+   :end-at: filename="heartbeat_tb.vcd")
+   :caption: Finding the trace, from ``examples/heartbeat/make.py``
 
 .. code-block:: python
 
-   project.run()
-   project.show()          # opens the VCD in surfer
+   project.show(vcd)          # opens the waveform in surfer
 
-An earlier run's trace can be opened without re-simulating, either by pointing at
-the file or by letting ``sc-show`` find it in the build tree:
+The same file can be opened later from the command line by path, without
+re-simulating:
 
 .. code-block:: bash
 
-   sc-show build/heartbeat/job0/sim/0/reports/heartbeat.vcd
-   sc-show -design heartbeat -ext vcd
+   sc-show build/heartbeat/job0/simulate/0/reports/heartbeat_tb.vcd
 
-Install it with the rest of the tools:
+Install the viewer with the rest of the tools:
 
 .. code-block:: bash
 
