@@ -286,6 +286,30 @@ parameters so the library carries everything a flow needs; see
 follow the same recipe with :class:`.PDK` and the tool ``*PDK`` mixins; see
 :ref:`pdks <dev_pdks>`.
 
+.. note::
+
+   **Base class order matters when building on a bundled base class.** Some
+   packages ship a base class that already combines several mixins — lambdapdk's
+   ``LambdaLibrary``, for example, bundles the Yosys, OpenROAD, KLayout and Bambu
+   library mixins together with :class:`.StdCellLibrary`. Such a base class has to
+   be listed **before** anything it already inherits, so extend it like this:
+
+   .. code-block:: python
+
+      from lambdapdk import LambdaLibrary
+      from mylib.tools.mytool import MyToolStdCellLibrary
+
+
+      # LambdaLibrary first, and no separate StdCellLibrary: it brings its own.
+      class MyMacro(LambdaLibrary, MyToolStdCellLibrary, CachedSchema):
+          ...
+
+   Repeating :class:`.StdCellLibrary` in the base list *after* the bundled class
+   asks Python for an inheritance order that cannot exist, and the class fails to
+   define with ``TypeError: Cannot create a consistent method resolution order
+   (MRO)``. If you hit that error, remove the mixins the bundled base class
+   already provides and move it to the front of the list.
+
 A **tool driver** is a :class:`.Task` subclass. It names its tool and task,
 declares the executable, and ships any reference scripts alongside the module:
 
@@ -463,6 +487,24 @@ Once published, the library is installed like any Python package:
 The last form uses pip's `VCS direct-reference syntax
 <https://pip.pypa.io/en/stable/topics/vcs-support/>`_, which is handy for
 private libraries hosted on an internal git server.
+
+.. note::
+
+   **Installing next to a SiliconCompiler source checkout.** If the environment
+   runs SiliconCompiler from a git checkout (``pip install -e .``) rather than from
+   a PyPI release, install the library with ``--no-deps``:
+
+   .. code-block:: bash
+
+      pip install --no-deps mylib
+
+   ``setuptools_scm`` stamps a checkout with a development version such as
+   ``0.38.5.dev4+g1a2b3c4``, and no ``==`` pin matches a development version. The
+   exact pin recommended above therefore looks unsatisfied, so pip resolves it by
+   replacing the editable checkout with a release wheel from PyPI, silently undoing
+   the source install. ``--no-deps`` leaves the checkout alone; install the
+   library's remaining dependencies yourself, or relax the pin to ``>=`` while
+   developing against a checkout.
 
 The package is consumed either through its target or by adding its modules
 directly:
