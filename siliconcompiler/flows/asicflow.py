@@ -113,7 +113,10 @@ class ASICFlow(Flowgraph):
             raise ValueError(f"{cleanup.name} must have exactly one exit node.")
         prev_node = f"cleanup.{prev_node[0][0]}"  # Get the node name from the tuple
 
-        pnr = PNRFlow(floorplan_np=floorplan_np, place_np=place_np, cts_np=cts_np, route_np=route_np)
+        pnr = PNRFlow(floorplan_np=floorplan_np,
+                      place_np=place_np,
+                      cts_np=cts_np,
+                      route_np=route_np)
         self.graph(pnr)
         for step, index in pnr.get_entry_nodes():
             self.edge(prev_node, step, head_index=index)
