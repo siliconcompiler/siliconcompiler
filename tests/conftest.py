@@ -4,8 +4,8 @@ import pytest
 import glob
 import json
 import re
-import multiprocessing
 import platform
+import psutil
 import shutil
 import socket
 import subprocess
@@ -28,7 +28,7 @@ from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager, \
-    get_process_context
+    get_process_context, forking
 from siliconcompiler.apps import sc_server
 from siliconcompiler.schema import BaseSchema
 
@@ -421,13 +421,54 @@ def scserver_users(scserver_nfs_path):
     return add_user
 
 
+def _shutdown_server(proc, timeout=10):
+    '''
+    Stop an sc-server process and everything it started.
+
+    SIGTERM rather than SIGKILL: aiohttp installs a SIGTERM handler that turns it
+    into a graceful exit of web.run_app(), so sc_server.main() returns and the
+    server process runs its own teardown -- releasing its handles on the session
+    manager and joining the node workers it forked. Under SIGKILL none of that
+    happens, and whatever the server started is orphaned rather than collected.
+
+    The recursive sweep afterwards is the backstop for a server that had to be
+    killed after all: read the tree before signalling the parent, because once it
+    is gone its children are reparented and no longer findable from here.
+    '''
+    if proc.pid is None:
+        return
+
+    try:
+        descendants = psutil.Process(proc.pid).children(recursive=True)
+    except psutil.NoSuchProcess:
+        descendants = []
+
+    proc.terminate()
+    proc.join(timeout)
+    if proc.is_alive():
+        proc.kill()
+        proc.join(timeout)
+
+    alive = [child for child in descendants if child.is_running()]
+    for child in alive:
+        try:
+            child.terminate()
+        except psutil.NoSuchProcess:
+            pass
+    _, alive = psutil.wait_procs(alive, timeout=timeout)
+    for child in alive:
+        try:
+            child.kill()
+        except psutil.NoSuchProcess:
+            pass
+    psutil.wait_procs(alive, timeout=timeout)
+
+
 @pytest.fixture
 def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeypatch):
-    srv_proc = None
+    srv_procs = []
 
     def start_server(cluster='local', auth=False):
-        nonlocal srv_proc
-
         args = [
             '-nfsmount', scserver_nfs_path,
             '-cluster', cluster,
@@ -439,8 +480,16 @@ def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeyp
 
         monkeypatch.setattr(sys, "argv", ["sc-server", *args])
 
-        srv_proc = multiprocessing.Process(target=sc_server.main)
-        srv_proc.start()
+        # Launch with the start method the scheduler pins (fork on Linux), not
+        # the interpreter default. Under the 3.14 default, forkserver, the server
+        # comes up in a freshly exec'd interpreter that has none of this
+        # session's state -- in particular no shared_manager_server address, so
+        # it starts an MPManager server process of its own, which then has to be
+        # cleaned up along with it.
+        srv_proc = get_process_context().Process(target=sc_server.main)
+        with forking():
+            srv_proc.start()
+        srv_procs.append(srv_proc)
 
         # Wait for server to become available
         wait_for_port(unused_tcp_port)
@@ -448,8 +497,8 @@ def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeyp
         return unused_tcp_port
 
     def stop_server():
-        if srv_proc:
-            srv_proc.kill()
+        for srv_proc in srv_procs:
+            _shutdown_server(srv_proc)
 
     request.addfinalizer(stop_server)
 
