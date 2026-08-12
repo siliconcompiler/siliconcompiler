@@ -54,6 +54,8 @@ dependencies = [
 
     "fasteners >= 0.20",
     "tomli >= 2.0.0; python_version < '3.11'",
+    # Zstandard entered the stdlib in 3.14 (PEP 784); older releases need the backport.
+    "backports.zstd >= 1.6.0, < 2.0.0; python_version < '3.14'",
     "pandas >= 1.1.5",
     "psutil >= 5.8.0",
     "Jinja2 >= 2.11.3",

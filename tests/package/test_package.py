@@ -20,6 +20,7 @@ from siliconcompiler.package import FileResolver, PythonPathResolver, \
     KeyPathResolver, DatarootResolver
 from siliconcompiler.package import DataRootResolutionError
 from siliconcompiler.package.cache import PermanentResolutionError, DataSourceUnavailableError
+from siliconcompiler import utils
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
@@ -613,6 +614,10 @@ def failing_resolver():
     (tarfile.ReadError("truncated"), False),
     (zipfile.BadZipFile("truncated"), False),
     (TypeError("neither tar nor zip"), False),
+    (EOFError("compressed file ended early"), False),
+    # Splatted rather than indexed: with no Zstandard bindings the tuple is empty,
+    # and subscripting it would fail the whole module's collection.
+    *[(error("corrupt frame"), False) for error in utils.zstd_errors()],
     (PermanentResolutionError("settled"), True),
     (DataSourceUnavailableError("no such release"), True),
 ))
