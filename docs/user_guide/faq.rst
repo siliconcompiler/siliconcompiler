@@ -135,7 +135,7 @@ Three answers depending on what it is: open PDKs go to ``lambdapdk``, closed or
 proprietary data goes in a package of your own and never into this repository,
 and tool drivers, flows and targets go in-tree.
 
-:ref:`How to Contribute a New Module <module_placement>` has the decision table,
+:ref:`Where your module belongs <module_placement>` has the decision table,
 and :ref:`Packaging an External Library <dev_external_libraries>` covers the
 proprietary case, including how to reference foundry decks out-of-band so they
 never enter a published package.

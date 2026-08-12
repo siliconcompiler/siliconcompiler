@@ -15,6 +15,7 @@ You will also want to look at API References for details.
    Installation <installation>
    Quickstart guide <quickstart>
    Docker guide <docker>
+   Running remotely <remote_processing>
 
 .. toctree::
    :caption: Fundamentals

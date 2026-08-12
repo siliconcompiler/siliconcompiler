@@ -6,8 +6,8 @@ Integrating a New Tool
 ======================
 
 .. seealso::
-   Contributing this back to the project? :ref:`How to Contribute a New Module
-   <module_placement>` covers where it belongs and `CONTRIBUTING.md
+   Contributing this back to the project? :ref:`Where your module belongs
+   <module_placement>` covers the choice and `CONTRIBUTING.md
    <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_
    covers the process: branches, tests, the four lint gates, and the docs build.
 

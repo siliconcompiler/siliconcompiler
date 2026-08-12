@@ -37,13 +37,17 @@ Run `make` with no target for the full list Sphinx supports.
 
 ## Structure
 
-`index.rst` is the entry point. It leads to three top-level sections:
+`index.rst` is the entry point. It opens with a task-oriented "I want to…"
+directory — every tutorial is one click from it, and
+`tests/docs/test_reachability.py` fails if that stops being true — and leads to
+four top-level sections:
 
 | Section | Directory | Contents |
 |---|---|---|
-| User Guide | `user_guide/` | Installation, quickstart, fundamentals, tutorials, FAQ, glossary |
-| Advanced Guide | `development_guide/` | Building tools, flows, PDKs, libraries and targets; packaging; remote execution |
+| User Guide | `user_guide/` | Installation, quickstart, remote and Docker execution, fundamentals, tutorials, FAQ, glossary |
+| Development Guide | `development_guide/` | Building tools, flows, PDKs, libraries and targets; packaging |
 | References | `reference_manual/` | Schema and Python API, CLI apps, pre-defined module catalogues, appendices |
+| Contributing | `development_guide/contribution.rst` | Where a new module belongs, and how to get it reviewed |
 
 `conf.py` holds the Sphinx configuration. `_static/` holds CSS and the custom
 search scorer; `_ext/` holds the Sphinx extensions that live with the docs rather

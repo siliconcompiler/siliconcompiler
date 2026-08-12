@@ -307,7 +307,7 @@ rather than on the chip.
 Targets are the exception: they are still functions taking a project, because a
 target's job is to configure one.
 
-See the :ref:`Advanced Guide <advanced_guide>` for how to write each of these, and
+See the :ref:`Development Guide <development_guide>` for how to write each of these, and
 :ref:`Where your module belongs <module_placement>` before you decide which
 repository it goes in -- that answer also changed.
 

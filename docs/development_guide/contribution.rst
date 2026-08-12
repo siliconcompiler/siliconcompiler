@@ -1,9 +1,16 @@
-How to Contribute a New Module
-==============================
+.. _contributing:
+
+Contributing to SiliconCompiler
+===============================
 
 SiliconCompiler is built for community collaboration.
 Our goal is to support hundreds of PDKs, tools, and flows, which is only possible with help from contributors like you.
 This guide outlines the process for adding a new module to the project.
+
+Contributing a **module** -- a tool driver, flow, target, PDK or library -- is
+what most of this page covers. If you are here to improve the
+**documentation** instead, skip to :ref:`Improving the documentation
+<contributing_docs>`.
 
 Before You Begin: The Ground Rules
 ----------------------------------
@@ -98,3 +105,30 @@ Once you have created and tested your module, you are ready to submit it for rev
 
 Please read our `CONTRIBUTING.md <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_ guide on GitHub.
 It contains essential information about our pull request process, coding standards, and how to format your commit messages.
+
+.. _contributing_docs:
+
+Improving the documentation
+---------------------------
+
+Documentation changes follow the same pull request process as code. What is
+particular to the docs is where things live, and a few conventions a green build
+will not enforce for you:
+
+* The site is built with Sphinx from ``docs/``.
+  `docs/README.md <https://github.com/siliconcompiler/siliconcompiler/blob/main/docs/README.md>`_
+  is the reference for building it locally, the directory layout, and the
+  writing conventions. Read it before your first documentation change.
+* **Most reference pages are generated** from the source tree at build time --
+  the schema, the pre-defined module catalogues, the CLI app reference and the
+  tool install matrix. Changing one of those means changing the generator or the
+  docstring behind it, not the ``.rst``.
+* **Warnings are errors.** The build passes ``-W --keep-going``, so a broken
+  cross-reference fails it rather than shipping.
+* ``tests/docs/`` checks what a strict build cannot: prose that is valid
+  reStructuredText but links somewhere other than the author intended, and pages
+  that have drifted out of a reader's reach.
+
+The process itself -- branches, tests, and the lint gates every pull request is
+checked against -- is in
+`CONTRIBUTING.md <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_.

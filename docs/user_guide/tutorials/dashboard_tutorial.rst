@@ -1,3 +1,5 @@
+.. _dashboard_tutorial:
+
 ==================
 Dashboard Tutorial
 ==================
