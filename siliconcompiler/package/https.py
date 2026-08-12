@@ -34,15 +34,19 @@ from siliconcompiler.utils import is_zstd, open_zstd_stream, tar_extract_kwargs,
 #: too: a server having a bad minute may not be having a bad hour.
 _TERMINAL_STATUSES = (400, 404, 405, 410, 414, 451)
 
-#: Suffixes naming a compressed tar, stripped from a GitHub archive's filename to
-#: recover the release reference its top-level directory is named after.
+#: Archive suffixes stripped from a GitHub archive's filename to recover the
+#: release reference its top-level directory is named after.
 #:
 #: The fallback for a name matching none of these gives up at the first '.', which
 #: truncates any release carrying a dotted version -- 'v1.0.2.tar.zst' would look
 #: for 'repo-1' rather than 'repo-1.0.2'. No entry is a suffix of another, so the
 #: first match is the whole extension.
-_TAR_SUFFIXES = (".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst",
-                 ".tgz", ".tbz2", ".txz", ".tzst")
+#:
+#: One format is deliberately absent: a plain, uncompressed '.tar' is not among the
+#: formats :func:`_archive_formats` can read, so an archive named that way never
+#: reaches the flattening this table serves.
+_ARCHIVE_SUFFIXES = (".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst",
+                     ".tgz", ".tbz2", ".txz", ".tzst", ".zip")
 
 
 def _extract_tar(fileobj: IO[bytes], path: str, mode: str) -> None:
@@ -276,7 +280,7 @@ class HTTPResolver(RemoteResolver):
             if repo.endswith('.git'):
                 gh_ref = self.reference
             else:
-                for suffix in _TAR_SUFFIXES:
+                for suffix in _ARCHIVE_SUFFIXES:
                     if gh_ref.endswith(suffix):
                         gh_ref = gh_ref[0:-len(suffix)]
                         break

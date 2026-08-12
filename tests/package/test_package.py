@@ -615,7 +615,9 @@ def failing_resolver():
     (zipfile.BadZipFile("truncated"), False),
     (TypeError("neither tar nor zip"), False),
     (EOFError("compressed file ended early"), False),
-    (utils.zstd_errors()[0]("corrupt frame"), False),
+    # Splatted rather than indexed: with no Zstandard bindings the tuple is empty,
+    # and subscripting it would fail the whole module's collection.
+    *[(error("corrupt frame"), False) for error in utils.zstd_errors()],
     (PermanentResolutionError("settled"), True),
     (DataSourceUnavailableError("no such release"), True),
 ))

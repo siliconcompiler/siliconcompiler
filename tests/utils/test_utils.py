@@ -4,6 +4,7 @@ import pytest
 import os
 import os.path
 import psutil
+import struct
 import sys
 import tarfile
 import types
@@ -1275,6 +1276,12 @@ def test_zstd_errors_reports_the_decompressor_error():
 @pytest.mark.parametrize("data,expected", (
     (b"\x28\xb5\x2f\xfd", True),
     (b"\x28\xb5\x2f\xfd\x00\x48\x65", True),
+    # Skippable frames (RFC 8878 3.1.2) span 0x184D2A50-0x184D2A5F, little-endian,
+    # so it is the first byte that varies. A stream may lead with one.
+    (b"\x50\x2a\x4d\x18", True),       # 0x184D2A50, the bottom of the range
+    (b"\x5f\x2a\x4d\x18", True),       # 0x184D2A5F, the top of it
+    (b"\x4f\x2a\x4d\x18", False),      # 0x184D2A4F, just below
+    (b"\x60\x2a\x4d\x18", False),      # 0x184D2A60, just above
     (b"\x1f\x8b\x08\x00", False),      # gzip
     (b"BZh9", False),                  # bzip2
     (b"\xfd7zXZ\x00", False),          # xz
@@ -1285,6 +1292,20 @@ def test_zstd_errors_reports_the_decompressor_error():
 def test_is_zstd(data, expected):
     """The frame magic identifies zstd, and identifies nothing else as zstd."""
     assert utils.is_zstd(data) is expected
+
+
+def test_is_zstd_accepts_a_leading_skippable_frame():
+    """
+    A stream that opens with a skippable frame is still Zstandard.
+
+    Built the way a writer would rather than from a magic constant, so this stays
+    honest about what the decompressor accepts: it must read the same bytes back.
+    """
+    frame = struct.pack("<II", 0x184D2A50, 4) + b"meta" + utils._zstd.compress(b"payload")
+
+    assert utils.is_zstd(frame) is True
+    with utils.open_zstd_stream(BytesIO(frame)) as stream:
+        assert stream.read() == b"payload"
 
 
 def test_is_zstd_recognizes_what_it_cannot_read(monkeypatch):

@@ -192,17 +192,24 @@ def is_zstd(data: bytes) -> bool:
     written out here rather than taken from the bindings -- the question is asked
     precisely when they could not be imported.
 
-    Only the frame magic of RFC 8878 section 3.1.1 is matched, not the skippable
-    frame magics: an archive opening with one of those carries no data of its own.
+    Both of RFC 8878's magic numbers count: the Zstandard frame of section 3.1.1,
+    and the skippable frames of section 3.1.2, which a stream may legally lead
+    with. A skippable frame carries no compressed payload, but a file that opens
+    with one -- a tool prefixing its archives with metadata, say -- is a file zstd
+    reads end to end, so it is a file to report as Zstandard.
 
     Args:
-        data (bytes): The start of the stream to identify. Fewer bytes than the
-            magic number is simply not a match.
+        data (bytes): The start of the stream to identify. Fewer bytes than a magic
+            number is simply not a match.
 
     Returns:
-        bool: True if the data starts with the Zstandard frame magic.
+        bool: True if the data starts with a Zstandard frame magic.
     """
-    return data.startswith(b"\x28\xb5\x2f\xfd")
+    if len(data) < 4:
+        return False
+
+    magic = int.from_bytes(data[0:4], "little")
+    return magic == 0xFD2FB528 or 0x184D2A50 <= magic <= 0x184D2A5F
 
 
 def zstd_errors() -> Tuple[Type[BaseException], ...]:
