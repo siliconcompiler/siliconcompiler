@@ -205,7 +205,7 @@ Packaging
 * `BGA <https://en.wikipedia.org/wiki/Ball_grid_array>`_: Ball grid array is a type of surface-mount packaging (a chip carrier) used for integrated circuits.
 * `BGA substrate <https://en.wikipedia.org/wiki/Ball_grid_array>`_: A miniaturized PCB that mates the silicon die to BGA pins.
 * `Bumping <https://en.wikipedia.org/wiki/Flip_chip>`_: Placing of bumps on wafer/dies in preparation for package assembly.
-* `DIMM <https://www.techtarget.com/searchstorage/definition/DIMM>`_: Dual in line memory module.
+* `DIMM <https://en.wikipedia.org/wiki/DIMM>`_: Dual in line memory module.
 * `Flip-chip <https://en.wikipedia.org/wiki/Flip_chip>`_: Method of bonding a silicon die to package using solder bumps.
 * `IC Assembly <https://en.wikipedia.org/wiki/Integrated_circuit_packaging>`_: Semiconductor die is encased in a supporting case "package".
 * `Interposer <https://en.wikipedia.org/wiki/Interposer>`_: Electrical interface used to spread a connection to a wider pitch.
@@ -216,7 +216,7 @@ Packaging
 * `POP <https://en.wikipedia.org/wiki/Package_on_package>`_: Package on Package
 * `SIP <https://en.wikipedia.org/wiki/System_in_package>`_: System In Package
 * `SMT <https://en.wikipedia.org/wiki/Surface-mount_technology>`_: Technique whereby packaged chips are mounted directly onto the PCB surface.
-* `Through-hole <https://en.wikipedia.org/wiki/Through-hole_technology>`_: TPackage pins inserted in drilled holes and soldered on opposite side of the board.
+* `Through-hole <https://en.wikipedia.org/wiki/Through-hole_technology>`_: Technique where package pins are inserted in drilled holes and soldered on opposite side of the board.
 * `Wirebond <https://en.wikipedia.org/wiki/Wire_bonding>`_: Method of bonding a silicon die to a package using wires.
 * `WSI <https://en.wikipedia.org/wiki/Wafer-scale_integration>`_: Wafer scale integration
 

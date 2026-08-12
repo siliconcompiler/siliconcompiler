@@ -43,6 +43,7 @@ You will also want to look at API References for details.
    Building your own SoC <tutorials/picorv32_ram>
    Build for an FPGA <tutorials/fpga>
    Hardware design frontends <tutorials/hw_frontends>
+   Implementing an IO pad ring <tutorials/padring>
    Instantiating a hardened module in a design <tutorials/hardened>
    Hardening parameterized modules (uniquify) <tutorials/uniquify>
    Calibrating the parasitic estimate (PEX) <tutorials/pex_calibration>

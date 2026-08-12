@@ -59,6 +59,25 @@ project.show()                                         # show layout
 > [!NOTE]
 > The required files can be found at: [heartbeat example](https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/heartbeat)
 
+# Not building an ASIC?
+
+The example above is an ASIC build, but the same `Design` feeds every flow. The
+project class is what decides what happens to it:
+
+| Goal | Class | Tools needed | Start here |
+|------|-------|--------------|------------|
+| Lint your RTL | `Lint` | none | [Lint your RTL](https://docs.siliconcompiler.com/en/latest/user_guide/tutorials/lint.html) |
+| Simulate, or prove properties formally | `Sim` | Verilator, Icarus, GHDL or SymbiYosys | [Simulate and verify](https://docs.siliconcompiler.com/en/latest/user_guide/tutorials/simulate.html) |
+| Build an FPGA bitstream | `FPGA` | Yosys, plus VPR or nextpnr | [Build for an FPGA](https://docs.siliconcompiler.com/en/latest/user_guide/tutorials/fpga.html) |
+
+Linting is the quickest way to see SiliconCompiler work: the default linter ships
+as a Python package, so it needs no EDA tools installed at all. For a complete
+FPGA build with nothing installed locally, the demo runs remotely:
+
+```sh
+python3 -m siliconcompiler.demos.fpga_demo -remote
+```
+
 # Why SiliconCompiler?
 
 * **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/latest/reference_manual/schema_api.html)
@@ -152,8 +171,10 @@ packages a runnable test case to attach.
 
 | Resources | Link|
 |-----------|-----|
-| **Website**|  https://www.siliconcompiler.com
-| **Documentation**|  https://docs.siliconcompiler.com
-| **Discussions**| https://github.com/siliconcompiler/siliconcompiler/discussions
-| **Sources**|  https://github.com/siliconcompiler/siliconcompiler
-| **Issues**|  https://github.com/siliconcompiler/siliconcompiler/issues
+| **Website**|  https://www.siliconcompiler.com |
+| **Documentation**|  https://docs.siliconcompiler.com |
+| **Discussions**| https://github.com/siliconcompiler/siliconcompiler/discussions |
+| **Sources**|  https://github.com/siliconcompiler/siliconcompiler |
+| **Issues**|  https://github.com/siliconcompiler/siliconcompiler/issues |
+| **Open PDKs**| https://github.com/siliconcompiler/lambdapdk — every open PDK and standard cell library SiliconCompiler ships |
+| **Portable RTL libraries**| https://github.com/siliconcompiler/lambdalib — technology-independent blocks, including the pad ring |
