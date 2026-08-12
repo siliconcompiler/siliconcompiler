@@ -1,4 +1,5 @@
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
 from siliconcompiler.tools.openroad import OpenROADTask
 
@@ -14,9 +15,23 @@ class RDLRouteTask(OpenROADTask):
 
         self.add_parameter("fin_add_fill", "bool",
                            "true/false, when true enables adding fill, "
-                           "if enabled by the PDK, to the design", defvalue=True)
+                           "if enabled by the PDK, to the design", defvalue=False)
 
-    def add_openroad_rdlroute(self, file, dataroot=None, step=None, index=None, clobber=False):
+    def add_openroad_rdlroute(self, file: Union[str, Path], dataroot: Optional[str] = None,
+                              step: Optional[str] = None, index: Optional[Union[int, str]] = None,
+                              clobber: bool = False):
+        """
+        Adds a RDL routing script to the design.
+
+        Args:
+            file (str): The path to the RDL routing script.
+            dataroot (str, optional): The data root to apply this configuration to.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, replaces any existing RDL routing scripts
+                for the specified dataroot, step, and index. If False, appends the
+                new script to the existing list.
+        """
         with self.active_dataroot(self._get_active_dataroot(dataroot)):
             if clobber:
                 self.set("var", "rdlroute", file, step=step, index=index)
@@ -24,7 +39,7 @@ class RDLRouteTask(OpenROADTask):
                 self.add("var", "rdlroute", file, step=step, index=index)
 
     def set_openroad_addfill(self, enable: bool,
-                             step: Optional[str] = None, index: Optional[str] = None):
+                             step: Optional[str] = None, index: Optional[Union[int, str]] = None):
         """
         Enables or disables adding fill to the design.
 
@@ -85,5 +100,3 @@ class RDLRouteTask(OpenROADTask):
             for fileset in lib.get("asic", "aprfileset"):
                 if lib.has_file(fileset=fileset, filetype="lef"):
                     self.add_required_key(lib, "fileset", fileset, "file", "lef")
-
-        self.set_openroad_addfill(False)
