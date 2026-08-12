@@ -1597,7 +1597,15 @@ def test_openroad_fillmetal_insertion_skips_when_disabled(asic_gcd):
 
 
 def test_openroad_fillmetal_insertion_skips_without_pdk_rules(asic_gcd):
-    """freepdk45 ships no openroad fill file, so the enabled default still skips."""
+    """Fill enabled but no PDK fill file to work from still skips the node."""
+    fillmetal_insertion.FillMetalTask.find_task(asic_gcd).set_openroad_addfill(True)
+
+    # Drop any fill rules the PDK ships so the skip is exercised regardless of
+    # what freepdk45 provides.
+    pdk = asic_gcd.get_library(asic_gcd.get("asic", "pdk"))
+    for fileset in pdk.get("pdk", "aprtechfileset", "openroad"):
+        pdk.unset("fileset", fileset, "file", "fill")
+
     node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
     with node.runtime():
         assert node.task.get("var", "fin_add_fill") is True
