@@ -27,6 +27,17 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      # Pinned rather than taking the runner default. The docs build documents the
+      # cocotb tasks, and generating a task's documentation runs its setup(),
+      # which needs cocotb importable. cocotb is pinned to python_version <=
+      # '3.13', so on a newer interpreter the extra resolves to nothing and the
+      # build fails on the first cocotb task -- a failure that says nothing about
+      # the interpreter. Read the Docs pins its own version in .readthedocs.yaml.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -105,6 +116,17 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+
+      # Pinned rather than taking the runner default. The docs build documents the
+      # cocotb tasks, and generating a task's documentation runs its setup(),
+      # which needs cocotb importable. cocotb is pinned to python_version <=
+      # '3.13', so on a newer interpreter the extra resolves to nothing and the
+      # build fails on the first cocotb task -- a failure that says nothing about
+      # the interpreter. Read the Docs pins its own version in .readthedocs.yaml.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
 
       - name: Install dependencies
         run: |
