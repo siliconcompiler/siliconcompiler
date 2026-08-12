@@ -21,6 +21,21 @@ The file holds JSON, but has no file extension.
 
 While you can create this file manually, the recommended method is to use the interactive ``sc-remote`` command.
 
+.. warning::
+
+   This file stores your password or API key **in plain text**, so treat it as a
+   secret.
+
+   * ``sc-remote -configure`` creates it readable only by you. If you write or
+     copy the file yourself, restrict it too -- on Linux and macOS,
+     ``chmod 600 $HOME/.sc/credentials``. On Windows, remove the inherited
+     permissions and grant access to your account alone, through the file's
+     *Properties > Security* dialog or ``icacls``.
+   * **Never commit it to version control**, and do not paste its contents into
+     an issue, a pull request or a build log. If you need the credentials on a
+     build machine, use the secret store your CI provides rather than a file in
+     the repository -- see :ref:`Running builds in CI <ci_tutorial>`.
+
 Method 1: Interactive Setup (Recommended)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

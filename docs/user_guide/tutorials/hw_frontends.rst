@@ -16,10 +16,10 @@ Here are some tutorials of a few different types of high-level hardware design f
 * :ref:`bluespec frontend <bluespec_frontend>`
 
 
-.. include:: migen.inc
+.. include:: include/migen.inc
 
-.. include:: chisel.inc
+.. include:: include/chisel.inc
 
-.. include:: bambu.inc
+.. include:: include/bambu.inc
 
-.. include:: bluespec.inc
+.. include:: include/bluespec.inc
