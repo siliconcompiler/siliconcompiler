@@ -1,7 +1,9 @@
+import gzip
 import logging
 import pytest
 import re
 import responses
+import sys
 import tarfile
 import zipfile
 import os
@@ -11,9 +13,10 @@ from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+from siliconcompiler import utils
 from siliconcompiler.package import DataRootResolutionError
-from siliconcompiler.package.cache import DataSourceUnavailableError
-from siliconcompiler.package.https import HTTPResolver
+from siliconcompiler.package.cache import DataSourceUnavailableError, PermanentResolutionError
+from siliconcompiler.package.https import HTTPResolver, _extract_archive
 from siliconcompiler import Project
 
 
@@ -46,6 +49,43 @@ def test_dependency_path_download_http(project_logger, datadir, path, ref, cache
     assert resolver.resolve() == Path(os.path.join(tmp_path, f"sc-data-{ref[0:16]}-{cache_id}"))
     assert os.path.isfile(
         os.path.join(tmp_path, f"sc-data-{ref[0:16]}-{cache_id}", "pyproject.toml"))
+    assert "Downloading sc-data data from " in caplog.text
+
+
+@responses.activate
+def test_dependency_path_download_http_zstd(project_logger, datadir, tmp_path, caplog):
+    """
+    A Zstandard artifact resolves end to end, over the real transfer stack.
+
+    The unit tests above hand :meth:`resolve_remote` a mocked response; this goes
+    through ``resolve()`` and an actual ``requests`` download, which is where a
+    binary body could still be mangled in transit before any decompressor sees it.
+    Ciel publishes its PDK artifacts this way, which is what brought zstd here, so
+    the archive is the existing fixture recompressed rather than a second copy
+    checked in.
+    """
+    with open(os.path.join(datadir, 'https.tar.gz'), "rb") as f:
+        body = _zstd_compress(gzip.decompress(f.read()))
+
+    responses.add(
+        responses.GET,
+        "https://example.com/sky130_fd_sc_hd.tar.zst",
+        body=body,
+        status=200,
+        content_type="application/zstd"
+    )
+
+    proj = Project("testproj")
+    proj.set("option", "cachedir", tmp_path)
+    project_logger(proj)
+    proj.logger.setLevel(logging.INFO)
+
+    resolver = HTTPResolver("sc-data", proj, "https://example.com/sky130_fd_sc_hd.tar.zst",
+                            "v1.0.2")
+    cache_dir = os.path.join(tmp_path, "sc-data-v1.0.2-2b8a7556f743e2a4")
+
+    assert resolver.resolve() == Path(cache_dir)
+    assert os.path.isfile(os.path.join(cache_dir, "pyproject.toml"))
     assert "Downloading sc-data data from " in caplog.text
 
 
@@ -326,7 +366,8 @@ def test_http_resolver_resolve_remote_invalid_archive(tmpdir):
         mock_response.content = b"not a valid archive"
         mock_requests.get.return_value = mock_response
 
-        with pytest.raises(TypeError, match="not a valid tar.gz or zip archive"):
+        with pytest.raises(TypeError,
+                           match=r"not a valid tar \(gzip, bzip2, xz or zstd\) or zip archive"):
             resolver.resolve_remote()
 
 
@@ -441,6 +482,285 @@ def test_http_resolver_resolve_remote_github_flatten_tgz(tmpdir):
         # Verify file was moved to cache root
         assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
         assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0"))
+
+
+# ============================================================================
+# Compressed archive handling
+#
+# Every fixture below is built with the same bindings the resolver reads it back
+# with, so these run unchanged on an interpreter using the stdlib
+# ``compression.zstd`` (3.14+) and on one using the ``backports.zstd`` package
+# (3.10-3.13), exercising whichever the shim selected.
+# ============================================================================
+
+#: Tar compressions the resolver accepts, as (archive suffix, tarfile mode
+#: suffix). "zst" is not a mode stdlib tarfile can write before 3.14, and is
+#: special-cased by :func:`_tarball`.
+_COMPRESSIONS = (
+    (".tar.gz", "gz"),
+    (".tgz", "gz"),
+    (".tar.bz2", "bz2"),
+    (".tbz2", "bz2"),
+    (".tar.xz", "xz"),
+    (".txz", "xz"),
+    (".tar.zst", "zst"),
+    (".tzst", "zst"),
+)
+
+
+def _zstd_compress(data):
+    """Compresses with the bindings :mod:`siliconcompiler.utils` selected.
+
+    Reaching for the module the shim resolved, rather than importing one here,
+    keeps a test fixture and the code under test on the same implementation -- and
+    fails loudly if the shim found none, which is the whole point of declaring the
+    backport as a dependency.
+    """
+    assert utils.zstd_available(), utils.zstd_unavailable_message()
+    return utils._zstd.compress(data)
+
+
+def _tarball(members, compression):
+    """Builds an in-memory tarball of ``{name: contents}`` in the given compression."""
+    # Before 3.14 stdlib tarfile cannot write zstd at all, so the tar is built
+    # uncompressed and the frame wrapped around it afterwards.
+    mode = "w:" if compression == "zst" else f"w:{compression}"
+
+    raw = BytesIO()
+    with tarfile.open(fileobj=raw, mode=mode) as tar:
+        for name, content in members.items():
+            info = tarfile.TarInfo(name=name)
+            info.size = len(content)
+            tar.addfile(info, BytesIO(content))
+
+    if compression == "zst":
+        return _zstd_compress(raw.getvalue())
+    return raw.getvalue()
+
+
+def _resolve_with_content(resolver, content):
+    """Runs resolve_remote against a download that answers with ``content``."""
+    import siliconcompiler.package.https as https_module
+    with patch.object(https_module, "requests") as mock_requests:
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.content = content
+        mock_requests.get.return_value = mock_response
+
+        resolver.resolve_remote()
+
+
+@pytest.mark.parametrize("suffix,compression", _COMPRESSIONS)
+def test_http_resolver_resolve_remote_compressed_tarball(tmpdir, suffix, compression):
+    """Every compression SiliconCompiler claims to accept unpacks."""
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver("test", project, f"https://example.com/data{suffix}", "v1.0")
+
+    _resolve_with_content(resolver, _tarball({"test.txt": b"test"}, compression))
+
+    assert os.path.isfile(os.path.join(str(resolver.cache_path), "test.txt"))
+
+
+@pytest.mark.parametrize("compression,expected", (
+    ("gz", "gzip tar"),
+    ("bz2", "bzip2 tar"),
+    ("xz", "xz tar"),
+    ("zst", "zstd tar"),
+))
+def test_extract_archive_reports_the_format_it_found(tmp_path, compression, expected):
+    """
+    The format that read an archive is reported back, and logged.
+
+    Which one answered is the first thing worth knowing when a download unpacks
+    into something unexpected, since the name it arrived under does not decide it.
+    """
+    archive = BytesIO(_tarball({"test.txt": b"test"}, compression))
+
+    assert _extract_archive(archive, str(tmp_path), "https://example.com/data") == expected
+
+
+def test_extract_archive_reports_zip(tmp_path):
+    """A zip is named as a zip, not as a tar of some compression."""
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, 'w') as zf:
+        zf.writestr("test.txt", "test")
+
+    assert _extract_archive(archive, str(tmp_path), "https://example.com/data") == "zip"
+
+
+def test_http_resolver_resolve_remote_zstd_identified_by_contents(tmpdir):
+    """
+    A zstd archive is unpacked on its contents, not its name.
+
+    The extension is the server's to choose and is routinely wrong -- what decides
+    is the frame magic, as it already did for the other compressions.
+    """
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver("test", project, "https://example.com/data.tar.gz", "v1.0")
+
+    _resolve_with_content(resolver, _tarball({"test.txt": b"test"}, "zst"))
+
+    assert os.path.isfile(os.path.join(str(resolver.cache_path), "test.txt"))
+
+
+def test_http_resolver_resolve_remote_zstd_nested_layout(tmpdir):
+    """
+    A zstd archive with a real PDK's directory depth unpacks whole.
+
+    Shaped after a Ciel artifact, which is what brought zstd here: a tarball of a
+    library's views, several directories deep and thousands of members long.
+    """
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver("test", project, "https://example.com/sky130_fd_sc_hd.tar.zst", "v1.0")
+
+    members = {
+        f"sky130_fd_sc_hd/{view}/cell_{index}.{view}": f"cell {index}".encode()
+        for view in ("lef", "lib", "gds")
+        for index in range(4)
+    }
+    _resolve_with_content(resolver, _tarball(members, "zst"))
+
+    for name in members:
+        assert os.path.isfile(os.path.join(str(resolver.cache_path), *name.split("/")))
+
+
+def test_http_resolver_resolve_remote_zstd_applies_extraction_filter(tmpdir):
+    """
+    The extraction filter covers the zstd path too, and its verdict still settles.
+
+    This is what the decompress-then-extract split buys: one stdlib ``tarfile``
+    reads every archive, so the filter that guards a gzip download guards a zstd
+    one, and the refusal it raises is the class the retry logic knows to stop on.
+    """
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver("test", project, "https://example.com/data.tar.zst", "v1.0")
+
+    archive = _tarball({"safe.txt": b"ok", "../escape.txt": b"bad"}, "zst")
+
+    with pytest.raises(tarfile.OutsideDestinationError):
+        _resolve_with_content(resolver, archive)
+
+    assert not os.path.exists(os.path.join(str(tmpdir), "escape.txt"))
+
+
+def test_http_resolver_zstd_filter_refusal_is_permanent():
+    """A member the filter refuses is refused again on a fresh copy, so it settles."""
+    resolver = HTTPResolver("test", Project("testproj"),
+                            "https://example.com/data.tar.zst", "v1.0")
+
+    error = tarfile.OutsideDestinationError(tarfile.TarInfo("../escape.txt"), "dest")
+
+    assert resolver.is_permanent_failure(error) is True
+
+
+def test_http_resolver_resolve_remote_zstd_that_is_not_a_tar(tmpdir):
+    """
+    A readable zstd frame holding something other than a tar is not an archive.
+
+    It must land on the ordinary "unknown format" error rather than leaking the
+    decompressor's own exception to the caller.
+    """
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver("test", project, "https://example.com/data.tar.zst", "v1.0")
+
+    with pytest.raises(TypeError,
+                       match=r"not a valid tar \(gzip, bzip2, xz or zstd\) or zip archive"):
+        _resolve_with_content(resolver, _zstd_compress(b"this is not a tar file"))
+
+
+@pytest.mark.parametrize("compression", ("gz", "zst"))
+def test_http_resolver_resolve_remote_truncated_tarball_stays_retryable(tmpdir, compression):
+    """
+    A half-transferred archive is a transfer that broke, not an answer.
+
+    Truncation is what the attempt budget exists for, and zstd reports it the way
+    gzip has all along -- the decompressor runs out of input rather than rejecting
+    the format -- so both are parametrized here to keep them answering alike. What
+    matters either way is that neither is mistaken for the settled case: an
+    environment missing the zstd bindings, which no retry can change.
+    """
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver("test", project, f"https://example.com/data.tar.{compression}", "v1.0")
+
+    # Padded well past a tar block, so half of it is a genuinely partial archive
+    # rather than a header the reader can still make sense of.
+    archive = _tarball({"test.txt": b"x" * 4096}, compression)
+
+    with pytest.raises((EOFError, TypeError)) as excinfo:
+        _resolve_with_content(resolver, archive[0:len(archive) // 2])
+
+    assert resolver.is_permanent_failure(excinfo.value) is False
+
+
+def test_http_resolver_resolve_remote_zstd_without_bindings(tmpdir, monkeypatch):
+    """
+    An environment that cannot read zstd says so, and stops asking.
+
+    Retrying would re-download the whole archive to reach the same conclusion --
+    for a PDK artifact, hundreds of megabytes to re-learn that a package is
+    missing -- so the source is abandoned on the first attempt with an error
+    naming what would fix it.
+    """
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver("test", project, "https://example.com/data.tar.zst", "v1.0")
+
+    archive = _tarball({"test.txt": b"test"}, "zst")
+    monkeypatch.setattr(utils, "_zstd", None)
+
+    expected = "compression.zstd" if sys.version_info >= (3, 14) else "backports.zstd"
+    with pytest.raises(PermanentResolutionError, match=expected) as excinfo:
+        _resolve_with_content(resolver, archive)
+
+    assert resolver.is_permanent_failure(excinfo.value) is True
+
+
+def test_http_resolver_resolve_remote_unknown_format_is_not_blamed_on_zstd(tmpdir, monkeypatch):
+    """Missing bindings explain a zstd download, and only a zstd download."""
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver("test", project, "https://example.com/data.tar.zst", "v1.0")
+
+    monkeypatch.setattr(utils, "_zstd", None)
+
+    with pytest.raises(TypeError,
+                       match=r"not a valid tar \(gzip, bzip2, xz or zstd\) or zip archive"):
+        _resolve_with_content(resolver, b"not an archive in any format")
+
+
+@pytest.mark.parametrize("suffix,compression", _COMPRESSIONS)
+def test_http_resolver_resolve_remote_github_flatten_compressed(tmpdir, suffix, compression):
+    """
+    The GitHub flattening recovers a dotted release from every archive suffix.
+
+    A name the suffix table misses falls back to a guess that gives up at the
+    first '.', which would look for 'repo-1' here and quietly skip the flatten.
+    """
+    project = Project("testproj")
+    project.set("option", "cachedir", str(tmpdir))
+
+    resolver = HTTPResolver(
+        "test", project,
+        f"https://github.com/owner/repo/archive/refs/tags/v1.0.2{suffix}", "v1.0.2")
+
+    _resolve_with_content(resolver, _tarball({"repo-1.0.2/test.txt": b"test"}, compression))
+
+    assert os.path.isfile(os.path.join(str(resolver.cache_path), "test.txt"))
+    assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0.2"))
 
 
 # ============================================================================

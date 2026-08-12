@@ -16,7 +16,7 @@ from io import StringIO
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, Template
 
-from typing import Dict, Optional, Union, Callable, List, TYPE_CHECKING
+from typing import IO, Dict, Optional, Tuple, Type, Union, Callable, List, cast, TYPE_CHECKING
 
 import importlib.util
 from importlib.metadata import distributions, entry_points
@@ -31,6 +31,14 @@ except ImportError:  # Python < 3.11
         import tomli as tomllib
     except ImportError:  # pragma: no cover - only when tomli is not yet installed
         tomllib = None
+
+try:
+    if sys.version_info >= (3, 14):  # PEP 784 put Zstandard in the standard library
+        from compression import zstd as _zstd
+    else:
+        from backports import zstd as _zstd
+except ImportError:  # pragma: no cover - a build or install without Zstandard
+    _zstd = None
 
 from siliconcompiler.utils.paths import builddir
 
@@ -164,6 +172,101 @@ def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:
     if filter == "data" and _data_filter_mishandles_symlinks():
         return {"filter": _symlink_safe_data_filter}
     return {"filter": filter}
+
+
+def zstd_available() -> bool:
+    """Reports whether this interpreter can read Zstandard streams.
+
+    Returns:
+        bool: True if :func:`open_zstd_stream` will work.
+    """
+    return _zstd is not None
+
+
+def is_zstd(data: bytes) -> bool:
+    """Reports whether ``data`` begins a Zstandard frame.
+
+    Recognizing the format is independent of being able to *read* it, which is the
+    point: this is what separates "not an archive we know" from "an archive this
+    environment is missing the bindings for". That is also why the magic number is
+    written out here rather than taken from the bindings -- the question is asked
+    precisely when they could not be imported.
+
+    Only the frame magic of RFC 8878 section 3.1.1 is matched, not the skippable
+    frame magics: an archive opening with one of those carries no data of its own.
+
+    Args:
+        data (bytes): The start of the stream to identify. Fewer bytes than the
+            magic number is simply not a match.
+
+    Returns:
+        bool: True if the data starts with the Zstandard frame magic.
+    """
+    return data.startswith(b"\x28\xb5\x2f\xfd")
+
+
+def zstd_errors() -> Tuple[Type[BaseException], ...]:
+    """The errors a Zstandard stream raises over data it cannot decompress.
+
+    Returned as a tuple for splatting into an ``except`` clause, empty where the
+    bindings are missing, so a caller identifying an archive by trial can write one
+    handler that holds either way.
+
+    Returns:
+        tuple: Exception types signalling the data is not readable Zstandard.
+    """
+    if _zstd is None:
+        return ()
+    return (_zstd.ZstdError,)
+
+
+def zstd_unavailable_message() -> str:
+    """An actionable account of why this interpreter cannot read Zstandard.
+
+    Returns:
+        str: The reason, naming what would fix it.
+    """
+    version = ".".join(str(part) for part in sys.version_info[0:3])
+    if sys.version_info >= (3, 14):
+        return f"Python {version} was built without Zstandard support, so " \
+               "'compression.zstd' is unavailable."
+    return f"Zstandard support on Python {version} requires the 'backports.zstd' " \
+           "package, which is not installed."
+
+
+def open_zstd_stream(fileobj: IO[bytes]) -> IO[bytes]:
+    """Wraps a Zstandard-compressed stream in a readable, seekable decompressor.
+
+    Only the decompressor is taken from the Zstandard bindings, deliberately.
+    ``backports.zstd`` also ships a backported ``tarfile``, whose ``r:zst`` mode is
+    the obvious way to read a ``.tar.zst`` -- but that is a *different module
+    object* from the stdlib ``tarfile`` on the releases that need the backport,
+    with its own ``TarInfo``, its own ``data_filter`` and its own exception
+    classes. Extraction here depends on both: :func:`tar_extract_kwargs` may
+    substitute a filter that calls stdlib ``tarfile.data_filter``, and the resolver
+    retry logic decides whether a failure is worth retrying by matching stdlib
+    ``tarfile.FilterError``. Feeding either one a backported member would make the
+    substitution a duck-typed guess and leave a refused archive misclassified as a
+    transient failure -- re-downloaded in full, to be refused again. Handing a
+    plain decompressed stream to ``mode="r:"`` keeps one ``tarfile`` on every
+    supported release, and streams rather than materializing the whole archive.
+
+    Args:
+        fileobj (IO[bytes]): The compressed stream, positioned at the frame start.
+
+    Returns:
+        IO[bytes]: The decompressed contents, as a file object to read and seek.
+            Closing it does not close ``fileobj``.
+
+    Raises:
+        ModuleNotFoundError: If this interpreter has no Zstandard bindings.
+    """
+    if _zstd is None:
+        raise ModuleNotFoundError(zstd_unavailable_message())
+
+    # A ZstdFile is a BufferedIOBase, which is everything tarfile asks of a
+    # fileobj, but typeshed does not declare it as an IO[bytes].
+    return cast(IO[bytes], _zstd.ZstdFile(fileobj))
 
 
 def link_symlink_copy(srcfile, dstfile):

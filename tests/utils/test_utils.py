@@ -1159,3 +1159,142 @@ def test_corrected_filter_honors_a_skipped_member(broken_tarfile_data_filter, mo
     member.linkname = "../dir/target"
 
     assert utils._symlink_safe_data_filter(member, os.getcwd()) is None
+
+
+#############################
+# Zstandard bindings
+#
+# Zstandard entered the stdlib in Python 3.14 (PEP 784) and is carried to 3.10-3.13
+# by the 'backports.zstd' dependency, so which module answers below depends on the
+# interpreter. Nothing here names one: the point is that every supported release
+# reaches a working implementation.
+#############################
+def test_zstd_available():
+    """
+    Every supported interpreter can read Zstandard.
+
+    The one test that fails if the dependency declaration is wrong -- a marker that
+    misfires, or a bound that excludes the release under test -- and it fails on the
+    release it is wrong for, rather than at the first PDK download that needs it.
+    """
+    assert utils.zstd_available() is True, utils.zstd_unavailable_message()
+
+
+def test_zstd_module_matches_interpreter():
+    """The stdlib module is used where it exists, and the backport only below it."""
+    expected = "compression.zstd" if sys.version_info >= (3, 14) else "backports.zstd"
+
+    assert utils._zstd.__name__ == expected
+
+
+def test_open_zstd_stream_round_trip():
+    """A compressed frame reads back byte for byte."""
+    payload = b"the quick brown fox" * 1000
+
+    with utils.open_zstd_stream(BytesIO(utils._zstd.compress(payload))) as stream:
+        assert stream.read() == payload
+
+
+def test_open_zstd_stream_is_seekable():
+    """
+    The decompressed stream can be seeked, which is what tarfile needs of it.
+
+    Reading a tar means jumping between headers and member data; a stream that only
+    moves forward would need ``mode="r|"`` and would give up random access to the
+    archive.
+    """
+    with utils.open_zstd_stream(BytesIO(utils._zstd.compress(b"0123456789"))) as stream:
+        assert stream.seekable() is True
+        stream.seek(4)
+        assert stream.read(3) == b"456"
+        stream.seek(0)
+        assert stream.read(2) == b"01"
+
+
+def test_open_zstd_stream_reads_multiple_frames():
+    """
+    Concatenated frames read as one continuous stream.
+
+    Zstandard files are free to be multi-frame, and a compressor that splits its
+    output would otherwise appear to produce a truncated archive.
+    """
+    blob = utils._zstd.compress(b"first") + utils._zstd.compress(b"second")
+
+    with utils.open_zstd_stream(BytesIO(blob)) as stream:
+        assert stream.read() == b"firstsecond"
+
+
+def test_open_zstd_stream_rejects_other_data():
+    """Data that is not Zstandard raises one of the errors zstd_errors() reports."""
+    with pytest.raises(utils.zstd_errors()):
+        with utils.open_zstd_stream(BytesIO(b"not compressed with zstd")) as stream:
+            stream.read()
+
+
+def test_open_zstd_stream_leaves_the_source_open():
+    """
+    Closing the decompressor does not close what it was reading from.
+
+    The caller owns the downloaded buffer and may still need to hand it to another
+    reader -- which is exactly what identifying an archive by trial does.
+    """
+    source = BytesIO(utils._zstd.compress(b"payload"))
+
+    with utils.open_zstd_stream(source) as stream:
+        stream.read()
+
+    assert source.closed is False
+
+
+def test_open_zstd_stream_without_bindings(monkeypatch):
+    """Asked for zstd it cannot provide, the shim names what would fix it."""
+    monkeypatch.setattr(utils, "_zstd", None)
+
+    expected = "compression.zstd" if sys.version_info >= (3, 14) else "backports.zstd"
+    with pytest.raises(ModuleNotFoundError, match=expected):
+        utils.open_zstd_stream(BytesIO(b""))
+
+
+def test_zstd_errors_without_bindings(monkeypatch):
+    """
+    With no bindings there is no error class to catch, and the empty tuple says so.
+
+    An ``except`` clause splatting it then matches nothing, which is right: the
+    caller never opened a zstd stream to fail.
+    """
+    monkeypatch.setattr(utils, "_zstd", None)
+
+    assert utils.zstd_errors() == ()
+
+
+def test_zstd_errors_reports_the_decompressor_error():
+    """The reported error is the one the selected bindings actually raise."""
+    assert utils.zstd_errors() == (utils._zstd.ZstdError,)
+
+
+@pytest.mark.parametrize("data,expected", (
+    (b"\x28\xb5\x2f\xfd", True),
+    (b"\x28\xb5\x2f\xfd\x00\x48\x65", True),
+    (b"\x1f\x8b\x08\x00", False),      # gzip
+    (b"BZh9", False),                  # bzip2
+    (b"\xfd7zXZ\x00", False),          # xz
+    (b"PK\x03\x04", False),            # zip
+    (b"\x28\xb5\x2f", False),          # a short read is not a match
+    (b"", False),
+))
+def test_is_zstd(data, expected):
+    """The frame magic identifies zstd, and identifies nothing else as zstd."""
+    assert utils.is_zstd(data) is expected
+
+
+def test_is_zstd_recognizes_what_it_cannot_read(monkeypatch):
+    """
+    Recognizing the format does not depend on being able to decompress it.
+
+    That separation is what lets a download on an interpreter without the bindings
+    be reported as unsupported rather than as unrecognized.
+    """
+    blob = utils._zstd.compress(b"payload")
+    monkeypatch.setattr(utils, "_zstd", None)
+
+    assert utils.is_zstd(blob) is True
