@@ -1718,6 +1718,60 @@ def test_openroad_cleanup_synth_parameter_remove_dead_logic():
     assert task.get("var", "remove_dead_logic") is True
 
 
+def test_openroad_cleanup_synth_parameter_repair_synth_timing():
+    task = synth_cleanup.CleanupSynthTask()
+    # Off by default: enabling it moves the quality of results of every design.
+    assert task.get("var", "repair_synth_timing") is False
+    task.set_openroad_repairsynthtiming(True)
+    assert task.get("var", "repair_synth_timing") is True
+    task.set_openroad_repairsynthtiming(False, step='cleanup_synth', index='1')
+    assert task.get("var", "repair_synth_timing", step='cleanup_synth', index='1') is False
+    assert task.get("var", "repair_synth_timing") is True
+
+
+def test_openroad_cleanup_synth_restricts_the_move_sequence():
+    """Only the moves a pre-placement pass can justify, and no final sizing pass.
+
+    Buffer insertion, cloning and load splitting are wire-delay driven and there is no
+    wire length yet, so the default sequence is deliberately narrower than the tool's.
+    """
+    task = synth_cleanup.CleanupSynthTask()
+    assert task.get("var", "rsz_sequence") == ["unbuffer", "sizeup"]
+    assert task.get("var", "rsz_skip_final_sizing") is True
+
+
+@pytest.mark.parametrize("remove,repair,legal", [
+    (True, False, True),      # the shipped default
+    (False, True, True),      # keep the buffers and refine them
+    (False, False, True),     # leave the netlist as synthesized
+    (True, True, False),      # delete the buffering, then forbid replacing it
+])
+def test_openroad_cleanup_synth_rejects_remove_plus_repair(asic_gcd, remove, repair, legal):
+    """Buffer removal and timing repair are alternatives; one or neither is legal."""
+    task = synth_cleanup.CleanupSynthTask.find_task(asic_gcd)
+    task.set_openroad_removebuffers(remove)
+    task.set_openroad_repairsynthtiming(repair)
+
+    node = SchedulerNode(asic_gcd, "cleanup.clean", "0")
+    with node.runtime():
+        if legal:
+            assert node.setup() is True
+        else:
+            with pytest.raises(ValueError,
+                               match=r"^remove_synth_buffers and repair_synth_timing are "
+                                     r"alternatives, not additive: .* Enable one or neither\.$"):
+                node.task.setup()
+
+
+def test_openroad_cleanup_synth_defaults_do_not_leak_to_repair_timing():
+    """The narrowed defaults are per-task, so the resizer tasks keep the tool defaults."""
+    for task in (repair_timing.RepairTimingTask(), repair_design.RepairDesignTask()):
+        if task.valid("var", "rsz_sequence"):
+            assert task.get("var", "rsz_sequence") == [], task.task()
+        if task.valid("var", "rsz_skip_final_sizing"):
+            assert task.get("var", "rsz_skip_final_sizing") is False, task.task()
+
+
 def test_openroad_init_floorplan_parameter_padring_fileset():
     task = init_floorplan.InitFloorplanTask()
     task.add_openroad_padringfileset('fileset1')

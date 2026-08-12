@@ -557,7 +557,7 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         self.add_parameter("rsz_skip_final_sizing", "bool",
                            "true/false, skip the greedy gate resizing pass that runs at the end "
                            "of setup repair to pick up any slack the main optimization left",
-                           defvalue=False)
+                           defvalue=self._default_skip_final_sizing())
         self.add_parameter("rsz_skip_size_down", "bool",
                            "true/false, skip down-sizing gates that are not on the critical path",
                            defvalue=False)
@@ -570,7 +570,7 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         self.add_parameter("rsz_sequence", f"[<{','.join(RSZ_MOVES)}>]",
                            "explicit order of setup optimization moves, an empty list uses the "
                            "tool default",
-                           defvalue=[])
+                           defvalue=self._default_sequence())
         self.add_parameter("rsz_phases", f"[<{','.join(RSZ_PHASES)}>]",
                            "explicit order of setup optimization phases, an empty list uses the "
                            "tool default, note the tool appends its critical threshold voltage "
@@ -598,6 +598,12 @@ class OpenROADRSZTimingParameter(OpenROADTask):
         self.add_parameter("rsz_max_buffer_percent", "float<0.0..100.0>",
                            "maximum number of buffers hold repair may insert, as a percentage of "
                            "the instance count, unset uses the tool default")
+
+    def _default_skip_final_sizing(self) -> bool:
+        return False
+
+    def _default_sequence(self) -> List[str]:
+        return []
 
     def set_openroad_rszsetupslackmargin(self, margin: float,
                                          step: Optional[str] = None, index: Optional[str] = None):
