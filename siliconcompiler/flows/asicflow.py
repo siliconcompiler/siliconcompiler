@@ -163,7 +163,10 @@ class PNRFlow(Flowgraph):
 
         Args:
             * name (str): The name of the flow.
-            * np (int): The number of parallel jobs to launch.
+            * floorplan_np (int): Number of parallel floorplan jobs to launch.
+            * place_np (int): Number of parallel placement jobs to launch.
+            * cts_np (int): Number of parallel clock tree synthesis jobs to launch.
+            * route_np (int): Number of parallel routing jobs to launch.
         """
         if name is None:
             name = "pnrflow"
