@@ -15,19 +15,57 @@ Welcome to SiliconCompiler's Documentation!
 |version|
 
 **Useful Links**:
-:ref:`Installation <installation>` | `GitHub Repo <https://github.com/siliconcompiler/siliconcompiler>`_ | `File an Issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_
+:ref:`What is SiliconCompiler? <what_is_sc>` | :ref:`Installation <installation>` | `GitHub Repo <https://github.com/siliconcompiler/siliconcompiler>`_ | `File an Issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_
+
+SiliconCompiler is an open source, modular build system that automates translation
+from hardware design source code to silicon ("make for silicon").
 
 
-.. include:: user_guide/what_is_sc.rst
+###################################
+Getting started
+###################################
+
+.. container:: sc-quad
+
+   .. container:: sc-card
+
+      **New here?**
+
+      :ref:`Install it <installation>`, then :ref:`run the demo <quickstart_guide>`
+      -- RTL to GDS in thirteen lines.
+      :ref:`What is SiliconCompiler? <what_is_sc>`
+
+   .. container:: sc-card
+
+      **Bringing your own design?**
+
+      The :ref:`User Guide <user_guide>` runs pre-defined flows on your own RTL.
+      Start by :ref:`bringing your own design <own_design_tutorial>`, or
+      :ref:`lint it <lint_tutorial>` first -- no EDA tools needed.
+
+   .. container:: sc-card
+
+      **Looking something up?**
+
+      The :ref:`Reference Manual <reference_manual>` has the
+      :ref:`schema <schema>` and the :ref:`Python API <schema_api>`.
+      :ref:`How do I...? <howto>` and the :ref:`FAQ <faq>` answer by task.
+
+   .. container:: sc-card
+
+      **Extending SiliconCompiler?**
+
+      The :ref:`Development Guide <development_guide>` covers your own tools,
+      flows, targets, PDKs and libraries, and
+      :ref:`packaging them <dev_external_libraries>`.
+      :ref:`Contributing <contributing>` covers review.
 
 
 ###################################
 I want to...
 ###################################
 
-Every page below is one click from here. If you are new, the first two lines are
-the whole of getting started: :ref:`install <installation>`, then
-:ref:`run the demo <quickstart_guide>`.
+Every page below is one click from here, grouped by what you are trying to do.
 
 Get something running
 ---------------------
@@ -83,17 +121,14 @@ Extend it
 
 
 ###################################
-The four sections
+Supported technologies
 ###################################
 
-:ref:`User Guide <user_guide>` is for using SiliconCompiler on your own designs
-with pre-defined flows: installation, the fundamentals, and every tutorial above.
+.. include:: user_guide/include/supported_technologies.inc
 
-:ref:`Development Guide <development_guide>` is for building your own
-modules -- tools, flows, targets, PDKs and libraries -- and packaging them.
 
-:ref:`Reference Manual <reference_manual>` is lookup material: the schema, the
-Python API, the CLI apps and the catalogues of pre-defined modules.
+###################################
+Authors
+###################################
 
-:ref:`Contributing <contributing>` covers getting a change accepted, whether it
-is a module or a documentation fix.
+.. include:: user_guide/include/authors.inc

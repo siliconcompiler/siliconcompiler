@@ -23,6 +23,42 @@ code.literal {
     max-width: 22rem; /* 88 - 60 */
 }
 
+/* Landing-page signpost, as four cards rather than a table.
+
+   A two-column table is the obvious way to write this and the wrong way to show
+   it: the rules above widen the page to 120rem, so each cell stretches to ~60rem
+   and the result reads as a pale, full-bleed grid with nothing separating one
+   route from the next. Capping the grid and giving each card a border keeps the
+   four routes scannable, and auto-fit drops to a single column when the window
+   cannot hold two. */
+.sc-quad {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: 1.25rem;
+    max-width: 62rem;
+    margin: 1.5rem 0 2rem;
+}
+
+.sc-quad > .sc-card {
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--pst-color-border, #d0d7de);
+    border-left: 4px solid var(--pst-color-primary, #0a7d91);
+    border-radius: 0.4rem;
+    background-color: var(--pst-color-on-background, var(--pst-color-background, #fff));
+}
+
+/* First paragraph of a card is its heading. Deliberately not a real section
+   heading: these must not appear in the page's table of contents. */
+.sc-quad > .sc-card > p:first-child {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.sc-quad > .sc-card > p:last-child {
+    margin-bottom: 0;
+}
+
 /* font of main toctree on left */
 .toctree-l1 {
     font-size: 15px;

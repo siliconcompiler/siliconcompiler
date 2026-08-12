@@ -128,7 +128,7 @@ a project you have added filesets to -- no run required::
 
    project.write_depgraph("picorv32.png")
 
-.. scdepgraph:: picorv32_depgraph.py
+.. scdepgraph:: _images/picorv32/picorv32_depgraph.py
    :variable: project("rtl.memory")
    :align: center
 

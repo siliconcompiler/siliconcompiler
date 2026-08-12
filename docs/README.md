@@ -64,6 +64,20 @@ those pages means editing the generator or the docstrings behind them, not the
 directory, so tutorials can pull real, tested code in with `literalinclude`
 instead of pasting snippets that drift out of date.
 
+Two kinds of file sit beside the pages that use them rather than among them, each
+in its own subdirectory so a directory listing stays a list of pages:
+
+| Directory | Holds |
+|---|---|
+| `include/` | `.inc` fragments pulled in with `include::` — shared text, or a long section split out of its page |
+| `_images/` | sources the build renders into pictures: `.dot` files, plus the occasional `.py` helper for `scdepgraph`/`scflowgraph` |
+
+Both are per-location: there is an `include/` and an `_images/` next to the pages
+that need one, not one of each for the whole site. A fragment shared by pages in
+different directories goes in the `include/` nearest their common parent — the
+supported-technologies table is in `user_guide/include/` because both the landing
+page and `user_guide/what_is_sc.rst` include it.
+
 Three files are written to the root of the built site for machine consumers
 rather than for browsers:
 
@@ -141,9 +155,10 @@ worth following:
   `:variable: _project("rtl.memory")` renders one particular configuration and
   the RST says which.
 - **Screenshots live in `_screenshots/`, and only screenshots do.** Everything
-  under `_images/` is a `.dot` source; everything under `_screenshots/` is a
-  committed capture that nothing can regenerate and that therefore goes stale on
-  its own. See `_screenshots/README.md` before adding one.
+  under `_images/` is a source the build renders; everything under
+  `_screenshots/` is a committed capture that nothing can regenerate and that
+  therefore goes stale on its own. See `_screenshots/README.md` before adding
+  one.
 - **Link new pages from somewhere a reader will be.** A page reachable only
   through the toctree tends to go unread; ask what already links to it.
 - **Docstrings are Google style**, rendered by the bundled

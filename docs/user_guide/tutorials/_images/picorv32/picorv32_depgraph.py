@@ -21,7 +21,12 @@ from siliconcompiler import ASIC
 
 # Load the example under a private name so importing it cannot collide with, or
 # be satisfied from, another example's equally generic ``make``.
-_MAKE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+#
+# Two levels up is the tutorials directory, which is where the ``examples``
+# symlink to the top-level ``examples/`` lives. Going through that symlink rather
+# than up to the repository root keeps this working whenever the docs build from
+# a checkout, including when the package itself is installed elsewhere.
+_MAKE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..",
                      "examples", "picorv32", "make.py")
 _spec = importlib.util.spec_from_file_location("_picorv32_make", _MAKE)
 _make = importlib.util.module_from_spec(_spec)

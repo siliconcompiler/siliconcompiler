@@ -164,7 +164,7 @@ Activate your `Python Virtual Environment <https://docs.python.org/3/library/ven
  (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
  (venv) pip show siliconcompiler                 # will display SiliconCompiler package information
 
-.. include:: installation/installation_confirm_version.inc
+.. include:: include/installation_confirm_version.inc
 
 Skip to :ref:`asic demo <asic_demo>`.
 
@@ -185,7 +185,7 @@ Finally, to clone and install SiliconCompiler, run the following:
    (venv) pip install --upgrade pip
    (venv) pip install -e .
 
-.. include:: installation/installation_confirm_version.inc
+.. include:: include/installation_confirm_version.inc
 
 
 .. _asic_demo:

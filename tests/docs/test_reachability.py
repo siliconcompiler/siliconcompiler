@@ -177,13 +177,19 @@ def _tutorials():
 
 # When this was first measured the landing page reached twelve pages in one click
 # and not one of them was a tutorial; all nineteen tutorials sat at two hops,
-# behind a section index. Adding the task-oriented directory to the landing page
-# took the one-hop reach to 35 and every tutorial to one hop.
+# behind a section index. Giving the landing page a four-way signpost and a
+# task-oriented directory took the one-hop reach to 36 and every tutorial to one
+# hop.
 #
 # The floor is the measured value rather than a round number below it, so that
 # losing a route is a test failure and not a rounding allowance. Raising it is
 # welcome. Lowering it should come with a reason.
-MIN_ONE_HOP = 35
+#
+# Worth knowing when editing the landing page: it does not include
+# `what_is_sc.rst` any more, so the routes to the schema and Python API pages come
+# from the signpost's "Looking something up" panel. Removing that panel costs two
+# one-hop routes.
+MIN_ONE_HOP = 36
 
 
 def test_every_tutorial_is_one_hop_from_the_landing_page():
