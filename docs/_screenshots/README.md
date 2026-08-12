@@ -18,6 +18,7 @@ images need a human to look at them periodically, and which do not.
 | `dashboard/` | `sc-dashboard` panels | the dashboard UI changes |
 | `email/` | node and summary notification emails | the email templates change |
 | `hardened/` | `mod_and` and `top` layouts from `examples/macro_reuse` | the example or the PDK changes enough to look different |
+| `padring/` | the finished die from `examples/padring` | the pad count, the memory or the die size changes |
 | `asic_demo_result.png` | the PNG the ASIC demo leaves behind | the demo design or the screenshot task changes |
 | `picorv32_layout.png`, `picorv32_ram_layout.png` | `examples/picorv32` layouts | the example changes |
 | `summary_table.png` | `Project.summary()` terminal output | the metric set or step names change |
