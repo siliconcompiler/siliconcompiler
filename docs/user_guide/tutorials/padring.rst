@@ -102,6 +102,14 @@ configuration signals pass between neighbouring cells through touching pins
 rather than through routed wire, so it has to come *after* the fill has closed
 the gaps -- otherwise the ring is a ring of islands.
 
+.. seealso::
+   Every command in that script belongs to OpenROAD, not to SiliconCompiler, and
+   each takes more arguments than this example uses. OpenROAD's
+   `pad <https://openroad.readthedocs.io/en/latest/main/src/pad/README.html>`_ module documents ``make_io_sites``, ``place_pads``,
+   ``place_corners``, ``place_io_fill``, ``connect_by_abutment`` and
+   ``place_bondpad``; its `pdn <https://openroad.readthedocs.io/en/latest/main/src/pdn/README.html>`_ module documents the power grid
+   commands in the next section.
+
 Wiring it to the flow
 ---------------------
 

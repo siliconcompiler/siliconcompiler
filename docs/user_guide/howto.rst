@@ -487,6 +487,12 @@ The TCL itself places pads into IO rows, then corners, then fill, then calls
 neighbouring cells, then adds bond pads. The order matters. Use
 ``-connect_to_pads`` on the core power rings so the core is fed from the ring.
 
+These are OpenROAD commands rather than SiliconCompiler ones, so their arguments
+are documented upstream: `pad <https://openroad.readthedocs.io/en/latest/main/src/pad/README.html>`_ for ``place_pads``, ``place_corners``,
+``place_io_fill``, ``connect_by_abutment`` and ``place_bondpad``, and
+`pdn <https://openroad.readthedocs.io/en/latest/main/src/pdn/README.html>`_ for ``define_pdn_grid``, ``add_pdn_ring``, ``add_pdn_stripe`` and
+``add_global_connection``.
+
 A die with a ring is usually **pad limited**: its size is set by how many pads
 must fit around the edge, not by the logic inside.
 
