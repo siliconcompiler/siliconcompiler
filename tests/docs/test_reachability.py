@@ -61,23 +61,48 @@ def _read(docname):
         return f.read()
 
 
-def _source_of(docname):
-    """The text of a document with any ``include``-d reStructuredText spliced in.
+def _read_path(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
 
-    ``index.rst`` includes ``user_guide/what_is_sc.rst``, so links written in
-    that file are links a reader sees on the landing page. Counting them
-    anywhere else would understate what the landing page offers.
+
+def _resolve_include(target, from_path):
+    """An ``include`` target is relative to the including file, or to ``docs/``
+    when it starts with a slash."""
+    base = DOCS_DIR if target.startswith("/") else os.path.dirname(from_path)
+    return os.path.normpath(os.path.join(base, target.lstrip("/")))
+
+
+def _source_of(docname):
+    """The text of a document with every ``include``-d fragment spliced in.
+
+    A link written in a fragment is a link the reader sees on whichever page
+    includes it, so the fragment's text has to count as part of that page -- the
+    supported-technologies table, included by both the landing page and
+    "What is SiliconCompiler?", carries a link to the external-library guide.
+
+    Fragments are followed recursively and may be ``.rst`` or ``.inc`` -- the
+    convention in this tree is that a fragment meant only for inclusion is named
+    ``.inc`` and lives in an ``include/`` directory. Each file is read at most
+    once per document, which keeps a fragment included twice from being counted
+    twice and makes an include cycle terminate rather than recurse forever.
     """
-    text = _read(docname)
-    for target in INCLUDE.findall(text):
-        if not target.endswith(".rst"):
-            continue
-        base = DOCS_DIR if target.startswith("/") else os.path.dirname(
-            os.path.join(DOCS_DIR, docname))
-        path = os.path.normpath(os.path.join(base, target.lstrip("/")))
-        if os.path.exists(path):
-            text += "\n" + _read(_docname(path))
-    return text
+    chunks = []
+    seen = set()
+
+    def absorb(path):
+        key = os.path.realpath(path)
+        if key in seen or not os.path.isfile(path):
+            return
+        seen.add(key)
+        text = _read_path(path)
+        chunks.append(text)
+        for target in INCLUDE.findall(text):
+            if target.endswith((".rst", ".inc")):
+                absorb(_resolve_include(target, path))
+
+    absorb(os.path.join(DOCS_DIR, docname + ".rst"))
+    return "\n".join(chunks)
 
 
 def _resolve(target, docname):
