@@ -30,8 +30,7 @@ from siliconcompiler import Project
      '5440a5a4d2cd71bc')
 ])
 @responses.activate
-def test_dependency_path_download_http(project_logger, datadir, path, ref, cache_id, tmp_path,
-                                       caplog):
+def test_dependency_path_download_http(project_logger, datadir, path, ref, cache_id, caplog):
     with open(os.path.join(datadir, 'https.tar.gz'), "rb") as f:
         responses.add(
             responses.GET,
@@ -42,19 +41,19 @@ def test_dependency_path_download_http(project_logger, datadir, path, ref, cache
         )
 
     proj = Project("testproj")
-    proj.set("option", "cachedir", tmp_path)
+    proj.option.set_cachedir(".")
     project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     resolver = HTTPResolver("sc-data", proj, path, ref)
-    assert resolver.resolve() == Path(os.path.join(tmp_path, f"sc-data-{ref[0:16]}-{cache_id}"))
-    assert os.path.isfile(
-        os.path.join(tmp_path, f"sc-data-{ref[0:16]}-{cache_id}", "pyproject.toml"))
+    cache_dir = os.path.abspath(f"sc-data-{ref[0:16]}-{cache_id}")
+    assert resolver.resolve() == Path(cache_dir)
+    assert os.path.isfile(os.path.join(cache_dir, "pyproject.toml"))
     assert "Downloading sc-data data from " in caplog.text
 
 
 @responses.activate
-def test_dependency_path_download_http_zstd(project_logger, datadir, tmp_path, caplog):
+def test_dependency_path_download_http_zstd(project_logger, datadir, caplog):
     """
     A Zstandard artifact resolves end to end, over the real transfer stack.
 
@@ -77,13 +76,13 @@ def test_dependency_path_download_http_zstd(project_logger, datadir, tmp_path, c
     )
 
     proj = Project("testproj")
-    proj.set("option", "cachedir", tmp_path)
+    proj.option.set_cachedir(".")
     project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
     resolver = HTTPResolver("sc-data", proj, "https://example.com/sky130_fd_sc_hd.tar.zst",
                             "v1.0.2")
-    cache_dir = os.path.join(tmp_path, "sc-data-v1.0.2-2b8a7556f743e2a4")
+    cache_dir = os.path.abspath("sc-data-v1.0.2-2b8a7556f743e2a4")
 
     assert resolver.resolve() == Path(cache_dir)
     assert os.path.isfile(os.path.join(cache_dir, "pyproject.toml"))
@@ -164,13 +163,13 @@ def test_download_status_is_retried(status):
     assert not resolver.cache.is_permanent(resolver.cache_id)
 
 
-def test_resolve_remote_relative_symlink(broken_tarfile_data_filter, tmpdir):
+def test_resolve_remote_relative_symlink(broken_tarfile_data_filter):
     """
     A PDK that ships a relative symlink -- IHP130 ships exactly one -- has to
     unpack even on the releases whose extraction filter misreads one.
     """
     project = Project("testproj")
-    project.set("option", "cachedir", str(tmpdir))
+    project.option.set_cachedir(".")
 
     resolver = HTTPResolver("test", project, "https://example.com/data.tar.gz", "v1.0")
 
@@ -247,10 +246,10 @@ def test_http_resolver_download_url_complex():
     assert resolver.download_url == "https://user:pass@example.com/path/ref.tar.gz"
 
 
-def test_http_resolver_resolve_remote_tarball(monkeypatch, tmpdir):
+def test_http_resolver_resolve_remote_tarball(monkeypatch):
     """Test resolve_remote extracts tar.gz correctly."""
     project = Project("testproj")
-    project.set("option", "cachedir", str(tmpdir))
+    project.option.set_cachedir(".")
 
     resolver = HTTPResolver("test", project, "https://example.com/data.tar.gz", "v1.0")
 
@@ -276,12 +275,12 @@ def test_http_resolver_resolve_remote_tarball(monkeypatch, tmpdir):
         assert os.path.exists(os.path.join(str(resolver.cache_path), "test_file.txt"))
 
 
-def test_http_resolver_resolve_remote_with_auth_token(monkeypatch, tmpdir):
+def test_http_resolver_resolve_remote_with_auth_token(monkeypatch):
     """Test resolve_remote uses GIT_TOKEN for authentication."""
     monkeypatch.setenv("GIT_TOKEN", "test_token_123")
 
     project = Project("testproj")
-    project.set("option", "cachedir", str(tmpdir))
+    project.option.set_cachedir(".")
 
     resolver = HTTPResolver("test", project, "https://example.com/data.tar.gz", "v1.0")
 
@@ -307,10 +306,10 @@ def test_http_resolver_resolve_remote_with_auth_token(monkeypatch, tmpdir):
         assert mock_requests.get.called
 
 
-def test_http_resolver_resolve_remote_github_header(tmpdir):
+def test_http_resolver_resolve_remote_github_header():
     """Test resolve_remote sets GitHub-specific Accept header."""
     project = Project("testproj")
-    project.set("option", "cachedir", str(tmpdir))
+    project.option.set_cachedir(".")
 
     resolver = HTTPResolver("test", project,
                             "https://github.com/owner/repo/releases/download/v1.0/file.tar.gz",
@@ -352,10 +351,10 @@ def test_http_resolver_resolve_remote_download_failed():
             resolver.resolve_remote()
 
 
-def test_http_resolver_resolve_remote_invalid_archive(tmpdir):
+def test_http_resolver_resolve_remote_invalid_archive():
     """Test resolve_remote raises error for invalid archive."""
     project = Project("testproj")
-    project.set("option", "cachedir", str(tmpdir))
+    project.option.set_cachedir(".")
 
     resolver = HTTPResolver("test", project, "https://example.com/invalid.tar.gz", "v1.0")
 
@@ -372,10 +371,10 @@ def test_http_resolver_resolve_remote_invalid_archive(tmpdir):
             resolver.resolve_remote()
 
 
-def test_http_resolver_resolve_remote_zip_file(tmpdir):
+def test_http_resolver_resolve_remote_zip_file():
     """Test resolve_remote extracts zip files correctly."""
     project = Project("testproj")
-    project.set("option", "cachedir", str(tmpdir))
+    project.option.set_cachedir(".")
 
     resolver = HTTPResolver("test", project, "https://example.com/data.zip", "v1.0")
 
@@ -398,10 +397,10 @@ def test_http_resolver_resolve_remote_zip_file(tmpdir):
         assert os.path.exists(os.path.join(str(resolver.cache_path), "test_file.txt"))
 
 
-def test_http_resolver_resolve_remote_github_flatten(tmpdir):
+def test_http_resolver_resolve_remote_github_flatten():
     """Test resolve_remote flattens GitHub archive structure."""
     project = Project("testproj")
-    project.set("option", "cachedir", str(tmpdir))
+    project.option.set_cachedir(".")
 
     resolver = HTTPResolver("test", project,
                             "https://github.com/owner/repo/archive/refs/tags/v1.0.tar.gz", "v1.0")
@@ -428,10 +427,10 @@ def test_http_resolver_resolve_remote_github_flatten(tmpdir):
         assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0"))
 
 
-def test_http_resolver_resolve_remote_bz2_tarball(tmpdir):
+def test_http_resolver_resolve_remote_bz2_tarball():
     """Test resolve_remote extracts bz2 tarballs."""
     project = Project("testproj")
-    project.set("option", "cachedir", str(tmpdir))
+    project.option.set_cachedir(".")
 
     resolver = HTTPResolver("test", project, "https://example.com/data.tar.bz2", "v1.0")
 
@@ -455,10 +454,10 @@ def test_http_resolver_resolve_remote_bz2_tarball(tmpdir):
         assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
 
 
-def test_http_resolver_resolve_remote_github_flatten_tgz(tmpdir):
+def test_http_resolver_resolve_remote_github_flatten_tgz():
     """Test resolve_remote flattens GitHub archive structure with .tgz extension."""
     project = Project("testproj")
-    project.set("option", "cachedir", str(tmpdir))
+    project.option.set_cachedir(".")
 
     resolver = HTTPResolver("test", project,
                             "https://github.com/owner/repo/archive/refs/tags/v1.0.tgz", "v1.0")
