@@ -94,7 +94,7 @@ jobs:
     env:
       SCTESTCACHE: ${{ github.workspace }}/.sc/cache/
 
-    name: 'All tests (${{ matrix.group }}/${{ needs.test_setup.outputs.splits }})'
+    name: 'All tests (${{ matrix.python-version }}, ${{ matrix.group }}/${{ needs.test_setup.outputs.splits }})'
     strategy:
       fail-fast: false
       matrix:
