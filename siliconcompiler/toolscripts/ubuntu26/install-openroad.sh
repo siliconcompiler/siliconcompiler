@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -ex
 
@@ -48,6 +48,17 @@ else
     install_loc="$HOME/.local"
 fi
 
-bazelisk run :install --config=release --//:platform=gui --jobs=${NPROC:-$(nproc)} -- "$install_loc"
+args=()
+if [ ! -z "${SC_BUILD}" ]; then
+    # This is a CI build, so build Qt for the baseline x86-64 ISA
+    args=(
+        --per_file_copt='.*external/qt-bazel.*,-.*qdrawhelper_avx2.*,-.*_ssse3.*,-.*_sse4.*@-march=x86-64'
+        --per_file_copt='.*external/qt-bazel.*_ssse3.*@-march=x86-64,-mssse3'
+        --per_file_copt='.*external/qt-bazel.*_sse4.*@-march=x86-64,-msse4.1'
+        --per_file_copt='.*external/qt-bazel.*qdrawhelper_avx2.*@-march=x86-64-v3'
+    )
+fi
+
+bazelisk run :install "${args[@]}" --config=release --//:platform=gui --jobs=${NPROC:-$(nproc)} -- "$install_loc"
 
 cd -
