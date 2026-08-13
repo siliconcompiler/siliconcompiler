@@ -248,7 +248,7 @@ def test_configure_default(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write('\ny\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -272,7 +272,7 @@ def test_configure_specify_file(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write('\ny\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -298,7 +298,7 @@ def test_configure_default_in_args(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write('y\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -323,7 +323,7 @@ def test_configure_cmdarg(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write('\n\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -349,7 +349,7 @@ def test_configure_cmdarg_with_port(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write('\n\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -412,7 +412,7 @@ def test_configure_interactive(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write(f'{server_name}\n{username}\n{password}\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -440,7 +440,7 @@ def test_configure_override_y(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write(f'y\n{server_name}\n{username}\n{password}\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -467,7 +467,7 @@ def test_configure_override_n(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write(f'n\n{server_name}\n{username}\n{password}\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -502,7 +502,7 @@ def test_configure_file_is_private(monkeypatch, permissive_umask):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write(f'{server_name}\nci_test_user\nci_test_password\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -527,7 +527,7 @@ def test_configure_file_is_private_existing_file(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write(f'y\n{server_name}\nci_test_user\nci_test_password\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 
@@ -545,7 +545,7 @@ def credentials_file(monkeypatch):
     with open('cfg_stdin.txt', 'w') as wf:
         wf.write('\ny\n')
     with open('cfg_stdin.txt', 'r') as rf:
-        sys.stdin = rf
+        monkeypatch.setattr(sys, "stdin", rf)
 
         sc_remote.main()
 

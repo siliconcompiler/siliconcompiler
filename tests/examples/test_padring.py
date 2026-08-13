@@ -4,9 +4,13 @@ import os.path
 
 
 @pytest.mark.eda
-# The full flow takes around 11 minutes: a real processor, an SRAM macro and a
-# 1900um die with a pad ring to route. Measured at 690s here, so allow headroom.
-@pytest.mark.timeout(1800)
+# The heaviest example in the suite: a real processor, an SRAM macro and a 1900um
+# die with a pad ring to route. route.detailed alone is ~60% of the runtime and
+# scales with thread count, so nocpulimit matters here more than anywhere else --
+# the 2-thread cap in the limit_cpus fixture costs it a measured 1.66x (345s ->
+# 573s on 8 cores). Budget is against the uncontended CI figure of ~950s.
+@pytest.mark.nocpulimit
+@pytest.mark.timeout(2400)
 def test_py_padring():
     from padring import padring
     padring.main()
