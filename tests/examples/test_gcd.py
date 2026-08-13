@@ -141,8 +141,10 @@ def test_py_gcd_skywater():
     assert project.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 2
 
     # 1x [RSZ-0062] Unable to repair all setup violations
-    # 1x [RSZ-0066] Unable to repair all hold violations
-    assert project.get('metric', 'warnings', step='cts.repair_timing', index='0') == 2
+    # Hold repair converges on this node, so no [RSZ-0066] is reported: RSZ-0046
+    # finds 3 endpoints with hold violations and the 4 buffers RSZ-0032 inserts
+    # close them (final hold TNS 0.000).
+    assert project.get('metric', 'warnings', step='cts.repair_timing', index='0') == 1
 
     assert project.get('metric', 'warnings', step='cts.fillcell', index='0') == 0
 
