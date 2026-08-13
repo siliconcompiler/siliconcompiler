@@ -1,5 +1,6 @@
 import logging
 import multiprocessing
+import time
 
 import pytest
 
@@ -274,6 +275,101 @@ def test_run_control_c_stops_log_listener_once(large_flow, make_tasks, monkeypat
 
     assert len(stop_calls) == 1, \
         f"QueueListener.stop() must be called once, got {len(stop_calls)}"
+
+
+def _flood_log_queue(queue):
+    '''Writes log records the way a node does, then stays alive.
+
+    Real LogRecords rather than raw bytes: the parent's QueueListener handles
+    whatever it reads, and bytes kill its monitor thread instead of exercising
+    the path under test.
+
+    It then sleeps rather than returning, because the node has to still be
+    running when the interrupt arrives -- the listener drains the queue while the
+    run is in progress, so a process that only writes finishes and exits early,
+    leaving nothing for the cleanup to halt. The sleep is bounded so a failing
+    test cannot leave this behind indefinitely.
+    '''
+    record = logging.LogRecord("node", logging.INFO, __file__, 0,
+                               "x" * 5000, None, None)
+    for _ in range(200):
+        queue.put(record)
+    time.sleep(120)
+
+
+@pytest.mark.timeout(60)
+def test_run_control_c_halts_node_blocked_on_log_queue(large_flow, make_tasks, monkeypatch):
+    '''An interrupt must not leave a node process writing into the log queue.
+
+    run()'s cleanup stops the QueueListener, which is the queue's only reader, so
+    a node still alive afterwards blocks as soon as the pipe fills. Node
+    processes are not daemons, so the interpreter joins them at exit with no
+    timeout and never exits -- which presented as a CI job that ran every test,
+    printed its summary and then produced no further output until it was killed.
+
+    The deadlock itself cannot be asserted from inside the test process, since
+    reproducing it would hang the test rather than fail it. What is asserted is
+    the invariant that prevents it: an interrupted run leaves no node alive.
+
+    Only meaningful for the pipe-backed queue the fork path uses; spawn gets a
+    manager-backed queue, where there is no such pipe to fill.
+    '''
+    if get_process_context().get_start_method() != "fork":
+        pytest.skip("log queue is only pipe-backed on the fork path")
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    queue = scheduler._TaskScheduler__log_queue
+
+    filler = get_process_context().Process(target=_flood_log_queue, args=(queue,))
+
+    def dummy_loop():
+        filler.start()
+        # Let it get far enough to block on a full pipe before interrupting.
+        time.sleep(2)
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(scheduler, "_TaskScheduler__run_loop", dummy_loop)
+    # Present it the way a launched node appears to the cleanup path.
+    scheduler._TaskScheduler__nodes[("filler", "0")] = {"proc": filler}
+
+    try:
+        with pytest.raises(SystemExit):
+            scheduler.run(logging.NullHandler())
+
+        assert not filler.is_alive(), \
+            "interrupt left a node process alive and writing to the log queue"
+    finally:
+        # Never leave the filler behind if the assertion above fails.
+        if filler.is_alive():
+            filler.kill()
+        filler.join(timeout=10)
+
+
+def test_run_completion_leaves_nodes_untouched(large_flow, make_tasks, monkeypatch):
+    '''The interrupt cleanup must not reach into a normally completed run.
+
+    __run_loop() has joined every process by the time run() returns, so the halt
+    step has nothing to do; this pins that it does not terminate anything.
+    '''
+    killed = []
+
+    class FakeProc:
+        def is_alive(self):
+            return False
+
+        def terminate(self):
+            killed.append("terminate")
+
+        def kill(self):
+            killed.append("kill")
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    monkeypatch.setattr(scheduler, "_TaskScheduler__run_loop", lambda: None)
+    scheduler._TaskScheduler__nodes[("done", "0")] = {"proc": FakeProc()}
+
+    scheduler.run(logging.NullHandler())
+
+    assert killed == [], f"completed run must not signal its nodes, got {killed}"
 
 
 @pytest.mark.parametrize("exc", [

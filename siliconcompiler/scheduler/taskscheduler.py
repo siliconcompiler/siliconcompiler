@@ -37,6 +37,10 @@ class TaskScheduler:
     main Scheduler and executes them in a loop until the flow is complete.
     """
 
+    # How long __halt_running_nodes() waits for a node to go away, first after
+    # terminate() and then after kill().
+    __HALT_TIMEOUT = 5.0
+
     @staticmethod
     def register_callback(hook: Literal["pre_run", "pre_node", "post_node", "post_run"],
                           func: Callable[..., None]) -> None:
@@ -209,6 +213,13 @@ class TaskScheduler:
             # shutdown the manager-backed queue may have already gone away.
             sys.exit(0)
         finally:
+            # Before the listener goes away: a node still running would keep
+            # writing into __log_queue after the steps below remove its reader,
+            # block once the pipe filled, and -- not being a daemon -- be joined
+            # without a timeout at interpreter exit. Ending nodes while the
+            # listener is still draining avoids that.
+            self.__halt_running_nodes()
+
             # Cleanup logger. Tolerate the listener already being torn down
             # or its backing queue being unreachable (the SyncManager may
             # be gone by now during an interrupted shutdown).
@@ -220,6 +231,22 @@ class TaskScheduler:
                 # the QueueListener's sentinel put may fail through any of these
                 # if the SyncManager backing __log_queue has already gone away.
                 pass
+
+            # Release the pipe-backed queue's feeder thread. stop() above ended
+            # the only reader, so records a node process enqueued after the
+            # listener's sentinel stay in the feeder's buffer with nowhere to go:
+            # the feeder blocks writing to a full pipe, and Queue's atexit
+            # finalizer joins that thread with no timeout, so the interpreter can
+            # never exit. Nothing observable is lost -- those records had no
+            # reader left -- but the process does have to be able to exit.
+            # Manager-backed queues are proxies with neither method, hence getattr.
+            if getattr(self.__log_queue, "cancel_join_thread", None):
+                try:
+                    self.__log_queue.cancel_join_thread()
+                    self.__log_queue.close()
+                except (OSError, EOFError, BrokenPipeError, ConnectionResetError):
+                    pass
+
             self.__logger_console_handler.setFormatter(console_format)
             job_log_handler.setFormatter(file_formatter)
             self.__logger.addHandler(job_log_handler)
@@ -256,6 +283,31 @@ class TaskScheduler:
             elif len(running_nodes) > 1:
                 # if there are more than 1, join the first with a timeout
                 self.__nodes[running_nodes[0]]["proc"].join(timeout=self.__dwellTime)
+
+    def __halt_running_nodes(self) -> None:
+        """Ends any node process still running, so teardown cannot block on one.
+
+        Only an interrupted run reaches here with anything alive: normal
+        completion leaves __run_loop() having joined every process, so this is a
+        no-op and the run's results are untouched.
+
+        The joins are bounded on purpose. An unbounded join would trade the
+        deadlock this avoids for another one, against a node that ignores
+        SIGTERM.
+        """
+        running = [info["proc"] for info in self.__nodes.values()
+                   if info.get("proc") is not None and info["proc"].is_alive()]
+        if not running:
+            return
+
+        for proc in running:
+            proc.terminate()
+
+        for proc in running:
+            proc.join(timeout=TaskScheduler.__HALT_TIMEOUT)
+            if proc.is_alive():
+                proc.kill()
+                proc.join(timeout=TaskScheduler.__HALT_TIMEOUT)
 
     def get_nodes(self) -> List[Tuple[str, str]]:
         """Gets an ordered list of all nodes managed by this scheduler.
