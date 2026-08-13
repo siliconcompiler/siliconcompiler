@@ -98,9 +98,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # DEBUG: one version only, to keep the hang-repro turnaround short.
-        # Restore the full 3.10-3.14 list before merging.
-        python-version: ["3.10"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         group: ${{ fromJson(needs.test_setup.outputs.groups) }}
     steps:
       - name: Checkout SiliconCompiler
@@ -171,26 +169,11 @@ jobs:
           # chunks the suite in collection order, which lands padring, aes and
           # mlir_hls in one group (measured 98min vs 10min for the lightest).
           # least_duration bin-packs largest-first and separates them.
-          # DEBUG: capped and non-fatal so the post-session hang dump below is
-          # always reached. Revert to a plain invocation before merging.
-          rc=0
-          timeout -s TERM 45m \
           pytest $GITHUB_WORKSPACE -m "not docker" --durations=0 --clean \
             --splits ${{ needs.test_setup.outputs.splits }} --group ${{ matrix.group }} \
             --splitting-algorithm least_duration \
             --store-durations --clean-durations \
-            --durations-path "$GITHUB_WORKSPACE/test_durations.json" || rc=$?
-          echo "pytest exit=$rc (124 = hit the 45m cap)"
-
-          # conftest's exit watchdog writes here when the process cannot exit.
-          if [ -s /tmp/sc_session_hang.txt ]; then
-            echo "===== POST-SESSION HANG: thread stacks ====="
-            cat /tmp/sc_session_hang.txt
-            echo "==========================================="
-          else
-            echo "no hang dump: process exited on its own"
-          fi
-          exit $rc
+            --durations-path "$GITHUB_WORKSPACE/test_durations.json"
 
       - name: Upload test durations
         if: always()

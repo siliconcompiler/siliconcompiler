@@ -1,6 +1,4 @@
-import faulthandler
 import logging
-import multiprocessing
 import os
 import pytest
 import glob
@@ -8,13 +6,11 @@ import json
 import re
 import platform
 import psutil
-import threading
 import shutil
 import socket
 import subprocess
 import sys
 import tarfile
-import tempfile
 import time
 
 import os.path
@@ -50,61 +46,6 @@ def pytest_addoption(parser):
     parser.addoption(
         "--clean", action="store_true", help=helpstr
     )
-
-
-# Keeps the watchdog's output file open for as long as the process lives;
-# faulthandler writes to the fd, so this must not be garbage collected.
-_HANG_DUMP = None
-HANG_DUMP_PATH = os.path.join(tempfile.gettempdir(), "sc_session_hang.txt")
-
-
-def pytest_terminal_summary(terminalreporter, exitstatus, config):
-    '''Report whatever is still alive now that the session is over.
-
-    A leaked non-daemon thread or child process stops the interpreter from
-    exiting. In CI the survivor also holds the step's stdout pipe, so the runner
-    waits for an EOF that never comes: the job sits with the test summary
-    already printed and no further output, for as long as the job timeout
-    allows. Session fixtures are torn down before this hook runs, so anything
-    listed here outlived the whole session and is a genuine leak.
-
-    Listing survivors does not say what they are blocked on, so also arm a
-    watchdog. If the process cannot exit within two minutes, every thread's
-    stack is dumped and the process is aborted -- turning a silent hang into a
-    failure that names the culprit.
-    '''
-    global _HANG_DUMP
-
-    write = terminalreporter.write_line
-    main = threading.main_thread()
-    others = [t for t in threading.enumerate() if t is not main]
-
-    write("")
-    write("=== session-end survivors ===")
-    write(f"non-daemon threads: {sorted(t.name for t in others if not t.daemon) or 'none'}")
-    write(f"daemon threads    : {sorted(t.name for t in others if t.daemon) or 'none'}")
-
-    try:
-        kids = multiprocessing.active_children()
-        write(f"mp children       : {[(c.name, c.pid, c.daemon) for c in kids] or 'none'}")
-    except Exception as e:  # pragma: no cover - diagnostic only
-        write(f"mp children       : unavailable ({e})")
-
-    try:
-        kids = psutil.Process().children(recursive=True)
-        write(f"os children       : {[(k.pid, k.name()) for k in kids] or 'none'}")
-    except Exception as e:  # pragma: no cover - diagnostic only
-        write(f"os children       : unavailable ({e})")
-
-    # Written to a file rather than stderr: pytest may still be capturing at
-    # fd level here, and a dump into a capture buffer nobody flushes is lost.
-    # The workflow cats this path after the run.
-    try:
-        _HANG_DUMP = open(HANG_DUMP_PATH, "w")
-        faulthandler.dump_traceback_later(120, exit=True, file=_HANG_DUMP)
-        write(f"exit watchdog armed (120s), dump -> {HANG_DUMP_PATH}")
-    except Exception as e:  # pragma: no cover - diagnostic only
-        write(f"exit watchdog unavailable ({e})")
 
 
 @pytest.fixture(autouse=True)
