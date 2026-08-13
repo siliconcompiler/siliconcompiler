@@ -1,6 +1,7 @@
 import builtins
 import copy
 import csv
+import gc
 import hashlib
 import logging
 import pathlib
@@ -1270,8 +1271,37 @@ def test_write_task_manifest_tcl_is_ascii(running_node):
     assert b"\\u00b5m-\\u03a9" in raw
 
 
+@pytest.fixture
+def bare_tcl_interp():
+    """A Tcl interpreter with nothing sourced, torn down on the creating thread.
+
+    Distinct from the ``tcl_interp`` factory in tests/tools/_common/conftest.py,
+    which hands back a callable that sources SC's tcl helpers into a new
+    interpreter. This one is a bare interpreter.
+
+    A Tcl interpreter is bound to its creating thread, and _tkinter's finalizer
+    calls back into Tcl to delete it. Run that from another thread and Tcl does
+    not raise -- it prints "Tcl_AsyncDelete: async handler deleted by the wrong
+    thread" and calls abort(), taking the process down with no exception and no
+    traceback.
+
+    Left to the cyclic GC, the finalizer runs on whichever thread happens to
+    trip the allocation threshold. Under xdist every worker also runs an execnet
+    receiver thread, so that is a coin flip, and losing it shows up as
+    "node down: Not properly terminated" rather than as a test failure.
+    Dropping the reference in teardown keeps the delete on the test thread.
+    """
+    tkinter = pytest.importorskip("tkinter")
+    interp = tkinter.Tcl()
+    try:
+        yield interp
+    finally:
+        interp = None
+        gc.collect()
+
+
 @pytest.mark.parametrize("sysencoding", ("utf-8", "iso8859-1"))
-def test_write_task_manifest_tcl_non_ascii_roundtrip(running_node, sysencoding):
+def test_write_task_manifest_tcl_non_ascii_roundtrip(running_node, sysencoding, bare_tcl_interp):
     """Tcl reads a non-ASCII value back as the string SC wrote, under any locale.
 
     ``encoding system`` is what Tcl decodes a sourced script with, and it
@@ -1283,8 +1313,6 @@ def test_write_task_manifest_tcl_non_ascii_roundtrip(running_node, sysencoding):
     character split into its UTF-8 bytes -- so a path or a design name silently
     stops matching, with no error to notice.
     """
-    tkinter = pytest.importorskip("tkinter")
-
     value = "naïve-Ω µm"
     nop = running_node.project.get_nop()
     nop.add_parameter("nonascii", "str", "non-ascii round-trip check")
@@ -1295,16 +1323,15 @@ def test_write_task_manifest_tcl_non_ascii_roundtrip(running_node, sysencoding):
     with running_node.task.runtime(running_node) as runtool:
         runtool.write_task_manifest('.')
 
-    interp = tkinter.Tcl()
-    interp.eval(f"encoding system {sysencoding}")
+    bare_tcl_interp.eval(f"encoding system {sysencoding}")
     # Tcl accepts forward slashes on every platform; backslashes in a Windows
     # path would be read as escapes.
-    interp.eval("source {%s}" % os.path.abspath("sc_manifest.tcl").replace(os.sep, "/"))
+    bare_tcl_interp.eval("source {%s}" % os.path.abspath("sc_manifest.tcl").replace(os.sep, "/"))
 
     # Compare code points rather than the decoded string: the value comes back
     # through the same encoding machinery under test, so this pins what Tcl
     # actually holds rather than how it chooses to hand it over.
-    codepoints = interp.eval(
+    codepoints = bare_tcl_interp.eval(
         'set v [dict get $sc_cfg tool builtin task nop var nonascii]\n'
         'set out {}\n'
         'foreach c [split $v ""] { lappend out [scan $c %c] }\n'
@@ -1390,32 +1417,29 @@ def test_write_task_manifest_yaml_format(manifest_quoting):
     assert flow_input["node"]["*"]["*"]["value"] == [["running", "0"]]
 
 
-def test_write_task_manifest_tcl_format(manifest_quoting):
+def test_write_task_manifest_tcl_format(manifest_quoting, bare_tcl_interp):
     """The tcl manifest must be sourceable and preserve values verbatim."""
-    tkinter = pytest.importorskip("tkinter")
-
     value = manifest_quoting("tcl")
 
-    interp = tkinter.Tcl()
     # Tcl accepts forward slashes on every platform; backslashes in a Windows
     # path would be read as escapes.
-    interp.eval("source {%s}" % os.path.abspath("sc_manifest.tcl").replace(os.sep, "/"))
+    bare_tcl_interp.eval("source {%s}" % os.path.abspath("sc_manifest.tcl").replace(os.sep, "/"))
 
     # Tool variables emitted alongside the manifest dictionary
-    assert interp.getvar("sc_tool") == "builtin"
-    assert interp.getvar("sc_task") == "nop"
-    assert interp.getvar("sc_topmodule") == "designtop"
-    assert interp.getvar("sc_designlib") == "testdesign"
+    assert bare_tcl_interp.getvar("sc_tool") == "builtin"
+    assert bare_tcl_interp.getvar("sc_task") == "nop"
+    assert bare_tcl_interp.getvar("sc_topmodule") == "designtop"
+    assert bare_tcl_interp.getvar("sc_designlib") == "testdesign"
 
-    assert interp.eval("dict get $sc_cfg option design") == "testdesign"
-    assert interp.eval("dict get $sc_cfg tool builtin task nop var quoting") == value
-    assert interp.eval(
+    assert bare_tcl_interp.eval("dict get $sc_cfg option design") == "testdesign"
+    assert bare_tcl_interp.eval("dict get $sc_cfg tool builtin task nop var quoting") == value
+    assert bare_tcl_interp.eval(
         "llength [dict get $sc_cfg tool builtin task nop var quotinglist]") == "2"
-    assert interp.eval(
+    assert bare_tcl_interp.eval(
         "lindex [dict get $sc_cfg tool builtin task nop var quotinglist] 1") == value
 
     # Default keys must not leak into the manifest
-    assert interp.eval("dict exists $sc_cfg library testdesign fileset default") == "0"
+    assert bare_tcl_interp.eval("dict exists $sc_cfg library testdesign fileset default") == "0"
 
 
 def test_write_task_manifest_csv_format(manifest_quoting):
