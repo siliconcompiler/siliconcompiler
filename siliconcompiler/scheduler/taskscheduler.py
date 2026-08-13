@@ -220,6 +220,22 @@ class TaskScheduler:
                 # the QueueListener's sentinel put may fail through any of these
                 # if the SyncManager backing __log_queue has already gone away.
                 pass
+
+            # Release the pipe-backed queue's feeder thread. stop() above ended
+            # the only reader, so records a node process enqueued after the
+            # listener's sentinel stay in the feeder's buffer with nowhere to go:
+            # the feeder blocks writing to a full pipe, and Queue's atexit
+            # finalizer joins that thread with no timeout, so the interpreter can
+            # never exit. Nothing observable is lost -- those records had no
+            # reader left -- but the process does have to be able to exit.
+            # Manager-backed queues are proxies with neither method, hence getattr.
+            if getattr(self.__log_queue, "cancel_join_thread", None):
+                try:
+                    self.__log_queue.cancel_join_thread()
+                    self.__log_queue.close()
+                except (OSError, EOFError, BrokenPipeError, ConnectionResetError):
+                    pass
+
             self.__logger_console_handler.setFormatter(console_format)
             job_log_handler.setFormatter(file_formatter)
             self.__logger.addHandler(job_log_handler)
