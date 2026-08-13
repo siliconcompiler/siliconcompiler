@@ -7,7 +7,16 @@ on:
         type: boolean
         default: false
         description: run entire gallery
+      splits:
+        type: number
+        default: 4
+        description: number of parallel test jobs per python version
   workflow_call:
+    inputs:
+      splits:
+        type: number
+        default: 4
+        description: number of parallel test jobs per python version
   schedule:
     - cron: '0 8 * * *'
 
@@ -56,8 +65,27 @@ jobs:
           path: .sc/cache
           retention-days: 1
 
+  # The test suite is split across runners by measured duration rather than run
+  # with xdist inside one runner. The runners are 2 physical cores, so N xdist
+  # workers oversubscribe them: detailed routing in test_py_padring measured 4x
+  # slower in CI than locally, and only 1.66x of that was the thread cap the
+  # limit_cpus fixture applies -- the rest was workers competing for cores. One
+  # test at a time per runner gives each the whole machine.
+  test_setup:
+    name: Test split setup
+    runs-on: ubuntu-latest
+    outputs:
+      groups: ${{ steps.groups.outputs.groups }}
+      splits: ${{ steps.groups.outputs.splits }}
+    steps:
+      - id: groups
+        run: |
+          splits=${{ inputs.splits || 4 }}
+          echo "splits=$splits" >> $GITHUB_OUTPUT
+          echo "groups=$(seq 1 $splits | jq -sc '.')" >> $GITHUB_OUTPUT
+
   daily_tests_job:
-    needs: [cache, docker_image]
+    needs: [cache, docker_image, test_setup]
     timeout-minutes: 150
     runs-on: ubuntu-22.04 # Match ubuntu version with container
     container:
@@ -66,11 +94,12 @@ jobs:
     env:
       SCTESTCACHE: ${{ github.workspace }}/.sc/cache/
 
-    name: 'All tests'
+    name: 'All tests (${{ matrix.group }}/${{ needs.test_setup.outputs.splits }})'
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        group: ${{ fromJson(needs.test_setup.outputs.groups) }}
     steps:
       - name: Checkout SiliconCompiler
         uses: actions/checkout@v7
@@ -96,6 +125,15 @@ jobs:
         with:
           name: scpackage-daily-cache
           path: ${{ env.SCTESTCACHE }}
+
+      # Balances the groups by last run's measured times. Missing on the first
+      # run, where pytest-split falls back to splitting by test count.
+      - name: Restore test durations
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ github.workspace }}/test_durations.json
+          key: eda-test-durations-${{ github.run_id }}
+          restore-keys: eda-test-durations-
 
       - name: Setup tests
         run: |
@@ -127,7 +165,114 @@ jobs:
           mkdir testrun
           cd testrun
 
-          pytest $GITHUB_WORKSPACE -n logical -m "not docker" --durations=0 --clean
+          # least_duration, not the default duration_based_chunks: the default
+          # chunks the suite in collection order, which lands padring, aes and
+          # mlir_hls in one group (measured 98min vs 10min for the lightest).
+          # least_duration bin-packs largest-first and separates them.
+          pytest $GITHUB_WORKSPACE -m "not docker" --durations=0 --clean \
+            --splits ${{ needs.test_setup.outputs.splits }} --group ${{ matrix.group }} \
+            --splitting-algorithm least_duration \
+            --store-durations --clean-durations \
+            --durations-path "$GITHUB_WORKSPACE/test_durations.json"
+
+      - name: Upload test durations
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-durations-${{ matrix.python-version }}-${{ matrix.group }}
+          path: ${{ github.workspace }}/test_durations.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # --clean-durations leaves each group holding only the tests it ran, so the
+  # groups have to be merged back together to balance the next run.
+  store_durations:
+    name: 'Store test durations'
+    needs: [daily_tests_job, test_setup]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download duration artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: test-durations-*
+
+      - name: Merge durations
+        id: merge
+        run: |
+          shopt -s nullglob
+          files=(test-durations-*/test_durations.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            # Every group died before writing durations. Leave the previous
+            # run's cache in place rather than failing the job.
+            echo "merged=false" >> $GITHUB_OUTPUT
+            echo "No duration artifacts to merge."
+            exit 0
+          fi
+          jq -s 'add' "${files[@]}" > "$GITHUB_WORKSPACE/test_durations.json"
+          echo "merged=true" >> $GITHUB_OUTPUT
+          echo "Merged ${#files[@]} duration file(s), $(jq 'length' "$GITHUB_WORKSPACE/test_durations.json") tests."
+
+      - name: Save test durations
+        if: steps.merge.outputs.merged == 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ github.workspace }}/test_durations.json
+          key: eda-test-durations-${{ github.run_id }}
+
+      # Named so it does not match the test-durations-* download pattern above,
+      # which would otherwise re-merge it into itself on a job re-run.
+      - name: Upload merged durations
+        if: steps.merge.outputs.merged == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: merged-test-durations
+          path: ${{ github.workspace }}/test_durations.json
+          retention-days: 14
+
+      - name: Summarize durations
+        if: steps.merge.outputs.merged == 'true'
+        env:
+          DURATIONS: ${{ github.workspace }}/test_durations.json
+          SPLITS: ${{ needs.test_setup.outputs.splits }}
+        run: |
+          python3 <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+
+          durations = json.load(open(os.environ["DURATIONS"]))
+          splits = int(os.environ["SPLITS"])
+          ranked = sorted(durations.items(), key=lambda kv: -kv[1])
+          total = sum(durations.values())
+
+          print("## Test durations\n")
+          print(f"{len(durations)} tests timed, {total / 60:.1f} min total. "
+                "Full data in the `merged-test-durations` artifact.\n")
+
+          print(f"### Slowest 25\n")
+          print("| duration | test |")
+          print("| --- | --- |")
+          for name, seconds in ranked[:25]:
+              print(f"| {seconds:.1f}s | `{name}` |")
+
+          # Mirrors the least_duration algorithm the run itself uses: walk
+          # largest-first, assign to the lightest group. Covers only timed
+          # tests, so it is a projection of the next run's balance rather
+          # than a replay of this one.
+          groups = [[0.0, 0] for _ in range(splits)]
+          for _, seconds in ranked:
+              light = min(groups, key=lambda g: g[0])
+              light[0] += seconds
+              light[1] += 1
+
+          print(f"\n### Projected balance at {splits} splits\n")
+          print("| group | tests | total |")
+          print("| --- | --- | --- |")
+          for index, (seconds, count) in enumerate(groups, start=1):
+              print(f"| {index} | {count} | {seconds / 60:.1f} min |")
+          spread = max(g[0] for g in groups) - min(g[0] for g in groups)
+          print(f"\nSpread between heaviest and lightest group: {spread / 60:.1f} min.")
+          PY
 
   gallery:
     if: ${{ github.event_name	!= 'workflow_dispatch' || inputs.rungallery }}
