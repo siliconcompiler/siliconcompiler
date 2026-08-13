@@ -8,6 +8,23 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.4 (2026-08-13)
+=========================================
+
+**Minor:**
+
+ * Added `PNRFlow`, a place-and-route only flow, which `ASICFlow` is now assembled from.
+ * Added computation of the core or die area from `coremargin` when only one of the two is provided.
+ * Added support for xz and Zstandard compressed tarballs to package downloads, and switched archive format detection to the contents of the download rather than its name.
+ * Ensured the remote configuration file, which can hold a plaintext password or API key, is only readable by the user.
+ * Sped up manifest writing for manifests containing non-ASCII characters.
+ * Reorganized the documentation landing page, and added a padring tutorial and example, simulation and OpenROAD how-tos, and an external libraries page.
+
+ * Tools:
+
+  * openroad: aligned the place-and-route flow with ORFS and LibreLane, adding an opt-in timing repair on the global routing parasitics (`rsz_enable`) and a new antenna repair node after detailed routing, added an opt-in setup timing repair on the synthesized netlist (`repair_synth_timing`), which is an alternative to removing the synthesis buffers rather than additive.
+
+
 SiliconCompiler 0.38.3 (2026-08-10)
 =========================================
 
