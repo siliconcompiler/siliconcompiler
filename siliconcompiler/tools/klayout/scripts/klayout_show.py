@@ -13,7 +13,12 @@ def show(schema, tech, input_path, output_path, screenshot=False, report=None):
 
     pdk = schema.get("asic", "pdk")
 
-    sc_hide_layers = schema.get("library", pdk, "tool", "klayout", "hide_layers")
+    # Layers to hide come from the PDK, with any task specific additions merged in.
+    sc_hide_layers = set(schema.get("library", pdk, "tool", "klayout", "hide_layers"))
+    if schema.valid('tool', 'klayout', 'task', task, 'var', 'hide_layers'):
+        sc_hide_layers.update(
+            schema.get('tool', 'klayout', 'task', task, 'var', 'hide_layers',
+                       step=step, index=index) or [])
 
     # Load KLayout technology file
     layout_options = tech.load_layout_options
@@ -93,12 +98,34 @@ def __screenshot(schema, layout_view, output_path):
     index = schema.get('arg', 'index')
     task = schema.get('flowgraph', flow, step, index, 'task')
 
-    # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
     horizontal_resolution, vertical_resolution = schema.get(
         'tool', 'klayout', 'task', task, 'var', 'show_resolution', step=step, index=index)
+    margin = schema.get('tool', 'klayout', 'task', task, 'var', 'show_margin',
+                        step=step, index=index)
+    linewidth = schema.get('tool', 'klayout', 'task', task, 'var', 'show_linewidth',
+                           step=step, index=index)
+    oversampling = schema.get('tool', 'klayout', 'task', task, 'var', 'show_oversampling',
+                              step=step, index=index)
+
+    layout_view.zoom_fit()
+
+    # expand the design bounding box so the margin is honored
+    view_box = layout_view.active_cellview().cell.dbbox()
+    view_box.left -= margin
+    view_box.bottom -= margin
+    view_box.right += margin
+    view_box.top += margin
 
     print(f'[INFO] Saving screenshot to {output_path}')
-    layout_view.save_image(output_path, horizontal_resolution, vertical_resolution)
+    layout_view.save_image_with_options(
+        output_path,
+        horizontal_resolution,
+        vertical_resolution,
+        linewidth,
+        oversampling,
+        0,
+        view_box,
+        False)
 
 
 def __screenshot_montage(schema, view, xbins, ybins):
