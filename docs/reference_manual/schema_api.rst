@@ -114,12 +114,13 @@ User Classes
 Tool Extension Classes
 ======================
 
-These classes extend :class:`.StdCellLibrary`, :class:`.PDK`, and
-:class:`.FPGADevice` with tool-specific parameters. Mix the ones for the tools a
-library targets into its class (see
-:ref:`Packaging an External Library <dev_external_libraries>`). Only the
-tool-specific additions are shown below; the inherited base-class API is
-documented above.
+Classes contributed by individual tool drivers. Most extend
+:class:`.StdCellLibrary`, :class:`.PDK`, or :class:`.FPGADevice` with
+tool-specific parameters -- mix the ones for the tools a library targets into
+its class (see :ref:`Packaging an External Library <dev_external_libraries>`).
+Only the tool-specific additions are shown below; the inherited base-class API
+is documented above. The remaining groups are classes a tool's tasks are
+configured with.
 
 StdCellLibrary mixins
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -169,6 +170,72 @@ Mixins that extend :class:`.FPGADevice`.
     :show-inheritance:
 
 .. autoclass:: siliconcompiler.tools.opensta.OpenSTAFPGA
+    :members:
+    :show-inheritance:
+
+
+.. _klayout_operation_classes:
+
+KLayout operations
+^^^^^^^^^^^^^^^^^^
+
+Layout operations performed by the KLayout ``operations`` task. Each one is
+constructed with its arguments and handed to ``add_klayout_operation``, which
+returns it bound to the task so the setters below can adjust it later.
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.KLayoutOperation
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.Merge
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.Add
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.Rotate
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.Flatten
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.Outline
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.RenameTop
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.AddTop
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.RenameCell
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.SwapCell
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.DeleteLayers
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.MergeShapes
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.ConvertProperty
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.tools.klayout.operations.Write
     :members:
     :show-inheritance:
 

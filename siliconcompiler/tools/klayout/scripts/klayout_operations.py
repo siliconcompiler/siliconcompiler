@@ -1,10 +1,35 @@
+'''
+Performs a sequence of layout operations on a stream file.
+
+The sequence, and the arguments of each operation in it, come from the
+operations task. See
+:class:`~siliconcompiler.tools.klayout.operations.OperationsTask`.
+'''
 import pya
 import sys
 
 import os.path
 
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
-def read_layout(stream_file):
+
+# Keypath to the operations task variables, and the node being run.
+# Filled in by the __main__ block below.
+SC_OPS_ROOT: Optional[Tuple[str, ...]] = None
+SC_STEP: Optional[str] = None
+SC_INDEX: Optional[str] = None
+
+
+def read_layout(stream_file: str) -> pya.Layout:
+    '''
+    Reads a stream file into a new layout.
+
+    Args:
+        stream_file (str): path to the stream file.
+
+    Returns:
+        The layout that was read.
+    '''
     print(f"[INFO] Reading '{stream_file}'")
     layout = pya.Layout()
     layout.read(stream_file)
@@ -12,28 +37,42 @@ def read_layout(stream_file):
     return layout
 
 
-def __with_timestamps(schema):
-    sc_step = schema.get('arg', 'step')
-    sc_index = schema.get('arg', 'index')
+def get_field(schema: Any, opname: str, field: str) -> Any:
+    '''
+    Returns the value of one field of one operation.
 
-    return schema.get('tool', 'klayout', 'task', 'operations', 'var', 'timestamps',
-                      step=sc_step, index=sc_index)
-
-
-def __get_keypath_step_index(schema, *keypath):
-    ret = {
-        'step': schema.get('arg', 'step'),
-        'index': schema.get('arg', 'index')
-    }
-    pernode = schema.get(*keypath, field='pernode')
-    if pernode.is_never():
-        ret['step'] = None
-        ret['index'] = None
-
-    return ret
+    Args:
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation.
+        field (str): name of the field.
+    '''
+    return schema.get(*SC_OPS_ROOT, f"{opname}.{field}", step=SC_STEP, index=SC_INDEX)
 
 
-def __do_cell_swap(parent, old_cell_idx, new_cell, checked):
+def __with_timestamps(schema: Any) -> bool:
+    '''
+    Returns whether streams should be written with timestamps.
+
+    Args:
+        schema (SafeSchema): manifest for this node.
+    '''
+    return schema.get(*SC_OPS_ROOT, 'timestamps', step=SC_STEP, index=SC_INDEX)
+
+
+def __do_cell_swap(parent: pya.Cell, old_cell_idx: int, new_cell: pya.Cell,
+                   checked: List[int]) -> int:
+    '''
+    Recursively repoints every instance of one cell at another.
+
+    Args:
+        parent (pya.Cell): cell to search.
+        old_cell_idx (int): index of the cell being replaced.
+        new_cell (pya.Cell): cell to replace it with.
+        checked (list of int): indexes of the cells already visited.
+
+    Returns:
+        Number of instances that were repointed.
+    '''
     if (parent.cell_index() in checked):
         return 0
 
@@ -48,14 +87,27 @@ def __do_cell_swap(parent, old_cell_idx, new_cell, checked):
     return replacements
 
 
-def swap_cells(base_layout, oldcell, newcell):
+def swap_cells(base_layout: pya.Layout, oldcell: str, newcell: str) -> pya.Layout:
+    '''
+    Replaces every instance of a cell with another and deletes the original.
+
+    Args:
+        base_layout (pya.Layout): layout to modify.
+        oldcell (str): name of the cell to replace.
+        newcell (str): name of the cell to replace it with.
+
+    Returns:
+        The modified layout.
+    '''
     top_cell = base_layout.top_cell()
     old_cell = base_layout.cell(oldcell)
     new_cell = base_layout.cell(newcell)
 
     if (old_cell is None):
+        print(f"[WARNING] Unable to find '{oldcell}' to swap")
         return base_layout
     if (new_cell is None):
+        print(f"[WARNING] Unable to find '{newcell}' to swap to")
         return base_layout
 
     checked = []
@@ -67,7 +119,17 @@ def swap_cells(base_layout, oldcell, newcell):
     return base_layout
 
 
-def add_outline(base_layout, layer):
+def add_outline(base_layout: pya.Layout, layer: int) -> pya.Layout:
+    '''
+    Draws a box covering the top cell bounding box.
+
+    Args:
+        base_layout (pya.Layout): layout to modify.
+        layer (int): index of the layer to draw on.
+
+    Returns:
+        The modified layout.
+    '''
     top_cell = base_layout.top_cell()
     bbox = top_cell.bbox()
 
@@ -80,7 +142,17 @@ def add_outline(base_layout, layer):
     return base_layout
 
 
-def add_layout(base_layout, layout):
+def add_layout(base_layout: pya.Layout, layout: pya.Layout) -> pya.Layout:
+    '''
+    Copies another layout in as a new cell and instances it in the top cell.
+
+    Args:
+        base_layout (pya.Layout): layout to modify.
+        layout (pya.Layout): layout to add.
+
+    Returns:
+        The modified layout.
+    '''
     top_cell = base_layout.top_cell()
 
     other_layout_top = layout.top_cell()
@@ -95,7 +167,17 @@ def add_layout(base_layout, layout):
     return base_layout
 
 
-def add_layout_to_top(base_layout, new_top_cell_name):
+def add_layout_to_top(base_layout: pya.Layout, new_top_cell_name: str) -> pya.Layout:
+    '''
+    Adds a new top cell holding an instance of the current top cell.
+
+    Args:
+        base_layout (pya.Layout): layout to modify.
+        new_top_cell_name (str): name for the new top cell.
+
+    Returns:
+        The modified layout.
+    '''
     top_cell = base_layout.top_cell()
 
     print(f"[INFO] Adding layout from '{top_cell.name}' to new top cell '{new_top_cell_name}'")
@@ -107,7 +189,17 @@ def add_layout_to_top(base_layout, new_top_cell_name):
     return base_layout
 
 
-def merge_layouts(layout1, layout2):
+def merge_layouts(layout1: pya.Layout, layout2: pya.Layout) -> pya.Layout:
+    '''
+    Merges the top cell of one layout into the top cell of another.
+
+    Args:
+        layout1 (pya.Layout): layout to merge into.
+        layout2 (pya.Layout): layout to merge from.
+
+    Returns:
+        The modified layout.
+    '''
     cell1 = layout1.top_cell()
     cell2 = layout2.top_cell()
 
@@ -118,37 +210,85 @@ def merge_layouts(layout1, layout2):
     return layout1
 
 
-def rotate_layout(base_layout):
+def rotate_layout(base_layout: pya.Layout, angle: int) -> pya.Layout:
+    '''
+    Rotates the top cell about the lower left corner of its bounding box.
+
+    Args:
+        base_layout (pya.Layout): layout to modify.
+        angle (int): rotation in degrees, one of 0, 90, 180 or 270.
+
+    Returns:
+        The modified layout.
+    '''
+    if angle == 0:
+        print("[INFO] Skipping rotation of 0 degrees")
+        return base_layout
+
     top_cell = base_layout.top_cell()
     bbox = top_cell.bbox()
 
-    print(f"[INFO] Rotating layout '{top_cell.name}' 90 degrees")
+    print(f"[INFO] Rotating layout '{top_cell.name}' {angle} degrees")
 
-    transform = pya.Trans.R270
-    transform = pya.Trans(transform, pya.Vector(0, bbox.p2.x))
+    rotations = {
+        90: (pya.Trans.R270, pya.Vector(0, bbox.p2.x)),
+        180: (pya.Trans.R180, pya.Vector(bbox.p2.x, bbox.p2.y)),
+        270: (pya.Trans.R90, pya.Vector(bbox.p2.y, 0))
+    }
+    rotation, displacement = rotations[angle]
 
-    top_cell.transform(transform)
+    top_cell.transform(pya.Trans(rotation, displacement))
 
     return base_layout
 
 
-def rename_top(base_layout, new_name):
+def rename_top(base_layout: pya.Layout, new_name: str) -> pya.Layout:
+    '''
+    Renames the top cell.
+
+    Args:
+        base_layout (pya.Layout): layout to modify.
+        new_name (str): new name for the top cell.
+
+    Returns:
+        The modified layout.
+    '''
     top_cell = base_layout.top_cell()
     print(f"[INFO] Renaming '{top_cell.name}' to '{new_name}' layout: '{top_cell.name}'")
     top_cell.name = new_name
     return base_layout
 
 
-def rename_cell(base_layout, old_name, new_name):
+def rename_cell(base_layout: pya.Layout, old_name: str, new_name: str) -> pya.Layout:
+    '''
+    Renames one cell, warning if it cannot be found.
+
+    Args:
+        base_layout (pya.Layout): layout to modify.
+        old_name (str): name of the cell to rename.
+        new_name (str): new name for the cell.
+
+    Returns:
+        The modified layout.
+    '''
     cell = base_layout.cell(old_name)
     if not cell:
         print(f"[WARNING] Unable to find '{old_name}' to rename")
+        return base_layout
     print(f"[INFO] Renaming '{cell.name}' to '{new_name}' layout: '{base_layout.top_cell().name}'")
     cell.name = new_name
     return base_layout
 
 
-def write_stream(layout, outfile, timestamps):
+def write_stream(layout: pya.Layout, outfile: str, timestamps: bool) -> None:
+    '''
+    Writes a layout to a stream file.
+
+    Args:
+        layout (pya.Layout): layout to write.
+        outfile (str): path to write to.
+        timestamps (bool): whether to include timestamps in the stream.
+    '''
     from klayout_utils import get_write_options
 
     print(f"[INFO] Writing layout: '{outfile}'")
@@ -156,7 +296,21 @@ def write_stream(layout, outfile, timestamps):
     layout.write(outfile, get_write_options(outfile, timestamps))
 
 
-def make_property_text(layout, property_layer, property_name, destination_layer):
+def make_property_text(layout: pya.Layout, property_layer: int,
+                       property_name: Union[int, str],
+                       destination_layer: int) -> pya.Layout:
+    '''
+    Converts a stream property into text labels on the design.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        property_layer (int): index of the layer holding the property.
+        property_name (int or str): property number or name.
+        destination_layer (int): index of the layer to write the labels to.
+
+    Returns:
+        The modified layout.
+    '''
     property_layer_info = layout.get_info(property_layer)
     destination_layer_info = layout.get_info(destination_layer)
     print(f"[INFO] Generating properties from {property_layer_info.to_s()} "
@@ -184,7 +338,17 @@ def make_property_text(layout, property_layer, property_name, destination_layer)
     return layout
 
 
-def delete_layers(layout, layers):
+def delete_layers(layout: pya.Layout, layers: Sequence[int]) -> pya.Layout:
+    '''
+    Deletes every shape on the given layers, in every cell.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        layers (sequence of int): indexes of the layers to clear.
+
+    Returns:
+        The modified layout.
+    '''
     for cell in layout.each_cell():
         print(f'[INFO] Deleting layers from {cell.name}')
         for layer in layers:
@@ -196,10 +360,17 @@ def delete_layers(layout, layers):
     return layout
 
 
-def merge_shapes(layout, layers):
-    if layers == ['all']:
-        layers = layout.layer_indexes()
+def merge_shapes(layout: pya.Layout, layers: Sequence[int]) -> pya.Layout:
+    '''
+    Merges overlapping shapes on the given layers, in every cell.
 
+    Args:
+        layout (pya.Layout): layout to modify.
+        layers (sequence of int): indexes of the layers to merge shapes on.
+
+    Returns:
+        The modified layout.
+    '''
     for cell in layout.each_cell():
         print(f"[INFO] Merging shapes in {cell.name}")
         for layer in layers:
@@ -226,8 +397,19 @@ def merge_shapes(layout, layers):
             cell.shapes(layer).clear()
             cell.shapes(layer).insert(output_shapes)
 
+    return layout
 
-def flatten(layout):
+
+def flatten(layout: pya.Layout) -> pya.Layout:
+    '''
+    Flattens the hierarchy of the top cell.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+
+    Returns:
+        The modified layout.
+    '''
     top_cell = layout.top_cell()
 
     print(f"[INFO] Flattening: {top_cell.name}")
@@ -236,90 +418,299 @@ def flatten(layout):
     return layout
 
 
-def parse_operations(schema, base_layout, steps):
-    for step_name, step_args in steps:
-        if step_args is None:
-            step_args = ""
-        args_key = ['tool', 'klayout', 'task', 'operations', *step_args.split(',')]
+###############################################################
+# Operation handlers
+###############################################################
+def op_merge(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Merges the streams named by a ``merge`` operation into the layout.
 
-        if (step_name == "merge" or step_name == "add"):
-            files = []
-            if len(args_key) > 5:
-                if not schema.get(*args_key, field=None).is_file:
-                    raise ValueError(f'{step_name} requires {args_key} be a file type')
-                files = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))
-            else:
-                files = [f'inputs/{step_args}']
-            for op_file in files:
-                if step_name == "add":
-                    base_layout = add_layout(base_layout, read_layout(op_file))
-                else:
-                    base_layout = merge_layouts(base_layout, read_layout(op_file))
-        elif (step_name == "rotate"):
-            base_layout = rotate_layout(base_layout)
-        elif (step_name == "outline"):
-            outline_layer = [int(layer) for layer in schema.get(
-                *args_key, **__get_keypath_step_index(schema, *args_key))]
-            if len(outline_layer) != 2:
-                raise ValueError('outline layer requires two entries for layer and purpose, '
-                                 f'received: {len(outline_layer)}')
-            base_layout = add_outline(base_layout,
-                                      base_layout.layer(outline_layer[0], outline_layer[1]))
-        elif (step_name == "convert_property"):
-            options = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))
-            if len(options) != 3 and len(options) != 5:
-                raise ValueError(f'{step_name} requires 3 or 5 arguments in {args_key}')
-            prop_layer = [int(layer) for layer in options[0:2]]
-            prop_number = options[2]
-            if prop_number.isnumeric():
-                prop_number = int(prop_number)
-            if (len(options) == 5):
-                dest_layer = [int(layer) for layer in options[3:]]
-            else:
-                dest_layer = prop_layer
-            base_layout = make_property_text(base_layout,
-                                             base_layout.layer(prop_layer[0], prop_layer[1]),
-                                             prop_number,
-                                             base_layout.layer(dest_layer[0], dest_layer[1]))
-        elif (step_name == "rename"):
-            new_name = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))[0]
-            base_layout = rename_top(base_layout, new_name)
-        elif (step_name == "rename_cell"):
-            new_name = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))[0]
-            for renameset in schema.get(*args_key, **__get_keypath_step_index(schema, *args_key)):
-                oldcell, newcell = renameset.split("=")
-                base_layout = rename_cell(base_layout, oldcell, newcell)
-        elif (step_name == "swap"):
-            for swapset in schema.get(*args_key, **__get_keypath_step_index(schema, *args_key)):
-                oldcell, newcell = swapset.split("=")
-                base_layout = swap_cells(base_layout, oldcell, newcell)
-        elif (step_name == "add_top"):
-            new_name = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))[0]
-            base_layout = add_layout_to_top(base_layout, new_name)
-        elif (step_name == "write"):
-            write_stream(base_layout, f'outputs/{step_args}', __with_timestamps(schema))
-        elif (step_name == "flatten"):
-            base_layout = flatten(base_layout)
-        elif (step_name == "delete_layers"):
-            layers = []
-            for layer in schema.get(*args_key, **__get_keypath_step_index(schema, *args_key)):
-                layer_num = None
-                layer_purpose = None
-                if '/' in layer:
-                    layer_num, layer_purpose = layer.split('/')
-                elif ' ' in layer:
-                    layer_num, layer_purpose = layer.split(' ')
-                elif ':' in layer:
-                    layer_num, layer_purpose = layer.split(':')
-                else:
-                    raise ValueError(f'Unable to determine layer purpose pair for {layer}')
-                layers.append(base_layout.layer(int(layer_num), int(layer_purpose)))
-            base_layout = delete_layers(base_layout, layers)
-        elif (step_name == "merge_shapes"):
-            layers = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))
-            base_layout = merge_shapes(base_layout, layers)
-        else:
-            raise ValueError(f"Unknown step: {step_name}")
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    for op_file in __stream_sources(schema, opname):
+        layout = merge_layouts(layout, read_layout(op_file))
+    return layout
+
+
+def op_add(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Adds the streams named by an ``add`` operation to the layout.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    for op_file in __stream_sources(schema, opname):
+        layout = add_layout(layout, read_layout(op_file))
+    return layout
+
+
+def __stream_sources(schema: Any, opname: str) -> List[str]:
+    '''
+    Returns the streams a merge or add operation reads.
+
+    Args:
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation.
+
+    Raises:
+        ValueError: if the operation names neither a file nor an input.
+    '''
+    files = get_field(schema, opname, "file")
+    if files:
+        return files
+
+    input_file = get_field(schema, opname, "input")
+    if not input_file:
+        raise ValueError(f"'{opname}' requires a file or an input")
+    return [os.path.join('inputs', input_file)]
+
+
+def op_rotate(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Rotates the layout.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    return rotate_layout(layout, get_field(schema, opname, "angle"))
+
+
+def op_flatten(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Flattens the hierarchy of the top cell.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    return flatten(layout)
+
+
+def op_outline(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Draws a box around the top cell bounding box.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    layer, purpose = get_field(schema, opname, "layer")
+    return add_outline(layout, layout.layer(layer, purpose))
+
+
+def op_rename(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Renames the top cell.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    return rename_top(layout, get_field(schema, opname, "cellname"))
+
+
+def op_add_top(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Adds a new top cell above the current one.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    return add_layout_to_top(layout, get_field(schema, opname, "cellname"))
+
+
+def op_rename_cell(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Renames the cells named by the operation.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    for oldcell, newcell in get_field(schema, opname, "cells"):
+        layout = rename_cell(layout, oldcell, newcell)
+    return layout
+
+
+def op_swap(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Replaces instances of the cells named by the operation.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    for oldcell, newcell in get_field(schema, opname, "cells"):
+        layout = swap_cells(layout, oldcell, newcell)
+    return layout
+
+
+def op_delete_layers(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Deletes every shape on the layers named by the operation.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    layers = [layout.layer(layer, purpose)
+              for layer, purpose in get_field(schema, opname, "layers")]
+    return delete_layers(layout, layers)
+
+
+def op_merge_shapes(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Merges overlapping shapes on the layers named by the operation.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    if get_field(schema, opname, "all"):
+        layers = layout.layer_indexes()
+    else:
+        layers = [layout.layer(layer, purpose)
+                  for layer, purpose in get_field(schema, opname, "layers")]
+    return merge_shapes(layout, layers)
+
+
+def op_convert_property(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Converts a stream property into text labels on the design.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    source = get_field(schema, opname, "source")
+    dest = get_field(schema, opname, "dest")
+    if not dest:
+        dest = source
+
+    prop_number = get_field(schema, opname, "property")
+    if prop_number.isnumeric():
+        prop_number = int(prop_number)
+
+    return make_property_text(layout,
+                              layout.layer(source[0], source[1]),
+                              prop_number,
+                              layout.layer(dest[0], dest[1]))
+
+
+def op_write(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
+    '''
+    Writes an intermediate copy of the layout.
+
+    Args:
+        layout (pya.Layout): layout to modify.
+        schema (SafeSchema): manifest for this node.
+        opname (str): name of the operation to read the arguments from.
+
+    Returns:
+        The modified layout.
+    '''
+    write_stream(layout,
+                 os.path.join('outputs', get_field(schema, opname, "filename")),
+                 __with_timestamps(schema))
+    return layout
+
+
+# Dispatch table, keyed on the operation type recorded in the task's list of
+# operations. Every handler takes and returns the layout being operated on.
+OPERATIONS: Dict[str, Callable[[pya.Layout, Any, str], pya.Layout]] = {
+    "merge": op_merge,
+    "add": op_add,
+    "rotate": op_rotate,
+    "flatten": op_flatten,
+    "outline": op_outline,
+    "rename": op_rename,
+    "add_top": op_add_top,
+    "rename_cell": op_rename_cell,
+    "swap": op_swap,
+    "delete_layers": op_delete_layers,
+    "merge_shapes": op_merge_shapes,
+    "convert_property": op_convert_property,
+    "write": op_write
+}
+
+
+def parse_operations(schema: Any, base_layout: pya.Layout,
+                     operations: Sequence[Tuple[str, str]]) -> pya.Layout:
+    '''
+    Performs a sequence of operations on a layout, in order.
+
+    Args:
+        schema (SafeSchema): manifest for this node.
+        base_layout (pya.Layout): layout to modify.
+        operations (sequence of tuple of str): (operation type, operation name)
+            pairs naming the operations to perform.
+
+    Raises:
+        ValueError: if an operation type has no handler.
+
+    Returns:
+        The modified layout.
+    '''
+    for optype, opname in operations:
+        if optype not in OPERATIONS:
+            raise ValueError(f"Unknown operation: {optype}")
+
+        base_layout = OPERATIONS[optype](base_layout, schema, opname)
+
+    return base_layout
 
 
 if __name__ == "__main__":
@@ -338,10 +729,9 @@ if __name__ == "__main__":
     schema = get_schema(manifest='sc_manifest.json')
 
     # Extract info from manifest
-    sc_step = schema.get('arg', 'step')
-    sc_index = schema.get('arg', 'index')
-    sc_tool = 'klayout'
-    sc_task = 'operations'
+    SC_STEP = schema.get('arg', 'step')
+    SC_INDEX = schema.get('arg', 'index')
+    SC_OPS_ROOT = ('tool', 'klayout', 'task', 'operations', 'var')
 
     sc_ext = get_streams(schema)[0]
 
@@ -362,9 +752,8 @@ if __name__ == "__main__":
     base_layout = read_layout(in_gds)
     base_layout.technology_name = tech.name
 
-    sc_klayout_ops = schema.get('tool', sc_tool, 'task', sc_task, 'var', 'operations',
-                                step=sc_step, index=sc_index)
-    parse_operations(schema, base_layout, sc_klayout_ops)
+    sc_klayout_ops = schema.get(*SC_OPS_ROOT, 'operations', step=SC_STEP, index=SC_INDEX)
+    base_layout = parse_operations(schema, base_layout, sc_klayout_ops)
 
     write_stream(base_layout, out_gds, __with_timestamps(schema))
 

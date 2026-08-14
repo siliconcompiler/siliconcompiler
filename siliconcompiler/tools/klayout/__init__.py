@@ -15,7 +15,7 @@ import shutil
 import os.path
 
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 from siliconcompiler import PDK, StdCellLibrary, sc_open
 from siliconcompiler.asic import ASICTask
@@ -116,7 +116,30 @@ class KLayoutTask(ASICTask):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("hide_layers", "[str]", "list of layers to hide")
+        self.add_parameter("hide_layers", "[str]",
+                           "list of layers to hide, in addition to the layers hidden by the PDK")
+
+    def add_klayout_hidelayers(self, layer: Union[str, List[str]],
+                               step: Optional[str] = None,
+                               index: Optional[Union[str, int]] = None,
+                               clobber: bool = False):
+        """
+        Adds one or more layers to hide when displaying or screenshotting a layout.
+
+        These are hidden in addition to the layers named by
+        :meth:`.KLayoutPDK.add_klayout_hidelayers`. A layer can be named either by
+        name or as a ``<layer>/<datatype>`` pair.
+
+        Args:
+            layer (Union[str, List[str]]): The layer name or a list of layer names.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list of hidden layers.
+                                      If False, appends to the list. Defaults to False.
+        """
+        if clobber:
+            return self.set("var", "hide_layers", layer, step=step, index=index)
+        return self.add("var", "hide_layers", layer, step=step, index=index)
 
     def tool(self):
         return "klayout"
@@ -220,3 +243,105 @@ class KLayoutTask(ASICTask):
         node = SchedulerNode(proj, "<step>", "<index>")
         node.setup()
         return node.task
+
+
+class KLayoutStreamTask(KLayoutTask):
+    """
+    Base class for KLayout tasks that read or write stream files.
+
+    Collects the stream format and timestamp settings shared by every task that
+    produces a GDSII or OASIS file, along with the helpers for naming the files
+    that follow from them.
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("stream", "<gds,oas>",
+                           "Extension to use for stream generation", defvalue="gds")
+        self.add_parameter("timestamps", "bool",
+                           "Export GDSII with timestamps", defvalue=True)
+
+    def set_klayout_stream(self, stream: str,
+                           step: Optional[str] = None,
+                           index: Optional[Union[str, int]] = None):
+        """
+        Sets the stream format for generation.
+
+        Args:
+            stream (str): The stream format to use.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        return self.set("var", "stream", stream, step=step, index=index)
+
+    def _get_klayout_stream(self, step: Optional[str] = None,
+                            index: Optional[Union[str, int]] = None) -> str:
+        """
+        Returns the stream format used for generation.
+
+        Args:
+            step (str, optional): The specific step to read this configuration from.
+            index (str, optional): The specific index to read this configuration from.
+        """
+        return self.get("var", "stream", step=step, index=index)
+
+    def set_klayout_timestamps(self, enable: bool,
+                               step: Optional[str] = None,
+                               index: Optional[Union[str, int]] = None):
+        """
+        Enables or disables exporting GDSII with timestamps.
+
+        Args:
+            enable (bool): Whether to enable timestamps.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        return self.set("var", "timestamps", enable, step=step, index=index)
+
+    def _get_klayout_streamorder(self, step: Optional[str] = None,
+                                 index: Optional[Union[str, int]] = None) -> List[str]:
+        """
+        Returns the supported stream formats, most preferred first.
+
+        Args:
+            step (str, optional): The specific step to read this configuration from.
+            index (str, optional): The specific index to read this configuration from.
+        """
+        stream = self._get_klayout_stream(step=step, index=index)
+        return [stream, *[other for other in ("gds", "oas") if other != stream]]
+
+    def _add_stream_input_file(self, step: Optional[str] = None,
+                               index: Optional[Union[str, int]] = None):
+        """
+        Declares the stream file this task reads.
+
+        Prefers a compressed stream when an input node provides one, otherwise
+        falls back to the uncompressed name.
+
+        Args:
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        stream = self._get_klayout_stream(step=step, index=index)
+
+        if f"{self.design_topmodule}.{stream}.gz" in self.get_files_from_input_nodes():
+            return self.add_input_file(ext=f"{stream}.gz", step=step, index=index)
+        return self.add_input_file(ext=stream, step=step, index=index)
+
+    def _add_stream_output_file(self, step: Optional[str] = None,
+                                index: Optional[Union[str, int]] = None):
+        """
+        Declares the compressed stream file this task writes.
+
+        Args:
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        stream = self._get_klayout_stream(step=step, index=index)
+        return self.add_output_file(ext=f"{stream}.gz", step=step, index=index)
+
+    def setup(self):
+        super().setup()
+
+        self.add_required_key("var", "stream")
+        self.add_required_key("var", "timestamps")

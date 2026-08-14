@@ -551,7 +551,7 @@ def screenshot(gds: str = "build/heartbeat/job0/write.gds/0/outputs/heartbeat.gd
     asic_target(project, pdk="freepdk45")
 
     # Specify the high-resolution screenshot flow.
-    project.set_flow(HighResScreenshotFlow(add_prepare=False))
+    project.set_flow(HighResScreenshotFlow())
 
     # Import the specified GDS file.
     ImportFilesTask.find_task(project).add_import_file(gds)

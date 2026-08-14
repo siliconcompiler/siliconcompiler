@@ -1,6 +1,7 @@
 import hashlib
 import json
 import pytest
+import struct
 
 import os.path
 
@@ -13,11 +14,14 @@ from siliconcompiler.tools.klayout import img2stream
 
 from siliconcompiler.targets import freepdk45_demo, ihp130_demo
 
-from siliconcompiler import ASIC, Flowgraph, Design
+from siliconcompiler import ASIC, Flowgraph, Design, TaskSkip
 from siliconcompiler.flows.img2streamflow import Img2StreamFlow
+from siliconcompiler.flows.highresscreenshotflow import HighResScreenshotFlow
+from siliconcompiler.tools.builtin.importfiles import ImportFilesTask
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.klayout.export import ExportTask
 from siliconcompiler.tools.klayout import KLayoutLibrary
+from siliconcompiler.tools.klayout import screenshot
 
 from tools.inputimporter import ImporterTask
 from siliconcompiler.utils.paths import workdir
@@ -27,6 +31,36 @@ from siliconcompiler.utils.paths import workdir
 def setup_pdk_test(monkeypatch, datadir):
     # pytest's monkeypatch lets us modify sys.path for this test only.
     monkeypatch.syspath_prepend(datadir)
+
+
+def __asic_heartbeat(step, task):
+    design = Design("heartbeat")
+    with design.active_fileset("layout"):
+        design.set_topmodule("heartbeat")
+
+    proj = ASIC(design)
+    proj.add_fileset("layout")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("testflow")
+    flow.node(step, task)
+    proj.set_flow(flow)
+
+    return proj
+
+
+@pytest.fixture
+def asic_heartbeat_ops():
+    '''A single node operations flow, for exercising setup().'''
+    proj = __asic_heartbeat("prepare", operations.OperationsTask())
+    return proj, operations.OperationsTask.find_task(proj)
+
+
+@pytest.fixture
+def asic_heartbeat_screenshot():
+    '''A single node screenshot flow, for exercising setup().'''
+    proj = __asic_heartbeat("screenshot", screenshot.ScreenshotTask())
+    return proj, screenshot.ScreenshotTask.find_task(proj)
 
 
 @pytest.mark.eda
@@ -107,28 +141,24 @@ def test_klayout_operations(datadir):
     ops: operations.OperationsTask = operations.OperationsTask.find_task(proj)
     ops.set("var", "timestamps", False)
 
-    # Ops1
-    ops.add_operation("rotate", None, step="ops1")
-    ops.add_operation("write", "rotate.gds", step="ops1")
-    ops.add_operation("rotate", None, step="ops1")
-    ops.add_operation("outline", "var,outline", step="ops1")
-    ops.set("var", "outline", ["255", "0"])
-    ops.add_operation("write", "outline.gds", step="ops1")
-    ops.add_operation("rename", "var,name", step="ops1")
-    ops.set("var", "name", "new_name", step="ops1")
-    ops.add_operation("write", "rename.gds", step="ops1")
+    # Ops1: repeated and interleaved operations within a single node
+    ops.add_klayout_operation(operations.Rotate(90), step="ops1")
+    ops.add_klayout_operation(operations.Write("rotate.gds"), step="ops1")
+    ops.add_klayout_operation(operations.Rotate(90), step="ops1")
+    ops.add_klayout_operation(operations.Outline(255, 0), step="ops1")
+    ops.add_klayout_operation(operations.Write("outline.gds"), step="ops1")
+    ops.add_klayout_operation(operations.RenameTop("new_name"), step="ops1")
+    ops.add_klayout_operation(operations.Write("rename.gds"), step="ops1")
 
     # Ops2
-    ops.add_operation("merge", "rotate.gds", step="ops2")
-    ops.add_operation("write", "rotate.gds", step="ops2")
-    ops.add_operation("add", "outline.gds", step="ops2")
-    ops.add_operation("write", "outline.gds", step="ops2")
-    ops.add_operation("add_top", "var,name", step="ops2")
-    ops.set("var", "name", "new_top", step="ops2")
-    ops.add_operation("write", "add_top.gds", step="ops2")
-    ops.add_operation("rename_cell", "var,rename_cell", step="ops2")
-    ops.set("var", "rename_cell", "AND4_X1=AND_dummy", step="ops2")
-    ops.add_operation("write", "rename_cells.gds", step="ops2")
+    ops.add_klayout_operation(operations.Merge(input="rotate.gds"), step="ops2")
+    ops.add_klayout_operation(operations.Write("rotate.gds"), step="ops2")
+    ops.add_klayout_operation(operations.Add(input="outline.gds"), step="ops2")
+    ops.add_klayout_operation(operations.Write("outline.gds"), step="ops2")
+    ops.add_klayout_operation(operations.AddTop("new_top"), step="ops2")
+    ops.add_klayout_operation(operations.Write("add_top.gds"), step="ops2")
+    ops.add_klayout_operation(operations.RenameCell([("AND4_X1", "AND_dummy")]), step="ops2")
+    ops.add_klayout_operation(operations.Write("rename_cells.gds"), step="ops2")
 
     assert proj.run()
 
@@ -152,6 +182,103 @@ def test_klayout_operations(datadir):
         with open(path, 'rb') as gds_file:
             data = gds_file.read()
             assert hashlib.md5(data).hexdigest() == op_hash
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_klayout_screenshot(datadir):
+    '''The untiled screenshot path honors resolution, margin, linewidth and
+    oversampling.'''
+    design = Design("heartbeat")
+    with design.active_fileset("layout"):
+        design.set_topmodule("heartbeat")
+
+    proj = ASIC(design)
+    proj.add_fileset(["layout"])
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("testflow")
+    flow.node('import', ImporterTask())
+    flow.node("screenshot", screenshot.ScreenshotTask())
+    flow.edge('import', 'screenshot')
+    proj.set_flow(flow)
+
+    ImporterTask.find_task(proj).set("var", "input_files",
+                                     os.path.join(datadir, 'heartbeat.gds'))
+
+    task = screenshot.ScreenshotTask.find_task(proj)
+    task.set_klayout_resolution(800, 600)
+    task.set_klayout_margin(5)
+    task.set_klayout_linewidth(2)
+    task.set_klayout_oversampling(2)
+
+    assert proj.run()
+
+    png = proj.find_result("png", step="screenshot")
+    assert png is not None
+    assert os.path.isfile(png)
+
+    with open(png, 'rb') as image:
+        width, height = struct.unpack(">II", image.read(24)[16:24])
+    assert (width, height) == (800, 600)
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_klayout_screenshot_hide_layers(datadir):
+    '''Layers hidden through the task reach the tool, alongside the PDK's.'''
+    design = Design("heartbeat")
+    with design.active_fileset("layout"):
+        design.set_topmodule("heartbeat")
+
+    proj = ASIC(design)
+    proj.add_fileset(["layout"])
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("testflow")
+    flow.node('import', ImporterTask())
+    flow.node("screenshot", screenshot.ScreenshotTask())
+    flow.edge('import', 'screenshot')
+    proj.set_flow(flow)
+
+    ImporterTask.find_task(proj).set("var", "input_files",
+                                     os.path.join(datadir, 'heartbeat.gds'))
+
+    task = screenshot.ScreenshotTask.find_task(proj)
+    task.set_klayout_resolution(200, 200)
+    # metal1 by name (as spelled in the PDK's .lyp), via1 by layer/datatype
+    task.add_klayout_hidelayers(["metal1.drawing", "12/0"])
+
+    assert proj.run()
+
+    with open(os.path.join(workdir(proj, step="screenshot"), "screenshot.log")) as log:
+        hidden = [line for line in log if "Turning off layer" in line]
+
+    assert any("metal1.drawing" in line for line in hidden)
+    assert any("12/0" in line for line in hidden)
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_klayout_highres_screenshot_flow(datadir):
+    '''An unconfigured prepare node skips, so the flow runs out of the box.'''
+    design = Design("heartbeat")
+    with design.active_fileset("layout"):
+        design.set_topmodule("heartbeat")
+
+    proj = ASIC(design)
+    proj.add_fileset(["layout"])
+    freepdk45_demo(proj)
+    proj.set_flow(HighResScreenshotFlow())
+
+    ImportFilesTask.find_task(proj).add_import_file(os.path.join(datadir, 'heartbeat.gds'))
+    screenshot.ScreenshotTask.find_task(proj).set_klayout_resolution(400, 400)
+
+    assert proj.run()
+    assert os.path.isfile(proj.find_result("png", step="screenshot"))
 
 
 @pytest.mark.nocache
@@ -338,21 +465,308 @@ END logo
     assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
 
 
-def test_klayout_parameter_operations():
-    task = operations.OperationsTask()
-    task.set_klayout_operations([('merge', 'a.gds'), ('rotate', '')])
-    assert task.get("var", "operations") == [('merge', 'a.gds'), ('rotate', '')]
-    task.set_klayout_operations([('add', 'b.gds')], step='op', index='1')
-    assert task.get("var", "operations", step='op', index='1') == [('add', 'b.gds')]
-    assert task.get("var", "operations") == [('merge', 'a.gds'), ('rotate', '')]
+def test_klayout_operation_types():
+    types = operations.get_operation_types()
+    assert set(types) == {
+        "add", "add_top", "convert_property", "delete_layers", "flatten", "merge",
+        "merge_shapes", "outline", "rename", "rename_cell", "rotate", "swap", "write"
+    }
+    for optype, cls in types.items():
+        assert cls().optype == optype
 
 
 def test_klayout_add_operation():
     task = operations.OperationsTask()
-    task.add_operation('merge', 'a.gds')
-    assert task.get("var", "operations") == [('merge', 'a.gds')]
-    task.add_operation('rotate', '')
-    assert task.get("var", "operations") == [('merge', 'a.gds'), ('rotate', '')]
+
+    op = task.add_klayout_operation(operations.Rotate(180))
+    assert isinstance(op, operations.Rotate)
+    assert op.name == "rotate0"
+    assert task.get("var", "operations") == [("rotate", "rotate0")]
+    assert task.get("var", "rotate0.angle") == 180
+    assert op.get_angle() == 180
+
+
+def test_klayout_add_operation_sequence():
+    '''Repeats and interleaving within a single node.'''
+    task = operations.OperationsTask()
+
+    task.add_klayout_operation(operations.Add(input="guard_edge.gds"))
+    task.add_klayout_operation(operations.Rotate(90))
+    task.add_klayout_operation(operations.Write("rot90.gds"))
+    task.add_klayout_operation(operations.Outline(255, 0))
+    task.add_klayout_operation(operations.Rotate(180))
+    task.add_klayout_operation(operations.Write("rot270.gds"))
+
+    assert task.get("var", "operations") == [
+        ("add", "add0"),
+        ("rotate", "rotate0"),
+        ("write", "write0"),
+        ("outline", "outline0"),
+        ("rotate", "rotate1"),
+        ("write", "write1")
+    ]
+
+    assert task.get("var", "rotate0.angle") == 90
+    assert task.get("var", "rotate1.angle") == 180
+    assert task.get("var", "write0.filename") == "rot90.gds"
+    assert task.get("var", "write1.filename") == "rot270.gds"
+    assert task.get("var", "outline0.layer") == (255, 0)
+    assert task.get("var", "add0.input") == "guard_edge.gds"
+
+
+def test_klayout_add_operation_pernode():
+    task = operations.OperationsTask()
+
+    task.add_klayout_operation(operations.Rotate(90), step="ops1")
+    task.add_klayout_operation(operations.Flatten(), step="ops2")
+
+    assert task.get("var", "operations", step="ops1", index="0") == [("rotate", "rotate0")]
+    assert task.get("var", "operations", step="ops2", index="0") == [("flatten", "flatten0")]
+    assert task.get("var", "operations") == []
+
+
+def test_klayout_add_operation_shared():
+    '''An operation can be referenced from more than one node.'''
+    task = operations.OperationsTask()
+
+    strip = task.add_klayout_operation(
+        operations.DeleteLayers([(10, 0)], name="strip"), step="ops1")
+    task.add_klayout_operation(operations.DeleteLayers(name="strip"), step="ops2")
+
+    assert task.get("var", "operations", step="ops1", index="0") == [("delete_layers", "strip")]
+    assert task.get("var", "operations", step="ops2", index="0") == [("delete_layers", "strip")]
+    assert strip.get_layers() == [(10, 0)]
+
+    # per-node override of a shared operation
+    strip.set_layers([(20, 5)], step="ops2", index="0")
+    assert strip.get_layers(step="ops1", index="0") == [(10, 0)]
+    assert strip.get_layers(step="ops2", index="0") == [(20, 5)]
+
+
+def test_klayout_add_operation_names_stable():
+    '''Names are allocated, not positional, so inserting one does not renumber.'''
+    task = operations.OperationsTask()
+
+    task.add_klayout_operation(operations.Rotate(90))
+    task.add_klayout_operation(operations.Rotate(180))
+    before = {key: task.get("var", key) for key in task.getkeys("var") if "." in key}
+
+    task.add_klayout_operation(operations.Rotate(270))
+
+    for key, value in before.items():
+        assert task.get("var", key) == value
+    assert task.get("var", "rotate2.angle") == 270
+
+
+def test_klayout_add_operation_invalid_name():
+    with pytest.raises(ValueError, match="is not a valid operation name"):
+        operations.Rotate(name="bad.name")
+
+
+def test_klayout_add_operation_duplicate_name():
+    task = operations.OperationsTask()
+    task.add_klayout_operation(operations.Rotate(90, name="spin"))
+
+    with pytest.raises(ValueError, match="already defined"):
+        task.add_klayout_operation(operations.Rotate(180, name="spin"))
+
+
+def test_klayout_add_operation_invalid_type():
+    task = operations.OperationsTask()
+    with pytest.raises(TypeError, match="op must be a KLayoutOperation"):
+        task.add_klayout_operation(operations.Rotate)
+
+
+def test_klayout_operation_unbound_setters():
+    '''Setters work before the operation is added to a task.'''
+    op = operations.DeleteLayers()
+    op.add_layer(1, 0)
+    op.add_layer(2, 5)
+    assert op.get_layers() == [(1, 0), (2, 5)]
+
+    task = operations.OperationsTask()
+    task.add_klayout_operation(op)
+    assert op.get_layers() == [(1, 0), (2, 5)]
+    assert task.get("var", "delete_layers0.layers") == [(1, 0), (2, 5)]
+
+
+def test_klayout_operation_handle_setters():
+    task = operations.OperationsTask()
+
+    delete = task.add_klayout_operation(operations.DeleteLayers([(63, 0)]))
+    delete.add_layer(550, 26)
+    assert delete.get_layers() == [(63, 0), (550, 26)]
+    delete.set_layers([(1, 1)])
+    assert delete.get_layers() == [(1, 1)]
+
+    convert = task.add_klayout_operation(operations.ConvertProperty((10, 2), 3, (85, 5)))
+    assert convert.get_source() == (10, 2)
+    assert convert.get_property() == "3"
+    assert convert.get_dest() == (85, 5)
+
+    cells = task.add_klayout_operation(operations.SwapCell([("a", "b")]))
+    cells.add_cell("c", "d")
+    assert cells.get_cells() == [("a", "b"), ("c", "d")]
+
+    shapes = task.add_klayout_operation(operations.MergeShapes(all=True))
+    assert shapes.get_all() is True
+
+    merge = task.add_klayout_operation(operations.Merge(file="fill.gds"))
+    assert merge.get_file() == ["fill.gds"]
+    assert task.get("var", "merge0.file", field=None).is_file
+
+
+def test_klayout_get_operations():
+    task = operations.OperationsTask()
+    task.add_klayout_operation(operations.Rotate(90), step="ops1")
+    task.add_klayout_operation(operations.Write("out.gds"), step="ops1")
+
+    ops = task.get_klayout_operations(step="ops1", index="0")
+    assert [type(op) for op in ops] == [operations.Rotate, operations.Write]
+    assert ops[0].get_angle() == 90
+    assert ops[1].get_filename() == "out.gds"
+
+    assert task.get_klayout_operations() == []
+
+
+def test_klayout_remove_operation():
+    task = operations.OperationsTask()
+    task.add_klayout_operation(operations.Rotate(90), step="ops1")
+    strip = task.add_klayout_operation(operations.DeleteLayers([(10, 0)]), step="ops1")
+
+    assert task.remove_klayout_operation(strip, step="ops1") is True
+    assert task.get("var", "operations", step="ops1", index="0") == [("rotate", "rotate0")]
+    assert not task.valid("var", "delete_layers0.layers")
+
+    assert task.remove_klayout_operation("delete_layers0", step="ops1") is False
+
+
+def test_klayout_remove_operation_still_referenced():
+    '''Parameters survive while another node still refers to the operation.'''
+    task = operations.OperationsTask()
+    task.add_klayout_operation(operations.DeleteLayers([(10, 0)], name="strip"), step="ops1")
+    task.add_klayout_operation(operations.DeleteLayers(name="strip"), step="ops2")
+
+    assert task.remove_klayout_operation("strip", step="ops1") is True
+    assert task.get("var", "operations", step="ops1", index="0") == []
+    assert task.valid("var", "strip.layers")
+
+    assert task.remove_klayout_operation("strip", step="ops2") is True
+    assert not task.valid("var", "strip.layers")
+
+
+def test_klayout_operations_manifest_roundtrip():
+    task = operations.OperationsTask()
+    task.add_klayout_operation(operations.DeleteLayers([(63, 0), (550, 26)]), step="ops1")
+    task.add_klayout_operation(operations.Rotate(180), step="ops1")
+    task.add_klayout_operation(operations.Write("out.gds"), step="ops1")
+
+    manifest = json.loads(json.dumps(task.getdict()))
+
+    reloaded = operations.OperationsTask()
+    reloaded._from_dict(manifest, ("tool", "klayout", "task", "operations"))
+
+    ops = reloaded.get_klayout_operations(step="ops1", index="0")
+    assert [type(op) for op in ops] == [
+        operations.DeleteLayers, operations.Rotate, operations.Write]
+    assert ops[0].get_layers() == [(63, 0), (550, 26)]
+    assert ops[1].get_angle() == 180
+    assert ops[2].get_filename() == "out.gds"
+
+
+def test_klayout_add_operation_legacy():
+    task = operations.OperationsTask()
+
+    with pytest.warns(DeprecationWarning, match="use add_klayout_operation"):
+        task.add_operation("rotate", None)
+    with pytest.warns(DeprecationWarning):
+        task.add_operation("write", "out.gds")
+    with pytest.warns(DeprecationWarning):
+        task.add_operation("merge", "fill.gds")
+
+    assert task.get("var", "operations") == [
+        ("rotate", "rotate0"), ("write", "write0"), ("merge", "merge0")]
+    assert task.get("var", "write0.filename") == "out.gds"
+    assert task.get("var", "merge0.input") == "fill.gds"
+
+
+def test_klayout_add_operation_legacy_keypath():
+    task = operations.OperationsTask()
+
+    with pytest.warns(DeprecationWarning):
+        with pytest.raises(ValueError, match="use DeleteLayers instead"):
+            task.add_operation("delete_layers", "var,layers")
+
+
+def test_klayout_operations_setup(asic_heartbeat_ops):
+    proj, task = asic_heartbeat_ops
+
+    task.add_klayout_operation(operations.DeleteLayers([(10, 0)]), step="prepare")
+    task.add_klayout_operation(operations.Merge(input="fill.gds"), step="prepare")
+    task.add_klayout_operation(operations.Write("mid.gds"), step="prepare")
+
+    node = SchedulerNode(proj, "prepare", "0")
+    with node.runtime():
+        node.task.setup()
+
+        require = node.task.get("require", step="prepare", index="0")
+        prefix = "tool,klayout,task,operations,var,"
+        assert f"{prefix}operations" in require
+        assert f"{prefix}delete_layers0.layers" in require
+        assert f"{prefix}merge0.input" in require
+        assert f"{prefix}write0.filename" in require
+
+        assert "mid.gds" in node.task.get("output", step="prepare", index="0")
+        assert "fill.gds" in node.task.get("input", step="prepare", index="0")
+
+
+def test_klayout_operations_setup_empty(asic_heartbeat_ops):
+    '''A node with no operations skips rather than running klayout for nothing.'''
+    proj, _ = asic_heartbeat_ops
+
+    node = SchedulerNode(proj, "prepare", "0")
+    with node.runtime():
+        with pytest.raises(TaskSkip, match="no operations to perform"):
+            node.task.setup()
+
+
+@pytest.mark.parametrize("op,error", [
+    (operations.Outline(), "outline 'outline0' requires a layer"),
+    (operations.RenameTop(), "rename 'rename0' requires a cellname"),
+    (operations.RenameCell(), "rename_cell 'rename_cell0' requires cells"),
+    (operations.DeleteLayers(), "delete_layers 'delete_layers0' requires layers"),
+    (operations.MergeShapes(), "merge_shapes 'merge_shapes0' requires layers or all"),
+    (operations.ConvertProperty(), "convert_property 'convert_property0' requires a source"),
+    (operations.Write(), "write 'write0' requires a filename"),
+    (operations.Merge(), "merge 'merge0' requires a file or an input"),
+    (operations.Merge(file="a.gds", input="b.gds"),
+     "merge 'merge0' cannot set both file and input"),
+])
+def test_klayout_operations_setup_incomplete(asic_heartbeat_ops, op, error):
+    proj, task = asic_heartbeat_ops
+
+    task.add_klayout_operation(op, step="prepare")
+
+    node = SchedulerNode(proj, "prepare", "0")
+    with node.runtime():
+        with pytest.raises(ValueError, match=error):
+            node.task.setup()
+
+
+def test_klayout_task_hide_layers():
+    task = operations.OperationsTask()
+
+    task.add_klayout_hidelayers("metal1")
+    task.add_klayout_hidelayers(["metal2", "10/0"])
+    assert task.get("var", "hide_layers") == ["metal1", "metal2", "10/0"]
+
+    task.add_klayout_hidelayers("metal3", clobber=True)
+    assert task.get("var", "hide_layers") == ["metal3"]
+
+    # a per node value replaces rather than extends the global one
+    task.add_klayout_hidelayers("metal4", step="show", index="0")
+    assert task.get("var", "hide_layers", step="show", index="0") == ["metal4"]
+    assert task.get("var", "hide_layers") == ["metal3"]
 
 
 def test_klayout_parameter_stream():
