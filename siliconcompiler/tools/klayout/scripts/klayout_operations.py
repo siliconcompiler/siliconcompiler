@@ -41,6 +41,10 @@ def get_field(schema: Any, opname: str, field: str) -> Any:
     '''
     Returns the value of one field of one operation.
 
+    The '.' joining the two is ``KLayoutOperation.SEPARATOR``, spelled out here
+    because this script runs in KLayout's interpreter and cannot import
+    SiliconCompiler.
+
     Args:
         schema (SafeSchema): manifest for this node.
         opname (str): name of the operation.
@@ -233,7 +237,7 @@ def rotate_layout(base_layout: pya.Layout, angle: int) -> pya.Layout:
     rotations = {
         90: (pya.Trans.R270, pya.Vector(0, bbox.p2.x)),
         180: (pya.Trans.R180, pya.Vector(bbox.p2.x, bbox.p2.y)),
-        270: (pya.Trans.R90, pya.Vector(bbox.p2.y, 0))
+        270: (pya.Trans.R90, pya.Vector(bbox.p2.y, -bbox.p1.x))
     }
     rotation, displacement = rotations[angle]
 

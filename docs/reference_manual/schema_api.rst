@@ -193,6 +193,7 @@ returns it bound to the task so the setters below can adjust it later.
 
 .. autoclass:: siliconcompiler.tools.klayout.operations.Add
     :members:
+    :inherited-members:
     :show-inheritance:
 
 .. autoclass:: siliconcompiler.tools.klayout.operations.Rotate
@@ -213,6 +214,7 @@ returns it bound to the task so the setters below can adjust it later.
 
 .. autoclass:: siliconcompiler.tools.klayout.operations.AddTop
     :members:
+    :inherited-members:
     :show-inheritance:
 
 .. autoclass:: siliconcompiler.tools.klayout.operations.RenameCell
@@ -221,6 +223,7 @@ returns it bound to the task so the setters below can adjust it later.
 
 .. autoclass:: siliconcompiler.tools.klayout.operations.SwapCell
     :members:
+    :inherited-members:
     :show-inheritance:
 
 .. autoclass:: siliconcompiler.tools.klayout.operations.DeleteLayers

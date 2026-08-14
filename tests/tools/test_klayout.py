@@ -1,3 +1,4 @@
+import ast
 import hashlib
 import json
 import pytest
@@ -33,7 +34,8 @@ def setup_pdk_test(monkeypatch, datadir):
     monkeypatch.syspath_prepend(datadir)
 
 
-def __asic_heartbeat(step, task):
+def __asic_heartbeat(step, task, import_file=None):
+    '''A single node heartbeat flow, optionally fed by an import node.'''
     design = Design("heartbeat")
     with design.active_fileset("layout"):
         design.set_topmodule("heartbeat")
@@ -44,7 +46,13 @@ def __asic_heartbeat(step, task):
 
     flow = Flowgraph("testflow")
     flow.node(step, task)
+    if import_file:
+        flow.node("import", ImporterTask())
+        flow.edge("import", step)
     proj.set_flow(flow)
+
+    if import_file:
+        ImporterTask.find_task(proj).set("var", "input_files", import_file)
 
     return proj
 
@@ -159,6 +167,12 @@ def test_klayout_operations(datadir):
     ops.add_klayout_operation(operations.Write("add_top.gds"), step="ops2")
     ops.add_klayout_operation(operations.RenameCell([("AND4_X1", "AND_dummy")]), step="ops2")
     ops.add_klayout_operation(operations.Write("rename_cells.gds"), step="ops2")
+    # heartbeat.gds has a non-origin bounding box, so these also cover the
+    # translation each rotation applies
+    ops.add_klayout_operation(operations.Rotate(180), step="ops2")
+    ops.add_klayout_operation(operations.Write("rot180.gds"), step="ops2")
+    ops.add_klayout_operation(operations.Rotate(270), step="ops2")
+    ops.add_klayout_operation(operations.Write("rot270.gds"), step="ops2")
 
     assert proj.run()
 
@@ -176,7 +190,9 @@ def test_klayout_operations(datadir):
     for op_file, op_hash in [('rotate.gds', 'ee2e5b9646ca4f7e941dd1767af47188'),
                              ('outline.gds', '753e1a252baaa6c9dbb3e9528a3eef3c'),
                              ('add_top.gds', '2c6f39ff49088278bafa51adfd761e61'),
-                             ('rename_cells.gds', '4253ee90771c0fcaf0c4c95010783cef')]:
+                             ('rename_cells.gds', '4253ee90771c0fcaf0c4c95010783cef'),
+                             ('rot180.gds', 'cf51f28992b2fc19005511ee5b5ebcad'),
+                             ('rot270.gds', '0505eb165e269a34b4421b354a9cdcfc')]:
         path = os.path.join(ops2_result, 'outputs', op_file)
         assert os.path.exists(path)
         with open(path, 'rb') as gds_file:
@@ -190,22 +206,8 @@ def test_klayout_operations(datadir):
 def test_klayout_screenshot(datadir):
     '''The untiled screenshot path honors resolution, margin, linewidth and
     oversampling.'''
-    design = Design("heartbeat")
-    with design.active_fileset("layout"):
-        design.set_topmodule("heartbeat")
-
-    proj = ASIC(design)
-    proj.add_fileset(["layout"])
-    freepdk45_demo(proj)
-
-    flow = Flowgraph("testflow")
-    flow.node('import', ImporterTask())
-    flow.node("screenshot", screenshot.ScreenshotTask())
-    flow.edge('import', 'screenshot')
-    proj.set_flow(flow)
-
-    ImporterTask.find_task(proj).set("var", "input_files",
-                                     os.path.join(datadir, 'heartbeat.gds'))
+    proj = __asic_heartbeat("screenshot", screenshot.ScreenshotTask(),
+                            import_file=os.path.join(datadir, 'heartbeat.gds'))
 
     task = screenshot.ScreenshotTask.find_task(proj)
     task.set_klayout_resolution(800, 600)
@@ -229,22 +231,8 @@ def test_klayout_screenshot(datadir):
 @pytest.mark.timeout(300)
 def test_klayout_screenshot_hide_layers(datadir):
     '''Layers hidden through the task reach the tool, alongside the PDK's.'''
-    design = Design("heartbeat")
-    with design.active_fileset("layout"):
-        design.set_topmodule("heartbeat")
-
-    proj = ASIC(design)
-    proj.add_fileset(["layout"])
-    freepdk45_demo(proj)
-
-    flow = Flowgraph("testflow")
-    flow.node('import', ImporterTask())
-    flow.node("screenshot", screenshot.ScreenshotTask())
-    flow.edge('import', 'screenshot')
-    proj.set_flow(flow)
-
-    ImporterTask.find_task(proj).set("var", "input_files",
-                                     os.path.join(datadir, 'heartbeat.gds'))
+    proj = __asic_heartbeat("screenshot", screenshot.ScreenshotTask(),
+                            import_file=os.path.join(datadir, 'heartbeat.gds'))
 
     task = screenshot.ScreenshotTask.find_task(proj)
     task.set_klayout_resolution(200, 200)
@@ -767,6 +755,46 @@ def test_klayout_task_hide_layers():
     task.add_klayout_hidelayers("metal4", step="show", index="0")
     assert task.get("var", "hide_layers", step="show", index="0") == ["metal4"]
     assert task.get("var", "hide_layers") == ["metal3"]
+
+
+def test_klayout_operation_unbound_add_after_scalar():
+    '''A value given to the constructor is one element, not an iterable.'''
+    op = operations.Merge(file="fill.gds")
+    op.add_file("more.gds")
+    assert op.get_file() == ["fill.gds", "more.gds"]
+
+    task = operations.OperationsTask()
+    task.add_klayout_operation(op)
+    assert task.get("var", "merge0.file") == ["fill.gds", "more.gds"]
+
+
+def test_klayout_add_operation_name_reused_for_other_type():
+    task = operations.OperationsTask()
+    task.add_klayout_operation(operations.DeleteLayers([(10, 0)], name="strip"))
+
+    with pytest.raises(ValueError, match="already defined as a delete_layers operation"):
+        task.add_klayout_operation(operations.Rotate(name="strip"))
+
+    # the rejected operation left nothing behind
+    assert sorted(key for key in task.getkeys("var") if "." in key) == ["strip.layers"]
+
+
+def test_klayout_operations_dispatch_table_complete():
+    '''Every operation type has a handler in the tool script, and vice versa.
+
+    The script imports pya, so it is parsed rather than imported.
+    '''
+    script = os.path.join(os.path.dirname(operations.__file__),
+                          "scripts", "klayout_operations.py")
+    tree = ast.parse(open(script).read())
+
+    handled = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", None) == "OPERATIONS":
+            handled = {key.value for key in node.value.keys}
+    assert handled is not None, "OPERATIONS table not found"
+
+    assert handled == set(operations.get_operation_types())
 
 
 def test_klayout_parameter_stream():

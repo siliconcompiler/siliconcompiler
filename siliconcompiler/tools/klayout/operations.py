@@ -141,8 +141,11 @@ class KLayoutOperation:
             held = self._pending.get(field, None)
             if held is None:
                 held = []
-            elif not isinstance(held, list):
+            elif isinstance(held, (list, set, tuple)):
                 held = list(held)
+            else:
+                # a scalar is one element, not something to iterate over
+                held = [held]
             held.append(value)
             self._pending[field] = held
             return None
@@ -969,9 +972,14 @@ def get_operation_types() -> Dict[str, Type[KLayoutOperation]]:
 
     def recurse(cls):
         for subcls in cls.__subclasses__():
-            instance = subcls()
-            if instance.optype:
-                types.setdefault(instance.optype, subcls)
+            # optype is a constant property, so read it off a bare instance rather
+            # than constructing one: an operation is free to require arguments.
+            try:
+                optype = subcls.__new__(subcls).optype
+            except NotImplementedError:
+                optype = None
+            if optype:
+                types.setdefault(optype, subcls)
             recurse(subcls)
 
     recurse(KLayoutOperation)
@@ -1070,9 +1078,14 @@ class OperationsTask(KLayoutStreamTask):
         opname = op.name
         if opname is None:
             opname = self.__allocate_name(op.optype)
-        elif op._pending and any(entry[1] == opname for entry in self.__all_operations()):
-            raise ValueError(f"'{opname}' operation is already defined, "
-                             "use the object returned by add_klayout_operation to modify it")
+        else:
+            defined = [entry[0] for entry in self.__all_operations() if entry[1] == opname]
+            if defined and defined[0] != op.optype:
+                raise ValueError(f"'{opname}' is already defined as a "
+                                 f"{defined[0]} operation")
+            if defined and op._pending:
+                raise ValueError(f"'{opname}' operation is already defined, "
+                                 "use the object returned by add_klayout_operation to modify it")
 
         op._bind(self, opname)
         self.add("var", "operations", (op.optype, opname), step=step, index=index)
