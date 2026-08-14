@@ -387,7 +387,7 @@ Then, in the parent project, do two things -- **both are required**:
    project.add_asiclib(macro)                             # 2. inject the views
 
    # Macros need room. Too small a die and the placer cannot fit them.
-   project.constraint.area.set_diearea_rectangle(250, 250, coremargin=10)
+   project.constraint.area.set_dieoutline(250, 250, coremargin=10)
 
 Without the alias the parent re-synthesizes the block instead of instantiating
 the hardened version; without the library the tools have no physical or timing

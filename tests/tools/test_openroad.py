@@ -2145,7 +2145,7 @@ def test_openroad_init_floorplan_derives_corearea_from_coremargin(asic_gcd):
     # density driven sizing and discard the requested die.
     # https://github.com/siliconcompiler/siliconcompiler/issues/5217
     area = asic_gcd.constraint.area
-    area.set_diearea_rectangle(500, 500)
+    area.set_dieoutline(500, 500)
     assert area.get_coremargin() == 1.0, "freepdk45 must supply a core margin"
 
     require = _setup_node(asic_gcd, "floorplan.init").get("require")
@@ -2177,7 +2177,8 @@ def test_openroad_init_floorplan_derives_diearea_from_coremargin(asic_gcd):
 
 def test_openroad_init_floorplan_explicit_areas(asic_gcd):
     area = asic_gcd.constraint.area
-    area.set_diearea_rectangle(500, 500, coremargin=10)
+    area.set_diearea([(0, 0), (500, 500)])
+    area.set_corearea([(10, 10), (490, 490)])
 
     require = _setup_node(asic_gcd, "floorplan.init").get("require")
 
@@ -2192,7 +2193,7 @@ def test_openroad_init_floorplan_explicit_areas(asic_gcd):
 
 def test_openroad_init_floorplan_derives_corearea_no_coremargin(asic_gcd):
     area = asic_gcd.constraint.area
-    area.set_diearea_rectangle(500, 500)
+    area.set_dieoutline(500, 500)
     area.unset("coremargin")
 
     require = _setup_node(asic_gcd, "floorplan.init").get("require")

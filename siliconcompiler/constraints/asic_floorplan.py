@@ -259,6 +259,121 @@ class ASICAreaConstraint(BaseSchema):
         """
         return self.get("coremargin", step=step, index=index)
 
+    @staticmethod
+    def __check_outline_size(width: float, height: float):
+        """
+        Validates the dimensions of a rectangular outline.
+
+        Args:
+            width (float): The width of the outline. Must be > 0.
+            height (float): The height of the outline. Must be > 0.
+
+        Raises:
+            TypeError: If `width` or `height` are not numbers.
+            ValueError: If `width` or `height` are zero or negative.
+        """
+        if not isinstance(width, (int, float)):
+            raise TypeError("width must be a number")
+        if not isinstance(height, (int, float)):
+            raise TypeError("height must be a number")
+
+        if width <= 0.0:
+            raise ValueError("width must be greater than zero")
+
+        if height <= 0.0:
+            raise ValueError("height must be greater than zero")
+
+    def set_dieoutline(self,
+                       width: float,
+                       height: float,
+                       coremargin: Optional[float] = None,
+                       step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """
+        Sets the die area as a rectangle with its bottom-left corner at (0,0).
+
+        Optionally, it can also set the core margin, which
+        :meth:`calc_floorplan_areas` uses to derive the core area from this die.
+
+        The argument order matches :meth:`get_diesize`, so a die can be copied
+        with ``set_dieoutline(*other.get_diesize())``. Use :meth:`set_diearea`
+        to describe a die outline that is not a rectangle.
+
+        Args:
+            width (float): The width of the rectangular die area. Must be > 0.
+            height (float): The height of the rectangular die area. Must be > 0.
+            coremargin (float, optional): The margin between the die area and the
+                        core area. If provided, `set_coremargin` will be called.
+                        Defaults to None.
+            step (str, optional): The step in a workflow to associate this
+                                  setting with. Defaults to None.
+            index (Union[str, int], optional): The index within a step to
+                                               associate this setting with.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `width`, `height`, or `coremargin` are not numbers.
+            ValueError: If `width` or `height` are zero or negative, or if
+                        `coremargin` is negative.
+
+        Returns:
+            list: A list of return values from the internal `set` calls.
+        """
+        self.__check_outline_size(width, height)
+
+        return self.set_diearea([(0, 0), (width, height)], coremargin=coremargin,
+                                step=step, index=index)
+
+    def set_coreoutline(self,
+                        width: float,
+                        height: float,
+                        coremargin: Optional[float] = None,
+                        step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """
+        Sets the core area as a rectangle sized to hold the standard cells.
+
+        Optionally, it can also set the core margin, which
+        :meth:`calc_floorplan_areas` uses to derive the die area from this core.
+        Since the die is grown outwards from the core, the core is placed one
+        margin away from the origin so that the derived die starts at (0,0)
+        rather than at a negative coordinate.
+
+        The argument order matches :meth:`get_coresize`, so a core can be copied
+        with ``set_coreoutline(*other.get_coresize())``. Use :meth:`set_corearea`
+        to describe a core outline that is not a rectangle, or one that must keep
+        specific coordinates.
+
+        Args:
+            width (float): The width of the rectangular core area. Must be > 0.
+            height (float): The height of the rectangular core area. Must be > 0.
+            coremargin (float, optional): The margin between the core area and the
+                        die area. If provided, `set_coremargin` will be called.
+                        Defaults to None.
+            step (str, optional): The step in a workflow to associate this
+                                  setting with. Defaults to None.
+            index (Union[str, int], optional): The index within a step to
+                                               associate this setting with.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `width`, `height`, or `coremargin` are not numbers.
+            ValueError: If `width` or `height` are zero or negative, or if
+                        `coremargin` is negative.
+
+        Returns:
+            list: A list of return values from the internal `set` calls.
+        """
+        self.__check_outline_size(width, height)
+
+        if coremargin is None:
+            return self.set_corearea([(0, 0), (width, height)], step=step, index=index)
+
+        # Validate before the margin is used to place the core.
+        self.set_coremargin(coremargin, step=step, index=index)
+
+        return self.set_corearea(
+            [(coremargin, coremargin), (coremargin + width, coremargin + height)],
+            step=step, index=index)
+
     def set_diearea_rectangle(self,
                               height: float,
                               width: float,
@@ -267,8 +382,13 @@ class ASICAreaConstraint(BaseSchema):
         """
         Sets the die area as a rectangle with its bottom-left corner at (0,0).
 
-        Optionally, it can also set the core area as a rectangle based on
-        the provided core margin.
+        .. deprecated::
+            Use :meth:`set_dieoutline` instead. This method takes its dimensions
+            as ``(height, width)``, which is the reverse of the ``(width, height)``
+            ordering used everywhere else in this class, including
+            :meth:`get_diesize`. Unlike :meth:`set_dieoutline`, which records the
+            core margin and lets :meth:`calc_floorplan_areas` derive the core,
+            this method resolves the core area immediately.
 
         Args:
             height (float): The height of the rectangular die area. Must be > 0.
@@ -291,22 +411,18 @@ class ASICAreaConstraint(BaseSchema):
         Returns:
             list: A list of return values from the internal `set` calls.
         """
-        if not isinstance(height, (int, float)):
-            raise TypeError("height must be a number")
-        if not isinstance(width, (int, float)):
-            raise TypeError("width must be a number")
+        import warnings
+        warnings.warn("set_diearea_rectangle is deprecated, use set_dieoutline instead. "
+                      "Note that set_dieoutline takes (width, height), which is the reverse "
+                      "of this method's argument order.",
+                      DeprecationWarning, stacklevel=2)
 
-        if height <= 0.0:
-            raise ValueError("height must be greater than zero")
-
-        if width <= 0.0:
-            raise ValueError("width must be greater than zero")
-
-        params = [
-            self.set_diearea([(0, 0), (width, height)], step=step, index=index)
-        ]
+        params = self.set_dieoutline(width, height, step=step, index=index)
         if coremargin is not None:
-            params.append(self.set_corearea_rectangle(
+            # The margin is resolved here rather than handed to set_dieoutline, since
+            # the coremargin parameter holds a single number and this method accepts
+            # a per axis pair.
+            params.append(self.__set_corearea_rectangle(
                 height, width, coremargin, step=step, index=index))
         return params
 
@@ -321,6 +437,19 @@ class ASICAreaConstraint(BaseSchema):
         The core area is calculated by subtracting the margins from the die
         dimensions. Margins can be uniform (single float) or specified
         separately for x and y.
+
+        .. deprecated::
+            Use :meth:`set_coreoutline` instead. This method takes the *die*
+            dimensions as ``(height, width)``, which is both the reverse of the
+            ``(width, height)`` ordering used everywhere else in this class and a
+            surprising thing for a core area setter to ask for.
+            ``set_corearea_rectangle(dieheight, diewidth, coremargin)`` becomes
+            ``set_coreoutline(diewidth - 2 * margin, dieheight - 2 * margin,
+            coremargin)``, which produces the same core area and additionally
+            records the margin so :meth:`calc_floorplan_areas` can derive the die
+            area this method only ever implied. :meth:`set_coreoutline` takes a
+            single margin rather than a per axis pair, since that is what the
+            ``coremargin`` schema parameter holds.
 
         Args:
             dieheight (float): The height of the die area. Must be > 0.
@@ -341,6 +470,26 @@ class ASICAreaConstraint(BaseSchema):
 
         Returns:
             The return value from the internal `set_corearea` method call.
+        """
+        import warnings
+        warnings.warn("set_corearea_rectangle is deprecated, use set_coreoutline instead. "
+                      "Note that set_coreoutline takes the core (width, height), not the die "
+                      "(height, width).",
+                      DeprecationWarning, stacklevel=2)
+
+        return self.__set_corearea_rectangle(dieheight, diewidth, coremargin,
+                                             step=step, index=index)
+
+    def __set_corearea_rectangle(self,
+                                 dieheight: float,
+                                 diewidth: float,
+                                 coremargin: Union[float, Tuple[float, float]],
+                                 step: Optional[str] = None,
+                                 index: Optional[Union[str, int]] = None):
+        """Non-deprecated implementation of :meth:`set_corearea_rectangle`.
+
+        Kept separate so :meth:`set_diearea_rectangle` can reuse it without
+        emitting a second ``DeprecationWarning``.
         """
         if not isinstance(dieheight, (int, float)):
             raise TypeError("height must be a number")
@@ -375,29 +524,48 @@ class ASICAreaConstraint(BaseSchema):
         if 2 * ymargin >= dieheight:
             raise ValueError("y margin is greater than or equal to the die height")
 
-        return self.set_corearea([
+        return self.set("corearea", [
             (xmargin, ymargin),
             (diewidth - xmargin, dieheight - ymargin)], step=step, index=index)
 
     def set_diearea(self,
                     points: List[Tuple[float, float]],
+                    coremargin: Optional[float] = None,
                     step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the die area using a list of points defining its boundary.
 
+        Optionally, it can also set the core margin. The core area is not
+        computed here: :meth:`calc_floorplan_areas` derives it from this die when
+        the floorplan is initialized, insetting a rectangle per axis and a
+        polygon edge by edge so the core follows the die rather than its
+        bounding box.
+
         Args:
             points (List[Tuple[float, float]]): A list of (x, y) tuples representing
                                                 the coordinates that define the die area.
+            coremargin (float, optional): The margin between the die area and the
+                        core area. If provided, `set_coremargin` will be called.
+                        Defaults to None.
             step (str, optional): The step in a workflow to associate this
                                   setting with. Defaults to None.
             index (Union[str, int], optional): The index within a step to
                                                associate this setting with.
                                                Defaults to None.
 
+        Raises:
+            TypeError: If `coremargin` is not a number.
+            ValueError: If `coremargin` is negative.
+
         Returns:
-            The return value from the internal `set` method call.
+            list: A list of return values from the internal `set` calls.
         """
-        return self.set("diearea", points, step=step, index=index)
+        params = [
+            self.set("diearea", points, step=step, index=index)
+        ]
+        if coremargin is not None:
+            params.append(self.set_coremargin(coremargin, step=step, index=index))
+        return params
 
     def get_diearea(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
             -> List[Tuple[float, float]]:
@@ -493,22 +661,42 @@ class ASICAreaConstraint(BaseSchema):
 
     def set_corearea(self,
                      points: List[Tuple[float, float]],
+                     coremargin: Optional[Union[float, Tuple[float, float]]] = None,
                      step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the core area using a list of points defining its boundary.
 
+        Optionally, it can also set the core margin. The die area is not computed
+        here: :meth:`calc_floorplan_areas` derives it from this core when the
+        floorplan is initialized. The core keeps the coordinates it was given so
+        that component placements stay valid, which means it has to sit at least
+        one core margin away from the origin for the derived die to land on a
+        non-negative coordinate.
+
         Args:
             points (List[Tuple[float, float]]): A list of (x, y) tuples representing
                                                 the coordinates that define the core area.
+            coremargin (float, optional): The margin between the core area and the
+                        die area. If provided, `set_coremargin` will be called.
+                        Defaults to None.
             step (str, optional): The step in a workflow to associate this
                                   setting with. Defaults to None.
             index (Union[str, int], optional): An index or identifier within a step.
                                                Defaults to None.
 
+        Raises:
+            TypeError: If `coremargin` is not a number.
+            ValueError: If `coremargin` is negative.
+
         Returns:
-            The return value from the internal `set` method call.
+            list: A list of return values from the internal `set` calls.
         """
-        return self.set("corearea", points, step=step, index=index)
+        params = [
+            self.set("corearea", points, step=step, index=index)
+        ]
+        if coremargin is not None:
+            params.append(self.set_coremargin(coremargin, step=step, index=index))
+        return params
 
     def get_corearea(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
             -> List[Tuple[float, float]]:

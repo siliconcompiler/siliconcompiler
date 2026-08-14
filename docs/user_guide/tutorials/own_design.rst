@@ -107,7 +107,7 @@ Constraints your design will probably need:
 
 .. code-block:: python
 
-   project.constraint.area.set_diearea_rectangle(500, 500, coremargin=10)
+   project.constraint.area.set_dieoutline(500, 500, coremargin=10)
 
 Without a die area the floorplanner picks one from a utilisation target, which
 is fine until you have macros -- see

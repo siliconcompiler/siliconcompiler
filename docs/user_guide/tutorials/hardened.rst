@@ -147,8 +147,8 @@ Critical steps here include:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :start-at: project.constraint.area.set_diearea_rectangle
-    :end-at: project.constraint.area.set_diearea_rectangle
+    :start-at: project.constraint.area.set_dieoutline
+    :end-at: project.constraint.area.set_dieoutline
 
 .. figure:: /_screenshots/hardened/top.png
     :align: center

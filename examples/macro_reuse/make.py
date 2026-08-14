@@ -118,7 +118,7 @@ def build_top(size: int = 250, margin: int = 10):
     # --- Constraints ---
     # Setting explicit die area is critical for macros.
     # If the core is too small, the placer may fail to fit the child macros.
-    project.constraint.area.set_diearea_rectangle(size, size, coremargin=margin)
+    project.constraint.area.set_dieoutline(size, size, coremargin=margin)
 
     project.run()
     project.summary()
