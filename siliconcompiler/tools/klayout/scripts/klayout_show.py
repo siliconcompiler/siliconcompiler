@@ -100,12 +100,21 @@ def __screenshot(schema, layout_view, output_path):
 
     horizontal_resolution, vertical_resolution = schema.get(
         'tool', 'klayout', 'task', task, 'var', 'show_resolution', step=step, index=index)
+    margin = schema.get('tool', 'klayout', 'task', task, 'var', 'show_margin',
+                        step=step, index=index)
     linewidth = schema.get('tool', 'klayout', 'task', task, 'var', 'show_linewidth',
                            step=step, index=index)
     oversampling = schema.get('tool', 'klayout', 'task', task, 'var', 'show_oversampling',
                               step=step, index=index)
 
     layout_view.zoom_fit()
+
+    # expand the design bounding box so the margin is honored
+    view_box = layout_view.active_cellview().cell.dbbox()
+    view_box.left -= margin
+    view_box.bottom -= margin
+    view_box.right += margin
+    view_box.top += margin
 
     print(f'[INFO] Saving screenshot to {output_path}')
     layout_view.save_image_with_options(
@@ -115,7 +124,7 @@ def __screenshot(schema, layout_view, output_path):
         linewidth,
         oversampling,
         0,
-        pya.DBox(),
+        view_box,
         False)
 
 

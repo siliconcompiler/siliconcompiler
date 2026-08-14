@@ -167,8 +167,9 @@ def test_klayout_operations(datadir):
     ops.add_klayout_operation(operations.Write("add_top.gds"), step="ops2")
     ops.add_klayout_operation(operations.RenameCell([("AND4_X1", "AND_dummy")]), step="ops2")
     ops.add_klayout_operation(operations.Write("rename_cells.gds"), step="ops2")
-    # heartbeat.gds has a non-origin bounding box, so these also cover the
-    # translation each rotation applies
+    # heartbeat.gds has a non-origin bounding box (p1 = -1150, -1150), so these
+    # also cover the translation each rotation applies: every rotation leaves the
+    # layout's bounding box at the origin, which is what these hashes encode
     ops.add_klayout_operation(operations.Rotate(180), step="ops2")
     ops.add_klayout_operation(operations.Write("rot180.gds"), step="ops2")
     ops.add_klayout_operation(operations.Rotate(270), step="ops2")
@@ -177,7 +178,7 @@ def test_klayout_operations(datadir):
     assert proj.run()
 
     ops1_result = workdir(proj, step='ops1')
-    for op_file, op_hash in [('rotate.gds', '0048802f8d2fedf038cb6cfdc5ebc989'),
+    for op_file, op_hash in [('rotate.gds', '7ccf3486c23f99fad0e15edb7f34e7ab'),
                              ('outline.gds', '4bf006f5f465ec9c42cd1ef80677424e'),
                              ('rename.gds', '4991f2267811517b8f7e73924b92128e')]:
         path = os.path.join(ops1_result, 'outputs', op_file)
@@ -187,12 +188,12 @@ def test_klayout_operations(datadir):
             assert hashlib.md5(data).hexdigest() == op_hash
 
     ops2_result = workdir(proj, step='ops2')
-    for op_file, op_hash in [('rotate.gds', 'ee2e5b9646ca4f7e941dd1767af47188'),
-                             ('outline.gds', '753e1a252baaa6c9dbb3e9528a3eef3c'),
-                             ('add_top.gds', '2c6f39ff49088278bafa51adfd761e61'),
-                             ('rename_cells.gds', '4253ee90771c0fcaf0c4c95010783cef'),
-                             ('rot180.gds', 'cf51f28992b2fc19005511ee5b5ebcad'),
-                             ('rot270.gds', '0505eb165e269a34b4421b354a9cdcfc')]:
+    for op_file, op_hash in [('rotate.gds', 'f2c191d986aa2c06b63da788d44d4531'),
+                             ('outline.gds', '4526ca90b82f513f3cdc4076a059446d'),
+                             ('add_top.gds', '39cd78290a62f673eecf1383b5f38d1f'),
+                             ('rename_cells.gds', 'db2cebafc725ab9da65bba899454c760'),
+                             ('rot180.gds', '567bd858a800ef4b9212ee9cb6138d24'),
+                             ('rot270.gds', '01187a3787f61310f501f11f4326b32e')]:
         path = os.path.join(ops2_result, 'outputs', op_file)
         assert os.path.exists(path)
         with open(path, 'rb') as gds_file:
@@ -206,24 +207,32 @@ def test_klayout_operations(datadir):
 def test_klayout_screenshot(datadir):
     '''The untiled screenshot path honors resolution, margin, linewidth and
     oversampling.'''
-    proj = __asic_heartbeat("screenshot", screenshot.ScreenshotTask(),
-                            import_file=os.path.join(datadir, 'heartbeat.gds'))
+    def render(margin, jobname):
+        proj = __asic_heartbeat("screenshot", screenshot.ScreenshotTask(),
+                                import_file=os.path.join(datadir, 'heartbeat.gds'))
+        proj.option.set_jobname(jobname)
 
-    task = screenshot.ScreenshotTask.find_task(proj)
-    task.set_klayout_resolution(800, 600)
-    task.set_klayout_margin(5)
-    task.set_klayout_linewidth(2)
-    task.set_klayout_oversampling(2)
+        task = screenshot.ScreenshotTask.find_task(proj)
+        task.set_klayout_resolution(800, 600)
+        task.set_klayout_linewidth(2)
+        task.set_klayout_oversampling(2)
+        task.set_klayout_margin(margin)
 
-    assert proj.run()
+        assert proj.run()
 
-    png = proj.find_result("png", step="screenshot")
-    assert png is not None
-    assert os.path.isfile(png)
+        png = proj.find_result("png", step="screenshot")
+        assert os.path.isfile(png)
+        with open(png, 'rb') as image:
+            return image.read()
 
-    with open(png, 'rb') as image:
-        width, height = struct.unpack(">II", image.read(24)[16:24])
-    assert (width, height) == (800, 600)
+    tight = render(0, "tight")
+    wide = render(100, "wide")
+
+    for image in (tight, wide):
+        assert struct.unpack(">II", image[16:24]) == (800, 600)
+
+    # the margin frames the design differently, at the same resolution
+    assert tight != wide
 
 
 @pytest.mark.eda
@@ -766,6 +775,38 @@ def test_klayout_operation_unbound_add_after_scalar():
     task = operations.OperationsTask()
     task.add_klayout_operation(op)
     assert task.get("var", "merge0.file") == ["fill.gds", "more.gds"]
+
+
+@pytest.mark.parametrize("bind_first", [True, False])
+def test_klayout_operation_add_list(bind_first):
+    '''Adding a list of values behaves the same before and after binding.'''
+    task = operations.OperationsTask()
+
+    op = operations.Merge()
+    if bind_first:
+        task.add_klayout_operation(op)
+    op.add_file(["a.gds", "b.gds"])
+    op.add_file("c.gds")
+    if not bind_first:
+        task.add_klayout_operation(op)
+
+    assert op.get_file() == ["a.gds", "b.gds", "c.gds"]
+
+
+@pytest.mark.parametrize("bind_first", [True, False])
+def test_klayout_operation_add_tuple(bind_first):
+    '''A tuple is one compound value, not a pair of values.'''
+    task = operations.OperationsTask()
+
+    op = operations.DeleteLayers()
+    if bind_first:
+        task.add_klayout_operation(op)
+    op.add_layer(63, 0)
+    op.add_layer(12, 5)
+    if not bind_first:
+        task.add_klayout_operation(op)
+
+    assert op.get_layers() == [(63, 0), (12, 5)]
 
 
 def test_klayout_add_operation_name_reused_for_other_type():

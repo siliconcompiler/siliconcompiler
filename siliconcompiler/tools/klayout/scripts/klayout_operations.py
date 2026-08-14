@@ -235,7 +235,7 @@ def rotate_layout(base_layout: pya.Layout, angle: int) -> pya.Layout:
     print(f"[INFO] Rotating layout '{top_cell.name}' {angle} degrees")
 
     rotations = {
-        90: (pya.Trans.R270, pya.Vector(0, bbox.p2.x)),
+        90: (pya.Trans.R270, pya.Vector(-bbox.p1.y, bbox.p2.x)),
         180: (pya.Trans.R180, pya.Vector(bbox.p2.x, bbox.p2.y)),
         270: (pya.Trans.R90, pya.Vector(bbox.p2.y, -bbox.p1.x))
     }

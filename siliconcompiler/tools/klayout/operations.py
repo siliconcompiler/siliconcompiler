@@ -146,7 +146,13 @@ class KLayoutOperation:
             else:
                 # a scalar is one element, not something to iterate over
                 held = [held]
-            held.append(value)
+
+            # mirror the schema: a list is many values, anything else -- including
+            # a tuple, which may be one compound value -- is a single one
+            if isinstance(value, list):
+                held.extend(value)
+            else:
+                held.append(value)
             self._pending[field] = held
             return None
         return self._task.add("var", self._key(field), value, step=step, index=index)
