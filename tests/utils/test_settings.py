@@ -519,9 +519,10 @@ def test_locks_reset_after_fork(settings_file, wait_for_child):
             os._exit(1)
 
     try:
-        exited, _ = wait_for_child(pid)
+        exited, read_ok = wait_for_child(pid)
     finally:
         release.set()
         thread.join(timeout=10)
 
     assert exited, "forked child blocked on a lock held by a thread it does not have"
+    assert read_ok, "forked child failed to read the category"
