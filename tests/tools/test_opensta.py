@@ -55,6 +55,84 @@ def test_opensta(datadir):
     assert proj.history("job0").get('metric', 'setupslack', step='opensta', index='0') == -0.220
     assert proj.history("job0").get('metric', 'holdslack', step='opensta', index='0') == 0.050
 
+    # A single scenario duplicates the combined reports, so none are written
+    assert not os.path.exists(
+        os.path.join("build", "testdesign", "job0", "opensta", "0",
+                     "reports", "timing", "scenarios"))
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_opensta_scenario_reports(datadir):
+    '''Per-scenario timing reports are only written when more than one scenario exists.'''
+    design = Design("testdesign")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("foo")
+        design.add_file(os.path.join("lec", "foo.vg"))
+    with design.active_dataroot("root"), design.active_fileset("sdc"):
+        design.add_file(os.path.join("lec", "foo.sdc"))
+    proj = ASIC(design)
+    proj.add_fileset(["rtl", "sdc"])
+    freepdk45_demo(proj)
+
+    # freepdk45_demo defines only "typical"; add a second scenario so the
+    # per-scenario reports are generated.
+    scenario = proj.constraint.timing.make_scenario("extra")
+    scenario.add_libcorner(["typical", "generic"])
+    scenario.set_pexcorner("typical")
+    scenario.add_check(["setup", "hold"])
+
+    flow = Flowgraph("timing")
+    flow.node("opensta", timing.TimingTask())
+    proj.set_flow(flow)
+
+    assert proj.run()
+
+    reports = os.path.join("build", "testdesign", "job0", "opensta", "0",
+                           "reports", "timing", "scenarios")
+    # One directory per corner, each holding the same report set. The corner is repeated in
+    # the file name so the reports stay unique if gathered into one place.
+    assert set(os.listdir(reports)) == {"typical", "extra"}
+    for corner in ("typical", "extra"):
+        expected = set()
+        for delay in ("setup", "hold"):
+            for variant in ("", "topN.", "failing.", "endpoints."):
+                expected.add(f"{delay}.{corner}.{variant}rpt")
+            expected.add(f"worst_slack.{delay}.{corner}.rpt")
+            expected.add(f"total_negative_slack.{delay}.{corner}.rpt")
+        for variant in ("", "topN."):
+            expected.add(f"unconstrained.{corner}.{variant}rpt")
+
+        corner_dir = os.path.join(reports, corner)
+        assert set(os.listdir(corner_dir)) == expected
+
+        # The reports must have content, not just exist
+        for report in expected:
+            assert os.path.getsize(os.path.join(corner_dir, report)) > 0, f"{corner}/{report}"
+
+    # The section banner must name every per-corner report that gets written, so the log
+    # section stays one block instead of announcing files after the combined output.
+    written = set()
+    for corner in os.listdir(reports):
+        for report in os.listdir(os.path.join(reports, corner)):
+            written.add(f"reports/timing/scenarios/{corner}/{report}")
+
+    logfile = os.path.join("build", "testdesign", "job0", "opensta", "0", "opensta.log")
+    prefix = "== report: reports/timing/scenarios/"
+    with open(logfile) as f:
+        announced = [line.strip()[len("== report: "):] for line in f
+                     if line.startswith(prefix)]
+
+    # Kept as a list so a report announced twice is caught rather than deduplicated away
+    assert len(announced) == len(set(announced))
+    assert set(announced) == written
+
+    # Metrics are still recorded, and now cite the per-scenario reports
+    assert proj.history("job0").get('metric', 'setupslack', step='opensta', index='0') == -0.220
+    assert proj.history("job0").get('metric', 'holdslack', step='opensta', index='0') == 0.050
+
 
 @pytest.mark.eda
 @pytest.mark.quick
