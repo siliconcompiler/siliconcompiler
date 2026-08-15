@@ -325,7 +325,8 @@ if { [sc_cfg_tool_task_check_in_list setup var reports] } {
         -format full_clock_expanded \
         > reports/timing/setup.rpt
     sc_display_report reports/timing/setup.rpt
-    report_checks -sort_by_slack -path_delay max -group_path_count $opensta_top_n_paths \
+    report_checks -sort_by_slack -fields $fields -path_delay max \
+        -group_path_count $opensta_top_n_paths \
         > reports/timing/setup.topN.rpt
     report_checks -sort_by_slack -path_delay max -slack_max 0 -endpoint_path_count 1 \
         -group_path_count $opensta_top_n_paths -format short \
@@ -361,7 +362,8 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
         -format full_clock_expanded \
         > reports/timing/hold.rpt
     sc_display_report reports/timing/hold.rpt
-    report_checks -sort_by_slack -path_delay min -group_path_count $opensta_top_n_paths \
+    report_checks -sort_by_slack -fields $fields -path_delay min \
+        -group_path_count $opensta_top_n_paths \
         > reports/timing/hold.topN.rpt
     report_checks -sort_by_slack -path_delay min -slack_max 0 -endpoint_path_count 1 \
         -group_path_count $opensta_top_n_paths -format short \
@@ -392,7 +394,8 @@ if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
         -format full_clock_expanded \
         -path_group unconstrained > reports/timing/unconstrained.rpt
     sc_display_report reports/timing/unconstrained.rpt
-    report_checks -sort_by_slack -unconstrained -group_path_count $opensta_top_n_paths \
+    report_checks -sort_by_slack -fields $fields -unconstrained \
+        -group_path_count $opensta_top_n_paths \
         > reports/timing/unconstrained.topN.rpt
 }
 

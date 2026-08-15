@@ -116,7 +116,7 @@ proc sc_report_corner_timing { args } {
             -format full_clock_expanded -corner $corner \
             > reports/timing/$keys(-name).${corner}.rpt
         puts "report: reports/timing/$keys(-name).topN.${corner}.rpt"
-        report_checks -sort_by_slack -path_delay $keys(-delay) \
+        report_checks -sort_by_slack -fields $keys(-fields) -path_delay $keys(-delay) \
             -group_path_count $keys(-top_paths) -corner $corner \
             > reports/timing/$keys(-name).topN.${corner}.rpt
     }
