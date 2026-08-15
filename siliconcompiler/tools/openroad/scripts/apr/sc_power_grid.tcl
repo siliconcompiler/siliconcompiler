@@ -116,13 +116,15 @@ foreach net [sc_psm_check_nets] {
         lappend check_args -dont_require_terminals
     }
 
+    set check_args [list \
+        -floorplanning \
+        -error_file "reports/checks/check_power_grid_${net}.rpt" \
+        -net $net \
+        {*}$check_args]
+
     sc_report_args -command check_power_grid -args $check_args
     catch {
-        check_power_grid \
-            -floorplanning \
-            -error_file "reports/checks/check_power_grid_${net}.rpt" \
-            -net $net \
-            {*}$check_args
+        check_power_grid {*}$check_args
     }
 }
 

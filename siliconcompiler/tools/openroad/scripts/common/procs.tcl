@@ -87,11 +87,13 @@ proc sc_global_placement { args } {
 
     set density [sc_global_placement_density]
 
-    sc_report_args -command global_placement -args $gpl_args
-    global_placement {*}$gpl_args \
+    lappend gpl_args \
         -density $density \
         -pad_left $gpl_padding \
         -pad_right $gpl_padding
+
+    sc_report_args -command global_placement -args $gpl_args
+    global_placement {*}$gpl_args
 }
 
 ###########################
@@ -483,11 +485,13 @@ proc sc_pin_placement { args } {
     set sc_hpinmetal [sc_cfg_tool_task_get var pin_layer_horizontal]
     set sc_vpinmetal [sc_cfg_tool_task_get var pin_layer_vertical]
 
-    sc_report_args -command place_pins -args $ppl_args
-    place_pins \
+    set ppl_args [list \
         -hor_layers [sc_get_layer_name $sc_hpinmetal] \
         -ver_layers [sc_get_layer_name $sc_vpinmetal] \
-        {*}$ppl_args
+        {*}$ppl_args]
+
+    sc_report_args -command place_pins -args $ppl_args
+    place_pins {*}$ppl_args
 }
 
 ###########################
@@ -1469,11 +1473,15 @@ proc sc_report_args { args } {
 
     sta::check_argc_eq0 "sc_report_args" $args
 
-    if { [llength $keys(-args)] == 0 } {
-        return
+    # Report the empty list explicitly. Most commands take no arguments by default, and
+    # staying silent there is indistinguishable from the command never running or from
+    # the reporting being broken.
+    set reported $keys(-args)
+    if { [llength $reported] == 0 } {
+        set reported "<none>"
     }
 
-    puts "$keys(-command) siliconcompiler arguments: $keys(-args)"
+    puts "$keys(-command) siliconcompiler arguments: $reported"
 }
 
 proc sc_global_connections { args } {

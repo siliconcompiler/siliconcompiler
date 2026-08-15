@@ -35,13 +35,15 @@ if { [llength [all_clocks]] > 0 } {
     }
 
     set cts_distance_between_buffers [sc_cfg_tool_task_get var cts_distance_between_buffers]
-    sc_report_args -command clock_tree_synthesis -args $sc_cts_arguments
-    clock_tree_synthesis \
+    set sc_cts_arguments [list \
         -sink_clustering_enable \
         -sink_clustering_size [sc_cfg_tool_task_get var cts_cluster_size] \
         -sink_clustering_max_diameter [sc_cfg_tool_task_get var cts_cluster_diameter] \
         -distance_between_buffers $cts_distance_between_buffers \
-        {*}$sc_cts_arguments
+        {*}$sc_cts_arguments]
+
+    sc_report_args -command clock_tree_synthesis -args $sc_cts_arguments
+    clock_tree_synthesis {*}$sc_cts_arguments
 
     tee -file reports/clocks/cts.rpt {report_cts}
 

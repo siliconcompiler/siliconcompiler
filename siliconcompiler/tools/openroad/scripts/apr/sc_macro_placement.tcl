@@ -103,13 +103,15 @@ if { [sc_design_has_unplaced_macros] } {
         lappend mpl_args -blockage_weight $mpl_blockage_weight
     }
 
-    sc_report_args -command rtl_macro_placer -args $mpl_args
-    rtl_macro_placer \
+    set mpl_args [list \
         -report_directory reports/rtlmp \
         -halo_width $halo_x \
         -halo_height $halo_y \
         -target_util [sc_global_placement_density -exclude_padding] \
-        {*}$mpl_args
+        {*}$mpl_args]
+
+    sc_report_args -command rtl_macro_placer -args $mpl_args
+    rtl_macro_placer {*}$mpl_args
 
     if { ![sc_cfg_tool_task_get var mpl_makeblockages] } {
         # Remove created blockages

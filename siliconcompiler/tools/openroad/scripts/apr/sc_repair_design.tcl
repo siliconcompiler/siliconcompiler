@@ -30,12 +30,12 @@ estimate_parasitics -placement
 
 sc_set_dont_use -scanchain -multibit -report dont_use.repair_drv
 
-set repair_design_args [sc_repair_design_args]
+set repair_design_args [list \
+    -verbose \
+    {*}[sc_repair_design_args]]
 
 sc_report_args -command repair_design -args $repair_design_args
-repair_design \
-    -verbose \
-    {*}$repair_design_args
+repair_design {*}$repair_design_args
 
 sc_set_dont_use
 
