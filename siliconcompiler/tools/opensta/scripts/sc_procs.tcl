@@ -99,10 +99,57 @@ proc sc_report_check_timing { } {
 }
 
 proc sc_write_report_line { file line } {
-    puts "report: $file"
     set fid [open $file w]
     puts $fid $line
     close $fid
+}
+
+proc sc_timing_corners { } {
+    global sc_scenarios
+
+    # A single corner would just duplicate the combined timing reports
+    if { [llength $sc_scenarios] <= 1 } {
+        return []
+    }
+
+    return $sc_scenarios
+}
+
+# Worst slack and TNS have no public report command that accepts a corner, so they are
+# mirrored from the scene-aware accessors, which only exist in builds carrying the scene
+# timing model.
+proc sc_has_scene_slack { } {
+    return [expr { [info commands sta::worst_slack_scene] ne "" }]
+}
+
+# The reports sc_report_corner_timing will write, so the section banner can name them all
+# up front instead of announcing them one by one after the combined output.
+proc sc_corner_timing_reports { args } {
+    sta::parse_key_args "sc_corner_timing_reports" args \
+        keys {-name} \
+        flags {-unconstrained}
+
+    set reports []
+    foreach corner [sc_timing_corners] {
+        set dir "reports/timing/scenarios/${corner}"
+        set base "${dir}/$keys(-name).${corner}"
+
+        lappend reports ${base}.rpt ${base}.topN.rpt
+
+        if { [info exists flags(-unconstrained)] } {
+            continue
+        }
+
+        lappend reports ${base}.failing.rpt ${base}.endpoints.rpt
+
+        if { [sc_has_scene_slack] } {
+            lappend reports \
+                ${dir}/worst_slack.$keys(-name).${corner}.rpt \
+                ${dir}/total_negative_slack.$keys(-name).${corner}.rpt
+        }
+    }
+
+    return $reports
 }
 
 proc sc_report_corner_timing { args } {
@@ -110,11 +157,10 @@ proc sc_report_corner_timing { args } {
         keys {-delay -name -fields -top_paths} \
         flags {-unconstrained}
 
-    global sc_scenarios
     global sta_report_default_digits
 
-    # A single corner would just duplicate the combined timing reports
-    if { [llength $sc_scenarios] <= 1 } {
+    set corners [sc_timing_corners]
+    if { [llength $corners] == 0 } {
         return
     }
 
@@ -132,24 +178,17 @@ proc sc_report_corner_timing { args } {
         set full_extra ""
     }
 
-    # Worst slack and TNS have no public report command that accepts a corner, so mirror
-    # report_worst_slack / report_tns output using the scene-aware accessors. These only
-    # exist in builds carrying the scene timing model.
-    set has_scene_slack [expr { [info commands sta::worst_slack_scene] ne "" }]
-
     # The corner is repeated in the file name, not just the directory, so reports gathered
     # from several corners into one place stay unique without renaming.
-    foreach corner $sc_scenarios {
+    foreach corner $corners {
         set dir "reports/timing/scenarios/${corner}"
         file mkdir $dir
         set base "${dir}/$keys(-name).${corner}"
 
-        puts "report: ${base}.rpt"
         report_checks -sort_by_slack -fields $keys(-fields) {*}$path_sel \
             -format full_clock_expanded {*}$full_extra -corner $corner \
             > ${base}.rpt
 
-        puts "report: ${base}.topN.rpt"
         report_checks -sort_by_slack -fields $keys(-fields) {*}$path_sel \
             -group_path_count $keys(-top_paths) -corner $corner \
             > ${base}.topN.rpt
@@ -158,17 +197,15 @@ proc sc_report_corner_timing { args } {
             continue
         }
 
-        puts "report: ${base}.failing.rpt"
         report_checks -sort_by_slack {*}$path_sel -slack_max 0 -endpoint_path_count 1 \
             -group_path_count $keys(-top_paths) -format short -corner $corner \
             > ${base}.failing.rpt
 
-        puts "report: ${base}.endpoints.rpt"
         report_checks -sort_by_slack {*}$path_sel -endpoint_path_count 1 \
             -group_path_count $keys(-top_paths) -format end -corner $corner \
             > ${base}.endpoints.rpt
 
-        if { !$has_scene_slack } {
+        if { ![sc_has_scene_slack] } {
             continue
         }
 

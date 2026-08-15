@@ -1285,10 +1285,66 @@ proc sc_report_check_timing { } {
 }
 
 proc sc_write_report_line { file line } {
-    puts "report: $file"
     set fid [open $file w]
     puts $fid $line
     close $fid
+}
+
+proc sc_timing_scenes { } {
+    global sc_scenarios
+
+    if { [sc_has_sta_mcmm_support] } {
+        set scenes $sc_scenarios
+    } else {
+        set scenes []
+        foreach corner [sta::corners] {
+            lappend scenes [$corner name]
+        }
+    }
+
+    # A single scene would just duplicate the combined timing reports
+    if { [llength $scenes] <= 1 } {
+        return []
+    }
+
+    return $scenes
+}
+
+# Worst slack and TNS have no public report command that accepts a scene, so they are
+# mirrored from the scene-aware accessors, which only exist in builds carrying the scene
+# timing model.
+proc sc_has_scene_slack { } {
+    return [expr { [info commands sta::worst_slack_scene] ne "" }]
+}
+
+# The reports sc_report_scene_timing will write, so the section banner can name them all
+# up front instead of announcing them one by one after the combined output.
+proc sc_scene_timing_reports { args } {
+    sta::parse_key_args "sc_scene_timing_reports" args \
+        keys {-name} \
+        flags {-unconstrained}
+
+    set reports []
+    foreach scene [sc_timing_scenes] {
+        set dir "reports/timing/scenarios/${scene}"
+        set base "${dir}/$keys(-name).${scene}"
+
+        lappend reports ${base}.rpt ${base}.topN.rpt
+
+        if { [info exists flags(-unconstrained)] } {
+            continue
+        }
+
+        lappend reports ${base}.failing.rpt ${base}.endpoints.rpt
+
+        if { [sc_has_scene_slack] } {
+            lappend reports \
+                ${dir}/worst_slack.$keys(-name).${scene}.rpt \
+                ${dir}/total_negative_slack.$keys(-name).${scene}.rpt
+        }
+    }
+
+    return $reports
 }
 
 proc sc_report_scene_timing { args } {
@@ -1296,23 +1352,17 @@ proc sc_report_scene_timing { args } {
         keys {-delay -name -fields -top_paths} \
         flags {-unconstrained}
 
-    global sc_scenarios
     global sta_report_default_digits
 
-    if { [sc_has_sta_mcmm_support] } {
-        set scenes $sc_scenarios
-        set scene_arg "-scenes"
-    } else {
-        set scenes []
-        foreach corner [sta::corners] {
-            lappend scenes [$corner name]
-        }
-        set scene_arg "-corner"
+    set scenes [sc_timing_scenes]
+    if { [llength $scenes] == 0 } {
+        return
     }
 
-    # A single scene would just duplicate the combined timing reports
-    if { [llength $scenes] <= 1 } {
-        return
+    if { [sc_has_sta_mcmm_support] } {
+        set scene_arg "-scenes"
+    } else {
+        set scene_arg "-corner"
     }
 
     # Mirror the combined reports exactly, adding only the scene selector. Each scene gets
@@ -1327,11 +1377,6 @@ proc sc_report_scene_timing { args } {
         set full_extra ""
     }
 
-    # Worst slack and TNS have no public report command that accepts a scene, so mirror
-    # report_worst_slack / report_tns output using the scene-aware accessors. These only
-    # exist in builds carrying the scene timing model.
-    set has_scene_slack [expr { [info commands sta::worst_slack_scene] ne "" }]
-
     # The scene is repeated in the file name, not just the directory, so reports gathered
     # from several scenes into one place stay unique without renaming.
     foreach scene $scenes {
@@ -1339,12 +1384,10 @@ proc sc_report_scene_timing { args } {
         file mkdir $dir
         set base "${dir}/$keys(-name).${scene}"
 
-        puts "report: ${base}.rpt"
         tee -quiet -file ${base}.rpt \
             "report_checks -sort_by_slack -fields $keys(-fields) $path_sel \
             -format full_clock_expanded $full_extra $scene_arg $scene"
 
-        puts "report: ${base}.topN.rpt"
         tee -quiet -file ${base}.topN.rpt \
             "report_checks -sort_by_slack -fields $keys(-fields) $path_sel \
             -group_path_count $keys(-top_paths) $scene_arg $scene"
@@ -1353,17 +1396,15 @@ proc sc_report_scene_timing { args } {
             continue
         }
 
-        puts "report: ${base}.failing.rpt"
         tee -quiet -file ${base}.failing.rpt \
             "report_checks -sort_by_slack $path_sel -slack_max 0 -endpoint_path_count 1 \
             -group_path_count $keys(-top_paths) -format short $scene_arg $scene"
 
-        puts "report: ${base}.endpoints.rpt"
         tee -quiet -file ${base}.endpoints.rpt \
             "report_checks -sort_by_slack $path_sel -endpoint_path_count 1 \
             -group_path_count $keys(-top_paths) -format end $scene_arg $scene"
 
-        if { !$has_scene_slack } {
+        if { ![sc_has_scene_slack] } {
             continue
         }
 

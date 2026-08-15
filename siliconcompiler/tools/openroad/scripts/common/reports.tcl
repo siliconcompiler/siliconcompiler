@@ -12,13 +12,20 @@ if { [sc_cfg_tool_task_check_in_list scenarios var reports] } {
 }
 
 if { [sc_cfg_tool_task_check_in_list setup var reports] } {
-    sc_report_banner "Setup timing" \
+    set setup_histogram [expr { [sc_check_version 24 3 3932] && [llength [all_clocks]] > 0 }]
+    set setup_reports [list \
         reports/timing/setup.rpt \
         reports/timing/setup.topN.rpt \
         reports/timing/setup.failing.rpt \
         reports/timing/setup.endpoints.rpt \
         reports/timing/worst_slack.setup.rpt \
-        reports/timing/total_negative_slack.setup.rpt
+        reports/timing/total_negative_slack.setup.rpt]
+    if { $setup_histogram } {
+        lappend setup_reports reports/timing/setup.histogram.rpt
+    }
+    lappend setup_reports {*}[sc_scene_timing_reports -name setup]
+    sc_report_banner "Setup timing" {*}$setup_reports
+
     tee -file reports/timing/setup.rpt \
         "report_checks -sort_by_slack -fields $fields -path_delay max -format full_clock_expanded"
     tee -file reports/timing/setup.topN.rpt -quiet \
@@ -39,8 +46,7 @@ if { [sc_cfg_tool_task_check_in_list setup var reports] } {
         "report_tns"
     report_tns_metric -setup
 
-    if { [sc_check_version 24 3 3932] && [llength [all_clocks]] > 0 } {
-        puts "report: reports/timing/setup.histogram.rpt"
+    if { $setup_histogram } {
         tee -quiet -file reports/timing/setup.histogram.rpt \
             "report_timing_histogram -num_bins 20 -setup"
     }
@@ -50,13 +56,20 @@ if { [sc_cfg_tool_task_check_in_list setup var reports] } {
 }
 
 if { [sc_cfg_tool_task_check_in_list hold var reports] } {
-    sc_report_banner "Hold timing" \
+    set hold_histogram [expr { [sc_check_version 24 3 3932] && [llength [all_clocks]] > 0 }]
+    set hold_reports [list \
         reports/timing/hold.rpt \
         reports/timing/hold.topN.rpt \
         reports/timing/hold.failing.rpt \
         reports/timing/hold.endpoints.rpt \
         reports/timing/worst_slack.hold.rpt \
-        reports/timing/total_negative_slack.hold.rpt
+        reports/timing/total_negative_slack.hold.rpt]
+    if { $hold_histogram } {
+        lappend hold_reports reports/timing/hold.histogram.rpt
+    }
+    lappend hold_reports {*}[sc_scene_timing_reports -name hold]
+    sc_report_banner "Hold timing" {*}$hold_reports
+
     tee -file reports/timing/hold.rpt \
         "report_checks -sort_by_slack -fields $fields -path_delay min -format full_clock_expanded"
     tee -file reports/timing/hold.topN.rpt -quiet \
@@ -77,8 +90,7 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
         "report_tns -min"
     report_tns_metric -hold
 
-    if { [sc_check_version 24 3 3932] && [llength [all_clocks]] > 0 } {
-        puts "report: reports/timing/hold.histogram.rpt"
+    if { $hold_histogram } {
         tee -quiet -file reports/timing/hold.histogram.rpt \
             "report_timing_histogram -num_bins 20 -hold"
     }
@@ -88,9 +100,13 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
 }
 
 if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
-    sc_report_banner "Unconstrained paths" \
+    set unconstrained_reports [list \
         reports/timing/unconstrained.rpt \
-        reports/timing/unconstrained.topN.rpt
+        reports/timing/unconstrained.topN.rpt]
+    lappend unconstrained_reports \
+        {*}[sc_scene_timing_reports -unconstrained -name unconstrained]
+    sc_report_banner "Unconstrained paths" {*}$unconstrained_reports
+
     tee -file reports/timing/unconstrained.rpt \
         "report_checks -sort_by_slack -fields $fields -unconstrained -format full_clock_expanded \
         -path_group unconstrained"

@@ -112,6 +112,21 @@ def test_opensta_scenario_reports(datadir):
         for report in expected:
             assert os.path.getsize(os.path.join(corner_dir, report)) > 0, f"{corner}/{report}"
 
+    # The section banner must name every per-corner report that gets written, so the log
+    # section stays one block instead of announcing files after the combined output.
+    written = set()
+    for corner in os.listdir(reports):
+        for report in os.listdir(os.path.join(reports, corner)):
+            written.add(f"reports/timing/scenarios/{corner}/{report}")
+
+    logfile = os.path.join("build", "testdesign", "job0", "opensta", "0", "opensta.log")
+    prefix = "== report: reports/timing/scenarios/"
+    with open(logfile) as f:
+        announced = {line.strip()[len("== report: "):] for line in f
+                     if line.startswith(prefix)}
+
+    assert announced == written
+
     # Metrics are still recorded, and now cite the per-scenario reports
     assert proj.history("job0").get('metric', 'setupslack', step='opensta', index='0') == -0.220
     assert proj.history("job0").get('metric', 'holdslack', step='opensta', index='0') == 0.050

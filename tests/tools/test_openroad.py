@@ -159,6 +159,21 @@ def test_metrics_task_scenario_reports(asic_gcd):
         for report in expected:
             assert os.path.getsize(os.path.join(scene_dir, report)) > 0, f"{scene}/{report}"
 
+    # The section banner must name every per-scene report that gets written, so the log
+    # section stays one block instead of announcing files after the combined output.
+    written = set()
+    for scene in os.listdir(reports):
+        for report in os.listdir(os.path.join(reports, scene)):
+            written.add(f"reports/timing/scenarios/{scene}/{report}")
+
+    logfile = os.path.join(workdir(asic_gcd, step="metrics", index="0"), "metrics.log")
+    prefix = "== report: reports/timing/scenarios/"
+    with open(logfile) as f:
+        announced = {line.strip()[len("== report: "):] for line in f
+                     if line.startswith(prefix)}
+
+    assert announced == written
+
 
 @pytest.mark.eda
 @pytest.mark.quick

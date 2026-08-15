@@ -316,13 +316,16 @@ if { [sc_cfg_tool_task_check_in_list check_setup var reports] } {
 }
 
 if { [sc_cfg_tool_task_check_in_list setup var reports] } {
-    sc_report_banner "Setup timing" \
+    set setup_reports [list \
         reports/timing/setup.rpt \
         reports/timing/setup.topN.rpt \
         reports/timing/setup.failing.rpt \
         reports/timing/setup.endpoints.rpt \
         reports/timing/worst_slack.setup.rpt \
-        reports/timing/total_negative_slack.setup.rpt
+        reports/timing/total_negative_slack.setup.rpt]
+    lappend setup_reports {*}[sc_corner_timing_reports -name setup]
+    sc_report_banner "Setup timing" {*}$setup_reports
+
     puts "$PREFIX report_checks -path_delay max"
     report_checks -sort_by_slack -fields $fields -path_delay max \
         -format full_clock_expanded \
@@ -353,13 +356,16 @@ if { [sc_cfg_tool_task_check_in_list setup var reports] } {
 }
 
 if { [sc_cfg_tool_task_check_in_list hold var reports] } {
-    sc_report_banner "Hold timing" \
+    set hold_reports [list \
         reports/timing/hold.rpt \
         reports/timing/hold.topN.rpt \
         reports/timing/hold.failing.rpt \
         reports/timing/hold.endpoints.rpt \
         reports/timing/worst_slack.hold.rpt \
-        reports/timing/total_negative_slack.hold.rpt
+        reports/timing/total_negative_slack.hold.rpt]
+    lappend hold_reports {*}[sc_corner_timing_reports -name hold]
+    sc_report_banner "Hold timing" {*}$hold_reports
+
     puts "$PREFIX report_checks -path_delay min"
     report_checks -sort_by_slack -fields $fields -path_delay min \
         -format full_clock_expanded \
@@ -390,9 +396,13 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
 }
 
 if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
-    sc_report_banner "Unconstrained paths" \
+    set unconstrained_reports [list \
         reports/timing/unconstrained.rpt \
-        reports/timing/unconstrained.topN.rpt
+        reports/timing/unconstrained.topN.rpt]
+    lappend unconstrained_reports \
+        {*}[sc_corner_timing_reports -unconstrained -name unconstrained]
+    sc_report_banner "Unconstrained paths" {*}$unconstrained_reports
+
     report_checks -sort_by_slack -fields $fields -unconstrained \
         -format full_clock_expanded \
         -path_group unconstrained > reports/timing/unconstrained.rpt
