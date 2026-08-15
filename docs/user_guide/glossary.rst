@@ -55,8 +55,8 @@ SiliconCompiler concepts
     KPI
        Key Performance Indicator -- the handful of :term:`metrics <metric>` a
        run is actually judged on: area, power, timing :term:`slack`, and error
-       counts. The documentation uses "KPI" and "metric" interchangeably; the
-       schema records them the same way either way.
+       counts. Every KPI is a metric, but a run records plenty of metrics that
+       nobody is judging it by.
 
     library
        A reusable collection of design data added to a project as a dependency.
@@ -193,9 +193,9 @@ an :term:`ASIC` or an :term:`FPGA`.
 .. glossary::
 
     elaboration
-       Resolving a design's sources into one flattened hierarchy: reading every
-       file, binding each module instance to its definition, and substituting
-       parameter values. Runs ahead of :term:`synthesis`, and is where missing
+       Turning a design's sources into a resolved design hierarchy: reading
+       every file, binding each module instance to its definition, and
+       substituting parameter values. Runs ahead of :term:`synthesis`, and is where missing
        files, unresolved modules and parameter mistakes surface -- which is why
        ``elaborationflow`` exists as a flow on its own.
 
@@ -422,8 +422,9 @@ ASIC design
        constraints by analyzing every path, without simulating any vectors.
 
     tapeout
-       Sending the final :term:`GDSII` to the foundry -- the point after which
-       nothing can change without a new mask set. What :term:`signoff` and the
+       Sending the final layout database -- usually :term:`GDSII`, sometimes
+       OASIS -- to the foundry, the point after which nothing can change
+       without a new mask set. What :term:`signoff` and the
        :ref:`checklist <checklists>` machinery exist to gate.
 
     utilization

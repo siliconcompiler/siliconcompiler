@@ -53,5 +53,5 @@ To capture all available provenance data, you must explicitly enable the :keypat
 How Records Are Stored
 ----------------------
 
-:term:`Records <record>` are captured for each individual :term:`task` (defined by its :term:`step` and :term:`index`) in the :term:`flowgraph`.
+:term:`Records <record>` are captured for each individual :term:`flowgraph node` -- defined by its :term:`step` and :term:`index` -- with each node executing one :term:`task`.
 This granular approach ensures that every action performed on the design is documented, leaving no gaps in the history of the compilation process.

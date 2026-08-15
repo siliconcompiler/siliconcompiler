@@ -32,8 +32,8 @@ Tasks
 ^^^^^
 SiliconCompiler breaks down a "task" into an atomic combination of a step and an index, where:
 
-1. A :term:`step` is defined as discrete function performed within compilation flow such as :term:`synthesis`, :term:`linting <lint>`, :term:`placement`, :term:`routing`, etc, and
-2. An :term:`index` is defined as variant of a step operating on identical data.
+1. A :term:`step` is defined as a discrete function performed within compilation flow such as :term:`synthesis`, :term:`linting <lint>`, :term:`placement`, :term:`routing`, etc, and
+2. An :term:`index` is defined as a variant of a step operating on identical data.
 
 An example of this might be two parallel synthesis runs with different settings after :term:`elaboration`.
 The two synthesis "tasks" might be called ``syn/0`` and ``syn/1``, where:

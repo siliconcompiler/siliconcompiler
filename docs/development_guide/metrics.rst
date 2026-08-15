@@ -3,8 +3,8 @@
 Working with Metrics
 ====================
 
-In SiliconCompiler, :term:`metrics <metric>` are the key performance indicators (:term:`KPIs <KPI>`) that measure the quality of a compilation run.
-They are numerical values—like area, power, timing, and error counts—that are tracked for each :term:`step` of the :term:`flow`.
+In SiliconCompiler, :term:`metrics <metric>` measure the quality of a compilation run; the ones a run is judged on are its key performance indicators (:term:`KPIs <KPI>`).
+They are numerical values—like area, power, timing, and error counts—tracked per :term:`flowgraph node`, which a (:term:`step`, :term:`index`) pair identifies.
 
 Metrics serve three primary purposes:
 
@@ -55,7 +55,7 @@ You can also access them directly with :meth:`.Project.get()` to create custom r
 The Metric Lifecycle
 --------------------
 
-Metrics are populated automatically during a run. For each :term:`task` (:term:`step` and :term:`index`):
+Metrics are populated automatically during a run. For each :term:`flowgraph node` -- one (:term:`step`, :term:`index`) pair:
 
 1. All metric values in the schema are cleared.
 2. The tool (e.g., OpenROAD, Yosys) is executed.

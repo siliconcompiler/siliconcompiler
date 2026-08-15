@@ -5,7 +5,7 @@ Using Commercial Tools
 ##########################
 
 SiliconCompiler drives commercial EDA tools as well as open-source ones -- the
-:term:`flowgraph` does not care which a :term:`task` wraps. What differs is how you get the
+:term:`flowgraph` does not care which tool a :term:`task` wraps. What differs is how you get the
 driver.
 
 .. important::
