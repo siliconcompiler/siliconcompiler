@@ -57,7 +57,7 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
         reports/timing/hold.endpoints.rpt \
         reports/timing/worst_slack.hold.rpt \
         reports/timing/total_negative_slack.hold.rpt
-    tee -quiet -file reports/timing/hold.rpt \
+    tee -file reports/timing/hold.rpt \
         "report_checks -sort_by_slack -fields $fields -path_delay min -format full_clock_expanded"
     tee -file reports/timing/hold.topN.rpt -quiet \
         "report_checks -sort_by_slack -fields $fields -path_delay min \
@@ -117,7 +117,7 @@ if {
 if { [sc_cfg_tool_task_check_in_list drv_violations var reports] } {
     sc_report_banner "DRV violators" \
         reports/checks/drv_violators.rpt
-    tee -quiet -file reports/checks/drv_violators.rpt \
+    tee -file reports/checks/drv_violators.rpt \
         "report_check_types -max_slew -max_capacitance -max_fanout -violators"
     report_erc_metrics
 }

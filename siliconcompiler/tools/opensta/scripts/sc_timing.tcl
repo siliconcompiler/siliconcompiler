@@ -360,6 +360,7 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
     report_checks -sort_by_slack -fields $fields -path_delay min \
         -format full_clock_expanded \
         > reports/timing/hold.rpt
+    sc_display_report reports/timing/hold.rpt
     report_checks -sort_by_slack -path_delay min -group_path_count $opensta_top_n_paths \
         > reports/timing/hold.topN.rpt
     report_checks -sort_by_slack -path_delay min -slack_max 0 -endpoint_path_count 1 \
@@ -380,7 +381,7 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
 
     puts "$PREFIX holdtns"
     report_tns -min > reports/timing/total_negative_slack.hold.rpt
-    puts "tns [sta::time_sta_ui [sta::total_negative_slack_cmd min]]"
+    sc_display_report reports/timing/total_negative_slack.hold.rpt
 }
 
 if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
@@ -416,6 +417,7 @@ if { [sc_cfg_tool_task_check_in_list drv_violations var reports] } {
     puts "$PREFIX drvs"
     report_check_types -max_slew -max_capacitance -max_fanout -violators -no_line_splits \
         > reports/checks/drv_violators.rpt
+    sc_display_report reports/checks/drv_violators.rpt
 }
 
 if { [sc_cfg_tool_task_check_in_list fmax var reports] } {
