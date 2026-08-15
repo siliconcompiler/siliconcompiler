@@ -1,15 +1,46 @@
+import contextlib
 import json
 import os
 import logging
 import threading
+import weakref
 
 import os.path
 
-from typing import Optional
+from typing import Generator, Optional
 
 from fasteners import InterProcessLock
 
 from siliconcompiler import sc_open
+
+
+#: Every live SettingsManager, so a forked child can rebuild their locks.
+_managers: "weakref.WeakSet[SettingsManager]" = weakref.WeakSet()
+
+
+def _reset_locks_after_fork() -> None:
+    """
+    Rebuilds every manager's locks in a freshly forked child.
+
+    A child inherits each lock in the state it had at the instant of the fork,
+    and a lock held by a thread that does not exist in the child is never
+    released. SiliconCompiler forks its scheduler workers (see
+    :func:`~siliconcompiler.utils.multiprocessing.get_process_context`) out of a
+    process that may well have another thread inside
+    :meth:`SettingsManager.lock_category` at the time.
+
+    Discarding the locks is safe precisely because the child has one thread: no
+    update can be in progress in it. What the child *may* have inherited is a
+    category left half-written by the parent, which is why a category built in
+    steps needs a completion marker rather than a lock alone -- see
+    :meth:`SettingsManager.lock_category`.
+    """
+    for manager in list(_managers):
+        manager._reset_locks()
+
+
+if hasattr(os, "register_at_fork"):  # absent on Windows, which has no fork
+    os.register_at_fork(after_in_child=_reset_locks_after_fork)
 
 
 class SettingsManager:
@@ -68,7 +99,15 @@ class SettingsManager:
         self.__filepath = filepath
         if self.__filepath is not None:
             self.__lock = InterProcessLock(self.__filepath + ".lock")
+        # Two levels of lock, always taken category-first: a category lock is
+        # held for as long as a caller is building that category (see
+        # lock_category), while __settings_lock is held only for the dict
+        # operations themselves. Whole-file work (_load, save) takes just
+        # __settings_lock, so there is no cycle to deadlock on.
         self.__settings_lock = threading.Lock()
+        self.__category_locks = {}
+        self.__category_locks_lock = threading.Lock()
+        _managers.add(self)
         self.__timeout = timeout
         self.__logger = logger.getChild("settings")
         self.__settings = {}
@@ -205,6 +244,53 @@ class SettingsManager:
         """
         return key in self.__priority.get(category, ())
 
+    def _reset_locks(self) -> None:
+        """
+        Replaces every lock with a fresh one. See :func:`_reset_locks_after_fork`.
+        """
+        self.__settings_lock = threading.Lock()
+        self.__category_locks = {}
+        self.__category_locks_lock = threading.Lock()
+
+    def _category_lock(self, category: str) -> threading.RLock:
+        """
+        Return the lock guarding one category, creating it on first use.
+
+        Re-entrant by design: every accessor takes this lock, so the thread
+        holding a category open under :meth:`lock_category` has to be able to
+        take it again to do the work it opened the category for.
+        """
+        with self.__category_locks_lock:
+            if category not in self.__category_locks:
+                self.__category_locks[category] = threading.RLock()
+            return self.__category_locks[category]
+
+    @contextlib.contextmanager
+    def lock_category(self, category: str) -> Generator[None, None, None]:
+        """
+        Hold a category for the length of a multi-step update.
+
+        A category assembled one :meth:`set` at a time is readable while it is
+        still being assembled: another thread sees the keys written so far and
+        has nothing to tell it the rest is still coming. Hold the category while
+        writing it and every other thread's access to *that* category waits for
+        the release. Other categories are unaffected, and the holder's own
+        :meth:`get`, :meth:`set` and :meth:`delete` calls run normally -- the
+        lock excludes other threads, not the one doing the work.
+
+        Note this is a lock, not a completion record, and the two are not the
+        same thing across a ``fork``: a child forked mid-update inherits the
+        half-written category with nothing held (see
+        :func:`_reset_locks_after_fork`). A category built in steps should
+        therefore still write a marker key last and test *that*, rather than
+        reading "the category is non-empty" as "the category is finished".
+
+        Args:
+            category (str): The group name to hold.
+        """
+        with self._category_lock(category):
+            yield
+
     def save(self):
         """
         Save the current settings to the disk in JSON format.
@@ -241,13 +327,14 @@ class SettingsManager:
                                   "overridden. Ignoring.")
             return
 
-        with self.__settings_lock:
-            if category not in self.__settings:
-                self.__settings[category] = {}
+        with self._category_lock(category):
+            with self.__settings_lock:
+                if category not in self.__settings:
+                    self.__settings[category] = {}
 
-            if keep and key in self.__settings[category]:
-                return
-            self.__settings[category][key] = value
+                if keep and key in self.__settings[category]:
+                    return
+                self.__settings[category][key] = value
 
     def get(self, category: str, key: str, default=None):
         """
@@ -270,14 +357,15 @@ class SettingsManager:
         Returns:
             The stored value or the default.
         """
-        with self.__settings_lock:
-            if self._has_priority(category, key):
+        with self._category_lock(category):
+            with self.__settings_lock:
+                if self._has_priority(category, key):
+                    return self.__system_settings.get(category, {}).get(key, default)
+
+                if category in self.__settings and key in self.__settings[category]:
+                    return self.__settings[category][key]
+
                 return self.__system_settings.get(category, {}).get(key, default)
-
-            if category in self.__settings and key in self.__settings[category]:
-                return self.__settings[category][key]
-
-            return self.__system_settings.get(category, {}).get(key, default)
 
     def get_category(self, category: str):
         """
@@ -289,8 +377,9 @@ class SettingsManager:
         the system file does not define them). Returns an empty dict if the
         category exists in neither layer.
         """
-        with self.__settings_lock:
-            return self._merge_category(category)
+        with self._category_lock(category):
+            with self.__settings_lock:
+                return self._merge_category(category)
 
     def _merge_category(self, category: str):
         """
@@ -324,13 +413,14 @@ class SettingsManager:
                                   "removed. Ignoring.")
             return
 
-        with self.__settings_lock:
-            if category in self.__settings:
-                if key:
-                    if key in self.__settings[category]:
-                        del self.__settings[category][key]
-                        # Clean up empty categories
-                        if not self.__settings[category]:
-                            del self.__settings[category]
-                else:
-                    del self.__settings[category]
+        with self._category_lock(category):
+            with self.__settings_lock:
+                if category in self.__settings:
+                    if key:
+                        if key in self.__settings[category]:
+                            del self.__settings[category][key]
+                            # Clean up empty categories
+                            if not self.__settings[category]:
+                                del self.__settings[category]
+                    else:
+                        del self.__settings[category]
