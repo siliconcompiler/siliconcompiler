@@ -296,7 +296,10 @@ file mkdir \
 
 set opensta_top_n_paths [sc_cfg_tool_task_get var top_n_paths]
 
-set fields "{capacitance slew input_pins hierarcial_pins net fanout}"
+# Must be a flat list: report_checks is invoked directly here, so the value reaches
+# parse_report_path_options as-is. The braced-string form used by the OpenROAD scripts
+# only works there because tee re-evaluates the command string.
+set fields {capacitance slew input_pins hierarcial_pins net fanout}
 set PREFIX "SC_METRIC:"
 
 puts "$PREFIX timeunit"
