@@ -97,6 +97,9 @@ if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
     tee -file reports/timing/unconstrained.topN.rpt -quiet \
         "report_checks -sort_by_slack -fields $fields -unconstrained \
         -group_path_count $sta_top_n_paths"
+
+    sc_report_scene_timing -unconstrained -name unconstrained \
+        -fields $fields -top_paths $sta_top_n_paths
 }
 
 if {

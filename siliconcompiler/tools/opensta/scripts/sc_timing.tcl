@@ -400,6 +400,8 @@ if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
     report_checks -sort_by_slack -fields $fields -unconstrained \
         -group_path_count $opensta_top_n_paths \
         > reports/timing/unconstrained.topN.rpt
+    sc_report_corner_timing -unconstrained -name unconstrained \
+        -fields $fields -top_paths $opensta_top_n_paths
 }
 
 if {

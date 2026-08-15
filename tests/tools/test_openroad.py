@@ -113,6 +113,52 @@ def test_metrics_task(asic_gcd):
     assert asic_gcd.history("job0").get('metric', 'totalarea', step='metrics', index='0') is not \
         None
 
+    # A single scenario duplicates the combined reports, so none are written
+    assert not os.path.exists(os.path.join(
+        workdir(asic_gcd, step="metrics", index="0"), "reports", "timing", "scenarios"))
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_metrics_task_scenario_reports(asic_gcd):
+    '''Per-scene timing reports are only written when more than one scene exists.'''
+    # freepdk45_demo defines only "typical"; add a second scenario so the
+    # per-scene reports are generated.
+    scenario = asic_gcd.constraint.timing.make_scenario("extra")
+    scenario.add_libcorner(["typical", "generic"])
+    scenario.set_pexcorner("typical")
+    scenario.add_check(["setup", "hold"])
+
+    flow = ASICFlow("testflow")
+    flow.node("metrics", metrics.MetricsTask())
+    flow.edge('floorplan.init', 'metrics')
+
+    asic_gcd.set_flow(flow)
+    asic_gcd.set('option', 'to', 'metrics')
+    assert asic_gcd.run()
+
+    reports = os.path.join(
+        workdir(asic_gcd, step="metrics", index="0"), "reports", "timing", "scenarios")
+    # One directory per scene, each holding the same report set. The scene is repeated in
+    # the file name so the reports stay unique if gathered into one place.
+    assert set(os.listdir(reports)) == {"typical", "extra"}
+    for scene in ("typical", "extra"):
+        expected = set()
+        for delay in ("setup", "hold"):
+            for variant in ("", "topN.", "failing.", "endpoints."):
+                expected.add(f"{delay}.{scene}.{variant}rpt")
+            expected.add(f"worst_slack.{delay}.{scene}.rpt")
+            expected.add(f"total_negative_slack.{delay}.{scene}.rpt")
+        for variant in ("", "topN."):
+            expected.add(f"unconstrained.{scene}.{variant}rpt")
+
+        scene_dir = os.path.join(reports, scene)
+        assert set(os.listdir(scene_dir)) == expected
+
+        for report in expected:
+            assert os.path.getsize(os.path.join(scene_dir, report)) > 0, f"{scene}/{report}"
+
 
 @pytest.mark.eda
 @pytest.mark.quick

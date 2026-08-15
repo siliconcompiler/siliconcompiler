@@ -357,33 +357,47 @@ class TimingTaskBase(OpenSTATask):
     def __report_map(self, metric):
         corners = self.project.getkeys('constraint', 'timing', 'scenario')
         power_reports = [f"reports/power/{corner}.rpt" for corner in corners]
+
+        def scenario_reports(name, unconstrained=False):
+            # Per-corner reports, written only when more than one corner is defined
+            variants = ("", "topN.") if unconstrained else ("", "topN.", "failing.", "endpoints.")
+            return [f"reports/timing/scenarios/{corner}/{name}.{corner}.{variant}rpt"
+                    for corner in corners
+                    for variant in variants]
+
+        def scenario_files(name):
+            # A single per-corner report, e.g. worst_slack.setup
+            return [f"reports/timing/scenarios/{corner}/{name}.{corner}.rpt"
+                    for corner in corners]
+
         setup_reports = [
             "reports/timing/setup.rpt",
             "reports/timing/setup.topN.rpt",
             "reports/timing/setup.failing.rpt",
             "reports/timing/setup.endpoints.rpt",
-            *[f"reports/timing/setup.{corner}.rpt" for corner in corners],
-            *[f"reports/timing/setup.topN.{corner}.rpt" for corner in corners]
+            *scenario_reports("setup")
         ]
         hold_reports = [
             "reports/timing/hold.rpt",
             "reports/timing/hold.topN.rpt",
             "reports/timing/hold.failing.rpt",
             "reports/timing/hold.endpoints.rpt",
-            *[f"reports/timing/hold.{corner}.rpt" for corner in corners],
-            *[f"reports/timing/hold.topN.{corner}.rpt" for corner in corners]
+            *scenario_reports("hold")
         ]
         mapping = {
             "peakpower": power_reports,
             "leakagepower": power_reports,
             "unconstrained": ["reports/timing/unconstrained.rpt",
-                              "reports/timing/unconstrained.topN.rpt"],
+                              "reports/timing/unconstrained.topN.rpt",
+                              *scenario_reports("unconstrained", unconstrained=True)],
             "setuppaths": setup_reports,
             "holdpaths": hold_reports,
-            "holdslack": hold_reports,
-            "setupslack": setup_reports,
-            "setuptns": ["reports/timing/total_negative_slack.setup.rpt", *setup_reports],
-            "holdtns": ["reports/timing/total_negative_slack.hold.rpt", *hold_reports],
+            "holdslack": [*hold_reports, *scenario_files("worst_slack.hold")],
+            "setupslack": [*setup_reports, *scenario_files("worst_slack.setup")],
+            "setuptns": ["reports/timing/total_negative_slack.setup.rpt", *setup_reports,
+                         *scenario_files("total_negative_slack.setup")],
+            "holdtns": ["reports/timing/total_negative_slack.hold.rpt", *hold_reports,
+                        *scenario_files("total_negative_slack.hold")],
             "setupskew": ["reports/clocks/skew.setup.rpt", *setup_reports],
             "holdskew": ["reports/clocks/skew.hold.rpt", *hold_reports],
             "fmax": ["reports/clocks/fmax.rpt"],

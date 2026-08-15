@@ -98,27 +98,91 @@ proc sc_report_check_timing { } {
     }
 }
 
+proc sc_write_report_line { file line } {
+    puts "report: $file"
+    set fid [open $file w]
+    puts $fid $line
+    close $fid
+}
+
 proc sc_report_corner_timing { args } {
     sta::parse_key_args "sc_report_corner_timing" args \
         keys {-delay -name -fields -top_paths} \
-        flags {}
+        flags {-unconstrained}
 
     global sc_scenarios
+    global sta_report_default_digits
 
     # A single corner would just duplicate the combined timing reports
     if { [llength $sc_scenarios] <= 1 } {
         return
     }
 
+    # Mirror the combined reports exactly, adding only the corner selector. Each corner gets
+    # its own directory, so the file names match their combined counterparts. Unconstrained
+    # paths have no failing/endpoints counterpart, so they stop after topN.
+    # $path_sel and $full_extra must be {*}-expanded: report_checks is invoked directly
+    # here, so an unexpanded "-path_delay max" would arrive as a single argument.
+    set unconstrained [info exists flags(-unconstrained)]
+    if { $unconstrained } {
+        set path_sel "-unconstrained"
+        set full_extra "-path_group unconstrained"
+    } else {
+        set path_sel "-path_delay $keys(-delay)"
+        set full_extra ""
+    }
+
+    # Worst slack and TNS have no public report command that accepts a corner, so mirror
+    # report_worst_slack / report_tns output using the scene-aware accessors. These only
+    # exist in builds carrying the scene timing model.
+    set has_scene_slack [expr { [info commands sta::worst_slack_scene] ne "" }]
+
+    # The corner is repeated in the file name, not just the directory, so reports gathered
+    # from several corners into one place stay unique without renaming.
     foreach corner $sc_scenarios {
-        puts "report: reports/timing/$keys(-name).${corner}.rpt"
-        report_checks -sort_by_slack -fields $keys(-fields) -path_delay $keys(-delay) \
-            -format full_clock_expanded -corner $corner \
-            > reports/timing/$keys(-name).${corner}.rpt
-        puts "report: reports/timing/$keys(-name).topN.${corner}.rpt"
-        report_checks -sort_by_slack -fields $keys(-fields) -path_delay $keys(-delay) \
+        set dir "reports/timing/scenarios/${corner}"
+        file mkdir $dir
+        set base "${dir}/$keys(-name).${corner}"
+
+        puts "report: ${base}.rpt"
+        report_checks -sort_by_slack -fields $keys(-fields) {*}$path_sel \
+            -format full_clock_expanded {*}$full_extra -corner $corner \
+            > ${base}.rpt
+
+        puts "report: ${base}.topN.rpt"
+        report_checks -sort_by_slack -fields $keys(-fields) {*}$path_sel \
             -group_path_count $keys(-top_paths) -corner $corner \
-            > reports/timing/$keys(-name).topN.${corner}.rpt
+            > ${base}.topN.rpt
+
+        if { $unconstrained } {
+            continue
+        }
+
+        puts "report: ${base}.failing.rpt"
+        report_checks -sort_by_slack {*}$path_sel -slack_max 0 -endpoint_path_count 1 \
+            -group_path_count $keys(-top_paths) -format short -corner $corner \
+            > ${base}.failing.rpt
+
+        puts "report: ${base}.endpoints.rpt"
+        report_checks -sort_by_slack {*}$path_sel -endpoint_path_count 1 \
+            -group_path_count $keys(-top_paths) -format end -corner $corner \
+            > ${base}.endpoints.rpt
+
+        if { !$has_scene_slack } {
+            continue
+        }
+
+        set scene_obj [sta::find_scene $corner]
+        set scene_slack [sta::format_time \
+            [sta::worst_slack_scene $scene_obj $keys(-delay)] $sta_report_default_digits]
+        set scene_tns [sta::format_time \
+            [sta::total_negative_slack_scene_cmd $scene_obj $keys(-delay)] \
+            $sta_report_default_digits]
+
+        sc_write_report_line ${dir}/worst_slack.$keys(-name).${corner}.rpt \
+            "worst slack $keys(-delay) $scene_slack"
+        sc_write_report_line ${dir}/total_negative_slack.$keys(-name).${corner}.rpt \
+            "tns $keys(-delay) $scene_tns"
     }
 }
 
