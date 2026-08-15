@@ -7,6 +7,7 @@ import re
 import platform
 import psutil
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -21,7 +22,7 @@ from pathlib import Path
 from pyvirtualdisplay import Display
 from unittest.mock import patch
 
-from typing import Optional
+from typing import Optional, Tuple
 
 from siliconcompiler import utils, ASIC, Design, Project
 from siliconcompiler.tools.openroad._apr import APRTask
@@ -292,6 +293,38 @@ def fake_plugins(monkeypatch):
     monkeypatch.setattr(utils, "entry_points", fake_entry_points)
 
     return register
+
+
+@pytest.fixture
+def wait_for_child():
+    '''
+    Wait on a forked child, as ``(exited, exited_cleanly)``.
+
+    Any child still running at the deadline is killed and reaped in teardown, so
+    a test whose child deadlocks fails on its own assertions instead of wedging
+    the run: a forked child holds the session's file descriptors open, and
+    pytest will not finish while one of them is stuck.
+
+    Returns a callable taking the pid and an optional timeout in seconds.
+    '''
+    running = []
+
+    def wait(pid: int, timeout: float = 10) -> Tuple[bool, bool]:
+        running.append(pid)
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            waited, status = os.waitpid(pid, os.WNOHANG)
+            if waited:
+                running.remove(pid)
+                return True, os.waitstatus_to_exitcode(status) == 0
+            time.sleep(0.05)
+        return False, False
+
+    yield wait
+
+    for pid in running:
+        os.kill(pid, signal.SIGKILL)
+        os.waitpid(pid, 0)
 
 
 @pytest.fixture

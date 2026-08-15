@@ -50,6 +50,28 @@ _TAR_FILTER_ERRORS: Tuple[Type[BaseException], ...] = \
     (tarfile.FilterError,) if hasattr(tarfile, "FilterError") else ()
 
 
+#: Registry key marking resolver population as *complete*, written only once
+#: every scheme is in place.
+#:
+#: The registry cannot use "the category is non-empty" as its populated test:
+#: the category becomes non-empty on the very first write, so a caller could
+#: return early believing the registry was ready and then fail to find a scheme
+#: that had not been registered yet. The remote schemes (``https``, ``git``,
+#: ``github``, ``scp``) are registered last and so had the widest exposure,
+#: which is why an ordinary GitHub tarball could be reported as an unsupported
+#: URI while a ``file://`` path never was.
+#:
+#: Other threads are kept out by holding the category (see
+#: :meth:`~siliconcompiler.utils.settings.SettingsManager.lock_category`), but
+#: the marker is what a *forked child* has to go on: it inherits whatever the
+#: registry held at the instant of the fork, with no lock left to wait on.
+#:
+#: The leading underscores keep the marker out of the scheme namespace:
+#: :func:`urllib.parse.urlparse` only recognises a scheme that starts with a
+#: letter, so no source URI can ever resolve to this key.
+_RESOLVERS_POPULATED: str = "__populated__"
+
+
 class Resolver:
     """
     Abstract base class for all data source resolvers.
@@ -96,26 +118,37 @@ class Resolver:
         built-in resolvers (file, key, python, http, git, github, scp) and any
         resolvers provided by external plugins. Built-ins are registered first,
         so a plugin claiming the same scheme takes precedence.
+
+        Population is atomic. Several threads reach here at once whenever a
+        process resolves data sources in parallel, so the registry is held for
+        the length of the build and a thread that arrives mid-population waits
+        rather than looking up a scheme that is registered but not yet written
+        (see :data:`_RESOLVERS_POPULATED`).
         """
         # Imported here because each of these modules imports RemoteResolver from
         # this module.
         from siliconcompiler.package import git, github, https, scp
 
         settings = MPManager().get_transient_settings()
-        if settings.get_category("resolvers"):
-            # Already populated
-            return
+        with settings.lock_category("resolvers"):
+            if settings.get("resolvers", _RESOLVERS_POPULATED, False):
+                # Already populated
+                return
 
-        settings.set("resolvers", "", FileResolver)
-        settings.set("resolvers", "file", FileResolver)
-        settings.set("resolvers", "key", KeyPathResolver)
-        settings.set("resolvers", "python", PythonPathResolver)
-        settings.set("resolvers", "dataroot", DatarootResolver)
+            settings.set("resolvers", "", FileResolver)
+            settings.set("resolvers", "file", FileResolver)
+            settings.set("resolvers", "key", KeyPathResolver)
+            settings.set("resolvers", "python", PythonPathResolver)
+            settings.set("resolvers", "dataroot", DatarootResolver)
 
-        builtins = (https.get_resolver, git.get_resolver, github.get_resolver, scp.get_resolver)
-        for resolver in (*builtins, *get_plugins("path_resolver")):
-            for scheme, res in resolver().items():
-                settings.set("resolvers", scheme, res)
+            builtins = (https.get_resolver, git.get_resolver, github.get_resolver,
+                        scp.get_resolver)
+            for resolver in (*builtins, *get_plugins("path_resolver")):
+                for scheme, res in resolver().items():
+                    settings.set("resolvers", scheme, res)
+
+            # Written last, once the registry above is complete.
+            settings.set("resolvers", _RESOLVERS_POPULATED, True)
 
     @staticmethod
     def find_resolver(source: str) -> Type["Resolver"]:
