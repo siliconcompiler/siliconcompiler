@@ -128,7 +128,7 @@ foreach obstruction [[ord::get_db_block] getObstructions] {
 }
 utl::info FLW 1 "Deleted $removed_obs routing obstructions"
 
-set sc_fillrules [sc_cfg_get_fileset $sc_pdk $aprfileset fill]
+set sc_fillrules [sc_get_fill_rules $sc_pdk]
 if {
     [sc_cfg_tool_task_get var fin_add_fill] &&
     [llength $sc_fillrules] > 0

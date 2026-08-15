@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Optional, Union
 
-from siliconcompiler.tools.openroad import OpenROADTask
+from siliconcompiler.tools.openroad import OpenROADFillParameter
 
 
-class RDLRouteTask(OpenROADTask):
+class RDLRouteTask(OpenROADFillParameter):
     '''
     Perform floorplanning, pin placements, macro placements and power grid generation
     '''
@@ -12,10 +12,6 @@ class RDLRouteTask(OpenROADTask):
         super().__init__()
 
         self.add_parameter("rdlroute", "[file]", "RDL routing scripts")
-
-        self.add_parameter("fin_add_fill", "bool",
-                           "true/false, when true enables adding fill, "
-                           "if enabled by the PDK, to the design", defvalue=False)
 
     def add_openroad_rdlroute(self, file: Union[str, Path], dataroot: Optional[str] = None,
                               step: Optional[str] = None, index: Optional[Union[int, str]] = None,
@@ -37,18 +33,6 @@ class RDLRouteTask(OpenROADTask):
                 self.set("var", "rdlroute", file, step=step, index=index)
             else:
                 self.add("var", "rdlroute", file, step=step, index=index)
-
-    def set_openroad_addfill(self, enable: bool,
-                             step: Optional[str] = None, index: Optional[Union[int, str]] = None):
-        """
-        Enables or disables adding fill to the design.
-
-        Args:
-            enable (bool): True to enable fill, False to disable.
-            step (str, optional): The specific step to apply this configuration to.
-            index (str, optional): The specific index to apply this configuration to.
-        """
-        self.set("var", "fin_add_fill", enable, step=step, index=index)
 
     def task(self):
         return "rdlroute"
@@ -89,6 +73,12 @@ class RDLRouteTask(OpenROADTask):
         if self.get("var", "rdlroute"):
             self.add_required_key("var", "rdlroute")
         self.add_required_key("var", "fin_add_fill")
+
+        # sc_rdlroute.tcl runs its own metal fill, so the deck has to be declared
+        # required here too. Unlike fillmetal_insertion this task has plenty else
+        # to do, so a PDK without fill rules is not a reason to skip it.
+        if self.get("var", "fin_add_fill"):
+            self._setup_fill_deck()
 
         # sc_rdlroute.tcl loads the PDK tech LEF and per-library LEFs; declare them
         # required so they are hashed (cache) and copied (remote runs).
