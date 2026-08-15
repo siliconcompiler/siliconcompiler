@@ -3,7 +3,7 @@
 Guide to Remote Compilation
 ===========================
 
-SiliconCompiler supports a remote compilation model, allowing you to leverage cloud resources for access to pre-configured tool installations, elastic compute, and potentially NDA-protected PDKs or IPs on private servers.
+SiliconCompiler supports a remote compilation model, allowing you to leverage cloud resources for access to pre-configured tool installations, elastic compute, and potentially NDA-protected :term:`PDKs <PDK>` or :term:`IPs <IP>` on private servers.
 
 .. note::
 
@@ -108,7 +108,7 @@ Build scripts that expose a command line through :meth:`.CommandLineSchema.creat
   python -m siliconcompiler.demos.asic_demo -remote
 
 The job will be packaged, sent to the remote server for processing, and the results will be streamed back to your local machine.
-Results are downloaded for each flowgraph node as it completes, so a finished remote job leaves the same build directory contents behind as a local run.
+Results are downloaded for each :term:`flowgraph node` as it completes, so a finished remote job leaves the same build directory contents behind as a local run.
 
 Troubleshooting
 ---------------

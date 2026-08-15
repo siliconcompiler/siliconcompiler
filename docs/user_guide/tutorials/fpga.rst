@@ -4,12 +4,12 @@
 Build for an FPGA
 ######################
 
-SiliconCompiler compiles to FPGA bitstreams as well as to :term:`GDSII`, through the
+SiliconCompiler compiles to :term:`FPGA` :term:`bitstreams <bitstream>` as well as to :term:`GDSII`, through the
 same schema, the same :term:`flowgraph` and the same run. What changes is the project
 type, the thing you target, and the artifact you get back.
 
 For a lot of readers this is the easier on-ramp: an FPGA flow needs no :term:`PDK`, no
-foundry agreement and no tapeout budget, and the open-source toolchain for
+foundry agreement and no :term:`tapeout` budget, and the open-source toolchain for
 Lattice iCE40 parts is a package-manager install away.
 
 .. list-table::
@@ -45,8 +45,8 @@ onto a small open architecture called **z1000**:
 
    python -m siliconcompiler.demos.fpga_demo
 
-It runs Yosys for synthesis, `VPR <https://docs.verilogtorouting.org/en/latest/>`_ for
-place-and-route and OpenSTA for timing, so a clean run tells you that half of
+It runs Yosys for :term:`synthesis`, `VPR <https://docs.verilogtorouting.org/en/latest/>`_ for
+:term:`place-and-route` and OpenSTA for timing, so a clean run tells you that half of
 your toolchain is working. z1000 is a demo architecture -- 2K :term:`LUTs <LUT>`, no hard
 macros -- and exists to be a self-test, not a part you would ship to.
 
@@ -63,15 +63,15 @@ iCE40 UP5K, the part on an `iCEBreaker
    :end-before: # --- Execution & Analysis ---
    :dedent: 4
 
-Three things differ from an ASIC script:
+Three things differ from an :term:`ASIC` script:
 
 * **A second constraint fileset.** ``pcf`` is a :term:`fileset` holding the pin-constraint file, which
-  maps ports in your Verilog onto physical pins on the package. Without it the
+  maps ports in your :term:`Verilog` onto physical pins on the package. Without it the
   tools have no idea where ``led`` goes.
 * **A device instead of a target.** :meth:`.FPGA.set_fpga` takes an
   :class:`.FPGADevice` -- here ``ICE40Up5k_sg48``, shipped in
   ``siliconcompiler.fpgas``. The device carries the architecture description,
-  the primitives Yosys may map to and the timing models, which is what a PDK plus
+  the primitives Yosys may map to and the timing models, which is what a :term:`PDK` plus
   a cell library does on the ASIC side.
 * **An FPGA flow.** :ref:`FPGANextPNRFlow <schema-siliconcompiler-flows-fpgaflow-fpganextpnrflow>` is Yosys plus
   `nextpnr <https://github.com/YosysHQ/nextpnr>`_ plus ``icepack``.
@@ -83,7 +83,7 @@ Run it:
    cd examples/blinky
    python blinky.py
 
-The summary reports resource utilisation -- LUTs, flip-flops, carry cells --
+The summary reports resource utilisation -- :term:`LUTs <LUT>`, flip-flops, carry cells --
 rather than cell area, because those are the numbers that decide whether a
 design fits.
 
@@ -142,7 +142,7 @@ cell library -- so describing a new part is the job covered by
 
 For a complete worked device, read ``siliconcompiler/demos/fpga_demo.py``: ``Z1000``
 sets the :term:`LUT` size, the register types Yosys may infer, the VPR architecture and
-routing-graph files, and the Liberty models OpenSTA reads.
+routing-graph files, and the :term:`Liberty` models OpenSTA reads.
 
 Next
 ====

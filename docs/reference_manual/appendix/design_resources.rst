@@ -1,6 +1,14 @@
 Design Glossary
 ===============
 
+A broad index of semiconductor design vocabulary, each entry linking out to
+further reading.
+
+.. seealso::
+   For the terms SiliconCompiler itself uses -- its objects, its execution
+   model, and the subset of this vocabulary that appears in the documentation
+   and in tool output -- see the :ref:`glossary <glossary>`.
+
 .. _gloss_arch:
 
 Architecture

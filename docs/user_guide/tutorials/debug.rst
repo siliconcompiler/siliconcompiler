@@ -57,7 +57,8 @@ Check the whole design before running, which is much faster than a failed run:
    assert design.check_filepaths()
 
 Most examples expose this as a target -- ``smake check``. See
-:ref:`Add files to a fileset <howto>` for how paths and dataroots relate.
+:ref:`Add files to a fileset <howto>` for how paths and
+:term:`dataroots <dataroot>` relate.
 
 When the tool itself fails
 ==========================
@@ -169,7 +170,7 @@ A run can succeed and still be wrong. The summary table is where that shows up:
   "successful" run is worth reading.
 * :keypath:`ASIC,metric,setupslack` / :keypath:`ASIC,metric,holdslack` -- negative means
   timing did not close, and no tool will stop you.
-* :keypath:`ASIC,metric,drvs` -- routing and connectivity violations.
+* :keypath:`ASIC,metric,drvs` -- :term:`routing` and connectivity violations.
   :keypath:`ASIC,metric,drcs` is the different, geometric one; see
   :ref:`the FAQ <faq>`.
 * :keypath:`ASIC,metric,unconstrained` -- endpoints with no timing constraint. A

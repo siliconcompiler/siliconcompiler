@@ -5,7 +5,7 @@ Using Commercial Tools
 ##########################
 
 SiliconCompiler drives commercial EDA tools as well as open-source ones -- the
-flowgraph does not care which a task wraps. What differs is how you get the
+:term:`flowgraph` does not care which a :term:`task` wraps. What differs is how you get the
 driver.
 
 .. important::
@@ -27,7 +27,7 @@ drivers use.
 Vivado, end to end
 ==================
 
-``examples/heartbeat`` targets a Xilinx Artix-7 alongside its ASIC flows:
+``examples/heartbeat`` targets a Xilinx Artix-7 alongside its :term:`ASIC` flows:
 
 .. literalinclude:: examples/heartbeat/make.py
    :language: python
