@@ -249,9 +249,9 @@ output.
        for real interconnect delay rather than estimates.
 
     RTL
-       Register Transfer Level -- a description of hardware in terms of data
-       flow between registers, written in a language such as Verilog, VHDL, or
-       SystemVerilog. The usual starting point of a compilation.
+       Register Transfer Level -- a description of hardware in terms of a
+       clocked flow of data between registers, written in a language such as 
+       Verilog, VHDL, or SystemVerilog. The usual starting point of a compilation.
 
     SDC
        Synopsys Design Constraints -- the de facto standard format for
