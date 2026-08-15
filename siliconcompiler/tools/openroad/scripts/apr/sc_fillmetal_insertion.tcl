@@ -15,8 +15,7 @@ source "$sc_refdir/apr/preamble.tcl"
 # Do fill
 ###############################
 
-set sc_aprfileset [sc_cfg_get library $sc_pdk pdk aprtechfileset openroad]
-set sc_fillrules [sc_cfg_get_fileset $sc_pdk $sc_aprfileset fill]
+set sc_fillrules [sc_get_fill_rules $sc_pdk]
 
 if {
     [sc_cfg_tool_task_get var fin_add_fill] &&

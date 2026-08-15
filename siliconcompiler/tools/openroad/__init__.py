@@ -619,3 +619,118 @@ class OpenROADTask(ASICTask):
         node = SchedulerNode(proj, "<step>", "<index>")
         node.setup()
         return node.task
+
+
+class OpenROADFillParameter(OpenROADTask):
+    """
+    Mixin class for tasks that insert metal fill.
+
+    The PDK ships its metal fill rules as a file of filetype ``fill`` in a
+    fileset registered under ``pdk, fill, runsetfileset, openroad, <name>``.
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("fin_add_fill", "bool",
+                           "true/false, when true enables adding fill, "
+                           "if enabled by the PDK, to the design", defvalue=False)
+        self.add_parameter("fill_name", "str",
+                           "name of the metal fill deck to use, this is only required when "
+                           "the PDK ships more than one deck")
+
+    def set_openroad_addfill(self, enable: bool,
+                             step: Optional[str] = None, index: Optional[Union[int, str]] = None):
+        """
+        Enables or disables adding fill to the design.
+
+        Args:
+            enable (bool): True to enable fill, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "fin_add_fill", enable, step=step, index=index)
+
+    def set_openroad_fillname(self, name: str,
+                              step: Optional[str] = None,
+                              index: Optional[Union[int, str]] = None):
+        """
+        Sets the name of the metal fill deck to use.
+
+        Args:
+            name (str): The name of the metal fill deck.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "fill_name", name, step=step, index=index)
+
+    def _get_fill_decks(self) -> List[str]:
+        """Return the names of the PDK metal fill decks that carry a fill file."""
+        if not self.pdk.valid("pdk", "fill", "runsetfileset", "openroad"):
+            return []
+
+        decks = []
+        for name in self.pdk.getkeys("pdk", "fill", "runsetfileset", "openroad"):
+            for fileset in self.pdk.get("pdk", "fill", "runsetfileset", "openroad", name):
+                if self.pdk.has_file(fileset=fileset, filetype="fill"):
+                    decks.append(name)
+                    break
+        return decks
+
+    def _resolve_fill_deck(self) -> Optional[str]:
+        """
+        Determine which metal fill deck to use.
+
+        A PDK that ships exactly one deck needs no configuration. When it ships
+        more than one, ``fill_name`` selects between them.
+
+        Raises:
+            ValueError: If the PDK ships several decks and none was selected, or
+                        if the selected deck does not exist.
+
+        Returns:
+            The deck name, or None if the PDK ships no metal fill rules.
+        """
+        decks = self._get_fill_decks()
+
+        name = self.get("var", "fill_name")
+        if name:
+            if name not in decks:
+                raise ValueError(f"{name} is not a metal fill deck provided by "
+                                 f"{self.pdk.name}, available decks are: "
+                                 f"{', '.join(sorted(decks)) if decks else 'none'}")
+            return name
+
+        if len(decks) > 1:
+            raise ValueError(f"{self.pdk.name} provides more than one metal fill deck, "
+                             f"select one with fill_name: {', '.join(sorted(decks))}")
+
+        return decks[0] if decks else None
+
+    def _setup_fill_deck(self) -> bool:
+        """
+        Declare the PDK metal fill deck required so it is hashed (cache) and
+        copied (remote runs), and record the resolved deck name for the script.
+
+        Returns:
+            True if metal fill rules are available.
+        """
+        name = self._resolve_fill_deck()
+
+        if name:
+            self.set("var", "fill_name", name)
+            self.add_required_key("var", "fill_name")
+            self.add_required_key(
+                self.pdk, "pdk", "fill", "runsetfileset", "openroad", name)
+            for fileset in self.pdk.get("pdk", "fill", "runsetfileset", "openroad", name):
+                if self.pdk.has_file(fileset=fileset, filetype="fill"):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "fill")
+            return True
+
+        # Deprecated: PDKs used to register the fill rules in the OpenROAD APR tech
+        # fileset. Keep reading that until those PDKs move to the fill runset section.
+        found = False
+        for fileset in self.pdk.get("pdk", "aprtechfileset", "openroad"):
+            if self.pdk.has_file(fileset=fileset, filetype="fill"):
+                self.add_required_key(self.pdk, "fileset", fileset, "file", "fill")
+                found = True
+        return found

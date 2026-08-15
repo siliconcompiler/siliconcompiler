@@ -1686,3 +1686,27 @@ proc sc_setup_pex { args } {
         }
     }
 }
+
+proc sc_get_fill_rules { pdk } {
+    # Returns the PDK metal fill rules files, or an empty list when the PDK ships
+    # none. The task resolves which deck to use and records it in the fill_name
+    # variable, so only that one deck is read here.
+    if { [sc_cfg_tool_task_exists var fill_name] } {
+        set fill_name [sc_cfg_tool_task_get var fill_name]
+        if {
+            $fill_name != "" &&
+            [sc_cfg_exists library $pdk pdk fill runsetfileset openroad $fill_name]
+        } {
+            set fileset [sc_cfg_get library $pdk pdk fill runsetfileset openroad $fill_name]
+            return [sc_cfg_get_fileset $pdk $fileset fill]
+        }
+    }
+
+    # Deprecated: PDKs used to register the fill rules in the OpenROAD APR tech
+    # fileset. Keep reading that until those PDKs move to the fill runset section.
+    if { ![sc_cfg_exists library $pdk pdk aprtechfileset openroad] } {
+        return []
+    }
+    set aprfileset [sc_cfg_get library $pdk pdk aprtechfileset openroad]
+    return [sc_cfg_get_fileset $pdk $aprfileset fill]
+}
