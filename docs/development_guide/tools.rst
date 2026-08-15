@@ -15,7 +15,7 @@ To add support for a new EDA tool, you need to create a Python-based "driver" th
 
 A complete driver consists of:
 
-* **One or more Task classes**: Defines a specific job that the tool can perform, such as synthesis (syn) or place-and-route (place). Each task specifies its inputs, outputs, and how to generate the command-line arguments.
+* **One or more Task classes**: Defines a specific :term:`task` that the :term:`tool` can perform, such as :term:`synthesis` (syn) or :term:`place-and-route` (place). Each task specifies its inputs, outputs, and how to generate the command-line arguments.
 
 A complete list of built-in tools can be found in the :ref:`Tools <builtin_tools>` reference.
 
@@ -41,7 +41,7 @@ A tool driver is a Python module that typically defines at least one :class:`.Ta
 The setup() Method: Core Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :meth:`.Task.setup()` method is the heart of the driver. It's called for each step in the flow and is responsible for configuring all aspects of the tool and task.
+The :meth:`.Task.setup()` method is the heart of the driver. It's called for each :term:`step` in the flow and is responsible for configuring all aspects of the tool and task.
 Inside this method, you have access to the project object to define your settings.
 
 Step 1: Basic Tool Configuration
@@ -158,7 +158,7 @@ To ensure reproducible builds, SiliconCompiler has a robust version-checking sys
 Interface for TCL-Based Tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For tools that are driven by TCL scripts, SiliconCompiler simplifies configuration by writing a manifest file (`sc_manifest.tcl`) in the work directory.
+For tools that are driven by TCL scripts, SiliconCompiler simplifies configuration by writing a :term:`manifest` file (`sc_manifest.tcl`) in the work directory.
 Your TCL script should source this file. It provides a nested TCL dictionary called sc_cfg containing the entire project configuration.
 
 Your TCL script is responsible for reading from this dictionary and applying the settings.
@@ -187,10 +187,12 @@ Your TCL script is responsible for reading from this dictionary and applying the
 Reading ASIC standard-cell timing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-An ASIC tool that needs standard-cell timing — synthesis, static timing
-analysis, place-and-route — reads the library's timing files for the active
-**delay model** and timing corners. A standard-cell library groups those files
-into *libcorner filesets*, keyed by ``(corner, delaymodel)`` via
+An :term:`ASIC` tool that needs standard-cell timing — :term:`synthesis`,
+:term:`static timing analysis <STA>`, place-and-route — reads the library's
+timing files for the active :term:`delay model` and timing
+:term:`corners <corner>`. A :term:`standard cell` :term:`library`
+groups those files into *libcorner* :term:`filesets <fileset>`, keyed by
+``(corner, delaymodel)`` via
 :meth:`.StdCellLibrary.add_asic_libcornerfileset` (see
 :ref:`Timing models and the delay model <lib_delaymodel>` for the library side).
 

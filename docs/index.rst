@@ -32,7 +32,7 @@ Getting started
       **New here?**
 
       :ref:`Install it <installation>`, then :ref:`run the demo <quickstart_guide>`
-      -- RTL to GDS in thirteen lines.
+      -- :term:`RTL` to :term:`GDS <GDSII>` in thirteen lines.
       :ref:`What is SiliconCompiler? <what_is_sc>`
 
    .. container:: sc-card
@@ -92,7 +92,7 @@ Take a design further
 ---------------------
 
 * :ref:`Build an SoC with a memory <picorv32_example>` -- a processor and an SRAM macro.
-* :ref:`Target an FPGA <fpga_tutorial>` -- bitstreams instead of masks.
+* :ref:`Target an FPGA <fpga_tutorial>` -- :term:`bitstreams <bitstream>` instead of masks.
 * :ref:`Wrap a design in an IO pad ring <padring_tutorial>` -- pads, corners, bond pads and a core power grid.
 * :ref:`Reuse a block that is already hardened <hardened_modules>` -- instantiating a macro.
 * :ref:`Harden a parameterized module <uniquify_modules>` -- one module, several configurations.

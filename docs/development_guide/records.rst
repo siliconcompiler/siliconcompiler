@@ -17,8 +17,8 @@ Default Tracking (Always On)
 For every run, SiliconCompiler will automatically record the following without any special configuration:
 
 * **SiliconCompiler Version:** The exact version of the framework used.
-* **Tool Details:** The version of each tool executed (e.g., Yosys, OpenROAD) and the specific command-line options used.
-* **Timestamps:** The start and end times for each task.
+* **Tool Details:** The version of each :term:`tool` executed (e.g., Yosys, OpenROAD) and the specific command-line options used.
+* **Timestamps:** The start and end times for each :term:`task`.
 
 Optional Full Tracking
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -53,5 +53,5 @@ To capture all available provenance data, you must explicitly enable the :keypat
 How Records Are Stored
 ----------------------
 
-Records are captured for each individual task (defined by its step and index) in the flowgraph.
+:term:`Records <record>` are captured for each individual :term:`task` (defined by its :term:`step` and :term:`index`) in the :term:`flowgraph`.
 This granular approach ensures that every action performed on the design is documented, leaving no gaps in the history of the compilation process.

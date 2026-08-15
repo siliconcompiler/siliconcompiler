@@ -3,10 +3,10 @@
 Defining a Library
 ==================
 
-In hardware design, a library is a collection of reusable components.
+In hardware design, a :term:`library` is a collection of reusable components.
 SiliconCompiler generalizes this concept with the :class:`.Design` object, which acts as a standardized "manifest" for any piece of IP (Intellectual Property) you want to include in your design.
 
-This could be a hard macro with pre-defined physical layouts (GDS, LEF), a standard cell library from a foundry, or a soft IP delivered as RTL source code (Verilog, VHDL).
+This could be a :term:`hard macro <hardened macro>` with pre-defined physical layouts (:term:`GDS <GDSII>`, :term:`LEF`), a :term:`standard cell` library from a foundry, or a soft :term:`IP` delivered as :term:`RTL` source code (:term:`Verilog`, :term:`VHDL`).
 
 By packaging IP into a :class:`.Design`, you make it easy to manage, version, and reuse across different projects.
 Libraries are loaded into a project using the :meth:`.Project.add_dep()` method.
@@ -95,6 +95,11 @@ To use either of these libraries in your design, you would instantiate the class
   # Now, the 'fakeip' will be included during compilation.
   # project.run()
 
+:meth:`.ASIC.add_asiclib()` supplements the :term:`mainlib` -- the primary
+standard cell library synthesis maps to, set with :meth:`.ASIC.set_mainlib()`. A
+library of macros like this one is an addition to that primary library, not a
+replacement for it.
+
 Example 2: Soft IP Library
 --------------------------
 
@@ -146,11 +151,12 @@ To use either of these libraries in your design, you would instantiate the class
 Timing models and the delay model
 ---------------------------------
 
-A standard-cell library can provide its timing in several formats. Liberty
+A standard-cell library can provide its timing in several formats. :term:`Liberty`
 (``.lib``) is read by the open-source tools; some libraries also provide a
 compiled, binary timing model (here ``.bin``) that a tool can load without
-parsing Liberty. Each format goes in its own fileset, tagged by corner and
-**delay model** with :meth:`.StdCellLibrary.add_asic_libcornerfileset`: Liberty
+parsing Liberty. Each format goes in its own :term:`fileset`, tagged by
+:term:`corner` and :term:`delay model` with
+:meth:`.StdCellLibrary.add_asic_libcornerfileset`: Liberty
 uses a model such as ``nldm`` or ``ccs``, and the compiled files use the
 ``<model>-bin`` variant (``nldm-bin``, ``ccs-bin``).
 

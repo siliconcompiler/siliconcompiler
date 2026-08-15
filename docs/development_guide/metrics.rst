@@ -3,8 +3,8 @@
 Working with Metrics
 ====================
 
-In SiliconCompiler, metrics are the key performance indicators (KPIs) that measure the quality of a compilation run.
-They are numerical values—like area, power, timing, and error counts—that are tracked for each step of the flow.
+In SiliconCompiler, :term:`metrics <metric>` are the key performance indicators (:term:`KPIs <KPI>`) that measure the quality of a compilation run.
+They are numerical values—like area, power, timing, and error counts—that are tracked for each :term:`step` of the :term:`flow`.
 
 Metrics serve three primary purposes:
 
@@ -16,7 +16,7 @@ Metrics serve three primary purposes:
 ------------------------------------------------
 
 SiliconCompiler's minimum task uses metrics to find the optimal design result.
-To guide this process, you can configure two parameters for any given metric in the flowgraph:
+To guide this process, you can configure two parameters for any given metric in the :term:`flowgraph`:
 
 * ``goal:`` The target value for a metric. This defines a hard requirement.
 * ``weight:`` A value that tells the optimizer how much to prioritize one metric over another.
@@ -55,7 +55,7 @@ You can also access them directly with :meth:`.Project.get()` to create custom r
 The Metric Lifecycle
 --------------------
 
-Metrics are populated automatically during a run. For each task (step and index):
+Metrics are populated automatically during a run. For each :term:`task` (:term:`step` and :term:`index`):
 
 1. All metric values in the schema are cleared.
 2. The tool (e.g., OpenROAD, Yosys) is executed.
