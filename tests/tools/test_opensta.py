@@ -122,10 +122,12 @@ def test_opensta_scenario_reports(datadir):
     logfile = os.path.join("build", "testdesign", "job0", "opensta", "0", "opensta.log")
     prefix = "== report: reports/timing/scenarios/"
     with open(logfile) as f:
-        announced = {line.strip()[len("== report: "):] for line in f
-                     if line.startswith(prefix)}
+        announced = [line.strip()[len("== report: "):] for line in f
+                     if line.startswith(prefix)]
 
-    assert announced == written
+    # Kept as a list so a report announced twice is caught rather than deduplicated away
+    assert len(announced) == len(set(announced))
+    assert set(announced) == written
 
     # Metrics are still recorded, and now cite the per-scenario reports
     assert proj.history("job0").get('metric', 'setupslack', step='opensta', index='0') == -0.220

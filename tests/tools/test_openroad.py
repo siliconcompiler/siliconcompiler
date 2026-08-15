@@ -169,10 +169,12 @@ def test_metrics_task_scenario_reports(asic_gcd):
     logfile = os.path.join(workdir(asic_gcd, step="metrics", index="0"), "metrics.log")
     prefix = "== report: reports/timing/scenarios/"
     with open(logfile) as f:
-        announced = {line.strip()[len("== report: "):] for line in f
-                     if line.startswith(prefix)}
+        announced = [line.strip()[len("== report: "):] for line in f
+                     if line.startswith(prefix)]
 
-    assert announced == written
+    # Kept as a list so a report announced twice is caught rather than deduplicated away
+    assert len(announced) == len(set(announced))
+    assert set(announced) == written
 
 
 @pytest.mark.eda
