@@ -11,7 +11,7 @@ The Schema is designed to capture everything needed to produce a repeatable buil
 
 * **Design Definition**: Hardware sources, top-level module, and clock specifications.
 * **Compilation Strategy**: The sequence of tools to run (the "flow"), and settings for each tool.
-* **Target Technology**: Information about the target process design kit (PDK).
+* **Target Technology**: Information about the target process design kit (:term:`PDK`).
 * **Metrics & Results**: Data gathered from the compilation, such as cell area, timing, and power.
 
 This data is stored in Schema :term:`parameters <parameter>`, which are accessed through a simple and consistent set of API methods.
@@ -98,7 +98,7 @@ The typed accessor is a thin, named wrapper around the keypath call.
 The Manifest: Saving and Loading the Schema
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The entire state of the Schema can be saved to a file called a manifest. This file, typically in JSON format, serves two critical purposes:
+The entire state of the Schema can be saved to a file called a :term:`manifest`. This file, typically in JSON format, serves two critical purposes:
 
 1. **Reference**: It provides a complete, human-readable record of every setting used in a compilation.
 2. **Reproducibility**: It allows you to reload the exact configuration of a previous run, ensuring that builds are repeatable and shareable.

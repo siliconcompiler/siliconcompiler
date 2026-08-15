@@ -26,7 +26,7 @@ If you don't provide one, the port will default an auto selected one or to 8501:
 
 
 And/or you can include extra projects by adding one or multiple ``-graph_cfg`` flags.
-The name of the manifest is optional.
+The name of the :term:`manifest` is optional.
 If you don't provide one, the name will default to the path to manifest:
 
 .. code-block:: bash
@@ -68,7 +68,8 @@ all of the nodes and/or metrics will be shown.
 Flowgraph Section
 -----------------
 
-The flowgraph section displays the data dependencies for each node.
+The :term:`flowgraph` section displays the data dependencies for each
+:term:`node <flowgraph node>`.
 Nodes are color-coded based on
 their task status.
 Green means task status is a success, red means task status is a failure,

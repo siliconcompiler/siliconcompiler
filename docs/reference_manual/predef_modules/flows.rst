@@ -10,10 +10,11 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 ASIC Flows
 ----------
 
-Complete ASIC compilation flows that take RTL through synthesis, place-and-route,
-and finishing. The ``language`` argument selects the front-end used to bring the
-design into Verilog before the shared place-and-route back-end runs; a variant is
-shown below for each supported source language.
+Complete :term:`ASIC` compilation flows that take :term:`RTL` through
+:term:`synthesis`, :term:`place-and-route`, and finishing. The ``language``
+argument selects the front-end used to bring the design into :term:`Verilog`
+before the shared place-and-route back-end runs; a variant is shown below for
+each supported source language.
 
 .. schema::
   :root: siliconcompiler.flows.asicflow/ASICFlow
@@ -51,9 +52,10 @@ used on their own to run or debug an individual stage of the back-end.
 Elaboration Flows
 -----------------
 
-Front-end flows that elaborate an RTL design from its source files and emit Verilog.
+Front-end flows that :term:`elaborate <elaboration>` an RTL design from its
+source files and emit Verilog.
 Because every variant produces Verilog, they can be used interchangeably as a
-front-end for any downstream flow that consumes a Verilog netlist.
+front-end for any downstream flow that consumes a Verilog :term:`netlist`.
 
 .. schema::
   :root: siliconcompiler.flows.elaborationflow/ElaborationFlow
@@ -94,7 +96,7 @@ variant pairs a different front-end language with the shared Yosys synthesis ste
 Lint Flows
 ----------
 
-Flows for linting an RTL design.
+Flows for :term:`linting <lint>` an RTL design.
 
 .. schema::
   :root: siliconcompiler.flows.lintflow/LintFlow
@@ -135,8 +137,8 @@ simulator (and optionally cocotb-based testbenches).
 Formal Verification Flows
 -------------------------
 
-Flows for formally verifying the SVA properties in an RTL design using
-SymbiYosys (sby).
+Flows for :term:`formally verifying <formal verification>` the SVA
+:term:`assertions <assertion>` in an RTL design using SymbiYosys (sby).
 
 .. schema::
   :root: siliconcompiler.flows.formalflow/PropertyCheckFlow
@@ -144,7 +146,7 @@ SymbiYosys (sby).
 DRC Flows
 ---------
 
-Flows for running design rule checking (DRC) signoff on a layout.
+Flows for running design rule checking (:term:`DRC`) :term:`signoff` on a layout.
 
 .. schema::
   :root: siliconcompiler.flows.drcflow/DRCFlow
@@ -158,7 +160,7 @@ Flows for running design rule checking (DRC) signoff on a layout.
 LVS Flows
 ---------
 
-Flows for running layout-versus-schematic (LVS) signoff on a layout.
+Flows for running layout-versus-schematic (:term:`LVS`) signoff on a layout.
 
 .. schema::
   :root: siliconcompiler.flows.lvsflow/MagicLVSFlow
@@ -174,7 +176,7 @@ Flows that combine the physical verification steps into a single signoff flow.
 FPGA Flows
 ----------
 
-Complete FPGA compilation flows. Each variant targets a different FPGA toolchain.
+Complete :term:`FPGA` compilation flows. Each variant targets a different FPGA toolchain.
 
 .. schema::
   :root: siliconcompiler.flows.fpgaflow/FPGANextPNRFlow
@@ -191,8 +193,8 @@ Complete FPGA compilation flows. Each variant targets a different FPGA toolchain
 Utility Flows
 -------------
 
-Supporting flows for library QA, screenshots, format conversion, parasitic
-extraction, and interposer assembly.
+Supporting flows for library QA, screenshots, format conversion,
+:term:`parasitic extraction <PEX>`, and interposer assembly.
 
 .. schema::
   :root: siliconcompiler.flows.checklibraryflow/CheckLibraryFlow

@@ -13,8 +13,8 @@ team, or as a versioned deliverable, you package it as a standalone,
 This guide covers that packaging layer: the project layout, the
 ``pyproject.toml``, and how bundled data files are located no matter where the
 package is installed. A single package can bundle
-libraries, PDKs, flows, and even custom tool drivers, and expose them through a
-target. For the details of the individual module classes, this guide links back
+:term:`libraries <library>`, :term:`PDKs <PDK>`, :term:`flows <flow>`, and even
+custom tool drivers, and expose them through a :term:`target`. For the details of the individual module classes, this guide links back
 to :ref:`libraries <dev_libraries>`, :ref:`pdks <dev_pdks>`,
 :ref:`flows <dev_flows>`, :ref:`tools <dev_tools>`, and
 :ref:`targets <dev_targets>`. Throughout, the package is given the generic name
@@ -29,7 +29,8 @@ Distributing a library as its own package buys you:
   of copying files into each design.
 * **Versioning** — the package carries a version, so a design can pin the exact
   library revision it was signed off against.
-* **Data locality** — data files (LEF, GDS, ``.lib``, ...) travel with the
+* **Data locality** — data files (:term:`LEF`, :term:`GDS <GDSII>`,
+  :term:`.lib <Liberty>`, ...) travel with the
   package and resolve automatically, whether the package is installed from PyPI
   or in editable mode from a local checkout.
 
@@ -59,7 +60,8 @@ Every module subpackage is **optional** — include only what you ship. A packag
 might provide just a library, just a PDK, just a flow or tool driver, or any
 combination, and expose it through a target.
 
-Small data files (a hand-edited LEF, a black-box Verilog stub) can be committed
+Small data files (a hand-edited LEF, a :term:`black-box <blackbox>`
+:term:`Verilog` stub) can be committed
 directly under the relevant subpackage, e.g.
 ``mylib/libs/mymacro/mymacro.lef``. Large or proprietary data (full foundry
 decks) is usually kept *outside* the package and referenced through an
@@ -202,7 +204,7 @@ from clashing when several libraries are combined into one project.
 Two dataroot strategies
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Real libraries commonly mix two kinds of dataroot:
+Real libraries commonly mix two kinds of :term:`dataroot`:
 
 #. **Packaged data** — the per-module dataroot rooted at ``__file__`` above, for
    files committed to and shipped with the package. Use this for small files
@@ -378,11 +380,12 @@ See :ref:`flows <dev_flows>` for composing larger graphs.
 ASIC timing models and the delay model
 --------------------------------------
 
-Standard-cell timing ships in more than one format. Liberty (``.lib``) is read
-by the open-source tools; some libraries also provide a compiled, binary timing
-model (here ``.bin``) that a tool can load without parsing Liberty. A library
-keeps each format in its own fileset, tagged with a **corner** and a **delay
-model** using ``add_asic_libcornerfileset(corner, model)`` (see the library
+Standard-cell timing ships in more than one format. :term:`Liberty` (``.lib``)
+is read by the open-source tools; some libraries also provide a compiled, binary
+timing model (here ``.bin``) that a tool can load without parsing Liberty. A
+library keeps each format in its own :term:`fileset`, tagged with a
+:term:`corner` and a :term:`delay model` using
+``add_asic_libcornerfileset(corner, model)`` (see the library
 example above). By convention the compiled variant of a delay model is named
 ``<model>-bin``:
 

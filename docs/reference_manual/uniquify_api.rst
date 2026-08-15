@@ -6,8 +6,8 @@ Uniquify API
 This chapter describes the public API for hardening parameterized modules. For a
 worked walkthrough see the :ref:`uniquify tutorial <uniquify_modules>`.
 
-A hardened macro is parameter-free, so a parameterized module cannot be hardened
-and reused directly. :class:`.Uniquified` discovers the concrete parameter
+A :term:`hardened macro` is parameter-free, so a parameterized module cannot be
+hardened and reused directly. :class:`.Uniquified` discovers the concrete parameter
 combinations a design uses, generates a parameter-free variant for each (to
 harden) plus a parameterized wrapper that dispatches to them, and integrates the
 results into a SiliconCompiler flow.

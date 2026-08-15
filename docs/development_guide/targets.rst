@@ -3,7 +3,7 @@
 Defining a Target
 =================
 
-A target in SiliconCompiler is a reusable "build configuration" for a specific type of project. Think of it as a master recipe that bundles together everything needed to compile a design for a particular goal, such as creating a low-power IoT chip on the Skywater 130nm process or a high-performance block on FreePDK45.
+A :term:`target` in SiliconCompiler is a reusable "build configuration" for a specific type of project. Think of it as a master recipe that bundles together everything needed to compile a design for a particular goal, such as creating a low-power IoT chip on the Skywater 130nm process or a high-performance block on FreePDK45.
 
 Targets are implemented as simple Python functions that configure a Project object. They are loaded by directly calling the function and passing in the project to configure, making it incredibly easy to set up a complex build.
 
@@ -26,7 +26,7 @@ A full list of built-in targets can be found on the :ref:`targets <builtin_targe
 Why Create a Target?
 --------------------
 
-While you can configure a project's PDK, flow, and libraries manually, creating a target is the recommended approach for any serious project. The benefits include:
+While you can configure a project's :term:`PDK`, :term:`flow`, and :term:`libraries <library>` manually, creating a target is the recommended approach for any serious project. The benefits include:
 
 * **Encapsulation**: It bundles all technology-specific and flow-specific settings into one place.
 * **Reusability**: The same target can be used across multiple designs, ensuring consistency.
@@ -40,13 +40,13 @@ A target is a Python function that accepts a :class:`.Project` object as its fir
 1. **Load Core Components**: Set the fundamental building blocks of your compilation:
 
    * **PDK**: The process design kit for the manufacturing technology.
-   * **Flow**: The sequence of EDA tool steps to run (e.g., synthesis, place-and-route).
-   * **Libraries**: The standard cell libraries and/or macros to use.
+   * **Flow**: The sequence of EDA tool :term:`steps <step>` to run (e.g., :term:`synthesis`, :term:`place-and-route`).
+   * **Libraries**: The :term:`standard cell` libraries and/or macros to use. The primary one is the :term:`mainlib`; the rest supplement it.
 
 2. **Set Default Constraints**: Define the default goals and physical constraints for the design.
 
    * **Timing Constraints**: Clock speeds, I/O delays, and other performance goals.
-   * **Physical Constraints**: Desired die area, core utilization (density), and pin placement.
+   * **Physical Constraints**: Desired die area, core :term:`utilization` (density), and pin placement.
 
 3. **Configure Tool Options**: Set default options for specific tools in the flow, such as the number of cores to use for a given step.
 

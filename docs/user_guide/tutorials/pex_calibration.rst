@@ -4,12 +4,13 @@ Calibrating the parasitic estimate (PEX)
 ========================================
 
 Before it routes a design, OpenROAD *estimates* every net's parasitics from a
-small per-layer resistance/capacitance model -- the PDK ``rclayer`` values fed
-to ``set_layer_rc``. That estimate drives every timing-repair decision in
-place-and-route, yet it is only a model, and a PDK ships with it hand-tuned (or
-missing). This tutorial shows how to build that model, and a correction on top
-of it, **directly from the PDK's OpenRCX signoff deck** using the
-``pex_calibrate`` utility, so the routing layers no longer need hand tuning.
+small per-layer resistance/capacitance model -- the :term:`PDK` ``rclayer``
+values fed to ``set_layer_rc``. That estimate drives every timing-repair
+decision in :term:`place-and-route`, yet it is only a model, and a PDK ships
+with it hand-tuned (or missing). This tutorial shows how to build that model,
+and a correction on top of it, **directly from the PDK's OpenRCX
+:term:`signoff` deck** using the ``pex_calibrate`` utility, so the
+:term:`routing` layers no longer need hand tuning.
 (Vias and any layer the bench cannot reproduce still come from whatever the PDK
 already prescribes -- see the note below.)
 
@@ -17,18 +18,19 @@ already prescribes -- see the note below.)
    :class: note
 
    This is an advanced, PDK-owner-facing tutorial. It assumes you are
-   comfortable with parasitic extraction and signoff (OpenRCX decks, SPEF),
-   per-layer R/C models and ``set_layer_rc``, PDK process corners, and the
+   comfortable with parasitic extraction and signoff (OpenRCX decks,
+   :term:`SPEF`), per-layer R/C models and ``set_layer_rc``, PDK process
+   :term:`corners <corner>`, and the
    difference between global-route and detailed-route wirelength. You also need:
 
    * a target whose PDK ships an OpenRCX deck
      (``pdk.add_pexmodelfileset("openroad", ...)`` with an ``openrcx`` file --
      see :ref:`dev_pdks`),
-   * a working OpenROAD ASIC flow for that target (the survey routes real
+   * a working OpenROAD :term:`ASIC` flow for that target (the survey routes real
      designs end to end), and
    * OpenROAD **26Q3-23 or newer**. Both extraction tasks select the deck with
      ``set_extraction_rules_file`` and the calibration walks parasitics through
-     the multi-corner STA scene API; the tasks declare this floor, so an older
+     the multi-corner :term:`STA` scene API; the tasks declare this floor, so an older
      install is rejected up front rather than failing mid-run.
 
    If you only want to *use* a PDK that is already calibrated, you do not need
@@ -176,7 +178,8 @@ without editing the PDK, call ``set_openroad_applypexcorrection(False)`` on the
 place-and-route task. During the derivation survey the
 PDK carries no correction, so the ``calibrate`` node measures the *uncorrected*
 estimate the factor is derived from. The bench models every corner the deck
-ships, but the survey only calibrates the corners wired into a timing scenario;
+ships, but the survey only calibrates the corners wired into a timing
+:term:`scenario`;
 the calibration step warns about any modeled corner it does not cover, so a
 corner that will keep the uncalibrated estimate is not a silent surprise.
 
@@ -328,10 +331,10 @@ How it works
   fresh process, extract with the deck, walk segments -> per-layer R/C). It runs
   on a dummy ``openroad_bench`` design so the bench job stays out of a real
   design's build directory, and it needs no design of its own -- only the tech
-  LEF and the OpenRCX deck.
+  :term:`LEF` and the OpenRCX deck.
 * ``PEXCalibrateFlow`` (``siliconcompiler.flows.openroad_pex``): the core ASIC
-  flow (synthesis through routing) with a ``calibrate`` node in place of the
-  view/GDS write. The ``calibrate`` node records the pre-route estimate per net,
+  flow (:term:`synthesis` through routing) with a ``calibrate`` node in place of
+  the view/:term:`GDS <GDSII>` write. The ``calibrate`` node records the pre-route estimate per net,
   then extracts the golden reference (``extract_parasitics -max_res 0
   -no_merge_via_res``) and walks the per-segment parasitics into per-layer
   capacitance and length.

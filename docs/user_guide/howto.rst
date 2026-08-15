@@ -399,7 +399,7 @@ end to end, including producing the macro from a first build.
 Harden a parameterized module so I can reuse it as a macro
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A hardened macro has no parameters, so a parameterized module cannot be
+A :term:`hardened macro` has no parameters, so a parameterized module cannot be
 hardened directly. Use :class:`.Uniquified`, which generates a parameter-free
 variant per used parameter combination plus a wrapper that dispatches to
 them. See the :ref:`uniquify tutorial <uniquify_modules>` and the

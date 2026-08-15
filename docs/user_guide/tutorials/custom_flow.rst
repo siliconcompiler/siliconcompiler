@@ -4,8 +4,8 @@
 Authoring a Custom Flow
 ##########################
 
-The built-in flows cover the usual paths -- lint, synthesis, RTL-to-GDSII,
-signoff. Sooner or later you want something they do not do: an extra check
+The built-in flows cover the usual paths -- :term:`lint`, :term:`synthesis`,
+:term:`RTL`-to-:term:`GDSII`, :term:`signoff`. Sooner or later you want something they do not do: an extra check
 between two steps, a tool the standard flow does not run, or a pipeline
 assembled out of pieces of several flows.
 
@@ -104,9 +104,9 @@ Reusing pieces
 ==============
 
 Flows compose. :meth:`.Flowgraph.graph` splices an existing flow in as a
-subgraph, which is how the built-in flows are built out of each other -- the ASIC
-flow is a floorplanning flow, a placement flow, a routing flow and more, joined
-together:
+subgraph, which is how the built-in flows are built out of each other -- the
+:term:`ASIC` flow is a :term:`floorplanning <floorplan>` flow, a
+:term:`placement` flow, a :term:`routing` flow and more, joined together:
 
 .. code-block:: python
 
