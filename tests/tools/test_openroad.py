@@ -1705,16 +1705,19 @@ def test_openroad_fillmetal_insertion_uses_fill_runset(asic_gcd, tmp_path):
 
     pdk = asic_gcd.get_library(asic_gcd.get("asic", "pdk"))
     fileset = _add_fill_deck(pdk, tmp_path)
+    # A deck left behind in the deprecated APR tech fileset, to prove it loses.
+    legacy = _add_fill_deck(pdk, tmp_path, name="legacy", runset=False, aprtech=True)
 
     task = _setup_node(asic_gcd, "dfm.metal_fill")
     require = task.get("require")
 
     # The deck resolves without configuration when the PDK ships exactly one.
     assert task.get("var", "fill_name", step="dfm.metal_fill", index="0") == "beol"
+    assert "tool,openroad,task,fillmetal_insertion,var,fill_name" in require
     assert f"library,{pdk.name},pdk,fill,runsetfileset,openroad,beol" in require
     assert f"library,{pdk.name},fileset,{fileset},file,fill" in require
     # The deprecated APR tech fileset is not consulted when a deck resolves.
-    assert "tool,openroad,task,fillmetal_insertion,var,fill_name" in require
+    assert f"library,{pdk.name},fileset,{legacy},file,fill" not in require
 
 
 def test_openroad_fillmetal_insertion_selects_named_deck(asic_gcd, tmp_path):
@@ -2310,13 +2313,14 @@ def test_openroad_init_floorplan_derives_corearea_from_coremargin(asic_gcd):
     # density driven sizing and discard the requested die.
     # https://github.com/siliconcompiler/siliconcompiler/issues/5217
     area = asic_gcd.constraint.area
-    area.set_dieoutline(500, 500)
+    # Asymmetric so a transposed width/height is visible in the derived core.
+    area.set_dieoutline(300, 600)
     assert area.get_coremargin() == 1.0, "freepdk45 must supply a core margin"
 
     require = _setup_node(asic_gcd, "floorplan.init").get("require")
 
-    assert area.get_diearea(step="floorplan.init", index="0") == [(0.0, 0.0), (500.0, 500.0)]
-    assert area.get_corearea(step="floorplan.init", index="0") == [(1.0, 1.0), (499.0, 499.0)]
+    assert area.get_diearea(step="floorplan.init", index="0") == [(0.0, 0.0), (300.0, 600.0)]
+    assert area.get_corearea(step="floorplan.init", index="0") == [(1.0, 1.0), (299.0, 599.0)]
 
     assert "constraint,area,diearea" in require
     assert "constraint,area,corearea" in require
@@ -2358,13 +2362,14 @@ def test_openroad_init_floorplan_explicit_areas(asic_gcd):
 
 def test_openroad_init_floorplan_derives_corearea_no_coremargin(asic_gcd):
     area = asic_gcd.constraint.area
-    area.set_dieoutline(500, 500)
+    # Asymmetric so a transposed width/height is visible in the derived core.
+    area.set_dieoutline(300, 600)
     area.unset("coremargin")
 
     require = _setup_node(asic_gcd, "floorplan.init").get("require")
 
-    assert area.get_diearea(step="floorplan.init", index="0") == [(0.0, 0.0), (500.0, 500.0)]
-    assert area.get_corearea(step="floorplan.init", index="0") == [(0.0, 0.0), (500.0, 500.0)]
+    assert area.get_diearea(step="floorplan.init", index="0") == [(0.0, 0.0), (300.0, 600.0)]
+    assert area.get_corearea(step="floorplan.init", index="0") == [(0.0, 0.0), (300.0, 600.0)]
 
     assert "constraint,area,diearea" in require
     assert "constraint,area,corearea" in require
