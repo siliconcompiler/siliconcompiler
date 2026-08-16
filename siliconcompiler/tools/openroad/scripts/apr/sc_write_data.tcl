@@ -23,8 +23,10 @@ if { [sc_cfg_tool_task_get var ord_abstract_lef_bloat_layers] } {
         "-bloat_factor" \
         [sc_cfg_tool_task_get var ord_abstract_lef_bloat_factor]
 }
+lappend lef_args "outputs/${sc_topmodule}.lef"
+
 sc_report_args -command write_abstract_lef -args $lef_args
-write_abstract_lef {*}$lef_args "outputs/${sc_topmodule}.lef"
+write_abstract_lef {*}$lef_args
 
 ###############################
 # Generate CDL

@@ -87,11 +87,13 @@ proc sc_global_placement { args } {
 
     set density [sc_global_placement_density]
 
-    sc_report_args -command global_placement -args $gpl_args
-    global_placement {*}$gpl_args \
+    lappend gpl_args \
         -density $density \
         -pad_left $gpl_padding \
         -pad_right $gpl_padding
+
+    sc_report_args -command global_placement -args $gpl_args
+    global_placement {*}$gpl_args
 }
 
 ###########################
@@ -483,11 +485,13 @@ proc sc_pin_placement { args } {
     set sc_hpinmetal [sc_cfg_tool_task_get var pin_layer_horizontal]
     set sc_vpinmetal [sc_cfg_tool_task_get var pin_layer_vertical]
 
-    sc_report_args -command place_pins -args $ppl_args
-    place_pins \
+    set ppl_args [list \
         -hor_layers [sc_get_layer_name $sc_hpinmetal] \
         -ver_layers [sc_get_layer_name $sc_vpinmetal] \
-        {*}$ppl_args
+        {*}$ppl_args]
+
+    sc_report_args -command place_pins -args $ppl_args
+    place_pins {*}$ppl_args
 }
 
 ###########################
@@ -1284,38 +1288,141 @@ proc sc_report_check_timing { } {
     }
 }
 
-proc sc_report_scene_timing { args } {
-    sta::parse_key_args "sc_report_scene_timing" args \
-        keys {-delay -name -fields -top_paths} \
-        flags {}
+proc sc_write_report_line { file line } {
+    set fid [open $file w]
+    puts $fid $line
+    close $fid
+}
 
+proc sc_timing_scenes { } {
     global sc_scenarios
 
     if { [sc_has_sta_mcmm_support] } {
         set scenes $sc_scenarios
-        set scene_arg "-scenes"
     } else {
         set scenes []
         foreach corner [sta::corners] {
             lappend scenes [$corner name]
         }
-        set scene_arg "-corner"
     }
 
     # A single scene would just duplicate the combined timing reports
     if { [llength $scenes] <= 1 } {
+        return []
+    }
+
+    return $scenes
+}
+
+# Worst slack and TNS have no public report command that accepts a scene, so they are
+# mirrored from the scene-aware accessors, which only exist in builds carrying the scene
+# timing model.
+proc sc_has_scene_slack { } {
+    return [expr { [info commands sta::worst_slack_scene] ne "" }]
+}
+
+# The reports sc_report_scene_timing will write, so the section banner can name them all
+# up front instead of announcing them one by one after the combined output.
+proc sc_scene_timing_reports { args } {
+    sta::parse_key_args "sc_scene_timing_reports" args \
+        keys {-name} \
+        flags {-unconstrained}
+
+    set reports []
+    foreach scene [sc_timing_scenes] {
+        set dir "reports/timing/scenarios/${scene}"
+        set base "${dir}/$keys(-name).${scene}"
+
+        lappend reports ${base}.rpt ${base}.topN.rpt
+
+        if { [info exists flags(-unconstrained)] } {
+            continue
+        }
+
+        lappend reports ${base}.failing.rpt ${base}.endpoints.rpt
+
+        if { [sc_has_scene_slack] } {
+            lappend reports \
+                ${dir}/worst_slack.$keys(-name).${scene}.rpt \
+                ${dir}/total_negative_slack.$keys(-name).${scene}.rpt
+        }
+    }
+
+    return $reports
+}
+
+proc sc_report_scene_timing { args } {
+    sta::parse_key_args "sc_report_scene_timing" args \
+        keys {-delay -name -fields -top_paths} \
+        flags {-unconstrained}
+
+    global sta_report_default_digits
+
+    set scenes [sc_timing_scenes]
+    if { [llength $scenes] == 0 } {
         return
     }
 
+    if { [sc_has_sta_mcmm_support] } {
+        set scene_arg "-scenes"
+    } else {
+        set scene_arg "-corner"
+    }
+
+    # Mirror the combined reports exactly, adding only the scene selector. Each scene gets
+    # its own directory, so the file names match their combined counterparts. Unconstrained
+    # paths have no failing/endpoints counterpart, so they stop after topN.
+    set unconstrained [info exists flags(-unconstrained)]
+    if { $unconstrained } {
+        set path_sel "-unconstrained"
+        set full_extra "-path_group unconstrained"
+    } else {
+        set path_sel "-path_delay $keys(-delay)"
+        set full_extra ""
+    }
+
+    # The scene is repeated in the file name, not just the directory, so reports gathered
+    # from several scenes into one place stay unique without renaming.
     foreach scene $scenes {
-        puts "report: reports/timing/$keys(-name).${scene}.rpt"
-        tee -quiet -file reports/timing/$keys(-name).${scene}.rpt \
-            "report_checks -sort_by_slack -fields $keys(-fields) -path_delay $keys(-delay) \
-            -format full_clock_expanded $scene_arg $scene"
-        puts "report: reports/timing/$keys(-name).topN.${scene}.rpt"
-        tee -quiet -file reports/timing/$keys(-name).topN.${scene}.rpt \
-            "report_checks -sort_by_slack -fields $keys(-fields) -path_delay $keys(-delay) \
+        set dir "reports/timing/scenarios/${scene}"
+        file mkdir $dir
+        set base "${dir}/$keys(-name).${scene}"
+
+        tee -quiet -file ${base}.rpt \
+            "report_checks -sort_by_slack -fields $keys(-fields) $path_sel \
+            -format full_clock_expanded $full_extra $scene_arg $scene"
+
+        tee -quiet -file ${base}.topN.rpt \
+            "report_checks -sort_by_slack -fields $keys(-fields) $path_sel \
             -group_path_count $keys(-top_paths) $scene_arg $scene"
+
+        if { $unconstrained } {
+            continue
+        }
+
+        tee -quiet -file ${base}.failing.rpt \
+            "report_checks -sort_by_slack $path_sel -slack_max 0 -endpoint_path_count 1 \
+            -group_path_count $keys(-top_paths) -format short $scene_arg $scene"
+
+        tee -quiet -file ${base}.endpoints.rpt \
+            "report_checks -sort_by_slack $path_sel -endpoint_path_count 1 \
+            -group_path_count $keys(-top_paths) -format end $scene_arg $scene"
+
+        if { ![sc_has_scene_slack] } {
+            continue
+        }
+
+        set scene_obj [sta::find_scene $scene]
+        set scene_slack [sta::format_time \
+            [sta::worst_slack_scene $scene_obj $keys(-delay)] $sta_report_default_digits]
+        set scene_tns [sta::format_time \
+            [sta::total_negative_slack_scene_cmd $scene_obj $keys(-delay)] \
+            $sta_report_default_digits]
+
+        sc_write_report_line ${dir}/worst_slack.$keys(-name).${scene}.rpt \
+            "worst slack $keys(-delay) $scene_slack"
+        sc_write_report_line ${dir}/total_negative_slack.$keys(-name).${scene}.rpt \
+            "tns $keys(-delay) $scene_tns"
     }
 }
 
@@ -1366,11 +1473,15 @@ proc sc_report_args { args } {
 
     sta::check_argc_eq0 "sc_report_args" $args
 
-    if { [llength $keys(-args)] == 0 } {
-        return
+    # Report the empty list explicitly. Most commands take no arguments by default, and
+    # staying silent there is indistinguishable from the command never running or from
+    # the reporting being broken.
+    set reported $keys(-args)
+    if { [llength $reported] == 0 } {
+        set reported "<none>"
     }
 
-    puts "$keys(-command) siliconcompiler arguments: $keys(-args)"
+    puts "$keys(-command) siliconcompiler arguments: $reported"
 }
 
 proc sc_global_connections { args } {
@@ -1582,4 +1693,28 @@ proc sc_setup_pex { args } {
             set_layer_rc {*}$corner_args -via $layer -resistance $res
         }
     }
+}
+
+proc sc_get_fill_rules { pdk } {
+    # Returns the PDK metal fill rules files, or an empty list when the PDK ships
+    # none. The task resolves which deck to use and records it in the fill_name
+    # variable, so only that one deck is read here.
+    if { [sc_cfg_tool_task_exists var fill_name] } {
+        set fill_name [sc_cfg_tool_task_get var fill_name]
+        if {
+            $fill_name != "" &&
+            [sc_cfg_exists library $pdk pdk fill runsetfileset openroad $fill_name]
+        } {
+            set fileset [sc_cfg_get library $pdk pdk fill runsetfileset openroad $fill_name]
+            return [sc_cfg_get_fileset $pdk $fileset fill]
+        }
+    }
+
+    # Deprecated: PDKs used to register the fill rules in the OpenROAD APR tech
+    # fileset. Keep reading that until those PDKs move to the fill runset section.
+    if { ![sc_cfg_exists library $pdk pdk aprtechfileset openroad] } {
+        return []
+    }
+    set aprfileset [sc_cfg_get library $pdk pdk aprtechfileset openroad]
+    return [sc_cfg_get_fileset $pdk $aprfileset fill]
 }

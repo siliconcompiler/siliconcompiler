@@ -40,11 +40,11 @@ if { ![sc_cfg_tool_task_get var rsz_skip_drv_repair] } {
 
     estimate_parasitics $parasitics_stage
 
-    set repair_design_args [sc_repair_design_args]
-    sc_report_args -command repair_design -args $repair_design_args
-    repair_design \
+    set repair_design_args [list \
         -verbose \
-        {*}$repair_design_args
+        {*}[sc_repair_design_args]]
+    sc_report_args -command repair_design -args $repair_design_args
+    repair_design {*}$repair_design_args
 
     sc_detailed_placement -congestion_report reports/route/congestion.drv.rpt
 
@@ -62,15 +62,15 @@ if { ![sc_cfg_tool_task_get var rsz_skip_setup_repair] } {
 
     estimate_parasitics $parasitics_stage
 
-    set repair_args [sc_repair_timing_args setup]
-    sc_report_args -command repair_timing -args $repair_args
-    repair_timing \
+    set repair_args [list \
         -setup \
         -verbose \
         -setup_margin $rsz_setup_slack_margin \
         -hold_margin $rsz_hold_slack_margin \
         -repair_tns $rsz_repair_tns \
-        {*}$repair_args
+        {*}[sc_repair_timing_args setup]]
+    sc_report_args -command repair_timing -args $repair_args
+    repair_timing {*}$repair_args
 
     sc_detailed_placement -congestion_report reports/route/congestion.setup_repair.rpt
 
@@ -88,15 +88,15 @@ if { ![sc_cfg_tool_task_get var rsz_skip_hold_repair] } {
     # Enable hold cells
     sc_set_dont_use -hold -scanchain -multibit -report dont_use.repair_timing.hold
 
-    set repair_args [sc_repair_timing_args hold]
-    sc_report_args -command repair_timing -args $repair_args
-    repair_timing \
+    set repair_args [list \
         -hold \
         -verbose \
         -setup_margin $rsz_setup_slack_margin \
         -hold_margin $rsz_hold_slack_margin \
         -repair_tns $rsz_repair_tns \
-        {*}$repair_args
+        {*}[sc_repair_timing_args hold]]
+    sc_report_args -command repair_timing -args $repair_args
+    repair_timing {*}$repair_args
 
     sc_detailed_placement -congestion_report reports/route/congestion.hold_repair.rpt
 
@@ -114,13 +114,13 @@ if { ![sc_cfg_tool_task_get var rsz_skip_wns_repair] } {
 
     estimate_parasitics $parasitics_stage
 
-    set repair_args [sc_repair_timing_args wns]
-    sc_report_args -command repair_timing -args $repair_args
-    repair_timing \
+    set repair_args [list \
         -setup \
         -verbose \
         -setup_margin $rsz_setup_slack_margin \
-        {*}$repair_args
+        {*}[sc_repair_timing_args wns]]
+    sc_report_args -command repair_timing -args $repair_args
+    repair_timing {*}$repair_args
 
     sc_detailed_placement -congestion_report reports/route/congestion.wns_repair.rpt
 
@@ -138,14 +138,14 @@ if { ![sc_cfg_tool_task_get var rsz_skip_recover_power] } {
     # Enable cells
     sc_set_dont_use -hold -scanchain -multibit -report dont_use.repair_timing.power
 
-    set repair_args [sc_repair_timing_args power]
-    sc_report_args -command repair_timing -args $repair_args
-    repair_timing \
+    set repair_args [list \
         -recover_power $rsz_recover_power \
         -verbose \
         -setup_margin $rsz_setup_slack_margin \
         -hold_margin $rsz_hold_slack_margin \
-        {*}$repair_args
+        {*}[sc_repair_timing_args power]]
+    sc_report_args -command repair_timing -args $repair_args
+    repair_timing {*}$repair_args
 
     sc_detailed_placement -congestion_report reports/route/congestion.power_recovery.rpt
 

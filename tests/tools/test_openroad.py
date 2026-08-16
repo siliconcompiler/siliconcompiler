@@ -8,6 +8,7 @@ from siliconcompiler import Flowgraph
 from siliconcompiler import TaskSkip
 
 from siliconcompiler.flows.asicflow import ASICFlow
+from siliconcompiler.flows.interposerflow import InterposerFlow
 from siliconcompiler.flows.openroad_pex import (
     GenerateOpenRCXFlow,
     GeneratePEXEstimateFlow,
@@ -112,6 +113,69 @@ def test_metrics_task(asic_gcd):
         None
     assert asic_gcd.history("job0").get('metric', 'totalarea', step='metrics', index='0') is not \
         None
+
+    # A single scenario duplicates the combined reports, so none are written
+    assert not os.path.exists(os.path.join(
+        workdir(asic_gcd, step="metrics", index="0"), "reports", "timing", "scenarios"))
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_metrics_task_scenario_reports(asic_gcd):
+    '''Per-scene timing reports are only written when more than one scene exists.'''
+    # freepdk45_demo defines only "typical"; add a second scenario so the
+    # per-scene reports are generated.
+    scenario = asic_gcd.constraint.timing.make_scenario("extra")
+    scenario.add_libcorner(["typical", "generic"])
+    scenario.set_pexcorner("typical")
+    scenario.add_check(["setup", "hold"])
+
+    flow = ASICFlow("testflow")
+    flow.node("metrics", metrics.MetricsTask())
+    flow.edge('floorplan.init', 'metrics')
+
+    asic_gcd.set_flow(flow)
+    asic_gcd.set('option', 'to', 'metrics')
+    assert asic_gcd.run()
+
+    reports = os.path.join(
+        workdir(asic_gcd, step="metrics", index="0"), "reports", "timing", "scenarios")
+    # One directory per scene, each holding the same report set. The scene is repeated in
+    # the file name so the reports stay unique if gathered into one place.
+    assert set(os.listdir(reports)) == {"typical", "extra"}
+    for scene in ("typical", "extra"):
+        expected = set()
+        for delay in ("setup", "hold"):
+            for variant in ("", "topN.", "failing.", "endpoints."):
+                expected.add(f"{delay}.{scene}.{variant}rpt")
+            expected.add(f"worst_slack.{delay}.{scene}.rpt")
+            expected.add(f"total_negative_slack.{delay}.{scene}.rpt")
+        for variant in ("", "topN."):
+            expected.add(f"unconstrained.{scene}.{variant}rpt")
+
+        scene_dir = os.path.join(reports, scene)
+        assert set(os.listdir(scene_dir)) == expected
+
+        for report in expected:
+            assert os.path.getsize(os.path.join(scene_dir, report)) > 0, f"{scene}/{report}"
+
+    # The section banner must name every per-scene report that gets written, so the log
+    # section stays one block instead of announcing files after the combined output.
+    written = set()
+    for scene in os.listdir(reports):
+        for report in os.listdir(os.path.join(reports, scene)):
+            written.add(f"reports/timing/scenarios/{scene}/{report}")
+
+    logfile = os.path.join(workdir(asic_gcd, step="metrics", index="0"), "metrics.log")
+    prefix = "== report: reports/timing/scenarios/"
+    with open(logfile) as f:
+        announced = [line.strip()[len("== report: "):] for line in f
+                     if line.startswith(prefix)]
+
+    # Kept as a list so a report announced twice is caught rather than deduplicated away
+    assert len(announced) == len(set(announced))
+    assert set(announced) == written
 
 
 @pytest.mark.eda
@@ -1596,13 +1660,34 @@ def test_openroad_fillmetal_insertion_skips_when_disabled(asic_gcd):
         assert node.setup() is False
 
 
+def _add_fill_deck(pdk, tmp_path, name="beol", fileset=None, runset=True, aprtech=False):
+    """Register a metal fill deck on a PDK the way a PDK author would."""
+    fileset = fileset or f"openroad.fill.{name}"
+    rules = tmp_path / f"{name}.fill.json"
+    rules.write_text("{}")
+
+    pdk.set_dataroot("fill-pytest", str(tmp_path))
+    with pdk.active_dataroot("fill-pytest"), pdk.active_fileset(fileset):
+        pdk.add_file(rules.name, filetype="fill")
+        if runset:
+            pdk.add_runsetfileset("fill", "openroad", name)
+        if aprtech:
+            pdk.add_aprtechfileset("openroad")
+    return fileset
+
+
 def test_openroad_fillmetal_insertion_skips_without_pdk_rules(asic_gcd):
     """Fill enabled but no PDK fill file to work from still skips the node."""
     fillmetal_insertion.FillMetalTask.find_task(asic_gcd).set_openroad_addfill(True)
 
-    # Drop any fill rules the PDK ships so the skip is exercised regardless of
-    # what freepdk45 provides.
+    # Drop any fill rules the PDK ships, from both the fill runset section and the
+    # deprecated APR tech fileset, so the skip is exercised regardless of what
+    # freepdk45 provides.
     pdk = asic_gcd.get_library(asic_gcd.get("asic", "pdk"))
+    if pdk.valid("pdk", "fill", "runsetfileset", "openroad"):
+        for name in pdk.getkeys("pdk", "fill", "runsetfileset", "openroad"):
+            for fileset in pdk.get("pdk", "fill", "runsetfileset", "openroad", name):
+                pdk.unset("fileset", fileset, "file", "fill")
     for fileset in pdk.get("pdk", "aprtechfileset", "openroad"):
         pdk.unset("fileset", fileset, "file", "fill")
 
@@ -1612,6 +1697,86 @@ def test_openroad_fillmetal_insertion_skips_without_pdk_rules(asic_gcd):
         with pytest.raises(TaskSkip, match="^no metal fill rules are available$"):
             node.task.setup()
         assert node.setup() is False
+
+
+def test_openroad_fillmetal_insertion_uses_fill_runset(asic_gcd, tmp_path):
+    """A deck registered in the fill runset section is found and required."""
+    fillmetal_insertion.FillMetalTask.find_task(asic_gcd).set_openroad_addfill(True)
+
+    pdk = asic_gcd.get_library(asic_gcd.get("asic", "pdk"))
+    fileset = _add_fill_deck(pdk, tmp_path)
+
+    task = _setup_node(asic_gcd, "dfm.metal_fill")
+    require = task.get("require")
+
+    # The deck resolves without configuration when the PDK ships exactly one.
+    assert task.get("var", "fill_name", step="dfm.metal_fill", index="0") == "beol"
+    assert f"library,{pdk.name},pdk,fill,runsetfileset,openroad,beol" in require
+    assert f"library,{pdk.name},fileset,{fileset},file,fill" in require
+    # The deprecated APR tech fileset is not consulted when a deck resolves.
+    assert "tool,openroad,task,fillmetal_insertion,var,fill_name" in require
+
+
+def test_openroad_fillmetal_insertion_selects_named_deck(asic_gcd, tmp_path):
+    """fill_name picks between decks when the PDK ships more than one."""
+    task = fillmetal_insertion.FillMetalTask.find_task(asic_gcd)
+    task.set_openroad_addfill(True)
+    task.set_openroad_fillname("feol")
+
+    pdk = asic_gcd.get_library(asic_gcd.get("asic", "pdk"))
+    _add_fill_deck(pdk, tmp_path, name="beol")
+    feol = _add_fill_deck(pdk, tmp_path, name="feol")
+
+    require = _setup_node(asic_gcd, "dfm.metal_fill").get("require")
+
+    assert f"library,{pdk.name},pdk,fill,runsetfileset,openroad,feol" in require
+    assert f"library,{pdk.name},fileset,{feol},file,fill" in require
+    assert f"library,{pdk.name},pdk,fill,runsetfileset,openroad,beol" not in require
+
+
+def test_openroad_fillmetal_insertion_ambiguous_deck_errors(asic_gcd, tmp_path):
+    """Two decks and no selection is an error rather than an arbitrary pick."""
+    fillmetal_insertion.FillMetalTask.find_task(asic_gcd).set_openroad_addfill(True)
+
+    pdk = asic_gcd.get_library(asic_gcd.get("asic", "pdk"))
+    _add_fill_deck(pdk, tmp_path, name="beol")
+    _add_fill_deck(pdk, tmp_path, name="feol")
+
+    node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
+    with node.runtime():
+        with pytest.raises(ValueError,
+                           match=r"provides more than one metal fill deck, "
+                                 r"select one with fill_name: beol, feol$"):
+            node.task.setup()
+
+
+def test_openroad_fillmetal_insertion_unknown_deck_errors(asic_gcd, tmp_path):
+    """A fill_name the PDK does not provide is reported, not silently ignored."""
+    task = fillmetal_insertion.FillMetalTask.find_task(asic_gcd)
+    task.set_openroad_addfill(True)
+    task.set_openroad_fillname("nope")
+
+    pdk = asic_gcd.get_library(asic_gcd.get("asic", "pdk"))
+    _add_fill_deck(pdk, tmp_path, name="beol")
+
+    node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
+    with node.runtime():
+        with pytest.raises(ValueError,
+                           match=r"^nope is not a metal fill deck provided by .*, "
+                                 r"available decks are: beol$"):
+            node.task.setup()
+
+
+def test_openroad_fillmetal_insertion_aprtechfileset_fallback(asic_gcd, tmp_path):
+    """Deprecated: PDKs that still register fill in the APR tech fileset work."""
+    fillmetal_insertion.FillMetalTask.find_task(asic_gcd).set_openroad_addfill(True)
+
+    pdk = asic_gcd.get_library(asic_gcd.get("asic", "pdk"))
+    fileset = _add_fill_deck(pdk, tmp_path, runset=False, aprtech=True)
+
+    require = _setup_node(asic_gcd, "dfm.metal_fill").get("require")
+
+    assert f"library,{pdk.name},fileset,{fileset},file,fill" in require
 
 
 def test_openroad_fillmetal_insertion_disabled_still_runs_with_a_script(asic_gcd):
@@ -2305,6 +2470,39 @@ def test_openroad_pex_bench_extract_setup_requires_openrcx(asic_gcd):
         _setup_node(asic_gcd, "extract")
 
 
+def test_openroad_pex_bench_tolerates_non_lef_aprtechfileset(asic_gcd, tmp_path):
+    """An APR tech fileset without a LEF must not be required to carry one.
+
+    https://github.com/siliconcompiler/siliconcompiler/issues/5250 -- PDKs put
+    non-LEF filesets (fill rules, tracks, viarules) in aprtechfileset, and
+    requiring a LEF from each blocked the PEX bench before any tool ran.
+    """
+    asic_gcd.set_flow(GeneratePEXEstimateFlow())
+
+    pdk = asic_gcd.get_library(str(asic_gcd.get("asic", "pdk")))
+    fileset = _add_fill_deck(pdk, tmp_path, runset=False, aprtech=True)
+    assert fileset in pdk.get("pdk", "aprtechfileset", "openroad")
+
+    require = _setup_node(asic_gcd, "bench").get("require")
+
+    assert f"library,{pdk.name},fileset,{fileset},file,lef" not in require
+    # The filesets that do carry a tech LEF are still required.
+    assert any(r.endswith(",file,lef") for r in require)
+
+
+def test_openroad_pex_bench_requires_a_tech_lef(asic_gcd):
+    """No tech LEF anywhere means the bench cannot be built at all."""
+    asic_gcd.set_flow(GeneratePEXEstimateFlow())
+
+    pdk = asic_gcd.get_library(str(asic_gcd.get("asic", "pdk")))
+    for fileset in pdk.get("pdk", "aprtechfileset", "openroad"):
+        pdk.unset("fileset", fileset, "file", "lef")
+
+    with pytest.raises(ValueError,
+                       match=r"^freepdk45 does not provide a tech LEF for openroad$"):
+        _setup_node(asic_gcd, "bench")
+
+
 @pytest.mark.timeout(30)
 def test_openroad_calibrate_pex_setup(asic_gcd):
     asic_gcd.set_flow(PEXCalibrateFlow())
@@ -2488,6 +2686,46 @@ def test_openroad_rdlroute_parameter_add_fill():
     task.set_openroad_addfill(False, step='rdlroute', index='1')
     assert task.get("var", "fin_add_fill", step='rdlroute', index='1') is False
     assert task.get("var", "fin_add_fill") is True
+
+
+@pytest.mark.parametrize("task_cls", [
+    fillmetal_insertion.FillMetalTask,
+    rdlroute.RDLRouteTask,
+])
+def test_openroad_parameter_fill_name(task_cls):
+    task = task_cls()
+    task.set_openroad_fillname("beol")
+    assert task.get("var", "fill_name") == "beol"
+    task.set_openroad_fillname("feol", step=task.task(), index='1')
+    assert task.get("var", "fill_name", step=task.task(), index='1') == "feol"
+    assert task.get("var", "fill_name") == "beol"
+
+
+def test_openroad_rdlroute_requires_fill_deck(asic_gcd, tmp_path):
+    """sc_rdlroute.tcl runs its own fill, so the deck has to be hashed and copied."""
+    asic_gcd.set_flow(InterposerFlow())
+    rdlroute.RDLRouteTask.find_task(asic_gcd).set_openroad_addfill(True)
+
+    pdk = asic_gcd.get_library(str(asic_gcd.get("asic", "pdk")))
+    fileset = _add_fill_deck(pdk, tmp_path)
+
+    require = _setup_node(asic_gcd, "rdlroute").get("require")
+
+    assert f"library,{pdk.name},pdk,fill,runsetfileset,openroad,beol" in require
+    assert f"library,{pdk.name},fileset,{fileset},file,fill" in require
+
+
+def test_openroad_rdlroute_skips_fill_deck_when_disabled(asic_gcd, tmp_path):
+    """Fill off means the deck is neither resolved nor required."""
+    asic_gcd.set_flow(InterposerFlow())
+    rdlroute.RDLRouteTask.find_task(asic_gcd).set_openroad_addfill(False)
+
+    pdk = asic_gcd.get_library(str(asic_gcd.get("asic", "pdk")))
+    fileset = _add_fill_deck(pdk, tmp_path)
+
+    require = _setup_node(asic_gcd, "rdlroute").get("require")
+
+    assert f"library,{pdk.name},fileset,{fileset},file,fill" not in require
 
 
 def test_openroad_repair_design_parameter_tie_separation():

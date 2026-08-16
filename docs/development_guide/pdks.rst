@@ -3,7 +3,7 @@
 Defining a Process Design Kit (PDK)
 ===================================
 
-In semiconductor design, a Process Design Kit (PDK) contains all the technology-specific data—such as transistor models, layout rules, and standard cell libraries—required to manufacture a chip on a particular process node.
+In semiconductor design, a Process Design Kit (:term:`PDK`) contains all the technology-specific data—such as transistor models, layout rules, and :term:`standard cell` :term:`libraries <library>`—required to manufacture a chip on a particular process node.
 These kits are often complex and vary significantly between foundries.
 
 SiliconCompiler simplifies this by providing a standardized Python object, the :class:`.PDK`, to define and package a PDK.
@@ -29,8 +29,8 @@ Key Concepts
 
 A :class:`.PDK` is built around two main concepts:
 
-* **Metadata**: High-level information that describes the manufacturing process, such as the foundry, process node (e.g., 28nm), and metal stackup. This data is essential for design tools and for calculating manufacturing metrics.
-* **Filesets**: A "fileset" is a named group of files that serve a specific purpose. For example, a views.lef fileset contains all the LEF files needed for abstract layout views, while a models.spice fileset would contain SPICE models for simulation. This organization ensures that each tool gets exactly the files it needs.
+* **Metadata**: High-level information that describes the manufacturing process, such as the foundry, process node (e.g., 28nm), and metal :term:`stackup`. This data is essential for design tools and for calculating manufacturing metrics.
+* **Filesets**: A :term:`fileset` is a named group of files that serve a specific purpose. For example, a views.lef fileset contains all the :term:`LEF` files needed for abstract layout views, while a models.spice fileset would contain SPICE models for simulation. This organization ensures that each tool gets exactly the files it needs.
 
 Example: Defining a Virtual PDK
 -------------------------------

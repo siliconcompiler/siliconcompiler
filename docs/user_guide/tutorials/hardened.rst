@@ -3,13 +3,13 @@
 Instantiating a hardened module in a design
 ===========================================
 
-Hardened modules allow predictable timing, efficient placement, and scalable hierarchical ASIC design.
+Hardened modules allow predictable timing, efficient :term:`placement`, and scalable hierarchical :term:`ASIC` design.
 
-This tutorial demonstrates how to use Silicon Compiler to harden a Verilog module as a reusable macro, and then instantiate it multiple times in another module by:
+This tutorial demonstrates how to use Silicon Compiler to harden a :term:`Verilog` module as a reusable :term:`macro`, and then instantiate it multiple times in another module by:
 
 1. Setup design
-2. Synthesizing, placing, and routing **mod_and** using Silicon Compiler
-3. Packaging the resulting layout and timing models from **mod_and** as a hard macro
+2. :term:`Synthesizing <synthesis>`, :term:`placing <placement>`, and :term:`routing` **mod_and** using Silicon Compiler
+3. Packaging the resulting layout and timing models from **mod_and** as a :term:`hard macro`
 4. Running the ASIC flow on module **top**
 
 The module hardened here (**mod_and**) has no parameters. This tutorial does each
@@ -120,7 +120,7 @@ Step 3: Packaging the resulting layout and timing models from **mod_and** as a h
 -----------------------------------------------------------------------------------------
 
 Once the flow is complete, we must package the results into a StdCellLibrary.
-This object tells the tools where to find the physical views (LEF/GDS) and timing views (LIB) required by the parent design.
+This object tells the tools where to find the physical views (:term:`LEF`/:term:`GDS <GDSII>`) and timing views (:term:`LIB <Liberty>`) required by the parent design.
 We gather the results from the previous build step and register them into the library object
 
 .. literalinclude:: examples/macro_reuse/make.py

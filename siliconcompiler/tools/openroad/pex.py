@@ -16,10 +16,21 @@ class PEXBaseTask(OpenROADTask):
 
         super().setup()
 
-        # Tech LEF (routing layers) via the fileset the APR flow uses.
+        # Tech LEF (routing layers) via the fileset the APR flow uses. Only some of
+        # the APR tech filesets carry a LEF, the rest hold tracks, viarules and the
+        # like, so requiring one from every fileset would fail the run before it
+        # started.
         self.add_required_key(self.pdk, "pdk", "aprtechfileset", "openroad")
+        found = False
         for fileset in self.pdk.get("pdk", "aprtechfileset", "openroad"):
-            self.add_required_key(self.pdk, "fileset", fileset, "file", "lef")
+            if self.pdk.has_file(fileset=fileset, filetype="lef"):
+                self.add_required_key(self.pdk, "fileset", fileset, "file", "lef")
+                found = True
+
+        if not found:
+            # The bench generates its patterns from the routing layers, so without a
+            # tech LEF there is nothing to build and OpenROAD would fail later on.
+            raise ValueError(f"{self.pdk.name} does not provide a tech LEF for openroad")
 
 
 class PEXBenchTask(PEXBaseTask):

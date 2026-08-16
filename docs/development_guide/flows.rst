@@ -9,8 +9,8 @@ Building a Flowgraph
    <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_
    covers the process: branches, tests, the four lint gates, and the docs build.
 
-A flowgraph in SiliconCompiler defines the sequence of steps (or tasks) required to transform your hardware design from source code into a physical layout.
-Think of it as a recipe for your project, where each step is a specific tool run (like synthesis or place-and-route).
+A :term:`flowgraph` in SiliconCompiler defines the sequence of :term:`steps <step>` (or :term:`tasks <task>`) required to transform your hardware design from source code into a physical layout.
+Think of it as a recipe for your project, where each step is a specific :term:`tool` run (like :term:`synthesis` or :term:`place-and-route`).
 
 Flowgraphs are highly flexible and allow you to create custom compilation flows tailored to your specific needs. You can build them in two primary ways:
 
@@ -26,13 +26,13 @@ Key Concepts
 
 Before we build a flowgraph, let's define the core components:
 
-* **Node**: A node represents a single task or step in the flow. Each node is typically an instance of a Task class, which wraps a specific EDA tool (e.g., Yosys for synthesis, OpenROAD for place-and-route).
-* **Edge**: An edge defines a dependency between two nodes. If you create an edge from nodeA to nodeB, it means that nodeA must complete successfully before nodeB can begin. This creates the directed, acyclic graph that SiliconCompiler executes.
+* **Node**: A :term:`node <flowgraph node>` represents a single task or step in the flow, identified by a (step, :term:`index`) pair. Each node is typically an instance of a Task class, which wraps a specific EDA tool (e.g., Yosys for synthesis, OpenROAD for place-and-route).
+* **Edge**: An :term:`edge` defines a dependency between two nodes. If you create an edge from nodeA to nodeB, it means that nodeA must complete successfully before nodeB can begin. This creates the directed, acyclic graph that SiliconCompiler executes.
 
 Example: A Basic Synthesis Flow
 -------------------------------
 
-Here's how to build a simple flow that elaborates Verilog, runs synthesis, and then performs a timing analysis.
+Here's how to build a simple flow that :term:`elaborates <elaboration>` Verilog, runs synthesis, and then performs a timing analysis.
 This example demonstrates the fundamental :meth:`.node()` and :meth:`.edge()` API calls.
 
 We'll create a new class called SynthesisFlow that inherits from :class:`.Flowgraph`.

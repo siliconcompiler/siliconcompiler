@@ -11,7 +11,8 @@ you can put on a board needs more than that: it needs pads to bond to, supplies
 that reach them, and a ring of cells around the edge tying the two together.
 
 This tutorial builds one. The design is ``examples/padring`` -- a RISC-V
-processor with an SRAM inside a complete sky130 pad ring -- and it runs to GDSII:
+processor with an :term:`SRAM` inside a complete sky130 pad ring -- and it runs
+to :term:`GDSII`:
 
 .. code-block:: bash
 

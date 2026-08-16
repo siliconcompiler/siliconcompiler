@@ -9,7 +9,7 @@ still has to answer: are the design rules clean? Did timing close? Is there a
 written specification? Were the warnings looked at, or just tolerated?
 
 A :class:`.Checklist` is where those questions live, and where their answers get
-recorded. It turns signoff from a conversation into an object in the
+recorded. It turns :term:`signoff` from a conversation into an object in the
 :ref:`schema <data_model>` -- one that travels with the
 :term:`manifest`, so a build can be audited long after the person who ran it has
 moved on.
@@ -17,7 +17,7 @@ moved on.
 What a checklist is
 ===================
 
-A checklist is a named collection of **criteria**. Each criterion is one
+A :term:`checklist` is a named collection of **criteria**. Each criterion is one
 question, and carries the fields needed to answer it and to prove the answer
 later:
 

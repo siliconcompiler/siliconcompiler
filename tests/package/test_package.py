@@ -6,6 +6,8 @@ import shutil
 import stat
 import sys
 import tarfile
+import threading
+import time
 import zipfile
 
 import os.path
@@ -14,14 +16,17 @@ from pathlib import Path
 from unittest.mock import patch
 
 import siliconcompiler
+import siliconcompiler.package.https
 
 from siliconcompiler.package import Resolver, RemoteResolver
 from siliconcompiler.package import FileResolver, PythonPathResolver, \
     KeyPathResolver, DatarootResolver
+from siliconcompiler.package import _RESOLVERS_POPULATED
+from siliconcompiler.package.https import HTTPResolver
 from siliconcompiler.package import DataRootResolutionError
 from siliconcompiler.package.cache import PermanentResolutionError, DataSourceUnavailableError
 from siliconcompiler import utils
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.multiprocessing import MPManager, forking
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
 from siliconcompiler import Project, Design
@@ -218,6 +223,120 @@ def test_find_resolver_plugin(fake_plugins):
     assert Resolver.find_resolver("https://host/file") is PluginResolver
     # Schemes the plugin does not claim keep their built-in resolver
     assert Resolver.find_resolver("scp://host/file").__name__ == "SCPResolver"
+
+
+def test_populate_resolvers_marker_written_last(fake_plugins):
+    """The registry is not marked populated until every scheme is registered."""
+    midway = {}
+
+    def get_resolver():
+        # Plugins are loaded at the tail of population, so the registry is as
+        # complete here as it ever gets before the marker lands.
+        settings = MPManager().get_transient_settings()
+        midway["marked"] = settings.get("resolvers", _RESOLVERS_POPULATED, False)
+        midway["https"] = settings.get("resolvers", "https", None)
+        return {}
+
+    fake_plugins("path_resolver", "probe", get_resolver)
+
+    Resolver.find_resolver("https://host/file")
+
+    assert midway["marked"] is False, "marked populated while population was still running"
+    assert midway["https"] is not None, "marker check ran before https was registered"
+    assert MPManager().get_transient_settings().get("resolvers", _RESOLVERS_POPULATED) is True
+
+
+def test_find_resolver_concurrent_population(monkeypatch):
+    """
+    A thread arriving mid-population must not be told a good URI is unsupported.
+
+    The first write to the registry makes it non-empty, and the remote schemes
+    are registered last, so a second thread that treats "non-empty" as
+    "populated" looks up https before it exists. Widen that window by stalling
+    the https registration and send a crowd of threads through it.
+    """
+    real_get_resolver = siliconcompiler.package.https.get_resolver
+
+    def slow_get_resolver():
+        time.sleep(0.5)
+        return real_get_resolver()
+
+    monkeypatch.setattr(siliconcompiler.package.https, "get_resolver", slow_get_resolver)
+
+    barrier = threading.Barrier(8)
+    results = []
+
+    def resolve():
+        barrier.wait(timeout=10)
+        try:
+            results.append(Resolver.find_resolver("https://host/archive.tar.gz"))
+        except Exception as e:
+            # Recorded rather than raised: an exception in a thread would
+            # otherwise only reach stderr and the test would pass.
+            results.append(e)
+
+    threads = [threading.Thread(target=resolve) for _ in range(barrier.parties)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=30)
+        assert not thread.is_alive(), "population deadlocked"
+
+    assert len(results) == barrier.parties
+    assert all(result is HTTPResolver for result in results), results
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
+def test_find_resolver_after_fork_mid_population(monkeypatch, wait_for_child):
+    """
+    A child forked mid-population rebuilds instead of trusting what it inherited.
+
+    This is the case the category lock cannot cover, and the reason the marker
+    exists alongside it. The lock keeps other *threads* out, but a fork copies
+    the registry and leaves the child no lock to wait on: it gets the schemes
+    written so far and nothing to say the rest never arrived. SC forks its
+    scheduler workers, so a fork landing inside the population window is exactly
+    the shape of the original bug -- and reading "non-empty" as "finished" there
+    breaks the child permanently, not just for one lookup.
+    """
+    real_get_resolver = siliconcompiler.package.https.get_resolver
+    stalled = threading.Event()
+    release = threading.Event()
+
+    def stalling_get_resolver():
+        # Population has written the local schemes by now, but no remote one.
+        stalled.set()
+        release.wait(timeout=10)
+        return real_get_resolver()
+
+    monkeypatch.setattr(siliconcompiler.package.https, "get_resolver", stalling_get_resolver)
+
+    thread = threading.Thread(
+        target=lambda: Resolver.find_resolver("https://host/archive.tar.gz"))
+    thread.start()
+    assert stalled.wait(timeout=10), "population never reached the https registration"
+
+    with forking():
+        pid = os.fork()
+    if pid == 0:
+        # The child inherits the stall too, and would hang on its own rebuild.
+        siliconcompiler.package.https.get_resolver = real_get_resolver
+        try:
+            found = Resolver.find_resolver("https://host/archive.tar.gz")
+            os._exit(0 if found is HTTPResolver else 1)
+        except BaseException:
+            os._exit(1)
+
+    try:
+        exited, resolved = wait_for_child(pid)
+    finally:
+        # Always let the stalled thread finish, or it outlives the test and
+        # trips over the torn-down MPManager.
+        release.set()
+        thread.join(timeout=10)
+
+    assert exited, "forked child hung instead of rebuilding the registry"
+    assert resolved, "forked child trusted the half-written registry it inherited"
 
 
 def test_file_env_var():

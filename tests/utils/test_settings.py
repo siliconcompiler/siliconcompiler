@@ -2,11 +2,14 @@ import pytest
 import os
 import json
 import logging
+import threading
+import time
 
 import os.path
 
 from unittest.mock import patch
 
+from siliconcompiler.utils.multiprocessing import forking
 from siliconcompiler.utils.settings import SettingsManager
 
 
@@ -402,3 +405,124 @@ def test_mixed_priority_and_plain_in_category(settings_file, system_file):
 
     # Save should be a safe no-op
     manager.save()
+
+
+def test_lock_category_blocks_other_threads(settings_file):
+    """A category held open is not readable by another thread until released."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+
+    holding = threading.Event()
+    observed = []
+
+    def reader():
+        holding.wait(timeout=10)
+        observed.append(manager.get_category("a"))
+
+    thread = threading.Thread(target=reader)
+    with manager.lock_category("a"):
+        thread.start()
+        manager.set("a", "first", 1)
+        holding.set()
+        # The reader is now blocked on the category; give it every chance to
+        # slip in and read the half-built category before the second write.
+        time.sleep(0.5)
+        manager.set("a", "second", 2)
+
+    thread.join(timeout=10)
+    assert not thread.is_alive()
+    assert observed == [{"first": 1, "second": 2}]
+
+
+def test_lock_category_reentrant_for_holder(settings_file):
+    """The holder can still read and write the category it is holding."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+
+    with manager.lock_category("a"):
+        manager.set("a", "key", 1)
+        assert manager.get("a", "key") == 1
+        assert manager.get_category("a") == {"key": 1}
+        with manager.lock_category("a"):  # nesting is fine too
+            manager.set("a", "key", 2)
+        manager.delete("a", "key")
+        assert manager.get_category("a") == {}
+
+
+def test_lock_category_leaves_other_categories_alone(settings_file):
+    """Holding one category does not block access to any other."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("b", "key", 1)
+
+    done = threading.Event()
+
+    def reader():
+        assert manager.get("b", "key") == 1
+        done.set()
+
+    with manager.lock_category("a"):
+        thread = threading.Thread(target=reader)
+        thread.start()
+        assert done.wait(timeout=10), "read of an unheld category blocked"
+        thread.join(timeout=10)
+
+
+def test_lock_category_released_on_exception(settings_file):
+    """An exception inside the block still releases the category."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+
+    with pytest.raises(RuntimeError, match="^boom$"):
+        with manager.lock_category("a"):
+            manager.set("a", "key", 1)
+            raise RuntimeError("boom")
+
+    released = threading.Event()
+
+    def reader():
+        manager.get_category("a")
+        released.set()
+
+    thread = threading.Thread(target=reader)
+    thread.start()
+    assert released.wait(timeout=10), "category still held after an exception"
+    thread.join(timeout=10)
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
+def test_locks_reset_after_fork(settings_file, wait_for_child):
+    """
+    A child forked while a category was held does not inherit the wait.
+
+    The lock was taken by a thread that does not exist in the child, so nothing
+    will ever release it; the child gets fresh locks instead.
+    """
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "key", 1)
+
+    holding = threading.Event()
+    release = threading.Event()
+
+    def holder():
+        with manager.lock_category("a"):
+            holding.set()
+            release.wait(timeout=10)
+
+    thread = threading.Thread(target=holder)
+    thread.start()
+    assert holding.wait(timeout=10)
+
+    with forking():
+        pid = os.fork()
+    if pid == 0:
+        try:
+            manager.get_category("a")
+            os._exit(0)
+        except BaseException:
+            os._exit(1)
+
+    try:
+        exited, read_ok = wait_for_child(pid)
+    finally:
+        release.set()
+        thread.join(timeout=10)
+
+    assert exited, "forked child blocked on a lock held by a thread it does not have"
+    assert read_ok, "forked child failed to read the category"

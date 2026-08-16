@@ -296,7 +296,10 @@ file mkdir \
 
 set opensta_top_n_paths [sc_cfg_tool_task_get var top_n_paths]
 
-set fields "{capacitance slew input_pins hierarcial_pins net fanout}"
+# Must be a flat list: report_checks is invoked directly here, so the value reaches
+# parse_report_path_options as-is. The braced-string form used by the OpenROAD scripts
+# only works there because tee re-evaluates the command string.
+set fields {capacitance slew input_pins hierarcial_pins net fanout}
 set PREFIX "SC_METRIC:"
 
 puts "$PREFIX timeunit"
@@ -313,19 +316,23 @@ if { [sc_cfg_tool_task_check_in_list check_setup var reports] } {
 }
 
 if { [sc_cfg_tool_task_check_in_list setup var reports] } {
-    sc_report_banner "Setup timing" \
+    set setup_reports [list \
         reports/timing/setup.rpt \
         reports/timing/setup.topN.rpt \
         reports/timing/setup.failing.rpt \
         reports/timing/setup.endpoints.rpt \
         reports/timing/worst_slack.setup.rpt \
-        reports/timing/total_negative_slack.setup.rpt
+        reports/timing/total_negative_slack.setup.rpt]
+    lappend setup_reports {*}[sc_corner_timing_reports -name setup]
+    sc_report_banner "Setup timing" {*}$setup_reports
+
     puts "$PREFIX report_checks -path_delay max"
     report_checks -sort_by_slack -fields $fields -path_delay max \
         -format full_clock_expanded \
         > reports/timing/setup.rpt
     sc_display_report reports/timing/setup.rpt
-    report_checks -sort_by_slack -path_delay max -group_path_count $opensta_top_n_paths \
+    report_checks -sort_by_slack -fields $fields -path_delay max \
+        -group_path_count $opensta_top_n_paths \
         > reports/timing/setup.topN.rpt
     report_checks -sort_by_slack -path_delay max -slack_max 0 -endpoint_path_count 1 \
         -group_path_count $opensta_top_n_paths -format short \
@@ -349,18 +356,23 @@ if { [sc_cfg_tool_task_check_in_list setup var reports] } {
 }
 
 if { [sc_cfg_tool_task_check_in_list hold var reports] } {
-    sc_report_banner "Hold timing" \
+    set hold_reports [list \
         reports/timing/hold.rpt \
         reports/timing/hold.topN.rpt \
         reports/timing/hold.failing.rpt \
         reports/timing/hold.endpoints.rpt \
         reports/timing/worst_slack.hold.rpt \
-        reports/timing/total_negative_slack.hold.rpt
+        reports/timing/total_negative_slack.hold.rpt]
+    lappend hold_reports {*}[sc_corner_timing_reports -name hold]
+    sc_report_banner "Hold timing" {*}$hold_reports
+
     puts "$PREFIX report_checks -path_delay min"
     report_checks -sort_by_slack -fields $fields -path_delay min \
         -format full_clock_expanded \
         > reports/timing/hold.rpt
-    report_checks -sort_by_slack -path_delay min -group_path_count $opensta_top_n_paths \
+    sc_display_report reports/timing/hold.rpt
+    report_checks -sort_by_slack -fields $fields -path_delay min \
+        -group_path_count $opensta_top_n_paths \
         > reports/timing/hold.topN.rpt
     report_checks -sort_by_slack -path_delay min -slack_max 0 -endpoint_path_count 1 \
         -group_path_count $opensta_top_n_paths -format short \
@@ -380,19 +392,26 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
 
     puts "$PREFIX holdtns"
     report_tns -min > reports/timing/total_negative_slack.hold.rpt
-    puts "tns [sta::time_sta_ui [sta::total_negative_slack_cmd min]]"
+    sc_display_report reports/timing/total_negative_slack.hold.rpt
 }
 
 if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
-    sc_report_banner "Unconstrained paths" \
+    set unconstrained_reports [list \
         reports/timing/unconstrained.rpt \
-        reports/timing/unconstrained.topN.rpt
+        reports/timing/unconstrained.topN.rpt]
+    lappend unconstrained_reports \
+        {*}[sc_corner_timing_reports -unconstrained -name unconstrained]
+    sc_report_banner "Unconstrained paths" {*}$unconstrained_reports
+
     report_checks -sort_by_slack -fields $fields -unconstrained \
         -format full_clock_expanded \
         -path_group unconstrained > reports/timing/unconstrained.rpt
     sc_display_report reports/timing/unconstrained.rpt
-    report_checks -sort_by_slack -unconstrained -group_path_count $opensta_top_n_paths \
+    report_checks -sort_by_slack -fields $fields -unconstrained \
+        -group_path_count $opensta_top_n_paths \
         > reports/timing/unconstrained.topN.rpt
+    sc_report_corner_timing -unconstrained -name unconstrained \
+        -fields $fields -top_paths $opensta_top_n_paths
 }
 
 if {
@@ -416,6 +435,7 @@ if { [sc_cfg_tool_task_check_in_list drv_violations var reports] } {
     puts "$PREFIX drvs"
     report_check_types -max_slew -max_capacitance -max_fanout -violators -no_line_splits \
         > reports/checks/drv_violators.rpt
+    sc_display_report reports/checks/drv_violators.rpt
 }
 
 if { [sc_cfg_tool_task_check_in_list fmax var reports] } {

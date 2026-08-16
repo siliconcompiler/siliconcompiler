@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "fc286fe16a28e737d7acb65fdbe05ef58fb75371",
+    "git-commit": "4421880472f235a893329b385802bf0cbd612348",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -17,7 +17,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "c3e092033e39c153e8260ddbe99f674f22fb165c",
+    "git-commit": "9a01c293e752038c56d7928a25c8c90b6522f4cc",
     "auto-update": true
   },
   "netgen": {

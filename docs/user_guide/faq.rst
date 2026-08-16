@@ -228,7 +228,7 @@ involved.
 that checks geometry against the :term:`PDK` rules.
 :ref:`Detailed routing <tool-openroad>` reports these as it routes, and a
 dedicated checker -- :ref:`Magic <tool-magic>` or :ref:`KLayout <tool-klayout>`
-DRC -- reports them in signoff. :ref:`Netgen <tool-netgen>` also records
+DRC -- reports them in :term:`signoff`. :ref:`Netgen <tool-netgen>` also records
 :term:`LVS` errors under this metric.
 
 So ``drcs`` is not exclusively a signoff number:
@@ -265,9 +265,9 @@ results entirely, see :keypath:`option,clean` in
 Is vector-based power estimation supported?
 -------------------------------------------
 
-Yes. If a VCD is available, OpenSTA annotates switching activity from it, so
-power numbers reflect real toggle rates rather than default assumptions. Add the
-waveform to a fileset and the timing task picks it up:
+Yes. If a :term:`VCD` is available, OpenSTA annotates switching activity from
+it, so power numbers reflect real toggle rates rather than default assumptions.
+Add the :term:`waveform` to a fileset and the timing task picks it up:
 
 .. code-block:: python
 

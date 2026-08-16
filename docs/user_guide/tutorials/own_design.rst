@@ -5,7 +5,7 @@ Bringing Your Own Design
 ##########################
 
 The demo builds someone else's design. This page is the next question: you have
-RTL of your own, and you want to compile it.
+:term:`RTL` of your own, and you want to compile it.
 
 There are four things to tell SiliconCompiler, and nothing else is required to
 start.
@@ -65,13 +65,13 @@ next tier of problem:
    project.set_flow(LintFlow())
    project.run()
 
-See :ref:`Lint your RTL <lint_tutorial>`. Do not skip this: synthesis error
-messages are much worse than lint error messages.
+See :ref:`Lint your RTL <lint_tutorial>`. Do not skip this: :term:`synthesis`
+error messages are much worse than :term:`lint` error messages.
 
 3. Pick a technology
 ====================
 
-A :term:`target` bundles the :term:`PDK`, the standard cell libraries and the
+A :term:`target` bundles the :term:`PDK`, the :term:`standard cell` libraries and the
 tool setup. Start with an open one -- you can change it later without touching
 the design:
 

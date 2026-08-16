@@ -4,8 +4,9 @@
 Building Your Own SoC
 #####################
 
-This tutorial builds an ASIC containing a PicoRV32 RISC-V CPU core, and then the
-same core wired to an SRAM -- the first step toward a real system-on-chip.
+This tutorial builds an :term:`ASIC` containing a PicoRV32 RISC-V CPU core, and
+then the same core wired to an :term:`SRAM` -- the first step toward a real
+:term:`system-on-chip <SoC>`.
 
 .. image:: /_screenshots/picorv32_ram_layout.png
    :align: center
@@ -44,10 +45,10 @@ From that directory:
 :ref:`smake <app-smake>` discovers them and turns their arguments into
 command-line switches. ``smake --help`` lists what is available.
 
-The default PDK is ``freepdk45``; ``asap7`` and ``gf180`` also work
+The default :term:`PDK` is ``freepdk45``; ``asap7`` and ``gf180`` also work
 (``--pdk asap7``), because the design carries a matching constraint fileset for
 each. The full flow takes appreciably longer than the Quickstart's heartbeat --
-most of it in routing.
+most of it in :term:`routing`.
 
 Where the Sources Come From
 ===========================
@@ -138,8 +139,8 @@ to name. The ``sdc.freepdk45`` branch is the constraint fileset added alongside
 the RTL one -- change the PDK and that branch changes with it.
 
 The graph above is drawn before ``asic_target`` is applied, so it is the design's
-own shape. Call it *after* the target and the PDK, the standard cell library and
-every macro library the target registers join the picture -- the honest view of a
+own shape. Call it *after* the target and the PDK, the :term:`standard cell`
+library and every :term:`macro` library the target registers join the picture -- the honest view of a
 build, and a considerably wider one.
 
 .. note::
@@ -175,8 +176,9 @@ sources from another repository, and composing filesets from other designs. From
 here:
 
 * :ref:`Instantiating a hardened module <hardened_modules>` -- replace the soft
-  SRAM with a hardened macro.
-* :ref:`Multi-Job Flows <multi_job_flows>` -- run implementation and signoff as
+  SRAM with a :term:`hardened macro`.
+* :ref:`Multi-Job Flows <multi_job_flows>` -- run implementation and
+  :term:`signoff` as
   separate jobs, or sweep a parameter across many.
 * :ref:`Parallel Job Execution <parallel_execution>` -- run those jobs
   concurrently.

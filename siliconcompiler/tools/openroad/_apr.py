@@ -2153,9 +2153,23 @@ class APRTask(OpenROADTask):
         '''
 
         scenario_corners = self.project.getkeys('constraint', 'timing', 'scenario')
+
+        def scenario_reports(name, unconstrained=False):
+            # Per-scene reports, written only when more than one scene is defined
+            variants = ("", "topN.") if unconstrained else ("", "topN.", "failing.", "endpoints.")
+            return [f"timing/scenarios/{corner}/{name}.{corner}.{variant}rpt"
+                    for corner in scenario_corners
+                    for variant in variants]
+
+        def scenario_files(name):
+            # A single per-scene report, e.g. worst_slack.setup
+            return [f"timing/scenarios/{corner}/{name}.{corner}.rpt"
+                    for corner in scenario_corners]
+
         metric_reports = {
             "setuptns": [
                 "timing/total_negative_slack.setup.rpt",
+                *scenario_files("total_negative_slack.setup"),
                 "timing/setup.rpt",
                 "timing/setup.failing.rpt",
                 "timing/setup.histogram.rpt",
@@ -2163,12 +2177,12 @@ class APRTask(OpenROADTask):
             ],
             "setupslack": [
                 "timing/worst_slack.setup.rpt",
+                *scenario_files("worst_slack.setup"),
                 "timing/setup.rpt",
                 "timing/setup.topN.rpt",
                 "timing/setup.failing.rpt",
                 "timing/setup.endpoints.rpt",
-                *[f"timing/setup.{corner}.rpt" for corner in scenario_corners],
-                *[f"timing/setup.topN.{corner}.rpt" for corner in scenario_corners],
+                *scenario_reports("setup"),
                 "timing/setup.histogram.rpt",
                 "images/timing/setup.histogram.png"
             ],
@@ -2183,13 +2197,13 @@ class APRTask(OpenROADTask):
                 "timing/setup.topN.rpt",
                 "timing/setup.failing.rpt",
                 "timing/setup.endpoints.rpt",
-                *[f"timing/setup.{corner}.rpt" for corner in scenario_corners],
-                *[f"timing/setup.topN.{corner}.rpt" for corner in scenario_corners],
+                *scenario_reports("setup"),
                 "timing/setup.histogram.rpt",
                 "images/timing/setup.histogram.png"
             ],
             "holdtns": [
                 "timing/total_negative_slack.hold.rpt",
+                *scenario_files("total_negative_slack.hold"),
                 "timing/hold.rpt",
                 "timing/hold.failing.rpt",
                 "timing/hold.histogram.rpt",
@@ -2197,12 +2211,12 @@ class APRTask(OpenROADTask):
             ],
             "holdslack": [
                 "timing/worst_slack.hold.rpt",
+                *scenario_files("worst_slack.hold"),
                 "timing/hold.rpt",
                 "timing/hold.topN.rpt",
                 "timing/hold.failing.rpt",
                 "timing/hold.endpoints.rpt",
-                *[f"timing/hold.{corner}.rpt" for corner in scenario_corners],
-                *[f"timing/hold.topN.{corner}.rpt" for corner in scenario_corners],
+                *scenario_reports("hold"),
                 "timing/hold.histogram.rpt",
                 "images/timing/hold.histogram.png"
             ],
@@ -2217,8 +2231,7 @@ class APRTask(OpenROADTask):
                 "timing/hold.topN.rpt",
                 "timing/hold.failing.rpt",
                 "timing/hold.endpoints.rpt",
-                *[f"timing/hold.{corner}.rpt" for corner in scenario_corners],
-                *[f"timing/hold.topN.{corner}.rpt" for corner in scenario_corners],
+                *scenario_reports("hold"),
                 "timing/hold.histogram.rpt",
                 "images/timing/hold.histogram.png"
             ],
@@ -2230,7 +2243,8 @@ class APRTask(OpenROADTask):
             ],
             "unconstrained": [
                 "timing/unconstrained.rpt",
-                "timing/unconstrained.topN.rpt"
+                "timing/unconstrained.topN.rpt",
+                *scenario_reports("unconstrained", unconstrained=True)
             ],
             "peakpower": [
                 *[f"power/{corner}.rpt"

@@ -8,8 +8,9 @@ Hardening parameterized modules (uniquify)
     generated output may change in a future release.
 
 The :ref:`hardened-module tutorial <hardened_modules>` hardened a single,
-*unparameterized* module and instantiated it in a parent -- packaging the macro,
-blackboxing the RTL and injecting the library all by hand. This tutorial tackles
+*unparameterized* module and instantiated it in a parent -- packaging the
+:term:`macro`, :term:`blackboxing <blackbox>` the :term:`RTL` and injecting the
+library all by hand. This tutorial tackles
 the case that flow cannot: a **parameterized** module instantiated with several
 different parameter values.
 
@@ -21,7 +22,7 @@ different parameter values.
    one fixed module. If you have not read it, start there.
 
    This tutorial is about the problem that mechanism alone cannot solve. A
-   hardened macro is a fixed netlist with **no parameters**, so a post-synthesis
+   :term:`hardened macro` is a fixed :term:`netlist` with **no parameters**, so a post-synthesis
    block named ``heartbeat`` no longer has an ``N`` for a parent's
    ``heartbeat #(.N(8))`` to bind to -- and the parent uses ``N`` = 8, 24 *and*
    48. :class:`.Uniquified` resolves this automatically: it discovers which
@@ -145,7 +146,8 @@ the duplicate ``N=24`` merged) and two ``prescaler`` variants:
 
 The generated wrapper keeps the ``heartbeat`` name and its ``N`` parameter, and
 uses a ``generate`` block to select the matching hardened variant. If a design
-ever requests a parameter combination that was not hardened, elaboration fails
+ever requests a parameter combination that was not hardened,
+:term:`elaboration` fails
 loudly via ``$error`` rather than silently building the wrong thing:
 
 .. code-block:: verilog

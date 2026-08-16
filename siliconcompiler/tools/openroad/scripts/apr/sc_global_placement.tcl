@@ -41,8 +41,10 @@ if { [sc_cfg_tool_task_get var enable_scan_chains] } {
             [sc_cfg_tool_task_get var scan_enable_port_pattern]
     }
 
+    set dft_args [list -clock_mixing clock_mix {*}$dft_args]
+
     sc_report_args -command set_dft_config -args $dft_args
-    set_dft_config -clock_mixing clock_mix {*}$dft_args
+    set_dft_config {*}$dft_args
     tee -file reports/checks/scan_chain_config.rpt {report_dft_config}
     scan_replace
 }
