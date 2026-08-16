@@ -211,6 +211,25 @@ class ASICAreaConstraint(BaseSchema):
         """
         return self.get("aspectratio", step=step, index=index)
 
+    @staticmethod
+    def __check_coremargin(coremargin: float):
+        """
+        Validates a core margin value.
+
+        Args:
+            coremargin (float): The core margin value in schema units (e.g., um).
+                                Must be a number greater than or equal to 0.0.
+
+        Raises:
+            TypeError: If `coremargin` is not a number.
+            ValueError: If `coremargin` is negative.
+        """
+        if not isinstance(coremargin, (int, float)):
+            raise TypeError("coremargin must be a number")
+
+        if coremargin < 0.0:
+            raise ValueError("coremargin cannot be negative")
+
     def set_coremargin(self,
                        coremargin: float,
                        step: Optional[str] = None, index: Optional[Union[str, int]] = None):
@@ -235,11 +254,7 @@ class ASICAreaConstraint(BaseSchema):
         Returns:
             The return value from the internal `set` method call.
         """
-        if not isinstance(coremargin, (int, float)):
-            raise TypeError("coremargin must be a number")
-
-        if coremargin < 0.0:
-            raise ValueError("coremargin cannot be negative")
+        self.__check_coremargin(coremargin)
 
         return self.set("coremargin", coremargin, step=step, index=index)
 
@@ -560,6 +575,10 @@ class ASICAreaConstraint(BaseSchema):
         Returns:
             list: A list of return values from the internal `set` calls.
         """
+        if coremargin is not None:
+            # Validate first so a rejected margin does not leave the die area set.
+            self.__check_coremargin(coremargin)
+
         params = [
             self.set("diearea", points, step=step, index=index)
         ]
@@ -691,6 +710,10 @@ class ASICAreaConstraint(BaseSchema):
         Returns:
             list: A list of return values from the internal `set` calls.
         """
+        if coremargin is not None:
+            # Validate first so a rejected margin does not leave the core area set.
+            self.__check_coremargin(coremargin)
+
         params = [
             self.set("corearea", points, step=step, index=index)
         ]

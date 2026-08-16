@@ -402,6 +402,17 @@ def test_set_diearea_illegal_coremargin():
     with pytest.raises(TypeError, match=r"^coremargin must be a number$"):
         schema.set_diearea([(0, 0), (100, 100)], coremargin=(2, 5.0))
 
+    # The margin is rejected before the die area is written.
+    assert schema.get_diearea() == []
+
+
+def test_set_diearea_negative_coremargin():
+    schema = ASICAreaConstraint()
+    with pytest.raises(ValueError, match=r"^coremargin cannot be negative$"):
+        schema.set_diearea([(0, 0), (100, 100)], coremargin=-1.0)
+
+    assert schema.get_diearea() == []
+
 
 def test_set_diearea_coremargin_too_large_defers_to_calc():
     # Setting the margin does not resolve the core, so an unusable margin is
@@ -447,6 +458,17 @@ def test_set_corearea_illegal_coremargin():
     schema = ASICAreaConstraint()
     with pytest.raises(TypeError, match=r"^coremargin must be a number$"):
         schema.set_corearea([(0, 0), (100, 100)], coremargin=(2, 5.0))
+
+    # The margin is rejected before the core area is written.
+    assert schema.get_corearea() == []
+
+
+def test_set_corearea_negative_coremargin():
+    schema = ASICAreaConstraint()
+    with pytest.raises(ValueError, match=r"^coremargin cannot be negative$"):
+        schema.set_corearea([(0, 0), (100, 100)], coremargin=-1.0)
+
+    assert schema.get_corearea() == []
 
 
 def test_set_corearea_coremargin_negative_die_defers_to_calc():
