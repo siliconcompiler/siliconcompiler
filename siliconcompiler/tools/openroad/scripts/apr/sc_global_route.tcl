@@ -53,14 +53,16 @@ if { $grt_seed != {} } {
     set_global_routing_random -seed $grt_seed
 }
 
+set sc_grt_arguments [list \
+    -congestion_iterations [sc_cfg_tool_task_get var grt_overflow_iter] \
+    -congestion_report_file "reports/route/${sc_topmodule}.congestion.rpt" \
+    -verbose \
+    {*}$sc_grt_arguments]
+
 sc_report_args -command global_route -args $sc_grt_arguments
 if {
     [catch {
-        global_route \
-            -congestion_iterations [sc_cfg_tool_task_get var grt_overflow_iter] \
-            -congestion_report_file "reports/route/${sc_topmodule}.congestion.rpt" \
-            -verbose \
-            {*}$sc_grt_arguments
+        global_route {*}$sc_grt_arguments
     }]
 } {
     set err_db "reports/route/${sc_topmodule}.globalroute-error.odb"
