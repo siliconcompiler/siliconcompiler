@@ -1232,5 +1232,7 @@ class OperationsTask(KLayoutStreamTask):
         self._add_stream_input_file()
         self._add_stream_output_file()
 
+        self._add_technology_files()
+
         for op in operations:
             op.setup(self)

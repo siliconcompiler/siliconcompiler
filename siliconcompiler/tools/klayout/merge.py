@@ -105,3 +105,5 @@ class Merge(KLayoutTask):
                 self.add_required_key("library", lib_name, "fileset", fileset, "file", "gds")
 
         self.add_output_file(ext="gds.gz")
+
+        self._add_technology_files()

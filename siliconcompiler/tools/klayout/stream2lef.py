@@ -117,6 +117,8 @@ class Stream2LefTask(KLayoutTask):
 
         self.add_output_file(ext="lef")
 
+        self._add_technology_files()
+
         sc_stream_order = [default_stream, *[s for s in ("gds", "oas") if s != default_stream]]
         for s in sc_stream_order:
             if self.pdk.valid("pdk", "layermapfileset", "klayout", "def", s):

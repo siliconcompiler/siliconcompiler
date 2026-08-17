@@ -15,8 +15,8 @@ class ShowTask(ShowTask, KLayoutTask):
 
         self.set_script("klayout_show.py")
 
-        if self.get("var", "hide_layers"):
-            self.add_required_key("var", "hide_layers")
+        self._add_hidelayers_required_keys()
+        self._add_technology_files()
 
         if f"{self.design_topmodule}.gds.gz" in self.get_files_from_input_nodes():
             self.add_input_file(ext="gds.gz")

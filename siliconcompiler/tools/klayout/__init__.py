@@ -148,6 +148,50 @@ class KLayoutTask(ASICTask):
         # KLayout 0.26.11
         return stdout.split()[1]
 
+    def _add_hidelayers_required_keys(self) -> None:
+        """
+        Declares the layer visibility keys read by show() in klayout_show.py.
+
+        The layers to hide are the union of the PDK and task settings, so both keys are
+        declared when they hold a value.
+        """
+        if self.get("var", "hide_layers"):
+            self.add_required_key("var", "hide_layers")
+        if self.pdk.get("tool", "klayout", "hide_layers"):
+            self.add_required_key(self.pdk, "tool", "klayout", "hide_layers")
+
+    def _add_technology_files(self) -> None:
+        """
+        Declares the files read by technology() in klayout_utils.py.
+
+        The technology (.lyt) and layer properties (.lyp) files written by a previous node
+        take precedence over the PDK files, but are only available when an input node
+        provides them, so they are declared as inputs only in that case. The PDK files
+        used when they are not available are declared required so they are hashed (cache)
+        and copied (remote runs).
+        """
+        input_files = self.get_files_from_input_nodes()
+        for ext in ("lyt", "lyp"):
+            if f"{self.design_topmodule}.{ext}" in input_files:
+                self.add_input_file(ext=ext)
+
+        if self.pdk.valid("pdk", "layermapfileset", "klayout", "def", "klayout") and \
+                self.pdk.get("pdk", "layermapfileset", "klayout", "def", "klayout"):
+            self.add_required_key(self.pdk, "pdk", "layermapfileset", "klayout", "def", "klayout")
+            for fileset in self.pdk.get("pdk", "layermapfileset", "klayout", "def", "klayout"):
+                if self.pdk.has_file(fileset=fileset, filetype="layermap"):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "layermap")
+
+        if self.pdk.valid("pdk", "displayfileset", "klayout") and \
+                self.pdk.get("pdk", "displayfileset", "klayout"):
+            self.add_required_key(self.pdk, "pdk", "displayfileset", "klayout")
+            for fileset in self.pdk.get("pdk", "displayfileset", "klayout"):
+                if self.pdk.has_file(fileset=fileset, filetype="display"):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "display")
+
+        if self.pdk.get("tool", "klayout", "units"):
+            self.add_required_key(self.pdk, "tool", "klayout", "units")
+
     def setup(self):
         super().setup()
 

@@ -177,6 +177,8 @@ class Img2StreamTask(KLayoutTask):
         self.add_output_file(ext=f"{default_stream}.gz")
         self.add_output_file(ext="lef")
 
+        self._add_technology_files()
+
         if f"{self.design_topmodule}.{imageformat}" in self.get_files_from_input_nodes():
             self.add_input_file(ext=imageformat)
         else:
