@@ -18,6 +18,9 @@ _file_path = os.path.dirname(__file__)
 _builder_path = os.path.abspath(os.path.join(_file_path, '..'))
 _tools_path = os.path.abspath(os.path.dirname(_tools.__file__))
 _install_script_path = os.path.join(_tools_path, 'ubuntu22')
+# Sourced by every install script, so it has to travel into the image with them
+# and feed the tool image tag the same way the install script itself does.
+_prereqs_script = '_prereqs.sh'
 
 
 _registry = 'ghcr.io'
@@ -184,6 +187,7 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
 
     for f in (os.path.join(_tools_path, '_tools.json'),
               os.path.join(_tools_path, '_tools.py'),
+              os.path.join(_tools_path, _prereqs_script),
               os.path.join(_install_script_path, template_opts['install_script'])):
         copy_files.append(os.path.join(_tools_path, f))
     assemble_docker_file(name, tag, docker_file, template_opts, output_dir, copy_files=copy_files)
@@ -213,7 +217,8 @@ def make_sc_tools_docker(tools, tools_version, output_dir):
 
     copy_files = [
         os.path.join(_tools_path, '_tools.json'),
-        os.path.join(_tools_path, '_tools.py')]
+        os.path.join(_tools_path, '_tools.py'),
+        os.path.join(_tools_path, _prereqs_script)]
     for tool in skip_build:
         copy_files.append(os.path.join(_install_script_path, f'install-{tool}.sh'))
     cp_files = []
@@ -314,6 +319,9 @@ def _get_tool_image_check_tag(tool):
     build_file = os.path.join(_install_script_path, f'install-{tool}.sh')
     if os.path.exists(build_file):
         hash.update(get_file_hash(build_file).encode('utf-8'))
+    prereqs_file = os.path.join(_tools_path, _prereqs_script)
+    if os.path.exists(prereqs_file):
+        hash.update(get_file_hash(prereqs_file).encode('utf-8'))
     cmds = _tools.get_field(tool, 'docker-cmds')
     if cmds:
         for cmd in cmds:

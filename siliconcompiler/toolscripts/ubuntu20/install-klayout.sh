@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -12,9 +15,7 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo apt-get update
-
-sudo apt-get install -y wget lsb-core
+install_prereqs wget lsb-core
 
 mkdir -p deps
 cd deps
@@ -34,7 +35,9 @@ fi
 
 # Fetch package
 wget -O klayout.deb $url
-# Install package
+# Install package. apt resolves the .deb's dependencies from the package index,
+# so refresh it if install_prereqs above had nothing to install.
+apt_update
 sudo apt-get install -y ./klayout.deb
 
 cd -

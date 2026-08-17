@@ -2,15 +2,16 @@
 
 set -ex
 
-sudo apt-get update
-
-sudo apt-get install -y munge libmunge-dev build-essential libmariadb-dev lbzip2 libjson-c-dev
-sudo apt-get install -y libdbus-1-dev
-
-sudo apt-get install -y wget
-
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
+
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
+install_prereqs munge libmunge-dev build-essential libmariadb-dev lbzip2 libjson-c-dev
+install_prereqs libdbus-1-dev
+
+install_prereqs wget
 
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then

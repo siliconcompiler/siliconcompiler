@@ -5,14 +5,15 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-sudo apt-get update
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
 
 # Install core dependencies.
-sudo apt-get install -y build-essential gcc g++ make cmake automake autoconf bison flex git libblas-dev \
+install_prereqs build-essential gcc g++ make cmake automake autoconf bison flex git libblas-dev \
     liblapack-dev liblapack64-dev libfftw3-dev libsuitesparse-dev libopenmpi-dev libboost-all-dev \
     libnetcdf-dev libmatio-dev gfortran libfl-dev libtool python3-venv
 
-sudo apt-get install -y wget
+install_prereqs wget
 
 mkdir -p deps
 cd deps

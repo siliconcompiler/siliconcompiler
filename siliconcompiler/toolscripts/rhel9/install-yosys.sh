@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -13,11 +16,11 @@ else
 fi
 
 # From: https://github.com/YosysHQ/yosys/blob/f2c689403ace0637b7455bac8f1e8d4bc312e74f/README.md
-sudo yum group install -y "Development Tools"
-sudo yum install -y bison flex readline-devel gawk \
+install_prereq_group "Development Tools"
+install_prereqs bison flex readline-devel gawk \
 	tcl-devel libffi-devel zlib-devel boost-devel python3-pip
 
-sudo yum install -y git
+install_prereqs git
 
 mkdir -p deps
 cd deps

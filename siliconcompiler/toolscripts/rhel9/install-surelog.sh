@@ -5,12 +5,22 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 # These dependencies are up-to-date with instructions from the INSTALL.md from the commit we are pinned to below
-sudo yum install -y gcc-toolset-12
-sudo dnf config-manager --set-enabled devel || true
-sudo yum install -y libuuid-devel java-11-openjdk-devel python3 zlib-static openssl-devel
-sudo dnf config-manager --set-disabled devel || true
-sudo yum install -y git
+install_prereqs gcc-toolset-12
+# The 'devel' repository is disabled by default. Enabling and disabling it is
+# root-only work whose only purpose is the install between them, so the whole
+# block is skipped when those packages are already present.
+devel_pkgs="libuuid-devel java-11-openjdk-devel python3 zlib-static openssl-devel"
+if prereqs_missing $devel_pkgs; then
+    sudo dnf config-manager --set-enabled devel || true
+    install_prereqs $devel_pkgs
+    sudo dnf config-manager --set-disabled devel || true
+fi
+
+install_prereqs git
 
 mkdir -p deps
 cd deps

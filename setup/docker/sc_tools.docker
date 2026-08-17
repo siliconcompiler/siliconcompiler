@@ -53,6 +53,7 @@ WORKDIR $SC_BUILD
 # Copy in support scripts
 COPY _tools.py $SC_BUILD/..
 COPY _tools.json $SC_BUILD/..
+COPY _prereqs.sh $SC_BUILD/..
 
 {% for tool in skip_build %}
 COPY install-{{ tool }}.sh $SC_BUILD

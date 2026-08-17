@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -12,9 +15,7 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo apt-get update
-
-sudo apt-get install -y wget software-properties-common
+install_prereqs wget software-properties-common
 
 mkdir -p deps
 cd deps
@@ -26,6 +27,9 @@ arch=$(dpkg --print-architecture)
 # KLayout only publishes amd64 .debs for Ubuntu; on other architectures
 # (e.g. arm64) fall back to the distro package from the universe repository.
 if [ "$arch" != "amd64" ]; then
+    # KLayout itself, not a prerequisite, so this install is unconditional and
+    # needs the package index refreshed if install_prereqs did not do it.
+    apt_update
     sudo apt-get install -y klayout
     cd -
     exit 0
@@ -45,7 +49,9 @@ fi
 
 # Fetch package
 wget -O klayout.deb $url
-# Install package
+# Install package. apt resolves the .deb's dependencies from the package index,
+# so refresh it if install_prereqs above had nothing to install.
+apt_update
 sudo apt-get install -y ./klayout.deb
 
 if [ ! -z ${SC_PREFIX+x} ]; then

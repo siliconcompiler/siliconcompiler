@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -19,15 +22,20 @@ if [ -z ${PREFIX} ]; then
     PREFIX=~/.local
 fi
 
-sudo dnf config-manager --set-enabled devel || true
-# Install core dependencies.
-sudo yum install -y gcc gcc-c++ gcc-gfortran blas blas-devel \
+# Core dependencies. The 'devel' repository is disabled by default; enabling and
+# disabling it is root-only work whose only purpose is the install between them,
+# so the whole block is skipped when those packages are already present.
+devel_pkgs="gcc gcc-c++ gcc-gfortran blas blas-devel \
     cmake lapack lapack-devel bison flex fftw-devel fftw \
     suitesparse suitesparse-devel autoconf automake libtool \
-    git
-sudo dnf config-manager --set-disabled devel || true
+    git"
+if prereqs_missing $devel_pkgs; then
+    sudo dnf config-manager --set-enabled devel || true
+    install_prereqs $devel_pkgs
+    sudo dnf config-manager --set-disabled devel || true
+fi
 
-sudo yum install -y wget
+install_prereqs wget
 
 # Download Trilinos.
 ## Version specified in: https://github.com/Xyce/Xyce/blob/master/INSTALL.md#building-trilinos

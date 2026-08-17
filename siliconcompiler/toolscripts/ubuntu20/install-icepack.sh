@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -12,14 +15,12 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo apt-get update
+install_prereqs build-essential clang bison flex libreadline-dev \
+                gawk tcl-dev libffi-dev git mercurial graphviz   \
+                xdot pkg-config python python3 libftdi-dev \
+                qt5-default python3-dev libboost-all-dev cmake libeigen3-dev
 
-sudo apt-get install -y build-essential clang bison flex libreadline-dev \
-                        gawk tcl-dev libffi-dev git mercurial graphviz   \
-                        xdot pkg-config python python3 libftdi-dev \
-                        qt5-default python3-dev libboost-all-dev cmake libeigen3-dev
-
-sudo apt-get install -y git
+install_prereqs git
 
 mkdir -p deps
 cd deps

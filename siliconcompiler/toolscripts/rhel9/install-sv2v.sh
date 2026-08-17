@@ -5,12 +5,15 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 mkdir -p deps
 cd deps
 
-sudo yum install -y --skip-broken git curl
-sudo yum group install -y "Development Tools"
-sudo yum install -y gmp-devel xz
+install_prereqs --skip-broken git curl
+install_prereq_group "Development Tools"
+install_prereqs gmp-devel xz
 
 haskell_args=""
 if [ ! -z ${PREFIX} ]; then

@@ -201,6 +201,16 @@ def compute_fingerprint(tool: str, script: str) -> Optional[str]:
     h = hashlib.sha256()
     h.update(script_bytes)
 
+    # The install scripts source _prereqs.sh, so a change to how prerequisites are
+    # resolved has to invalidate the fingerprint the same way an edit to the script
+    # itself does.
+    prereqs = _get_tool_script_dir() / "_prereqs.sh"
+    try:
+        with open(prereqs, "rb") as f:
+            h.update(f.read())
+    except OSError:
+        pass
+
     tools_json = _get_tool_script_dir() / "_tools.json"
     if tools_json.exists():
         try:

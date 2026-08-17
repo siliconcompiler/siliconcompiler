@@ -2,7 +2,11 @@
 
 set -ex
 
+# Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
+
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
 
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
@@ -11,15 +15,34 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo apt-get update
+install_prereqs git curl
+install_prereqs make pandoc groff bsdmainutils
 
-sudo apt-get install -y git curl
-sudo apt-get install -y make pandoc groff bsdmainutils
+# Extracted from OpenROAD's etc/DependencyInstaller.sh (_install_bazel), which
+# this script used to run under sudo and then chown the prefix back, because
+# root had created files in a build directory we already own. With -bazel and no
+# -all/-base/-common that function is the whole payload, and it splits cleanly:
+# package installs (below, conditional on being missing) and the bazelisk
+# download (further down, no root at all).
+#
+# Runtime libraries for the prebuilt LLVM toolchain that the Bazel build pulls
+# in (lld links against libxml2 and libtinfo). 26.04 renamed the libxml2 runtime
+# to libxml2-16 and left "libxml2" as a virtual name with no installation
+# candidate, so the concrete package has to be named here.
+install_prereqs libc6-dev libxml2-16 libtinfo6 zlib1g libstdc++6
+
+# xcb/X11 runtime libraries for the GUI build.
+install_prereqs libxcb1-dev libxcb-util-dev libxcb-icccm4-dev libxcb-image0-dev \
+    libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev \
+    libxcb-xinerama0-dev libxcb-xkb-dev libx11-xcb1 libx11-6 libsm6 libice6 \
+    libxcb-cursor0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libdbus-1-3 \
+    libfontconfig1 libxkbcommon0 libxkbcommon-x11-0
+
 # Ubuntu 26.04 aarch64: OpenROAD's Qt GUI static link fails on Qt/XCB platform
 # libraries that DependencyInstaller.sh does not pull on arm64 (fontconfig,
 # xkbcommon, the xcb-* plugin libs and dbus). Install the full set explicitly;
 # this is a no-op on x86 where the deps are already present.
-sudo apt-get install -y \
+install_prereqs \
     libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev libdbus-1-dev \
     libxcb-sync-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-image0-dev \
     libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev \
@@ -39,8 +62,29 @@ cd openroad
 git checkout $(python3 ${src_path}/_tools.py --tool openroad --field git-commit)
 git submodule update --init --recursive
 
-sudo ./etc/DependencyInstaller.sh -bazel -prefix="$BAZEL_PREFIX"
-sudo chown -R $USER:$USER $BAZEL_PREFIX
+# Install the bazelisk launcher into the build directory we own, so it needs no
+# root at all. Read the version and checksum out of the OpenROAD checkout rather
+# than pinning them here, so they follow the pinned commit instead of drifting
+# from it.
+if ! command -v bazelisk > /dev/null 2>&1; then
+    dep_installer=etc/DependencyInstaller.sh
+    case "$(uname -m)" in
+        aarch64) bazelisk_arch=arm64 ;;
+        *) bazelisk_arch=amd64 ;;
+    esac
+    bazelisk_version=$(sed -n 's/^BAZELISK_VERSION="\([^"]*\)".*/\1/p' "$dep_installer")
+    bazelisk_md5=$(sed -n "s/^BAZELISK_CHECKSUM_$(echo $bazelisk_arch | tr a-z A-Z)=\"\([^\"]*\)\".*/\1/p" "$dep_installer")
+    if [ -z "$bazelisk_version" ] || [ -z "$bazelisk_md5" ]; then
+        echo "Could not read the bazelisk version/checksum from $dep_installer" >&2
+        exit 1
+    fi
+
+    curl -fL -o bazelisk \
+        "https://github.com/bazelbuild/bazelisk/releases/download/v${bazelisk_version}/bazelisk-linux-${bazelisk_arch}"
+    echo "${bazelisk_md5}  bazelisk" | md5sum --quiet -c -
+    chmod +x bazelisk
+    mv bazelisk "$BAZEL_PREFIX/bin/bazelisk"
+fi
 
 if [ ! -z ${PREFIX} ]; then
     install_loc="$PREFIX"

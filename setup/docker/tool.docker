@@ -22,6 +22,7 @@ RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} + && \
 # Copy in support files
 COPY _tools.py $SC_BUILD/..
 COPY _tools.json $SC_BUILD/..
+COPY _prereqs.sh $SC_BUILD/..
 
 # Copy and run install script
 # The final remove in the same RUN command
