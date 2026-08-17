@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -12,21 +15,19 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo apt-get update
-
-sudo apt-get install -y tcl-dev build-essential pkg-config \
+install_prereqs tcl-dev build-essential pkg-config \
     autoconf gperf flex bison
 
-sudo apt-get install -y git curl
+install_prereqs git curl
 
 mkdir -p deps
 cd deps
 
 if [ "$(uname -m)" = "x86_64" ]; then
-    sudo apt-get install -y ghc libghc-regex-compat-dev libghc-syb-dev \
+    install_prereqs ghc libghc-regex-compat-dev libghc-syb-dev \
         libghc-old-time-dev libghc-split-dev
 else
-    sudo apt-get install -y build-essential curl libffi-dev libffi8 libgmp-dev \
+    install_prereqs build-essential curl libffi-dev libffi8 libgmp-dev \
         libgmp10 libncurses-dev libncurses5 libtinfo5 pkg-config
     if [ ! -z ${PREFIX} ]; then
         export PATH="$PREFIX/bin:$PATH"

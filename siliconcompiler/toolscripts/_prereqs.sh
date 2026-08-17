@@ -1,0 +1,210 @@
+# shellcheck shell=sh
+#
+# Shared prerequisite handling for the SiliconCompiler tool install scripts.
+#
+# Source this alongside the src_path definition and declare what the script
+# needs:
+#
+#     . "${src_path}/_prereqs.sh"
+#     install_prereqs git build-essential zlib1g-dev
+#
+# Packages the machine already has are dropped from the list, and when nothing
+# is left the package manager -- and with it sudo -- is never invoked at all.
+# That is what makes an unprivileged install possible: sc-install defaults to a
+# prefix of ~/.local, which needs no root of its own, but the unconditional
+# "sudo apt-get" at the top of every script used to abort the run under `set -e`
+# before anything was built.
+#
+# Unsure means install. Only a confident "already installed" skips a package;
+# an unknown name, a virtual package or rpm provide, a removed-but-not-purged
+# dpkg state, or a failure of the probe itself all fall through to the package
+# manager, which then behaves -- and fails -- exactly as these scripts did
+# before. A probe that treated "I do not recognise this" as "it is fine" would
+# turn a packaging bug into a mystery build failure twenty minutes later.
+#
+# The invariant that makes this safe: what reaches the package manager is always
+# a subset of what these scripts passed it before. Never a superset. So the probe
+# cannot introduce an install that did not already happen -- only skip one.
+#
+# Entry points:
+#
+#     install_prereqs [flags] PKG...   install what is missing
+#     install_prereq_group GROUP       install a package group if its payload is
+#                                      not already there (rpm only)
+#     prereqs_missing PKG...           true if any are missing; use it to gate
+#                                      work that only makes sense around an
+#                                      install, such as enabling a repository
+#     apt_update                       refresh the apt index, at most once
+
+if [ "$(id -u)" = "0" ]; then
+    # Already root, as in the container builds, where sudo may not be installed.
+    _sc_sudo=""
+else
+    _sc_sudo="sudo"
+fi
+
+# Which package manager installs, decided once when this file is sourced. The
+# probe used to decide what is already present is chosen separately below, so a
+# system with a package manager but no query tool still installs (unsure means
+# install) rather than erroring.
+if command -v apt-get > /dev/null 2>&1; then
+    _sc_backend="deb"
+elif command -v yum > /dev/null 2>&1; then
+    # RHEL 8 and 9 both ship yum as an alias for dnf. Prefer it, because it is
+    # what these scripts have always called.
+    _sc_backend="rpm"
+    _sc_yum="yum"
+elif command -v dnf > /dev/null 2>&1; then
+    _sc_backend="rpm"
+    _sc_yum="dnf"
+else
+    _sc_backend="none"
+fi
+
+# "apt-get update" is the slowest step in most of these scripts. Run it at most
+# once, and only once something actually has to be installed. yum/dnf refresh
+# their metadata as part of the install, so they need no equivalent.
+_sc_apt_updated="no"
+
+# Refresh the package index, at most once per script. Call this before an
+# apt-get install that does not go through install_prereqs.
+apt_update() {
+    if [ "$_sc_apt_updated" = "yes" ]; then
+        return 0
+    fi
+
+    $_sc_sudo apt-get update
+    _sc_apt_updated="yes"
+}
+
+# Echo the subset of "$@" that dpkg does not report as fully installed.
+_sc_missing_deb() {
+    _sc_missing=""
+    for _sc_pkg in "$@"; do
+        # Test the status string rather than using `dpkg -s`, which also
+        # succeeds for a removed-but-not-purged package whose config files are
+        # all that is left. "install ok installed" is the state that means the
+        # package is actually there.
+        if ! dpkg-query -W -f='${Status}' "$_sc_pkg" 2>/dev/null |
+                grep -q '^install ok installed$'; then
+            _sc_missing="$_sc_missing $_sc_pkg"
+        fi
+    done
+
+    printf '%s' "$_sc_missing"
+}
+
+# Echo the subset of "$@" that rpm does not report as installed.
+_sc_missing_rpm() {
+    _sc_missing=""
+    for _sc_pkg in "$@"; do
+        # Query the package name only. A name that is merely provided by some
+        # other package (a virtual provide) reads as missing here and falls
+        # through to yum, which is the same thing these scripts did before.
+        if ! rpm -q "$_sc_pkg" > /dev/null 2>&1; then
+            _sc_missing="$_sc_missing $_sc_pkg"
+        fi
+    done
+
+    printf '%s' "$_sc_missing"
+}
+
+# Echo the subset of "$@" that is not installed, using whichever probe fits.
+_sc_missing_pkgs() {
+    # This always runs in a command substitution, so quieting the trace here
+    # affects only the probe: with `set -x` the caller would otherwise get
+    # several lines per package and the install would be buried in them.
+    set +x
+
+    if command -v dpkg-query > /dev/null 2>&1; then
+        _sc_missing_deb "$@"
+    elif command -v rpm > /dev/null 2>&1; then
+        _sc_missing_rpm "$@"
+    else
+        # Nothing to ask, so ask for all of it.
+        printf '%s' " $*"
+    fi
+}
+
+# True when any of the named packages is missing.
+prereqs_missing() {
+    [ -n "$(_sc_missing_pkgs "$@")" ]
+}
+
+# Install the listed packages, skipping any the system already has. Leading
+# flags (--skip-broken, say) are passed to the package manager rather than
+# probed as package names.
+install_prereqs() {
+    _sc_flags=""
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -*)
+                _sc_flags="$_sc_flags $1"
+                shift
+                ;;
+            *) break ;;
+        esac
+    done
+
+    if [ "$#" -eq 0 ]; then
+        return 0
+    fi
+
+    _sc_needed=$(_sc_missing_pkgs "$@")
+
+    if [ -z "$_sc_needed" ]; then
+        echo "Prerequisites already installed, skipping install: $*"
+        return 0
+    fi
+
+    echo "Installing missing prerequisites (requires root):$_sc_needed"
+
+    # Word splitting of the flag and package lists is intended throughout.
+    case "$_sc_backend" in
+        deb)
+            apt_update
+            # shellcheck disable=SC2086
+            $_sc_sudo apt-get install -y $_sc_flags $_sc_needed
+            ;;
+        rpm)
+            # shellcheck disable=SC2086
+            $_sc_sudo $_sc_yum install -y $_sc_flags $_sc_needed
+            ;;
+        *)
+            echo "install_prereqs: no supported package manager found" >&2
+            return 1
+            ;;
+    esac
+}
+
+# Mandatory members of the "Development Tools" group, which is the only group
+# these scripts install. Verified identical on RHEL 8 and RHEL 9.
+_SC_GROUP_DEVELOPMENT_TOOLS="autoconf automake binutils bison flex gcc gcc-c++
+gdb glibc-devel libtool make pkgconf pkgconf-m4 pkgconf-pkg-config
+redhat-rpm-config rpm-build rpm-sign strace"
+
+# Install a package group unless its payload is already present.
+#
+# A group has no reliable installed-state probe of its own: `dnf group list
+# --installed` still reports a group as installed after its member packages have
+# been removed, so asking about the group can answer yes and be wrong. Ask about
+# the packages instead -- if every mandatory member is installed then the group
+# install has nothing to do, and a group this helper does not know the payload of
+# is installed unconditionally.
+install_prereq_group() {
+    _sc_group=$1
+
+    case "$_sc_group" in
+        "Development Tools") _sc_payload="$_SC_GROUP_DEVELOPMENT_TOOLS" ;;
+        *) _sc_payload="" ;;
+    esac
+
+    # shellcheck disable=SC2086
+    if [ -n "$_sc_payload" ] && ! prereqs_missing $_sc_payload; then
+        echo "Group already installed, skipping install: $_sc_group"
+        return 0
+    fi
+
+    echo "Installing group (requires root): $_sc_group"
+    $_sc_sudo $_sc_yum group install -y "$_sc_group"
+}

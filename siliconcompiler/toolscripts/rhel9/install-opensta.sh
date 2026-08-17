@@ -2,12 +2,18 @@
 
 set -ex
 
+# Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-sudo yum install -y git gcc-c++ wget
-sudo yum install -y tcl-tclreadline-devel \
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
+install_prereqs git gcc-c++ wget
+install_prereqs tcl-tclreadline-devel \
     bison flex zlib-devel automake autoconf
-sudo yum install -y \
+# Pinned URLs rather than package names, so there is nothing for the probe to
+# recognise -- these always install, exactly as before.
+install_prereqs \
     https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/Packages/flex-2.6.4-9.el9.x86_64.rpm \
     https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/Packages/readline-devel-8.1-4.el9.x86_64.rpm \
     https://rpmfind.net/linux/centos-stream/9-stream/AppStream/x86_64/os/Packages/tcl-devel-8.6.10-7.el9.x86_64.rpm

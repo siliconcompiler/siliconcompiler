@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -12,14 +15,12 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo apt-get update
-
 # sby is pure python and drives yosys / yosys-smtbmc (installed separately); its
 # 'click' dependency is bundled into the tool prefix below. The remaining packages
 # build the two selectable SMT solvers -- bitwuzla (default) and boolector -- and
 # bitwuzla's GMP/MPFR deps. boolector links the apt libgmp.
-sudo apt-get install -y git python3 python3-pip build-essential cmake curl \
-                        ninja-build pkg-config xz-utils m4 file libgmp-dev python3-venv
+install_prereqs git python3 python3-pip build-essential cmake curl \
+                ninja-build pkg-config xz-utils m4 file libgmp-dev python3-venv
 
 mkdir -p deps
 cd deps

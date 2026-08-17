@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -12,15 +15,13 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo apt-get update
-
-sudo apt-get install -y build-essential libfl-dev
+install_prereqs build-essential libfl-dev
 
 # From: https://github.com/keplertech/kepler-formal/blob/ea6b0ce62f6f8fd2327e79913a07c74a3210551d/README.md
-sudo apt-get install -y g++ libboost-dev python3-dev capnproto libcapnp-dev libtbb-dev \
+install_prereqs g++ libboost-dev python3-dev capnproto libcapnp-dev libtbb-dev \
     pkg-config bison flex doxygen libspdlog-dev libfmt-dev libboost-iostreams-dev zlib1g-dev
 
-sudo apt-get install -y git
+install_prereqs git
 
 mkdir -p deps
 cd deps

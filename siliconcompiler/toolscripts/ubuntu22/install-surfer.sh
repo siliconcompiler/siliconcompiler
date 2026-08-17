@@ -5,12 +5,13 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 mkdir -p deps
 cd deps
 
-sudo apt-get update
-
-sudo apt-get install -y build-essential curl git libssl-dev openssl pkg-config
+install_prereqs build-essential curl git libssl-dev openssl pkg-config
 
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then

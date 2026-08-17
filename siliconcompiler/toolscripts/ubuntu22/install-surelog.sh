@@ -5,15 +5,16 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-sudo apt-get update
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
 
 # These dependencies are up-to-date with instructions from the INSTALL.md from the commit we are pinned to below
-sudo apt-get install -y build-essential cmake git pkg-config \
+install_prereqs build-essential cmake git pkg-config \
     tclsh swig uuid-dev libgoogle-perftools-dev python3 \
     python3-orderedmultidict python3-psutil python3-dev \
     default-jre lcov zlib1g-dev
 
-sudo apt-get install -y git
+install_prereqs git
 
 mkdir -p deps
 cd deps

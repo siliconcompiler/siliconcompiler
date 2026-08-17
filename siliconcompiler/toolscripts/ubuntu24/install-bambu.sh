@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -12,19 +15,17 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo apt-get update
-
-sudo apt-get install -y autoconf autoconf-archive automake libtool \
+install_prereqs autoconf autoconf-archive automake libtool \
     libbdd-dev libboost-all-dev libmpc-dev libmpfr-dev \
     libxml2-dev liblzma-dev libmpfi-dev zlib1g-dev libicu-dev bison doxygen flex \
     graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev \
     libfl-dev
-sudo apt-get install -y \
+install_prereqs \
     gcc-11 gcc-11-multilib g++-11 g++-11-multilib \
     llvm-16 llvm-16-dev libllvm16 \
     clang-16 libclang-16-dev
 
-sudo apt-get install -y git build-essential
+install_prereqs git build-essential
 
 mkdir -p deps
 cd deps

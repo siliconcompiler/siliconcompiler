@@ -2,12 +2,14 @@
 
 set -ex
 
+# Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-sudo apt-get update
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
 
-sudo apt-get install -y git build-essential wget
-sudo apt-get install -y tcl-dev tcl-tclreadline \
+install_prereqs git build-essential wget
+install_prereqs tcl-dev tcl-tclreadline \
     bison flex libfl-dev zlib1g-dev automake autotools-dev
 
 mkdir -p deps

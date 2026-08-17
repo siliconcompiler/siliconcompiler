@@ -5,6 +5,9 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+# Install prerequisites only when they are missing
+. "${src_path}/_prereqs.sh"
+
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
     SUDO_INSTALL=sudo
@@ -12,8 +15,8 @@ else
     SUDO_INSTALL=""
 fi
 
-sudo yum group install -y "Development Tools"
-sudo yum install -y tcl-devel tk-devel tcsh csh git
+install_prereq_group "Development Tools"
+install_prereqs tcl-devel tk-devel tcsh csh git
 
 mkdir -p deps
 cd deps

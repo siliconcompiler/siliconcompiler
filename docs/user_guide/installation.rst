@@ -228,6 +228,16 @@ You can use the provided :ref:`sc-install <app-sc-install>` application to insta
    If you should run into issues, please consult the official download instructions for the tool itself.
    All official tool documentation links can be found in the :ref:`pre-defined tool drivers <builtin_tools>` section.
 
+**Root access.** ``sc-install`` installs into ``~/.local`` by default, which
+needs no root of its own, and root is needed only if a tool's prerequisite
+packages are missing. Each script asks the package manager what is already
+installed -- ``dpkg-query`` on Ubuntu, ``rpm`` on RHEL -- and calls ``sudo`` only
+for what is not there. A machine whose prerequisites are already in place -- a
+shared server, for instance -- can therefore have its tools installed and updated
+by an ordinary user. A handful of scripts still need root regardless, because
+they install a system package rather than build into the prefix; KLayout is the
+main one.
+
 **Reading the table.** Each row is a tool; each column is a platform. A cell
 links to the install script for that combination, and a **blank cell means no
 script is provided** -- not that the tool is unavailable. You may still be able
