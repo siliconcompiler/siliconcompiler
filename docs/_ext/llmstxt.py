@@ -60,6 +60,14 @@ FALLBACK_BASEURL = "https://docs.siliconcompiler.com/en/latest/"
 
 PREAMBLE = os.path.join("_llms", "preamble.md")
 
+# The published names, written into the root of the HTML output. Named rather than
+# inlined at the call below because conf.py builds its linkcheck exemption from
+# them: these files exist only in the built site, and linkcheck resolves a relative
+# link against the *source* tree, so the links machine_readable.rst uses to reach
+# them can never resolve there.
+SHORT_OUTPUT = "llms.txt"
+FULL_OUTPUT = "llms-full.txt"
+
 # Human-readable names for the top-level sections, keyed by docname prefix.
 # Anything not matched is grouped under "Other".
 SECTIONS = (
@@ -428,7 +436,7 @@ def generate(app, exception):
         listing.append(f"\n## {section}\n\n" + "\n".join(entries))
 
     short = f"{preamble}\n\n" + "\n".join(listing) + "\n"
-    _write(app.outdir, "llms.txt", short)
+    _write(app.outdir, SHORT_OUTPUT, short)
 
     full = (f"{preamble}\n\n"
             "The remainder of this file is the full text of every hand-written "
@@ -437,7 +445,7 @@ def generate(app, exception):
             f"is not included; see {posixpath.join(baseurl, 'schema.json')} for "
             "the machine-readable schema and the links above for the rest.\n"
             + "".join(bodies) + "\n")
-    _write(app.outdir, "llms-full.txt", full)
+    _write(app.outdir, FULL_OUTPUT, full)
 
     logger.info("wrote llms.txt (%d pages indexed) and llms-full.txt (%d pages, %.0f kB)",
                 len(docnames), len(bodies), len(full) / 1024)

@@ -13,6 +13,7 @@
 import inspect
 import importlib
 import json
+import re
 import sys
 
 import os
@@ -26,6 +27,11 @@ import siliconcompiler  # noqa E402
 sys.path.insert(0, os.path.join(sc_root, 'docs', '_ext'))
 
 from siliconcompiler.schema.docs import get_codeurl, resolve_codeurl  # noqa E402
+
+# Both are loaded as extensions below; imported here as well for the names of the
+# files they generate, which linkcheck_ignore needs.
+import llmstxt  # noqa E402
+import schemadump  # noqa E402
 
 
 # -- Project information -----------------------------------------------------
@@ -327,9 +333,22 @@ linkcheck_rate_limit_timeout = 60.0
 # get_codeurl), so match both. Matching only the tag form is what let ~1100
 # generated links back into the run and got it rate-limited before it reached
 # the handful of hand-written links worth checking.
+#
+# The machine-readable artifacts are skipped for a different reason. They are
+# written into the root of the HTML output at build-finished time, so they exist in
+# the published site and never in the source tree -- and linkcheck resolves a
+# relative link against the *source* directory, so it reports all three as broken
+# on every run no matter what the site serves. Nothing about the link is wrong and
+# nothing in the source tree can make it right, so the check has nothing to say
+# here. The names come from the generators so that renaming an artifact cannot
+# leave a stale exemption behind, and machine_readable.rst is held to the same
+# names by tests/docs/test_machine_readable.py.
+_artifacts = (llmstxt.SHORT_OUTPUT, llmstxt.FULL_OUTPUT, schemadump.OUTPUT)
+
 linkcheck_ignore = [
     r"https://github\.com/siliconcompiler/[^/]+/blob/(v[0-9][^/]*|[0-9a-f]{7,40})/"
     r"[^\s]*\.py(#L\d+(-L\d+)?)?$",
+    r"(\.\./)+(" + "|".join(re.escape(name) for name in _artifacts) + r")$",
 ]
 
 # Modified from: https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-1048104024
