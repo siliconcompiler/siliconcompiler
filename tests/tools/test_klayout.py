@@ -957,3 +957,62 @@ def test_drc_runset_required(setup_pdk_test):
     assert f"library,{pdk_name},pdk,drc,runsetfileset,klayout,drc" in requires, requires
     assert any(r.startswith(f"library,{pdk_name},fileset,") and r.endswith("file,drc")
                for r in requires), requires
+
+
+def test_technology_files_required():
+    # Regression guard: the technology files read by technology() must be declared, the
+    # .lyt/.lyp from a previous node as inputs so they are copied into the node, and the
+    # PDK files used when they are missing as required so they are hashed and copied.
+    design = Design("heartbeat")
+    with design.active_fileset("layout"):
+        design.set_topmodule("heartbeat")
+
+    proj = ASIC(design)
+    proj.add_fileset("layout")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("testflow")
+    flow.node("export", export.ExportTask())
+    flow.node("screenshot", screenshot.ScreenshotTask())
+    flow.edge("export", "screenshot")
+    proj.set_flow(flow)
+
+    # the export node declares the technology files it writes
+    export_node = SchedulerNode(proj, "export", "0")
+    with export_node.runtime():
+        assert export_node.setup() is True
+
+    node = SchedulerNode(proj, "screenshot", "0")
+    with node.runtime():
+        assert node.setup() is True
+        requires = node.task.get("require")
+        inputs = node.task.get("input")
+
+    assert "heartbeat.lyt" in inputs, inputs
+    assert "heartbeat.lyp" in inputs, inputs
+
+    pdk_name = proj.get("asic", "pdk")
+    assert f"library,{pdk_name},pdk,layermapfileset,klayout,def,klayout" in requires, requires
+    assert any(r.startswith(f"library,{pdk_name},fileset,") and r.endswith("file,layermap")
+               for r in requires), requires
+    assert f"library,{pdk_name},pdk,displayfileset,klayout" in requires, requires
+    assert any(r.startswith(f"library,{pdk_name},fileset,") and r.endswith("file,display")
+               for r in requires), requires
+
+
+def test_hide_layers_required(asic_heartbeat_screenshot):
+    # Regression guard: show() hides the union of the PDK and task layers, so both keys
+    # must be declared required.
+    proj, task = asic_heartbeat_screenshot
+
+    task.add_klayout_hidelayers("metal9")
+    pdk = proj.get_library(proj.get("asic", "pdk"))
+    pdk.add_klayout_hidelayers("metal10")
+
+    node = SchedulerNode(proj, "screenshot", "0")
+    with node.runtime():
+        assert node.setup() is True
+        requires = node.task.get("require")
+
+    assert "tool,klayout,task,screenshot,var,hide_layers" in requires, requires
+    assert f"library,{proj.get('asic', 'pdk')},tool,klayout,hide_layers" in requires, requires

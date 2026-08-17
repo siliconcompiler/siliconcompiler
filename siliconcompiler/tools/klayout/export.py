@@ -50,6 +50,8 @@ class ExportTask(KLayoutStreamTask, ScreenshotParams):
         self.add_output_file(ext="lyt")
         self.add_output_file(ext="lyp")
 
+        self._add_technology_files()
+
         sc_stream_order = self._get_klayout_streamorder()
         req_set = False
         for s in sc_stream_order:
