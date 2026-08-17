@@ -129,7 +129,7 @@ jobs:
       # Balances the groups by last run's measured times. Missing on the first
       # run, where pytest-split falls back to splitting by test count.
       - name: Restore test durations
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ github.workspace }}/test_durations.json
           key: eda-test-durations-${{ github.run_id }}
@@ -216,7 +216,7 @@ jobs:
 
       - name: Save test durations
         if: steps.merge.outputs.merged == 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ${{ github.workspace }}/test_durations.json
           key: eda-test-durations-${{ github.run_id }}
