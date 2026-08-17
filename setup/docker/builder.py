@@ -64,6 +64,11 @@ def tools_image_details(tools, tools_versions):
     for tool, version in tools_versions:
         hash.update(version.encode('utf-8'))
     hash.update(get_file_hash(docker_file).encode('utf-8'))
+    # sc_tools.docker copies _prereqs.sh in and runs the docker-skip install
+    # scripts that source it, so it is a build input of this image too.
+    prereqs_file = os.path.join(_tools_path, _prereqs_script)
+    if os.path.exists(prereqs_file):
+        hash.update(get_file_hash(prereqs_file).encode('utf-8'))
 
     return 'sc_tools', hash.hexdigest(), docker_file
 

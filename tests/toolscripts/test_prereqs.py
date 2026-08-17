@@ -77,6 +77,12 @@ COMMON_STUBS = {
 echo "sudo $*" >> "$SC_TEST_LOG"
 exec "$@"
 """,
+    # The helper drops sudo when it is already root, so the uid decides what the
+    # log looks like. Stub it rather than inheriting the runner's: the daily CI
+    # job runs the whole suite inside a container, where the real id says 0.
+    "id": """#!/bin/sh
+echo "${SC_TEST_UID:-1000}"
+""",
 }
 
 DEB_STUBS = {
@@ -96,24 +102,32 @@ echo "apt-get $*" >> "$SC_TEST_LOG"
 """,
 }
 
-RPM_STUBS = {
-    # rpm -q <pkg>: exit 0 when installed, 1 otherwise. Verified against real
-    # rpm on RHEL 8 and 9 as an unprivileged user.
-    "rpm": """#!/bin/sh
+# rpm -q <pkg>: exit 0 when installed, 1 otherwise. Verified against real rpm on
+# RHEL 8 and 9 as an unprivileged user.
+RPM_QUERY_STUB = """#!/bin/sh
 case "$2" in
     present-*) echo "$2-1.0-1.el9.x86_64" ;;
     *) echo "package $2 is not installed"; exit 1 ;;
 esac
-""",
-    "yum": """#!/bin/sh
-echo "yum $*" >> "$SC_TEST_LOG"
-""",
-}
+"""
+
+
+def _manager_stub(name):
+    return f'#!/bin/sh\necho "{name} $*" >> "$SC_TEST_LOG"\n'
+
+
+RPM_STUBS = {"rpm": RPM_QUERY_STUB, "yum": _manager_stub("yum")}
+
+# RHEL 8 and 9 both ship yum as an alias for dnf, but a dnf-only system has to
+# work too: the helper picks whichever command is actually there.
+DNF_STUBS = {"rpm": RPM_QUERY_STUB, "dnf": _manager_stub("dnf")}
+
+BACKEND_STUBS = {"deb": DEB_STUBS, "rpm": RPM_STUBS, "dnf": DNF_STUBS}
 
 # The backend is chosen by which package manager is on PATH, so each case runs
 # with a PATH holding nothing but its own stubs plus the few real tools the
 # helper shells out to.
-REAL_TOOLS = ("id", "grep")
+REAL_TOOLS = ("grep",)
 
 
 @pytest.fixture
@@ -121,12 +135,12 @@ def run_prereqs():
     """Run shell against _prereqs.sh with a stubbed package manager."""
     log = os.path.abspath("prereqs.log")
 
-    def run(body, backend="deb"):
+    def run(body, backend="deb", root=False):
         bindir = os.path.abspath(f"stubbin-{backend}")
         os.makedirs(bindir, exist_ok=True)
 
         stubs = dict(COMMON_STUBS)
-        stubs.update(DEB_STUBS if backend == "deb" else RPM_STUBS)
+        stubs.update(BACKEND_STUBS[backend])
         for name, stub in stubs.items():
             path = os.path.join(bindir, name)
             with open(path, "w") as f:
@@ -146,7 +160,8 @@ def run_prereqs():
 
         proc = subprocess.run(
             ["/bin/sh", script], capture_output=True, text=True,
-            env={"PATH": bindir, "SC_TEST_LOG": log})
+            env={"PATH": bindir, "SC_TEST_LOG": log,
+                 "SC_TEST_UID": "0" if root else "1000"})
         assert proc.returncode == 0, proc.stderr
 
         if not os.path.exists(log):
@@ -277,6 +292,48 @@ def test_unknown_group_is_installed_unconditionally(run_prereqs):
     log = run_prereqs('install_prereq_group "Some Other Group"', backend="rpm")
 
     assert "yum group install -y Some Other Group" in log
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_root_installs_without_sudo(run_prereqs):
+    """
+    Already root -- the container builds, where sudo may not even be installed.
+    The package manager is invoked directly.
+    """
+    log = run_prereqs("install_prereqs missing-git", root=True)
+
+    assert log == ["apt-get update", "apt-get install -y missing-git"]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_root_installs_without_sudo_on_rpm(run_prereqs):
+    log = run_prereqs("install_prereqs missing-git", backend="rpm", root=True)
+
+    assert log == ["yum install -y missing-git"]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_root_still_skips_what_is_present(run_prereqs):
+    """Being root is not a reason to reinstall."""
+    assert run_prereqs("install_prereqs present-git", root=True) == []
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_dnf_only_system_uses_dnf(run_prereqs):
+    """A system with dnf but no yum alias installs with dnf, not a missing yum."""
+    log = run_prereqs("install_prereqs missing-tcl-devel", backend="dnf")
+
+    assert log == [
+        "sudo dnf install -y missing-tcl-devel",
+        "dnf install -y missing-tcl-devel",
+    ]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_dnf_only_system_installs_groups_with_dnf(run_prereqs):
+    log = run_prereqs('install_prereq_group "Development Tools"', backend="dnf")
+
+    assert "dnf group install -y Development Tools" in log
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")

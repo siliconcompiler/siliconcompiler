@@ -49,8 +49,14 @@ fi
 # install) rather than erroring.
 if command -v apt-get > /dev/null 2>&1; then
     _sc_backend="deb"
-elif command -v yum > /dev/null 2>&1 || command -v dnf > /dev/null 2>&1; then
+elif command -v yum > /dev/null 2>&1; then
+    # RHEL 8 and 9 both ship yum as an alias for dnf. Prefer it, because it is
+    # what these scripts have always called.
     _sc_backend="rpm"
+    _sc_yum="yum"
+elif command -v dnf > /dev/null 2>&1; then
+    _sc_backend="rpm"
+    _sc_yum="dnf"
 else
     _sc_backend="none"
 fi
@@ -162,7 +168,7 @@ install_prereqs() {
             ;;
         rpm)
             # shellcheck disable=SC2086
-            $_sc_sudo yum install -y $_sc_flags $_sc_needed
+            $_sc_sudo $_sc_yum install -y $_sc_flags $_sc_needed
             ;;
         *)
             echo "install_prereqs: no supported package manager found" >&2
@@ -200,5 +206,5 @@ install_prereq_group() {
     fi
 
     echo "Installing group (requires root): $_sc_group"
-    $_sc_sudo yum group install -y "$_sc_group"
+    $_sc_sudo $_sc_yum group install -y "$_sc_group"
 }
