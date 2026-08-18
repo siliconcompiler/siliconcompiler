@@ -1,6 +1,7 @@
 import io
 import logging
 import pytest
+import re
 
 import os.path
 
@@ -1533,6 +1534,168 @@ def test_find_files_scalar_dir():
     assert schema.set("directory", "test")
 
     assert schema._find_files("directory") == os.path.abspath("test")
+
+
+def test_find_files_scalar_path():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("path", Parameter("path"))
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+    os.makedirs("test", exist_ok=True)
+
+    # a path resolves a file
+    assert schema.set("path", "test.txt")
+    assert schema._find_files("path") == os.path.abspath("test.txt")
+
+    # and a directory
+    assert schema.set("path", "test")
+    assert schema._find_files("path") == os.path.abspath("test")
+
+
+def test_find_files_list_path():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("path", Parameter("[path]"))
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+    os.makedirs("test", exist_ok=True)
+
+    assert schema.set("path", ["test.txt", "test"])
+
+    assert schema._find_files("path") == [
+        os.path.abspath("test.txt"),
+        os.path.abspath("test")
+    ]
+
+
+def test_find_files_scalar_file_is_directory():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("file", Parameter("file"))
+
+    os.makedirs("test", exist_ok=True)
+
+    assert schema.set("file", "test")
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('test'))} is not a file$"):
+        schema._find_files("file")
+
+
+def test_find_files_scalar_dir_is_file():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("directory", Parameter("dir"))
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("directory", "test.txt")
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('test.txt'))} is not a directory$"):
+        schema._find_files("directory")
+
+
+def test_find_files_list_file_is_directory():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("file", Parameter("[file]"))
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+    os.makedirs("test", exist_ok=True)
+
+    assert schema.set("file", ["test.txt", "test"])
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('test'))} is not a file$"):
+        schema._find_files("file")
+
+
+def test_find_files_list_dir_is_file():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("directory", Parameter("[dir]"))
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+    os.makedirs("test", exist_ok=True)
+
+    assert schema.set("directory", ["test", "test.txt"])
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('test.txt'))} is not a directory$"):
+        schema._find_files("directory")
+
+
+def test_find_files_missing_ok_still_asserts_type():
+    """missing_ok suppresses not-found, not a wrong-type path."""
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("file", Parameter("file"))
+
+    os.makedirs("test", exist_ok=True)
+
+    assert schema.set("file", "test")
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('test'))} is not a file$"):
+        schema._find_files("file", missing_ok=True)
+
+
+def test_hash_files_scalar_file_is_directory():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("file", Parameter("file"))
+
+    os.makedirs("test", exist_ok=True)
+
+    assert schema.set("file", "test")
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('test'))} is not a file$"):
+        schema._hash_files("file")
+
+
+def test_hash_files_scalar_dir_is_file():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("directory", Parameter("dir"))
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("directory", "test.txt")
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('test.txt'))} is not a directory$"):
+        schema._hash_files("directory")
+
+
+def test_hash_files_scalar_path():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("path", Parameter("path"))
+
+    with open("test.txt", "w", newline="\n") as f:
+        f.write("foobar\n")
+    os.makedirs("test", exist_ok=True)
+    with open(os.path.join("test", "foo.txt"), "w", newline="\n") as f:
+        f.write("foobar\n")
+
+    # a path hashes a file
+    assert schema.set("path", "test.txt")
+    assert schema._hash_files("path") == \
+        "aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f"
+
+    # and a directory
+    assert schema.set("path", "test")
+    assert schema._hash_files("path") == \
+        "dd73d337fa2e76ef8cdd2e99f3839c7147c4a9c29ba757833f00892692f975ce"
 
 
 def test_find_files_scalar_file_not_found():

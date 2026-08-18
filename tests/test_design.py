@@ -1473,7 +1473,7 @@ def test_copy_fileset_overwrite():
 
 def test_path_object(datadir):
     d = Design()
-    basedir = Path(__file__)
+    basedir = Path(__file__).parent
     with d.active_fileset("rtl"):
         d.add_idir(basedir)
         d.add_libdir(basedir)
