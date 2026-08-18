@@ -5,6 +5,8 @@ from .gf180_demo import gf180_demo
 from .ihp130_demo import ihp130_demo
 from .skywater130_demo import skywater130_demo
 from .interposer_demo import interposer_demo
+from .gt2n_demo import gt2n_demo
+from .icsprout55_demo import icsprout55_demo
 
 # import this utility to provide backwards compatibility for the old target loading API
 from ._utils import asic_target  # noqa: F401
@@ -17,5 +19,7 @@ __all__ = [
     "gf180_demo",
     "ihp130_demo",
     "skywater130_demo",
-    "interposer_demo"
+    "interposer_demo",
+    "icsprout55_demo",
+    "gt2n_demo"
 ]

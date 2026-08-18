@@ -23,6 +23,14 @@ These are typically "demo" targets which use a specific combination of predefine
     :name: gf180_demo
 
 .. sctarget::
+    :root: siliconcompiler.targets.gt2n_demo
+    :name: gt2n_demo
+
+.. sctarget::
+    :root: siliconcompiler.targets.icsprout55_demo
+    :name: icsprout55_demo
+
+.. sctarget::
     :root: siliconcompiler.targets.ihp130_demo
     :name: ihp130_demo
 

@@ -2,7 +2,9 @@ import pytest
 
 import re
 
-from siliconcompiler import Flowgraph
+from siliconcompiler import Flowgraph, Design, Project
+from siliconcompiler.asic import ASIC
+from siliconcompiler.targets._utils import detect_elaboration_language
 
 from siliconcompiler.flows.asicflow import (
     ASICFlow,
@@ -60,6 +62,25 @@ from siliconcompiler.flows.showflow import ShowFlow
 from siliconcompiler.flows.signoffflow import SignoffFlow
 from siliconcompiler.flows.synflow import SynthesisFlow
 
+
+@pytest.fixture
+def make_project():
+    """Builds a project whose design has a single fileset containing one file
+    for each requested filetype.
+
+    The file paths are absolute and never touch disk; ``detect_elaboration_language``
+    only checks for the presence of a filetype, not the file contents.
+    """
+    def _make_project(*filetypes, project_cls=Project, name="test", fileset="rtl"):
+        design = Design(name)
+        with design.active_fileset(fileset):
+            design.set_topmodule("top")
+            for idx, filetype in enumerate(filetypes):
+                design.add_file(f"/fake/path/src{idx}.dat", filetype=filetype)
+        proj = project_cls(design)
+        proj.add_fileset(fileset)
+        return proj
+    return _make_project
 
 @pytest.mark.parametrize("flow", [
     CheckLibraryFlow,
@@ -197,3 +218,109 @@ def test_pex_calibrate_flow_structure():
                 ValueError,
                 match=rf"^{re.escape(removed)}/0 is not a valid node in pex_calibrate\.$"):
             flow.get_graph_node(removed, "0")
+
+
+@pytest.mark.parametrize("filetype,expected", [
+    ("verilog", "verilog"),
+    ("systemverilog", "systemverilog"),
+    ("vhdl", "vhdl"),
+    ("c", "hls"),
+    ("bsv", "bluespec"),
+    ("chisel", "chisel"),
+    ("scala", "chisel"),
+])
+def test_detect_elaboration_language_single(make_project, filetype, expected):
+    proj = make_project(filetype)
+    assert detect_elaboration_language(proj) == expected
+
+
+@pytest.mark.parametrize("filetypes,expected", [
+    (("verilog", "chisel"), "chisel"),
+    (("verilog", "scala"), "chisel"),
+    (("verilog", "vhdl"), "vhdl"),
+    (("verilog", "c"), "hls"),
+    (("verilog", "bsv"), "bluespec"),
+    (("systemverilog", "verilog"), "systemverilog"),
+])
+def test_detect_elaboration_language_precedence(make_project, filetypes, expected):
+    # When a single fileset holds more than one language, the higher-precedence
+    # language wins regardless of the order the files were added.
+    proj = make_project(*filetypes)
+    assert detect_elaboration_language(proj) == expected
+
+
+def test_detect_elaboration_language_asic_project(make_project):
+    # The helper works for ASIC projects, not just the base Project.
+    proj = make_project("vhdl", project_cls=ASIC)
+    assert detect_elaboration_language(proj) == "vhdl"
+
+
+def test_detect_elaboration_language_unknown_filetype_returns_default(make_project):
+    # A fileset with only non-HDL files falls back to the default.
+    proj = make_project("lef")
+    assert detect_elaboration_language(proj) == "verilog"
+
+
+def test_detect_elaboration_language_custom_default(make_project):
+    proj = make_project("lef")
+    assert detect_elaboration_language(proj, default="systemverilog") == "systemverilog"
+
+
+def test_detect_elaboration_language_multiple_filesets():
+    # The first fileset with a detectable language wins.
+    design = Design("multi")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("/fake/path/top.vhd", filetype="vhdl")
+    with design.active_fileset("extra"):
+        design.set_topmodule("top")
+        design.add_file("/fake/path/extra.v", filetype="verilog")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.add_fileset("extra")
+    assert detect_elaboration_language(proj) == "vhdl"
+
+
+# ---------------------------------------------------------------------------
+# Incomplete / malformed project setups: detection must never raise, it should
+# always fall back to the (possibly customized) default language.
+# ---------------------------------------------------------------------------
+
+def test_detect_elaboration_language_no_design():
+    # An empty project has no design name set.
+    assert detect_elaboration_language(Project()) == "verilog"
+
+
+def test_detect_elaboration_language_no_design_custom_default():
+    assert detect_elaboration_language(Project(), default="vhdl") == "vhdl"
+
+
+def test_detect_elaboration_language_design_name_not_loaded():
+    # Design name is set but the design was never loaded as a library.
+    proj = Project()
+    proj.set_design("ghost")
+    assert detect_elaboration_language(proj) == "verilog"
+
+
+def test_detect_elaboration_language_no_filesets():
+    # A design exists but no filesets are selected on the project.
+    assert detect_elaboration_language(Project(Design("empty"))) == "verilog"
+
+
+def test_detect_elaboration_language_empty_fileset():
+    # A fileset is selected but contains no files.
+    design = Design("nofiles")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    assert detect_elaboration_language(proj) == "verilog"
+
+
+def test_detect_elaboration_language_empty_fileset_custom_default():
+    design = Design("nofiles")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    assert detect_elaboration_language(proj, default="chisel") == "chisel"
