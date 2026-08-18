@@ -2548,7 +2548,7 @@ class OpenTask(Task):
     def __init__(self):
         """Initialize an OpenTask, adding the parameters shared by open tasks."""
         super().__init__()
-        self.add_parameter("showfilepath", "file", "path to the file to open")
+        self.add_parameter("showfilepath", "path", "path to the file to open")
         self.add_parameter("showfiletype", "str", "extension of the file to open")
         self.add_parameter("shownode", "(str,str,str)",
                            "source node (jobname, step, index) the file came from; "
