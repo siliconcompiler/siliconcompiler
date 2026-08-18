@@ -698,7 +698,7 @@ class NodeValue:
         return self.__type
 
 
-class PathNodeValue(NodeValue):
+class BasePathNodeValue(NodeValue):
     '''
     Holds the path data for a parameter.
 
@@ -743,7 +743,7 @@ class PathNodeValue(NodeValue):
             return self.__dataroot
         return super()._getunsafe(field=field)
 
-    def set(self, value, field: str = 'value') -> "PathNodeValue":
+    def set(self, value, field: str = 'value') -> "BasePathNodeValue":
         if field == 'filehash':
             self.__filehash = NodeType.normalize(value, "str")
             return self
@@ -770,7 +770,7 @@ class PathNodeValue(NodeValue):
             basename = str(pathlib.PurePosixPath(*path_paths[0:n]))
             endname = str(pathlib.PurePosixPath(*path_paths[n:]))
 
-            import_name = PathNodeValue.generate_hashed_path(basename, self.__dataroot)
+            import_name = BasePathNodeValue.generate_hashed_path(basename, self.__dataroot)
             if import_name not in collected_paths:
                 continue
 
@@ -783,6 +783,15 @@ class PathNodeValue(NodeValue):
 
         return None
 
+    def _assert_path(self, path: Optional[Union[str, pathlib.Path]]) -> None:
+        """
+        Assert the path is of the correct type.
+
+        Args:
+            path (path or None): path to check.
+        """
+        raise NotImplementedError
+
     def resolve_path(self, search: Optional[List[str]] = None,
                      collection_dir: Optional[str] = None) -> Optional[str]:
         """
@@ -794,18 +803,24 @@ class PathNodeValue(NodeValue):
             search (list of paths): list of paths to search to check for the path.
             collection_dir (path): path to collection directory.
         """
+        def return_value(path: Optional[Union[str, pathlib.Path]]) -> Optional[str]:
+            self._assert_path(path)
+            if path is None:
+                return None
+            return str(pathlib.Path(path))
+
         value: Optional[Union[str, pathlib.Path]] = self.get()
         if value is None:
-            return None
+            return return_value(None)
 
         # Check collections path
         if collection_dir:
             collect_path = self.__resolve_collection_path(value, collection_dir)
             if collect_path:
-                return str(pathlib.Path(collect_path))
+                return return_value(collect_path)
 
         if os.path.isabs(value) and os.path.exists(value):
-            return str(pathlib.Path(value))
+            return return_value(value)
 
         # Search for file
         if search is None:
@@ -814,7 +829,7 @@ class PathNodeValue(NodeValue):
         for searchdir in search:
             abspath = os.path.abspath(os.path.join(searchdir, value))
             if os.path.exists(abspath):
-                return str(pathlib.Path(abspath))
+                return return_value(abspath)
 
         # File not found
         raise FileNotFoundError(value)
@@ -862,7 +877,7 @@ class PathNodeValue(NodeValue):
         The mapping looks like:
         path/to/file.ext => file_<hash('path/to')>.ext
         '''
-        return PathNodeValue.generate_hashed_path(self.get(), self.__dataroot)
+        return BasePathNodeValue.generate_hashed_path(self.get(), self.__dataroot)
 
     def hash(self, function: str, **kwargs) -> Optional[str]:
         """
@@ -911,7 +926,7 @@ class PathNodeValue(NodeValue):
             # https://stackoverflow.com/questions/73682260
             posix_path = pathlib.PureWindowsPath(os.path.relpath(file, dirname)).as_posix()
             hashobj.update(posix_path.encode("utf-8"))
-            dirhash = PathNodeValue.hash_file(file, hashobj=hashobj)
+            dirhash = BasePathNodeValue.hash_file(file, hashobj=hashobj)
         return dirhash
 
     @staticmethod
@@ -954,7 +969,7 @@ class PathNodeValue(NodeValue):
         raise NotImplementedError
 
 
-class DirectoryNodeValue(PathNodeValue):
+class DirectoryNodeValue(BasePathNodeValue):
     '''
     Holds the directory data for a parameter.
 
@@ -976,15 +991,22 @@ class DirectoryNodeValue(PathNodeValue):
         Args:
             function (str): name of hashing function to use.
         """
-        return PathNodeValue.hash_directory(
+        return BasePathNodeValue.hash_directory(
             self.resolve_path(**kwargs), hashfunction=function)
+
+    def _assert_path(self, path: Optional[Union[str, pathlib.Path]]) -> None:
+        if path is None:
+            return
+
+        if not os.path.isdir(path):
+            raise ValueError(f"{path} is not a directory")
 
     @property
     def type(self) -> str:
         return "dir"
 
 
-class FileNodeValue(PathNodeValue):
+class BaseFileNodeValue(BasePathNodeValue):
     '''
     Holds the file data for a parameter.
 
@@ -993,9 +1015,10 @@ class FileNodeValue(PathNodeValue):
     '''
 
     def __init__(self,
+                 type: str,
                  value: Optional[Union[str, pathlib.Path]] = None,
                  dataroot: Optional[str] = None):
-        super().__init__("file", value=value, dataroot=dataroot)
+        super().__init__(type, value=value, dataroot=dataroot)
         self.__date = None
         self.__author = []
 
@@ -1055,6 +1078,24 @@ class FileNodeValue(PathNodeValue):
             return self
         return super().add(value, field=field)
 
+    @property
+    def fields(self) -> Tuple[Optional[str], ...]:
+        return (*super().fields, "date", "author")
+
+
+class FileNodeValue(BaseFileNodeValue):
+    '''
+    Holds the file data for a parameter.
+
+    Args:
+        value (any): default value for this parameter
+    '''
+
+    def __init__(self,
+                 value: Optional[Union[str, pathlib.Path]] = None,
+                 dataroot: Optional[str] = None):
+        super().__init__("file", value=value, dataroot=dataroot)
+
     def hash(self, function: str, **kwargs) -> Optional[str]:
         """
         Compute the hash for this file.
@@ -1064,13 +1105,57 @@ class FileNodeValue(PathNodeValue):
         Args:
             function (str): name of hashing function to use.
         """
-        return PathNodeValue.hash_file(
+        return BasePathNodeValue.hash_file(
             self.resolve_path(**kwargs), hashfunction=function)
 
-    @property
-    def fields(self) -> Tuple[Optional[str], ...]:
-        return (*super().fields, "date", "author")
+    def _assert_path(self, path: Optional[Union[str, pathlib.Path]]) -> None:
+        if path is None:
+            return
+
+        if not os.path.isfile(path):
+            raise ValueError(f"{path} is not a file")
 
     @property
     def type(self) -> str:
         return "file"
+
+
+class PathNodeValue(BaseFileNodeValue):
+    '''
+    Holds the path data for a parameter.
+
+    Args:
+        value (any): default value for this parameter
+    '''
+
+    def __init__(self,
+                 value: Optional[Union[str, pathlib.Path]] = None,
+                 dataroot: Optional[str] = None):
+        super().__init__("path", value=value, dataroot=dataroot)
+
+    def hash(self, function: str, **kwargs) -> Optional[str]:
+        """
+        Compute the hash for this path.
+
+        Keyword arguments are derived from :meth:`resolve_path`.
+
+        Args:
+            function (str): name of hashing function to use.
+        """
+        path = self.resolve_path(**kwargs)
+        if path is None:
+            return None
+
+        if os.path.isdir(path):
+            return BasePathNodeValue.hash_directory(
+                path, hashfunction=function)
+        else:
+            return BasePathNodeValue.hash_file(
+                path, hashfunction=function)
+
+    def _assert_path(self, path: Optional[Union[str, pathlib.Path]]) -> None:
+        pass
+
+    @property
+    def type(self) -> str:
+        return "path"
