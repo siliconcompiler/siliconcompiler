@@ -68,15 +68,17 @@ def make_project():
     """Builds a project whose design has a single fileset containing one file
     for each requested filetype.
 
-    The file paths are absolute and never touch disk; ``detect_elaboration_language``
-    only checks for the presence of a filetype, not the file contents.
+    The files are declared relative to a dataroot and never touch disk;
+    ``detect_elaboration_language`` only checks for the presence of a filetype, not
+    the file contents.
     """
     def _make_project(*filetypes, project_cls=Project, name="test", fileset="rtl"):
         design = Design(name)
-        with design.active_fileset(fileset):
+        design.set_dataroot("testdata", __file__)
+        with design.active_dataroot("testdata"), design.active_fileset(fileset):
             design.set_topmodule("top")
             for idx, filetype in enumerate(filetypes):
-                design.add_file(f"/fake/path/src{idx}.dat", filetype=filetype)
+                design.add_file(f"src{idx}.dat", filetype=filetype)
         proj = project_cls(design)
         proj.add_fileset(fileset)
         return proj
@@ -270,12 +272,14 @@ def test_detect_elaboration_language_custom_default(make_project):
 def test_detect_elaboration_language_multiple_filesets():
     # The first fileset with a detectable language wins.
     design = Design("multi")
-    with design.active_fileset("rtl"):
-        design.set_topmodule("top")
-        design.add_file("/fake/path/top.vhd", filetype="vhdl")
-    with design.active_fileset("extra"):
-        design.set_topmodule("top")
-        design.add_file("/fake/path/extra.v", filetype="verilog")
+    design.set_dataroot("testdata", __file__)
+    with design.active_dataroot("testdata"):
+        with design.active_fileset("rtl"):
+            design.set_topmodule("top")
+            design.add_file("top.vhd", filetype="vhdl")
+        with design.active_fileset("extra"):
+            design.set_topmodule("top")
+            design.add_file("extra.v", filetype="verilog")
     proj = Project(design)
     proj.add_fileset("rtl")
     proj.add_fileset("extra")

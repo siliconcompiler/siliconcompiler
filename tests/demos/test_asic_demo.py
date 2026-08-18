@@ -37,6 +37,6 @@ def test_asic_demo_design():
     ''' The self-test target builds the 8-bit heartbeat counter '''
     proj = asic_demo.ASICDemo()
 
-    assert proj.get("option", "design") == "heartbeat"
-    assert proj.get("option", "fileset") == ["rtl", "sdc"]
-    assert proj.get("option", "flow") == "asicflow-verilog"
+    assert proj.option.get_design() == "heartbeat"
+    assert proj.option.get_fileset() == ["rtl", "sdc"]
+    assert proj.option.get_flow() == "asicflow-verilog"

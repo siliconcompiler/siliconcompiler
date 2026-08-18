@@ -29,5 +29,5 @@ def test_target_loading_asic(target):
     assert proj.get("asic", "pdk") is not None
     assert proj._has_library(proj.get("asic", "pdk")) is True
 
-    assert proj.get("option", "flow") is not None
-    assert proj.get("option", "flow") in proj.getkeys("flowgraph")
+    assert proj.option.get_flow() is not None
+    assert proj.option.get_flow() in proj.getkeys("flowgraph")

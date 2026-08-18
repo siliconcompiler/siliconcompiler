@@ -14,8 +14,9 @@ def asic_target(proj: ASIC, pdk: Optional[str] = None):
     Args:
         proj (ASIC): The siliconcompiler project to configure.
         pdk (Optional[str]): The name of the Process Design Kit to target. Supported
-            values are "asap7", "freepdk45", "gf180", "ihp130", and
-            "skywater130".
+            values are "asap7", "freepdk45", "gf180", "ihp130",
+            "skywater130" (alias "sky130"), "icsprout55" (alias "ics55"), and
+            "gt2n".
 
     Raises:
         ValueError: If the provided `pdk` name is not supported.

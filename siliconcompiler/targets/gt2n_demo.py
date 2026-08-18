@@ -23,9 +23,9 @@ def gt2n_demo(
         Configure a siliconcompiler ASIC for the GT2N.
 
         Sets the project's main standard-cell library, configures full ASIC and synthesis-only
-        flows with provided parallelism, selects the "gt2n" PDK, creates slow/typical/fast STA
-        scenarios, sets the ASIC delay model to "nldm", applies core area density and margin
-        constraints.
+        flows with provided parallelism, selects the "gt2n" PDK, creates a single "typical" STA
+        scenario covering the setup, hold, and power checks, sets the ASIC delay model to
+        "nldm", applies core area density and margin constraints.
 
         Parameters:
             * project (ASIC): The siliconcompiler project to configure.
@@ -35,6 +35,8 @@ def gt2n_demo(
             * cts_np (int): Parallelism for clock-tree synthesis.
             * route_np (int): Parallelism for routing.
             * timing_np (int): Parallelism for timing analysis (synthesis-only flow).
+            * language (Optional[str]): The hardware description language to use. Detected
+                from the project sources when not provided.
         """
     if language is None:
         language = detect_elaboration_language(project)
