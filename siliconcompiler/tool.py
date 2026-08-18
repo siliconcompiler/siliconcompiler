@@ -3263,7 +3263,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         schema.insert(
             'input',
             Parameter(
-                '[file]',
+                '[path]',
                 scope=Scope.JOB,
                 pernode=PerNode.REQUIRED,
                 shorthelp="Task: input files",
@@ -3282,7 +3282,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         schema.insert(
             'output',
             Parameter(
-                '[file]',
+                '[path]',
                 scope=Scope.JOB,
                 pernode=PerNode.REQUIRED,
                 shorthelp="Task: output files",
