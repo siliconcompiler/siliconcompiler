@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.5 (2026-08-18)
+=========================================
+
+**Minor:**
+
+ * Added the `gt2n_demo` and `icsprout55_demo` targets.
+ * Added `set_dieoutline` and `set_coreoutline`, which take the width and height in the same order as `get_diesize` and `get_coresize` return them. These deprecate `set_diearea_rectangle` and `set_corearea_rectangle`, which took the height first.
+ * Allowed the tool install scripts to run without sudo access when the prerequisite packages are already present, which makes an unprivileged install into the default `~/.local` prefix possible.
+
+ * Tools:
+
+  * openroad/opensta: brought the setup and hold timing reports to parity, filled in the reports that were missing, and moved the per-corner reports into a per-scenario directory.
+
 SiliconCompiler 0.38.4 (2026-08-13)
 =========================================
 
