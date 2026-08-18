@@ -24,7 +24,7 @@ SiliconCompiler is a modular hardware build system ("make for silicon"). The pro
 |**FPGA APR**| VPR, nextpnr, Vivado
 |**Layout Viewer**| Klayout, OpenROAD, Cadence, Synopsys
 |**DRC/LVS**| Klayout, Magic, Synopsys, Siemens
-|**Open PDKs**| sky130, ihp130, gf180, asap7, freepdk45, gt2n, interposer — all shipped by [lambdapdk](https://github.com/siliconcompiler/lambdapdk)
+|**Open PDKs**| sky130, ihp130, gf180, asap7, freepdk45, gt2n, icsprout55, interposer — all shipped by [lambdapdk](https://github.com/siliconcompiler/lambdapdk)
 |**Foundry PDKs**| gf12lp, gf22fdx, intel16 — require a foundry agreement; package them yourself following the [external library guide](https://docs.siliconcompiler.com/en/latest/development_guide/external_libraries.html)
 
 # Getting Started

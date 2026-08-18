@@ -80,6 +80,12 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
   :root: lambdapdk.gf180/GF180_6LM_1TM_9K_9t
 
 .. schema::
+  :root: lambdapdk.gt2n/GT2NPDK
+
+.. schema::
+  :root: lambdapdk.icsprout55/ICS55PDK
+
+.. schema::
   :root: lambdapdk.ihp130/IHP130PDK
 
 .. schema::
