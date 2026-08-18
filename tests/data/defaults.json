@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -1644,7 +1644,7 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -1675,7 +1675,7 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -5304,7 +5304,7 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -5335,7 +5335,7 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -6759,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -9306,7 +9306,7 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -9337,7 +9337,7 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -11415,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -13042,7 +13042,7 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -13073,7 +13073,7 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -14387,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -16014,7 +16014,7 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -16045,7 +16045,7 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,

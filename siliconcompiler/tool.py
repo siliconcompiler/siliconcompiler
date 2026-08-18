@@ -3269,7 +3269,7 @@ def schema_task(schema):
     schema.insert(
         'input',
         Parameter(
-            '[file]',
+            '[path]',
             scope=Scope.JOB,
             pernode=PerNode.REQUIRED,
             shorthelp="Task: input files",
@@ -3288,7 +3288,7 @@ def schema_task(schema):
     schema.insert(
         'output',
         Parameter(
-            '[file]',
+            '[path]',
             scope=Scope.JOB,
             pernode=PerNode.REQUIRED,
             shorthelp="Task: output files",
