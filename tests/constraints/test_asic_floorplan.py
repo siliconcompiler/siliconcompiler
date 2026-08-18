@@ -134,155 +134,233 @@ def test_density_aspectratio_coremargin_step_index():
     assert schema.get("coremargin") is None
 
 
-def test_corearea_rectangle_illegal_height():
-    with pytest.raises(TypeError, match=r"^height must be a number$"):
-        ASICAreaConstraint().set_corearea_rectangle("abc", "abc", "abc")
-
-
-def test_corearea_rectangle_illegal_width():
+def test_coreoutline_illegal_width():
     with pytest.raises(TypeError, match=r"^width must be a number$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, "abc", "abc")
+        ASICAreaConstraint().set_coreoutline("abc", "abc", "abc")
 
 
-def test_corearea_rectangle_illegal_margin():
-    with pytest.raises(TypeError, match=r"^coremargin must be a number or a tuple of two numbers$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, "abc")
+def test_coreoutline_illegal_height():
+    with pytest.raises(TypeError, match=r"^height must be a number$"):
+        ASICAreaConstraint().set_coreoutline(100.0, "abc", "abc")
 
 
-def test_corearea_rectangle_illegal_negative_height():
-    with pytest.raises(ValueError, match=r"^height must be greater than zero$"):
-        ASICAreaConstraint().set_corearea_rectangle(-100.0, 100.0, 2.0)
+def test_coreoutline_illegal_margin():
+    with pytest.raises(TypeError, match=r"^coremargin must be a number$"):
+        ASICAreaConstraint().set_coreoutline(100.0, 100.0, "abc")
 
 
-def test_corearea_rectangle_illegal_negative_width():
+def test_coreoutline_illegal_per_axis_margin():
+    # The coremargin schema parameter holds a single number.
+    with pytest.raises(TypeError, match=r"^coremargin must be a number$"):
+        ASICAreaConstraint().set_coreoutline(100.0, 100.0, (2.0, 5.0))
+
+
+def test_coreoutline_illegal_negative_width():
     with pytest.raises(ValueError, match=r"^width must be greater than zero$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, -100.0, 2.0)
+        ASICAreaConstraint().set_coreoutline(-100.0, 100.0, 2.0)
 
 
-def test_corearea_rectangle_illegal_negative_margin():
-    with pytest.raises(ValueError, match=r"^x margin cannot be negative$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, -2.0)
-
-
-def test_corearea_rectangle_illegal_negative_xmargin():
-    with pytest.raises(ValueError, match=r"^x margin cannot be negative$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (-2.0, 2))
-
-
-def test_corearea_rectangle_illegal_extra_margin():
-    with pytest.raises(ValueError,
-                       match=r"^coremargin must be a number or a tuple of two numbers$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2.0, 2, 2.0))
-
-
-def test_corearea_rectangle_illegal_negative_ymargin():
-    with pytest.raises(ValueError, match=r"^y margin cannot be negative$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2, -2.0))
-
-
-def test_corearea_rectangle_illegal_zero_height():
+def test_coreoutline_illegal_negative_height():
     with pytest.raises(ValueError, match=r"^height must be greater than zero$"):
-        ASICAreaConstraint().set_corearea_rectangle(0.0, 100.0, 2.0)
+        ASICAreaConstraint().set_coreoutline(100.0, -100.0, 2.0)
 
 
-def test_corearea_rectangle_illegal_zero_width():
+def test_coreoutline_illegal_negative_margin():
+    with pytest.raises(ValueError, match=r"^coremargin cannot be negative$"):
+        ASICAreaConstraint().set_coreoutline(100.0, 100.0, -2.0)
+
+
+def test_coreoutline_illegal_zero_width():
     with pytest.raises(ValueError, match=r"^width must be greater than zero$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, 0, 2.0)
+        ASICAreaConstraint().set_coreoutline(0.0, 100.0, 2.0)
 
 
-def test_corearea_rectangle_illegal_extra_xmargin():
+def test_coreoutline_illegal_zero_height():
+    with pytest.raises(ValueError, match=r"^height must be greater than zero$"):
+        ASICAreaConstraint().set_coreoutline(100.0, 0, 2.0)
+
+
+def test_coreoutline_no_margin():
+    schema = ASICAreaConstraint()
+    assert schema.set_coreoutline(150.0, 100.0)
+    assert schema.get("corearea") == [(0.0, 0.0), (150.0, 100.0)]
+    assert schema.get_corearea() == [(0.0, 0.0), (150.0, 100.0)]
+    assert schema.get_diearea() == []
+
+
+def test_coreoutline():
+    # Only the margin is recorded; the die is resolved by calc_floorplan_areas.
+    # The core sits one margin from the origin so the die starts at (0,0).
+    schema = ASICAreaConstraint()
+    assert schema.set_coreoutline(146.0, 90.0, 2.0)
+    assert schema.get_corearea() == [(2.0, 2.0), (148.0, 92.0)]
+    assert schema.get_coremargin() == 2.0
+    assert schema.get_diearea() == []
+
+    assert schema.calc_floorplan_areas() == (
+        [(0.0, 0.0), (150.0, 94.0)],
+        [(2.0, 2.0), (148.0, 92.0)])
+
+
+def test_coreoutline_matches_coresize_ordering():
+    schema = ASICAreaConstraint()
+    schema.set_coreoutline(300.0, 600.0)
+    assert schema.get_coresize() == (300.0, 600.0)
+
+
+def test_coreoutline_zero_margin():
+    schema = ASICAreaConstraint()
+    assert schema.set_coreoutline(100.0, 100.0, 0)
+    assert schema.get("corearea") == [(0.0, 0.0), (100.0, 100.0)]
+    assert schema.get_coremargin() == 0.0
+    assert schema.calc_floorplan_areas() == (
+        [(0.0, 0.0), (100.0, 100.0)],
+        [(0.0, 0.0), (100.0, 100.0)])
+
+
+def test_coreoutline_step_index():
+    schema = ASICAreaConstraint()
+    assert schema.set_coreoutline(90.0, 90.0, 5.0)
+    assert schema.set_coreoutline(96.0, 96.0, 2.0, step="step0", index="0")
+    assert schema.get_corearea() == [(5.0, 5.0), (95.0, 95.0)]
+    assert schema.get_coremargin() == 5.0
+    assert schema.get_corearea(step="step0", index="0") == [(2.0, 2.0), (98.0, 98.0)]
+    assert schema.get_coremargin(step="step0", index="0") == 2.0
+
+
+def test_corearea_rectangle_deprecated():
+    schema = ASICAreaConstraint()
+    with pytest.deprecated_call(match=r"^set_corearea_rectangle is deprecated"):
+        assert schema.set_corearea_rectangle(100.0, 150.0, (2, 5.0))
+
+    # The deprecated method takes the die (height, width) and sets only the core.
+    assert schema.get_corearea() == [(2.0, 5.0), (148.0, 95.0)]
+    assert schema.get_diearea() == []
+
+
+def test_corearea_rectangle_deprecated_illegal_extra_xmargin():
     with pytest.raises(ValueError,
                        match=r"^x margin is greater than or equal to the die width$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (50.0, 2))
+        with pytest.deprecated_call():
+            ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (50.0, 2))
 
 
-def test_corearea_rectangle_illegal_extra_ymargin():
+def test_corearea_rectangle_deprecated_illegal_extra_ymargin():
     with pytest.raises(ValueError,
                        match=r"^y margin is greater than or equal to the die height$"):
-        ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2, 50.0))
+        with pytest.deprecated_call():
+            ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2, 50.0))
 
 
-def test_corearea_rectangle():
-    schema = ASICAreaConstraint()
-    assert schema.set_corearea_rectangle(100.0, 150.0, (2, 5.0))
-    assert schema.get("corearea") == [(2.0, 5.0), (148.0, 95.0)]
-    assert schema.get_corearea() == [(2.0, 5.0), (148.0, 95.0)]
-
-
-def test_corearea_rectangle_zero_margin():
-    schema = ASICAreaConstraint()
-    assert schema.set_corearea_rectangle(100.0, 100.0, 0)
-    assert schema.get("corearea") == [(0.0, 0.0), (100.0, 100.0)]
-    assert schema.get_corearea() == [(0.0, 0.0), (100.0, 100.0)]
-
-
-def test_corearea_rectangle_step_index():
-    schema = ASICAreaConstraint()
-    assert schema.set_corearea_rectangle(100.0, 100.0, 5.0)
-    assert schema.set_corearea_rectangle(100.0, 100.0, 2.0, step="step0", index="0")
-    assert schema.get("corearea") == [(5.0, 5.0), (95.0, 95.0)]
-    assert schema.get_corearea() == [(5.0, 5.0), (95.0, 95.0)]
-    assert schema.get("corearea", step="step0", index="0") == [(2.0, 2.0), (98.0, 98.0)]
-    assert schema.get_corearea(step="step0", index="0") == [(2.0, 2.0), (98.0, 98.0)]
-
-
-def test_diearea_rectangle_illegal_height():
-    with pytest.raises(TypeError, match=r"^height must be a number$"):
-        ASICAreaConstraint().set_diearea_rectangle("abc", "abc", "abc")
-
-
-def test_diearea_rectangle_illegal_width():
+def test_dieoutline_illegal_width():
     with pytest.raises(TypeError, match=r"^width must be a number$"):
-        ASICAreaConstraint().set_diearea_rectangle(100.0, "abc", "abc")
+        ASICAreaConstraint().set_dieoutline("abc", "abc", "abc")
 
 
-def test_diearea_rectangle_illegal_negative_height():
-    with pytest.raises(ValueError, match=r"^height must be greater than zero$"):
-        ASICAreaConstraint().set_diearea_rectangle(-100.0, 100.0, 2.0)
+def test_dieoutline_illegal_height():
+    with pytest.raises(TypeError, match=r"^height must be a number$"):
+        ASICAreaConstraint().set_dieoutline(100.0, "abc", "abc")
 
 
-def test_diearea_rectangle_illegal_negative_width():
+def test_dieoutline_illegal_negative_width():
     with pytest.raises(ValueError, match=r"^width must be greater than zero$"):
-        ASICAreaConstraint().set_diearea_rectangle(100.0, -100.0, 2.0)
+        ASICAreaConstraint().set_dieoutline(-100.0, 100.0, 2.0)
 
 
-def test_diearea_rectangle_no_margin():
+def test_dieoutline_illegal_negative_height():
+    with pytest.raises(ValueError, match=r"^height must be greater than zero$"):
+        ASICAreaConstraint().set_dieoutline(100.0, -100.0, 2.0)
+
+
+def test_dieoutline_no_margin():
     schema = ASICAreaConstraint()
-    assert schema.set_diearea_rectangle(100.0, 150.0)
+    assert schema.set_dieoutline(150.0, 100.0)
     assert schema.get("diearea") == [(0.0, 0.0), (150.0, 100.0)]
     assert schema.get_diearea() == [(0.0, 0.0), (150.0, 100.0)]
     assert schema.get_corearea() == []
 
 
-def test_diearea_rectangle():
+def test_dieoutline():
+    # Only the margin is recorded; the core is resolved by calc_floorplan_areas.
     schema = ASICAreaConstraint()
-    assert schema.set_diearea_rectangle(100.0, 150.0, (2, 5.0))
+    assert schema.set_dieoutline(150.0, 100.0, 2.0)
     assert schema.get("diearea") == [(0.0, 0.0), (150.0, 100.0)]
     assert schema.get_diearea() == [(0.0, 0.0), (150.0, 100.0)]
-    assert schema.get("corearea") == [(2.0, 5.0), (148.0, 95.0)]
+    assert schema.get_coremargin() == 2.0
+    assert schema.get_corearea() == []
+
+    assert schema.calc_floorplan_areas() == (
+        [(0.0, 0.0), (150.0, 100.0)],
+        [(2.0, 2.0), (148.0, 98.0)])
+
+
+def test_dieoutline_illegal_margin():
+    with pytest.raises(TypeError, match=r"^coremargin must be a number$"):
+        ASICAreaConstraint().set_dieoutline(100.0, 100.0, "abc")
+
+
+def test_dieoutline_illegal_per_axis_margin():
+    # The coremargin schema parameter holds a single number.
+    with pytest.raises(TypeError, match=r"^coremargin must be a number$"):
+        ASICAreaConstraint().set_dieoutline(100.0, 100.0, (2.0, 5.0))
+
+
+def test_dieoutline_illegal_negative_margin():
+    with pytest.raises(ValueError, match=r"^coremargin cannot be negative$"):
+        ASICAreaConstraint().set_dieoutline(100.0, 100.0, -2.0)
+
+
+def test_dieoutline_matches_diesize_ordering():
+    # get_diesize() returns (width, height), so it round-trips through
+    # set_dieoutline() without transposing the die.
+    schema = ASICAreaConstraint()
+    schema.set_dieoutline(300.0, 600.0)
+    assert schema.get_diesize() == (300.0, 600.0)
+
+    copy = ASICAreaConstraint()
+    copy.set_dieoutline(*schema.get_diesize())
+    assert copy.get_diearea() == schema.get_diearea()
+
+
+def test_dieoutline_zero_margin():
+    schema = ASICAreaConstraint()
+    assert schema.set_dieoutline(100.0, 100.0, 0)
+    assert schema.get("diearea") == [(0.0, 0.0), (100.0, 100.0)]
+    assert schema.get_diearea() == [(0.0, 0.0), (100.0, 100.0)]
+    assert schema.get_coremargin() == 0.0
+    assert schema.calc_floorplan_areas() == (
+        [(0.0, 0.0), (100.0, 100.0)],
+        [(0.0, 0.0), (100.0, 100.0)])
+
+
+def test_dieoutline_step_index():
+    schema = ASICAreaConstraint()
+    assert schema.set_dieoutline(100.0, 100.0, 5.0)
+    assert schema.set_dieoutline(150.0, 100.0, 2.0, step="step0", index="0")
+    assert schema.get("diearea") == [(0.0, 0.0), (100.0, 100.0)]
+    assert schema.get_diearea() == [(0.0, 0.0), (100.0, 100.0)]
+    assert schema.get_coremargin() == 5.0
+    assert schema.get("diearea", step="step0", index="0") == [(0.0, 0.0), (150.0, 100.0)]
+    assert schema.get_diearea(step="step0", index="0") == [(0.0, 0.0), (150.0, 100.0)]
+    assert schema.get_coremargin(step="step0", index="0") == 2.0
+
+
+def test_diearea_rectangle_deprecated():
+    schema = ASICAreaConstraint()
+    with pytest.deprecated_call(match=r"^set_diearea_rectangle is deprecated"):
+        assert schema.set_diearea_rectangle(100.0, 150.0, (2, 5.0))
+
+    # The deprecated method keeps its (height, width) ordering.
+    assert schema.get_diearea() == [(0.0, 0.0), (150.0, 100.0)]
     assert schema.get_corearea() == [(2.0, 5.0), (148.0, 95.0)]
 
 
-def test_diearea_rectangle_zero_margin():
+def test_diearea_rectangle_deprecated_step_index():
     schema = ASICAreaConstraint()
-    assert schema.set_diearea_rectangle(100.0, 100.0, 0)
-    assert schema.get("diearea") == [(0.0, 0.0), (100.0, 100.0)]
-    assert schema.get_diearea() == [(0.0, 0.0), (100.0, 100.0)]
-    assert schema.get("corearea") == [(0.0, 0.0), (100.0, 100.0)]
-    assert schema.get_corearea() == [(0.0, 0.0), (100.0, 100.0)]
+    with pytest.deprecated_call():
+        assert schema.set_diearea_rectangle(100.0, 150.0, 2.0, step="step0", index="0")
 
-
-def test_diearea_rectangle_step_index():
-    schema = ASICAreaConstraint()
-    assert schema.set_diearea_rectangle(100.0, 100.0, 5.0)
-    assert schema.set_diearea_rectangle(100.0, 150.0, 2.0, step="step0", index="0")
-    assert schema.get("diearea") == [(0.0, 0.0), (100.0, 100.0)]
-    assert schema.get_diearea() == [(0.0, 0.0), (100.0, 100.0)]
-    assert schema.get("corearea") == [(5.0, 5.0), (95.0, 95.0)]
-    assert schema.get_corearea() == [(5.0, 5.0), (95.0, 95.0)]
-    assert schema.get("diearea", step="step0", index="0") == [(0.0, 0.0), (150.0, 100.0)]
     assert schema.get_diearea(step="step0", index="0") == [(0.0, 0.0), (150.0, 100.0)]
-    assert schema.get("corearea", step="step0", index="0") == [(2.0, 2.0), (148.0, 98.0)]
     assert schema.get_corearea(step="step0", index="0") == [(2.0, 2.0), (148.0, 98.0)]
 
 
@@ -292,10 +370,115 @@ def test_set_diearea():
     assert schema.get_diearea() == [(0, 0), (10, 10), (20, 20), (20, 0), (0, 0)]
 
 
+def test_set_diearea_coremargin_rectangle():
+    schema = ASICAreaConstraint()
+    assert schema.set_diearea([(10, 20), (110, 220)], coremargin=2.0)
+    assert schema.get_diearea() == [(10, 20), (110, 220)]
+    # Only the margin is recorded; the core is resolved by calc_floorplan_areas,
+    # which insets the die's own coordinates rather than assuming the origin.
+    assert schema.get_coremargin() == 2.0
+    assert schema.get_corearea() == []
+
+    assert schema.calc_floorplan_areas() == (
+        [(10, 20), (110, 220)],
+        [(12.0, 22.0), (108.0, 218.0)])
+
+
+def test_set_diearea_coremargin_polygon():
+    schema = ASICAreaConstraint()
+    # An L shape, missing its top right corner.
+    assert schema.set_diearea(
+        [(0, 0), (0, 200), (200, 200), (200, 100), (300, 100), (300, 0)], coremargin=5.0)
+    assert schema.get_coremargin() == 5.0
+
+    # The derived core follows the die outline instead of its bounding box.
+    _, corearea = schema.calc_floorplan_areas()
+    assert corearea == [
+        (5.0, 5.0), (5.0, 195.0), (195.0, 195.0), (195.0, 95.0), (295.0, 95.0), (295.0, 5.0)]
+
+
+def test_set_diearea_illegal_coremargin():
+    schema = ASICAreaConstraint()
+    with pytest.raises(TypeError, match=r"^coremargin must be a number$"):
+        schema.set_diearea([(0, 0), (100, 100)], coremargin=(2, 5.0))
+
+    # The margin is rejected before the die area is written.
+    assert schema.get_diearea() == []
+
+
+def test_set_diearea_negative_coremargin():
+    schema = ASICAreaConstraint()
+    with pytest.raises(ValueError, match=r"^coremargin cannot be negative$"):
+        schema.set_diearea([(0, 0), (100, 100)], coremargin=-1.0)
+
+    assert schema.get_diearea() == []
+
+
+def test_set_diearea_coremargin_too_large_defers_to_calc():
+    # Setting the margin does not resolve the core, so an unusable margin is
+    # reported when the floorplan areas are computed.
+    schema = ASICAreaConstraint()
+    assert schema.set_diearea([(0, 0), (100, 100)], coremargin=50.0)
+
+    with pytest.raises(ValueError,
+                       match=r"^core margin is greater than or equal to the die width$"):
+        schema.calc_floorplan_areas()
+
+
 def test_set_corearea():
     schema = ASICAreaConstraint()
     assert schema.set_corearea([(0, 0), (10, 10), (20, 20), (20, 0), (0, 0)])
     assert schema.get_corearea() == [(0, 0), (10, 10), (20, 20), (20, 0), (0, 0)]
+
+
+def test_set_corearea_coremargin_rectangle():
+    schema = ASICAreaConstraint()
+    assert schema.set_corearea([(10, 20), (110, 220)], coremargin=5.0)
+    # The core keeps its coordinates so component placements stay valid.
+    assert schema.get_corearea() == [(10, 20), (110, 220)]
+    assert schema.get_coremargin() == 5.0
+    assert schema.get_diearea() == []
+
+    assert schema.calc_floorplan_areas() == (
+        [(5.0, 15.0), (115.0, 225.0)],
+        [(10, 20), (110, 220)])
+
+
+def test_set_corearea_coremargin_polygon():
+    schema = ASICAreaConstraint()
+    assert schema.set_corearea(
+        [(5, 5), (5, 195), (195, 195), (195, 95), (295, 95), (295, 5)], coremargin=5.0)
+
+    diearea, _ = schema.calc_floorplan_areas()
+    assert diearea == [
+        (0.0, 0.0), (0.0, 200.0), (200.0, 200.0), (200.0, 100.0), (300.0, 100.0), (300.0, 0.0)]
+
+
+def test_set_corearea_illegal_coremargin():
+    schema = ASICAreaConstraint()
+    with pytest.raises(TypeError, match=r"^coremargin must be a number$"):
+        schema.set_corearea([(0, 0), (100, 100)], coremargin=(2, 5.0))
+
+    # The margin is rejected before the core area is written.
+    assert schema.get_corearea() == []
+
+
+def test_set_corearea_negative_coremargin():
+    schema = ASICAreaConstraint()
+    with pytest.raises(ValueError, match=r"^coremargin cannot be negative$"):
+        schema.set_corearea([(0, 0), (100, 100)], coremargin=-1.0)
+
+    assert schema.get_corearea() == []
+
+
+def test_set_corearea_coremargin_negative_die_defers_to_calc():
+    schema = ASICAreaConstraint()
+    assert schema.set_corearea([(1, 20), (110, 220)], coremargin=5.0)
+
+    with pytest.raises(
+            ValueError,
+            match=r"^core margin places the die area at a negative x coordinate$"):
+        schema.calc_floorplan_areas()
 
 
 def test_get_dieboundingbox_empty():
@@ -450,7 +633,8 @@ def test_calc_floorplan_areas_unset():
 
 def test_calc_floorplan_areas_both_set():
     schema = ASICAreaConstraint()
-    schema.set_diearea_rectangle(100.0, 150.0, 2.0)
+    schema.set_dieoutline(150.0, 100.0)
+    schema.set_corearea([(2.0, 2.0), (148.0, 98.0)])
     schema.set_coremargin(25.0)
 
     # An explicit core area wins over the core margin.
@@ -461,7 +645,7 @@ def test_calc_floorplan_areas_both_set():
 
 def test_calc_floorplan_areas_die_with_margin():
     schema = ASICAreaConstraint()
-    schema.set_diearea_rectangle(500.0, 500.0)
+    schema.set_dieoutline(500.0, 500.0)
     schema.set_coremargin(1.0)
 
     assert schema.calc_floorplan_areas() == (
@@ -471,7 +655,7 @@ def test_calc_floorplan_areas_die_with_margin():
 
 def test_calc_floorplan_areas_die_without_margin():
     schema = ASICAreaConstraint()
-    schema.set_diearea_rectangle(500.0, 500.0)
+    schema.set_dieoutline(500.0, 500.0)
 
     # An unset core margin is a zero margin, the die area is still honored.
     assert schema.calc_floorplan_areas() == (
@@ -606,7 +790,7 @@ def test_calc_floorplan_areas_core_without_margin():
 
 def test_calc_floorplan_areas_margin_exceeds_die_width():
     schema = ASICAreaConstraint()
-    schema.set_diearea_rectangle(500.0, 100.0)
+    schema.set_dieoutline(100.0, 500.0)
     schema.set_coremargin(50.0)
 
     with pytest.raises(ValueError,
@@ -616,7 +800,7 @@ def test_calc_floorplan_areas_margin_exceeds_die_width():
 
 def test_calc_floorplan_areas_margin_exceeds_die_height():
     schema = ASICAreaConstraint()
-    schema.set_diearea_rectangle(100.0, 500.0)
+    schema.set_dieoutline(500.0, 100.0)
     schema.set_coremargin(50.0)
 
     with pytest.raises(ValueError,
@@ -627,7 +811,7 @@ def test_calc_floorplan_areas_margin_exceeds_die_height():
 def test_calc_floorplan_areas_step_index():
     schema = ASICAreaConstraint()
     schema.set_coremargin(1.0)
-    schema.set_diearea_rectangle(500.0, 500.0, step="step0", index="0")
+    schema.set_dieoutline(500.0, 500.0, step="step0", index="0")
 
     assert schema.calc_floorplan_areas() is None
     assert schema.calc_floorplan_areas(step="step0", index="0") == (

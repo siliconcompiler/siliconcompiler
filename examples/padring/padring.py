@@ -101,7 +101,7 @@ def setup_project(remote: bool = False) -> ASIC:
     # memory needs more: sky130's SRAM macro is 1041um wide at any depth and needs
     # a placement channel, so with a 250um margin to clear the pads the macro is
     # what sets this die, not the ring.
-    project.constraint.area.set_diearea_rectangle(1900, 1900, coremargin=250)
+    project.constraint.area.set_dieoutline(1900, 1900, coremargin=250)
 
     # Keep placement off the memory macro so its pins stay reachable.
     project.constraint.component.make_component("*sram*memory").set_halo(5.0, 5.0)
