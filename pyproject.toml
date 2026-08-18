@@ -50,7 +50,7 @@ dependencies = [
     "PyGithub >= 2.8.0, < 2.10.0",
     "urllib3 >= 1.26.0", # Required for PyGithub
 
-    "lambdapdk >= 0.2.18",
+    "lambdapdk >= 0.2.19",
 
     "fasteners >= 0.20",
     "tomli >= 2.0.0; python_version < '3.11'",
