@@ -51,6 +51,31 @@ def test_default_init_list(sctype):
     }
 
 
+def test_default_init_path():
+    param = Parameter("path")
+    assert param.getdict() == {
+        'type': 'path',
+        'require': False,
+        'scope': 'global',
+        'lock': False,
+        'switch': [],
+        'shorthelp': None,
+        'example': [],
+        'help': None,
+        'notes': None,
+        'pernode': 'never',
+        'copy': False,
+        'hashalgo': 'sha256',
+        'node': {'default': {'default': {
+            'author': [],
+            'date': None,
+            'filehash': None,
+            "dataroot": None,
+            'value': None,
+            'signature': None}}}
+    }
+
+
 def test_default_init_file():
     param = Parameter("file")
     assert param.getdict() == {
@@ -263,6 +288,36 @@ def test_get_fields_dir():
     assert param.get(field='require') is False
 
 
+def test_get_fields_path():
+    param = Parameter(
+        "path",
+        scope=Scope.SCRATCH,
+        lock=True,
+        switch="-test",
+        shorthelp="test short",
+        example="example1",
+        help="long help",
+        notes="note",
+        pernode=PerNode.OPTIONAL,
+        unit="nm",
+        hashalgo="md5",
+        copy=True)
+
+    assert param.get(field='type') == "path"
+    assert param.get(field='scope') == Scope.SCRATCH
+    assert param.get(field='lock') is True
+    assert param.get(field='switch') == ["-test"]
+    assert param.get(field='shorthelp') == "test short"
+    assert param.get(field='example') == ["example1"]
+    assert param.get(field='help') == "long help"
+    assert param.get(field='notes') == "note"
+    assert param.get(field='pernode') == PerNode.OPTIONAL
+    assert param.get(field='unit') is None
+    assert param.get(field='hashalgo') == "md5"
+    assert param.get(field='copy') is True
+    assert param.get(field='require') is False
+
+
 def test_get_fields_enum():
     param = Parameter(
         "<test0,test1>",
@@ -335,6 +390,26 @@ def test_set_add_set():
 
     assert param.add("test1")
     assert param.get() == ["test0", "test1"]
+
+
+@pytest.mark.parametrize("sctype", ("file", "dir", "path", "[path]", "{path}"))
+def test_from_dict_round_trip_path_types(sctype):
+    param = Parameter(
+        sctype,
+        scope=Scope.SCRATCH,
+        lock=True,
+        switch="-test",
+        shorthelp="test short",
+        example="example1",
+        help="long help",
+        pernode=PerNode.OPTIONAL,
+        unit="nm",
+        hashalgo="md5",
+        copy=True)
+
+    param_check = Parameter.from_dict(param.getdict(), [], None)
+    assert param.getdict() == param_check.getdict()
+    assert param_check.get(field="type") == sctype
 
 
 def test_from_dict_round_trip():
@@ -808,16 +883,19 @@ def test_is_list_deprecated():
     # Any list container is a list, regardless of element type
     ("[file]", True),
     ("[dir]", True),
+    ("[path]", True),
     ("[int]", True),
     ("[str]", True),
     ("[<a,b>]", True),
     # Sets count too
     ("{file}", True),
     ("{dir}", True),
+    ("{path}", True),
     ("{str}", True),
     # Scalars and tuples are not
     ("file", False),
     ("dir", False),
+    ("path", False),
     ("int", False),
     ("(str,int)", False),
 ])
@@ -863,6 +941,7 @@ def test_basetype(sctype, expect):
 @pytest.mark.parametrize("sctype", (
     "file", "[file]", "{file}",
     "dir", "[dir]", "{dir}",
+    "path", "[path]", "{path}",
 ))
 def test_is_path_true(sctype):
     assert Parameter(sctype).is_path is True
@@ -914,6 +993,27 @@ def test_is_path_tuple_with_dir():
     param = Parameter("(str,dir)")
     assert param.is_directory is True
     assert param.is_file is False
+    assert param.is_path is True
+
+
+@pytest.mark.parametrize("sctype", ("path", "[path]", "{path}"))
+def test_is_path_type_true(sctype):
+    # a path may be either a file or a directory, so it is neither exclusively
+    param = Parameter(sctype)
+    assert param.is_path is True
+    assert param.is_file is False
+    assert param.is_directory is False
+
+
+def test_is_path_tuple_with_path():
+    param = Parameter("(str,path)")
+    assert param.is_path is True
+    assert param.is_file is False
+    assert param.is_directory is False
+
+
+def test_is_path_list_of_tuple_with_path():
+    param = Parameter("[(str,path)]")
     assert param.is_path is True
 
 
@@ -1300,6 +1400,20 @@ def test_normalize_fields_scalar_errors_file():
         param.set("test", field="invalid")
 
 
+def test_normalize_fields_scalar_errors_path():
+    param = Parameter("path")
+
+    with pytest.raises(ValueError, match=r"^invalid is not a member of: global, job, scratch$"):
+        param.set("invalid", field='scope')
+
+    with pytest.raises(ValueError,
+                       match=r"^invalid is not a member of: never, optional, required$"):
+        param.set("invalid", field='pernode')
+
+    with pytest.raises(ValueError, match=r"^\"invalid\" is not a valid field$"):
+        param.set("test", field="invalid")
+
+
 def test_normalize_fields_scalar_errors_dir():
     param = Parameter("dir")
 
@@ -1381,6 +1495,13 @@ def test_normalize_fields_list_errors():
 
 def test_add_normalize_fields_list_errors_file():
     param = Parameter("[file]")
+
+    with pytest.raises(ValueError, match=r"^\"invalid\" is not a valid field$"):
+        param.add("test", field="invalid")
+
+
+def test_add_normalize_fields_list_errors_path():
+    param = Parameter("[path]")
 
     with pytest.raises(ValueError, match=r"^\"invalid\" is not a valid field$"):
         param.add("test", field="invalid")
@@ -2221,6 +2342,104 @@ def test_defvalue_dir_list_package_getdict():
     }
 
 
+def test_defvalue_path():
+    param = Parameter("path", defvalue="thispath")
+    assert param.default.get() == "thispath"
+
+
+def test_defvalue_path_getdict():
+    param = Parameter("path", defvalue="thispath")
+    assert param.getdict() == {
+        'copy': False,
+        'example': [],
+        'hashalgo': 'sha256',
+        'help': None,
+        'lock': False,
+        'node': {
+            'default': {
+                'default': {
+                    'author': [],
+                    'date': None,
+                    'filehash': None,
+                    "dataroot": None,
+                    'signature': None,
+                    'value': 'thispath',
+                },
+            },
+        },
+        'notes': None,
+        'pernode': 'never',
+        'require': False,
+        'scope': 'global',
+        'shorthelp': None,
+        'switch': [],
+        'type': 'path',
+    }
+
+
+def test_defvalue_path_list():
+    param = Parameter("[path]", defvalue="thispath")
+    assert param.default.get() == ["thispath"]
+
+
+def test_defvalue_path_package():
+    param = Parameter("path", defvalue="thispath", dataroot="thispackage")
+    assert param.default.get() == "thispath"
+    assert param.default.get(field="dataroot") == "thispackage"
+
+
+def test_defvalue_path_list_package():
+    param = Parameter("[path]", defvalue="thispath", dataroot="thispackage")
+    assert param.default.get() == ["thispath"]
+    assert param.default.get(field="dataroot") == ["thispackage"]
+
+
+def test_defvalue_path_set_package():
+    param = Parameter("{path}", defvalue="thispath", dataroot="thispackage")
+    assert param.default.get() == ["thispath"]
+    assert param.default.get(field="dataroot") == ["thispackage"]
+
+
+def test_defvalue_path_list_package_getdict():
+    param = Parameter("[path]", defvalue="thispath", dataroot="thispackage")
+    assert param.getdict() == {
+        'copy': False,
+        'example': [],
+        'hashalgo': 'sha256',
+        'help': None,
+        'lock': False,
+        'node': {
+            'default': {
+                'default': {
+                    'author': [],
+                    'date': [
+                        None,
+                    ],
+                    'filehash': [
+                        None,
+                    ],
+                    "dataroot": [
+                        'thispackage',
+                    ],
+                    'signature': [
+                        None,
+                    ],
+                    'value': [
+                        'thispath',
+                    ],
+                },
+            },
+        },
+        'notes': None,
+        'pernode': 'never',
+        'require': False,
+        'scope': 'global',
+        'shorthelp': None,
+        'switch': [],
+        'type': '[path]',
+    }
+
+
 def test_reset():
     param = Parameter("int", pernode=PerNode.OPTIONAL, defvalue=1)
 
@@ -2268,8 +2487,10 @@ def test_reset_pernode_never():
         "[str]",
         "[file]",
         "[dir]",
+        "[path]",
         "file",
         "dir",
+        "path",
         "[[str]]",
         "[(str,str)]",
         "(str,str)",
