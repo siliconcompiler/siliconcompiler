@@ -26,7 +26,8 @@ class NodeType:
     __rangetype = re.compile(r"^(int|float|str)<(.*)>$")
     __rangenumber = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
     __rangevalues = re.compile(rf"^({__rangenumber})?\.\.({__rangenumber})?$")
-    __basetypes = re.compile(r"^(<(.*)>|int(<(.*)>)?|float(<(.*)>)?|str(<(.*)>)?|bool|file|dir)$")
+    __basetypes = re.compile(
+        r"^(<(.*)>|int(<(.*)>)?|float(<(.*)>)?|str(<(.*)>)?|bool|file|dir|path)$")
 
     def __init__(self, sctype):
         if isinstance(sctype, NodeType):
@@ -354,7 +355,7 @@ class NodeType:
         if sctype == 'float':
             return f"{value:.9g}"
 
-        if sctype in ('file', 'dir'):
+        if sctype in ('file', 'dir', 'path'):
             # Replace $VAR with $env(VAR) for tcl
             value = re.sub(r'\${?(\w+)}?', r'$env(\1)', value)
             # Same escapes as applied to string, minus $ (since we want to resolve env vars).
@@ -465,7 +466,7 @@ class NodeType:
             else:
                 return str(value)
 
-        if sctype in ('file', 'dir'):
+        if sctype in ('file', 'dir', 'path'):
             if isinstance(value, (str, Path)):
                 # Cast everything to a windows path and convert to posix.
                 # https://stackoverflow.com/questions/73682260

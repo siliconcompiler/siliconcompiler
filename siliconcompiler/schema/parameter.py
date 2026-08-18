@@ -13,8 +13,9 @@ import warnings
 from enum import Enum
 from typing import Tuple, Optional, Union, List, Dict, Any, Set
 
-from .parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue, \
-    NodeSetValue
+from .parametervalue import NodeValue, \
+    PathNodeValue, DirectoryNodeValue, FileNodeValue, \
+    NodeListValue, NodeSetValue
 from .parametertype import NodeType, NodeEnumType
 
 
@@ -124,7 +125,9 @@ class Parameter:
 
         self.__hashalgo = None
         self.__copy = None
-        if NodeType.contains(self.__type, 'dir') or NodeType.contains(self.__type, 'file'):
+        if NodeType.contains(self.__type, 'dir') or \
+                NodeType.contains(self.__type, 'file') or \
+                NodeType.contains(self.__type, 'path'):
             self.__hashalgo = str(hashalgo)
             self.__copy = bool(copy)
 
@@ -143,6 +146,13 @@ class Parameter:
                 self.__defvalue = NodeSetValue(DirectoryNodeValue(defvalue, **kwargs))
             else:
                 self.__defvalue = DirectoryNodeValue(defvalue, **kwargs)
+        elif NodeType.contains(self.__type, 'path'):
+            if isinstance(self.__type, list):
+                self.__defvalue = NodeListValue(PathNodeValue(defvalue, **kwargs))
+            elif isinstance(self.__type, set):
+                self.__defvalue = NodeSetValue(PathNodeValue(defvalue, **kwargs))
+            else:
+                self.__defvalue = PathNodeValue(defvalue, **kwargs)
         else:
             kwargs = {}
             if isinstance(self.__type, list):
@@ -812,12 +822,12 @@ class Parameter:
     @property
     def is_path(self) -> bool:
         """
-        Returns true if this parameter's type contains a ``file`` or ``dir``
-        type. Useful for code paths that treat files and directories the same
-        (e.g. resolving, hashing, or copying path-like values).
+        Returns true if this parameter's type contains a ``file``, ``dir``, or
+        ``path`` type. Useful for code paths that treat files and directories
+        the same (e.g. resolving, hashing, or copying path-like values).
         """
 
-        return self.is_file or self.is_directory
+        return self.is_file or self.is_directory or NodeType.contains(self.__type, 'path')
 
     def is_empty(self) -> bool:
         '''
