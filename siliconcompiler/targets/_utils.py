@@ -14,15 +14,16 @@ def asic_target(proj: ASIC, pdk: Optional[str] = None):
     Args:
         proj (ASIC): The siliconcompiler project to configure.
         pdk (Optional[str]): The name of the Process Design Kit to target. Supported
-            values are "asap7", "freepdk45", "gf180", "ihp130", and
-            "skywater130".
+            values are "asap7", "freepdk45", "gf180", "ihp130",
+            "skywater130" (alias "sky130"), "icsprout55" (alias "ics55"), and
+            "gt2n".
 
     Raises:
         ValueError: If the provided `pdk` name is not supported.
     '''
 
     from siliconcompiler.targets import asap7_demo, freepdk45_demo, gf180_demo, \
-        ihp130_demo, skywater130_demo
+        ihp130_demo, skywater130_demo, icsprout55_demo, gt2n_demo
 
     # Conditionally call the setup function that matches the requested PDK.
     if pdk == "asap7":
@@ -33,8 +34,12 @@ def asic_target(proj: ASIC, pdk: Optional[str] = None):
         gf180_demo(proj)
     elif pdk == "ihp130":
         ihp130_demo(proj)
-    elif pdk == "skywater130":
+    elif pdk == "skywater130" or pdk == "sky130":
         skywater130_demo(proj)
+    elif pdk == "icsprout55" or pdk == "ics55":
+        icsprout55_demo(proj)
+    elif pdk == "gt2n":
+        gt2n_demo(proj)
     else:
         # If the PDK is not in the list of supported targets, raise an error.
         raise ValueError(f"pdk not supported: {pdk}")

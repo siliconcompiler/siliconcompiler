@@ -17,3 +17,26 @@ def test_self_test():
     assert proj.history("job0").get('metric', 'holdslack', step='write.views', index='0') < 10.0
     assert proj.history("job0").get('metric', 'setupslack', step='write.views', index='0') >= 0.0
     assert proj.history("job0").get('metric', 'setupslack', step='write.views', index='0') < 10.0
+
+
+def test_asic_demo_pdk():
+    ''' The self-test target must build against Skywater130, and only Skywater130 '''
+    proj = asic_demo.ASICDemo()
+
+    assert proj.get("asic", "pdk") == "skywater130"
+    assert proj._has_library("skywater130") is True
+
+    assert proj.get("asic", "mainlib") == "sky130hd"
+    assert proj._has_library("sky130hd") is True
+
+    # Loading the demo must not drag in any of the other demo PDKs.
+    assert set(proj.getkeys("library")) == {"heartbeat", "sky130hd", "skywater130"}
+
+
+def test_asic_demo_design():
+    ''' The self-test target builds the 8-bit heartbeat counter '''
+    proj = asic_demo.ASICDemo()
+
+    assert proj.option.get_design() == "heartbeat"
+    assert proj.option.get_fileset() == ["rtl", "sdc"]
+    assert proj.option.get_flow() == "asicflow-verilog"

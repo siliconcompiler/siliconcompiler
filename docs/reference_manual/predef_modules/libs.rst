@@ -234,6 +234,57 @@ IO Libraries
   :root: lambdapdk.gf180.libs.gf180io/GF180Lambdalib_la_*
   :key_offset: Design
 
+gt2n
+----
+
+Standard Cell Libraries
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW13HVT
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW13SVT
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW13LVT
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW13ULVT
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW13ELVT
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW31HVT
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW31SVT
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW31LVT
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW31ULVT
+
+.. schema::
+  :root: lambdapdk.gt2n.libs.stdcells/GT2N6TW31ELVT
+
+icsprout55
+----------
+
+Standard Cell Libraries
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. schema::
+  :root: lambdapdk.icsprout55.libs.stdcells/ICS55StdCellRVT
+
+.. schema::
+  :root: lambdapdk.icsprout55.libs.stdcells/ICS55StdCellHVT
+
+.. schema::
+  :root: lambdapdk.icsprout55.libs.stdcells/ICS55StdCellLVT
+
 ihp130
 ------
 
