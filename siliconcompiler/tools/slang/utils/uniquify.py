@@ -24,7 +24,7 @@ import re
 import shlex
 from typing import Any, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 
-from siliconcompiler.tools.slang import pyslang
+from siliconcompiler.tools.slang import pyslang, report_diagnostics
 from siliconcompiler.tools._common import distinct
 
 if TYPE_CHECKING:
@@ -413,7 +413,7 @@ def build_compilation(sources: List[str], top: str,
         severity = driver.diagEngine.getSeverity(diag.code, diag.location)
         if severity in (pyslang.DiagnosticSeverity.Error,
                         pyslang.DiagnosticSeverity.Fatal):
-            errors.append(driver.diagEngine.reportAll(driver.sourceManager, [diag]))
+            errors.append(report_diagnostics(driver.sourceManager, [diag]))
     if errors:
         message = "elaboration reported errors:\n" + "\n".join(errors)
         if any("not a valid top-level module" in err for err in errors):

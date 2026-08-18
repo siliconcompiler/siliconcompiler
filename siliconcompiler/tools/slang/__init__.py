@@ -10,7 +10,6 @@ Sources: https://github.com/MikePopoloski/slang
 
 Installation: https://sv-lang.com/building.html
 '''
-import os
 import shlex
 
 try:
@@ -20,6 +19,30 @@ except ModuleNotFoundError:
 
 from siliconcompiler import Task
 from siliconcompiler.tools._common import distinct
+
+
+def report_diagnostics(source_manager, diagnostics):
+    """
+    Format diagnostics into text, reporting absolute file paths.
+
+    This mirrors :meth:`pyslang.DiagnosticEngine.reportAll`, which always emits
+    paths relative to the current working directory.
+
+    Args:
+        source_manager (pyslang.SourceManager): source manager the diagnostics came from.
+        diagnostics (list of pyslang.Diagnostic): diagnostics to report.
+    """
+
+    client = pyslang.TextDiagnosticClient()
+    client.showAbsPaths(True)
+
+    engine = pyslang.DiagnosticEngine(source_manager)
+    engine.addClient(client)
+
+    for diag in diagnostics:
+        engine.issue(diag)
+
+    return client.getString()
 
 
 class SlangTask(Task):
@@ -208,15 +231,9 @@ class SlangTask(Task):
                 report_level = "error"
 
             if report_level:
-                for n, line in enumerate(
-                        diags.reportAll(self._driver.sourceManager, [diag]).splitlines()):
+                for line in report_diagnostics(
+                        self._driver.sourceManager, [diag]).splitlines():
                     if line.strip():
-                        if n == 0:
-                            line_parts = line.split(":")
-                            if os.path.exists(line_parts[0]):
-                                line_parts[0] = os.path.abspath(line_parts[0])
-                            line = ":".join(line_parts)
-
                         report[report_level].append(line)
 
         if report["warning"]:
