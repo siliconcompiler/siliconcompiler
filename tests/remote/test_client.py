@@ -331,3 +331,21 @@ def test_run_loop_interrupt_reports_how_to_return(gcd_nop_project, monkeypatch, 
     assert 'Disconnecting from remote job' in caplog.text
     assert 'To reconnect to this job use: sc-remote -cfg' in caplog.text
     assert 'To cancel this job use: sc-remote -cfg' in caplog.text
+
+
+def test_get_results_body_matches_published_schema(gcd_nop_project):
+    '''What the client puts in the body must validate against the schema the
+       server publishes.
+
+       The job hash is in the URL, so a request schema that requires it in the
+       body rejects every fetch a client makes -- on any server that validates
+       the body as sent.
+    '''
+    from siliconcompiler.remote.server import validate_get_results
+
+    client = Client(gcd_nop_project)
+    params = client._Client__get_post_params()
+
+    validate_get_results(params)
+    validate_get_results({**params, 'node': 'write.gds0'})
+    validate_get_results({**params, 'node': 'dfm.metal_fill0'})

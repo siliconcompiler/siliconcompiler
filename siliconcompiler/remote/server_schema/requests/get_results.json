@@ -18,7 +18,7 @@
     "properties": {
         "job_hash": {
             "title": "Job Hash",
-            "description": "UUID of the job whose results are being fetched. Taken from the request URL, not the body.",
+            "description": "UUID of the job whose results are being fetched. Taken from the request URL rather than the body, so it is not required here.",
             "examples": ["01234567890abcdeffedcba0987654321"],
 
             "type": "string",
@@ -47,11 +47,9 @@
             "description": "Retrieve results only for a specific node in the flowgraph. Used to retrieve logs/etc for in-progress jobs.",
             "examples": ["syn0", "export1"],
             "type": "string",
-            "pattern": "^[A-Za-z0-9_.+-]+$"
+            "pattern": "^[^/\\\\]+$"
         }
     },
-
-    "required": ["job_hash"],
 
     "dependencies": {
         "username": ["key"],
