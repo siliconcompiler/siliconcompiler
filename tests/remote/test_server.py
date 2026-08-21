@@ -1,8 +1,10 @@
 import pytest
 import json
 import os
+import requests
 import tarfile
 import tempfile
+import time
 
 import os.path
 
@@ -1154,3 +1156,536 @@ async def test_handle_get_results_with_auth_error():
 
     # Verify authentication error
     assert response.status == 403
+
+
+###########################
+# Job tracking helpers
+###########################
+
+def _make_server(cluster='local', auth=False):
+    '''Server with a working nfs mount, ready to have handlers called on it.'''
+    server = Server()
+    server.set('option', 'auth', auth)
+    server.set('option', 'cluster', cluster)
+    server.set('option', 'nfsmount', tempfile.mkdtemp())
+    return server
+
+
+def _register_job(server, job_hash, nodes=None, username=None):
+    '''Register a running job the way remote_sc() does.'''
+    if nodes is None:
+        nodes = {'stepone0': {'status': NodeStatus.RUNNING,
+                              'step': 'stepone', 'index': '0'}}
+    job_name = server.job_name(username, job_hash)
+    server.sc_jobs[job_name] = {None: {'status': NodeStatus.SUCCESS}, **nodes}
+    return job_name
+
+
+###########################
+# handle_cancel_job
+###########################
+
+@pytest.mark.asyncio
+async def test_handle_cancel_job_not_running():
+    '''A job the server is not tracking cannot be canceled'''
+    server = _make_server()
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': '0' * 32})
+
+    response = await server.handle_cancel_job(mock_request)
+
+    assert response.status == 404
+    body = json.loads(response.body)
+    assert body['success'] is False
+    assert server.sc_canceled_jobs == set()
+
+
+@pytest.mark.asyncio
+async def test_handle_cancel_job_local():
+    '''Canceling a locally-running job marks it, and says what that means'''
+    server = _make_server(cluster='local')
+    job_hash = 'a' * 32
+    job_name = _register_job(server, job_hash)
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash})
+
+    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel:
+        response = await server.handle_cancel_job(mock_request)
+
+    assert response.status == 200
+    body = json.loads(response.body)
+    assert body['success'] is True
+    assert 'finish on their own' in body['message']
+    assert server.sc_canceled_jobs == {job_name}
+    assert not mock_cancel.called
+
+
+@pytest.mark.asyncio
+async def test_handle_cancel_job_authenticated():
+    '''The job is looked up under its authenticated name'''
+    server = _make_server(auth=True)
+    server.user_keys = {'testuser': {'password': 'pass', 'compute_time': 0, 'bandwidth': 0}}
+
+    job_hash = 'b' * 32
+    job_name = _register_job(server, job_hash, username='testuser')
+    assert job_name == f'testuser_{job_hash}'
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash,
+                                                'username': 'testuser',
+                                                'key': 'pass'})
+
+    response = await server.handle_cancel_job(mock_request)
+
+    assert response.status == 200
+    assert server.sc_canceled_jobs == {job_name}
+
+
+@pytest.mark.asyncio
+async def test_handle_cancel_job_auth_error():
+    '''A bad key cannot cancel someone else's job'''
+    server = _make_server(auth=True)
+    server.user_keys = {'testuser': {'password': 'pass', 'compute_time': 0, 'bandwidth': 0}}
+
+    job_hash = 'c' * 32
+    _register_job(server, job_hash, username='testuser')
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash,
+                                                'username': 'testuser',
+                                                'key': 'wrong'})
+
+    response = await server.handle_cancel_job(mock_request)
+
+    assert response.status == 403
+    assert server.sc_canceled_jobs == set()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('params', [{}, {'job_hash': 'not-a-hash'}, {'job_hash': '../etc'}])
+async def test_handle_cancel_job_invalid_params(params):
+    '''cancel_job takes a job hash, and only a job hash'''
+    server = _make_server()
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value=params)
+
+    response = await server.handle_cancel_job(mock_request)
+
+    assert response.status == 400
+
+
+@pytest.mark.asyncio
+async def test_handle_cancel_job_slurm():
+    '''Slurm nodes are handed to scancel by name; finished ones are left alone'''
+    server = _make_server(cluster='slurm')
+    job_hash = 'd' * 32
+    _register_job(server, job_hash, nodes={
+        'stepone0': {'status': NodeStatus.SUCCESS, 'step': 'stepone', 'index': '0'},
+        'steptwo0': {'status': NodeStatus.RUNNING, 'step': 'steptwo', 'index': '0'},
+        'stepthree0': {'status': NodeStatus.PENDING, 'step': 'stepthree', 'index': '0'},
+    })
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash})
+
+    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel:
+        response = await server.handle_cancel_job(mock_request)
+
+    assert response.status == 200
+    assert json.loads(response.body)['message'] == f'Canceling job: {job_hash}.'
+
+    # Finished nodes have nothing left to cancel, so they are not sent on.
+    mock_cancel.assert_called_once_with(job_hash, [('steptwo', '0'), ('stepthree', '0')])
+
+
+@pytest.mark.asyncio
+async def test_handle_cancel_job_no_scancel(caplog):
+    '''A host that cannot cancel slurm nodes says so, and still marks the job'''
+    server = _make_server(cluster='slurm')
+    job_hash = 'e' * 32
+    _register_job(server, job_hash)
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash})
+
+    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes',
+               return_value=[]):
+        response = await server.handle_cancel_job(mock_request)
+
+    assert response.status == 200
+    assert server.sc_canceled_jobs == {server.job_name(None, job_hash)}
+    assert f'Unable to cancel nodes for job: {job_hash}' in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_handle_cancel_job_then_check_progress():
+    '''check_progress reports a canceled job as canceled, which ends the
+       client's wait loop'''
+    server = _make_server()
+    job_hash = 'f' * 32
+    _register_job(server, job_hash)
+
+    progress_request = Mock()
+    progress_request.json = AsyncMock(return_value={'job_hash': job_hash, 'job_id': '0'})
+
+    response = await server.handle_check_progress(progress_request)
+    assert json.loads(response.body)['status'] == JobStatus.RUNNING
+
+    cancel_request = Mock()
+    cancel_request.json = AsyncMock(return_value={'job_hash': job_hash})
+    assert (await server.handle_cancel_job(cancel_request)).status == 200
+
+    progress_request.json = AsyncMock(return_value={'job_hash': job_hash, 'job_id': '0'})
+    response = await server.handle_check_progress(progress_request)
+    assert json.loads(response.body)['status'] == JobStatus.CANCELED
+
+
+###########################
+# check_progress per-node reporting
+###########################
+
+@pytest.mark.asyncio
+async def test_handle_check_progress_elapsed_time():
+    '''Running nodes report how long they have been going, finished ones how
+       long they took'''
+    server = _make_server()
+    job_hash = '1' * 32
+    now = time.time()
+    _register_job(server, job_hash, nodes={
+        'stepone0': {'status': NodeStatus.SUCCESS, 'step': 'stepone', 'index': '0',
+                     'starttime': now - 3725, 'endtime': now - 3600},
+        'steptwo0': {'status': NodeStatus.RUNNING, 'step': 'steptwo', 'index': '0',
+                     'starttime': now - 65},
+        'stepthree0': {'status': NodeStatus.PENDING, 'step': 'stepthree', 'index': '0'},
+    })
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash, 'job_id': '0'})
+
+    response = await server.handle_check_progress(mock_request)
+    message = json.loads(response.body)['message']
+
+    assert message['stepone0']['elapsed_time'] == '0:02:05'
+    assert message['steptwo0']['elapsed_time'] == '0:01:05'
+    # A node that has not started has no elapsed time to report.
+    assert 'elapsed_time' not in message['stepthree0']
+
+
+@pytest.mark.asyncio
+async def test_handle_check_progress_hides_bookkeeping():
+    '''The timestamps and the node address are the server's own, and are not
+       part of the reported payload'''
+    server = _make_server()
+    job_hash = '2' * 32
+    _register_job(server, job_hash, nodes={
+        'stepone0': {'status': NodeStatus.RUNNING, 'step': 'stepone', 'index': '0',
+                     'starttime': time.time()},
+    })
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash, 'job_id': '0'})
+
+    response = await server.handle_check_progress(mock_request)
+    message = json.loads(response.body)['message']
+
+    assert set(message['stepone0']) == {'status', 'elapsed_time'}
+
+
+@pytest.mark.asyncio
+async def test_handle_check_progress_claimed_job():
+    '''A job claimed by handle_remote_run but not yet set up by remote_sc is
+       still running, not completed'''
+    server = _make_server()
+    job_hash = '3' * 32
+    server.sc_jobs[job_hash] = {}
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash, 'job_id': '0'})
+
+    response = await server.handle_check_progress(mock_request)
+    body = json.loads(response.body)
+
+    assert body['status'] == JobStatus.RUNNING
+    assert body['message'] == {}
+
+
+###########################
+# Routing
+###########################
+
+def test_server_routes():
+    '''Every documented endpoint is routed, and results are not served
+       statically'''
+    from aiohttp.web_urldispatcher import StaticResource
+
+    server = _make_server()
+
+    with patch("aiohttp.web.run_app"):
+        server.run()
+
+    routed = set()
+    for route in server.app.router.routes():
+        assert not isinstance(route.resource, StaticResource), \
+            'nfs_mount must not be served as a static route'
+        routed.add((route.method, route.resource.canonical))
+
+    assert routed == {
+        ('POST', '/remote_run/'),
+        ('POST', '/check_progress/'),
+        ('POST', '/check_server/'),
+        ('POST', '/cancel_job/'),
+        ('POST', '/delete_job/'),
+        ('POST', '/get_results/{job_hash}.tar.gz'),
+    }
+
+
+def test_server_run_creates_staging():
+    '''run() prepares the upload staging directory'''
+    server = _make_server()
+
+    with patch("aiohttp.web.run_app"):
+        server.run()
+
+    assert os.path.isdir(server.staging_mount)
+    assert os.path.dirname(server.staging_mount) == server.nfs_mount
+
+
+###########################
+# Upload staging
+###########################
+
+class _MockPart:
+    def __init__(self, name, data=None, chunks=None):
+        self.name = name
+        self._data = data
+        self._chunks = list(chunks or [])
+
+    async def json(self):
+        return self._data
+
+    async def read_chunk(self):
+        if self._chunks:
+            return self._chunks.pop(0)
+        return None
+
+
+def _upload_request(cfg, archive=None):
+    '''A mock multipart 'remote_run' request carrying a manifest and an
+       optional uploaded archive.'''
+    parts = []
+    if archive is not None:
+        parts.append(_MockPart('import', chunks=[archive]))
+    parts.append(_MockPart('params', data={'cfg': cfg, 'params': {}}))
+
+    class MockReader:
+        async def next(self):
+            if parts:
+                return parts.pop(0)
+            return None
+
+    request = Mock()
+
+    async def get_multipart():
+        return MockReader()
+    request.multipart = get_multipart
+    return request
+
+
+@pytest.mark.asyncio
+async def test_handle_remote_run_stages_upload(gcd_nop_project):
+    '''The uploaded archive is staged outside nfs_mount and removed once
+       extracted'''
+    server = _make_server()
+
+    tar_path = os.path.join(tempfile.mkdtemp(), 'upload.tar.gz')
+    with tarfile.open(tar_path, 'w:gz') as tar:
+        info = tarfile.TarInfo(name='test.txt')
+        info.size = 0
+        tar.addfile(info)
+    with open(tar_path, 'rb') as f:
+        archive = f.read()
+
+    request = _upload_request(gcd_nop_project.getdict(), archive=archive)
+
+    with patch.object(Server, 'remote_sc', autospec=True) as mock_run:
+        response = await server.handle_remote_run(request)
+        job_hash = json.loads(response.body)['job_hash']
+
+        assert response.status == 200
+        # The job is claimed before the thread that runs it gets going.
+        assert job_hash in server.sc_jobs
+        assert server.sc_job_threads[job_hash]['jobhash'] == job_hash
+        server.sc_job_threads[job_hash]['thread'].join(timeout=10)
+        assert mock_run.called
+
+    assert os.listdir(server.staging_mount) == []
+    # The extracted job directory is what remains under the mount.
+    assert sorted(os.listdir(server.nfs_mount)) == ['.staging', job_hash]
+
+
+@pytest.mark.asyncio
+async def test_handle_remote_run_removes_failed_upload(gcd_nop_project):
+    '''A staged upload that cannot be extracted is still cleaned up'''
+    server = _make_server()
+
+    request = _upload_request(gcd_nop_project.getdict(), archive=b'not a tarball')
+
+    with patch.object(Server, 'remote_sc', autospec=True) as mock_run:
+        with pytest.raises(tarfile.ReadError):
+            await server.handle_remote_run(request)
+
+    assert not mock_run.called
+    assert os.listdir(server.staging_mount) == []
+
+
+###########################
+# Job bookkeeping
+###########################
+
+def test_remote_sc_tracks_and_clears_nodes(gcd_nop_project, monkeypatch):
+    '''remote_sc publishes the node list while the job runs, and takes it back
+       down afterwards'''
+    server = _make_server()
+    job_hash = '4' * 32
+    gcd_nop_project.set('record', 'remoteid', job_hash)
+
+    tracked = {}
+
+    def fake_run():
+        tracked.update(server.sc_jobs[job_hash])
+        return True
+    monkeypatch.setattr(gcd_nop_project, 'run', fake_run)
+
+    server.remote_sc(gcd_nop_project, None)
+
+    assert set(tracked) == {None, 'stepone0', 'steptwo0'}
+    # The node's address is recorded, because 'stepone0' cannot be split back
+    # into a step and an index.
+    assert (tracked['stepone0']['step'], tracked['stepone0']['index']) == ('stepone', '0')
+
+    assert server.sc_jobs == {}
+    assert server.sc_project_lookup == {}
+
+
+def test_remote_sc_clears_tracking_on_failure(gcd_nop_project, monkeypatch):
+    '''A job whose run raises is over, and must not be reported as running'''
+    server = _make_server()
+    job_hash = '5' * 32
+    gcd_nop_project.set('record', 'remoteid', job_hash)
+
+    def boom():
+        raise RuntimeError('run failed')
+    monkeypatch.setattr(gcd_nop_project, 'run', boom)
+
+    server.sc_job_threads[job_hash] = {'thread': Mock(), 'jobhash': job_hash}
+
+    with pytest.raises(RuntimeError):
+        server.remote_sc(gcd_nop_project, None)
+
+    assert server.sc_jobs == {}
+    assert server.sc_job_threads == {}
+    assert server.sc_project_lookup == {}
+
+
+@pytest.mark.asyncio
+async def test_shutdown_cancels_running_jobs():
+    '''Shutting down with a job in flight cancels it rather than abandoning
+       whatever it submitted'''
+    server = _make_server(cluster='slurm')
+    job_hash = '6' * 32
+    job_name = _register_job(server, job_hash)
+
+    thread = Mock()
+    thread.is_alive.return_value = False
+    server.sc_job_threads[job_name] = {'thread': thread, 'jobhash': job_hash}
+
+    with patch("aiohttp.web.run_app"):
+        server.run()
+
+    server.app.freeze()
+    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel, \
+            patch('siliconcompiler.remote.server.TaskScheduler.halt_all') as mock_halt:
+        await server.app.cleanup()
+
+    assert job_name in server.sc_canceled_jobs
+    mock_cancel.assert_called_once_with(job_hash, [('stepone', '0')])
+    # Node processes are not the scheduler's to leave behind either: they are
+    # joined at interpreter exit, so shutting down has to end them.
+    mock_halt.assert_called_once()
+    thread.join.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_shutdown_with_no_jobs():
+    '''Shutdown is a no-op when nothing is running'''
+    server = _make_server()
+
+    with patch("aiohttp.web.run_app"):
+        server.run()
+
+    server.app.freeze()
+    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel, \
+            patch('siliconcompiler.remote.server.TaskScheduler.halt_all') as mock_halt:
+        await server.app.cleanup()
+
+    assert not mock_cancel.called
+    assert not mock_halt.called
+
+
+###########################
+# Live server
+###########################
+
+@pytest.mark.timeout(60)
+def test_server_does_not_serve_mount(scserver, scserver_nfs_path):
+    '''A GET cannot walk out of the results endpoint into the mount'''
+    port = scserver()
+
+    # run() writes this file, so it is certainly there to be served.
+    assert os.path.isfile(os.path.join(scserver_nfs_path, '.gitignore'))
+
+    resp = requests.get(f'http://localhost:{port}/get_results/.gitignore', timeout=10)
+    assert resp.status_code == 404
+
+    # The results path itself exists, but only as a POST.
+    resp = requests.get(f'http://localhost:{port}/get_results/{"0" * 32}.tar.gz',
+                        timeout=10)
+    assert resp.status_code == 405
+
+
+@pytest.mark.timeout(60)
+def test_server_cancel_job_endpoint(scserver):
+    '''cancel_job is routed on a running server, not just implemented'''
+    port = scserver()
+
+    resp = requests.post(f'http://localhost:{port}/cancel_job/',
+                         data=json.dumps({'job_hash': '0' * 32}),
+                         timeout=10)
+
+    # An unrouted path would answer with aiohttp's own plain-text 404 instead.
+    assert resp.status_code == 404
+    assert resp.json() == {'message': 'Job is not running.', 'success': False}
+
+
+@pytest.mark.asyncio
+async def test_handle_delete_job_archive_only():
+    '''A job whose directory is already gone still has its archive deleted'''
+    server = _make_server()
+
+    job_hash = '7' * 32
+    tar_file = os.path.join(server.nfs_mount, f'{job_hash}.tar.gz')
+    with tarfile.open(tar_file, 'w:gz') as tar:
+        info = tarfile.TarInfo(name='test.txt')
+        info.size = 0
+        tar.addfile(info)
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash})
+
+    response = await server.handle_delete_job(mock_request)
+
+    assert response.status == 200
+    assert not os.path.exists(tar_file)

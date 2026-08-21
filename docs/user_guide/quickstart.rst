@@ -185,21 +185,23 @@ When your job starts on a remote server, it will log a job ID which you can use 
 
     | INFO    | job0  | remote     | 0  | Your job's reference ID is: 0123456789abcdeffedcba9876543210
 
-You can use this job ID to interact with a running job using the :ref:`sc-remote <app-sc-remote>` CLI app:
+The job ID is recorded in the job's manifest, which is how the
+:ref:`sc-remote <app-sc-remote>` CLI app identifies the job -- point it at that
+manifest to interact with a running job:
 
 .. code-block:: bash
 
     # Check on a job's progress.
-    sc-remote -jobid 0123456789abcdeffedcba9876543210
+    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json
 
     # Cancel a running job.
-    sc-remote -jobid 0123456789abcdeffedcba9876543210 -cancel
+    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json -cancel
 
     # Ask the server to delete a job from its active records.
-    sc-remote -jobid 0123456789abcdeffedcba9876543210 -delete
+    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json -delete
 
     # Reconnect to an active job.
-    sc-remote -jobid 0123456789abcdeffedcba9876543210 -reconnect -cfg build/<design>/<jobname>/<design>.pkg.json
+    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json -reconnect
 
 The :ref:`sc-remote <app-sc-remote>` app also accepts a `-credentials` input parameter which works the same way as the :keypath:`option,credentials` parameter.
 
