@@ -37,7 +37,8 @@
             "title": "Flowgraph node",
             "description": "Retrieve results only for a specific node in the flowgraph. Used to retrieve logs/etc for in-progress jobs.",
             "examples": ["syn0", "export1"],
-            "type": "string"
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.+-]+$"
         }
     },
 
