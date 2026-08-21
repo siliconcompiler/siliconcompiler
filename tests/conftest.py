@@ -24,7 +24,7 @@ from unittest.mock import patch
 
 from typing import Optional, Tuple
 
-from siliconcompiler import utils, ASIC, Design, Project
+from siliconcompiler import utils, ASIC, Design, Project, OpenTask
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
@@ -229,6 +229,21 @@ def isolate_statics_in_testing(monkeypatch, request, shared_manager_server):
 
         # Cleanup afterwards
         MPManager.stop()
+
+
+@pytest.fixture
+def isolated_tasks(monkeypatch):
+    """
+    An OpenTask/ShowTask/ScreenshotTask registry holding only what the test puts in it.
+
+    ``get_task()`` populates the registry by recursing every live ``OpenTask``
+    subclass in the process and then loading the built-in viewers, so a test
+    that registers doubles resolves against those as well -- including doubles
+    left behind by other tests in the same module. Skip the discovery step;
+    ``register_task()`` and ``get_task()`` are otherwise untouched.
+    """
+    monkeypatch.setattr(OpenTask, "_OpenTask__populate_tasks",
+                        classmethod(lambda cls: None))
 
 
 @pytest.fixture(autouse=True)
