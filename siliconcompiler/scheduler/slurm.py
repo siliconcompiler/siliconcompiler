@@ -9,7 +9,7 @@ import time
 
 import os.path
 
-from typing import List, Union, Final
+from typing import List, Tuple, Union, Final
 
 from siliconcompiler import utils, sc_open
 from siliconcompiler.utils.paths import jobdir
@@ -161,6 +161,37 @@ class SlurmSchedulerNode(SchedulerNode):
         """
         if shutil.which('sinfo') is None:
             raise RuntimeError('slurm is not available or installed on this machine')
+
+    @staticmethod
+    def cancel_nodes(jobhash: str, nodes: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
+        """Cancels the slurm jobs submitted for a set of nodes.
+
+        Nodes are addressed by the job name :meth:`get_job_name` gave them at
+        submission, so a caller only needs to know which nodes it wants stopped.
+        A node that has already finished has no slurm job left to cancel, which
+        scancel reports as success.
+
+        Args:
+            jobhash (str): The unique hash for the entire run.
+            nodes (list of tuple): The (step, index) pairs to cancel.
+
+        Returns:
+            list of tuple: The nodes that were handed to scancel. Empty if
+                scancel is not available on this machine.
+        """
+
+        if shutil.which('scancel') is None:
+            return []
+
+        canceled = []
+        for step, index in nodes:
+            job_name = SlurmSchedulerNode.get_job_name(jobhash, step, index)
+            subprocess.run(['scancel', '--name', job_name],
+                           stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL)
+            canceled.append((step, index))
+
+        return canceled
 
     def mark_copy(self) -> bool:
         sharedprefix: List[str] = MPManager.get_settings().get(

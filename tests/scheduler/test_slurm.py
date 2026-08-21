@@ -318,3 +318,32 @@ def test_check_required_paths(project):
                 step="steptwo", index="0")
 
     assert SlurmSchedulerNode(project, "steptwo", "0").check_required_paths() is True
+
+
+def test_cancel_nodes():
+    with patch("shutil.which", return_value="/usr/bin/scancel"), \
+            patch("subprocess.run") as run:
+        assert SlurmSchedulerNode.cancel_nodes(
+            "thisisahash", [("stepone", "0"), ("steptwo", "1")]) == \
+            [("stepone", "0"), ("steptwo", "1")]
+
+    assert [call.args[0] for call in run.call_args_list] == [
+        ["scancel", "--name", "thisisahash_stepone_0"],
+        ["scancel", "--name", "thisisahash_steptwo_1"]
+    ]
+
+
+def test_cancel_nodes_no_nodes():
+    with patch("shutil.which", return_value="/usr/bin/scancel"), \
+            patch("subprocess.run") as run:
+        assert SlurmSchedulerNode.cancel_nodes("thisisahash", []) == []
+
+    run.assert_not_called()
+
+
+def test_cancel_nodes_without_scancel():
+    with patch("shutil.which", return_value=None), \
+            patch("subprocess.run") as run:
+        assert SlurmSchedulerNode.cancel_nodes("thisisahash", [("stepone", "0")]) == []
+
+    run.assert_not_called()
