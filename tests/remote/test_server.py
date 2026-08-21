@@ -1917,3 +1917,17 @@ def test_server_get_results_cannot_escape_mount(scserver, scserver_nfs_path):
 
     assert resp.status_code == 400
     assert 'not yours' not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_handle_get_results_non_object_body():
+    '''A body that is not an object is rejected, not indexed into'''
+    server = _make_server()
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value=['not', 'an', 'object'])
+    mock_request.match_info = {'job_hash': '0' * 32}
+
+    response = await server.handle_get_results(mock_request)
+
+    assert response.status == 400
