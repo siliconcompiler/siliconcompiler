@@ -314,3 +314,20 @@ def test_configure_whitelist_add_and_remove(gcd_nop_project, scserver_credential
 
     with open(creds) as f:
         assert json.load(f)['directory_whitelist'] == []
+
+
+def test_run_loop_interrupt_reports_how_to_return(gcd_nop_project, monkeypatch, caplog):
+    '''Ctrl+C on a remote run leaves the user the commands to get back to it'''
+    client = Client(gcd_nop_project)
+
+    def interrupt():
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(client, '_Client__run_loop', interrupt)
+
+    with pytest.raises(KeyboardInterrupt):
+        client._run_loop()
+
+    assert 'Disconnecting from remote job' in caplog.text
+    assert 'To reconnect to this job use: sc-remote -cfg' in caplog.text
+    assert 'To cancel this job use: sc-remote -cfg' in caplog.text
