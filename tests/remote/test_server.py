@@ -787,51 +787,6 @@ def test_handle_check_progress_without_auth():
     asyncio.run(async_test())
 
 
-def test_server_callbacks():
-    '''Test the private callback methods'''
-    from siliconcompiler import Project, Flowgraph
-    from siliconcompiler.tools.builtin.nop import NOPTask
-
-    server = Server()
-    tmpdir = tempfile.mkdtemp()
-    server.set('option', 'nfsmount', tmpdir)
-
-    # Create a test project
-    project = Project('test')
-    project.set('option', 'builddir', tmpdir)
-
-    # Create a simple flow
-    flow = Flowgraph("testflow")
-    flow.node("step1", NOPTask())
-    project.set_flow(flow)
-
-    # Setup job tracking
-    job_hash = 'test_hash_123'
-    job_name = 'test_job'
-    project.set('record', 'remoteid', job_hash)
-
-    server.sc_project_lookup[project] = {
-        "name": job_name,
-        "jobhash": job_hash
-    }
-    server.sc_jobs[job_name] = {
-        None: {'status': RemoteNodeStatus.PENDING},
-        'step10': {'status': RemoteNodeStatus.PENDING}
-    }
-
-    # Test __run_start - will fail due to missing files but exercises the code path
-    with pytest.raises(FileNotFoundError, match=r".*tar\.gz"):
-        server._Server__run_start(project)
-
-    # Test __node_start
-    server._Server__node_start(project, 'step1', '0')
-    # Verify status was updated (note: step1 may not be in sc_jobs)
-
-    # Test __node_end - will fail due to missing files but exercises the code path
-    with pytest.raises((FileNotFoundError, KeyError)):
-        server._Server__node_end(project, 'step1', '0')
-
-
 def test_handle_check_server_schema_error():
     '''Test handle_check_server with invalid schema (username without key)'''
     import asyncio
@@ -943,87 +898,16 @@ def test_server_run_nfs_creation():
 
 
 def test_server_run_creates_gitignore():
-    '''Test that run creates .gitignore in nfs_mount'''
-    server = Server()
+    '''run() keeps the mount out of git'''
+    server = _make_server()
 
-    # Create temporary directory
-    tmpdir = tempfile.mkdtemp()
-    server.set('option', 'nfsmount', tmpdir)
-    server.set('option', 'auth', False)
+    with patch("aiohttp.web.run_app"):
+        server.run()
 
-    # Since we can't easily test the full run() method without starting a web server,
-    # we'll test the logic separately
-    nfs_mount = server.nfs_mount
-
-    # Ensure directory exists
-    if not os.path.exists(nfs_mount):
-        os.makedirs(nfs_mount, exist_ok=True)
-
-    # Create .gitignore like run() does
-    gitignore_path = os.path.join(nfs_mount, ".gitignore")
-    with open(gitignore_path, "w") as f:
-        f.write("*")
-
-    # Verify it was created
-    assert os.path.exists(gitignore_path)
-    with open(gitignore_path, 'r') as f:
+    gitignore = os.path.join(server.nfs_mount, ".gitignore")
+    assert os.path.isfile(gitignore)
+    with open(gitignore) as f:
         assert f.read() == "*"
-
-
-def test_server_run_loads_users_json():
-    '''Test that run loads users.json when auth is enabled'''
-    server = Server()
-
-    # Create temporary directory
-    tmpdir = tempfile.mkdtemp()
-    server.set('option', 'nfsmount', tmpdir)
-    server.set('option', 'auth', True)
-
-    # Create users.json file
-    users_data = {
-        'users': [
-            {
-                'username': 'user1',
-                'password': 'pass1',
-                'compute_time': 100,
-                'bandwidth': 50
-            },
-            {
-                'username': 'user2',
-                'password': 'pass2'
-            }
-        ]
-    }
-
-    users_file = os.path.join(tmpdir, 'users.json')
-    with open(users_file, 'w') as f:
-        json.dump(users_data, f)
-
-    # Simulate the user loading logic from run()
-    server.user_keys = {}
-    with open(users_file, 'r') as users_file_obj:
-        users_json = json.loads(users_file_obj.read())
-    for mapping in users_json['users']:
-        username = mapping['username']
-        server.user_keys[username] = {
-            'password': mapping['password'],
-            'compute_time': 0,
-            'bandwidth': 0
-        }
-        if 'compute_time' in mapping:
-            server.user_keys[username]['compute_time'] = mapping['compute_time']
-        if 'bandwidth' in mapping:
-            server.user_keys[username]['bandwidth'] = mapping['bandwidth']
-
-    # Verify users were loaded
-    assert 'user1' in server.user_keys
-    assert 'user2' in server.user_keys
-    assert server.user_keys['user1']['password'] == 'pass1'
-    assert server.user_keys['user1']['compute_time'] == 100
-    assert server.user_keys['user1']['bandwidth'] == 50
-    assert server.user_keys['user2']['password'] == 'pass2'
-    assert server.user_keys['user2']['compute_time'] == 0
-    assert server.user_keys['user2']['bandwidth'] == 0
 
 
 def test_remote_sc_basic_setup():
@@ -1760,3 +1644,230 @@ def test_server_enforces_upload_limit(scserver):
                          files=_oversized_upload(), timeout=30)
 
     assert resp.status_code == 413
+
+
+###########################
+# Progress callbacks
+###########################
+
+def _callback_project(server, job_hash):
+    '''A project set up the way remote_sc() leaves one for the callbacks:
+       build directory under the job's own root on the mount.'''
+    from siliconcompiler import Project, Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
+    from siliconcompiler.utils.paths import jobdir
+
+    project = Project('cbdesign')
+    flow = Flowgraph("cbflow")
+    flow.node("stepone", NOPTask())
+    project.set_flow(flow)
+    project.set('record', 'remoteid', job_hash)
+
+    job_root = os.path.join(server.nfs_mount, job_hash)
+    project.set('option', 'builddir', job_root)
+    os.makedirs(jobdir(project), exist_ok=True)
+    project.write_manifest(os.path.join(jobdir(project), f'{project.name}.pkg.json'))
+
+    server.sc_project_lookup[project] = {"name": job_hash, "jobhash": job_hash}
+    server.sc_jobs[job_hash] = {
+        None: {'status': RemoteNodeStatus.PENDING},
+        'stepone0': {'status': RemoteNodeStatus.PENDING, 'step': 'stepone', 'index': '0'}
+    }
+
+    return project, job_root
+
+
+def test_run_start_publishes_node_statuses():
+    '''The pre_run callback archives the starting manifest and publishes the
+       statuses the job starts from'''
+    server = _make_server()
+    job_hash = 'a' * 32
+    project, job_root = _callback_project(server, job_hash)
+
+    project.set('record', 'status', NodeStatus.SUCCESS, step='stepone', index='0')
+
+    server._Server__run_start(project)
+
+    assert os.path.isfile(os.path.join(job_root, f'{job_hash}_None.tar.gz'))
+    assert server.sc_jobs[job_hash][None]['status'] == NodeStatus.SUCCESS
+    assert server.sc_jobs[job_hash]['stepone0']['status'] == NodeStatus.SUCCESS
+
+
+def test_run_start_ignores_untracked_nodes():
+    '''A node the job is not reporting on is skipped rather than invented'''
+    server = _make_server()
+    job_hash = 'b' * 32
+    project, _ = _callback_project(server, job_hash)
+
+    del server.sc_jobs[job_hash]['stepone0']
+
+    server._Server__run_start(project)
+
+    assert set(server.sc_jobs[job_hash]) == {None}
+
+
+def test_node_start_stamps_start_time():
+    '''The pre_node callback marks the node running and starts its clock'''
+    server = _make_server()
+    job_hash = 'c' * 32
+    project, _ = _callback_project(server, job_hash)
+
+    before = time.time()
+    server._Server__node_start(project, 'stepone', '0')
+
+    node = server.sc_jobs[job_hash]['stepone0']
+    assert node['status'] == NodeStatus.RUNNING
+    assert before <= node['starttime'] <= time.time()
+
+
+def test_node_end_archives_and_stops_the_clock():
+    '''The post_node callback archives the node and freezes its elapsed time'''
+    server = _make_server()
+    job_hash = 'd' * 32
+    project, job_root = _callback_project(server, job_hash)
+
+    server._Server__node_start(project, 'stepone', '0')
+    project.set('record', 'status', NodeStatus.SUCCESS, step='stepone', index='0')
+
+    server._Server__node_end(project, 'stepone', '0')
+
+    assert os.path.isfile(os.path.join(job_root, f'{job_hash}_stepone0.tar.gz'))
+    node = server.sc_jobs[job_hash]['stepone0']
+    assert node['status'] == NodeStatus.SUCCESS
+    assert node['endtime'] >= node['starttime']
+
+
+###########################
+# Remaining server paths
+###########################
+
+def test_run_loads_users_json():
+    '''run() imports the user table when authentication is on'''
+    server = _make_server(auth=True)
+
+    users = {'users': [
+        {'username': 'user1', 'password': 'pass1', 'compute_time': 100, 'bandwidth': 50},
+        {'username': 'user2', 'password': 'pass2'}
+    ]}
+    with open(os.path.join(server.nfs_mount, 'users.json'), 'w') as f:
+        json.dump(users, f)
+
+    with patch("aiohttp.web.run_app"):
+        server.run()
+
+    assert server.user_keys == {
+        'user1': {'password': 'pass1', 'compute_time': 100, 'bandwidth': 50},
+        'user2': {'password': 'pass2', 'compute_time': 0, 'bandwidth': 0}
+    }
+
+
+def test_run_warns_on_unusable_users_json(caplog):
+    '''A user table that cannot be read leaves the server with no users'''
+    server = _make_server(auth=True)
+
+    with open(os.path.join(server.nfs_mount, 'users.json'), 'w') as f:
+        f.write('not json')
+
+    with patch("aiohttp.web.run_app"):
+        server.run()
+
+    assert server.user_keys == {}
+    assert "Could not find well-formatted 'users.json'" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_handle_remote_run_invalid_params(gcd_nop_project):
+    '''remote_run validates its parameters like every other endpoint'''
+    server = _make_server()
+
+    request = Mock()
+
+    async def get_multipart():
+        parts = [_MockPart('params', data={'cfg': gcd_nop_project.getdict(),
+                                           'params': {'bogus': 'value'}})]
+
+        class MockReader:
+            async def next(self):
+                if parts:
+                    return parts.pop(0)
+                return None
+        return MockReader()
+    request.multipart = get_multipart
+
+    response = await server.handle_remote_run(request)
+
+    assert response.status == 400
+
+
+def test_run_job_marks_finished_nodes_uploaded(gcd_nop_project, monkeypatch):
+    '''A node the client already ran is reported as uploaded, not pending'''
+    server = _make_server()
+    job_hash = 'e' * 32
+    gcd_nop_project.set('record', 'remoteid', job_hash)
+    gcd_nop_project.set('record', 'status', NodeStatus.SUCCESS, step='stepone', index='0')
+
+    tracked = {}
+    monkeypatch.setattr(gcd_nop_project, 'run',
+                        lambda: tracked.update(server.sc_jobs[job_hash]) or True)
+
+    server.remote_sc(gcd_nop_project, None)
+
+    assert tracked['stepone0']['status'] == RemoteNodeStatus.UPLOADED
+    assert tracked['steptwo0']['status'] == NodeStatus.PENDING
+
+
+def test_run_job_uses_slurm_when_clustered(gcd_nop_project, monkeypatch):
+    '''A slurm server hands its nodes to slurm'''
+    server = _make_server(cluster='slurm')
+    gcd_nop_project.set('record', 'remoteid', 'f' * 32)
+
+    monkeypatch.setattr(gcd_nop_project, 'run', lambda: True)
+
+    server.remote_sc(gcd_nop_project, None)
+
+    assert gcd_nop_project.option.scheduler.get_name() == 'slurm'
+
+
+@pytest.mark.asyncio
+async def test_shutdown_warns_when_job_will_not_stop(caplog):
+    '''A job that outlives the shutdown timeout is reported, not waited on'''
+    server = _make_server()
+    job_hash = '8' * 32
+    job_name = _register_job(server, job_hash)
+
+    thread = Mock()
+    thread.is_alive.return_value = True
+    server.sc_job_threads[job_name] = {'thread': thread, 'jobhash': job_hash}
+
+    with patch("aiohttp.web.run_app"):
+        server.run()
+
+    server.app.freeze()
+    with patch('siliconcompiler.remote.server.TaskScheduler.halt_all'):
+        await server.app.cleanup()
+
+    assert f'Job did not stop in time: {job_hash}' in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_shutdown_tolerates_job_finishing_first():
+    '''A job that ends between being listed and being canceled is left alone'''
+    server = _make_server(cluster='slurm')
+    job_hash = '9' * 32
+    job_name = server.job_name(None, job_hash)
+
+    thread = Mock()
+    thread.is_alive.return_value = False
+    # Registered as running, but already gone from sc_jobs.
+    server.sc_job_threads[job_name] = {'thread': thread, 'jobhash': job_hash}
+
+    with patch("aiohttp.web.run_app"):
+        server.run()
+
+    server.app.freeze()
+    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel, \
+            patch('siliconcompiler.remote.server.TaskScheduler.halt_all'):
+        await server.app.cleanup()
+
+    assert not mock_cancel.called
+    assert server.sc_canceled_jobs == set()
