@@ -870,8 +870,8 @@ def test_handle_get_results_invalid_job_hash():
         # Call handler - should fail validation
         response = await server.handle_get_results(mock_request)
 
-        # Verify it returns 404 (file not found)
-        assert response.status == 404
+        # Verify it is rejected rather than looked for
+        assert response.status == 400
 
     asyncio.run(async_test())
 
@@ -1871,3 +1871,49 @@ async def test_shutdown_tolerates_job_finishing_first():
 
     assert not mock_cancel.called
     assert server.sc_canceled_jobs == set()
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize('job_hash', [
+    '%2e%2e%2f%2e%2e%2fetc%2fpasswd',
+    '..%2f..%2fsecret',
+    '%2E%2E%2Fsecret',
+    'notahash',
+    'A' * 32,
+])
+def test_server_get_results_rejects_bad_job_hash(scserver, scserver_nfs_path, job_hash):
+    '''A job hash from the URL cannot walk out of the mount.
+
+    aiohttp percent-decodes a path segment into match_info, so '%2e%2e%2f'
+    reaches the handler as '../' -- the hash has to be validated before it is
+    joined onto a path, not merely matched by the route.
+    '''
+    port = scserver()
+
+    resp = requests.post(f'http://localhost:{port}/get_results/{job_hash}.tar.gz',
+                         data=json.dumps({}), timeout=10)
+
+    assert resp.status_code == 400
+    assert 'Invalid parameters' in resp.json()['message']
+
+
+@pytest.mark.timeout(60)
+def test_server_get_results_cannot_escape_mount(scserver, scserver_nfs_path):
+    '''The traversal that reaches a real file outside the mount is refused.
+
+    Escaping needs the path to stay resolvable, so this lays out what an
+    unchecked hash of '../x' resolves to: a sibling directory of the mount, and
+    the archive name the handler builds, one level above it.
+    '''
+    outside = os.path.dirname(scserver_nfs_path)
+    os.makedirs(os.path.join(outside, 'x'), exist_ok=True)
+    with open(os.path.join(outside, 'x_None.tar.gz'), 'w') as f:
+        f.write('not yours')
+
+    port = scserver()
+
+    resp = requests.post(f'http://localhost:{port}/get_results/..%2fx.tar.gz',
+                         data=json.dumps({}), timeout=10)
+
+    assert resp.status_code == 400
+    assert 'not yours' not in resp.text

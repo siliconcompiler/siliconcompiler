@@ -32,6 +32,10 @@ class SlurmSchedulerNode(SchedulerNode):
     _MAX_FS_DELAY = 2
     _FS_DWELL = 0.1
 
+    # Bound on a single scancel call: an unresponsive controller must not stall
+    # the caller, which is a server shutting down or answering a cancel request.
+    _CANCEL_TIMEOUT = 10
+
     def __init__(self, project, step, index, replay=False):
         """Initializes a SlurmSchedulerNode.
 
@@ -176,8 +180,9 @@ class SlurmSchedulerNode(SchedulerNode):
             nodes (list of tuple): The (step, index) pairs to cancel.
 
         Returns:
-            list of tuple: The nodes that were handed to scancel. Empty if
-                scancel is not available on this machine.
+            list of tuple: The nodes scancel accepted. Empty if scancel is not
+                available on this machine, and a node whose scancel did not
+                return in time is left out.
         """
 
         if shutil.which('scancel') is None:
@@ -186,9 +191,15 @@ class SlurmSchedulerNode(SchedulerNode):
         canceled = []
         for step, index in nodes:
             job_name = SlurmSchedulerNode.get_job_name(jobhash, step, index)
-            subprocess.run(['scancel', '--name', job_name],
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
+            try:
+                subprocess.run(['scancel', '--name', job_name],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL,
+                               timeout=SlurmSchedulerNode._CANCEL_TIMEOUT)
+            except subprocess.TimeoutExpired:
+                # Nothing is known about this node's job now, so do not claim it
+                # was canceled -- but the remaining nodes still deserve a try.
+                continue
             canceled.append((step, index))
 
         return canceled

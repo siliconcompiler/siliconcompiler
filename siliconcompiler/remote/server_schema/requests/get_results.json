@@ -16,6 +16,15 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
+        "job_hash": {
+            "title": "Job Hash",
+            "description": "UUID of the job whose results are being fetched. Taken from the request URL, not the body.",
+            "examples": ["01234567890abcdeffedcba0987654321"],
+
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+        },
+
         "username": {
             "title": "Username",
             "description": "User account ID. Required for authentication if the job was originally created by a valid user.",
@@ -41,6 +50,8 @@
             "pattern": "^[A-Za-z0-9_.+-]+$"
         }
     },
+
+    "required": ["job_hash"],
 
     "dependencies": {
         "username": ["key"],

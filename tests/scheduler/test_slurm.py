@@ -347,3 +347,24 @@ def test_cancel_nodes_without_scancel():
         assert SlurmSchedulerNode.cancel_nodes("thisisahash", [("stepone", "0")]) == []
 
     run.assert_not_called()
+
+
+def test_cancel_nodes_timeout():
+    '''A scancel that does not return leaves its node unclaimed'''
+    import subprocess
+
+    def hang(cmd, **kwargs):
+        if 'steptwo_1' in cmd[-1]:
+            raise subprocess.TimeoutExpired(cmd, kwargs['timeout'])
+
+    with patch("shutil.which", return_value="/usr/bin/scancel"), \
+            patch("subprocess.run", side_effect=hang) as run:
+        # The node after the one that hung is still attempted.
+        assert SlurmSchedulerNode.cancel_nodes(
+            "thisisahash",
+            [("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")]) == \
+            [("stepone", "0"), ("stepthree", "2")]
+
+    assert len(run.call_args_list) == 3
+    assert all(call.kwargs["timeout"] == SlurmSchedulerNode._CANCEL_TIMEOUT
+               for call in run.call_args_list)

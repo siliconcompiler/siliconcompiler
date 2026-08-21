@@ -120,6 +120,10 @@ class TaskScheduler:
         self.__startTimes: Dict[Optional[Tuple[str, str]], float] = {}
         self.__dwellTime: float = 0.1
 
+        # Guards __halt_running_nodes(): halt_all() can arrive on another thread
+        # while this run's own cleanup is ending the same processes.
+        self.__halt_lock = threading.Lock()
+
         self.__create_nodes(tasks)
 
         with TaskScheduler.__instances_lock:
@@ -335,21 +339,25 @@ class TaskScheduler:
         Returns:
             bool: True if anything was still running.
         """
-        running = [info["proc"] for info in self.__nodes.values()
-                   if info.get("proc") is not None and info["proc"].is_alive()]
-        if not running:
-            return False
+        # Serialized: two threads calling terminate()/join() on one process race
+        # on waitpid, and one of them loses with ChildProcessError. Whoever
+        # arrives second finds nothing running and returns.
+        with self.__halt_lock:
+            running = [info["proc"] for info in self.__nodes.values()
+                       if info.get("proc") is not None and info["proc"].is_alive()]
+            if not running:
+                return False
 
-        for proc in running:
-            proc.terminate()
+            for proc in running:
+                proc.terminate()
 
-        for proc in running:
-            proc.join(timeout=TaskScheduler.__HALT_TIMEOUT)
-            if proc.is_alive():
-                proc.kill()
+            for proc in running:
                 proc.join(timeout=TaskScheduler.__HALT_TIMEOUT)
+                if proc.is_alive():
+                    proc.kill()
+                    proc.join(timeout=TaskScheduler.__HALT_TIMEOUT)
 
-        return True
+            return True
 
     def get_nodes(self) -> List[Tuple[str, str]]:
         """Gets an ordered list of all nodes managed by this scheduler.

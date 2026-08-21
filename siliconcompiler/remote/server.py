@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import asyncio
 import contextlib
 import fastjsonschema
 import json
@@ -350,11 +351,16 @@ class Server(ServerSchema):
         API handler to redirect 'get_results' POST calls.
         '''
 
-        # Process input parameters
+        # Process input parameters. The job hash arrives in the URL rather than
+        # the body, so it is put into the parameters before they are checked:
+        # aiohttp percent-decodes a path segment into match_info, so an
+        # unvalidated hash carries '../' through to the path built below.
         params = await request.json()
+        if isinstance(params, dict):
+            params['job_hash'] = request.match_info.get('job_hash', '')
+
         job_params, response = self._check_request(params,
                                                    validate_get_results)
-        job_params['job_hash'] = request.match_info.get('job_hash', '')
         if response is not None:
             return response
 
@@ -400,7 +406,9 @@ class Server(ServerSchema):
                                          status=404)
 
         cluster = self.get('option', 'cluster')
-        self.__cancel_job(job_name, job_hash)
+        # Off the event loop: cancelling shells out to scancel, and a request
+        # handler that blocks stalls every other client too.
+        await asyncio.to_thread(self.__cancel_job, job_name, job_hash)
 
         if cluster == 'slurm':
             message = f'Canceling job: {job_hash}.'
@@ -606,16 +614,21 @@ class Server(ServerSchema):
 
         for job_name, info in running.items():
             self.logger.warning(f"Shutting down with job still running: {info['jobhash']}")
-            self.__cancel_job(job_name, info['jobhash'])
+            await asyncio.to_thread(self.__cancel_job, job_name, info['jobhash'])
 
         # Canceling reaches the slurm nodes; the ones running here are processes
         # this server's job threads started, and only their scheduler can end
         # them. Left alone they are joined at interpreter exit, which is what
         # used to keep an sc-server alive long after it was told to stop.
-        TaskScheduler.halt_all()
+        await asyncio.to_thread(TaskScheduler.halt_all)
 
-        for job_name, info in running.items():
-            info['thread'].join(timeout=Server.__SHUTDOWN_TIMEOUT)
+        # One deadline for the shutdown rather than one per job, and the joins
+        # run off the event loop: a timeout each would multiply the wait by the
+        # number of jobs, and blocking here holds up the rest of the teardown.
+        deadline = time.monotonic() + Server.__SHUTDOWN_TIMEOUT
+        for info in running.values():
+            remaining = max(0.0, deadline - time.monotonic())
+            await asyncio.to_thread(info['thread'].join, remaining)
             if info['thread'].is_alive():
                 self.logger.warning(f"Job did not stop in time: {info['jobhash']}")
 
