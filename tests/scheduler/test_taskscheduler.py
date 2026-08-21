@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import time
+import weakref
 
 import pytest
 
@@ -851,3 +852,55 @@ def test_run_end_to_end_single_parallel_under_breakpoint(large_flow, make_tasks,
 
     for step, index in large_flow.get("flowgraph", "testflow", field="schema").get_nodes():
         assert large_flow.get("record", "status", step=step, index=index) == NodeStatus.SUCCESS
+
+
+def _sleep_forever():
+    # Bounded so a failing test cannot leave this behind indefinitely.
+    time.sleep(120)
+
+
+@pytest.mark.timeout(60)
+def test_halt_all_ends_node_processes(large_flow, make_tasks):
+    '''halt_all() reaches a run that the caller holds no handle to.
+
+    This is what a server shutting down mid-job has to work with: the run is
+    inside a thread, and its node processes are not daemons, so anything still
+    alive is joined at interpreter exit -- which is an sc-server that never goes
+    away after being told to stop.
+    '''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    proc = get_process_context().Process(target=_sleep_forever)
+    proc.start()
+    # Present it the way a launched node appears to the halt path.
+    scheduler._TaskScheduler__nodes[("sleeper", "0")] = {"proc": proc}
+
+    try:
+        assert TaskScheduler.halt_all() == 1
+        assert not proc.is_alive()
+    finally:
+        if proc.is_alive():
+            proc.kill()
+        proc.join(timeout=10)
+
+
+def test_halt_all_with_nothing_running(large_flow, make_tasks):
+    '''A run with no live nodes reports nothing to halt'''
+    TaskScheduler(large_flow, make_tasks(large_flow))
+
+    assert TaskScheduler.halt_all() == 0
+
+
+def test_halt_all_forgets_collected_schedulers(large_flow, make_tasks):
+    '''The registry holds schedulers weakly, so a finished run is not kept
+       alive by being listed in it'''
+    import gc
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    ref = weakref.ref(scheduler)
+
+    del scheduler
+    gc.collect()
+
+    assert ref() is None
+    assert TaskScheduler.halt_all() == 0

@@ -1,7 +1,9 @@
 import logging
 import multiprocessing
 import sys
+import threading
 import time
+import weakref
 
 import os.path
 
@@ -40,6 +42,13 @@ class TaskScheduler:
     # How long __halt_running_nodes() waits for a node to go away, first after
     # terminate() and then after kill().
     __HALT_TIMEOUT = 5.0
+
+    # Every scheduler built in this process, so a caller that does not hold one
+    # -- a server shutting down while a job is in flight -- can still end the
+    # node processes it started. Weak, so a finished run is not kept alive by
+    # being listed here.
+    __instances = weakref.WeakSet()
+    __instances_lock = threading.Lock()
 
     @staticmethod
     def register_callback(hook: Literal["pre_run", "pre_node", "post_node", "post_run"],
@@ -112,6 +121,9 @@ class TaskScheduler:
         self.__dwellTime: float = 0.1
 
         self.__create_nodes(tasks)
+
+        with TaskScheduler.__instances_lock:
+            TaskScheduler.__instances.add(self)
 
     def __create_nodes(self, tasks: Dict[Tuple[str, str], "SchedulerNode"]) -> None:
         """
@@ -284,7 +296,32 @@ class TaskScheduler:
                 # if there are more than 1, join the first with a timeout
                 self.__nodes[running_nodes[0]]["proc"].join(timeout=self.__dwellTime)
 
-    def __halt_running_nodes(self) -> None:
+    @staticmethod
+    def halt_all() -> int:
+        """Ends the node processes of every run in flight in this process.
+
+        For a caller that has no scheduler to ask -- a server being shut down
+        while a job thread is still inside Project.run(). Node processes are not
+        daemons, so anything left running would be joined at interpreter exit
+        and hold the process open for as long as the task takes.
+
+        Returns:
+            int: How many runs had node processes to end.
+        """
+        with TaskScheduler.__instances_lock:
+            schedulers = list(TaskScheduler.__instances)
+
+        return sum(1 for scheduler in schedulers if scheduler.halt())
+
+    def halt(self) -> bool:
+        """Ends any node process this run still has running.
+
+        Returns:
+            bool: True if anything was still running.
+        """
+        return self.__halt_running_nodes()
+
+    def __halt_running_nodes(self) -> bool:
         """Ends any node process still running, so teardown cannot block on one.
 
         Only an interrupted run reaches here with anything alive: normal
@@ -294,11 +331,14 @@ class TaskScheduler:
         The joins are bounded on purpose. An unbounded join would trade the
         deadlock this avoids for another one, against a node that ignores
         SIGTERM.
+
+        Returns:
+            bool: True if anything was still running.
         """
         running = [info["proc"] for info in self.__nodes.values()
                    if info.get("proc") is not None and info["proc"].is_alive()]
         if not running:
-            return
+            return False
 
         for proc in running:
             proc.terminate()
@@ -308,6 +348,8 @@ class TaskScheduler:
             if proc.is_alive():
                 proc.kill()
                 proc.join(timeout=TaskScheduler.__HALT_TIMEOUT)
+
+        return True
 
     def get_nodes(self) -> List[Tuple[str, str]]:
         """Gets an ordered list of all nodes managed by this scheduler.
