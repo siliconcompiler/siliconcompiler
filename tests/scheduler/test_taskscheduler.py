@@ -967,5 +967,11 @@ def test_halt_all_is_serialized(large_flow, make_tasks):
     for thread in threads:
         thread.join(timeout=30)
 
+    # Checked first: a join that timed out returns just like one that finished,
+    # so a thread deadlocked on the lock would otherwise leave both assertions
+    # below passing -- and a deadlock is what this lock could introduce.
+    for thread in threads:
+        assert not thread.is_alive(), "a halting thread never came back"
+
     assert errors == []
     assert state["peak"] == 1, "two threads halted the same run at once"
