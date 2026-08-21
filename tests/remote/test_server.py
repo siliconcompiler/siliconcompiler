@@ -2,6 +2,7 @@ import pytest
 import json
 import os
 import requests
+import sys
 import tarfile
 import tempfile
 import time
@@ -1689,3 +1690,73 @@ async def test_handle_delete_job_archive_only():
 
     assert response.status == 200
     assert not os.path.exists(tar_file)
+
+
+###########################
+# Upload size
+###########################
+
+def test_max_upload_size_default():
+    '''A job is as big as it is: the server does not cap it unless told to'''
+    server = Server()
+
+    assert server.get('option', 'maxuploadsize') == 0
+    # Not 0: aiohttp's multipart reader treats 0 as "reject everything".
+    assert server.max_upload_size == sys.maxsize
+
+
+def test_max_upload_size_in_bytes():
+    '''The option is in MB, aiohttp wants bytes'''
+    server = Server()
+    server.set('option', 'maxuploadsize', 512)
+
+    assert server.max_upload_size == 512 * 1024 * 1024
+
+
+def test_server_app_gets_upload_limit():
+    '''The limit reaches the application, not just the schema'''
+    server = _make_server()
+    server.set('option', 'maxuploadsize', 5)
+
+    with patch("aiohttp.web.Application") as mock_app, patch("aiohttp.web.run_app"):
+        server.run()
+
+    mock_app.assert_called_once_with(client_max_size=5 * 1024 * 1024)
+
+
+def _oversized_upload():
+    '''A remote_run body too big for aiohttp's 1MB default.
+
+    The bulk is in the 'params' part, which is where a real submission carries
+    its weight: the manifest is sent as JSON there, runs to several MB for an
+    ordinary design, and is read whole rather than streamed.
+    '''
+    return {
+        'params': json.dumps({'params': {}, 'filler': 'x' * (2 * 1024 * 1024)}),
+        'import': ('job.tar.gz', b'0' * (2 * 1024 * 1024))
+    }
+
+
+@pytest.mark.timeout(60)
+def test_server_accepts_large_upload(scserver):
+    '''An upload past aiohttp's 1MB default body limit is accepted'''
+    port = scserver()
+
+    resp = requests.post(f'http://localhost:{port}/remote_run/',
+                         files=_oversized_upload(), timeout=30)
+
+    # The body was read and parsed: this is the handler's own answer to a
+    # request that carried no manifest, not a rejection of its size.
+    assert resp.status_code == 400
+    assert 'Manifest not provided' in resp.json()['message']
+
+
+@pytest.mark.timeout(60)
+def test_server_enforces_upload_limit(scserver):
+    '''A configured limit is enforced'''
+    port = scserver(extra_args=['-maxuploadsize', '1'])
+
+    resp = requests.post(f'http://localhost:{port}/remote_run/',
+                         files=_oversized_upload(), timeout=30)
+
+    assert resp.status_code == 413

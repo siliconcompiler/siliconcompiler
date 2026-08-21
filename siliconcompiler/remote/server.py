@@ -200,7 +200,9 @@ class Server(ServerSchema):
         TaskScheduler.register_callback("post_node", self.__node_end)
 
         # Create a minimal web server to process the 'remote_run' API call.
-        self.app = web.Application()
+        # aiohttp's own default body limit is 1MB, which no real job fits in:
+        # 'remote_run' carries the manifest and the collected sources together.
+        self.app = web.Application(client_max_size=self.max_upload_size)
         self.app.add_routes([
             web.post('/remote_run/', self.handle_remote_run),
             web.post('/check_progress/', self.handle_check_progress),
@@ -748,6 +750,20 @@ class Server(ServerSchema):
         # Uploads are staged here rather than in nfs_mount itself, which holds
         # one directory per job hash.
         return os.path.join(self.nfs_mount, '.staging')
+
+    ###################
+    @property
+    def max_upload_size(self):
+        # Schema is in MB, aiohttp wants bytes.
+        #
+        # No limit is sys.maxsize rather than 0: aiohttp reads 0 as no limit
+        # when reading a whole body, but its multipart reader -- which is the
+        # path an upload takes -- compares part sizes against the value
+        # unconditionally, where 0 rejects everything.
+        limit = self.get('option', 'maxuploadsize')
+        if not limit:
+            return sys.maxsize
+        return limit * 1024 * 1024
 
     ###################
     @property
