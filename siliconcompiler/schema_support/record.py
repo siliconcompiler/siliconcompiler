@@ -190,10 +190,10 @@ class RecordSchema(BaseSchema):
                             macaddr = addr.address
 
                     return {"ip": ipaddr, "mac": macaddr}
-        except Exception:
-            # Interface enumeration is platform specific: psutil raises OS errors
-            # for interfaces that disappear mid-walk, and psutil.AF_LINK is not
-            # defined everywhere. A machine record without an address is fine.
+        except OSError:
+            # psutil raises OS errors for interfaces that disappear mid-walk. A
+            # machine record without an address is fine; anything else raised here
+            # is a bug rather than a platform difference, so it is left to surface.
             pass
 
         return {"ip": None, "mac": None}

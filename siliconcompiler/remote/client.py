@@ -280,7 +280,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 response = {'message': resp.text}
             response.setdefault('success', True)
 
-            if response['message']:
+            if response.get('message'):
                 self.__logger.info(response['message'])
             return response
 
@@ -948,7 +948,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             distinguishable from one answered with a blank.
             """
             try:
-                return input(prompt).replace(" ", "")
+                # strip(), not a blanket space removal: a password is free to
+                # contain spaces and silently dropping them would corrupt it.
+                return input(prompt).strip()
             except EOFError:
                 return None
 

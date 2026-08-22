@@ -192,8 +192,8 @@ class CompileTask(VerilatorTask):
         Adds include directories for the C++ compiler.
 
         The include directories of the filesets carrying the C sources are passed to
-        the compiler already, so this is only needed for directories that no fileset
-        owns.
+        the compiler already, so this is only needed for directories that no such
+        fileset owns.
 
         Args:
             include (Union[str, List[str]]): The include directory/directories to add.

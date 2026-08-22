@@ -825,9 +825,11 @@ class Server(ServerSchema):
         try:
             with open(self.__job_owner_file(job_hash)) as f:
                 owner = json.load(f).get('username')
-        except (OSError, ValueError):
+        except FileNotFoundError:
             # A job submitted before this record existed, or one whose directory has
-            # gone: either way there is no owner to enforce.
+            # gone: either way there is no owner to enforce. Only a missing record
+            # opens the job -- an unreadable or malformed one must not, or a
+            # permission error would hand the job to whoever asked next.
             return True
 
         if owner is None:

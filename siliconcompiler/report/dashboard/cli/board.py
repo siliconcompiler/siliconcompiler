@@ -933,17 +933,21 @@ class Board:
             try:
                 self._update_rendable_data()
             except Exception:
-                # The render thread reads manager proxies, which raise once the
-                # manager goes away during teardown. Nothing is logged here on
-                # purpose: this module is the sink the logger writes into, so a log
-                # call from a dead proxy would raise inside its own handler.
+                # Broad on purpose. stop() tears the session down around this
+                # thread -- it sets the stop event, stops the keyboard and stops
+                # the live display while the loop may still be mid-pass, and the
+                # finally below calls this again on the way out. Whatever a
+                # half-torn-down session raises, a shutdown is not worth a cascade
+                # of errors on the way to the exit; stop() itself guards every
+                # console call the same way.
                 pass
 
         def check_stop_event():
             try:
                 return self._render_stop_event.is_set()
             except Exception:
-                # See update_data: a dead proxy means teardown, so stop.
+                # See update_data: if this cannot be answered the session is going
+                # away, so stop.
                 return True
 
         def data_changed():
@@ -973,7 +977,7 @@ class Board:
                 # The render event wakes us for both new log lines and job-data
                 # changes; it also bounds the wait to ~_dwell so timers keep
                 # ticking. We repaint on every wake, but only reload job data
-                # (the locked, proxy-heavy update_data) when data_modified is
+                # (the locked read+copy in update_data) when data_modified is
                 # actually set -- a log-only wake just repaints, draining new
                 # lines via get_lines().
                 try:
@@ -1045,8 +1049,8 @@ class Board:
 
     def _update_rendable_data(self):
         """
-        Transfers job data from the shared multiprocessing dictionary to the
-        local render data object, aggregating session-wide statistics.
+        Transfers job data from the in-process job dictionary to the local render
+        data object, aggregating session-wide statistics.
         """
         jobs = {}
         with self._job_data_lock:

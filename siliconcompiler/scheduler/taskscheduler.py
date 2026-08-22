@@ -1,5 +1,6 @@
 import logging
 import multiprocessing
+import pickle
 import sys
 import threading
 import time
@@ -421,18 +422,25 @@ class TaskScheduler:
                 # it never will. poll(0) avoids blocking the scheduler loop
                 # for a full second when a child died without writing.
                 if info["parent_pipe"] and info["parent_pipe"].poll(0):
+                    cache = None
                     try:
-                        # Take the paths the node resolved, but not its failures:
-                        # a fetch that failed for one node may still succeed for
-                        # the next, so each node gets its own retry budget for now.
-                        MPManager.get_path_cache().seed(
-                            info["parent_pipe"].recv(), include_failures=False)
-                    except Exception as e:
+                        cache = info["parent_pipe"].recv()
+                    except (EOFError, OSError, pickle.UnpicklingError) as e:
                         # A child that died mid-write leaves a truncated pickle.
                         # Losing the cache only costs the next node a re-resolve,
                         # so say so and carry on rather than failing the run.
                         self.__logger.debug(
                             f'{info["name"]} did not send a usable package cache: {e}')
+
+                    if cache is not None:
+                        # Outside the handler above on purpose: what the child sent
+                        # is its business, but a failure to merge it is this
+                        # scheduler's bug and must not hide behind a read error.
+                        #
+                        # Take the paths the node resolved, but not its failures:
+                        # a fetch that failed for one node may still succeed for
+                        # the next, so each node gets its own retry budget for now.
+                        MPManager.get_path_cache().seed(cache, include_failures=False)
 
                 # Remove pipe
                 info["parent_pipe"] = None

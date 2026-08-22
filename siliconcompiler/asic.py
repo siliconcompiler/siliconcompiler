@@ -728,7 +728,9 @@ class ASICTask(Task):
             return value
 
         for line in lines:
-            for command in re.findall(r"create_clock\s(.*)", line):
+            # Anchored: a create_clock inside a comment or a quoted string is not a
+            # clock definition, and the old pattern matched it anywhere in the line.
+            for command in re.findall(r"^\s*create_clock\s(.*)", line):
                 clock_period = re.findall(fr"-period\s+({re_num}|\${re_var})", command)
                 if not clock_period:
                     continue

@@ -110,7 +110,7 @@ class FPGASynthesis(YosysTask):
         # never pass them to read_verilog, the elaboration step ahead of this one
         # applies them.
         design = self.project.design
-        design_fileset = self.project.get("option", "fileset")[0]
+        design_fileset = self.project.option.get_fileset()[0]
         for param in design.getkeys("fileset", design_fileset, "param"):
             self.add_required_key(design, "fileset", design_fileset, "param", param)
 

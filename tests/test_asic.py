@@ -885,6 +885,8 @@ def test_asic_set_asic_var_from_pdk_as_list(running_node):
         ("sdc_with_multiple.sdc", 1, 5, "fast_clk"),
         # a create_clock that takes its name from the port it is attached to
         ("sdc_without_name.sdc", 1, 10, None),
+        # a commented-out create_clock is not a clock definition
+        ("sdc_with_comment.sdc", 1, 10, "clk"),
     ])
 def test_get_clock_sdc(datadir, sdc_file, scale, period, clock, running_project, running_node):
     task = ASICTask()

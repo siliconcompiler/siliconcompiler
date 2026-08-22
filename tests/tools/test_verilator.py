@@ -1,4 +1,5 @@
 import pytest
+import shlex
 
 import os.path
 
@@ -236,7 +237,9 @@ def test_runtime_args_c_idir(heartbeat_design, datadir, monkeypatch):
         assert node.setup() is True
         args = node.task.get_runtime_arguments()
 
-    assert args[args.index('-CFLAGS') + 1] == f'-I{incdir}'
+    # -CFLAGS carries one shlex-joined string, and a Windows path gets quoted
+    # inside it, so decode rather than string-match.
+    assert shlex.split(args[args.index('-CFLAGS') + 1]) == [f'-I{incdir}']
 
 
 def test_runtime_args_trace(heartbeat_design, monkeypatch):
