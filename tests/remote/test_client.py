@@ -231,7 +231,7 @@ def test_post_retries_timeouts(gcd_nop_project, monkeypatch):
 
     monkeypatch.setattr(requests, 'post', flaky_post)
 
-    assert Client(gcd_nop_project).delete_job() == 'Job deleted.'
+    assert Client(gcd_nop_project).delete_job()['message'] == 'Job deleted.'
     assert len(attempts) == 3
 
 
@@ -260,7 +260,7 @@ def test_post_follows_redirect(gcd_nop_project, monkeypatch):
 
     monkeypatch.setattr(requests, 'post', redirecting_post)
 
-    assert Client(gcd_nop_project).delete_job() == 'Job deleted.'
+    assert Client(gcd_nop_project).delete_job()['message'] == 'Job deleted.'
     assert urls[1] == 'http://elsewhere/delete_job/'
 
 
@@ -269,8 +269,9 @@ def test_post_raises_on_error_without_handler(gcd_nop_project, monkeypatch):
     monkeypatch.setattr(requests, 'post',
                         lambda url, **kwargs: _response(500, json.dumps({'message': 'boom'})))
 
+    # check() posts without an error_action, which is the path under test here
     with pytest.raises(RuntimeError, match='Server responded with 500: boom'):
-        Client(gcd_nop_project).delete_job()
+        Client(gcd_nop_project).check()
 
 
 def test_post_error_without_json_body(gcd_nop_project, monkeypatch):
@@ -279,7 +280,60 @@ def test_post_error_without_json_body(gcd_nop_project, monkeypatch):
                         lambda url, **kwargs: _response(502, 'Bad Gateway'))
 
     with pytest.raises(RuntimeError, match='Server responded with 502: Bad Gateway'):
-        Client(gcd_nop_project).delete_job()
+        Client(gcd_nop_project).check()
+
+
+def test_check_job_status_stops_on_refusal(gcd_nop_project, monkeypatch, caplog):
+    """A job this client may not watch ends the wait rather than polling forever"""
+    monkeypatch.setattr(
+        requests, 'post',
+        lambda url, **kwargs: _response(403, json.dumps(
+            {'message': 'Error: job belongs to another user.',
+             'status': 'rejected'})))
+
+    info = Client(gcd_nop_project).check_job_status()
+
+    assert info['busy'] is False
+    assert 'Unable to check job status: Error: job belongs to another user.' in caplog.text
+
+
+def test_check_job_status_keeps_waiting_on_a_hiccup(gcd_nop_project, monkeypatch):
+    """A server-side error is transient, so the wait continues"""
+    monkeypatch.setattr(requests, 'post',
+                        lambda url, **kwargs: _response(500, 'Internal Server Error'))
+
+    assert Client(gcd_nop_project).check_job_status()['busy'] is True
+
+
+def test_delete_job_reports_a_refusal(gcd_nop_project, monkeypatch, caplog):
+    '''A job the server will not delete is an answer, not an exception'''
+    monkeypatch.setattr(
+        requests, 'post',
+        lambda url, **kwargs: _response(403, json.dumps(
+            {'message': 'Error: job belongs to another user.', 'success': False})))
+
+    assert Client(gcd_nop_project).delete_job() == {
+        'message': 'Error: job belongs to another user.',
+        'success': False}
+    assert 'Unable to delete job: Error: job belongs to another user.' in caplog.text
+
+
+def test_delete_job_reads_the_json_response(gcd_nop_project, monkeypatch):
+    '''The documented response shape is what the client returns'''
+    monkeypatch.setattr(
+        requests, 'post',
+        lambda url, **kwargs: _response(200, json.dumps(
+            {'message': 'Job deleted.', 'success': True})))
+
+    assert Client(gcd_nop_project).delete_job() == {'message': 'Job deleted.', 'success': True}
+
+
+def test_delete_job_accepts_a_plain_text_server(gcd_nop_project, monkeypatch):
+    '''A server older than the JSON response still answers this client'''
+    monkeypatch.setattr(requests, 'post',
+                        lambda url, **kwargs: _response(200, 'Job deleted.'))
+
+    assert Client(gcd_nop_project).delete_job() == {'message': 'Job deleted.', 'success': True}
 
 
 ###########################

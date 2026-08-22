@@ -1,5 +1,12 @@
 [
   {
+    "reason": "Job belongs to another user",
+    "status_code": 403,
+    "response_format": {
+      "message": "String"
+    }
+  },
+  {
     "reason": "Job does not exist",
     "status_code": 404,
     "response_format": {
@@ -16,6 +23,8 @@
   {
     "reason": "Results are available",
     "status_code": 200,
-    "response_format": ["File Response"]
+    "response_format": [
+      "File Response"
+    ]
   }
 ]

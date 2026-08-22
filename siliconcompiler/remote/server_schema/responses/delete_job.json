@@ -1,15 +1,31 @@
 [
   {
-    "reason": "Job does not exist",
-    "status_code": 404,
+    "reason": "Job was deleted",
+    "status_code": 200,
     "response_format": {
       "message": "String",
       "success": "Boolean"
     }
   },
   {
-    "reason": "Job was deleted",
-    "status_code": 200,
+    "reason": "Job is still running",
+    "status_code": 400,
+    "response_format": {
+      "message": "String",
+      "success": "Boolean"
+    }
+  },
+  {
+    "reason": "Job belongs to another user",
+    "status_code": 403,
+    "response_format": {
+      "message": "String",
+      "success": "Boolean"
+    }
+  },
+  {
+    "reason": "Job does not exist",
+    "status_code": 404,
     "response_format": {
       "message": "String",
       "success": "Boolean"

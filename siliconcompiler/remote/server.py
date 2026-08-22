@@ -291,6 +291,9 @@ class Server(ServerSchema):
         job_dir = os.path.join(job_root, design, job_name)
         os.makedirs(job_dir, exist_ok=True)
 
+        # Claim the job for its submitter before anything can ask who owns it.
+        self.__record_job_owner(job_hash, job_params['username'])
+
         # Move the uploaded archive and un-zip it.
         # (Contents will be encrypted for authenticated jobs)
         try:
@@ -367,6 +370,10 @@ class Server(ServerSchema):
         job_hash = job_params['job_hash']
         node = job_params['node'] if 'node' in job_params else None
 
+        # Authenticating the caller says nothing about whose results these are.
+        if not self.__job_belongs_to(job_hash, job_params['username']):
+            return self.__not_owner_response()
+
         zipfn = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_{node}.tar.gz')
         if not os.path.exists(zipfn):
             return web.json_response(
@@ -397,6 +404,12 @@ class Server(ServerSchema):
             return response
 
         job_hash = job_params['job_hash']
+
+        # The job name is namespaced by user, so a stranger's cancel would miss the
+        # entry and be told the job is not running. Say what is actually true.
+        if not self.__job_belongs_to(job_hash, job_params['username']):
+            return self.__not_owner_response(success=False)
+
         job_name = self.job_name(job_params['username'], job_hash)
 
         with self.sc_jobs_lock:
@@ -433,11 +446,16 @@ class Server(ServerSchema):
 
         job_hash = job_params['job_hash']
 
+        # Validating the shape of a hash says nothing about who is asking for it.
+        if not self.__job_belongs_to(job_hash, job_params['username']):
+            return self.__not_owner_response(success=False)
+
         # Determine if the job is running.
         with self.sc_jobs_lock:
             for job in self.sc_jobs:
                 if job_hash in job:
-                    return self.__response("Error: job is still running.", status=400)
+                    return self.__response("Error: job is still running.",
+                                           status=400, success=False)
 
         # Delete job hash directory, only if it exists. job_hash reaching here
         # has matched '^[0-9a-f]{32}$' in delete_job.json, so it cannot carry a
@@ -445,16 +463,24 @@ class Server(ServerSchema):
         # bearing if the schema is ever loosened.
         build_dir = os.path.join(self.nfs_mount, job_hash)
         check_dir = os.path.dirname(build_dir)
+        deleted = False
         if check_dir == self.nfs_mount:
             # suppress() rather than an exists() check first: nothing here holds
             # a lock on the job's data, so a file can go away between the two.
             with contextlib.suppress(FileNotFoundError):
                 shutil.rmtree(build_dir)
+                deleted = True
 
             with contextlib.suppress(FileNotFoundError):
                 os.remove(f'{build_dir}.tar.gz')
+                deleted = True
 
-        return web.Response(text="Job deleted.")
+        if not deleted:
+            # Nothing was there to delete, which is the 404 the response schema
+            # documents and the handler used to answer 200 to.
+            return self.__response("Job does not exist.", status=404, success=False)
+
+        return self.__response("Job deleted.", success=True)
 
     ####################
     async def handle_check_progress(self, request):
@@ -473,6 +499,11 @@ class Server(ServerSchema):
 
         job_hash = job_params['job_hash']
         username = job_params['username']
+
+        # A stranger polling this would otherwise be told the job had completed,
+        # because the job name it looks up is namespaced by user.
+        if not self.__job_belongs_to(job_hash, username):
+            return self.__not_owner_response(status=JobStatus.REJECTED)
 
         jobname = self.job_name(username, job_hash)
 
@@ -748,8 +779,61 @@ class Server(ServerSchema):
         return (params, None)
 
     ###################
-    def __response(self, message, status=200):
-        return web.json_response({'message': message}, status=status)
+    def __response(self, message, status=200, **fields):
+        return web.json_response({'message': message, **fields}, status=status)
+
+    ###################
+    def __not_owner_response(self, **fields):
+        '''
+        The answer to a request naming a job that belongs to somebody else.
+
+        Each endpoint documents its own response shape, so the caller passes the
+        fields its schema names; the message and the status are the same everywhere.
+        '''
+        return web.json_response({'message': 'Error: job belongs to another user.',
+                                  **fields}, status=403)
+
+    ###################
+    def __job_owner_file(self, job_hash):
+        return os.path.join(self.nfs_mount, job_hash, '.owner')
+
+    ###################
+    def __record_job_owner(self, job_hash, username):
+        '''
+        Records who submitted a job so that a later request naming it can be checked
+        against the submitter.
+
+        A job submitted without authentication is recorded as having no owner rather
+        than not recorded at all, so that an unowned job and a job whose record cannot
+        be read mean the same thing to __job_belongs_to().
+        '''
+        with open(self.__job_owner_file(job_hash), 'w') as f:
+            json.dump({'username': username}, f)
+
+    ###################
+    def __job_belongs_to(self, job_hash, username):
+        '''
+        Whether the given user may act on the given job.
+
+        A job has an owner only when it was submitted with authentication. Without one
+        there is no identity to check a request against, so any client holding the hash
+        may act on the job: on a server running without authentication that is the
+        documented behaviour of this reference implementation, not an oversight.
+
+        A job that does have an owner may only be acted on by that owner.
+        '''
+        try:
+            with open(self.__job_owner_file(job_hash)) as f:
+                owner = json.load(f).get('username')
+        except (OSError, ValueError):
+            # A job submitted before this record existed, or one whose directory has
+            # gone: either way there is no owner to enforce.
+            return True
+
+        if owner is None:
+            return True
+
+        return owner == username
 
     ###################
     @property

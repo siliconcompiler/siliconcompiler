@@ -256,6 +256,10 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
     def delete_job(self):
         '''
         Helper method to delete a job from shared remote storage.
+
+        Returns:
+            The server's answer: a 'message' describing what happened and a 'success'
+            flag saying whether the job was deleted.
         '''
 
         def post_action(url):
@@ -267,9 +271,27 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 timeout=self.__timeout)
 
         def success_action(resp):
-            return resp.text
+            try:
+                response = resp.json()
+            except requests.JSONDecodeError:
+                # A server older than the JSON delete_job response answers in plain
+                # text, where the body is the message and reaching here at all means
+                # the delete succeeded.
+                response = {'message': resp.text}
+            response.setdefault('success', True)
 
-        return self.__post('/delete_job/', post_action, success_action)
+            if response['message']:
+                self.__logger.info(response['message'])
+            return response
+
+        def error_action(code, msg):
+            # A job the server does not have, or one that belongs to somebody else, is
+            # an answer to this request rather than a fault in making it.
+            self.__logger.error(f'Unable to delete job: {msg}')
+            return {'message': msg, 'success': False}
+
+        return self.__post('/delete_job/', post_action, success_action,
+                           error_action=error_action)
 
     def check_job_status(self):
         # Make the request and print its response.
@@ -280,6 +302,14 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 timeout=self.__timeout)
 
         def error_action(code, msg):
+            if code == 403:
+                # The job is not this client's to watch, and polling again will not
+                # change that. Reporting it as busy would wait on it forever.
+                self.__logger.error(f'Unable to check job status: {msg}')
+                return {
+                    'busy': False,
+                    'message': ''
+                }
             return {
                 'busy': True,
                 'message': ''

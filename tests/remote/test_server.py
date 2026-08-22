@@ -16,9 +16,18 @@ from siliconcompiler.remote.server import Server
 from siliconcompiler.remote import JobStatus, NodeStatus as RemoteNodeStatus
 
 
+def _job_owner(nfs_path):
+    '''Reads the owner record off the one job in a server's mount.'''
+    jobs = [entry for entry in os.listdir(nfs_path) if len(entry) == 32]
+    assert len(jobs) == 1, f"expected one job in {nfs_path}, found {jobs}"
+    with open(os.path.join(nfs_path, jobs[0], '.owner')) as f:
+        return json.load(f)
+
+
 ###########################
 @pytest.mark.timeout(60)
-def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserver_credential):
+def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserver_credential,
+                              scserver_nfs_path):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
        Use authentication and encryption features.
@@ -49,6 +58,11 @@ def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserve
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
+
+    # The submitter is recorded on the job, which is what a later delete is checked
+    # against. Asserted on a real submission because a check against a record that
+    # nothing writes would pass every unit test and authorize everyone.
+    assert _job_owner(scserver_nfs_path) == {'username': user}
 
 
 ###########################
@@ -85,7 +99,7 @@ def test_server_not_authenticated(gcd_nop_project, scserver, scserver_users,
 
 
 @pytest.mark.timeout(60)
-def test_server(gcd_remote_test):
+def test_server(gcd_remote_test, scserver_nfs_path):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
     '''
@@ -105,6 +119,10 @@ def test_server(gcd_remote_test):
         NodeStatus.SUCCESS
     assert gcd_project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
+
+    # Without authentication there is no identity to record, and an unowned job is
+    # one anybody holding the hash may delete.
+    assert _job_owner(scserver_nfs_path) == {'username': None}
 
 
 ###########################
@@ -472,7 +490,8 @@ async def test_handle_delete_job_running():
     assert response.status == 400
     data = json.loads(response.body)
     assert data == {
-        'message': 'Error: job is still running.'
+        'message': 'Error: job is still running.',
+        'success': False
     }
 
 
@@ -516,8 +535,111 @@ async def test_handle_delete_job_success():
 
     # Verify successful deletion
     assert response.status == 200
+    assert json.loads(response.body) == {
+        'message': 'Job deleted.',
+        'success': True
+    }
     assert not os.path.exists(job_dir)
     assert not os.path.exists(tar_file)
+
+
+def _owned_job(server, job_hash, username):
+    """Lays down a job directory carrying the owner record the server writes."""
+    job_dir = os.path.join(server.nfs_mount, job_hash)
+    os.makedirs(job_dir, exist_ok=True)
+    with open(os.path.join(job_dir, '.owner'), 'w') as f:
+        json.dump({'username': username}, f)
+    return job_dir
+
+
+async def _delete(server, job_hash, username=None):
+    params = {'job_hash': job_hash}
+    if username:
+        params['username'] = username
+        params['key'] = 'pass'
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value=params)
+    return await server.handle_delete_job(mock_request)
+
+
+@pytest.mark.asyncio
+async def test_handle_delete_job_wrong_user():
+    '''A job that belongs to somebody else is not deletable by a valid hash alone'''
+    server = Server()
+    server.set('option', 'auth', True)
+    server.set('option', 'nfsmount', tempfile.mkdtemp())
+    server.user_keys = {'owner': {'password': 'pass'}, 'stranger': {'password': 'pass'}}
+    server.sc_jobs = {}
+
+    job_hash = 'abcdef01234567890abcdef012345678'
+    job_dir = _owned_job(server, job_hash, 'owner')
+
+    response = await _delete(server, job_hash, username='stranger')
+
+    assert response.status == 403
+    assert json.loads(response.body) == {
+        'message': 'Error: job belongs to another user.',
+        'success': False
+    }
+    assert os.path.exists(job_dir), "the job was deleted anyway"
+
+
+@pytest.mark.asyncio
+async def test_handle_delete_job_owner():
+    '''The user who submitted the job can delete it'''
+    server = Server()
+    server.set('option', 'auth', True)
+    server.set('option', 'nfsmount', tempfile.mkdtemp())
+    server.user_keys = {'owner': {'password': 'pass'}}
+    server.sc_jobs = {}
+
+    job_hash = 'abcdef01234567890abcdef012345678'
+    job_dir = _owned_job(server, job_hash, 'owner')
+
+    response = await _delete(server, job_hash, username='owner')
+
+    assert response.status == 200
+    assert json.loads(response.body) == {'message': 'Job deleted.', 'success': True}
+    assert not os.path.exists(job_dir)
+
+
+@pytest.mark.asyncio
+async def test_handle_delete_job_unowned_is_open():
+    '''A job submitted without authentication has no owner, so anyone may delete it.
+
+    That is this reference server's documented behaviour on an unauthenticated
+    server, not a gap: with no identity on the request there is nothing to check.
+    '''
+    server = Server()
+    server.set('option', 'auth', False)
+    server.set('option', 'nfsmount', tempfile.mkdtemp())
+    server.sc_jobs = {}
+
+    job_hash = 'abcdef01234567890abcdef012345678'
+    job_dir = _owned_job(server, job_hash, None)
+
+    response = await _delete(server, job_hash)
+
+    assert response.status == 200
+    assert not os.path.exists(job_dir)
+
+
+@pytest.mark.asyncio
+async def test_handle_delete_job_without_owner_record():
+    '''A job predating the owner record has no owner to enforce'''
+    server = Server()
+    server.set('option', 'auth', False)
+    server.set('option', 'nfsmount', tempfile.mkdtemp())
+    server.sc_jobs = {}
+
+    job_hash = 'abcdef01234567890abcdef012345678'
+    job_dir = os.path.join(server.nfs_mount, job_hash)
+    os.makedirs(job_dir, exist_ok=True)
+
+    response = await _delete(server, job_hash)
+
+    assert response.status == 200
+    assert not os.path.exists(job_dir)
 
 
 @pytest.mark.asyncio
@@ -686,7 +808,7 @@ def test_handle_get_results_none_node():
 
 
 def test_handle_delete_job_not_found():
-    '''Test handle_delete_job when job directory doesn't exist'''
+    '''A job that was never there is the 404 the response schema documents'''
     import asyncio
 
     async def async_test():
@@ -707,11 +829,13 @@ def test_handle_delete_job_not_found():
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={'job_hash': job_hash})
 
-        # Call handler - should succeed even if directory doesn't exist
         response = await server.handle_delete_job(mock_request)
 
-        # Verify successful response
-        assert response.status == 200
+        assert response.status == 404
+        assert json.loads(response.body) == {
+            'message': 'Job does not exist.',
+            'success': False
+        }
 
     asyncio.run(async_test())
 
@@ -1064,6 +1188,193 @@ def _register_job(server, job_hash, nodes=None, username=None):
     job_name = server.job_name(username, job_hash)
     server.sc_jobs[job_name] = {None: {'status': NodeStatus.SUCCESS}, **nodes}
     return job_name
+
+
+###########################
+# job ownership, across every handler that names a job
+###########################
+
+def _authed_server_with_job(job_hash, owner):
+    """A server with one job owned by `owner`, and two users who can authenticate."""
+    server = _make_server(auth=True)
+    server.user_keys = {'owner': {'password': 'pass'}, 'stranger': {'password': 'pass'}}
+    job_dir = os.path.join(server.nfs_mount, job_hash)
+    os.makedirs(job_dir, exist_ok=True)
+    with open(os.path.join(job_dir, '.owner'), 'w') as f:
+        json.dump({'username': owner}, f)
+    return server, job_dir
+
+
+@pytest.mark.asyncio
+async def test_handle_get_results_wrong_user():
+    """Authenticating says nothing about whose results these are."""
+    job_hash = 'fedcba98765432100123456789abcdef'
+    server, job_dir = _authed_server_with_job(job_hash, 'owner')
+
+    node = 'step0'
+    tar_path = os.path.join(job_dir, f'{job_hash}_{node}.tar.gz')
+    with tarfile.open(tar_path, 'w:gz') as tar:
+        info = tarfile.TarInfo(name='test.txt')
+        info.size = 0
+        tar.addfile(info)
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'node': node,
+                                                'username': 'stranger', 'key': 'pass'})
+    mock_request.match_info = {'job_hash': job_hash}
+
+    response = await server.handle_get_results(mock_request)
+
+    assert response.status == 403
+    assert not isinstance(response, web.FileResponse), "another user's results were served"
+    assert json.loads(response.body) == {'message': 'Error: job belongs to another user.'}
+
+
+@pytest.mark.asyncio
+async def test_handle_get_results_owner():
+    """The owner still gets their results."""
+    job_hash = 'fedcba98765432100123456789abcdef'
+    server, job_dir = _authed_server_with_job(job_hash, 'owner')
+
+    node = 'step0'
+    with tarfile.open(os.path.join(job_dir, f'{job_hash}_{node}.tar.gz'), 'w:gz') as tar:
+        info = tarfile.TarInfo(name='test.txt')
+        info.size = 0
+        tar.addfile(info)
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'node': node,
+                                                'username': 'owner', 'key': 'pass'})
+    mock_request.match_info = {'job_hash': job_hash}
+
+    response = await server.handle_get_results(mock_request)
+
+    assert isinstance(response, web.FileResponse)
+
+
+@pytest.mark.asyncio
+async def test_handle_cancel_job_wrong_user():
+    """A stranger's cancel is refused rather than quietly missing the job."""
+    job_hash = 'a' * 32
+    server, _ = _authed_server_with_job(job_hash, 'owner')
+    _register_job(server, job_hash, username='owner')
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash,
+                                                'username': 'stranger', 'key': 'pass'})
+
+    response = await server.handle_cancel_job(mock_request)
+
+    assert response.status == 403
+    assert json.loads(response.body) == {'message': 'Error: job belongs to another user.',
+                                         'success': False}
+    assert server.sc_canceled_jobs == set(), "another user's job was canceled"
+
+
+@pytest.mark.asyncio
+async def test_handle_check_progress_wrong_user():
+    """A stranger polling is refused, not told the job finished."""
+    job_hash = 'a' * 32
+    server, _ = _authed_server_with_job(job_hash, 'owner')
+    _register_job(server, job_hash, username='owner')
+
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={'job_hash': job_hash, 'job_id': '1',
+                                                'username': 'stranger', 'key': 'pass'})
+
+    response = await server.handle_check_progress(mock_request)
+
+    assert response.status == 403
+    assert json.loads(response.body) == {'message': 'Error: job belongs to another user.',
+                                         'status': JobStatus.REJECTED}
+
+
+_NO_RECORD = object()
+
+# Every route that names a job. remote_run writes the owner record rather than
+# checking it, and check_server names no job, so these four are the whole set.
+_JOB_HANDLERS = ["handle_get_results", "handle_check_progress",
+                 "handle_cancel_job", "handle_delete_job"]
+
+# name, auth enabled, recorded owner, who is asking, is it refused
+_OWNERSHIP_CASES = [
+    ("owner may act on their own job", True, "owner", "owner", False),
+    ("a stranger may not", True, "owner", "stranger", True),
+    ("an unowned job is open to an authenticated stranger", True, None, "stranger", False),
+    ("an unowned job is open with no authentication", False, None, None, False),
+    ("a job predating the owner record is open", False, _NO_RECORD, None, False),
+]
+
+
+def _server_holding_job(job_hash, owner, auth, node='step0'):
+    """A server with one job set up so that every handler has something to act on."""
+    server = _make_server(auth=auth)
+    if auth:
+        server.user_keys = {'owner': {'password': 'pass'},
+                            'stranger': {'password': 'pass'}}
+
+    job_dir = os.path.join(server.nfs_mount, job_hash)
+    os.makedirs(job_dir, exist_ok=True)
+    if owner is not _NO_RECORD:
+        with open(os.path.join(job_dir, '.owner'), 'w') as f:
+            json.dump({'username': owner}, f)
+
+    # results for get_results to serve
+    with tarfile.open(os.path.join(job_dir, f'{job_hash}_{node}.tar.gz'), 'w:gz') as tar:
+        info = tarfile.TarInfo(name='test.txt')
+        info.size = 0
+        tar.addfile(info)
+
+    # a running job for cancel and check_progress to find
+    _register_job(server, job_hash,
+                  username=None if owner in (None, _NO_RECORD) else owner)
+    return server
+
+
+def _job_request(handler, job_hash, username, node='step0'):
+    """Builds the request a given handler expects, carrying credentials when named."""
+    params = {'job_hash': job_hash}
+    if handler == "handle_check_progress":
+        params['job_id'] = '1'
+    if username:
+        params['username'] = username
+        params['key'] = 'pass'
+
+    request = Mock()
+    if handler == "handle_get_results":
+        # this one takes the hash from the URL rather than the body
+        del params['job_hash']
+        params['node'] = node
+        request.match_info = {'job_hash': job_hash}
+    request.json = AsyncMock(return_value=params)
+    return request
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("handler", _JOB_HANDLERS)
+@pytest.mark.parametrize("case,auth,owner,caller,refused", _OWNERSHIP_CASES,
+                         ids=[c[0] for c in _OWNERSHIP_CASES])
+async def test_job_ownership(handler, case, auth, owner, caller, refused):
+    """Every handler that names a job agrees on who may act on it.
+
+    The unowned rows matter as much as the refused one: a job submitted without
+    authentication has no owner, and anybody holding its hash may act on it. That is
+    this server's intended behaviour, so it is asserted rather than left to be
+    tightened by accident.
+    """
+    job_hash = 'a' * 32
+    server = _server_holding_job(job_hash, owner, auth)
+
+    response = await getattr(server, handler)(_job_request(handler, job_hash, caller))
+
+    if refused:
+        assert response.status == 403, case
+        assert json.loads(response.body)['message'] == \
+            'Error: job belongs to another user.'
+    else:
+        # what a permitted request answers is each handler's own business; that it
+        # was not refused is this test's
+        assert response.status != 403, case
 
 
 ###########################
