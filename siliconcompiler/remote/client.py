@@ -65,9 +65,10 @@ class Client():
         # Client / server timeout
         self.__timeout = 10
         self.__max_timeouts = 10
-        self.__tos_str = '''Please review the SiliconCompiler cloud's terms of service:
+        self.__tos_url = 'https://www.siliconcompiler.com/terms'
+        self.__tos_str = f'''Please review the SiliconCompiler cloud's terms of service:
 
-https://www.siliconcompiler.com/terms
+{self.__tos_url}
 
 In particular, please ensure that you have the right to distribute any IP
 which is contained in designs that you upload to the service. This public
@@ -878,17 +879,63 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 self.__logger.error(f'Empty file returned from remote for: {node}')
                 return
 
-    def configure_server(self, server=None, username=None, password=None):
+    def configure_server(self, server=None, username=None, password=None,
+                         accept_terms=False, clobber=False):
+        """
+        Writes the remote configuration file.
 
-        def confirm_dialog(message):
-            confirmed = False
-            while not confirmed:
-                oin = input(f'{message} y/N: ')
+        Any answer this method needs and was not given is prompted for. Supply every
+        argument the call needs to run without a prompt: a scripted setup passes
+        ``server``, ``accept_terms`` for the public server, and ``clobber`` when a
+        configuration file is already in place. When a prompt cannot be answered
+        because there is no input to read, an answer that would commit the caller to
+        something raises a ValueError naming the argument to pass, and an answer whose
+        blank form is meaningful takes that blank.
+
+        Args:
+            server (str, optional): Address of the server to configure. Prompted for
+                when omitted.
+            username (str, optional): Username for the server. Taken from the server
+                address when it carries one, otherwise prompted for. A blank answer
+                configures no authentication.
+            password (str, optional): Password for the server, handled like
+                `username`.
+            accept_terms (bool): Accepts the public server's terms of service without
+                showing them. Required to configure the public server without a
+                prompt, and ignored for every other server.
+            clobber (bool): Overwrites an existing configuration file without asking.
+
+        Raises:
+            ValueError: If an answer is needed, was not supplied, and the prompt for
+                it cannot be answered.
+        """
+
+        def ask(prompt):
+            """Reads an answer, returning None when there is nothing to read from.
+
+            A closed stdin, which is what a scripted run has, raises EOFError rather
+            than returning a blank line, so a prompt that cannot be answered is
+            distinguishable from one answered with a blank.
+            """
+            try:
+                return input(prompt).replace(" ", "")
+            except EOFError:
+                return None
+
+        def unanswerable(action, argument):
+            return ValueError(f"cannot {action} with nothing to answer the prompt: "
+                              f"pass {argument} instead")
+
+        def confirm_dialog(message, action, argument):
+            """Asks a yes/no question, raising when the prompt cannot be answered."""
+            while True:
+                oin = ask(f'{message} y/N: ')
+                if oin is None:
+                    raise unanswerable(action, argument)
                 if (not oin) or (oin == 'n') or (oin == 'N'):
                     return False
                 elif (oin == 'y') or (oin == 'Y'):
                     return True
-            return False
 
         default_server_name = urllib.parse.urlparse(self.__default_server).hostname
 
@@ -901,8 +948,10 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             os.makedirs(cfg_dir, exist_ok=True)
 
         # If an existing config file exists, prompt the user to overwrite it.
-        if os.path.isfile(cfg_file):
-            if not confirm_dialog('Overwrite existing remote configuration?'):
+        if os.path.isfile(cfg_file) and not clobber:
+            if not confirm_dialog('Overwrite existing remote configuration?',
+                                  'overwrite the existing remote configuration',
+                                  'clobber=True'):
                 return
 
         self.__config = {}
@@ -913,8 +962,12 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             self.__logger.info(f'Creating remote configuration file for server: {srv_addr}')
         else:
             # If no arguments were passed in, interactively request credentials from the user.
-            srv_addr = input('Remote server address (leave blank to use default server):\n')
-            srv_addr = srv_addr.replace(" ", "")
+            # A blank answer selects the public server, which is too large a choice to
+            # make on the caller's behalf, so an unanswerable prompt is an error here
+            # rather than a default.
+            srv_addr = ask('Remote server address (leave blank to use default server):\n')
+            if srv_addr is None:
+                raise unanswerable('choose a server address', 'server=<address>')
 
         if not srv_addr:
             srv_addr = self.__default_server
@@ -935,28 +988,36 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             self.__config['address'] = server.hostname
 
         public_server = default_server_name in srv_addr
-        if public_server and not confirm_dialog(self.__tos_str):
-            return
+        if public_server:
+            if accept_terms:
+                self.__logger.info('Terms of service accepted by the caller: '
+                                   f'{self.__tos_url}')
+            elif not confirm_dialog(self.__tos_str,
+                                    'accept the terms of service',
+                                    'accept_terms=True'):
+                return
 
         if server.port is not None:
             self.__config['port'] = server.port
 
         if not public_server:
+            # A blank answer to either prompt means no authentication, so a prompt
+            # that cannot be answered becomes that same blank rather than an error.
             if username is None:
                 username = server.username
                 if username is None:
-                    username = input('Remote username (leave blank for no username):\n')
-                    username = username.replace(" ", "")
+                    username = ask('Remote username (leave blank for no username):\n')
             if password is None:
                 password = server.password
                 if password is None:
-                    password = input('Remote password (leave blank for no password):\n')
-                    password = password.replace(" ", "")
+                    password = ask('Remote password (leave blank for no password):\n')
 
             if username:
                 self.__config['username'] = username
             if password:
                 self.__config['password'] = password
+            if not username and not password:
+                self.__logger.info('Configuring without authentication')
 
         self.__config['directory_whitelist'] = []
 

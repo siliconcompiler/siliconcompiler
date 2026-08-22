@@ -7,9 +7,10 @@ import time
 import os.path
 
 from siliconcompiler import NodeStatus
-from siliconcompiler.remote import Client
+from siliconcompiler.remote import Client, ConfigureClient
 from siliconcompiler.remote import NodeStatus as RemoteNodeStatus
 from siliconcompiler.remote.server import Server
+from siliconcompiler._metadata import default_server
 
 
 def _client(project, nodes=('stepone0', 'steptwo0')):
@@ -349,3 +350,125 @@ def test_get_results_body_matches_published_schema(gcd_nop_project):
     validate_get_results(params)
     validate_get_results({**params, 'node': 'write.gds0'})
     validate_get_results({**params, 'node': 'dfm.metal_fill0'})
+
+
+###########################
+# configure_server
+###########################
+
+def _no_input(monkeypatch):
+    """Makes every prompt unanswerable, which is what a scripted run has."""
+    def eof(*args, **kwargs):
+        raise EOFError()
+    monkeypatch.setattr('builtins.input', eof)
+
+
+def _configure_client(project):
+    project.set('option', 'credentials', 'credentials.json')
+    return ConfigureClient(project)
+
+
+def _written_config():
+    with open('credentials.json') as f:
+        return json.load(f)
+
+
+def test_configure_server_noninteractive(gcd_nop_project, monkeypatch):
+    """Every answer supplied means no prompt, so no terminal is needed."""
+    _no_input(monkeypatch)
+
+    _configure_client(gcd_nop_project).configure_server(
+        server="https://example.com:1234", username="user", password="pass")
+
+    assert _written_config() == {
+        "address": "https://example.com",
+        "port": 1234,
+        "username": "user",
+        "password": "pass",
+        "directory_whitelist": []
+    }
+
+
+def test_configure_server_public_needs_accept_terms(gcd_nop_project, monkeypatch):
+    """The public server cannot be configured headlessly without accepting the terms."""
+    _no_input(monkeypatch)
+
+    with pytest.raises(ValueError, match="pass accept_terms=True instead"):
+        _configure_client(gcd_nop_project).configure_server(server=default_server)
+
+    assert not os.path.exists('credentials.json')
+
+
+def test_configure_server_public_accept_terms(gcd_nop_project, monkeypatch):
+    """accept_terms is the non-interactive path to the public server."""
+    _no_input(monkeypatch)
+
+    _configure_client(gcd_nop_project).configure_server(server=default_server,
+                                                        accept_terms=True)
+
+    assert _written_config()["address"] == default_server
+
+
+def _existing_config():
+    with open('credentials.json', 'w') as f:
+        json.dump({"address": "https://old.example.com", "directory_whitelist": []}, f)
+
+
+def test_configure_server_existing_needs_clobber(gcd_nop_project, monkeypatch):
+    """An existing configuration is not overwritten on a guess."""
+    _no_input(monkeypatch)
+    _existing_config()
+
+    with pytest.raises(ValueError, match="pass clobber=True instead"):
+        _configure_client(gcd_nop_project).configure_server(server="https://example.com")
+
+    assert _written_config()["address"] == "https://old.example.com"
+
+
+def test_configure_server_clobber(gcd_nop_project, monkeypatch):
+    _no_input(monkeypatch)
+    _existing_config()
+
+    _configure_client(gcd_nop_project).configure_server(server="https://example.com",
+                                                        clobber=True)
+
+    assert _written_config()["address"] == "https://example.com"
+
+
+def test_configure_server_needs_a_server(gcd_nop_project, monkeypatch):
+    """A blank answer would select the public server, so it is not assumed."""
+    _no_input(monkeypatch)
+
+    with pytest.raises(ValueError, match="choose a server address"):
+        _configure_client(gcd_nop_project).configure_server()
+
+
+def test_configure_server_no_credentials(gcd_nop_project, monkeypatch):
+    """Unsupplied credentials become the blank answer the prompt accepts."""
+    _no_input(monkeypatch)
+
+    _configure_client(gcd_nop_project).configure_server(server="https://example.com")
+
+    config = _written_config()
+    assert "username" not in config
+    assert "password" not in config
+
+
+def test_configure_server_credentials_from_address(gcd_nop_project, monkeypatch):
+    _no_input(monkeypatch)
+
+    _configure_client(gcd_nop_project).configure_server(
+        server="https://user:pass@example.com")
+
+    config = _written_config()
+    assert config["username"] == "user"
+    assert config["password"] == "pass"
+
+
+def test_configure_server_interactive_terms_declined(gcd_nop_project, monkeypatch):
+    """An answerable prompt still gets asked, and declining writes nothing."""
+    monkeypatch.setattr('builtins.input', lambda *args, **kwargs: 'n')
+
+    _configure_client(gcd_nop_project).configure_server(server=default_server)
+
+    assert not os.path.exists('credentials.json')
