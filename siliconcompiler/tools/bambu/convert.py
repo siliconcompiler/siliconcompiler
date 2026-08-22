@@ -77,9 +77,9 @@ class ConvertTask(ASICTask, Task):
                 self.add_required_key(lib, "fileset", fileset, "file", "c")
             elif lib.has_file(fileset=fileset, filetype="llvm"):
                 self.add_required_key(lib, "fileset", fileset, "file", "llvm")
-            # sdc files are read by get_clock() in runtime_options for clock extraction
-            if lib.has_file(fileset=fileset, filetype="sdc"):
-                self.add_required_key(lib, "fileset", fileset, "file", "sdc")
+
+        # sdc files are read by get_clock() in runtime_options for clock extraction
+        self._add_clock_required_keys()
 
     def runtime_options(self):
         options = super().runtime_options()

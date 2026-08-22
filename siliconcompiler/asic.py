@@ -1,7 +1,7 @@
 import json
 import re
 
-from typing import Union, Tuple
+from typing import List, Optional, Union, Tuple
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema, NamedSchema
 from siliconcompiler.schema.utils import trim
@@ -670,66 +670,183 @@ class ASICTask(Task):
         if defvalue is not None:
             return self.set("var", key, defvalue)
 
+    @staticmethod
+    def __join_continuations(lines: List[str]) -> List[str]:
+        """Joins TCL line continuations so that a command split over several lines is
+        parsed as the single command it is.
+
+        Args:
+            lines: The lines of a TCL file.
+
+        Returns:
+            The lines with each continuation folded into the line it continues.
+        """
+        joined = []
+        pending = None
+        for line in lines:
+            line = line.rstrip()
+            if pending is not None:
+                line = f"{pending} {line.lstrip()}"
+            if line.endswith("\\"):
+                pending = line[:-1].rstrip()
+            else:
+                pending = None
+                joined.append(line)
+        if pending is not None:
+            # a trailing continuation with nothing after it
+            joined.append(pending)
+        return joined
+
     def __parse_sdc_clock(self, file: str) -> Tuple[str, float]:
+        name = None
         period = None
         with sc_open(file) as f:
-            lines = f.read().splitlines()
+            lines = self.__join_continuations(f.read().splitlines())
 
         # collect simple variables in case clock is specified with a variable
         re_var = r"[A-Za-z0-9_]+"
         re_num = r"[0-9\.]+"
+        # a bare TCL word, which is anything that is not whitespace and does not open
+        # a command substitution, a list, or a quoted string
+        re_word = r"[^\s\[\]{}\"]+"
         sdc_vars = {}
         for line in lines:
-            tcl_variable = re.findall(fr"^\s*set\s+({re_var})\s+({re_num}|\${re_var})",
-                                      line)
+            tcl_variable = re.findall(fr"^\s*set\s+({re_var})\s+({re_word})", line)
             if tcl_variable:
                 var_name, var_value = tcl_variable[0]
                 sdc_vars[f'${var_name}'] = var_value
 
-        # TODO: handle line continuations
+        def resolve(value: str) -> Optional[str]:
+            """Substitutes TCL variables until a literal is reached, returning None if
+            the chain runs into a variable this parser did not collect or into itself."""
+            seen = set()
+            while value.startswith("$"):
+                if value in seen or value not in sdc_vars:
+                    return None
+                seen.add(value)
+                value = sdc_vars[value]
+            return value
+
         for line in lines:
-            clock_period = re.findall(fr"create_clock\s.*-period\s+({re_num}|\${re_var})",
-                                      line)
-            if clock_period:
-                convert_period = clock_period[0]
-                while isinstance(convert_period, str) and convert_period[0] == "$":
-                    if convert_period in sdc_vars:
-                        convert_period = sdc_vars[convert_period]
-                    else:
-                        break
-                if isinstance(convert_period, str) and convert_period[0] == "$":
+            for command in re.findall(r"create_clock\s(.*)", line):
+                clock_period = re.findall(fr"-period\s+({re_num}|\${re_var})", command)
+                if not clock_period:
+                    continue
+
+                try:
+                    new_period = float(resolve(clock_period[0]))
+                except (TypeError, ValueError):
                     self.logger.warning('Unable to identify clock period from '
                                         f'{clock_period[0]}.')
                     continue
-                else:
-                    try:
-                        clock_period = float(convert_period)
-                    except TypeError:
-                        continue
 
-                if period is None:
-                    period = clock_period
-                else:
-                    period = min(period, clock_period)
-        return None, period
+                if period is not None and new_period >= period:
+                    continue
+
+                period = new_period
+                # A create_clock without -name takes its name from the port it is
+                # attached to, which this parser does not resolve.
+                clock_name = re.findall(fr"-name\s+({re_word})", command)
+                name = resolve(clock_name[0]) if clock_name else None
+
+        return name, period
+
+    def __get_timing_modes(self) -> List[BaseSchema]:
+        """Collects the timing modes of the scenarios that run at this step and index.
+
+        Returns:
+            One mode object per distinct mode, empty if the project carries no timing
+            constraints.
+        """
+        if not self.project.valid("constraint", "timing"):
+            return []
+
+        timing = self.project.constraint.timing
+
+        modes = set()
+        for scenario in timing.get_scenario().values():
+            mode = scenario.get_mode(self.step, self.index)
+            if mode:
+                modes.add(mode)
+
+        mode_objs = []
+        for mode in sorted(modes):
+            try:
+                mode_objs.append(timing.get_mode(mode))
+            except LookupError:
+                continue
+        return mode_objs
+
+    def __get_mode_filesets(self, mode_obj: BaseSchema):
+        """Resolves the filesets a timing mode points its SDC files at, following the
+        aliases and dependent filesets the tool scripts follow.
+
+        Args:
+            mode_obj: A timing mode object.
+
+        Yields:
+            The (library, fileset) pairs the mode's SDC filesets resolve to.
+        """
+        for lib, fileset in mode_obj.get_sdcfileset():
+            libobj = self.project.get_library(lib)
+            yield from self.project.get_filesets(library=libobj, filesets=[fileset])
+
+    def __get_sdcs(self) -> List[str]:
+        """Collects the SDC files that apply at this node.
+
+        Returns:
+            The SDC files of the project filesets and of the timing modes that run at
+            this step and index, in that order and without duplicates.
+        """
+        sdcs = []
+        for lib, fileset in self.project.get_filesets():
+            sdcs.extend(lib.get_file(fileset=fileset, filetype="sdc"))
+        for mode_obj in self.__get_timing_modes():
+            for lib, fileset in self.__get_mode_filesets(mode_obj):
+                sdcs.extend(lib.get_file(fileset=fileset, filetype="sdc"))
+        return list(dict.fromkeys(sdcs))
+
+    def _add_clock_required_keys(self) -> None:
+        """Declares the SDC files :meth:`get_clock` reads, so that they are hashed
+        (cache) and copied (remote runs)."""
+        for lib, fileset in self.project.get_filesets():
+            if lib.has_file(fileset=fileset, filetype="sdc"):
+                self.add_required_key(lib, "fileset", fileset, "file", "sdc")
+
+        if self.project.valid("constraint", "timing"):
+            # which mode a scenario selects decides which SDC files are read
+            for scenario in self.project.constraint.timing.get_scenario().values():
+                if scenario.get_mode(self.step, self.index):
+                    self.add_required_key(scenario, "mode")
+
+        for mode_obj in self.__get_timing_modes():
+            self.add_required_key(mode_obj, "sdcfileset")
+            for lib, fileset in self.__get_mode_filesets(mode_obj):
+                if lib.has_file(fileset=fileset, filetype="sdc"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "sdc")
 
     def get_clock(self, clock_units_multiplier: float = 1.0) -> Tuple[str, float]:
+        """Finds the fastest clock the SDC files of this node define.
+
+        Args:
+            clock_units_multiplier: Scale applied to the period before it is returned.
+
+        Returns:
+            The name and period of the fastest clock, either of which is None when the
+            SDC files do not give it.
+        """
         name = None
         period = None
 
-        for lib, fileset in self.project.get_filesets():
-            for sdc in lib.get_file(fileset=fileset, filetype="sdc"):
-                new_name, new_period = self.__parse_sdc_clock(sdc)
-                if new_period is not None:
-                    if period is None or new_period < period:
-                        period = new_period
-                        name = new_name
+        for sdc in self.__get_sdcs():
+            new_name, new_period = self.__parse_sdc_clock(sdc)
+            if new_period is not None:
+                if period is None or new_period < period:
+                    period = new_period
+                    name = new_name
 
         if period is not None:
             period *= clock_units_multiplier
-
-        # TODO: get SDCs from constraints
-        # TODO: get from schema
 
         return name, period
 

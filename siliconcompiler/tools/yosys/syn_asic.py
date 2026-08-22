@@ -461,9 +461,8 @@ class ASICSynthesisBase(_ASICTask, YosysTask):
         else:
             self.add_required_key(mainlib, "tool", "yosys", "abc_clock_multiplier")
             self.add_required_key("var", "abc_clock_derating")
-            for lib, fileset in self.project.get_filesets():
-                if lib.has_file(fileset=fileset, filetype="sdc"):
-                    self.add_required_key(lib, "fileset", fileset, "file", "sdc")
+            # sdc files are read by get_clock() to derive the abc clock period
+            self._add_clock_required_keys()
 
         if mainlib.get("tool", "yosys", "tristatebuffermap"):
             self.add_required_key(mainlib, "tool", "yosys", "tristatebuffermap")
