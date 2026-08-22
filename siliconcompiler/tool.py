@@ -55,28 +55,6 @@ if TYPE_CHECKING:
 TTask = TypeVar('TTask', bound='Task')
 TOpenTask = TypeVar('TOpenTask', bound='OpenTask')
 
-#: Key marking an :class:`OpenTask` registry category as fully populated.
-#:
-#: The registry cannot use "the category is non-empty" as its populated test.
-#: :func:`~siliconcompiler.utils.showtools.showtasks` writes into the
-#: ``OpenTask``, ``ShowTask`` and ``ScreenshotTask`` categories alike, so
-#: populating any one of them leaves the other two non-empty but missing
-#: everything :meth:`OpenTask._OpenTask__populate_tasks` would have found by
-#: recursing subclasses -- every task class not hard-coded in ``showtools``.
-#: A subsequent populate of those categories then returned early believing they
-#: were ready, and the tasks it never registered stayed invisible for the life
-#: of the process.
-#:
-#: Other threads are kept out by holding the category (see
-#: :meth:`~siliconcompiler.utils.settings.SettingsManager.lock_category`), but
-#: the marker is what a *forked child* has to go on: it inherits whatever the
-#: registry held at the instant of the fork, with no lock left to wait on.
-#:
-#: The leading underscores keep the marker out of the task namespace: task keys
-#: are written as ``"<module>/<class>"``, so no task can ever collide with it.
-#: :meth:`OpenTask.get_task` filters it back out when it enumerates a category.
-_TASKS_POPULATED: str = "__populated__"
-
 
 class TaskError(Exception):
     '''Error indicating that task execution cannot continue and should be terminated.'''
@@ -2793,38 +2771,12 @@ class OpenTask(Task):
 
         This ensures that later-registered extensions take precedence over
         earlier core tasks when multiple tools support the same extension.
-
-        Population is atomic: the registry is held for the length of the build
-        so that a caller arriving mid-population waits rather than reading a
-        half-written category, and completion is recorded by writing
-        :data:`_TASKS_POPULATED` last (see that constant for why the category
-        being non-empty does not mean it is finished).
         """
         cls.__check_task(None)
 
-        settings = MPManager.get_transient_settings()
+        if MPManager.get_transient_settings().get_category(cls.__name__):
+            return  # Already populated
 
-        # One lock for the whole OpenTask family, not one per category: the
-        # showtasks() call in __build_tasks writes into the sibling categories
-        # as well, so per-category locks would let two threads populating
-        # different subclasses each hold the category the other needs next.
-        with settings.lock_category(OpenTask.__name__):
-            if settings.get(cls.__name__, _TASKS_POPULATED, False):
-                return  # Already populated
-
-            cls.__build_tasks()
-
-            # Written last, once the registry above is complete.
-            settings.set(cls.__name__, _TASKS_POPULATED, True)
-
-    @classmethod
-    def __build_tasks(cls) -> None:
-        """
-        Private helper doing the actual discovery for :meth:`__populate_tasks`.
-
-        Split out only to keep that method's locked block short. It assumes the
-        lock is held and is not safe to call on its own.
-        """
         def recurse(searchcls: Type["OpenTask"]) -> list:
             subclss = []
             if not cls.__check_task(searchcls):
@@ -2927,8 +2879,7 @@ class OpenTask(Task):
         cls.__populate_tasks()
 
         settings = MPManager.get_transient_settings()
-        tasks = [task for key, task in settings.get_category(cls.__name__).items()
-                 if key != _TASKS_POPULATED]
+        tasks = list(settings.get_category(cls.__name__).values())
         if not tasks:
             return None
 

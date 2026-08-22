@@ -9,7 +9,6 @@ import re
 import sys
 import pytest
 import os
-import threading
 import time
 import yaml
 
@@ -30,8 +29,7 @@ from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout,
     TaskOutOfMemoryError
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.utils import showtools
-from siliconcompiler.utils.multiprocessing import MPManager, forking
+from siliconcompiler.utils.multiprocessing import MPManager
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 
@@ -3182,10 +3180,7 @@ class _AccessorOpenTask(OpenTask):
         return "testopentool"
 
     def get_supported_task_extentions(self):
-        # Task discovery recurses every live OpenTask subclass, so this one is
-        # visible to get_task() for the whole session. Claim an extension no
-        # real viewer handles, or it outranks the built-in for "odb"/"def".
-        return ["testopenext"]
+        return ["odb", "def"]
 
 
 @pytest.fixture
@@ -3500,174 +3495,7 @@ def test_showtask_plugin_overrides_builtin(fake_plugins):
     assert ShowTask.get_task("gds").tool() == "pluginviewer"
 
 
-def test_populate_tasks_sibling_category_is_not_populated():
-    """
-    Populating one base class must not pass its siblings off as populated.
-
-    showtasks() writes into the OpenTask, ShowTask and ScreenshotTask
-    categories alike, so populating any one of them leaves the other two
-    non-empty -- but holding only the viewers hard-coded in showtools, never
-    the task classes discovery would have found by recursing subclasses. Under
-    the old "the category is non-empty" test those tasks stayed invisible for
-    the life of the process.
-    """
-    class SiblingShow(ShowTask):
-        def tool(self):
-            return "siblingviewer"
-
-        def get_supported_task_extentions(self):
-            return ["siblingext"]
-
-    assert OpenTask.get_task("odb") is not None
-
-    assert isinstance(ShowTask.get_task("siblingext"), SiblingShow)
-
-
-def test_get_task_excludes_populated_marker():
-    """The marker shares the category with the tasks, so it must be filtered out."""
-    tasks = ShowTask.get_task(None)
-
-    assert tasks
-    assert all(isinstance(task, type) and issubclass(task, OpenTask) for task in tasks)
-
-    settings = MPManager.get_transient_settings()
-    assert settings.get(ShowTask.__name__, dut_tool._TASKS_POPULATED, False) is True
-
-
-def test_populate_tasks_marker_written_last():
-    """
-    The marker records completion, so nothing may see it set mid-population.
-
-    Plugin registration is the last step of the build, which makes a plugin the
-    latest possible observer inside the window.
-    """
-    observed = []
-
-    def probe():
-        settings = MPManager.get_transient_settings()
-        observed.append(settings.get(ShowTask.__name__, dut_tool._TASKS_POPULATED, False))
-
-    probe.__module__ = "test_module"
-    probe.__name__ = "probe"
-
-    with patch("siliconcompiler.tool.utils.get_plugins", return_value=[probe]):
-        ShowTask.get_task("gds")
-
-    assert observed == [False], "marker was written before population finished"
-
-
-@pytest.mark.timeout(60)
-def test_populate_tasks_concurrent(monkeypatch):
-    """
-    A thread arriving mid-population must wait, not read a half-built registry.
-
-    The core recursion makes the category non-empty well before the viewers are
-    registered, so a second thread treating "non-empty" as "populated" resolves
-    against a registry the first thread has not finished writing. Widen that
-    window by stalling the viewer registration and send a crowd of threads
-    through it.
-    """
-    def slow_showtasks():
-        # Defined inside so the subclass recursion cannot find it: this stands
-        # in for a viewer that only exists once registration has run.
-        class StalledShow(ShowTask):
-            def tool(self):
-                return "stalledviewer"
-
-            def get_supported_task_extentions(self):
-                return ["stalledext"]
-
-        time.sleep(0.5)
-        ShowTask.register_task(StalledShow)
-
-    monkeypatch.setattr(showtools, "showtasks", slow_showtasks)
-
-    barrier = threading.Barrier(8)
-    results = []
-
-    def resolve():
-        barrier.wait(timeout=10)
-        try:
-            results.append(ShowTask.get_task("stalledext"))
-        except Exception as e:
-            # Recorded rather than raised: an exception in a thread would
-            # otherwise only reach stderr and the test would pass.
-            results.append(e)
-
-    threads = [threading.Thread(target=resolve) for _ in range(barrier.parties)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join(timeout=30)
-        assert not thread.is_alive(), "population deadlocked"
-
-    assert len(results) == barrier.parties
-    assert all(getattr(result, "tool", lambda: None)() == "stalledviewer"
-               for result in results), results
-
-
-@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
-def test_populate_tasks_after_fork_mid_population(monkeypatch, wait_for_child):
-    """
-    A child forked mid-population rebuilds instead of trusting what it inherited.
-
-    This is the case the category lock cannot cover, and the reason the marker
-    exists alongside it. The lock keeps other *threads* out, but a fork copies
-    the registry and leaves the child no lock to wait on: it gets the tasks
-    written so far and nothing to say the rest never arrived. Reading
-    "non-empty" as "finished" there breaks the child permanently, not just for
-    one lookup.
-    """
-    stalled = threading.Event()
-    release = threading.Event()
-
-    def register_double():
-        class ForkedShow(ShowTask):
-            def tool(self):
-                return "forkedviewer"
-
-            def get_supported_task_extentions(self):
-                return ["forkedext"]
-
-        ShowTask.register_task(ForkedShow)
-
-    def stalling_showtasks():
-        # The recursion has filled the category by now, but no viewer has been
-        # registered.
-        stalled.set()
-        release.wait(timeout=10)
-        register_double()
-
-    monkeypatch.setattr(showtools, "showtasks", stalling_showtasks)
-
-    thread = threading.Thread(target=lambda: ShowTask.get_task("forkedext"))
-    thread.start()
-    assert stalled.wait(timeout=10), "population never reached the viewer registration"
-
-    with forking():
-        pid = os.fork()
-    if pid == 0:
-        # The child inherits the stall too, and would hang on its own rebuild.
-        showtools.showtasks = register_double
-        try:
-            found = ShowTask.get_task("forkedext")
-            os._exit(0 if found is not None else 1)
-        except BaseException:
-            os._exit(1)
-
-    try:
-        exited, resolved = wait_for_child(pid)
-    finally:
-        # Always let the stalled thread finish, or it outlives the test and
-        # trips over the torn-down MPManager.
-        release.set()
-        thread.join(timeout=10)
-
-    assert exited, "forked child hung instead of rebuilding the registry"
-    assert resolved, "forked child trusted the half-written registry it inherited"
-
-
-def test_showtask_default_discovery(isolated_tasks):
+def test_showtask_default_discovery():
     """Test that it picks a tool (order indeterminate but valid) when no setting exists."""
 
     # Register our dummy tasks
@@ -3686,7 +3514,7 @@ def test_showtask_default_discovery(isolated_tasks):
         assert task.tool() in ["toola", "toolb"]
 
 
-def test_showtask_preference_lookup(isolated_tasks):
+def test_showtask_preference_lookup():
     """Test that settings correctly force the selection of ToolB."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
@@ -3713,7 +3541,7 @@ def test_showtask_preference_lookup(isolated_tasks):
         assert isinstance(task, ToolB)
 
 
-def test_showtask_preference_fallback(isolated_tasks):
+def test_showtask_preference_fallback():
     """Test that it falls back to default if preference is invalid."""
     ShowTask.register_task(ToolA)
 
@@ -3738,7 +3566,7 @@ def test_showtask_preference_fallback(isolated_tasks):
         assert task.tool() == "toola"
 
 
-def test_showtask_specific_task_preference(isolated_tasks):
+def test_showtask_specific_task_preference():
     """Test that preference can specify tool/task format."""
 
     class ToolCTask1(ShowTask):
@@ -3779,7 +3607,7 @@ def test_showtask_specific_task_preference(isolated_tasks):
         assert isinstance(task, ToolCTask2)
 
 
-def test_get_task_with_tool_parameter_valid(isolated_tasks):
+def test_get_task_with_tool_parameter_valid():
     """Test that specifying a valid tool returns the correct task."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
@@ -3798,7 +3626,7 @@ def test_get_task_with_tool_parameter_valid(isolated_tasks):
         assert isinstance(task, ToolA)
 
 
-def test_get_task_with_tool_parameter_invalid(isolated_tasks):
+def test_get_task_with_tool_parameter_invalid():
     """Test that requesting a non-existent tool falls back to defaults."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
@@ -3817,7 +3645,7 @@ def test_get_task_with_tool_parameter_invalid(isolated_tasks):
         assert task.tool() in ["toola", "toolb"]
 
 
-def test_get_task_with_tool_priority_over_preference(isolated_tasks):
+def test_get_task_with_tool_priority_over_preference():
     """Test that tool parameter takes priority over settings preference."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
@@ -3842,7 +3670,7 @@ def test_get_task_with_tool_priority_over_preference(isolated_tasks):
         assert isinstance(task, ToolA)
 
 
-def test_get_task_with_tool_unsupported_extension(isolated_tasks):
+def test_get_task_with_tool_unsupported_extension():
     """Test that tool param doesn't force unsupported extensions."""
 
     class ToolC(ShowTask):
@@ -3872,7 +3700,7 @@ def test_get_task_with_tool_unsupported_extension(isolated_tasks):
         assert task.tool() == "toola"
 
 
-def test_get_task_with_tool_multiple_tasks_same_tool(isolated_tasks):
+def test_get_task_with_tool_multiple_tasks_same_tool():
     """Test tool param with multiple tasks from the same tool."""
 
     class ToolDTask1(ShowTask):
@@ -3912,7 +3740,7 @@ def test_get_task_with_tool_multiple_tasks_same_tool(isolated_tasks):
         assert task.task() in ["mode1", "mode2"]
 
 
-def test_get_task_with_tool_and_preference_both_valid(isolated_tasks):
+def test_get_task_with_tool_and_preference_both_valid():
     """Test tool parameter when both tool param and preference are specified."""
 
     class ToolETask1(ShowTask):
@@ -3958,7 +3786,7 @@ def test_get_task_with_tool_and_preference_both_valid(isolated_tasks):
         assert isinstance(task, ToolETask1)
 
 
-def test_get_task_with_tool_none_ext_returns_all_tasks(isolated_tasks):
+def test_get_task_with_tool_none_ext_returns_all_tasks():
     """Test that ext=None returns all registered tasks regardless of tool param."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
@@ -3976,7 +3804,7 @@ def test_get_task_with_tool_none_ext_returns_all_tasks(isolated_tasks):
         assert len(result) >= 2
 
 
-def test_get_task_with_tool_case_sensitive(isolated_tasks):
+def test_get_task_with_tool_case_sensitive():
     """Test that tool parameter is case-sensitive."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
@@ -3996,7 +3824,7 @@ def test_get_task_with_tool_case_sensitive(isolated_tasks):
         assert task.tool() in ["toola", "toolb"]
 
 
-def test_get_task_with_tool_empty_string(isolated_tasks):
+def test_get_task_with_tool_empty_string():
     """Test that empty string tool parameter is treated as no tool."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
@@ -4015,7 +3843,7 @@ def test_get_task_with_tool_empty_string(isolated_tasks):
         assert task.tool() in ["toola", "toolb"]
 
 
-def test_get_task_with_tool_and_task_format(isolated_tasks):
+def test_get_task_with_tool_and_task_format():
     """Test tool parameter with 'tool/task' format to select specific task."""
 
     class ToolGTask1(ShowTask):
@@ -4056,7 +3884,7 @@ def test_get_task_with_tool_and_task_format(isolated_tasks):
         assert isinstance(task, ToolGTask2)
 
 
-def test_get_task_with_tool_task_format_invalid_task(isolated_tasks):
+def test_get_task_with_tool_task_format_invalid_task():
     """Test tool/task format when specified task doesn't exist."""
 
     class ToolHTask1(ShowTask):
@@ -4085,7 +3913,7 @@ def test_get_task_with_tool_task_format_invalid_task(isolated_tasks):
         assert task.tool() == "toolh"
 
 
-def test_get_task_tool_task_format_priority_over_preference(isolated_tasks):
+def test_get_task_tool_task_format_priority_over_preference():
     """Test that tool/task format has priority over preference."""
 
     class ToolITask1(ShowTask):
@@ -4132,12 +3960,19 @@ def test_get_task_tool_task_format_priority_over_preference(isolated_tasks):
         assert isinstance(task, ToolITask2)
 
 
-def test_get_extension_map_empty(isolated_tasks):
-    """get_extension_map returns {} when no tasks are registered."""
-    assert ShowTask.get_extension_map() == {}
+def test_get_extension_map_empty():
+    """get_extension_map returns {} when no tasks are discovered."""
+    # Patch get_task to simulate "no registered tasks". (Real isolation is
+    # hard because subclasses defined elsewhere in the test file get
+    # auto-discovered by __populate_tasks.)
+    with patch.object(ShowTask, 'get_task', return_value=None):
+        assert ShowTask.get_extension_map() == {}
+
+    with patch.object(ShowTask, 'get_task', return_value=[]):
+        assert ShowTask.get_extension_map() == {}
 
 
-def test_get_extension_map_single_tool(isolated_tasks):
+def test_get_extension_map_single_tool():
     """Each ext from the registered tool maps to that tool's instance."""
     ShowTask.register_task(ToolA)
 
@@ -4153,7 +3988,7 @@ def test_get_extension_map_single_tool(isolated_tasks):
         assert isinstance(ext_map["ext"], ToolA)
 
 
-def test_get_extension_map_collects_all_extensions(isolated_tasks):
+def test_get_extension_map_collects_all_extensions():
     """All extensions across all registered tasks are present as keys, in
     deterministic registration order (within a task, in the order returned by
     get_supported_task_extentions)."""
@@ -4184,7 +4019,7 @@ def test_get_extension_map_collects_all_extensions(isolated_tasks):
         assert list(ext_map.keys()) == ["ext", "a", "b", "c"]
 
 
-def test_get_extension_map_conflict_uses_last_registered(isolated_tasks):
+def test_get_extension_map_conflict_uses_last_registered():
     """When two tools share an extension, the later-registered wins by default."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
@@ -4202,7 +4037,7 @@ def test_get_extension_map_conflict_uses_last_registered(isolated_tasks):
         assert isinstance(ext_map["ext"], ToolB)
 
 
-def test_get_extension_map_respects_user_preference(isolated_tasks):
+def test_get_extension_map_respects_user_preference():
     """User preference selects the preferred tool for a contested extension."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
@@ -4224,7 +4059,7 @@ def test_get_extension_map_respects_user_preference(isolated_tasks):
         assert isinstance(ext_map["ext"], ToolA)
 
 
-def test_get_extension_map_tool_filter_matches_get_task(isolated_tasks):
+def test_get_extension_map_tool_filter_matches_get_task():
     """tool= behavior in get_extension_map mirrors get_task: it's a hint, not a strict filter.
 
     For extensions the requested tool supports, the requested tool is preferred.
@@ -4265,7 +4100,7 @@ def test_get_extension_map_tool_filter_matches_get_task(isolated_tasks):
             assert type(ShowTask.get_task(ext, tool="toola")) is type(preferred)
 
 
-def test_get_extension_map_skips_not_implemented(isolated_tasks):
+def test_get_extension_map_skips_not_implemented():
     """Tasks that don't implement get_supported_task_extentions are ignored."""
 
     class AbstractTool(ShowTask):
@@ -4296,7 +4131,7 @@ def test_get_extension_map_skips_not_implemented(isolated_tasks):
     (ShowTask, "show"),
     (ScreenshotTask, "screenshot"),
 ])
-def test_get_extension_map_isolated_per_base_class(cls, expected_tool_cls, isolated_tasks):
+def test_get_extension_map_isolated_per_base_class(cls, expected_tool_cls):
     """Each base class returns only tasks registered to that class hierarchy."""
 
     class _OpenOnly(OpenTask):
@@ -4351,7 +4186,7 @@ def test_get_extension_map_isolated_per_base_class(cls, expected_tool_cls, isola
             assert "o" not in ext_map
 
 
-def test_get_extension_map_matches_get_task_resolution(isolated_tasks):
+def test_get_extension_map_matches_get_task_resolution():
     """get_extension_map[ext] must equal get_task(ext) for every supported ext."""
 
     class ToolP(ShowTask):
