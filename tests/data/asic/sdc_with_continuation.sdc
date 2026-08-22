@@ -6,5 +6,5 @@ set clk_period 10
 set clk_io_pct 0.2
 
 create_clock -name $clk_name \
-             -period $clk_period \
-             [get_ports $clk_port_name]
+    -period $clk_period \
+    [get_ports $clk_port_name]
