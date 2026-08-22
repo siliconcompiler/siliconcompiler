@@ -23,6 +23,19 @@ def generate_id(cls):
     return f"tool_{cls().tool()}"
 
 
+def task_spec(cls):
+    """
+    The ``"tool/task"`` hint that pins get_task() to exactly this class.
+
+    Registering a task does not make it the one get_task() picks -- discovery
+    registers every built-in viewer, and the tool with the last registration
+    wins the extension. Ask for the task by name instead, which is what a user
+    who wants a particular viewer does.
+    """
+    inst = cls()
+    return f"{inst.tool()}/{inst.task()}"
+
+
 @pytest.fixture(autouse=True)
 def exit_on_show(monkeypatch):
     org_setup = ShowTask.setup
@@ -52,10 +65,10 @@ def test_show_def(target, testfile, task, datadir, display):
     target(proj)
     proj.add_fileset("rtl")
 
-    ShowTask.register_task(task)
-    assert isinstance(ShowTask.get_task("def"), task)
+    spec = task_spec(task)
+    assert isinstance(ShowTask.get_task("def", tool=spec), task)
 
-    proj.show(os.path.join(datadir, testfile))
+    proj.show(os.path.join(datadir, testfile), tool=spec)
 
 
 @pytest.mark.eda
@@ -75,10 +88,10 @@ def test_screenshot_def(target, testfile, task, datadir, display):
     target(proj)
     proj.add_fileset("rtl")
 
-    ScreenshotTask.register_task(task)
-    assert isinstance(ScreenshotTask.get_task("def"), task)
+    spec = task_spec(task)
+    assert isinstance(ScreenshotTask.get_task("def", tool=spec), task)
 
-    path = proj.show(os.path.join(datadir, testfile), screenshot=True)
+    path = proj.show(os.path.join(datadir, testfile), screenshot=True, tool=spec)
     assert os.path.isfile(path)
 
 
@@ -96,10 +109,10 @@ def test_show_lyp_tool_klayout(datadir, display):
     pdk: PDK = proj.get("library", "freepdk45", field="schema")
     pdk.set("pdk", "layermapfileset", "klayout", "def", "klayout", [], clobber=True)
 
-    ShowTask.register_task(klayout_show.ShowTask)
-    assert isinstance(ShowTask.get_task("def"), klayout_show.ShowTask)
+    spec = task_spec(klayout_show.ShowTask)
+    assert isinstance(ShowTask.get_task("def", tool=spec), klayout_show.ShowTask)
 
-    proj.show(os.path.join(datadir, 'heartbeat_freepdk45.def'))
+    proj.show(os.path.join(datadir, 'heartbeat_freepdk45.def'), tool=spec)
 
 
 @pytest.mark.eda
@@ -127,10 +140,10 @@ def test_show_vcd_surfer(datadir, display, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    ShowTask.register_task(SurferShow)
-    assert isinstance(ShowTask.get_task("vcd"), SurferShow)
+    spec = task_spec(SurferShow)
+    assert isinstance(ShowTask.get_task("vcd", tool=spec), SurferShow)
 
-    proj.show(os.path.join(datadir, 'random.vcd'))
+    proj.show(os.path.join(datadir, 'random.vcd'), tool=spec)
 
 
 @pytest.mark.eda
@@ -140,10 +153,10 @@ def test_show_vcd_gtkwave(disable_mp_process, datadir, display, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    ShowTask.register_task(GtkwaveShow)
-    assert isinstance(ShowTask.get_task("vcd"), GtkwaveShow)
+    spec = task_spec(GtkwaveShow)
+    assert isinstance(ShowTask.get_task("vcd", tool=spec), GtkwaveShow)
 
-    proj.show(os.path.join(datadir, 'random.vcd'))
+    proj.show(os.path.join(datadir, 'random.vcd'), tool=spec)
 
 
 @pytest.mark.eda
