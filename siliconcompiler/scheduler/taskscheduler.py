@@ -416,9 +416,6 @@ class TaskScheduler:
 
                 if os.path.exists(manifest):
                     Journal.replay_file(self.__schema, manifest)
-                    # TODO: once tool is fixed this can go away
-                    self.__schema.unset("arg", "step")
-                    self.__schema.unset("arg", "index")
 
                 # The child either sent the package cache before exiting or
                 # it never will. poll(0) avoids blocking the scheduler loop
