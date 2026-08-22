@@ -2,7 +2,7 @@ from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope
 from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
 
 
-SCHEMA_VERSION = '0.0.3'
+SCHEMA_VERSION = '0.0.4'
 
 
 class ServerSchema(CommandLineSchema, BaseSchema):
@@ -17,7 +17,7 @@ class ServerSchema(CommandLineSchema, BaseSchema):
                 'str',
                 scope=Scope.GLOBAL,
                 defvalue=SCHEMA_VERSION,
-                require='all',
+                require=True,
                 shorthelp="Schema version number",
                 lock=True,
                 switch="-schemaversion <str>",
@@ -30,7 +30,7 @@ class ServerSchema(CommandLineSchema, BaseSchema):
                 'int<1..65535>',
                 scope=Scope.GLOBAL,
                 defvalue=8080,
-                require='all',
+                require=True,
                 shorthelp="Port number to run the server on.",
                 switch="-port <int>",
                 example=["cli: -port 8000",
@@ -43,7 +43,7 @@ class ServerSchema(CommandLineSchema, BaseSchema):
                 '<local,slurm>',
                 scope=Scope.GLOBAL,
                 defvalue='local',
-                require='all',
+                require=True,
                 shorthelp="Type of compute cluster to use.",
                 switch="-cluster <str>",
                 example=["cli: -cluster slurm",
@@ -56,7 +56,7 @@ class ServerSchema(CommandLineSchema, BaseSchema):
                 'dir',
                 scope=Scope.GLOBAL,
                 defvalue='./sc_compute',
-                require='all',
+                require=True,
                 shorthelp="Directory of mounted shared NFS storage.",
                 switch="-nfsmount <dir>",
                 example=["cli: -nfsmount ~/sc_server",
@@ -69,7 +69,7 @@ class ServerSchema(CommandLineSchema, BaseSchema):
                 'bool',
                 scope=Scope.GLOBAL,
                 defvalue=False,
-                require='all',
+                require=True,
                 shorthelp="Flag determining whether to enable authenticated and encrypted jobs.",
                 switch="-auth <bool>",
                 example=["cli: -auth true",
@@ -77,13 +77,30 @@ class ServerSchema(CommandLineSchema, BaseSchema):
                 help="""Flag determining whether to enable authenticated and encrypted jobs."""))
 
         schema.insert(
+            'option', 'maxuploadsize',
+            Parameter(
+                'int<0..>',
+                scope=Scope.GLOBAL,
+                defvalue=0,
+                shorthelp="Maximum size in MB of an uploaded job.",
+                switch="-maxuploadsize <int>",
+                example=["cli: -maxuploadsize 1024",
+                         "api: server.set('option', 'maxuploadsize', 1024)"],
+                help="""
+                Maximum size in MB of a job upload. Zero, the default, accepts
+                any size: a job's manifest and its collected sources are sent in
+                one request, which for a real design is routinely tens of MB and
+                has no upper bound this server could pick for it."""))
+
+        schema.insert(
             'option', 'checkinterval',
             Parameter(
                 'int<1..>',
-                defvalue=30,
-                shorthelp="Interval for client",
+                defvalue=5,
+                shorthelp="Interval for client checks",
                 switch="-checkinterval <int>",
                 example=["cli: -checkinterval 10",
                          "api: server.set('option', 'checkinterval', 10)"],
+                unit="s",
                 help="""
                 Interval between checks to announce to clients"""))

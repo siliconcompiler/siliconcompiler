@@ -58,10 +58,6 @@ To run a testcase, use:
             self._add_commandline_argument("exclude_libraries", "bool",
                                            "flag to ensure libraries are excluded in the testcase")
 
-            # TODO port add dep func
-            # self._add_commandline_argument("add_dep", "[str]",
-            # "dependency to load before running", "-add_dep <str>")
-
     switchlist = ['-arg_step',
                   '-arg_index',
                   '-cfg',

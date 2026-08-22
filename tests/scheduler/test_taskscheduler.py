@@ -1,10 +1,11 @@
 import logging
 import multiprocessing
 import time
+import weakref
 
 import pytest
 
-from threading import Lock
+from threading import Lock, Thread
 from unittest.mock import MagicMock
 
 from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
@@ -851,3 +852,126 @@ def test_run_end_to_end_single_parallel_under_breakpoint(large_flow, make_tasks,
 
     for step, index in large_flow.get("flowgraph", "testflow", field="schema").get_nodes():
         assert large_flow.get("record", "status", step=step, index=index) == NodeStatus.SUCCESS
+
+
+def _sleep_forever():
+    # Bounded so a failing test cannot leave this behind indefinitely.
+    time.sleep(120)
+
+
+@pytest.mark.timeout(60)
+def test_halt_all_ends_node_processes(large_flow, make_tasks):
+    '''halt_all() reaches a run that the caller holds no handle to.
+
+    This is what a server shutting down mid-job has to work with: the run is
+    inside a thread, and its node processes are not daemons, so anything still
+    alive is joined at interpreter exit -- which is an sc-server that never goes
+    away after being told to stop.
+    '''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    proc = get_process_context().Process(target=_sleep_forever)
+    proc.start()
+    # Present it the way a launched node appears to the halt path.
+    scheduler._TaskScheduler__nodes[("sleeper", "0")] = {"proc": proc}
+
+    try:
+        assert TaskScheduler.halt_all() == 1
+        assert not proc.is_alive()
+    finally:
+        if proc.is_alive():
+            proc.kill()
+        proc.join(timeout=10)
+
+
+def test_halt_all_with_nothing_running(large_flow, make_tasks):
+    '''A run with no live nodes reports nothing to halt'''
+    TaskScheduler(large_flow, make_tasks(large_flow))
+
+    assert TaskScheduler.halt_all() == 0
+
+
+def test_halt_all_forgets_collected_schedulers(large_flow, make_tasks):
+    '''The registry holds schedulers weakly, so a finished run is not kept
+       alive by being listed in it'''
+    import gc
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    ref = weakref.ref(scheduler)
+
+    del scheduler
+    gc.collect()
+
+    assert ref() is None
+    assert TaskScheduler.halt_all() == 0
+
+
+class _OverlapProbeProc:
+    '''Stands in for a node process, recording halts that overlap.
+
+    The real hazard is two threads in terminate()/join() on one process racing
+    on waitpid, which is timing-dependent and does not reproduce on demand. What
+    is deterministic, and what the lock is for, is whether two threads are in
+    that section at once.
+    '''
+
+    def __init__(self, state):
+        self.__state = state
+        self.__alive = True
+
+    def is_alive(self):
+        return self.__alive
+
+    def terminate(self):
+        pass
+
+    def kill(self):
+        self.__alive = False
+
+    def join(self, timeout=None):
+        with self.__state["lock"]:
+            self.__state["inside"] += 1
+            self.__state["peak"] = max(self.__state["peak"], self.__state["inside"])
+        time.sleep(0.05)
+        with self.__state["lock"]:
+            self.__state["inside"] -= 1
+        self.__alive = False
+
+
+@pytest.mark.timeout(60)
+def test_halt_all_is_serialized(large_flow, make_tasks):
+    '''Only one thread at a time may be ending a run's node processes.
+
+    run()'s own cleanup and a halt_all() from a server shutting down are exactly
+    that pair of callers.
+    '''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    state = {"lock": Lock(), "inside": 0, "peak": 0}
+    for num in range(4):
+        scheduler._TaskScheduler__nodes[("sleeper", str(num))] = {
+            "proc": _OverlapProbeProc(state)
+        }
+
+    errors = []
+
+    def halt():
+        try:
+            TaskScheduler.halt_all()
+        except Exception as e:  # noqa: BLE001
+            errors.append(e)
+
+    threads = [Thread(target=halt) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=30)
+
+    # Checked first: a join that timed out returns just like one that finished,
+    # so a thread deadlocked on the lock would otherwise leave both assertions
+    # below passing -- and a deadlock is what this lock could introduce.
+    for thread in threads:
+        assert not thread.is_alive(), "a halting thread never came back"
+
+    assert errors == []
+    assert state["peak"] == 1, "two threads halted the same run at once"

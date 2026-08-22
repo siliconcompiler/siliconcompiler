@@ -1,6 +1,6 @@
 [
   {
-    "reason": "Job does not exist",
+    "reason": "Job is not running (unknown or already finished)",
     "status_code": 404,
     "response_format": {
       "message": "String",

@@ -236,9 +236,20 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 timeout=self.__timeout)
 
         def success_action(resp):
-            return json.loads(resp.text)
+            response = json.loads(resp.text)
+            if 'message' in response:
+                self.__logger.info(response['message'])
+            return response
 
-        return self.__post('/cancel_job/', post_action, success_action)
+        def error_action(code, msg):
+            # The server not knowing the job is the ordinary case here -- it
+            # already finished, or this manifest never started one -- so say so
+            # instead of raising into the CLI.
+            self.__logger.error(f'Unable to cancel job: {msg}')
+            return {'success': False}
+
+        return self.__post('/cancel_job/', post_action, success_action,
+                           error_action=error_action)
 
     ###################################
     def delete_job(self):

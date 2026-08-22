@@ -103,6 +103,11 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
             'message': 'Job has been deleted.',
             'success': True
         })
+    elif url.endswith('cancel_job/'):
+        return build_response(200, json_obj={
+            'message': 'Canceling job.',
+            'success': True
+        })
     elif url.endswith('check_server/'):
         def versions():
             return {
@@ -758,3 +763,34 @@ def test_empty_call(monkeypatch, gcd_nop_project):
                 assert mock_check.called
                 assert mock0.called
                 assert mock1.called
+
+
+###########################
+def test_cancel_job_response(gcd_nop_project, monkeypatch, unused_tcp_port,
+                             scserver_credential):
+    '''The server's answer to a cancel request is reported back to the caller.
+    '''
+
+    monkeypatch.setattr(requests, 'post', mock_post)
+
+    gcd_nop_project.set('option', 'credentials', scserver_credential(unused_tcp_port))
+    gcd_nop_project.set('record', 'remoteid', uuid.uuid4().hex)
+
+    assert Client(gcd_nop_project).cancel_job() == {
+        'message': 'Canceling job.',
+        'success': True
+    }
+
+
+###########################
+@pytest.mark.timeout(60)
+def test_cancel_job_unknown(gcd_nop_project, scserver, scserver_credential):
+    '''Canceling a job the server has never heard of is reported, not raised.
+    '''
+
+    port = scserver()
+
+    gcd_nop_project.set('option', 'credentials', scserver_credential(port))
+    gcd_nop_project.set('record', 'remoteid', uuid.uuid4().hex)
+
+    assert Client(gcd_nop_project).cancel_job() == {'success': False}

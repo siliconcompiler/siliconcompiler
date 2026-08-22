@@ -501,7 +501,7 @@ def _shutdown_server(proc, timeout=10):
 def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeypatch):
     srv_procs = []
 
-    def start_server(cluster='local', auth=False):
+    def start_server(cluster='local', auth=False, extra_args=None):
         args = [
             '-nfsmount', scserver_nfs_path,
             '-cluster', cluster,
@@ -510,6 +510,8 @@ def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeyp
         ]
         if auth:
             args.append('-auth')
+        if extra_args:
+            args.extend(extra_args)
 
         monkeypatch.setattr(sys, "argv", ["sc-server", *args])
 
