@@ -11,6 +11,7 @@ from siliconcompiler.remote import Client, ConfigureClient
 from siliconcompiler.remote import NodeStatus as RemoteNodeStatus
 from siliconcompiler.remote.server import Server
 from siliconcompiler._metadata import default_server
+from siliconcompiler.scheduler.error import SCRuntimeError
 
 
 def _client(project, nodes=('stepone0', 'steptwo0')):
@@ -294,7 +295,26 @@ def test_check_job_status_stops_on_refusal(gcd_nop_project, monkeypatch, caplog)
     info = Client(gcd_nop_project).check_job_status()
 
     assert info['busy'] is False
+    assert info['refused'] is True
     assert 'Unable to check job status: Error: job belongs to another user.' in caplog.text
+
+
+def test_run_loop_refusal_is_not_completion(gcd_nop_project, monkeypatch):
+    '''A refused poll ends the run as a failure rather than a finished job'''
+    monkeypatch.setattr(
+        requests, 'post',
+        lambda url, **kwargs: _response(403, json.dumps(
+            {'message': 'Error: job belongs to another user.', 'status': 'rejected'})))
+
+    client = _client(gcd_nop_project)
+    # skip the /check_server/ round trip __ensure_run_loop_information would make
+    client._Client__check_interval = 0
+
+    with pytest.raises(SCRuntimeError, match='belongs to another user'):
+        client._run_loop()
+
+    # the loop must not have announced the job as done on the way out
+    assert client._Client__download_pool is None
 
 
 def test_check_job_status_keeps_waiting_on_a_hiccup(gcd_nop_project, monkeypatch):

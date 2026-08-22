@@ -304,10 +304,13 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         def error_action(code, msg):
             if code == 403:
                 # The job is not this client's to watch, and polling again will not
-                # change that. Reporting it as busy would wait on it forever.
+                # change that. Reporting it as busy would wait on it forever, and
+                # reporting it as merely not-busy would read as 'finished', so the
+                # refusal is carried out of here as its own state.
                 self.__logger.error(f'Unable to check job status: {msg}')
                 return {
                     'busy': False,
+                    'refused': True,
                     'message': ''
                 }
             return {
@@ -781,6 +784,12 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
             # Check progress
             job_info = self.check_job_status()
+            if job_info.get('refused'):
+                # Not ours to watch: there is nothing to fetch and nothing to
+                # finalize, and falling through would announce the job as completed.
+                self._finalize_loop()
+                raise SCRuntimeError(
+                    'Server refused to report on this job, it belongs to another user')
             completed, new_starttimes, running = self._report_job_status(job_info)
 
             # preserve old starttimes

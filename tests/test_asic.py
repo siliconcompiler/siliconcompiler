@@ -887,6 +887,8 @@ def test_asic_set_asic_var_from_pdk_as_list(running_node):
         ("sdc_without_name.sdc", 1, 10, None),
         # a commented-out create_clock is not a clock definition
         ("sdc_with_comment.sdc", 1, 10, "clk"),
+        # commands separated by a semicolon are still commands
+        ("sdc_with_semicolon.sdc", 1, 10, "clk"),
     ])
 def test_get_clock_sdc(datadir, sdc_file, scale, period, clock, running_project, running_node):
     task = ASICTask()
@@ -915,6 +917,32 @@ def test_get_clock_sdc_from_constraints(datadir, running_project, running_node):
 
     mode = running_project.constraint.timing.make_mode("func")
     mode.add_sdcfileset(design, "modesdc")
+    scenario = running_project.constraint.timing.make_scenario("typical")
+    scenario.set_mode("func")
+
+    with task.runtime(running_node) as runtool:
+        name, sdc_period = runtool.get_clock()
+
+    assert name == "fast_clk"
+    assert sdc_period == 5
+
+
+def test_get_clock_sdc_from_constraints_per_node(datadir, running_project, running_node):
+    """A mode's sdcfileset is PerNode.OPTIONAL, so the node's own value is what counts."""
+    task = ASICTask()
+    EditableSchema(running_project).insert("tool", "dummy", "task", "asic", task)
+
+    design = running_project.design
+    with design.active_fileset("othernode"):
+        design.add_file(os.path.join(datadir, "asic", "sdc_with_variable.sdc"))
+    with design.active_fileset("thisnode"):
+        design.add_file(os.path.join(datadir, "asic", "sdc_with_multiple.sdc"))
+
+    mode = running_project.constraint.timing.make_mode("func")
+    # the global value points at the 10ns clock, this node's at the 5ns one
+    mode.add_sdcfileset(design, "othernode")
+    mode.add_sdcfileset(design, "thisnode", clobber=True,
+                        step=running_node.step, index=running_node.index)
     scenario = running_project.constraint.timing.make_scenario("typical")
     scenario.set_mode("func")
 

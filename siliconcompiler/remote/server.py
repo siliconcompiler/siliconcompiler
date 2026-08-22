@@ -291,12 +291,14 @@ class Server(ServerSchema):
         job_dir = os.path.join(job_root, design, job_name)
         os.makedirs(job_dir, exist_ok=True)
 
-        # Claim the job for its submitter before anything can ask who owns it.
-        self.__record_job_owner(job_hash, job_params['username'])
-
         # Move the uploaded archive and un-zip it.
         # (Contents will be encrypted for authenticated jobs)
         try:
+            # Inside the try: claiming the job for its submitter has to happen
+            # before anything can ask who owns it, but a failure to write that
+            # record must still drop the staged upload.
+            self.__record_job_owner(job_hash, job_params['username'])
+
             with tarfile.open(tmp_file, "r:gz") as tar:
                 tar.extractall(path=job_dir, **tar_extract_kwargs())
         finally:
@@ -804,8 +806,9 @@ class Server(ServerSchema):
         against the submitter.
 
         A job submitted without authentication is recorded as having no owner rather
-        than not recorded at all, so that an unowned job and a job whose record cannot
-        be read mean the same thing to __job_belongs_to().
+        than not recorded at all: __job_belongs_to() treats only a *missing* record as
+        ownerless, so an unowned job has to say so. A record that exists but cannot be
+        read is not the same thing, and is left to raise there.
         '''
         with open(self.__job_owner_file(job_hash), 'w') as f:
             json.dump({'username': username}, f)

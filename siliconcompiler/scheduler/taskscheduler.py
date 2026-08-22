@@ -421,8 +421,8 @@ class TaskScheduler:
                 # The child either sent the package cache before exiting or
                 # it never will. poll(0) avoids blocking the scheduler loop
                 # for a full second when a child died without writing.
+                cache = None
                 if info["parent_pipe"] and info["parent_pipe"].poll(0):
-                    cache = None
                     try:
                         cache = info["parent_pipe"].recv()
                     except (EOFError, OSError, pickle.UnpicklingError) as e:
@@ -431,16 +431,6 @@ class TaskScheduler:
                         # so say so and carry on rather than failing the run.
                         self.__logger.debug(
                             f'{info["name"]} did not send a usable package cache: {e}')
-
-                    if cache is not None:
-                        # Outside the handler above on purpose: what the child sent
-                        # is its business, but a failure to merge it is this
-                        # scheduler's bug and must not hide behind a read error.
-                        #
-                        # Take the paths the node resolved, but not its failures:
-                        # a fetch that failed for one node may still succeed for
-                        # the next, so each node gets its own retry budget for now.
-                        MPManager.get_path_cache().seed(cache, include_failures=False)
 
                 # Remove pipe
                 info["parent_pipe"] = None
@@ -469,6 +459,18 @@ class TaskScheduler:
                 MPManager.get_transient_settings().get(
                     'TaskScheduler', 'post_node',
                     lambda project, step, index: None)(self.__project, step, index)
+
+                if cache is not None:
+                    # Merged last, and outside the handler above: what the child sent
+                    # is its business, but a failure to merge it is this scheduler's
+                    # bug and must not hide behind a read error. By this point the
+                    # node has released its pipe and queue and its status is
+                    # recorded, so raising here cannot leave it marked running.
+                    #
+                    # Take the paths the node resolved, but not its failures: a fetch
+                    # that failed for one node may still succeed for the next, so
+                    # each node gets its own retry budget for now.
+                    MPManager.get_path_cache().seed(cache, include_failures=False)
 
         return changed
 

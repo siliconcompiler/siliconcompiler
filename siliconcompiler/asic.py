@@ -697,11 +697,66 @@ class ASICTask(Task):
             joined.append(pending)
         return joined
 
+    @staticmethod
+    def __split_commands(line: str) -> List[str]:
+        """Splits a TCL line into the commands it holds.
+
+        Only a semicolon outside a quoted string or a brace group separates two
+        commands, and a '#' opens a comment only where a command would start, so
+        `set period 10 ; create_clock -period $period` is two commands while
+        `# create_clock -period 1` is none.
+
+        Args:
+            line: One logical line, continuations already folded in.
+
+        Returns:
+            The commands on that line, in order, without the empty ones.
+        """
+        commands = []
+        current = ""
+        quoted = False
+        braces = 0
+        escaped = False
+        for char in line:
+            if escaped:
+                current += char
+                escaped = False
+                continue
+            if char == "\\":
+                current += char
+                escaped = True
+                continue
+            if not quoted and char == "#" and not current.strip():
+                # a comment runs to the end of the line
+                break
+            if char == '"' and braces == 0:
+                quoted = not quoted
+            elif not quoted:
+                if char == "{":
+                    braces += 1
+                elif char == "}":
+                    braces = max(0, braces - 1)
+                elif char == ";" and braces == 0:
+                    commands.append(current)
+                    current = ""
+                    continue
+            current += char
+        commands.append(current)
+
+        return [command for command in commands if command.strip()]
+
     def __parse_sdc_clock(self, file: str) -> Tuple[str, float]:
         name = None
         period = None
         with sc_open(file) as f:
             lines = self.__join_continuations(f.read().splitlines())
+
+        # Both passes below read commands rather than lines: a line can hold several,
+        # and a 'set' after a semicolon defines a variable just as much as one on its
+        # own line.
+        commands = []
+        for line in lines:
+            commands.extend(self.__split_commands(line))
 
         # collect simple variables in case clock is specified with a variable
         re_var = r"[A-Za-z0-9_]+"
@@ -710,8 +765,8 @@ class ASICTask(Task):
         # a command substitution, a list, or a quoted string
         re_word = r"[^\s\[\]{}\"]+"
         sdc_vars = {}
-        for line in lines:
-            tcl_variable = re.findall(fr"^\s*set\s+({re_var})\s+({re_word})", line)
+        for command in commands:
+            tcl_variable = re.findall(fr"^\s*set\s+({re_var})\s+({re_word})", command)
             if tcl_variable:
                 var_name, var_value = tcl_variable[0]
                 sdc_vars[f'${var_name}'] = var_value
@@ -727,10 +782,10 @@ class ASICTask(Task):
                 value = sdc_vars[value]
             return value
 
-        for line in lines:
-            # Anchored: a create_clock inside a comment or a quoted string is not a
-            # clock definition, and the old pattern matched it anywhere in the line.
-            for command in re.findall(r"^\s*create_clock\s(.*)", line):
+        for command in commands:
+            # A create_clock inside a comment or a quoted string is not a clock
+            # definition; one after a semicolon is.
+            for command in re.findall(r"^\s*create_clock\s(.*)", command):
                 clock_period = re.findall(fr"-period\s+({re_num}|\${re_var})", command)
                 if not clock_period:
                     continue
@@ -789,7 +844,9 @@ class ASICTask(Task):
         Yields:
             The (library, fileset) pairs the mode's SDC filesets resolve to.
         """
-        for lib, fileset in mode_obj.get_sdcfileset():
+        # step/index: the fileset is PerNode.OPTIONAL, so a mode may name different
+        # SDC files for different nodes, and this runs at one of them.
+        for lib, fileset in mode_obj.get_sdcfileset(step=self.step, index=self.index):
             libobj = self.project.get_library(lib)
             yield from self.project.get_filesets(library=libobj, filesets=[fileset])
 
