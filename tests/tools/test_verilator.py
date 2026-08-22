@@ -211,6 +211,34 @@ def test_runtime_args(heartbeat_design, monkeypatch):
             '-o', '../outputs/heartbeat.vexe']
 
 
+def test_runtime_args_c_idir(heartbeat_design, datadir, monkeypatch):
+    """The include directories of a fileset holding C sources reach the C++ compiler."""
+    incdir = os.path.join(datadir, 'verilator', 'include')
+    with heartbeat_design.active_fileset("tb_test_cpp"):
+        heartbeat_design.add_file(os.path.join(datadir, 'verilator', 'heartbeat_tb.cpp'))
+        heartbeat_design.add_idir(incdir)
+
+    proj = Project(heartbeat_design)
+    proj.add_fileset("rtl")
+    proj.add_fileset("tb_test_cpp")
+
+    flow = Flowgraph("testflow")
+    flow.node("compile", compile.CompileTask())
+    proj.set_flow(flow)
+
+    def limit_cpu(*args, **kwargs):
+        return 2
+
+    monkeypatch.setattr(utils, 'get_cores', limit_cpu)
+
+    node = SchedulerNode(proj, "compile", "0")
+    with node.runtime():
+        assert node.setup() is True
+        args = node.task.get_runtime_arguments()
+
+    assert args[args.index('-CFLAGS') + 1] == f'-I{incdir}'
+
+
 def test_runtime_args_trace(heartbeat_design, monkeypatch):
     proj = Project(heartbeat_design)
     heartbeat_design.set_param("N", "8", "rtl")

@@ -114,9 +114,10 @@ class VivadoTask(Task):
                 'f8mux': (re.compile(r'MUXF8\*?\s+\|\s+(\d+)'), int),
                 'dsps': (re.compile(r'DSPs\*?\s+\|\s+(\d+)'), int),
                 'regs': (re.compile(r'(?:CLB|Slice) Registers\s+\|\s+(\d+)'), int),
+                # A RAMB18 occupies half a block RAM tile, so the BRAM row can be
+                # fractional. A URAM288 is always a whole block, so that row is not.
                 'bram': (re.compile(r'Block RAM Tile\s+\|\s+(\d+(.\d+)?)'), float),
-                # TODO: should URAM be float?
-                'uram': (re.compile(r'URAM\s+\|\s+(\d+(.\d+)?)'), float)
+                'uram': (re.compile(r'URAM\s+\|\s+(\d+)'), int)
             }
             vals = {}
 
