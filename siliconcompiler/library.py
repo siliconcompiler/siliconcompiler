@@ -261,21 +261,44 @@ class StdCellLibrary(ToolLibrarySchema):
                     "api: schema.set('asic', 'aprfileset', 'model.lef')"],
                 help=trim("""Map between filesets and automated place and route tool files.""")))
 
-        # TODO: Expand on the exact definitions of these types of cells.
         # minimize typing
-        for item in [
-                'decap',
-                'tie',
-                'hold',
-                'clkbuf',
-                'clkgate',
-                'clklogic',
-                'dontuse',
-                'filler',
-                'tap',
-                'endcap',
-                'antenna',
-                'physicalonly']:
+        for item, description in [
+                ('decap',
+                 "Decoupling capacitor cells, placed into otherwise unused placement sites "
+                 "to add on-chip supply capacitance and limit dynamic IR drop."),
+                ('tie',
+                 "Tie-high and tie-low cells, used to drive a constant one or zero into "
+                 "inputs that cannot be wired directly to the power or ground rails."),
+                ('hold',
+                 "Delay cells used to repair hold time violations. Held out of "
+                 "optimization except in the steps that fix hold."),
+                ('clkbuf',
+                 "Clock buffers and inverters used to build the clock tree."),
+                ('clkgate',
+                 "Integrated clock gating cells, used to stop the clock to a bank of "
+                 "registers and save dynamic power."),
+                ('clklogic',
+                 "The remaining clock network cells, such as clock muxes and dividers. "
+                 "Grouped with clkbuf and clkgate as cells reserved for the clock tree."),
+                ('dontuse',
+                 "Cells that must never be picked by synthesis or place and route, for "
+                 "example cells that are poorly characterized or reserved by the foundry."),
+                ('filler',
+                 "Cells with no logical function, placed into unused placement sites to "
+                 "keep the rows continuous and satisfy implant and well continuity rules."),
+                ('tap',
+                 "Well tap cells, tying the well and substrate to the supply rails at the "
+                 "maximum spacing the process allows in order to prevent latch-up."),
+                ('endcap',
+                 "Boundary cells placed at the ends of the placement rows to terminate "
+                 "them legally."),
+                ('antenna',
+                 "Antenna diode cells, attached to nets to protect gate oxide from "
+                 "process induced charge damage."),
+                ('physicalonly',
+                 "Cells that exist only in the physical design and carry no logical "
+                 "function. They are stripped from the netlists handed to LEC and LVS; "
+                 "filler, decap, tap and endcap cells are normally listed here as well.")]:
             schema.insert(
                 'asic', 'cells', item,
                 Parameter(
@@ -283,11 +306,12 @@ class StdCellLibrary(ToolLibrarySchema):
                     scope=Scope.GLOBAL,
                     shorthelp=f"ASIC: {item} cell list",
                     example=[f"api: schema.set('asic', 'cells', '{item}', '*eco*')"],
-                    help=trim("""
-                    List of cells grouped by a property that can be accessed
-                    directly by the designer and tools. The example below shows how
-                    all cells containing the string 'eco' could be marked as dont use
-                    for the tool.""")))
+                    help=trim(f"""
+                    {description}
+
+                    Cells can be named explicitly or matched with wildcard patterns, as
+                    in the example below which selects every cell with 'eco' in its
+                    name.""")))
 
         schema.insert(
             'asic', 'site',
