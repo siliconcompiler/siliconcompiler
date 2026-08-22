@@ -427,8 +427,12 @@ class TaskScheduler:
                         # the next, so each node gets its own retry budget for now.
                         MPManager.get_path_cache().seed(
                             info["parent_pipe"].recv(), include_failures=False)
-                    except:  # noqa E722
-                        pass
+                    except Exception as e:
+                        # A child that died mid-write leaves a truncated pickle.
+                        # Losing the cache only costs the next node a re-resolve,
+                        # so say so and carry on rather than failing the run.
+                        self.__logger.debug(
+                            f'{info["name"]} did not send a usable package cache: {e}')
 
                 # Remove pipe
                 info["parent_pipe"] = None

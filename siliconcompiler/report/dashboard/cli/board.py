@@ -932,15 +932,18 @@ class Board:
         def update_data():
             try:
                 self._update_rendable_data()
-            except:  # noqa E722
-                # Catch any multiprocessing errors
+            except Exception:
+                # The render thread reads manager proxies, which raise once the
+                # manager goes away during teardown. Nothing is logged here on
+                # purpose: this module is the sink the logger writes into, so a log
+                # call from a dead proxy would raise inside its own handler.
                 pass
 
         def check_stop_event():
             try:
                 return self._render_stop_event.is_set()
-            except:  # noqa E722
-                # Catch any multiprocessing errors
+            except Exception:
+                # See update_data: a dead proxy means teardown, so stop.
                 return True
 
         def data_changed():
@@ -951,8 +954,9 @@ class Board:
             # (data changes fire _render_event too).
             try:
                 return self._board_info.data_modified
-            except:  # noqa E722
-                # Catch any multiprocessing errors
+            except Exception:
+                # See update_data. update_data re-checks the flag under the lock,
+                # so a lost peek only skips one reload.
                 return False
 
         try:
@@ -975,8 +979,9 @@ class Board:
                 try:
                     if self._render_event.wait(timeout=self._dwell):
                         self._render_event.clear()
-                except:  # noqa E722
-                    # Catch any multiprocessing errors
+                except Exception:
+                    # See update_data: without the event there is nothing left to
+                    # wake this loop, so leave it.
                     break
 
                 self._handle_keyboard()

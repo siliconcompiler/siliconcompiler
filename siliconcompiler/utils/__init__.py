@@ -1256,7 +1256,10 @@ class FilterDirectories:
                     if bool(os.stat(os.path.join(path, f)).st_file_attributes &
                             stat.FILE_ATTRIBUTE_HIDDEN)
                 ])
-        except:  # noqa 722
+        except (OSError, AttributeError):
+            # A file can vanish or refuse a stat between listing and probing, and
+            # the attribute constants only exist on the platforms that define the
+            # stat field. Treat the file as not hidden either way.
             pass
         # filter out hidden files (macos)
         try:
@@ -1266,7 +1269,8 @@ class FilterDirectories:
                     if bool(os.stat(os.path.join(path, f)).st_reparse_tag &
                             stat.UF_HIDDEN)
                 ])
-        except:  # noqa 722
+        except (OSError, AttributeError):
+            # Same as above.
             pass
 
         self.file_count += len(files) - len(hidden_files)
