@@ -11,8 +11,9 @@ src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 install_prereqs git gcc-c++ wget
 install_prereqs tcl-tclreadline-devel \
     bison flex zlib-devel automake autoconf
-# Pinned URLs rather than package names, so there is nothing for the probe to
-# recognise -- these always install, exactly as before.
+# Pinned URLs rather than package names. install_prereqs never probes a URL or a
+# path -- `rpm -q` on one downloads it and answers about the file, so it reports
+# every one of these as installed -- so they always install, exactly as before.
 install_prereqs \
     https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/Packages/flex-2.6.4-9.el9.x86_64.rpm \
     https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/Packages/readline-devel-8.1-4.el9.x86_64.rpm \

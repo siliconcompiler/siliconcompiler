@@ -116,13 +116,36 @@ _sc_missing_pkgs() {
     # several lines per package and the install would be buried in them.
     set +x
 
+    # A file path or URL is not a package name, and asking a probe about one gets
+    # an answer about the wrong thing: `rpm -q ./foo.rpm` (a URL included, which it
+    # downloads to do it) reports the NEVRA of that *file* and exits 0, whatever is
+    # or is not installed. Probing one would therefore skip the install of a package
+    # the machine does not have. So these never reach a probe -- unsure means
+    # install, and about a file the probe has nothing to say.
+    _sc_literal=""
+    _sc_probe=""
+    for _sc_arg in "$@"; do
+        case "$_sc_arg" in
+            */*|*.rpm|*.deb) _sc_literal="$_sc_literal $_sc_arg" ;;
+            *) _sc_probe="$_sc_probe $_sc_arg" ;;
+        esac
+    done
+
+    printf '%s' "$_sc_literal"
+
+    if [ -z "$_sc_probe" ]; then
+        return 0
+    fi
+
+    # Word splitting of the probe list is intended.
+    # shellcheck disable=SC2086
     if command -v dpkg-query > /dev/null 2>&1; then
-        _sc_missing_deb "$@"
+        _sc_missing_deb $_sc_probe
     elif command -v rpm > /dev/null 2>&1; then
-        _sc_missing_rpm "$@"
+        _sc_missing_rpm $_sc_probe
     else
         # Nothing to ask, so ask for all of it.
-        printf '%s' " $*"
+        printf '%s' "$_sc_probe"
     fi
 }
 
