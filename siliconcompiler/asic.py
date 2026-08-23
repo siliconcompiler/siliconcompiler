@@ -745,8 +745,15 @@ class ASICTask(Task):
 
         return [command for command in commands if command.strip()]
 
-    def __parse_sdc_clock(self, file: str) -> Tuple[str, float]:
+    def __parse_sdc_clock(self, file: str) -> Tuple[str, str, float]:
+        """Finds the fastest clock a single SDC file defines.
+
+        Returns:
+            The name, the port and the period of the fastest ``create_clock`` in the
+            file, each None when the file does not give it.
+        """
         name = None
+        port = None
         period = None
         with sc_open(file) as f:
             lines = self.__join_continuations(f.read().splitlines())
@@ -765,11 +772,18 @@ class ASICTask(Task):
         # a command substitution, a list, or a quoted string
         re_word = r"[^\s\[\]{}\"]+"
         sdc_vars = {}
+        # The whole right-hand side, kept separately because a port is regularly held
+        # in a variable that a bare word cannot express, as in
+        # "set clk_port [get_ports clk]".
+        sdc_exprs = {}
         for command in commands:
             tcl_variable = re.findall(fr"^\s*set\s+({re_var})\s+({re_word})", command)
             if tcl_variable:
                 var_name, var_value = tcl_variable[0]
                 sdc_vars[f'${var_name}'] = var_value
+            tcl_expr = re.match(fr"^\s*set\s+({re_var})\s+(\S.*)$", command)
+            if tcl_expr:
+                sdc_exprs[f'${tcl_expr.group(1)}'] = tcl_expr.group(2).strip()
 
         def resolve(value: str) -> Optional[str]:
             """Substitutes TCL variables until a literal is reached, returning None if
@@ -781,6 +795,43 @@ class ASICTask(Task):
                 seen.add(value)
                 value = sdc_vars[value]
             return value
+
+        def expand(command: str) -> str:
+            """Substitutes every variable this parser collected, so that a port reached
+            through one is visible to the port match below. Bounded by the number of
+            variables, which is what stops a variable defined in terms of itself."""
+            for _ in range(len(sdc_exprs) + 1):
+                expanded = re.sub(fr"\${re_var}",
+                                  lambda match: sdc_exprs.get(match.group(0), match.group(0)),
+                                  command)
+                if expanded == command:
+                    break
+                command = expanded
+            return command
+
+        # The flags of create_clock that take a value, so that what is left over is the
+        # object the clock is attached to.
+        flags_with_value = ("-name", "-period", "-waveform", "-comment")
+
+        def find_port(command: str) -> Optional[str]:
+            """Finds the port a create_clock is attached to, None for a virtual clock,
+            which is attached to nothing."""
+            command = expand(command)
+
+            ports = re.findall(fr"get_ports?\s+\{{?\s*({re_word})", command)
+            if ports:
+                return ports[0]
+
+            # No [get_ports ...], so the object list names the port directly.
+            skip = False
+            for token in command.replace("{", " ").replace("}", " ").split():
+                if skip:
+                    skip = False
+                elif token in flags_with_value:
+                    skip = True
+                elif not token.startswith("-"):
+                    return token
+            return None
 
         for command in commands:
             # A create_clock inside a comment or a quoted string is not a clock
@@ -808,11 +859,12 @@ class ASICTask(Task):
 
                 period = new_period
                 # A create_clock without -name takes its name from the port it is
-                # attached to, which this parser does not resolve.
+                # attached to.
                 clock_name = re.findall(fr"-name\s+({re_word})", command)
-                name = resolve(clock_name[0]) if clock_name else None
+                port = find_port(command)
+                name = resolve(clock_name[0]) if clock_name else port
 
-        return name, period
+        return name, port, period
 
     def __get_timing_modes(self) -> List[BaseSchema]:
         """Collects the timing modes of the scenarios that run at this step and index.
@@ -890,6 +942,27 @@ class ASICTask(Task):
                 if lib.has_file(fileset=fileset, filetype="sdc"):
                     self.add_required_key(lib, "fileset", fileset, "file", "sdc")
 
+    def __find_clock(self) -> Tuple[str, str, float]:
+        """Finds the fastest clock across the SDC files that apply at this node.
+
+        Returns:
+            The name, the port and the period of that clock, each None when the SDC
+            files do not give it.
+        """
+        name = None
+        port = None
+        period = None
+
+        for sdc in self.__get_sdcs():
+            new_name, new_port, new_period = self.__parse_sdc_clock(sdc)
+            if new_period is not None:
+                if period is None or new_period < period:
+                    period = new_period
+                    name = new_name
+                    port = new_port
+
+        return name, port, period
+
     def get_clock(self, clock_units_multiplier: float = 1.0) -> Tuple[str, float]:
         """Finds the fastest clock the SDC files of this node define.
 
@@ -900,20 +973,28 @@ class ASICTask(Task):
             The name and period of the fastest clock, either of which is None when the
             SDC files do not give it.
         """
-        name = None
-        period = None
-
-        for sdc in self.__get_sdcs():
-            new_name, new_period = self.__parse_sdc_clock(sdc)
-            if new_period is not None:
-                if period is None or new_period < period:
-                    period = new_period
-                    name = new_name
+        name, _, period = self.__find_clock()
 
         if period is not None:
             period *= clock_units_multiplier
 
         return name, period
+
+    def get_clock_port(self) -> Optional[str]:
+        """Finds the port the fastest clock of this node is attached to.
+
+        This is the name the clock carries in the design, which is not the name of the
+        clock itself: ``create_clock -name core_clock [get_ports clock]`` names a clock
+        ``core_clock`` on a port ``clock``. A tool that has to agree with the SDC on
+        what the clock pin is called -- one generating the RTL the SDC constrains, say
+        -- wants this and not :meth:`get_clock`.
+
+        Returns:
+            The port name, None when the SDC files do not give it or the fastest clock
+            is virtual and so attached to no port.
+        """
+        _, port, _ = self.__find_clock()
+        return port
 
 
 class CellArea:

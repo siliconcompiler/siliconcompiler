@@ -44,6 +44,7 @@ ENV CPLUS_INCLUDE_PATH="$SC_PREFIX/include"
 COPY setup/build_tools.sh $SC_BUILD/
 COPY siliconcompiler/toolscripts/_tools.py $SC_BUILD/..
 COPY siliconcompiler/toolscripts/_tools.json $SC_BUILD/..
+COPY siliconcompiler/toolscripts/_prereqs.sh $SC_BUILD/..
 COPY siliconcompiler/toolscripts/ubuntu24 $SC_BUILD
 
 WORKDIR $SC_BUILD

@@ -76,6 +76,27 @@ def test_runtime_args(gcd_design, datadir):
         ]
 
 
+def test_runtime_args_clock(gcd_design):
+    """--clock-name is the clock port of the generated RTL, so it has to come from the
+    port the SDC creates its clock on and not from the name of that clock. gcd.sdc says
+    "create_clock -name core_clock ... [get_ports clk]"; naming the port core_clock
+    would leave the SDC constraining a port that does not exist."""
+    proj = Project(gcd_design)
+    proj.add_fileset(["rtl", "sdc"])
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+
+    assert '--clock-name=clk' in arguments
+    assert '--clock-period=2.0' in arguments
+
+
 def test_parameter_memorychannels():
     task = convert.ConvertTask()
     task.set_bambu_memorychannels(2)
