@@ -19262,7 +19262,7 @@
               "cli: -pdk_aprtech 'asap7 openroad M10 12t lef tech.lef'",
               "api: pdk.set('pdk', 'asap7', 'aprtech', 'openroad', 'M10', '12t', 'lef', 'tech.lef')"
             ],
-            "help": "Technology file containing setup information needed to enable DRC clean APR\nfor the specified stackup, libarch, and format. The 'libarch' specifies the\nlibrary architecture (e.g. library height). For example a PDK with support\nfor 9 and 12 track libraries might have 'libarchs' called 9t and 12t.\nThe standard filetype for specifying place and route design rules for a\nprocess node is through a 'lef' format technology file. The\n'filetype' used in the aprtech is used by the tool specific APR TCL scripts\nto set up the technology parameters. Some tools may require additional\nfiles beyond the tech.lef file. Examples of extra file types include\nantenna, tracks, tapcell, viarules, and em.",
+            "help": "Filesets holding the technology files an APR tool needs to run DRC clean on\nthis process. The files live in the named filesets, so which filetypes are\naccepted is set by what a tool reads rather than by a fixed list. The place\nand route design rules for a process node are carried by a 'lef' format\ntechnology file, and a PDK is free to add the further files a given tool\nasks for, such as antenna, tracks, tapcell, viarules and em rules. Not every\nfileset in the list has to carry a technology LEF; splitting the tech LEF\nfrom the supporting files is common.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21234,7 +21234,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'decap', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Decoupling capacitor cells, placed into otherwise unused placement sites to add on-chip supply capacitance and limit dynamic IR drop.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21256,7 +21256,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'tie', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Tie-high and tie-low cells, used to drive a constant one or zero into inputs that cannot be wired directly to the power or ground rails.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21278,7 +21278,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'hold', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Delay cells used to repair hold time violations. Held out of optimization except in the steps that fix hold.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21300,7 +21300,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'clkbuf', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Clock buffers and inverters used to build the clock tree.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21322,7 +21322,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'clkgate', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Integrated clock gating cells, used to stop the clock to a bank of registers and save dynamic power.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21344,7 +21344,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'clklogic', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "The remaining clock network cells, such as clock muxes and dividers. Grouped with clkbuf and clkgate as cells reserved for the clock tree.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21366,7 +21366,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'dontuse', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Cells that must never be picked by synthesis or place and route, for example cells that are poorly characterized or reserved by the foundry.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21388,7 +21388,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'filler', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Cells with no logical function, placed into unused placement sites to keep the rows continuous and satisfy implant and well continuity rules.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21410,7 +21410,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'tap', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Well tap cells, tying the well and substrate to the supply rails at the maximum spacing the process allows in order to prevent latch-up.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21432,7 +21432,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'endcap', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Boundary cells placed at the ends of the placement rows to terminate them legally.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21454,7 +21454,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'antenna', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Antenna diode cells, attached to nets to protect gate oxide from process induced charge damage.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -21476,7 +21476,7 @@
             "example": [
               "api: schema.set('asic', 'cells', 'physicalonly', '*eco*')"
             ],
-            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "help": "Cells that exist only in the physical design and carry no logical function. They are stripped from the netlists handed to LEC and LVS; filler, decap, tap and endcap cells are normally listed here as well.\n\nCells can be named explicitly or matched with wildcard patterns, as\nin the example below which selects every cell with 'eco' in its\nname.",
             "notes": null,
             "pernode": "never",
             "node": {

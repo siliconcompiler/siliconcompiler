@@ -7,9 +7,11 @@ import time
 import os.path
 
 from siliconcompiler import NodeStatus
-from siliconcompiler.remote import Client
+from siliconcompiler.remote import Client, ConfigureClient
 from siliconcompiler.remote import NodeStatus as RemoteNodeStatus
 from siliconcompiler.remote.server import Server
+from siliconcompiler._metadata import default_server
+from siliconcompiler.scheduler.error import SCRuntimeError
 
 
 def _client(project, nodes=('stepone0', 'steptwo0')):
@@ -230,7 +232,7 @@ def test_post_retries_timeouts(gcd_nop_project, monkeypatch):
 
     monkeypatch.setattr(requests, 'post', flaky_post)
 
-    assert Client(gcd_nop_project).delete_job() == 'Job deleted.'
+    assert Client(gcd_nop_project).delete_job()['message'] == 'Job deleted.'
     assert len(attempts) == 3
 
 
@@ -259,7 +261,7 @@ def test_post_follows_redirect(gcd_nop_project, monkeypatch):
 
     monkeypatch.setattr(requests, 'post', redirecting_post)
 
-    assert Client(gcd_nop_project).delete_job() == 'Job deleted.'
+    assert Client(gcd_nop_project).delete_job()['message'] == 'Job deleted.'
     assert urls[1] == 'http://elsewhere/delete_job/'
 
 
@@ -268,8 +270,9 @@ def test_post_raises_on_error_without_handler(gcd_nop_project, monkeypatch):
     monkeypatch.setattr(requests, 'post',
                         lambda url, **kwargs: _response(500, json.dumps({'message': 'boom'})))
 
+    # check() posts without an error_action, which is the path under test here
     with pytest.raises(RuntimeError, match='Server responded with 500: boom'):
-        Client(gcd_nop_project).delete_job()
+        Client(gcd_nop_project).check()
 
 
 def test_post_error_without_json_body(gcd_nop_project, monkeypatch):
@@ -278,7 +281,79 @@ def test_post_error_without_json_body(gcd_nop_project, monkeypatch):
                         lambda url, **kwargs: _response(502, 'Bad Gateway'))
 
     with pytest.raises(RuntimeError, match='Server responded with 502: Bad Gateway'):
-        Client(gcd_nop_project).delete_job()
+        Client(gcd_nop_project).check()
+
+
+def test_check_job_status_stops_on_refusal(gcd_nop_project, monkeypatch, caplog):
+    """A job this client may not watch ends the wait rather than polling forever"""
+    monkeypatch.setattr(
+        requests, 'post',
+        lambda url, **kwargs: _response(403, json.dumps(
+            {'message': 'Error: job belongs to another user.',
+             'status': 'rejected'})))
+
+    info = Client(gcd_nop_project).check_job_status()
+
+    assert info['busy'] is False
+    assert info['refused'] is True
+    assert 'Unable to check job status: Error: job belongs to another user.' in caplog.text
+
+
+def test_run_loop_refusal_is_not_completion(gcd_nop_project, monkeypatch):
+    '''A refused poll ends the run as a failure rather than a finished job'''
+    monkeypatch.setattr(
+        requests, 'post',
+        lambda url, **kwargs: _response(403, json.dumps(
+            {'message': 'Error: job belongs to another user.', 'status': 'rejected'})))
+
+    client = _client(gcd_nop_project)
+    # skip the /check_server/ round trip __ensure_run_loop_information would make
+    client._Client__check_interval = 0
+
+    with pytest.raises(SCRuntimeError, match='belongs to another user'):
+        client._run_loop()
+
+    # the loop must not have announced the job as done on the way out
+    assert client._Client__download_pool is None
+
+
+def test_check_job_status_keeps_waiting_on_a_hiccup(gcd_nop_project, monkeypatch):
+    """A server-side error is transient, so the wait continues"""
+    monkeypatch.setattr(requests, 'post',
+                        lambda url, **kwargs: _response(500, 'Internal Server Error'))
+
+    assert Client(gcd_nop_project).check_job_status()['busy'] is True
+
+
+def test_delete_job_reports_a_refusal(gcd_nop_project, monkeypatch, caplog):
+    '''A job the server will not delete is an answer, not an exception'''
+    monkeypatch.setattr(
+        requests, 'post',
+        lambda url, **kwargs: _response(403, json.dumps(
+            {'message': 'Error: job belongs to another user.', 'success': False})))
+
+    assert Client(gcd_nop_project).delete_job() == {
+        'message': 'Error: job belongs to another user.',
+        'success': False}
+    assert 'Unable to delete job: Error: job belongs to another user.' in caplog.text
+
+
+def test_delete_job_reads_the_json_response(gcd_nop_project, monkeypatch):
+    '''The documented response shape is what the client returns'''
+    monkeypatch.setattr(
+        requests, 'post',
+        lambda url, **kwargs: _response(200, json.dumps(
+            {'message': 'Job deleted.', 'success': True})))
+
+    assert Client(gcd_nop_project).delete_job() == {'message': 'Job deleted.', 'success': True}
+
+
+def test_delete_job_accepts_a_plain_text_server(gcd_nop_project, monkeypatch):
+    '''A server older than the JSON response still answers this client'''
+    monkeypatch.setattr(requests, 'post',
+                        lambda url, **kwargs: _response(200, 'Job deleted.'))
+
+    assert Client(gcd_nop_project).delete_job() == {'message': 'Job deleted.', 'success': True}
 
 
 ###########################
@@ -349,3 +424,125 @@ def test_get_results_body_matches_published_schema(gcd_nop_project):
     validate_get_results(params)
     validate_get_results({**params, 'node': 'write.gds0'})
     validate_get_results({**params, 'node': 'dfm.metal_fill0'})
+
+
+###########################
+# configure_server
+###########################
+
+def _no_input(monkeypatch):
+    """Makes every prompt unanswerable, which is what a scripted run has."""
+    def eof(*args, **kwargs):
+        raise EOFError()
+    monkeypatch.setattr('builtins.input', eof)
+
+
+def _configure_client(project):
+    project.set('option', 'credentials', 'credentials.json')
+    return ConfigureClient(project)
+
+
+def _written_config():
+    with open('credentials.json') as f:
+        return json.load(f)
+
+
+def test_configure_server_noninteractive(gcd_nop_project, monkeypatch):
+    """Every answer supplied means no prompt, so no terminal is needed."""
+    _no_input(monkeypatch)
+
+    _configure_client(gcd_nop_project).configure_server(
+        server="https://example.com:1234", username="user", password="pass")
+
+    assert _written_config() == {
+        "address": "https://example.com",
+        "port": 1234,
+        "username": "user",
+        "password": "pass",
+        "directory_whitelist": []
+    }
+
+
+def test_configure_server_public_needs_accept_terms(gcd_nop_project, monkeypatch):
+    """The public server cannot be configured headlessly without accepting the terms."""
+    _no_input(monkeypatch)
+
+    with pytest.raises(ValueError, match="pass accept_terms=True instead"):
+        _configure_client(gcd_nop_project).configure_server(server=default_server)
+
+    assert not os.path.exists('credentials.json')
+
+
+def test_configure_server_public_accept_terms(gcd_nop_project, monkeypatch):
+    """accept_terms is the non-interactive path to the public server."""
+    _no_input(monkeypatch)
+
+    _configure_client(gcd_nop_project).configure_server(server=default_server,
+                                                        accept_terms=True)
+
+    assert _written_config()["address"] == default_server
+
+
+def _existing_config():
+    with open('credentials.json', 'w') as f:
+        json.dump({"address": "https://old.example.com", "directory_whitelist": []}, f)
+
+
+def test_configure_server_existing_needs_clobber(gcd_nop_project, monkeypatch):
+    """An existing configuration is not overwritten on a guess."""
+    _no_input(monkeypatch)
+    _existing_config()
+
+    with pytest.raises(ValueError, match="pass clobber=True instead"):
+        _configure_client(gcd_nop_project).configure_server(server="https://example.com")
+
+    assert _written_config()["address"] == "https://old.example.com"
+
+
+def test_configure_server_clobber(gcd_nop_project, monkeypatch):
+    _no_input(monkeypatch)
+    _existing_config()
+
+    _configure_client(gcd_nop_project).configure_server(server="https://example.com",
+                                                        clobber=True)
+
+    assert _written_config()["address"] == "https://example.com"
+
+
+def test_configure_server_needs_a_server(gcd_nop_project, monkeypatch):
+    """A blank answer would select the public server, so it is not assumed."""
+    _no_input(monkeypatch)
+
+    with pytest.raises(ValueError, match="choose a server address"):
+        _configure_client(gcd_nop_project).configure_server()
+
+
+def test_configure_server_no_credentials(gcd_nop_project, monkeypatch):
+    """Unsupplied credentials become the blank answer the prompt accepts."""
+    _no_input(monkeypatch)
+
+    _configure_client(gcd_nop_project).configure_server(server="https://example.com")
+
+    config = _written_config()
+    assert "username" not in config
+    assert "password" not in config
+
+
+def test_configure_server_credentials_from_address(gcd_nop_project, monkeypatch):
+    _no_input(monkeypatch)
+
+    _configure_client(gcd_nop_project).configure_server(
+        server="https://user:pass@example.com")
+
+    config = _written_config()
+    assert config["username"] == "user"
+    assert config["password"] == "pass"
+
+
+def test_configure_server_interactive_terms_declined(gcd_nop_project, monkeypatch):
+    """An answerable prompt still gets asked, and declining writes nothing."""
+    monkeypatch.setattr('builtins.input', lambda *args, **kwargs: 'n')
+
+    _configure_client(gcd_nop_project).configure_server(server=default_server)
+
+    assert not os.path.exists('credentials.json')

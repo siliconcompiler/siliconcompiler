@@ -108,7 +108,10 @@ class RecordSchema(BaseSchema):
         '''
         try:
             from pip._internal.operations.freeze import freeze
-        except:  # noqa E722
+        except Exception:
+            # pip._internal is a private API: it moves between pip releases and
+            # importing it runs pip's own module code, so this fails in more ways
+            # than an ImportError.
             freeze = None
 
         if freeze:
@@ -187,7 +190,10 @@ class RecordSchema(BaseSchema):
                             macaddr = addr.address
 
                     return {"ip": ipaddr, "mac": macaddr}
-        except:  # noqa E722
+        except OSError:
+            # psutil raises OS errors for interfaces that disappear mid-walk. A
+            # machine record without an address is fine; anything else raised here
+            # is a bug rather than a platform difference, so it is left to surface.
             pass
 
         return {"ip": None, "mac": None}

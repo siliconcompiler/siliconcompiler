@@ -112,8 +112,9 @@ def generate_region_from_pin(pin_region):
     # ***ASSUMPTION:  Pin region is a 4-element tuple
     #                 containing (X,Y,subtile,block_type)
 
-    # TODO figure out a scheme that supports VPR's notion
-    # of specifying a region size of > 1x1
+    # VPR regions can span a rectangle, but a pin constraint names one site, so
+    # the region collapses to a single tile. Anything larger needs a constraint
+    # source that describes an area rather than a pin.
     x_low = int(pin_region[0])
     x_high = int(pin_region[0])
     y_low = int(pin_region[1])

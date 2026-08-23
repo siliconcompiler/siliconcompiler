@@ -13,7 +13,9 @@ try:
     from base64 import b64encode, b64decode
     from hashlib import blake2b
     _has_sign = True
-except:  # noqa E722
+except ImportError:
+    # blake2b is absent from interpreters built without it, which costs signing
+    # but nothing else.
     _has_sign = False
 
 

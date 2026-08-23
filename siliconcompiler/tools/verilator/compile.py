@@ -1,6 +1,7 @@
 import shlex
 from typing import Optional, List, Union
 
+from siliconcompiler.tools._common import distinct
 from siliconcompiler.tools.verilator import VerilatorTask
 
 
@@ -30,10 +31,14 @@ class CompileTask(VerilatorTask):
                            "requirement. See --main in Verilator docs for more info",
                            defvalue=False)
 
-        # TODO Move to design object
+        # The header search paths come from the design: runtime_options reads the
+        # idir of every fileset holding C sources. This covers the directories that
+        # no fileset owns. The design describes sources and search paths, not the
+        # flags a compiler is invoked with, so cflags and ldflags stay here.
         self.add_parameter("cincludes", "[dir]",
-                           "include directories to provide to the C++ compiler invoked "
-                           "by Verilator")
+                           "additional include directories to provide to the C++ compiler "
+                           "invoked by Verilator, on top of the idir of the filesets "
+                           "carrying the C sources")
         self.add_parameter("cflags", "[str]",
                            "flags to provide to the C++ compiler invoked by Verilator")
         self.add_parameter("ldflags", "[str]",
@@ -185,6 +190,10 @@ class CompileTask(VerilatorTask):
                                 clobber: bool = False):
         """
         Adds include directories for the C++ compiler.
+
+        The include directories of the filesets carrying the C sources are passed to
+        the compiler already, so this is only needed for directories that no such
+        fileset owns.
 
         Args:
             include (Union[str, List[str]]): The include directory/directories to add.
@@ -359,7 +368,15 @@ class CompileTask(VerilatorTask):
         options.extend(['-o', f'../outputs/{self.design_topmodule}.vexe'])
 
         c_flags = self.get('var', 'cflags')
-        c_includes = self.find_files('var', 'cincludes')
+
+        # Headers for the C sources live in the idir of the fileset that carries
+        # them, the same way they do for the Verilog sources.
+        c_includes = []
+        for lib, fileset in self.project.get_filesets():
+            if lib.has_file(fileset=fileset, filetype="c"):
+                c_includes.extend(lib.get_idir(fileset))
+        c_includes.extend(self.find_files('var', 'cincludes'))
+        c_includes = distinct(c_includes)
 
         if self.get("var", "trace"):
             trace_type = self.get('var', 'trace_type')

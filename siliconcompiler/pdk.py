@@ -280,7 +280,6 @@ class PDK(ToolLibrarySchema):
                 all layers in the PDK. The display configuration file is entered on a
                 stackup and tool basis.""")))
 
-        # TODO: create firm list of accepted files
         schema.insert(
             "pdk", 'aprtechfileset', tool,
             Parameter(
@@ -293,16 +292,14 @@ class PDK(ToolLibrarySchema):
                     "api: pdk.set('pdk', 'asap7', 'aprtech', 'openroad', 'M10', '12t', 'lef', "
                     "'tech.lef')"],
                 help=trim("""
-                Technology file containing setup information needed to enable DRC clean APR
-                for the specified stackup, libarch, and format. The 'libarch' specifies the
-                library architecture (e.g. library height). For example a PDK with support
-                for 9 and 12 track libraries might have 'libarchs' called 9t and 12t.
-                The standard filetype for specifying place and route design rules for a
-                process node is through a 'lef' format technology file. The
-                'filetype' used in the aprtech is used by the tool specific APR TCL scripts
-                to set up the technology parameters. Some tools may require additional
-                files beyond the tech.lef file. Examples of extra file types include
-                antenna, tracks, tapcell, viarules, and em.""")))
+                Filesets holding the technology files an APR tool needs to run DRC clean on
+                this process. The files live in the named filesets, so which filetypes are
+                accepted is set by what a tool reads rather than by a fixed list. The place
+                and route design rules for a process node are carried by a 'lef' format
+                technology file, and a PDK is free to add the further files a given tool
+                asks for, such as antenna, tracks, tapcell, viarules and em rules. Not every
+                fileset in the list has to carry a technology LEF; splitting the tech LEF
+                from the supporting files is common.""")))
 
         name = 'default'
         for item in ('lvs', 'drc', 'erc', 'fill'):

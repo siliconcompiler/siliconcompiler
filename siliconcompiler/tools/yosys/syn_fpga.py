@@ -104,7 +104,15 @@ class FPGASynthesis(YosysTask):
             else:
                 for lib, key in filekeys:
                     self.add_required_key(lib, *key)
-                # TODO, mark required for define and params
+
+        # sc_read_design_verilog applies the design parameters whichever way the
+        # sources were read. The fileset defines are not marked: the yosys scripts
+        # never pass them to read_verilog, the elaboration step ahead of this one
+        # applies them.
+        design = self.project.design
+        design_fileset = self.project.option.get_fileset()[0]
+        for param in design.getkeys("fileset", design_fileset, "param"):
+            self.add_required_key(design, "fileset", design_fileset, "param", param)
 
         self.add_output_file(ext="vg")
         self.add_output_file(ext="netlist.json")

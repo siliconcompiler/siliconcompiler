@@ -335,8 +335,19 @@ def test_get_ip_information(if_addrs, expect):
 
 
 def test_get_ip_information_except():
+    '''An interface that cannot be read leaves the address out of the record'''
     with mock.patch("psutil.net_if_addrs") as net_if_addrs:
         def raise_except():
-            raise RuntimeError
+            raise OSError
         net_if_addrs.side_effect = raise_except
         assert RecordSchema.get_ip_information() == {'ip': None, 'mac': None}
+
+
+def test_get_ip_information_does_not_hide_bugs():
+    '''Anything that is not an OS error is a bug, and must not be swallowed'''
+    with mock.patch("psutil.net_if_addrs") as net_if_addrs:
+        def raise_except():
+            raise RuntimeError("not a platform difference")
+        net_if_addrs.side_effect = raise_except
+        with pytest.raises(RuntimeError, match="not a platform difference"):
+            RecordSchema.get_ip_information()

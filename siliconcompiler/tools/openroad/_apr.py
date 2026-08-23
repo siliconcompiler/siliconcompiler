@@ -2001,7 +2001,12 @@ class APRTask(OpenROADTask):
 
                 for mode in self._get_modes():
                     mode_obj = self.project.constraint.timing.get_mode(mode)
-                    for lib, fileset in mode_obj.get_sdcfileset():
+                    # step/index: sdcfileset is PerNode.OPTIONAL, and the tcl
+                    # manifest carries the value resolved for this node, so reading
+                    # the global here would declare files the script does not read
+                    # and miss the ones it does.
+                    for lib, fileset in mode_obj.get_sdcfileset(step=self.step,
+                                                                index=self.index):
                         libobj = self.project.get_library(lib)
                         # read_timing_constraints.tcl resolves aliases and
                         # depfilesets for the mode sdcfileset; mirror that here.

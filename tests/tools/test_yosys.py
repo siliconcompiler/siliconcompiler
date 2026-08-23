@@ -175,3 +175,21 @@ def test_wildebeest_is_run(heartbeat_design):
 
     assert found, "wildebeest yosys plugin was not run (log file "\
         "did not contain expected execution message)"
+
+
+def test_syn_fpga_marks_design_params_required(heartbeat_design):
+    """sc_read_design_verilog applies the design parameters, so they must be hashed."""
+    heartbeat_design.set_param("N", "8", "rtl")
+
+    proj = FPGA(heartbeat_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("synthflow")
+    flow.node("synthesis", FPGASynthesis())
+    proj.set_flow(flow)
+    proj.set_fpga(DummyYosysFPGA())
+
+    node = SchedulerNode(proj, "synthesis", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert "library,heartbeat,fileset,rtl,param,N" in node.task.get("require")

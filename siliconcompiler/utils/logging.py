@@ -243,7 +243,10 @@ class SCColorLoggerFormatter(logging.Formatter):
         supported_platform = sys.platform != 'win32'
         try:
             is_a_tty = hasattr(stream, 'isatty') and stream.isatty()
-        except:  # noqa E722
+        except Exception:
+            # The stream is whatever the caller handed us: a closed file raises
+            # ValueError, a captured or wrapped stream can raise anything else.
+            # Anything that cannot answer is treated as not a terminal.
             is_a_tty = False
 
         return supported_platform and is_a_tty

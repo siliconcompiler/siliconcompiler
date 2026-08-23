@@ -300,7 +300,9 @@ class MPManager(metaclass=_ManagerSingleton):
             if not manager.__error:
                 try:
                     os.remove(manager.__logfile)
-                except:  # noqa E722
+                except OSError:
+                    # The log may already be gone, or still be held open by
+                    # another handler on Windows. Leaving it behind is harmless.
                     pass
 
             # Stop the dashboard service if it's running

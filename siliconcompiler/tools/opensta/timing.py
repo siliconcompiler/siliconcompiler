@@ -202,7 +202,7 @@ class TimingTaskBase(OpenSTATask):
 
         if self.get("var", "timing_mode"):
             self.add_required_key("var", "timing_mode")
-            if self.get("var", "timing_mode") not in self.project.constraint.timing.get_modes():
+            if self.get("var", "timing_mode") not in self.project.constraint.timing.get_mode():
                 raise LookupError(f'{self.get("var", "timing_mode")} is not a defined mode')
         self.add_required_key("var", "top_n_paths")
         self.add_required_key("var", "unique_path_groups_per_clock")
@@ -462,7 +462,12 @@ class TimingTask(TimingTaskBase):
             timing_mode = self.get("var", "timing_mode")
             if timing_mode:
                 mode_obj = self.project.constraint.timing.get_mode(timing_mode)
-                for lib, fileset in mode_obj.get_sdcfileset():
+                # step/index: sdcfileset is PerNode.OPTIONAL, and the tcl manifest
+                # carries the value resolved for this node, so reading the global
+                # here would declare files the script does not read and miss the
+                # ones it does.
+                for lib, fileset in mode_obj.get_sdcfileset(step=self.step,
+                                                            index=self.index):
                     libobj = self.project.get_library(lib)
                     for fs_lib, fs in self.project.get_filesets(library=libobj,
                                                                 filesets=[fileset]):

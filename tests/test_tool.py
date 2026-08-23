@@ -4891,3 +4891,51 @@ def test_validate_io_duplicate_input_fails(project_logger, io_project, caplog):
     with nop.runtime(node) as task_obj:
         assert Task._validate_io(task_obj) is False
     assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text
+
+
+###########################
+# schema_task parameter groups
+###########################
+
+_SCHEMA_TASK_GROUPS = [
+    ("tool", ["exe", "format", "licenseserver", "path", "sbom", "vendor", "version",
+              "vswitch"]),
+    ("diagnostics", ["regex", "warningoff"]),
+    ("invocation", ["env", "option"]),
+    ("files", ["input", "output"]),
+    ("stdio", ["stderr", "stdout"]),
+    ("requirements", ["require"]),
+    ("reports", ["report"]),
+    ("scripts", ["postscript", "prescript", "refdir", "script"]),
+    ("resources", ["threads"]),
+]
+
+
+def _schema_task_group(name):
+    """The groups are private to Task, so reach them through the mangled name."""
+    return getattr(Task, f"_Task__schema_task_{name}")
+
+
+@pytest.mark.parametrize("group,keys", _SCHEMA_TASK_GROUPS)
+def test_schema_task_group_in_isolation(group, keys):
+    """Each group defines its own parameters and nothing else, so one can be read or
+    changed without the other eight."""
+    schema = BaseSchema()
+    _schema_task_group(group)(EditableSchema(schema))
+
+    assert sorted(schema.getkeys()) == keys
+
+
+def test_schema_task_groups_cover_every_parameter():
+    """The groups add up to every parameter a Task defines for itself, with nothing
+    dropped and nothing defined twice."""
+    from_groups = []
+    for group, _ in _SCHEMA_TASK_GROUPS:
+        schema = BaseSchema()
+        _schema_task_group(group)(EditableSchema(schema))
+        from_groups.extend(schema.getkeys())
+
+    assert len(from_groups) == len(set(from_groups)), "a parameter is defined by two groups"
+
+    # everything else a Task carries is inherited, not a task parameter
+    assert set(Task().getkeys()) - set(from_groups) == {"dataroot"}
