@@ -869,30 +869,36 @@ def test_asic_set_asic_var_from_pdk_as_list(running_node):
 
 
 @pytest.mark.parametrize(
-    "sdc_file,scale,period,clock",
+    "sdc_file,scale,period,clock,port",
     [
-        ("sdc_with_variable.sdc", 1, 10, "clk"),
-        ("sdc_with_nested.sdc", 1, 10, "clk"),
-        ("sdc_with_number0.sdc", 1, 10, "clk"),
-        ("sdc_with_number1.sdc", 1, 10.5, "clk"),
-        ("sdc_with_variable.sdc", 1e-12, 10e-12, "clk"),
-        ("sdc_with_number0.sdc", 1e-12, 10e-12, "clk"),
-        ("sdc_with_number1.sdc", 1e-12, 10.5e-12, "clk"),
-        ("sdc_with_nested.sdc", 1e-9, 10e-9, "clk"),
+        ("sdc_with_variable.sdc", 1, 10, "clk", "clk"),
+        ("sdc_with_nested.sdc", 1, 10, "clk", "clk"),
+        ("sdc_with_number0.sdc", 1, 10, "clk", "clk"),
+        ("sdc_with_number1.sdc", 1, 10.5, "clk", "clk"),
+        ("sdc_with_variable.sdc", 1e-12, 10e-12, "clk", "clk"),
+        ("sdc_with_number0.sdc", 1e-12, 10e-12, "clk", "clk"),
+        ("sdc_with_number1.sdc", 1e-12, 10.5e-12, "clk", "clk"),
+        ("sdc_with_nested.sdc", 1e-9, 10e-9, "clk", "clk"),
         # a create_clock split over several lines
-        ("sdc_with_continuation.sdc", 1, 10, "clk"),
-        # the fastest clock in the file, and its name
-        ("sdc_with_multiple.sdc", 1, 5, "fast_clk"),
-        # a create_clock that takes its name from the port it is attached to
-        ("sdc_without_name.sdc", 1, 10, None),
+        ("sdc_with_continuation.sdc", 1, 10, "clk", "clk"),
+        # the fastest clock in the file, its name, and the port it sits on, which is
+        # not the same string
+        ("sdc_with_multiple.sdc", 1, 5, "fast_clk", "clk_fast"),
+        # a create_clock without -name takes its name from the port it is attached to
+        ("sdc_without_name.sdc", 1, 10, "clk", "clk"),
+        # an object list that names the port directly instead of via get_ports
+        ("sdc_bare_port.sdc", 1, 10, "clk", "clk"),
+        # a virtual clock is attached to no port
+        ("sdc_virtual_clock.sdc", 1, 10, "vclk", None),
         # a commented-out create_clock is not a clock definition
-        ("sdc_with_comment.sdc", 1, 10, "clk"),
+        ("sdc_with_comment.sdc", 1, 10, "clk", "clk"),
         # commands separated by a semicolon are still commands
-        ("sdc_with_semicolon.sdc", 1, 10, "clk"),
+        ("sdc_with_semicolon.sdc", 1, 10, "clk", "clk"),
         # a zero period is not the fastest clock, it is not a clock
-        ("sdc_with_zero_period.sdc", 1, 10, "clk"),
+        ("sdc_with_zero_period.sdc", 1, 10, "clk", "clk"),
     ])
-def test_get_clock_sdc(datadir, sdc_file, scale, period, clock, running_project, running_node):
+def test_get_clock_sdc(datadir, sdc_file, scale, period, clock, port,
+                       running_project, running_node):
     task = ASICTask()
     EditableSchema(running_project).insert("tool", "dummy", "task", "asic", task)
 
@@ -903,9 +909,11 @@ def test_get_clock_sdc(datadir, sdc_file, scale, period, clock, running_project,
 
     with task.runtime(running_node) as runtool:
         name, sdc_period = runtool.get_clock(scale)
+        sdc_port = runtool.get_clock_port()
 
     assert name == clock
     assert sdc_period == period
+    assert sdc_port == port
 
 
 def test_get_clock_sdc_from_constraints(datadir, running_project, running_node):
@@ -987,9 +995,11 @@ def test_get_clock_none(running_project, running_node):
 
     with task.runtime(running_node) as runtool:
         name, sdc_period = runtool.get_clock()
+        sdc_port = runtool.get_clock_port()
 
     assert name is None
     assert sdc_period is None
+    assert sdc_port is None
 
 
 def test_snapshot_info_empty():

@@ -115,15 +115,21 @@ class ConvertTask(ASICTask, Task):
         if mem_channels > 0:
             options.append(f'--channels-number={mem_channels}')
 
-        clk_name, clk_period = self.get_clock()
+        _, clk_period = self.get_clock()
         if clk_period is not None:
-            if self.mainlib.valid("var", "bambu_clock_multiplier"):
+            clock_multiplier = 1.0
+            # the multiplier is a property of the main library, which a project that
+            # only runs the conversion need not have selected
+            if self.project.valid("asic", "mainlib") and \
+                    self.mainlib.valid("var", "bambu_clock_multiplier"):
                 clock_multiplier = self.mainlib.get("var", "bambu_clock_multiplier")
-            else:
-                clock_multiplier = 1.0
             clk_period *= clock_multiplier
-            if clk_name:
-                options.append(f'--clock-name={clk_name}')
+            # --clock-name names the clock port of the generated RTL, which the SDC
+            # then constrains, so it has to be the port the SDC creates its clock on
+            # and not the name of that clock.
+            clk_port = self.get_clock_port()
+            if clk_port:
+                options.append(f'--clock-name={clk_port}')
             options.append(f'--clock-period={clk_period}')
 
         options.append('--disable-function-proxy')
