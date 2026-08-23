@@ -319,6 +319,78 @@ def test_timing_liberty_files_required():
     assert any(r.endswith("file,liberty") for r in requires), requires
 
 
+def test_timing_mode_unknown_is_reported():
+    # Regression guard: the check for an undefined mode called get_modes(), which
+    # does not exist, so setting timing_mode raised AttributeError instead.
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("test")
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("test_flow")
+    flow.node("timing", timing.TimingTask())
+    proj.set_flow(flow)
+
+    task = timing.TimingTask.find_task(proj)
+    task.set("var", "timing_mode", "nosuchmode", step="timing", index="0")
+
+    proj._init_run()
+
+    node = SchedulerNode(proj, step="timing", index="0")
+    with node.runtime():
+        with pytest.raises(LookupError, match="nosuchmode is not a defined mode"):
+            node.setup()
+
+
+def test_timing_mode_sdcfileset_is_per_node(tmp_path):
+    # Regression guard: sdcfileset is PerNode.OPTIONAL and sc_manifest.tcl carries
+    # the value resolved for the running node, so declaring the global value here
+    # would hash and copy files sc_timing.tcl never reads.
+    sdc = tmp_path / "mode.sdc"
+    sdc.write_text("create_clock -name clk -period 10 [get_ports clk]\n")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("test")
+    with design.active_fileset("globalsdc"):
+        design.add_file(str(sdc))
+    with design.active_fileset("nodesdc"):
+        design.add_file(str(sdc))
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("test_flow")
+    flow.node("timing", timing.TimingTask())
+    proj.set_flow(flow)
+
+    mode = proj.constraint.timing.make_mode("func")
+    mode.add_sdcfileset(design, "globalsdc")
+    mode.add_sdcfileset(design, "nodesdc", clobber=True, step="timing", index="0")
+
+    scenario = proj.constraint.timing.make_scenario("testcorner")
+    scenario.add_libcorner(["typical"])
+    scenario.set_pexcorner("typical")
+    scenario.set_mode("func")
+
+    task = timing.TimingTask.find_task(proj)
+    task.set("var", "timing_mode", "func", step="timing", index="0")
+
+    proj._init_run()
+
+    node = SchedulerNode(proj, step="timing", index="0")
+    with node.runtime():
+        assert node.setup() is True
+        requires = node.task.get("require")
+
+    assert "library,test,fileset,nodesdc,file,sdc" in requires, requires
+    assert "library,test,fileset,globalsdc,file,sdc" not in requires, requires
+
+
 @pytest.mark.eda
 @pytest.mark.timeout(300)
 @pytest.mark.parametrize("pdk", (

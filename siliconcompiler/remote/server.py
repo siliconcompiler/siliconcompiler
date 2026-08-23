@@ -827,7 +827,7 @@ class Server(ServerSchema):
         '''
         try:
             with open(self.__job_owner_file(job_hash)) as f:
-                owner = json.load(f).get('username')
+                record = json.load(f)
         except FileNotFoundError:
             # A job submitted before this record existed, or one whose directory has
             # gone: either way there is no owner to enforce. Only a missing record
@@ -835,6 +835,13 @@ class Server(ServerSchema):
             # permission error would hand the job to whoever asked next.
             return True
 
+        if not isinstance(record, dict) or 'username' not in record:
+            # A record that exists but is not one this server wrote says nothing
+            # about who owns the job, which is not the same as saying nobody does.
+            self.logger.warning(f'Malformed owner record for job: {job_hash}')
+            return False
+
+        owner = record['username']
         if owner is None:
             return True
 

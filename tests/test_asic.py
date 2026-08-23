@@ -889,6 +889,8 @@ def test_asic_set_asic_var_from_pdk_as_list(running_node):
         ("sdc_with_comment.sdc", 1, 10, "clk"),
         # commands separated by a semicolon are still commands
         ("sdc_with_semicolon.sdc", 1, 10, "clk"),
+        # a zero period is not the fastest clock, it is not a clock
+        ("sdc_with_zero_period.sdc", 1, 10, "clk"),
     ])
 def test_get_clock_sdc(datadir, sdc_file, scale, period, clock, running_project, running_node):
     task = ASICTask()

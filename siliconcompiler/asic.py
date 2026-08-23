@@ -797,6 +797,12 @@ class ASICTask(Task):
                                         f'{clock_period[0]}.')
                     continue
 
+                if new_period <= 0:
+                    # Selecting this as the fastest clock would hand a zero or
+                    # negative period to whatever asked for one.
+                    self.logger.warning(f'Ignoring invalid clock period: {new_period}.')
+                    continue
+
                 if period is not None and new_period >= period:
                     continue
 

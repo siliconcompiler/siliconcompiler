@@ -4320,3 +4320,34 @@ def test_calibrate_score_path(monkeypatch, capsys):
     # before (uncorrected, factors=None) then after (calibrated, factors set)
     assert calls == [False, True]
     assert "typical" in capsys.readouterr().out
+
+
+def test_openroad_mode_sdcfileset_is_per_node(asic_gcd, tmp_path):
+    """The tcl manifest carries the node's sdcfileset, so the required keys must be
+    the node's too.
+
+    sdcfileset is PerNode.OPTIONAL, and sc_manifest.tcl is written with the value
+    resolved for the running node. Declaring the global value here would hash and
+    copy files read_timing_constraints.tcl never reads, and miss the ones it does.
+    """
+    design = asic_gcd.design
+
+    sdc = tmp_path / "mode.sdc"
+    sdc.write_text("create_clock -name clk -period 10 [get_ports clk]\n")
+
+    with design.active_fileset("globalsdc"):
+        design.add_file(str(sdc))
+    with design.active_fileset("nodesdc"):
+        design.add_file(str(sdc))
+
+    mode = asic_gcd.constraint.timing.make_mode("func")
+    mode.add_sdcfileset(design, "globalsdc")
+    mode.add_sdcfileset(design, "nodesdc", clobber=True,
+                        step="floorplan.init", index="0")
+    # the target already defines this scenario, point it at the new mode
+    asic_gcd.constraint.timing.get_scenario("typical").set_mode("func")
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert f"library,{design.name},fileset,nodesdc,file,sdc" in require
+    assert f"library,{design.name},fileset,globalsdc,file,sdc" not in require

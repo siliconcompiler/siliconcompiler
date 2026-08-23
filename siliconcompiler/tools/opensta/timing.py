@@ -202,7 +202,7 @@ class TimingTaskBase(OpenSTATask):
 
         if self.get("var", "timing_mode"):
             self.add_required_key("var", "timing_mode")
-            if self.get("var", "timing_mode") not in self.project.constraint.timing.get_modes():
+            if self.get("var", "timing_mode") not in self.project.constraint.timing.get_mode():
                 raise LookupError(f'{self.get("var", "timing_mode")} is not a defined mode')
         self.add_required_key("var", "top_n_paths")
         self.add_required_key("var", "unique_path_groups_per_clock")

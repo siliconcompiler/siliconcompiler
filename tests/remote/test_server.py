@@ -625,6 +625,27 @@ async def test_handle_delete_job_unowned_is_open():
 
 
 @pytest.mark.asyncio
+async def test_handle_delete_job_malformed_owner_record():
+    """A record this server did not write says nothing about who owns the job,
+    which is not the same as saying nobody does."""
+    server = Server()
+    server.set('option', 'auth', False)
+    server.set('option', 'nfsmount', tempfile.mkdtemp())
+    server.sc_jobs = {}
+
+    job_hash = 'abcdef01234567890abcdef012345678'
+    job_dir = os.path.join(server.nfs_mount, job_hash)
+    os.makedirs(job_dir, exist_ok=True)
+    with open(os.path.join(job_dir, '.owner'), 'w') as f:
+        json.dump({}, f)
+
+    response = await _delete(server, job_hash)
+
+    assert response.status == 403
+    assert os.path.exists(job_dir), "a job with an unreadable owner was deleted"
+
+
+@pytest.mark.asyncio
 async def test_handle_delete_job_without_owner_record():
     '''A job predating the owner record has no owner to enforce'''
     server = Server()
