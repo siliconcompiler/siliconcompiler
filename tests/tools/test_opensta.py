@@ -596,7 +596,8 @@ def test_opensta_ccs_uses_prima(datadir):
 
     # Exact equality is the failure to catch: a prima that fell back, or a
     # set_delay_calculator line that stopped firing, reproduces the nldm number
-    # to the digit rather than landing near it. (Observed: 0.06297 -> 0.04265.)
+    # to the digit rather than landing near it. The honest gap on an RC loaded
+    # buffer chain is a couple of percent (0.09134 -> 0.08977), not a landslide.
     assert nldm_slack is not None and ccs_slack is not None
     assert ccs_slack != nldm_slack, \
         f"prima produced the nldm result ({ccs_slack}), so it fell back"

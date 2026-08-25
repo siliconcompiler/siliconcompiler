@@ -58,8 +58,21 @@ The file carries both the NLDM tables and the CCS `output_current` tables, so a
 test can read the *same* file under both delay models and attribute any
 difference to the calculator alone.
 
-`chain.typical.spef` is hand written, and it matters: prima needs a parasitic
-*network* on the driver pin (it runs its own model order reduction, so it
-declines a pre-reduced parasitic). With no parasitics annotated at all it falls
-back to the default calculator and the two delay models produce identical
-numbers.
+`chain.typical.spef` is hand written, and it matters twice over.
+
+First, prima needs a parasitic *network* (it runs its own model order reduction,
+so it declines a pre-reduced parasitic). With no parasitics annotated at all it
+falls back to the default calculator for every arc and the two delay models
+produce identical numbers -- a test with no SPEF passes while proving nothing.
+
+Second, the driver pin has to be a *node of that network*, not just a `*CONN`
+entry. See the comment at the top of the SPEF: a driver listed only in `*CONN`
+segfaults OpenSTA under prima rather than being diagnosed. That is what the first
+version of this fixture did, and because the default calculator quietly treats
+such a net as having no parasitics at all, it also made the two delay models look
+much further apart than they are.
+
+The RC is sized to be resistive enough that the two calculators separate:
+2000 ohm and 9 fF per net, over five segments. Both OpenSTA builds tested (the
+`_tools.json` pin and a newer one) agree to the digit: 91.34425 ps of setup slack
+under nldm, 89.77313 ps under ccs.
