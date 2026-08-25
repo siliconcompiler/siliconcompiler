@@ -77,12 +77,19 @@ jobs:
     outputs:
       groups: ${{ steps.groups.outputs.groups }}
       splits: ${{ steps.groups.outputs.splits }}
+      pythons: ${{ steps.groups.outputs.pythons }}
     steps:
       - id: groups
         run: |
           splits=${{ inputs.splits || 4 }}
           echo "splits=$splits" >> $GITHUB_OUTPUT
           echo "groups=$(seq 1 $splits | jq -sc '.')" >> $GITHUB_OUTPUT
+
+          # Both the test matrix and the per-version durations store fan out
+          # over this, so the supported versions are listed in one place. A
+          # version added to only one of the two would silently never get its
+          # durations stored, and would count-split forever.
+          echo 'pythons=["3.10","3.11","3.12","3.13","3.14"]' >> $GITHUB_OUTPUT
 
   daily_tests_job:
     needs: [cache, docker_image, test_setup]
@@ -98,7 +105,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ${{ fromJson(needs.test_setup.outputs.pythons) }}
         group: ${{ fromJson(needs.test_setup.outputs.groups) }}
     steps:
       - name: Checkout SiliconCompiler
@@ -128,12 +135,20 @@ jobs:
 
       # Balances the groups by last run's measured times. Missing on the first
       # run, where pytest-split falls back to splitting by test count.
+      #
+      # path must stay relative, and identical to the save step in
+      # store_durations. actions/cache hashes the path input into the cache
+      # version, and this job runs in a container where store_durations does
+      # not: an absolute ${{ github.workspace }} resolves to /__w/... here and
+      # /home/runner/work/... there, two versions that can never match. That
+      # missed on every run for weeks without reporting anything worse than
+      # "Cache not found", because a miss is not an error.
       - name: Restore test durations
         uses: actions/cache/restore@v6
         with:
-          path: ${{ github.workspace }}/test_durations.json
-          key: eda-test-durations-${{ github.run_id }}
-          restore-keys: eda-test-durations-
+          path: test_durations.json
+          key: eda-test-durations-py${{ matrix.python-version }}-${{ github.run_id }}
+          restore-keys: eda-test-durations-py${{ matrix.python-version }}-
 
       - name: Setup tests
         run: |
@@ -184,25 +199,39 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
 
-  # --clean-durations leaves each group holding only the tests it ran, so the
-  # groups have to be merged back together to balance the next run.
+  # --clean-durations leaves each group holding only the tests it ran, so a
+  # version's groups have to be merged back together to balance its next run.
+  #
+  # Per python version, not one merged set for all of them: a merge across
+  # versions is last-writer-wins per test, so a test that is version-gated --
+  # skipped, or collected under a different id -- contributes whichever
+  # version's number happened to sort last to every other version's split. Each
+  # version balancing on its own measurements also lets genuinely
+  # version-dependent timings land where they belong.
   store_durations:
-    name: 'Store test durations'
+    name: 'Store test durations (${{ matrix.python-version }})'
     needs: [daily_tests_job, test_setup]
     if: always()
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ${{ fromJson(needs.test_setup.outputs.pythons) }}
+
+    env:
+      PYTHON_VERSION: ${{ matrix.python-version }}
 
     steps:
       - name: Download duration artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: test-durations-*
+          pattern: test-durations-${{ matrix.python-version }}-*
 
       - name: Merge durations
         id: merge
         run: |
           shopt -s nullglob
-          files=(test-durations-*/test_durations.json)
+          files=("test-durations-${PYTHON_VERSION}"-*/test_durations.json)
           if [ ${#files[@]} -eq 0 ]; then
             # Every group died before writing durations. Leave the previous
             # run's cache in place rather than failing the job.
@@ -214,20 +243,23 @@ jobs:
           echo "merged=true" >> $GITHUB_OUTPUT
           echo "Merged ${#files[@]} duration file(s), $(jq 'length' "$GITHUB_WORKSPACE/test_durations.json") tests."
 
+      # Relative, to hash to the same cache version as the restore step in the
+      # containerized test job -- see the comment there.
       - name: Save test durations
         if: steps.merge.outputs.merged == 'true'
         uses: actions/cache/save@v6
         with:
-          path: ${{ github.workspace }}/test_durations.json
-          key: eda-test-durations-${{ github.run_id }}
+          path: test_durations.json
+          key: eda-test-durations-py${{ matrix.python-version }}-${{ github.run_id }}
 
-      # Named so it does not match the test-durations-* download pattern above,
-      # which would otherwise re-merge it into itself on a job re-run.
+      # Named so it does not match the test-durations-<version>-* download
+      # pattern above, which would otherwise re-merge it into itself on a job
+      # re-run.
       - name: Upload merged durations
         if: steps.merge.outputs.merged == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: merged-test-durations
+          name: merged-test-durations-${{ matrix.python-version }}
           path: ${{ github.workspace }}/test_durations.json
           retention-days: 14
 
@@ -242,12 +274,13 @@ jobs:
 
           durations = json.load(open(os.environ["DURATIONS"]))
           splits = int(os.environ["SPLITS"])
+          python_version = os.environ["PYTHON_VERSION"]
           ranked = sorted(durations.items(), key=lambda kv: -kv[1])
           total = sum(durations.values())
 
-          print("## Test durations\n")
-          print(f"{len(durations)} tests timed, {total / 60:.1f} min total. "
-                "Full data in the `merged-test-durations` artifact.\n")
+          print(f"## Test durations (python {python_version})\n")
+          print(f"{len(durations)} tests timed, {total / 60:.1f} min total. Full data "
+                f"in the `merged-test-durations-{python_version}` artifact.\n")
 
           print(f"### Slowest 25\n")
           print("| duration | test |")
