@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "f34c1bcd954a4ecfe33233466e03782cb2d5442d",
+    "git-commit": "57690eb4941bf72310674e2876ffc0153905d896",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -12,7 +12,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "v1.86",
+    "git-commit": "v1.87",
     "auto-update": true
   },
   "opensta": {
@@ -41,7 +41,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.30.10",
+    "version": "0.30.11",
     "git-url": "https://github.com/KLayout/klayout.git",
     "auto-update": true,
     "run-version": "source version.sh && echo $KLAYOUT_VERSION",
