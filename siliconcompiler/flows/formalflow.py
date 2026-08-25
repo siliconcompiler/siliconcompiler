@@ -96,9 +96,6 @@ class LECFlow(Flowgraph):
 
     The **lec** step reads the RTL from **elaborate**, since **synthesis**
     does not re-emit what it consumed.
-
-    Kepler-formal runs this as a sequential check, which is dependable for
-    combinational logic but not for a design holding reset-unanchored state.
     '''
 
     def __init__(self, name: Optional[str] = None, language: str = "verilog"):

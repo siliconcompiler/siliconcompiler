@@ -11,9 +11,9 @@ def main():
     """
     Checks the synthesized 'adder' netlist against the RTL it came from.
 
-    This script sets up an ASIC project for a small combinational adder and
-    runs the LECFlow, which synthesizes the RTL into a Nangate45 netlist and
-    then checks that netlist against the RTL with Kepler-formal.
+    This script sets up an ASIC project for a small adder and runs the
+    LECFlow, which synthesizes the RTL into a Nangate45 netlist and then
+    checks that netlist against the RTL with Kepler-formal.
 
     Requires: yosys, kepler-formal; freepdk45 (via lambdapdk)
     """

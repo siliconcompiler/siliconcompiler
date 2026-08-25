@@ -140,8 +140,7 @@ Formal Verification Flows
 Flows for :term:`formally verifying <formal verification>` a design: checking
 the SVA :term:`assertions <assertion>` in its RTL using SymbiYosys (sby), and
 checking a synthesized :term:`netlist` against the :term:`RTL` it came from
-(:term:`LEC`) using Kepler-formal. The equivalence check is dependable for
-combinational logic but not for a design holding reset-unanchored state.
+(:term:`LEC`) using Kepler-formal.
 
 .. schema::
   :root: siliconcompiler.flows.formalflow/PropertyCheckFlow
