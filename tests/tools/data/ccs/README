@@ -1,0 +1,78 @@
+CCS delay model fixture
+=======================
+
+Provenance
+----------
+
+`asap7sc7p5t_INVBUF_RVT_FF_ccs.lib.gz` is the ASAP7 7.5-track INVBUF standard
+cell library at the RVT / FF corner, trimmed to the two cells `chain.vg`
+instantiates.
+
+Taken from OpenROAD-flow-scripts, which ships the library gzipped (upstream ships
+it as .7z, which nothing in this test suite can unpack):
+
+    repo    https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+    commit  f7b5958b22b1d93898a5861ea2749f62c664eaaa
+            ("asap7: add ccs for RVT/FF corner for testing", 2024-05-09)
+    path    flow/platforms/asap7/lib/CCS/asap7sc7p5t_INVBUF_RVT_FF_ccs_220122.lib.gz
+    blob    5367152b03cb60068a116939a62928344712e89f
+
+    sha256 of that file decompressed:
+    e426a1e2bb871deebcb0f6a81fc902e504aff0fb660af7bde75ff3bed4807be9
+
+ORFS in turn vendors it from the ASAP7 release it is named after:
+
+    repo    https://github.com/The-OpenROAD-Project/asap7sc7p5t_28
+    commit  d88477438935a5a388bd6294f682dc405c93c5d2 ("LIB/CCS/INVBUF", 2023-11-02)
+    path    LIB/CCS/asap7sc7p5t_INVBUF_RVT_FF_ccs_220122.lib.7z
+
+License: BSD 3-Clause, Copyright 2020 Lawrence T. Clark, Vinay Vashishtha, or
+Arizona State University. The license text is kept verbatim in the file header.
+
+What was changed
+----------------
+
+Every cell group except `BUFx2_ASAP7_75t_R` and `INVx1_ASAP7_75t_R` was deleted,
+and the note at the top of the file was prepended. Nothing else was touched: the
+library header, the lookup table templates and the two surviving cell groups
+(NLDM tables, CCS `output_current` tables and `receiver_capacitance`) are the
+original bytes. 2.4 MB and 37 cells became 136 KB and 2 cells.
+
+    sha256 of this fixture decompressed:
+    8c547b5c313d78f8b68e33899af408f9b4cd4ce946cdc85aa3eeea6a62bc25fa
+
+To regenerate it, fetch the file named above and keep the header (everything
+before the first `  cell (` line) plus those two `  cell (...) { ... }` groups plus
+the closing brace.
+
+Why it is here
+--------------
+
+No library SiliconCompiler can otherwise reach ships CCS timing data -- lambdapdk
+carries NLDM only -- and without CCS data a test cannot tell
+`set_delay_calculator prima` working from `prima` silently falling back to the
+default calculator, which is what it does for every arc whose liberty has no CCS
+waveforms.
+
+The file carries both the NLDM tables and the CCS `output_current` tables, so a
+test can read the *same* file under both delay models and attribute any
+difference to the calculator alone.
+
+`chain.typical.spef` is hand written, and it matters twice over.
+
+First, prima needs a parasitic *network* (it runs its own model order reduction,
+so it declines a pre-reduced parasitic). With no parasitics annotated at all it
+falls back to the default calculator for every arc and the two delay models
+produce identical numbers -- a test with no SPEF passes while proving nothing.
+
+Second, the driver pin has to be a *node of that network*, not just a `*CONN`
+entry. See the comment at the top of the SPEF: a driver listed only in `*CONN`
+segfaults OpenSTA under prima rather than being diagnosed. That is what the first
+version of this fixture did, and because the default calculator quietly treats
+such a net as having no parasitics at all, it also made the two delay models look
+much further apart than they are.
+
+The RC is sized to be resistive enough that the two calculators separate:
+2000 ohm and 9 fF per net, over five segments. Both OpenSTA builds tested (the
+`_tools.json` pin and a newer one) agree to the digit: 91.34425 ps of setup slack
+under nldm, 89.77313 ps under ccs.

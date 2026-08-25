@@ -433,6 +433,26 @@ class TimingTask(TimingTaskBase):
         vars["opensta_timing_mode"] = "asic"
         return vars
 
+    def _get_delaymodel(self) -> Optional[str]:
+        """Return :keypath:`ASIC,asic,delaymodel`, rejecting what OpenSTA cannot read.
+
+        The ``(corner, delaymodel)`` key a library groups its timing filesets under
+        is free-form, so a target can name a model that is not a flavor of Liberty
+        at all (a compiled binary model, ECSM, ...). Reading such a fileset would
+        hand OpenSTA files it cannot parse, so reject the model here instead.
+
+        An unset delay model is passed through untouched; :meth:`.ASIC._check_manifest`
+        is what reports that, and with a better message than this can give.
+
+        Raises:
+            ValueError: if the delay model is set to anything but ``nldm`` or ``ccs``.
+        """
+        delaymodel = self.project.get("asic", "delaymodel")
+        if delaymodel is not None and delaymodel not in ("nldm", "ccs"):
+            raise ValueError(f"{delaymodel} is not a supported delay model, "
+                             "supported delay models are: nldm, ccs")
+        return delaymodel
+
     def setup(self):
         """
         Prepare timing-related input files for an ASIC timing task by registering SDC,
@@ -476,7 +496,7 @@ class TimingTask(TimingTaskBase):
 
         # per-corner liberty files are read by sc_timing.tcl; declare them required
         # so they are hashed (cache) and copied (remote runs).
-        delay_model = self.project.get("asic", "delaymodel")
+        delay_model = self._get_delaymodel()
         for asiclib in self.project.get("asic", "asiclib"):
             lib = self.project.get_library(asiclib)
             for scenario in self.project.constraint.timing.get_scenario().values():

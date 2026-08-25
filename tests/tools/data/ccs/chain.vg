@@ -1,0 +1,6 @@
+module chain (input in, output out);
+  wire n1, n2;
+  BUFx2_ASAP7_75t_R u0 (.A(in), .Y(n1));
+  INVx1_ASAP7_75t_R u1 (.A(n1), .Y(n2));
+  BUFx2_ASAP7_75t_R u2 (.A(n2), .Y(out));
+endmodule

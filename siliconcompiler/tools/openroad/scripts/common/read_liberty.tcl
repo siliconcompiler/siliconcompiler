@@ -62,3 +62,11 @@ if { [sc_has_sta_mcmm_support] && [sc_cfg_tool_task_get var load_sdcs] } {
         }
     }
 }
+
+# The default delay calculator reads the NLDM tables and ignores the
+# current-source models, so a CCS liberty is only worth reading if the
+# calculator is switched over with it.
+if { $sc_delaymodel == "ccs" } {
+    utl::info FLW 1 "Using CCS delay calculation"
+    set_delay_calculator prima
+}

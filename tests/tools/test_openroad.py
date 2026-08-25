@@ -4351,3 +4351,72 @@ def test_openroad_mode_sdcfileset_is_per_node(asic_gcd, tmp_path):
 
     assert f"library,{design.name},fileset,nodesdc,file,sdc" in require
     assert f"library,{design.name},fileset,globalsdc,file,sdc" not in require
+
+
+##############################################################################
+# Delay model / CCS
+##############################################################################
+def _select_delaymodel(project, delaymodel):
+    '''Point the target at ``delaymodel``, registering a ccs libcorner fileset.
+
+    lambdapdk ships no CCS liberty today, so re-registering the NLDM fileset under
+    the ccs model is what makes the ``(corner, "ccs")`` lookup resolve. That is
+    enough to exercise the driver, and enough for OpenSTA itself: ``prima`` falls
+    back to the default calculator for any arc whose liberty has no CCS waveforms.
+
+    That fallback is why nothing here asserts on timing numbers. The delay
+    calculator is OpenSTA's either way, so whether ``prima`` changes the answer is
+    settled against real CCS data in
+    tests/tools/test_opensta.py::test_opensta_ccs_uses_prima; what is left to
+    cover here is the OpenROAD script path that emits the switch.
+    '''
+    project.get_library("nangate45").add_asic_libcornerfileset(
+        "typical", "ccs", "models.timing.nldm")
+    project.set_asic_delaymodel(delaymodel)
+    # mirror the run path: _init_run() populates asic,asiclib from mainlib before
+    # node setup, which is when the liberty requires are declared.
+    project._init_run()
+    return project
+
+
+def test_openroad_ccs_liberty_files_required(asic_gcd):
+    # The ccs libcorner fileset must be the one declared required when the target
+    # selects the ccs delay model.
+    _select_delaymodel(asic_gcd, "ccs")
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert any("asic,libcornerfileset,typical,ccs" in r for r in require), require
+    assert not any("asic,libcornerfileset,typical,nldm" in r for r in require), require
+
+
+def test_openroad_unsupported_delaymodel(asic_gcd):
+    # OpenROAD reads liberty through OpenSTA, so it can only be pointed at nldm or
+    # ccs filesets; anything else must fail setup instead of feeding it unreadable
+    # files.
+    _select_delaymodel(asic_gcd, "ecsm")
+
+    with pytest.raises(ValueError,
+                       match=r"^ecsm is not a supported delay model, "
+                             r"supported delay models are: nldm, ccs$"):
+        _setup_node(asic_gcd, "floorplan.init")
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_openroad_ccs_uses_prima(asic_heartbeat):
+    # The ccs delay model must switch OpenROAD to the prima delay calculator; the
+    # switch lives in read_liberty.tcl, which the APR preamble and sc_open.tcl both
+    # source, so this covers every OpenROAD entry point.
+    _select_delaymodel(asic_heartbeat, "ccs")
+
+    asic_heartbeat.option.add_to("floorplan.init")
+    job = asic_heartbeat.run()
+    assert job
+
+    log = job.find_result(step="floorplan.init", index="0",
+                          directory=".", filename="floorplan.init.log")
+    assert log
+    with open(log) as fd:
+        assert "Using CCS delay calculation" in fd.read()

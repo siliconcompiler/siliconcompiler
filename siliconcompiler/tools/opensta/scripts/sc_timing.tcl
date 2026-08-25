@@ -82,6 +82,14 @@ if { $opensta_timing_mode == "asic" } {
     }
 }
 
+# The default delay calculator reads the NLDM tables and ignores the
+# current-source models, so a CCS liberty is only worth reading if the
+# calculator is switched over with it.
+if { $sc_delaymodel == "ccs" } {
+    puts "Using CCS delay calculation"
+    set_delay_calculator prima
+}
+
 # Read Verilog
 if { [file exists "inputs/${sc_topmodule}.vg"] } {
     puts "Reading netlist verilog: inputs/${sc_topmodule}.vg"
