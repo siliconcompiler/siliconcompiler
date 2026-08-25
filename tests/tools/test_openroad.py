@@ -4397,8 +4397,8 @@ def test_openroad_unsupported_delaymodel(asic_gcd):
     _select_delaymodel(asic_gcd, "ecsm")
 
     with pytest.raises(ValueError,
-                       match="^ecsm is not a supported delay model, "
-                             "supported delay models are: nldm, ccs$"):
+                       match=r"^ecsm is not a supported delay model, "
+                             r"supported delay models are: nldm, ccs$"):
         _setup_node(asic_gcd, "floorplan.init")
 
 

@@ -501,8 +501,8 @@ def test_timing_unsupported_delaymodel():
     node = SchedulerNode(proj, step="timing", index="0")
     with node.runtime():
         with pytest.raises(ValueError,
-                           match="^ecsm is not a supported delay model, "
-                                 "supported delay models are: nldm, ccs$"):
+                           match=r"^ecsm is not a supported delay model, "
+                                 r"supported delay models are: nldm, ccs$"):
             node.setup()
 
 
@@ -518,8 +518,8 @@ def test_check_library_unsupported_delaymodel():
     node = SchedulerNode(proj, step="check", index="0")
     with node.runtime():
         with pytest.raises(ValueError,
-                           match="^nldm-bin is not a supported delay model, "
-                                 "supported delay models are: nldm, ccs$"):
+                           match=r"^nldm-bin is not a supported delay model, "
+                                 r"supported delay models are: nldm, ccs$"):
             node.setup()
 
 
