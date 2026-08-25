@@ -41,7 +41,7 @@ from siliconcompiler.flows.elaborationflow import (
     ChiselElaborationFlow,
     BluespecElaborationFlow
 )
-from siliconcompiler.flows.formalflow import PropertyCheckFlow
+from siliconcompiler.flows.formalflow import PropertyCheckFlow, LECFlow
 from siliconcompiler.flows.fpgaflow import (
     FPGAXilinxFlow,
     FPGANextPNRFlow,
@@ -118,6 +118,7 @@ def make_project():
     ChiselElaborationFlow,
     BluespecElaborationFlow,
     PropertyCheckFlow,
+    LECFlow,
     FPGAXilinxFlow,
     FPGANextPNRFlow,
     FPGAVPRFlow,

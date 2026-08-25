@@ -7,6 +7,11 @@ from siliconcompiler.tools.sby.bmc import BMCTask
 from siliconcompiler.tools.sby.prove import ProveTask
 from siliconcompiler.tools.sby.cover import CoverTask
 
+from siliconcompiler.tools.yosys import syn_asic
+from siliconcompiler.tools.keplerformal import sec
+
+from siliconcompiler.flows.elaborationflow import ElaborationFlow
+
 
 class PropertyCheckMode(Flag):
     '''Formal property-checking modes.
@@ -75,7 +80,69 @@ class PropertyCheckFlow(Flowgraph):
                    PropertyCheckMode.COVER)
 
 
+class LECFlow(Flowgraph):
+    '''A logical equivalence check (LEC) flow.
+
+    This flow synthesizes an RTL design into a gate-level netlist and then
+    proves that the netlist implements the same logic as the RTL it was
+    synthesized from.
+
+    The flow consists of the following steps:
+        * **elaborate**: Elaborates the RTL design from its source files.
+        * **synthesis**: Translates the elaborated RTL into a gate-level netlist
+                         using Yosys.
+        * **lec**: Checks the gate-level netlist against the elaborated RTL
+                   using Kepler-formal.
+
+    The **lec** step reads the RTL from **elaborate**, since **synthesis**
+    does not re-emit what it consumed.
+
+    Kepler-formal runs this as a sequential check, which is dependable for
+    combinational logic but not for a design holding reset-unanchored state.
+    '''
+
+    def __init__(self, name: Optional[str] = None, language: str = "verilog"):
+        """
+        Initializes the LECFlow.
+
+        Args:
+            name (str, optional): The name of the flow. Defaults to
+                'lecflow-<language>'.
+            language (str): The hardware description language of the design.
+        """
+        if name is None:
+            name = f"lecflow-{language}"
+        super().__init__(name)
+
+        elab = ElaborationFlow(language=language)
+        self.graph(elab)
+
+        elab_node = elab.get_exit_nodes()
+        if len(elab_node) != 1:
+            raise ValueError("Elaboration flow must have exactly one exit node.")
+        elab_node = elab_node[0][0]  # Get the node name from the tuple
+
+        self.node("synthesis", syn_asic.ASICSynthesis())
+        self.edge(elab_node, "synthesis")
+
+        self.node("lec", sec.SECTask())
+        self.edge(elab_node, "lec")
+        self.edge("synthesis", "lec")
+
+    @classmethod
+    def make_docs(cls):
+        return [
+            cls(language="verilog"),
+            cls(language="systemverilog-sv2v"),
+            cls(language="chisel"),
+            cls(language="vhdl"),
+            cls(language="hls"),
+            cls(language="bluespec")
+        ]
+
+
 ##################################################
 if __name__ == "__main__":
-    flow = PropertyCheckFlow()
-    flow.write_flowgraph(f"{flow.name}.png")
+    for flowcls in [PropertyCheckFlow, LECFlow]:
+        flow = flowcls()
+        flow.write_flowgraph(f"{flow.name}.png")
