@@ -13,6 +13,9 @@ from siliconcompiler.tools.openroad.show import WebTask as OpenROADWeb
 from siliconcompiler.tools.openroad.show import Show3DBloxWebTask as OpenROADShow3DBloxWeb
 from siliconcompiler.tools.openroad.screenshot import ScreenshotTask as OpenROADScreenshot
 
+from siliconcompiler.tools.yosys.open import OpenTask as YosysOpen
+from siliconcompiler.tools.opensta.open import OpenTask as OpenSTAOpen
+
 from siliconcompiler.tools.graphviz.show import ShowTask as GraphvizShow
 from siliconcompiler.tools.graphviz.screenshot import ScreenshotTask as GraphvizScreenshot
 
@@ -34,8 +37,17 @@ def showtasks():
     Later registrations take precedence when multiple tools support the same extension.
     """
     # Register Open tasks
+    # All three of openroad, yosys and opensta read a vg. opensta is registered
+    # last so it wins that extension; openroad still owns odb and def, and yosys
+    # stays reachable through "-tool yosys".
+    #
+    # openroad leads for a second reason: get_extension_map() lists extensions in
+    # first-encounter order, so registering it first is what keeps odb ahead of vg
+    # in the search Project.show() runs when it has no filename to work from.
     OpenTask.register_task(OpenROADOpen)
     OpenTask.register_task(OpenROADOpen3DBlox)
+    OpenTask.register_task(YosysOpen)
+    OpenTask.register_task(OpenSTAOpen)
 
     # Register Show tasks - core tools first
     ShowTask.register_task(KlayoutShow)

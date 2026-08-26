@@ -6,6 +6,7 @@ import os.path
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler import ASIC, Design, Flowgraph, StdCellLibrary
 from siliconcompiler.tools.opensta import timing
+from siliconcompiler.tools.opensta.open import OpenTask as OpenSTAOpen
 
 from siliconcompiler.tools.opensta.check_library import CheckLibraryTask
 from siliconcompiler.flows.checklibraryflow import CheckLibraryFlow
@@ -601,3 +602,51 @@ def test_opensta_ccs_uses_prima(datadir):
     assert nldm_slack is not None and ccs_slack is not None
     assert ccs_slack != nldm_slack, \
         f"prima produced the nldm result ({ccs_slack}), so it fell back"
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_opensta_open(datadir):
+    '''The open task loads the netlist, corners and constraints, then stops.'''
+    design = Design("testdesign")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("foo")
+        design.add_file(os.path.join("lec", "foo.vg"))
+    with design.active_dataroot("root"), design.active_fileset("sdc"):
+        design.add_file(os.path.join("lec", "foo.sdc"))
+    proj = ASIC(design)
+    proj.add_fileset(["rtl", "sdc"])
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("open")
+    flow.node("open", OpenSTAOpen())
+    proj.set_flow(flow)
+
+    task = OpenSTAOpen.find_task(proj)
+    task.set_showfilepath(os.path.join(datadir, "lec", "foo.vg"))
+    # Without this the session is a breakpoint and the node never returns.
+    task.set_showexit(True)
+
+    assert proj.run()
+
+    workdir = os.path.join("build", "testdesign", "job0", "open", "0")
+
+    with open(os.path.join(workdir, "open.log")) as f:
+        log = f.read()
+
+    # showfilepath was copied into inputs/, not read from the rtl fileset
+    assert os.path.isfile(os.path.join(workdir, "inputs", "foo.vg"))
+    assert "Reading netlist verilog: inputs/foo.vg" in log
+    # the rest of the timing context still comes from TimingTask's handling
+    assert "Defining timing corners: typical" in log
+    assert "NangateOpenCellLibrary_typical.lib" in log
+    assert "foo.sdc" in log
+    assert "Design foo is loaded" in log
+
+    # ... and nothing is reported or written
+    assert "SC_METRIC" not in log
+    assert not os.path.exists(os.path.join(workdir, "reports", "timing"))
+    # the node manifest and nothing else -- no design artifacts
+    assert os.listdir(os.path.join(workdir, "outputs")) == ["testdesign.pkg.json"]

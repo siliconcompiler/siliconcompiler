@@ -6,7 +6,7 @@ import sys
 import os.path
 
 from siliconcompiler import Project, ASIC, Design, PDK
-from siliconcompiler import ShowTask, ScreenshotTask
+from siliconcompiler import OpenTask, ShowTask, ScreenshotTask
 
 from siliconcompiler.tools.klayout import show as klayout_show
 from siliconcompiler.tools.openroad import show as openroad_show
@@ -38,13 +38,15 @@ def task_spec(cls):
 
 @pytest.fixture(autouse=True)
 def exit_on_show(monkeypatch):
-    org_setup = ShowTask.setup
+    # Patched on OpenTask rather than ShowTask so the open tasks are covered too:
+    # they leave their tool running by design, which would hang the suite.
+    org_setup = OpenTask.setup
 
     def mock_setup(self):
         org_setup(self)
         self.set("var", "showexit", True, clobber=True)
 
-    monkeypatch.setattr(ShowTask, "setup", mock_setup)
+    monkeypatch.setattr(OpenTask, "setup", mock_setup)
 
     yield
 
@@ -534,3 +536,72 @@ def test_registry_order_independent_of_viewer_import_order(when):
     ]
     assert unhinted == "openroad/show"
     assert hinted == "openroad/show"
+
+
+# ---------------------------------------------------------------------------
+# vg is claimed by three open tasks. showtasks() registers openroad first (so
+# get_extension_map keeps odb ahead of vg in the search Project.show() falls
+# back on) and opensta last (so it wins the extension).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_open_default_for_vg_is_opensta():
+    """A netlist opens in OpenSTA, not in the openroad session that also reads vg."""
+    task = OpenTask.get_task("vg")
+
+    assert (task.tool(), task.task()) == ("opensta", "open")
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("tool", ["opensta", "yosys", "openroad"])
+def test_open_vg_reachable_per_tool(tool):
+    """Every vg opener stays selectable by name, not just the winner."""
+    task = OpenTask.get_task("vg", tool=tool)
+
+    assert (task.tool(), task.task()) == (tool, "open")
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_open_tasks_for_vg_in_priority_order():
+    """The candidate list backing the error message is in priority order."""
+    names = [f"{t.tool()}/{t.task()}" for t in OpenTask._get_tasks_for_extension("vg")]
+
+    assert names == ["opensta/open", "yosys/open", "openroad/open"]
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_open_extension_map_search_order():
+    """odb stays ahead of vg: adding vg openers must not change what show() finds.
+
+    Regression guard on registration order. get_extension_map() lists extensions
+    in first-encounter order over the registry, so registering a vg-only task
+    before openroad would move vg to the head of the list Project.show() walks
+    when it has no filename, and `sc-show -open` would pick a netlist over the
+    odb of the same node.
+
+    Relative positions rather than the whole list: register_task() writes to a
+    process-wide registry, so doubles registered by other test modules are
+    still present here.
+    """
+    ext_map = OpenTask.get_extension_map()
+    exts = list(ext_map.keys())
+
+    assert exts.index("odb") < exts.index("vg")
+    assert exts.index("def") < exts.index("vg")
+
+    assert ext_map["odb"].tool() == "openroad"
+    assert ext_map["def"].tool() == "openroad"
+    assert ext_map["vg"].tool() == "opensta"
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_open_registration_leaves_show_alone():
+    """The show/screenshot registries are untouched by the new open tasks."""
+    assert ShowTask.get_task("vg").tool() == "openroad"
+    assert ScreenshotTask.get_task("def").tool() in ("openroad", "klayout")
