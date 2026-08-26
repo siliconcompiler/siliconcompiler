@@ -980,9 +980,12 @@ class Board:
                 # (the locked read+copy in update_data) when data_modified is
                 # actually set -- a log-only wake just repaints, draining new
                 # lines via get_lines().
+                now = time.time()
+                dwell = self._dwell
                 try:
-                    if self._render_event.wait(timeout=self._dwell):
+                    if self._render_event.wait(timeout=dwell):
                         self._render_event.clear()
+                        dwell = max(0.0, dwell - (time.time() - now))
                 except Exception:
                     # See update_data: without the event there is nothing left to
                     # wake this loop, so leave it.
@@ -996,7 +999,8 @@ class Board:
                 if data_changed():
                     update_data()
                 self.live.update(self._get_rendable(), refresh=True)
-                time.sleep(self._dwell)
+                if dwell > 0:
+                    time.sleep(dwell)
 
         finally:
             update_data()
