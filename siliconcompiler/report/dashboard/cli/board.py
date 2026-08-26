@@ -434,7 +434,7 @@ class Board:
         self._log_handler = LogBuffer(self._log_handler_queue, n=120, event=self._render_event)
 
         # Sleep time for the dashboard
-        self._dwell = 0.1
+        self._dwell = 0.2
 
         self._metrics = ("warnings", "errors")
 
@@ -985,7 +985,6 @@ class Board:
                 try:
                     if self._render_event.wait(timeout=dwell):
                         self._render_event.clear()
-                        dwell = max(0.0, dwell - (time.time() - now))
                 except Exception:
                     # See update_data: without the event there is nothing left to
                     # wake this loop, so leave it.
@@ -999,6 +998,8 @@ class Board:
                 if data_changed():
                     update_data()
                 self.live.update(self._get_rendable(), refresh=True)
+
+                dwell = dwell - (time.time() - now)
                 if dwell > 0:
                     time.sleep(dwell)
 
