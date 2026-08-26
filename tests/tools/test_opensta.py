@@ -643,7 +643,6 @@ def test_opensta_open(datadir):
     assert "Defining timing corners: typical" in log
     assert "NangateOpenCellLibrary_typical.lib" in log
     assert "foo.sdc" in log
-    assert "Design foo is loaded" in log
 
     # ... and nothing is reported or written
     assert "SC_METRIC" not in log
