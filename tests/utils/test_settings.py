@@ -102,6 +102,106 @@ def test_get_category(settings_file):
     assert manager.get_category('missing') == {}
 
 
+def test_set_appends_new_keys_in_write_order(settings_file):
+    """A category iterates in the order its keys were written."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set('order', 'first', 1)
+    manager.set('order', 'second', 2)
+    manager.set('order', 'third', 3)
+
+    assert list(manager.get_category('order')) == ['first', 'second', 'third']
+
+
+def test_set_moves_rewritten_key_to_the_end(settings_file):
+    """Re-writing a key re-positions it, it does not update it in place.
+
+    Callers that read a category as an ordered list treat position as
+    precedence -- see OpenTask.register_task, where a later registration has to
+    outrank an earlier one. Plain dict assignment keeps an existing key where
+    it first landed, which would pin precedence to whoever wrote it first.
+    """
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set('order', 'first', 1)
+    manager.set('order', 'second', 2)
+    manager.set('order', 'third', 3)
+
+    manager.set('order', 'first', 'rewritten')
+
+    assert list(manager.get_category('order')) == ['second', 'third', 'first']
+    assert manager.get('order', 'first') == 'rewritten'
+
+
+def test_set_reorders_even_when_value_is_unchanged(settings_file):
+    """Writing the same value still counts as a fresh write."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set('order', 'a', 'x')
+    manager.set('order', 'b', 'x')
+
+    manager.set('order', 'a', 'x')
+
+    assert list(manager.get_category('order')) == ['b', 'a']
+
+
+def test_set_keep_does_not_reorder(settings_file):
+    """keep=True skips the write entirely, position included."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set('order', 'a', 1)
+    manager.set('order', 'b', 2)
+
+    manager.set('order', 'a', 99, keep=True)
+
+    assert list(manager.get_category('order')) == ['a', 'b']
+    assert manager.get('order', 'a') == 1
+
+
+def test_set_ordering_is_per_category(settings_file):
+    """Re-writing a key in one category leaves other categories alone."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set('one', 'a', 1)
+    manager.set('one', 'b', 2)
+    manager.set('two', 'a', 1)
+    manager.set('two', 'b', 2)
+
+    manager.set('one', 'a', 3)
+
+    assert list(manager.get_category('one')) == ['b', 'a']
+    assert list(manager.get_category('two')) == ['a', 'b']
+
+
+def test_set_ordering_survives_save_and_reload(settings_file):
+    """The persisted file keeps the order, so a reload resolves the same way."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set('order', 'first', 1)
+    manager.set('order', 'second', 2)
+    manager.set('order', 'first', 3)
+    manager.save()
+
+    with open(settings_file, encoding='utf-8') as f:
+        assert list(json.load(f)['order']) == ['second', 'first']
+
+    reloaded = SettingsManager(settings_file, logging.getLogger())
+    assert list(reloaded.get_category('order')) == ['second', 'first']
+
+
+def test_set_ordering_with_system_layer(settings_file, system_file):
+    """System defaults lead; a user key that shadows one keeps the system slot.
+
+    get_category() builds the system layer first and updates it with the user
+    layer, so re-writing a shadowing key moves it within the user dict but not
+    within the merged view. Only categories with no system layer -- such as the
+    in-memory transient registry -- can rely on the merged order.
+    """
+    _write_json(system_file, {'order': {'sys_a': 1, 'sys_b': 2}})
+    manager = SettingsManager(settings_file, logging.getLogger(),
+                              system_filepath=system_file)
+
+    manager.set('order', 'user_a', 3)
+    manager.set('order', 'sys_a', 4)
+
+    assert list(manager.get_category('order')) == ['sys_a', 'sys_b', 'user_a']
+    assert manager.get('order', 'sys_a') == 4
+
+
 def test_delete_setting(settings_file):
     """Test deleting settings and cleaning up empty categories."""
     manager = SettingsManager(settings_file, logging.getLogger())
