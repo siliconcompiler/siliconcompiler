@@ -3799,7 +3799,7 @@ def test_get_task_with_tool_parameter_valid(isolated_tasks):
 
 
 def test_get_task_with_tool_parameter_invalid(isolated_tasks):
-    """Test that requesting a non-existent tool falls back to defaults."""
+    """Requesting a non-existent tool is refused, not quietly substituted."""
     ShowTask.register_task(ToolA)
     ShowTask.register_task(ToolB)
 
@@ -3812,9 +3812,9 @@ def test_get_task_with_tool_parameter_invalid(isolated_tasks):
         # Request a tool that doesn't exist
         task = ShowTask.get_task("ext", tool="nonexistent")
 
-        # Should fall back to default discovery
-        assert task is not None
-        assert task.tool() in ["toola", "toolb"]
+        # Falling back to toola/toolb here would run a viewer the caller did
+        # not ask for, and a typo would look like success.
+        assert task is None
 
 
 def test_get_task_with_tool_priority_over_preference(isolated_tasks):
@@ -3843,7 +3843,7 @@ def test_get_task_with_tool_priority_over_preference(isolated_tasks):
 
 
 def test_get_task_with_tool_unsupported_extension(isolated_tasks):
-    """Test that tool param doesn't force unsupported extensions."""
+    """A tool that cannot read the extension is refused, not swapped out."""
 
     class ToolC(ShowTask):
         def tool(self):
@@ -3867,9 +3867,8 @@ def test_get_task_with_tool_unsupported_extension(isolated_tasks):
         # Try to use ToolC for 'ext' (which it doesn't support)
         task = ShowTask.get_task("ext", tool="toolc")
 
-        # Should fall back to ToolA since ToolC doesn't support 'ext'
-        assert task is not None
-        assert task.tool() == "toola"
+        # ToolA supports 'ext', but the caller asked for toolc.
+        assert task is None
 
 
 def test_get_task_with_tool_multiple_tasks_same_tool(isolated_tasks):
@@ -3990,10 +3989,10 @@ def test_get_task_with_tool_case_sensitive(isolated_tasks):
         # Try with different case
         task = ShowTask.get_task("ext", tool="ToolA")
 
-        # Should not match since tool names are case-sensitive
-        # Should fall back to default
-        assert task is not None
-        assert task.tool() in ["toola", "toolb"]
+        # Tool names are case-sensitive, so "ToolA" names nothing and is
+        # refused rather than resolving to toola or toolb.
+        assert task is None
+        assert ShowTask.get_task("ext", tool="toola").tool() == "toola"
 
 
 def test_get_task_with_tool_empty_string(isolated_tasks):
@@ -4080,9 +4079,8 @@ def test_get_task_with_tool_task_format_invalid_task(isolated_tasks):
         # Request non-existent task
         task = ShowTask.get_task("txt", tool="toolh/mode_b")
 
-        # Should fall back to default discovery
-        assert task is not None
-        assert task.tool() == "toolh"
+        # toolh/mode_a is right there, but "mode_b" is what was asked for.
+        assert task is None
 
 
 def test_get_task_tool_task_format_priority_over_preference(isolated_tasks):
@@ -4225,12 +4223,13 @@ def test_get_extension_map_respects_user_preference(isolated_tasks):
 
 
 def test_get_extension_map_tool_filter_matches_get_task(isolated_tasks):
-    """tool= behavior in get_extension_map mirrors get_task: it's a hint, not a strict filter.
+    """tool= behavior in get_extension_map mirrors get_task: it is a filter.
 
-    For extensions the requested tool supports, the requested tool is preferred.
-    For extensions it does not, get_task falls back to whatever tool can handle
-    them, and get_extension_map reflects that same fallback. This matches how
-    Project.show resolves a tool for the eventual file extension.
+    For extensions the requested tool supports, the requested tool is the
+    preferred one. Extensions it cannot handle are dropped rather than mapped
+    to a fallback, matching get_task refusing to substitute a tool the caller
+    did not name. This is what Project.show relies on to keep its search to
+    files the requested tool can actually open.
     """
 
     class ToolOnlyXyz(ShowTask):
@@ -4256,9 +4255,12 @@ def test_get_extension_map_tool_filter_matches_get_task(isolated_tasks):
 
         # ToolA wins for "ext" because the requested tool actually supports it.
         assert isinstance(ext_map["ext"], ToolA)
-        # "xyz" still falls back to ToolOnlyXyz — matching get_task's behavior
-        # when the requested tool can't handle the extension.
-        assert isinstance(ext_map["xyz"], ToolOnlyXyz)
+        # "xyz" is dropped: ToolOnlyXyz handles it, but toola is what was asked
+        # for, and get_task returns None there.
+        assert "xyz" not in ext_map
+        assert ShowTask.get_task("xyz", tool="toola") is None
+        # Unfiltered, "xyz" is present.
+        assert isinstance(ShowTask.get_extension_map()["xyz"], ToolOnlyXyz)
 
         # Every entry must equal what get_task would return for that ext.
         for ext, preferred in ext_map.items():
@@ -4402,6 +4404,160 @@ def test_get_extension_map_matches_get_task_resolution(isolated_tasks):
             assert type(resolved) is type(preferred), \
                 f"ext={ext}: map gave {type(preferred).__name__}, " \
                 f"get_task gave {type(resolved).__name__}"
+
+
+class _PriorityLow(ShowTask):
+    """Registered first, so the registration-order convention makes it lose."""
+    def tool(self):
+        return "prio"
+
+    def task(self):
+        return "low"
+
+    def get_supported_task_extentions(self):
+        return ["prio_ext"]
+
+
+class _PriorityHigh(ShowTask):
+    """Registered last, so it is the preferred task of tool "prio"."""
+    def tool(self):
+        return "prio"
+
+    def task(self):
+        return "high"
+
+    def get_supported_task_extentions(self):
+        return ["prio_ext"]
+
+
+@pytest.fixture
+def priority_tasks(isolated_tasks):
+    """Two tasks of one tool, registered lowest-priority first."""
+    ShowTask.register_task(_PriorityLow)
+    ShowTask.register_task(_PriorityHigh)
+
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None  # No preference
+        mock_settings_cls.return_value = mock_settings
+        yield
+
+
+def test_get_task_tool_only_hint_matches_unhinted_priority(priority_tasks):
+    """A tool-only hint must not select a lower-priority task than no hint at all.
+
+    Registration order is "later wins" (see showtasks()), so a tool that
+    registers its fallback viewer first and its preferred viewer second must
+    resolve to the preferred one either way. Walking the registry forward here
+    used to return the first match, i.e. exactly the task the ordering was set
+    up to lose -- e.g. "openroad" gave openroad/web instead of openroad/show.
+    """
+    unhinted = ShowTask.get_task("prio_ext")
+    hinted = ShowTask.get_task("prio_ext", tool="prio")
+
+    assert isinstance(unhinted, _PriorityHigh)
+    assert isinstance(hinted, _PriorityHigh), \
+        f"tool-only hint downgraded to {hinted.task()}"
+
+
+def test_get_task_tool_task_hint_still_reaches_lower_priority(priority_tasks):
+    """The full "tool/task" form can still pin the lower-priority task."""
+    task = ShowTask.get_task("prio_ext", tool="prio/low")
+
+    assert isinstance(task, _PriorityLow)
+
+
+def test_get_task_preference_matches_unhinted_priority(priority_tasks):
+    """A tool-only user-settings preference resolves the same way as the hint."""
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+
+        def get_side_effect(category, key, default=None):
+            if category == "showtask" and key == "prio_ext":
+                return "prio"
+            return default
+
+        mock_settings.get.side_effect = get_side_effect
+        mock_settings_cls.return_value = mock_settings
+
+        assert isinstance(ShowTask.get_task("prio_ext"), _PriorityHigh)
+
+
+def test_get_extension_map_tool_only_hint_matches_unhinted(priority_tasks):
+    """get_extension_map inherits the corrected hint resolution."""
+    assert isinstance(ShowTask.get_extension_map()["prio_ext"], _PriorityHigh)
+    assert isinstance(ShowTask.get_extension_map(tool="prio")["prio_ext"], _PriorityHigh)
+
+
+def test_get_task_unknown_tool_returns_none(priority_tasks):
+    """A misspelled tool or task is refused rather than substituted.
+
+    "prioo" and "prio/nosuchtask" used to fall through to automatic discovery
+    and quietly launch whatever else handled the extension.
+    """
+    assert ShowTask.get_task("prio_ext", tool="prioo") is None
+    assert ShowTask.get_task("prio_ext", tool="prio/nosuchtask") is None
+
+
+def test_get_task_tool_without_extension_returns_none(priority_tasks):
+    """A real tool that cannot handle the extension is also refused."""
+
+    class ToolOther(ShowTask):
+        def tool(self):
+            return "other"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["other_ext"]
+
+    ShowTask.register_task(ToolOther)
+
+    assert ShowTask.get_task("prio_ext", tool="other") is None
+
+
+def test_get_task_resolvable_tool_is_unaffected(priority_tasks):
+    """Refusing the unresolvable case does not disturb the resolvable one."""
+    assert isinstance(ShowTask.get_task("prio_ext", tool="prio"), _PriorityHigh)
+    assert isinstance(ShowTask.get_task("prio_ext", tool="prio/low"), _PriorityLow)
+    assert isinstance(ShowTask.get_task("prio_ext"), _PriorityHigh)
+    assert ShowTask.get_task("nosuchext") is None
+
+
+def test_get_extension_map_tool_drops_unhandled_extensions(priority_tasks):
+    """A tool argument narrows the map to what that tool can handle."""
+
+    class ToolOther(ShowTask):
+        def tool(self):
+            return "other"
+
+        def task(self):
+            return "show"
+
+        def get_supported_task_extentions(self):
+            return ["other_ext"]
+
+    ShowTask.register_task(ToolOther)
+
+    assert set(ShowTask.get_extension_map().keys()) == {"prio_ext", "other_ext"}
+    assert set(ShowTask.get_extension_map(tool="prio").keys()) == {"prio_ext"}
+    assert isinstance(ShowTask.get_extension_map(tool="prio")["prio_ext"], _PriorityHigh)
+
+
+def test_get_extension_map_unknown_tool_is_empty(priority_tasks):
+    """An unknown tool leaves nothing in the map."""
+    assert ShowTask.get_extension_map(tool="prioo") == {}
+
+
+def test_tasks_for_extension_priority_order(priority_tasks):
+    """_get_tasks_for_extension lists supporting tasks most-preferred first."""
+    found = ShowTask._get_tasks_for_extension("prio_ext")
+
+    assert [t.task() for t in found] == ["high", "low"]
+    assert ShowTask._get_tasks_for_extension("nosuchext") == []
 
 
 def test_task_py_logging_output_different_files(gcd_design):

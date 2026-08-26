@@ -325,3 +325,212 @@ def test_vcd_viewer_preference(available, expected):
                           capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.strip() == expected
+
+
+# ---------------------------------------------------------------------------
+# Tool-hint resolution against the real built-in registry.
+#
+# showtasks() registers OpenROADWeb *before* OpenROADShow so that the
+# "later registration wins" rule makes openroad/show the default viewer for
+# odb/def/vg. These pin that the -tool hint agrees with the default instead of
+# inverting it.
+# ---------------------------------------------------------------------------
+
+OPENROAD_SHOW_EXTS = ["odb", "def", "vg"]
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("ext", OPENROAD_SHOW_EXTS)
+def test_openroad_default_viewer_is_show_not_web(ext):
+    """The unhinted default for OpenROAD's extensions is the GUI, not the webviewer."""
+    task = ShowTask.get_task(ext)
+
+    assert (task.tool(), task.task()) == ("openroad", "show")
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("ext", OPENROAD_SHOW_EXTS)
+def test_openroad_tool_only_hint_matches_default(ext):
+    """"-tool openroad" must not downgrade the choice to openroad/web.
+
+    Regression: find_task_by_spec() walked the registry forward while the
+    automatic fallback walked it backward, so naming the tool selected the
+    task the registration order was set up to lose.
+    """
+    task = ShowTask.get_task(ext, tool="openroad")
+
+    assert (task.tool(), task.task()) == ("openroad", "show"), \
+        f"-tool openroad picked openroad/{task.task()} for '{ext}'"
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("ext", OPENROAD_SHOW_EXTS)
+@pytest.mark.parametrize("task_name", ["show", "web"])
+def test_openroad_tool_task_hint_is_exact(ext, task_name):
+    """The full "tool/task" form still reaches either viewer."""
+    task = ShowTask.get_task(ext, tool=f"openroad/{task_name}")
+
+    assert (task.tool(), task.task()) == ("openroad", task_name)
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_openroad_3dblox_tool_only_hint_matches_default():
+    """The same ordering holds for the 3dbx pair."""
+    assert ShowTask.get_task("3dbx").task() == "show3dblox"
+    assert ShowTask.get_task("3dbx", tool="openroad").task() == "show3dblox"
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_klayout_tool_only_hint_matches_default():
+    """A tool with a single task is unaffected by the reversed walk."""
+    task = ShowTask.get_task("gds", tool="klayout")
+
+    assert (task.tool(), task.task()) == ("klayout", "show")
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_extension_map_tool_hint_matches_default():
+    """sc-show -list stars the same task the hint resolves to."""
+    default_map = ShowTask.get_extension_map()
+    hinted_map = ShowTask.get_extension_map(tool="openroad")
+
+    for ext in OPENROAD_SHOW_EXTS:
+        assert type(default_map[ext]) is type(hinted_map[ext])
+        assert hinted_map[ext].task() == "show"
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("bad_tool", ["openrroad", "openrroad/web", "openroad/wbe"])
+def test_misspelled_tool_is_refused_not_substituted(bad_tool):
+    """A typo must not silently resolve to some other viewer."""
+    assert ShowTask.get_task("odb", tool=bad_tool) is None
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_tool_without_extension_support_is_refused():
+    """klayout cannot read odb, so asking for it is an error, not a fallback."""
+    assert ShowTask.get_task("odb", tool="klayout") is None
+    assert ShowTask.get_task("gds", tool="openroad") is None
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_tasks_for_extension_reports_openroad_viewers():
+    """The candidate list backing the error message is in priority order."""
+    names = [f"{t.tool()}/{t.task()}" for t in ShowTask._get_tasks_for_extension("odb")]
+
+    assert names == ["openroad/show", "openroad/web"]
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("bad_tool", ["openrroad/web", "klayout"])
+def test_project_show_refuses_unusable_tool(bad_tool, monkeypatch, caplog, gcd_design):
+    """Project.show() reports the bad tool instead of running a different one."""
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
+    proj.logger.setLevel("INFO")
+
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    def no_run(self):
+        raise AssertionError("show() ran a flow despite an unusable -tool")
+
+    monkeypatch.setattr(Project, "run", no_run)
+
+    assert proj.show("/path/to/design.odb", tool=bad_tool) is None
+
+    assert f"Filetype 'odb' not available for '{bad_tool}'." in caplog.text
+    assert "Tasks supporting 'odb': openroad/show, openroad/web" in caplog.text
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_project_show_tool_hint_selects_default_task(monkeypatch, gcd_design):
+    """Project.show() with "-tool openroad" builds a flow around openroad/show."""
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
+
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+    monkeypatch.setattr("os.path.abspath", lambda x: x)
+
+    picked = []
+
+    def capture_run(self):
+        flow = self.get_flow(self.option.get_flow())
+        for step, index in flow.get_nodes():
+            task = flow.get_task_module(step, index)()
+            picked.append(f"{task.tool()}/{task.task()}")
+
+    monkeypatch.setattr(Project, "run", capture_run)
+
+    proj.show("/path/to/design.odb", tool="openroad")
+
+    assert picked == ["openroad/show"]
+
+
+# An early import of a viewer module lets the subclass recursion in
+# __build_tasks register it before showtasks() gets a say. register_task()
+# re-orders on re-registration so showtools still decides, but that has to be
+# checked in a fresh interpreter -- this module imports openroad.show at the
+# top, so the "early" case is already baked in by the time a test runs here.
+IMPORT_ORDER_PROBE = """
+import sys
+if len(sys.argv) > 1 and sys.argv[1] == "early":
+    import siliconcompiler.tools.openroad.show  # noqa: F401
+
+from unittest.mock import patch
+import siliconcompiler.utils as utils
+with patch.object(utils, "entry_points", lambda group: []):
+    from siliconcompiler import ShowTask
+    order = []
+    for cls in ShowTask.get_task(None):
+        try:
+            inst = cls()
+            order.append(inst.tool() + "/" + inst.task())
+        except NotImplementedError:
+            continue
+    print(",".join(order))
+    for hint in (None, "openroad"):
+        task = ShowTask.get_task("odb", tool=hint)
+        print(task.tool() + "/" + task.task())
+"""
+
+
+@pytest.mark.parametrize("when", ["late", "early"])
+def test_registry_order_independent_of_viewer_import_order(when):
+    """showtools decides priority even if a viewer module was imported first.
+
+    Regression: register_task() wrote through to a dict, and assigning an
+    existing key leaves it in place. Importing openroad.show before the first
+    get_task() therefore let the module-path-sorted subclass recursion pin
+    WebTask after ShowTask, making openroad/web the default for odb.
+    """
+    proc = subprocess.run([sys.executable, "-c", IMPORT_ORDER_PROBE, when],
+                          capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+
+    order, unhinted, hinted = proc.stdout.strip().splitlines()
+
+    assert order.split(",") == [
+        "klayout/show",
+        "openroad/web",
+        "openroad/show",
+        "openroad/web3dblox",
+        "openroad/show3dblox",
+        "graphviz/show",
+        "vpr/show",
+        "gtkwave/show",
+        "surfer/show",
+    ]
+    assert unhinted == "openroad/show"
+    assert hinted == "openroad/show"

@@ -1471,8 +1471,12 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             extension (str, optional): The specific file extension to search for when
                                        automatically finding a file (e.g., 'gds', 'lef').
                                        Used only if `filename` is None. Defaults to None.
-            tool (str, optional): The name of the specific showtool to use for displaying the file.
-                                  If not provided, the tool is selected based on the file extension.
+            tool (str, optional): The specific showtool to use for displaying the file, as
+                                  ``"tool"`` or ``"tool/task"``. If not provided, the tool is
+                                  selected based on the file extension. If provided but not
+                                  usable for the file (unknown tool, or a tool that does not
+                                  support the extension), an error is logged and None is
+                                  returned rather than falling back to a different tool.
             open (bool): If True, the file is opened with an `OpenTask` (e.g. an interactive
                          tool session) instead of being rendered with a `ShowTask`.
                          Mutually exclusive with `screenshot`. Defaults to False.
@@ -1527,8 +1531,14 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             # Use the shared extension map so the preferred tool for each
             # extension matches what sc-show -list reports. The map preserves
             # registration order, so higher-priority tools are tried first.
+            # A user-supplied tool is a hard requirement, so the search is
+            # restricted to the extensions that tool can actually handle.
             ext_map = tool_cls.get_extension_map(tool=tool)
             search_exts = list(ext_map.keys())
+
+            if tool and not search_exts:
+                self.logger.error(f"No registered tasks matched tool '{tool}'.")
+                return None
 
             if extension:
                 if extension not in search_exts:
@@ -1569,10 +1579,17 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         task = tool_cls.get_task(ext=filetype, tool=tool)
         if task is None:
             if tool:
-                self.logger.error(f"Filetype '{filetype}' not available for {tool}.")
-            else:
-                self.logger.error(
-                    f"Filetype '{filetype}' not available in the registered showtools.")
+                # get_task() honors a named tool or nothing, so this is the
+                # requested tool being unusable, not the extension being
+                # unsupported outright.
+                self.logger.error(f"Filetype '{filetype}' not available for '{tool}'.")
+                available = tool_cls._get_tasks_for_extension(filetype)
+                if available:
+                    names = ', '.join(f"{t.tool()}/{t.task()}" for t in available)
+                    self.logger.error(f"Tasks supporting '{filetype}': {names}")
+                    return None
+            self.logger.error(
+                f"Filetype '{filetype}' not available in the registered showtools.")
             return None
 
         # Create copy of project to avoid changing user project
