@@ -7,6 +7,7 @@ from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler import ASIC, Design, Flowgraph, FPGA
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.yosys.lec_asic import ASICLECTask
+from siliconcompiler.tools.yosys.open import OpenTask as YosysOpen
 from siliconcompiler.tools.slang import elaborate
 from siliconcompiler.tools.yosys import YosysFPGA
 from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
@@ -193,3 +194,46 @@ def test_syn_fpga_marks_design_params_required(heartbeat_design):
     with node.runtime():
         assert node.setup() is True
         assert "library,heartbeat,fileset,rtl,param,N" in node.task.get("require")
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_yosys_open(datadir):
+    '''The open task reads the liberty and netlist, then stops.'''
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("foo")
+
+    proj = ASIC(design)
+    proj.add_fileset(["rtl"])
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("open")
+    flow.node("open", YosysOpen())
+    proj.set_flow(flow)
+
+    task = YosysOpen.find_task(proj)
+    task.set_showfilepath(os.path.join(datadir, "lec", "foo.vg"))
+    # Without this the session is a breakpoint and the node never returns.
+    task.set_showexit(True)
+
+    assert proj.run()
+
+    workdir = os.path.join("build", "testdesign", "job0", "open", "0")
+
+    with sc_open(os.path.join(workdir, "open.log")) as f:
+        log = f.read()
+
+    assert os.path.isfile(os.path.join(workdir, "inputs", "foo.vg"))
+    assert "Reading netlist verilog: inputs/foo.vg" in log
+    # the prepared synthesis liberty is read, so the netlist binds to real cells
+    assert "read_liberty" in log
+    assert "NangateOpenCellLibrary_typical" in log
+    assert "2   DFF_X1" in log
+
+    # showexit drops -C, so yosys terminates instead of waiting at its shell
+    assert "-C" not in proj.history("job0").get(
+        "record", "toolargs", step="open", index="0")
+    # the node manifest and nothing else -- no design artifacts
+    assert os.listdir(os.path.join(workdir, "outputs")) == ["testdesign.pkg.json"]
