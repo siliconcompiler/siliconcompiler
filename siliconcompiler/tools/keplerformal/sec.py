@@ -1,6 +1,8 @@
 import os.path
 
-from siliconcompiler import Task
+from typing import List, Tuple
+
+from siliconcompiler import Design, Task
 from siliconcompiler.utils import sc_open
 
 
@@ -36,8 +38,8 @@ class SECTask(Task):
             return verilog
         return f"{self.design_topmodule}.sv"
 
-    def __libcorners(self):
-        """Yields the library, corner and delay model of each corner this node checks."""
+    def __libcorners(self) -> List[Tuple[Design, str, str]]:
+        """Returns the library, corner and delay model of each corner this node checks."""
         scenarios = self.project.constraint.timing.get_scenario()
         if not scenarios:
             raise ValueError("SEC requires at least one timing scenario to determine "
@@ -45,12 +47,14 @@ class SECTask(Task):
         scenario = list(scenarios.values())[0]
         libcorners = scenario.get_libcorner(self.step, self.index)
         delay_model = self.project.get("asic", "delaymodel")
+
+        corners = []
         for asiclib in self.project.get("asic", "asiclib"):
             lib = self.project.get_library(asiclib)
             for corner in libcorners:
-                if not lib.valid("asic", "libcornerfileset", corner, delay_model):
-                    continue
-                yield lib, corner, delay_model
+                if lib.valid("asic", "libcornerfileset", corner, delay_model):
+                    corners.append((lib, corner, delay_model))
+        return corners
 
     def __config_file(self) -> str:
         return "sec.yaml"
