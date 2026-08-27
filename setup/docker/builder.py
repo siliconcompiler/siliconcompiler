@@ -17,7 +17,7 @@ from siliconcompiler.toolscripts import _tools
 _file_path = os.path.dirname(__file__)
 _builder_path = os.path.abspath(os.path.join(_file_path, '..'))
 _tools_path = os.path.abspath(os.path.dirname(_tools.__file__))
-_install_script_path = os.path.join(_tools_path, 'ubuntu22')
+_install_script_path = os.path.join(_tools_path, 'ubuntu24')
 # Sourced by every install script, so it has to travel into the image with them
 # and feed the tool image tag the same way the install script itself does.
 _prereqs_script = '_prereqs.sh'
