@@ -24,10 +24,9 @@ class ConvertTask(ASICTask, Task):
                            "counts; without it bambu reports area and timing estimates "
                            "only. Needs a testbench.",
                            defvalue=False)
-        self.add_parameter("simulator", "str",
-                           "simulator bambu drives when 'simulate' is set "
-                           "(MODELSIM, XSIM or VERILATOR)",
-                           defvalue="VERILATOR")
+        self.add_parameter("simulator", "<modelsim,xsim,verilator>",
+                           "simulator bambu drives when 'simulate' is set",
+                           defvalue="verilator")
         self.add_parameter("testbench_fileset", "[(str,str)]",
                            "filesets holding the testbench to simulate against: either a "
                            "testbench XML, or a C/C++ file whose main() calls the "
@@ -72,7 +71,9 @@ class ConvertTask(ASICTask, Task):
         """Sets the simulator bambu drives.
 
         Args:
-            simulator: One of MODELSIM, XSIM or VERILATOR.
+            simulator: One of 'modelsim', 'xsim' or 'verilator'. bambu names
+                these in upper case on its command line; the conversion happens
+                on the way out.
             step: The step to associate with this setting. Defaults to None.
             index: The index to associate with this setting. Defaults to None.
         """
@@ -237,7 +238,9 @@ class ConvertTask(ASICTask, Task):
             for testbench in distinct(testbenches):
                 options.append(f'--generate-tb={testbench}')
             options.append('--simulate')
-            options.append(f'--simulator={self.get("var", "simulator")}')
+            # bambu spells these in upper case; the schema holds them lower so
+            # the accepted set reads like every other enum in the tree.
+            options.append(f'--simulator={self.get("var", "simulator").upper()}')
 
         _, clk_period = self.get_clock()
         if clk_period is not None:

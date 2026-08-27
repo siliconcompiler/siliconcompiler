@@ -417,13 +417,29 @@ def test_simulator_setter(gcd_design, datadir):
 
     task = convert.ConvertTask.find_task(proj)
     task.set_bambu_simulate(True)
-    task.set_bambu_simulator("MODELSIM")
+    task.set_bambu_simulator("modelsim")
     task.add_bambu_testbenchfileset("gcd", "testbench")
 
     node = SchedulerNode(proj, "convert", "0")
     with node.runtime():
         assert node.setup() is True
+        # Held lower case, spelled the way bambu wants on the way out.
         assert "--simulator=MODELSIM" in node.task.get_runtime_arguments()
+
+
+def test_simulator_is_an_enum():
+    """bambu accepts exactly three, and rejects anything else itself."""
+    task = convert.ConvertTask()
+    assert task.get("var", "simulator") == "verilator"
+
+    for simulator in ("modelsim", "xsim", "verilator"):
+        task.set_bambu_simulator(simulator)
+        assert task.get("var", "simulator") == simulator
+
+    # Including the upper case bambu itself uses, so there is one spelling.
+    for rejected in ("VERILATOR", "icarus"):
+        with pytest.raises(ValueError):
+            task.set_bambu_simulator(rejected)
 
 
 @pytest.mark.eda
