@@ -74,7 +74,7 @@ def generate_testcase(project: "Project",
     task_requires: List[str] = project.get('tool', tool, 'task', task, 'require',
                                            step=step, index=index)
 
-    def determine_copy(*keypath: str, in_require: bool):
+    def determine_copy(*keypath: str, in_require: bool, in_library: bool = False):
         copy = in_require
 
         if keypath[0] == 'library':
@@ -84,20 +84,29 @@ def generate_testcase(project: "Project",
             else:
                 copy = include_libraries
 
-            copy = copy and determine_copy(*keypath[2:], in_require=in_require)
+            copy = copy and determine_copy(*keypath[2:],
+                                           in_require=in_require,
+                                           in_library=True)
         elif keypath[0] == 'history':
             # Skip history
             copy = False
         elif keypath[0] == 'tool':
-            # Only grab tool / tasks
-            copy = False
-            if list(keypath[0:4]) == ['tool', tool, 'task', task]:
-                # Get files associated with testcase tool / task
-                copy = True
-                if len(keypath) >= 5:
-                    if keypath[4] in ('output', 'input', 'report'):
-                        # Skip input, output, and report files
-                        copy = False
+            if in_library:
+                # A library / PDK tool section is owned by the library, not by the
+                # running task, so it can never match the tool / task keypath below.
+                # Defer to the require list, which the task uses to declare the
+                # library files it actually reads.
+                copy = in_require
+            else:
+                # Only grab tool / tasks
+                copy = False
+                if list(keypath[0:4]) == ['tool', tool, 'task', task]:
+                    # Get files associated with testcase tool / task
+                    copy = True
+                    if len(keypath) >= 5:
+                        if keypath[4] in ('output', 'input', 'report'):
+                            # Skip input, output, and report files
+                            copy = False
         elif keypath[0] == 'option':
             if keypath[1] == 'builddir':
                 # Avoid build directory
