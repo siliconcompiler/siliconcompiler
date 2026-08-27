@@ -26,6 +26,15 @@ install_prereqs \
     gfortran-8 gfortran-8-multilib \
     clang-8 libclang-8-dev
 
+# gcc-multilib ships /usr/include/asm, the unprefixed compatibility symlink that
+# the versioned gcc-N-multilib packages do not provide. bambu's MDPI simulation
+# runtime compiles against <linux/errno.h>, which includes <asm/errno.h> without
+# the multiarch prefix, and builds it with a compiler that has no multiarch
+# include path -- so without this, "bambu --simulate" fails with
+#   /usr/include/linux/errno.h:1:10: fatal error: 'asm/errno.h' file not found
+# and only that step fails, well after synthesis has succeeded.
+install_prereqs gcc-multilib
+
 install_prereqs git build-essential
 
 mkdir -p deps
