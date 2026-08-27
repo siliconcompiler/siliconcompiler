@@ -24,6 +24,7 @@ from siliconcompiler.tools.klayout import export as klayout_export
 from siliconcompiler.tools.builtin import minimum
 
 from siliconcompiler.flows.synflow import SynthesisFlow
+from siliconcompiler.flows.sodaflow import SODA_STRATEGIES
 
 
 class ASICFlow(Flowgraph):
@@ -55,7 +56,10 @@ class ASICFlow(Flowgraph):
           defaults to 'asicflow-<language>'.
         * language (str): The hardware description language of the design. One
           of 'verilog', 'systemverilog', 'systemverilog-sv2v', 'chisel',
-          'vhdl', or 'hls'.
+          'vhdl', or 'hls'. Ignored when ``frontend`` is given.
+        * frontend (Flowgraph, optional): An elaboration flow to use instead of
+          the one ``language`` selects. See
+          :mod:`~siliconcompiler.flows.sodaflow` for one.
         * syn_np (int): Number of parallel synthesis jobs to launch.
         * floorplan_np (int): Number of parallel floorplan jobs to launch.
         * place_np (int): Number of parallel placement jobs to launch.
@@ -69,23 +73,27 @@ class ASICFlow(Flowgraph):
                  floorplan_np: int = 1,
                  place_np: int = 1,
                  cts_np: int = 1,
-                 route_np: int = 1):
+                 route_np: int = 1,
+                 frontend: Optional[Flowgraph] = None):
         """Initializes the ASICFlow with configurable parallel execution.
 
         Args:
             * name (str): The name of the flow.
             * language (str): The hardware description language of the design.
+                Ignored when ``frontend`` is given.
             * syn_np (int): The number of parallel synthesis jobs to launch.
             * floorplan_np (int): The number of parallel floorplan jobs to launch.
             * place_np (int): The number of parallel placement jobs to launch.
             * cts_np (int): The number of parallel clock tree synthesis jobs to launch.
             * route_np (int): The number of parallel routing jobs to launch.
+            * frontend (Flowgraph, optional): An elaboration flow to use instead
+                of the one ``language`` selects.
         """
         if name is None:
-            name = f"asicflow-{language}"
+            name = f"asicflow-{frontend.name if frontend is not None else language}"
         super().__init__(name)
 
-        synth = SynthesisFlow(language=language, syn_np=syn_np)
+        synth = SynthesisFlow(language=language, syn_np=syn_np, frontend=frontend)
         self.graph(synth)
 
         prev_node = synth.get_exit_nodes()
@@ -671,8 +679,63 @@ class ChiselASICFlow(ASICFlow):
         return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
 
 
+class SODAASICFlow(ASICFlow):
+    '''A SODA Synthesizer variant of the ASIC compilation flow.
+
+    This flow takes an MLIR model exported through TOSA, outlines and optimizes
+    a kernel from it with soda-opt, synthesizes that kernel to RTL with Bambu,
+    and then runs the standard synthesis, place-and-route and finishing steps.
+
+    It is the SiliconCompiler equivalent of the SODA Synthesizer's own
+    model-to-GDS path, with the OpenROAD-flow-scripts backend that path
+    generates replaced by SiliconCompiler's.
+
+    soda-opt offers three ways to lower the outlined kernel, and each is a flow
+    of its own (see :mod:`~siliconcompiler.flows.sodaflow`); ``strategy`` names
+    which of them runs as this flow's front end.
+    '''
+
+    def __init__(self, name: str = 'sodaasicflow',
+                 strategy: str = "optimized",
+                 syn_np: int = 1,
+                 floorplan_np: int = 1,
+                 place_np: int = 1,
+                 cts_np: int = 1,
+                 route_np: int = 1):
+        """Initializes the SODAASICFlow.
+
+        Args:
+            * name (str): The name of the flow.
+            * strategy (str): The soda-opt optimization strategy, one of
+              'baseline', 'optimized' or 'transformed'.
+            * syn_np (int): The number of parallel synthesis jobs to launch.
+            * floorplan_np (int): The number of parallel floorplan jobs to launch.
+            * place_np (int): The number of parallel placement jobs to launch.
+            * cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            * route_np (int): The number of parallel routing jobs to launch.
+        """
+        if strategy not in SODA_STRATEGIES:
+            raise ValueError(f"Unsupported SODA strategy: {strategy}. "
+                             f"Choose from {sorted(SODA_STRATEGIES)}")
+
+        super().__init__(name,
+                         frontend=SODA_STRATEGIES[strategy](),
+                         syn_np=syn_np,
+                         floorplan_np=floorplan_np,
+                         place_np=place_np,
+                         cts_np=cts_np,
+                         route_np=route_np)
+
+    @classmethod
+    def make_docs(cls):
+        return [cls(name=f"sodaasicflow-{strategy}", strategy=strategy,
+                    syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+                for strategy in SODA_STRATEGIES]
+
+
 ##################################################
 if __name__ == "__main__":
-    for flowcls in [ASICFlow, SV2VASICFlow, HLSASICFlow, VHDLASICFlow, ChiselASICFlow]:
+    for flowcls in [ASICFlow, SV2VASICFlow, HLSASICFlow, VHDLASICFlow, ChiselASICFlow,
+                    SODAASICFlow]:
         flow = flowcls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
         flow.write_flowgraph(f"{flow.name}.png", background="white")

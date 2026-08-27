@@ -97,6 +97,7 @@ Take a design further
 * :ref:`Reuse a block that is already hardened <hardened_modules>` -- instantiating a macro.
 * :ref:`Harden a parameterized module <uniquify_modules>` -- one module, several configurations.
 * :ref:`Write RTL in something other than Verilog <hw_frontends>` -- Chisel, Migen/Amaranth, Bluespec and more.
+* :ref:`Turn a machine learning model into silicon <soda_tutorial>` -- MLIR in, GDSII out, via SODA Synthesizer.
 * :ref:`Improve the parasitic estimate <pex_calibration>` -- calibrating against a golden extraction.
 * :ref:`Sweep a parameter across many jobs <multi_job_flows>` -- multi-job flows and automation.
 * :ref:`Build my own flow <custom_flow_tutorial>` -- wiring tasks into a graph of your own.

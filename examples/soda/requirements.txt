@@ -1,0 +1,17 @@
+# Only `smake model` needs these: it regenerates mm.mlir from the PyTorch model
+# the checked-in file was exported from. Every other target reads mm.mlir and
+# needs neither PyTorch nor torch-mlir, which is why examples/requirements.txt
+# does not pull this file in -- a machine that only builds the flow should not
+# have to download PyTorch to do it.
+#
+#     pip install -r requirements.txt
+#
+# torch-mlir's PyPI releases stopped in 2022, so the wheels that track LLVM come
+# from the project's own index, and they are built against a PyTorch nightly --
+# which is why the index and the pre-release flag are here rather than in the
+# install command.
+--pre
+--extra-index-url https://download.pytorch.org/whl/nightly/cpu
+--find-links https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
+torch
+torch-mlir
