@@ -3304,6 +3304,17 @@ class OpenTask(Task):
         """
         Registers a new show task class for dynamic discovery.
 
+        Registration order is priority order: later registrations outrank
+        earlier ones (see :meth:`get_task`). Re-registering an already known
+        task therefore moves it to the end -- :meth:`SettingsManager.set
+        <siliconcompiler.utils.settings.SettingsManager.set>` appends on every
+        write. Were it to stay where it first landed, whoever imported a viewer
+        module first would fix its priority for the life of the process, and
+        the deliberate ordering in
+        :func:`~siliconcompiler.utils.showtools.showtasks` would be silently
+        ignored for any module already pulled in by user code, a plugin, or the
+        subclass recursion in ``__build_tasks``.
+
         Args:
             task: The show task class to register.
 
@@ -3388,10 +3399,10 @@ class OpenTask(Task):
         # Register the built-in viewers, in the order showtools prefers.
         #
         # Imported here rather than at module scope because showtools imports from
-        # siliconcompiler, which imports this module. The import must also stay below the
-        # recursion above: it is what pulls the viewer modules in, and if it ran first the
-        # recursion would register them in module-path order and showtools could no longer
-        # influence which one wins (re-registering a task does not reorder it).
+        # siliconcompiler, which imports this module. Priority no longer depends on
+        # this running after the recursion above -- register_task() re-orders on
+        # re-registration -- but it is still what pulls the viewer modules in, so the
+        # recursion alone cannot be relied on to discover them.
         from siliconcompiler.utils.showtools import showtasks
         showtasks()
 
@@ -3414,15 +3425,22 @@ class OpenTask(Task):
         settings file (~/.sc/settings.json) under the 'showtask' category for a preferred tool.
         If no tool is requested and no preference is found, it falls back to automatic discovery.
 
+        Every lookup walks the registry in reverse registration order, so a
+        later-registered task (a plugin, or a built-in listed later in
+        :func:`~siliconcompiler.utils.showtools.showtasks`) wins over an earlier
+        one. This holds for the ``tool`` hint and the user-settings preference
+        as well as for automatic discovery, so narrowing a lookup with a
+        tool-only hint like ``"openroad"`` cannot select a lower-priority task
+        than the unhinted lookup would.
+
         Args:
             ext (str): The file extension to find a viewer for.
-            tool (str, optional): A tool/task hint, not a strict filter. Format
-                can be ``"tool"`` to prefer any task from that tool, or
-                ``"tool/task"`` to prefer a specific task. If the hint cannot be
-                resolved for ``ext`` (e.g. the named tool doesn't support that
-                extension), resolution falls back to the user-settings
-                preference and then to automatic discovery, so a non-None
-                result does not guarantee the returned task matches the hint.
+            tool (str, optional): The tool/task to use, as ``"tool"`` for any
+                task of that tool or ``"tool/task"`` for a specific one. This
+                is a requirement, not a hint: if it cannot be resolved for
+                ``ext`` -- an unknown tool, or one that does not support that
+                extension -- None is returned rather than quietly running
+                something else. Leave it unset to let ``ext`` decide.
 
         Returns:
             An instance of a compatible ShowTask subclass, or None if
@@ -3445,7 +3463,12 @@ class OpenTask(Task):
             spec_tool = spec_parts[0]
             spec_task = spec_parts[1] if len(spec_parts) > 1 else None
 
-            for task_cls in tasks:
+            # Iterate in reverse, matching the automatic-discovery fallback below:
+            # later registrations take precedence. Walking forward here would make a
+            # tool-only spec resolve to the *lowest*-priority task of that tool, so
+            # e.g. "openroad" would pick openroad/web over openroad/show even though
+            # showtasks() registers web first precisely so show wins.
+            for task_cls in reversed(tasks):
                 try:
                     task_inst = task_cls()
                     # Check if this task matches the specification
@@ -3473,11 +3496,11 @@ class OpenTask(Task):
         if ext is None:
             return tasks
 
-        # 1. Check for requested tool first (if provided)
+        # 1. An explicitly requested tool wins, and is the only thing tried:
+        # the caller named it, so falling through to another one would silently
+        # launch the wrong viewer.
         if tool:
-            result = find_task_by_spec(tool, ext, tasks)
-            if result:
-                return result
+            return find_task_by_spec(tool, ext, tasks)
 
         # 2. Check User Settings for Preference
         if issubclass(cls, ShowTask):
@@ -3485,6 +3508,9 @@ class OpenTask(Task):
         else:
             preference = MPManager.get_settings().get("opentask", ext)
 
+        # Unlike an explicit request, a stale preference degrades quietly: a
+        # setting left over from an uninstalled viewer should not make show()
+        # stop working.
         if preference:
             result = find_task_by_spec(preference, ext, tasks)
             if result:
@@ -3520,11 +3546,10 @@ class OpenTask(Task):
         :meth:`get_supported_task_extentions`).
 
         Args:
-            tool (str, optional): A tool/task preference hint in ``"tool"`` or
-                ``"tool/task"`` form, forwarded to :meth:`get_task`. It biases
-                the preferred task per extension but is not a strict filter:
-                extensions the hint cannot resolve still appear in the map
-                with whichever task :meth:`get_task` falls back to.
+            tool (str, optional): Restrict the map to one tool/task, in
+                ``"tool"`` or ``"tool/task"`` form, forwarded to
+                :meth:`get_task`. Extensions that tool cannot handle are
+                omitted, so the result describes only what it can show.
 
         Returns:
             A dictionary mapping each supported extension to the preferred
@@ -3554,6 +3579,32 @@ class OpenTask(Task):
             if preferred is not None:
                 ext_map[ext] = preferred
         return ext_map
+
+    @classmethod
+    def _get_tasks_for_extension(cls: Type[TOpenTask], ext: str) -> List[TOpenTask]:
+        """
+        Returns every registered task that declares support for an extension.
+
+        Args:
+            ext (str): The file extension to look up.
+
+        Returns:
+            A list of task instances supporting ``ext``, most-preferred first
+            (reverse registration order, matching :meth:`get_task`).
+        """
+        tasks = cls.get_task(None)
+        if not tasks:
+            return []
+
+        found: List[TOpenTask] = []
+        for task_cls in reversed(tasks):
+            try:
+                task_inst = task_cls()
+                if ext in task_inst.get_supported_task_extentions():
+                    found.append(task_inst)
+            except NotImplementedError:
+                continue
+        return found
 
 
 class ShowTask(OpenTask):

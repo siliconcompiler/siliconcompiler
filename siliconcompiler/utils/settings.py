@@ -316,11 +316,21 @@ class SettingsManager:
         """
         Set a specific setting within a category.
 
+        A write always places the key last within its category, so a category's
+        iteration order is the order its keys were most recently written.
+        Categories looked up by key do not care, but the ones whose order
+        carries meaning depend on it -- see
+        :meth:`~siliconcompiler.tool.OpenTask.register_task`, where a later
+        registration has to outrank an earlier one. Leaving a re-written key at
+        its original position would silently pin priority to whoever wrote it
+        first.
+
         Args:
             category (str): The group name (e.g., 'showtools', 'options').
             key (str): The specific setting name.
             value: The value to store (must be JSON serializable).
-            keep (bool): If True, do not overwrite existing value.
+            keep (bool): If True, do not overwrite existing value (and so also
+                leave its position alone).
         """
         if self._has_priority(category, key):
             self.__logger.warning(f"Setting '{category}.{key}' has system priority and cannot be "
@@ -334,6 +344,9 @@ class SettingsManager:
 
                 if keep and key in self.__settings[category]:
                     return
+                # Plain assignment keeps an existing key at its original
+                # position; drop it first so the write appends.
+                self.__settings[category].pop(key, None)
                 self.__settings[category][key] = value
 
     def get(self, category: str, key: str, default=None):

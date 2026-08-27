@@ -434,7 +434,7 @@ class Board:
         self._log_handler = LogBuffer(self._log_handler_queue, n=120, event=self._render_event)
 
         # Sleep time for the dashboard
-        self._dwell = 0.1
+        self._dwell = 0.2
 
         self._metrics = ("warnings", "errors")
 
@@ -980,8 +980,10 @@ class Board:
                 # (the locked read+copy in update_data) when data_modified is
                 # actually set -- a log-only wake just repaints, draining new
                 # lines via get_lines().
+                now = time.time()
+                dwell = self._dwell
                 try:
-                    if self._render_event.wait(timeout=self._dwell):
+                    if self._render_event.wait(timeout=dwell):
                         self._render_event.clear()
                 except Exception:
                     # See update_data: without the event there is nothing left to
@@ -996,7 +998,10 @@ class Board:
                 if data_changed():
                     update_data()
                 self.live.update(self._get_rendable(), refresh=True)
-                time.sleep(self._dwell)
+
+                dwell = dwell - (time.time() - now)
+                if dwell > 0:
+                    time.sleep(dwell)
 
         finally:
             update_data()

@@ -191,14 +191,7 @@ class TimingTaskBase(OpenSTATask):
 
         self.set_script("sc_timing.tcl")
 
-        if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="vg")
-        else:
-            # sc_timing.tcl reads the netlist from the design filesets when no vg
-            # input is present; declare them required so they are hashed (cache)
-            # and copied (remote runs).
-            for obj, key in self.get_fileset_file_keys("verilog"):
-                self.add_required_key(obj, *key)
+        self._add_netlist_inputs()
 
         if self.get("var", "timing_mode"):
             self.add_required_key("var", "timing_mode")
@@ -248,6 +241,22 @@ class TimingTaskBase(OpenSTATask):
         else:
             # default: VCD provided via the active filesets
             for obj, key in self.get_fileset_file_keys("vcd"):
+                self.add_required_key(obj, *key)
+
+    def _add_netlist_inputs(self):
+        """Declare where sc_read_design.tcl will find the gate-level netlist.
+
+        Split out of :meth:`setup` so a subclass that supplies the netlist by
+        another route can suppress it -- :class:`.opensta.open.OpenTask` copies
+        ``showfilepath`` into ``inputs/`` instead.
+        """
+        if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="vg")
+        else:
+            # sc_read_design.tcl reads the netlist from the design filesets when no
+            # vg input is present; declare them required so they are hashed (cache)
+            # and copied (remote runs).
+            for obj, key in self.get_fileset_file_keys("verilog"):
                 self.add_required_key(obj, *key)
 
     def post_process(self):
