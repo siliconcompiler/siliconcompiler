@@ -113,6 +113,19 @@ class ConvertTask(ASICTask, Task):
             resolved.extend(self.project.get_filesets(library=library, filesets=[fileset]))
         return resolved
 
+    def __mainlib(self):
+        """The main standard cell library, or None if no target selected one.
+
+        ['asic', 'mainlib'] is a valid keypath on any ASIC project but stays
+        empty until a target fills it in, so its validity says nothing about
+        whether there is a library to ask.
+        """
+        if not self.project.valid("asic", "mainlib"):
+            return None
+        if not self.project.get("asic", "mainlib"):
+            return None
+        return self.mainlib
+
     def tool(self):
         return "bambu"
 
@@ -231,9 +244,9 @@ class ConvertTask(ASICTask, Task):
             clock_multiplier = 1.0
             # the multiplier is a property of the main library, which a project that
             # only runs the conversion need not have selected
-            if self.project.valid("asic", "mainlib") and \
-                    self.mainlib.valid("var", "bambu_clock_multiplier"):
-                clock_multiplier = self.mainlib.get("var", "bambu_clock_multiplier")
+            mainlib = self.__mainlib()
+            if mainlib and mainlib.valid("var", "bambu_clock_multiplier"):
+                clock_multiplier = mainlib.get("var", "bambu_clock_multiplier")
             clk_period *= clock_multiplier
             # --clock-name names the clock port of the generated RTL, which the SDC
             # then constrains, so it has to be the port the SDC creates its clock on
@@ -245,10 +258,10 @@ class ConvertTask(ASICTask, Task):
 
         options.append('--disable-function-proxy')
 
-        if self.project.valid("asic", "mainlib"):
-            device = self.project.get("library",
-                                      self.project.get("asic", "mainlib"),
-                                      "tool", "bambu", "device")
+        # Only a library that knows about bambu carries a device name for it.
+        mainlib = self.__mainlib()
+        if mainlib and mainlib.valid("tool", "bambu", "device"):
+            device = mainlib.get("tool", "bambu", "device")
             if device:
                 options.append(f'--device={device}')
 

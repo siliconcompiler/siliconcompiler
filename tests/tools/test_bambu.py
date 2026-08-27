@@ -6,7 +6,7 @@ import shutil
 
 import os.path
 
-from siliconcompiler import Project, Flowgraph, Design
+from siliconcompiler import ASIC, Project, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.bambu import convert
 
@@ -137,7 +137,7 @@ def test_verbosity_is_on_the_command_line(gcd_design, datadir):
         design.set_topmodule("gcd")
         design.add_file("gcd.c")
 
-    proj = Project(design)
+    proj = ASIC(design)
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
@@ -281,7 +281,6 @@ def test_cycles_are_parsed_even_though_nothing_stores_them(main_kernel_project, 
 @pytest.mark.timeout(600)
 def test_resource_report_from_a_real_run(datadir):
     """bambu really is run at -v3, and the summary really is parseable."""
-    from siliconcompiler import ASIC
     from siliconcompiler.targets import freepdk45_demo
 
     design = Design("gcd")
@@ -322,7 +321,7 @@ def test_simulation_is_off_by_default(gcd_design, datadir):
         design.set_topmodule("gcd")
         design.add_file("gcd.c")
 
-    proj = Project(design)
+    proj = ASIC(design)
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
@@ -349,7 +348,7 @@ def test_simulation_options(gcd_design, datadir):
         with design.active_fileset("testbench"):
             design.add_file("gcd_tb.c")
 
-    proj = Project(design)
+    proj = ASIC(design)
     proj.add_fileset(["rtl", "testbench"])
 
     flow = Flowgraph("testflow")
@@ -384,7 +383,7 @@ def test_simulation_without_a_testbench_is_rejected(gcd_design, datadir):
         design.set_topmodule("gcd")
         design.add_file("gcd.c")
 
-    proj = Project(design)
+    proj = ASIC(design)
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
@@ -409,7 +408,7 @@ def test_simulator_setter(gcd_design, datadir):
         with design.active_fileset("testbench"):
             design.add_file("gcd_tb.c")
 
-    proj = Project(design)
+    proj = ASIC(design)
     proj.add_fileset(["rtl", "testbench"])
 
     flow = Flowgraph("testflow")
@@ -436,7 +435,6 @@ def test_simulation_reports_cycles(datadir):
     MDPI runtime compiles against (linux-libc-dev and the 32-bit sets); without
     them bambu fails building its wrapper rather than reporting anything.
     """
-    from siliconcompiler import ASIC
     from siliconcompiler.targets import freepdk45_demo
 
     design = Design("gcd")
@@ -469,3 +467,28 @@ def test_simulation_reports_cycles(datadir):
     assert re.search(r"Total cycles\s*:\s*\d+", log)
     # And the design still built.
     assert proj.find_result("v", step="convert") is not None
+
+
+def test_asic_without_a_target(gcd_design):
+    """An ASIC project that has not loaded a target still builds a command line.
+
+    ['asic','mainlib'] is a valid keypath on every ASIC project but is empty
+    until a target fills it in, so asking whether the keypath is valid says
+    nothing about whether there is a library to read a device name from. The
+    clock multiplier is read the same way and has the same trap.
+    """
+    proj = ASIC(gcd_design)
+    proj.add_fileset(["rtl", "sdc"])
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+
+    # No target, so no device to estimate against and no clock multiplier.
+    assert not any(arg.startswith("--device") for arg in arguments)
+    assert "--clock-period=2.0" in arguments
