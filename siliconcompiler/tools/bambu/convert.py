@@ -9,7 +9,7 @@ from typing import Optional
 from siliconcompiler.utils import sc_open
 
 from siliconcompiler import Task
-from siliconcompiler.asic import ASICTask
+from siliconcompiler.asic import ASICTask, CellArea
 from siliconcompiler.tools._common import distinct
 
 
@@ -108,6 +108,11 @@ class ConvertTask(ASICTask, Task):
         for value in distinct(sources):
             options.append(value)
 
+        # The resource summary post_process() reads is only printed at this
+        # verbosity, so it is not a knob: lowering it would silently stop the
+        # report being produced.
+        options.append('-v3')
+
         options.append('--soft-float')
         options.append('--memory-allocation-policy=NO_BRAM')
 
@@ -156,9 +161,42 @@ class ConvertTask(ASICTask, Task):
         fmax = re.compile(r"Estimated max frequency \(MHz\): (\d+\.?\d*)")
         slack = re.compile(r"Minimum slack: (\d+\.?\d*)")
 
+        # A whole-design tally of the functional units the scheduler allocated,
+        # printed as a header followed by one indented entry per unit and ended
+        # by the first line that is not one (or by the end of the log).
+        resource_header = re.compile(r"^\s*Summary of resources:\s*$")
+        resource_entry = re.compile(r"^\s+-\s+(\S+):\s+(\d+)\s*$")
+
+        # Only printed when bambu simulates the RTL it generated, which this
+        # task does not ask it to do.
+        cycles = re.compile(r"^\s*Total cycles\s*:\s*(\d+)")
+
+        resources = {}
+        in_resources = False
+
         log_file = self.get_logpath("exe")
         with sc_open(log_file) as log:
             for line in log:
+                if in_resources:
+                    entry = resource_entry.match(line)
+                    if entry:
+                        resources[entry.group(1)] = int(entry.group(2))
+                        continue
+                    in_resources = False
+
+                if resource_header.match(line):
+                    in_resources = True
+                    continue
+
+                cycles_match = cycles.match(line)
+                if cycles_match:
+                    # There is no cycles metric in the schema yet, so this is
+                    # recorded quietly rather than warning on every run: it
+                    # starts landing the day one is added.
+                    self.record_metric("cycles", int(cycles_match.group(1)), log_file,
+                                       quiet=True)
+                    continue
+
                 ff_match = ff.findall(line)
                 area_match = area.findall(line)
                 fmax_match = fmax.findall(line)
@@ -177,3 +215,13 @@ class ConvertTask(ASICTask, Task):
                     else:
                         self.record_metric("setupwns", slack_ns, log_file, source_unit='ns')
                     self.record_metric("setupslack", slack_ns, log_file, source_unit='ns')
+
+        if resources:
+            # Reported the same way synthesis reports its cells, so the two can
+            # be read by the same tooling. Only the count is known: these are
+            # functional units the HLS scheduler allocated, which have no area
+            # until something maps them onto a technology.
+            report = CellArea()
+            for name, count in sorted(resources.items()):
+                report.add_cell(name=name, module=name, cellcount=count)
+            report.write_report("reports/resource_usage.json")
