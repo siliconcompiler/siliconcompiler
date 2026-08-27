@@ -1,6 +1,7 @@
 import json
 import os
 import pytest
+import re
 import shutil
 
 import os.path
@@ -189,7 +190,7 @@ def main_kernel_project(datadir):
 
 def test_resource_summary_report(main_kernel_project, datadir):
     """The per-functional-unit tally becomes a cell usage report."""
-    _post_process_log(main_kernel_project, "simulated.log", datadir)
+    _post_process_log(main_kernel_project, "simulated_run.txt", datadir)
 
     with open(os.path.join("reports", "resource_usage.json")) as f:
         report = json.load(f)
@@ -209,7 +210,7 @@ def test_resource_summary_report(main_kernel_project, datadir):
 
 def test_cycles_recorded_quietly(main_kernel_project, datadir, caplog):
     """Cycles have no metric to land in yet, so recording must not warn."""
-    _post_process_log(main_kernel_project, "simulated.log", datadir)
+    _post_process_log(main_kernel_project, "simulated_run.txt", datadir)
 
     # The log reports 1286 cycles, and there is nowhere to put them yet. What
     # matters is that this is silent rather than a warning on every run.
@@ -259,7 +260,7 @@ def test_cycles_are_parsed_even_though_nothing_stores_them(main_kernel_project, 
 
     with node.runtime():
         assert node.setup() is True
-        shutil.copyfile(os.path.join(datadir, "bambu", "simulated.log"),
+        shutil.copyfile(os.path.join(datadir, "bambu", "simulated_run.txt"),
                         node.task.get_logpath("exe"))
 
         real = node.task.record_metric
@@ -311,3 +312,160 @@ def test_resource_report_from_a_real_run(datadir):
     # These are functional units the scheduler allocated; nothing has mapped
     # them onto a technology, so no area is claimed for them.
     assert all(entry["cellarea"] is None for entry in resources.values())
+
+
+def test_simulation_is_off_by_default(gcd_design, datadir):
+    """Simulation is slow and needs a testbench, so nothing is added unasked."""
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("gcd")
+        design.add_file("gcd.c")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+
+    assert "--simulate" not in arguments
+    assert not any(arg.startswith(("--simulator", "--generate-tb")) for arg in arguments)
+
+
+def test_simulation_options(gcd_design, datadir):
+    """The cycle counts only exist when bambu simulates, which needs all three."""
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"):
+        with design.active_fileset("rtl"):
+            design.set_topmodule("gcd")
+            design.add_file("gcd.c")
+        with design.active_fileset("testbench"):
+            design.add_file("gcd_tb.c")
+
+    proj = Project(design)
+    proj.add_fileset(["rtl", "testbench"])
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    task = convert.ConvertTask.find_task(proj)
+    task.set_bambu_simulate(True)
+    task.add_bambu_testbenchfileset("gcd", "testbench")
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+
+    assert "--simulate" in arguments
+    assert "--simulator=VERILATOR" in arguments
+    assert f"--generate-tb={os.path.join(datadir, 'gcd_tb.c')}" in arguments
+
+    # The testbench is not part of the design, so it is not also compiled in.
+    assert os.path.join(datadir, "gcd.c") in arguments
+    assert len([a for a in arguments if a.endswith("gcd_tb.c")]) == 1
+    assert not any(a == os.path.join(datadir, "gcd_tb.c") for a in arguments)
+
+
+def test_simulation_without_a_testbench_is_rejected(gcd_design, datadir):
+    """bambu cannot simulate without one, so say so at setup rather than
+    letting the run get most of the way there and fail."""
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("gcd")
+        design.add_file("gcd.c")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    convert.ConvertTask.find_task(proj).set_bambu_simulate(True)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        with pytest.raises(ValueError, match="simulation needs a testbench"):
+            node.setup()
+
+
+def test_simulator_setter(gcd_design, datadir):
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"):
+        with design.active_fileset("rtl"):
+            design.set_topmodule("gcd")
+            design.add_file("gcd.c")
+        with design.active_fileset("testbench"):
+            design.add_file("gcd_tb.c")
+
+    proj = Project(design)
+    proj.add_fileset(["rtl", "testbench"])
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    task = convert.ConvertTask.find_task(proj)
+    task.set_bambu_simulate(True)
+    task.set_bambu_simulator("MODELSIM")
+    task.add_bambu_testbenchfileset("gcd", "testbench")
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert "--simulator=MODELSIM" in node.task.get_runtime_arguments()
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(900)
+def test_simulation_reports_cycles(datadir):
+    """Simulating really does produce the cycle counts the driver parses.
+
+    Needs a working simulation toolchain -- verilator plus the headers bambu's
+    MDPI runtime compiles against (linux-libc-dev and the 32-bit sets); without
+    them bambu fails building its wrapper rather than reporting anything.
+    """
+    from siliconcompiler import ASIC
+    from siliconcompiler.targets import freepdk45_demo
+
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"):
+        with design.active_fileset("rtl"):
+            design.set_topmodule("gcd")
+            design.add_file("gcd.c")
+        with design.active_fileset("testbench"):
+            design.add_file("gcd_tb.c")
+
+    proj = ASIC(design)
+    proj.add_fileset(["rtl", "testbench"])
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    task = convert.ConvertTask.find_task(proj)
+    task.set_bambu_simulate(True)
+    task.add_bambu_testbenchfileset("gcd", "testbench")
+
+    assert proj.run()
+
+    with open(os.path.join("build", "gcd", "job0", "convert", "0", "convert.log")) as f:
+        log = f.read()
+
+    # The parser reads this line; without simulation it is never printed.
+    assert re.search(r"Total cycles\s*:\s*\d+", log)
+    # And the design still built.
+    assert proj.find_result("v", step="convert") is not None

@@ -19,6 +19,21 @@ class ConvertTask(ASICTask, Task):
 
         self.add_parameter("memorychannels", "int<1..>", "Number of memory channels available",
                            defvalue=1)
+        self.add_parameter("simulate", "bool",
+                           "simulate the generated RTL. This is what produces the cycle "
+                           "counts; without it bambu reports area and timing estimates "
+                           "only. Needs a testbench.",
+                           defvalue=False)
+        self.add_parameter("simulator", "str",
+                           "simulator bambu drives when 'simulate' is set "
+                           "(MODELSIM, XSIM or VERILATOR)",
+                           defvalue="VERILATOR")
+        self.add_parameter("testbench_fileset", "[(str,str)]",
+                           "filesets holding the testbench to simulate against: either a "
+                           "testbench XML, or a C/C++ file whose main() calls the "
+                           "top-level function. Its files are excluded from the sources "
+                           "bambu synthesizes, so the testbench can live in a fileset the "
+                           "project has selected.")
 
     def set_bambu_memorychannels(self, channels: int,
                                  step: Optional[str] = None, index: Optional[str] = None) -> None:
@@ -36,6 +51,67 @@ class ConvertTask(ASICTask, Task):
                    configurations. Defaults to None.
         """
         self.set("var", "memorychannels", channels, step=step, index=index)
+
+    def set_bambu_simulate(self, value: bool,
+                           step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """Enables or disables simulating the generated RTL.
+
+        Simulation is what produces the cycle counts; without it bambu reports
+        its area and timing estimates only. It needs a testbench, so setting
+        this without one is an error rather than a silent no-op.
+
+        Args:
+            value: Whether to simulate.
+            step: The step to associate with this setting. Defaults to None.
+            index: The index to associate with this setting. Defaults to None.
+        """
+        self.set("var", "simulate", value, step=step, index=index)
+
+    def set_bambu_simulator(self, simulator: str,
+                            step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """Sets the simulator bambu drives.
+
+        Args:
+            simulator: One of MODELSIM, XSIM or VERILATOR.
+            step: The step to associate with this setting. Defaults to None.
+            index: The index to associate with this setting. Defaults to None.
+        """
+        self.set("var", "simulator", simulator, step=step, index=index)
+
+    def add_bambu_testbenchfileset(self, library: str, fileset: str,
+                                   clobber: bool = False) -> None:
+        """Adds a fileset holding the testbench to simulate against.
+
+        The fileset carries either a testbench XML or a C/C++ file whose main()
+        calls the top-level function; the MLIR front ends emit one of the latter
+        alongside the kernel. Its files are kept out of the sources bambu
+        synthesizes, so the testbench can sit in a fileset the project selected
+        without being compiled into the design.
+
+        Args:
+            library: Name of the library owning the fileset.
+            fileset: Name of the fileset.
+            clobber: If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "testbench_fileset", (library, fileset))
+        else:
+            self.add("var", "testbench_fileset", (library, fileset))
+
+    #: What bambu accepts for --generate-tb: a testbench XML, or C/C++ with a main().
+    TESTBENCH_FILETYPES = ("c", "xml")
+
+    def __testbench_filesets(self):
+        """The (library, fileset) pairs naming the testbench, as a set of names."""
+        return {(library, fileset)
+                for library, fileset in self.get("var", "testbench_fileset")}
+
+    def __testbench_files(self):
+        """Resolves the testbench filesets to (library object, fileset) pairs."""
+        resolved = []
+        for library, fileset in self.get("var", "testbench_fileset"):
+            resolved.extend(self.project.get_filesets(library=library, filesets=[fileset]))
+        return resolved
 
     def tool(self):
         return "bambu"
@@ -66,6 +142,19 @@ class ConvertTask(ASICTask, Task):
 
         # memorychannels is read unconditionally in runtime_options (has a defvalue)
         self.add_required_key("var", "memorychannels")
+
+        self.add_required_key("var", "simulate")
+        if self.get("var", "simulate"):
+            if not self.get("var", "testbench_fileset"):
+                raise ValueError(
+                    f"{self.tool()}/{self.task()}: simulation needs a testbench; "
+                    "add the fileset holding it with add_bambu_testbenchfileset()")
+            self.add_required_key("var", "simulator")
+            self.add_required_key("var", "testbench_fileset")
+            for lib, fileset in self.__testbench_files():
+                for filetype in ConvertTask.TESTBENCH_FILETYPES:
+                    if lib.has_file(fileset=fileset, filetype=filetype):
+                        self.add_required_key(lib, "fileset", fileset, "file", filetype)
 
         # Mark required
         for lib, fileset in self.project.get_filesets():
@@ -99,8 +188,14 @@ class ConvertTask(ASICTask, Task):
         for define in defines:
             options.append(f"-D{define}")
 
+        testbench_filesets = self.__testbench_filesets()
+
         sources = []
         for lib, fileset in filesets:
+            # A testbench is not part of the design, and a project that selected
+            # its fileset would otherwise compile it into one.
+            if (lib.name, fileset) in testbench_filesets:
+                continue
             if lib.get_file(fileset=fileset, filetype="c"):
                 sources.extend(lib.get_file(fileset=fileset, filetype="c"))
             elif lib.get_file(fileset=fileset, filetype="llvm"):
@@ -119,6 +214,17 @@ class ConvertTask(ASICTask, Task):
         mem_channels = self.get("var", "memorychannels")
         if mem_channels > 0:
             options.append(f'--channels-number={mem_channels}')
+
+        if self.get("var", "simulate"):
+            testbenches = []
+            for lib, fileset in self.__testbench_files():
+                for filetype in ConvertTask.TESTBENCH_FILETYPES:
+                    testbenches.extend(lib.find_files("fileset", fileset, "file", filetype,
+                                                      missing_ok=True))
+            for testbench in distinct(testbenches):
+                options.append(f'--generate-tb={testbench}')
+            options.append('--simulate')
+            options.append(f'--simulator={self.get("var", "simulator")}')
 
         _, clk_period = self.get_clock()
         if clk_period is not None:
