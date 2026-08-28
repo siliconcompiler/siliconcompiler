@@ -26,14 +26,20 @@ install_prereqs \
     gfortran-10 gfortran-10-multilib \
     clang-11 libclang-11-dev
 
-# gcc-multilib ships /usr/include/asm, the unprefixed compatibility symlink that
-# the versioned gcc-N-multilib packages do not provide. bambu's MDPI simulation
-# runtime compiles against <linux/errno.h>, which includes <asm/errno.h> without
-# the multiarch prefix, and builds it with a compiler that has no multiarch
-# include path -- so without this, "bambu --simulate" fails with
-#   /usr/include/linux/errno.h:1:10: fatal error: 'asm/errno.h' file not found
-# and only that step fails, well after synthesis has succeeded.
-install_prereqs gcc-multilib
+# bambu's MDPI simulation runtime is built 32-bit, by whichever compiler is the
+# distribution default -- not by the versioned gcc-N/g++-N pinned above. So it
+# needs the unversioned multilib metapackages, which track that default:
+#
+#   gcc-multilib  ships /usr/include/asm, the unprefixed compatibility symlink
+#                 the gcc-N-multilib packages do not provide. Without it:
+#                   linux/errno.h:1:10: fatal error: 'asm/errno.h' file not found
+#   g++-multilib  ships the 32-bit libstdc++ headers. Without it:
+#                   c++/13/cstdio:41:10: fatal error: 'bits/c++config.h' file not found
+#
+# Pinning g++-11-multilib is not enough on a distribution whose default is newer
+# (ubuntu24 defaults to 13), and only "bambu --simulate" fails -- well after
+# synthesis has already succeeded.
+install_prereqs gcc-multilib g++-multilib
 
 install_prereqs git build-essential
 
