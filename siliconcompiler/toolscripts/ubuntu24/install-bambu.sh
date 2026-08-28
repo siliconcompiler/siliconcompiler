@@ -18,7 +18,7 @@ fi
 install_prereqs autoconf autoconf-archive automake libtool \
     libbdd-dev libboost-all-dev libmpc-dev libmpfr-dev \
     libxml2-dev liblzma-dev libmpfi-dev zlib1g-dev libicu-dev bison doxygen flex \
-    graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev \
+    graphviz make libsuitesparse-dev libglpk-dev libgmp-dev \
     libfl-dev
 install_prereqs \
     gcc-11 gcc-11-multilib g++-11 g++-11-multilib \
@@ -41,6 +41,55 @@ install_prereqs \
 install_prereqs gcc-multilib g++-multilib
 
 install_prereqs git build-essential
+
+# bambu decides whether it has a usable clang front end by compiling a plugin
+# against clang's C++ API -- the only C++ compile in this build not done by the
+# pinned g++ above. clang++ takes libstdc++ from the highest numbered GCC
+# installation under /usr/lib/gcc/<triple>/, expects the headers in
+# /usr/include/c++/<that version>, and never falls back to an older one. Two
+# ways that goes wrong, both silent:
+#
+#   * a bare libgcc-N-dev arrives as some other package's dependency with no
+#     libstdc++-N-dev beside it, leaving clang++ with no C++ standard library:
+#         fatal error: 'type_traits' file not found
+#   * the newest GCC is newer than this clang understands and its libstdc++
+#     headers no longer parse -- what GCC 16 does to clang 16 on ubuntu26.
+#
+# Either way every gcc build keeps working, which is why configure's version and
+# -m32 probes still pass, and configure throws the plugin probe's stderr away:
+#
+#   checking ... plugin_test.o -fPIC -shared -o plugin_test.so ... no...
+#       Package libclang-16.0-dev missing?
+#   configure: error: "gcc with support to -m32 and plugin not found"
+#
+# naming a package that is installed. So run the probe here, where the error is
+# visible, on the same clang header the plugin pulls in -- and repair the case
+# that is repairable from a package.
+clang_cxx_probe() {
+    echo '#include "clang/Basic/Diagnostic.h"' |
+        clang++-16 -x c++ -std=c++17 -fsyntax-only \
+            -I"$(llvm-config-16 --includedir)" - 2> /dev/null
+}
+
+if command -v clang++-16 > /dev/null 2>&1 &&
+        command -v llvm-config-16 > /dev/null 2>&1 &&
+        ! clang_cxx_probe; then
+    clang_gcc=$(clang++-16 -v -x c++ /dev/null -fsyntax-only 2>&1 |
+        sed -n 's#.*Selected GCC installation: *##p' | head -1)
+    clang_gcc=${clang_gcc%/}
+    clang_gcc=${clang_gcc##*/}
+    clang_gcc=${clang_gcc%%.*}
+    if [ -n "${clang_gcc}" ]; then
+        install_prereqs "libstdc++-${clang_gcc}-dev"
+    fi
+    if ! clang_cxx_probe; then
+        echo "WARNING: clang++-16 cannot compile clang's own C++ headers, so" >&2
+        echo "         configure will report the clang plugin as unsupported." >&2
+        echo "         It is using the libstdc++ from GCC ${clang_gcc}; if that is" >&2
+        echo "         newer than clang 16 supports, removing that GCC's -dev" >&2
+        echo "         packages makes clang fall back to the next one down." >&2
+    fi
+fi
 
 mkdir -p deps
 cd deps
