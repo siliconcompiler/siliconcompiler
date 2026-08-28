@@ -18,7 +18,7 @@ fi
 install_prereqs autoconf autoconf-archive automake libtool \
     libbdd-dev libboost-all-dev libmpc-dev libmpfr-dev \
     libxml2-dev liblzma-dev libmpfi-dev zlib1g-dev libicu-dev bison doxygen flex \
-    graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev \
+    graphviz make libsuitesparse-dev libglpk-dev libgmp-dev \
     libfl-dev
 install_prereqs \
     gcc-8 gcc-8-multilib g++-8 g++-8-multilib \
