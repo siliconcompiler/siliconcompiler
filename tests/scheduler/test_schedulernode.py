@@ -1833,7 +1833,9 @@ def test_run_without_queue(project):
          patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
         node.run()
         call_exec.assert_called_once()
-        call_remove_logger.assert_not_called()
+        # Nothing is stripped without a queue; the one removal is the node
+        # releasing its own log handler on the way out.
+        assert call_remove_logger.call_count == 1
 
 
 def test_run_with_queue(project):
@@ -1853,8 +1855,9 @@ def test_run_with_queue(project):
         node.run()
         call_exec.assert_called_once()
         # The child strips every inherited handler before installing the
-        # QueueHandler: the console StreamHandler and the SCHistoryLogHandler.
-        assert call_remove_logger.call_count == 2
+        # QueueHandler -- the console StreamHandler and the SCHistoryLogHandler
+        # -- and then releases its own log handler once the node is done.
+        assert call_remove_logger.call_count == 3
         assert pipe.calls == 1
 
 
