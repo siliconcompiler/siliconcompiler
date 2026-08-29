@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import re
 import sys
@@ -5,6 +6,67 @@ import sys
 from collections import deque
 
 from siliconcompiler import utils
+
+
+# Attribute stamped on a LogRecord that was emitted while the console was muted
+# by ['option', 'quiet']. Console sinks drop such a record; file sinks ignore
+# the attribute entirely, so a quiet run's log files stay complete.
+SC_CONSOLE_QUIET_ATTR = "sc_console_quiet"
+
+
+class SCConsoleQuietFilter(logging.Filter):
+    """
+    Drops records tagged by :func:`console_quiet`.
+
+    Attached to every sink that writes to the screen -- the project's terminal
+    handler, the CLI dashboard's log pane, and the history buffer that seeds
+    it -- so quiet only ever costs console visibility, never a log file.
+    """
+
+    def filter(self, record):
+        return not getattr(record, SC_CONSOLE_QUIET_ATTR, False)
+
+
+class _SCConsoleQuietTagger(logging.Filter):
+    """
+    Tags every record passing through it for console suppression.
+
+    Installed on the *logger* rather than a handler so the tag is applied once,
+    up front, and travels with the record to every sink -- including the
+    QueueHandler that ships it to the parent process, which is where the
+    console actually lives during a run.
+    """
+
+    def filter(self, record):
+        setattr(record, SC_CONSOLE_QUIET_ATTR, True)
+        return True
+
+
+@contextlib.contextmanager
+def console_quiet(logger: logging.Logger, active: bool = True):
+    """
+    Mutes the console for anything logged inside the block.
+
+    Log files (the node log, job.log) still receive every record; only the
+    screen is silenced. Used to make ['option', 'quiet'] apply to a task's own
+    logging during pre_process()/run()/post_process(), which would otherwise
+    bypass it entirely.
+
+    Args:
+        logger (logging.Logger): The logger to mute.
+        active (bool): When False the block runs unchanged, so callers can pass
+            the quiet flag straight through instead of branching.
+    """
+    if not active:
+        yield
+        return
+
+    tagger = _SCConsoleQuietTagger()
+    logger.addFilter(tagger)
+    try:
+        yield
+    finally:
+        logger.removeFilter(tagger)
 
 
 class SCHistoryLogHandler(logging.Handler):
@@ -22,6 +84,9 @@ class SCHistoryLogHandler(logging.Handler):
     def __init__(self, capacity: int = 1000):
         super().__init__()
         self.__records = deque(maxlen=capacity)
+        # The history exists to feed the console (the dashboard log pane), so
+        # it honors quiet exactly as the terminal handler does.
+        self.addFilter(SCConsoleQuietFilter())
 
     def emit(self, record):
         self.__records.append(record)
@@ -270,4 +335,6 @@ def get_console_formatter(project, in_run, step, index):
 def get_stream_handler(project, in_run, step, index):
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(get_console_formatter(project, in_run, step, index))
+    # This is the screen, so it is where ['option', 'quiet'] applies.
+    handler.addFilter(SCConsoleQuietFilter())
     return handler

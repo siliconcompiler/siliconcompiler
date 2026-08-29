@@ -2513,7 +2513,9 @@ def test_detach_logger_undoes_attach(mock_project, fake_console):
     dash._detach_logger()
 
     assert list(mock_project.logger.handlers) == handlers_before
-    assert terminal.filters == []
+    # The dashboard's suppression is gone; the terminal handler keeps only the
+    # quiet filter it is built with.
+    assert dash._suppress_filter not in terminal.filters
     assert dash._dashboard_handler is None
     assert dash._terminal_handler is None
     assert dash._suppress_filter.active is False

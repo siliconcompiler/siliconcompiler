@@ -3,7 +3,8 @@ import logging
 import pytest
 
 from siliconcompiler.utils.logging import (
-    SCSuppressLoggerFilter, SCTeeLoggerHandler, SCHistoryLogHandler)
+    SCSuppressLoggerFilter, SCTeeLoggerHandler, SCHistoryLogHandler,
+    SCConsoleQuietFilter, SC_CONSOLE_QUIET_ATTR, console_quiet)
 
 
 # ---------------------------------------------------------------------------
@@ -82,9 +83,11 @@ class _Capture(logging.Handler):
 def logger():
     lg = logging.getLogger(f"test_tee_{id(object())}")
     lg.handlers = []
+    lg.filters = []
     lg.setLevel(logging.INFO)
     yield lg
     lg.handlers = []
+    lg.filters = []
 
 
 def test_tee_forwards_to_all_logger_handlers(logger):
@@ -247,3 +250,103 @@ def test_history_captures_through_logger():
     logger.warning("warned")
 
     assert [r.getMessage() for r in h.records] == ["captured value", "warned"]
+
+
+# ---------------------------------------------------------------------------
+# console_quiet / SCConsoleQuietFilter
+# ---------------------------------------------------------------------------
+
+def test_console_quiet_filter_passes_untagged_records():
+    f = SCConsoleQuietFilter()
+    assert f.filter(_make_record()) is True
+
+
+def test_console_quiet_filter_blocks_tagged_records():
+    f = SCConsoleQuietFilter()
+    rec = _make_record()
+    setattr(rec, SC_CONSOLE_QUIET_ATTR, True)
+    assert f.filter(rec) is False
+
+
+def test_console_quiet_mutes_console_but_not_files(logger):
+    """A record logged inside the block reaches file sinks but not the console."""
+    console = _Capture()
+    console.addFilter(SCConsoleQuietFilter())
+    disk = _Capture()
+    logger.addHandler(console)
+    logger.addHandler(disk)
+
+    logger.info("before")
+    with console_quiet(logger):
+        logger.info("during")
+        logger.error("during error")
+    logger.info("after")
+
+    assert console.records == ["before", "after"]
+    assert disk.records == ["before", "during", "during error", "after"]
+
+
+def test_console_quiet_inactive_is_a_noop(logger):
+    console = _Capture()
+    console.addFilter(SCConsoleQuietFilter())
+    logger.addHandler(console)
+
+    with console_quiet(logger, False):
+        logger.info("shown")
+
+    assert console.records == ["shown"]
+
+
+def test_console_quiet_removes_its_filter_on_exception(logger):
+    console = _Capture()
+    console.addFilter(SCConsoleQuietFilter())
+    logger.addHandler(console)
+
+    with pytest.raises(ValueError):
+        with console_quiet(logger):
+            logger.info("muted")
+            raise ValueError("boom")
+
+    logger.info("audible again")
+    assert console.records == ["audible again"]
+    assert logger.filters == []
+
+
+def test_console_quiet_tag_survives_queue_transport(logger):
+    """The tag must reach the parent process, where the console handler lives."""
+    import pickle
+    from logging.handlers import QueueHandler
+    from queue import Queue
+
+    queue = Queue()
+    logger.addHandler(QueueHandler(queue))
+
+    with console_quiet(logger):
+        logger.info("muted")
+
+    # Round-trip through pickle the way a multiprocessing queue would.
+    record = pickle.loads(pickle.dumps(queue.get()))
+    assert SCConsoleQuietFilter().filter(record) is False
+
+
+def test_console_sinks_carry_the_quiet_filter():
+    from siliconcompiler import Project
+
+    proj = Project("dummy")
+    assert any(isinstance(f, SCConsoleQuietFilter) for f in proj._logger_console.filters)
+    assert any(isinstance(f, SCConsoleQuietFilter) for f in proj._logger_history.filters)
+
+
+def test_history_drops_quiet_records():
+    h = SCHistoryLogHandler()
+    logger = logging.getLogger("test_history_drops_quiet_records")
+    logger.handlers = []
+    logger.filters = []
+    logger.setLevel(logging.INFO)
+    logger.addHandler(h)
+
+    with console_quiet(logger):
+        logger.info("muted")
+    logger.info("kept")
+
+    assert [r.getMessage() for r in h.records] == ["kept"]

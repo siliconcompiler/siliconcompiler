@@ -15,7 +15,8 @@ from typing import List, Optional, Set, Tuple, TYPE_CHECKING
 
 from siliconcompiler import utils, sc_open
 from siliconcompiler import NodeStatus
-from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter
+from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter, \
+    console_quiet
 
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
@@ -993,8 +994,14 @@ class SchedulerNode:
 
         self.logger.info(f'Running in {self.__workdir}')
 
+        # A task logs freely from pre_process()/run()/post_process(); quiet
+        # mutes the console for all of it. The node log and job.log still get
+        # every record, so nothing is lost, it just isn't on the screen.
+        quiet = self.__project.option.get_quiet(step=self.__step, index=self.__index)
+
         try:
-            self.__task.pre_process()
+            with console_quiet(self.logger, quiet):
+                self.__task.pre_process()
         except TaskSkip as skip:
             self.logger.warning(f'Removing {self.__step}/{self.__index} due to {skip.why}')
             self.__record.set('status', NodeStatus.SKIPPED, step=self.__step, index=self.__index)
@@ -1049,19 +1056,21 @@ class SchedulerNode:
                 try:
                     if not self.__replay:
                         self.__task.generate_replay_script(self.__replay_script, self.__workdir)
-                    ret_code = self.__task.run_task(
-                        self.__workdir,
-                        self.__project.option.get_quiet(step=self.__step, index=self.__index),
-                        self.__task.has_breakpoint(),
-                        self.__project.option.get_nice(step=self.__step, index=self.__index),
-                        self.__project.option.get_timeout(step=self.__step, index=self.__index))
+                    with console_quiet(self.logger, quiet):
+                        ret_code = self.__task.run_task(
+                            self.__workdir,
+                            quiet,
+                            self.__task.has_breakpoint(),
+                            self.__project.option.get_nice(step=self.__step, index=self.__index),
+                            self.__project.option.get_timeout(step=self.__step,
+                                                              index=self.__index))
                 except Exception:
                     raise
 
             if ret_code != 0:
                 msg = f'Command failed with code {ret_code}.'
                 if os.path.exists(self.__logs["exe"]):
-                    if self.__project.option.get_quiet(step=self.__step, index=self.__index):
+                    if quiet:
                         # Print last N lines of log when in quiet mode
                         with sc_open(self.__logs["exe"]) as logfd:
                             loglines = logfd.read().splitlines()
@@ -1073,7 +1082,8 @@ class SchedulerNode:
                 self.__error = True
 
             try:
-                self.__task.post_process()
+                with console_quiet(self.logger, quiet):
+                    self.__task.post_process()
             except Exception as e:
                 self.logger.error(
                     f"Post-processing failed for {self.__task.tool()}/{self.__task.task()}")

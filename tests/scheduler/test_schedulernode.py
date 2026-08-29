@@ -1,3 +1,4 @@
+import io
 import logging
 import logging.handlers
 import os
@@ -25,6 +26,7 @@ from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, \
     SchedulerNodeReset, SchedulerNodeResetSilent
+from siliconcompiler.utils.logging import SC_CONSOLE_QUIET_ATTR
 from siliconcompiler.utils.paths import jobdir, workdir
 
 
@@ -2563,3 +2565,118 @@ def test_mark_copy(project):
     with patch("siliconcompiler.schema.BaseSchema.set") as sc_set:
         assert node.mark_copy() is False
         sc_set.assert_not_called()
+
+
+class ChattyTask(NOPTask):
+    """A task that logs from every phase quiet is supposed to cover."""
+    def task(self):
+        return "chatty"
+
+    def pre_process(self):
+        super().pre_process()
+        self.logger.info("chatter from pre_process")
+
+    def run(self):
+        self.logger.info("chatter from run")
+        return super().run()
+
+    def post_process(self):
+        super().post_process()
+        self.logger.info("chatter from post_process")
+
+
+@pytest.fixture
+def chatty_project():
+    flow = Flowgraph("testflow")
+    flow.node("stepone", ChattyTask())
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    return proj
+
+
+@pytest.mark.parametrize("quiet", (True, False))
+def test_execute_quiet_only_mutes_the_console(chatty_project, quiet):
+    """quiet silences a task's own logging on screen, never in the log file."""
+    chatty_project.option.set_quiet(quiet)
+
+    node = SchedulerNode(chatty_project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    console = io.StringIO()
+    chatty_project._logger_console.setStream(console)
+
+    node.run()
+
+    assert chatty_project.get("record", "status", step="stepone", index="0") == \
+        NodeStatus.SUCCESS
+
+    with open(node.get_log("sc")) as f:
+        logfile = f.read()
+
+    # The log file is complete either way.
+    for phase in ("pre_process", "run", "post_process"):
+        assert f"chatter from {phase}" in logfile
+
+    # The console only sees it when the node is not quiet.
+    for phase in ("pre_process", "run", "post_process"):
+        assert (f"chatter from {phase}" in console.getvalue()) is not quiet
+
+    # Framework messages outside those phases are never muted.
+    assert "Running in " in console.getvalue()
+
+
+def test_execute_quiet_does_not_mute_phase_failures(chatty_project, caplog):
+    """A failure the framework reports about a muted phase still reaches the console."""
+    chatty_project.option.set_quiet(True)
+
+    node = SchedulerNode(chatty_project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    console = io.StringIO()
+    chatty_project._logger_console.setStream(console)
+
+    with patch("siliconcompiler.tools.builtin.BuiltinTask.post_process",
+               side_effect=ValueError("post process boom")):
+        with pytest.raises(SystemExit):
+            node.run()
+
+    assert "Post-processing failed for builtin/chatty" in console.getvalue()
+    assert "post process boom" in console.getvalue()
+    # The task's own chatter from the muted phases stays off screen.
+    assert "chatter from pre_process" not in console.getvalue()
+    assert chatty_project.get("record", "status", step="stepone", index="0") == \
+        NodeStatus.ERROR
+
+
+def test_execute_quiet_tags_records_for_the_parent_console(chatty_project):
+    """In the multiprocessing path the tag must ride the queue to the parent."""
+    chatty_project.option.set_quiet(True)
+
+    node = SchedulerNode(chatty_project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    queue = Queue()
+    node.set_queue(None, queue)
+    node.run()
+
+    seen = {}
+    while not queue.empty():
+        record = queue.get()
+        if "chatter from" in record.getMessage():
+            seen[record.getMessage().split("chatter from ")[-1]] = \
+                getattr(record, SC_CONSOLE_QUIET_ATTR, False)
+        elif "Running in " in record.getMessage():
+            seen["running"] = getattr(record, SC_CONSOLE_QUIET_ATTR, False)
+
+    assert seen["pre_process"] is True
+    assert seen["run"] is True
+    assert seen["post_process"] is True
+    # Not part of a muted phase, so the parent still prints it.
+    assert seen["running"] is False

@@ -24,7 +24,7 @@ from rich.padding import Padding
 from rich.text import Text
 
 from siliconcompiler import NodeStatus
-from siliconcompiler.utils.logging import SCColorLoggerFormatter
+from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCConsoleQuietFilter
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.units import format_time
@@ -157,6 +157,10 @@ class LogBufferHandler(logging.Handler):
         super().__init__()
         self._parent = parent
         self._formatter_source = formatter_source
+
+        # The log pane stands in for the terminal while the dashboard owns the
+        # screen, so it drops whatever ['option', 'quiet'] muted.
+        self.addFilter(SCConsoleQuietFilter())
 
         self.__logger_unicode_map = logger_unicode_map
         if self.__logger_unicode_map:
