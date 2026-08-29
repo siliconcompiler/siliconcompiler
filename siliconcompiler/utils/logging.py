@@ -8,6 +8,22 @@ from collections import deque
 from siliconcompiler import utils
 
 
+# Levels for output the *tool* produced, as opposed to SiliconCompiler's own
+# reporting. Keeping them distinct lets a reader tell at a glance whether a
+# line came from the tool's stdout/stderr or from SC itself -- which only
+# became possible once the two streams stopped sharing a file description.
+#
+# Each sits one step above its nearest standard sibling so visibility is
+# unchanged from when these were logged as INFO/ERROR: LOG appears wherever
+# INFO does, LOGERROR wherever ERROR does. "LOGERROR" is exactly the eight
+# characters the console formatter reserves for a level name.
+SC_LOG = logging.INFO + 1
+SC_LOGERROR = logging.ERROR + 1
+
+logging.addLevelName(SC_LOG, "LOG")
+logging.addLevelName(SC_LOGERROR, "LOGERROR")
+
+
 # Attribute stamped on a LogRecord that was emitted while the console was muted
 # by ['option', 'quiet']. Console sinks drop such a record; file sinks ignore
 # the attribute entirely, so a quiet run's log files stay complete.
@@ -288,9 +304,11 @@ class SCColorLoggerFormatter(logging.Formatter):
             None: logging.Formatter(fmt)
         }
 
+        # SC_LOG is left uncolored, like the INFO it stands in for.
         for level, color in [(logging.DEBUG, SCColorLoggerFormatter.blue),
                              (logging.WARNING, SCColorLoggerFormatter.yellow),
                              (logging.ERROR, SCColorLoggerFormatter.red),
+                             (SC_LOGERROR, SCColorLoggerFormatter.red),
                              (logging.CRITICAL, SCColorLoggerFormatter.bold_red)]:
             self.__formatters[level] = logging.Formatter(
                 fmt.replace('%(levelname)-8s',

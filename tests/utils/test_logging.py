@@ -4,7 +4,8 @@ import pytest
 
 from siliconcompiler.utils.logging import (
     SCSuppressLoggerFilter, SCTeeLoggerHandler, SCHistoryLogHandler,
-    SCConsoleQuietFilter, SC_CONSOLE_QUIET_ATTR, console_quiet)
+    SCConsoleQuietFilter, SC_CONSOLE_QUIET_ATTR, console_quiet,
+    SCColorLoggerFormatter, SCLoggerFormatter, SC_LOG, SC_LOGERROR)
 
 
 # ---------------------------------------------------------------------------
@@ -350,3 +351,46 @@ def test_history_drops_quiet_records():
     logger.info("kept")
 
     assert [r.getMessage() for r in h.records] == ["kept"]
+
+
+# ---------------------------------------------------------------------------
+# Tool output levels
+# ---------------------------------------------------------------------------
+
+def test_tool_levels_are_named():
+    assert logging.getLevelName(SC_LOG) == "LOG"
+    assert logging.getLevelName(SC_LOGERROR) == "LOGERROR"
+
+
+def test_tool_levels_track_their_standard_siblings():
+    """Visibility must match what INFO/ERROR gave before the rename."""
+    assert logging.INFO < SC_LOG < logging.WARNING
+    assert logging.ERROR < SC_LOGERROR < logging.CRITICAL
+
+
+def test_tool_levels_pass_at_the_default_level(logger):
+    captured = _Capture()
+    logger.addHandler(captured)
+    logger.setLevel(logging.INFO)
+
+    logger.log(SC_LOG, "from stdout")
+    logger.log(SC_LOGERROR, "from stderr")
+
+    assert captured.records == ["from stdout", "from stderr"]
+
+
+def test_tool_level_names_fit_the_console_field():
+    """The formatter reserves 8 characters, and LOGERROR uses exactly that."""
+    formatter = SCLoggerFormatter()
+    for level in (logging.INFO, logging.ERROR, SC_LOG, SC_LOGERROR):
+        record = _make_record(level=level, msg="x")
+        assert formatter.format(record) == \
+            f"| {logging.getLevelName(level):<8} | x"
+
+
+def test_logerror_is_colored_like_error():
+    formatter = SCColorLoggerFormatter(SCLoggerFormatter())
+    red = SCColorLoggerFormatter.red
+    assert formatter.format(_make_record(level=SC_LOGERROR, msg="x")).startswith(f"| {red}")
+    # LOG stands in for INFO, which is left uncolored.
+    assert formatter.format(_make_record(level=SC_LOG, msg="x")).startswith("| LOG")

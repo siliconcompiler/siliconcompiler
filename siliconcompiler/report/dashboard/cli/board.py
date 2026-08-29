@@ -24,7 +24,8 @@ from rich.padding import Padding
 from rich.text import Text
 
 from siliconcompiler import NodeStatus
-from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCConsoleQuietFilter
+from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCConsoleQuietFilter, \
+    SC_LOG, SC_LOGERROR
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.units import format_time
@@ -350,7 +351,10 @@ class Board:
             logging.getLevelName(logging.INFO): "ℹ️",
             logging.getLevelName(logging.WARNING): "⚠️",
             logging.getLevelName(logging.ERROR): "🚫",
-            logging.getLevelName(logging.CRITICAL): "🚨"
+            logging.getLevelName(logging.CRITICAL): "🚨",
+            # Output the tool itself produced, on stdout and on stderr.
+            logging.getLevelName(SC_LOG): "📜",
+            logging.getLevelName(SC_LOGERROR): "❌"
         },
         "node": {
             NodeType.ENTRY: "🏠",
