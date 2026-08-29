@@ -1252,6 +1252,42 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         return io_file, io_log
 
+    def _get_stdio_sidecar(self, io_type: str) -> str:
+        """
+        Private helper for the path a captured stream is written to.
+
+        When stdout and stderr share a log destination each is handed its own
+        hidden file here, and run_task merges them into the log as it reads
+        them. Cleaned up by :meth:`remove_stdio_sidecars` once the node is done.
+
+        Args:
+            io_type (str): The I/O type ('stdout' or 'stderr').
+        """
+        return f".{self.step}.{io_type}"
+
+    def remove_stdio_sidecars(self, workdir: Optional[str] = None) -> None:
+        """
+        Deletes the per-stream capture files.
+
+        Called once the node has finished so it is not left holding a second
+        copy of output already merged into its log. Best effort: the streams
+        are not always split (a non-log destination leaves the tool writing
+        its destination directly), and failing to tidy up is not a node
+        failure.
+
+        Args:
+            workdir (str, optional): Directory holding the files. Defaults to
+                the current directory, which during a run is the node workdir.
+        """
+        for io_type in ("stdout", "stderr"):
+            path = self._get_stdio_sidecar(io_type)
+            if workdir:
+                path = os.path.join(workdir, path)
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
     def __terminate_exe(self, proc: subprocess.Popen) -> None:
         """
         Private helper to terminate a subprocess and its children.
@@ -1375,8 +1411,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         merge_file = None
         if is_stdout_log and is_stderr_log and stdout_file == stderr_file:
             merge_file = stdout_file
-            stdout_file = f".{self.step}.stdout"
-            stderr_file = f".{self.step}.stderr"
+            stdout_file = self._get_stdio_sidecar("stdout")
+            stderr_file = self._get_stdio_sidecar("stderr")
         merge_writer = None
 
         # Tool output is reported at its own levels so a reader can tell it

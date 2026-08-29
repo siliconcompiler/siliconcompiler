@@ -865,33 +865,45 @@ class SchedulerNode:
                 SCInRunLoggerFormatter(self.__project, self.__job, self.__step, self.__index))
             self.logger.addHandler(file_log)
 
-            # Select the inputs to this node
-            sel_inputs = self.__task.select_input_nodes()
-            if not self.__is_entry_node and not sel_inputs:
-                self.halt(f'No inputs selected for {self.__step}/{self.__index}')
-            self.__record.set("inputnode", sel_inputs, step=self.__step, index=self.__index)
-
-            if self.__hash:
-                self.__hash_files_pre_execute()
-
-            # Forward data
-            if not self.__replay:
-                self.setup_input_directory()
-
-            # Write manifest prior to step running into inputs
-            self.__project.write_manifest(self.__manifests["input"])
-
-            # Check manifest
-            if not self.validate():
-                self.halt("Failed to validate node setup. See previous errors")
-
             try:
-                self.execute()
-            except KeyboardInterrupt:
-                self.halt(errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
-            except Exception as e:
-                utils.print_traceback(self.logger, e)
-                self.halt()
+                # Select the inputs to this node
+                sel_inputs = self.__task.select_input_nodes()
+                if not self.__is_entry_node and not sel_inputs:
+                    self.halt(f'No inputs selected for {self.__step}/{self.__index}')
+                self.__record.set("inputnode", sel_inputs, step=self.__step, index=self.__index)
+
+                if self.__hash:
+                    self.__hash_files_pre_execute()
+
+                # Forward data
+                if not self.__replay:
+                    self.setup_input_directory()
+
+                # Write manifest prior to step running into inputs
+                self.__project.write_manifest(self.__manifests["input"])
+
+                # Check manifest
+                if not self.validate():
+                    self.halt("Failed to validate node setup. See previous errors")
+
+                try:
+                    self.execute()
+                except KeyboardInterrupt:
+                    self.halt(errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
+                except Exception as e:
+                    utils.print_traceback(self.logger, e)
+                    self.halt()
+            finally:
+                # The node is finished, so stop holding its files. The
+                # per-stream captures have already been merged into <step>.log,
+                # and an attached FileHandler would keep the node log open for
+                # the life of the process -- which, where several nodes run in
+                # one process, also tees every later node's records into this
+                # node's log. Both survive halt(): its sys.exit unwinds through
+                # here, and it logs before doing so.
+                self.__task.remove_stdio_sidecars(self.__workdir)
+                self.logger.removeHandler(file_log)
+                file_log.close()
 
         # return to original directory
         os.chdir(cwd)

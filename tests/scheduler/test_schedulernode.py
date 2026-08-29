@@ -2680,3 +2680,92 @@ def test_execute_quiet_tags_records_for_the_parent_console(chatty_project):
     assert seen["post_process"] is True
     # Not part of a muted phase, so the parent still prints it.
     assert seen["running"] is False
+
+
+class SidecarTask(NOPTask):
+    """A python task that writes to both streams so sidecars are created."""
+    def task(self):
+        return "sidecar"
+
+    def run(self):
+        print("to stdout")
+        print("to stderr", file=sys.stderr)
+        return super().run()
+
+
+@pytest.fixture
+def sidecar_project():
+    flow = Flowgraph("testflow")
+    flow.node("stepone", SidecarTask())
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    return proj
+
+
+def test_run_removes_stdio_sidecars(sidecar_project):
+    """A finished node keeps the merged log, not a second copy of it."""
+    node = SchedulerNode(sidecar_project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    node.run()
+
+    # Everything is still in the merged log.
+    with open(node.get_log("exe")) as f:
+        assert f.read() == "to stdout\nto stderr\n"
+
+    # ...and the per-stream captures are gone.
+    assert not os.path.exists(os.path.join(node.workdir, ".stepone.stdout"))
+    assert not os.path.exists(os.path.join(node.workdir, ".stepone.stderr"))
+
+
+def test_run_releases_the_node_log_handler(project):
+    """The node log must not stay open, nor keep collecting later records."""
+    handlers_before = list(project.logger.handlers)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+    node.run()
+
+    assert list(project.logger.handlers) == handlers_before
+
+    # A record logged after the node finished must not reach its log.
+    project.logger.info("AFTER THE NODE")
+    with open(node.get_log("sc")) as f:
+        assert "AFTER THE NODE" not in f.read()
+
+
+def test_run_releases_the_node_log_handler_on_halt(project):
+    """halt() exits via sys.exit; the teardown has to survive that."""
+    handlers_before = list(project.logger.handlers)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.execute",
+               side_effect=ValueError("boom")):
+        with pytest.raises(SystemExit):
+            node.run()
+
+    assert list(project.logger.handlers) == handlers_before
+
+
+def test_run_does_not_tee_into_a_previous_nodes_log(project):
+    """Two nodes in one process must not share a log file."""
+    one = SchedulerNode(project, "stepone", "0")
+    one.task.setup_work_directory(one.workdir)
+    one.run()
+
+    two = SchedulerNode(project, "steptwo", "0")
+    two.task.setup_work_directory(two.workdir)
+    two.run()
+
+    with open(one.get_log("sc")) as f:
+        first = f.read()
+    assert "steptwo" not in first
