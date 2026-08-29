@@ -3005,14 +3005,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 Supported options are:
                 none: the stream generated to STDERR is ignored
                 log: the generated stream is stored in <step>.<suffix>; if not in quiet mode,
-                it is additionally dumped to the display as an error.
-                output: the generated stream is stored in outputs/<design>.<suffix>
-
-                When stdout and stderr share a log destination they are still
-                captured separately -- each to a hidden .<step>.stdout /
-                .<step>.stderr sidecar, merged into <step>.<suffix> as they are
-                read -- so a stderr line can be reported as an error. Ordering
-                within a stream is exact; between them it is read order.""")))
+                it is additionally dumped to the display.
+                output: the generated stream is stored in outputs/<design>.<suffix>""")))
 
         schema.insert(
             'stderr', 'suffix',
