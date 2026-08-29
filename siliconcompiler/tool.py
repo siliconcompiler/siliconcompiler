@@ -41,6 +41,7 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils, NodeStatus, Flowgraph
 from siliconcompiler import sc_open
 from siliconcompiler.utils import paths
+from siliconcompiler.utils.logging import SC_LOG, SC_LOGERROR
 from siliconcompiler.utils.multiprocessing import MPManager, forking
 
 from siliconcompiler.schema_support.pathschema import PathSchema
@@ -139,6 +140,21 @@ class TaskSkip(TaskError):
     def why(self):
         """str: The reason why the task is being skipped."""
         return self.__why
+
+
+def _split_file_lines(buffer: str) -> Tuple[str, str]:
+    """Split a stream buffer at the last newline, holding back the remainder.
+
+    Used when writing the merged log. Unlike :func:`_split_io_lines` this only
+    ever breaks on ``\n``, so a progress bar redrawing with bare ``\r`` keeps
+    the single-line shape the tool wrote. Holding the trailing partial back
+    means a line is never cut in half, nor glued to a line from the other
+    stream, when the two are interleaved at drain granularity.
+    """
+    end = buffer.rfind("\n")
+    if end < 0:
+        return "", buffer
+    return buffer[:end + 1], buffer[end + 1:]
 
 
 def _split_io_lines(buffer: str) -> Tuple[List[str], str]:
@@ -1236,6 +1252,42 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         return io_file, io_log
 
+    def _get_stdio_sidecar(self, io_type: str) -> str:
+        """
+        Private helper for the path a captured stream is written to.
+
+        When stdout and stderr share a log destination each is handed its own
+        hidden file here, and run_task merges them into the log as it reads
+        them. Cleaned up by :meth:`remove_stdio_sidecars` once the node is done.
+
+        Args:
+            io_type (str): The I/O type ('stdout' or 'stderr').
+        """
+        return f".{self.step}.{io_type}"
+
+    def remove_stdio_sidecars(self, workdir: Optional[str] = None) -> None:
+        """
+        Deletes the per-stream capture files.
+
+        Called once the node has finished so it is not left holding a second
+        copy of output already merged into its log. Best effort: the streams
+        are not always split (a non-log destination leaves the tool writing
+        its destination directly), and failing to tidy up is not a node
+        failure.
+
+        Args:
+            workdir (str, optional): Directory holding the files. Defaults to
+                the current directory, which during a run is the node workdir.
+        """
+        for io_type in ("stdout", "stderr"):
+            path = self._get_stdio_sidecar(io_type)
+            if workdir:
+                path = os.path.join(workdir, path)
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
     def __terminate_exe(self, proc: subprocess.Popen) -> None:
         """
         Private helper to terminate a subprocess and its children.
@@ -1345,22 +1397,67 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         stdout_file, is_stdout_log = self.__get_io_file("stdout")
         stderr_file, is_stderr_log = self.__get_io_file("stderr")
 
-        stdout_print = self.logger.info
-        stderr_print = self.logger.error
+        # Both streams normally land in the same <step>.log. Letting the OS do
+        # that merge -- one shared file description for fd 1 and fd 2 -- is
+        # exactly what makes a line's origin unrecoverable afterwards: there is
+        # no way to split the streams back apart downstream. So hand each one
+        # its own sidecar and do the merging here instead. Reading them
+        # separately is what lets a stderr line be reported as an error while
+        # <step>.log stays the single complete transcript that check_logfile
+        # and the tasks that grep their own log already rely on.
+        #
+        # The cost is ordering: within a stream it is exact, but between them
+        # it is drain order (one poll interval) rather than true write order.
+        merge_file = None
+        if is_stdout_log and is_stderr_log and stdout_file == stderr_file:
+            merge_file = stdout_file
+            stdout_file = self._get_stdio_sidecar("stdout")
+            stderr_file = self._get_stdio_sidecar("stderr")
+        merge_writer = None
+
+        # Tool output is reported at its own levels so a reader can tell it
+        # apart from SiliconCompiler's own messages.
+        def stdout_print(msg):
+            self.logger.log(SC_LOG, msg)
+
+        def stderr_print(msg):
+            self.logger.log(SC_LOGERROR, msg)
 
         # Buffers carry the trailing partial of each stream across polls so a
         # single source line written in chunks is logged as one record, not one
-        # record per chunk.
+        # record per chunk. The merged log keeps its own pair because it splits
+        # on newlines only -- see _split_file_lines.
         stdout_partial = [""]
         stderr_partial = [""]
+        stdout_file_partial = [""]
+        stderr_file_partial = [""]
 
         def read_stdio(stdout_reader, stderr_reader, flush=False):
-            """Helper to read and print stdout/stderr streams."""
-            if quiet:
-                return
+            """Drain both streams to the merged log and the SC logger.
 
-            def drain(reader, partial_holder, emit):
+            The merged log is written here, not by the tool, because the two
+            streams no longer share a file description. Draining therefore
+            happens even when quiet: quiet costs console visibility, never log
+            content.
+            """
+            def drain(reader, partial_holder, file_partial_holder, emit):
                 data = reader.read()
+
+                if merge_writer:
+                    buffer = file_partial_holder[0] + data if data \
+                        else file_partial_holder[0]
+                    complete, partial = _split_file_lines(buffer)
+                    if flush and partial:
+                        complete += partial + "\n"
+                        partial = ""
+                    if complete:
+                        merge_writer.write(complete)
+                        merge_writer.flush()
+                    file_partial_holder[0] = partial
+
+                if quiet:
+                    return
+
                 buffer = partial_holder[0] + data if data else partial_holder[0]
                 lines, partial = _split_io_lines(buffer)
                 for line in lines:
@@ -1370,10 +1467,13 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                     partial = ""
                 partial_holder[0] = partial
 
+            if quiet and not merge_writer:
+                return
+
             if is_stdout_log and stdout_reader:
-                drain(stdout_reader, stdout_partial, stdout_print)
+                drain(stdout_reader, stdout_partial, stdout_file_partial, stdout_print)
             if is_stderr_log and stderr_reader:
-                drain(stderr_reader, stderr_partial, stderr_print)
+                drain(stderr_reader, stderr_partial, stderr_file_partial, stderr_print)
 
         exe = self.get_exe()
 
@@ -1395,10 +1495,16 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 utils.print_traceback(self.logger, e)
                 raise
             finally:
-                with sc_open(stdout_file) as stdout_reader, \
-                     sc_open(stderr_file) as stderr_reader:
-                    if stdout_file == stderr_file:
-                        stderr_reader = None
+                # run() has returned, so there is nothing to interleave with:
+                # the merged log gets stdout in full, then stderr in full.
+                with contextlib.ExitStack() as stack:
+                    if merge_file:
+                        merge_writer = stack.enter_context(
+                            open(merge_file, 'w', newline=''))
+                    stdout_reader = stack.enter_context(sc_open(stdout_file))
+                    stderr_reader = None
+                    if stdout_file != stderr_file:
+                        stderr_reader = stack.enter_context(sc_open(stderr_file))
                     read_stdio(stdout_reader, stderr_reader, flush=True)
 
                 if resource:
@@ -1432,11 +1538,22 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 retcode = _run_breakpoint(exe, cmdlist, f"{self.step}.log")
             else:
                 # Standard subprocess execution
-                with open(stdout_file, 'w') as stdout_writer, \
-                     open(stdout_file, 'r', errors='replace') as stdout_reader, \
-                     open(stderr_file, 'w') as stderr_writer, \
-                     open(stderr_file, 'r', errors='replace') as stderr_reader:
+                with contextlib.ExitStack() as stack:
+                    if merge_file:
+                        merge_writer = stack.enter_context(
+                            open(merge_file, 'w', newline=''))
+                    stdout_writer = stack.enter_context(open(stdout_file, 'w'))
+                    # newline='' keeps the reader from folding a progress
+                    # bar's bare \r into \n: _split_io_lines wants to see it,
+                    # and the merged log has to reproduce what the tool wrote.
+                    stdout_reader = stack.enter_context(
+                        open(stdout_file, 'r', errors='replace', newline=''))
+                    stderr_writer = stack.enter_context(open(stderr_file, 'w'))
+                    stderr_reader = stack.enter_context(
+                        open(stderr_file, 'r', errors='replace', newline=''))
                     if stderr_file == stdout_file:
+                        # Same destination and no split (a non-log destination,
+                        # or /dev/null): let the OS merge them as before.
                         stderr_writer.close()
                         stderr_reader.close()
                         stderr_reader = None
