@@ -12,6 +12,7 @@ import os.path
 
 from pathlib import Path
 from multiprocessing import Queue
+from queue import Empty
 from unittest.mock import patch
 
 from siliconcompiler import Project, Flowgraph, Design
@@ -2669,14 +2670,24 @@ def test_execute_quiet_tags_records_for_the_parent_console(chatty_project):
     node.set_queue(None, queue)
     node.run()
 
+    # A multiprocessing queue hands records off through a feeder thread, so
+    # empty() reports empty while records are still in flight. Wait for the
+    # records this test is about instead of trusting empty().
+    expected = {"pre_process", "run", "post_process", "running"}
     seen = {}
-    while not queue.empty():
-        record = queue.get()
+    deadline = time.time() + 30
+    while not expected.issubset(seen) and time.time() < deadline:
+        try:
+            record = queue.get(timeout=0.1)
+        except Empty:
+            continue
         if "chatter from" in record.getMessage():
             seen[record.getMessage().split("chatter from ")[-1]] = \
                 getattr(record, SC_CONSOLE_QUIET_ATTR, False)
         elif "Running in " in record.getMessage():
             seen["running"] = getattr(record, SC_CONSOLE_QUIET_ATTR, False)
+
+    assert expected.issubset(seen), f"missing records: {sorted(expected - set(seen))}"
 
     assert seen["pre_process"] is True
     assert seen["run"] is True
