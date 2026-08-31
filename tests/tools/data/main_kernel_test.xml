@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<!-- Stands in for the test vectors soda-opt emits with --soda-generate-xml-testbench.
-     Only the name matters here; bambu is what reads the contents. -->
+<!-- Stands in for the test vectors soda-opt emits when XML testbench generation
+     is enabled. Only the name matters here; bambu is what reads the contents. -->
 <function>
   <testbench a="{0,1,2,3}" b="{4,5,6,7}"/>
 </function>

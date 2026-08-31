@@ -1,15 +1,29 @@
-# Only `smake model` needs these: it regenerates mm.mlir from the PyTorch model
-# the checked-in file was exported from. Every other target reads mm.mlir and
-# needs neither PyTorch nor torch-mlir, which is why examples/requirements.txt
-# does not pull this file in -- a machine that only builds the flow should not
-# have to download PyTorch to do it.
+# What `smake model` needs: it regenerates mm.mlir from the PyTorch model the
+# checked-in file was exported from. Every other target here reads mm.mlir and
+# needs neither PyTorch nor torch-mlir.
 #
 #     pip install -r requirements.txt
+#
+# Pulled in by examples/requirements.txt, so CI installs it and
+# tests/examples/test_soda.py::test_py_make_model runs rather than skipping.
 #
 # torch-mlir's PyPI releases stopped in 2022, so the wheels that track LLVM come
 # from the project's own index, and they are built against a PyTorch nightly --
 # which is why the index and the pre-release flag are here rather than in the
 # install command.
+#
+# Deliberately unpinned, which is the opposite of the house style. Both of these
+# come from rolling indexes that prune: the torch-mlir dev-wheels release keeps
+# about five months of builds and download.pytorch.org/whl/nightly keeps sixty
+# days. A pin therefore does not freeze the install, it schedules a 404 -- and it
+# would break every CI job, not just this one target. Unpinned always resolves to
+# something that exists. The assertions in test_py_make_model are written against
+# properties of the export that do not move (the entry function's name, the TOSA
+# op, the traced shapes) rather than against an API, so a nightly bump does not
+# flake it.
+#
+# The newest wheel is cp312-abi3, which installs on 3.12 through 3.14; 3.10 and
+# 3.11 have their own wheels. Verified 2026-08-31 to resolve on 3.14.
 --pre
 --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 --find-links https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels

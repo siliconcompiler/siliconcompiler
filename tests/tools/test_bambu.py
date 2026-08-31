@@ -439,6 +439,39 @@ def test_named_fileset_wins_over_the_upstream_testbench(datadir):
     assert not any("main_kernel_testbench.c" in a for a in arguments)
 
 
+def test_technology_file_without_constraints_is_rejected(datadir):
+    """bambu takes both XMLs positionally, so a technology file on its own would
+    be read as the constraints file. There is no way to skip the first slot, so
+    the configuration is refused instead of silently mis-parsed."""
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("gcd")
+        design.add_file("gcd.c")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    task = convert.ConvertTask.find_task(proj)
+    task.set_bambu_technologyfile(os.path.join(datadir, "main_kernel_interface.xml"))
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        with pytest.raises(ValueError, match="technology file needs a constraints file"):
+            node.setup()
+
+    # The other direction is fine: constraints alone occupies the slot it is
+    # read from.
+    task.set_bambu_constraintsfile(os.path.join(datadir, "main_kernel_test.xml"))
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+
+
 def test_ip_integration_options(gcd_design, datadir):
     """The IP integration inputs bambu takes, as parameters rather than raw
     options -- they are files, and a file that reaches a tool as a bare string

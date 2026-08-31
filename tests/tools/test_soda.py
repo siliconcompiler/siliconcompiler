@@ -317,6 +317,29 @@ def test_post_process_collects_testbench(mm_design):
     assert pathlib.Path("outputs/forward_kernel_testbench.c").is_file()
 
 
+def test_post_process_picks_the_topmodules_own_testbench(mm_design):
+    """A module with several functions emits several testbenches, and the HLS tool
+    has to get the one for the topmodule -- not whichever sorts first.
+
+    ``add_kernel_testbench.c`` sorts before ``forward_kernel_testbench.c``, so a
+    first-match copy would put the wrong kernel's arguments in front of Bambu.
+    """
+    node = SchedulerNode(_project(mm_design, BaselineTask()), "soda", "0")
+
+    pathlib.Path("outputs").mkdir()
+    pathlib.Path("outputs/forward_kernel.mlir").write_text("module {\n}\n")
+    pathlib.Path("add_kernel_testbench.c").write_text("int add_kernel_tb(void) { return 1; }\n")
+    pathlib.Path("forward_kernel_testbench.c").write_text(
+        "int forward_kernel_tb(void) { return 0; }\n")
+
+    with node.runtime():
+        assert node.setup() is True
+        node.task.post_process()
+
+    assert "forward_kernel_tb" in \
+        pathlib.Path("outputs/forward_kernel_testbench.c").read_text()
+
+
 def test_post_process_warns_on_kernel_mismatch(mm_design, caplog):
     """A topmodule that is not the outlined kernel would point the HLS tool at a
     function that does not exist, so it has to be reported rather than ignored."""
@@ -335,15 +358,26 @@ def test_post_process_warns_on_kernel_mismatch(mm_design, caplog):
     assert pathlib.Path("outputs/forward_kernel_testbench.c").is_file()
 
 
-def test_post_process_missing_testbench(mm_design):
+def test_post_process_missing_testbench(mm_design, caplog):
+    """A missing artifact is an error in the log, not an exception.
+
+    post_process() runs whether or not soda-opt succeeded, so raising would bury
+    a failed run's own error under a traceback. The file is a declared output, so
+    the scheduler halts the node on it a moment later regardless.
+    """
     node = SchedulerNode(_project(mm_design, BaselineTask()), "soda", "0")
 
     pathlib.Path("outputs").mkdir()
 
     with node.runtime():
         assert node.setup() is True
-        with pytest.raises(FileNotFoundError, match="did not emit"):
-            node.task.post_process()
+        node.task.logger.propagate = True
+        node.task.post_process()
+
+        # Declared, so the scheduler's own output check is what fails the node.
+        assert "forward_kernel_testbench.c" in node.task.get("output")
+
+    assert "did not emit forward_kernel_testbench.c" in caplog.text
 
 
 def test_outline_task_is_abstract():

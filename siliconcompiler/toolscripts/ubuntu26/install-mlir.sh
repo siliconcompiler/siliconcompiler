@@ -53,7 +53,7 @@ version=$(python3 "${src_path}/_tools.py" --tool mlir --field git-commit)
 git clone --depth=1 --branch "${version}" \
     "$(python3 "${src_path}/_tools.py" --tool mlir --field git-url)" llvm-project
 
-if [ ! -z ${PREFIX} ]; then
+if [ -n "${PREFIX:-}" ]; then
     install_dir="$PREFIX"
 else
     install_dir=/opt/mlir
@@ -105,6 +105,6 @@ cmake --build build --target install -j${NPROC:-$(nproc)}
 
 cd -
 
-if [ -z ${PREFIX} ]; then
+if [ -z "${PREFIX:-}" ]; then
     echo "Please add \"export PATH=\"/opt/mlir/bin:\$PATH\"\" to your .bashrc"
 fi

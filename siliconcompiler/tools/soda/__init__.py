@@ -115,18 +115,23 @@ class SODATask(Task):
         if self._input_from_upstream(ext):
             return os.path.join("inputs", f"{self.design_topmodule}.{ext}")
 
+        # Across every selected fileset, not the first one that matches:
+        # _setup_input declares a required key for each fileset holding this
+        # filetype, so picking the first here would read one file while
+        # declaring several -- and which one won would depend on fileset order.
+        files = []
         for lib, fileset in self.project.get_filesets():
-            files = lib.get_file(fileset=fileset, filetype=filetype)
-            if files:
-                if len(files) > 1:
-                    raise ValueError(
-                        f"{self.tool()}/{self.task()} takes a single {filetype} file, "
-                        f"got {len(files)}: {', '.join(files)}")
-                return files[0]
+            files.extend(lib.get_file(fileset=fileset, filetype=filetype))
 
-        raise ValueError(
-            f"{self.tool()}/{self.task()} has no input: no upstream node produced "
-            f"{self.design_topmodule}.{ext} and no fileset provides a {filetype} file")
+        if not files:
+            raise ValueError(
+                f"{self.tool()}/{self.task()} has no input: no upstream node produced "
+                f"{self.design_topmodule}.{ext} and no fileset provides a {filetype} file")
+        if len(files) > 1:
+            raise ValueError(
+                f"{self.tool()}/{self.task()} takes a single {filetype} file, "
+                f"got {len(files)}: {', '.join(files)}")
+        return files[0]
 
     def _record_output_lines(self, path: str) -> Optional[int]:
         '''Counts the lines of a module this task wrote and records them as a metric.

@@ -353,6 +353,38 @@ def test_link_without_input(mm_design):
             node.task.runtime_options()
 
 
+def test_input_across_two_filesets_is_ambiguous(datadir):
+    """Two selected filesets each holding a .mlir is a design the task cannot
+    resolve, so it says so rather than reading whichever came first.
+
+    _setup_input declares a required key for *every* fileset holding the
+    filetype, so taking the first match here would read one file while claiming
+    to depend on both -- and which one won would follow fileset ordering.
+    """
+    design = Design("mm")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"):
+        with design.active_fileset("rtl"):
+            design.set_topmodule("forward_kernel")
+            design.add_file("mm.mlir")
+        with design.active_fileset("extra"):
+            design.set_topmodule("forward_kernel")
+            design.add_file("transform.mlir")
+
+    proj = Project(design)
+    proj.add_fileset(["rtl", "extra"])
+
+    flow = Flowgraph("testflow")
+    flow.node("bufferize", BufferizeTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "bufferize", "0")
+    with node.runtime():
+        assert node.setup() is True
+        with pytest.raises(ValueError, match="takes a single mlir file, got 2"):
+            node.task.runtime_options()
+
+
 def _link_flow(design):
     """A link node fed by a runtime node and a translate node, as the flow wires it."""
     proj = Project(design)

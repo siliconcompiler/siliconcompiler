@@ -6,10 +6,11 @@ MLIR frontend (SODA)
 SiliconCompiler can take a machine learning model straight to hardware using
 `SODA Synthesizer <https://github.com/pnnl/soda-opt>`_, whose front end
 works in :term:`MLIR`.
-A model exported to the TOSA dialect -- which is what PyTorch, TensorFlow and
-TFLite export to -- is lowered to linalg, a kernel is outlined and optimized for
-high-level synthesis by ``soda-opt``, and :ref:`Bambu <c_hls_frontend>` turns
-that kernel into Verilog for the rest of the flow.
+A model converted to the TOSA dialect -- the form PyTorch, TensorFlow and
+TFLite models are brought into -- is then lowered to linalg, a kernel is
+outlined and optimized for high-level synthesis by ``soda-opt``, and
+:ref:`Bambu <c_hls_frontend>` turns that kernel into Verilog for the rest of the
+flow.
 
 The design's source fileset holds a ``.mlir`` file instead of Verilog, and the
 topmodule is the *outlined kernel*: ``soda-opt`` names it after the function it

@@ -362,6 +362,17 @@ class ConvertTask(ASICTask, Task):
         for var in ("constraintsfile", "technologyfile", "cnoparse", "fileinputdata"):
             if self.get("var", var):
                 self.add_required_key("var", var)
+        # bambu takes both XMLs as optional *positional* arguments -- its usage is
+        # "<source_file> [<constraints_file>] [<technology_file>]" -- so a
+        # technology file with no constraints file ahead of it is read as the
+        # constraints file. There is no way to skip the first slot, so this is
+        # rejected here rather than silently mis-parsed by the tool.
+        if self.get("var", "technologyfile") and not self.get("var", "constraintsfile"):
+            raise ValueError(
+                f"{self.tool()}/{self.task()}: a technology file needs a constraints file "
+                "with it. bambu reads them as positional arguments, so a technology file "
+                "on its own is read as the constraints file. Set one with "
+                "set_bambu_constraintsfile().")
         if self.get("var", "experimentalsetup"):
             self.add_required_key("var", "experimentalsetup")
         if self.get("var", "compiler"):

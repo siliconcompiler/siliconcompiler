@@ -30,8 +30,8 @@ the entry function suffixed with ``_kernel``: a model whose entry point is
 
 .. important::
 
-   The final node needs a Bambu built against clang 15 or newer. LLVM 19 emits
-   opaque pointers unconditionally, and an older Bambu front end rejects the IR.
+   The final node needs a Bambu built against clang 16. LLVM 19 emits opaque
+   pointers unconditionally, and an older Bambu front end rejects the IR.
    See the install note in :ref:`the SODA tutorial <soda_tutorial>`.
 '''
 

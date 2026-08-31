@@ -296,12 +296,25 @@ class OutlineTask(SODATask):
 
             found = sorted(glob.glob(pattern))
             if not found:
-                raise FileNotFoundError(
+                # Logged rather than raised: post_process() runs whether or not
+                # soda-opt succeeded, so raising here would bury a failed run's
+                # own error under a traceback. `expected` is a declared output,
+                # so the scheduler's output check halts the node right after
+                # this either way.
+                self.logger.error(
                     f"soda-opt did not emit {expected}; no file matching {pattern} was "
                     "produced. The module may have no kernel to outline.")
+                continue
 
-            if expected not in found:
-                kernel = os.path.basename(found[0]).rsplit("_", 1)[0]
+            if expected in found:
+                # An empty anchorfunc converts every function in the module, so
+                # more than one of these can be emitted. Take the one named after
+                # the topmodule; found[0] is only lexicographically first, which
+                # would hand the HLS tool another kernel's testbench.
+                source = expected
+            else:
+                source = found[0]
+                kernel = os.path.basename(source).rsplit("_", 1)[0]
                 self.logger.warning(
                     f"soda-opt outlined a kernel named '{kernel}', but the design "
                     f"topmodule is '{self.design_topmodule}'. The HLS tool is pointed at "
@@ -309,10 +322,10 @@ class OutlineTask(SODATask):
                     "name the entry function with set_soda_anchorfunc) or synthesis "
                     "will fail.")
 
-            shutil.copy2(found[0], os.path.join("outputs", expected))
+            shutil.copy2(source, os.path.join("outputs", expected))
 
-        # Last, so that a module with no kernel to outline still reports that
-        # above rather than failing here on the file soda-opt never wrote.
+        # Last, so that a module with no kernel to outline reports that above
+        # first; this tolerates the missing file on its own.
         self._record_output_lines(os.path.join("outputs", f"{self.design_topmodule}.mlir"))
 
 

@@ -68,6 +68,15 @@ void memrefCopy(int64_t elemSize, struct UnrankedMemRef *srcArg,
 
   int64_t rank = src.rank;
 
+  // The index and stride arrays below are MAX_RANK long, so a higher rank would
+  // write past them. There is no error channel out of a kernel running in
+  // hardware -- no errno, no abort an HLS backend can lower -- so the only
+  // choice that is not memory corruption is to copy nothing and leave the
+  // destination as it was. Raise MAX_RANK if a model needs more; TOSA's base
+  // profile caps rank at 4, and MAX_RANK is 8.
+  if (rank > MAX_RANK)
+    return;
+
   // Handle empty shapes -> nothing to copy.
   for (int64_t rankp = 0; rankp < rank; ++rankp)
     if (src.sizes[rankp] == 0)

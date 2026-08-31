@@ -58,9 +58,9 @@ The whole group, including the backend, is one command:
 
 .. important::
 
-   **The HLS step needs a Bambu built against clang 15 or newer.** LLVM 19 emits
-   opaque pointers (``ptr``) unconditionally -- typed pointers were removed in
-   LLVM 17 -- and an older Bambu front end rejects the IR outright:
+   **The HLS step needs a Bambu built against clang 16.** LLVM 19 emits opaque
+   pointers (``ptr``) unconditionally -- typed pointers were removed in LLVM 17
+   -- and an older Bambu front end rejects the IR outright:
 
    .. code-block:: text
 
@@ -68,12 +68,12 @@ The whole group, including the backend, is one command:
       define void @forward_kernel(ptr %0, ptr %1, ptr %2) {
                                   ^
 
-   SiliconCompiler's ``install-bambu.sh`` gives Bambu clang-16 on **ubuntu24**,
-   but clang-11 on ubuntu22 and clang-8 on ubuntu20. So ubuntu24 is where the
-   flow runs end to end; elsewhere the MLIR front end works and high-level
-   synthesis does not. ``sc-install mlir`` checks the Bambu on your ``PATH`` and
-   warns before it starts building, rather than letting this surface an hour
-   later at the last node.
+   SiliconCompiler's ``install-bambu.sh`` gives Bambu clang-16 on **ubuntu24 and
+   ubuntu26**, but clang-11 on ubuntu22 and clang-8 on ubuntu20. So those two are
+   where the flow runs end to end; on the older pair the MLIR front end works and
+   high-level synthesis does not. Nothing preflights it, so an unusable Bambu
+   surfaces at the last node rather than at the start -- ``bambu --help`` lists
+   the front ends it was built with, and ``I386_CLANG16`` is the one to look for.
 
    Pointing Bambu at the clang this toolchain installs is not an option, which is
    the obvious thing to try: Bambu compiles a set of *plugins* against each
@@ -349,7 +349,7 @@ the same llvm-project revision. ``sc-install mlir`` then ``sc-install soda``, in
 that order, is what keeps them in step.
 
 *Bambu reports* ``error: expected type`` *on a* ``ptr`` *argument.* Its front-end
-compiler is older than clang 15 and cannot read opaque pointers. See the install
+compiler is older than clang 16 and cannot read opaque pointers. See the install
 note above; this is a property of the Bambu build, not of the design.
 
 For the pass-by-pass view, turn on the IR dump -- verbose, but it is the only

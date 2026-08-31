@@ -64,7 +64,7 @@ cd soda-opt
 git checkout "$(python3 "${src_path}/_tools.py" --tool soda --field git-commit)"
 cd -
 
-if [ ! -z ${PREFIX} ]; then
+if [ -n "${PREFIX:-}" ]; then
     install_dir="$PREFIX"
 else
     install_dir=/opt/soda
@@ -99,6 +99,6 @@ done
 
 cd -
 
-if [ -z ${PREFIX} ]; then
+if [ -z "${PREFIX:-}" ]; then
     echo "Please add \"export PATH=\"/opt/soda/bin:\$PATH\"\" to your .bashrc"
 fi
