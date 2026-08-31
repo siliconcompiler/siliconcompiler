@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!-- The kernel's argument description, which soda-opt emits alongside the test
+     vectors. bambu has no option that reads it, so it must not become the
+     argument of bambu's testbench-generation option. -->
+<module>
+  <function id="main_kernel">
+    <arg id="a" interface_type="array" size="4"/>
+  </function>
+</module>

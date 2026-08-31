@@ -34,6 +34,7 @@ def get_install_groups() -> Dict[str, List[str]]:
     return {
         "asic": ["sv2v", "yosys", "openroad", "klayout"],
         "asic-hls": ["bambu", "yosys", "openroad", "klayout"],
+        "asic-soda": ["mlir", "soda", "bambu", "yosys", "openroad", "klayout"],
         "fpga": ["sv2v", "yosys", "wildebeest", "vpr", "opensta"],
         "digital-simulation": ["verilator", "icarus", "surfer"],
         "analog-simulation": ["xyce"]

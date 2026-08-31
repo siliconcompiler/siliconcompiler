@@ -4,7 +4,9 @@ import shutil
 
 import os.path
 
-from typing import Optional
+from typing import List, Optional, Union
+
+from pathlib import Path
 
 from siliconcompiler.utils import sc_open
 
@@ -19,6 +21,19 @@ class ConvertTask(ASICTask, Task):
 
         self.add_parameter("memorychannels", "int<1..>", "Number of memory channels available",
                            defvalue=1)
+        self.add_parameter("memorypolicy", "str",
+                           "Bambu memory allocation policy, which decides how the "
+                           "kernel's arrays are mapped onto memory (e.g. NO_BRAM, "
+                           "ALL_BRAM, EXT_PIPELINED_BRAM).",
+                           defvalue="NO_BRAM")
+        self.add_parameter("experimentalsetup", "str",
+                           "Bambu experimental setup, which selects the preset of "
+                           "optimizations and scheduling options to synthesize with "
+                           "(e.g. BAMBU-BALANCED-MP). Empty leaves bambu on its own "
+                           "default.")
+        self.add_parameter("compiler", "str",
+                           "Front end compiler bambu uses to read its inputs "
+                           "(e.g. I386_CLANG16). Empty leaves bambu to pick one.")
         self.add_parameter("simulate", "bool",
                            "simulate the generated RTL. This is what produces the cycle "
                            "counts; without it bambu reports area and timing estimates "
@@ -27,12 +42,148 @@ class ConvertTask(ASICTask, Task):
         self.add_parameter("simulator", "<modelsim,xsim,verilator>",
                            "simulator bambu drives when 'simulate' is set",
                            defvalue="verilator")
+        self.add_parameter("verilatorparallel", "int<0..>",
+                           "threads verilator simulates with, when 'simulator' is "
+                           "verilator. 0 emits the bare flag and lets verilator choose.",
+                           defvalue=0)
+        self.add_parameter("printdot", "bool",
+                           "dump the tool's internal graphs as graphviz .dot files. "
+                           "Useful for seeing what the scheduler and binder did, and "
+                           "verbose enough that it is off by default.",
+                           defvalue=False)
+        self.add_parameter("constraintsfile", "file",
+                           "Bambu constraints XML, the second positional input in "
+                           "'bambu <source> [constraints] [technology]'.")
+        self.add_parameter("technologyfile", "file",
+                           "Bambu technology XML describing modules to bind against, "
+                           "the third positional input. This is what an instrumentation "
+                           "IP's module library is.")
+        self.add_parameter("cnoparse", "[file]",
+                           "C files bambu links into the testbench but does not "
+                           "synthesize, passed as --C-no-parse. Used by IP integration "
+                           "for the co-simulation half of an instrumentation IP.")
+        self.add_parameter("fileinputdata", "[file]",
+                           "extra files the specification refers to, passed as "
+                           "--file-input-data. For IP integration these are the Verilog "
+                           "sources of the components bound in from the technology XML.")
+        self.add_parameter("componentslibrary", "bool",
+                           "export Bambu's standard RTL components as a separate "
+                           "library, which IP integration needs so the bound-in "
+                           "components resolve.",
+                           defvalue=False)
         self.add_parameter("testbench_fileset", "[(str,str)]",
                            "filesets holding the testbench to simulate against: either a "
                            "testbench XML, or a C/C++ file whose main() calls the "
                            "top-level function. Its files are excluded from the sources "
                            "bambu synthesizes, so the testbench can live in a fileset the "
                            "project has selected.")
+
+    def set_bambu_constraintsfile(self, path: Union[str, Path],
+                                  dataroot: Optional[str] = None,
+                                  step: Optional[str] = None,
+                                  index: Optional[str] = None) -> None:
+        """Sets the Bambu constraints XML.
+
+        Args:
+            path: Path to the constraints XML.
+            dataroot: The dataroot used to resolve relative paths.
+            step: The specific synthesis step to which this setting applies.
+            index: The specific index of the step.
+        """
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
+            self.set("var", "constraintsfile", path, step=step, index=index)
+
+    def set_bambu_technologyfile(self, path: Union[str, Path],
+                                 dataroot: Optional[str] = None,
+                                 step: Optional[str] = None,
+                                 index: Optional[str] = None) -> None:
+        """Sets the Bambu technology XML.
+
+        Args:
+            path: Path to the technology XML, e.g. an IP's module library.
+            dataroot: The dataroot used to resolve relative paths.
+            step: The specific synthesis step to which this setting applies.
+            index: The specific index of the step.
+        """
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
+            self.set("var", "technologyfile", path, step=step, index=index)
+
+    def add_bambu_cnoparse(self, path: Union[List[Union[str, Path]], str, Path],
+                           dataroot: Optional[str] = None,
+                           step: Optional[str] = None, index: Optional[str] = None,
+                           clobber: bool = False) -> None:
+        """Adds a C file bambu compiles for co-simulation but does not synthesize.
+
+        Args:
+            path: Path(s) to the C file(s).
+            dataroot: The dataroot used to resolve relative paths.
+            step: The specific synthesis step to which this setting applies.
+            index: The specific index of the step.
+            clobber: If True, replaces the list instead of appending to it.
+        """
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
+            if clobber:
+                self.set("var", "cnoparse", path, step=step, index=index)
+            else:
+                self.add("var", "cnoparse", path, step=step, index=index)
+
+    def add_bambu_fileinputdata(self, path: Union[List[Union[str, Path]], str, Path],
+                                dataroot: Optional[str] = None,
+                                step: Optional[str] = None, index: Optional[str] = None,
+                                clobber: bool = False) -> None:
+        """Adds a file the specification refers to, such as an IP's Verilog source.
+
+        Args:
+            path: Path(s) to the file(s).
+            dataroot: The dataroot used to resolve relative paths.
+            step: The specific synthesis step to which this setting applies.
+            index: The specific index of the step.
+            clobber: If True, replaces the list instead of appending to it.
+        """
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
+            if clobber:
+                self.set("var", "fileinputdata", path, step=step, index=index)
+            else:
+                self.add("var", "fileinputdata", path, step=step, index=index)
+
+    def set_bambu_componentslibrary(self, value: bool,
+                                    step: Optional[str] = None,
+                                    index: Optional[str] = None) -> None:
+        """Enables exporting Bambu's standard RTL components as a separate library.
+
+        Args:
+            value: True to export the components library.
+            step: The specific synthesis step to which this setting applies.
+            index: The specific index of the step.
+        """
+        self.set("var", "componentslibrary", value, step=step, index=index)
+
+    def set_bambu_verilatorparallel(self, threads: int,
+                                    step: Optional[str] = None,
+                                    index: Optional[str] = None) -> None:
+        """Sets how many threads verilator simulates with.
+
+        Only reaches the command line when 'simulator' is verilator, which is
+        the only simulator bambu passes this to.
+
+        Args:
+            threads: Thread count, or 0 to emit the bare flag and let verilator
+                decide.
+            step: The specific synthesis step to which this setting applies.
+            index: The specific index of the step.
+        """
+        self.set("var", "verilatorparallel", threads, step=step, index=index)
+
+    def set_bambu_printdot(self, value: bool,
+                           step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """Enables dumping the tool's internal graphs as graphviz .dot files.
+
+        Args:
+            value: True to dump the graphs.
+            step: The specific synthesis step to which this setting applies.
+            index: The specific index of the step.
+        """
+        self.set("var", "printdot", value, step=step, index=index)
 
     def set_bambu_memorychannels(self, channels: int,
                                  step: Optional[str] = None, index: Optional[str] = None) -> None:
@@ -50,6 +201,55 @@ class ConvertTask(ASICTask, Task):
                    configurations. Defaults to None.
         """
         self.set("var", "memorychannels", channels, step=step, index=index)
+
+    def set_bambu_memorypolicy(self, policy: str,
+                               step: Optional[str] = None,
+                               index: Optional[str] = None) -> None:
+        """Sets the Bambu memory allocation policy.
+
+        The policy decides how the kernel's arrays are mapped onto memory, which
+        is the choice that most changes what the generated RTL looks like: the
+        default ``NO_BRAM`` leaves them in external memory the accelerator reads
+        through its channels, while ``ALL_BRAM`` puts them in block RAM inside it.
+
+        Args:
+            policy: The policy name.
+            step: The step to associate with this setting. Defaults to None.
+            index: The index to associate with this setting. Defaults to None.
+        """
+        self.set("var", "memorypolicy", policy, step=step, index=index)
+
+    def set_bambu_experimentalsetup(self, setup: str,
+                                    step: Optional[str] = None,
+                                    index: Optional[str] = None) -> None:
+        """Sets the Bambu experimental setup.
+
+        An experimental setup is a named preset of the optimization and
+        scheduling options bambu synthesizes with; ``BAMBU-BALANCED-MP`` is the
+        one the SODA Synthesizer uses.
+
+        Args:
+            setup: The setup name. An empty string leaves bambu on its default.
+            step: The step to associate with this setting. Defaults to None.
+            index: The index to associate with this setting. Defaults to None.
+        """
+        self.set("var", "experimentalsetup", setup, step=step, index=index)
+
+    def set_bambu_compiler(self, compiler: str,
+                           step: Optional[str] = None,
+                           index: Optional[str] = None) -> None:
+        """Sets the front end compiler bambu reads its inputs with.
+
+        bambu bundles several clang front ends and picks one by name, e.g.
+        ``I386_CLANG16``. Which one matters for LLVM IR input: it has to be new
+        enough to parse the IR the front end produced.
+
+        Args:
+            compiler: The compiler name. An empty string leaves bambu to pick.
+            step: The step to associate with this setting. Defaults to None.
+            index: The index to associate with this setting. Defaults to None.
+        """
+        self.set("var", "compiler", compiler, step=step, index=index)
 
     def set_bambu_simulate(self, value: bool,
                            step: Optional[str] = None, index: Optional[str] = None) -> None:
@@ -156,50 +356,124 @@ class ConvertTask(ASICTask, Task):
 
         # memorychannels is read unconditionally in runtime_options (has a defvalue)
         self.add_required_key("var", "memorychannels")
+        self.add_required_key("var", "memorypolicy")
+        self.add_required_key("var", "printdot")
+        self.add_required_key("var", "componentslibrary")
+        for var in ("constraintsfile", "technologyfile", "cnoparse", "fileinputdata"):
+            if self.get("var", var):
+                self.add_required_key("var", var)
+        # bambu takes both XMLs as optional *positional* arguments -- its usage is
+        # "<source_file> [<constraints_file>] [<technology_file>]" -- so a
+        # technology file with no constraints file ahead of it is read as the
+        # constraints file. There is no way to skip the first slot, so this is
+        # rejected here rather than silently mis-parsed by the tool.
+        if self.get("var", "technologyfile") and not self.get("var", "constraintsfile"):
+            raise ValueError(
+                f"{self.tool()}/{self.task()}: a technology file needs a constraints file "
+                "with it. bambu reads them as positional arguments, so a technology file "
+                "on its own is read as the constraints file. Set one with "
+                "set_bambu_constraintsfile().")
+        if self.get("var", "experimentalsetup"):
+            self.add_required_key("var", "experimentalsetup")
+        if self.get("var", "compiler"):
+            self.add_required_key("var", "compiler")
 
         self.add_required_key("var", "simulate")
         if self.get("var", "simulate"):
-            if not self.get("var", "testbench_fileset"):
-                raise ValueError(
-                    f"{self.tool()}/{self.task()}: simulation needs a testbench; "
-                    "add the fileset holding it with add_bambu_testbenchfileset()")
             self.add_required_key("var", "simulator")
-            self.add_required_key("var", "testbench_fileset")
-            for lib, fileset in self.__testbench_files():
-                for filetype in ConvertTask.TESTBENCH_FILETYPES:
-                    if lib.has_file(fileset=fileset, filetype=filetype):
-                        self.add_required_key(lib, "fileset", fileset, "file", filetype)
+            self.add_required_key("var", "verilatorparallel")
 
-        # Mark required
-        for lib, fileset in self.project.get_filesets():
-            if lib.has_idir(fileset):
-                self.add_required_key(lib, "fileset", fileset, "idir")
-            if lib.get("fileset", fileset, "define"):
-                self.add_required_key(lib, "fileset", fileset, "define")
-            if lib.has_file(fileset=fileset, filetype="c"):
-                self.add_required_key(lib, "fileset", fileset, "file", "c")
-            elif lib.has_file(fileset=fileset, filetype="llvm"):
-                self.add_required_key(lib, "fileset", fileset, "file", "llvm")
+            staged_testbench = self.__staged_testbench()
+            if staged_testbench:
+                self.add_input_file(file=staged_testbench)
+            else:
+                # Required whether or not it is set: with no upstream testbench
+                # either, simulation is not a run bambu can make, so an empty
+                # fileset has to reach the required-key check rather than be
+                # passed over here.
+                self.add_required_key("var", "testbench_fileset")
+                for lib, fileset in self.__testbench_files():
+                    for filetype in ConvertTask.TESTBENCH_FILETYPES:
+                        if lib.has_file(fileset=fileset, filetype=filetype):
+                            self.add_required_key(lib, "fileset", fileset, "file", filetype)
+
+        if self.__has_staged_ir():
+            self.add_input_file(ext="ll")
+        else:
+            # Only the source path reads these. When an upstream node supplies
+            # the IR they describe a compilation that already happened, so
+            # declaring them required would make this node's inputs -- and so
+            # its cache key, and what a remote run copies -- depend on files it
+            # never opens.
+            for lib, fileset in self.project.get_filesets():
+                if lib.has_idir(fileset):
+                    self.add_required_key(lib, "fileset", fileset, "idir")
+                if lib.get("fileset", fileset, "define"):
+                    self.add_required_key(lib, "fileset", fileset, "define")
+                if lib.has_file(fileset=fileset, filetype="c"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "c")
+                elif lib.has_file(fileset=fileset, filetype="llvm"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "llvm")
 
         # sdc files are read by get_clock() in runtime_options for clock extraction
         self._add_clock_required_keys()
 
-    def runtime_options(self):
-        options = super().runtime_options()
+    def __has_staged_ir(self):
+        """Reports whether an upstream node supplies the LLVM IR to synthesize.
 
+        That is how the MLIR based front ends (soda) reach bambu: they produce
+        the IR, and the design's filesets hold the MLIR it was generated from
+        rather than anything bambu can read.
+        """
+        return f"{self.design_topmodule}.ll" in self.get_files_from_input_nodes()
+
+    def __staged_testbench(self):
+        """The testbench file an upstream node produced, or None.
+
+        soda-opt writes a testbench for the kernel it outlines, so a flow that
+        ran it has already produced the testbench for the IR it hands over, and
+        the node needs no fileset of its own. Either form --generate-tb takes
+        will do: the C testbench soda-opt emits by default, or the XML test
+        vectors it emits instead when asked for them. The C one wins when both
+        are there, being what the reference flow simulates against.
+
+        Note that soda-opt's other XML, <kernel>_interface.xml, is a description
+        of the kernel's arguments rather than a testbench, and bambu has no
+        option that reads it.
+
+        An explicitly named fileset still wins: this is the fallback, not an
+        override.
+        """
+        if self.get("var", "testbench_fileset"):
+            return None
+        staged = self.get_files_from_input_nodes()
+        for name in (f"{self.design_topmodule}_testbench.c",
+                     f"{self.design_topmodule}_test.xml"):
+            if name in staged:
+                return name
+        return None
+
+    def __source_options(self):
+        """The input bambu synthesizes, and the flags for compiling it.
+
+        Include paths and defines belong to the C front end, so they are emitted
+        only when bambu is the one doing that compilation.
+        """
+        if self.__has_staged_ir():
+            return [os.path.join("inputs", f"{self.design_topmodule}.ll")]
+
+        options = []
         filesets = self.project.get_filesets()
+
         idirs = []
         defines = []
         for lib, fileset in filesets:
             idirs.extend(lib.get_idir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
-        idirs = distinct(idirs)
-        defines = distinct(defines)
 
-        for idir in idirs:
+        for idir in distinct(idirs):
             options.append(f"-I{idir}")
-
-        for define in defines:
+        for define in distinct(defines):
             options.append(f"-D{define}")
 
         testbench_filesets = self.__testbench_filesets()
@@ -214,33 +488,79 @@ class ConvertTask(ASICTask, Task):
                 sources.extend(lib.get_file(fileset=fileset, filetype="c"))
             elif lib.get_file(fileset=fileset, filetype="llvm"):
                 sources.extend(lib.get_file(fileset=fileset, filetype="llvm"))
-        for value in distinct(sources):
-            options.append(value)
+        options.extend(distinct(sources))
+
+        return options
+
+    def runtime_options(self):
+        options = super().runtime_options()
+
+        options.extend(self.__source_options())
+
+        # bambu's positional inputs, in the order its usage states them:
+        # "<source_file> [<constraints_file>] [<technology_file>]".
+        for var in ("constraintsfile", "technologyfile"):
+            if self.get("var", var):
+                options.append(self.find_files("var", var))
+
+        # Comma-separated lists, which is how bambu parses both of these.
+        for var, flag in (("cnoparse", "--C-no-parse"),
+                          ("fileinputdata", "--file-input-data")):
+            files = self.find_files("var", var)
+            if files:
+                options.append(f'{flag}={",".join(files)}')
+
+        if self.get("var", "componentslibrary"):
+            options.append('--generate-components-library')
+
+        compiler = self.get("var", "compiler")
+        if compiler:
+            options.append(f'--compiler={compiler}')
 
         # The resource summary post_process() reads is only printed at this
         # verbosity, so it is not a knob: lowering it would silently stop the
         # report being produced.
         options.append('-v3')
 
+        if self.get("var", "printdot"):
+            options.append('--print-dot')
+
+        # -lm goes with --soft-float: the soft-float lowering emits calls into
+        # libm, which bambu then has to have a definition for.
+        options.append('-lm')
         options.append('--soft-float')
-        options.append('--memory-allocation-policy=NO_BRAM')
+        options.append(f'--memory-allocation-policy={self.get("var", "memorypolicy")}')
+
+        setup = self.get("var", "experimentalsetup")
+        if setup:
+            options.append(f'--experimental-setup={setup}')
 
         mem_channels = self.get("var", "memorychannels")
         if mem_channels > 0:
             options.append(f'--channels-number={mem_channels}')
 
         if self.get("var", "simulate"):
-            testbenches = []
-            for lib, fileset in self.__testbench_files():
-                for filetype in ConvertTask.TESTBENCH_FILETYPES:
-                    testbenches.extend(lib.find_files("fileset", fileset, "file", filetype,
-                                                      missing_ok=True))
-            for testbench in distinct(testbenches):
-                options.append(f'--generate-tb={testbench}')
+            staged_testbench = self.__staged_testbench()
+            if staged_testbench:
+                options.append(f'--generate-tb={os.path.join("inputs", staged_testbench)}')
+            else:
+                testbenches = []
+                for lib, fileset in self.__testbench_files():
+                    for filetype in ConvertTask.TESTBENCH_FILETYPES:
+                        testbenches.extend(lib.find_files("fileset", fileset, "file", filetype,
+                                                          missing_ok=True))
+                for testbench in distinct(testbenches):
+                    options.append(f'--generate-tb={testbench}')
             options.append('--simulate')
             # bambu spells these in upper case; the schema holds them lower so
             # the accepted set reads like every other enum in the tree.
             options.append(f'--simulator={self.get("var", "simulator").upper()}')
+            if self.get("var", "simulator") == "verilator":
+                threads = self.get("var", "verilatorparallel")
+                if threads:
+                    options.append(f'--verilator-parallel={threads}')
+                else:
+                    options.append('--verilator-parallel')
 
         _, clk_period = self.get_clock()
         if clk_period is not None:
@@ -248,8 +568,8 @@ class ConvertTask(ASICTask, Task):
             # the multiplier is a property of the main library, which a project that
             # only runs the conversion need not have selected
             mainlib = self.__mainlib()
-            if mainlib and mainlib.valid("var", "bambu_clock_multiplier"):
-                clock_multiplier = mainlib.get("var", "bambu_clock_multiplier")
+            if mainlib and mainlib.valid("tool", "bambu", "clock_multiplier"):
+                clock_multiplier = mainlib.get("tool", "bambu", "clock_multiplier")
             clk_period *= clock_multiplier
             # --clock-name names the clock port of the generated RTL, which the SDC
             # then constrains, so it has to be the port the SDC creates its clock on
@@ -277,6 +597,17 @@ class ConvertTask(ASICTask, Task):
 
         shutil.copy2(f'{self.design_topmodule}.v', os.path.join('outputs',
                                                                 f'{self.design_topmodule}.v'))
+
+        # --print-dot writes one graph per function per stage into a tree whose
+        # shape depends on the design, so these cannot be declared outputs --
+        # outputs/ is checked against the declared list and an undeclared file
+        # there fails the node. They are debugging artifacts, so they belong in
+        # reports/ alongside the resource summary.
+        if self.get("var", "printdot"):
+            dot_dir = os.path.join("HLS_output", "dot")
+            if os.path.isdir(dot_dir):
+                shutil.copytree(dot_dir, os.path.join("reports", "dot"),
+                                dirs_exist_ok=True)
 
         ff = re.compile(fr"Total number of flip-flops in function {self.design_topmodule}: (\d+)")
         area = re.compile(r"Total estimated area: (\d+)")

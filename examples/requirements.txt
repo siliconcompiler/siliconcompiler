@@ -1,1 +1,2 @@
 -r ./heartbeat_migen/requirements.txt
+-r ./soda/requirements.txt

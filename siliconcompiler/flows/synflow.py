@@ -25,28 +25,37 @@ class SynthesisFlow(Flowgraph):
                          using Yosys.
         * **timing**: Performs static timing analysis on the synthesized netlist
                       using OpenSTA.
+
+    The front end is whatever
+    :class:`~siliconcompiler.flows.elaborationflow.ElaborationFlow` builds, so a
+    front end that is not one of the languages is handed over as ``frontend``.
+    See :mod:`~siliconcompiler.flows.sodaflow` for one.
     '''
 
     def __init__(self, name: Optional[str] = None,
                  language: str = "verilog",
-                 syn_np: int = 1, timing_np: int = 1):
+                 syn_np: int = 1, timing_np: int = 1,
+                 frontend: Optional[Flowgraph] = None):
         """
         Initializes the SynthesisFlow.
 
         Args:
             * name (str): The name of the flow.
             * language (str): The hardware description language of the design.
+                Ignored when ``frontend`` is given.
             * syn_np (int): The number of parallel synthesis jobs to launch. If
                 greater than 1, a 'minimum' step is added to select the best
                 result.
             * timing_np (int): The number of parallel timing analysis jobs to
                 launch.
+            * frontend (Flowgraph, optional): An elaboration flow to use instead
+                of the one ``language`` selects.
         """
         if name is None:
-            name = f"synflow-{language}"
+            name = f"synflow-{frontend.name if frontend is not None else language}"
         super().__init__(name)
 
-        elab = ElaborationFlow(language=language)
+        elab = ElaborationFlow(language=language, frontend=frontend)
         self.graph(elab)
 
         elab_node = elab.get_exit_nodes()
