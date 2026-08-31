@@ -233,8 +233,18 @@ if { [llength [all_clocks]] > 0 } {
 
 # get logic depth of design
 if { [sc_cfg_tool_task_check_in_list logicdepth var reports] } {
+    sc_report_banner "Logic depth" \
+        reports/design/logic_depth.rpt \
+        reports/design/logic_depth.histogram.rpt \
+        reports/design/logic_depth.histogram.comboonly.rpt
     utl::metric_int "design__logic__depth" \
         [sc_count_logic_depth -report reports/design/logic_depth.rpt]
+    if { [sc_check_version 24 3 4812] } {
+        tee -file "reports/design/logic_depth.histogram.rpt" \
+            {report_logic_depth_histogram -num_bins 20}
+        tee -quiet -file "reports/design/logic_depth.histogram.comboonly.rpt" \
+            {report_logic_depth_histogram -num_bins 20 -exclude_buffers}
+    }
 }
 
 if { [sc_cfg_tool_task_check_in_list power var reports] } {
