@@ -2264,7 +2264,9 @@ class APRTask(OpenROADTask):
                 "design/registers.rpt"
             ],
             "logicdepth": [
-                "design/logic_depth.rpt"
+                "design/logic_depth.rpt",
+                "design/logic_depth.histogram.rpt",
+                "design/logic_depth.histogram.comboonly.rpt"
             ],
             "unconstrained": [
                 "timing/unconstrained.rpt",
