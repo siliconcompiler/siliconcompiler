@@ -48,13 +48,11 @@ class Client():
     # Step name to use while logging
     STEP_NAME = "remote"
 
-    def __init__(self, project, default_server=default_server):
+    def __init__(self, project):
         self.__project = project
         self.__logger = self.__project.logger.getChild('remote-client')
         self.__dashboard = self.__project._Project__dashboard
         self.__name = self.__project.name
-
-        self.__default_server = default_server
 
         # Used when reporting node information during run
         self.__maxlinelength = 70
@@ -117,10 +115,13 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 remote_cfg = json.loads(cfgf.read())
         else:
             if getattr(self, '_print_server_warning', True):
-                self.__logger.warning('Could not find remote server configuration: '
-                                      f'defaulting to {self.__default_server}')
+                if default_server:
+                    self.__logger.warning('Could not find remote server configuration: '
+                                          f'defaulting to {default_server}')
+                else:
+                    self.__logger.warning('Could not find remote server configuration')
             remote_cfg = {
-                "address": self.__default_server,
+                "address": default_server,
                 "directory_whitelist": []
             }
         if 'address' not in remote_cfg:
@@ -133,6 +134,12 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
     def __init_baseurl(self):
         remote_host = self.__config['address']
+        if not remote_host:
+            # Nothing to talk to yet. Building the address is deferred to
+            # __get_url(), which is the only place that needs one, so that a
+            # client can still be built to configure a server address.
+            self.__url = None
+            return
         if 'port' in self.__config:
             remote_port = self.__config['port']
         else:
@@ -144,14 +151,22 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             remote_protocol = 'https://' if remote_port == 443 else 'http://'
         self.__url = remote_protocol + remote_host
 
+    def __check_configured(self):
+        if not self.__url:
+            raise ValueError(
+                'No remote server address is configured - '
+                'please run "sc-remote -configure" and enter your server address and '
+                'credentials.')
+
     def __get_url(self, action):
+        self.__check_configured()
         return urllib.parse.urljoin(self.__url, action)
 
     def remote_manifest(self):
         return f'{jobdir(self.__project)}/sc_remote.pkg.json'
 
     def print_configuration(self):
-        self.__logger.info(f'Server: {self.__url}')
+        self.__logger.info(f'Server: {self.__url if self.__url else "not configured"}')
         if 'username' in self.__config:
             self.__logger.info(f'Username: {self.__config["username"]}')
         if 'directory_whitelist' in self.__config and self.__config['directory_whitelist']:
@@ -537,6 +552,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             raise ValueError('Cannot pass [arg,step] parameter into remote flow.')
         if self.__project.get('arg', 'index'):
             raise ValueError('Cannot pass [arg,index] parameter into remote flow.')
+        # Checked here so a missing server address is reported before the build
+        # directory is collected and packed up.
+        self.__check_configured()
 
         # Only run the pre-process step if the job doesn't already have a remote ID.
         if not remote_resume:
@@ -978,7 +996,10 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 elif (oin == 'y') or (oin == 'Y'):
                     return True
 
-        default_server_name = urllib.parse.urlparse(self.__default_server).hostname
+        if default_server is not None:
+            default_server_name = urllib.parse.urlparse(default_server).hostname
+        else:
+            default_server_name = None
 
         # Find the config file/directory path.
         cfg_file = self.__get_remote_config_file()
@@ -1011,8 +1032,12 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 raise unanswerable('choose a server address', 'server=<address>')
 
         if not srv_addr:
-            srv_addr = self.__default_server
-            self.__logger.info(f'Using {srv_addr} as server')
+            if default_server:
+                srv_addr = default_server
+                self.__logger.info(f'Using {srv_addr} as server')
+            else:
+                self.__logger.error('No default server is configured, and no server was provided.')
+                return
 
         server = urllib.parse.urlparse(srv_addr)
         has_scheme = True
@@ -1028,7 +1053,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         else:
             self.__config['address'] = server.hostname
 
-        public_server = default_server_name in srv_addr
+        public_server = default_server is not None and default_server_name in srv_addr
         if public_server:
             if accept_terms:
                 self.__logger.info('Terms of service accepted by the caller: '

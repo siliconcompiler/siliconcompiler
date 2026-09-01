@@ -546,3 +546,117 @@ def test_configure_server_interactive_terms_declined(gcd_nop_project, monkeypatc
     _configure_client(gcd_nop_project).configure_server(server=default_server)
 
     assert not os.path.exists('credentials.json')
+
+
+###########################
+# configure_server without a default server
+###########################
+
+def _no_default_server(monkeypatch):
+    """Makes this a build that ships no public server address."""
+    monkeypatch.setattr('siliconcompiler.remote.client.default_server', None)
+
+
+def _configure_client_without_default(project, monkeypatch):
+    _no_default_server(monkeypatch)
+    return _configure_client(project)
+
+
+def test_configure_server_without_default(gcd_nop_project, monkeypatch):
+    """An explicit address is all that is needed when there is no default server."""
+    _no_input(monkeypatch)
+
+    _configure_client_without_default(gcd_nop_project, monkeypatch).configure_server(
+        server="https://example.com:1234", username="user", password="pass")
+
+    assert _written_config() == {
+        "address": "https://example.com",
+        "port": 1234,
+        "username": "user",
+        "password": "pass",
+        "directory_whitelist": []
+    }
+
+
+def test_configure_server_without_default_never_public(gcd_nop_project, monkeypatch):
+    """With no default server, no address is the public one, so no terms are asked for."""
+    prompts = []
+
+    def answer(prompt):
+        prompts.append(prompt)
+        return ''
+    monkeypatch.setattr('builtins.input', answer)
+
+    _configure_client_without_default(gcd_nop_project, monkeypatch).configure_server(
+        server=default_server)
+
+    assert _written_config()["address"] == default_server
+    assert not any('terms of service' in prompt for prompt in prompts)
+
+
+def test_configure_server_without_default_blank_answer(gcd_nop_project, caplog,
+                                                       monkeypatch):
+    """A blank answer has no default to fall back on, so nothing is written."""
+    monkeypatch.setattr('builtins.input', lambda *args, **kwargs: '')
+
+    _configure_client_without_default(gcd_nop_project, monkeypatch).configure_server()
+
+    assert 'No default server is configured, and no server was provided.' in caplog.text
+    assert not os.path.exists('credentials.json')
+
+
+def test_configure_server_without_default_needs_a_server(gcd_nop_project, monkeypatch):
+    """An unanswerable prompt is still an error rather than a silent no-op."""
+    _no_input(monkeypatch)
+
+    with pytest.raises(ValueError, match="choose a server address"):
+        _configure_client_without_default(gcd_nop_project, monkeypatch).configure_server()
+
+    assert not os.path.exists('credentials.json')
+
+
+###########################
+# Client without a default server
+###########################
+
+def _client_without_default(project, monkeypatch):
+    """A client on a machine with no credentials file and no default server."""
+    _no_default_server(monkeypatch)
+    monkeypatch.setattr('siliconcompiler.utils.default_credentials_file',
+                        lambda: os.path.abspath('nonexistent-credentials.json'))
+    return Client(project)
+
+
+def test_client_without_default_server_builds(gcd_nop_project, monkeypatch, caplog):
+    """Nothing to fall back on is reported, but the client is still usable."""
+    client = _client_without_default(gcd_nop_project, monkeypatch)
+
+    assert 'Could not find remote server configuration' in caplog.text
+    assert 'defaulting to' not in caplog.text
+    assert client._Client__url is None
+
+
+def test_print_configuration_without_default_server(gcd_nop_project, monkeypatch, caplog):
+    """A missing address is reported as such rather than as a server named None."""
+    client = _client_without_default(gcd_nop_project, monkeypatch)
+    client.print_configuration()
+
+    assert 'Server: not configured' in caplog.text
+
+
+def test_client_without_default_server_cannot_post(gcd_nop_project, monkeypatch):
+    """A request with no address to send it to names the way to fix it."""
+    client = _client_without_default(gcd_nop_project, monkeypatch)
+
+    with pytest.raises(ValueError, match='No remote server address is configured'):
+        client.check()
+
+
+def test_run_without_default_server_stops_before_preprocess(gcd_nop_project, monkeypatch):
+    """The job is refused before its build directory is collected and packed up."""
+    client = _client_without_default(gcd_nop_project, monkeypatch)
+    monkeypatch.setattr(Client, '_Client__run_preprocess',
+                        lambda self: pytest.fail('preprocessed without a server'))
+
+    with pytest.raises(ValueError, match='No remote server address is configured'):
+        client.run()
