@@ -31,7 +31,28 @@ from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager, \
     get_process_context, forking
 from siliconcompiler.apps import sc_server
+from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.schema import BaseSchema
+
+
+def pytest_runtest_setup(item):
+    """Skip a test marked ``slurm`` when the machine has no slurm.
+
+    CI starts slurm before the suites that need it (start_slurm.sh in the
+    tools and daily workflows), so these still run there. Locally they would
+    otherwise fail on a RuntimeError from deep inside the scheduler, which
+    reads as a regression rather than as a missing dependency.
+
+    The condition is the scheduler's own gate rather than a second copy of
+    it, so a change to what slurm requires cannot leave this skip stale.
+    """
+    if not item.get_closest_marker("slurm"):
+        return
+
+    try:
+        SlurmSchedulerNode.assert_slurm()
+    except RuntimeError as e:
+        pytest.skip(str(e))
 
 
 def pytest_addoption(parser):

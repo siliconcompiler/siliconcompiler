@@ -41,7 +41,7 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils, NodeStatus, Flowgraph
 from siliconcompiler import sc_open
 from siliconcompiler.utils import paths
-from siliconcompiler.utils.logging import SC_LOG, SC_LOGERROR
+from siliconcompiler.utils.logging import SC_LOG, SC_LOGERROR, SC_CONSOLE_FORCE
 from siliconcompiler.utils.multiprocessing import MPManager, forking
 
 from siliconcompiler.schema_support.pathschema import PathSchema
@@ -1316,13 +1316,18 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         timeout = 5
 
         terminate_process(proc.pid, timeout=timeout)
-        self.logger.info(f'Waiting for {self.tool()}/{self.task()} to exit...')
+        # This is only ever reached because the task is being killed
+        # (timeout/OOM/ctrl-c), so it breaks through quiet: otherwise the
+        # screen shows nothing at all while SC waits out the shutdown.
+        self.logger.info(f'Waiting for {self.tool()}/{self.task()} to exit...',
+                         extra=SC_CONSOLE_FORCE)
         try:
             proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             if proc.poll() is None:
                 self.logger.warning(f'{self.tool()}/{self.task()} did not exit within '
-                                    f'{timeout} seconds. Terminating...')
+                                    f'{timeout} seconds. Terminating...',
+                                    extra=SC_CONSOLE_FORCE)
                 terminate_process(proc.pid, timeout=timeout)
 
     def __collect_memory(self, pid) -> Optional[int]:
@@ -1350,9 +1355,13 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 raise TaskOutOfMemoryError(memory_percent=memory_usage.percent,
                                            available_mb=available_mb)
             if memory_usage.percent > warn_limit:
+                # About the machine, not the tool: this is the only warning a
+                # user gets before the same check starts killing tasks, so it
+                # is shown even when quiet has muted the console.
                 self.logger.warning(
                     'Current system memory usage is '
-                    f'{memory_usage.percent:.1f}%')
+                    f'{memory_usage.percent:.1f}%',
+                    extra=SC_CONSOLE_FORCE)
                 return int(memory_usage.percent + 1)
         except psutil.Error:
             pass
@@ -1491,8 +1500,9 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                          contextlib.redirect_stdout(stdout_writer):
                         retcode = self.run()
             except Exception as e:
-                self.logger.error(f'Failed in run() for {self.tool()}/{self.task()}: {e}')
-                utils.print_traceback(self.logger, e)
+                self.logger.error(f'Failed in run() for {self.tool()}/{self.task()}: {e}',
+                                  extra=SC_CONSOLE_FORCE)
+                utils.print_traceback(self.logger, e, force_console=True)
                 raise
             finally:
                 # run() has returned, so there is nothing to interleave with:
@@ -1600,17 +1610,22 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
                             time.sleep(Task.__IO_POLL_INTERVAL)
                     except KeyboardInterrupt:
-                        self.logger.info("Received ctrl-c.")
+                        # Each of these three is the reason the task is about
+                        # to die. Quiet suppresses the tool's chatter, not the
+                        # explanation for a run that stops.
+                        self.logger.info("Received ctrl-c.", extra=SC_CONSOLE_FORCE)
                         self.__terminate_exe(proc)
                         raise TaskError
                     except TaskTimeout as e:
-                        self.logger.error(f'Task timed out after {e.timeout:.1f} seconds')
+                        self.logger.error(f'Task timed out after {e.timeout:.1f} seconds',
+                                          extra=SC_CONSOLE_FORCE)
                         self.__terminate_exe(proc)
                         raise
                     except TaskOutOfMemoryError as e:
                         self.logger.error('Task ran out of memory with '
                                           f'{e.memory_percent:.1f}% system memory usage '
-                                          f'({e.available_mb:.1f} MB available)')
+                                          f'({e.available_mb:.1f} MB available)',
+                                          extra=SC_CONSOLE_FORCE)
                         self.__terminate_exe(proc)
                         raise
                     finally:

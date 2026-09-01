@@ -158,6 +158,7 @@ def test_slurm_show_nodelog(disable_mp_process, project):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.slurm
 @pytest.mark.timeout(300)
 def test_slurm_local_py(project):
     '''Basic Python API test: build the GCD example using only Python code.

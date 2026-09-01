@@ -853,20 +853,31 @@ def get_cores(physical: bool = False) -> int:
     return cores
 
 
-def print_traceback(logger: logging.Logger, exception: Exception):
+def print_traceback(logger: logging.Logger, exception: Exception,
+                    force_console: bool = False):
     """
     Prints the full traceback of an exception to the provided logger.
 
     Args:
         logger (logging.Logger): The logger instance to write the traceback to.
         exception (Exception): The exception to log.
+        force_console (bool): When True the traceback is shown on screen even
+            if ['option', 'quiet'] has muted the console. Set it where the
+            exception is the reason the run stopped, so quiet does not turn a
+            crash into a silent one.
     """
-    logger.error(f'{exception}')
+    # Imported here rather than at module scope: siliconcompiler.utils.logging
+    # imports this module, so a top-level import would be circular.
+    from siliconcompiler.utils.logging import SC_CONSOLE_FORCE
+
+    extra = SC_CONSOLE_FORCE if force_console else None
+
+    logger.error(f'{exception}', extra=extra)
     trace = StringIO()
     traceback.print_tb(exception.__traceback__, file=trace)
-    logger.error("Backtrace:")
+    logger.error("Backtrace:", extra=extra)
     for line in trace.getvalue().splitlines():
-        logger.error(line)
+        logger.error(line, extra=extra)
 
 
 # Optional-dependency groups that provide development, testing, or CI tooling
