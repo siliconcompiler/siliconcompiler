@@ -12,6 +12,7 @@ from siliconcompiler.flows.asicflow import (
     HLSASICFlow,
     VHDLASICFlow,
     ChiselASICFlow,
+    SODAASICFlow,
     PNRFlow,
     CleanupSynthFlow,
     FloorplanningFlow,
@@ -60,6 +61,11 @@ from siliconcompiler.flows.lintflow import LintFlow, VerilatorLintFlow, SlangLin
 from siliconcompiler.flows.lvsflow import MagicLVSFlow
 from siliconcompiler.flows.showflow import ShowFlow
 from siliconcompiler.flows.signoffflow import SignoffFlow
+from siliconcompiler.flows.sodaflow import (
+    SODABaselineElaborationFlow,
+    SODAOptimizedElaborationFlow,
+    SODATransformedElaborationFlow
+)
 from siliconcompiler.flows.synflow import SynthesisFlow
 
 
@@ -92,6 +98,7 @@ def make_project():
     HLSASICFlow,
     VHDLASICFlow,
     ChiselASICFlow,
+    SODAASICFlow,
     PNRFlow,
     CleanupSynthFlow,
     FloorplanningFlow,
@@ -117,6 +124,9 @@ def make_project():
     VHDLElaborationFlow,
     ChiselElaborationFlow,
     BluespecElaborationFlow,
+    SODABaselineElaborationFlow,
+    SODAOptimizedElaborationFlow,
+    SODATransformedElaborationFlow,
     PropertyCheckFlow,
     LECFlow,
     FPGAXilinxFlow,
@@ -330,3 +340,59 @@ def test_detect_elaboration_language_empty_fileset_custom_default():
     proj = Project(design)
     proj.add_fileset("rtl")
     assert detect_elaboration_language(proj, default="chisel") == "chisel"
+
+
+# ``frontend`` is how a front end this module knows nothing about takes the place
+# of the language-specific subflows, so what is pinned here is that it reaches
+# all three levels of the composition and that nothing about the language path
+# changed.
+
+
+@pytest.mark.parametrize("flowcls", [ElaborationFlow, SynthesisFlow, ASICFlow])
+def test_frontend_replaces_the_language_subflow(flowcls):
+    flow = flowcls(frontend=SODAOptimizedElaborationFlow())
+
+    steps = {step for step, _ in flow.get_nodes()}
+    # The SODA front end's nodes, in place of slang's single "elaborate".
+    assert {"tosa2linalg", "bufferize", "soda", "translate", "runtime", "link",
+            "convert"}.issubset(steps)
+    assert "elaborate" not in steps
+    assert flow.validate()
+
+
+@pytest.mark.parametrize("flowcls,prefix", [
+    (ElaborationFlow, "elaborationflow"),
+    (SynthesisFlow, "synflow"),
+    (ASICFlow, "asicflow")
+])
+def test_frontend_names_the_flow_after_itself(flowcls, prefix):
+    # The default name has to say which front end is in the flow, the way it
+    # says which language otherwise.
+    assert flowcls(frontend=SODABaselineElaborationFlow()).name == \
+        f"{prefix}-sodabaselineelaborationflow"
+    assert flowcls(language="vhdl").name == f"{prefix}-vhdl"
+
+
+@pytest.mark.parametrize("flowcls", [ElaborationFlow, SynthesisFlow, ASICFlow])
+def test_frontend_wins_over_language(flowcls):
+    # language keeps its default, so it cannot be told apart from an explicit
+    # one; the front end is what was asked for, so it is what is built.
+    flow = flowcls(language="vhdl", frontend=SODABaselineElaborationFlow())
+    assert "ghdl" not in {step for step, _ in flow.get_nodes()}
+    assert "soda" in {step for step, _ in flow.get_nodes()}
+
+
+def test_frontend_must_be_a_flowgraph():
+    with pytest.raises(ValueError, match="frontend must be a Flowgraph"):
+        ElaborationFlow(frontend=SODABaselineElaborationFlow)
+
+
+def test_soda_asic_flow_resolves_the_strategy():
+    for strategy, task in (("baseline", "baseline"),
+                           ("optimized", "optimized"),
+                           ("transformed", "transformed")):
+        flow = SODAASICFlow(strategy=strategy)
+        assert flow.get_graph_node("soda", "0").get_task() == task
+
+    with pytest.raises(ValueError, match="Unsupported SODA strategy: nope"):
+        SODAASICFlow(strategy="nope")

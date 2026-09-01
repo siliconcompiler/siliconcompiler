@@ -68,6 +68,10 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
   :tasks: convert/ConvertTask tile/TileTask
 
 .. sctool::
+  :root: siliconcompiler.tools.mlir
+  :tasks: opt/PipelineTask opt/PassesTask opt/TosaToLinalgTask opt/BufferizeTask opt/LinalgToLLVMTask translate/TranslateTask compile/RuntimeTask link/LinkTask
+
+.. sctool::
   :root: siliconcompiler.tools.netgen
   :tasks: lvs/LVSTask
 
@@ -90,6 +94,10 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 .. sctool::
   :root: siliconcompiler.tools.slang
   :tasks: elaborate/Elaborate lint/Lint
+
+.. sctool::
+  :root: siliconcompiler.tools.soda
+  :tasks: opt/BaselineTask opt/OptimizedTask opt/TransformedTask
 
 .. sctool::
   :root: siliconcompiler.tools.surelog

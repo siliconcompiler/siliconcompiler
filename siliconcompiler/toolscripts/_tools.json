@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "3535a2dc3dc3fec8060161e820d995bf31150ad2",
+    "git-commit": "2c569269719c59ef6eef90bcc33f8bc7afc16c02",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -189,5 +189,16 @@
     "git-url": "https://github.com/Silimate/vcd2fst.git",
     "git-commit": "5b00c4f9ae7d07987082992774a5e6a1b8adc8d7",
     "auto-update": true
+  },
+  "mlir": {
+    "git-url": "https://github.com/llvm/llvm-project.git",
+    "git-commit": "llvmorg-19.1.5",
+    "auto-update": false
+  },
+  "soda": {
+    "git-url": "https://github.com/pnnl/soda-opt.git",
+    "git-commit": "af0f8779949643ae3791f053449509de0a633aa9",
+    "auto-update": false,
+    "docker-depends": "mlir"
   }
 }

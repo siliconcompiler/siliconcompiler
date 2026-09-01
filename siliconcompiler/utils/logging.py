@@ -1,10 +1,115 @@
+import contextlib
 import logging
 import re
 import sys
 
 from collections import deque
+from types import MappingProxyType
 
 from siliconcompiler import utils
+
+
+# Levels for output the *tool* produced, as opposed to SiliconCompiler's own
+# reporting. Keeping them distinct lets a reader tell at a glance whether a
+# line came from the tool's stdout/stderr or from SC itself -- which only
+# became possible once the two streams stopped sharing a file description.
+#
+# Each sits one step above its nearest standard sibling so visibility is
+# unchanged from when these were logged as INFO/ERROR: LOG appears wherever
+# INFO does, LOGERROR wherever ERROR does. "LOGERROR" is exactly the eight
+# characters the console formatter reserves for a level name.
+SC_LOG = logging.INFO + 1
+SC_LOGERROR = logging.ERROR + 1
+
+logging.addLevelName(SC_LOG, "LOG")
+logging.addLevelName(SC_LOGERROR, "LOGERROR")
+
+
+# Attribute stamped on a LogRecord that was emitted while the console was muted
+# by ['option', 'quiet']. Console sinks drop such a record; file sinks ignore
+# the attribute entirely, so a quiet run's log files stay complete.
+SC_CONSOLE_QUIET_ATTR = "sc_console_quiet"
+
+# Attribute stamped on a LogRecord that must reach the screen even while the
+# console is muted. Quiet exists to keep a chatty tool off the terminal, not to
+# hide that the run is in trouble: a message about the health of the *run* --
+# memory pressure, a timeout, a kill, a crash -- is exactly what a user who
+# asked for quiet still needs to see, because the alternative is a job that
+# appears to sit idle and then dies with no explanation on screen. Such a
+# message opts out with::
+#
+#     logger.warning("...", extra=SC_CONSOLE_FORCE)
+#
+# Use it sparingly, and only for SiliconCompiler's own diagnostics: anything
+# forced here is, by definition, something the user asked to suppress.
+SC_CONSOLE_FORCE_ATTR = "sc_console_force"
+
+# Read-only because logging copies an ``extra`` mapping's items onto every
+# record it is handed to; a mutation here would leak into unrelated records.
+SC_CONSOLE_FORCE = MappingProxyType({SC_CONSOLE_FORCE_ATTR: True})
+
+
+class SCConsoleQuietFilter(logging.Filter):
+    """
+    Drops records tagged by :func:`console_quiet`.
+
+    Attached to every sink that writes to the screen -- the project's terminal
+    handler, the CLI dashboard's log pane, and the history buffer that seeds
+    it -- so quiet only ever costs console visibility, never a log file.
+
+    A record carrying :data:`SC_CONSOLE_FORCE` passes through regardless of the
+    quiet tag; see that constant for what earns the exemption.
+    """
+
+    def filter(self, record):
+        if getattr(record, SC_CONSOLE_FORCE_ATTR, False):
+            return True
+        return not getattr(record, SC_CONSOLE_QUIET_ATTR, False)
+
+
+class _SCConsoleQuietTagger(logging.Filter):
+    """
+    Tags every record passing through it for console suppression.
+
+    Installed on the *logger* rather than a handler so the tag is applied once,
+    up front, and travels with the record to every sink -- including the
+    QueueHandler that ships it to the parent process, which is where the
+    console actually lives during a run.
+    """
+
+    def filter(self, record):
+        setattr(record, SC_CONSOLE_QUIET_ATTR, True)
+        return True
+
+
+@contextlib.contextmanager
+def console_quiet(logger: logging.Logger, active: bool = True):
+    """
+    Mutes the console for anything logged inside the block.
+
+    Log files (the node log, job.log) still receive every record; only the
+    screen is silenced. Used to make ['option', 'quiet'] apply to a task's own
+    logging during pre_process()/run()/post_process(), which would otherwise
+    bypass it entirely.
+
+    A record logged with ``extra=SC_CONSOLE_FORCE`` still reaches the screen --
+    see :data:`SC_CONSOLE_FORCE`.
+
+    Args:
+        logger (logging.Logger): The logger to mute.
+        active (bool): When False the block runs unchanged, so callers can pass
+            the quiet flag straight through instead of branching.
+    """
+    if not active:
+        yield
+        return
+
+    tagger = _SCConsoleQuietTagger()
+    logger.addFilter(tagger)
+    try:
+        yield
+    finally:
+        logger.removeFilter(tagger)
 
 
 class SCHistoryLogHandler(logging.Handler):
@@ -22,6 +127,9 @@ class SCHistoryLogHandler(logging.Handler):
     def __init__(self, capacity: int = 1000):
         super().__init__()
         self.__records = deque(maxlen=capacity)
+        # The history exists to feed the console (the dashboard log pane), so
+        # it honors quiet exactly as the terminal handler does.
+        self.addFilter(SCConsoleQuietFilter())
 
     def emit(self, record):
         self.__records.append(record)
@@ -223,9 +331,11 @@ class SCColorLoggerFormatter(logging.Formatter):
             None: logging.Formatter(fmt)
         }
 
+        # SC_LOG is left uncolored, like the INFO it stands in for.
         for level, color in [(logging.DEBUG, SCColorLoggerFormatter.blue),
                              (logging.WARNING, SCColorLoggerFormatter.yellow),
                              (logging.ERROR, SCColorLoggerFormatter.red),
+                             (SC_LOGERROR, SCColorLoggerFormatter.red),
                              (logging.CRITICAL, SCColorLoggerFormatter.bold_red)]:
             self.__formatters[level] = logging.Formatter(
                 fmt.replace('%(levelname)-8s',
@@ -270,4 +380,6 @@ def get_console_formatter(project, in_run, step, index):
 def get_stream_handler(project, in_run, step, index):
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(get_console_formatter(project, in_run, step, index))
+    # This is the screen, so it is where ['option', 'quiet'] applies.
+    handler.addFilter(SCConsoleQuietFilter())
     return handler

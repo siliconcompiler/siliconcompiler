@@ -22,6 +22,7 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.schema import __version__ as schema_version
 from siliconcompiler._metadata import detailed_version as sc_version
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
+from siliconcompiler.utils.logging import console_quiet
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
@@ -172,7 +173,8 @@ def generate_testcase(project: "Project",
         project.option.set_quiet(True, step=step, index=index)
         try:
             # Rerun pre_process
-            task_obj.pre_process()
+            with console_quiet(project.logger):
+                task_obj.pre_process()
         except Exception:
             pass
         project.option.set_quiet(prev_quiet, step=step, index=index)

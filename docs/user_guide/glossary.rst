@@ -208,11 +208,32 @@ an :term:`ASIC` or an :term:`FPGA`.
        generate one of them rather than replacing it; see
        :ref:`Hardware Frontends <hw_frontends>`.
 
+    HLS
+    high-level synthesis
+       Compiling a description of *what* to compute -- C, or a machine learning
+       kernel -- into :term:`RTL`, with the tool deciding the datapath, the state
+       machine and the schedule rather than the author writing them. What is
+       gained is that an algorithm becomes hardware without being rewritten;
+       what is given up is direct control over the microarchitecture, so results
+       depend heavily on how the input was optimized beforehand. SiliconCompiler
+       drives Bambu (see :ref:`the C HLS frontend <c_hls_frontend>`) and, through
+       :term:`MLIR`, SODA Synthesizer (:ref:`the SODA tutorial
+       <soda_tutorial>`).
+
     IP
        Intellectual Property -- a reusable design block. Delivered either as
        *soft* IP (:term:`RTL` you synthesize yourself) or *hard* IP (a
        :term:`hardened macro` with fixed layout and timing views). Packaged in
        SiliconCompiler as a :term:`library`.
+
+    MLIR
+       A compiler infrastructure, part of the LLVM project, built around
+       reusable *dialects* -- self-contained sets of operations and types -- and
+       progressive lowering between them. A machine learning model enters as a
+       high-level dialect such as TOSA and is rewritten step by step down to
+       something a backend can consume, which is what makes it the substrate for
+       :term:`HLS` front ends like ``soda-opt``. See
+       :ref:`the SODA tutorial <soda_tutorial>`.
 
     netlist
        A description of a circuit as instantiated components and the

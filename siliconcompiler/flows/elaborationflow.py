@@ -33,22 +33,39 @@ class ElaborationFlow(Flowgraph):
         * **elaborate**: Elaborates the RTL design from its source files.
 
     The final node, **elaborate**, emits Verilog.
+
+    A front end this module does not know about is handed over as ``frontend``:
+    any flowgraph whose single exit node emits Verilog can take the place of the
+    language-specific subflows, which is how a front end can live beside the
+    tool driver it belongs to rather than being enumerated here. See
+    :mod:`~siliconcompiler.flows.sodaflow` for one.
     '''
 
-    def __init__(self, name: Optional[str] = None, language: str = "verilog"):
+    def __init__(self, name: Optional[str] = None, language: str = "verilog",
+                 frontend: Optional[Flowgraph] = None):
         """
         Initializes the ElaborationFlow.
 
         Args:
             * name (str, optional): The name of the flow. If not provided, it
-                defaults to 'elaborationflow-<language>'.
+                defaults to 'elaborationflow-<language>', or
+                'elaborationflow-<frontend name>' when a front end is given.
             * language (str): The hardware description language of the design.
+                Ignored when ``frontend`` is given.
+            * frontend (Flowgraph, optional): An elaboration flow to use instead
+                of the one ``language`` selects. Its single exit node has to emit
+                Verilog.
         """
+        if frontend is not None and not isinstance(frontend, Flowgraph):
+            raise ValueError(f"frontend must be a Flowgraph, not: {type(frontend)}")
+
         if name is None:
-            name = f"elaborationflow-{language}"
+            name = f"elaborationflow-{frontend.name if frontend is not None else language}"
         super().__init__(name)
 
-        if language == "verilog" or language == "systemverilog":
+        if frontend is not None:
+            self.graph(frontend)
+        elif language == "verilog" or language == "systemverilog":
             self.graph(SlangElaborationFlow())
         elif language == "systemverilog-sv2v":
             self.graph(SV2VElaborationFlow())

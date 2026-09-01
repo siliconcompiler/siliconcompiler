@@ -1,3 +1,4 @@
+import io
 import logging
 import logging.handlers
 import os
@@ -11,6 +12,7 @@ import os.path
 
 from pathlib import Path
 from multiprocessing import Queue
+from queue import Empty
 from unittest.mock import patch
 
 from siliconcompiler import Project, Flowgraph, Design
@@ -25,6 +27,7 @@ from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, \
     SchedulerNodeReset, SchedulerNodeResetSilent
+from siliconcompiler.utils.logging import SC_CONSOLE_QUIET_ATTR
 from siliconcompiler.utils.paths import jobdir, workdir
 
 
@@ -1831,7 +1834,9 @@ def test_run_without_queue(project):
          patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
         node.run()
         call_exec.assert_called_once()
-        call_remove_logger.assert_not_called()
+        # Nothing is stripped without a queue; the one removal is the node
+        # releasing its own log handler on the way out.
+        assert call_remove_logger.call_count == 1
 
 
 def test_run_with_queue(project):
@@ -1851,8 +1856,9 @@ def test_run_with_queue(project):
         node.run()
         call_exec.assert_called_once()
         # The child strips every inherited handler before installing the
-        # QueueHandler: the console StreamHandler and the SCHistoryLogHandler.
-        assert call_remove_logger.call_count == 2
+        # QueueHandler -- the console StreamHandler and the SCHistoryLogHandler
+        # -- and then releases its own log handler once the node is done.
+        assert call_remove_logger.call_count == 3
         assert pipe.calls == 1
 
 
@@ -2563,3 +2569,217 @@ def test_mark_copy(project):
     with patch("siliconcompiler.schema.BaseSchema.set") as sc_set:
         assert node.mark_copy() is False
         sc_set.assert_not_called()
+
+
+class ChattyTask(NOPTask):
+    """A task that logs from every phase quiet is supposed to cover."""
+    def task(self):
+        return "chatty"
+
+    def pre_process(self):
+        super().pre_process()
+        self.logger.info("chatter from pre_process")
+
+    def run(self):
+        self.logger.info("chatter from run")
+        return super().run()
+
+    def post_process(self):
+        super().post_process()
+        self.logger.info("chatter from post_process")
+
+
+@pytest.fixture
+def chatty_project():
+    flow = Flowgraph("testflow")
+    flow.node("stepone", ChattyTask())
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    return proj
+
+
+@pytest.mark.parametrize("quiet", (True, False))
+def test_execute_quiet_only_mutes_the_console(chatty_project, quiet):
+    """quiet silences a task's own logging on screen, never in the log file."""
+    chatty_project.option.set_quiet(quiet)
+
+    node = SchedulerNode(chatty_project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    console = io.StringIO()
+    chatty_project._logger_console.setStream(console)
+
+    node.run()
+
+    assert chatty_project.get("record", "status", step="stepone", index="0") == \
+        NodeStatus.SUCCESS
+
+    with open(node.get_log("sc")) as f:
+        logfile = f.read()
+
+    # The log file is complete either way.
+    for phase in ("pre_process", "run", "post_process"):
+        assert f"chatter from {phase}" in logfile
+
+    # The console only sees it when the node is not quiet.
+    for phase in ("pre_process", "run", "post_process"):
+        assert (f"chatter from {phase}" in console.getvalue()) is not quiet
+
+    # Framework messages outside those phases are never muted.
+    assert "Running in " in console.getvalue()
+
+
+def test_execute_quiet_does_not_mute_phase_failures(chatty_project, caplog):
+    """A failure the framework reports about a muted phase still reaches the console."""
+    chatty_project.option.set_quiet(True)
+
+    node = SchedulerNode(chatty_project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    console = io.StringIO()
+    chatty_project._logger_console.setStream(console)
+
+    with patch("siliconcompiler.tools.builtin.BuiltinTask.post_process",
+               side_effect=ValueError("post process boom")):
+        with pytest.raises(SystemExit):
+            node.run()
+
+    assert "Post-processing failed for builtin/chatty" in console.getvalue()
+    assert "post process boom" in console.getvalue()
+    # The task's own chatter from the muted phases stays off screen.
+    assert "chatter from pre_process" not in console.getvalue()
+    assert chatty_project.get("record", "status", step="stepone", index="0") == \
+        NodeStatus.ERROR
+
+
+def test_execute_quiet_tags_records_for_the_parent_console(chatty_project):
+    """In the multiprocessing path the tag must ride the queue to the parent."""
+    chatty_project.option.set_quiet(True)
+
+    node = SchedulerNode(chatty_project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    queue = Queue()
+    node.set_queue(None, queue)
+    node.run()
+
+    # A multiprocessing queue hands records off through a feeder thread, so
+    # empty() reports empty while records are still in flight. Wait for the
+    # records this test is about instead of trusting empty().
+    expected = {"pre_process", "run", "post_process", "running"}
+    seen = {}
+    deadline = time.time() + 30
+    while not expected.issubset(seen) and time.time() < deadline:
+        try:
+            record = queue.get(timeout=0.1)
+        except Empty:
+            continue
+        if "chatter from" in record.getMessage():
+            seen[record.getMessage().split("chatter from ")[-1]] = \
+                getattr(record, SC_CONSOLE_QUIET_ATTR, False)
+        elif "Running in " in record.getMessage():
+            seen["running"] = getattr(record, SC_CONSOLE_QUIET_ATTR, False)
+
+    assert expected.issubset(seen), f"missing records: {sorted(expected - set(seen))}"
+
+    assert seen["pre_process"] is True
+    assert seen["run"] is True
+    assert seen["post_process"] is True
+    # Not part of a muted phase, so the parent still prints it.
+    assert seen["running"] is False
+
+
+class SidecarTask(NOPTask):
+    """A python task that writes to both streams so sidecars are created."""
+    def task(self):
+        return "sidecar"
+
+    def run(self):
+        print("to stdout")
+        print("to stderr", file=sys.stderr)
+        return super().run()
+
+
+@pytest.fixture
+def sidecar_project():
+    flow = Flowgraph("testflow")
+    flow.node("stepone", SidecarTask())
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    return proj
+
+
+def test_run_removes_stdio_sidecars(sidecar_project):
+    """A finished node keeps the merged log, not a second copy of it."""
+    node = SchedulerNode(sidecar_project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    node.run()
+
+    # Everything is still in the merged log.
+    with open(node.get_log("exe")) as f:
+        assert f.read() == "to stdout\nto stderr\n"
+
+    # ...and the per-stream captures are gone.
+    assert not os.path.exists(os.path.join(node.workdir, ".stepone.stdout"))
+    assert not os.path.exists(os.path.join(node.workdir, ".stepone.stderr"))
+
+
+def test_run_releases_the_node_log_handler(project):
+    """The node log must not stay open, nor keep collecting later records."""
+    handlers_before = list(project.logger.handlers)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+    node.run()
+
+    assert list(project.logger.handlers) == handlers_before
+
+    # A record logged after the node finished must not reach its log.
+    project.logger.info("AFTER THE NODE")
+    with open(node.get_log("sc")) as f:
+        assert "AFTER THE NODE" not in f.read()
+
+
+def test_run_releases_the_node_log_handler_on_halt(project):
+    """halt() exits via sys.exit; the teardown has to survive that."""
+    handlers_before = list(project.logger.handlers)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.execute",
+               side_effect=ValueError("boom")):
+        with pytest.raises(SystemExit):
+            node.run()
+
+    assert list(project.logger.handlers) == handlers_before
+
+
+def test_run_does_not_tee_into_a_previous_nodes_log(project):
+    """Two nodes in one process must not share a log file."""
+    one = SchedulerNode(project, "stepone", "0")
+    one.task.setup_work_directory(one.workdir)
+    one.run()
+
+    two = SchedulerNode(project, "steptwo", "0")
+    two.task.setup_work_directory(two.workdir)
+    two.run()
+
+    with open(one.get_log("sc")) as f:
+        first = f.read()
+    assert "steptwo" not in first

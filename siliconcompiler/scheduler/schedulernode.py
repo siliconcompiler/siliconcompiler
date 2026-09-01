@@ -15,7 +15,8 @@ from typing import List, Optional, Set, Tuple, TYPE_CHECKING
 
 from siliconcompiler import utils, sc_open
 from siliconcompiler import NodeStatus
-from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter
+from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter, \
+    console_quiet
 
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
@@ -864,33 +865,45 @@ class SchedulerNode:
                 SCInRunLoggerFormatter(self.__project, self.__job, self.__step, self.__index))
             self.logger.addHandler(file_log)
 
-            # Select the inputs to this node
-            sel_inputs = self.__task.select_input_nodes()
-            if not self.__is_entry_node and not sel_inputs:
-                self.halt(f'No inputs selected for {self.__step}/{self.__index}')
-            self.__record.set("inputnode", sel_inputs, step=self.__step, index=self.__index)
-
-            if self.__hash:
-                self.__hash_files_pre_execute()
-
-            # Forward data
-            if not self.__replay:
-                self.setup_input_directory()
-
-            # Write manifest prior to step running into inputs
-            self.__project.write_manifest(self.__manifests["input"])
-
-            # Check manifest
-            if not self.validate():
-                self.halt("Failed to validate node setup. See previous errors")
-
             try:
-                self.execute()
-            except KeyboardInterrupt:
-                self.halt(errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
-            except Exception as e:
-                utils.print_traceback(self.logger, e)
-                self.halt()
+                # Select the inputs to this node
+                sel_inputs = self.__task.select_input_nodes()
+                if not self.__is_entry_node and not sel_inputs:
+                    self.halt(f'No inputs selected for {self.__step}/{self.__index}')
+                self.__record.set("inputnode", sel_inputs, step=self.__step, index=self.__index)
+
+                if self.__hash:
+                    self.__hash_files_pre_execute()
+
+                # Forward data
+                if not self.__replay:
+                    self.setup_input_directory()
+
+                # Write manifest prior to step running into inputs
+                self.__project.write_manifest(self.__manifests["input"])
+
+                # Check manifest
+                if not self.validate():
+                    self.halt("Failed to validate node setup. See previous errors")
+
+                try:
+                    self.execute()
+                except KeyboardInterrupt:
+                    self.halt(errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
+                except Exception as e:
+                    utils.print_traceback(self.logger, e)
+                    self.halt()
+            finally:
+                # The node is finished, so stop holding its files. The
+                # per-stream captures have already been merged into <step>.log,
+                # and an attached FileHandler would keep the node log open for
+                # the life of the process -- which, where several nodes run in
+                # one process, also tees every later node's records into this
+                # node's log. Both survive halt(): its sys.exit unwinds through
+                # here, and it logs before doing so.
+                self.__task.remove_stdio_sidecars(self.__workdir)
+                self.logger.removeHandler(file_log)
+                file_log.close()
 
         # return to original directory
         os.chdir(cwd)
@@ -993,8 +1006,14 @@ class SchedulerNode:
 
         self.logger.info(f'Running in {self.__workdir}')
 
+        # A task logs freely from pre_process()/run()/post_process(); quiet
+        # mutes the console for all of it. The node log and job.log still get
+        # every record, so nothing is lost, it just isn't on the screen.
+        quiet = self.__project.option.get_quiet(step=self.__step, index=self.__index)
+
         try:
-            self.__task.pre_process()
+            with console_quiet(self.logger, quiet):
+                self.__task.pre_process()
         except TaskSkip as skip:
             self.logger.warning(f'Removing {self.__step}/{self.__index} due to {skip.why}')
             self.__record.set('status', NodeStatus.SKIPPED, step=self.__step, index=self.__index)
@@ -1049,19 +1068,21 @@ class SchedulerNode:
                 try:
                     if not self.__replay:
                         self.__task.generate_replay_script(self.__replay_script, self.__workdir)
-                    ret_code = self.__task.run_task(
-                        self.__workdir,
-                        self.__project.option.get_quiet(step=self.__step, index=self.__index),
-                        self.__task.has_breakpoint(),
-                        self.__project.option.get_nice(step=self.__step, index=self.__index),
-                        self.__project.option.get_timeout(step=self.__step, index=self.__index))
+                    with console_quiet(self.logger, quiet):
+                        ret_code = self.__task.run_task(
+                            self.__workdir,
+                            quiet,
+                            self.__task.has_breakpoint(),
+                            self.__project.option.get_nice(step=self.__step, index=self.__index),
+                            self.__project.option.get_timeout(step=self.__step,
+                                                              index=self.__index))
                 except Exception:
                     raise
 
             if ret_code != 0:
                 msg = f'Command failed with code {ret_code}.'
                 if os.path.exists(self.__logs["exe"]):
-                    if self.__project.option.get_quiet(step=self.__step, index=self.__index):
+                    if quiet:
                         # Print last N lines of log when in quiet mode
                         with sc_open(self.__logs["exe"]) as logfd:
                             loglines = logfd.read().splitlines()
@@ -1073,7 +1094,8 @@ class SchedulerNode:
                 self.__error = True
 
             try:
-                self.__task.post_process()
+                with console_quiet(self.logger, quiet):
+                    self.__task.post_process()
             except Exception as e:
                 self.logger.error(
                     f"Post-processing failed for {self.__task.tool()}/{self.__task.task()}")

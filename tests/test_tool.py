@@ -31,6 +31,7 @@ from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout,
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils import showtools
+from siliconcompiler.utils.logging import SC_LOG, SCConsoleQuietFilter, console_quiet
 from siliconcompiler.utils.multiprocessing import MPManager, forking
 
 from siliconcompiler.tools.builtin.nop import NOPTask
@@ -1671,6 +1672,146 @@ def test_run_task_memory_limit_kill(running_node, monkeypatch, caplog):
         in caplog.text
 
 
+def _console_visible(caplog, text):
+    """Records matching ``text`` that a console sink would actually show."""
+    return [r for r in caplog.records
+            if text in r.getMessage() and SCConsoleQuietFilter().filter(r)]
+
+
+def _assert_quiet_was_in_effect(caplog):
+    """Guard the tests below: they only mean something if quiet muted something."""
+    assert any(not SCConsoleQuietFilter().filter(r) for r in caplog.records), \
+        "nothing was muted, so 'breaks through quiet' proves nothing"
+
+
+def test_run_task_memory_limit_breaks_through_quiet(running_node, monkeypatch, patch_psutil,
+                                                    caplog):
+    """System memory pressure is about the machine, so quiet must not hide it."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            returncode = 0
+            pid = 1
+
+            call_count = 0
+
+            def poll(self):
+                self.call_count += 1
+                if self.call_count > 2:
+                    return self.returncode
+                return None
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with running_node.task.runtime(running_node) as runtool:
+        # Exactly what SchedulerNode.execute() does for a quiet node.
+        with console_quiet(runtool.logger):
+            assert runtool.run_task('.', True, False, None, None) == 0
+
+    _assert_quiet_was_in_effect(caplog)
+    assert _console_visible(caplog, "Current system memory usage is 91.2%")
+
+
+def test_run_task_memory_kill_breaks_through_quiet(running_node, monkeypatch, caplog):
+    """The kill and the shutdown it triggers are both reported on screen."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    class TrackingPopen:
+        returncode = 0
+        pid = 1
+
+        def poll(self):
+            return None
+
+        def wait(self, timeout=None):
+            pass
+
+    def dummy_popen(*args, **kwargs):
+        return TrackingPopen()
+
+    def dummy_virtual_memory():
+        class Memory:
+            percent = 99.5
+            available = 100 * 1024 * 1024  # 100 MiB
+        return Memory
+
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', dummy_virtual_memory)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with patch("siliconcompiler.tool.Task._Task__terminate_exe", autospec=True):
+        with running_node.task.runtime(running_node) as runtool:
+            with console_quiet(runtool.logger):
+                with pytest.raises(TaskOutOfMemoryError, match=r"^$"):
+                    runtool.run_task('.', True, False, None, None)
+
+    _assert_quiet_was_in_effect(caplog)
+    assert _console_visible(caplog, "Task ran out of memory with 99.5% system memory usage")
+
+
+def test_run_task_timeout_breaks_through_quiet(running_node, monkeypatch, patch_psutil, caplog):
+    """A quiet run that stops on a timeout still says why."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            pid = 1
+
+            def poll(self):
+                time.sleep(5)
+                return None
+
+            def wait(*args, **kwargs):
+                pass
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with running_node.task.runtime(running_node) as runtool:
+        with console_quiet(runtool.logger):
+            with pytest.raises(TaskTimeout, match=r"^$"):
+                runtool.run_task('.', True, False, None, 2)
+
+    _assert_quiet_was_in_effect(caplog)
+    assert _console_visible(caplog, "Task timed out after")
+    # __terminate_exe runs for real here, so its progress reporting is covered too.
+    assert _console_visible(caplog, "Waiting for builtin/nop to exit...")
+
+
+def test_run_task_python_failure_breaks_through_quiet(running_node, monkeypatch, caplog):
+    """A crash in run() is not tool chatter: the traceback stays on screen."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    def dummy_get_exe(*args, **kwargs):
+        return None
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    def dummy_run(*args, **kwargs):
+        raise ValueError("run blew up")
+    monkeypatch.setattr(running_node.task, 'run', dummy_run)
+
+    with running_node.task.runtime(running_node) as runtool:
+        with console_quiet(runtool.logger):
+            with pytest.raises(ValueError, match="^run blew up$"):
+                runtool.run_task('.', True, False, None, None)
+
+    assert _console_visible(caplog, "Failed in run() for builtin/nop: run blew up")
+    assert _console_visible(caplog, "Backtrace:")
+
+
 @pytest.mark.parametrize("error", [PermissionError, imported_psutil.Error])
 def test_run_task_exceptions_loop(running_node, monkeypatch, patch_psutil, error):
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
@@ -2210,6 +2351,24 @@ def test_run_task_run_failed_resource(running_node, monkeypatch):
         assert runtool.call_count == 1
 
 
+def test_split_file_lines_no_newline():
+    assert dut_tool._split_file_lines("partial") == ("", "partial")
+
+
+def test_split_file_lines_holds_trailing_partial():
+    assert dut_tool._split_file_lines("abc\ndef") == ("abc\n", "def")
+
+
+def test_split_file_lines_keeps_carriage_returns():
+    # Unlike _split_io_lines, a bare \r is content here: the merged log has to
+    # reproduce the single line the tool redrew.
+    assert dut_tool._split_file_lines("a\rb\rc\n") == ("a\rb\rc\n", "")
+
+
+def test_split_file_lines_all_complete():
+    assert dut_tool._split_file_lines("abc\ndef\n") == ("abc\ndef\n", "")
+
+
 def test_split_io_lines_no_terminator():
     assert dut_tool._split_io_lines("partial") == ([], "partial")
 
@@ -2254,7 +2413,8 @@ def test_run_task_consolidates_progress_line(running_node, monkeypatch, patch_ps
     ]
     # An unterminated trailing fragment to verify the flush-on-exit drain.
     trailing = "Done"
-    stdout_path = "running.log"
+    # Each stream now gets its own sidecar; SC merges them into running.log.
+    stdout_path = ".running.stdout"
 
     def dummy_popen(*args, **kwargs):
         class Popen:
@@ -2287,7 +2447,7 @@ def test_run_task_consolidates_progress_line(running_node, monkeypatch, patch_ps
         with running_node.task.runtime(running_node) as runtool:
             assert runtool.run_task('.', False, False, None, None) == 0
 
-    info_msgs = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+    info_msgs = [r.getMessage() for r in caplog.records if r.levelno == SC_LOG]
 
     expected_progress = (
         "    Processing cells "
@@ -2319,7 +2479,8 @@ def test_run_task_carriage_return_terminates_lines(running_node, monkeypatch, pa
         "\rBuilding... 50%",
         "\rBuilding... 100%\n",
     ]
-    stdout_path = "running.log"
+    # Each stream now gets its own sidecar; SC merges them into running.log.
+    stdout_path = ".running.stdout"
 
     def dummy_popen(*args, **kwargs):
         class Popen:
@@ -2348,11 +2509,154 @@ def test_run_task_carriage_return_terminates_lines(running_node, monkeypatch, pa
         with running_node.task.runtime(running_node) as runtool:
             assert runtool.run_task('.', False, False, None, None) == 0
 
-    info_msgs = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+    info_msgs = [r.getMessage() for r in caplog.records if r.levelno == SC_LOG]
 
     for frame in ("Building... 0%", "Building... 50%", "Building... 100%"):
         assert frame in info_msgs, \
             f"Missing \\r-terminated frame {frame!r} in log records: {info_msgs}"
+
+
+def _fake_stdio_popen(monkeypatch, running_node, writes, returncode=0):
+    """Drive a fake subprocess that writes to the stdout/stderr sidecars.
+
+    `writes` is a list of (path, text) applied one per poll() call.
+    """
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            pid = 1
+            call_count = 0
+
+            def poll(self):
+                idx = self.call_count
+                self.call_count += 1
+                if idx < len(writes):
+                    path, text = writes[idx]
+                    with open(path, 'a', newline='') as f:
+                        f.write(text)
+                    return None
+                self.returncode = returncode
+                return returncode
+        return Popen()
+
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+    monkeypatch.setattr(running_node.task, 'get_exe', lambda *a, **k: "found/exe")
+    monkeypatch.setattr(Task, '_Task__IO_POLL_INTERVAL', 0)
+
+
+def test_run_task_reports_stderr_separately(running_node, monkeypatch, patch_psutil, caplog):
+    """The two streams share a destination but no longer share a file
+    description, so a stderr line is reported as an error."""
+    _fake_stdio_popen(monkeypatch, running_node, [
+        (".running.stdout", "ordinary progress\n"),
+        (".running.stderr", "something went wrong\n"),
+        (".running.stdout", "more progress\n"),
+    ])
+
+    with caplog.at_level(logging.INFO):
+        with running_node.task.runtime(running_node) as runtool:
+            assert runtool.run_task('.', False, False, None, None) == 0
+
+    levels = {r.getMessage(): r.levelname for r in caplog.records}
+    assert levels["ordinary progress"] == "LOG"
+    assert levels["more progress"] == "LOG"
+    assert levels["something went wrong"] == "LOGERROR"
+
+
+def test_run_task_merges_sidecars_into_the_log(running_node, monkeypatch, patch_psutil):
+    """<step>.log stays the single complete transcript, and each raw stream is
+    kept alongside it."""
+    _fake_stdio_popen(monkeypatch, running_node, [
+        (".running.stdout", "out one\n"),
+        (".running.stderr", "err one\n"),
+        (".running.stdout", "out two\n"),
+    ])
+
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.run_task('.', False, False, None, None) == 0
+
+    with open("running.log") as f:
+        assert f.read() == "out one\nerr one\nout two\n"
+    with open(".running.stdout") as f:
+        assert f.read() == "out one\nout two\n"
+    with open(".running.stderr") as f:
+        assert f.read() == "err one\n"
+
+
+def test_run_task_merged_log_is_complete_when_quiet(running_node, monkeypatch, patch_psutil,
+                                                    caplog):
+    """quiet suppresses the log records, never the merged log file."""
+    _fake_stdio_popen(monkeypatch, running_node, [
+        (".running.stdout", "out one\n"),
+        (".running.stderr", "err one\n"),
+    ])
+
+    with caplog.at_level(logging.INFO):
+        with running_node.task.runtime(running_node) as runtool:
+            assert runtool.run_task('.', True, False, None, None) == 0
+
+    msgs = [r.getMessage() for r in caplog.records]
+    assert "out one" not in msgs
+    assert "err one" not in msgs
+
+    with open("running.log") as f:
+        assert f.read() == "out one\nerr one\n"
+
+
+def test_run_task_merged_log_preserves_carriage_returns(running_node, monkeypatch,
+                                                        patch_psutil, caplog):
+    """A bare \r redraw is one line in the file but one record per frame."""
+    _fake_stdio_popen(monkeypatch, running_node, [
+        (".running.stdout", "Building... 0%"),
+        (".running.stdout", "\rBuilding... 100%\n"),
+    ])
+
+    with caplog.at_level(logging.INFO):
+        with running_node.task.runtime(running_node) as runtool:
+            assert runtool.run_task('.', False, False, None, None) == 0
+
+    with open("running.log", newline='') as f:
+        assert f.read() == "Building... 0%\rBuilding... 100%\n"
+
+    msgs = [r.getMessage() for r in caplog.records]
+    assert "Building... 0%" in msgs
+    assert "Building... 100%" in msgs
+
+
+def test_run_task_holds_partial_line_out_of_merged_log(running_node, monkeypatch,
+                                                       patch_psutil):
+    """A stdout line still being written must not be glued to a stderr line."""
+    _fake_stdio_popen(monkeypatch, running_node, [
+        (".running.stdout", "half a li"),
+        (".running.stderr", "interrupting\n"),
+        (".running.stdout", "ne\n"),
+    ])
+
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.run_task('.', False, False, None, None) == 0
+
+    with open("running.log") as f:
+        assert f.read() == "interrupting\nhalf a line\n"
+
+
+def test_run_task_does_not_split_non_log_destinations(running_node, monkeypatch,
+                                                      patch_psutil):
+    """A stream redirected to outputs/ is a deliverable: leave the OS merge
+    alone rather than routing a product through the drain loop."""
+    running_node.task.set_logdestination("stdout", "output", "vg")
+    running_node.task.set_logdestination("stderr", "output", "vg")
+
+    _fake_stdio_popen(monkeypatch, running_node, [
+        (os.path.join("outputs", "designtop.vg"), "generated\n"),
+    ])
+
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.run_task('.', False, False, None, None) == 0
+
+    assert not os.path.exists(".running.stdout")
+    assert not os.path.exists(".running.stderr")
+    # The deliverable is still written by the tool, untouched by the merge.
+    with open(os.path.join("outputs", "designtop.vg")) as f:
+        assert f.read() == "generated\n"
 
 
 def test_run_task_timeout_flushes_trailing_output(running_node, monkeypatch, patch_psutil,
@@ -2364,7 +2668,8 @@ def test_run_task_timeout_flushes_trailing_output(running_node, monkeypatch, pat
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     trailing = "fatal: stuck here with no newline"
-    stdout_path = "running.log"
+    # Each stream now gets its own sidecar; SC merges them into running.log.
+    stdout_path = ".running.stdout"
 
     def dummy_popen(*args, **kwargs):
         class Popen:
@@ -2408,7 +2713,8 @@ def test_run_task_oom_flushes_trailing_output(running_node, monkeypatch, patch_p
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     trailing = "allocating one buffer too many"
-    stdout_path = "running.log"
+    # Each stream now gets its own sidecar; SC merges them into running.log.
+    stdout_path = ".running.stdout"
 
     def dummy_virtual_memory():
         class Memory:
@@ -4587,8 +4893,8 @@ def test_task_py_logging_output_different_files(gcd_design):
     # Check for expected log messages
     assert content.count("STDOUT_MESSAGE") == 1
     assert content.count("STDERR_MESSAGE") == 1
-    assert re.match(r"^\| INFO .* \| STDOUT_MESSAGE$", content.splitlines()[-3])
-    assert re.match(r"^\| ERROR .* \| STDERR_MESSAGE$", content.splitlines()[-2])
+    assert re.match(r"^\| LOG .* \| STDOUT_MESSAGE$", content.splitlines()[-3])
+    assert re.match(r"^\| LOGERROR .* \| STDERR_MESSAGE$", content.splitlines()[-2])
 
     assert pathlib.Path("build/gcd/job0/step/0/step.out").read_text() == "STDOUT_MESSAGE\n"
     assert pathlib.Path("build/gcd/job0/step/0/step.err").read_text() == "STDERR_MESSAGE\n"
@@ -4621,8 +4927,10 @@ def test_task_py_logging_output_same_files(gcd_design):
     # Check for expected log messages
     assert content.count("STDOUT_MESSAGE") == 1
     assert content.count("STDERR_MESSAGE") == 1
-    assert re.match(r"^\| INFO .* \| STDOUT_MESSAGE$", content.splitlines()[-3])
-    assert re.match(r"^\| INFO .* \| STDERR_MESSAGE$", content.splitlines()[-2])
+    # stdout and stderr are read from separate sidecars now, so the stderr
+    # line is reported as an error rather than folded in with stdout.
+    assert re.match(r"^\| LOG .* \| STDOUT_MESSAGE$", content.splitlines()[-3])
+    assert re.match(r"^\| LOGERROR .* \| STDERR_MESSAGE$", content.splitlines()[-2])
 
     assert pathlib.Path("build/gcd/job0/step/0/step.out").read_text() == \
         "STDOUT_MESSAGE\nSTDERR_MESSAGE\n"

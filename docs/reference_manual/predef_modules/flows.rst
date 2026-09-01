@@ -84,6 +84,15 @@ source language. They can be used on their own as a front-end.
 .. schema::
   :root: siliconcompiler.flows.elaborationflow/BluespecElaborationFlow
 
+.. schema::
+  :root: siliconcompiler.flows.sodaflow/SODABaselineElaborationFlow
+
+.. schema::
+  :root: siliconcompiler.flows.sodaflow/SODAOptimizedElaborationFlow
+
+.. schema::
+  :root: siliconcompiler.flows.sodaflow/SODATransformedElaborationFlow
+
 Synthesis Flows
 ---------------
 

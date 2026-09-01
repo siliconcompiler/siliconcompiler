@@ -15,6 +15,8 @@ Here are some tutorials of a few different types of high-level hardware design f
 
 * :ref:`bluespec frontend <bluespec_frontend>`
 
+* :ref:`MLIR frontend, for machine learning models (SODA) <soda_frontend>`
+
 
 .. include:: include/migen.inc
 
@@ -23,3 +25,5 @@ Here are some tutorials of a few different types of high-level hardware design f
 .. include:: include/bambu.inc
 
 .. include:: include/bluespec.inc
+
+.. include:: include/soda.inc
