@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 # Copyright 2026 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import ASIC, Design
+from siliconcompiler import ASIC, Design, Flowgraph
 from siliconcompiler.targets import freepdk45_demo
 
-from siliconcompiler.flows.formalflow import LECFlow
+from siliconcompiler.flows.formalflow import SECFlow
+from siliconcompiler.flows.synflow import SynthesisFlow
 
 
 def main():
     """
     Checks the synthesized 'adder' netlist against the RTL it came from.
 
-    This script sets up an ASIC project for a small adder and runs the
-    LECFlow, which synthesizes the RTL into a Nangate45 netlist and then
-    checks that netlist against the RTL with Kepler-formal.
+    This script sets up an ASIC project for a small adder, synthesizes it into a
+    Nangate45 netlist, and checks that netlist against the RTL with
+    Kepler-formal.
 
     Requires: yosys, kepler-formal; freepdk45 (via lambdapdk)
     """
@@ -36,8 +37,19 @@ def main():
     # Load the pre-defined target for the FreePDK45 demo process.
     freepdk45_demo(project)
 
-    # Specify the equivalence check flow, which replaces the target's.
-    project.set_flow(LECFlow())
+    # SECFlow holds only the equivalence check, so graft it onto a flow which
+    # builds the two views it compares: the elaborated RTL and the netlist
+    # synthesized from it. Timing analysis is not needed here, so leave it out.
+    flow = Flowgraph("adder-sec")
+    flow.graph(SynthesisFlow(timing_np=0))
+    flow.graph(SECFlow())
+
+    # Synthesis does not re-emit the RTL it consumed, so the check reads it
+    # from elaboration.
+    flow.edge("elaborate", "sec")
+    flow.edge("synthesis", "sec")
+
+    project.set_flow(flow)
 
     # Execute the flow.
     project.run()

@@ -7,10 +7,9 @@ from siliconcompiler.tools.sby.bmc import BMCTask
 from siliconcompiler.tools.sby.prove import ProveTask
 from siliconcompiler.tools.sby.cover import CoverTask
 
-from siliconcompiler.tools.yosys import syn_asic
-from siliconcompiler.tools.keplerformal import sec
-
-from siliconcompiler.flows.elaborationflow import ElaborationFlow
+from siliconcompiler.tools.keplerformal.lec import LECTask as KeplerLECTask
+from siliconcompiler.tools.keplerformal.sec import SECTask as KeplerSECTask
+from siliconcompiler.tools.yosys.lec_asic import ASICLECTask as YosysLECTask
 
 
 class PropertyCheckMode(Flag):
@@ -83,63 +82,105 @@ class PropertyCheckFlow(Flowgraph):
 class LECFlow(Flowgraph):
     '''A logical equivalence check (LEC) flow.
 
-    This flow synthesizes an RTL design into a gate-level netlist and then
-    proves that the netlist implements the same logic as the RTL it was
-    synthesized from.
+    Proves that two gate-level netlists implement the same logic.
 
-    The flow consists of the following steps:
-        * **elaborate**: Elaborates the RTL design from its source files.
-        * **synthesis**: Translates the elaborated RTL into a gate-level netlist
-                         using Yosys.
-        * **lec**: Checks the gate-level netlist against the elaborated RTL
-                   using Kepler-formal.
+    The flow consists of the following step:
+        * **lec**: Checks the two netlists against each other.
 
-    The **lec** step reads the RTL from **elaborate**, since **synthesis**
-    does not re-emit what it consumed.
+    This flow holds only the check, not the steps which build what it checks:
+    the netlists it compares are read from the nodes feeding the **lec** node,
+    so instantiate it inside a flow which emits them
+    (:meth:`~siliconcompiler.Flowgraph.graph`) and connect those nodes to it.
+
+    Supported tools:
+
+        * 'kepler-formal': a combinational equivalence check with Kepler-formal.
+        * 'yosys': a k-induction equivalence check with Yosys.
     '''
 
-    def __init__(self, name: Optional[str] = None, language: str = "verilog"):
+    def __init__(self, name: Optional[str] = None, tool: str = "kepler-formal"):
         """
         Initializes the LECFlow.
 
         Args:
             name (str, optional): The name of the flow. Defaults to
-                'lecflow-<language>'.
-            language (str): The hardware description language of the design.
+                'lecflow-<tool>'.
+            tool (str): The equivalence checking tool to use. Supported options
+                are 'kepler-formal' and 'yosys'.
+
+        Raises:
+            ValueError: If an unsupported tool is specified.
         """
         if name is None:
-            name = f"lecflow-{language}"
+            name = f"lecflow-{tool}"
         super().__init__(name)
 
-        elab = ElaborationFlow(language=language)
-        self.graph(elab)
-
-        elab_node = elab.get_exit_nodes()
-        if len(elab_node) != 1:
-            raise ValueError("Elaboration flow must have exactly one exit node.")
-        elab_node = elab_node[0][0]  # Get the node name from the tuple
-
-        self.node("synthesis", syn_asic.ASICSynthesis())
-        self.edge(elab_node, "synthesis")
-
-        self.node("lec", sec.SECTask())
-        self.edge(elab_node, "lec")
-        self.edge("synthesis", "lec")
+        if tool == "kepler-formal":
+            self.node("lec", KeplerLECTask())
+        elif tool == "yosys":
+            self.node("lec", YosysLECTask())
+        else:
+            raise ValueError(f'{tool} is not a supported tool')
 
     @classmethod
     def make_docs(cls):
-        return [
-            cls(language="verilog"),
-            cls(language="systemverilog-sv2v"),
-            cls(language="chisel"),
-            cls(language="vhdl"),
-            cls(language="hls"),
-            cls(language="bluespec")
-        ]
+        return [cls(tool="kepler-formal"),
+                cls(tool="yosys")]
+
+
+class SECFlow(Flowgraph):
+    '''A sequential equivalence check (SEC) flow.
+
+    Proves that a gate-level netlist implements the same logic as the RTL it was
+    synthesized from.
+
+    The flow consists of the following step:
+        * **sec**: Checks the netlist against the RTL.
+
+    Like :class:`LECFlow`, this flow holds only the check: the RTL and the
+    netlist are read from the nodes feeding the **sec** node, so instantiate it
+    inside a flow which emits them (:meth:`~siliconcompiler.Flowgraph.graph`)
+    and connect those nodes to it. The RTL edge comes from elaboration rather
+    than synthesis, since synthesis does not re-emit what it consumed.
+
+    Supported tools:
+
+        * 'kepler-formal': a sequential equivalence check with Kepler-formal.
+        * 'yosys': a k-induction equivalence check with Yosys.
+    '''
+
+    def __init__(self, name: Optional[str] = None, tool: str = "kepler-formal"):
+        """
+        Initializes the SECFlow.
+
+        Args:
+            name (str, optional): The name of the flow. Defaults to
+                'secflow-<tool>'.
+            tool (str): The equivalence checking tool to use. Supported options
+                are 'kepler-formal' and 'yosys'.
+
+        Raises:
+            ValueError: If an unsupported tool is specified.
+        """
+        if name is None:
+            name = f"secflow-{tool}"
+        super().__init__(name)
+
+        if tool == "kepler-formal":
+            self.node("sec", KeplerSECTask())
+        elif tool == "yosys":
+            self.node("sec", YosysLECTask())
+        else:
+            raise ValueError(f'{tool} is not a supported tool')
+
+    @classmethod
+    def make_docs(cls):
+        return [cls(tool="kepler-formal"),
+                cls(tool="yosys")]
 
 
 ##################################################
 if __name__ == "__main__":
-    for flowcls in [PropertyCheckFlow, LECFlow]:
+    for flowcls in [PropertyCheckFlow, LECFlow, SECFlow]:
         flow = flowcls()
         flow.write_flowgraph(f"{flow.name}.png")

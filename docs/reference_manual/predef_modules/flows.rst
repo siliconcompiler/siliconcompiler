@@ -148,14 +148,20 @@ Formal Verification Flows
 
 Flows for :term:`formally verifying <formal verification>` a design: checking
 the SVA :term:`assertions <assertion>` in its RTL using SymbiYosys (sby), and
-checking a synthesized :term:`netlist` against the :term:`RTL` it came from
-(:term:`LEC`) using Kepler-formal.
+proving two views of a design equivalent (:term:`LEC`) with Kepler-formal or
+Yosys -- either two :term:`netlists <netlist>` against each other, or a
+synthesized netlist against the :term:`RTL` it came from. The equivalence flows
+hold the check alone, so they are grafted onto whichever flow builds the views
+being compared.
 
 .. schema::
   :root: siliconcompiler.flows.formalflow/PropertyCheckFlow
 
 .. schema::
   :root: siliconcompiler.flows.formalflow/LECFlow
+
+.. schema::
+  :root: siliconcompiler.flows.formalflow/SECFlow
 
 DRC Flows
 ---------
