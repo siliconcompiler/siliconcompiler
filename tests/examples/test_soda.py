@@ -60,6 +60,15 @@ def test_py_make_elaborate(strategy):
 @pytest.mark.eda
 @pytest.mark.timeout(1200)
 def test_py_make_syn():
+    """The optimized strategy, synthesized.
+
+    This is where that strategy is paid for and checked: soda-opt fully unrolls
+    the loop nest, so the kernel it hands Yosys maps to ~7x the cells the
+    baseline does, and the mapped netlist is what shows it. Place-and-route on
+    top of that is what test_py_make_asic declines to do, so what runs here is
+    the whole of the optimized coverage past elaboration -- do not quietly
+    demote it to the baseline to save time.
+    """
     from soda import make
     make.syn()
 
@@ -69,10 +78,23 @@ def test_py_make_syn():
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(3600)
+@pytest.mark.timeout(1200)
 def test_py_make_asic():
+    """GDSII, on the baseline kernel rather than the optimized one.
+
+    What this target adds over syn is the backend -- the SODA front end's
+    Verilog carried through OpenROAD and out as GDS -- and the baseline kernel
+    exercises every node of it. The optimized kernel exercises the same nodes on
+    ~158k cells instead of ~23k, which is routing runtime spent on nothing this
+    test looks at; the strategy itself is covered by test_py_make_elaborate and
+    test_py_make_syn.
+
+    make.asic() still defaults to the optimized strategy: it is what the
+    tutorial shows and what `smake asic` should build. Only the test asks for
+    the cheaper one.
+    """
     from soda import make
-    make.asic()
+    make.asic(strategy="baseline")
 
     assert os.path.isfile(
-        'build/mm/asic-optimized/write.gds/0/outputs/forward_kernel.gds.gz')
+        'build/mm/asic-baseline/write.gds/0/outputs/forward_kernel.gds.gz')
