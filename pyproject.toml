@@ -138,6 +138,7 @@ markers = [
     "nightly: run this test during nightly runs",
     "nocpulimit: don't limit cpu count for this test.",
     "docker: test requires docker",
+    "slurm: test requires a working slurm install; skipped automatically when slurm is missing",
     "nocache: don't automatically set the cache directory",
     "isolated_manager: give this test an MPManager server of its own instead of the session-wide one. Needed only by tests that assert on the manager's own lifecycle.",
 ]

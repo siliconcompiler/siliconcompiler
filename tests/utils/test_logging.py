@@ -5,6 +5,7 @@ import pytest
 from siliconcompiler.utils.logging import (
     SCSuppressLoggerFilter, SCTeeLoggerHandler, SCHistoryLogHandler,
     SCConsoleQuietFilter, SC_CONSOLE_QUIET_ATTR, console_quiet,
+    SC_CONSOLE_FORCE, SC_CONSOLE_FORCE_ATTR,
     SCColorLoggerFormatter, SCLoggerFormatter, SC_LOG, SC_LOGERROR)
 
 
@@ -336,6 +337,71 @@ def test_console_sinks_carry_the_quiet_filter():
     proj = Project("dummy")
     assert any(isinstance(f, SCConsoleQuietFilter) for f in proj._logger_console.filters)
     assert any(isinstance(f, SCConsoleQuietFilter) for f in proj._logger_history.filters)
+
+
+def test_console_quiet_filter_passes_forced_records():
+    """SC_CONSOLE_FORCE wins over the quiet tag, whichever order they arrive in."""
+    f = SCConsoleQuietFilter()
+
+    forced = _make_record()
+    setattr(forced, SC_CONSOLE_FORCE_ATTR, True)
+    assert f.filter(forced) is True
+
+    setattr(forced, SC_CONSOLE_QUIET_ATTR, True)
+    assert f.filter(forced) is True
+
+
+def test_console_force_breaks_through_quiet(logger):
+    """A forced record reaches the console; its unforced neighbors do not."""
+    console = _Capture()
+    console.addFilter(SCConsoleQuietFilter())
+    disk = _Capture()
+    logger.addHandler(console)
+    logger.addHandler(disk)
+
+    with console_quiet(logger):
+        logger.info("tool chatter")
+        logger.warning("out of memory", extra=SC_CONSOLE_FORCE)
+
+    assert console.records == ["out of memory"]
+    assert disk.records == ["tool chatter", "out of memory"]
+
+
+def test_console_force_survives_queue_transport(logger):
+    """The exemption must reach the parent process, where the console lives."""
+    import pickle
+    from logging.handlers import QueueHandler
+    from queue import Queue
+
+    queue = Queue()
+    logger.addHandler(QueueHandler(queue))
+
+    with console_quiet(logger):
+        logger.warning("out of memory", extra=SC_CONSOLE_FORCE)
+
+    record = pickle.loads(pickle.dumps(queue.get()))
+    assert SCConsoleQuietFilter().filter(record) is True
+
+
+def test_console_force_is_read_only():
+    """logging copies the mapping onto each record, so it must not be mutable."""
+    with pytest.raises(TypeError):
+        SC_CONSOLE_FORCE[SC_CONSOLE_FORCE_ATTR] = False
+
+
+def test_history_keeps_forced_records():
+    h = SCHistoryLogHandler()
+    logger = logging.getLogger("test_history_keeps_forced_records")
+    logger.handlers = []
+    logger.filters = []
+    logger.setLevel(logging.INFO)
+    logger.addHandler(h)
+
+    with console_quiet(logger):
+        logger.info("muted")
+        logger.warning("forced", extra=SC_CONSOLE_FORCE)
+
+    assert [r.getMessage() for r in h.records] == ["forced"]
 
 
 def test_history_drops_quiet_records():

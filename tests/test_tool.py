@@ -31,7 +31,7 @@ from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout,
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils import showtools
-from siliconcompiler.utils.logging import SC_LOG
+from siliconcompiler.utils.logging import SC_LOG, SCConsoleQuietFilter, console_quiet
 from siliconcompiler.utils.multiprocessing import MPManager, forking
 
 from siliconcompiler.tools.builtin.nop import NOPTask
@@ -1670,6 +1670,146 @@ def test_run_task_memory_limit_kill(running_node, monkeypatch, caplog):
     # Verify error message about memory is logged
     assert "Task ran out of memory with 99.5% system memory usage (100.0 MB available)" \
         in caplog.text
+
+
+def _console_visible(caplog, text):
+    """Records matching ``text`` that a console sink would actually show."""
+    return [r for r in caplog.records
+            if text in r.getMessage() and SCConsoleQuietFilter().filter(r)]
+
+
+def _assert_quiet_was_in_effect(caplog):
+    """Guard the tests below: they only mean something if quiet muted something."""
+    assert any(not SCConsoleQuietFilter().filter(r) for r in caplog.records), \
+        "nothing was muted, so 'breaks through quiet' proves nothing"
+
+
+def test_run_task_memory_limit_breaks_through_quiet(running_node, monkeypatch, patch_psutil,
+                                                    caplog):
+    """System memory pressure is about the machine, so quiet must not hide it."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            returncode = 0
+            pid = 1
+
+            call_count = 0
+
+            def poll(self):
+                self.call_count += 1
+                if self.call_count > 2:
+                    return self.returncode
+                return None
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with running_node.task.runtime(running_node) as runtool:
+        # Exactly what SchedulerNode.execute() does for a quiet node.
+        with console_quiet(runtool.logger):
+            assert runtool.run_task('.', True, False, None, None) == 0
+
+    _assert_quiet_was_in_effect(caplog)
+    assert _console_visible(caplog, "Current system memory usage is 91.2%")
+
+
+def test_run_task_memory_kill_breaks_through_quiet(running_node, monkeypatch, caplog):
+    """The kill and the shutdown it triggers are both reported on screen."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    class TrackingPopen:
+        returncode = 0
+        pid = 1
+
+        def poll(self):
+            return None
+
+        def wait(self, timeout=None):
+            pass
+
+    def dummy_popen(*args, **kwargs):
+        return TrackingPopen()
+
+    def dummy_virtual_memory():
+        class Memory:
+            percent = 99.5
+            available = 100 * 1024 * 1024  # 100 MiB
+        return Memory
+
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', dummy_virtual_memory)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with patch("siliconcompiler.tool.Task._Task__terminate_exe", autospec=True):
+        with running_node.task.runtime(running_node) as runtool:
+            with console_quiet(runtool.logger):
+                with pytest.raises(TaskOutOfMemoryError, match=r"^$"):
+                    runtool.run_task('.', True, False, None, None)
+
+    _assert_quiet_was_in_effect(caplog)
+    assert _console_visible(caplog, "Task ran out of memory with 99.5% system memory usage")
+
+
+def test_run_task_timeout_breaks_through_quiet(running_node, monkeypatch, patch_psutil, caplog):
+    """A quiet run that stops on a timeout still says why."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            pid = 1
+
+            def poll(self):
+                time.sleep(5)
+                return None
+
+            def wait(*args, **kwargs):
+                pass
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with running_node.task.runtime(running_node) as runtool:
+        with console_quiet(runtool.logger):
+            with pytest.raises(TaskTimeout, match=r"^$"):
+                runtool.run_task('.', True, False, None, 2)
+
+    _assert_quiet_was_in_effect(caplog)
+    assert _console_visible(caplog, "Task timed out after")
+    # __terminate_exe runs for real here, so its progress reporting is covered too.
+    assert _console_visible(caplog, "Waiting for builtin/nop to exit...")
+
+
+def test_run_task_python_failure_breaks_through_quiet(running_node, monkeypatch, caplog):
+    """A crash in run() is not tool chatter: the traceback stays on screen."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    def dummy_get_exe(*args, **kwargs):
+        return None
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    def dummy_run(*args, **kwargs):
+        raise ValueError("run blew up")
+    monkeypatch.setattr(running_node.task, 'run', dummy_run)
+
+    with running_node.task.runtime(running_node) as runtool:
+        with console_quiet(runtool.logger):
+            with pytest.raises(ValueError, match="^run blew up$"):
+                runtool.run_task('.', True, False, None, None)
+
+    assert _console_visible(caplog, "Failed in run() for builtin/nop: run blew up")
+    assert _console_visible(caplog, "Backtrace:")
 
 
 @pytest.mark.parametrize("error", [PermissionError, imported_psutil.Error])
