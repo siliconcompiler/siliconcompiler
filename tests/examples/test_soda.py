@@ -78,7 +78,7 @@ def test_py_make_syn():
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(1200)
+@pytest.mark.timeout(1800)
 def test_py_make_asic():
     """GDSII, on the baseline kernel rather than the optimized one.
 
@@ -88,6 +88,11 @@ def test_py_make_asic():
     ~158k cells instead of ~23k, which is routing runtime spent on nothing this
     test looks at; the strategy itself is covered by test_py_make_elaborate and
     test_py_make_syn.
+
+    The timeout is set against a measured ~12 minutes, which is what the
+    baseline takes on the two cores the limit_cpus fixture leaves an eda test.
+    Detailed routing is over half of that, so it is the number to re-measure if
+    this ever needs raising again.
 
     make.asic() still defaults to the optimized strategy: it is what the
     tutorial shows and what `smake asic` should build. Only the test asks for
