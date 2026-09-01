@@ -156,14 +156,19 @@ def test_default_valid(flow: Flowgraph):
         assert flow.validate()
 
 
-def test_equivalence_flow_holds_only_the_check():
+@pytest.mark.parametrize("tool,step", [
+    ("kepler", "lec"),
+    ("kepler-sec", "sec"),
+    ("yosys", "lec")])
+def test_equivalence_flow_holds_only_the_check(tool, step):
     # This flow holds the equivalence check and nothing else, whichever tool and
     # check it is built for: the views it compares are built by whichever flow it
     # is grafted onto, so a front end added here would be a second copy of what
-    # the caller already runs.
-    for flow in LECFlow.make_docs():
-        assert flow.get_nodes() == (("lec", "0"),)
-        assert flow.get_graph_node("lec", "0").get_input() == []
+    # the caller already runs. The node name is part of the contract, since the
+    # caller wires its own nodes to it.
+    flow = LECFlow(tool=tool)
+    assert flow.get_nodes() == ((step, "0"),)
+    assert flow.get_graph_node(step, "0").get_input() == []
 
 
 def test_routing_flow_node_order():

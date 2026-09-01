@@ -182,9 +182,9 @@ def test_lecflow_sequential(datadir, netlist, drvs):
     flow = Flowgraph("lecflowtest")
     flow.node('rtl', ImporterTask())
     flow.node('netlist', ImporterTask())
-    flow.graph(LECFlow(tool="kepler-formal/sec"))
-    flow.edge('rtl', 'lec')
-    flow.edge('netlist', 'lec')
+    flow.graph(LECFlow(tool="kepler-sec"))
+    flow.edge('rtl', 'sec')
+    flow.edge('netlist', 'sec')
     proj.set_flow(flow)
 
     ImporterTask.find_task(proj).add("var", "input_files",
@@ -193,4 +193,4 @@ def test_lecflow_sequential(datadir, netlist, drvs):
                                      os.path.join(datadir, netlist), step='netlist')
 
     assert proj.run()
-    assert proj.history("job0").get('metric', 'drvs', step='lec', index='0') == drvs
+    assert proj.history("job0").get('metric', 'drvs', step='sec', index='0') == drvs

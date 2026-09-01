@@ -43,12 +43,12 @@ def main():
     # check. Timing analysis is not needed here, so leave it out.
     flow = Flowgraph("adder-lec")
     flow.graph(SynthesisFlow(timing_np=0))
-    flow.graph(LECFlow(tool="kepler-formal/sec"))
+    flow.graph(LECFlow(tool="kepler-sec"))
 
     # Synthesis does not re-emit the RTL it consumed, so the check reads it
     # from elaboration.
-    flow.edge("elaborate", "lec")
-    flow.edge("synthesis", "lec")
+    flow.edge("elaborate", "sec")
+    flow.edge("synthesis", "sec")
 
     project.set_flow(flow)
 

@@ -17,4 +17,4 @@ def test_py_lec():
 
     project = Project.from_manifest(manifest).history("job0")
 
-    assert project.get('metric', 'drvs', step='lec', index='0') == 0
+    assert project.get('metric', 'drvs', step='sec', index='0') == 0
