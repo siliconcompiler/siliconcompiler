@@ -53,7 +53,7 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. sctool::
   :root: siliconcompiler.tools.keplerformal
-  :tasks: lec/LECTask
+  :tasks: lec/LECTask sec/SECTask
 
 .. sctool::
   :root: siliconcompiler.tools.klayout
