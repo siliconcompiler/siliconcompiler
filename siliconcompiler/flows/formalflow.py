@@ -82,20 +82,29 @@ class PropertyCheckFlow(Flowgraph):
 class LECFlow(Flowgraph):
     '''A logical equivalence check (LEC) flow.
 
-    Proves that two gate-level netlists implement the same logic.
+    Proves that two views of a design implement the same logic: either two
+    gate-level netlists, or a netlist against the RTL it was synthesized from
+    (``sequential``).
 
     The flow consists of the following step:
-        * **lec**: Checks the two netlists against each other.
+        * **lec**: Checks the two views against each other.
 
     This flow holds only the check, not the steps which build what it checks:
-    the netlists it compares are read from the nodes feeding the **lec** node,
-    so instantiate it inside a flow which emits them
+    the views it compares are read from the nodes feeding the **lec** node, so
+    instantiate it inside a flow which emits them
     (:meth:`~siliconcompiler.Flowgraph.graph`) and connect those nodes to it.
+    Synthesis does not re-emit the RTL it consumed, so a check against RTL takes
+    that edge from elaboration rather than from synthesis.
 
-    Supported tools:
+    Supported tools, named ``<tool>`` or ``<tool>/<task>`` where a tool offers
+    more than one check:
 
-        * 'kepler-formal': a combinational equivalence check with Kepler-formal.
-        * 'yosys': a k-induction equivalence check with Yosys.
+        * 'kepler-formal': a combinational check of two netlists with
+          Kepler-formal.
+        * 'kepler-formal/sec': Kepler-formal's sequential engine, which checks a
+          netlist against the RTL it was synthesized from.
+        * 'yosys': a k-induction check with Yosys, which reads two netlists when
+          both are present and otherwise the netlist against the RTL.
     '''
 
     def __init__(self, name: Optional[str] = None, tool: str = "kepler-formal"):
@@ -105,18 +114,20 @@ class LECFlow(Flowgraph):
         Args:
             name (str, optional): The name of the flow. Defaults to
                 'lecflow-<tool>'.
-            tool (str): The equivalence checking tool to use. Supported options
-                are 'kepler-formal' and 'yosys'.
+            tool (str): The equivalence check to run. Supported options are
+                'kepler-formal', 'kepler-formal/sec' and 'yosys'.
 
         Raises:
             ValueError: If an unsupported tool is specified.
         """
         if name is None:
-            name = f"lecflow-{tool}"
+            name = "lecflow-" + tool.replace("/", "-")
         super().__init__(name)
 
         if tool == "kepler-formal":
             self.node("lec", KeplerLECTask())
+        elif tool == "kepler-formal/sec":
+            self.node("lec", KeplerSECTask())
         elif tool == "yosys":
             self.node("lec", YosysLECTask())
         else:
@@ -125,62 +136,12 @@ class LECFlow(Flowgraph):
     @classmethod
     def make_docs(cls):
         return [cls(tool="kepler-formal"),
-                cls(tool="yosys")]
-
-
-class SECFlow(Flowgraph):
-    '''A sequential equivalence check (SEC) flow.
-
-    Proves that a gate-level netlist implements the same logic as the RTL it was
-    synthesized from.
-
-    The flow consists of the following step:
-        * **sec**: Checks the netlist against the RTL.
-
-    Like :class:`LECFlow`, this flow holds only the check: the RTL and the
-    netlist are read from the nodes feeding the **sec** node, so instantiate it
-    inside a flow which emits them (:meth:`~siliconcompiler.Flowgraph.graph`)
-    and connect those nodes to it. The RTL edge comes from elaboration rather
-    than synthesis, since synthesis does not re-emit what it consumed.
-
-    Supported tools:
-
-        * 'kepler-formal': a sequential equivalence check with Kepler-formal.
-        * 'yosys': a k-induction equivalence check with Yosys.
-    '''
-
-    def __init__(self, name: Optional[str] = None, tool: str = "kepler-formal"):
-        """
-        Initializes the SECFlow.
-
-        Args:
-            name (str, optional): The name of the flow. Defaults to
-                'secflow-<tool>'.
-            tool (str): The equivalence checking tool to use. Supported options
-                are 'kepler-formal' and 'yosys'.
-
-        Raises:
-            ValueError: If an unsupported tool is specified.
-        """
-        if name is None:
-            name = f"secflow-{tool}"
-        super().__init__(name)
-
-        if tool == "kepler-formal":
-            self.node("sec", KeplerSECTask())
-        elif tool == "yosys":
-            self.node("sec", YosysLECTask())
-        else:
-            raise ValueError(f'{tool} is not a supported tool')
-
-    @classmethod
-    def make_docs(cls):
-        return [cls(tool="kepler-formal"),
+                cls(tool="kepler-formal/sec"),
                 cls(tool="yosys")]
 
 
 ##################################################
 if __name__ == "__main__":
-    for flowcls in [PropertyCheckFlow, LECFlow, SECFlow]:
+    for flowcls in [PropertyCheckFlow, LECFlow]:
         flow = flowcls()
         flow.write_flowgraph(f"{flow.name}.png")

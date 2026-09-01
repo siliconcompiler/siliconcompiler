@@ -4,7 +4,7 @@
 from siliconcompiler import ASIC, Design, Flowgraph
 from siliconcompiler.targets import freepdk45_demo
 
-from siliconcompiler.flows.formalflow import SECFlow
+from siliconcompiler.flows.formalflow import LECFlow
 from siliconcompiler.flows.synflow import SynthesisFlow
 
 
@@ -37,17 +37,18 @@ def main():
     # Load the pre-defined target for the FreePDK45 demo process.
     freepdk45_demo(project)
 
-    # SECFlow holds only the equivalence check, so graft it onto a flow which
+    # LECFlow holds only the equivalence check, so graft it onto a flow which
     # builds the two views it compares: the elaborated RTL and the netlist
-    # synthesized from it. Timing analysis is not needed here, so leave it out.
-    flow = Flowgraph("adder-sec")
+    # synthesized from it. Checking a netlist against RTL is the sequential
+    # check. Timing analysis is not needed here, so leave it out.
+    flow = Flowgraph("adder-lec")
     flow.graph(SynthesisFlow(timing_np=0))
-    flow.graph(SECFlow())
+    flow.graph(LECFlow(tool="kepler-formal/sec"))
 
     # Synthesis does not re-emit the RTL it consumed, so the check reads it
     # from elaboration.
-    flow.edge("elaborate", "sec")
-    flow.edge("synthesis", "sec")
+    flow.edge("elaborate", "lec")
+    flow.edge("synthesis", "lec")
 
     project.set_flow(flow)
 

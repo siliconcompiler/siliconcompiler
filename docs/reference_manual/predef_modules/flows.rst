@@ -150,8 +150,8 @@ Flows for :term:`formally verifying <formal verification>` a design: checking
 the SVA :term:`assertions <assertion>` in its RTL using SymbiYosys (sby), and
 proving two views of a design equivalent (:term:`LEC`) with Kepler-formal or
 Yosys -- either two :term:`netlists <netlist>` against each other, or a
-synthesized netlist against the :term:`RTL` it came from. The equivalence flows
-hold the check alone, so they are grafted onto whichever flow builds the views
+synthesized netlist against the :term:`RTL` it came from. The equivalence flow
+holds the check alone, so it is grafted onto whichever flow builds the views
 being compared.
 
 .. schema::
@@ -159,9 +159,6 @@ being compared.
 
 .. schema::
   :root: siliconcompiler.flows.formalflow/LECFlow
-
-.. schema::
-  :root: siliconcompiler.flows.formalflow/SECFlow
 
 DRC Flows
 ---------

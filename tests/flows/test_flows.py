@@ -42,7 +42,7 @@ from siliconcompiler.flows.elaborationflow import (
     ChiselElaborationFlow,
     BluespecElaborationFlow
 )
-from siliconcompiler.flows.formalflow import PropertyCheckFlow, LECFlow, SECFlow
+from siliconcompiler.flows.formalflow import PropertyCheckFlow, LECFlow
 from siliconcompiler.flows.fpgaflow import (
     FPGAXilinxFlow,
     FPGANextPNRFlow,
@@ -129,7 +129,6 @@ def make_project():
     SODATransformedElaborationFlow,
     PropertyCheckFlow,
     LECFlow,
-    SECFlow,
     FPGAXilinxFlow,
     FPGANextPNRFlow,
     FPGAVPRFlow,
@@ -157,14 +156,14 @@ def test_default_valid(flow: Flowgraph):
         assert flow.validate()
 
 
-@pytest.mark.parametrize("flowcls,step", [(LECFlow, "lec"), (SECFlow, "sec")])
-def test_equivalence_flow_holds_only_the_check(flowcls, step):
-    # These flows hold the equivalence check and nothing else: the views they
-    # compare are built by whichever flow they are grafted onto, so a front end
-    # added here would be a second copy of what the caller already runs.
-    for flow in flowcls.make_docs():
-        assert flow.get_nodes() == ((step, "0"),)
-        assert flow.get_graph_node(step, "0").get_input() == []
+def test_equivalence_flow_holds_only_the_check():
+    # This flow holds the equivalence check and nothing else, whichever tool and
+    # check it is built for: the views it compares are built by whichever flow it
+    # is grafted onto, so a front end added here would be a second copy of what
+    # the caller already runs.
+    for flow in LECFlow.make_docs():
+        assert flow.get_nodes() == (("lec", "0"),)
+        assert flow.get_graph_node("lec", "0").get_input() == []
 
 
 def test_routing_flow_node_order():

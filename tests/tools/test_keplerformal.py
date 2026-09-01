@@ -10,7 +10,7 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.keplerformal.lec import LECTask
 from siliconcompiler.tools.keplerformal.sec import SECTask
 
-from siliconcompiler.flows.formalflow import SECFlow
+from siliconcompiler.flows.formalflow import LECFlow
 
 from tools.inputimporter import ImporterTask
 
@@ -166,8 +166,8 @@ def test_keplerformal_sec_broken(datadir):
 @pytest.mark.parametrize("netlist,drvs", [
     (os.path.join('lec', 'foo.vg'), 0),
     (os.path.join('lec', 'broken', 'foo.vg'), 1)])
-def test_secflow(datadir, netlist, drvs):
-    # SECFlow holds only the check, so it is grafted onto the nodes which supply
+def test_lecflow_sequential(datadir, netlist, drvs):
+    # LECFlow holds only the check, so it is grafted onto the nodes which supply
     # the two views it compares. Both cases run the same graph and differ only in
     # the netlist handed to it: a mismatch has to come back as a drv rather than
     # as an unset metric, which would read as a pass.
@@ -179,12 +179,12 @@ def test_secflow(datadir, netlist, drvs):
     proj.add_fileset(["rtl"])
     freepdk45_demo(proj)
 
-    flow = Flowgraph("secflowtest")
+    flow = Flowgraph("lecflowtest")
     flow.node('rtl', ImporterTask())
     flow.node('netlist', ImporterTask())
-    flow.graph(SECFlow())
-    flow.edge('rtl', 'sec')
-    flow.edge('netlist', 'sec')
+    flow.graph(LECFlow(tool="kepler-formal/sec"))
+    flow.edge('rtl', 'lec')
+    flow.edge('netlist', 'lec')
     proj.set_flow(flow)
 
     ImporterTask.find_task(proj).add("var", "input_files",
@@ -193,4 +193,4 @@ def test_secflow(datadir, netlist, drvs):
                                      os.path.join(datadir, netlist), step='netlist')
 
     assert proj.run()
-    assert proj.history("job0").get('metric', 'drvs', step='sec', index='0') == drvs
+    assert proj.history("job0").get('metric', 'drvs', step='lec', index='0') == drvs
