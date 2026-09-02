@@ -231,3 +231,126 @@ install_prereq_group() {
     echo "Installing group (requires root): $_sc_group"
     $_sc_sudo $_sc_yum group install -y "$_sc_group"
 }
+
+# Echo the subset of "$@" that is installed. The mirror of _sc_missing_pkgs, and
+# the reason it exists is asymmetric with installing: "apt-get remove" exits 100
+# on a package name it does not recognise, and once tool.docker has cleaned
+# /var/lib/apt/lists the only names apt recognises are the installed ones. So an
+# unfiltered remove list fails the build the moment a tool's dependency set
+# shifts and one of the names is no longer there.
+_sc_installed_pkgs() {
+    set +x
+
+    _sc_installed=""
+    for _sc_pkg in "$@"; do
+        if dpkg-query -W -f='${Status}' "$_sc_pkg" 2>/dev/null |
+                grep -q '^install ok installed$'; then
+            _sc_installed="$_sc_installed $_sc_pkg"
+        fi
+    done
+
+    printf '%s' "$_sc_installed"
+}
+
+# Remove packages a tool needed to build but does not need to run, skipping any
+# that are not installed.
+#
+#     sc_remove_prereqs PKG...
+#
+# Where install_prereqs errs toward installing, this errs toward keeping: a name
+# the probe cannot confirm is installed is left alone rather than handed to the
+# package manager. The worst case is a package that stays in the image, which is
+# the behaviour this whole mechanism is trying to improve on rather than a
+# regression from it.
+#
+# Deliberately no "apt-get autoremove". These images keep runtime libraries that
+# arrived only as some build package's dependency -- libxcb-keysyms1 under
+# libxcb-keysyms1-dev, libgmp10 under ghc, libllvm18 under llvm-18-dev -- and
+# autoremove would take them along with the build packages, breaking the tool at
+# run time rather than at build time.
+sc_remove_prereqs() {
+    if [ "$#" -eq 0 ]; then
+        return 0
+    fi
+
+    _sc_drop=$(_sc_installed_pkgs "$@")
+
+    if [ -z "$_sc_drop" ]; then
+        echo "No build-only prerequisites to remove: $*"
+        return 0
+    fi
+
+    echo "Removing build-only prerequisites:$_sc_drop"
+
+    # Word splitting of the package list is intended.
+    case "$_sc_backend" in
+        deb)
+            # shellcheck disable=SC2086
+            $_sc_sudo apt-get remove -y --purge $_sc_drop
+            ;;
+        rpm)
+            # shellcheck disable=SC2086
+            $_sc_sudo $_sc_yum remove -y $_sc_drop
+            ;;
+        *)
+            echo "sc_remove_prereqs: no supported package manager found" >&2
+            return 1
+            ;;
+    esac
+}
+
+# Remove symbol tables and debug sections from everything installed under a
+# prefix. Nothing in the flows reads them: they exist for debugging a tool build,
+# and they are a third of the size of an installed tool tree.
+#
+#     sc_strip_prefix [DIR]      strip DIR, defaulting to $PREFIX
+#
+# Measured across the 30-tool container prefix: 6,497MB -> 5,500MB. About 300MB
+# of that is .debug_* and 700MB is .symtab/.strtab, which is why this does a full
+# strip rather than the more commonly seen --strip-debug.
+#
+# Executables are stripped outright. Shared objects get --strip-unneeded, which
+# removes .symtab but keeps .dynsym -- the dynamic symbol table is what the
+# loader and dlopen() resolve against, so stripping it would break every plugin
+# in the tree (yosys' and bambu's included).
+#
+# Static archives are left alone. They are link-time only and stripping them
+# risks breaking a later build against this prefix; the container drops them
+# wholesale instead.
+sc_strip_prefix() {
+    _sc_strip_dir="${1:-${PREFIX:-}}"
+
+    if [ -z "$_sc_strip_dir" ] || [ ! -d "$_sc_strip_dir" ]; then
+        echo "sc_strip_prefix: no prefix to strip" >&2
+        return 0
+    fi
+
+    if ! command -v strip > /dev/null 2>&1; then
+        echo "sc_strip_prefix: strip not available, skipping" >&2
+        return 0
+    fi
+
+    echo "Stripping symbols from $_sc_strip_dir"
+
+    # Only ELF objects. A wrong guess from the filename is not enough -- the
+    # prefixes carry shell wrappers, Tcl, Python and the odd foreign-platform
+    # binary, and "strip" on those either fails or corrupts them. Check the
+    # magic number instead.
+    find "$_sc_strip_dir" -type f \( -perm -u+x -o -name '*.so' -o -name '*.so.*' \) \
+        -print 2>/dev/null | while IFS= read -r _sc_obj; do
+        case "$(dd if="$_sc_obj" bs=4 count=1 2>/dev/null | od -An -tx1 | tr -d ' \n')" in
+            7f454c46) ;;
+            *) continue ;;
+        esac
+
+        case "$_sc_obj" in
+            *.so|*.so.*) _sc_strip_args="--strip-unneeded" ;;
+            *)           _sc_strip_args="--strip-all" ;;
+        esac
+
+        # A refusal is not fatal. Some objects legitimately cannot be stripped,
+        # and a tool that builds is worth more than the bytes.
+        strip $_sc_strip_args --preserve-dates "$_sc_obj" 2>/dev/null || \
+            echo "  could not strip $_sc_obj" >&2
+    done
+}

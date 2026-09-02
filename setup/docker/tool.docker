@@ -37,8 +37,17 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf $HOME/.cache
 
-# Generate list of installed programs
-RUN apt list --installed | grep "\[installed\(.*\)\]" | sed 's/\/.*//' > $SC_PREFIX/apt.txt
+# Strip symbols from everything this tool installed.
+RUN . /_prereqs.sh && sc_strip_prefix $SC_PREFIX
 
 # Run additional commands needed by tool build, if needed by tool
 {{ extra_commands }}
+
+# Generate list of installed programs, which sc_tools reinstalls to provide the
+# runtime dependencies of this tool.
+#
+# This runs LAST, after extra_commands, so that a tool which drops its own build
+# dependencies there ("apt-get remove" in docker-cmds) is not listed as needing
+# them at runtime. Moving it earlier silently reinstates every build dependency
+# in the final image.
+RUN apt list --installed | grep "\[installed\(.*\)\]" | sed 's/\/.*//' > $SC_PREFIX/apt.txt

@@ -281,10 +281,46 @@ def _get_tools(allow_skip=False):
     return tools
 
 
+def _get_subsumed_tools():
+    '''
+    Tools whose install prefix is already carried by another tool's image, and
+    which therefore do not need copying into sc_tools on their own.
+
+    tool.docker copies a dependency's whole $SC_PREFIX into the dependent before
+    building it, and installs the dependency's apt.txt there too, so sc_soda's
+    image contains everything sc_mlir installed and sc_nextpnr's contains
+    icepack -- prefix and packages both.
+
+    Copying the dependency into sc_tools as well is not merely redundant. COPY
+    never deletes at the destination, so if a dependent prunes what it inherited
+    (soda drops the LLVM/MLIR dev tree once soda-opt has linked against it) an
+    unpruned copy of the dependency landing first would survive underneath the
+    pruned one and the prune would save nothing.
+
+    A dependency is only subsumed when a dependent is actually being copied.
+    Under --include_tools the dependent may be filtered out, and then the
+    dependency has to carry itself.
+    '''
+    copied = {tool for tool, _ in _get_tools()}
+
+    subsumed = set()
+    for _, depends in _get_tools():
+        if not depends:
+            continue
+        if isinstance(depends, str):
+            depends = [depends]
+        for depend in depends:
+            if depend in copied:
+                subsumed.add(depend)
+
+    return subsumed
+
+
 def _get_tool_images(tool=None):
     '''
     Returns the image name for a tool.
-    If tool is not provided, return all image names in a dict
+    If tool is not provided, return the image names that sc_tools needs to copy,
+    which excludes any tool already carried by a dependent's image.
     '''
     tool_images = {}
     for tool_name, _ in _get_tools():
@@ -292,8 +328,9 @@ def _get_tool_images(tool=None):
 
     if tool:
         return tool_images[tool]
-    else:
-        return [tool_images[tool] for tool, _ in _get_tools()]
+
+    subsumed = _get_subsumed_tools()
+    return [tool_images[tool] for tool, _ in _get_tools() if tool not in subsumed]
 
 
 def _get_tool_versions():
