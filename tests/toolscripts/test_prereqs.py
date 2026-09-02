@@ -69,6 +69,19 @@ ALLOWED_SUDO = {
 }
 
 
+# strip <args> <file>. Records the invocation so a test can assert which flags a
+# given kind of object got, and refuses the one file the real strip refuses, so
+# the helper's "a refusal is not fatal" path is exercised.
+STRIP_STUB = """#!/bin/sh
+for arg in "$@"; do
+    case "$arg" in
+        *unstrippable*) echo "strip: $arg: file format not recognized" >&2; exit 1 ;;
+    esac
+done
+echo "strip $*" >> "$SC_TEST_LOG"
+"""
+
+
 # Stand-ins for the three commands install_prereqs reaches for. Everything the
 # helper does is recorded in $SC_TEST_LOG, so a test asserts on what it ran (and,
 # just as importantly, on what it did not run).
@@ -83,6 +96,7 @@ exec "$@"
     "id": """#!/bin/sh
 echo "${SC_TEST_UID:-1000}"
 """,
+    "strip": STRIP_STUB,
 }
 
 DEB_STUBS = {
@@ -118,6 +132,7 @@ def _manager_stub(name):
 
 RPM_STUBS = {"rpm": RPM_QUERY_STUB, "yum": _manager_stub("yum")}
 
+
 # RHEL 8 and 9 both ship yum as an alias for dnf, but a dnf-only system has to
 # work too: the helper picks whichever command is actually there.
 DNF_STUBS = {"rpm": RPM_QUERY_STUB, "dnf": _manager_stub("dnf")}
@@ -127,7 +142,9 @@ BACKEND_STUBS = {"deb": DEB_STUBS, "rpm": RPM_STUBS, "dnf": DNF_STUBS}
 # The backend is chosen by which package manager is on PATH, so each case runs
 # with a PATH holding nothing but its own stubs plus the few real tools the
 # helper shells out to.
-REAL_TOOLS = ("grep",)
+# sc_strip_prefix walks the prefix and reads each file's ELF magic, so it needs a
+# few more real tools than install_prereqs does.
+REAL_TOOLS = ("grep", "find", "dd", "od", "tr", "basename")
 
 
 @pytest.fixture
@@ -388,3 +405,207 @@ def test_script_sudo_is_on_the_allowlist(script):
                 continue
             assert line in allowed, \
                 f"{script}:{lineno}: unexpected sudo, use install_prereqs instead: {line!r}"
+
+# ---------------------------------------------------------------------------
+# sc_remove_prereqs
+#
+# The mirror of install_prereqs, and asymmetric with it on purpose. Installing
+# errs toward acting: an unrecognised name is handed to the package manager.
+# Removing errs toward leaving things alone, because "apt-get remove" exits 100
+# on a name it does not recognise -- and tool.docker cleans /var/lib/apt/lists
+# before docker-cmds run, so the only names apt recognises there are the
+# installed ones. An unfiltered remove list fails the image build outright.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_remove_drops_installed_packages(run_prereqs):
+    """The straightforward case: everything named is installed, so all of it goes."""
+    log = run_prereqs("sc_remove_prereqs present-ghc present-tcl-dev")
+
+    assert log == [
+        "sudo apt-get remove -y --purge present-ghc present-tcl-dev",
+        "apt-get remove -y --purge present-ghc present-tcl-dev",
+    ]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_remove_of_nothing_installed_runs_no_package_manager(run_prereqs):
+    """The build-breaking case. Not installed means the package manager is never
+    called, because calling it would exit 100 and fail the image build."""
+    assert run_prereqs("sc_remove_prereqs llvm-18-tools clang-18 libz-dev") == []
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_remove_filters_to_the_installed_subset(run_prereqs):
+    """A partly-stale list removes what is there and says nothing about the rest."""
+    log = run_prereqs(
+        "sc_remove_prereqs absent-llvm-18-dev present-pandoc absent-gnat present-groff")
+
+    assert log == [
+        "sudo apt-get remove -y --purge present-pandoc present-groff",
+        "apt-get remove -y --purge present-pandoc present-groff",
+    ]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_remove_never_autoremoves(run_prereqs):
+    """No autoremove, ever.
+
+    These images keep runtime libraries that arrived only as a build package's
+    dependency -- libxcb-keysyms1 under libxcb-keysyms1-dev, libgmp10 under ghc,
+    libllvm18 under llvm-18-dev. An autoremove would take them along with the
+    build packages and break the tool at run time rather than at build time.
+    """
+    log = run_prereqs("sc_remove_prereqs present-ghc")
+
+    assert not any("autoremove" in line for line in log)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_remove_empty_list_is_a_noop(run_prereqs):
+    assert run_prereqs("sc_remove_prereqs") == []
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_remove_configfiles_state_is_not_removed_again(run_prereqs):
+    """Already removed, config files left behind. Nothing to do."""
+    assert run_prereqs("sc_remove_prereqs configfiles-tcl-dev") == []
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_remove_as_root_drops_sudo(run_prereqs):
+    """The container builds run as root, where sudo may not be installed."""
+    log = run_prereqs("sc_remove_prereqs present-ghc", root=True)
+
+    assert log == ["apt-get remove -y --purge present-ghc"]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+@pytest.mark.parametrize("backend,manager", [("rpm", "yum"), ("dnf", "dnf")])
+def test_remove_on_rpm_uses_the_right_manager(run_prereqs, backend, manager):
+    log = run_prereqs("sc_remove_prereqs present-ghc absent-gnat", backend=backend)
+
+    assert log == [
+        f"sudo {manager} remove -y present-ghc",
+        f"{manager} remove -y present-ghc",
+    ]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_remove_on_rpm_with_nothing_installed_is_a_noop(run_prereqs):
+    assert run_prereqs("sc_remove_prereqs absent-gnat", backend="rpm") == []
+
+
+# ---------------------------------------------------------------------------
+# sc_strip_prefix
+# ---------------------------------------------------------------------------
+
+ELF_MAGIC = b"\x7fELF\x02\x01\x01\x00" + b"\x00" * 8
+
+
+def _make_prefix(root, files):
+    """Build a fake install prefix. A file whose content is ELF magic is treated
+    as an object to strip; anything else stands in for a script or data file."""
+    for relpath, elf in files.items():
+        path = os.path.join(root, relpath)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(ELF_MAGIC if elf else b"#!/bin/sh\necho hello\n")
+        os.chmod(path, 0o755)
+    return root
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_strip_uses_strip_all_on_executables_and_strip_unneeded_on_libraries(
+        run_prereqs, tmp_path):
+    """The distinction that matters.
+
+    A shared object keeps .dynsym, which is what the loader and dlopen() resolve
+    against -- strip it and every plugin in the tree stops loading. An
+    executable has no such constraint, so it gets the full strip.
+    """
+    prefix = _make_prefix(str(tmp_path / "px"), {
+        "bin/yosys": True,
+        "lib/libyosys.so": True,
+        "lib/libghdl-5_1_1.so.1": True,
+    })
+
+    log = run_prereqs(f"sc_strip_prefix {prefix}")
+    flags = {line.rsplit("/", 1)[-1]: line for line in log}
+
+    assert "--strip-all" in flags["yosys"]
+    assert "--strip-unneeded" in flags["libyosys.so"]
+    assert "--strip-unneeded" in flags["libghdl-5_1_1.so.1"]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_strip_leaves_static_archives_alone(run_prereqs, tmp_path):
+    """Static archives are skipped, and not as an oversight.
+
+    Three tools link an archive from their own prefix at run time --
+    lib/ghdl/libgrt.a into every elaborated design, lib/panda/*.a into bambu's
+    generated designs, lib/Bluesim/*.a for "bsc -sim" -- and stripping an
+    archive breaks linking against it. The container drops the archives it does
+    not need by name instead.
+    """
+    prefix = _make_prefix(str(tmp_path / "pa"), {
+        "lib/ghdl/libgrt.a": True,
+        "lib/panda/libbambu_clang16.a": True,
+        "bin/ghdl": True,
+    })
+
+    log = run_prereqs(f"sc_strip_prefix {prefix}")
+
+    assert not any(".a" in line for line in log)
+    assert any(line.endswith("/ghdl") for line in log)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_strip_skips_non_elf_files(run_prereqs, tmp_path):
+    """The prefixes are full of executable shell, Tcl and Python. The helper
+    checks the magic number rather than trusting the mode bit."""
+    prefix = _make_prefix(str(tmp_path / "pn"), {
+        "bin/sc-install": False,
+        "bin/verilator": False,
+        "bin/verilator_bin": True,
+    })
+
+    log = run_prereqs(f"sc_strip_prefix {prefix}")
+
+    assert len(log) == 1
+    assert log[0].endswith("/verilator_bin")
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_strip_survives_an_object_it_cannot_strip(run_prereqs, tmp_path):
+    """A refusal is not fatal: a tool that builds is worth more than the bytes.
+
+    The install scripts run under "set -e", so a non-zero strip would otherwise
+    abort the whole install.
+    """
+    prefix = _make_prefix(str(tmp_path / "pu"), {
+        "bin/unstrippable-thing": True,
+        "bin/openroad": True,
+    })
+
+    log = run_prereqs(f"sc_strip_prefix {prefix}")
+
+    assert [line.rsplit("/", 1)[-1] for line in log] == ["openroad"]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_strip_of_a_missing_prefix_is_a_noop(run_prereqs, tmp_path):
+    assert run_prereqs(f"sc_strip_prefix {tmp_path}/not-there") == []
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_strip_with_no_argument_falls_back_to_prefix(run_prereqs, tmp_path):
+    """tool.docker passes $SC_PREFIX explicitly, but the install scripts export
+    PREFIX, so a bare call has to work too."""
+    prefix = _make_prefix(str(tmp_path / "pp"), {"bin/sta": True})
+
+    log = run_prereqs(f"PREFIX={prefix}\nexport PREFIX\nsc_strip_prefix")
+
+    assert len(log) == 1
+    assert log[0].endswith("/sta")

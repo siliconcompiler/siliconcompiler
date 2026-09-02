@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Zero ASIC
+# Copyright (C) 2023-2026 Zero ASIC
 
 FROM {{ sc_tools_build_image }}
 

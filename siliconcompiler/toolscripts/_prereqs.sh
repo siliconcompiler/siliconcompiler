@@ -238,9 +238,7 @@ install_prereq_group() {
 # /var/lib/apt/lists the only names apt recognises are the installed ones. So an
 # unfiltered remove list fails the build the moment a tool's dependency set
 # shifts and one of the names is no longer there.
-_sc_installed_pkgs() {
-    set +x
-
+_sc_installed_deb() {
     _sc_installed=""
     for _sc_pkg in "$@"; do
         if dpkg-query -W -f='${Status}' "$_sc_pkg" 2>/dev/null |
@@ -250,6 +248,35 @@ _sc_installed_pkgs() {
     done
 
     printf '%s' "$_sc_installed"
+}
+
+_sc_installed_rpm() {
+    _sc_installed=""
+    for _sc_pkg in "$@"; do
+        if rpm -q "$_sc_pkg" > /dev/null 2>&1; then
+            _sc_installed="$_sc_installed $_sc_pkg"
+        fi
+    done
+
+    printf '%s' "$_sc_installed"
+}
+
+_sc_installed_pkgs() {
+    set +x
+
+    # Same probe selection as _sc_missing_pkgs: whichever query tool is present
+    # decides, independently of which package manager will do the work. Without
+    # a probe nothing is reported installed, so nothing is removed -- the safe
+    # direction here, since the cost is an image that stays large.
+    # Word splitting of the package list is intended.
+    # shellcheck disable=SC2086
+    if command -v dpkg-query > /dev/null 2>&1; then
+        _sc_installed_deb "$@"
+    elif command -v rpm > /dev/null 2>&1; then
+        _sc_installed_rpm "$@"
+    else
+        printf '%s' ""
+    fi
 }
 
 # Remove packages a tool needed to build but does not need to run, skipping any
@@ -336,7 +363,13 @@ sc_strip_prefix() {
     # prefixes carry shell wrappers, Tcl, Python and the odd foreign-platform
     # binary, and "strip" on those either fails or corrupts them. Check the
     # magic number instead.
-    find "$_sc_strip_dir" -type f \( -perm -u+x -o -name '*.so' -o -name '*.so.*' \) \
+    # Static archives are excluded explicitly rather than left to chance. They
+    # are usually mode 644 and so would not match -perm -u+x anyway, but three
+    # tools ship an archive their runtime links against -- lib/ghdl/libgrt.a,
+    # lib/panda/*.a, lib/Bluesim/*.a -- and stripping one breaks linking against
+    # it, which is not a failure worth risking on a mode bit.
+    find "$_sc_strip_dir" -type f ! -name '*.a' \
+        \( -perm -u+x -o -name '*.so' -o -name '*.so.*' \) \
         -print 2>/dev/null | while IFS= read -r _sc_obj; do
         case "$(dd if="$_sc_obj" bs=4 count=1 2>/dev/null | od -An -tx1 | tr -d ' \n')" in
             7f454c46) ;;

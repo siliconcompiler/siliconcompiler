@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Zero ASIC
+# Copyright (C) 2023-2026 Zero ASIC
 
 FROM {{ base_build_image }}
 
@@ -37,8 +37,13 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf $HOME/.cache
 
+{% if strip_symbols %}
 # Strip symbols from everything this tool installed.
 RUN . /_prereqs.sh && sc_strip_prefix $SC_PREFIX
+{% else %}
+# Not stripped: another tool builds against this prefix, and the dependent
+# strips it after copying it in, so nothing ships unstripped.
+{% endif %}
 
 # Run additional commands needed by tool build, if needed by tool
 {{ extra_commands }}
