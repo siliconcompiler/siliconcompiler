@@ -8,6 +8,28 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.6 (2026-09-02)
+=========================================
+
+**Minor:**
+
+ * Added `LECFlow`, a logical equivalence check flow, with combinational, sequential and k-induction checks. [jyrj]
+ * Added a SODA Synthesizer front end, which takes a machine learning model in MLIR through soda-opt and Bambu into the normal ASIC flow, along with `SODAASICFlow` and a tutorial and example. The elaboration, synthesis and ASIC flows now take a `frontend` flowgraph instead of a `language`, so a front end can live beside the tool driver it belongs to.
+ * Split tool output onto its own `LOG` and `LOGERROR` log levels so it can be told apart from SiliconCompiler's own messages, and made `quiet` apply to a task's own logging without hiding why a run stopped.
+ * Reworked SDC clock extraction to handle line continuations, variables and the SDC files of timing modes, and added `get_clock_port`.
+ * Added job cancellation to the remote server and the slurm scheduler, along with job ownership checks, an upload size limit, and a client that works before a server has been configured.
+ * Fixed `sc-show` to honor the tool it was given, and to find the open, show and screenshot tasks that are not hard-coded.
+ * Moved the tool container builds to Ubuntu 24.
+
+ * Tools:
+
+  * bambu: added RTL simulation, cell area and cycle count reporting, and parameters for the constraints and technology files, memory allocation policy, front-end compiler and testbench filesets.
+  * mlir: added a tool driver for the MLIR tools.
+  * openroad: added support for the `ccs` delay model and logic depth histogram reports.
+  * opensta: added support for the `ccs` delay model and an interactive `open` task.
+  * soda: added a soda-opt tool driver.
+  * yosys: added an interactive `open` task.
+
 SiliconCompiler 0.38.5 (2026-08-18)
 =========================================
 
