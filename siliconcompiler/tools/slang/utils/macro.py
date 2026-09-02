@@ -531,8 +531,11 @@ def build_macro(project: ASIC, name: str) -> StdCellLibrary:
       multi-corner PDKs.
     * ``rtl`` -- the gate-level netlist as a *simulation* view, bundling the
       standard-cell Verilog models (as a dependency) so it simulates standalone.
-    * ``netlist`` -- the same gate-level netlist as a *structural* view for STA,
-      dependency-free (STA resolves cells from Liberty).
+      This takes the ``sim.vg`` flavour, which keeps the tie cells a simulator
+      needs.
+    * ``netlist`` -- the gate-level netlist as a *structural* view for STA,
+      dependency-free (STA resolves cells from Liberty) and taking the
+      constant-folded ``lec.vg``.
     * ``sdc`` -- the implementation-generated constraints (propagated clocks).
 
     The ``rtl`` view's cell-model dependency is serialized into the macro's
@@ -572,17 +575,24 @@ def build_macro(project: ASIC, name: str) -> StdCellLibrary:
             library.add_asic_libcornerfileset(corner, "nldm")
 
     # Gate-level netlist as two views, both topping out at the variant module.
-    netlist = project.find_result("lec.vg", step="write.views")
-    if netlist:
+    # They take different flavours because they need different things from the
+    # netlist: STA folds constants and resolves cells from Liberty, so the LEC
+    # netlist suits it, while a simulator needs the tie cells the LEC netlist
+    # drops or the nets they drove read x.
+    sim_netlist = project.find_result("sim.vg", step="write.views")
+    if sim_netlist:
         # 'rtl' (simulation): bundle the standard-cell Verilog models so the
         # netlist simulates standalone; the dependency is serialized into the
         # macro manifest and recovered on reload.
         with library.active_fileset("rtl"):
             library.set_topmodule(name)
-            library.add_file(netlist)
+            library.add_file(sim_netlist)
             mainlib = project.get_library(project.get("asic", "mainlib"))
             if mainlib is not None:
                 library.add_depfileset(mainlib, "rtl")
+
+    netlist = project.find_result("lec.vg", step="write.views")
+    if netlist:
         # 'netlist' (structural, for STA): dependency-free -- STA resolves cells
         # from Liberty, so no cell Verilog is bundled.
         with library.active_fileset("netlist"):

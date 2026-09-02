@@ -2084,6 +2084,7 @@ class APRTask(OpenROADTask):
             self.add_output_file(ext="sdc")
         self.add_output_file(ext="vg")
         self.add_output_file(ext="lec.vg")
+        self.add_output_file(ext="sim.vg")
         self.add_output_file(ext="def.gz")
         self.add_output_file(ext="odb.gz")
 
