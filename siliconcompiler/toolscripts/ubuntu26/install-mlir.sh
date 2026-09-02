@@ -8,10 +8,18 @@
 # MLIR's C++ libraries, so it has to be built against this exact release --
 # a distro llvm/mlir package will not do.
 #
-# The full LLVM install tree is what "sc-install soda" then builds against, so
-# this script runs the "install" target rather than only building the four
-# binaries the flow calls. That also installs the MLIR test-pass libraries
-# (MLIRLinalgTestPasses and friends) which soda-opt links against.
+# The LLVM dev tree -- headers, static libraries and cmake exports -- is what
+# "sc-install soda" then builds against, so the install has to carry more than
+# the five binaries the flow calls. It does not have to carry everything, and it
+# no longer does: LLVM_DISTRIBUTION_COMPONENTS below declares the set, which is
+# what trims 2.1GB of unused tools out of the install tree. See the comment on
+# that variable.
+#
+# One thing to watch across LLVM bumps: soda-opt links against the MLIR
+# test-pass libraries (MLIRLinalgTestPasses and friends), which are built
+# because LLVM_INCLUDE_TESTS defaults on. If a bump stops the mlir-libraries
+# component covering them, soda-opt fails to link and the fix is to name those
+# libraries in the component list.
 #
 # clang is built alongside mlir because the flow compiles the MLIR runtime
 # helpers to LLVM IR before linking them into a kernel, and that IR has to be
@@ -70,6 +78,33 @@ if command -v ld.lld > /dev/null 2>&1; then
     lld_args=-DLLVM_ENABLE_LLD=ON
 fi
 
+# What gets installed. LLVM_DISTRIBUTION_COMPONENTS narrows the install to a
+# declared set and generates an "install-distribution" target for it, which is
+# how LLVM itself expects a packager to trim an install tree -- rather than
+# installing everything and deleting afterwards, which would mean this script
+# removing files from a prefix it may share with every other SC tool.
+#
+# Two groups, for the project's two consumers:
+#
+#   the flow drives clang, opt, llvm-link, mlir-opt and mlir-translate, and
+#   nothing else (each is named in a set_exe call under
+#   siliconcompiler/tools/{mlir,soda}/)
+#
+#   install-soda.sh then builds soda-opt against this tree, which needs the
+#   headers, the static libraries and the cmake exports of all three projects,
+#   plus llvm-lit for -DLLVM_EXTERNAL_LIT
+#
+# A name with no install target is a configure-time SEND_ERROR from
+# LLVMDistributionSupport.cmake naming the component, so a mistake here fails in
+# seconds rather than after the build. If a future LLVM bump drops one of these,
+# that error says which.
+distribution_components="clang;opt;llvm-link;mlir-opt;mlir-translate;llvm-config"
+distribution_components="${distribution_components};llvm-headers;llvm-libraries;cmake-exports"
+distribution_components="${distribution_components};clang-headers;clang-libraries;clang-cmake-exports"
+distribution_components="${distribution_components};clang-resource-headers"
+distribution_components="${distribution_components};mlir-headers;mlir-libraries;mlir-cmake-exports"
+distribution_components="${distribution_components};llvm-lit;FileCheck;count;not"
+
 # ubuntu26 defaults to gcc 15, which no longer pulls <cstdint> in transitively
 # from the other standard headers. LLVM 19.1.5 predates that and does not include
 # it where it uses int64_t, so the build dies in the affine dialect with
@@ -93,6 +128,7 @@ cmake -G Ninja \
     -DLLVM_PARALLEL_LINK_JOBS=2 \
     -DMLIR_ENABLE_BINDINGS_PYTHON=OFF \
     -DLLVM_INSTALL_UTILS=ON \
+    -DLLVM_DISTRIBUTION_COMPONENTS="${distribution_components}" \
     ${lld_args}
 
 # The tools the SODA flow drives directly, built first so a failure in one of
@@ -100,8 +136,11 @@ cmake -G Ninja \
 cmake --build build --target opt llvm-link clang mlir-opt mlir-translate \
     -j${NPROC:-$(nproc)}
 
-# Everything soda-opt needs to configure and link against.
-cmake --build build --target install -j${NPROC:-$(nproc)}
+# Install only the declared distribution. The plain "install" target ships 111
+# binaries beyond the five the flow drives -- clang-repl at 141MB,
+# mlir-cpu-runner at 110MB, mlir-lsp-server at 95MB, bugpoint, lli, llvm-lto and
+# the rest, 2.1GB in total -- and none of them is ever invoked.
+cmake --build build --target install-distribution -j${NPROC:-$(nproc)}
 
 cd -
 
