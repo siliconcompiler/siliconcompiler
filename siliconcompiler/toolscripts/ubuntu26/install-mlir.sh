@@ -91,8 +91,15 @@ fi
 #   siliconcompiler/tools/{mlir,soda}/)
 #
 #   install-soda.sh then builds soda-opt against this tree, which needs the
-#   headers, the static libraries and the cmake exports of all three projects,
-#   plus llvm-lit for -DLLVM_EXTERNAL_LIT
+#   headers, the static libraries and the cmake exports of all three projects
+#
+# Note that llvm-lit is deliberately absent even though install-soda.sh passes
+# -DLLVM_EXTERNAL_LIT=${mlir_prefix}/bin/llvm-lit. llvm-lit has no install rule
+# at all -- llvm/utils/llvm-lit only configure_file()s it into the build tree --
+# so that path has never existed in the prefix, under this install or the plain
+# "install" target before it. cmake only reads LLVM_EXTERNAL_LIT to run the lit
+# suite, which this build does not, so the dangling path is harmless. Listing
+# llvm-lit as a component is not: it fails configure outright.
 #
 # A name with no install target is a configure-time SEND_ERROR from
 # LLVMDistributionSupport.cmake naming the component, so a mistake here fails in
@@ -103,7 +110,7 @@ distribution_components="${distribution_components};llvm-headers;llvm-libraries;
 distribution_components="${distribution_components};clang-headers;clang-libraries;clang-cmake-exports"
 distribution_components="${distribution_components};clang-resource-headers"
 distribution_components="${distribution_components};mlir-headers;mlir-libraries;mlir-cmake-exports"
-distribution_components="${distribution_components};llvm-lit;FileCheck;count;not"
+distribution_components="${distribution_components};FileCheck;count;not"
 
 # ubuntu26 defaults to gcc 15, which no longer pulls <cstdint> in transitively
 # from the other standard headers. LLVM 19.1.5 predates that and does not include
