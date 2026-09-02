@@ -6,19 +6,41 @@
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
       "# Remove OpenROAD Env file",
-      "RUN rm -f $SC_PREFIX/env.sh"
+      "RUN rm -f $SC_PREFIX/env.sh",
+      "# Drop the documentation toolchain and the -dev half of the GUI libraries.",
+      "# The matching runtime xcb libraries stay: they are separate packages, and",
+      "# sc_remove_prereqs does no autoremove, so they are not swept up.",
+      "RUN . /_prereqs.sh && sc_remove_prereqs pandoc groff bsdmainutils \\",
+      "    libxcb1-dev libxcb-util-dev libxcb-icccm4-dev libxcb-image0-dev \\",
+      "    libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev \\",
+      "    libxcb-xinerama0-dev libxcb-xkb-dev"
     ],
     "auto-update": true
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
     "git-commit": "v1.87",
-    "auto-update": true
+    "auto-update": true,
+    "docker-cmds": [
+      "# Link-time only: surelog and the uhdm tools are what run.",
+      "RUN rm -f $SC_PREFIX/lib/libsurelog.a $SC_PREFIX/lib/libuhdm*.a \\",
+      "    $SC_PREFIX/lib/libantlr*.a",
+      "# Drop the build toolchain. The JRE here runs ANTLR's parser generator at",
+      "# build time only -- install-chisel.sh declares its own JRE, so removing",
+      "# this one no longer leaves sbt without a java to run.",
+      "RUN . /_prereqs.sh && sc_remove_prereqs default-jre default-jre-headless \\",
+      "    cmake swig uuid-dev libgoogle-perftools-dev python3-dev lcov \\",
+      "    pkg-config"
+    ]
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
     "git-commit": "737b52f33b66e4c2ccc3e3ef22c3adfe9aec8d09",
-    "auto-update": true
+    "auto-update": true,
+    "docker-cmds": [
+      "# libOpenSTA.a is link-time only: the sta binary is what runs. 86MB.",
+      "RUN rm -f $SC_PREFIX/lib/libOpenSTA.a"
+    ]
   },
   "netgen": {
     "git-url": "https://github.com/RTimothyEdwards/netgen.git",
@@ -28,7 +50,18 @@
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
     "git-commit": "v5.1.1",
-    "auto-update": false
+    "auto-update": false,
+    "docker-cmds": [
+      "# Drop the LLVM headers and the Ada compiler. libllvm18 and libgnat-13",
+      "# stay: ghdl1-llvm links both at runtime (ldd confirms) and ghdl shells out",
+      "# to no compiler of its own.",
+      "#",
+      "# libz-dev and lib/ghdl/libgrt.a both stay: every \"ghdl -e\" links -lz and",
+      "# libgrt.a into the elaborated design.",
+      "RUN . /_prereqs.sh && sc_remove_prereqs llvm-18-dev llvm-18 llvm-18-tools \\",
+      "    libclang-18-dev clang clang-18 libclang-cpp18 libclang1-18 gnat \\",
+      "    gnat-13 gnat-13-x86-64-linux-gnu"
+    ]
   },
   "magic": {
     "git-url": "https://github.com/RTimothyEdwards/magic.git",
@@ -38,7 +71,15 @@
   "bluespec": {
     "git-url": "https://github.com/B-Lang-org/bsc.git",
     "git-commit": "2024.07",
-    "auto-update": false
+    "auto-update": false,
+    "docker-cmds": [
+      "# Drop the Haskell toolchain. bsc and bluetcl are compiled binaries whose",
+      "# runtime needs are libgmp10, libffi8 and libtcl8.6 -- separate packages,",
+      "# and no autoremove means they stay. lib/Bluesim/*.a stays too: \"bsc -sim\"",
+      "# links it.",
+      "RUN . /_prereqs.sh && sc_remove_prereqs ghc libghc-regex-compat-dev \\",
+      "    libghc-syb-dev libghc-old-time-dev libghc-split-dev tcl-dev pkg-config"
+    ]
   },
   "klayout": {
     "version": "0.30.12",
@@ -61,7 +102,17 @@
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
     "git-commit": "v5.038",
-    "auto-update": true
+    "auto-update": true,
+    "docker-cmds": [
+      "# Drop the debug builds. verilator_bin_dbg is 88MB against",
+      "# verilator_bin's 17MB and nothing in the flows selects it.",
+      "#",
+      "# g++, make, perl and zlib1g-dev all stay: they are what compiles the",
+      "# generated model at run time, and --trace-fst links -lz into it.",
+      "RUN rm -f $SC_PREFIX/bin/*_dbg $SC_PREFIX/share/verilator/bin/*_dbg",
+      "RUN . /_prereqs.sh && sc_remove_prereqs libfl-dev libgoogle-perftools-dev \\",
+      "    perl-doc help2man autoconf"
+    ]
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
@@ -71,13 +122,30 @@
       "# Remove ORFS Stuff",
       "RUN rm -rf $SC_PREFIX/share/panda/asap7",
       "RUN rm -rf $SC_PREFIX/share/panda/nangate45",
-      "RUN rm -rf $SC_PREFIX/share/panda/scripts"
+      "RUN rm -rf $SC_PREFIX/share/panda/scripts",
+      "# Drop the clang and boost build APIs. bambu shells out to clang-16,",
+      "# clang++-16 and llvm-link-16 at runtime, so the clang *runtime* packages",
+      "# stay; only the headers and static libraries go. libboost-all-dev is a",
+      "# metapackage, so removing it takes its whole -dev set with it.",
+      "#",
+      "# gcc-multilib, g++-multilib and libc6-dev are NOT removable: bambu",
+      "# compiles its 32-bit MDPI simulation runtime at run time. Neither is",
+      "# lib/panda/*.a, which it links into generated designs.",
+      "RUN . /_prereqs.sh && sc_remove_prereqs llvm-16-dev libclang-16-dev \\",
+      "    libboost-all-dev doxygen graphviz libsuitesparse-dev libglpk-dev \\",
+      "    libbdd-dev libmpfi-dev libmpc-dev libmpfr-dev libxml2-dev liblzma-dev \\",
+      "    libicu-dev autoconf-archive libfl-dev"
     ]
   },
   "vpr": {
     "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
     "git-commit": "fe77ace273b3f0558763e0e91d409b2d13344eff",
-    "auto-update": false
+    "auto-update": false,
+    "docker-cmds": [
+      "# vpr's build installs its intermediate archives into bin/ alongside the",
+      "# executables. Link-time only. 168MB.",
+      "RUN rm -f $SC_PREFIX/bin/*.a"
+    ]
   },
   "icepack": {
     "git-url": "https://github.com/YosysHQ/icestorm.git",
@@ -109,7 +177,12 @@
     "git-url": "https://github.com/Xyce/Xyce.git",
     "git-commit": "Release-7.10.0",
     "version-prefix": "Release-",
-    "auto-update": true
+    "auto-update": true,
+    "docker-cmds": [
+      "# Trilinos is linked into the Xyce binary and libxyce.so; the archives it",
+      "# was linked from are not needed to run either. 299MB.",
+      "RUN rm -f $SC_PREFIX/trilinos/lib/*.a"
+    ]
   },
   "xdm": {
     "version": "2.7.0",
@@ -125,7 +198,9 @@
     "docker-cmds": [
       "COPY slurm $SC_PREFIX/slurm_cfg",
       "RUN mv $SC_PREFIX/slurm_cfg/install-slurm.sh $SC_PREFIX/",
-      "RUN chmod +x $SC_PREFIX/install-slurm.sh"
+      "RUN chmod +x $SC_PREFIX/install-slurm.sh",
+      "# Slurm loads its plugins as .so; these are the static variants. 298MB.",
+      "RUN rm -f $SC_PREFIX/lib/libslurm.a $SC_PREFIX/lib/slurm/*.a"
     ]
   },
   "montage": {
@@ -199,6 +274,27 @@
     "git-url": "https://github.com/pnnl/soda-opt.git",
     "git-commit": "af0f8779949643ae3791f053449509de0a633aa9",
     "auto-update": false,
-    "docker-depends": "mlir"
+    "docker-depends": "mlir",
+    "docker-cmds": [
+      "# Drop the LLVM/MLIR dev tree now that soda-opt is linked. \"ldd soda-opt\"",
+      "# reports libstdc++, libm, libgcc_s and libc and nothing else -- it is",
+      "# statically linked, so none of this has a runtime consumer.",
+      "#",
+      "# Named by prefix rather than a blanket \"find -name '*.a' -delete\". This",
+      "# image's prefix holds only mlir and soda, but three tools elsewhere ship",
+      "# static archives their runtime links against -- lib/ghdl/libgrt.a for",
+      "# \"ghdl -e\", lib/panda/*.a for bambu's generated designs, lib/Bluesim/*.a",
+      "# for \"bsc -sim\" -- so a blanket delete is the wrong habit to establish in",
+      "# a prefix that is shared whenever PREFIX is set.",
+      "RUN rm -f $SC_PREFIX/lib/libLLVM*.a $SC_PREFIX/lib/libMLIR*.a \\",
+      "    $SC_PREFIX/lib/libclang*.a $SC_PREFIX/lib/libLTO*.a \\",
+      "    $SC_PREFIX/lib/libRemarks*.a $SC_PREFIX/lib/libPolly*.a \\",
+      "    $SC_PREFIX/lib/libbenchmark*.a $SC_PREFIX/lib/libgtest*.a",
+      "RUN rm -rf $SC_PREFIX/include $SC_PREFIX/lib/cmake $SC_PREFIX/lib/pkgconfig",
+      "# libclang-cpp.so and libclang.so are only loaded by c-index-test, which",
+      "# install-mlir.sh no longer installs.",
+      "RUN rm -f $SC_PREFIX/lib/libclang-cpp.so* $SC_PREFIX/lib/libclang.so* \\",
+      "    $SC_PREFIX/lib/libLTO.so* $SC_PREFIX/lib/libRemarks.so*"
+    ]
   }
 }
