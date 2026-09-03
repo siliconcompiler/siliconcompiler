@@ -105,14 +105,53 @@ DEB_STUBS = {
     # state that `dpkg -s` would wrongly accept, and an unknown name exits 1 with
     # no output, exactly as the real dpkg-query does.
     "dpkg-query": """#!/bin/sh
-case "$3" in
-    present-*) echo "install ok installed" ;;
-    configfiles-*) echo "deinstall ok config-files" ;;
-    *) exit 1 ;;
+# With no package argument this is the "list the whole database" form that
+# sc_remove_build_only walks. SC_TEST_DB holds "name|depends" lines.
+if [ -z "$3" ]; then
+    [ -f "$SC_TEST_DB" ] || exit 0
+    case "$2" in
+        # The combined form sc_remove_build_only walks: package, provides,
+        # depends. The database file stores name|depends|provides, so the last
+        # two columns come out swapped.
+        *Provides*Depends*) awk -F'|' -v OFS='\t' '{print $1, $3, $2}' "$SC_TEST_DB" ;;
+        *Depends*) awk -F'|' -v OFS='\t' '{print $1, $2}' "$SC_TEST_DB" ;;
+        *) awk -F'|' '{print $1}' "$SC_TEST_DB" ;;
+    esac
+    exit 0
+fi
+# A Provides query. The dependency search needs it so a package referenced
+# through a virtual name is not reported as unreferenced.
+case "$2" in
+    *Provides*)
+        [ -f "$SC_TEST_DB" ] && awk -F'|' -v p="$3" '$1 == p {print $3}' "$SC_TEST_DB"
+        exit 0 ;;
 esac
+case "$3" in
+    present-*) echo "install ok installed"; exit 0 ;;
+    configfiles-*) echo "deinstall ok config-files"; exit 0 ;;
+esac
+# Anything named in SC_TEST_DB counts as installed.
+if [ -f "$SC_TEST_DB" ] && sed 's/|.*//' "$SC_TEST_DB" | grep -qx "$3"; then
+    echo "install ok installed"; exit 0
+fi
+# Anything this run installed also reads as installed. Without it the stub
+# cannot represent "was missing, now present", which makes an
+# install-then-remove sequence untestable.
+if [ -f "$SC_TEST_STATE" ] && grep -qx "$3" "$SC_TEST_STATE"; then
+    echo "install ok installed"; exit 0
+fi
+exit 1
 """,
     "apt-get": """#!/bin/sh
 echo "apt-get $*" >> "$SC_TEST_LOG"
+if [ "$1" = install ]; then
+    shift
+    for pkg in "$@"; do
+        case "$pkg" in -*) continue ;; esac
+        echo "$pkg" >> "$SC_TEST_STATE"
+    done
+fi
+exit 0
 """,
 }
 
@@ -144,7 +183,8 @@ BACKEND_STUBS = {"deb": DEB_STUBS, "rpm": RPM_STUBS, "dnf": DNF_STUBS}
 # helper shells out to.
 # sc_strip_prefix walks the prefix and reads each file's ELF magic, so it needs a
 # few more real tools than install_prereqs does.
-REAL_TOOLS = ("grep", "find", "dd", "od", "tr", "basename")
+REAL_TOOLS = ("grep", "find", "dd", "od", "tr", "basename", "rm",
+              "mktemp", "sed", "awk", "sort")
 
 
 @pytest.fixture
@@ -168,8 +208,11 @@ def run_prereqs():
             if real and not os.path.exists(link):
                 os.symlink(real, link)
 
-        if os.path.exists(log):
-            os.remove(log)
+        state = os.path.abspath("prereqs.state")
+        db = os.path.abspath("prereqs.db")
+        for path in (log, state):
+            if os.path.exists(path):
+                os.remove(path)
 
         script = os.path.abspath("script.sh")
         with open(script, "w") as f:
@@ -177,7 +220,8 @@ def run_prereqs():
 
         proc = subprocess.run(
             ["/bin/sh", script], capture_output=True, text=True,
-            env={"PATH": bindir, "SC_TEST_LOG": log,
+            env={"PATH": bindir, "SC_TEST_LOG": log, "SC_TEST_STATE": state,
+                 "SC_TEST_DB": db,
                  "SC_TEST_UID": "0" if root else "1000"})
         assert proc.returncode == 0, proc.stderr
 
@@ -609,3 +653,253 @@ def test_strip_with_no_argument_falls_back_to_prefix(run_prereqs, tmp_path):
 
     assert len(log) == 1
     assert log[0].endswith("/sta")
+
+# ---------------------------------------------------------------------------
+# sc_strip_prefix_managed
+#
+# The container builds hit an image with no "strip" whenever a tool builds with
+# bazel against a prebuilt toolchain and never installs binutils. Plain
+# sc_strip_prefix skips silently there, which is how openroad came to ship 27MB
+# of symbol tables.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_managed_strip_uses_the_strip_it_has(run_prereqs, tmp_path):
+    """When strip is present, nothing is installed and nothing removed."""
+    prefix = _make_prefix(str(tmp_path / "m1"), {"bin/yosys": True})
+
+    log = run_prereqs(f"sc_strip_prefix_managed {prefix}")
+
+    assert not any("apt-get" in line for line in log)
+    assert any(line.endswith("/yosys") for line in log)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_managed_strip_borrows_binutils_and_gives_it_back(run_prereqs, tmp_path):
+    """The openroad case: no strip on the image.
+
+    binutils goes in, the prefix is stripped, and binutils comes back out --
+    the order matters, and so does the fact that it is removed at all: apt.txt
+    is generated after this step, so anything still installed would ship.
+    """
+    prefix = _make_prefix(str(tmp_path / "m2"), {"bin/openroad": True})
+
+    # Drop the strip stub to stand in for a bazel-built image that never
+    # installed binutils.
+    log = run_prereqs(
+        f'rm -f "$(command -v strip)"\nsc_strip_prefix_managed {prefix}')
+
+    installs = [i for i, line in enumerate(log) if "apt-get install" in line]
+    removes = [i for i, line in enumerate(log) if "apt-get remove" in line]
+
+    assert installs, f"binutils was never installed: {log}"
+    assert removes, f"binutils was never removed: {log}"
+    assert installs[0] < removes[0], "removed before installing"
+    assert "binutils" in log[installs[0]]
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_managed_strip_gives_back_only_what_it_took(run_prereqs, tmp_path):
+    """A family member that was already installed stays installed.
+
+    The stub reports "present-*" packages as installed, so naming one of the
+    binutils family that way stands in for an image that already had it.
+    """
+    prefix = _make_prefix(str(tmp_path / "m3"), {"bin/sta": True})
+
+    log = run_prereqs(
+        'rm -f "$(command -v strip)"\n'
+        "_SC_STRIP_PKGS='present-libbinutils binutils'\n"
+        f"sc_strip_prefix_managed {prefix}")
+
+    removes = " ".join(line for line in log if "apt-get remove" in line)
+    assert "binutils" in removes, f"what it installed was not removed: {log}"
+    assert "present-libbinutils" not in removes, \
+        "removed a family member the image already had"
+
+# ---------------------------------------------------------------------------
+# sc_remove_build_only
+#
+# A criterion, not a list: a build-only package goes unless something outside
+# that class hard-depends on it. What it must never do is take out the -dev
+# packages a runtime tool needs -- clang-16 needs libclang-common-16-dev, g++
+# needs libstdc++-13-dev, and neither is named anywhere.
+# ---------------------------------------------------------------------------
+
+
+def _db(tmp_path, entries):
+    """Write a fake dpkg database.
+
+    entries maps package -> Depends, or package -> (Depends, Provides).
+    """
+    path = tmp_path / "db"
+    rows = []
+    for pkg, val in entries.items():
+        depends, provides = val if isinstance(val, tuple) else (val, "")
+        rows.append(pkg + "|" + depends + "|" + provides + "\n")
+    path.write_text("".join(rows))
+    return f'SC_TEST_DB="{path}"\nexport SC_TEST_DB\n'
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_build_only_removes_an_unreferenced_dev_package(run_prereqs, tmp_path):
+    pre = _db(tmp_path, {"libfoo-dev": "", "yosys": "libc6"})
+
+    log = run_prereqs(pre + "sc_remove_build_only")
+
+    assert any("apt-get remove" in line and "libfoo-dev" in line for line in log), log
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_build_only_keeps_what_a_runtime_package_depends_on(run_prereqs, tmp_path):
+    """The load-bearing case. clang-16 is not build-only, so its -dev stays."""
+    pre = _db(tmp_path, {
+        "libclang-common-16-dev": "",
+        "clang-16": "libclang-common-16-dev, libc6",
+        "libunused-dev": "",
+    })
+
+    log = run_prereqs(pre + "sc_remove_build_only")
+
+    removes = " ".join(line for line in log if "apt-get remove" in line)
+    assert "libunused-dev" in removes
+    assert "libclang-common-16-dev" not in removes
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_build_only_still_removes_a_dev_needed_only_by_another_dev(run_prereqs, tmp_path):
+    """Both ends inside the class, so the whole chain goes.
+
+    This is what recovers the boost family: libboost-all-dev is a metapackage
+    and removing it alone leaves 103 -dev packages behind.
+    """
+    pre = _db(tmp_path, {
+        "libboost1.83-dev": "",
+        "libboost-all-dev": "libboost1.83-dev",
+    })
+
+    log = run_prereqs(pre + "sc_remove_build_only")
+
+    removes = " ".join(line for line in log if "apt-get remove" in line)
+    assert "libboost1.83-dev" in removes
+    assert "libboost-all-dev" in removes
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+@pytest.mark.parametrize("pkg", ["zlib1g-dev", "ccache", "graphviz", "libc6-dev"])
+def test_build_only_never_touches_the_keep_list(run_prereqs, tmp_path, pkg):
+    """Each of these is invoked or linked after the build, which no dependency
+    graph records, so only an explicit exception protects them."""
+    pre = _db(tmp_path, {pkg: "", "libdrop-dev": ""})
+
+    log = run_prereqs(pre + "sc_remove_build_only")
+
+    removes = " ".join(line for line in log if "apt-get remove" in line)
+    assert "libdrop-dev" in removes, "nothing was removed at all"
+    assert pkg not in removes
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_build_only_is_a_noop_on_rpm(run_prereqs, tmp_path):
+    assert run_prereqs("sc_remove_build_only", backend="rpm") == []
+
+
+# ---------------------------------------------------------------------------
+# sc_prune_build_artifacts
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_prune_removes_archives_headers_and_build_trees(run_prereqs, tmp_path):
+    prefix = _make_prefix(str(tmp_path / "pr"), {
+        "lib/libOpenSTA.a": True,
+        "include/sta/Sta.hh": False,
+        "lib/cmake/llvm/LLVMConfig.cmake": False,
+        "lib/pkgconfig/foo.pc": False,
+        "share/doc/slurm/index.html": False,
+        "share/man/man1/yosys.1": False,
+        "bin/sta": True,
+    })
+
+    run_prereqs(f"sc_prune_build_artifacts {prefix}")
+
+    for gone in ("lib/libOpenSTA.a", "include", "lib/cmake", "lib/pkgconfig",
+                 "share/doc", "share/man"):
+        assert not os.path.exists(os.path.join(prefix, gone)), f"{gone} survived"
+    assert os.path.exists(os.path.join(prefix, "bin/sta"))
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_prune_keeps_the_archives_that_are_runtime_dependencies(run_prereqs, tmp_path):
+    """The three that are linked after the build, not during it.
+
+    Deleting any of them breaks the tool well after the image is built, which is
+    how the first version of this work broke bambu and ghdl.
+    """
+    prefix = _make_prefix(str(tmp_path / "pk"), {
+        "lib/ghdl/libgrt.a": True,
+        "lib/panda/libbambu_clang16.a": True,
+        "lib/Bluesim/libbskernel.a": True,
+        "lib/libMLIRTestDialect.a": True,
+    })
+
+    run_prereqs(f"sc_prune_build_artifacts {prefix}")
+
+    for kept in ("lib/ghdl/libgrt.a", "lib/panda/libbambu_clang16.a",
+                 "lib/Bluesim/libbskernel.a"):
+        assert os.path.exists(os.path.join(prefix, kept)), f"{kept} was deleted"
+    assert not os.path.exists(os.path.join(prefix, "lib/libMLIRTestDialect.a"))
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_prune_of_a_missing_prefix_is_a_noop(run_prereqs, tmp_path):
+    run_prereqs(f"sc_prune_build_artifacts {tmp_path}/nowhere")
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_build_only_follows_provides(run_prereqs, tmp_path):
+    """A dependency can name a package through a virtual name.
+
+    This is the t64 transition: libamd-comgr2 depended on "libllvm17", a name
+    libllvm17t64 provides rather than its own. Matching only the real name
+    reported libllvm17t64 as unreferenced, and removing it cascaded through six
+    more packages -- harmless as it turned out, but by luck rather than design.
+    """
+    pre = _db(tmp_path, {
+        "libllvm17t64": ("", "libllvm17"),
+        # a plain runtime package, so only the virtual name links the two
+        "somerender": ("libllvm17", ""),
+        "libfree-dev": ("", ""),
+    })
+
+    log = run_prereqs(pre + "sc_remove_build_only")
+
+    removes = " ".join(line for line in log if "apt-get remove" in line)
+    assert "libfree-dev" in removes, "nothing was removed at all"
+    assert "libllvm17t64" not in removes, \
+        "removed a package referenced through the name it provides"
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_build_only_protects_a_kept_package_transitively(run_prereqs, tmp_path):
+    """A one-level check is not enough.
+
+    zlib1g-dev is on the keep-list and depends on a build-only package,
+    which in turn depends on another. Holding back only the first is no use:
+    "apt-get remove" on the second takes the first, and zlib1g-dev with it.
+    """
+    pre = _db(tmp_path, {
+        "zlib1g-dev": "libmid-dev",
+        "libmid-dev": "libleaf-dev",
+        "libleaf-dev": "",
+        "libfree-dev": "",
+    })
+
+    log = run_prereqs(pre + "sc_remove_build_only")
+
+    removes = " ".join(line for line in log if "apt-get remove" in line)
+    assert "libfree-dev" in removes, "nothing was removed at all"
+    assert "libmid-dev" not in removes
+    assert "libleaf-dev" not in removes, \
+        "dropping the leaf would cascade up through libmid-dev to zlib1g-dev"
