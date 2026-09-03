@@ -1,7 +1,11 @@
 import docker
+import glob
+import io
+import json
 import os
 import pytest
 import sys
+import tarfile
 
 import os.path
 
@@ -94,6 +98,69 @@ def test_docker_run(docker_image, project):
         NodeStatus.SUCCESS
     assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
+
+
+def test_run_streams_manifest_into_container(project):
+    """The manifest is handed over in memory, never staged on the host.
+
+    A file staged in the job directory is shared by every node, and
+    write_manifest() truncates in place, so parallel siblings could read torn
+    JSON. Each container has its own filesystem, so the collision cannot arise.
+    """
+
+    node = DockerSchedulerNode(project, "stepone", "0")
+
+    container = MagicMock()
+    client = MagicMock()
+    client.images.get.return_value = MagicMock(id="image-id")
+    client.containers.run.return_value = container
+    client.api.exec_create.return_value = {'Id': 'exec-id'}
+    client.api.exec_start.return_value = [b'running\n']
+    client.api.exec_inspect.return_value = {'ExitCode': 0}
+
+    with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
+        node.run()
+
+    # Nothing was staged on the host.
+    assert not glob.glob(os.path.join(jobdir(project), '**', 'sc_docker*'), recursive=True)
+
+    # The runner is pointed at the container-local path...
+    cmd = client.api.exec_create.call_args.args[1]
+    assert '-cfg /tmp/sc_manifest.json' in cmd
+
+    # ...and the manifest actually got there, as a readable one-entry tar.
+    dest, blob = container.put_archive.call_args.args
+    assert dest == '/tmp'
+    with tarfile.open(fileobj=io.BytesIO(blob)) as tar:
+        members = tar.getmembers()
+        assert [m.name for m in members] == ['sc_manifest.json']
+        assert members[0].mode & 0o444
+        assert json.loads(tar.extractfile(members[0]).read())
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='posix uid/gid mapping')
+def test_run_passes_uid_and_gid(project):
+    """The container must run as the host's uid, gid and supplementary groups.
+
+    A bare uid leaves docker to pick the group from the image's /etc/passwd,
+    falling back to gid 0, so build artifacts land on the host owned by root.
+    """
+
+    node = DockerSchedulerNode(project, "stepone", "0")
+
+    client = MagicMock()
+    client.images.get.return_value = MagicMock(id="image-id")
+    client.api.exec_create.return_value = {'Id': 'exec-id'}
+    client.api.exec_start.return_value = [b'running\n']
+    client.api.exec_inspect.return_value = {'ExitCode': 0}
+
+    with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
+        node.run()
+
+    kwargs = client.containers.run.call_args.kwargs
+    assert kwargs['user'] == f"{os.getuid()}:{os.getgid()}"
+    # An explicit user drops supplementary groups unless they are handed back.
+    assert kwargs['group_add'] == os.getgroups()
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')

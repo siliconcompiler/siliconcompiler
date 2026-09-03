@@ -1,6 +1,7 @@
 import os.path
+import pathlib
 
-from typing import Dict, Union, Tuple, List, Optional, Set
+from typing import Dict, Union, Tuple, List, Optional, Set, TextIO
 
 from siliconcompiler.schema.baseschema import BaseSchema, LazyLoad
 from siliconcompiler.schema.editableschema import EditableSchema
@@ -109,7 +110,7 @@ class DependencySchema(BaseSchema):
 
         return meta
 
-    def write_manifest(self, filename: str) -> None:
+    def write_manifest(self, filename: Union[str, bytes, pathlib.Path, TextIO]) -> None:
         # Detach a copy from any parent project so the dependency graph is
         # embedded (as a flat map, see _getdict_meta) rather than deferred to
         # the project. The original object is left untouched.
