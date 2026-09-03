@@ -87,7 +87,7 @@ The following code snippet below shows how the :ref:`demo design <asic_demo>` wa
         project = ASIC(design)                                 # create project
         project.add_fileset(["rtl", "sdc"])                    # enable filesets
         skywater130_demo(project)                              # load a pre-defined target
-        project.option.set_remote(True)                        # enable remote execution
+        project.option.scheduler.set_name("docker")            # run the tools in containers
         project.run()                                          # run compilation
         project.summary()                                      # print summary
         project.show()                                         # show layout
@@ -141,14 +141,14 @@ This is the line that chooses between the two modes described :ref:`above <choos
 
 .. code-block:: python
 
-    project.option.set_remote(True)     # compile in the cloud
+    project.option.scheduler.set_name("docker")   # run the tools in containers
 
-Delete it -- or set it to ``False`` -- and the identical script compiles on your
-own machine instead:
+Delete it and the identical script runs the tools installed natively on your own
+machine instead:
 
 .. code-block:: python
 
-    project.option.set_remote(False)    # compile locally (the default)
+    project.option.scheduler.set_name(None)       # use native tools (the default)
 
 Nothing else in the script changes between the two.
 

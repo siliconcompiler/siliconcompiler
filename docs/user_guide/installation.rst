@@ -252,7 +252,7 @@ Coverage is not uniform, and the gaps matter for the ASIC flow:
 * **RHEL 8 and Ubuntu 20.04** have scripts for KLayout only. There are no
   scripts for Yosys, OpenROAD or OpenSTA on those platforms, so the ASIC flow
   cannot be installed this way -- use a newer distribution, the
-  :ref:`Docker image <docker>`, or a :ref:`remote run <choose_run_mode>`.
+  :ref:`Docker image <docker>`, or a :ref:`remote run <remote_processing>`.
 
 .. installscripts::
 
@@ -262,7 +262,7 @@ Coverage is not uniform, and the gaps matter for the ASIC flow:
    tools. No install scripts are provided for Windows and the local flows are
    not supported on it.
 
-   To compile a design from Windows, use a :ref:`remote run <choose_run_mode>`,
+   To compile a design from Windows, use a :ref:`remote run <remote_processing>`,
    the :ref:`Docker image <docker>`, or WSL. KLayout is the exception worth
    installing natively: it has Windows builds, and :ref:`sc-show <app-sc-show>`
    will use it to view results downloaded from a remote run.
