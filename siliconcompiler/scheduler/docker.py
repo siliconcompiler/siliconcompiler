@@ -226,6 +226,11 @@ class DockerSchedulerNode(SchedulerNode):
                                   f"please use 'docker logout {image_src}'")
                 self.halt()
 
+        # One manifest per node. A single shared sc_docker.json is written by
+        # every node in the job, and write_manifest() truncates in place, so a
+        # node reading it while a sibling rewrites it sees torn JSON.
+        cfg_relpath = f'sc_docker/{self.step}{self.index}.json'
+
         email_file = default_email_credentials_file()
         if is_windows:
             # Hack to get around manifest merging
@@ -234,10 +239,11 @@ class DockerSchedulerNode(SchedulerNode):
             cwd = '/sc_docker'
             builddir = f'{cwd}/build'
 
-            local_cfg = os.path.join(start_cwd, 'sc_docker.json')
-            cfg = f'{builddir}/{self.name}/{self.jobname}/{self.step}/{self.index}/sc_docker.json'
+            local_cfg = os.path.abspath(cfg_relpath)
+            cfg = f'{builddir}/{self.name}/{self.jobname}/{cfg_relpath}'
 
             user = None
+            group_add = None
 
             volumes = [
                 f"{self.project_cwd}:{cwd}:rw",
@@ -256,10 +262,20 @@ class DockerSchedulerNode(SchedulerNode):
             cwd = self.project_cwd
             builddir = self.project.find_files('option', 'builddir')
 
-            local_cfg = os.path.abspath('sc_docker.json')
+            local_cfg = os.path.abspath(cfg_relpath)
             cfg = local_cfg
 
-            user = os.getuid()
+            # Both halves are needed: given a bare uid, docker takes the group
+            # from the image's /etc/passwd, falling back to gid 0. Files the node
+            # writes into the bind-mounted build directory would then land on the
+            # host owned by root, and access granted through group membership --
+            # a shared project or cache directory -- would be lost.
+            user = f"{os.getuid()}:{os.getgid()}"
+
+            # An explicit user also drops the caller's supplementary groups, so
+            # hand them back: access to a shared project or cache directory
+            # often comes from a secondary group rather than from ownership.
+            group_add = os.getgroups()
 
             rw_volumes, ro_volumes = get_volumes_directories(
                 self.project, cache_dir, workdir, self.step, self.index)
@@ -290,12 +306,14 @@ class DockerSchedulerNode(SchedulerNode):
                     f"sc_node:{self.name}:{self.step}:{self.index}"
                 ],
                 user=user,
+                group_add=group_add,
                 detach=True,
                 tty=True,
                 auto_remove=True,
                 environment=env)
 
             # Write manifest to make it available to the docker runner
+            os.makedirs(os.path.dirname(local_cfg), exist_ok=True)
             self.project.write_manifest(local_cfg)
 
             cachemap = []

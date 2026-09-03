@@ -96,6 +96,63 @@ def test_docker_run(docker_image, project):
         NodeStatus.SUCCESS
 
 
+@pytest.mark.skipif(sys.platform == 'win32', reason='posix path handling')
+def test_run_writes_per_node_manifest(project):
+    """Each node needs its own manifest file.
+
+    One shared sc_docker.json is rewritten by every node, and write_manifest()
+    truncates in place, so parallel siblings can read torn JSON.
+    """
+
+    seen = {}
+    for step in ("stepone", "steptwo"):
+        node = DockerSchedulerNode(project, step, "0")
+
+        client = MagicMock()
+        client.images.get.return_value = MagicMock(id="image-id")
+        client.api.exec_create.return_value = {'Id': 'exec-id'}
+        client.api.exec_start.return_value = [b'running\n']
+        client.api.exec_inspect.return_value = {'ExitCode': 0}
+
+        with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
+            node.run()
+
+        cmd = client.api.exec_create.call_args.args[1]
+        seen[step] = cmd.split('-cfg ')[1].split()[0]
+
+    assert seen["stepone"].endswith('sc_docker/stepone0.json')
+    assert seen["steptwo"].endswith('sc_docker/steptwo0.json')
+    assert seen["stepone"] != seen["steptwo"]
+    # Both were actually written, not just named.
+    for path in seen.values():
+        assert os.path.isfile(path)
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='posix uid/gid mapping')
+def test_run_passes_uid_and_gid(project):
+    """The container must run as the host's uid, gid and supplementary groups.
+
+    A bare uid leaves docker to pick the group from the image's /etc/passwd,
+    falling back to gid 0, so build artifacts land on the host owned by root.
+    """
+
+    node = DockerSchedulerNode(project, "stepone", "0")
+
+    client = MagicMock()
+    client.images.get.return_value = MagicMock(id="image-id")
+    client.api.exec_create.return_value = {'Id': 'exec-id'}
+    client.api.exec_start.return_value = [b'running\n']
+    client.api.exec_inspect.return_value = {'ExitCode': 0}
+
+    with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
+        node.run()
+
+    kwargs = client.containers.run.call_args.kwargs
+    assert kwargs['user'] == f"{os.getuid()}:{os.getgid()}"
+    # An explicit user drops supplementary groups unless they are handed back.
+    assert kwargs['group_add'] == os.getgroups()
+
+
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')
 def test_run_stops_container_without_grace_period(project):
     """Teardown must not sit through the daemon's SIGTERM grace period.
