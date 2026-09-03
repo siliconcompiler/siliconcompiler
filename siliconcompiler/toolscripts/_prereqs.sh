@@ -355,8 +355,8 @@ _sc_is_build_only() {
         *-dev) return 0 ;;
         cmake|cmake-data|ninja-build|autoconf|automake|libtool|libtool-bin|m4|bison|\
         flex|swig|pkg-config|pkgconf|dpkg-dev|build-essential|lcov|help2man|\
-        autotools-dev|autopoint) return 0 ;;
-        doxygen|pandoc|groff|texinfo|manpages-dev|perl-doc|icu-devtools) return 0 ;;
+        autopoint) return 0 ;;
+        doxygen|pandoc|groff|texinfo|perl-doc|icu-devtools) return 0 ;;
     esac
 
     # Distribution toolchain runtimes that arrive under a build dependency and
@@ -385,7 +385,13 @@ _sc_is_build_only() {
     # Named rather than left to the dependency test because these are runtime
     # packages that legitimately depend on each other, so the test only sees a
     # self-consistent island and leaves all of it in place.
+    # The head of the chain is boost's MPI runtime, which arrives with
+    # libboost-all-dev and which nothing links either: Xyce and libxyce.so
+    # resolve zero libmpi/libucx libraries. Leave these out and the fixpoint
+    # below correctly refuses the whole chain, because they pin it.
     case "$1" in
+        mpi-default-bin|libboost-mpi1.*|libboost-mpi-python1.*) return 0 ;;
+        libboost-graph-parallel1.*) return 0 ;;
         libamd-comgr2|libamdhip64-*|libucx0|libopenmpi3*|openmpi-bin) return 0 ;;
     esac
 
@@ -417,45 +423,91 @@ sc_remove_build_only() {
         return 0
     fi
 
+    _sc_bo_class=$(mktemp)
     _sc_bo_deps=$(mktemp)
-    _sc_bo_drop=""
-    dpkg-query -W -f='${Package}\t${Depends}, ${Pre-Depends}\n' > "$_sc_bo_deps"
 
+    # The shell owns the classification, because _sc_is_build_only is a shell
+    # function; awk below owns the graph.
     for _sc_bo_pkg in $(dpkg-query -W -f='${Package}\n'); do
-        _sc_is_build_only "$_sc_bo_pkg" || continue
+        if _sc_is_build_only "$_sc_bo_pkg"; then
+            printf '%s\tb\n' "$_sc_bo_pkg"
+        else
+            printf '%s\tp\n' "$_sc_bo_pkg"
+        fi
+    done > "$_sc_bo_class"
 
-        # A dependency can name a package through anything it Provides, not just
-        # its real name, so the search has to cover both. The t64 transition made
-        # this concrete: libamd-comgr2 depends on "libllvm17", which is a virtual
-        # name libllvm17t64 provides, and matching the real name alone reported
-        # libllvm17t64 as unreferenced when it was not.
-        _sc_bo_names=$_sc_bo_pkg
-        for _sc_bo_prov in $(dpkg-query -W -f='${Provides}' "$_sc_bo_pkg" 2>/dev/null |
-                tr ',' ' ' | sed 's/([^)]*)//g'); do
-            _sc_bo_names="$_sc_bo_names $_sc_bo_prov"
-        done
+    dpkg-query -W -f='${Package}\t${Provides}\t${Depends}, ${Pre-Depends}\n' \
+        > "$_sc_bo_deps"
 
-        # Any hard dependent outside the class pins it in place.
-        _sc_bo_blocked=""
-        for _sc_bo_rd in $(awk -F'\t' -v names="$_sc_bo_names" '
-                BEGIN { split(names, want, " ") }
-                { n = $1; d = $2
-                  gsub(/\([^)]*\)/, "", d); gsub(/ /, "", d)
-                  split(d, parts, ",")
-                  for (i in parts) {
-                      split(parts[i], alts, "|")
-                      for (j in alts) for (k in want) if (alts[j] == want[k]) print n
-                  } }' "$_sc_bo_deps" | sort -u); do
-            if ! _sc_is_build_only "$_sc_bo_rd"; then
-                _sc_bo_blocked=$_sc_bo_rd
-                break
-            fi
-        done
+    # "apt-get remove X" takes everything that depends on X as well, so a
+    # candidate is only safe to drop when its whole reverse-dependency closure
+    # is also droppable. Checking one level deep is not enough: with a protected
+    # package K depending on build-only M depending on build-only C, M is
+    # correctly held back by K, but dropping C still takes M and K with it.
+    #
+    # So this grows the protected set to a fixpoint instead -- any build-only
+    # package with a protected dependent becomes protected, repeatedly, until
+    # nothing changes. What is left unprotected is safe to remove.
+    _sc_bo_drop=$(awk -F'\t' '
+        FNR == NR { class[$1] = $2; next }
 
-        [ -n "$_sc_bo_blocked" ] || _sc_bo_drop="$_sc_bo_drop $_sc_bo_pkg"
-    done
+        {
+            pkg = $1
+            pkgs[++np] = pkg
 
-    rm -f "$_sc_bo_deps"
+            # Every alternative name this package answers to, so a dependency
+            # written against a virtual name still resolves. The t64 transition
+            # made this concrete: libamd-comgr2 depends on "libllvm17", a name
+            # libllvm17t64 provides rather than its own.
+            n = split($2, provs, ",")
+            for (i = 1; i <= n; i++) {
+                gsub(/\([^)]*\)/, "", provs[i]); gsub(/[ ]/, "", provs[i])
+                if (provs[i] != "") alias[provs[i]] = pkg
+            }
+
+            d = $3
+            gsub(/\([^)]*\)/, "", d); gsub(/[ ]/, "", d)
+            depends[pkg] = d
+        }
+
+        END {
+            # Reverse edges: for each package, which packages depend on it.
+            for (p = 1; p <= np; p++) {
+                pk = pkgs[p]
+                n = split(depends[pk], parts, ",")
+                for (i = 1; i <= n; i++) {
+                    m = split(parts[i], alts, "|")
+                    for (j = 1; j <= m; j++) {
+                        t = alts[j]
+                        if (t == "") continue
+                        if (!(t in class) && (t in alias)) t = alias[t]
+                        if (t in class) rdep[t] = rdep[t] " " pk
+                    }
+                }
+            }
+
+            changed = 1
+            while (changed) {
+                changed = 0
+                for (t in rdep) {
+                    if (class[t] != "b") continue
+                    n = split(rdep[t], ds, " ")
+                    for (i = 1; i <= n; i++) {
+                        if (ds[i] != "" && class[ds[i]] == "p") {
+                            class[t] = "p"
+                            changed = 1
+                            break
+                        }
+                    }
+                }
+            }
+
+            for (p = 1; p <= np; p++) {
+                if (class[pkgs[p]] == "b") printf "%s ", pkgs[p]
+            }
+        }' "$_sc_bo_class" "$_sc_bo_deps")
+
+    rm -f "$_sc_bo_class" "$_sc_bo_deps"
 
     # Word splitting of the package list is intended.
     # shellcheck disable=SC2086
@@ -494,8 +546,16 @@ sc_prune_build_artifacts() {
         _sc_prune_args="$_sc_prune_args ! -path */$_sc_prune_keep/*"
     done
 
+    # Pathname expansion off for the unquoted expansion below: the patterns
+    # contain */ and the shell would expand them against the current directory.
+    # A "deps/ghdl/..." tree in the working directory -- which is exactly what
+    # ghdl's builder has -- turns */ghdl/* into a literal path, the exclusion
+    # stops matching, and libgrt.a is deleted. Word splitting is still wanted,
+    # to keep the find predicates separate.
+    set -f
     # shellcheck disable=SC2086
     find "$_sc_prune_dir" -name '*.a' $_sc_prune_args -delete 2>/dev/null
+    set +f
 
     rm -rf "$_sc_prune_dir/include" \
            "$_sc_prune_dir/lib/cmake" \

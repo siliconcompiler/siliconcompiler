@@ -44,7 +44,10 @@ RUN apt-get update && \
 #
 # This runs before extra_commands so that a tool's own docker-cmds is the last
 # word and can put back anything it turns out to need.
-RUN . /_prereqs.sh && \
+# _prereqs.sh is copied to $SC_BUILD/.. above, which is / only because SC_BUILD
+# defaults to /sc_build. Resolve it the same way the install scripts do, so an
+# overridden SC_BUILD still finds it.
+RUN . $SC_BUILD/../_prereqs.sh && \
     sc_strip_prefix_managed $SC_PREFIX && \
     sc_prune_build_artifacts $SC_PREFIX && \
     sc_remove_build_only && \

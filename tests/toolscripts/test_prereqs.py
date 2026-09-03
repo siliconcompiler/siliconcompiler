@@ -110,6 +110,10 @@ DEB_STUBS = {
 if [ -z "$3" ]; then
     [ -f "$SC_TEST_DB" ] || exit 0
     case "$2" in
+        # The combined form sc_remove_build_only walks: package, provides,
+        # depends. The database file stores name|depends|provides, so the last
+        # two columns come out swapped.
+        *Provides*Depends*) awk -F'|' -v OFS='\t' '{print $1, $3, $2}' "$SC_TEST_DB" ;;
         *Depends*) awk -F'|' -v OFS='\t' '{print $1, $2}' "$SC_TEST_DB" ;;
         *) awk -F'|' '{print $1}' "$SC_TEST_DB" ;;
     esac
@@ -875,3 +879,27 @@ def test_build_only_follows_provides(run_prereqs, tmp_path):
     assert "libfree-dev" in removes, "nothing was removed at all"
     assert "libllvm17t64" not in removes, \
         "removed a package referenced through the name it provides"
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_build_only_protects_a_kept_package_transitively(run_prereqs, tmp_path):
+    """A one-level check is not enough.
+
+    zlib1g-dev is on the keep-list and depends on a build-only package,
+    which in turn depends on another. Holding back only the first is no use:
+    "apt-get remove" on the second takes the first, and zlib1g-dev with it.
+    """
+    pre = _db(tmp_path, {
+        "zlib1g-dev": "libmid-dev",
+        "libmid-dev": "libleaf-dev",
+        "libleaf-dev": "",
+        "libfree-dev": "",
+    })
+
+    log = run_prereqs(pre + "sc_remove_build_only")
+
+    removes = " ".join(line for line in log if "apt-get remove" in line)
+    assert "libfree-dev" in removes, "nothing was removed at all"
+    assert "libmid-dev" not in removes
+    assert "libleaf-dev" not in removes, \
+        "dropping the leaf would cascade up through libmid-dev to zlib1g-dev"

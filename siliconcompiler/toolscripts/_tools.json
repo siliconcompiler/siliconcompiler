@@ -10,7 +10,7 @@
       "# Drop the documentation toolchain and the -dev half of the GUI libraries.",
       "# The matching runtime xcb libraries stay: they are separate packages, and",
       "# sc_remove_prereqs does no autoremove, so they are not swept up.",
-      "RUN . /_prereqs.sh && sc_remove_prereqs pandoc groff bsdmainutils \\",
+      "RUN . $SC_BUILD/../_prereqs.sh && sc_remove_prereqs pandoc groff bsdmainutils \\",
       "    libxcb1-dev libxcb-util-dev libxcb-icccm4-dev libxcb-image0-dev \\",
       "    libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev \\",
       "    libxcb-xinerama0-dev libxcb-xkb-dev"
@@ -28,7 +28,7 @@
       "# Drop the build toolchain. The JRE here runs ANTLR's parser generator at",
       "# build time only -- install-chisel.sh declares its own JRE, so removing",
       "# this one no longer leaves sbt without a java to run.",
-      "RUN . /_prereqs.sh && sc_remove_prereqs default-jre default-jre-headless \\",
+      "RUN . $SC_BUILD/../_prereqs.sh && sc_remove_prereqs default-jre default-jre-headless \\",
       "    cmake swig uuid-dev libgoogle-perftools-dev python3-dev lcov \\",
       "    pkg-config"
     ]
@@ -58,7 +58,7 @@
       "#",
       "# libz-dev and lib/ghdl/libgrt.a both stay: every \"ghdl -e\" links -lz and",
       "# libgrt.a into the elaborated design.",
-      "RUN . /_prereqs.sh && sc_remove_prereqs llvm-18-dev llvm-18 llvm-18-tools \\",
+      "RUN . $SC_BUILD/../_prereqs.sh && sc_remove_prereqs llvm-18-dev llvm-18 llvm-18-tools \\",
       "    libclang-18-dev clang clang-18 libclang-cpp18 libclang1-18 gnat \\",
       "    gnat-13 gnat-13-x86-64-linux-gnu"
     ]
@@ -77,7 +77,7 @@
       "# runtime needs are libgmp10, libffi8 and libtcl8.6 -- separate packages,",
       "# and no autoremove means they stay. lib/Bluesim/*.a stays too: \"bsc -sim\"",
       "# links it.",
-      "RUN . /_prereqs.sh && sc_remove_prereqs ghc libghc-regex-compat-dev \\",
+      "RUN . $SC_BUILD/../_prereqs.sh && sc_remove_prereqs ghc libghc-regex-compat-dev \\",
       "    libghc-syb-dev libghc-old-time-dev libghc-split-dev tcl-dev pkg-config"
     ]
   },
@@ -116,7 +116,7 @@
       "# g++, make, perl and zlib1g-dev all stay: they are what compiles the",
       "# generated model at run time, and --trace-fst links -lz into it.",
       "RUN rm -f $SC_PREFIX/bin/*_dbg $SC_PREFIX/share/verilator/bin/*_dbg",
-      "RUN . /_prereqs.sh && sc_remove_prereqs libfl-dev libgoogle-perftools-dev \\",
+      "RUN . $SC_BUILD/../_prereqs.sh && sc_remove_prereqs libfl-dev libgoogle-perftools-dev \\",
       "    perl-doc help2man autoconf"
     ]
   },
@@ -137,7 +137,7 @@
       "# gcc-multilib, g++-multilib and libc6-dev are NOT removable: bambu",
       "# compiles its 32-bit MDPI simulation runtime at run time. Neither is",
       "# lib/panda/*.a, which it links into generated designs.",
-      "RUN . /_prereqs.sh && sc_remove_prereqs llvm-16-dev libclang-16-dev \\",
+      "RUN . $SC_BUILD/../_prereqs.sh && sc_remove_prereqs llvm-16-dev libclang-16-dev \\",
       "    libboost-all-dev doxygen graphviz libsuitesparse-dev libglpk-dev \\",
       "    libbdd-dev libmpfi-dev libmpc-dev libmpfr-dev libxml2-dev liblzma-dev \\",
       "    libicu-dev autoconf-archive libfl-dev"
