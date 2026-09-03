@@ -91,7 +91,25 @@ fi
 #   siliconcompiler/tools/{mlir,soda}/)
 #
 #   install-soda.sh then builds soda-opt against this tree, which needs the
-#   headers, the static libraries and the cmake exports of all three projects
+#   headers, the static libraries and the cmake exports of all three projects,
+#   plus the tablegen tools -- soda-opt is an out-of-tree dialect and generates
+#   its headers from .td files. MLIRConfig.cmake names exactly three
+#   executables, and these are they:
+#
+#       MLIR_TABLEGEN_EXE             mlir-tblgen
+#       MLIR_PDLL_TABLEGEN_EXE        mlir-pdll
+#       MLIR_SRC_SHARDER_TABLEGEN_EXE mlir-src-sharder   (not installable)
+#
+#   The first two are here. mlir-src-sharder is not: it has no install target at
+#   all, so naming it fails configure -- the same quirk as llvm-lit above, where
+#   MLIRConfig advertises a path the install never provides.
+#
+#   Leaving mlir-tblgen out does not fail configure, which is what made its
+#   absence expensive to find: MLIRConfig sets the variable to a bare name
+#   either way, and the build only falls over later, when ninja looks for a file
+#   called "mlir-tblgen" next to the generated header. mlir-pdll is included on
+#   the same reasoning; soda does not use PDLL today, and a project that did
+#   would break the same silent way.
 #
 # Note that llvm-lit is deliberately absent even though install-soda.sh passes
 # -DLLVM_EXTERNAL_LIT=${mlir_prefix}/bin/llvm-lit. llvm-lit has no install rule
@@ -106,6 +124,7 @@ fi
 # seconds rather than after the build. If a future LLVM bump drops one of these,
 # that error says which.
 distribution_components="clang;opt;llvm-link;mlir-opt;mlir-translate;llvm-config"
+distribution_components="${distribution_components};mlir-tblgen;mlir-pdll"
 distribution_components="${distribution_components};llvm-headers;llvm-libraries;cmake-exports"
 distribution_components="${distribution_components};clang-headers;clang-libraries;clang-cmake-exports"
 distribution_components="${distribution_components};clang-resource-headers"
