@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.7 (2026-09-03)
+=========================================
+
+**Minor:**
+
+ * Shrank the tool container images: symbols are now stripped from every installed tool, packages a tool only needed to build itself are removed, link-time-only static archives are dropped, and a tool image is no longer copied into `sc_tools` when a dependent image already carries it. Added `sc_remove_prereqs` and `sc_strip_prefix` to the tool install helpers.
+
+ * Tools:
+
+  * chisel: install a JRE of its own rather than relying on the one surelog pulls in for its build, and skip the `sbtn` launchers built for other platforms.
+  * mlir: install only the components the flow and soda-opt need instead of the whole LLVM install tree.
+  * openroad: keep tie cells in the netlist written out for logical equivalence checking.
+
 SiliconCompiler 0.38.6 (2026-09-02)
 =========================================
 
