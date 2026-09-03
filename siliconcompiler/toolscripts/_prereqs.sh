@@ -435,7 +435,7 @@ sc_remove_build_only() {
             _sc_bo_names="$_sc_bo_names $_sc_bo_prov"
         done
 
-        # Any hard dependant outside the class pins it in place.
+        # Any hard dependent outside the class pins it in place.
         _sc_bo_blocked=""
         for _sc_bo_rd in $(awk -F'\t' -v names="$_sc_bo_names" '
                 BEGIN { split(names, want, " ") }
