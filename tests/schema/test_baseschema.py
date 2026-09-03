@@ -997,6 +997,25 @@ def test_write_manifest_pathlib():
         assert a.read() == b.read()
 
 
+def test_write_manifest_pathlib_is_never_written_to_directly():
+    """A Path is a destination to open, not a stream to write into.
+
+    The check has to key off the path types, not off whether the target has a
+    ``write`` attribute: that is an open-ended test, and it is the paths that
+    are the closed set.
+    """
+
+    class LoudPath(type(Path("x"))):
+        def write(self, *args, **kwargs):
+            raise AssertionError("write_manifest called .write() on a Path")
+
+    schema = _simple_schema()
+    schema.write_manifest(LoudPath("test.json"))
+
+    assert os.path.isfile("test.json")
+    assert json.loads(Path("test.json").read_text())["test0"]["test1"]
+
+
 def test_write_manifest_pathlib_gz():
     """Extension sniffing still works when given a Path rather than a str."""
     schema = _simple_schema()

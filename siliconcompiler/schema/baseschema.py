@@ -578,7 +578,10 @@ class BaseSchema:
         else:
             manifest_str = json.dumps(manifest, indent=2, default=default)
 
-        if hasattr(filepath, "write"):
+        # The caller's stream: borrowed, so write to it and leave it open. Keyed
+        # off the path types because those are the closed set -- "has a .write()"
+        # is open-ended, and a pathlib.Path has no .write() to be caught by it.
+        if not isinstance(filepath, (str, os.PathLike)):
             filepath.write(manifest_str)
             return
 
