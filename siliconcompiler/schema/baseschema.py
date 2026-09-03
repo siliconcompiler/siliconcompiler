@@ -31,7 +31,7 @@ import os.path
 from enum import Enum, auto
 from functools import cache, lru_cache
 from typing import Dict, Type, Tuple, TypeVar, Union, Set, Callable, List, Optional, \
-    TextIO, Iterable, Any
+    TextIO, Iterable, Iterator, Any
 
 from .parameter import Parameter, NodeValue
 from .journal import Journal
@@ -480,13 +480,21 @@ class BaseSchema:
         return schema
 
     @staticmethod
-    def __open_file(filepath: str, is_read: bool = True) -> TextIO:
+    @contextlib.contextmanager
+    def __open_file(filepath: Union[str, pathlib.Path],
+                    is_read: bool = True) -> Iterator[TextIO]:
         _, ext = os.path.splitext(filepath)
         if ext.lower() == ".gz":
             if not _has_gzip:
                 raise RuntimeError("gzip is not available")
-            return gzip.open(filepath, mode="rt" if is_read else "wt", encoding="utf-8")
-        return open(filepath, mode="r" if is_read else "w", encoding="utf-8")
+            fileobj = gzip.open(filepath, mode="rt" if is_read else "wt", encoding="utf-8")
+        else:
+            fileobj = open(filepath, mode="r" if is_read else "w", encoding="utf-8")
+
+        try:
+            yield fileobj
+        finally:
+            fileobj.close()
 
     def __format_key(self, *key: str):
         return f"[{','.join([*self._keypath, *key])}]"
@@ -500,13 +508,8 @@ class BaseSchema:
             filename (path): Path to a manifest file to be loaded.
         """
 
-        fin = BaseSchema.__open_file(filepath)
-        try:
-            manifest = json.loads(fin.read())
-        finally:
-            fin.close()
-
-        return manifest
+        with BaseSchema.__open_file(filepath) as fin:
+            return json.loads(fin.read())
 
     def read_manifest(self, filepath: str) -> None:
         """
@@ -522,57 +525,65 @@ class BaseSchema:
 
         self._from_dict(BaseSchema._read_manifest(filepath), [])
 
-    def write_manifest(self, filepath: str) -> None:
+    def write_manifest(self, filepath: Union[str, pathlib.Path, TextIO]) -> None:
         '''
-        Writes the manifest to a file.
+        Writes the manifest to a file or an open text stream.
 
         Args:
-            filename (filepath): Output filepath.
+            filepath (path or stream): Output filepath, or an already-open text
+                stream. A stream is written to directly -- nothing touches the
+                filesystem -- and is left open for its owner to close.
 
         Examples:
             >>> schema.write_manifest('mydump.json')
             Dumps the current manifest into mydump.json
+            >>> buf = io.StringIO()
+            >>> schema.write_manifest(buf)
+            Dumps the current manifest into buf
         '''
 
-        fout = BaseSchema.__open_file(filepath, is_read=False)
+        # Serialized before the destination is touched: opening first meant a
+        # failure part way through getdict() had already truncated the file.
+        def default(obj: Any) -> Any:
+            if isinstance(obj, pathlib.PurePath):
+                # Cast everything to a windows path and convert to posix.
+                # https://stackoverflow.com/questions/73682260
+                return pathlib.PureWindowsPath(obj).as_posix()
+            raise TypeError
 
-        try:
-            def default(obj: Any) -> Any:
-                if isinstance(obj, pathlib.PurePath):
-                    # Cast everything to a windows path and convert to posix.
-                    # https://stackoverflow.com/questions/73682260
-                    return pathlib.PureWindowsPath(obj).as_posix()
-                raise TypeError
+        manifest = self.getdict()
+        if _has_orjson:
+            manifest_str = json.dumps(manifest, option=json.OPT_INDENT_2,
+                                      default=default).decode()
+            # orjson emits UTF-8 and has no ensure_ascii; the stdlib escapes
+            # non-ASCII by default. Without this the manifest's encoding
+            # depends on which JSON library happened to be installed, and an
+            # ASCII manifest is the thing that lets any reader decode it
+            # whatever the host locale claims -- a server running under
+            # LANG=C failed a whole job on one Greek letter in a journal.
+            #
+            # Escape in place rather than re-serializing with the stdlib:
+            # json.dumps skips its C encoder whenever indent is set, so the
+            # fallback would push the whole manifest -- megabytes of it --
+            # through the pure-Python encoder. One Greek letter in a help
+            # string made the manifest non-ASCII and cost 45% of a test
+            # suite's runtime. Only \uXXXX is a legal JSON escape, so this
+            # cannot use backslashreplace, which works per byte and yields
+            # \xNN. isascii() is a C-level scan, so ASCII manifests (the
+            # overwhelming majority) pay nothing.
+            if not manifest_str.isascii():
+                manifest_str = manifest_str \
+                    .encode("ascii", _JSON_ASCII_ERRORS) \
+                    .decode("ascii")
+        else:
+            manifest_str = json.dumps(manifest, indent=2, default=default)
 
-            manifest = self.getdict()
-            if _has_orjson:
-                manifest_str = json.dumps(manifest, option=json.OPT_INDENT_2,
-                                          default=default).decode()
-                # orjson emits UTF-8 and has no ensure_ascii; the stdlib escapes
-                # non-ASCII by default. Without this the manifest's encoding
-                # depends on which JSON library happened to be installed, and an
-                # ASCII manifest is the thing that lets any reader decode it
-                # whatever the host locale claims -- a server running under
-                # LANG=C failed a whole job on one Greek letter in a journal.
-                #
-                # Escape in place rather than re-serializing with the stdlib:
-                # json.dumps skips its C encoder whenever indent is set, so the
-                # fallback would push the whole manifest -- megabytes of it --
-                # through the pure-Python encoder. One Greek letter in a help
-                # string made the manifest non-ASCII and cost 45% of a test
-                # suite's runtime. Only \uXXXX is a legal JSON escape, so this
-                # cannot use backslashreplace, which works per byte and yields
-                # \xNN. isascii() is a C-level scan, so ASCII manifests (the
-                # overwhelming majority) pay nothing.
-                if not manifest_str.isascii():
-                    manifest_str = manifest_str \
-                        .encode("ascii", _JSON_ASCII_ERRORS) \
-                        .decode("ascii")
-            else:
-                manifest_str = json.dumps(manifest, indent=2, default=default)
+        if hasattr(filepath, "write"):
+            filepath.write(manifest_str)
+            return
+
+        with BaseSchema.__open_file(filepath, is_read=False) as fout:
             fout.write(manifest_str)
-        finally:
-            fout.close()
 
     # Accessor methods
     def __search(self,

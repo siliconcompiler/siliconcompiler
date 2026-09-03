@@ -1,4 +1,6 @@
 import io
+import gzip
+import json
 import logging
 import pytest
 
@@ -858,6 +860,228 @@ def test_write_manifest():
     assert not os.path.isfile("test.json")
     schema.write_manifest("test.json")
     assert os.path.isfile("test.json")
+
+
+def _simple_schema(value=None):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    if value is not None:
+        schema.set("test0", "test1", value)
+    return schema
+
+
+# ---------------------------------------------------------------- stream target
+
+def test_write_manifest_stream_matches_file():
+    """A stream target produces exactly what the path target would."""
+    schema = _simple_schema()
+
+    buf = io.StringIO()
+    schema.write_manifest(buf)
+    schema.write_manifest("test.json")
+
+    with open("test.json") as f:
+        assert f.read() == buf.getvalue()
+    assert json.loads(buf.getvalue())["test0"]["test1"]
+
+
+def test_write_manifest_stream_is_not_closed():
+    """The caller owns the stream, so write_manifest must leave it open."""
+    schema = _simple_schema()
+
+    buf = io.StringIO()
+    schema.write_manifest(buf)
+
+    assert not buf.closed
+    # Still usable: appending after the call must work.
+    buf.write("trailing")
+    assert buf.getvalue().endswith("trailing")
+
+
+def test_write_manifest_stream_writes_nothing_to_disk(monkeypatch):
+    """A stream target must not touch the filesystem at all."""
+    schema = _simple_schema()
+
+    def no_open(*args, **kwargs):
+        raise AssertionError("write_manifest opened a file for a stream target")
+
+    monkeypatch.setattr("builtins.open", no_open)
+    buf = io.StringIO()
+    schema.write_manifest(buf)
+    assert buf.getvalue()
+
+
+def test_write_manifest_stream_real_file_handle():
+    """An already-open file object works and is left open."""
+    schema = _simple_schema()
+
+    with open("test.json", "w") as f:
+        schema.write_manifest(f)
+        assert not f.closed
+
+    schema.write_manifest("ref.json")
+    with open("test.json") as a, open("ref.json") as b:
+        assert a.read() == b.read()
+
+
+def test_write_manifest_stream_gzip():
+    """Compression is the stream owner's business, and it still works."""
+    schema = _simple_schema()
+
+    with gzip.open("test.json.gz", "wt", encoding="utf-8") as f:
+        schema.write_manifest(f)
+
+    with gzip.open("test.json.gz", "rt", encoding="utf-8") as f:
+        streamed = f.read()
+
+    schema.write_manifest("ref.json")
+    with open("ref.json") as f:
+        assert streamed == f.read()
+
+
+def test_write_manifest_stream_not_closed_when_write_fails():
+    """A failing write propagates without the stream being closed behind it."""
+    schema = _simple_schema()
+
+    class Failing(io.StringIO):
+        def write(self, data):
+            raise OSError("disk on fire")
+
+    buf = Failing()
+    with pytest.raises(OSError, match="disk on fire"):
+        schema.write_manifest(buf)
+    assert not buf.closed
+
+
+@pytest.mark.parametrize("stdjson", (False, True))
+def test_write_manifest_stream_non_ascii(monkeypatch, stdjson):
+    """The ASCII-escaping guarantee applies to stream targets too."""
+    if stdjson:
+        from siliconcompiler.schema import baseschema
+        monkeypatch.setattr(baseschema, 'json', json)
+        monkeypatch.setattr(baseschema, '_has_orjson', False)
+
+    schema = _simple_schema("µm_Ω")
+
+    buf = io.StringIO()
+    schema.write_manifest(buf)
+
+    assert buf.getvalue().isascii()
+    assert "\\u03a9" in buf.getvalue()
+    assert json.loads(buf.getvalue())["test0"]["test1"]["node"]["*"]["*"]["value"] == "µm_Ω"
+
+
+def test_write_manifest_stream_is_readable_manifest():
+    """What a stream receives parses back through the real read path."""
+    schema = _simple_schema("roundtrip")
+
+    buf = io.StringIO()
+    schema.write_manifest(buf)
+    Path("test.json").write_text(buf.getvalue())
+
+    manifest = BaseSchema._read_manifest("test.json")
+    assert manifest["test0"]["test1"]["node"]["*"]["*"]["value"] == "roundtrip"
+
+
+# ------------------------------------------------------------- pathlib target
+
+def test_write_manifest_pathlib():
+    """A pathlib.Path target matches the str target byte for byte."""
+    schema = _simple_schema()
+
+    schema.write_manifest("test.json")
+    schema.write_manifest(Path("test_path.json"))
+
+    with open("test.json") as a, open("test_path.json") as b:
+        assert a.read() == b.read()
+
+
+def test_write_manifest_pathlib_gz():
+    """Extension sniffing still works when given a Path rather than a str."""
+    schema = _simple_schema()
+
+    schema.write_manifest(Path("test.json.gz"))
+
+    with gzip.open("test.json.gz", "rt", encoding="utf-8") as f:
+        assert json.loads(f.read())["test0"]["test1"]
+
+
+# ------------------------------------------------- serialize-before-open order
+
+def test_write_manifest_leaves_file_intact_on_failure():
+    """Serialization happens before the destination is opened.
+
+    Opening first meant a failure part way through getdict() had already
+    truncated whatever was at that path.
+    """
+
+    class Boom(BaseSchema):
+        def getdict(self, *args, **kwargs):
+            raise RuntimeError("boom")
+
+    Path("test.json").write_text("PREEXISTING")
+
+    with pytest.raises(RuntimeError, match="boom"):
+        Boom().write_manifest("test.json")
+
+    assert Path("test.json").read_text() == "PREEXISTING"
+
+
+def test_write_manifest_creates_no_file_on_failure():
+    """A failed serialization must not leave an empty file behind either."""
+
+    class Boom(BaseSchema):
+        def getdict(self, *args, **kwargs):
+            raise RuntimeError("boom")
+
+    assert not os.path.isfile("test.json")
+    with pytest.raises(RuntimeError, match="boom"):
+        Boom().write_manifest("test.json")
+    assert not os.path.isfile("test.json")
+
+
+# ------------------------------------------------------- __open_file contextmanager
+
+def _open_file(*args, **kwargs):
+    return BaseSchema._BaseSchema__open_file(*args, **kwargs)
+
+
+@pytest.mark.parametrize("name", ("test.json", "test.json.gz"))
+def test_open_file_closes_handle(name):
+    """The contextmanager owns the handle and closes it on the way out."""
+    Path("seed.json").write_text("{}")
+    if name.endswith(".gz"):
+        with gzip.open(name, "wt", encoding="utf-8") as f:
+            f.write("{}")
+    else:
+        Path(name).write_text("{}")
+
+    with _open_file(name) as fin:
+        assert not fin.closed
+        assert fin.read() == "{}"
+    assert fin.closed
+
+
+@pytest.mark.parametrize("name", ("test.json", "test.json.gz"))
+def test_open_file_closes_handle_on_exception(name):
+    """An exception in the body must not leak the handle."""
+    with pytest.raises(ValueError, match="kaboom"):
+        with _open_file(name, is_read=False) as fout:
+            handle = fout
+            raise ValueError("kaboom")
+    assert handle.closed
+
+
+def test_open_file_gz_unavailable_opens_nothing(monkeypatch):
+    """The gzip guard fires before anything is opened."""
+    from siliconcompiler.schema import baseschema
+    monkeypatch.setattr(baseschema, '_has_gzip', False)
+
+    with pytest.raises(RuntimeError, match=r"^gzip is not available$"):
+        with _open_file("test.json.gz", is_read=False):
+            pass
+    assert not os.path.isfile("test.json.gz")
 
 
 def test_write_manifest_stdjson(monkeypatch):
