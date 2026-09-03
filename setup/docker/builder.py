@@ -175,7 +175,11 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         'base_build_image': get_image_name(base_name, base_tag, False),
         'install_script': f'install-{tool}.sh',
         'extra_commands': extracmds,
-        'depends_tools': []
+        'depends_tools': [],
+        # Another tool builds against this prefix, so leave its symbols alone.
+        # The dependent copies this prefix in and strips it there, which is what
+        # reaches sc_tools, so nothing ships unstripped either way.
+        'strip_symbols': not _is_build_input(tool)
     }
 
     if reference_tool:
@@ -281,10 +285,68 @@ def _get_tools(allow_skip=False):
     return tools
 
 
+def _is_build_input(tool):
+    '''
+    True when another tool declares this one in docker-depends, which makes this
+    image a build input rather than only a shipping artifact.
+
+    Deliberately independent of --include_tools: whether an image is safe to
+    strip is a property of the tool graph, not of which subset is being built,
+    and making it vary with the filter would let a filtered build produce a
+    differently-stripped image under the same tag.
+    '''
+    for other in _tools.get_tools():
+        depends = _tools.get_field(other, 'docker-depends')
+        if not depends:
+            continue
+        if isinstance(depends, str):
+            depends = [depends]
+        if tool in depends:
+            return True
+
+    return False
+
+
+def _get_subsumed_tools():
+    '''
+    Tools whose install prefix is already carried by another tool's image, and
+    which therefore do not need copying into sc_tools on their own.
+
+    tool.docker copies a dependency's whole $SC_PREFIX into the dependent before
+    building it, and installs the dependency's apt.txt there too, so sc_soda's
+    image contains everything sc_mlir installed and sc_nextpnr's contains
+    icepack -- prefix and packages both.
+
+    Copying the dependency into sc_tools as well is not merely redundant. COPY
+    never deletes at the destination, so if a dependent prunes what it inherited
+    (soda drops the LLVM/MLIR dev tree once soda-opt has linked against it) an
+    unpruned copy of the dependency landing first would survive underneath the
+    pruned one and the prune would save nothing.
+
+    A dependency is only subsumed when a dependent is actually being copied.
+    Under --include_tools the dependent may be filtered out, and then the
+    dependency has to carry itself.
+    '''
+    copied = {tool for tool, _ in _get_tools()}
+
+    subsumed = set()
+    for _, depends in _get_tools():
+        if not depends:
+            continue
+        if isinstance(depends, str):
+            depends = [depends]
+        for depend in depends:
+            if depend in copied:
+                subsumed.add(depend)
+
+    return subsumed
+
+
 def _get_tool_images(tool=None):
     '''
     Returns the image name for a tool.
-    If tool is not provided, return all image names in a dict
+    If tool is not provided, return the image names that sc_tools needs to copy,
+    which excludes any tool already carried by a dependent's image.
     '''
     tool_images = {}
     for tool_name, _ in _get_tools():
@@ -292,8 +354,9 @@ def _get_tool_images(tool=None):
 
     if tool:
         return tool_images[tool]
-    else:
-        return [tool_images[tool] for tool, _ in _get_tools()]
+
+    subsumed = _get_subsumed_tools()
+    return [tool_images[tool] for tool, _ in _get_tools() if tool not in subsumed]
 
 
 def _get_tool_versions():
@@ -331,6 +394,11 @@ def _get_tool_image_check_tag(tool):
     if cmds:
         for cmd in cmds:
             hash.update(cmd.encode('utf-8'))
+
+    # Whether this image gets stripped depends on the tool graph around it, not
+    # only on this tool's own inputs, so a tool gaining or losing a dependent
+    # has to invalidate its image.
+    hash.update(str(_is_build_input(tool)).encode('utf-8'))
 
     extra_files = _tools.get_field(tool, 'docker-extra-files')
     if extra_files:

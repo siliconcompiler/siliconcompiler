@@ -1,3 +1,5 @@
+# Copyright (C) 2023-2026 Zero ASIC
+
 ARG SC_VERSION
 ARG SC_IMAGE=ghcr.io/siliconcompiler/sc_runner:v${SC_VERSION}
 FROM ${SC_IMAGE}
