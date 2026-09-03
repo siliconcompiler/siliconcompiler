@@ -97,7 +97,13 @@
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
     "git-commit": "493a88f930802da68f592c192ec86991eaf95c49",
-    "auto-update": true
+    "auto-update": true,
+    "docker-cmds": [
+      "# The Haskell Stack build tool, a statically linked 90MB binary that",
+      "# install-sv2v.sh drops in the prefix to compile sv2v with. sv2v is a",
+      "# standalone binary once built and never invokes it again.",
+      "RUN rm -f $SC_PREFIX/stack"
+    ]
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",

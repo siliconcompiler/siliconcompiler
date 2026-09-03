@@ -1,5 +1,29 @@
 # Copyright (C) 2023-2026 Zero ASIC
 
+# Gather every tool's prefix and package list in a throwaway stage, so the
+# shipping image below takes them in a single COPY each.
+#
+# Doing it per tool -- a COPY plus its own "apt-get install" for all 27 -- cost
+# about 1.6GB on disk. Not in the layer content, which is the same either way,
+# but in what the layers occupy once unpacked: each apt transaction re-resolves
+# and rewrites the same base packages, and a file written in one layer and
+# rewritten in another is stored twice. It also meant 27 sequential apt
+# transactions at build time instead of one.
+FROM ubuntu:24.04 AS assemble
+
+ARG SC_PREFIX=/sc_tools
+
+{% for tool in tools %}
+COPY --from={{ tool }} $SC_PREFIX $SC_PREFIX
+# Read straight from the tool image, so the prefix COPY above cannot overwrite
+# one tool's apt.txt with the next one's.
+COPY --from={{ tool }} $SC_PREFIX/apt.txt /apt/{{ loop.index }}.txt
+{% endfor %}
+
+# One deduplicated list, and no stray apt.txt left in the prefix.
+RUN cat /apt/*.txt | sort -u > /apt.txt && \
+    rm -rf /apt $SC_PREFIX/apt.txt
+
 FROM ubuntu:24.04
 
 LABEL org.opencontainers.image.source="https://github.com/siliconcompiler/siliconcompiler"
@@ -32,14 +56,12 @@ RUN apt-get update && \
 # Ensure we use https instead of git@github.com since that causes failures
 RUN git config --global url."https://github.com/".insteadOf git@github.com:
 
-{% for tool in tools %}
-COPY --from={{ tool }} $SC_PREFIX $SC_PREFIX
+COPY --from=assemble $SC_PREFIX $SC_PREFIX
+COPY --from=assemble /apt.txt /apt.txt
 RUN apt-get update && \
-    cat $SC_PREFIX/apt.txt | xargs apt-get install --ignore-missing -y && \
+    xargs -a /apt.txt apt-get install --ignore-missing -y && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm $SC_PREFIX/apt.txt
-{% endfor %}
+    rm -rf /var/lib/apt/lists/* /apt.txt
 
 # Execute scripts needed by tools
 RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} \;

@@ -326,6 +326,232 @@ sc_remove_prereqs() {
     esac
 }
 
+# Packages that look build-only by name but are needed at RUN time. Each entry
+# is here because something invokes or links it after the build, which no
+# dependency graph records:
+#
+#   zlib1g-dev   verilator compiles the generated model, and --trace-fst needs
+#                zlib's headers; "ghdl -e" links -lz into every design
+#   ccache       verilated.mk sets "OBJCACHE ?= ccache" and invokes it
+#                unconditionally, so removing it breaks every model build
+#   graphviz     yosys' "show" shells out to dot
+#   xdot         the viewer "show" opens
+#   libc6-dev    bambu compiles its 32-bit MDPI runtime at run time
+#   libllvm18    ghdl1-llvm links libLLVM.so.18.1. Nothing records it: ghdl is
+#                built from source, so the link never becomes a package
+#                dependency, and once clang-18 and doxygen are classed as
+#                removable below, libllvm18 looks free. It is not -- dropping it
+#                breaks every "ghdl -e".
+_SC_KEEP_BUILD_PKGS="zlib1g-dev ccache graphviz xdot libc6-dev libc-dev libllvm18"
+
+# True when a package name is build-only material: headers and static libraries,
+# the build tools, and documentation generators.
+_sc_is_build_only() {
+    case " $_SC_KEEP_BUILD_PKGS " in
+        *" $1 "*) return 1 ;;
+    esac
+
+    case "$1" in
+        *-dev) return 0 ;;
+        cmake|cmake-data|ninja-build|autoconf|automake|libtool|libtool-bin|m4|bison|\
+        flex|swig|pkg-config|pkgconf|dpkg-dev|build-essential|lcov|help2man|\
+        autotools-dev|autopoint) return 0 ;;
+        doxygen|pandoc|groff|texinfo|manpages-dev|perl-doc|icu-devtools) return 0 ;;
+    esac
+
+    # Distribution toolchain runtimes that arrive under a build dependency and
+    # that no tool in the image links. Checked one at a time against every ELF
+    # object in the prefix, because a shared library nothing links is dead
+    # weight however much it looks like a runtime package:
+    #
+    #   libllvm17t64   orphaned outright -- no package depends on it and no
+    #                  binary links libLLVM.so.17
+    #   the clang-18   held up only by doxygen and by ghdl's "clang", both of
+    #   stack          which are removed. ghdl links libllvm18 directly and
+    #                  shells out to no compiler, so the front end is unused.
+    #
+    # libllvm18 is deliberately NOT here -- see _SC_KEEP_BUILD_PKGS.
+    case "$1" in
+        libllvm17*|llvm-17|llvm-17-*) return 0 ;;
+        clang-18|clang|clang-format-18|libclang-cpp18|libclang1-18) return 0 ;;
+        llvm-18-linker-tools|llvm-18-runtime|llvm-runtime) return 0 ;;
+    esac
+
+    # The MPI and ROCm stack that install-xyce.sh drags in through
+    # libopenmpi-dev. SC builds Xyce serially -- "ldd Xyce" links no libmpi at
+    # all -- so none of this is reachable, and it is a lot: libamd-comgr2 alone
+    # is 59MB and it pulls libllvm17 behind it.
+    #
+    # Named rather than left to the dependency test because these are runtime
+    # packages that legitimately depend on each other, so the test only sees a
+    # self-consistent island and leaves all of it in place.
+    case "$1" in
+        libamd-comgr2|libamdhip64-*|libucx0|libopenmpi3*|openmpi-bin) return 0 ;;
+    esac
+
+    return 1
+}
+
+# Remove every build-only package that nothing outside that class depends on.
+#
+#     sc_remove_build_only
+#
+# A criterion rather than a list, because a list of package names goes stale the
+# moment a tool changes its prerequisites, and because the names differ per
+# distribution. What makes it safe is the second half: a candidate is dropped
+# only when no package outside the build-only class declares a hard dependency
+# on it. So clang-16's libclang-common-16-dev stays, g++'s libstdc++-13-dev
+# stays, and the multilib set bambu needs stays -- without any of them being
+# named here.
+#
+# Recommends and Suggests are deliberately not consulted. "apt-cache rdepends"
+# reports them alongside real dependencies, which makes half the tree look
+# load-bearing when it is not.
+#
+# This does not replace a tool's own docker-cmds removals: it only catches what
+# the name patterns above describe, so a build-only package like ghc, gnat-13 or
+# a distribution's llvm-18 still has to be named by the tool that installs it.
+sc_remove_build_only() {
+    if [ "$_sc_backend" != "deb" ]; then
+        echo "sc_remove_build_only: deb only, skipping"
+        return 0
+    fi
+
+    _sc_bo_deps=$(mktemp)
+    _sc_bo_drop=""
+    dpkg-query -W -f='${Package}\t${Depends}, ${Pre-Depends}\n' > "$_sc_bo_deps"
+
+    for _sc_bo_pkg in $(dpkg-query -W -f='${Package}\n'); do
+        _sc_is_build_only "$_sc_bo_pkg" || continue
+
+        # A dependency can name a package through anything it Provides, not just
+        # its real name, so the search has to cover both. The t64 transition made
+        # this concrete: libamd-comgr2 depends on "libllvm17", which is a virtual
+        # name libllvm17t64 provides, and matching the real name alone reported
+        # libllvm17t64 as unreferenced when it was not.
+        _sc_bo_names=$_sc_bo_pkg
+        for _sc_bo_prov in $(dpkg-query -W -f='${Provides}' "$_sc_bo_pkg" 2>/dev/null |
+                tr ',' ' ' | sed 's/([^)]*)//g'); do
+            _sc_bo_names="$_sc_bo_names $_sc_bo_prov"
+        done
+
+        # Any hard dependant outside the class pins it in place.
+        _sc_bo_blocked=""
+        for _sc_bo_rd in $(awk -F'\t' -v names="$_sc_bo_names" '
+                BEGIN { split(names, want, " ") }
+                { n = $1; d = $2
+                  gsub(/\([^)]*\)/, "", d); gsub(/ /, "", d)
+                  split(d, parts, ",")
+                  for (i in parts) {
+                      split(parts[i], alts, "|")
+                      for (j in alts) for (k in want) if (alts[j] == want[k]) print n
+                  } }' "$_sc_bo_deps" | sort -u); do
+            if ! _sc_is_build_only "$_sc_bo_rd"; then
+                _sc_bo_blocked=$_sc_bo_rd
+                break
+            fi
+        done
+
+        [ -n "$_sc_bo_blocked" ] || _sc_bo_drop="$_sc_bo_drop $_sc_bo_pkg"
+    done
+
+    rm -f "$_sc_bo_deps"
+
+    # Word splitting of the package list is intended.
+    # shellcheck disable=SC2086
+    sc_remove_prereqs $_sc_bo_drop
+}
+
+# Directories whose static archives are linked at RUN time, not build time, and
+# so are not build artifacts however much they look like them:
+#
+#   lib/ghdl      libgrt.a, linked into every design by "ghdl -e"
+#   lib/panda     bambu's softfloat and libm, linked into generated designs
+#   lib/Bluesim   Bluespec's simulation kernel, linked by "bsc -sim"
+_SC_RUNTIME_ARCHIVE_DIRS="ghdl panda Bluesim"
+
+# Delete the build-only half of an install prefix: static archives, headers,
+# and the build-system and documentation trees.
+#
+#     sc_prune_build_artifacts [DIR]
+#
+# $PREFIX/include and $PREFIX/lib/cmake are dev material by convention and no
+# flow reads them. Note that the headers tools genuinely need at run time do not
+# live there -- verilator's are under share/verilator/include and bambu's under
+# share/panda -- so both survive.
+sc_prune_build_artifacts() {
+    _sc_prune_dir="${1:-${PREFIX:-}}"
+
+    if [ -z "$_sc_prune_dir" ] || [ ! -d "$_sc_prune_dir" ]; then
+        echo "sc_prune_build_artifacts: no prefix to prune" >&2
+        return 0
+    fi
+
+    echo "Pruning build artifacts from $_sc_prune_dir"
+
+    _sc_prune_args=""
+    for _sc_prune_keep in $_SC_RUNTIME_ARCHIVE_DIRS; do
+        _sc_prune_args="$_sc_prune_args ! -path */$_sc_prune_keep/*"
+    done
+
+    # shellcheck disable=SC2086
+    find "$_sc_prune_dir" -name '*.a' $_sc_prune_args -delete 2>/dev/null
+
+    rm -rf "$_sc_prune_dir/include" \
+           "$_sc_prune_dir/lib/cmake" \
+           "$_sc_prune_dir/lib/pkgconfig" \
+           "$_sc_prune_dir/share/doc" \
+           "$_sc_prune_dir/share/man"
+}
+
+# The binutils family on deb, including what binutils drags in transitively.
+# sc_strip_prefix_managed installs binutils and then removes exactly the subset
+# that was not there before, so everything the install can add has to be
+# nameable -- without libctf0, libctf-nobfd0 and libsframe1 the removal leaves
+# them orphaned and they land in apt.txt.
+#
+# Names absent on a distribution (rpm ships only "binutils") fall out on their
+# own: they probe as missing, and sc_remove_prereqs re-probes and skips whatever
+# the install did not actually add.
+_SC_STRIP_PKGS="binutils binutils-common libbinutils binutils-x86-64-linux-gnu
+    libctf0 libctf-nobfd0 libsframe1"
+
+# Strip a prefix even on an image that has no "strip", borrowing binutils for
+# the duration.
+#
+#     sc_strip_prefix_managed [DIR]
+#
+# Several tools build with bazel against a prebuilt toolchain and never install
+# binutils, so plain sc_strip_prefix finds no strip and skips. It skips silently
+# and on purpose -- a tool that builds is worth more than the bytes -- which is
+# exactly why it went unnoticed that openroad was shipping 27MB of symbol
+# tables and two verible binaries another 2MB.
+#
+# Installing binutils in the base builder image is the easy fix and the wrong
+# one: it would land in every tool's apt.txt and ship in the runtime image, and
+# it would retag every tool image to do it. Borrowing it here costs nothing,
+# because apt.txt is generated after this runs.
+sc_strip_prefix_managed() {
+    if command -v strip > /dev/null 2>&1; then
+        sc_strip_prefix "$@"
+        return 0
+    fi
+
+    # Take back out exactly what this adds. On an image where part of the family
+    # was already present, removing all of it would be a change this function
+    # has no business making.
+    # Word splitting of the package list is intended.
+    # shellcheck disable=SC2086
+    _sc_strip_added=$(_sc_missing_pkgs $_SC_STRIP_PKGS)
+
+    install_prereqs binutils
+
+    sc_strip_prefix "$@"
+
+    # shellcheck disable=SC2086
+    sc_remove_prereqs $_sc_strip_added
+}
+
 # Remove symbol tables and debug sections from everything installed under a
 # prefix. Nothing in the flows reads them: they exist for debugging a tool build,
 # and they are a third of the size of an installed tool tree.
