@@ -80,7 +80,7 @@ Get something running
 Run it somewhere else
 ---------------------
 
-* :ref:`Run remotely, with nothing installed locally <remote_processing>` -- compile against a server.
+* :ref:`Run remotely <remote_processing>` -- compile against a server you or your organization operates.
 * :ref:`Run inside a container <docker>` -- the supported route on Windows.
 * :ref:`Run steps in parallel <parallel_execution>` -- more than one node at a time.
 * :ref:`Run on a cluster <cluster_tutorial>` -- Slurm and friends.
