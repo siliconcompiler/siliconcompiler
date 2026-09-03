@@ -110,7 +110,7 @@ class DependencySchema(BaseSchema):
 
         return meta
 
-    def write_manifest(self, filename: Union[str, pathlib.Path, TextIO]) -> None:
+    def write_manifest(self, filename: Union[str, bytes, pathlib.Path, TextIO]) -> None:
         # Detach a copy from any parent project so the dependency graph is
         # embedded (as a flat map, see _getdict_meta) rather than deferred to
         # the project. The original object is left untouched.

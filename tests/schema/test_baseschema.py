@@ -997,6 +997,48 @@ def test_write_manifest_pathlib():
         assert a.read() == b.read()
 
 
+def test_write_manifest_bytes_path():
+    """A bytes path is a path, not a stream.
+
+    ``open()`` and ``os.path.splitext()`` both take bytes, so this worked before
+    the target check existed; a path test that omits bytes turns it into a
+    confusing "'bytes' object has no attribute 'write'".
+    """
+    schema = _simple_schema("bytes_path")
+
+    schema.write_manifest(b"test.json")
+
+    assert os.path.isfile("test.json")
+    assert json.loads(Path("test.json").read_text())[
+        "test0"]["test1"]["node"]["*"]["*"]["value"] == "bytes_path"
+
+
+def test_write_manifest_bytes_path_gz():
+    """Extension sniffing must work for bytes paths too.
+
+    ``os.path.splitext(b"x.gz")`` yields ``b".gz"``, which never compares equal
+    to ``".gz"``, so without normalising the path the file would be written
+    uncompressed under a .gz name.
+    """
+    schema = _simple_schema("bytes_gz")
+
+    schema.write_manifest(b"test.json.gz")
+
+    with gzip.open("test.json.gz", "rt", encoding="utf-8") as f:
+        assert json.loads(f.read())[
+            "test0"]["test1"]["node"]["*"]["*"]["value"] == "bytes_gz"
+
+
+def test_write_manifest_bytes_matches_str():
+    """A bytes path and the equivalent str path produce the same bytes."""
+    schema = _simple_schema()
+
+    schema.write_manifest(b"test_bytes.json")
+    schema.write_manifest("test_str.json")
+
+    assert Path("test_bytes.json").read_bytes() == Path("test_str.json").read_bytes()
+
+
 def test_write_manifest_pathlib_is_never_written_to_directly():
     """A Path is a destination to open, not a stream to write into.
 

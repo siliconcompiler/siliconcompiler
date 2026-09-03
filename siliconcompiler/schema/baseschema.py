@@ -481,9 +481,11 @@ class BaseSchema:
 
     @staticmethod
     @contextlib.contextmanager
-    def __open_file(filepath: Union[str, pathlib.Path],
+    def __open_file(filepath: Union[str, bytes, pathlib.Path],
                     is_read: bool = True) -> Iterator[TextIO]:
-        _, ext = os.path.splitext(filepath)
+        # fsdecode so the extension test is str-vs-str for every path flavour:
+        # splitext on a bytes path yields b".gz", which never equals ".gz".
+        _, ext = os.path.splitext(os.fsdecode(filepath))
         if ext.lower() == ".gz":
             if not _has_gzip:
                 raise RuntimeError("gzip is not available")
@@ -525,7 +527,7 @@ class BaseSchema:
 
         self._from_dict(BaseSchema._read_manifest(filepath), [])
 
-    def write_manifest(self, filepath: Union[str, pathlib.Path, TextIO]) -> None:
+    def write_manifest(self, filepath: Union[str, bytes, pathlib.Path, TextIO]) -> None:
         '''
         Writes the manifest to a file or an open text stream.
 
@@ -581,7 +583,8 @@ class BaseSchema:
         # The caller's stream: borrowed, so write to it and leave it open. Keyed
         # off the path types because those are the closed set -- "has a .write()"
         # is open-ended, and a pathlib.Path has no .write() to be caught by it.
-        if not isinstance(filepath, (str, os.PathLike)):
+        # (str, bytes, os.PathLike) is what os.fspath itself accepts as a path.
+        if not isinstance(filepath, (str, bytes, os.PathLike)):
             filepath.write(manifest_str)
             return
 
