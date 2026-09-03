@@ -2,7 +2,7 @@ from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope
 from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
 
 
-SCHEMA_VERSION = '0.0.4'
+SCHEMA_VERSION = '0.0.5'
 
 
 class ServerSchema(CommandLineSchema, BaseSchema):
@@ -40,15 +40,17 @@ class ServerSchema(CommandLineSchema, BaseSchema):
         schema.insert(
             'option', 'cluster',
             Parameter(
-                '<local,slurm>',
+                '<local,slurm,docker>',
                 scope=Scope.GLOBAL,
                 defvalue='local',
                 require=True,
                 shorthelp="Type of compute cluster to use.",
                 switch="-cluster <str>",
                 example=["cli: -cluster slurm",
-                         "api: server.set('option', 'clister', 'slurm')"],
-                help="""Type of compute cluster to use."""))
+                         "api: server.set('option', 'cluster', 'slurm')"],
+                help="""Type of compute cluster to use. 'local' runs every node as a
+                process on the server itself, 'slurm' submits them to a slurm
+                cluster, and 'docker' runs each node in its own container."""))
 
         schema.insert(
             'option', 'nfsmount',

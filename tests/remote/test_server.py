@@ -2149,16 +2149,29 @@ def test_run_job_marks_finished_nodes_uploaded(gcd_nop_project, monkeypatch):
     assert tracked['steptwo0']['status'] == NodeStatus.PENDING
 
 
-def test_run_job_uses_slurm_when_clustered(gcd_nop_project, monkeypatch):
-    '''A slurm server hands its nodes to slurm'''
-    server = _make_server(cluster='slurm')
+@pytest.mark.parametrize('cluster', ('slurm', 'docker'))
+def test_run_job_uses_cluster_scheduler(gcd_nop_project, monkeypatch, cluster):
+    '''A clustered server hands its nodes to that cluster's scheduler'''
+    server = _make_server(cluster=cluster)
     gcd_nop_project.set('record', 'remoteid', 'f' * 32)
 
     monkeypatch.setattr(gcd_nop_project, 'run', lambda: True)
 
     server.remote_sc(gcd_nop_project, None)
 
-    assert gcd_nop_project.option.scheduler.get_name() == 'slurm'
+    assert gcd_nop_project.option.scheduler.get_name() == cluster
+
+
+def test_run_job_leaves_scheduler_unset_when_local(gcd_nop_project, monkeypatch):
+    '''A local server does not name a per-node scheduler'''
+    server = _make_server(cluster='local')
+    gcd_nop_project.set('record', 'remoteid', 'f' * 32)
+
+    monkeypatch.setattr(gcd_nop_project, 'run', lambda: True)
+
+    server.remote_sc(gcd_nop_project, None)
+
+    assert gcd_nop_project.option.scheduler.get_name() is None
 
 
 @pytest.mark.asyncio
