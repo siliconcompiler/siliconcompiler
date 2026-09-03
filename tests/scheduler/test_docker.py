@@ -1,7 +1,11 @@
 import docker
+import glob
+import io
+import json
 import os
 import pytest
 import sys
+import tarfile
 
 import os.path
 
@@ -96,36 +100,42 @@ def test_docker_run(docker_image, project):
         NodeStatus.SUCCESS
 
 
-@pytest.mark.skipif(sys.platform == 'win32', reason='posix path handling')
-def test_run_writes_per_node_manifest(project):
-    """Each node needs its own manifest file.
+def test_run_streams_manifest_into_container(project):
+    """The manifest is handed over in memory, never staged on the host.
 
-    One shared sc_docker.json is rewritten by every node, and write_manifest()
-    truncates in place, so parallel siblings can read torn JSON.
+    A file staged in the job directory is shared by every node, and
+    write_manifest() truncates in place, so parallel siblings could read torn
+    JSON. Each container has its own filesystem, so the collision cannot arise.
     """
 
-    seen = {}
-    for step in ("stepone", "steptwo"):
-        node = DockerSchedulerNode(project, step, "0")
+    node = DockerSchedulerNode(project, "stepone", "0")
 
-        client = MagicMock()
-        client.images.get.return_value = MagicMock(id="image-id")
-        client.api.exec_create.return_value = {'Id': 'exec-id'}
-        client.api.exec_start.return_value = [b'running\n']
-        client.api.exec_inspect.return_value = {'ExitCode': 0}
+    container = MagicMock()
+    client = MagicMock()
+    client.images.get.return_value = MagicMock(id="image-id")
+    client.containers.run.return_value = container
+    client.api.exec_create.return_value = {'Id': 'exec-id'}
+    client.api.exec_start.return_value = [b'running\n']
+    client.api.exec_inspect.return_value = {'ExitCode': 0}
 
-        with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
-            node.run()
+    with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
+        node.run()
 
-        cmd = client.api.exec_create.call_args.args[1]
-        seen[step] = cmd.split('-cfg ')[1].split()[0]
+    # Nothing was staged on the host.
+    assert not glob.glob(os.path.join(jobdir(project), '**', 'sc_docker*'), recursive=True)
 
-    assert seen["stepone"].endswith('sc_docker/stepone0.json')
-    assert seen["steptwo"].endswith('sc_docker/steptwo0.json')
-    assert seen["stepone"] != seen["steptwo"]
-    # Both were actually written, not just named.
-    for path in seen.values():
-        assert os.path.isfile(path)
+    # The runner is pointed at the container-local path...
+    cmd = client.api.exec_create.call_args.args[1]
+    assert '-cfg /tmp/sc_manifest.json' in cmd
+
+    # ...and the manifest actually got there, as a readable one-entry tar.
+    dest, blob = container.put_archive.call_args.args
+    assert dest == '/tmp'
+    with tarfile.open(fileobj=io.BytesIO(blob)) as tar:
+        members = tar.getmembers()
+        assert [m.name for m in members] == ['sc_manifest.json']
+        assert members[0].mode & 0o444
+        assert json.loads(tar.extractfile(members[0]).read())
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix uid/gid mapping')
