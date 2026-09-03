@@ -5,7 +5,7 @@ import sys
 
 import os.path
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.tools.builtin.nop import NOPTask
@@ -94,6 +94,30 @@ def test_docker_run(docker_image, project):
         NodeStatus.SUCCESS
     assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')
+def test_run_stops_container_without_grace_period(project):
+    """Teardown must not sit through the daemon's SIGTERM grace period.
+
+    The container's PID 1 is an interactive shell that ignores SIGTERM, so a
+    plain stop() costs the full 10s timeout on every node.
+    """
+
+    node = DockerSchedulerNode(project, "stepone", "0")
+
+    container = MagicMock()
+    client = MagicMock()
+    client.images.get.return_value = MagicMock(id="image-id")
+    client.containers.run.return_value = container
+    client.api.exec_create.return_value = {'Id': 'exec-id'}
+    client.api.exec_start.return_value = [b'running\n']
+    client.api.exec_inspect.return_value = {'ExitCode': 0}
+
+    with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
+        node.run()
+
+    container.stop.assert_called_once_with(timeout=0)
 
 
 @patch('sys.platform', 'win32')

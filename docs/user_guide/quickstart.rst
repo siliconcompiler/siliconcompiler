@@ -3,7 +3,7 @@
 Quickstart guide
 ================
 
-If you've completed the :ref:`Installation <installation>` section and were able to run the :ref:`ASIC Demo <asic_demo>`, you will have completed a simple remote run through an :term:`ASIC` design flow!
+If you've completed the :ref:`Installation <installation>` section and were able to run the :ref:`ASIC Demo <asic_demo>`, you will have completed a simple containerized run through an :term:`ASIC` design flow!
 
 In the following sections, you will find more details about :ref:`the design <start_the_design>`, :ref:`the flow <start_the_flow>` and :ref:`the results <start_the_results>` of the run.
 
@@ -12,43 +12,41 @@ In the following sections, you will find more details about :ref:`the design <st
 Where the compilation runs
 --------------------------
 
-The same script runs either in the cloud or entirely on your own machine.
-One line decides which, and it is worth choosing deliberately before you start:
+The same script runs either against containerized tools or against tools
+installed natively. One line decides which, and it is worth choosing
+deliberately before you start:
 
 .. list-table::
    :header-rows: 1
    :widths: 12 44 44
 
    * -
-     - Remote
-     - Local
+     - Docker
+     - Native
    * - Setup
-     - Nothing beyond ``pip install siliconcompiler``.
+     - :ref:`Docker <docker>` installed and running; nothing else beyond
+       ``pip install siliconcompiler``.
      - Four EDA tools: :ref:`Yosys <tool-yosys>`, :ref:`OpenROAD <tool-openroad>`,
        :ref:`OpenSTA <tool-opensta>` and :ref:`KLayout <tool-klayout>`. See
-       :ref:`external tools <external_tools>`, or skip the install entirely with
-       the :ref:`Docker image <docker>`.
+       :ref:`external tools <external_tools>`.
+   * - Where the tools come from
+     - The ``sc_runner`` image -- one container per :term:`flowgraph node`,
+       started and stopped by SiliconCompiler.
+     - Your own machine.
    * - Needs
-     - A network connection for the whole run.
+     - A network connection the first time, to pull the image.
      - Nothing; runs offline once the :term:`PDK` is cached.
-   * - Your design
-     - Uploaded to a server. The public server is
-       `not intended for proprietary IP <https://www.siliconcompiler.com/terms>`_
-       -- run a :ref:`private server <private-server>` if that matters.
-     - Never leaves your machine.
    * - Enable with
-     - ``project.option.set_remote(True)``
-     - Nothing -- local is the default.
+     - ``project.option.scheduler.set_name("docker")``, or ``-scheduler docker``.
+     - Nothing -- native is the default.
 
-Remote is the quickest way to a first result, which is why the
-:ref:`ASIC Demo <asic_demo>` uses it. Local is the better default once you are
-iterating on a design, and it is the only option for work you cannot upload.
+Either way your design never leaves your machine: both modes read and write your
+working directory and nothing else.
 
-.. note::
-   A remote run depends on the public server being available. If it is busy or
-   down, the run fails -- please
-   :ref:`report it <faq>`, and use the :ref:`Docker image <docker>` to
-   keep working in the meantime.
+Docker is the quickest way to a first result, which is why the
+:ref:`ASIC Demo <asic_demo>` uses it. Native tools are the better default once
+you are iterating on a design, and avoid the container startup cost on every
+node.
 
 
 .. _start_the_design:
@@ -89,7 +87,7 @@ The following code snippet below shows how the :ref:`demo design <asic_demo>` wa
         project = ASIC(design)                                 # create project
         project.add_fileset(["rtl", "sdc"])                    # enable filesets
         skywater130_demo(project)                              # load a pre-defined target
-        project.option.set_remote(True)                        # enable remote execution
+        project.option.scheduler.set_name("docker")            # run the tools in containers
         project.run()                                          # run compilation
         project.summary()                                      # print summary
         project.show()                                         # show layout
@@ -143,14 +141,14 @@ This is the line that chooses between the two modes described :ref:`above <choos
 
 .. code-block:: python
 
-    project.option.set_remote(True)     # compile in the cloud
+    project.option.scheduler.set_name("docker")   # run the tools in containers
 
-Delete it -- or set it to ``False`` -- and the identical script compiles on your
-own machine instead:
+Delete it and the identical script runs the tools installed natively on your own
+machine instead:
 
 .. code-block:: python
 
-    project.option.set_remote(False)    # compile locally (the default)
+    project.option.scheduler.set_name(None)       # use native tools (the default)
 
 Nothing else in the script changes between the two.
 
@@ -234,10 +232,11 @@ Other Ways to Run
 
 Beyond the two modes :ref:`compared above <choose_run_mode>`, there are two more:
 
-* :ref:`Docker <docker>` -- run the tools locally without installing or
-  maintaining any of them.
-* :ref:`Private server <remote_processing>` -- remote execution against a server
-  you control, for designs you cannot send to the public one.
+* :ref:`Remote <remote_processing>` -- send the job to a server you or your
+  organization operates, for pre-configured tool installations, elastic compute
+  or NDA-protected :term:`PDKs <PDK>`.
+* :ref:`Cluster schedulers <cluster_tutorial>` -- dispatch
+  each node through Slurm, LSF or SGE.
 
 Local Run Results
 ^^^^^^^^^^^^^^^^^

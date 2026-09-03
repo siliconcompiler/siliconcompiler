@@ -86,6 +86,6 @@ if __name__ == "__main__":
         "fpga_demo",
         description="\"Self-test\" target which builds a small 8-bit counter design as an FPGA, "
                     "targeting the z1000.",
-        switchlist=["-remote"])
+        switchlist=["-remote", "-scheduler"])
     proj.run()
     proj.summary()

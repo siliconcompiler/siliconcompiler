@@ -337,7 +337,12 @@ class DockerSchedulerNode(SchedulerNode):
             # Ensure we clean up containers
             if container:
                 try:
-                    container.stop()
+                    # timeout=0 skips the daemon's SIGTERM grace period, which is
+                    # 10s of dead time per node here: the container's PID 1 is an
+                    # interactive shell that ignores SIGTERM, and the task itself
+                    # ran through exec and is already done, so there is nothing
+                    # left inside to shut down gracefully.
+                    container.stop(timeout=0)
                 except docker.errors.APIError:
                     self.logger.error(f'Failed to stop docker container: {container.name}')
 

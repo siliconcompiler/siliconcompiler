@@ -31,7 +31,7 @@ SiliconCompiler is a modular hardware build system ("make for silicon"). The pro
 
 SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
 Linux platforms. For working Python 3.10-3.14 environment, just use pip.
-On Windows, use remote or Docker execution — local tool flows are supported on Linux and macOS.
+On Windows, use Docker or remote execution — local tool flows are supported on Linux and macOS.
 
 ```sh
 pip install --upgrade siliconcompiler
@@ -50,7 +50,7 @@ design.add_file("heartbeat.sdc", fileset="sdc")        # add input sources
 project = ASIC(design)                                 # create project
 project.add_fileset(["rtl", "sdc"])                    # enable filesets
 skywater130_demo(project)                              # load a pre-defined target
-project.option.set_remote(True)                        # enable remote execution
+project.option.scheduler.set_name("docker")            # run the tools in containers
 project.run()                                          # run compilation
 project.summary()                                      # print summary
 project.show()                                         # show layout
@@ -72,10 +72,10 @@ project class is what decides what happens to it:
 
 Linting is the quickest way to see SiliconCompiler work: the default linter ships
 as a Python package, so it needs no EDA tools installed at all. For a complete
-FPGA build with nothing installed locally, the demo runs remotely:
+FPGA build with no EDA tools installed locally, the demo runs in containers:
 
 ```sh
-python3 -m siliconcompiler.demos.fpga_demo -remote
+python3 -m siliconcompiler.demos.fpga_demo -scheduler docker
 ```
 
 # Why SiliconCompiler?
@@ -83,7 +83,7 @@ python3 -m siliconcompiler.demos.fpga_demo -remote
 * **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/latest/reference_manual/schema_api.html)
 * **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/latest/reference_manual/schema.html) supports ASIC and FPGA design and simulation
 * **Speed:** Flowgraph [execution model](https://docs.siliconcompiler.com/en/latest/user_guide/execution_model.html) enables cloud scale execution.
-* **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/latest/user_guide/remote_processing.html) enables "zero install" compilation
+* **Friction-less:** [Containerized execution](https://docs.siliconcompiler.com/en/latest/user_guide/docker.html) enables "zero install" compilation, and a [remote execution model](https://docs.siliconcompiler.com/en/latest/user_guide/remote_processing.html) offloads builds to a server you operate
 * **Modularity:** [Tool abstraction layer](https://docs.siliconcompiler.com/en/latest/development_guide/tools.html) makes it easy to add/port new tools to the project.
 * **Provenance:** [Compilation manifests](https://docs.siliconcompiler.com/en/latest/user_guide/data_model.html) created automatically during execution.
 * **Documented:** An extensive set of auto-generated high quality [reference documents](https://docs.siliconcompiler.com/).

@@ -192,17 +192,18 @@ Finally, to clone and install SiliconCompiler, run the following:
 
 ASIC Demo
 ---------
-Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the cloud.
+Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow.
+The demo runs the EDA tools in containers with the :ref:`Docker scheduler <docker>`, so nothing beyond Docker and SiliconCompiler needs to be installed -- see :ref:`Using SiliconCompiler with Docker <docker>` if Docker is not running on your machine yet.
 
 .. code-block:: bash
 
-    python -m siliconcompiler.demos.asic_demo -remote
+    python -m siliconcompiler.demos.asic_demo -scheduler docker
 
 ``python`` rather than ``python3``: a virtual environment provides both on every
 platform, and Windows has only ``python``. Outside an activated environment on
 Linux or macOS, use ``python3``.
 
-Your remote job should only take a few minutes to run if the servers aren't too busy.
+The first run also pulls the container image, so it takes a few minutes.
 It should end with a results directory where you can find ``png`` file which displays your results.
 It should look something like this:
 
@@ -215,7 +216,7 @@ See :ref:`Quickstart guide <quickstart_guide>` next to go through the design and
 External Tools
 --------------
 
-If you wish to run on your machine instead of remotely in the cloud as in the quick :ref:`asic demo <asic_demo>` target above, there will be some tools you need to install first.
+If you wish to run the tools natively instead of in containers as in the quick :ref:`asic demo <asic_demo>` target above, there will be some tools you need to install first.
 You can use the provided :ref:`sc-install <app-sc-install>` application to install the tools or view the scripts directly in the list below.
 
 .. note::
@@ -251,7 +252,7 @@ Coverage is not uniform, and the gaps matter for the ASIC flow:
 * **RHEL 8 and Ubuntu 20.04** have scripts for KLayout only. There are no
   scripts for Yosys, OpenROAD or OpenSTA on those platforms, so the ASIC flow
   cannot be installed this way -- use a newer distribution, the
-  :ref:`Docker image <docker>`, or a :ref:`remote run <choose_run_mode>`.
+  :ref:`Docker image <docker>`, or a :ref:`remote run <remote_processing>`.
 
 .. installscripts::
 
@@ -261,7 +262,7 @@ Coverage is not uniform, and the gaps matter for the ASIC flow:
    tools. No install scripts are provided for Windows and the local flows are
    not supported on it.
 
-   To compile a design from Windows, use a :ref:`remote run <choose_run_mode>`,
+   To compile a design from Windows, use a :ref:`remote run <remote_processing>`,
    the :ref:`Docker image <docker>`, or WSL. KLayout is the exception worth
    installing natively: it has Windows builds, and :ref:`sc-show <app-sc-show>`
    will use it to view results downloaded from a remote run.

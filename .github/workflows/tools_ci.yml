@@ -501,32 +501,3 @@ jobs:
     needs: [build_sc_tools, tools_changed_check]
     if: always() && !cancelled() && needs.tools_changed_check.outputs.asic_changed == 'Yes'
     uses: ./.github/workflows/daily_ci.yml
-
-  server_tests:
-    needs: build_sc_tools
-    if: always() && !cancelled()
-    name: Test server
-    timeout-minutes: 90
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check for Secret availability
-        id: secret-check
-        # perform secret check & put boolean result as an output
-        shell: bash
-        run: |
-          if [ "${{ secrets.ZA_TOKEN }}" != '' ]; then
-            echo "available=true" >> $GITHUB_OUTPUT;
-          else
-            echo "available=false" >> $GITHUB_OUTPUT;
-          fi
-      - name: Trigger server tests
-        if: ${{ steps.secret-check.outputs.available == 'true' }}
-        uses: convictional/trigger-workflow-and-wait@v1.6.5
-        with:
-          github_token: ${{ secrets.ZA_TOKEN }}
-          owner: ${{ secrets.SERVER_OWNER }}
-          repo: ${{ secrets.SERVER_REPO }}
-          workflow_file_name: containers.yml
-          client_payload: '{"sc-ref": "${{ github.ref }}"}'
-          wait_interval: 60
-          ref: ${{ vars.SERVER_BRANCH }}

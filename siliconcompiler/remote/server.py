@@ -392,11 +392,11 @@ class Server(ServerSchema):
 
         How much can be stopped depends on where the job's nodes are running.
         Slurm nodes are cancelable: they are named after the job hash, so the
-        server can hand them to scancel. Nodes running locally are not -- they
-        are children of the thread executing the job, and this server has no
-        handle on them -- so those run to completion. Either way the job is
-        marked canceled, which is what 'check_progress' reports and what
-        releases a waiting client.
+        server can hand them to scancel. Nodes running locally, and the
+        containers a docker cluster starts, are not -- they belong to the thread
+        executing the job, and this server has no handle on them -- so those run
+        to completion. Either way the job is marked canceled, which is what
+        'check_progress' reports and what releases a waiting client.
         '''
 
         # Process input parameters
@@ -608,7 +608,8 @@ class Server(ServerSchema):
 
         Only slurm nodes can be reached, and the scheduler that submitted them
         is what knows how: the node list this server tracks is enough for
-        SlurmSchedulerNode.cancel_nodes().
+        SlurmSchedulerNode.cancel_nodes(). A local or docker cluster has nothing
+        to reach for, so those jobs are only marked.
         '''
 
         with self.sc_jobs_lock:
@@ -731,9 +732,11 @@ class Server(ServerSchema):
         project.option.set_builddir(build_dir)
         project.option.set_remote(False)
 
-        if self.get('option', 'cluster') == 'slurm':
-            # Run the job with slurm clustering.
-            project.option.scheduler.set_name('slurm')
+        cluster = self.get('option', 'cluster')
+        if cluster != 'local':
+            # 'local' is what an unset scheduler already means; any other
+            # cluster names the per-node scheduler the run dispatches through.
+            project.option.scheduler.set_name(cluster)
 
         # Run the job.
         project.run()

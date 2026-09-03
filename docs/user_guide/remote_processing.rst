@@ -3,13 +3,11 @@
 Guide to Remote Compilation
 ===========================
 
-SiliconCompiler supports a remote compilation model, allowing you to leverage cloud resources for access to pre-configured tool installations, elastic compute, and potentially NDA-protected :term:`PDKs <PDK>` or :term:`IPs <IP>` on private servers.
+SiliconCompiler supports a remote compilation model, allowing you to leverage cloud resources for access to pre-configured tool installations, elastic compute, and potentially NDA-protected :term:`PDKs <PDK>` or :term:`IPs <IP>`.
 
-.. note::
-
-    Our public server only supports open-source tools and PDKs.
-    During periods of high traffic, your job may be queued, which could result in processing delays.
-    When you run a remote job, SiliconCompiler will remind you that your design is being uploaded to a public service.
+Remote execution runs against a server you or your organization operates.
+SiliconCompiler does not host a server for you -- see
+:ref:`For Developers: Custom Servers <custom-servers>` for how to stand one up.
 
 .. _private-server:
 
@@ -47,7 +45,7 @@ Open your terminal and run the following command:
 
 You will be prompted to enter your server's details. Follow the prompts based on the type of server you are connecting to:
 
-* **Private/Authenticated Server:** Provide the server address, your username, and your password/API key when prompted.
+* **Authenticated Server:** Provide the server address, your username, and your password/API key when prompted.
 
 .. code-block:: bash
 
@@ -56,11 +54,11 @@ You will be prompted to enter your server's details. Follow the prompts based on
   Remote password: your-key
   Remote configuration saved to: /home/user/.sc/credentials
 
-* **Public/Unauthenticated Server:** Enter the server address and press Enter to leave the username and password fields blank.
+* **Unauthenticated Server:** Enter the server address and press Enter to leave the username and password fields blank.
 
 .. code-block:: bash
 
-  Remote server address: https://server.siliconcompiler.com
+  Remote server address: https://your-server.example.com
   Remote username:
   Remote password:
   Remote configuration saved to: /home/user/.sc/credentials
@@ -79,7 +77,7 @@ The file must contain the following JSON structure:
     "password": "your-password-or-key"
   }
 
-For a public server, simply leave the username and password fields as empty strings ("").
+For an unauthenticated server, simply leave the username and password fields as empty strings ("").
 
 Step 2: Verify the Connection
 -----------------------------
@@ -116,6 +114,8 @@ Troubleshooting
 * **Local Changes Not Reflected:** Any modifications you make to local, built-in tool scripts, PDKs, or libraries will not be used in a remote job. The remote server uses its own pre-configured environment.
 * **Network and Filesystem Issues:** Jobs run in isolated environments on the server. Code that relies on specific network or local filesystem calls may not work as expected.
 * **Reporting Issues:** If you encounter problems with the remote workflow, please open an issue on the `SiliconCompiler repository's issue page <https://github.com/siliconcompiler/siliconcompiler/issues>`_.
+
+.. _custom-servers:
 
 For Developers: Custom Servers
 ------------------------------

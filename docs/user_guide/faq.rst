@@ -20,61 +20,33 @@ Getting started
 Do I need to install EDA tools, or can I just try it?
 -----------------------------------------------------
 
-You can try it with nothing but ``pip install siliconcompiler``, by running in
-the cloud:
-
-.. code-block:: python
-
-   project.option.set_remote(True)
-
-A local run needs four tools -- :ref:`Yosys <tool-yosys>`,
-:ref:`OpenROAD <tool-openroad>`, :ref:`OpenSTA <tool-opensta>` and
-:ref:`KLayout <tool-klayout>` -- or the
-:ref:`Docker image <docker>`, which needs none of them installed.
-:ref:`Where the compilation runs <choose_run_mode>` compares the options.
-
-.. index:: ! confidential, ! proprietary IP, ! public server, ! privacy
-
-Is my design confidential if I use the public server?
------------------------------------------------------
-
-Your design is uploaded to a server operated by SiliconCompiler, under
-`these terms <https://www.siliconcompiler.com/terms>`_. The client prints this
-before every remote run, and it is worth taking literally:
-
-   This public service, provided by SiliconCompiler, is not intended to process
-   proprietary IP.
-
-For anything you cannot publish, run locally or stand up a
-:ref:`private server <private-server>`. You are also responsible for having the
-right to distribute any IP contained in what you upload.
-
-.. index:: ! server down, ! server busy, ! 500 error
-
-What if the public server is down or busy?
-------------------------------------------
-
-**Please report it.** The server is not self-monitoring from your side of the
-connection, and a
-`bug report <https://github.com/siliconcompiler/siliconcompiler/issues/new/choose>`_
-is how an outage gets noticed and fixed. Include the error and roughly when it
-happened.
-
-Meanwhile, the fastest way to keep working is the
-:ref:`Docker image <docker>`, which runs the flow locally without installing any
-EDA tools:
+You can try it with nothing but Docker and ``pip install siliconcompiler``, by
+running the tools in containers:
 
 .. code-block:: bash
 
    python -m siliconcompiler.demos.asic_demo -scheduler docker
 
-Installing the tools natively is the better answer if you expect to keep
-building, but it is not a five-minute detour, so it is not the one to start on
-while you are blocked. Either way the script is unchanged apart from
-:ref:`how the run is dispatched <choose_run_mode>`.
+Running them natively needs four tools -- :ref:`Yosys <tool-yosys>`,
+:ref:`OpenROAD <tool-openroad>`, :ref:`OpenSTA <tool-opensta>` and
+:ref:`KLayout <tool-klayout>`. It is the better answer if you expect to keep
+building, but it is not a five-minute detour, so it is not the one to start on.
+:ref:`Where the compilation runs <choose_run_mode>` compares the two, and
+:ref:`Using SiliconCompiler with Docker <docker>` sets the container path up.
 
-A remote run depends on the server staying healthy for its whole duration,
-which is worth knowing before you rely on it for something time-critical.
+.. index:: ! confidential, ! proprietary IP, ! privacy
+
+Does my design leave my machine?
+--------------------------------
+
+Not on a local or :ref:`Docker <docker>` run -- both read and write your working
+directory and nothing else.
+
+It does on a :ref:`remote run <remote_processing>`, which uploads the design to
+the server named in your ``credentials`` file. SiliconCompiler does not host a
+server for you, so that is a machine you or your organization operates, under
+whatever terms that operator sets. You are responsible for having the right to
+distribute any IP contained in what you upload.
 
 .. index:: ! Windows, ! WSL
 
@@ -85,7 +57,8 @@ The package installs and runs on Windows, and is tested there on every commit,
 but that testing does not cover running EDA tools. There are no tool install
 scripts for Windows and local flows are not supported on it.
 
-From Windows, use a remote run, the :ref:`Docker image <docker>`, or WSL.
+From Windows, use the :ref:`Docker image <docker>`, WSL, or a
+:ref:`remote run <remote_processing>`.
 KLayout is worth installing natively so :ref:`sc-show <app-sc-show>` can display
 results. See :ref:`External Tools <external_tools>`.
 
