@@ -42,8 +42,24 @@ fi
 
 mkdir -p build
 cd build
+
+# Never -march=native here, whatever upstream's README suggests for a local
+# build. This prefix gets shipped: it is what goes into the sc_tools container
+# image, and it is what a shared sc-install prefix hands to other machines. The
+# instruction set of whichever machine did the build is not a property any of
+# those consumers share, and the failure is a SIGILL on the first wide
+# instruction rather than anything diagnosable.
+#
+# It bit exactly that way: two consecutive image builds differed only in which
+# runner compiled them, and the one that landed on an AVX-512 host produced a
+# kepler-formal with 1533 zmm references that died with "Illegal instruction"
+# on every test runner without AVX-512. The build before it, on a host without
+# it, had none and ran everywhere.
+#
+# install-openroad.sh already settled the same question the same way, pinning
+# -march=x86-64 for Qt and naming x86-64-v3 only where a file needs it.
 cmake .. -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_FLAGS_RELEASE="-Ofast -march=native -ffast-math -flto" \
+    -DCMAKE_CXX_FLAGS_RELEASE="-Ofast -ffast-math -flto" \
     -DCMAKE_EXE_LINKER_FLAGS="-flto" \
 	-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
     -DENABLE_UNIT_TESTS=OFF \
