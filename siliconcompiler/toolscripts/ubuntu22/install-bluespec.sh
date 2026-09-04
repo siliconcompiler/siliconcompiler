@@ -51,8 +51,14 @@ if [ "$(uname -m)" = "x86_64" ]; then
     # would have left the bounds this builds against free to move.
     hs_cabal_rev=1
     hs_cabal_sha256=fede3d515b877b56623ac1ccacbf17c326baded87640af0f10c27c66dd742f49
+    hs_tar_sha256=02d934ec5053d3d42031798e5a3cd25547ccde5973d562f9fc943d635d9956c0
     if [ -z "$(ghc-pkg list --simple-output strict-concurrency)" ]; then
-        wget -q -O - ${hs_url}/${hs_pkg}.tar.gz | tar xz
+        # Both downloads land in a file and are checked before anything reads
+        # them. Piping the archive straight into tar would unpack whatever
+        # arrived, and a short read would leave a half-extracted tree behind.
+        wget -q -O ${hs_pkg}.tar.gz ${hs_url}/${hs_pkg}.tar.gz
+        echo "${hs_tar_sha256}  ${hs_pkg}.tar.gz" | sha256sum --quiet -c -
+        tar xzf ${hs_pkg}.tar.gz
         cd ${hs_pkg}
         wget -q -O strict-concurrency.cabal ${hs_url}/revision/${hs_cabal_rev}.cabal
         echo "${hs_cabal_sha256}  strict-concurrency.cabal" | sha256sum --quiet -c -

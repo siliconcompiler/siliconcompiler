@@ -85,9 +85,24 @@ def test_is_version_tag_accepts_releases(name):
     "v0_1rc1",              # icarus
     "pymod/v0.26.0.dev15",  # klayout
     "ghdl_0.31dev",         # ghdl, the marker run onto a digit with no number
+    "v0.12.0-Beta",         # sbt, a marker after a separator with no number
 ])
 def test_is_version_tag_rejects_prereleases(name):
     assert not sc_tools.is_version_tag(name, "")
+
+
+@pytest.mark.parametrize("name", [
+    # A marker only counts where it is a marker. Each of these carries one as
+    # the head of an ordinary word, and each is a release.
+    "v1.0-master",
+    "v1.0-mingw",
+    "v1.0.0-macos",
+    "v1.0-development",
+    "smtcomp-2018",     # boolector, and its real tag
+    "llvmorg-19.1.5",   # mlir: the m of llvm is not a milestone
+])
+def test_is_version_tag_keeps_markers_inside_words(name):
+    assert sc_tools.is_version_tag(name, "")
 
 
 @pytest.mark.parametrize("marker", [
@@ -96,15 +111,18 @@ def test_is_version_tag_rejects_prereleases(name):
 def test_is_version_tag_rejects_every_marker_in_both_forms(marker):
     """Every marker has to be recognised in both spellings.
 
-    The two halves of the pattern were written separately and did not agree:
-    the digit form knew only rc, alpha and beta, so v1.0-dev1 was rejected
-    while v1.0dev1 was accepted as a release.
+    The two halves of the pattern were written separately and kept disagreeing.
+    First on the marker list: the digit form knew only rc, alpha and beta, so
+    v1.0-dev1 was rejected while v1.0dev1 was accepted as a release. Then on
+    the number: the separator form required one, so v1.0rc was rejected while
+    v1.0-rc was not, and sbt's real v0.12.0-Beta went through as a release.
     """
 
     assert not sc_tools.is_version_tag(f"v1.0-{marker}1", "")   # separator
     assert not sc_tools.is_version_tag(f"v1.0.{marker}1", "")   # separator
     assert not sc_tools.is_version_tag(f"v1.0{marker}1", "")    # onto a digit
-    assert not sc_tools.is_version_tag(f"v1.0{marker}", "")     # and unnumbered
+    assert not sc_tools.is_version_tag(f"v1.0{marker}", "")     # unnumbered
+    assert not sc_tools.is_version_tag(f"v1.0-{marker}", "")    # and both at once
 
     # The marker is a marker only at a boundary. Nothing here is a pre-release.
     assert sc_tools.is_version_tag(f"v1.0-x{marker}1", "")

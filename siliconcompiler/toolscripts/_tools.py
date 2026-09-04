@@ -24,11 +24,14 @@ with open(data_file, "r") as f:
 _PRERELEASE_MARKERS = "rc|alpha|beta|preview|pre|snapshot|dev|milestone|m"
 
 _prerelease_tag = re.compile(
-    # Separator form. Deliberately not anchored, because a candidate can carry
-    # something after the number: sbt respun a candidate as v2.0.0-RC13-1.
-    rf"[-._](?:{_PRERELEASE_MARKERS})[-._]?[0-9]"
-    # Digit form, where the marker and its number end the name.
-    rf"|[0-9](?:{_PRERELEASE_MARKERS})[-._]?[0-9]*$",
+    # A marker at a boundary -- the start of the name, a separator, or a digit
+    # -- followed either by its number or by the end of the name. Demanding one
+    # or the other is what stops a marker from matching the head of an ordinary
+    # word: v1.0-m1 and v1.0-rc are candidates, v1.0-master is a release.
+    #
+    # Not anchored as a whole, because a candidate can carry something after
+    # its number: sbt respun one as v2.0.0-RC13-1.
+    rf"(?:^|[-._]|[0-9])(?:{_PRERELEASE_MARKERS})(?:[-._]?[0-9]+|$)",
     re.IGNORECASE)
 
 
