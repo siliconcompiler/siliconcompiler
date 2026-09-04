@@ -22,7 +22,11 @@ install_prereqs wget
 # JRE in to run ANTLR's parser generator, and that leaked into the container
 # image through apt.txt. Declare it here so that dropping surelog's build-time
 # JRE cannot leave chisel without a java to run.
-install_prereqs default-jre-headless
+#
+# The version is named rather than left to default-jre-headless, which is still
+# Java 11 here: sbt 2.x checks the JDK version in its launcher script and exits
+# with "sbt 2.x requires JDK 17 or above" before it does anything else.
+install_prereqs openjdk-17-jre-headless
 
 mkdir -p deps
 cd deps

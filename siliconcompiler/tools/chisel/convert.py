@@ -153,6 +153,15 @@ class ConvertTask(Task):
     def runtime_options(self):
         options = super().runtime_options()
         options.append('-batch')
+
+        # sbt 2.x runs through its native thin client by default, which leaves a
+        # server JVM in the background after the build finishes -- keyed on this
+        # node's working directory, which the next run replaces. --server puts
+        # sbt in the foreground instead, so the node's processes end with the
+        # node. sbt 1.x already worked this way, and has accepted the flag since
+        # 1.4, so it is a no-op there.
+        options.append('--server')
+
         options.append('--no-share')
         options.append('--no-global')
 
