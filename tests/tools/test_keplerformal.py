@@ -121,10 +121,14 @@ def test_keplerformal_sec(datadir):
     flow.edge('importb', 'sec')
     proj.set_flow(flow)
 
+    # SEC needs a reset to anchor the state to, so it uses its own resettable
+    # design rather than the reset-less counter the LEC tests compare.
+    SECTask.find_task(proj).add_reset_port("rst")
+
     ImporterTask.find_task(proj).add("var", "input_files",
-                                     os.path.join(datadir, 'lec', 'foo.v'), step='importa')
+                                     os.path.join(datadir, 'sec', 'foo.v'), step='importa')
     ImporterTask.find_task(proj).add("var", "input_files",
-                                     os.path.join(datadir, 'lec', 'foo.vg'), step='importb')
+                                     os.path.join(datadir, 'sec', 'foo.vg'), step='importb')
 
     assert proj.run()
     assert proj.history("job0").get('metric', 'drvs', step='sec', index='0') == 0
@@ -150,10 +154,12 @@ def test_keplerformal_sec_broken(datadir):
     flow.edge('importb', 'sec')
     proj.set_flow(flow)
 
+    SECTask.find_task(proj).add_reset_port("rst")
+
     ImporterTask.find_task(proj).add("var", "input_files",
-                                     os.path.join(datadir, 'lec', 'foo.v'), step='importa')
+                                     os.path.join(datadir, 'sec', 'foo.v'), step='importa')
     ImporterTask.find_task(proj).add("var", "input_files",
-                                     os.path.join(datadir, 'lec', 'broken', 'foo.vg'),
+                                     os.path.join(datadir, 'sec', 'broken', 'foo.vg'),
                                      step='importb')
 
     assert proj.run()
@@ -164,8 +170,8 @@ def test_keplerformal_sec_broken(datadir):
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 @pytest.mark.parametrize("netlist,drvs", [
-    (os.path.join('lec', 'foo.vg'), 0),
-    (os.path.join('lec', 'broken', 'foo.vg'), 1)])
+    (os.path.join('sec', 'foo.vg'), 0),
+    (os.path.join('sec', 'broken', 'foo.vg'), 1)])
 def test_lecflow_sequential(datadir, netlist, drvs):
     # LECFlow holds only the check, so it is grafted onto the nodes which supply
     # the two views it compares. Both cases run the same graph and differ only in
@@ -187,8 +193,10 @@ def test_lecflow_sequential(datadir, netlist, drvs):
     flow.edge('netlist', 'sec')
     proj.set_flow(flow)
 
+    SECTask.find_task(proj).add_reset_port("rst")
+
     ImporterTask.find_task(proj).add("var", "input_files",
-                                     os.path.join(datadir, 'lec', 'foo.v'), step='rtl')
+                                     os.path.join(datadir, 'sec', 'foo.v'), step='rtl')
     ImporterTask.find_task(proj).add("var", "input_files",
                                      os.path.join(datadir, netlist), step='netlist')
 
