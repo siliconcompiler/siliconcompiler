@@ -84,9 +84,30 @@ def test_is_version_tag_accepts_releases(name):
     "2023.00.90alpha",      # bluespec
     "v0_1rc1",              # icarus
     "pymod/v0.26.0.dev15",  # klayout
+    "ghdl_0.31dev",         # ghdl, the marker run onto a digit with no number
 ])
 def test_is_version_tag_rejects_prereleases(name):
     assert not sc_tools.is_version_tag(name, "")
+
+
+@pytest.mark.parametrize("marker", [
+    "rc", "alpha", "beta", "pre", "preview", "snapshot", "dev", "milestone", "m",
+])
+def test_is_version_tag_rejects_every_marker_in_both_forms(marker):
+    """Every marker has to be recognised in both spellings.
+
+    The two halves of the pattern were written separately and did not agree:
+    the digit form knew only rc, alpha and beta, so v1.0-dev1 was rejected
+    while v1.0dev1 was accepted as a release.
+    """
+
+    assert not sc_tools.is_version_tag(f"v1.0-{marker}1", "")   # separator
+    assert not sc_tools.is_version_tag(f"v1.0.{marker}1", "")   # separator
+    assert not sc_tools.is_version_tag(f"v1.0{marker}1", "")    # onto a digit
+    assert not sc_tools.is_version_tag(f"v1.0{marker}", "")     # and unnumbered
+
+    # The marker is a marker only at a boundary. Nothing here is a pre-release.
+    assert sc_tools.is_version_tag(f"v1.0-x{marker}1", "")
 
 
 @pytest.mark.parametrize("name", [

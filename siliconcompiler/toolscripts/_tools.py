@@ -15,11 +15,20 @@ with open(data_file, "r") as f:
 
 
 # Tags that name a pre-release. Both spellings turn up in the repositories these
-# scripts track: with a separator (ghdl's v0.36-rc1, sbt's v2.0.0-M2) and
-# without (ghdl's v1.0.0rc1, bsc's 2023.00.90alpha).
+# scripts track: the marker introduced by a separator (ghdl's v0.36-rc1, sbt's
+# v2.0.0-M2) and the marker run straight onto a digit (ghdl's v1.0.0rc1 and
+# ghdl_0.31dev, bsc's 2023.00.90alpha). One list of markers feeds both forms so
+# that the two cannot drift apart, which they had: the second form knew only
+# rc, alpha and beta, so a dev or milestone tag was caught in one spelling and
+# missed in the other. "preview" precedes "pre" to be preferred over it.
+_PRERELEASE_MARKERS = "rc|alpha|beta|preview|pre|snapshot|dev|milestone|m"
+
 _prerelease_tag = re.compile(
-    r"[-._](?:rc|alpha|beta|pre|preview|snapshot|dev|milestone|m)[-._]?[0-9]"
-    r"|[0-9](?:rc|alpha|beta)[0-9]*$",
+    # Separator form. Deliberately not anchored, because a candidate can carry
+    # something after the number: sbt respun a candidate as v2.0.0-RC13-1.
+    rf"[-._](?:{_PRERELEASE_MARKERS})[-._]?[0-9]"
+    # Digit form, where the marker and its number end the name.
+    rf"|[0-9](?:{_PRERELEASE_MARKERS})[-._]?[0-9]*$",
     re.IGNORECASE)
 
 

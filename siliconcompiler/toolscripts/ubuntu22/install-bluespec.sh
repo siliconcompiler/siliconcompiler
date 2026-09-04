@@ -40,14 +40,22 @@ if [ "$(uname -m)" = "x86_64" ]; then
     # often shared and which is what ships in the container image.
     hs_pkg=strict-concurrency-0.2.4.3
     hs_url=https://hackage.haskell.org/package/${hs_pkg}
+    # Hackage revises .cabal files in place to widen version bounds after a
+    # release, and the tarball keeps the original: 0.2.4.3 as shipped caps
+    # deepseq below 1.5, which is the version Ubuntu 26.04's ghc provides,
+    # and revision 1 is what lifts the cap to 1.6.
+    #
+    # Take that revision by number and check what arrives. A numbered
+    # revision is immutable, where the unnumbered .cabal always serves
+    # whatever the newest revision has become, so pinning the version alone
+    # would have left the bounds this builds against free to move.
+    hs_cabal_rev=1
+    hs_cabal_sha256=fede3d515b877b56623ac1ccacbf17c326baded87640af0f10c27c66dd742f49
     if [ -z "$(ghc-pkg list --simple-output strict-concurrency)" ]; then
         wget -q -O - ${hs_url}/${hs_pkg}.tar.gz | tar xz
         cd ${hs_pkg}
-        # Hackage revises .cabal files in place to widen version bounds
-        # after a release, and the tarball keeps the original: 0.2.4.3
-        # as shipped caps deepseq below 1.5, the version Ubuntu 26.04's
-        # ghc provides.
-        wget -q -O strict-concurrency.cabal ${hs_url}/strict-concurrency.cabal
+        wget -q -O strict-concurrency.cabal ${hs_url}/revision/${hs_cabal_rev}.cabal
+        echo "${hs_cabal_sha256}  strict-concurrency.cabal" | sha256sum --quiet -c -
         # Build-type: Simple, so the stock Setup is the whole build system.
         printf 'import Distribution.Simple\nmain = defaultMain\n' > Setup.hs
         runghc Setup.hs configure --user
