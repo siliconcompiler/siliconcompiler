@@ -49,8 +49,8 @@
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "v5.1.1",
-    "auto-update": false,
+    "git-commit": "v6.0.0",
+    "auto-update": true,
     "docker-cmds": [
       "# Drop the LLVM headers and the Ada compiler. libllvm18 and libgnat-13",
       "# stay: ghdl1-llvm links both at runtime (ldd confirms) and ghdl shells out",
@@ -70,8 +70,8 @@
   },
   "bluespec": {
     "git-url": "https://github.com/B-Lang-org/bsc.git",
-    "git-commit": "2024.07",
-    "auto-update": false,
+    "git-commit": "2026.01",
+    "auto-update": true,
     "docker-cmds": [
       "# Drop the Haskell toolchain. bsc and bluetcl are compiled binaries whose",
       "# runtime needs are libgmp10, libffi8 and libtcl8.6 -- separate packages,",
@@ -164,14 +164,14 @@
     "docker-depends": "icepack"
   },
   "chisel": {
-    "version": "1.11.6",
+    "version": "2.0.8",
     "git-url": "https://github.com/sbt/sbt.git",
-    "auto-update": false
+    "auto-update": true
   },
   "icarus": {
     "git-url": "https://github.com/steveicarus/iverilog.git",
-    "git-commit": "7786fb67c30faf197689b3bc3369c828e59c8ae7",
-    "auto-update": false
+    "git-commit": "v13_0",
+    "auto-update": true
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
@@ -222,7 +222,7 @@
   "gtkwave": {
     "git-commit": "v3.3.116",
     "git-url": "https://github.com/gtkwave/gtkwave.git",
-    "auto-update": false
+    "auto-update": true
   },
   "sby": {
     "git-url": "https://github.com/YosysHQ/sby.git",
@@ -263,8 +263,8 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "bab109ce0ea08ce6134eee38655dc87d7f6815db",
-    "auto-update": false
+    "git-commit": "3a0e0abcbe092f19b2f1f97dbeceff9d6a8452d2",
+    "auto-update": true
   },
   "vcd2fst": {
     "git-url": "https://github.com/Silimate/vcd2fst.git",
