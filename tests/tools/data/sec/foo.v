@@ -11,10 +11,8 @@ module foo (
 );
 
     always @(posedge clk) begin
-        if (rst)
-            out <= 2'b00;
-        else
-            out <= out + 1'b1;
+        if (rst) out <= 2'b00;
+        else out <= out + 1'b1;
     end
 
 endmodule
