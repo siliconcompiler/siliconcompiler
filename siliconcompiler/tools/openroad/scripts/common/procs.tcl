@@ -1240,11 +1240,19 @@ proc sc_set_dont_use { args } {
             unset_dont_use [sc_cfg_get library $sc_mainlib asic cells $group]
         }
     }
-    if { [sc_cfg_tool_task_exists var multibit_ff_cells] && [info exists flags(-multibit)] } {
-        unset_dont_use [sc_cfg_tool_task_get var multibit_ff_cells]
+    # These are library properties, not task vars: the mainlib declares them via
+    # add_openroad_multibit_flipflops / add_openroad_scan_chain_cells.
+    if {
+        [info exists flags(-multibit)] &&
+        [sc_cfg_exists library $sc_mainlib tool openroad multibit_ff_cells]
+    } {
+        unset_dont_use [sc_cfg_get library $sc_mainlib tool openroad multibit_ff_cells]
     }
-    if { [sc_cfg_tool_task_exists var scan_chain_cells] && [info exists flags(-scanchain)] } {
-        unset_dont_use [sc_cfg_tool_task_get var scan_chain_cells]
+    if {
+        [info exists flags(-scanchain)] &&
+        [sc_cfg_exists library $sc_mainlib tool openroad scan_chain_cells]
+    } {
+        unset_dont_use [sc_cfg_get library $sc_mainlib tool openroad scan_chain_cells]
     }
 
     if { [info exists keys(-report)] } {
