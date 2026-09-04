@@ -5,15 +5,14 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
+permissions:
+  contents: read
+
 jobs:
   get_tools:
     name: 'Get updatable tools'
 
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-      packages: write
 
     outputs:
       tools: ${{ steps.tools.outputs.tools }}
@@ -35,6 +34,12 @@ jobs:
 
     name: 'Update tool'
     runs-on: ubuntu-latest
+
+    # GITHUB_TOKEN only reads here: the draft-PR check below is its only use.
+    # The App token minted further down does the push and the PR.
+    permissions:
+      contents: read
+      pull-requests: read
 
     steps:
       - name: Check if draft exists
@@ -62,22 +67,39 @@ jobs:
           python3 -m venv .venv
           source .venv/bin/activate
           python3 -m pip install GitPython
-          git config --global user.name "SiliconCompiler Bot"
-          git config --global user.email "bot@siliconcompiler.com"
+          # Leaves the bump uncommitted in the working tree; create-pull-request
+          # below does the committing, with the author and message it is given.
           msg=$(python3 siliconcompiler/toolscripts/_tools.py --bump_commit --tool ${{ matrix.tool }})
-          echo $msg
+          echo "$msg"
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "msg<<$EOF" >> $GITHUB_OUTPUT
           echo "$msg" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
-          git add siliconcompiler/toolscripts/_tools.py
-          git commit -m "$msg" || true
+
+      # A GitHub App installation token rather than a PAT on a machine user:
+      # minted per job, scoped to this repository, an hour to live, revoked
+      # when the job ends. Minted here, next to its only use, so the clone in
+      # the step above does not eat into that hour.
+      #
+      # It is also deliberately not GITHUB_TOKEN, which cannot trigger further
+      # workflow runs: a PR opened with it would carry no checks at all, and
+      # 'Tool-based tests' is required to merge, so it could never land.
+      - name: Mint an App token
+        id: app-token
+        if: steps.update.outputs.msg != '' && steps.check.outputs.skip != 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.SC_BOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SC_BOT_APP_PRIVATE_KEY }}
+          # Narrower than the installation, should the App ever be granted more
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Create Pull Request
         if: steps.update.outputs.msg != '' && steps.check.outputs.skip != 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.BOT_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           title: "[SC-BOT] Update ${{ matrix.tool }}"
           author: "SiliconCompiler Bot <bot@siliconcompiler.com>"
           committer: "SiliconCompiler Bot <bot@siliconcompiler.com>"
@@ -85,6 +107,9 @@ jobs:
             ${{ steps.update.outputs.msg }}
           commit-message: |
             Update ${{ matrix.tool }}
+          # --bump_commit writes only this file; naming it keeps anything else
+          # that lands in the tree out of the PR.
+          add-paths: siliconcompiler/toolscripts/_tools.json
           branch: bot/${{ matrix.tool }}-update
           base: main
           delete-branch: true

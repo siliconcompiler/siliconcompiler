@@ -31,6 +31,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Least privilege by default. The repository's default workflow token is
+# write-all, so the scopes have to be named here to drop the rest. The jobs
+# that push to ghcr.io raise themselves to packages: write; every sc_* package
+# is linked to this repository, so GITHUB_TOKEN covers it and no PAT is needed.
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   build_tool_builder:
     name: 'Build base tool builder image'
@@ -38,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      contents: read
       packages: write
 
     outputs:
@@ -55,7 +63,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Read-only credentials, can be accessed by external contributors
+      # GITHUB_TOKEN, scoped by this job's packages: write. On a pull request
+      # from a fork the token is read-only, so a run that has to build a new
+      # image fails at the push and a repo member has to run it; pulls, and any
+      # run whose images already exist, work for external contributors.
       - name: Log in to the Container registry
         uses: docker/login-action@v4
         with:
@@ -93,15 +104,6 @@ jobs:
           path: docker/
           retention-days: 1
 
-      # Read/write credentials, can only be accessed by repo members
-      - name: Log in to the Container registry
-        if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.PACKAGES_ACTOR }}
-          password: ${{ secrets.PACKAGES_TOKEN }}
-
       - name: Build and Push SiliconCompiler Builder Docker image
         if: steps.docker.outputs.has_builder != 'true'
         uses: docker/build-push-action@v7.3.0
@@ -136,8 +138,8 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.PACKAGES_ACTOR }}
-          password: ${{ secrets.PACKAGES_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Build and Push Tool Docker image
         uses: docker/build-push-action@v7.3.0
@@ -174,8 +176,8 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.PACKAGES_ACTOR }}
-          password: ${{ secrets.PACKAGES_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Build and Push Tool Docker image
         uses: docker/build-push-action@v7.3.0
@@ -218,8 +220,8 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.PACKAGES_ACTOR }}
-          password: ${{ secrets.PACKAGES_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -250,8 +252,8 @@ jobs:
       uses: docker/login-action@v4
       with:
         registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.PACKAGES_ACTOR }}
-        password: ${{ secrets.PACKAGES_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4
@@ -307,8 +309,8 @@ jobs:
       uses: docker/login-action@v4
       with:
         registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.PACKAGES_ACTOR }}
-        password: ${{ secrets.PACKAGES_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     - name: Determine runner latest tag
       run: |
@@ -361,6 +363,12 @@ jobs:
 
     if: always() && !cancelled()
 
+    permissions:
+      contents: read
+      packages: read
+      # Codecov uploads with OIDC rather than an upload token
+      id-token: write
+
     container:
       image: ${{ needs.build_tool_builder.outputs.sc_tools }}
 
@@ -408,7 +416,7 @@ jobs:
         continue-on-error: true
         uses: codecov/codecov-action@v7
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           files: coverage.xml
           name: codecov-tools
           verbose: true

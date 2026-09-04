@@ -16,6 +16,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Least privilege by default; the publish job raises itself to what
+# trusted publishing and the release upload need.
+permissions:
+  contents: read
+
 jobs:
   klayout_cache:
     name: Cache kLayout

@@ -4,6 +4,13 @@ on:
     types:
       - closed
 
+# Deleting caches is the Actions cache API, hence actions: write. GITHUB_TOKEN
+# covers it; note that a pull_request event from a fork gets a read-only token
+# regardless, so those PRs leave their caches to expire on their own.
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   cleanup:
     runs-on: ubuntu-latest

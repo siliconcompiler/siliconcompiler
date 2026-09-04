@@ -26,8 +26,11 @@ jobs:
     name: 'Get docker image'
     runs-on: ubuntu-latest
 
+    # Reusable, and called from scgallery as well as from daily_ci. A
+    # reusable workflow cannot be granted more than its caller holds, so this
+    # only ever reads.
     permissions:
-      contents: write
+      contents: read
       packages: read
 
     outputs:
