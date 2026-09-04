@@ -14,6 +14,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# The repository's default workflow token is write-all; nothing here writes.
+permissions:
+  contents: read
+
 jobs:
   lint_python:
     name: Lint Python Code

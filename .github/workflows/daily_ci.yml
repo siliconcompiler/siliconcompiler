@@ -28,6 +28,12 @@ concurrency:
   group: daily-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Least privilege; also the ceiling for the reusable workflows called below,
+# which have no way to ask for more than the caller was granted.
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   docker_image:
     uses: ./.github/workflows/docker_image.yml
@@ -308,7 +314,7 @@ jobs:
           PY
 
   gallery:
-    if: ${{ github.event_name	!= 'workflow_dispatch' || inputs.rungallery }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.rungallery }}
     uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main
     with:
       sc-ref: ${{ github.ref }}
