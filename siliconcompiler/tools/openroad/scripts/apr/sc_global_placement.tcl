@@ -41,12 +41,26 @@ if { [sc_cfg_tool_task_get var enable_scan_chains] } {
             [sc_cfg_tool_task_get var scan_enable_port_pattern]
     }
 
-    set dft_args [list -clock_mixing clock_mix {*}$dft_args]
+    set scan_max_length [sc_cfg_tool_task_get var scan_max_length]
+    if { $scan_max_length != {} } {
+        lappend dft_args -max_length $scan_max_length
+    }
+    set scan_max_chains [sc_cfg_tool_task_get var scan_max_chains]
+    if { $scan_max_chains != {} } {
+        lappend dft_args -max_chains $scan_max_chains
+    }
+
+    set dft_args [list -clock_mixing [sc_cfg_tool_task_get var scan_clock_mixing] {*}$dft_args]
+
+    # tee without -quiet so every DFT report lands in reports/dft and in the task
+    # log: the log is what an sc-issue bundle carries, the files are what the
+    # report collection picks up.
+    file mkdir reports/dft
 
     sc_report_args -command set_dft_config -args $dft_args
     set_dft_config {*}$dft_args
-    tee -file reports/checks/scan_chain_config.rpt {report_dft_config}
-    scan_replace
+    tee -file reports/dft/config.rpt {report_dft_config}
+    tee -file reports/dft/scan_replace.rpt {scan_replace}
 }
 
 ###############################
@@ -68,8 +82,10 @@ sc_global_placement
 ###############################
 
 if { [sc_cfg_tool_task_get var enable_scan_chains] } {
-    tee -file reports/checks/scan_chain.rpt {preview_dft -verbose}
-    insert_dft
+    tee -file reports/dft/plan.rpt {report_dft_plan -verbose}
+    # execute_dft_plan reports nothing of its own; the ports it creates are
+    # picked up by sc_get_unplaced_io_nets below.
+    execute_dft_plan
 
     set new_ios [sc_get_unplaced_io_nets]
     if { [llength $new_ios] > 0 } {

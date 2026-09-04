@@ -3,6 +3,7 @@ import os
 import re
 import pytest
 
+from siliconcompiler import ASIC
 from siliconcompiler import Design
 from siliconcompiler import Flowgraph
 from siliconcompiler import TaskSkip
@@ -16,6 +17,8 @@ from siliconcompiler.flows.openroad_pex import (
 )
 
 from siliconcompiler.scheduler import SchedulerNode
+
+from siliconcompiler.targets.skywater130_demo import skywater130_demo
 
 from siliconcompiler.tools.openroad import OpenROADPDK
 from siliconcompiler.tools.openroad import OpenROADStdCellLibrary
@@ -222,6 +225,162 @@ def test_openroad_pin_placement(asic_heartbeat):
     assert log.count("Pin clk placed at") == 1
     assert log.count("Pin nreset placed at") == 1
     assert log.count("Pin out placed at") == 1
+
+
+@pytest.fixture
+def sky130_heartbeat(heartbeat_design):
+    """heartbeat on skywater130, stopped after global placement.
+
+    DFT needs a standard cell library whose liberty carries ``test_cell`` groups;
+    without them OpenROAD's scan_replace finds no scan-equivalent cells and every
+    DFT step is a silent no-op. nangate45 (and so the freepdk45 fixtures) has
+    none, sky130hd does, which is why the scan tests below do not use
+    ``asic_heartbeat``.
+    """
+    project = ASIC(heartbeat_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    skywater130_demo(project)
+
+    project.set('option', 'nodisplay', True)
+    project.set('option', 'quiet', True)
+    project.option.add_to("place.global")
+
+    return project
+
+
+def _read_scan_chains(report):
+    """Parse ``report_dft_plan -verbose`` output into ``{chain: [cell, ...]}``.
+
+    The verbose plan is a run of ``Scan chain '<name>' has <n> cells`` headers,
+    each separated from its indented instance names by a blank line and closed by
+    another. The first cell of a chain carries its clock domain in parentheses,
+    e.g. ``counter_reg\\[5\\]$_DFF_PN0_ (clk, rising)``.
+    """
+    chains = {}
+    cells = None
+    header = re.compile(r"^Scan chain '(\S+)' has (\d+) cells")
+    with open(report) as fid:
+        for line in fid:
+            entry = line.strip()
+            match = header.match(entry)
+            if match:
+                cells = chains.setdefault(match.group(1), [])
+            elif entry and cells is not None:
+                cells.append(entry.split(' ')[0])
+            elif not entry and cells:
+                # Blank line closes a chain, but the one right after the header
+                # (cells still empty) opens it.
+                cells = None
+    return chains
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_openroad_scan_chain_insertion(sky130_heartbeat):
+    """Run global placement with scan chains on, end to end.
+
+    Nothing else in the suite executes the DFT half of sc_global_placement.tcl:
+    the parameter tests only check that the setters read back. That gap let the
+    script keep calling preview_dft/insert_dft for fourteen months after
+    OpenROAD renamed them to report_dft_plan/execute_dft_plan, so this test
+    exists mainly to fail loudly the next time a DFT command is renamed.
+    """
+    task = global_placement.GlobalPlacementTask.find_task(sky130_heartbeat)
+    task.set_openroad_enablescanchains(True)
+
+    # A library that marks its scan flops dont-use relies on sc_set_dont_use
+    # -scanchain to hand them back for the duration of this task. sdfrbp_1 is the
+    # cell scan_replace actually swaps heartbeat's flops to, so making it dont-use
+    # without the release below would break the run outright.
+    mainlib = sky130_heartbeat.get_library(str(sky130_heartbeat.get("asic", "mainlib")))
+    mainlib.add_asic_celllist("dontuse", "sky130_fd_sc_hd__sdfrbp_1")
+    mainlib.add_openroad_scan_chain_cells("sky130_fd_sc_hd__sdfrbp_1")
+
+    job = sky130_heartbeat.run()
+    assert job
+
+    start = job.find_result(step="place.global", index="0", directory="reports/setup",
+                            filename="dont_use.start.rpt")
+    with open(start) as fid:
+        assert "sky130_fd_sc_hd__sdfrbp_1" in fid.read()
+    released = job.find_result(step="place.global", index="0", directory="reports/setup",
+                               filename="dont_use.global_placement.rpt")
+    with open(released) as fid:
+        assert "sky130_fd_sc_hd__sdfrbp_1" not in fid.read()
+
+    config = job.find_result(step="place.global", index="0", directory="reports/dft",
+                             filename="config.rpt")
+    assert config, "report_dft_config wrote no reports/dft/config.rpt"
+    with open(config) as fid:
+        config_text = fid.read()
+    # The defaults: OpenROAD's own, so turning scan chains on changes nothing else.
+    assert "- Clock Mixing: Clock Mix" in config_text
+    assert "- Max Length: Undefined" in config_text
+    assert "- Max Chains: Undefined" in config_text
+
+    report = job.find_result(step="place.global", index="0", directory="reports/dft",
+                             filename="plan.rpt")
+    assert report, "report_dft_plan wrote no reports/dft/plan.rpt"
+    chains = _read_scan_chains(report)
+    # heartbeat is an 8-bit counter plus its output register, all on one clock, so
+    # the unconstrained plan is a single chain holding every flop in the design.
+    assert len(chains) == 1
+    assert len(chains["chain_0"]) == 9
+
+    # scan_replace is teed too, so its per-instance warnings (a flop with no scan
+    # equivalent in the library) survive next to the plan they explain.
+    assert job.find_result(step="place.global", index="0", directory="reports/dft",
+                           filename="scan_replace.rpt") is not None
+
+    log = job.find_result(step="place.global", index="0", directory=".",
+                          filename="place.global.log")
+    with open(log) as fid:
+        log_text = fid.read()
+    # Every DFT report is teed without -quiet, so the task log carries it as well
+    # as reports/dft. An sc-issue bundle ships the log, not the report tree.
+    assert "DFT Config Report:" in log_text
+    assert "Report DFT Plan" in log_text
+    assert "Scan chain 'chain_0' has 9 cells" in log_text
+    # execute_dft_plan has to add the scan ports, which is what forces the
+    # re-run of pin placement at the end of the script.
+    assert "New IO net scan_in_0" in log_text
+    assert "New IO net scan_enable_0" in log_text
+    assert "Scan chain generated new ports, rerunning pin placement" in log_text
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_openroad_scan_chain_architect_parameters(sky130_heartbeat):
+    """clock_mixing / max_length / max_chains must reach set_dft_config.
+
+    clock_mixing in particular is a methodology choice, not a tuning knob: many
+    DFT flows disallow mixing clock domains within a chain outright.
+    """
+    task = global_placement.GlobalPlacementTask.find_task(sky130_heartbeat)
+    task.set_openroad_enablescanchains(True)
+    task.set_openroad_scanclockmixing("no_mix")
+    task.set_openroad_scanmaxlength(4)
+    task.set_openroad_scanmaxchains(8)
+
+    job = sky130_heartbeat.run()
+    assert job
+
+    config = job.find_result(step="place.global", index="0", directory="reports/dft",
+                             filename="config.rpt")
+    with open(config) as fid:
+        config_text = fid.read()
+    assert "- Clock Mixing: No Mix" in config_text
+    assert "- Max Length: 4" in config_text
+    assert "- Max Chains: 8" in config_text
+
+    report = job.find_result(step="place.global", index="0", directory="reports/dft",
+                             filename="plan.rpt")
+    chains = _read_scan_chains(report)
+    # The same 9 flops, now split by the length cap rather than left in one chain.
+    assert len(chains) == 3
+    assert sorted(len(cells) for cells in chains.values()) == [3, 3, 3]
 
 
 _CAP_UNIT_SCALE = {"": 1.0, "m": 1e-3, "u": 1e-6, "n": 1e-9, "p": 1e-12, "f": 1e-15, "a": 1e-18}
@@ -1847,6 +2006,44 @@ def test_openroad_global_placement_parameter_scan_out_port_pattern():
     assert task.get("var", "scan_out_port_pattern", step='global_placement', index='1') == \
         'other_pattern'
     assert task.get("var", "scan_out_port_pattern") == 'test_pattern'
+
+
+def test_openroad_global_placement_parameter_scan_clock_mixing():
+    task = global_placement.GlobalPlacementTask()
+    # Defaults to the permissive mode OpenROAD itself defaults to, so enabling scan
+    # chains does not silently change methodology.
+    assert task.get("var", "scan_clock_mixing") == 'clock_mix'
+    task.set_openroad_scanclockmixing('no_mix')
+    assert task.get("var", "scan_clock_mixing") == 'no_mix'
+    task.set_openroad_scanclockmixing('clock_mix', step='global_placement', index='1')
+    assert task.get("var", "scan_clock_mixing", step='global_placement', index='1') == 'clock_mix'
+    assert task.get("var", "scan_clock_mixing") == 'no_mix'
+
+
+def test_openroad_global_placement_parameter_scan_clock_mixing_rejects_unknown():
+    task = global_placement.GlobalPlacementTask()
+    with pytest.raises(ValueError):
+        task.set_openroad_scanclockmixing('mix_everything')
+
+
+def test_openroad_global_placement_parameter_scan_max_length():
+    task = global_placement.GlobalPlacementTask()
+    assert task.get("var", "scan_max_length") is None
+    task.set_openroad_scanmaxlength(100)
+    assert task.get("var", "scan_max_length") == 100
+    task.set_openroad_scanmaxlength(50, step='global_placement', index='1')
+    assert task.get("var", "scan_max_length", step='global_placement', index='1') == 50
+    assert task.get("var", "scan_max_length") == 100
+
+
+def test_openroad_global_placement_parameter_scan_max_chains():
+    task = global_placement.GlobalPlacementTask()
+    assert task.get("var", "scan_max_chains") is None
+    task.set_openroad_scanmaxchains(4)
+    assert task.get("var", "scan_max_chains") == 4
+    task.set_openroad_scanmaxchains(2, step='global_placement', index='1')
+    assert task.get("var", "scan_max_chains", step='global_placement', index='1') == 2
+    assert task.get("var", "scan_max_chains") == 4
 
 
 def test_openroad_global_placement_parameter_enable_multibit_clustering():
