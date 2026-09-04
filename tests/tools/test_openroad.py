@@ -73,28 +73,45 @@ def test_openroad_images(asic_gcd):
 
     assert asic_gcd.run()
 
+    # Images that write_images.tcl only writes when the design happens to be in
+    # the right state, rather than whenever the node runs:
+    #   - the optimizer view needs instances the resizer named after the repair
+    #     that inserted them ("hold*", "wire*", "rebuffer*", ...)
+    #   - the module view needs a netlist with hierarchy left in it
+    #   - the marker views need the node to have produced violations
+    # Whether any of them exists follows the QoR of the installed tool, so they
+    # are dropped from the counts below instead of being pinned: an OpenROAD
+    # update that changes what the resizer inserts would otherwise shift every
+    # post-placement count in lockstep and churn this test.
+    def is_qor_dependent(image):
+        if image.endswith(('.optimizer.png', '.modules.png')):
+            return True
+        return os.path.dirname(image) == os.path.join('reports', 'images', 'markers')
+
     images_count = {
         'floorplan.init': 2,
-        'place.detailed': 7,
-        'cts.clock_tree_synthesis': 11,
-        'route.detailed': 13,
-        'write.views': 29,
+        'place.detailed': 6,
+        'cts.clock_tree_synthesis': 10,
+        'route.detailed': 12,
+        'write.views': 28,
     }
 
+    # Collected for every node before asserting, so a mismatch reports all of
+    # them at once instead of only the first node that moved.
+    counts = {}
+    images = {}
     for step in images_count.keys():
-        count = 0
-        all_files = set()
-        for dirpath, _, files in os.walk(
-                os.path.join(workdir(asic_gcd, step=step, index='0'),
-                             'reports',
-                             'images')):
-            count += len(files)
-            all_files.update([os.path.relpath(
-                os.path.join(dirpath, f),
-                workdir(asic_gcd, step=step, index='0')) for f in files])
+        step_dir = workdir(asic_gcd, step=step, index='0')
 
-        assert images_count[step] == count, f'{step} images do not match: ' \
-                                            f'{images_count[step]} == {count}: {all_files}'
+        all_files = set()
+        for dirpath, _, files in os.walk(os.path.join(step_dir, 'reports', 'images')):
+            all_files.update([os.path.relpath(os.path.join(dirpath, f), step_dir)
+                              for f in files])
+
+        images[step] = set([f for f in all_files if not is_qor_dependent(f)])
+        counts[step] = len(images[step])
+
+    assert counts == images_count, f'images do not match: {images}'
 
 
 @pytest.mark.eda
