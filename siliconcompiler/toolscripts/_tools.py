@@ -14,6 +14,55 @@ with open(data_file, "r") as f:
     tools = json.load(f)
 
 
+# Tags that name a pre-release. Both spellings turn up in the repositories these
+# scripts track: the marker introduced by a separator (ghdl's v0.36-rc1, sbt's
+# v2.0.0-M2) and the marker run straight onto a digit (ghdl's v1.0.0rc1 and
+# ghdl_0.31dev, bsc's 2023.00.90alpha). One list of markers feeds both forms so
+# that the two cannot drift apart, which they had: the second form knew only
+# rc, alpha and beta, so a dev or milestone tag was caught in one spelling and
+# missed in the other. "preview" precedes "pre" to be preferred over it.
+_PRERELEASE_MARKERS = "rc|alpha|beta|preview|pre|snapshot|dev|milestone|m"
+
+_prerelease_tag = re.compile(
+    # A marker at a boundary -- the start of the name, a separator, or a digit
+    # -- followed either by its number or by the end of the name. Demanding one
+    # or the other is what stops a marker from matching the head of an ordinary
+    # word: v1.0-m1 and v1.0-rc are candidates, v1.0-master is a release.
+    #
+    # Not anchored as a whole, because a candidate can carry something after
+    # its number: sbt respun one as v2.0.0-RC13-1.
+    rf"(?:^|[-._]|[0-9])(?:{_PRERELEASE_MARKERS})(?:[-._]?[0-9]+|$)",
+    re.IGNORECASE)
+
+
+def is_version_tag(name, version_prefix):
+    """Whether a tag name is a release this updater should be willing to move to.
+
+    The selection below picks the most recently committed tag, so anything that
+    is not a release has to be excluded here rather than sorted around. Two
+    kinds get through a prefix test on its own:
+
+    A pre-release. A project that cuts release candidates from a branch opens
+    the series before it finishes it, so the newest tag is an rc for as long as
+    the series is open -- ghdl tagged v6.0.0-rc.1 and v6.0.0-rc2 ahead of
+    v6.0.0, and sbt ran v2.0.0-M2 through v2.0.0-RC16 ahead of v2.0.0.
+
+    A tag that is not a version at all. yosys is tracked with an empty prefix,
+    because its tags have run 0.45, yosys-0.46 and v0.47 over the years, and
+    that also matches "resources" and "docs-previewtest" -- branch-like tags
+    that would hand the bot a git-commit of "resources" the first time one of
+    them was pushed. A release name carries a number; these do not.
+    """
+
+    if not name.startswith(version_prefix):
+        return False
+
+    if not any(char.isdigit() for char in name):
+        return False
+
+    return _prerelease_tag.search(name) is None
+
+
 def __make_github_url(url, old_version, new_version):
     if 'github' not in url:
         return None
@@ -59,7 +108,7 @@ def bump_commit_tag(tools, tool):
 
         newest = None
         for tag in repo.tags:
-            if not tag.name.startswith(version_prefix):
+            if not is_version_tag(tag.name, version_prefix):
                 continue
 
             if not newest or tag.commit.committed_datetime > newest.commit.committed_datetime:
@@ -104,6 +153,9 @@ def bump_version(tools, tool):
 
         newest = None
         for tag in repo.tags:
+            if not is_version_tag(tag.name, ""):
+                continue
+
             if not newest:
                 newest = tag
             else:

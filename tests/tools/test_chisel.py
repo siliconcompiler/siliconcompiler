@@ -69,6 +69,7 @@ def test_runtime_args(datadir):
         arguments = node.task.get_runtime_arguments()
         assert arguments == [
             '-batch',
+            '--server',
             '--no-share',
             '--no-global',
             'runMain SCDriver --module GCD --output-file ../outputs/GCD.v']

@@ -15,7 +15,7 @@ else
     SUDO_INSTALL=""
 fi
 
-install_prereqs llvm-dev clang gnat libgnat-9 libz-dev
+install_prereqs llvm-dev clang gnat libz-dev
 
 install_prereqs git build-essential
 

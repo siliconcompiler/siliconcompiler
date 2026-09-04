@@ -22,6 +22,11 @@ install_prereqs wget
 # JRE in to run ANTLR's parser generator, and that leaked into the container
 # image through apt.txt. Declare it here so that dropping surelog's build-time
 # JRE cannot leave chisel without a java to run.
+#
+# sbt 2.x exits from its launcher script unless the JDK is 17 or newer. The
+# distribution default is 21 here, so it stays the default: it is the same
+# package the other tools' JREs resolve to, and asking for a second one would
+# put a second JVM in the container image.
 install_prereqs default-jre-headless
 
 mkdir -p deps

@@ -1,6 +1,6 @@
 import os.path
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from siliconcompiler import Design, Task
 from siliconcompiler.utils import sc_open
@@ -8,6 +8,74 @@ from siliconcompiler.utils import sc_open
 
 class SECTask(Task):
     """SEC task using Kepler-formal to check a netlist against the RTL it came from."""
+
+    # kepler-formal reports a found difference by exit status as well as in the
+    # log, and a difference is a verdict rather than a failure to run.
+    _DIFFERENCE_FOUND = 3
+
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter(
+            "reset_port", "[str]",
+            "Top-level reset ports to hold active while the state settles, each "
+            "given as 'name=value' with a value of 0 or 1. SEC cannot check a "
+            "design whose observed outputs depend on state that no reset "
+            "anchors, so without this it reports that it cannot run rather than "
+            "proving an equivalence that would not hold for arbitrary initial "
+            "state.")
+        self.add_parameter(
+            "reset_cycles", "int",
+            "Number of cycles to hold the reset ports active for. Has to cover "
+            "the design's reset distribution, so a reset that arrives through "
+            "synchronizers or a pipeline needs more than one.",
+            defvalue=100)
+
+    def add_reset_port(self, name: str, active_value: int = 1,
+                       step: Optional[str] = None, index: Optional[str] = None,
+                       clobber: bool = False) -> None:
+        """
+        Adds a top-level reset port to hold active while the state settles.
+
+        Args:
+            name (str): Name of the top-level reset port.
+            active_value (int, optional): Value that asserts it, 0 or 1. Defaults to 1.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, replaces the existing list.
+        """
+        if active_value not in (0, 1):
+            raise ValueError(f"reset port active value must be 0 or 1, not {active_value}")
+
+        value = f"{name}={active_value}"
+        if clobber:
+            self.set("var", "reset_port", value, step=step, index=index)
+        else:
+            self.add("var", "reset_port", value, step=step, index=index)
+
+    def set_reset_cycles(self, cycles: int,
+                         step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """
+        Sets how many cycles the reset ports are held active for.
+
+        Args:
+            cycles (int): Number of cycles.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "reset_cycles", cycles, step=step, index=index)
+
+    def __reset_ports(self) -> List[Tuple[str, str]]:
+        """Returns the (name, active value) of each configured reset port."""
+        ports = []
+        for entry in self.get("var", "reset_port"):
+            name, _, value = entry.partition("=")
+            if not name or value not in ("0", "1"):
+                raise ValueError(f"reset port must be given as 'name=0' or 'name=1', "
+                                 f"not {entry!r}")
+            ports.append((name, value))
+        return ports
+
     def tool(self) -> str:
         return "kepler-formal"
 
@@ -30,6 +98,13 @@ class SECTask(Task):
             self.add_required_key(lib, "asic", "libcornerfileset", corner, delay_model)
             for fileset in lib.get("asic", "libcornerfileset", corner, delay_model):
                 self.add_required_key(lib, "fileset", fileset, "file", "liberty")
+
+        if self.get("var", "reset_port"):
+            # Rejected here rather than at write time, so a malformed value is a
+            # setup error and not a tool error twenty seconds later.
+            self.__reset_ports()
+            self.add_required_key("var", "reset_port")
+            self.add_required_key("var", "reset_cycles")
 
     def __rtl_file(self) -> str:
         """Returns the elaborated RTL file, which is SystemVerilog if the design holds any."""
@@ -72,6 +147,14 @@ class SECTask(Task):
             # difference for it.
             f.write("sec_engine: k_induction\n")
             f.write("sec_encoding: binary\n")
+            reset_ports = self.__reset_ports()
+            if reset_ports:
+                f.write("sec_reset:\n")
+                f.write(f"  cycles: {self.get('var', 'reset_cycles')}\n")
+                f.write("  ports:\n")
+                for name, value in reset_ports:
+                    f.write(f"    - name: {name}\n")
+                    f.write(f"      active_value: {value}\n")
             f.write("input_paths:\n")
             f.write(f"  - [inputs/{self.__rtl_file()}]\n")
             f.write(f"  - [inputs/{self.design_topmodule}.vg]\n")
@@ -88,10 +171,22 @@ class SECTask(Task):
         options.append(self.__config_file())
         return options
 
+    def run_task(self, *args, **kwargs) -> int:
+        retcode = super().run_task(*args, **kwargs)
+
+        # A found difference exits non-zero, and that is the answer rather than a
+        # failure to produce one: post_process turns it into the drv. Anything
+        # else stays as it is, so a design SEC refuses to check -- one whose
+        # outputs all depend on state no reset anchors -- still fails the node.
+        if retcode == self._DIFFERENCE_FOUND:
+            return 0
+        return retcode
+
     def post_process(self):
         super().post_process()
 
-        # Equivalent and differing both exit zero, so the verdict is only in the log.
+        # The verdict is in the log either way; run_task has already folded the
+        # differing exit status away.
         log = self.get_logpath('exe')
         if os.path.exists(log):
             with sc_open(log, 'r') as f:
