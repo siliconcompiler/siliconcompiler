@@ -70,7 +70,7 @@
   },
   "bluespec": {
     "git-url": "https://github.com/B-Lang-org/bsc.git",
-    "git-commit": "2026.01",
+    "git-commit": "2026.07",
     "version-prefix": "",
     "auto-update": true,
     "docker-cmds": [
