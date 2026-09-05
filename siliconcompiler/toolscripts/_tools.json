@@ -108,7 +108,7 @@
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "v5.038",
+    "git-commit": "v5.050",
     "auto-update": true,
     "docker-cmds": [
       "# Drop the debug builds. verilator_bin_dbg is 88MB against",
