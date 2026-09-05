@@ -35,7 +35,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "737b52f33b66e4c2ccc3e3ef22c3adfe9aec8d09",
+    "git-commit": "2996e37a3aa7fdfd197b84842df719e70757657f",
     "auto-update": true,
     "docker-cmds": [
       "# libOpenSTA.a is link-time only: the sta binary is what runs. 86MB.",
