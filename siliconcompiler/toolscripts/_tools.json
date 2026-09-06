@@ -215,12 +215,15 @@
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
     "_comment-keep-pkgs": [
-      "zlib1g-dev: verilator compiles the generated model after the build, and",
-      "--trace-fst links -lz into it. ccache: verilated.mk sets",
+      "zlib1g-dev and liblz4-dev: verilator compiles the generated model after the",
+      "build, and since 5.040 --trace-fst writes through libfstwriter -- the model",
+      "includes <lz4.h> and <zlib.h> and verilated.mk links -llz4 -lz. Both are",
+      "-dev packages, so the sweep would take them. ccache: verilated.mk sets",
       "OBJCACHE ?= ccache and invokes it unconditionally."
     ],
     "docker-keep-pkgs": [
       "zlib1g-dev",
+      "liblz4-dev",
       "ccache"
     ],
     "git-commit": "v5.052",

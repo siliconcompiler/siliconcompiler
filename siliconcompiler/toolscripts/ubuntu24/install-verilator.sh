@@ -20,6 +20,10 @@ install_prereqs libgoogle-perftools-dev numactl perl-doc help2man
 install_prereqs libfl2
 install_prereqs libfl-dev
 install_prereqs zlib1g zlib1g-dev
+# Verilator 5.040 moved FST tracing to libfstwriter: the model verilator
+# generates includes <lz4.h> and verilated.mk links -llz4, so --trace-fst
+# needs lz4 wherever the generated code is compiled, not just here.
+install_prereqs liblz4-1 liblz4-dev
 
 install_prereqs git
 

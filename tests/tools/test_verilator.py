@@ -89,7 +89,9 @@ def test_assert(heartbeat_design, datadir, run_cli):
     exe_path = proj.find_result('vexe', step='compile')
     assert os.path.exists(exe_path)
 
-    proc = run_cli(exe_path, retcode=-6)
+    # 1, not the -6 an abort() used to raise: Verilator 5.040 changed the
+    # runtime to exit() on a failed assertion unless +verilated+debug is passed.
+    proc = run_cli(exe_path, retcode=1)
     assert "Assertion failed in TOP.heartbeat: 'assert' failed." in \
         proc.stdout
 
