@@ -223,7 +223,7 @@
       "zlib1g-dev",
       "ccache"
     ],
-    "git-commit": "v5.038",
+    "git-commit": "v5.052",
     "auto-update": true,
     "docker-cmds": [
       "# Drop the debug builds. verilator_bin_dbg is 88MB against",
