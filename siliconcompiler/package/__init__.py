@@ -684,6 +684,7 @@ class RemoteResolver(Resolver):
 
         with self.lock():
             if self.check_cache():
+                self._touch_lock()
                 return self.cache_path
 
             try:
@@ -708,10 +709,32 @@ class RemoteResolver(Resolver):
             except OSError as e:
                 self.logger.warning(f"Could not make cache read-only: {e}")
 
+            self._touch_lock()
             self.set_changed()
             return self.cache_path
 
-    def _make_readonly(self, path: Union[str, Path]) -> None:
+    def _touch_lock(self) -> None:
+        """
+        Records now as the time this cache entry was last accessed.
+
+        Nothing else in the cache carries that information: a hit returns the
+        path and reads nothing, and the cached tree is made read-only after the
+        download, so every mtime inside it stays frozen at the fetch. The lock
+        file is the one writable thing beside an entry, which is why
+        :mod:`siliconcompiler.package.cleanup` reads its mtime as the access
+        time -- and it only means that because a resolve stamps it here.
+
+        Called with the entry's lock held, so no other process is mid-download.
+        Failure is not worth interrupting a resolve over; it only costs the
+        entry its place in the access record.
+        """
+        try:
+            self.lock_file.touch()
+        except OSError as e:
+            self.logger.debug(f"Could not update access time of {self.lock_file}: {e}")
+
+    @staticmethod
+    def _make_readonly(path: Union[str, Path]) -> None:
         """
         Recursively makes all files and directories in the given path read-only.
 
@@ -743,13 +766,14 @@ class RemoteResolver(Resolver):
         elif path.is_dir():
             # Process all contents recursively
             for item in path.iterdir():
-                self._make_readonly(item)
+                RemoteResolver._make_readonly(item)
             # Remove write permissions from the directory itself
             current_mode = os.stat(path).st_mode
             new_mode = current_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
             os.chmod(path, new_mode)
 
-    def _make_writable(self, path: Union[str, Path]) -> None:
+    @staticmethod
+    def _make_writable(path: Union[str, Path]) -> None:
         """
         Recursively makes all files and directories in the given path writable.
 
@@ -771,7 +795,7 @@ class RemoteResolver(Resolver):
         elif path.is_dir():
             # Process all contents recursively
             for item in path.iterdir():
-                self._make_writable(item)
+                RemoteResolver._make_writable(item)
             # Add owner write permission to the directory itself
             current_mode = os.stat(path).st_mode
             new_mode = current_mode | stat.S_IWUSR

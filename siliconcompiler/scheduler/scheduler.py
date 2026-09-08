@@ -27,6 +27,7 @@ from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager, get_process_context, forking
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
+from siliconcompiler.package.cleanup import auto_cleanup
 from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.utils.curation import collect
 
@@ -265,6 +266,11 @@ class Scheduler:
             # Informational check: warn if an editable install's environment is
             # out of sync with its declared pyproject.toml dependencies.
             utils.check_python_dependencies(self.__logger)
+
+            # Collect data sources that have gone unused, before this run's own
+            # resolves mark everything it needs as fresh. Throttled and very
+            # forgiving by default, and it never raises -- see auto_cleanup().
+            auto_cleanup(self.__project)
 
             # Check validity of setup
             if not self.check_manifest():

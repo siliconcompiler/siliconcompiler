@@ -212,6 +212,53 @@ In this example:
 
 If the preferred tool is not found or not registered, SiliconCompiler will fall back to its default discovery mechanism.
 
+Cache Cleanup Settings (The 'cache' Category)
+---------------------------------------------
+
+The data source cache in ``~/.sc/cache`` grows every time a project asks for a
+version of a PDK, library, or design that is not already there, and nothing in a
+normal run removes what an older project needed.
+At the start of every run SiliconCompiler sweeps the cache and deletes entries
+that have gone unused, along with the lock files of entries that are already
+gone.
+
+The sweep is deliberately conservative, because nothing asked for it: it runs at
+most once a week per cache directory and only collects entries that have not been
+resolved in 90 days. Orphaned lock files are collected whatever their age -- an
+empty file guarding a directory that no longer exists is residue, and a lock
+costs nothing to recreate -- except one taken in the last hour, which may belong
+to a download that has yet to create its directory.
+Deleting a cache entry costs a download, not data -- it is fetched again the next
+time something resolves it.
+The ``cache`` category tunes both numbers:
+
+.. code-block:: json
+
+    {
+        "cache": {
+            "cleanupdays": 30,
+            "cleanupinterval": 1
+        }
+    }
+
+* ``cleanupdays`` -- days an entry must go unused before it is collected
+  (default 90); orphaned lock files ignore it. Set it to ``0`` to turn the
+  automatic sweep off entirely.
+* ``cleanupinterval`` -- minimum days between two sweeps of the same cache
+  directory (default 7).
+
+Each cache directory records when it was last swept in a ``.sc_cleanup`` file,
+which is how the interval is enforced across independent runs.
+An entry's last-use time is the modification time of its ``.lock`` file, which
+every resolve stamps -- including one that hits the cache and downloads nothing.
+
+To sweep on demand, or with a different threshold, run the ``cleanup`` support
+app:
+
+.. code-block:: bash
+
+    python3 -m siliconcompiler.apps.utils.cleanup -days 30 -dryrun
+
 Record Settings (The 'record' Category)
 ---------------------------------------
 

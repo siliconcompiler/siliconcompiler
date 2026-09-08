@@ -1502,6 +1502,18 @@ def test_scruntime_error_init_invalid_flow(basic_project):
         Scheduler(basic_project)
 
 
+def test_run_sweeps_data_source_cache(basic_project):
+    """The run collects stale cache entries before resolving anything itself."""
+    scheduler = Scheduler(basic_project)
+
+    with patch("siliconcompiler.scheduler.scheduler.auto_cleanup") as sweep, \
+            patch.object(scheduler, "check_manifest", return_value=False):
+        with pytest.raises(SCRuntimeError, match="check_manifest"):
+            scheduler.run()
+
+    sweep.assert_called_once_with(basic_project)
+
+
 def test_scruntime_error_run_manifest_check(basic_project):
     """Verify check_manifest failure raises SCRuntimeError during run"""
     scheduler = Scheduler(basic_project)

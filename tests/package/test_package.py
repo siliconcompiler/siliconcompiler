@@ -12,6 +12,7 @@ import zipfile
 
 import os.path
 
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -1791,6 +1792,80 @@ def test_indirect_resolver_does_not_repeat_the_log():
 
     # Exactly one announcement, from the dataroot the indirection points at
     assert len([msg for msg in messages if "data at" in msg]) == 1
+
+
+# ============================================================================
+# Tests for _touch_lock(): the cache's only record of when an entry was used
+# ============================================================================
+
+def test_resolve_touches_lock_on_cache_hit():
+    """A hit stamps the lock file, which is the access time cleanup reads.
+
+    Without this the mtime never moves off the download, so an entry resolved
+    every day looks as stale as one nothing has asked for since it landed.
+    """
+    class AlwaysCached(RemoteResolver):
+        def check_cache(self):
+            return True
+
+        def resolve_remote(self):
+            raise AssertionError("cache hit must not download")
+
+    os.makedirs("cache", exist_ok=True)
+    proj = Project("testproj")
+    proj.option.set_cachedir("cache")
+
+    resolver = AlwaysCached("cached", proj, "notused", "notused")
+    resolver.lock_file.touch()
+    stale = (datetime.now() - timedelta(days=100)).timestamp()
+    os.utime(resolver.lock_file, (stale, stale))
+
+    resolver.resolve()
+
+    assert resolver.lock_file.stat().st_mtime > stale
+
+
+def test_resolve_touches_lock_after_download():
+    class AlwaysNew(RemoteResolver):
+        def check_cache(self):
+            return False
+
+        def resolve_remote(self):
+            os.makedirs(self.cache_path, exist_ok=True)
+
+    os.makedirs("cache", exist_ok=True)
+    proj = Project("testproj")
+    proj.option.set_cachedir("cache")
+
+    resolver = AlwaysNew("fresh", proj, "notused", "notused")
+
+    resolver.resolve()
+
+    assert resolver.lock_file.exists()
+    assert datetime.now().timestamp() - resolver.lock_file.stat().st_mtime < 60
+
+
+def test_touch_lock_failure_is_not_fatal(project_logger, caplog):
+    class AlwaysCached(RemoteResolver):
+        def check_cache(self):
+            return True
+
+        def resolve_remote(self):
+            raise AssertionError("cache hit must not download")
+
+    os.makedirs("cache", exist_ok=True)
+    proj = Project("testproj")
+    project_logger(proj)
+    proj.logger.setLevel(logging.DEBUG)
+    caplog.set_level(logging.DEBUG)
+    proj.option.set_cachedir("cache")
+
+    resolver = AlwaysCached("cached", proj, "notused", "notused")
+
+    with patch("pathlib.Path.touch", side_effect=OSError("read-only")):
+        assert resolver.resolve() == resolver.cache_path
+
+    assert "Could not update access time of" in caplog.text
 
 
 # ============================================================================
