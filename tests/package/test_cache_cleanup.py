@@ -142,15 +142,34 @@ def test_cleanup_cache_removes_readonly_entry(cachedir):
     assert not entry.exists()
 
 
-def test_cleanup_cache_reports_stat_error(cachedir, caplog):
-    make_entry(cachedir, "old", age_days=91)
+def unreadable(*names):
+    '''Patch Path.stat to fail for these names only.
 
-    with patch("pathlib.Path.stat", side_effect=OSError("boom")):
+    Scoping it matters: pathlib implements exists() and is_file() on top of
+    Path.stat on Python 3.12 and earlier, and an OSError carrying no errno is
+    re-raised rather than read as "absent" -- so an unscoped patch fails
+    somewhere different on every interpreter in the support matrix.
+    '''
+    real_stat = Path.stat
+
+    def stat(self, *args, **kwargs):
+        if self.name in names:
+            raise OSError("boom")
+        return real_stat(self, *args, **kwargs)
+
+    return patch("pathlib.Path.stat", stat)
+
+
+def test_cleanup_cache_reports_stat_error(cachedir, caplog):
+    entry = make_entry(cachedir, "old", age_days=91)
+
+    with unreadable("old.lock", "old.sc_lock"):
         stats = cleanup.cleanup_cache(cachedir, 90)
 
+    assert entry.exists()
     assert stats.entries == 0
     assert stats.errors == 1
-    assert "Could not stat lock file" in caplog.text
+    assert "Could not stat lock file for old" in caplog.text
 
 
 def test_cleanup_cache_reports_delete_error(cachedir, caplog):
@@ -269,6 +288,38 @@ def test_cleanup_cache_entries_only_pass(cachedir):
     assert stats.locks == 1
 
 
+def test_cleanup_cache_orphan_lock_vanishes_mid_sweep(cachedir):
+    '''Another sweep, or a user, got there first.'''
+    lock_file = cachedir / "gone.lock"
+    lock_file.touch()
+    age_lock(lock_file, 91)
+
+    real_stat = Path.stat
+
+    def vanish(self, *args, **kwargs):
+        if self.name == "gone.lock":
+            real_stat(self, *args, **kwargs)
+            raise FileNotFoundError("gone")
+        return real_stat(self, *args, **kwargs)
+
+    with patch("pathlib.Path.stat", vanish):
+        stats = cleanup.cleanup_cache(cachedir, 90)
+
+    assert stats.locks == 0
+    assert stats.errors == 0
+
+
+def test_cleanup_cache_ignores_directory_named_like_a_lock(cachedir):
+    trap = cachedir / "notreally.lock"
+    trap.mkdir()
+
+    stats = cleanup.cleanup_cache(cachedir, 90)
+
+    assert trap.exists()
+    assert stats.locks == 0
+    assert stats.errors == 0
+
+
 def test_cleanup_cache_keeps_lock_with_live_entry(cachedir):
     '''A lock guarding a directory that is still there is the first pass's business.'''
     make_entry(cachedir, "recent", age_days=89)
@@ -324,16 +375,10 @@ def test_cleanup_cache_orphan_lock_stat_error(cachedir, caplog):
     lock_file.touch()
     age_lock(lock_file, 91)
 
-    real_stat = Path.stat
-
-    def fail_on_lock(self, *args, **kwargs):
-        if self.name == "gone.lock":
-            raise OSError("boom")
-        return real_stat(self, *args, **kwargs)
-
-    with patch("pathlib.Path.stat", fail_on_lock):
+    with unreadable("gone.lock"):
         stats = cleanup.cleanup_cache(cachedir, 90)
 
+    assert lock_file.exists()
     assert stats.locks == 0
     assert stats.errors == 1
     assert "Could not stat lock file" in caplog.text

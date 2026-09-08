@@ -180,10 +180,11 @@ run. Deleting it while a run is in progress is not.
 
 Because nothing in a normal run removes the version an older project needed, the
 cache only grows. Every run therefore starts with a sweep of it: entries that
-have not been resolved in 90 days are deleted, as is any lock file whose entry is
-already gone, whatever its age. The sweep runs at most once a week per cache
-directory, records when it last ran in ``.sc_cleanup``, and never interrupts a
-run. Both the age and the
+have not been resolved in 90 days are deleted, as is any ``.lock`` or
+``.sc_lock`` file whose entry is already gone, whatever its age -- except one
+taken in the last hour, which is kept in case a resolve is holding it and has yet
+to create its directory. The sweep runs at most once a week per cache directory,
+records when it last ran in ``.sc_cleanup``, and never interrupts a run. Both the age and the
 interval are configurable, and the sweep can be switched off entirely -- see
 :ref:`User Settings <user_settings>`. To collect the cache on demand instead,
 with a threshold of your own:

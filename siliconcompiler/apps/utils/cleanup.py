@@ -16,8 +16,9 @@ def main():
 
     Scans the cache directory and removes entries that haven't been
     accessed in the specified number of days, using lock file modification
-    times to determine access times. Lock files left behind by entries that
-    are already gone are removed whatever their age.
+    times to determine access times. A .lock or .sc_lock file whose entry
+    is already gone is removed whatever its age, unless it was taken in the
+    last hour, which may mean another process is holding it.
     ------------------------------------------------------------
     """
 

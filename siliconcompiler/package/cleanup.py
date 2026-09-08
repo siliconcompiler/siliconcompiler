@@ -23,7 +23,11 @@ Two kinds of residue are collected:
 
 import contextlib
 import logging
+import os
 import shutil
+import stat
+
+import os.path
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -94,21 +98,26 @@ def format_size(size_bytes: float) -> str:
     return f"{size_bytes:.1f}TB"
 
 
-def _entry_lock_file(cachedir: Path, name: str) -> Optional[Path]:
+def _entry_lock_mtime(cachedir: Path, name: str) -> Optional[float]:
     """
-    Finds the lock file guarding a cache entry.
+    Reads when a cache entry's lock was last stamped.
 
     Args:
         cachedir (Path): The cache directory holding the entry.
         name (str): The entry's directory name.
 
     Returns:
-        Path: The lock file, or None if the entry has none.
+        float: The lock file's modification time, or None if the entry has no
+            lock file and so no access record at all.
+
+    Raises:
+        OSError: If a lock file is there but cannot be read.
     """
     for suffix in LOCK_SUFFIXES:
-        lock_file = cachedir / f"{name}{suffix}"
-        if lock_file.exists():
-            return lock_file
+        try:
+            return (cachedir / f"{name}{suffix}").stat().st_mtime
+        except FileNotFoundError:
+            continue
     return None
 
 
@@ -136,7 +145,7 @@ def _exclusive(cachedir: Path, name: str):
     # detect. An old one is residue from a process that was killed.
     fallback = cachedir / f"{name}.sc_lock"
     try:
-        if fallback.exists() and \
+        if os.path.exists(fallback) and \
                 datetime.now().timestamp() - fallback.stat().st_mtime < LOCK_ACTIVE_SECONDS:
             yield False
             return
@@ -145,7 +154,7 @@ def _exclusive(cachedir: Path, name: str):
         return
 
     primary = cachedir / f"{name}.lock"
-    if not primary.exists():
+    if not os.path.exists(primary):
         # Nothing to take a lock on, and creating one here would leave behind the
         # very orphan this module collects.
         yield True
@@ -226,19 +235,18 @@ def _collect_entries(cachedir: Path,
         stats (CleanupStats): Tally to add this pass's removals to.
     """
     for entry in sorted(cachedir.iterdir()):
-        if not entry.is_dir():
-            continue
-
-        lock_file = _entry_lock_file(cachedir, entry.name)
-        if lock_file is None:
-            logger.debug(f"No lock file found for {entry.name}, skipping")
+        if not os.path.isdir(entry):
             continue
 
         try:
-            lock_mtime = lock_file.stat().st_mtime
+            lock_mtime = _entry_lock_mtime(cachedir, entry.name)
         except OSError as e:
-            logger.warning(f"Could not stat lock file {lock_file}: {e}")
+            logger.warning(f"Could not stat lock file for {entry.name}: {e}")
             stats.errors += 1
+            continue
+
+        if lock_mtime is None:
+            logger.debug(f"No lock file found for {entry.name}, skipping")
             continue
 
         if lock_mtime >= cutoff:
@@ -307,20 +315,28 @@ def _collect_orphan_locks(cachedir: Path,
 
     for lock_file in sorted(cachedir.iterdir()):
         suffix = lock_file.suffix
-        if suffix not in LOCK_SUFFIXES or not lock_file.is_file():
+        if suffix not in LOCK_SUFFIXES:
             continue
 
         name = lock_file.name[:-len(suffix)]
-        if (cachedir / name).exists():
+        if os.path.exists(cachedir / name):
             continue
 
         try:
-            lock_mtime = lock_file.stat().st_mtime
+            info = lock_file.stat()
+        except FileNotFoundError:
+            # Removed under us, which is the outcome this pass wanted anyway
+            continue
         except OSError as e:
             logger.warning(f"Could not stat lock file {lock_file}: {e}")
             stats.errors += 1
             continue
 
+        if not stat.S_ISREG(info.st_mode):
+            # Something that merely ends in .lock
+            continue
+
+        lock_mtime = info.st_mtime
         if lock_mtime >= cutoff:
             logger.debug(f"{lock_file.name} was taken too recently to be residue, skipping")
             continue
@@ -360,7 +376,10 @@ def cleanup_cache(cachedir: Union[str, Path],
 
     An entry is collected when the modification time of its lock file -- stamped
     on every resolve by :meth:`RemoteResolver._touch_lock` -- is older than
-    ``days``. Orphaned lock files are collected regardless of ``days``; see
+    ``days``. A ``.lock`` or ``.sc_lock`` whose entry directory is already gone
+    is collected regardless of ``days``, unless it was stamped within the last
+    :data:`LOCK_ACTIVE_SECONDS`, which may mean a resolve is holding it and has
+    not created its directory yet. See :func:`_collect_entries` and
     :func:`_collect_orphan_locks`.
 
     Deleting a cache entry is not destructive; it is re-downloaded the next time
@@ -433,12 +452,12 @@ def auto_cleanup(project) -> None:
             return
 
         cachedir = RemoteResolver.determine_cache_dir(project)
-        if not cachedir.is_dir():
+        if not os.path.isdir(cachedir):
             # Nothing has been cached yet
             return
 
         stamp = cachedir / STAMP_FILE
-        first_sweep = not stamp.exists()
+        first_sweep = not os.path.exists(stamp)
         if not first_sweep:
             age = datetime.now().timestamp() - stamp.stat().st_mtime
             if age < timedelta(days=max(interval, 0)).total_seconds():
