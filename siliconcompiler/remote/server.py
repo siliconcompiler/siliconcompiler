@@ -27,7 +27,6 @@ from siliconcompiler.schema import __version__ as sc_schema_version
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 
 from siliconcompiler.remote import JobStatus, NodeStatus
@@ -337,7 +336,12 @@ class Server(ServerSchema):
         with self.sc_jobs_lock:
             self.sc_job_threads[sc_job_name] = {
                 "thread": job_proc,
-                "jobhash": job_hash
+                "jobhash": job_hash,
+                # Recorded before the thread starts, so a cancel arriving while
+                # the run is still in setup has something to name. remote_sc()
+                # does not reach its own bookkeeping until later, and a cancel
+                # that beat it there used to find nothing and do nothing.
+                "project": project
             }
             # Claim the job before the thread runs: remote_sc() fills in the
             # node list, and until it does a 'check_progress' call that beat it
@@ -390,13 +394,10 @@ class Server(ServerSchema):
         API handler for 'cancel_job' requests. Stop a job that is currently
         running.
 
-        How much can be stopped depends on where the job's nodes are running.
-        Slurm nodes are cancelable: they are named after the job hash, so the
-        server can hand them to scancel. Nodes running locally, and the
-        containers a docker cluster starts, are not -- they belong to the thread
-        executing the job, and this server has no handle on them -- so those run
-        to completion. Either way the job is marked canceled, which is what
-        'check_progress' reports and what releases a waiting client.
+        The run is stopped wherever its work is: the scheduler on the job's own
+        thread stops scheduling and ends each node, and each node releases
+        whatever it dispatched elsewhere. The job is also marked canceled, which
+        is what 'check_progress' reports and what releases a waiting client.
         '''
 
         # Process input parameters
@@ -420,18 +421,13 @@ class Server(ServerSchema):
                                           'success': False},
                                          status=404)
 
-        cluster = self.get('option', 'cluster')
-        # Off the event loop: cancelling shells out to scancel, and a request
-        # handler that blocks stalls every other client too.
-        await asyncio.to_thread(self.__cancel_job, job_name, job_hash)
+        # Off the event loop: cancelling shells out to scancel and waits on
+        # node processes ending, and a request handler that blocks stalls every
+        # other client too.
+        await asyncio.to_thread(self.__cancel_job, job_name)
 
-        if cluster == 'slurm':
-            message = f'Canceling job: {job_hash}.'
-        else:
-            message = f'Job {job_hash} marked as canceled. Nodes already ' \
-                      'running on this server will finish on their own.'
-
-        return web.json_response({'message': message, 'success': True})
+        return web.json_response({'message': f'Canceling job: {job_hash}.',
+                                  'success': True})
 
     ####################
     async def handle_delete_job(self, request):
@@ -602,14 +598,14 @@ class Server(ServerSchema):
             return job_hash
 
     ####################
-    def __cancel_job(self, job_name, job_hash):
+    def __cancel_job(self, job_name):
         '''
-        Mark a job canceled and stop what can be stopped.
+        Mark a job canceled and stop it.
 
-        Only slurm nodes can be reached, and the scheduler that submitted them
-        is what knows how: the node list this server tracks is enough for
-        SlurmSchedulerNode.cancel_nodes(). A local or docker cluster has nothing
-        to reach for, so those jobs are only marked.
+        Where the job's work is running is the job's business, not this
+        server's: the project publishes the scheduler executing it, that
+        scheduler stops scheduling and ends its nodes, and a node that
+        dispatched elsewhere cancels that as it goes.
         '''
 
         with self.sc_jobs_lock:
@@ -619,15 +615,13 @@ class Server(ServerSchema):
                 # own teardown has already run.
                 return
             self.sc_canceled_jobs.add(job_name)
-            nodes = [(info['step'], info['index'])
-                     for info in self.sc_jobs[job_name].values()
-                     if 'step' in info and not SCNodeStatus.is_done(info['status'])]
+            project = self.sc_job_threads.get(job_name, {}).get('project')
 
-        if self.get('option', 'cluster') != 'slurm':
-            return
-
-        if not SlurmSchedulerNode.cancel_nodes(job_hash, nodes) and nodes:
-            self.logger.warning(f'Unable to cancel nodes for job: {job_hash}')
+        # Read once: the run can end between the check and the call, and then
+        # there is nothing left to cancel anyway.
+        scheduler = project._scheduler if project is not None else None
+        if scheduler:
+            scheduler.cancel()
 
     ####################
     async def __shutdown(self, app):
@@ -648,12 +642,13 @@ class Server(ServerSchema):
 
         for job_name, info in running.items():
             self.logger.warning(f"Shutting down with job still running: {info['jobhash']}")
-            await asyncio.to_thread(self.__cancel_job, job_name, info['jobhash'])
+            await asyncio.to_thread(self.__cancel_job, job_name)
 
-        # Canceling reaches the slurm nodes; the ones running here are processes
-        # this server's job threads started, and only their scheduler can end
-        # them. Left alone they are joined at interpreter exit, which is what
-        # used to keep an sc-server alive long after it was told to stop.
+        # Cancelling above reaches every job this server is tracking. halt_all()
+        # is the backstop for anything else still holding a node process: they
+        # are not daemons, so left alone they are joined at interpreter exit,
+        # which is what used to keep an sc-server alive long after it was told
+        # to stop.
         await asyncio.to_thread(TaskScheduler.halt_all)
 
         # One deadline for the shutdown rather than one per job, and the joins
@@ -679,6 +674,15 @@ class Server(ServerSchema):
 
         try:
             self.__run_job(project, job_hash, sc_job_name)
+        except RuntimeError:
+            with self.sc_jobs_lock:
+                canceled = sc_job_name in self.sc_canceled_jobs
+            if not canceled:
+                raise
+            # A canceled run ends by raising, the same as any run that did not
+            # reach its exit nodes. Here that is the outcome that was asked for,
+            # not a failure to report as one.
+            self.logger.info(f'Canceled job: {job_hash}')
         finally:
             # Whatever happened, the job is over: a job left in sc_jobs is one
             # that 'check_progress' reports as running forever, and handle_

@@ -1,4 +1,5 @@
 import json
+import logging
 import pytest
 import re
 
@@ -319,6 +320,33 @@ def test_check_required_paths(project):
                 step="steptwo", index="0")
 
     assert SlurmSchedulerNode(project, "steptwo", "0").check_required_paths() is True
+
+
+def test_cancel(project):
+    '''A slurm node cancels its own job, so nothing above it has to know that
+       the work is not where the node process is'''
+    project.set('record', 'remoteid', 'thisisahash')
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+
+    with patch("shutil.which", return_value="/usr/bin/scancel"), \
+            patch("subprocess.run") as run:
+        node.cancel()
+
+    assert [call.args[0] for call in run.call_args_list] == [
+        ["scancel", "--name", "thisisahash_steptwo_0"]
+    ]
+
+
+def test_cancel_without_scancel(project, caplog):
+    '''A job that was asked to stop and could not be is worth saying out loud'''
+    project.set('record', 'remoteid', 'thisisahash')
+    project.logger.setLevel(logging.INFO)
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+
+    with patch("shutil.which", return_value=None):
+        node.cancel()
+
+    assert "Unable to cancel slurm job for steptwo/0" in caplog.text
 
 
 def test_cancel_nodes():

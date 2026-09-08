@@ -196,6 +196,11 @@ class DockerSchedulerNode(SchedulerNode):
         6. Executes the `sc-node` command inside the container.
         7. Streams the container's log output to the console.
         8. Halts on error and ensures the container is stopped upon completion.
+
+        Step 8 also covers a canceled run, which reaches this node as an
+        interrupt raised out of whatever it was doing: a container is not this
+        process's to leave behind, and nothing outside knows to go looking for
+        one.
         """
         self._init_run_logger()
 

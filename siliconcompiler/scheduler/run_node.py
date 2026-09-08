@@ -134,8 +134,10 @@ def main():
         args.index,
         replay=args.replay)
     try:
-        # Execute the node's run() method.
-        node.run()
+        # This process is the node, so it is entered the way a scheduler enters
+        # one: run_process() adds the interrupt handling that lets a cancel --
+        # scancel, or the daemon stopping the container -- reach the tool.
+        node.run_process()
         error = False
     finally:
         # Archive results upon completion, regardless of success or failure.

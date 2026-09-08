@@ -884,6 +884,152 @@ def test_halt_all_ends_node_processes(large_flow, make_tasks):
         proc.join(timeout=10)
 
 
+@pytest.mark.timeout(60)
+def test_cancel_stops_the_run_from_scheduling(large_flow, make_tasks):
+    '''A canceled run launches nothing further.
+
+    Ending the node processes is only half of a cancel: the loop that started
+    them is untouched by that, and left alone it fills the machine straight back
+    up with whatever became ready. Cancelling from post_node is the version that
+    tells the two halves apart -- the run's first level has just succeeded, so
+    there is a whole next level ready to go and nothing left running to stop.
+    '''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    def cancel_run(project, step, index):
+        scheduler.cancel()
+
+    TaskScheduler.register_callback("post_node", cancel_run)
+
+    scheduler.run(logging.NullHandler())
+
+    assert scheduler.is_canceled()
+
+    # Nothing downstream of the level that was already running was started:
+    # 'stepone' is excluded because those are the nodes the cancel landed among,
+    # and which of them completed before it arrived is a race.
+    flow = large_flow.get("flowgraph", "testflow", field="schema")
+    for step, index in flow.get_nodes():
+        if step == "stepone":
+            continue
+        assert large_flow.get("record", "status", step=step, index=index) == \
+            NodeStatus.PENDING, f"{step}/{index} was launched after the cancel"
+
+
+@pytest.mark.timeout(60)
+def test_cancel_ends_running_nodes(large_flow, make_tasks):
+    '''Cancelling ends what is running, not just what has yet to start'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    proc = get_process_context().Process(target=_sleep_forever)
+    proc.start()
+    # Present it the way a launched node appears to the cancel path.
+    scheduler._TaskScheduler__nodes[("sleeper", "0")] = {"proc": proc}
+
+    try:
+        assert scheduler.cancel() is True
+        assert not proc.is_alive()
+        assert scheduler.is_canceled()
+    finally:
+        if proc.is_alive():
+            proc.kill()
+        proc.join(timeout=10)
+
+
+def test_cancel_with_nothing_running(large_flow, make_tasks):
+    '''A run with no live nodes is still canceled, it just has none to end'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    assert scheduler.cancel() is False
+    assert scheduler.is_canceled()
+
+
+@pytest.mark.timeout(60)
+def test_canceled_scheduler_runs_nothing(large_flow, make_tasks):
+    '''A run canceled before its loop starts launches nothing at all.
+
+    This is what a cancel landing during setup becomes: Scheduler holds the
+    request until it has a TaskScheduler to give it to, which is after every
+    node is configured but before any has run.
+    '''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler.cancel()
+
+    scheduler.run(logging.NullHandler())
+
+    flow = large_flow.get("flowgraph", "testflow", field="schema")
+    for step, index in flow.get_nodes():
+        assert large_flow.get("record", "status", step=step, index=index) == \
+            NodeStatus.PENDING, f"{step}/{index} ran despite the cancel"
+
+
+def test_halt_asks_each_node_to_cancel_first(large_flow, make_tasks):
+    '''A node dispatched elsewhere is not holding its work in the process about
+       to be killed, and killing that process is what puts it out of reach'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    order = []
+
+    class Node:
+        def cancel(self):
+            order.append("node")
+
+    class Proc:
+        def __init__(self):
+            self.__alive = True
+
+        def is_alive(self):
+            return self.__alive
+
+        def terminate(self):
+            order.append("terminate")
+            self.__alive = False
+
+        def kill(self):
+            pass
+
+        def join(self, timeout=None):
+            pass
+
+    scheduler._TaskScheduler__nodes[("elsewhere", "0")] = {
+        "name": "elsewhere/0", "node": Node(), "proc": Proc()}
+
+    assert scheduler.cancel() is True
+    assert order == ["node", "terminate"]
+
+
+def test_halt_ends_nodes_even_when_a_cancel_fails(large_flow, make_tasks, caplog):
+    '''A node's cancel is overridden per scheduler and can shell out. Whatever
+       it does wrong, the processes still have to be ended -- leaving them alive
+       is the deadlock the halt exists to prevent'''
+    large_flow.logger.setLevel(logging.INFO)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    class Node:
+        def cancel(self):
+            raise RuntimeError("scancel exploded")
+
+    proc = MagicMock()
+    proc.is_alive.side_effect = [True, False]
+
+    scheduler._TaskScheduler__nodes[("elsewhere", "0")] = {
+        "name": "elsewhere/0", "node": Node(), "proc": proc}
+
+    assert scheduler.cancel() is True
+    proc.terminate.assert_called_once()
+    assert "Failed to cancel elsewhere/0: scancel exploded" in caplog.text
+
+
+def test_check_reports_a_cancel_rather_than_a_broken_flow(large_flow, make_tasks):
+    '''A canceled run did not reach its exit nodes, but reporting that as
+       unreachable steps sends the reader hunting a failure that never happened'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler.cancel()
+
+    with pytest.raises(SCRuntimeError, match="run was canceled before completing"):
+        scheduler.check()
+
+
 def test_halt_all_with_nothing_running(large_flow, make_tasks):
     '''A run with no live nodes reports nothing to halt'''
     TaskScheduler(large_flow, make_tasks(large_flow))

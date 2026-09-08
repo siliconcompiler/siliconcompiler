@@ -204,6 +204,23 @@ class SlurmSchedulerNode(SchedulerNode):
 
         return canceled
 
+    def cancel(self) -> None:
+        """Cancels the slurm job submitted for this node.
+
+        The node's process is about to be ended, but the work is not in it: the
+        task is on a compute node, and the process being ended is only waiting
+        for it. Killing the waiter is also what makes the job unreachable, so
+        this runs first.
+
+        A node whose job has already finished has nothing left to cancel, which
+        scancel reports as success.
+        """
+        if not SlurmSchedulerNode.cancel_nodes(self.jobhash, [(self.step, self.index)]):
+            # Either scancel is not on this machine or it did not come back in
+            # time. Both leave a job running that was asked to stop, and neither
+            # is something this process can do anything further about.
+            self.logger.warning(f"Unable to cancel slurm job for {self.step}/{self.index}")
+
     def mark_copy(self) -> bool:
         sharedprefix: List[str] = MPManager.get_settings().get(
             SlurmSchedulerNode.__OPTIONS, "sharedpaths", default=[])

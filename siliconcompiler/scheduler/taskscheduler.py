@@ -41,8 +41,10 @@ class TaskScheduler:
     """
 
     # How long __halt_running_nodes() waits for a node to go away, first after
-    # terminate() and then after kill().
-    __HALT_TIMEOUT = 5.0
+    # terminate() and then after kill(). A node handles the terminate itself --
+    # it tears down the tool's process tree and records what it got to -- so the
+    # wait has to cover that work, not just the signal.
+    __HALT_TIMEOUT = 10.0
 
     # Every scheduler built in this process, so a caller that does not hold one
     # -- a server shutting down while a job is in flight -- can still end the
@@ -125,6 +127,11 @@ class TaskScheduler:
         # while this run's own cleanup is ending the same processes.
         self.__halt_lock = threading.Lock()
 
+        # Set once this run has been told to stop. Read by the run loop, which
+        # runs on this thread while cancel() arrives on another, so an Event
+        # rather than a plain bool.
+        self.__canceled = threading.Event()
+
         self.__create_nodes(tasks)
 
         with TaskScheduler.__instances_lock:
@@ -170,7 +177,10 @@ class TaskScheduler:
                 threads = self.__max_threads
             task["threads"] = max(1, min(threads, self.__max_threads))
 
-            task["proc"] = get_process_context().Process(target=task["node"].run)
+            # run_process(), not run(): the interrupt handling a node needs in
+            # order to be cancelable belongs to having a process, and run() is
+            # overridden by every scheduler that dispatches elsewhere.
+            task["proc"] = get_process_context().Process(target=task["node"].run_process)
             self.__nodes[(step, index)] = task
 
         # Create ordered list of nodes
@@ -279,6 +289,20 @@ class TaskScheduler:
         self.__startTimes = {None: time.time()}
 
         while len(self.get_nodes_waiting_to_run()) > 0 or len(self.get_running_nodes()) > 0:
+            if self.__canceled.is_set():
+                # Checked before anything is launched: ending the running nodes
+                # is only half of a cancel, and without this the loop would
+                # start the next ready ones straight over the top of it.
+                #
+                # cancel() has already ended those processes -- which is what
+                # released the join at the bottom of this loop -- so the work
+                # left here is to reap them: __process_completed_nodes() records
+                # each one's status and fires post_node before the loop stops.
+                self.__halt_running_nodes()
+                if self.__process_completed_nodes() and self.__dashboard:
+                    self.__dashboard.update_manifest(payload={"starttimes": self.__startTimes})
+                break
+
             changed = self.__process_completed_nodes()
             changed |= self.__launch_nodes()
 
@@ -326,6 +350,36 @@ class TaskScheduler:
         """
         return self.__halt_running_nodes()
 
+    def cancel(self) -> bool:
+        """Stops this run: nothing further is launched, and what is running ends.
+
+        This is the pair :meth:`halt` was missing. Halting ends the node
+        processes, but the run loop it left behind simply launches the next
+        ready nodes; the flag is what tells the loop the run is over. Setting it
+        first means the loop, woken by the very processes it was joining on
+        going away, sees a canceled run rather than an idle machine to fill.
+
+        Nodes that were running are recorded as errors -- they were killed
+        partway and did not produce their outputs -- and nodes that never
+        started stay pending.
+
+        Reached through :attr:`Project._scheduler`, which is what a caller
+        holding the project but not the run it started has to work with.
+
+        Returns:
+            bool: True if a node process was still running.
+        """
+        self.__canceled.set()
+        return self.__halt_running_nodes()
+
+    def is_canceled(self) -> bool:
+        """Reports whether this run has been told to stop.
+
+        Returns:
+            bool: True if the run was canceled.
+        """
+        return self.__canceled.is_set()
+
     def __halt_running_nodes(self) -> bool:
         """Ends any node process still running, so teardown cannot block on one.
 
@@ -344,10 +398,29 @@ class TaskScheduler:
         # on waitpid, and one of them loses with ChildProcessError. Whoever
         # arrives second finds nothing running and returns.
         with self.__halt_lock:
-            running = [info["proc"] for info in self.__nodes.values()
+            running = [info for info in self.__nodes.values()
                        if info.get("proc") is not None and info["proc"].is_alive()]
             if not running:
                 return False
+
+            # Each node's own half first. A node that dispatched its work
+            # elsewhere is not holding it in the process about to be killed --
+            # it is only waiting on it -- and killing the waiter is exactly what
+            # puts that work out of reach.
+            for info in running:
+                node = info.get("node")
+                if node is None:
+                    continue
+                try:
+                    node.cancel()
+                except Exception as e:  # noqa: BLE001
+                    # cancel() is overridden per scheduler and can shell out to
+                    # a cluster controller. Whatever it does wrong, the
+                    # processes below still have to be ended: leaving them
+                    # running is the deadlock this method exists to prevent.
+                    self.__logger.warning(f'Failed to cancel {info["name"]}: {e}')
+
+            running = [info["proc"] for info in running]
 
             for proc in running:
                 proc.terminate()
@@ -554,6 +627,13 @@ class TaskScheduler:
         Returns:
             bool: True if any new node was launched, False otherwise.
         """
+        if self.__canceled.is_set():
+            # The run loop breaks on the same flag, but only at the top of the
+            # next pass: a cancel arriving part way through one -- from another
+            # thread while nodes were being reaped, or from a post_node callback
+            # -- would otherwise get one full round of launches in first.
+            return False
+
         changed = False
 
         running_nodes = self.get_running_nodes()
@@ -637,8 +717,15 @@ class TaskScheduler:
         flowgraph have been successfully completed.
 
         Raises:
-            SCRuntimeError: If any final steps in the flow were not reached.
+            SCRuntimeError: If the run was canceled, or if any final steps in
+                the flow were not reached.
         """
+        if self.__canceled.is_set():
+            # Said plainly rather than through the unreached exit steps below:
+            # those are the symptom, and reporting a canceled run as a broken
+            # flow sends the reader looking for a failure that never happened.
+            raise SCRuntimeError("run was canceled before completing")
+
         exit_steps = set([step for step, _ in self.__runtime_flow.get_exit_nodes()])
         completed_steps = set([step for step, _ in
                                self.__runtime_flow.get_completed_nodes(record=self.__record)])
