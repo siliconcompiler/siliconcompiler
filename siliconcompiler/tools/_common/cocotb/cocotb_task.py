@@ -8,94 +8,85 @@ from siliconcompiler import Task
 
 try:
     import cocotb_tools.config
-    from cocotb_tools.runner import Runner
+    import find_libpython
     _has_cocotb = True
 except ModuleNotFoundError:
     _has_cocotb = False
-    Runner = object
+
+
+def _require_cocotb(what):
+    if not _has_cocotb:
+        raise NotImplementedError(f"COCOTB must be installed to use {what}")
 
 
 def get_cocotb_config(sim="icarus"):
-    if not _has_cocotb:
-        raise NotImplementedError("COCOTB must be installed to use get_cocotb_config")
+    """
+    Return the cocotb VPI library and share directory for a simulator.
+
+    Returns:
+        tuple: ``(libs_dir, vpi_lib, share_dir)`` where ``vpi_lib`` is the
+        absolute path to the simulator's cocotb VPI library.
+    """
+    _require_cocotb("get_cocotb_config")
 
     libs_dir = cocotb_tools.config.libs_dir
-    lib_name = cocotb_tools.config.lib_name("vpi", sim)
+    vpi_lib = cocotb_tools.config.lib_name_path("vpi", sim)
     share_dir = cocotb_tools.config.share_dir
 
-    return libs_dir, lib_name, share_dir
+    return libs_dir, vpi_lib, share_dir
 
 
-class CocotbRunnerDummy(Runner):
+def get_cocotb_lib_entry(sim="icarus", interface="vpi"):
     """
-    A minimal Runner subclass used solely to retrieve the libpython path.
+    Return the cocotb interface library for a simulator to load.
 
-    This class provides access to the libpython shared library location
-    without adding ``find_libpython`` as a direct dependency. It leverages
-    cocotb's existing Runner infrastructure, which handles libpython
-    discovery internally via the ``_set_env()`` method.
+    This is the value cocotb documents as ``cocotb-config --lib-entry`` for
+    custom flows.  For simulators that need an explicit entry function the
+    result uses the ``library:entry_function`` format, so it must be passed to
+    the simulator verbatim.
 
-    The abstract methods required by the Runner base class are implemented
-    as no-ops or raise NotImplementedError, as they are not intended to be
-    called. This class should only be instantiated to call
-    ``get_libpython_path()``.
-
-    Example:
-        >>> libpython = CocotbRunnerDummy().get_libpython_path()
-        >>> print(libpython)
-        /usr/lib/x86_64-linux-gnu/libpython3.10.so
+    Returns:
+        str: The interface library, optionally suffixed with its entry function.
     """
+    _require_cocotb("get_cocotb_lib_entry")
 
-    def __init__(self):
-        if not _has_cocotb:
-            raise NotImplementedError("COCOTB must be installed to use get_cocotb_config")
+    return cocotb_tools.config.lib_entry(interface, sim)
 
-        super().__init__()
-        # These attributes are required by _set_env() which uses them to
-        # populate environment variables.
-        self.sim_hdl_toplevel = ""
-        self.test_module = ""
-        self.hdl_toplevel_lang = ""
 
-    def _simulator_in_path(self):
-        # No-op: This dummy class doesn't require any simulator executable.
-        pass
+def get_libpython_path():
+    """
+    Retrieve the path to the libpython shared library.
 
-    def _build_command(self):
-        raise NotImplementedError(
-            "CocotbRunnerDummy is not intended for building HDL sources")
+    Returns:
+        str: Absolute path to the libpython shared library.
 
-    def _test_command(self):
-        raise NotImplementedError(
-            "CocotbRunnerDummy is not intended for running tests")
+    Raises:
+        ValueError: If libpython cannot be found.
+    """
+    _require_cocotb("get_libpython_path")
 
-    def _get_define_options(self, defines):
-        raise NotImplementedError(
-            "CocotbRunnerDummy is not intended for HDL compilation")
+    libpython_path = find_libpython.find_libpython()
+    if not libpython_path:
+        raise ValueError(
+            "Unable to find libpython, please make sure the appropriate libpython "
+            "is installed")
+    return libpython_path
 
-    def _get_include_options(self, includes):
-        raise NotImplementedError(
-            "CocotbRunnerDummy is not intended for HDL compilation")
 
-    def _get_parameter_options(self, parameters):
-        raise NotImplementedError(
-            "CocotbRunnerDummy is not intended for HDL compilation")
+def get_gpi_users():
+    """
+    Build the ``GPI_USERS`` value that bootstraps Python inside the simulator.
 
-    def get_libpython_path(self):
-        """
-        Retrieve the path to the libpython shared library.
+    cocotb's GPI layer loads the libraries listed in ``GPI_USERS`` once it has
+    initialized.  Python is brought up by loading libpython followed by the
+    PyGPI entry point.
 
-        This method uses cocotb's ``Runner._set_env()`` which internally
-        calls ``find_libpython.find_libpython()`` to locate the library.
+    Returns:
+        str: Semicolon-separated ``GPI_USERS`` value.
+    """
+    _require_cocotb("get_gpi_users")
 
-        Returns:
-            str: Absolute path to the libpython shared library.
-
-        Raises:
-            ValueError: If libpython cannot be found.
-        """
-        self._set_env()
-        return self.env["LIBPYTHON_LOC"]
+    return ";".join([get_libpython_path(), cocotb_tools.config.pygpi_entry_point()])
 
 
 class CocotbTask(Task):
@@ -188,11 +179,11 @@ class CocotbTask(Task):
         """
 
         test_modules, _ = self._get_test_modules()
-        libpython_path = CocotbRunnerDummy().get_libpython_path()
 
-        # LIBPYTHON_LOC: path to libpython shared library
-        self.set_environmentalvariable("LIBPYTHON_LOC", libpython_path)
-        self.add_required_key("env", "LIBPYTHON_LOC")
+        # GPI_USERS: libraries the GPI layer loads to bootstrap Python inside
+        # the simulator (libpython followed by the PyGPI entry point).
+        self.set_environmentalvariable("GPI_USERS", get_gpi_users())
+        self.add_required_key("env", "GPI_USERS")
 
         # COCOTB_TOPLEVEL: the HDL toplevel module name
         self.set_environmentalvariable("COCOTB_TOPLEVEL", self.design_topmodule)

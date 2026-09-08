@@ -1,6 +1,6 @@
 from siliconcompiler.tools._common.cocotb.cocotb_task import (
     CocotbTask,
-    get_cocotb_config
+    get_cocotb_lib_entry
 )
 from siliconcompiler.tools._common import PlusArgs
 
@@ -40,13 +40,9 @@ class CocotbExecTask(CocotbTask, PlusArgs):
     def runtime_options(self):
         options = super().runtime_options()
 
-        libs_dir, lib_name, _ = get_cocotb_config("icarus")
-
-        # -M: VPI module search path
-        options.extend(["-M", str(libs_dir)])
-
-        # -m: VPI module to load
-        options.extend(["-m", lib_name])
+        # -m: VPI module to load.  cocotb-config --lib-entry returns an
+        # absolute path, so no -M search path is needed.
+        options.extend(["-m", get_cocotb_lib_entry("icarus")])
 
         # Input .vvp file
         options.append(f"inputs/{self.design_topmodule}.vvp")
