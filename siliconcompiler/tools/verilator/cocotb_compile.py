@@ -23,22 +23,17 @@ class CocotbCompileTask(CompileTask):
         options.extend(['--prefix', 'Vtop'])
 
         # Get cocotb configuration
-        libs_dir, lib_name, share_dir = get_cocotb_config("verilator")
+        libs_dir, vpi_lib, share_dir = get_cocotb_config("verilator")
 
         # Link flags for cocotb VPI library
-        # lib_name is like "libcocotbvpi_verilator.so", but -l expects "cocotbvpi_verilator"
-        # Strip "lib" prefix and ".so" suffix
-        link_name = lib_name
+        # The library file is like "libcocotbvpi_verilator.so", but -l expects
+        # "cocotbvpi_verilator", so strip the "lib" prefix and the suffix.
+        link_name = vpi_lib.stem
 
         if link_name.startswith('lib'):
             link_name = link_name[3:]
-
-        if link_name.endswith('.so'):
-            link_name = link_name[:-3]
-        elif link_name.endswith('.dylib'):
-            link_name = link_name[:-6]
         else:
-            raise RuntimeError
+            raise RuntimeError(f"Unexpected cocotb VPI library name: {vpi_lib.name}")
 
         cocotb_flags = [
             f'-Wl,-rpath,{libs_dir}',
