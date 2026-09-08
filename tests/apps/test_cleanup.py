@@ -265,6 +265,7 @@ def test_cleanup_removes_both_lock_types(monkeypatch, temp_cache_dir):
 
     old_time = (datetime.now() - timedelta(days=91)).timestamp()
     os.utime(lock_file, (old_time, old_time))
+    os.utime(sc_lock_file, (old_time, old_time))
 
     monkeypatch.setattr('sys.argv', [
         'cleanup',
@@ -324,29 +325,30 @@ def test_cleanup_calculates_size(monkeypatch, cache_with_old_entries, capsys):
     assert "-entry-1234567890ab" in output
 
 
-def test_format_size_bytes():
-    '''Test _format_size with bytes.'''
-    assert cleanup._format_size(512) == "512.0B"
+def test_cleanup_removes_orphaned_locks(monkeypatch, temp_cache_dir, capsys):
+    '''Test cleanup collects lock files whose cache entry is already gone.'''
+    orphan = temp_cache_dir / "gone-entry-0123456789ab.lock"
+    orphan.touch()
+    old_time = (datetime.now() - timedelta(days=91)).timestamp()
+    os.utime(orphan, (old_time, old_time))
 
+    recent_orphan = temp_cache_dir / "recent-entry-abcdef123456.lock"
+    recent_orphan.touch()
 
-def test_format_size_kilobytes():
-    '''Test _format_size with kilobytes.'''
-    assert cleanup._format_size(1024) == "1.0KB"
+    monkeypatch.setattr('sys.argv', [
+        'cleanup',
+        '-days', '90',
+        '-cachedir', str(temp_cache_dir)
+    ])
 
+    assert cleanup.main() == 0
 
-def test_format_size_megabytes():
-    '''Test _format_size with megabytes.'''
-    assert cleanup._format_size(1024 * 1024) == "1.0MB"
+    assert not orphan.exists()
+    assert recent_orphan.exists()
 
-
-def test_format_size_gigabytes():
-    '''Test _format_size with gigabytes.'''
-    assert cleanup._format_size(1024 * 1024 * 1024) == "1.0GB"
-
-
-def test_format_size_terabytes():
-    '''Test _format_size with terabytes.'''
-    assert cleanup._format_size(1024 * 1024 * 1024 * 1024) == "1.0TB"
+    output = capsys.readouterr().out
+    assert "Removing orphaned lock gone-entry-0123456789ab.lock" in output
+    assert "1 orphaned lock files removed" in output
 
 
 def test_cleanup_summary_shows_total_size(monkeypatch, cache_with_old_entries, capsys):

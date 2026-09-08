@@ -89,6 +89,20 @@ def test_wrapper(tmp_path, request, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_cache_cleanup(monkeypatch):
+    '''Keep the automatic cache sweep out of the test suite's way.
+
+    Scheduler.run() sweeps the data source cache at the start of every run, and
+    with SCTESTCACHE set that is the shared cache the whole suite resolves
+    against -- not somewhere a test should be planting stamp files or deleting
+    downloads. Only the scheduler's own reference to it is stubbed, so tests of
+    the sweep itself still get the real function.
+    '''
+    monkeypatch.setattr("siliconcompiler.scheduler.scheduler.auto_cleanup",
+                        lambda *args, **kwargs: None)
+
+
+@pytest.fixture(autouse=True)
 def use_cache(monkeypatch, request):
     '''Set [option, cachedir]
     '''
