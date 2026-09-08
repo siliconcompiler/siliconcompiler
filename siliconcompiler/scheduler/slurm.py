@@ -181,8 +181,8 @@ class SlurmSchedulerNode(SchedulerNode):
 
         Returns:
             list of tuple: The nodes scancel accepted. Empty if scancel is not
-                available on this machine, and a node whose scancel did not
-                return in time is left out.
+                available on this machine, and a node whose scancel failed or
+                did not return in time is left out.
         """
 
         if shutil.which('scancel') is None:
@@ -192,13 +192,18 @@ class SlurmSchedulerNode(SchedulerNode):
         for step, index in nodes:
             job_name = SlurmSchedulerNode.get_job_name(jobhash, step, index)
             try:
-                subprocess.run(['scancel', '--name', job_name],
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL,
-                               timeout=SlurmSchedulerNode._CANCEL_TIMEOUT)
+                result = subprocess.run(['scancel', '--name', job_name],
+                                        stdout=subprocess.DEVNULL,
+                                        stderr=subprocess.DEVNULL,
+                                        timeout=SlurmSchedulerNode._CANCEL_TIMEOUT)
             except subprocess.TimeoutExpired:
                 # Nothing is known about this node's job now, so do not claim it
                 # was canceled -- but the remaining nodes still deserve a try.
+                continue
+            if result.returncode != 0:
+                # scancel said no. Reporting that as canceled would have the
+                # caller end this node's local waiter for a job that is still
+                # running on the cluster, with nothing left watching it.
                 continue
             canceled.append((step, index))
 

@@ -430,6 +430,41 @@ def test_run_process_records_an_interrupted_node(project, monkeypatch):
     assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
 
 
+def test_run_process_cancels_again_on_its_way_out(project, monkeypatch):
+    '''The scheduler cancels before it signals, which can be before this node
+       had finished handing its work over -- so the node cancels again once the
+       interrupt has unwound whatever that first call was too early to see'''
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    order = []
+    monkeypatch.setattr(node, "run", lambda: (_ for _ in ()).throw(KeyboardInterrupt))
+    monkeypatch.setattr(node, "cancel", lambda: order.append("cancel"))
+
+    with pytest.raises(SystemExit):
+        node.run_process()
+
+    assert order == ["cancel"]
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+
+
+def test_run_process_records_a_node_whose_cancel_failed(project, monkeypatch):
+    '''A cancel that raises is not a reason to leave the node unrecorded'''
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    monkeypatch.setattr(node, "run", lambda: (_ for _ in ()).throw(KeyboardInterrupt))
+    monkeypatch.setattr(node, "cancel",
+                        lambda: (_ for _ in ()).throw(RuntimeError("scancel exploded")))
+
+    # halt() ends the process, so it has to run even when the cancel above did
+    # not: SystemExit rather than the RuntimeError reaching the caller.
+    with pytest.raises(SystemExit):
+        node.run_process()
+
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+
+
 @pytest.mark.skipif(sys.platform == "win32",
                     reason="Windows ends a process outright, with no signal to handle")
 def test_run_process_covers_an_overridden_run(project):

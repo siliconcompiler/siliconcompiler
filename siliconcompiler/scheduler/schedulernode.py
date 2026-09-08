@@ -406,12 +406,16 @@ class SchedulerNode:
     def cancel(self) -> None:
         """Releases whatever this node is holding outside its own process.
 
-        Called by the scheduler that launched the node, from the scheduler's
-        process, when a run is canceled or interrupted -- never by the node
-        itself, which is about to be ended. Ending that process is the
-        scheduler's half and needs no help from here; this is for work the node
-        placed somewhere the process teardown cannot reach, such as a job handed
-        to a workload manager.
+        For work the node placed somewhere its process teardown cannot reach,
+        such as a job handed to a workload manager. Ending the process itself is
+        the scheduler's half and needs no help from here.
+
+        Called twice, from either side of the signal that ends the node: by the
+        scheduler that launched it, before signalling, so the work stops while
+        its waiter is still there to notice; and by the node itself in
+        :meth:`run_process`, once the interrupt has unwound whatever the first
+        call was too early to see. It must therefore be safe to repeat, and safe
+        to call for work that was never dispatched.
 
         A node that runs on this machine has nothing of the sort, so this does
         nothing. Nodes that dispatch elsewhere override it.
@@ -889,7 +893,19 @@ class SchedulerNode:
                 # Only an interrupt outside execute() reaches here -- that one
                 # is handled where the tool is, which is the only place that
                 # can take the tool down with it.
-                self.halt(errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
+                try:
+                    # Cancel again, from in here. The scheduler cancels before
+                    # it signals, which can land while this node was still
+                    # handing its work over -- a cancel that finds nothing, and
+                    # a submission that completes just after it. By now that
+                    # submission has unwound, so whatever it managed to create
+                    # is there to be found. Cancelling twice costs nothing.
+                    self.cancel()
+                finally:
+                    # In a finally: a cancel that fails is not a reason to leave
+                    # the node unrecorded, and halt() is what ends this process.
+                    self.halt(
+                        errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
 
     def run(self) -> None:
         """

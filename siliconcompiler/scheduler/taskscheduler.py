@@ -132,6 +132,14 @@ class TaskScheduler:
         # rather than a plain bool.
         self.__canceled = threading.Event()
 
+        # Serializes setting that flag against starting a node. Without it a
+        # cancel can land between the check and proc.start(), and then halt's
+        # scan for live processes runs just before the process it was meant to
+        # end exists -- leaving a node running, and the loop about to join it.
+        # Reentrant because a pre_node callback runs inside a launch and is
+        # entitled to cancel the run it is being called from.
+        self.__launch_lock = threading.RLock()
+
         self.__create_nodes(tasks)
 
         with TaskScheduler.__instances_lock:
@@ -369,7 +377,13 @@ class TaskScheduler:
         Returns:
             bool: True if a node process was still running.
         """
-        self.__canceled.set()
+        with self.__launch_lock:
+            self.__canceled.set()
+
+        # Outside the lock: whoever holds it is mid-launch, and the process they
+        # are starting is one this halt has to see. Setting the flag first is
+        # what guarantees it does -- a launch either completes before the flag
+        # is set, and is found running here, or sees the flag and never starts.
         return self.__halt_running_nodes()
 
     def is_canceled(self) -> bool:
@@ -631,7 +645,9 @@ class TaskScheduler:
             # The run loop breaks on the same flag, but only at the top of the
             # next pass: a cancel arriving part way through one -- from another
             # thread while nodes were being reaped, or from a post_node callback
-            # -- would otherwise get one full round of launches in first.
+            # -- would otherwise get one full round of launches in first. This
+            # is the cheap check; __try_start_node() is the one that cannot be
+            # raced.
             return False
 
         changed = False
@@ -695,19 +711,35 @@ class TaskScheduler:
                 return changed
             # ready_nodes preserves execution order, so breakpoint_nodes[0] is
             # the earliest pending breakpoint.
-            node = breakpoint_nodes[0]
-            if self.__allow_start(node):
-                self.__start_node(node)
-                changed = True
+            changed |= self.__try_start_node(breakpoint_nodes[0])
             return changed
 
         # Normal scheduling: launch as many ready nodes as resources allow.
         for node in ready_nodes:
-            if self.__allow_start(node):
-                self.__start_node(node)
-                changed = True
+            changed |= self.__try_start_node(node)
 
         return changed
+
+    def __try_start_node(self, node: Tuple[str, str]) -> bool:
+        """
+        Private helper to start a node unless the run has been canceled.
+
+        The cancel check and the launch are one step on purpose: apart, a cancel
+        landing between them starts a node that nothing is left to stop.
+
+        Args:
+            node (tuple): The (step, index) of the node to start.
+
+        Returns:
+            bool: True if the node was started.
+        """
+        with self.__launch_lock:
+            if self.__canceled.is_set():
+                return False
+            if not self.__allow_start(node):
+                return False
+            self.__start_node(node)
+            return True
 
     def check(self) -> None:
         """

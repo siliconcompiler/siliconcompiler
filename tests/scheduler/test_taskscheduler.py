@@ -998,11 +998,12 @@ def test_halt_asks_each_node_to_cancel_first(large_flow, make_tasks):
     assert order == ["node", "terminate"]
 
 
-def test_halt_ends_nodes_even_when_a_cancel_fails(large_flow, make_tasks, caplog):
+def test_halt_ends_nodes_even_when_a_cancel_fails(large_flow, make_tasks, project_logger,
+                                                  caplog):
     '''A node's cancel is overridden per scheduler and can shell out. Whatever
        it does wrong, the processes still have to be ended -- leaving them alive
        is the deadlock the halt exists to prevent'''
-    large_flow.logger.setLevel(logging.INFO)
+    project_logger(large_flow)
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
 
     class Node:
@@ -1018,6 +1019,56 @@ def test_halt_ends_nodes_even_when_a_cancel_fails(large_flow, make_tasks, caplog
     assert scheduler.cancel() is True
     proc.terminate.assert_called_once()
     assert "Failed to cancel elsewhere/0: scancel exploded" in caplog.text
+
+
+def test_a_canceled_run_refuses_to_start_a_node(large_flow, make_tasks):
+    '''The check that guards a launch, on its own'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler.cancel()
+
+    started = []
+    scheduler._TaskScheduler__start_node = started.append
+
+    assert scheduler._TaskScheduler__try_start_node(("stepone", "0")) is False
+    assert started == []
+
+
+def test_a_launch_holds_the_cancel_lock(large_flow, make_tasks):
+    '''Checking the flag and starting the node have to be one step.
+
+    Apart, a cancel lands between them and its halt scans for live processes
+    just before the one it was meant to end exists: nothing stops that node,
+    and the run loop goes on to join it -- with a single node running, that
+    join has no timeout, so a canceled run sits through a whole task.
+
+    Holding the lock across both is what makes the two orderings the only ones:
+    the launch finishes first and halt finds it running, or the cancel gets
+    there first and the launch never happens.
+    '''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    held = []
+
+    def start_node(node):
+        # From another thread: the lock is reentrant, so probing it from this
+        # one would succeed whether or not it is held.
+        def probe():
+            lock = scheduler._TaskScheduler__launch_lock
+            acquired = lock.acquire(blocking=False)
+            held.append(not acquired)
+            if acquired:
+                lock.release()
+
+        thread = Thread(target=probe)
+        thread.start()
+        thread.join(timeout=10)
+        assert not thread.is_alive()
+
+    scheduler._TaskScheduler__start_node = start_node
+    scheduler._TaskScheduler__allow_start = lambda node: True
+
+    assert scheduler._TaskScheduler__try_start_node(("stepone", "0")) is True
+    assert held == [True], "a node was started without the cancel lock held"
 
 
 def test_check_reports_a_cancel_rather_than_a_broken_flow(large_flow, make_tasks):

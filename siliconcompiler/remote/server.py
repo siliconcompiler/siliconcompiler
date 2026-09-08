@@ -130,6 +130,20 @@ class Server(ServerSchema):
                 self.sc_jobs[job_name][name]["status"] = \
                     project.get('record', 'status', step=step, index=index)
 
+            canceled = job_name in self.sc_canceled_jobs
+
+        if canceled:
+            # Canceled before this run had a scheduler to hand the request to.
+            # A job is claimed for a client the moment its thread is started,
+            # but the run does not publish the scheduler executing it until it
+            # is inside Project.run(), and a cancel arriving in between found
+            # nothing to stop. It is recorded rather than lost, and this is the
+            # first point past that window: the scheduler exists, and no node
+            # has been launched yet.
+            scheduler = project._scheduler
+            if scheduler:
+                scheduler.cancel()
+
     def __node_start(self, project, step, index):
         with self.sc_jobs_lock:
             job_name = self.sc_project_lookup[project]["name"]
@@ -606,6 +620,10 @@ class Server(ServerSchema):
         server's: the project publishes the scheduler executing it, that
         scheduler stops scheduling and ends its nodes, and a node that
         dispatched elsewhere cancels that as it goes.
+
+        A job whose thread has not reached Project.run() yet has no scheduler to
+        publish, so the request is only recorded here; the run picks it up from
+        sc_canceled_jobs at pre_run, before it launches anything.
         '''
 
         with self.sc_jobs_lock:

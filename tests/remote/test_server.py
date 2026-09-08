@@ -2037,6 +2037,40 @@ def test_run_start_publishes_node_statuses():
     assert server.sc_jobs[job_hash]['stepone0']['status'] == NodeStatus.SUCCESS
 
 
+def test_run_start_applies_a_cancel_that_beat_the_run():
+    '''A cancel can land after the job is claimed but before its thread reaches
+       Project.run(), where there is no scheduler yet to hand it to.
+
+    It is recorded rather than lost, and pre_run is the first point past that
+    window: the scheduler exists and no node has been launched.
+    '''
+    server = _make_server()
+    job_hash = 'd' * 32
+    project, _ = _callback_project(server, job_hash)
+
+    scheduler = Mock()
+    project._Project__scheduler = scheduler
+    server.sc_canceled_jobs.add(job_hash)
+
+    server._Server__run_start(project)
+
+    scheduler.cancel.assert_called_once_with()
+
+
+def test_run_start_leaves_an_uncanceled_run_alone():
+    '''The common path does not go looking for a scheduler to stop'''
+    server = _make_server()
+    job_hash = 'e' * 32
+    project, _ = _callback_project(server, job_hash)
+
+    scheduler = Mock()
+    project._Project__scheduler = scheduler
+
+    server._Server__run_start(project)
+
+    assert not scheduler.cancel.called
+
+
 def test_run_start_ignores_untracked_nodes():
     '''A node the job is not reporting on is skipped rather than invented'''
     server = _make_server()
