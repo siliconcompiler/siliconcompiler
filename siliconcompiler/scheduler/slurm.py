@@ -181,8 +181,8 @@ class SlurmSchedulerNode(SchedulerNode):
 
         Returns:
             list of tuple: The nodes scancel accepted. Empty if scancel is not
-                available on this machine, and a node whose scancel did not
-                return in time is left out.
+                available on this machine, and a node whose scancel failed or
+                did not return in time is left out.
         """
 
         if shutil.which('scancel') is None:
@@ -192,17 +192,39 @@ class SlurmSchedulerNode(SchedulerNode):
         for step, index in nodes:
             job_name = SlurmSchedulerNode.get_job_name(jobhash, step, index)
             try:
-                subprocess.run(['scancel', '--name', job_name],
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL,
-                               timeout=SlurmSchedulerNode._CANCEL_TIMEOUT)
+                result = subprocess.run(['scancel', '--name', job_name],
+                                        stdout=subprocess.DEVNULL,
+                                        stderr=subprocess.DEVNULL,
+                                        timeout=SlurmSchedulerNode._CANCEL_TIMEOUT)
             except subprocess.TimeoutExpired:
                 # Nothing is known about this node's job now, so do not claim it
                 # was canceled -- but the remaining nodes still deserve a try.
                 continue
+            if result.returncode != 0:
+                # scancel said no. Reporting that as canceled would have the
+                # caller end this node's local waiter for a job that is still
+                # running on the cluster, with nothing left watching it.
+                continue
             canceled.append((step, index))
 
         return canceled
+
+    def cancel(self) -> None:
+        """Cancels the slurm job submitted for this node.
+
+        The node's process is about to be ended, but the work is not in it: the
+        task is on a compute node, and the process being ended is only waiting
+        for it. Killing the waiter is also what makes the job unreachable, so
+        this runs first.
+
+        A node whose job has already finished has nothing left to cancel, which
+        scancel reports as success.
+        """
+        if not SlurmSchedulerNode.cancel_nodes(self.jobhash, [(self.step, self.index)]):
+            # Either scancel is not on this machine or it did not come back in
+            # time. Both leave a job running that was asked to stop, and neither
+            # is something this process can do anything further about.
+            self.logger.warning(f"Unable to cancel slurm job for {self.step}/{self.index}")
 
     def mark_copy(self) -> bool:
         sharedprefix: List[str] = MPManager.get_settings().get(

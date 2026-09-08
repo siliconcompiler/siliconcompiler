@@ -3,8 +3,10 @@ import glob
 import logging
 import os
 import shutil
+import signal
 import sys
 import tarfile
+import threading
 import time
 
 import os.path
@@ -400,6 +402,25 @@ class SchedulerNode:
             # Catch everything to avoid generating additional errors during error handling
             pass
         sys.exit(1)
+
+    def cancel(self) -> None:
+        """Releases whatever this node is holding outside its own process.
+
+        For work the node placed somewhere its process teardown cannot reach,
+        such as a job handed to a workload manager. Ending the process itself is
+        the scheduler's half and needs no help from here.
+
+        Called twice, from either side of the signal that ends the node: by the
+        scheduler that launched it, before signalling, so the work stops while
+        its waiter is still there to notice; and by the node itself in
+        :meth:`run_process`, once the interrupt has unwound whatever the first
+        call was too early to see. It must therefore be safe to repeat, and safe
+        to call for work that was never dispatched.
+
+        A node that runs on this machine has nothing of the sort, so this does
+        nothing. Nodes that dispatch elsewhere override it.
+        """
+        pass
 
     def setup(self) -> bool:
         """
@@ -811,6 +832,81 @@ class SchedulerNode:
         walltime = self.__metrics.get("tasktime", step=self.__step, index=self.__index)
         self.logger.info(f"Finished task in {walltime:.2f}s")
 
+    @staticmethod
+    @contextlib.contextmanager
+    def _interruptible():
+        """Turns the terminate of a canceled run into an interrupt this node can handle.
+
+        SIGTERM's default action ends the process where it stands. That leaves
+        the tool this node started running with nobody to reap it -- a cancel
+        whose whole point was to give the machine back -- and skips the cleanup
+        the node does on its way out. Python's own interrupt is what every one
+        of those paths is already written against: Task.run_task() terminates
+        the tool's process tree on it, and run_process() below halts the node
+        and records what it got to. So raise that rather than growing a second
+        shutdown path beside it.
+
+        The previous handler is restored on the way out, since a node is not
+        always a process of its own -- a replay runs one in the caller's -- and
+        a handler left installed there would outlive the node that wanted it.
+        Only the main thread may install one at all, which a node process's is;
+        anywhere else this yields without changing anything.
+        """
+        def interrupt(signum, frame):
+            raise KeyboardInterrupt
+
+        if threading.current_thread() is not threading.main_thread():
+            yield
+            return
+
+        try:
+            previous = signal.signal(signal.SIGTERM, interrupt)
+        except ValueError:
+            # Not the main thread of the process after all (or a platform
+            # without SIGTERM). Nothing to install, and nothing to restore.
+            yield
+            return
+
+        try:
+            yield
+        finally:
+            signal.signal(signal.SIGTERM, previous)
+
+    def run_process(self) -> None:
+        """Runs this node as the whole of a process of its own.
+
+        The entry point a scheduler hands a node's process, rather than
+        something :meth:`run` does for itself. run() is made to be replaced --
+        DockerSchedulerNode and SlurmSchedulerNode both override it outright,
+        and so can anything outside this package -- and setup that lives inside
+        it is setup every one of those has to remember to reproduce.
+
+        What it adds is the interrupt handling: a canceled run ends this node
+        with SIGTERM, which arrives here as an interrupt, and the node is halted
+        and recorded like any other failure rather than the process simply
+        vanishing with its tool still running.
+        """
+        with SchedulerNode._interruptible():
+            try:
+                self.run()
+            except KeyboardInterrupt:
+                # Only an interrupt outside execute() reaches here -- that one
+                # is handled where the tool is, which is the only place that
+                # can take the tool down with it.
+                try:
+                    # Cancel again, from in here. The scheduler cancels before
+                    # it signals, which can land while this node was still
+                    # handing its work over -- a cancel that finds nothing, and
+                    # a submission that completes just after it. By now that
+                    # submission has unwound, so whatever it managed to create
+                    # is there to be found. Cancelling twice costs nothing.
+                    self.cancel()
+                finally:
+                    # In a finally: a cancel that fails is not a reason to leave
+                    # the node unrecorded, and halt() is what ends this process.
+                    self.halt(
+                        errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
+
     def run(self) -> None:
         """
         Executes the full lifecycle for this node.
@@ -826,7 +922,9 @@ class SchedulerNode:
 
         Note: Since this method may run in its own process with a separate
         address space, any changes made to the schema are communicated through
-        reading/writing the project manifest to the filesystem.
+        reading/writing the project manifest to the filesystem. A node given a
+        process of its own is entered through :meth:`run_process`, which is
+        where anything that process needs as a whole belongs.
         """
 
         # Setup logger

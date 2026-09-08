@@ -125,6 +125,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Init fields
         self.__cwd = os.getcwd()
 
+        # The scheduler executing this project, while one is. Only run() sets
+        # it; it is read through the _scheduler property.
+        self.__scheduler = None
+
         # Init options callbacks
         self.__init_option_callbacks()
 
@@ -639,6 +643,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 scheduler = ClientScheduler(self)
             else:
                 scheduler = Scheduler(self)
+            # Published before the run starts and dropped when it ends, so
+            # _scheduler holds a run exactly as long as there is one to reach.
+            self.__scheduler = scheduler
             scheduler.run()
         except SCRuntimeError as e:
             # Tear the dashboard down first: this restores (un-suppresses) the
@@ -672,10 +679,23 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     self.logger.debug(f"Failed to update dashboard at end of run: {e}")
                 finally:
                     self.__dashboard.stop()
+            self.__scheduler = None
 
         self.__reset_job_params()
 
         return self.history(self.option.get_jobname())
+
+    @property
+    def _scheduler(self) -> Optional[Scheduler]:
+        '''
+        Scheduler: The scheduler executing this project, or None when no run is
+        in progress.
+
+        Held for the duration of :meth:`run`, so that a caller on another
+        thread can reach the run in flight -- to cancel it, which is the one
+        thing :meth:`run` cannot be asked from the thread inside it.
+        '''
+        return self.__scheduler
 
     def __reset_job_params(self):
         """
@@ -752,6 +772,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Remove dashboard
         del state["_Project__dashboard"]
 
+        # Remove the running scheduler. It belongs to the run happening here,
+        # holds locks and log handlers that do not serialize, and means nothing
+        # to a node process or a copy taken for the history.
+        del state["_Project__scheduler"]
+
         # Pass along manager address
         state["__manager__"] = MPManager._get_manager_address()
 
@@ -779,6 +804,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         del state["__manager__"]
 
         self.__dict__ = state
+
+        # Whatever this copy is for, it is not the run that was in progress.
+        self.__scheduler = None
 
         # Reinitialize logger on restore
         self.__init_logger()

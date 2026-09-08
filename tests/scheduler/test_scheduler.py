@@ -1796,3 +1796,86 @@ def test_unguarded_run_with_non_fork_default():
         assert "SC_RUN_OK" in proc.stdout, f"[{run}] missing success marker:\n{combined}"
         assert "bootstrapping phase" not in combined, \
             f"[{run}] hit the multiprocessing guard error:\n{combined}"
+
+
+###########################
+# cancel
+###########################
+
+def test_cancel_reaches_the_task_scheduler(gcd_nop_project):
+    '''A cancel arriving mid-run is handed straight down'''
+    scheduler = Scheduler(gcd_nop_project)
+
+    task_scheduler = MagicMock()
+    scheduler._Scheduler__task_scheduler = task_scheduler
+
+    scheduler.cancel()
+
+    task_scheduler.cancel.assert_called_once_with()
+
+
+def test_cancel_during_setup_is_held_for_the_task_scheduler(gcd_nop_project):
+    '''Setup is the long part of a run, and the scheduler that executes nodes
+       does not exist until the end of it.
+
+    A cancel landing in that window has nothing to hand the request to, so this
+    scheduler keeps it and applies it the moment there is one -- before any node
+    is launched.
+    '''
+    scheduler = Scheduler(gcd_nop_project)
+    scheduler.cancel()
+
+    canceled = []
+    with patch("siliconcompiler.scheduler.scheduler.TaskScheduler") as task_scheduler_cls:
+        task_scheduler_cls.return_value.cancel.side_effect = \
+            lambda: canceled.append("cancel")
+        task_scheduler_cls.return_value.run.side_effect = \
+            lambda *_: canceled.append("run")
+        scheduler.run_core()
+
+    # Canceled before it was ever asked to run, so the run loop starts on a
+    # scheduler that already knows the run is over.
+    assert canceled == ["cancel", "run"]
+
+
+def test_cancel_with_no_task_scheduler(gcd_nop_project):
+    '''A cancel before run_core() has nothing to forward to, and says so by
+       doing nothing rather than failing'''
+    Scheduler(gcd_nop_project).cancel()
+
+
+def test_project_publishes_its_scheduler(gcd_nop_project):
+    '''What a caller holding the project has to work with, since the run it
+       started keeps its scheduler on the stack'''
+    scheduler = MagicMock()
+    gcd_nop_project._Project__scheduler = scheduler
+
+    assert gcd_nop_project._scheduler is scheduler
+
+
+def test_project_scheduler_without_a_run():
+    '''No run in progress is not an error, it is None'''
+    design = Design("designtop")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("designtop")
+
+    assert Project(design)._scheduler is None
+
+
+def test_project_drops_its_scheduler_when_the_run_ends(gcd_nop_project):
+    '''The handle lives exactly as long as there is a run to stop'''
+    # history() is stubbed as well: run() returns the completed job's record,
+    # and a stubbed run never produced one.
+    with patch.object(Scheduler, "run"), patch.object(Project, "history"):
+        gcd_nop_project.run()
+
+    assert gcd_nop_project._scheduler is None
+
+
+def test_project_scheduler_is_not_serialized(gcd_nop_project):
+    '''A live scheduler holds locks and log handlers that do not pickle, and
+       means nothing to the node process or history copy being made'''
+    gcd_nop_project._Project__scheduler = Scheduler(gcd_nop_project)
+
+    assert "_Project__scheduler" not in gcd_nop_project.__getstate__()
+    assert gcd_nop_project.copy()._scheduler is None

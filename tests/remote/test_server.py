@@ -1202,13 +1202,19 @@ def _make_server(cluster='local', auth=False):
     return server
 
 
-def _register_job(server, job_hash, nodes=None, username=None):
+def _register_job(server, job_hash, nodes=None, username=None, project=None):
     '''Register a running job the way remote_sc() does.'''
     if nodes is None:
         nodes = {'stepone0': {'status': NodeStatus.RUNNING,
                               'step': 'stepone', 'index': '0'}}
     job_name = server.job_name(username, job_hash)
     server.sc_jobs[job_name] = {None: {'status': NodeStatus.SUCCESS}, **nodes}
+    if project is not None:
+        # What handle_remote_run() records alongside the thread, and what a
+        # cancel needs in order to name the run it is stopping.
+        server.sc_job_threads[job_name] = {'thread': Mock(),
+                                           'jobhash': job_hash,
+                                           'project': project}
     return job_name
 
 
@@ -1420,24 +1426,19 @@ async def test_handle_cancel_job_not_running():
 
 
 @pytest.mark.asyncio
-async def test_handle_cancel_job_local():
-    '''Canceling a locally-running job marks it, and says what that means'''
+async def test_handle_cancel_job_without_a_project():
+    '''A job registered before its project was recorded is still marked'''
     server = _make_server(cluster='local')
-    job_hash = 'a' * 32
+    job_hash = 'c' * 32
     job_name = _register_job(server, job_hash)
 
     mock_request = Mock()
     mock_request.json = AsyncMock(return_value={'job_hash': job_hash})
 
-    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel:
-        response = await server.handle_cancel_job(mock_request)
+    response = await server.handle_cancel_job(mock_request)
 
     assert response.status == 200
-    body = json.loads(response.body)
-    assert body['success'] is True
-    assert 'finish on their own' in body['message']
     assert server.sc_canceled_jobs == {job_name}
-    assert not mock_cancel.called
 
 
 @pytest.mark.asyncio
@@ -1496,46 +1497,31 @@ async def test_handle_cancel_job_invalid_params(params):
 
 
 @pytest.mark.asyncio
-async def test_handle_cancel_job_slurm():
-    '''Slurm nodes are handed to scancel by name; finished ones are left alone'''
-    server = _make_server(cluster='slurm')
+@pytest.mark.parametrize('cluster', ['local', 'slurm', 'docker'])
+async def test_handle_cancel_job_asks_the_job(cluster, gcd_nop_project):
+    '''Every cluster is canceled the same way.
+
+    Where a job's nodes run is the job's own business: the project reaches its
+    scheduler, the scheduler ends its nodes, and a node that dispatched
+    elsewhere releases that itself. The server used to branch on the cluster
+    here and reach past all of it.
+    '''
+    server = _make_server(cluster=cluster)
     job_hash = 'd' * 32
-    _register_job(server, job_hash, nodes={
-        'stepone0': {'status': NodeStatus.SUCCESS, 'step': 'stepone', 'index': '0'},
-        'steptwo0': {'status': NodeStatus.RUNNING, 'step': 'steptwo', 'index': '0'},
-        'stepthree0': {'status': NodeStatus.PENDING, 'step': 'stepthree', 'index': '0'},
-    })
+    job_name = _register_job(server, job_hash, project=gcd_nop_project)
 
     mock_request = Mock()
     mock_request.json = AsyncMock(return_value={'job_hash': job_hash})
 
-    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel:
-        response = await server.handle_cancel_job(mock_request)
+    scheduler = Mock()
+    gcd_nop_project._Project__scheduler = scheduler
+
+    response = await server.handle_cancel_job(mock_request)
 
     assert response.status == 200
     assert json.loads(response.body)['message'] == f'Canceling job: {job_hash}.'
-
-    # Finished nodes have nothing left to cancel, so they are not sent on.
-    mock_cancel.assert_called_once_with(job_hash, [('steptwo', '0'), ('stepthree', '0')])
-
-
-@pytest.mark.asyncio
-async def test_handle_cancel_job_no_scancel(caplog):
-    '''A host that cannot cancel slurm nodes says so, and still marks the job'''
-    server = _make_server(cluster='slurm')
-    job_hash = 'e' * 32
-    _register_job(server, job_hash)
-
-    mock_request = Mock()
-    mock_request.json = AsyncMock(return_value={'job_hash': job_hash})
-
-    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes',
-               return_value=[]):
-        response = await server.handle_cancel_job(mock_request)
-
-    assert response.status == 200
-    assert server.sc_canceled_jobs == {server.job_name(None, job_hash)}
-    assert f'Unable to cancel nodes for job: {job_hash}' in caplog.text
+    assert server.sc_canceled_jobs == {job_name}
+    scheduler.cancel.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -1788,6 +1774,32 @@ def test_remote_sc_tracks_and_clears_nodes(gcd_nop_project, monkeypatch):
     assert server.sc_project_lookup == {}
 
 
+def test_remote_sc_reports_a_cancel_as_a_cancel(gcd_nop_project, monkeypatch):
+    '''A canceled run raises like any incomplete flow, but it is not a failure
+
+    The run stops by raising -- it never reached its exit nodes -- and that
+    exception would otherwise come out of the job thread as a traceback, for an
+    outcome the client asked for.
+    '''
+    server = _make_server()
+    job_hash = 'd' * 32
+    gcd_nop_project.set('record', 'remoteid', job_hash)
+    sc_job_name = server.job_name(None, job_hash)
+
+    def canceled():
+        raise RuntimeError('Run failed: run was canceled before completing')
+    monkeypatch.setattr(gcd_nop_project, 'run', canceled)
+
+    server.sc_canceled_jobs.add(sc_job_name)
+    server.sc_job_threads[sc_job_name] = {'thread': Mock(), 'jobhash': job_hash}
+
+    server.remote_sc(gcd_nop_project, None)
+
+    assert server.sc_jobs == {}
+    assert server.sc_job_threads == {}
+    assert server.sc_canceled_jobs == set()
+
+
 def test_remote_sc_clears_tracking_on_failure(gcd_nop_project, monkeypatch):
     '''A job whose run raises is over, and must not be reported as running'''
     server = _make_server()
@@ -1809,27 +1821,28 @@ def test_remote_sc_clears_tracking_on_failure(gcd_nop_project, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_shutdown_cancels_running_jobs():
+async def test_shutdown_cancels_running_jobs(gcd_nop_project):
     '''Shutting down with a job in flight cancels it rather than abandoning
        whatever it submitted'''
     server = _make_server(cluster='slurm')
     job_hash = '6' * 32
-    job_name = _register_job(server, job_hash)
+    job_name = _register_job(server, job_hash, project=gcd_nop_project)
 
-    thread = Mock()
+    scheduler = Mock()
+    gcd_nop_project._Project__scheduler = scheduler
+
+    thread = server.sc_job_threads[job_name]['thread']
     thread.is_alive.return_value = False
-    server.sc_job_threads[job_name] = {'thread': thread, 'jobhash': job_hash}
 
     with patch("aiohttp.web.run_app"):
         server.run()
 
     server.app.freeze()
-    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel, \
-            patch('siliconcompiler.remote.server.TaskScheduler.halt_all') as mock_halt:
+    with patch('siliconcompiler.remote.server.TaskScheduler.halt_all') as mock_halt:
         await server.app.cleanup()
 
     assert job_name in server.sc_canceled_jobs
-    mock_cancel.assert_called_once_with(job_hash, [('stepone', '0')])
+    scheduler.cancel.assert_called_once_with()
     # Node processes are not the scheduler's to leave behind either: they are
     # joined at interpreter exit, so shutting down has to end them.
     mock_halt.assert_called_once()
@@ -1845,11 +1858,9 @@ async def test_shutdown_with_no_jobs():
         server.run()
 
     server.app.freeze()
-    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel, \
-            patch('siliconcompiler.remote.server.TaskScheduler.halt_all') as mock_halt:
+    with patch('siliconcompiler.remote.server.TaskScheduler.halt_all') as mock_halt:
         await server.app.cleanup()
 
-    assert not mock_cancel.called
     assert not mock_halt.called
 
 
@@ -2024,6 +2035,40 @@ def test_run_start_publishes_node_statuses():
     assert os.path.isfile(os.path.join(job_root, f'{job_hash}_None.tar.gz'))
     assert server.sc_jobs[job_hash][None]['status'] == NodeStatus.SUCCESS
     assert server.sc_jobs[job_hash]['stepone0']['status'] == NodeStatus.SUCCESS
+
+
+def test_run_start_applies_a_cancel_that_beat_the_run():
+    '''A cancel can land after the job is claimed but before its thread reaches
+       Project.run(), where there is no scheduler yet to hand it to.
+
+    It is recorded rather than lost, and pre_run is the first point past that
+    window: the scheduler exists and no node has been launched.
+    '''
+    server = _make_server()
+    job_hash = 'd' * 32
+    project, _ = _callback_project(server, job_hash)
+
+    scheduler = Mock()
+    project._Project__scheduler = scheduler
+    server.sc_canceled_jobs.add(job_hash)
+
+    server._Server__run_start(project)
+
+    scheduler.cancel.assert_called_once_with()
+
+
+def test_run_start_leaves_an_uncanceled_run_alone():
+    '''The common path does not go looking for a scheduler to stop'''
+    server = _make_server()
+    job_hash = 'e' * 32
+    project, _ = _callback_project(server, job_hash)
+
+    scheduler = Mock()
+    project._Project__scheduler = scheduler
+
+    server._Server__run_start(project)
+
+    assert not scheduler.cancel.called
 
 
 def test_run_start_ignores_untracked_nodes():
@@ -2204,18 +2249,19 @@ async def test_shutdown_tolerates_job_finishing_first():
 
     thread = Mock()
     thread.is_alive.return_value = False
+    project = Mock()
     # Registered as running, but already gone from sc_jobs.
-    server.sc_job_threads[job_name] = {'thread': thread, 'jobhash': job_hash}
+    server.sc_job_threads[job_name] = {'thread': thread, 'jobhash': job_hash,
+                                       'project': project}
 
     with patch("aiohttp.web.run_app"):
         server.run()
 
     server.app.freeze()
-    with patch('siliconcompiler.remote.server.SlurmSchedulerNode.cancel_nodes') as mock_cancel, \
-            patch('siliconcompiler.remote.server.TaskScheduler.halt_all'):
+    with patch('siliconcompiler.remote.server.TaskScheduler.halt_all'):
         await server.app.cleanup()
 
-    assert not mock_cancel.called
+    assert not project._scheduler.cancel.called
     assert server.sc_canceled_jobs == set()
 
 

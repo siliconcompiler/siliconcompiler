@@ -1,5 +1,7 @@
 import logging
 import multiprocessing
+import os
+import sys
 import time
 import weakref
 
@@ -882,6 +884,273 @@ def test_halt_all_ends_node_processes(large_flow, make_tasks):
         if proc.is_alive():
             proc.kill()
         proc.join(timeout=10)
+
+
+@pytest.mark.timeout(60)
+def test_cancel_stops_the_run_from_scheduling(large_flow, make_tasks):
+    '''A canceled run launches nothing further.
+
+    Ending the node processes is only half of a cancel: the loop that started
+    them is untouched by that, and left alone it fills the machine straight back
+    up with whatever became ready. Cancelling from post_node is the version that
+    tells the two halves apart -- the run's first level has just succeeded, so
+    there is a whole next level ready to go and nothing left running to stop.
+    '''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    def cancel_run(project, step, index):
+        scheduler.cancel()
+
+    TaskScheduler.register_callback("post_node", cancel_run)
+
+    scheduler.run(logging.NullHandler())
+
+    assert scheduler.is_canceled()
+
+    # Nothing downstream of the level that was already running was started:
+    # 'stepone' is excluded because those are the nodes the cancel landed among,
+    # and which of them completed before it arrived is a race.
+    flow = large_flow.get("flowgraph", "testflow", field="schema")
+    for step, index in flow.get_nodes():
+        if step == "stepone":
+            continue
+        assert large_flow.get("record", "status", step=step, index=index) == \
+            NodeStatus.PENDING, f"{step}/{index} was launched after the cancel"
+
+
+@pytest.mark.timeout(60)
+def test_cancel_ends_running_nodes(large_flow, make_tasks):
+    '''Cancelling ends what is running, not just what has yet to start'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    proc = get_process_context().Process(target=_sleep_forever)
+    proc.start()
+    # Present it the way a launched node appears to the cancel path.
+    scheduler._TaskScheduler__nodes[("sleeper", "0")] = {"proc": proc}
+
+    try:
+        assert scheduler.cancel() is True
+        assert not proc.is_alive()
+        assert scheduler.is_canceled()
+    finally:
+        if proc.is_alive():
+            proc.kill()
+        proc.join(timeout=10)
+
+
+def test_cancel_with_nothing_running(large_flow, make_tasks):
+    '''A run with no live nodes is still canceled, it just has none to end'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    assert scheduler.cancel() is False
+    assert scheduler.is_canceled()
+
+
+@pytest.mark.timeout(60)
+def test_canceled_scheduler_runs_nothing(large_flow, make_tasks):
+    '''A run canceled before its loop starts launches nothing at all.
+
+    This is what a cancel landing during setup becomes: Scheduler holds the
+    request until it has a TaskScheduler to give it to, which is after every
+    node is configured but before any has run.
+    '''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler.cancel()
+
+    scheduler.run(logging.NullHandler())
+
+    flow = large_flow.get("flowgraph", "testflow", field="schema")
+    for step, index in flow.get_nodes():
+        assert large_flow.get("record", "status", step=step, index=index) == \
+            NodeStatus.PENDING, f"{step}/{index} ran despite the cancel"
+
+
+def test_halt_asks_each_node_to_cancel_first(large_flow, make_tasks):
+    '''A node dispatched elsewhere is not holding its work in the process about
+       to be killed, and killing that process is what puts it out of reach'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    order = []
+
+    class Node:
+        def cancel(self):
+            order.append("node")
+
+    class Proc:
+        def __init__(self):
+            self.__alive = True
+
+        def is_alive(self):
+            return self.__alive
+
+        def terminate(self):
+            order.append("terminate")
+            self.__alive = False
+
+        def kill(self):
+            pass
+
+        def join(self, timeout=None):
+            pass
+
+    scheduler._TaskScheduler__nodes[("elsewhere", "0")] = {
+        "name": "elsewhere/0", "node": Node(), "proc": Proc()}
+
+    assert scheduler.cancel() is True
+    assert order == ["node", "terminate"]
+
+
+def test_halt_ends_nodes_even_when_a_cancel_fails(large_flow, make_tasks, project_logger,
+                                                  caplog):
+    '''A node's cancel is overridden per scheduler and can shell out. Whatever
+       it does wrong, the processes still have to be ended -- leaving them alive
+       is the deadlock the halt exists to prevent'''
+    project_logger(large_flow)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    class Node:
+        def cancel(self):
+            raise RuntimeError("scancel exploded")
+
+    proc = MagicMock()
+    proc.is_alive.side_effect = [True, False]
+
+    scheduler._TaskScheduler__nodes[("elsewhere", "0")] = {
+        "name": "elsewhere/0", "node": Node(), "proc": proc}
+
+    assert scheduler.cancel() is True
+    proc.terminate.assert_called_once()
+    assert "Failed to cancel elsewhere/0: scancel exploded" in caplog.text
+
+
+def test_a_canceled_run_refuses_to_start_a_node(large_flow, make_tasks):
+    '''The check that guards a launch, on its own'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler.cancel()
+
+    started = []
+    scheduler._TaskScheduler__start_node = started.append
+
+    assert scheduler._TaskScheduler__try_start_node(("stepone", "0")) is False
+    assert started == []
+
+
+def test_a_launch_holds_the_cancel_lock(large_flow, make_tasks):
+    '''Checking the flag and starting the node have to be one step.
+
+    Apart, a cancel lands between them and its halt scans for live processes
+    just before the one it was meant to end exists: nothing stops that node,
+    and the run loop goes on to join it -- with a single node running, that
+    join has no timeout, so a canceled run sits through a whole task.
+
+    Holding the lock across both is what makes the two orderings the only ones:
+    the launch finishes first and halt finds it running, or the cancel gets
+    there first and the launch never happens.
+    '''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    held = []
+
+    def start_node(node):
+        # From another thread: the lock is reentrant, so probing it from this
+        # one would succeed whether or not it is held.
+        def probe():
+            lock = scheduler._TaskScheduler__launch_lock
+            acquired = lock.acquire(blocking=False)
+            held.append(not acquired)
+            if acquired:
+                lock.release()
+
+        thread = Thread(target=probe)
+        thread.start()
+        thread.join(timeout=10)
+        assert not thread.is_alive()
+
+    scheduler._TaskScheduler__start_node = start_node
+    scheduler._TaskScheduler__allow_start = lambda node: True
+
+    assert scheduler._TaskScheduler__try_start_node(("stepone", "0")) is True
+    assert held == [True], "a node was started without the cancel lock held"
+
+
+def test_check_reports_a_cancel_rather_than_a_broken_flow(large_flow, make_tasks):
+    '''A canceled run did not reach its exit nodes, but reporting that as
+       unreachable steps sends the reader hunting a failure that never happened'''
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler.cancel()
+
+    with pytest.raises(SCRuntimeError, match="run was canceled before completing"):
+        scheduler.check()
+
+
+def _deaf_node_with_a_tool(marker):
+    """A node that ignores the terminate, holding a tool the way a task does.
+
+    Stands in for every way a node fails to clean up after itself: killed
+    outright by the SIGKILL fallback, wedged in a call that never returns, or
+    on a platform where the signal does not arrive as an interrupt at all. In
+    each case the tool is left for the scheduler to find.
+    """
+    import signal as signal_module
+    import subprocess
+
+    signal_module.signal(signal_module.SIGTERM, signal_module.SIG_IGN)
+    subprocess.Popen(["sleep", marker])
+    time.sleep(120)
+
+
+def _find_marked(marker):
+    """The stand-in tool, if it is running."""
+    import psutil
+
+    for proc in psutil.process_iter(["cmdline"]):
+        try:
+            if marker in (proc.info["cmdline"] or []):
+                return proc
+        except psutil.Error:
+            continue
+    return None
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="posix process tree")
+@pytest.mark.timeout(120)
+def test_halt_ends_a_tool_its_node_did_not(large_flow, make_tasks):
+    '''Asking a node to clean up cannot be depended on.
+
+    The fallback for a node that will not go is SIGKILL, which no node can
+    handle, and by then its tool is reparented with nothing tying it to this
+    run. So the scheduler notes what each node started while it can still be
+    asked, and ends whatever the node did not take with it.
+    '''
+    marker = f"{os.getpid()}42"
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    proc = get_process_context().Process(target=_deaf_node_with_a_tool, args=(marker,))
+    proc.start()
+    scheduler._TaskScheduler__nodes[("deaf", "0")] = {"name": "deaf/0", "proc": proc}
+
+    tool = None
+    try:
+        deadline = time.time() + 30
+        while time.time() < deadline:
+            tool = _find_marked(marker)
+            if tool:
+                break
+            time.sleep(0.1)
+        assert tool is not None, "the stand-in tool never started"
+
+        assert scheduler.cancel() is True
+
+        assert not proc.is_alive(), "a node that ignores SIGTERM was not killed"
+        assert _find_marked(marker) is None, \
+            "the node was ended but the tool it started was left running"
+    finally:
+        if proc.is_alive():
+            proc.kill()
+            proc.join(timeout=10)
+        leftover = _find_marked(marker)
+        if leftover:
+            leftover.kill()
 
 
 def test_halt_all_with_nothing_running(large_flow, make_tasks):

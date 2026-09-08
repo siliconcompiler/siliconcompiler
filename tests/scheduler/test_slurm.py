@@ -4,7 +4,7 @@ import re
 
 import os.path
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from siliconcompiler import Project, Flowgraph, Design, NodeStatus
 from siliconcompiler.tools.builtin.nop import NOPTask
@@ -321,9 +321,61 @@ def test_check_required_paths(project):
     assert SlurmSchedulerNode(project, "steptwo", "0").check_required_paths() is True
 
 
+def test_cancel(project):
+    '''A slurm node cancels its own job, so nothing above it has to know that
+       the work is not where the node process is'''
+    project.set('record', 'remoteid', 'thisisahash')
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+
+    with patch("shutil.which", return_value="/usr/bin/scancel"), \
+            patch("subprocess.run", return_value=_scancel_ok()) as run:
+        node.cancel()
+
+    assert [call.args[0] for call in run.call_args_list] == [
+        ["scancel", "--name", "thisisahash_steptwo_0"]
+    ]
+
+
+def test_cancel_without_scancel(project, project_logger, caplog):
+    '''A job that was asked to stop and could not be is worth saying out loud'''
+    project.set('record', 'remoteid', 'thisisahash')
+    project_logger(project)
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+
+    with patch("shutil.which", return_value=None):
+        node.cancel()
+
+    assert "Unable to cancel slurm job for steptwo/0" in caplog.text
+
+
+def test_cancel_reports_a_refused_scancel(project, project_logger, caplog):
+    '''A scancel that returned nonzero left the job running, and the caller is
+       about to kill the only thing waiting on it'''
+    project.set('record', 'remoteid', 'thisisahash')
+    project_logger(project)
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+
+    with patch("shutil.which", return_value="/usr/bin/scancel"), \
+            patch("subprocess.run", return_value=_scancel_result(1)):
+        node.cancel()
+
+    assert "Unable to cancel slurm job for steptwo/0" in caplog.text
+
+
+def _scancel_result(returncode):
+    """What subprocess.run() hands back, with only what cancel_nodes reads."""
+    result = MagicMock()
+    result.returncode = returncode
+    return result
+
+
+def _scancel_ok():
+    return _scancel_result(0)
+
+
 def test_cancel_nodes():
     with patch("shutil.which", return_value="/usr/bin/scancel"), \
-            patch("subprocess.run") as run:
+            patch("subprocess.run", return_value=_scancel_ok()) as run:
         assert SlurmSchedulerNode.cancel_nodes(
             "thisisahash", [("stepone", "0"), ("steptwo", "1")]) == \
             [("stepone", "0"), ("steptwo", "1")]
@@ -350,6 +402,20 @@ def test_cancel_nodes_without_scancel():
     run.assert_not_called()
 
 
+def test_cancel_nodes_refused():
+    '''A scancel that returned nonzero did not cancel anything, and saying it
+       did would have the caller kill the job's only waiter'''
+    def refuse(cmd, **kwargs):
+        return _scancel_result(1 if 'steptwo_1' in cmd[-1] else 0)
+
+    with patch("shutil.which", return_value="/usr/bin/scancel"), \
+            patch("subprocess.run", side_effect=refuse):
+        assert SlurmSchedulerNode.cancel_nodes(
+            "thisisahash",
+            [("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")]) == \
+            [("stepone", "0"), ("stepthree", "2")]
+
+
 def test_cancel_nodes_timeout():
     '''A scancel that does not return leaves its node unclaimed'''
     import subprocess
@@ -357,6 +423,7 @@ def test_cancel_nodes_timeout():
     def hang(cmd, **kwargs):
         if 'steptwo_1' in cmd[-1]:
             raise subprocess.TimeoutExpired(cmd, kwargs['timeout'])
+        return _scancel_ok()
 
     with patch("shutil.which", return_value="/usr/bin/scancel"), \
             patch("subprocess.run", side_effect=hang) as run:

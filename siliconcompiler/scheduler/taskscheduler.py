@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import pickle
+import psutil
 import sys
 import threading
 import time
@@ -41,8 +42,10 @@ class TaskScheduler:
     """
 
     # How long __halt_running_nodes() waits for a node to go away, first after
-    # terminate() and then after kill().
-    __HALT_TIMEOUT = 5.0
+    # terminate() and then after kill(). A node handles the terminate itself --
+    # it tears down the tool's process tree and records what it got to -- so the
+    # wait has to cover that work, not just the signal.
+    __HALT_TIMEOUT = 10.0
 
     # Every scheduler built in this process, so a caller that does not hold one
     # -- a server shutting down while a job is in flight -- can still end the
@@ -125,6 +128,19 @@ class TaskScheduler:
         # while this run's own cleanup is ending the same processes.
         self.__halt_lock = threading.Lock()
 
+        # Set once this run has been told to stop. Read by the run loop, which
+        # runs on this thread while cancel() arrives on another, so an Event
+        # rather than a plain bool.
+        self.__canceled = threading.Event()
+
+        # Serializes setting that flag against starting a node. Without it a
+        # cancel can land between the check and proc.start(), and then halt's
+        # scan for live processes runs just before the process it was meant to
+        # end exists -- leaving a node running, and the loop about to join it.
+        # Reentrant because a pre_node callback runs inside a launch and is
+        # entitled to cancel the run it is being called from.
+        self.__launch_lock = threading.RLock()
+
         self.__create_nodes(tasks)
 
         with TaskScheduler.__instances_lock:
@@ -170,7 +186,10 @@ class TaskScheduler:
                 threads = self.__max_threads
             task["threads"] = max(1, min(threads, self.__max_threads))
 
-            task["proc"] = get_process_context().Process(target=task["node"].run)
+            # run_process(), not run(): the interrupt handling a node needs in
+            # order to be cancelable belongs to having a process, and run() is
+            # overridden by every scheduler that dispatches elsewhere.
+            task["proc"] = get_process_context().Process(target=task["node"].run_process)
             self.__nodes[(step, index)] = task
 
         # Create ordered list of nodes
@@ -279,6 +298,20 @@ class TaskScheduler:
         self.__startTimes = {None: time.time()}
 
         while len(self.get_nodes_waiting_to_run()) > 0 or len(self.get_running_nodes()) > 0:
+            if self.__canceled.is_set():
+                # Checked before anything is launched: ending the running nodes
+                # is only half of a cancel, and without this the loop would
+                # start the next ready ones straight over the top of it.
+                #
+                # cancel() has already ended those processes -- which is what
+                # released the join at the bottom of this loop -- so the work
+                # left here is to reap them: __process_completed_nodes() records
+                # each one's status and fires post_node before the loop stops.
+                self.__halt_running_nodes()
+                if self.__process_completed_nodes() and self.__dashboard:
+                    self.__dashboard.update_manifest(payload={"starttimes": self.__startTimes})
+                break
+
             changed = self.__process_completed_nodes()
             changed |= self.__launch_nodes()
 
@@ -326,12 +359,55 @@ class TaskScheduler:
         """
         return self.__halt_running_nodes()
 
+    def cancel(self) -> bool:
+        """Stops this run: nothing further is launched, and what is running ends.
+
+        This is the pair :meth:`halt` was missing. Halting ends the node
+        processes, but the run loop it left behind simply launches the next
+        ready nodes; the flag is what tells the loop the run is over. Setting it
+        first means the loop, woken by the very processes it was joining on
+        going away, sees a canceled run rather than an idle machine to fill.
+
+        Nodes that were running are recorded as errors -- they were killed
+        partway and did not produce their outputs -- and nodes that never
+        started stay pending.
+
+        Reached through :attr:`Project._scheduler`, which is what a caller
+        holding the project but not the run it started has to work with.
+
+        Returns:
+            bool: True if a node process was still running.
+        """
+        with self.__launch_lock:
+            self.__canceled.set()
+
+        # Outside the lock: whoever holds it is mid-launch, and the process they
+        # are starting is one this halt has to see. Setting the flag first is
+        # what guarantees it does -- a launch either completes before the flag
+        # is set, and is found running here, or sees the flag and never starts.
+        return self.__halt_running_nodes()
+
+    def is_canceled(self) -> bool:
+        """Reports whether this run has been told to stop.
+
+        Returns:
+            bool: True if the run was canceled.
+        """
+        return self.__canceled.is_set()
+
     def __halt_running_nodes(self) -> bool:
         """Ends any node process still running, so teardown cannot block on one.
 
         Only an interrupted run reaches here with anything alive: normal
         completion leaves __run_loop() having joined every process, so this is a
         no-op and the run's results are untouched.
+
+        A node is asked to end itself first, since only the node can do it
+        tidily -- stop its container rather than just the client talking to it,
+        record what it got to. What that leaves behind is then taken care of
+        here, because asking is not something this can depend on: the fallback
+        for a node that does not go is SIGKILL, which no node can handle, and
+        a node's tool is not its own child to reap once it has been killed.
 
         The joins are bounded on purpose. An unbounded join would trade the
         deadlock this avoids for another one, against a node that ignores
@@ -344,10 +420,37 @@ class TaskScheduler:
         # on waitpid, and one of them loses with ChildProcessError. Whoever
         # arrives second finds nothing running and returns.
         with self.__halt_lock:
-            running = [info["proc"] for info in self.__nodes.values()
+            running = [info for info in self.__nodes.values()
                        if info.get("proc") is not None and info["proc"].is_alive()]
             if not running:
                 return False
+
+            # Each node's own half first. A node that dispatched its work
+            # elsewhere is not holding it in the process about to be killed --
+            # it is only waiting on it -- and killing the waiter is exactly what
+            # puts that work out of reach.
+            for info in running:
+                node = info.get("node")
+                if node is None:
+                    continue
+                try:
+                    node.cancel()
+                except Exception as e:  # noqa: BLE001
+                    # cancel() is overridden per scheduler and can shell out to
+                    # a cluster controller. Whatever it does wrong, the
+                    # processes below still have to be ended: leaving them
+                    # running is the deadlock this method exists to prevent.
+                    self.__logger.warning(f'Failed to cancel {info["name"]}: {e}')
+
+            running = [info["proc"] for info in running]
+
+            # Taken while the nodes are still alive to be asked. A node's tool
+            # is its child, not this process's, so once the node is gone the
+            # tool is reparented and nothing ties it to this run any more --
+            # there would be nothing left to look it up by.
+            leftovers = []
+            for proc in running:
+                leftovers.extend(TaskScheduler.__descendants_of(proc))
 
             for proc in running:
                 proc.terminate()
@@ -358,7 +461,56 @@ class TaskScheduler:
                     proc.kill()
                     proc.join(timeout=TaskScheduler.__HALT_TIMEOUT)
 
+            # Whatever the nodes did not take with them. A node that handled the
+            # terminate has already ended its tool, and these calls find nothing;
+            # one that was killed, ignored the signal, or never got the chance --
+            # a platform where the signal does not arrive as an interrupt at all
+            # -- leaves its tool holding the cores this halt was called to give
+            # back.
+            TaskScheduler.__end_processes(leftovers)
+
             return True
+
+    @staticmethod
+    def __descendants_of(proc) -> List[psutil.Process]:
+        """Everything a node process has started, at the moment of asking.
+
+        Args:
+            proc: The node's process.
+
+        Returns:
+            list of psutil.Process: Its descendants, empty if they cannot be
+                looked up. psutil identifies each by pid *and* creation time, so
+                a pid reused after this snapshot is not mistaken for the process
+                that held it.
+        """
+        try:
+            return psutil.Process(proc.pid).children(recursive=True)
+        except (psutil.Error, AttributeError, TypeError, ValueError, OSError):
+            # Gone already, or never a real process to begin with (a stand-in in
+            # a test). Either way there is nothing here to end.
+            return []
+
+    @staticmethod
+    def __end_processes(procs: List[psutil.Process]) -> None:
+        """Ends processes left over from a node, politely and then not.
+
+        Args:
+            procs (list of psutil.Process): The processes to end. Ones that have
+                already exited are skipped.
+        """
+        for proc in procs:
+            try:
+                proc.terminate()
+            except psutil.Error:
+                pass
+
+        _, alive = psutil.wait_procs(procs, timeout=TaskScheduler.__HALT_TIMEOUT)
+        for proc in alive:
+            try:
+                proc.kill()
+            except psutil.Error:
+                pass
 
     def get_nodes(self) -> List[Tuple[str, str]]:
         """Gets an ordered list of all nodes managed by this scheduler.
@@ -554,6 +706,15 @@ class TaskScheduler:
         Returns:
             bool: True if any new node was launched, False otherwise.
         """
+        if self.__canceled.is_set():
+            # The run loop breaks on the same flag, but only at the top of the
+            # next pass: a cancel arriving part way through one -- from another
+            # thread while nodes were being reaped, or from a post_node callback
+            # -- would otherwise get one full round of launches in first. This
+            # is the cheap check; __try_start_node() is the one that cannot be
+            # raced.
+            return False
+
         changed = False
 
         running_nodes = self.get_running_nodes()
@@ -615,19 +776,35 @@ class TaskScheduler:
                 return changed
             # ready_nodes preserves execution order, so breakpoint_nodes[0] is
             # the earliest pending breakpoint.
-            node = breakpoint_nodes[0]
-            if self.__allow_start(node):
-                self.__start_node(node)
-                changed = True
+            changed |= self.__try_start_node(breakpoint_nodes[0])
             return changed
 
         # Normal scheduling: launch as many ready nodes as resources allow.
         for node in ready_nodes:
-            if self.__allow_start(node):
-                self.__start_node(node)
-                changed = True
+            changed |= self.__try_start_node(node)
 
         return changed
+
+    def __try_start_node(self, node: Tuple[str, str]) -> bool:
+        """
+        Private helper to start a node unless the run has been canceled.
+
+        The cancel check and the launch are one step on purpose: apart, a cancel
+        landing between them starts a node that nothing is left to stop.
+
+        Args:
+            node (tuple): The (step, index) of the node to start.
+
+        Returns:
+            bool: True if the node was started.
+        """
+        with self.__launch_lock:
+            if self.__canceled.is_set():
+                return False
+            if not self.__allow_start(node):
+                return False
+            self.__start_node(node)
+            return True
 
     def check(self) -> None:
         """
@@ -637,8 +814,15 @@ class TaskScheduler:
         flowgraph have been successfully completed.
 
         Raises:
-            SCRuntimeError: If any final steps in the flow were not reached.
+            SCRuntimeError: If the run was canceled, or if any final steps in
+                the flow were not reached.
         """
+        if self.__canceled.is_set():
+            # Said plainly rather than through the unreached exit steps below:
+            # those are the symptom, and reporting a canceled run as a broken
+            # flow sends the reader looking for a failure that never happened.
+            raise SCRuntimeError("run was canceled before completing")
+
         exit_steps = set([step for step, _ in self.__runtime_flow.get_exit_nodes()])
         completed_steps = set([step for step, _ in
                                self.__runtime_flow.get_completed_nodes(record=self.__record)])

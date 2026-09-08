@@ -2,10 +2,13 @@ import io
 import logging
 import logging.handlers
 import os
+import signal
 import sys
 import pytest
 import re
+import psutil
 import shutil
+import threading
 import time
 
 import os.path
@@ -22,8 +25,9 @@ from siliconcompiler import TaskSkip
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
 from scheduler.tools.echo import EchoTask
+from scheduler.tools.sleeper import SleepTask, SLEEP_SECONDS
 
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, \
     SchedulerNodeReset, SchedulerNodeResetSilent
@@ -63,6 +67,24 @@ def echo_project():
     proj = Project(design)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
+
+    return proj
+
+
+@pytest.fixture
+def sleep_project():
+    flow = Flowgraph("testflow")
+    flow.node("stepone", SleepTask())
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    SchedulerNode(proj, "stepone", "0").setup()
 
     return proj
 
@@ -289,6 +311,185 @@ def test_halt(project):
         node.halt()
     assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
     assert os.path.exists("build/testdesign/job0/steptwo/0/outputs/testdesign.pkg.json")
+
+
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="Windows ends a process outright, with no signal to handle")
+def test_interruptible_turns_a_terminate_into_an_interrupt():
+    '''A canceled run ends its nodes with SIGTERM, whose default action would
+       take the process out from under the tool it started'''
+    with pytest.raises(KeyboardInterrupt):
+        with SchedulerNode._interruptible():
+            os.kill(os.getpid(), signal.SIGTERM)
+
+
+def test_interruptible_restores_the_previous_handler():
+    '''A node is not always a process of its own -- a replay runs one in the
+       caller's -- and a handler left installed there outlives the node'''
+    original = signal.getsignal(signal.SIGTERM)
+
+    with SchedulerNode._interruptible():
+        assert signal.getsignal(signal.SIGTERM) is not original
+
+    assert signal.getsignal(signal.SIGTERM) is original
+
+
+def test_interruptible_off_the_main_thread():
+    '''Only the main thread may install a handler at all, so anywhere else this
+       has to yield rather than raise'''
+    original = signal.getsignal(signal.SIGTERM)
+    ran = []
+
+    def body():
+        with SchedulerNode._interruptible():
+            ran.append(signal.getsignal(signal.SIGTERM))
+
+    thread = threading.Thread(target=body)
+    thread.start()
+    thread.join(timeout=10)
+
+    assert ran == [original], "a handler was installed off the main thread"
+    assert signal.getsignal(signal.SIGTERM) is original
+
+
+def _find_sleeper():
+    """The task's executable, if it is running. None once it is gone."""
+    for proc in psutil.process_iter(["cmdline"]):
+        try:
+            if SLEEP_SECONDS in (proc.info["cmdline"] or []):
+                return proc
+        except psutil.Error:
+            continue
+    return None
+
+
+@pytest.mark.skipif(sys.platform != "linux",
+                    reason="a terminated node only unwinds where the signal arrives as one: "
+                           "Windows ends a process outright, and on macOS the node was observed "
+                           "running on past the signal (3.13/3.14). The guarantee that a canceled "
+                           "run gives the machine back does not rest on this -- the scheduler ends "
+                           "what a node leaves behind -- but the tidy path it takes here does")
+@pytest.mark.timeout(120)
+def test_a_terminated_node_takes_its_tool_with_it(sleep_project):
+    '''A node that gets the chance ends its own tool.
+
+    The tidy path, and the only one that can stop a container rather than just
+    the client talking to it. What a node does not manage is ended by the
+    scheduler instead, which is where the guarantee actually lives; this is
+    about the node doing it first, and doing it properly.
+    '''
+    node = SchedulerNode(sleep_project, "stepone", "0")
+    proc = get_process_context().Process(target=node.run_process)
+    proc.start()
+
+    sleeper = None
+    try:
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            sleeper = _find_sleeper()
+            if sleeper:
+                break
+            time.sleep(0.1)
+        assert sleeper is not None, "the task's executable never started"
+
+        proc.terminate()
+        proc.join(timeout=30)
+
+        # The tool, not the node process. Killing that tool is something only
+        # the node's interrupt handling does, so its death is the whole claim
+        # here -- while whether the node's own exit has been observed yet is
+        # bookkeeping between two processes, and says nothing about the machine
+        # being given back. The scheduler has its own SIGKILL backstop for a
+        # node that will not go.
+        _, alive = psutil.wait_procs([sleeper], timeout=30)
+        assert not alive, \
+            "the node was ended but its tool was left running " \
+            f"(node exitcode: {proc.exitcode})"
+    finally:
+        # Never leave the sleeper behind, whichever assertion above failed.
+        if proc.is_alive():
+            proc.kill()
+            proc.join(timeout=10)
+        leftover = _find_sleeper()
+        if leftover:
+            leftover.kill()
+
+
+def test_run_process_records_an_interrupted_node(project, monkeypatch):
+    '''An interrupt outside execute() still leaves the node recorded.
+
+    Without this the process simply goes away: nothing is written, and the
+    scheduler is left inferring the outcome from an exit code.
+    '''
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    def interrupted():
+        raise KeyboardInterrupt
+    monkeypatch.setattr(node, "run", interrupted)
+
+    with pytest.raises(SystemExit):
+        node.run_process()
+
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+
+
+def test_run_process_cancels_again_on_its_way_out(project, monkeypatch):
+    '''The scheduler cancels before it signals, which can be before this node
+       had finished handing its work over -- so the node cancels again once the
+       interrupt has unwound whatever that first call was too early to see'''
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    order = []
+    monkeypatch.setattr(node, "run", lambda: (_ for _ in ()).throw(KeyboardInterrupt))
+    monkeypatch.setattr(node, "cancel", lambda: order.append("cancel"))
+
+    with pytest.raises(SystemExit):
+        node.run_process()
+
+    assert order == ["cancel"]
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+
+
+def test_run_process_records_a_node_whose_cancel_failed(project, monkeypatch):
+    '''A cancel that raises is not a reason to leave the node unrecorded'''
+    node = SchedulerNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    monkeypatch.setattr(node, "run", lambda: (_ for _ in ()).throw(KeyboardInterrupt))
+    monkeypatch.setattr(node, "cancel",
+                        lambda: (_ for _ in ()).throw(RuntimeError("scancel exploded")))
+
+    # halt() ends the process, so it has to run even when the cancel above did
+    # not: SystemExit rather than the RuntimeError reaching the caller.
+    with pytest.raises(SystemExit):
+        node.run_process()
+
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
+
+
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="Windows ends a process outright, with no signal to handle")
+def test_run_process_covers_an_overridden_run(project):
+    '''The handling has to survive run() being replaced.
+
+    Every scheduler that dispatches elsewhere overrides run(), and so can
+    anything outside this package. Interrupt handling written inside run() is
+    handling each of those has to remember to reproduce, which is why it lives
+    around the call instead.
+    '''
+    class OverridingNode(SchedulerNode):
+        def run(self):
+            os.kill(os.getpid(), signal.SIGTERM)
+
+    node = OverridingNode(project, "steptwo", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with pytest.raises(SystemExit):
+        node.run_process()
+
+    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
 
 
 def test_halt_sends_pathcache(project):
