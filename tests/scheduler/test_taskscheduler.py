@@ -1,5 +1,7 @@
 import logging
 import multiprocessing
+import os
+import sys
 import time
 import weakref
 
@@ -1079,6 +1081,76 @@ def test_check_reports_a_cancel_rather_than_a_broken_flow(large_flow, make_tasks
 
     with pytest.raises(SCRuntimeError, match="run was canceled before completing"):
         scheduler.check()
+
+
+def _deaf_node_with_a_tool(marker):
+    """A node that ignores the terminate, holding a tool the way a task does.
+
+    Stands in for every way a node fails to clean up after itself: killed
+    outright by the SIGKILL fallback, wedged in a call that never returns, or
+    on a platform where the signal does not arrive as an interrupt at all. In
+    each case the tool is left for the scheduler to find.
+    """
+    import signal as signal_module
+    import subprocess
+
+    signal_module.signal(signal_module.SIGTERM, signal_module.SIG_IGN)
+    subprocess.Popen(["sleep", marker])
+    time.sleep(120)
+
+
+def _find_marked(marker):
+    """The stand-in tool, if it is running."""
+    import psutil
+
+    for proc in psutil.process_iter(["cmdline"]):
+        try:
+            if marker in (proc.info["cmdline"] or []):
+                return proc
+        except psutil.Error:
+            continue
+    return None
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="posix process tree")
+@pytest.mark.timeout(120)
+def test_halt_ends_a_tool_its_node_did_not(large_flow, make_tasks):
+    '''Asking a node to clean up cannot be depended on.
+
+    The fallback for a node that will not go is SIGKILL, which no node can
+    handle, and by then its tool is reparented with nothing tying it to this
+    run. So the scheduler notes what each node started while it can still be
+    asked, and ends whatever the node did not take with it.
+    '''
+    marker = f"{os.getpid()}42"
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    proc = get_process_context().Process(target=_deaf_node_with_a_tool, args=(marker,))
+    proc.start()
+    scheduler._TaskScheduler__nodes[("deaf", "0")] = {"name": "deaf/0", "proc": proc}
+
+    tool = None
+    try:
+        deadline = time.time() + 30
+        while time.time() < deadline:
+            tool = _find_marked(marker)
+            if tool:
+                break
+            time.sleep(0.1)
+        assert tool is not None, "the stand-in tool never started"
+
+        assert scheduler.cancel() is True
+
+        assert not proc.is_alive(), "a node that ignores SIGTERM was not killed"
+        assert _find_marked(marker) is None, \
+            "the node was ended but the tool it started was left running"
+    finally:
+        if proc.is_alive():
+            proc.kill()
+            proc.join(timeout=10)
+        leftover = _find_marked(marker)
+        if leftover:
+            leftover.kill()
 
 
 def test_halt_all_with_nothing_running(large_flow, make_tasks):

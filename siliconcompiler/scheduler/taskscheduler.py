@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import pickle
+import psutil
 import sys
 import threading
 import time
@@ -401,6 +402,13 @@ class TaskScheduler:
         completion leaves __run_loop() having joined every process, so this is a
         no-op and the run's results are untouched.
 
+        A node is asked to end itself first, since only the node can do it
+        tidily -- stop its container rather than just the client talking to it,
+        record what it got to. What that leaves behind is then taken care of
+        here, because asking is not something this can depend on: the fallback
+        for a node that does not go is SIGKILL, which no node can handle, and
+        a node's tool is not its own child to reap once it has been killed.
+
         The joins are bounded on purpose. An unbounded join would trade the
         deadlock this avoids for another one, against a node that ignores
         SIGTERM.
@@ -436,6 +444,14 @@ class TaskScheduler:
 
             running = [info["proc"] for info in running]
 
+            # Taken while the nodes are still alive to be asked. A node's tool
+            # is its child, not this process's, so once the node is gone the
+            # tool is reparented and nothing ties it to this run any more --
+            # there would be nothing left to look it up by.
+            leftovers = []
+            for proc in running:
+                leftovers.extend(TaskScheduler.__descendants_of(proc))
+
             for proc in running:
                 proc.terminate()
 
@@ -445,7 +461,56 @@ class TaskScheduler:
                     proc.kill()
                     proc.join(timeout=TaskScheduler.__HALT_TIMEOUT)
 
+            # Whatever the nodes did not take with them. A node that handled the
+            # terminate has already ended its tool, and these calls find nothing;
+            # one that was killed, ignored the signal, or never got the chance --
+            # a platform where the signal does not arrive as an interrupt at all
+            # -- leaves its tool holding the cores this halt was called to give
+            # back.
+            TaskScheduler.__end_processes(leftovers)
+
             return True
+
+    @staticmethod
+    def __descendants_of(proc) -> List[psutil.Process]:
+        """Everything a node process has started, at the moment of asking.
+
+        Args:
+            proc: The node's process.
+
+        Returns:
+            list of psutil.Process: Its descendants, empty if they cannot be
+                looked up. psutil identifies each by pid *and* creation time, so
+                a pid reused after this snapshot is not mistaken for the process
+                that held it.
+        """
+        try:
+            return psutil.Process(proc.pid).children(recursive=True)
+        except (psutil.Error, AttributeError, TypeError, ValueError, OSError):
+            # Gone already, or never a real process to begin with (a stand-in in
+            # a test). Either way there is nothing here to end.
+            return []
+
+    @staticmethod
+    def __end_processes(procs: List[psutil.Process]) -> None:
+        """Ends processes left over from a node, politely and then not.
+
+        Args:
+            procs (list of psutil.Process): The processes to end. Ones that have
+                already exited are skipped.
+        """
+        for proc in procs:
+            try:
+                proc.terminate()
+            except psutil.Error:
+                pass
+
+        _, alive = psutil.wait_procs(procs, timeout=TaskScheduler.__HALT_TIMEOUT)
+        for proc in alive:
+            try:
+                proc.kill()
+            except psutil.Error:
+                pass
 
     def get_nodes(self) -> List[Tuple[str, str]]:
         """Gets an ordered list of all nodes managed by this scheduler.
