@@ -313,6 +313,15 @@ linkcheck_allowed_redirects = {
     r"https://[^/]+\.readthedocs\.io/?$": r"https://[^/]+\.readthedocs\.io/en/[^/]+/$",
     # In the historical package changelog, which is a record and not edited.
     r"https://psutil\.readthedocs\.io/en/latest/$": r"https://psutil\.io/$",
+    # PNNL's GitLab bounces an unauthenticated client to its sign-in page, so
+    # soda-opt's documentation link reports as redirected on every run. The
+    # link is correct and there is no public replacement: soda-opt's own docs
+    # live on that server, and pnnl.github.io/soda-opt does not exist.
+    # Keyed on the host but constrained by the target: a project that actually
+    # moved redirects to its new location, not to the login page, and so is
+    # still reported. Left unanchored because GitLab may append a
+    # ?redirect_to= query to the sign-in URL.
+    r"https://gitlab\.pnnl\.gov/.*": r"https://gitlab\.pnnl\.gov/users/sign_in",
 }
 
 # Being rate-limited by a host is not a broken link; back off and retry rather
