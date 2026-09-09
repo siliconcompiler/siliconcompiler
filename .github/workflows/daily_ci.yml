@@ -313,6 +313,143 @@ jobs:
           print(f"\nSpread between heaviest and lightest group: {spread / 60:.1f} min.")
           PY
 
+  # End-to-end check of the remote path: a real sc-server, backed by a real
+  # slurm cluster, both from setup/server/. The suite's own slurm coverage runs
+  # against a single container with no server in front of it, so nothing else
+  # exercises client -> sc-server -> slurm -> compute node, nor proves that a
+  # finished artifact makes it back to the client.
+  remote_server:
+    name: 'Remote server (slurm) demos'
+    needs: [cache, docker_image]
+    # Generous: the job pulls a multi-GB base image and builds on top of it
+    # before either demo starts, and a 2-core runner routes the ASIC design a
+    # good deal slower than a workstation does.
+    timeout-minutes: 120
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout SiliconCompiler
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      # The client only submits and collects; the tools run on the compute node
+      # inside the stack, so this does not need the EDA tools.
+      - name: Install SiliconCompiler
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install .
+
+      - name: Fetch package cache
+        uses: actions/download-artifact@v8
+        with:
+          name: scpackage-daily-cache
+          path: sc-cache
+
+      # Built on the same image the rest of the suite runs against, rather
+      # than whatever the compose default points at, so a slurm or tool change
+      # is exercised here on the day it lands.
+      - name: Start the cluster
+        working-directory: setup/server
+        env:
+          SC_TOOLS_IMAGE: ${{ needs.docker_image.outputs.sc_tool }}
+        run: |
+          echo "building on $SC_TOOLS_IMAGE"
+          docker compose up -d --build --wait
+
+          # --wait only means the containers are running. A runner registers
+          # itself a moment later (slurmd -Z), and a job submitted before that
+          # would sit pending, so wait for the node rather than the container.
+          for _ in $(seq 1 60); do
+            if docker compose exec -T scserver sinfo -h -o '%T' | grep -qx idle; then
+              docker compose exec -T scserver sinfo
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::no compute node registered"
+          docker compose exec -T scserver sinfo || true
+          docker compose logs --tail 100
+          exit 1
+
+      # Seed both caches from the same artifact, because client and server are
+      # separate here.
+      #
+      # sc-server keeps its cache on the shared mount (<nfsmount>/cache), which
+      # every compute node reads, so seeding it there is what stops each node
+      # downloading the PDK again. It is copied in rather than bind-mounted, so
+      # the committed compose file stays free of host paths.
+      #
+      # The client's is ~/.sc/cache, which has no environment override, so the
+      # files have to be put where it will look.
+      - name: Seed the package caches
+        run: |
+          compose="docker compose -f setup/server/docker-compose.yml"
+
+          mkdir -p ~/.sc/cache
+          cp -a sc-cache/. ~/.sc/cache/
+          du -sh ~/.sc/cache
+
+          $compose exec -T scserver mkdir -p /sc_server/cache
+          docker cp sc-cache/. "$($compose ps -q scserver)":/sc_server/cache/
+          $compose exec -T scserver du -sh /sc_server/cache
+
+      - name: Point the client at the cluster
+        run: |
+          . .venv/bin/activate
+          creds=$(python3 -c \
+            'from siliconcompiler import utils; print(utils.default_credentials_file())')
+          mkdir -p "$(dirname "$creds")"
+          echo '{"address": "localhost", "port": 8080}' > "$creds"
+          curl -sf -m 30 -X POST http://localhost:8080/check_server/ -d '{}'
+
+      # Both demos, because they exercise different halves: the ASIC flow ends
+      # in a klayout stream, the FPGA flow in a genfasm bitstream.
+      - name: Run the ASIC demo
+        run: |
+          . .venv/bin/activate
+          mkdir -p asic && cd asic
+          python3 -m siliconcompiler.demos.asic_demo -remote
+
+      - name: Run the FPGA demo
+        run: |
+          . .venv/bin/activate
+          mkdir -p fpga && cd fpga
+          python3 -m siliconcompiler.demos.fpga_demo -remote
+
+      # The point of the whole job: the artifact came back to the client, not
+      # merely that the run reported success.
+      - name: Check the artifacts came back
+        run: |
+          set -e
+          gds=$(find asic/build -name '*.gds.gz' -size +1k | head -1)
+          fasm=$(find fpga/build -name '*.fasm' -size +0 | head -1)
+          [ -n "$gds" ] || { echo "::error::no GDS returned from the ASIC demo"; \
+            find asic/build -name 'outputs' -prune -o -type f -print | tail -20; exit 1; }
+          [ -n "$fasm" ] || { echo "::error::no bitstream returned from the FPGA demo"; \
+            find fpga/build -name 'outputs' -prune -o -type f -print | tail -20; exit 1; }
+          echo "GDS:      $gds ($(stat -c%s "$gds") bytes)"
+          echo "bitstream: $fasm ($(stat -c%s "$fasm") bytes)"
+
+      - name: Cluster logs
+        if: failure()
+        working-directory: setup/server
+        run: |
+          docker compose ps -a
+          docker compose logs --tail 200
+
+      - name: Stop the cluster
+        if: always()
+        working-directory: setup/server
+        run: docker compose down -v
+
   gallery:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.rungallery }}
     uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main

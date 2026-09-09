@@ -1,0 +1,138 @@
+# A local sc-server backed by a real slurm cluster.
+#
+#   docker compose up --build      # http://localhost:8080
+#
+# Self-contained by design: one locally-built image (see Dockerfile), public
+# base images only, and no bind mounts -- all shared state lives in named
+# volumes, so nothing here depends on a path or a file outside this repo.
+#
+# The database password is the only credential, it is never published outside
+# the compose network, and it can be overridden:
+#
+#   SC_SLURM_DB_PASSWORD=... docker compose up --build
+
+name: sc-server-slurm
+
+# Every slurm service is the same image in a different role. Compose builds it
+# once and the rest hit the cache.
+x-sc-slurm: &sc-slurm
+  build:
+    context: ../..
+    dockerfile: setup/server/Dockerfile
+    args:
+      # The sc_tools image to build on: it supplies slurm, slurmrestd and the
+      # EDA tools, and this Dockerfile adds only siliconcompiler. Override to
+      # build against a different one:
+      #
+      #   SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:<tag> \
+      #     docker compose up --build
+      #
+      # CI passes the image its docker_image job resolved, so the stack is
+      # exercised against the same one as the rest of the suite.
+      SC_TOOLS_IMAGE: ${SC_TOOLS_IMAGE:-ghcr.io/siliconcompiler/sc_tools:latest}
+  image: sc-server-slurm:local
+  environment:
+    SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
+  volumes:
+    # Every slurm daemon must present the same munge credential. The key is
+    # generated into this volume by whichever container starts first rather
+    # than baked into the image: any repo edit invalidates the image layers,
+    # so a baked key would change on every rebuild and rebuilding one service
+    # would break its authentication against the others.
+    - munge-key:/etc/munge
+
+# Compute nodes. Scale freely:
+#
+#   docker compose up --build --scale scrunner=4
+#
+# No hostname is pinned and no node is named in slurm.conf: each slurmd
+# registers itself with "slurmd -Z", and the controller records the address and
+# hostname it registers with. So replicas need nothing unique configured, and
+# scaling needs no edit anywhere.
+x-scrunner: &scrunner
+  <<: *sc-slurm
+  command: ["node"]
+  # The only service needing extra privilege, and only for slurmd's cgroup
+  # setup -- the tasks it runs need nothing beyond a normal container. slurmd
+  # puts slurmstepd in a cgroup of its own and, with IgnoreSystemd=yes, builds
+  # that hierarchy by hand, which needs /sys/fs/cgroup writable. It gets its
+  # own cgroup namespace and remounts that read-write, so no host path is bind
+  # mounted and nothing it writes escapes the namespace. CAP_SYS_ADMIN alone
+  # is not enough: on an AppArmor host the profile is what refuses the
+  # remount ("cannot remount cgroup read-write, is write-protected").
+  cgroup: private
+  cap_add:
+    - SYS_ADMIN
+  security_opt:
+    - apparmor=unconfined
+  volumes:
+    - munge-key:/etc/munge
+    - sc-server-data:/sc_server
+  depends_on:
+    - scserver
+
+services:
+  # Accounting database. Root gets a throwaway random password nobody needs:
+  # slurmdbd connects as the unprivileged "slurm" user, and the port is not
+  # published to the host.
+  slurmdb:
+    image: mariadb:11
+    environment:
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+      MARIADB_DATABASE: slurm_acct_db
+      MARIADB_USER: slurm
+      MARIADB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
+    volumes:
+      - slurmdb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  slurmdbd:
+    <<: *sc-slurm
+    hostname: slurmdbd
+    command: ["dbd"]
+    depends_on:
+      slurmdb:
+        condition: service_healthy
+
+  # Controller and submit host: slurmctld, slurmrestd, and sc-server itself.
+  scserver:
+    <<: *sc-slurm
+    hostname: scserver
+    command: ["ctld"]
+    # Loopback only. sc-server runs without -auth here, so this is an
+    # unauthenticated job-submission endpoint: published on 0.0.0.0 it would be
+    # reachable by anything that can route to this host. "Reachable from my own
+    # machine" is all the stack needs. Exposing it more widely means adding
+    # authentication and firewalling first.
+    ports:
+      - "127.0.0.1:8080:8080"   # sc-server
+      - "127.0.0.1:6820:6820"   # slurmrestd, built but not yet used by SC
+    volumes:
+      - munge-key:/etc/munge
+      - sc-server-data:/sc_server
+    depends_on:
+      - slurmdbd
+
+  scrunner:
+    <<: *scrunner
+
+volumes:
+  # The shared filesystem, mounted at /sc_server and handed to sc-server as
+  # -nfsmount. The server lays it out itself:
+  #
+  #   builds/<jobhash>/   one directory per job, written by the server and read
+  #                      back by the compute node at the same path
+  #   cache/              downloaded PDKs and data packages, shared by the
+  #                      whole cluster
+  #
+  # The cache is here rather than in each container's ~/.sc because a compute
+  # node need not share a home directory with the server, and because the
+  # scheduler hands the server's cachedir to the node -- so it has to be a path
+  # they both see.
+  sc-server-data:
+  munge-key:
+  slurmdb-data:
