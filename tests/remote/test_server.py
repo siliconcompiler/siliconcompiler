@@ -17,10 +17,15 @@ from siliconcompiler.remote import JobStatus, NodeStatus as RemoteNodeStatus
 
 
 def _job_owner(nfs_path):
-    '''Reads the owner record off the one job in a server's mount.'''
-    jobs = [entry for entry in os.listdir(nfs_path) if len(entry) == 32]
-    assert len(jobs) == 1, f"expected one job in {nfs_path}, found {jobs}"
-    with open(os.path.join(nfs_path, jobs[0], '.owner')) as f:
+    '''Reads the owner record off the one job in a server's mount.
+
+    Job directories live under "builds/", beside the shared "cache/", rather
+    than at the root of the mount.
+    '''
+    build_root = os.path.join(nfs_path, 'builds')
+    jobs = [entry for entry in os.listdir(build_root) if len(entry) == 32]
+    assert len(jobs) == 1, f"expected one job in {build_root}, found {jobs}"
+    with open(os.path.join(build_root, jobs[0], '.owner')) as f:
         return json.load(f)
 
 
@@ -445,7 +450,7 @@ async def test_handle_get_results_with_node():
     # Use valid 32-char hex job_hash
     job_hash = 'fedcba98765432100123456789abcdef'
     node = 'step0'
-    job_dir = os.path.join(tmpdir, job_hash)
+    job_dir = os.path.join(tmpdir, 'builds', job_hash)
     os.makedirs(job_dir, exist_ok=True)
 
     # Create a dummy tar.gz file
@@ -508,7 +513,7 @@ async def test_handle_delete_job_success():
 
     # Use valid 32-char hex job_hash
     job_hash = 'abcdef01234567890abcdef012345678'
-    job_dir = os.path.join(tmpdir, job_hash)
+    job_dir = os.path.join(tmpdir, 'builds', job_hash)
     os.makedirs(job_dir, exist_ok=True)
 
     # Create a dummy file
@@ -546,7 +551,7 @@ async def test_handle_delete_job_success():
 
 def _owned_job(server, job_hash, username):
     """Lays down a job directory carrying the owner record the server writes."""
-    job_dir = os.path.join(server.nfs_mount, job_hash)
+    job_dir = os.path.join(server.build_root, job_hash)
     os.makedirs(job_dir, exist_ok=True)
     with open(os.path.join(job_dir, '.owner'), 'w') as f:
         json.dump({'username': username}, f)
@@ -635,7 +640,7 @@ async def test_handle_delete_job_malformed_owner_record():
     server.sc_jobs = {}
 
     job_hash = 'abcdef01234567890abcdef012345678'
-    job_dir = os.path.join(server.nfs_mount, job_hash)
+    job_dir = os.path.join(server.build_root, job_hash)
     os.makedirs(job_dir, exist_ok=True)
     with open(os.path.join(job_dir, '.owner'), 'w') as f:
         json.dump({}, f)
@@ -655,7 +660,7 @@ async def test_handle_delete_job_without_owner_record():
     server.sc_jobs = {}
 
     job_hash = 'abcdef01234567890abcdef012345678'
-    job_dir = os.path.join(server.nfs_mount, job_hash)
+    job_dir = os.path.join(server.build_root, job_hash)
     os.makedirs(job_dir, exist_ok=True)
 
     response = await _delete(server, job_hash)
@@ -804,7 +809,7 @@ def test_handle_get_results_none_node():
 
         # Use valid 32-char hex job_hash
         job_hash = 'fedcba98765432100123456789abcdef'
-        job_dir = os.path.join(tmpdir, job_hash)
+        job_dir = os.path.join(tmpdir, 'builds', job_hash)
         os.makedirs(job_dir, exist_ok=True)
 
         # Create a dummy tar.gz file for None node
@@ -1226,7 +1231,7 @@ def _authed_server_with_job(job_hash, owner):
     """A server with one job owned by `owner`, and two users who can authenticate."""
     server = _make_server(auth=True)
     server.user_keys = {'owner': {'password': 'pass'}, 'stranger': {'password': 'pass'}}
-    job_dir = os.path.join(server.nfs_mount, job_hash)
+    job_dir = os.path.join(server.build_root, job_hash)
     os.makedirs(job_dir, exist_ok=True)
     with open(os.path.join(job_dir, '.owner'), 'w') as f:
         json.dump({'username': owner}, f)
@@ -1341,7 +1346,7 @@ def _server_holding_job(job_hash, owner, auth, node='step0'):
         server.user_keys = {'owner': {'password': 'pass'},
                             'stranger': {'password': 'pass'}}
 
-    job_dir = os.path.join(server.nfs_mount, job_hash)
+    job_dir = os.path.join(server.build_root, job_hash)
     os.makedirs(job_dir, exist_ok=True)
     if owner is not _NO_RECORD:
         with open(os.path.join(job_dir, '.owner'), 'w') as f:
@@ -1727,7 +1732,10 @@ async def test_handle_remote_run_stages_upload(gcd_nop_project):
 
     assert os.listdir(server.staging_mount) == []
     # The extracted job directory is what remains under the mount.
-    assert sorted(os.listdir(server.nfs_mount)) == ['.staging', job_hash]
+    # Job data lands under builds/, leaving the mount root to the server's own
+    # entries -- the staging area here, and cache/ once it is created.
+    assert sorted(os.listdir(server.nfs_mount)) == ['.staging', 'builds']
+    assert os.listdir(server.build_root) == [job_hash]
 
 
 @pytest.mark.asyncio
@@ -1905,7 +1913,8 @@ async def test_handle_delete_job_archive_only():
     server = _make_server()
 
     job_hash = '7' * 32
-    tar_file = os.path.join(server.nfs_mount, f'{job_hash}.tar.gz')
+    os.makedirs(server.build_root, exist_ok=True)
+    tar_file = os.path.join(server.build_root, f'{job_hash}.tar.gz')
     with tarfile.open(tar_file, 'w:gz') as tar:
         info = tarfile.TarInfo(name='test.txt')
         info.size = 0
@@ -2007,7 +2016,7 @@ def _callback_project(server, job_hash):
     project.set_flow(flow)
     project.set('record', 'remoteid', job_hash)
 
-    job_root = os.path.join(server.nfs_mount, job_hash)
+    job_root = os.path.join(server.build_root, job_hash)
     project.set('option', 'builddir', job_root)
     os.makedirs(jobdir(project), exist_ok=True)
     project.write_manifest(os.path.join(jobdir(project), f'{project.name}.pkg.json'))
