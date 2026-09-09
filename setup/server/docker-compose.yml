@@ -103,9 +103,14 @@ services:
     <<: *sc-slurm
     hostname: scserver
     command: ["ctld"]
+    # Loopback only. sc-server runs without -auth here, so this is an
+    # unauthenticated job-submission endpoint: published on 0.0.0.0 it would be
+    # reachable by anything that can route to this host. "Reachable from my own
+    # machine" is all the stack needs. Exposing it more widely means adding
+    # authentication and firewalling first.
     ports:
-      - "8080:8080"   # sc-server, reachable from the host
-      - "6820:6820"   # slurmrestd, built but not yet used by SiliconCompiler
+      - "127.0.0.1:8080:8080"   # sc-server
+      - "127.0.0.1:6820:6820"   # slurmrestd, built but not yet used by SC
     volumes:
       - munge-key:/etc/munge
       - sc-server-data:/sc_server

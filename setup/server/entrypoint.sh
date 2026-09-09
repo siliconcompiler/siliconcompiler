@@ -123,6 +123,7 @@ ctld)
     fi
 
     slurmctld -D &
+    ctld_pid=$!
 
     # Wait for the controller before anything asks it a question.
     wait_for_port scserver 6817 "slurmctld"
@@ -149,6 +150,7 @@ ctld)
         # still refuses to run as root or as SlurmUser.
         SLURMRESTD_SECURITY=disable_unshare_sysv,disable_unshare_files \
             runuser -u slurmrestd -- slurmrestd 0.0.0.0:6820 &
+        restd_pid=$!
     else
         echo "NOTE: slurmrestd was not built into this image" >&2
     fi
@@ -172,11 +174,26 @@ ctld)
     # sc-server creates builds/ and cache/ under the mount itself.
     mkdir -p /sc_server
     cd /sc_server
-    exec sc-server \
+    sc-server \
         -cluster slurm \
         -port 8080 \
         -nfsmount /sc_server \
-        -checkinterval 5
+        -checkinterval 5 &
+    server_pid=$!
+
+    # Supervise rather than exec, so this shell stays PID 1 and all three
+    # daemons are watched. Under "exec sc-server" the container reports healthy
+    # for as long as the server process lives, even with slurmctld dead
+    # underneath it -- which surfaces later and far away, as jobs that never
+    # dispatch. Exiting on the first child to die makes the container's status
+    # say what actually happened.
+    trap 'kill -TERM $ctld_pid ${restd_pid:-} $server_pid 2>/dev/null || true' INT TERM
+
+    wait -n
+    status=$?
+    echo "a daemon exited (status $status); shutting the container down" >&2
+    kill -TERM $ctld_pid ${restd_pid:-} $server_pid 2>/dev/null || true
+    exit "$status"
     ;;
 
 node)
