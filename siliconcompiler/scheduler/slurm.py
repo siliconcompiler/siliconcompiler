@@ -36,6 +36,11 @@ class SlurmSchedulerNode(SchedulerNode):
     # the caller, which is a server shutting down or answering a cancel request.
     _CANCEL_TIMEOUT = 10
 
+    # Bound on a single sinfo call, for the same reason: this one runs before a
+    # node is submitted, so a wedged controller would otherwise hang the run
+    # before any work starts.
+    _SINFO_TIMEOUT = 10
+
     def __init__(self, project, step, index, replay=False):
         """Initializes a SlurmSchedulerNode.
 
@@ -172,11 +177,15 @@ class SlurmSchedulerNode(SchedulerNode):
 
         Returns:
             List[str]: Partition names, the default suffixed with '*'. Empty if
-                sinfo could not be read.
+                sinfo failed, or did not answer within _SINFO_TIMEOUT.
         """
-        partitions = subprocess.run(['sinfo', '--noheader', '--format', '%P'],
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.DEVNULL)
+        try:
+            partitions = subprocess.run(['sinfo', '--noheader', '--format', '%P'],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.DEVNULL,
+                                        timeout=SlurmSchedulerNode._SINFO_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            return []
 
         if partitions.returncode != 0:
             return []
@@ -205,11 +214,15 @@ class SlurmSchedulerNode(SchedulerNode):
 
         Returns:
             List[str]: Partition names, in the order sinfo reported them. Empty
-                if sinfo could not be read.
+                if sinfo failed, or did not answer within _SINFO_TIMEOUT.
         """
-        partitions = subprocess.run(['sinfo', '--json'],
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.DEVNULL)
+        try:
+            partitions = subprocess.run(['sinfo', '--json'],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.DEVNULL,
+                                        timeout=SlurmSchedulerNode._SINFO_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            return []
 
         if partitions.returncode != 0:
             return []

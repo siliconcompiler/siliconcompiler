@@ -1,5 +1,6 @@
 import json
 import pytest
+import subprocess
 import re
 
 import os.path
@@ -508,6 +509,34 @@ def test_get_slurm_partition_reports_an_unreadable_cluster():
     with patch("subprocess.run", return_value=_sinfo_result(1)):
         with pytest.raises(RuntimeError, match="Unable to determine partitions in slurm"):
             SlurmSchedulerNode.get_slurm_partition()
+
+
+def test_get_slurm_partition_reports_an_unresponsive_controller():
+    '''A wedged controller must not hang the run before it starts: both sinfo
+       calls are bounded, and a timeout is reported rather than waited out'''
+    timeout = subprocess.TimeoutExpired(cmd=["sinfo"], timeout=1)
+
+    with patch("subprocess.run", side_effect=timeout) as run:
+        with pytest.raises(RuntimeError, match="Unable to determine partitions in slurm"):
+            SlurmSchedulerNode.get_slurm_partition()
+
+    # Both paths were tried, and both carried a bound.
+    assert len(run.call_args_list) == 2
+    assert all(call.kwargs["timeout"] == SlurmSchedulerNode._SINFO_TIMEOUT
+               for call in run.call_args_list)
+
+
+def test_get_slurm_partition_falls_back_when_text_times_out():
+    '''Only the text call hanging still leaves the JSON path to answer'''
+    payload = json.dumps({"sinfo": [{"partition": {"name": "batch"}}]}).encode()
+
+    def run(cmd, *args, **kwargs):
+        if "--json" not in cmd:
+            raise subprocess.TimeoutExpired(cmd=cmd, timeout=1)
+        return _sinfo_result(0, payload)
+
+    with patch("subprocess.run", side_effect=run):
+        assert SlurmSchedulerNode.get_slurm_partition() == "batch"
 
 
 def test_get_slurm_partition_survives_unparsable_json():
