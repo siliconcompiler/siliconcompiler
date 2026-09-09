@@ -12,6 +12,14 @@ It will also describe how to test the Slurm functionality, and how to add new ho
 
 This chapter will use Ubuntu 20.04 as a target OS, but the process should be very similar for other UNIX-like systems.
 
+.. note::
+   If you only need a cluster to test against rather than one to keep, there is
+   a containerised one checked in at ``setup/server/``. A single
+   ``docker compose up`` brings up ``slurmctld``, ``slurmdbd``, ``slurmrestd``
+   and one or more compute nodes alongside ``sc-server``, and it needs none of
+   the host configuration described below. See
+   :ref:`For Developers: Custom Servers <custom-servers>`.
+
 Initial Slurm Configuration
 ---------------------------
 
@@ -90,11 +98,9 @@ cgroup.conf
 A minimal `/etc/slurm-llnl/cgroup.conf` file is fairly brief::
 
     CgroupMountpoint="/sys/fs/cgroup"
-    CgroupAutomount=yes
     CgroupReleaseAgentDir="/etc/slurm-llnl/cgroup"
     AllowedDevicesFile="/etc/slurm-llnl/cgroup_allowed_devices.conf"
     ConstrainCores=no
-    TaskAffinity=no
     ConstrainRAMSpace=yes
     ConstrainSwapSpace=no
     ConstrainDevices=no
@@ -105,6 +111,12 @@ A minimal `/etc/slurm-llnl/cgroup.conf` file is fairly brief::
     MinRAMSpace=30
 
 If your Linux installation places its control group devices in a different directory from `/sys/fs/cgroup`, you may need to modify that parameter.
+
+.. note::
+   Two options that older versions of this sample carried have since been
+   retired and should not be set: `TaskAffinity`, gone since Slurm 23.02, and
+   `CgroupAutomount`, which Slurm 24.05 reports as defunct
+   (*"please remove it from cgroup.conf"*).
 
 The `AllowedDevicesFile` parameter refers to the `cgroup_allowed_devices.conf` file which we will create in the next section.
 

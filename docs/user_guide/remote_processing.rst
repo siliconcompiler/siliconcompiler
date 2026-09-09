@@ -121,3 +121,18 @@ For Developers: Custom Servers
 ------------------------------
 
 If you are interested in deploying your own custom server, we provide a minimal example development server that can be used as a starting point: :ref:`sc-server <app-sc-server>` using the :ref:`remote API <server_api>`.
+
+A ready-to-run deployment of it is checked in at ``setup/server/``: a Docker Compose stack that brings up ``sc-server`` backed by a real Slurm cluster -- ``slurmctld``, ``slurmdbd`` with a MariaDB accounting store, ``slurmrestd``, and one or more ``slurmd`` compute nodes -- with the EDA tools already in the image, so full flows run and not just the scheduler path.
+
+.. code-block:: bash
+
+   cd setup/server
+   docker compose up -d --build
+
+The server is then reachable on ``http://localhost:8080``, so the credentials file from :ref:`Step 1 <private-server>` is:
+
+.. code-block:: json
+
+   {"address": "localhost", "port": 8080}
+
+Add compute nodes with ``docker compose up -d --scale scrunner=4``; they register themselves, so no configuration changes. ``setup/server/README.md`` covers the rest.
