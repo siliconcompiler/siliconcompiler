@@ -137,26 +137,114 @@ class SlurmSchedulerNode(SchedulerNode):
         return f"{SlurmSchedulerNode.get_job_name(jobhash, step, index)}.{ext}"
 
     @staticmethod
-    def get_slurm_partition():
-        """Determines a default Slurm partition by querying the cluster.
+    def get_slurm_partition() -> str:
+        """Determines which Slurm partition to submit to by querying the cluster.
 
         Returns:
-            str: The name of the first available Slurm partition.
+            str: The cluster's default partition, or the first partition it
+                reports if none is marked as the default.
 
         Raises:
-            RuntimeError: If the 'sinfo' command fails.
+            RuntimeError: If the partitions cannot be read from slurm.
+        """
+        partitions = SlurmSchedulerNode.__get_partitions_text()
+        if not partitions:
+            partitions = SlurmSchedulerNode.__get_partitions_json()
+
+        if not partitions:
+            raise RuntimeError('Unable to determine partitions in slurm')
+
+        # sinfo suffixes the default partition with '*'. Prefer it: submitting to
+        # whichever partition happens to be listed first is arbitrary.
+        for partition in partitions:
+            if partition.endswith('*'):
+                return partition[:-1]
+
+        return partitions[0]
+
+    @staticmethod
+    def __get_partitions_text() -> List[str]:
+        """Lists the cluster's partitions from plain sinfo output.
+
+        This is preferred over --json because its shape has not changed across
+        any Slurm release: '%P' has always meant "partition name, with '*'
+        appended to the default", and the default is what this is after.
+
+        Returns:
+            List[str]: Partition names, the default suffixed with '*'. Empty if
+                sinfo could not be read.
+        """
+        partitions = subprocess.run(['sinfo', '--noheader', '--format', '%P'],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.DEVNULL)
+
+        if partitions.returncode != 0:
+            return []
+
+        names = []
+        for line in partitions.stdout.decode(errors='replace').splitlines():
+            name = line.strip()
+            if name and name not in names:
+                names.append(name)
+
+        return names
+
+    @staticmethod
+    def __get_partitions_json() -> List[str]:
+        """Lists the cluster's partitions from 'sinfo --json'.
+
+        Accepts both schemas slurm has emitted: 22.05 returned a top-level
+        "nodes" list whose records carried a "partitions" list of names, and
+        23.02 onwards return a top-level "sinfo" list whose records carry a
+        single "partition" object.
+
+        Neither schema says which partition is the default -- the partition
+        flags are not serialized before data_parser v0.0.45 -- so this only
+        lists them, and is a fallback for when the text output above is
+        unreadable.
+
+        Returns:
+            List[str]: Partition names, in the order sinfo reported them. Empty
+                if sinfo could not be read.
         """
         partitions = subprocess.run(['sinfo', '--json'],
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT)
+                                    stderr=subprocess.DEVNULL)
 
         if partitions.returncode != 0:
-            raise RuntimeError('Unable to determine partitions in slurm')
+            return []
 
-        sinfo = json.loads(partitions.stdout.decode())
+        try:
+            sinfo = json.loads(partitions.stdout.decode(errors='replace'))
+        except json.JSONDecodeError:
+            return []
 
-        # Return the first listed partition
-        return sinfo['nodes'][0]['partitions'][0]
+        if not isinstance(sinfo, dict):
+            return []
+
+        names = []
+        for record in sinfo.get('sinfo', sinfo.get('nodes', [])):
+            if not isinstance(record, dict):
+                continue
+
+            partition = record.get('partition')
+            if isinstance(partition, dict):
+                found = [partition.get('name')]
+            elif isinstance(partition, str):
+                found = [partition]
+            else:
+                found = record.get('partitions', [])
+                if isinstance(found, str):
+                    found = [found]
+
+            if not isinstance(found, list):
+                continue
+
+            for name in found:
+                if isinstance(name, str) and name and name not in names:
+                    names.append(name)
+
+        return names
 
     @staticmethod
     def assert_slurm() -> None:

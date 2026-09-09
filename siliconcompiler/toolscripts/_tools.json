@@ -519,7 +519,7 @@
     ]
   },
   "slurm": {
-    "version": "22.05.7",
+    "version": "24.05.7",
     "git-url": "https://github.com/SchedMD/slurm.git",
     "auto-update": false,
     "docker-extra-files": [

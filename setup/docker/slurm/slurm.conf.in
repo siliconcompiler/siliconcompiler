@@ -12,6 +12,11 @@ StateSaveLocation=/sc_tools/spool/slurm
 
 SlurmUser=slurm
 
+# slurmrestd cannot use munge over TCP, so the REST API authenticates with JWT.
+# start_slurm.sh generates the key on first boot.
+AuthAltTypes=auth/jwt
+AuthAltParameters=jwt_key=/sc_tools/etc/jwt_hs256.key
+
 SwitchType=switch/none
 TaskPlugin=task/none
 SrunPortRange=50001-52000

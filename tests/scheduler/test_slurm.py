@@ -436,3 +436,84 @@ def test_cancel_nodes_timeout():
     assert len(run.call_args_list) == 3
     assert all(call.kwargs["timeout"] == SlurmSchedulerNode._CANCEL_TIMEOUT
                for call in run.call_args_list)
+
+
+def _sinfo_result(returncode, stdout=b""):
+    """What subprocess.run() hands back, with only what the partition lookup reads."""
+    result = MagicMock()
+    result.returncode = returncode
+    result.stdout = stdout
+    return result
+
+
+def _sinfo_calls(text, json_out):
+    """Answers 'sinfo --format %P' with text and 'sinfo --json' with json_out."""
+    def run(cmd, *args, **kwargs):
+        return text if "--json" not in cmd else json_out
+    return run
+
+
+def test_get_slurm_partition_prefers_the_default():
+    '''The partition marked '*' is the cluster's default, and picking anything
+       else means submitting somewhere the admin did not nominate'''
+    with patch("subprocess.run",
+               return_value=_sinfo_result(0, b"debug\nbatch*\nlong\n")) as run:
+        assert SlurmSchedulerNode.get_slurm_partition() == "batch"
+
+    assert run.call_args_list[0].args[0] == ["sinfo", "--noheader", "--format", "%P"]
+
+
+def test_get_slurm_partition_without_a_default():
+    '''A cluster with no default partition still has to yield an answer'''
+    with patch("subprocess.run", return_value=_sinfo_result(0, b"debug\nlong\n")):
+        assert SlurmSchedulerNode.get_slurm_partition() == "debug"
+
+
+def test_get_slurm_partition_falls_back_to_new_json():
+    '''23.02 onwards: a top-level "sinfo" list of records carrying one partition
+       object each'''
+    payload = json.dumps({
+        "sinfo": [
+            {"partition": {"name": "batch"}},
+            {"partition": {"name": "long"}},
+            {"partition": {"name": "batch"}}
+        ]
+    }).encode()
+
+    with patch("subprocess.run",
+               side_effect=_sinfo_calls(_sinfo_result(1),
+                                        _sinfo_result(0, payload))) as run:
+        assert SlurmSchedulerNode.get_slurm_partition() == "batch"
+
+    assert run.call_args_list[-1].args[0] == ["sinfo", "--json"]
+
+
+def test_get_slurm_partition_falls_back_to_old_json():
+    '''22.05: a top-level "nodes" list whose records carry a list of names.
+       This is the schema the pinned slurm emitted, and it still has to work'''
+    payload = json.dumps({
+        "nodes": [
+            {"partitions": ["ctldpart", "other"]}
+        ]
+    }).encode()
+
+    with patch("subprocess.run",
+               side_effect=_sinfo_calls(_sinfo_result(1),
+                                        _sinfo_result(0, payload))):
+        assert SlurmSchedulerNode.get_slurm_partition() == "ctldpart"
+
+
+def test_get_slurm_partition_reports_an_unreadable_cluster():
+    '''Failing both ways is worth an error rather than a partition of ''.'''
+    with patch("subprocess.run", return_value=_sinfo_result(1)):
+        with pytest.raises(RuntimeError, match="Unable to determine partitions in slurm"):
+            SlurmSchedulerNode.get_slurm_partition()
+
+
+def test_get_slurm_partition_survives_unparsable_json():
+    '''A --json that is not json at all must not raise JSONDecodeError'''
+    with patch("subprocess.run",
+               side_effect=_sinfo_calls(_sinfo_result(1),
+                                        _sinfo_result(0, b"not json"))):
+        with pytest.raises(RuntimeError, match="Unable to determine partitions in slurm"):
+            SlurmSchedulerNode.get_slurm_partition()
