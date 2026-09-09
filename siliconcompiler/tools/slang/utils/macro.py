@@ -535,9 +535,10 @@ def build_macro(project: ASIC, name: str) -> StdCellLibrary:
       dependency-free (STA resolves cells from Liberty).
     * ``sdc`` -- the implementation-generated constraints (propagated clocks).
 
-    The ``rtl`` view depends on the ``models.sim`` fileset of each logic library in
-    :keypath:`ASIC,asic,asiclib` that has one, since the netlist can instantiate
-    cells from any of them. These dependencies are serialized into the
+    The ``rtl`` view depends on the ``models.sim`` fileset of every logic
+    library the netlist can instantiate cells from: :keypath:`ASIC,asic,mainlib`
+    and each of :keypath:`ASIC,asic,asiclib`, for those that have one.
+    These dependencies are serialized into the
     macro's manifest (see :class:`DependencySchema`), so they are recovered when
     the macro is reloaded: a consumer can simulate the ``rtl`` view without
     re-registering the PDK libraries. The ``rtl``/``netlist``/``sdc``
@@ -582,8 +583,17 @@ def build_macro(project: ASIC, name: str) -> StdCellLibrary:
             library.set_topmodule(name)
             library.add_file(netlist)
 
+            # mainlib first, then the asiclibs, which complement it rather
+            # than include it -- iterating only asiclib misses the primary
+            # library's cells, and misses every cell where a target sets a
+            # mainlib and no asiclibs.
             loaded = project.getkeys("library")
-            for libname in project.get("asic", "asiclib"):
+            mainlib = project.get("asic", "mainlib")
+            celllibs = [mainlib] if mainlib else []
+            celllibs += [lib for lib in project.get("asic", "asiclib")
+                         if lib != mainlib]
+
+            for libname in celllibs:
                 if libname in loaded:
                     celllib = project.get_library(libname)
                     if celllib.has_fileset("models.sim"):
