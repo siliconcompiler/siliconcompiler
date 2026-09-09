@@ -535,12 +535,14 @@ def build_macro(project: ASIC, name: str) -> StdCellLibrary:
       dependency-free (STA resolves cells from Liberty).
     * ``sdc`` -- the implementation-generated constraints (propagated clocks).
 
-    The ``rtl`` view's cell-model dependency is serialized into the macro's
-    manifest (see :class:`DependencySchema`), so it is recovered when the macro is
-    reloaded: a consumer can simulate the ``rtl`` view without re-registering the
-    PDK library. The ``rtl``/``netlist``/``sdc`` filesets are added only when the
-    run produced the corresponding result, so flows that stop short of them still
-    yield a valid macro.
+    The ``rtl`` view depends on the ``rtl`` fileset of each logic library in
+    :keypath:`ASIC,asic,asiclib` that has one, since the netlist can instantiate
+    cells from any of them. These dependencies are serialized into the
+    macro's manifest (see :class:`DependencySchema`), so they are recovered when
+    the macro is reloaded: a consumer can simulate the ``rtl`` view without
+    re-registering the PDK libraries. The ``rtl``/``netlist``/``sdc``
+    filesets are added only when the run produced the corresponding result, so
+    flows that stop short of them still yield a valid macro.
 
     Args:
         project: A completed ASIC project whose top module is a variant.
@@ -574,15 +576,23 @@ def build_macro(project: ASIC, name: str) -> StdCellLibrary:
     # Gate-level netlist as two views, both topping out at the variant module.
     netlist = project.find_result("lec.vg", step="write.views")
     if netlist:
-        # 'rtl' (simulation): bundle the standard-cell Verilog models so the
-        # netlist simulates standalone; the dependency is serialized into the
-        # macro manifest and recovered on reload.
+        # 'rtl' (simulation): bundle each logic library's cell models so the
+        # netlist simulates standalone.
         with library.active_fileset("rtl"):
             library.set_topmodule(name)
             library.add_file(netlist)
-            mainlib = project.get_library(project.get("asic", "mainlib"))
-            if mainlib is not None:
-                library.add_depfileset(mainlib, "rtl")
+
+            loaded = project.getkeys("library")
+            for libname in project.get("asic", "asiclib"):
+                if libname in loaded:
+                    celllib = project.get_library(libname)
+                    if celllib.has_fileset("rtl"):
+                        library.add_depfileset(celllib, "rtl")
+                    else:
+                        project.logger.warning(
+                            f"{libname} has no rtl fileset; "
+                            f"{name} rtl view will not simulate standalone")
+
         # 'netlist' (structural, for STA): dependency-free -- STA resolves cells
         # from Liberty, so no cell Verilog is bundled.
         with library.active_fileset("netlist"):
