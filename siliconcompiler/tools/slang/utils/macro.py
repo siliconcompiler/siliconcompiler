@@ -535,7 +535,7 @@ def build_macro(project: ASIC, name: str) -> StdCellLibrary:
       dependency-free (STA resolves cells from Liberty).
     * ``sdc`` -- the implementation-generated constraints (propagated clocks).
 
-    The ``rtl`` view depends on the ``rtl`` fileset of each logic library in
+    The ``rtl`` view depends on the ``models.sim`` fileset of each logic library in
     :keypath:`ASIC,asic,asiclib` that has one, since the netlist can instantiate
     cells from any of them. These dependencies are serialized into the
     macro's manifest (see :class:`DependencySchema`), so they are recovered when
@@ -586,11 +586,11 @@ def build_macro(project: ASIC, name: str) -> StdCellLibrary:
             for libname in project.get("asic", "asiclib"):
                 if libname in loaded:
                     celllib = project.get_library(libname)
-                    if celllib.has_fileset("rtl"):
-                        library.add_depfileset(celllib, "rtl")
+                    if celllib.has_fileset("models.sim"):
+                        library.add_depfileset(celllib, "models.sim")
                     else:
                         project.logger.warning(
-                            f"{libname} has no rtl fileset; "
+                            f"{libname} has no models.sim fileset; "
                             f"{name} rtl view will not simulate standalone")
 
         # 'netlist' (structural, for STA): dependency-free -- STA resolves cells
