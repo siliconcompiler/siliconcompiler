@@ -112,11 +112,12 @@ class Server(ServerSchema):
         with self.sc_jobs_lock:
             job_hash = self.sc_project_lookup[project]["jobhash"]
 
-        start_tar = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_None.tar.gz')
+        start_tar = os.path.join(self.build_root, job_hash, f'{job_hash}_None.tar.gz')
         start_status = NodeStatus.SUCCESS
         with tarfile.open(start_tar, "w:gz") as tf:
             start_manifest = os.path.join(jobdir(project), f"{project.name}.pkg.json")
-            tf.add(start_manifest, arcname=os.path.relpath(start_manifest, self.nfs_mount))
+            tf.add(start_manifest,
+                   arcname=os.path.relpath(start_manifest, self.build_root))
 
         with self.sc_jobs_lock:
             job_name = self.sc_project_lookup[project]["name"]
@@ -158,7 +159,7 @@ class Server(ServerSchema):
 
         project = project.copy()
         project._Project__cwd = os.path.join(project.option.get_builddir(), '..')
-        with tarfile.open(os.path.join(self.nfs_mount,
+        with tarfile.open(os.path.join(self.build_root,
                                        job_hash,
                                        f'{job_hash}_{step}{index}.tar.gz'),
                           mode='w:gz') as tf:
@@ -173,6 +174,8 @@ class Server(ServerSchema):
         # makedirs() raises if it cannot deliver the directory, so there is
         # nothing left to test for afterwards.
         os.makedirs(self.nfs_mount, exist_ok=True)
+        os.makedirs(self.build_root, exist_ok=True)
+        os.makedirs(self.cache_dir, exist_ok=True)
         os.makedirs(self.staging_mount, exist_ok=True)
         with open(os.path.join(self.nfs_mount, ".gitignore"), "w") as f:
             f.write("*")
@@ -300,7 +303,7 @@ class Server(ServerSchema):
         project.set('record', 'remoteid', job_hash)
 
         # Ensure that the job's root directory exists.
-        job_root = os.path.join(self.nfs_mount, job_hash)
+        job_root = os.path.join(self.build_root, job_hash)
         job_dir = os.path.join(job_root, design, job_name)
         os.makedirs(job_dir, exist_ok=True)
 
@@ -324,6 +327,13 @@ class Server(ServerSchema):
 
         # Create the working directory for the given 'job hash' if necessary.
         project.option.set_builddir(job_root)
+
+        # Downloaded PDKs and data packages belong on the shared filesystem
+        # beside the jobs, not in the home directory of whoever happens to run
+        # the node: a compute node need not share a home with the server, and
+        # left unset this defaults to ~/.sc/cache. Cluster-wide rather than
+        # per-job -- under job_root every job would re-download the PDK.
+        project.option.set_cachedir(self.cache_dir)
 
         # Remove 'remote' JSON config value to run locally on compute node.
         project.option.set_remote(False)
@@ -394,7 +404,7 @@ class Server(ServerSchema):
         if not self.__job_belongs_to(job_hash, job_params['username']):
             return self.__not_owner_response()
 
-        zipfn = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_{node}.tar.gz')
+        zipfn = os.path.join(self.build_root, job_hash, f'{job_hash}_{node}.tar.gz')
         if not os.path.exists(zipfn):
             return web.json_response(
                 {'message': 'Could not find results for the requested job/node.'},
@@ -473,10 +483,10 @@ class Server(ServerSchema):
         # has matched '^[0-9a-f]{32}$' in delete_job.json, so it cannot carry a
         # path separator; the check below is what keeps that guarantee load
         # bearing if the schema is ever loosened.
-        build_dir = os.path.join(self.nfs_mount, job_hash)
+        build_dir = os.path.join(self.build_root, job_hash)
         check_dir = os.path.dirname(build_dir)
         deleted = False
-        if check_dir == self.nfs_mount:
+        if check_dir == self.build_root:
             # suppress() rather than an exists() check first: nothing here holds
             # a lock on the job's data, so a file can go away between the two.
             with contextlib.suppress(FileNotFoundError):
@@ -750,8 +760,9 @@ class Server(ServerSchema):
             }
             self.sc_jobs[sc_job_name] = nodes
 
-        build_dir = os.path.join(self.nfs_mount, job_hash)
+        build_dir = os.path.join(self.build_root, job_hash)
         project.option.set_builddir(build_dir)
+        project.option.set_cachedir(self.cache_dir)
         project.option.set_remote(False)
 
         cluster = self.get('option', 'cluster')
@@ -822,7 +833,7 @@ class Server(ServerSchema):
 
     ###################
     def __job_owner_file(self, job_hash):
-        return os.path.join(self.nfs_mount, job_hash, '.owner')
+        return os.path.join(self.build_root, job_hash, '.owner')
 
     ###################
     def __record_job_owner(self, job_hash, username):
@@ -877,6 +888,29 @@ class Server(ServerSchema):
     def nfs_mount(self):
         # Ensure that NFS mounting path is absolute.
         return os.path.abspath(self.get('option', 'nfsmount'))
+
+    ###################
+    @property
+    def build_root(self):
+        """Where job directories live, one per job hash.
+
+        A level below the mount rather than at its root, so that job data and
+        the shared cache do not share a namespace -- and so a job hash can
+        never collide with something the server keeps beside it.
+        """
+        return os.path.join(self.nfs_mount, 'builds')
+
+    ###################
+    @property
+    def cache_dir(self):
+        """Where downloaded packages are cached for the whole cluster.
+
+        On the shared mount rather than in a home directory, so that every
+        compute node resolves the same files as the server: the scheduler hands
+        this path to the node, so it is the server's value that decides where
+        the node looks.
+        """
+        return os.path.join(self.nfs_mount, 'cache')
 
     ###################
     @property
