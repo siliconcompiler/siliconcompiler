@@ -1,0 +1,17 @@
+# Scoped to setup/server/Dockerfile, so the repo-root .dockerignore is left
+# alone -- it excludes /setup/docker/, which this build has no use for either.
+#
+# .git is deliberately NOT excluded: the first build stage needs it so
+# setuptools_scm can derive a real version, exactly as a local install does.
+# It costs a large context transfer, and it never reaches the final image --
+# only the built wheel is copied out of that stage.
+.venv/
+build/
+**/build/
+**/__pycache__/
+siliconcompiler.egg-info/
+/docs/
+/tests/
+/examples/
+/utils/
+/setup/docker/
