@@ -221,12 +221,17 @@ Tool caches
 ``tools/<tool>/`` is where a tool keeps whatever it carries from one run to the
 next. Unlike a node's working directory, which is emptied at the start of every
 run, this survives, and it is shared across every design built with that tool.
-Verilator's C++ builds use it: ``verilated.mk`` invokes ccache unconditionally, so
-SiliconCompiler points ``CCACHE_DIR`` at ``tools/verilator`` rather than letting
-it write to ``~/.cache/ccache``, where it would be outside
-:keypath:`option,cachedir` and invisible to a task running in a container. Set
-``CCACHE_DIR`` yourself, in the environment or on the task, and your setting is
-left alone.
+
+Verilator's C++ builds use it, and so does bambu when it simulates -- bambu
+drives verilator, and verilator's ``verilated.mk`` invokes ccache
+unconditionally. Rather than let that write to ``~/.cache/ccache``, where it
+would be outside :keypath:`option,cachedir` and invisible to a task running in a
+container, SiliconCompiler points ``CCACHE_DIR`` at each tool's own area:
+``tools/verilator`` and ``tools/bambu``. They are kept apart because the flags
+bambu compiles its co-simulation harness with share almost nothing with a
+verilator compile task's, so one shared directory would buy hits neither would
+get anyway. Set ``CCACHE_DIR`` yourself, in the environment or on the task, and
+your setting is left alone.
 
 Nothing collects this area. A tool that keeps a cache is expected to cap it
 itself -- ccache does, at 5GB by default -- so if you want it gone, delete it.

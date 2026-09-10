@@ -12,10 +12,16 @@ from siliconcompiler.utils import sc_open
 
 from siliconcompiler import Task
 from siliconcompiler.asic import ASICTask, CellArea
-from siliconcompiler.tools._common import distinct
+from siliconcompiler.tools._common import distinct, CCache
 
 
-class ConvertTask(ASICTask, Task):
+# CCache comes first: it reads the environment the rest of the chain assembled.
+# Simulating drives verilator, whose generated makefile shells out to ccache, so
+# bambu writes to a compiler cache too -- into its own tool cache, not
+# verilator's: the flags bambu compiles the co-simulation harness with share
+# almost nothing with a verilator compile task's, so one directory would buy hits
+# neither of them would get anyway.
+class ConvertTask(CCache, ASICTask, Task):
     def __init__(self):
         super().__init__()
 
