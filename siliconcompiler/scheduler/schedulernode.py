@@ -719,6 +719,15 @@ class SchedulerNode:
         for in_step, in_index in self.__record.get('inputnode',
                                                    step=self.__step, index=self.__index):
             if NodeStatus.is_error(self.__record.get('status', step=in_step, index=in_index)):
+                if self.__task._is_input_excused(in_step, in_index):
+                    # Drop the branch rather than halt: nothing is forwarded from
+                    # it, and nothing stands in for it. select_input_nodes()
+                    # already filters these out, so reaching here means a task
+                    # overrode it -- take the input list it asked for and still
+                    # honour the excuse.
+                    self.logger.warning(f'Skipping inputs from {in_step}/{in_index}: the node '
+                                        'failed and was excused by [option,continue]')
+                    continue
                 self.halt(f'Halting step due to previous error in {in_step}/{in_index}')
 
             output_dir = os.path.join(
@@ -764,7 +773,7 @@ class SchedulerNode:
         """
         error = False
 
-        required_inputs = self.__task.get('input')
+        required_inputs = self.__task._get_required_inputs()
 
         input_dir = os.path.join(self.__workdir, 'inputs')
 
@@ -1224,7 +1233,12 @@ class SchedulerNode:
                       f'errors during {self.__step}/{self.__index}')
 
         if self.__error:
-            self.halt()
+            # [option,continue] does not cover this and is not consulted here:
+            # a nonzero exit or a failed post_process always ends the node. What
+            # continue relaxes is whether the *rest of the flow* proceeds
+            # without it -- see TaskScheduler.__launch_nodes().
+            self.halt(f'{self.__task.tool()}/{self.__task.task()} failed during '
+                      f'{self.__step}/{self.__index}')
 
         self.__report_output_files()
 

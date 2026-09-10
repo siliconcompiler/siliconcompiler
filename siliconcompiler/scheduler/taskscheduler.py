@@ -738,9 +738,28 @@ class TaskScheduler:
 
                 if not NodeStatus.is_done(in_status):
                     ready = False
-                if NodeStatus.is_error(in_status) and not info["node"].is_builtin:
-                    # Fail if any dependency failed for non-builtin task
-                    able_to_run = False
+                if not NodeStatus.is_error(in_status):
+                    continue
+
+                if info["node"].is_builtin:
+                    # A builtin resolves its fan-in at runtime and is entitled
+                    # to pick among the inputs that did arrive.
+                    continue
+                if self.__project.option.get_continue(step=in_step, index=in_index):
+                    # The failure is excused by the node it happened on, so this
+                    # node launches and runs on whatever else arrived. The excuse
+                    # covers only that node: a consequent failure here needs its
+                    # own, or the flow stops at this node instead.
+                    #
+                    # Excusing *every* input leaves nothing to run on. That is
+                    # not gated here: the node launches, finds its fan-in empty
+                    # and halts on "No inputs selected", which both gives the
+                    # reason and -- unlike declining to launch it -- leaves a
+                    # terminal status its own consumers can act on.
+                    continue
+
+                # Fail if any dependency failed for non-builtin task
+                able_to_run = False
 
             # Fail if no dependency successfully finished for builtin task
             if inputs:
@@ -825,13 +844,20 @@ class TaskScheduler:
 
         unreached = set(exit_steps).difference(completed_steps)
 
+        errors = set([f"{step}/{index}" for step, index in self.__runtime_flow.get_nodes()
+                      if NodeStatus.is_error(self.__record.get("status",
+                                                               step=step, index=index))])
+
         if unreached:
-            errors = set([f"{step}/{index}" for step, index in self.__runtime_flow.get_nodes()
-                          if NodeStatus.is_error(self.__record.get("status",
-                                                                   step=step, index=index))])
             if errors:
                 raise SCRuntimeError(
                     f'Could not run final steps ({", ".join(sorted(unreached))}) '
                     f'due to errors in: {", ".join(sorted(errors))}')
             else:
                 raise SCRuntimeError(f'Could not run final steps: {", ".join(sorted(unreached))}')
+
+        if errors:
+            # The flow reached its exit nodes over a dead branch, which
+            # [option,continue] permits but must not hide: a run this quiet
+            # would otherwise be indistinguishable from one where nothing failed.
+            self.__logger.warning(f'Run completed with errors in: {", ".join(sorted(errors))}')
