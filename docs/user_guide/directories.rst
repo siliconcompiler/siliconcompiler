@@ -233,8 +233,43 @@ than sharing one, because two tools rarely compile the same thing with the same
 flags. Set the variable yourself, in the environment or on the task, and your
 setting is left alone.
 
+Sharing across designs is what a compiler cache wants, but not every cache can:
+a cache whose contents are only valid for one task configuration has to be kept
+apart from the others. A driver in that position names a subdirectory after the
+task's :ref:`digest <task_digest>` instead of sharing ``tools/<tool>/``
+directly.
+
 Nothing collects this area. A tool that keeps a cache is expected to cap it
 itself -- ccache does, at 5GB by default -- so if you want it gone, delete it.
+
+.. _task_digest:
+
+Naming things after a task
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`.Task.get_digest` returns a hex digest of everything that configures a
+task -- its command line, threads, scripts, environment, executable and version
+requirement, and every keypath its driver declared with
+:meth:`.Task.add_required_key`. Two tasks configured the same way get the same
+digest; two that differ anywhere, including in a single boolean, do not:
+
+.. code-block:: python
+
+   class MyTask(Task):
+       @property
+       def cachedir(self):
+           return os.path.join(super().cachedir, self.get_digest(length=16))
+
+The digest is computed from the configuration as written. It reads no files,
+resolves no :term:`dataroot`, runs no executable and does not depend on
+:keypath:`option,hash`, so it costs nothing and comes out the same on every
+machine -- a cache directory named after it can be shared across a cluster. What
+that leaves out is worth knowing before you rely on it: the contents of the input
+files, and the version of the tool actually installed. A driver that needs either
+composes it -- :meth:`.Task.get_exe_version` for the second -- or requires the
+keys that stand in for them, such as a dataroot's ``tag``. The *directory* the
+executable was found in is left out on purpose: it differs per machine, and a
+digest that moved with it would partition the shared cache rather than share it.
 
 Settings and credentials
 ------------------------

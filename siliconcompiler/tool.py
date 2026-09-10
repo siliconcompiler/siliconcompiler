@@ -1,6 +1,7 @@
 import contextlib
 import copy
 import csv
+import hashlib
 import json
 import logging
 import os
@@ -30,7 +31,8 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from typing import List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, TYPE_CHECKING
+from typing import Any, List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, \
+    TYPE_CHECKING
 from pathlib import Path
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
@@ -699,7 +701,15 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         It lives under :keypath:`option,cachedir`, so a container running the
         task has it mounted and a cluster sharing that option shares the cache.
         Override this to key the directory by something other than the tool
-        name -- by tool and version, say.
+        name -- by tool and version, say, or by :meth:`get_digest` where a
+        cached result is only valid for the configuration that produced it::
+
+            @property
+            def cachedir(self):
+                return os.path.join(super().cachedir, self.get_digest(length=16))
+
+        Sharing across designs is the default because that is what a compiler
+        cache wants; a digest is for the caches that cannot.
         """
         return os.path.join(paths.toolcachedir(self.project), self.tool())
 
@@ -1855,6 +1865,164 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             raise ValueError("key can only contain strings")
 
         return self.add("require", ",".join(key), step=step, index=index)
+
+    def get_digest_keys(self) -> Set[Tuple[str, ...]]:
+        '''
+        Returns every keypath that configures this task.
+
+        That is the task's own settings -- the command line, the thread count,
+        the scripts and the environment -- together with everything the driver
+        declared through :meth:`add_required_key`. Keypaths are complete: they
+        address the project, not the task, and are returned whether or not they
+        hold a value.
+
+        This is the one definition of what a task consists of:
+        :meth:`get_digest` hashes it, and
+        :meth:`.SchedulerNode.get_check_changed_keys` decides from it whether a
+        node has to run again. A driver that overrides this is answered by both.
+
+        Returns:
+            set of tuple of str: keypaths that configure this task.
+        '''
+
+        keys: Set[Tuple[str, ...]] = set()
+
+        for require in self.get("require"):
+            keys.add(tuple(require.split(",")))
+
+        # Built from tool()/task() rather than from _keypath, the way cachedir
+        # is, so that a task object standing in for the one attached to the
+        # project still names the keys the attached one would.
+        prefix = ("tool", self.tool(), "task", self.task())
+        for key in ("option", "threads", "prescript", "postscript", "refdir", "script"):
+            keys.add((*prefix, key))
+
+        for env_key in self.getkeys("env"):
+            keys.add((*prefix, "env", env_key))
+
+        return keys
+
+    def get_digest(self, length: Optional[int] = None) -> str:
+        '''
+        Returns a digest of this task's configuration, for naming things after it.
+
+        The digest answers *what configuration is this?* -- a value computed from
+        this task alone, which is what it takes to name a directory. It covers
+        the tool and task names, every keypath in :meth:`get_digest_keys`, and
+        the executable and version requirement, and it changes when any of their
+        values change.
+        Two tasks that differ only in a threshold, an effort level or a boolean
+        get different digests, which is the whole point: a cache key that ignored
+        scalars would hand one configuration's results to another.
+
+        It is deliberately cheap and total. Nothing is resolved, downloaded,
+        read or executed, and nothing depends on :keypath:`option,hash`:
+
+        * A path contributes the value **as written** plus its
+          :term:`dataroot` name, never a resolved absolute path -- so the digest
+          is the same on every machine, and a shared cache directory is shared
+          rather than partitioned by where each user keeps their files. The name
+          is all of the dataroot that is portable, so re-pointing or re-tagging
+          one leaves the digest alone; a driver that cannot live with that
+          requires ``dataroot,<name>,tag`` like any other key and gets it
+          counted.
+        * File **contents** are not hashed. That would be a provenance record,
+          not a cache key: it costs minutes of I/O on a real PDK, and the
+          ``filehash`` field it would read is only populated when
+          :keypath:`option,hash` is set, so the digest would change with a flag
+          rather than with the configuration.
+        * The tool **version found on the system** is not included either, since
+          reading it means running the executable. Only the requirement, and the
+          executable's name. A driver that wants its cache keyed by the
+          installed version has :meth:`get_exe_version`, and can compose the
+          two. The **directory** the executable was found in is left out for the
+          same reason a resolved path is: it differs per machine.
+
+        Values are read at this task's step and index, so two nodes running the
+        same task share a digest exactly when nothing was set per-node to tell
+        them apart.
+
+        The digest is a name, not a checksum: it says that two tasks are
+        configured the same way, not that a directory holds valid contents.
+
+        Args:
+            length (int): if given, truncate the digest to this many characters.
+                A directory name rarely wants all 64.
+
+        Raises:
+            RuntimeError: if the task has no runtime, since the required
+                keypaths cannot be read without a project to read them from.
+            KeyError: if a required keypath is not in the schema.
+            ValueError: if `length` is not between 1 and the digest's length.
+
+        Returns:
+            str: hex digest.
+
+        Examples:
+            >>> os.path.join(task.cachedir, task.get_digest(length=16))
+            A cache directory for this tool, private to this configuration.
+        '''
+
+        hashobj = hashlib.sha256()
+
+        if length is not None and not 0 < length <= hashobj.digest_size * 2:
+            raise ValueError(f"length must be between 1 and {hashobj.digest_size * 2}")
+
+        project = self.project
+        if project is None:
+            raise RuntimeError("get_digest() requires a runtime, "
+                               "call it on the task yielded by Task.runtime()")
+
+        # Which binary this is, and which versions of it are acceptable, are
+        # part of what a cache belongs to: a cache named for a task pinned to
+        # >=v2.0 must not be handed to the same task pinned to <v2.0.
+        #
+        # Neither is added to get_digest_keys(), because that set also decides
+        # whether a node has to run again, and neither makes an existing result
+        # wrong: the executable is resolved and its version checked before every
+        # execution, and both are recorded in [record,toolpath] and
+        # [record,toolversion].
+        #
+        # [tool,<t>,task,<t>,path] is deliberately absent. It is the directory
+        # the executable was found in -- klayout sets it to
+        # ~/AppData/Roaming/KLayout or /Applications/klayout.app/... -- so
+        # hashing it would give the same task a different digest on every
+        # machine, partitioning the shared cache this digest exists to name. It
+        # is also a 'dir', so putting it in the key set would have the rerun
+        # check hash or mtime-walk an entire tool installation per node.
+        keys = set(self.get_digest_keys())
+        prefix = ("tool", self.tool(), "task", self.task())
+        keys.update((*prefix, key) for key in ("exe", "version"))
+
+        keys = sorted(keys)
+        # Add keys
+        hashobj.update(json.dumps(keys, default=repr).encode("utf-8"))
+
+        # The keypath travels with the value so that moving a setting from one
+        # key to another is a change, and sorting makes the digest independent
+        # of the order the driver happened to require things in.
+        material: List[Any] = [self.tool(), self.task()]
+        for keypath in keys:
+            if not project.valid(*keypath, default_valid=True):
+                raise KeyError(f"[{','.join(keypath)}] not found")
+
+            param = project.get(*keypath, field=None)
+            step, index = self.__step, self.__index
+            if param.get(field="pernode").is_never():
+                step, index = None, None
+
+            entry: List[Any] = [",".join(keypath), param.get(step=step, index=index)]
+            if param.is_path:
+                # Which dataroot a path is relative to is part of the path.
+                entry.append(param.get(field="dataroot", step=step, index=index))
+            material.append(entry)
+
+        # default=repr rather than an error: a driver's own parameter type is
+        # not worth refusing to name a directory over, and repr is stable and
+        # tells two types apart.
+        hashobj.update(json.dumps(material, default=repr).encode("utf-8"))
+
+        return hashobj.hexdigest()[:length]
 
     def set_threads(self, max_threads: Optional[int] = None,
                     step: Optional[str] = None, index: Optional[Union[str, int]] = None,
