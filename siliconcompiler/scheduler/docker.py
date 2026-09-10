@@ -11,8 +11,8 @@ from pathlib import Path
 
 import siliconcompiler
 
-from siliconcompiler.package import RemoteResolver
 from siliconcompiler.utils import default_email_credentials_file
+from siliconcompiler.utils.paths import cachedir as cachedir_path
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 
@@ -252,7 +252,7 @@ class DockerSchedulerNode(SchedulerNode):
 
             volumes = [
                 f"{self.project_cwd}:{cwd}:rw",
-                f"{RemoteResolver.determine_cache_dir(self.project)}:{cache_dir}:rw"
+                f"{cachedir_path(self.project)}:{cache_dir}:rw"
             ]
             self.logger.debug(f'Volumes: {volumes}')
 
@@ -263,7 +263,7 @@ class DockerSchedulerNode(SchedulerNode):
 
                 volumes.append(f'{os.path.dirname(email_file)}:/sc_home/.sc:ro')
         else:
-            cache_dir = RemoteResolver.determine_cache_dir(self.project)
+            cache_dir = cachedir_path(self.project)
             cwd = self.project_cwd
             builddir = self.project.find_files('option', 'builddir')
 
