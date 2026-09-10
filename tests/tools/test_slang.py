@@ -1439,3 +1439,51 @@ def test_macro_corners_from_project_scenarios(asic_heartbeat):
     """
     corners = asic_heartbeat.getkeys("constraint", "timing", "scenario")
     assert list(corners) == ["typical"]
+
+
+def _fake_results(project, monkeypatch):
+    """Let build_macro package a project without an actual run behind it.
+
+    build_macro only needs find_result to name the views; add_file records a
+    path without opening it, so faking them keeps this a unit test.
+    """
+    def find_result(self, filetype=None, step=None, index="0",
+                    directory="outputs", filename=None):
+        return f"/fake/{filetype}"
+
+    monkeypatch.setattr(type(project), "find_result", find_result)
+
+
+def test_macro_rtl_view_bundles_models_sim(asic_heartbeat, monkeypatch):
+    """The rtl view depends on each logic library's models.sim fileset."""
+    _fake_results(asic_heartbeat, monkeypatch)
+
+    mainlib = asic_heartbeat.get_library(asic_heartbeat.get("asic", "mainlib"))
+    with mainlib.active_fileset("models.sim"):
+        mainlib.add_file("/fake/cells.v")
+
+    library = macro.build_macro(asic_heartbeat, "heartbeat")
+
+    deps = library.get("fileset", "rtl", "depfileset")
+    assert (mainlib.name, "models.sim") in deps
+
+
+def test_macro_warns_when_library_has_no_models_sim(asic_heartbeat, monkeypatch,
+                                                    caplog):
+    """A logic library with no cell models cannot make the rtl view simulate.
+
+    nangate45 ships no cell verilog, so freepdk45 is the case this warns on. It
+    is a warning and not an error because the netlist, the liberty and the
+    physical views are all still good -- only standalone simulation of the rtl
+    view is lost.
+    """
+    asic_heartbeat.logger.propagate = True
+    _fake_results(asic_heartbeat, monkeypatch)
+
+    mainlib = asic_heartbeat.get_library(asic_heartbeat.get("asic", "mainlib"))
+    assert not mainlib.has_fileset("models.sim")
+
+    library = macro.build_macro(asic_heartbeat, "heartbeat")
+
+    assert f"{mainlib.name} has no models.sim fileset" in caplog.text
+    assert not library.get("fileset", "rtl", "depfileset")
