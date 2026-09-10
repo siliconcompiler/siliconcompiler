@@ -683,6 +683,27 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         return self.__jobdir
 
     @property
+    def cachedir(self) -> str:
+        """str: The path to this tool's cache directory.
+
+        A place for whatever the tool carries from one run to the next -- a
+        compiler cache, an incremental build directory. Unlike
+        :attr:`nodeworkdir`, which is emptied before every run, this survives,
+        and it is shared by every task of the tool and every design built with
+        it: it holds a tool's own cache, not a node's outputs.
+
+        Nothing is created here and nothing collects it. A driver that wants the
+        directory points its tool at it, usually with an environment variable,
+        and relies on the tool to cap its own size.
+
+        It lives under :keypath:`option,cachedir`, so a container running the
+        task has it mounted and a cluster sharing that option shares the cache.
+        Override this to key the directory by something other than the tool
+        name -- by tool and version, say.
+        """
+        return os.path.join(paths.toolcachedir(self.project), self.tool())
+
+    @property
     def schema_record(self) -> RecordSchema:
         return self.__schema_record
 

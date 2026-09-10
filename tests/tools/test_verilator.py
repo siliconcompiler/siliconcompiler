@@ -3,6 +3,8 @@ import shlex
 
 import os.path
 
+from pathlib import Path
+
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.tools.slang.elaborate import Elaborate
 from siliconcompiler.tools.verilator import lint, compile
@@ -345,6 +347,94 @@ def test_runtime_args_timescale(heartbeat_design, monkeypatch):
             '-j', '2',
             '--cc',
             '-o', '../outputs/heartbeat.vexe']
+
+
+def test_ccache_dir(heartbeat_design, monkeypatch):
+    """verilated.mk shells out to ccache, so the tool cache is where it writes."""
+    monkeypatch.delenv("CCACHE_DIR", raising=False)
+
+    proj = Project(heartbeat_design)
+    proj.add_fileset("rtl")
+    proj.option.set_cachedir("thiscache")
+
+    flow = Flowgraph("testflow")
+    flow.node("compile", compile.CompileTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "compile", "0")
+    with node.runtime():
+        assert node.setup() is True
+        env = node.task.get_runtime_environmental_variables(include_path=False)
+
+    # Compared as paths: a configured cachedir comes back from find_files
+    # posix-style, which on Windows is not what abspath() spells.
+    assert Path(env["CCACHE_DIR"]) == Path(os.path.abspath("thiscache")) / "tools" / "verilator"
+
+
+def test_ccache_dir_survives_the_node_export(heartbeat_design, monkeypatch):
+    """The node exports the variables, then asks again to write the replay script.
+
+    The second answer has to match the first, or a replay would run without the
+    cache the run itself used.
+    """
+    monkeypatch.delenv("CCACHE_DIR", raising=False)
+
+    proj = Project(heartbeat_design)
+    proj.add_fileset("rtl")
+    proj.option.set_cachedir("thiscache")
+
+    flow = Flowgraph("testflow")
+    flow.node("compile", compile.CompileTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "compile", "0")
+    with node.runtime():
+        assert node.setup() is True
+        first = node.task.get_runtime_environmental_variables(include_path=False)
+        monkeypatch.setenv("CCACHE_DIR", first["CCACHE_DIR"])
+        second = node.task.get_runtime_environmental_variables(include_path=False)
+
+    assert second["CCACHE_DIR"] == first["CCACHE_DIR"]
+
+
+def test_ccache_dir_user_setting_wins(heartbeat_design, monkeypatch):
+    """A user who has already said where their ccache lives keeps it."""
+    monkeypatch.setenv("CCACHE_DIR", "/user/ccache")
+
+    proj = Project(heartbeat_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("compile", compile.CompileTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "compile", "0")
+    with node.runtime():
+        assert node.setup() is True
+        env = node.task.get_runtime_environmental_variables(include_path=False)
+
+    assert "CCACHE_DIR" not in env
+
+
+def test_ccache_dir_task_setting_wins(heartbeat_design, monkeypatch):
+    """So does one set on the task itself."""
+    monkeypatch.delenv("CCACHE_DIR", raising=False)
+
+    proj = Project(heartbeat_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("compile", compile.CompileTask())
+    proj.set_flow(flow)
+
+    assert compile.CompileTask.find_task(proj).set("env", "CCACHE_DIR", "/task/ccache")
+
+    node = SchedulerNode(proj, "compile", "0")
+    with node.runtime():
+        assert node.setup() is True
+        env = node.task.get_runtime_environmental_variables(include_path=False)
+
+    assert env["CCACHE_DIR"] == "/task/ccache"
 
 
 def test_verilator_parameter_timescale():

@@ -1,4 +1,6 @@
-from typing import List, Tuple, Optional, Union
+import os
+
+from typing import Dict, List, Tuple, Optional, Union
 from siliconcompiler import Task
 
 
@@ -12,6 +14,47 @@ def distinct(values: List[str]) -> List[str]:
     the collected lists are run through this helper before being emitted.
     """
     return list(dict.fromkeys(values))
+
+
+class CCache(Task):
+    '''Mixin task for tools that drive ccache, pointing it at the tool cache.
+
+    Verilator's ``verilated.mk`` sets ``OBJCACHE ?= ccache`` and invokes it
+    unconditionally, so every C++ build it drives shells out to ccache whether or
+    not anyone asked for it -- including the ones a tool starts on its own
+    behalf, the way bambu does when it simulates. Left to itself ccache writes to
+    ``~/.cache/ccache``: outside :keypath:`option,cachedir`, so nothing
+    SiliconCompiler manages ever sees it, and not among the volumes mounted into
+    a task container, so a containerised build starts from a cold cache every
+    single time. :attr:`.Task.cachedir` is inside the mounted cache directory and
+    is shared across designs, which is the whole point of a compiler cache.
+    ccache creates the directory itself and enforces its own size cap, so there
+    is nothing to set up and nothing to collect.
+
+    Intended to be used via multiple inheritance alongside a concrete task class,
+    and listed *first*: the check below reads the environment the rest of the
+    chain assembled, so it has to run last.
+    '''
+
+    def get_runtime_environmental_variables(self, include_path: bool = True) \
+            -> Dict[str, str]:
+        envvars = super().get_runtime_environmental_variables(include_path=include_path)
+
+        # Anyone who has already said where their ccache goes keeps it, whether
+        # that is [option,env] / the task's own env or the ambient environment.
+        # An empty value is not one of those: it names no directory, so ccache
+        # falls back to its own default, which is the outcome this exists to
+        # avoid. Neither is a value equal to the one this would set -- the node
+        # exports these variables into its own environment before asking again,
+        # to write the replay script, so testing for mere presence would by then
+        # be answering about this method's own previous return and the replay
+        # script would go out without it.
+        toolcache = self.cachedir
+        preset = envvars.get("CCACHE_DIR", os.environ.get("CCACHE_DIR"))
+        if not preset or preset == toolcache:
+            envvars["CCACHE_DIR"] = toolcache
+
+        return envvars
 
 
 class PlusArgs(Task):

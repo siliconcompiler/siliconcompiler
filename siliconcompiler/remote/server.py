@@ -903,7 +903,7 @@ class Server(ServerSchema):
     ###################
     @property
     def cache_dir(self):
-        """Where downloaded packages are cached for the whole cluster.
+        """Where the whole cluster caches what it keeps between runs.
 
         On the shared mount rather than in a home directory, so that every
         compute node resolves the same files as the server: the scheduler hands

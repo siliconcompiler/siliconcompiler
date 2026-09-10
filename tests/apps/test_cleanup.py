@@ -51,9 +51,60 @@ def cache_with_old_entries(temp_cache_dir):
     return temp_cache_dir
 
 
+@pytest.fixture
+def cache_with_dataroot_entries(temp_cache_dir):
+    '''A cache in the current layout: entries under dataroot, a tool cache beside it.'''
+    dataroot = temp_cache_dir / "dataroot"
+    dataroot.mkdir()
+
+    old_entry = dataroot / "old-entry-1234567890ab"
+    old_entry.mkdir()
+    (old_entry / "data.txt").write_text("old data")
+
+    old_lock = dataroot / "old-entry-1234567890ab.lock"
+    old_lock.touch()
+    old_time = (datetime.now() - timedelta(days=91)).timestamp()
+    os.utime(old_lock, (old_time, old_time))
+
+    toolcache = temp_cache_dir / "tools" / "verilator"
+    toolcache.mkdir(parents=True)
+    (toolcache / "stats").write_text("hits")
+    os.utime(toolcache / "stats", (old_time, old_time))
+
+    return temp_cache_dir
+
+
 # ============================================================================
 # Tests for basic functionality
 # ============================================================================
+
+def test_cleanup_collects_dataroot_entries(monkeypatch, cache_with_dataroot_entries):
+    '''The app is pointed at the cache root and reaches the data sources inside it.'''
+    monkeypatch.setattr('sys.argv', [
+        'cleanup',
+        '-days', '90',
+        '-cachedir', str(cache_with_dataroot_entries)
+    ])
+
+    assert cleanup.main() == 0
+
+    dataroot = cache_with_dataroot_entries / "dataroot"
+    assert not (dataroot / "old-entry-1234567890ab").exists()
+    assert not (dataroot / "old-entry-1234567890ab.lock").exists()
+
+
+def test_cleanup_leaves_the_tool_cache_alone(monkeypatch, cache_with_dataroot_entries):
+    '''A tool caps its own cache; nothing here collects it, however old it is.'''
+    monkeypatch.setattr('sys.argv', [
+        'cleanup',
+        '-days', '90',
+        '-cachedir', str(cache_with_dataroot_entries)
+    ])
+
+    assert cleanup.main() == 0
+
+    assert (cache_with_dataroot_entries / "tools" / "verilator" / "stats").exists()
+
 
 def test_cleanup_dry_run(monkeypatch, cache_with_old_entries, capsys):
     '''Test cleanup in dry-run mode does not delete anything.'''

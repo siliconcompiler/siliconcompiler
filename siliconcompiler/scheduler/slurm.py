@@ -12,8 +12,7 @@ import os.path
 from typing import List, Tuple, Union, Final
 
 from siliconcompiler import utils, sc_open
-from siliconcompiler.utils.paths import jobdir
-from siliconcompiler.package import RemoteResolver
+from siliconcompiler.utils.paths import jobdir, cachedir as cachedir_path
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -402,7 +401,7 @@ class SlurmSchedulerNode(SchedulerNode):
                     build_dir=shlex.quote(self.project.option.get_builddir()),
                     step=shlex.quote(self.step),
                     index=shlex.quote(self.index),
-                    cachedir=shlex.quote(str(RemoteResolver.determine_cache_dir(self.project)))
+                    cachedir=shlex.quote(cachedir_path(self.project))
                 ))
 
         # This is Python for: `chmod +x [script_path]`

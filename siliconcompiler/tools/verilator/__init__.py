@@ -15,11 +15,10 @@ Installation: https://verilator.org/guide/latest/install.html
 
 import os.path
 
-from siliconcompiler import Task
-from siliconcompiler.tools._common import distinct
+from siliconcompiler.tools._common import distinct, CCache
 
 
-class VerilatorTask(Task):
+class VerilatorTask(CCache):
     def __init__(self):
         super().__init__()
 

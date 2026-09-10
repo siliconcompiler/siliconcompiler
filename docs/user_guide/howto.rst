@@ -292,7 +292,8 @@ Cache directory
 
     project.option.set_cachedir("/path/to/cache")
 
-Defaults to ``~/.sc/cache``; see :ref:`the SC home directory <sc_home>`.
+Defaults to ``~/.sc/cache``, which holds both the downloaded data sources and the
+caches the tools keep for themselves; see :ref:`the SC home directory <sc_home>`.
 
 Preserve options across sessions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -487,9 +487,13 @@ class OptionSchema(BaseSchema):
                     "cli: -cachedir /home/user/.sc/cache",
                     "api: option.set('cachedir', '/home/user/.sc/cache')"],
                 help="""
-                Filepath to cache used for package data sources. If the
-                cache parameter is empty, ".sc/cache" directory in the user's home
-                directory will be used."""))
+                Filepath to the cache SiliconCompiler keeps between runs. It holds
+                one subdirectory per kind of cached data: "dataroot" for downloaded
+                package data sources, and "tools" for the caches tools keep for
+                themselves, such as the compiler cache a Verilator build writes to.
+                Cached data goes in those subdirectories, not in the directory
+                itself. If the cache parameter is empty, the ".sc/cache" directory
+                in the user's home directory will be used."""))
 
         schema.insert(
             'nice',

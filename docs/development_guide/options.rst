@@ -215,12 +215,13 @@ If the preferred tool is not found or not registered, SiliconCompiler will fall 
 Cache Cleanup Settings (The 'cache' Category)
 ---------------------------------------------
 
-The data source cache in ``~/.sc/cache`` grows every time a project asks for a
-version of a PDK, library, or design that is not already there, and nothing in a
-normal run removes what an older project needed.
-At the start of every run SiliconCompiler sweeps the cache and deletes entries
+The data source cache in ``~/.sc/cache/dataroot`` grows every time a project asks
+for a version of a PDK, library, or design that is not already there, and nothing
+in a normal run removes what an older project needed.
+At the start of every run SiliconCompiler sweeps that area and deletes entries
 that have gone unused, along with the lock files of entries that are already
-gone.
+gone. The cache's other area, ``tools/``, is left alone: a tool that keeps a
+cache between runs caps it itself, so there is nothing here to tune for it.
 
 The sweep is deliberately conservative, because nothing asked for it: it runs at
 most once a week per cache directory and only collects entries that have not been

@@ -6,6 +6,8 @@ import shutil
 
 import os.path
 
+from pathlib import Path
+
 from siliconcompiler import ASIC, Project, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.bambu import convert
@@ -92,6 +94,60 @@ def test_runtime_args(gcd_design, datadir):
             '--disable-function-proxy',
             '--top-fname=gcd'
         ]
+
+
+def test_ccache_dir(datadir, monkeypatch):
+    """Simulating drives verilator, whose makefile shells out to ccache."""
+    monkeypatch.delenv("CCACHE_DIR", raising=False)
+
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("gcd")
+        design.add_file("gcd.c")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.option.set_cachedir("thiscache")
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        env = node.task.get_runtime_environmental_variables(include_path=False)
+
+    # Its own area, not verilator's: bambu compiles the co-simulation harness
+    # with flags a verilator compile task would never produce.
+    # Compared as paths: a configured cachedir comes back from find_files
+    # posix-style, which on Windows is not what abspath() spells.
+    assert Path(env["CCACHE_DIR"]) == Path(os.path.abspath("thiscache")) / "tools" / "bambu"
+
+
+def test_ccache_dir_user_setting_wins(datadir, monkeypatch):
+    monkeypatch.setenv("CCACHE_DIR", "/user/ccache")
+
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("gcd")
+        design.add_file("gcd.c")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        env = node.task.get_runtime_environmental_variables(include_path=False)
+
+    assert "CCACHE_DIR" not in env
 
 
 def test_runtime_args_clock(gcd_design):
