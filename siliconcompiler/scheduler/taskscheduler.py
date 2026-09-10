@@ -732,7 +732,8 @@ class TaskScheduler:
             ready = True
             inputs = []
             able_to_run = True
-            excused = False
+            excused_failure = False
+            unexcused_failure = False
             for in_step, in_index in info["inputs"]:
                 in_status = self.__record.get('status', step=in_step, index=in_index)
                 inputs.append(in_status)
@@ -754,8 +755,10 @@ class TaskScheduler:
                     # reason and -- unlike declining to launch it -- leaves a
                     # terminal status its own consumers can act on. Builtins
                     # included, which is why this is asked before is_builtin.
-                    excused = True
+                    excused_failure = True
                     continue
+
+                unexcused_failure = True
 
                 if info["node"].is_builtin:
                     # A builtin resolves its fan-in at runtime and is entitled
@@ -766,14 +769,18 @@ class TaskScheduler:
                 able_to_run = False
 
             # Fail if no dependency successfully finished for builtin task --
-            # unless a failure was excused, in which case the node is entitled
-            # to launch and report that it has nothing left to work with rather
-            # than being left pending for its own consumers to wait on.
+            # unless *every* failure was excused, in which case the node is
+            # entitled to launch and report that it has nothing left to work
+            # with rather than being left pending for its own consumers to wait
+            # on. One unexcused failure among them and it is pruned as before,
+            # which is also what a non-builtin does with the same fan-in.
+            all_failures_excused = excused_failure and not unexcused_failure
             if inputs:
                 any_success = any([status == NodeStatus.SUCCESS for status in inputs])
             else:
                 any_success = True
-            if ready and info["node"].is_builtin and not any_success and not excused:
+            if ready and info["node"].is_builtin and not any_success \
+                    and not all_failures_excused:
                 able_to_run = False
 
             if not able_to_run:

@@ -2461,6 +2461,25 @@ def test_a_builtin_join_with_every_arm_excused_fails_rather_than_stalling(contin
 
 
 @pytest.mark.timeout(60)
+def test_a_builtin_join_with_one_arm_unexcused_behaves_like_a_normal_task(continue_join):
+    """Both arms dead but only one excused: the join is pruned, not launched.
+
+    The excuse is per node, so a mix must not relax the whole fan-in -- and the
+    outcome has to match what a non-builtin does with the same inputs, which is
+    to stay PENDING and let the run report the unreached exit step."""
+    project = continue_join()
+    ContinueDataTask.find_task(project).set("var", "fail", True, step="B")
+    project.option.set_continue(True, step="A")
+    # B failed with no excuse of its own.
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(join\) due to errors in: A/0, B/0"):
+        project.run()
+
+    assert _status(project, "join") == NodeStatus.PENDING
+
+
+@pytest.mark.timeout(60)
 def test_a_builtin_join_still_dies_on_an_unexcused_arm(continue_join):
     """Without continue the builtins behave exactly as they do today: the
     launch-gate exemption gets the join started, and forwarding the failed

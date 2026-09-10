@@ -877,6 +877,23 @@ def test_continue_on_the_consumer_does_not_excuse_its_dep(large_flow, make_tasks
         assert scheduler._TaskScheduler__nodes[("steptwo", index)]["proc"] is None
 
 
+def _make_tasks_marking_builtins(proj, make_tasks):
+    """Build the task map the way Scheduler does, flagging builtin-tool nodes.
+
+    ``make_tasks`` constructs SchedulerNodes directly, so nothing carries the
+    builtin flag -- which is what makes this file a clean harness for the
+    non-builtin gate, and also means a test about *builtin* behaviour has to opt
+    in or it silently exercises the non-builtin path and passes for the wrong
+    reason. Scheduler sets the flag from the node's tool; so does this.
+    """
+    flow = proj.get("flowgraph", proj.get("option", "flow"), field="schema")
+    tasks = make_tasks(proj)
+    for (step, index), node in tasks.items():
+        if flow.get(step, index, "tool") == "builtin":
+            node.set_builtin()
+    return tasks
+
+
 @pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
 def test_a_builtin_with_every_dep_excused_still_launches(large_flow, make_tasks, error):
     """A builtin is normally pruned when nothing upstream succeeded. Excusing
@@ -888,7 +905,7 @@ def test_a_builtin_with_every_dep_excused_still_launches(large_flow, make_tasks,
         large_flow.set("record", "status", error, step="stepone", index=index)
     large_flow.option.set_continue(True, step="stepone")
 
-    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler = TaskScheduler(large_flow, _make_tasks_marking_builtins(large_flow, make_tasks))
     _mock_all_procs(scheduler)
     _set_resources(scheduler, max_parallel=3)
 
@@ -903,7 +920,29 @@ def test_a_builtin_with_every_dep_failed_and_unexcused_is_still_pruned(
     for index in ("0", "1", "2"):
         large_flow.set("record", "status", error, step="stepone", index=index)
 
-    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler = TaskScheduler(large_flow, _make_tasks_marking_builtins(large_flow, make_tasks))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    _launch(scheduler)
+    assert scheduler._TaskScheduler__nodes[("joinone", "0")]["proc"] is None
+
+
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_a_builtin_with_a_mix_of_excused_and_unexcused_deps_is_pruned(
+        large_flow, make_tasks, error):
+    """*Every* failure has to be excused, not merely one of them.
+
+    One unexcused arm and the builtin is pruned exactly as it is today -- which
+    is also what a non-builtin does with the same fan-in. Launching on a mix
+    would let the option relax a node nobody excused."""
+    for index in ("0", "1", "2"):
+        large_flow.set("record", "status", error, step="stepone", index=index)
+    large_flow.option.set_continue(True, step="stepone", index="0")
+    large_flow.option.set_continue(True, step="stepone", index="1")
+    # stepone/2 failed with no excuse of its own.
+
+    scheduler = TaskScheduler(large_flow, _make_tasks_marking_builtins(large_flow, make_tasks))
     _mock_all_procs(scheduler)
     _set_resources(scheduler, max_parallel=3)
 
