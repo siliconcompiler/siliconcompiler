@@ -732,6 +732,7 @@ class TaskScheduler:
             ready = True
             inputs = []
             able_to_run = True
+            excused = False
             for in_step, in_index in info["inputs"]:
                 in_status = self.__record.get('status', step=in_step, index=in_index)
                 inputs.append(in_status)
@@ -741,10 +742,6 @@ class TaskScheduler:
                 if not NodeStatus.is_error(in_status):
                     continue
 
-                if info["node"].is_builtin:
-                    # A builtin resolves its fan-in at runtime and is entitled
-                    # to pick among the inputs that did arrive.
-                    continue
                 if self.__project.option.get_continue(step=in_step, index=in_index):
                     # The failure is excused by the node it happened on, so this
                     # node launches and runs on whatever else arrived. The excuse
@@ -755,18 +752,28 @@ class TaskScheduler:
                     # not gated here: the node launches, finds its fan-in empty
                     # and halts on "No inputs selected", which both gives the
                     # reason and -- unlike declining to launch it -- leaves a
-                    # terminal status its own consumers can act on.
+                    # terminal status its own consumers can act on. Builtins
+                    # included, which is why this is asked before is_builtin.
+                    excused = True
+                    continue
+
+                if info["node"].is_builtin:
+                    # A builtin resolves its fan-in at runtime and is entitled
+                    # to pick among the inputs that did arrive.
                     continue
 
                 # Fail if any dependency failed for non-builtin task
                 able_to_run = False
 
-            # Fail if no dependency successfully finished for builtin task
+            # Fail if no dependency successfully finished for builtin task --
+            # unless a failure was excused, in which case the node is entitled
+            # to launch and report that it has nothing left to work with rather
+            # than being left pending for its own consumers to wait on.
             if inputs:
                 any_success = any([status == NodeStatus.SUCCESS for status in inputs])
             else:
                 any_success = True
-            if ready and info["node"].is_builtin and not any_success:
+            if ready and info["node"].is_builtin and not any_success and not excused:
                 able_to_run = False
 
             if not able_to_run:

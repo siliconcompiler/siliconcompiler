@@ -1687,8 +1687,7 @@ def two_arm_fanin():
 
 def _select_input_nodes(proj, cls):
     """Enter the end node's runtime context and ask what it will consume from."""
-    builtin_task = proj.get("tool", "builtin", "task", cls().task(), field="schema")
-    with builtin_task.runtime(SchedulerNode(proj, "end", "0")) as task_obj:
+    with cls.find_task(proj).runtime(SchedulerNode(proj, "end", "0")) as task_obj:
         return task_obj.select_input_nodes()
 
 

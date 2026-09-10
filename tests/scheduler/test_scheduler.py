@@ -2146,6 +2146,7 @@ def _node_dir(project, step, index="0", job="job0"):
 # The reporter's two cases from issue #5368.
 #
 
+@pytest.mark.timeout(60)
 def test_continue_diamond_no_files(continue_diamond):
     """A failed branch must not abort a sibling branch when continue is enabled."""
     project = continue_diamond(ContinueTask)
@@ -2159,6 +2160,7 @@ def test_continue_diamond_no_files(continue_diamond):
     assert _status(project, "D") == NodeStatus.SUCCESS
 
 
+@pytest.mark.timeout(60)
 def test_continue_diamond_with_files(continue_diamond):
     """The same, with files passed between nodes: the requirement set shrinks."""
     project = continue_diamond(ContinueDataTask)
@@ -2177,6 +2179,7 @@ def test_continue_diamond_with_files(continue_diamond):
     assert received.splitlines() == ["output.C.0.txt"]
 
 
+@pytest.mark.timeout(60)
 def test_continue_records_only_the_surviving_input_nodes(continue_diamond):
     """[record,inputnode] must not name a branch nothing was taken from."""
     project = continue_diamond(ContinueDataTask)
@@ -2188,6 +2191,7 @@ def test_continue_records_only_the_surviving_input_nodes(continue_diamond):
         "record", "inputnode", step="D", index="0") == [("C", "0")]
 
 
+@pytest.mark.timeout(120)
 def test_continue_does_not_resurrect_a_stale_output(continue_diamond):
     """A failed task must not leave behind outputs that it never produced.
 
@@ -2317,6 +2321,7 @@ def test_continue_with_every_input_excused_still_fails(continue_fanout):
 # Blast radius: the change must be inert unless a node opts in.
 #
 
+@pytest.mark.timeout(60)
 @pytest.mark.parametrize("task_cls", (ContinueTask, ContinueDataTask))
 def test_without_continue_a_failed_branch_still_halts(continue_diamond, task_cls):
     """A task that does not opt in fails exactly as it does today."""
@@ -2330,6 +2335,7 @@ def test_without_continue_a_failed_branch_still_halts(continue_diamond, task_cls
     assert _status(project, "D") == NodeStatus.PENDING
 
 
+@pytest.mark.timeout(60)
 def test_a_global_continue_excuses_every_node(continue_diamond):
     """The CLI switch (-continue) carries no step, and [option,continue] is
     pernode=OPTIONAL, so the global value answers for every node. That is the
@@ -2346,6 +2352,7 @@ def test_a_global_continue_excuses_every_node(continue_diamond):
     assert received.splitlines() == ["output.C.0.txt"]
 
 
+@pytest.mark.timeout(60)
 def test_a_skipped_upstream_is_traversed_not_dropped(continue_diamond):
     """The distinction the whole design turns on. A SKIPPED node is
     transparent -- its own inputs stand in for it -- while an excused failure
@@ -2370,6 +2377,7 @@ def test_a_skipped_upstream_is_traversed_not_dropped(continue_diamond):
     assert received.splitlines() == ["output.A.0.txt", "output.C.0.txt"]
 
 
+@pytest.mark.timeout(60)
 def test_continue_on_an_unrelated_node_does_not_excuse_the_failure(continue_diamond):
     """The excuse is read from the node that failed, not from any other."""
     project = continue_diamond(ContinueTask)
@@ -2393,6 +2401,7 @@ def test_continue_still_requires_an_input_a_live_node_owes(continue_diamond, cap
     assert "Invalid flow: D/0 will not receive required input missing.txt" in caplog.text
 
 
+@pytest.mark.timeout(60)
 def test_the_metrics_halt_still_halts_without_continue(continue_chain):
     """errors > 0 and no continue is the documented default, and is not in scope."""
     project = continue_chain()
@@ -2404,6 +2413,7 @@ def test_the_metrics_halt_still_halts_without_continue(continue_chain):
     assert "continuetool/noisy reported 3 errors during A/0" in _joblog(project)
 
 
+@pytest.mark.timeout(60)
 def test_the_metrics_halt_is_the_one_place_continue_already_worked(continue_chain):
     """It is also the only gate where continue leaves the node a SUCCESS."""
     project = continue_chain()
@@ -2416,6 +2426,7 @@ def test_the_metrics_halt_is_the_one_place_continue_already_worked(continue_chai
     assert project.history("job0").get("metric", "errors", step="A", index="0") == 3
 
 
+@pytest.mark.timeout(60)
 def test_a_builtin_join_merges_the_arms_that_survived(continue_join):
     """The builtins were already exempt at the launch gate but died forwarding
     a failed arm's outputs. An excused arm is now dropped instead."""
@@ -2430,6 +2441,26 @@ def test_a_builtin_join_merges_the_arms_that_survived(continue_join):
                   if f.name.endswith(".txt")) == ["output.B.0.txt"]
 
 
+@pytest.mark.timeout(60)
+def test_a_builtin_join_with_every_arm_excused_fails_rather_than_stalling(continue_join):
+    """Nothing left to join is not a success -- and it must be an ERROR, not a
+    node left PENDING. A builtin's own consumers wait on a terminal status just
+    like anyone else's, so it launches and says it has nothing to work with."""
+    project = continue_join()
+    ContinueDataTask.find_task(project).set("var", "fail", True, step="B")
+    project.option.set_continue(True, step="A")
+    project.option.set_continue(True, step="B")
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(join\) due to errors in: "
+                             r"A/0, B/0, join/0"):
+        project.run()
+
+    assert _status(project, "join") == NodeStatus.ERROR
+    assert "No inputs selected for join/0" in _joblog(project)
+
+
+@pytest.mark.timeout(60)
 def test_a_builtin_join_still_dies_on_an_unexcused_arm(continue_join):
     """Without continue the builtins behave exactly as they do today: the
     launch-gate exemption gets the join started, and forwarding the failed

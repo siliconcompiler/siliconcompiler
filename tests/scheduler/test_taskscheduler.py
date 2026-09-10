@@ -877,6 +877,40 @@ def test_continue_on_the_consumer_does_not_excuse_its_dep(large_flow, make_tasks
         assert scheduler._TaskScheduler__nodes[("steptwo", index)]["proc"] is None
 
 
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_a_builtin_with_every_dep_excused_still_launches(large_flow, make_tasks, error):
+    """A builtin is normally pruned when nothing upstream succeeded. Excusing
+    those failures has to lift that too, or the builtin is left PENDING and its
+    own consumers wait on a node that will never reach a terminal state -- the
+    thing the excuse exists to avoid. It launches, finds its fan-in empty and
+    halts on "No inputs selected"."""
+    for index in ("0", "1", "2"):
+        large_flow.set("record", "status", error, step="stepone", index=index)
+    large_flow.option.set_continue(True, step="stepone")
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    _launch(scheduler)
+    assert ("joinone", "0") in scheduler.get_running_nodes()
+
+
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_a_builtin_with_every_dep_failed_and_unexcused_is_still_pruned(
+        large_flow, make_tasks, error):
+    """Without the option the builtins behave exactly as they do today."""
+    for index in ("0", "1", "2"):
+        large_flow.set("record", "status", error, step="stepone", index=index)
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    _launch(scheduler)
+    assert scheduler._TaskScheduler__nodes[("joinone", "0")]["proc"] is None
+
+
 def test_an_excused_dep_does_not_launch_a_node_early(large_flow, make_tasks):
     """Excusing a failure says nothing about the dependencies still running:
     the node waits for its whole fan-in to reach a terminal state first."""
