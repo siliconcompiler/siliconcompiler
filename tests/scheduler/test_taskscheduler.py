@@ -576,6 +576,30 @@ def test_check_invalid_with_error(large_flow, make_tasks):
         scheduler.check()
 
 
+def test_check_reports_a_dead_branch_a_completed_run_ran_over(project_logger, large_flow,
+                                                              make_tasks, caplog):
+    """[option,continue] lets the flow reach its exit nodes over a failed node.
+    That must not read as a run where nothing failed."""
+    project_logger(large_flow)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    large_flow.set("record", "status", NodeStatus.SUCCESS, step="jointhree", index="0")
+    large_flow.set("record", "status", NodeStatus.ERROR, step="stepone", index="0")
+
+    scheduler.check()
+
+    assert "Run completed with errors in: stepone/0" in caplog.text
+
+
+def test_check_says_nothing_when_nothing_failed(project_logger, large_flow, make_tasks, caplog):
+    project_logger(large_flow)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    large_flow.set("record", "status", NodeStatus.SUCCESS, step="jointhree", index="0")
+
+    scheduler.check()
+
+    assert "Run completed with errors" not in caplog.text
+
+
 # ---------------------------------------------------------------------------
 # Breakpoint scheduling
 #
@@ -792,6 +816,82 @@ def test_no_breakpoint_respects_max_parallel(large_flow, make_tasks):
 
     _launch(scheduler)
     assert scheduler.get_running_nodes() == [("stepone", "0"), ("stepone", "1")]
+
+
+# ---------------------------------------------------------------------------
+# The launch gate and [option,continue]
+#
+# A failed dependency normally disqualifies a node before it ever starts. The
+# option excuses that failure -- read from the node it happened on, never from
+# the node that consumes it -- so the consumer launches and runs on whatever
+# else arrived.
+#
+# Nodes here are built directly rather than through Scheduler, so none of them
+# carries the builtin flag and every one exercises the non-builtin path.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_failed_dep_prunes_a_node(large_flow, make_tasks, error):
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    large_flow.set("record", "status", error, step="joinone", index="0")
+
+    _launch(scheduler)
+    for index in ("0", "1", "2"):
+        assert scheduler._TaskScheduler__nodes[("steptwo", index)]["proc"] is None
+
+
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_an_excused_failed_dep_still_launches_a_node(large_flow, make_tasks, error):
+    # Settle the first level before building the scheduler, so the parallel
+    # slots belong to steptwo/* rather than to the entry nodes.
+    for index in ("0", "1", "2"):
+        large_flow.set("record", "status", NodeStatus.SUCCESS, step="stepone", index=index)
+    large_flow.set("record", "status", error, step="joinone", index="0")
+    large_flow.option.set_continue(True, step="joinone")
+
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    _launch(scheduler)
+    for index in ("0", "1", "2"):
+        assert ("steptwo", index) in scheduler.get_running_nodes()
+
+
+def test_continue_on_the_consumer_does_not_excuse_its_dep(large_flow, make_tasks):
+    """The excuse belongs to the node that failed. Annotating the consumer is a
+    plausible reading of the option and must not work."""
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    large_flow.set("record", "status", NodeStatus.ERROR, step="joinone", index="0")
+    large_flow.option.set_continue(True, step="steptwo")
+
+    _launch(scheduler)
+    for index in ("0", "1", "2"):
+        assert scheduler._TaskScheduler__nodes[("steptwo", index)]["proc"] is None
+
+
+def test_an_excused_dep_does_not_launch_a_node_early(large_flow, make_tasks):
+    """Excusing a failure says nothing about the dependencies still running:
+    the node waits for its whole fan-in to reach a terminal state first."""
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    _mock_all_procs(scheduler)
+    _set_resources(scheduler, max_parallel=3)
+
+    large_flow.option.set_continue(True, step="stepone")
+    large_flow.set("record", "status", NodeStatus.ERROR, step="stepone", index="0")
+    large_flow.set("record", "status", NodeStatus.SUCCESS, step="stepone", index="1")
+    # stepone/2 is still PENDING.
+
+    _launch(scheduler)
+    assert ("joinone", "0") not in scheduler.get_running_nodes()
+    assert ("joinone", "0") in scheduler.get_nodes_waiting_to_run()
 
 
 def test_breakpoint_node_with_failed_deps_is_pruned(large_flow, make_tasks):

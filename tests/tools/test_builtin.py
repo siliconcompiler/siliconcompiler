@@ -1654,6 +1654,80 @@ def test_validate_io_builtin_multiple_inputs_same_file(cls, project_logger, capl
     assert "will not receive required input" not in caplog.text
 
 
+# A builtin's gate-1 exemption gets it launched with a failed arm in its fan-in,
+# but forwarding that arm's outputs then halts it. So the exemption alone never
+# gave a builtin the "run on what arrived" behaviour -- [option,continue] on the
+# arm is what drops it. Without the option these paths must not move at all.
+#
+# Parametrized over the pass-through builtins only. `minimum`, `maximum`, `mux`
+# and `verify` narrow the fan-in themselves on top of this, so an assertion on
+# their result would be pinning their own selection rather than this one -- and
+# their behaviour is already covered above.
+@pytest.fixture
+def two_arm_fanin():
+    """start/0 and start/1 both feed a single end node."""
+    def make(cls):
+        design = Design("testdesign")
+        with design.active_fileset("rtl"):
+            design.set_topmodule("top")
+
+        flow = Flowgraph("test")
+        flow.node("start", NOPTask(), index=0)
+        flow.node("start", NOPTask(), index=1)
+        flow.node("end", cls())
+        flow.edge("start", "end", tail_index=0)
+        flow.edge("start", "end", tail_index=1)
+
+        proj = Project(design)
+        proj.add_fileset("rtl")
+        proj.set_flow(flow)
+        return proj
+    return make
+
+
+def _select_input_nodes(proj, cls):
+    """Enter the end node's runtime context and ask what it will consume from."""
+    builtin_task = proj.get("tool", "builtin", "task", cls().task(), field="schema")
+    with builtin_task.runtime(SchedulerNode(proj, "end", "0")) as task_obj:
+        return task_obj.select_input_nodes()
+
+
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask])
+@pytest.mark.parametrize("error", ["error", "timeout"])
+def test_select_input_nodes_drops_an_excused_arm(two_arm_fanin, cls, error):
+    proj = two_arm_fanin(cls)
+    proj.set("record", "status", "success", step="start", index="1")
+    proj.set("record", "status", error, step="start", index="0")
+    proj.option.set_continue(True, step="start", index="0")
+
+    assert _select_input_nodes(proj, cls) == [("start", "1")]
+
+
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask])
+def test_select_input_nodes_keeps_an_unexcused_arm(two_arm_fanin, cls):
+    """No option, no change: the failed arm is still offered, and forwarding it
+    still halts the node downstream exactly as it does today."""
+    proj = two_arm_fanin(cls)
+    proj.set("record", "status", "error", step="start", index="0")
+
+    assert _select_input_nodes(proj, cls) == [("start", "0"), ("start", "1")]
+
+
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask])
+def test_select_input_nodes_keeps_a_skipped_arm_traversable(two_arm_fanin, cls):
+    """A skipped arm is transparent, not absent: it resolves to its own inputs.
+    Setting continue must not turn that into a drop."""
+    proj = two_arm_fanin(cls)
+    flow = proj.get("flowgraph", "test", field="schema")
+    flow.node("grandparent", NOPTask())
+    flow.edge("grandparent", "start", head_index=0)
+
+    proj.set("record", "status", "skipped", step="start", index="0")
+    proj.option.set_continue(True, step="start", index="0")
+
+    assert _select_input_nodes(proj, cls) == [("grandparent", "0"), ("start", "1")]
+
+
 # Builtins still flag genuinely-missing inputs.
 @pytest.mark.parametrize("cls", [JoinTask, MinimumTask, MaximumTask, MuxTask])
 def test_validate_io_builtin_missing_input(cls, project_logger, caplog):

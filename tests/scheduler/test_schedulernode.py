@@ -1690,6 +1690,35 @@ def test_setup_input_directory_input_error(project_logger, project, error, caplo
     assert "Halting steptwo/0 due to errors" in caplog.text
 
 
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_setup_input_directory_input_error_excused(project_logger, project, error, caplog):
+    """An excused failure drops the branch instead of halting. Nothing is
+    forwarded from it, and -- unlike a SKIPPED node -- nothing stands in for it.
+
+    select_input_nodes() already filters these out, so this path is reached only
+    by a task that overrode it; the excuse has to hold there too."""
+    project_logger(project)
+
+    output_dir = Path(workdir(project, step="stepone", index="0")) / "outputs"
+    input_dir = Path(workdir(project, step="steptwo", index="0")) / "inputs"
+    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(input_dir, exist_ok=True)
+    (output_dir / "file0.txt").touch()
+
+    project.set("record", "status", error, step="stepone", index="0")
+    project.option.set_continue(True, step="stepone")
+    project.set("record", "inputnode", ("stepone", "0"), step="steptwo", index="0")
+    project.set("tool", "builtin", "task", "nop", "input", "file0.txt",
+                step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        node.setup_input_directory()
+
+    assert "Skipping inputs from stepone/0" in caplog.text
+    assert not os.path.isfile(input_dir / "file0.txt")
+
+
 def test_validate(project):
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
@@ -1701,6 +1730,41 @@ def test_validate_missing_inputs(project_logger, project, caplog):
 
     project.set("tool", "builtin", "task", "nop", "input", "file0.txt",
                 step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        assert node.validate() is False
+    assert "Required input file0.txt not received for steptwo/0" in caplog.text
+
+
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_validate_drops_an_excused_input(project_logger, project, caplog, error):
+    """The only node that could have supplied file0.txt was excused, so the
+    requirement goes with it rather than failing the node that survived."""
+    project_logger(project)
+
+    nop = project.get("tool", "builtin", "task", "nop", field="schema")
+    nop.set("output", "file0.txt", step="stepone", index="0")
+    nop.set("input", "file0.txt", step="steptwo", index="0")
+
+    project.set("record", "status", error, step="stepone", index="0")
+    project.option.set_continue(True, step="stepone")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        assert node.validate() is True
+    assert "No longer requiring input file0.txt for steptwo/0" in caplog.text
+
+
+def test_validate_keeps_an_input_from_an_unexcused_error(project_logger, project, caplog):
+    """Without an excuse the requirement stands, exactly as it does today."""
+    project_logger(project)
+
+    nop = project.get("tool", "builtin", "task", "nop", field="schema")
+    nop.set("output", "file0.txt", step="stepone", index="0")
+    nop.set("input", "file0.txt", step="steptwo", index="0")
+
+    project.set("record", "status", NodeStatus.ERROR, step="stepone", index="0")
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
@@ -2881,6 +2945,26 @@ def test_execute_quiet_does_not_mute_phase_failures(chatty_project, caplog):
     assert "post process boom" in console.getvalue()
     # The task's own chatter from the muted phases stays off screen.
     assert "chatter from pre_process" not in console.getvalue()
+    assert chatty_project.get("record", "status", step="stepone", index="0") == \
+        NodeStatus.ERROR
+
+
+@pytest.mark.parametrize("continue_on_error", (False, True))
+def test_a_failed_node_states_why_it_halted(chatty_project, caplog, continue_on_error):
+    """A nonzero exit or a failed post_process always ends the node -- that is
+    the documented contract of [option,continue], which relaxes only whether
+    the rest of the flow proceeds without it. The halt must still say why."""
+    chatty_project.option.set_continue(continue_on_error, step="stepone")
+
+    node = SchedulerNode(chatty_project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.tools.builtin.BuiltinTask.post_process",
+               side_effect=ValueError("post process boom")):
+        with pytest.raises(SystemExit):
+            node.run()
+
+    assert "builtin/chatty failed during stepone/0" in caplog.text
     assert chatty_project.get("record", "status", step="stepone", index="0") == \
         NodeStatus.ERROR
 
