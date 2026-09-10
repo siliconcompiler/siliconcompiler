@@ -204,6 +204,42 @@ def test_task_name():
     assert task.name == "thistask"
 
 
+def test_task_cachedir_no_project():
+    """A task outside a run still names a cache, the default one."""
+    class CacheTask(Task):
+        def tool(self):
+            return "thistool"
+    assert CacheTask().cachedir == \
+        os.path.join(pathlib.Path.home(), ".sc", "cache", "tools", "thistool")
+
+
+def test_task_cachedir(running_node):
+    running_node.project.option.set_cachedir("thiscache")
+
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.cachedir == os.path.abspath(os.path.join("thiscache", "tools", "builtin"))
+
+
+def test_task_cachedir_survives_the_node_work_directory(running_node):
+    """The tool cache is not under the work directory, which is wiped every run."""
+    with running_node.task.runtime(running_node) as runtool:
+        assert not runtool.cachedir.startswith(runtool.nodeworkdir)
+
+
+def test_task_cachedir_override(running_node):
+    """A driver can key its cache by something other than the tool name."""
+    class VersionedTask(NOPTask):
+        @property
+        def cachedir(self):
+            return os.path.join(super().cachedir, "1.2.3")
+
+    running_node.project.option.set_cachedir("thiscache")
+    task = VersionedTask()
+    with task.runtime(running_node) as runtool:
+        assert runtool.cachedir == \
+            os.path.abspath(os.path.join("thiscache", "tools", "builtin", "1.2.3"))
+
+
 def test_runtime_invalid_type():
     with pytest.raises(TypeError, match=r"^node must be a scheduler node$"):
         with Task().runtime(BaseSchema()):
