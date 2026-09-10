@@ -3,6 +3,8 @@ import shlex
 
 import os.path
 
+from pathlib import Path
+
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.tools.slang.elaborate import Elaborate
 from siliconcompiler.tools.verilator import lint, compile
@@ -364,8 +366,9 @@ def test_ccache_dir(heartbeat_design, monkeypatch):
         assert node.setup() is True
         env = node.task.get_runtime_environmental_variables(include_path=False)
 
-    assert env["CCACHE_DIR"] == \
-        os.path.abspath(os.path.join("thiscache", "tools", "verilator"))
+    # Compared as paths: a configured cachedir comes back from find_files
+    # posix-style, which on Windows is not what abspath() spells.
+    assert Path(env["CCACHE_DIR"]) == Path(os.path.abspath("thiscache")) / "tools" / "verilator"
 
 
 def test_ccache_dir_survives_the_node_export(heartbeat_design, monkeypatch):

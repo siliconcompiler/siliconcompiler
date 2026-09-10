@@ -6,6 +6,8 @@ import shutil
 
 import os.path
 
+from pathlib import Path
+
 from siliconcompiler import ASIC, Project, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.bambu import convert
@@ -119,7 +121,9 @@ def test_ccache_dir(datadir, monkeypatch):
 
     # Its own area, not verilator's: bambu compiles the co-simulation harness
     # with flags a verilator compile task would never produce.
-    assert env["CCACHE_DIR"] == os.path.abspath(os.path.join("thiscache", "tools", "bambu"))
+    # Compared as paths: a configured cachedir comes back from find_files
+    # posix-style, which on Windows is not what abspath() spells.
+    assert Path(env["CCACHE_DIR"]) == Path(os.path.abspath("thiscache")) / "tools" / "bambu"
 
 
 def test_ccache_dir_user_setting_wins(datadir, monkeypatch):

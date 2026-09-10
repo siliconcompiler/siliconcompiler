@@ -115,19 +115,21 @@ def test_cachedir_not_project():
 def test_cachedir_from_option():
     project = Project("testname")
     project.option.set_cachedir(os.path.abspath("thiscache"))
-    assert cachedir(project) == os.path.abspath("thiscache")
+    # Compared as paths, not as strings: a configured directory comes back from
+    # find_files posix-style, which on Windows is not what abspath() spells.
+    assert Path(cachedir(project)) == Path(os.path.abspath("thiscache"))
 
 
 def test_cachedir_from_option_relative():
     project = Project("testname")
     project.option.set_cachedir("thiscache")
-    assert cachedir(project) == os.path.abspath("thiscache")
+    assert Path(cachedir(project)) == Path(os.path.abspath("thiscache"))
 
 
 def test_datarootdir():
     project = Project("testname")
     project.option.set_cachedir("thiscache")
-    assert datarootdir(project) == os.path.abspath(os.path.join("thiscache", "dataroot"))
+    assert Path(datarootdir(project)) == Path(os.path.abspath("thiscache")) / "dataroot"
 
 
 def test_datarootdir_default():
@@ -137,7 +139,7 @@ def test_datarootdir_default():
 def test_toolcachedir():
     project = Project("testname")
     project.option.set_cachedir("thiscache")
-    assert toolcachedir(project) == os.path.abspath(os.path.join("thiscache", "tools"))
+    assert Path(toolcachedir(project)) == Path(os.path.abspath("thiscache")) / "tools"
 
 
 def test_toolcachedir_default():

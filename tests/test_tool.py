@@ -217,7 +217,10 @@ def test_task_cachedir(running_node):
     running_node.project.option.set_cachedir("thiscache")
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.cachedir == os.path.abspath(os.path.join("thiscache", "tools", "builtin"))
+        # Compared as paths: a configured cachedir comes back from find_files
+        # posix-style, which on Windows is not what abspath() spells.
+        assert pathlib.Path(runtool.cachedir) == \
+            pathlib.Path(os.path.abspath("thiscache")) / "tools" / "builtin"
 
 
 def test_task_cachedir_survives_the_node_work_directory(running_node):
@@ -236,8 +239,8 @@ def test_task_cachedir_override(running_node):
     running_node.project.option.set_cachedir("thiscache")
     task = VersionedTask()
     with task.runtime(running_node) as runtool:
-        assert runtool.cachedir == \
-            os.path.abspath(os.path.join("thiscache", "tools", "builtin", "1.2.3"))
+        assert pathlib.Path(runtool.cachedir) == \
+            pathlib.Path(os.path.abspath("thiscache")) / "tools" / "builtin" / "1.2.3"
 
 
 def test_runtime_invalid_type():
