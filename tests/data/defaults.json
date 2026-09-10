@@ -2093,7 +2093,7 @@
             "cli: -cachedir /home/user/.sc/cache",
             "api: option.set('cachedir', '/home/user/.sc/cache')"
           ],
-          "help": "\n                Filepath to cache used for package data sources. If the\n                cache parameter is empty, \".sc/cache\" directory in the user's home\n                directory will be used.",
+          "help": "\n                Filepath to the cache SiliconCompiler keeps between runs. It holds\n                one subdirectory per kind of cached data: \"dataroot\" for downloaded\n                package data sources, and \"tools\" for the caches tools keep for\n                themselves, such as the compiler cache a Verilator build writes to.\n                Cached data goes in those subdirectories, not in the directory\n                itself. If the cache parameter is empty, the \".sc/cache\" directory\n                in the user's home directory will be used.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -5753,7 +5753,7 @@
             "cli: -cachedir /home/user/.sc/cache",
             "api: option.set('cachedir', '/home/user/.sc/cache')"
           ],
-          "help": "\n                Filepath to cache used for package data sources. If the\n                cache parameter is empty, \".sc/cache\" directory in the user's home\n                directory will be used.",
+          "help": "\n                Filepath to the cache SiliconCompiler keeps between runs. It holds\n                one subdirectory per kind of cached data: \"dataroot\" for downloaded\n                package data sources, and \"tools\" for the caches tools keep for\n                themselves, such as the compiler cache a Verilator build writes to.\n                Cached data goes in those subdirectories, not in the directory\n                itself. If the cache parameter is empty, the \".sc/cache\" directory\n                in the user's home directory will be used.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -9755,7 +9755,7 @@
             "cli: -cachedir /home/user/.sc/cache",
             "api: option.set('cachedir', '/home/user/.sc/cache')"
           ],
-          "help": "\n                Filepath to cache used for package data sources. If the\n                cache parameter is empty, \".sc/cache\" directory in the user's home\n                directory will be used.",
+          "help": "\n                Filepath to the cache SiliconCompiler keeps between runs. It holds\n                one subdirectory per kind of cached data: \"dataroot\" for downloaded\n                package data sources, and \"tools\" for the caches tools keep for\n                themselves, such as the compiler cache a Verilator build writes to.\n                Cached data goes in those subdirectories, not in the directory\n                itself. If the cache parameter is empty, the \".sc/cache\" directory\n                in the user's home directory will be used.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -13491,7 +13491,7 @@
             "cli: -cachedir /home/user/.sc/cache",
             "api: option.set('cachedir', '/home/user/.sc/cache')"
           ],
-          "help": "\n                Filepath to cache used for package data sources. If the\n                cache parameter is empty, \".sc/cache\" directory in the user's home\n                directory will be used.",
+          "help": "\n                Filepath to the cache SiliconCompiler keeps between runs. It holds\n                one subdirectory per kind of cached data: \"dataroot\" for downloaded\n                package data sources, and \"tools\" for the caches tools keep for\n                themselves, such as the compiler cache a Verilator build writes to.\n                Cached data goes in those subdirectories, not in the directory\n                itself. If the cache parameter is empty, the \".sc/cache\" directory\n                in the user's home directory will be used.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -16463,7 +16463,7 @@
             "cli: -cachedir /home/user/.sc/cache",
             "api: option.set('cachedir', '/home/user/.sc/cache')"
           ],
-          "help": "\n                Filepath to cache used for package data sources. If the\n                cache parameter is empty, \".sc/cache\" directory in the user's home\n                directory will be used.",
+          "help": "\n                Filepath to the cache SiliconCompiler keeps between runs. It holds\n                one subdirectory per kind of cached data: \"dataroot\" for downloaded\n                package data sources, and \"tools\" for the caches tools keep for\n                themselves, such as the compiler cache a Verilator build writes to.\n                Cached data goes in those subdirectories, not in the directory\n                itself. If the cache parameter is empty, the \".sc/cache\" directory\n                in the user's home directory will be used.",
           "notes": null,
           "pernode": "never",
           "node": {
