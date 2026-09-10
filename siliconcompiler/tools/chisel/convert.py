@@ -4,7 +4,7 @@ import glob
 
 import os.path
 
-from typing import Optional, List, Union
+from typing import Dict, Optional, List, Union
 
 from siliconcompiler import sc_open
 
@@ -67,6 +67,40 @@ class ConvertTask(Task):
 
     def task(self):
         return "convert"
+
+    def get_runtime_environmental_variables(self, include_path: bool = True) \
+            -> Dict[str, str]:
+        envvars = super().get_runtime_environmental_variables(include_path=include_path)
+
+        # sbt fetches its own launcher and every jar the build depends on through
+        # coursier, and it does so on each run: the node working directory is
+        # emptied before the tool starts, and --no-share (see runtime_options)
+        # puts sbt's boot and ivy directories inside it. Coursier's cache is the
+        # one part that would survive, and only because it defaults to
+        # ~/.cache/coursier -- outside [option,cachedir], so nothing
+        # SiliconCompiler manages ever sees it, and not among the volumes mounted
+        # into a task container, so a containerised run re-resolves from nothing
+        # every time. Re-resolving is not merely slow: Maven Central answers a
+        # busy CI with HTTP 429 and the node fails for reasons that have nothing
+        # to do with the design. Coursier prunes its own cache, so as with the
+        # ccache tools there is nothing here to create and nothing to collect.
+        #
+        # Anyone who has already said where their coursier cache goes keeps it,
+        # whether that is [option,env] / the task's own env or the ambient
+        # environment. An empty value is not one of those: it names no directory,
+        # so coursier falls back to its own default. Neither is a value equal to
+        # the one this would set -- the node exports these variables into its own
+        # environment before asking again, to write the replay script, so testing
+        # for mere presence would by then be answering about this method's own
+        # previous return and the replay script would go out without it. The
+        # CCache mixin in tools/_common makes the same three checks for the same
+        # reasons; change one and look at the other.
+        toolcache = self.cachedir
+        preset = envvars.get("COURSIER_CACHE", os.environ.get("COURSIER_CACHE"))
+        if not preset or preset == toolcache:
+            envvars["COURSIER_CACHE"] = toolcache
+
+        return envvars
 
     def parse_version(self, stdout):
         # sbt version in this project: 1.5.5
