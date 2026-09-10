@@ -13,7 +13,10 @@ Sources: https://github.com/verilator/verilator
 Installation: https://verilator.org/guide/latest/install.html
 '''
 
+import os
 import os.path
+
+from typing import Dict
 
 from siliconcompiler import Task
 from siliconcompiler.tools._common import distinct
@@ -80,6 +83,34 @@ class VerilatorTask(Task):
     def parse_version(self, stdout):
         # Verilator 4.104 2020-11-14 rev v4.104
         return stdout.split()[1]
+
+    def get_runtime_environmental_variables(self, include_path: bool = True) -> Dict[str, str]:
+        envvars = super().get_runtime_environmental_variables(include_path=include_path)
+
+        # verilated.mk sets OBJCACHE ?= ccache and invokes it unconditionally, so
+        # every compile shells out to ccache whether or not anyone asked for it.
+        # Left to itself it writes to ~/.cache/ccache: outside [option,cachedir],
+        # so nothing SiliconCompiler manages ever sees it, and not among the
+        # volumes mounted into a task container, so a containerised compile starts
+        # from a cold cache every single time. Point it at the tool cache instead,
+        # which is inside the mounted cache directory and shared across designs --
+        # which is the whole point of a compiler cache. ccache creates the
+        # directory itself and enforces its own size cap, so there is nothing to
+        # set up here and nothing to collect.
+        #
+        # Anyone who has already said where their ccache goes keeps it, whether
+        # that is [option,env] / the task's own env or the ambient environment.
+        # The test is against the value rather than mere presence because the node
+        # exports these variables into its own environment before asking again to
+        # write the replay script: "is CCACHE_DIR set?" would by then be answering
+        # about this method's own previous return, and the replay script would go
+        # out without it.
+        toolcache = self.cachedir
+        preset = envvars.get("CCACHE_DIR", os.environ.get("CCACHE_DIR"))
+        if preset is None or preset == toolcache:
+            envvars["CCACHE_DIR"] = toolcache
+
+        return envvars
 
     def runtime_options(self):
         filesets = self.project.get_filesets()
