@@ -110,9 +110,10 @@ CI can restore:
        key: sc-cache-${{ hashFiles('**/make.py') }}
    - run: python make.py
 
-``~/.sc/cache`` is the default location, so caching that path is enough. To put
-it somewhere else, set it in the script -- there is no environment variable for
-it:
+``~/.sc/cache`` is the default location, so caching that path is enough. It also
+carries the tool caches, so a Verilator build restores its ccache along with the
+PDK. To put it somewhere else, set it in the script -- there is no environment
+variable for it:
 
 .. code-block:: python
 
