@@ -14,8 +14,22 @@ from siliconcompiler.utils.multiprocessing import MPManager
 
 @pytest.fixture
 def cachedir():
-    '''An empty cache directory in the test's own working directory.'''
+    '''An empty cache directory in the test's own working directory.
+
+    This is the root of the cache, not the data source area inside it. Entries
+    planted here directly are what a release from before the split left behind,
+    and exercise the sweep of the root; entries planted in :func:`dataroot` are
+    the live layout.
+    '''
     path = Path("cache")
+    path.mkdir()
+    return path
+
+
+@pytest.fixture
+def dataroot(cachedir):
+    '''The data source area of an empty cache directory.'''
+    path = cachedir / "dataroot"
     path.mkdir()
     return path
 
@@ -461,6 +475,104 @@ def test_cleanup_cache_does_not_create_lock_to_delete_entry(cachedir):
 
 
 # ============================================================================
+# cleanup_cache: the areas of the cache
+# ============================================================================
+
+def test_cleanup_cache_removes_old_dataroot_entry(cachedir, dataroot):
+    entry = make_entry(dataroot, "old", age_days=91)
+
+    stats = cleanup.cleanup_cache(cachedir, 90)
+
+    assert not entry.exists()
+    assert not (dataroot / "old.lock").exists()
+    assert stats.entries == 1
+    assert stats.size == 4
+
+
+def test_cleanup_cache_keeps_recent_dataroot_entry(cachedir, dataroot):
+    entry = make_entry(dataroot, "recent", age_days=89)
+
+    assert cleanup.cleanup_cache(cachedir, 90).entries == 0
+    assert entry.exists()
+
+
+def test_cleanup_cache_removes_orphaned_dataroot_lock(cachedir, dataroot):
+    orphan = dataroot / "gone.lock"
+    orphan.touch()
+    age_lock(orphan, 1)
+
+    assert cleanup.cleanup_cache(cachedir, 90).locks == 1
+    assert not orphan.exists()
+
+
+def test_cleanup_cache_dryrun_dataroot(cachedir, dataroot):
+    entry = make_entry(dataroot, "old", age_days=91)
+
+    assert cleanup.cleanup_cache(cachedir, 90, dryrun=True).entries == 1
+    assert entry.exists()
+
+
+def test_cleanup_cache_sweeps_both_areas(cachedir, dataroot):
+    '''The root is swept alongside the data source area, not instead of it.'''
+    current = make_entry(dataroot, "old", age_days=91)
+    legacy = make_entry(cachedir, "legacy", age_days=91)
+
+    stats = cleanup.cleanup_cache(cachedir, 90)
+
+    assert not current.exists()
+    assert not legacy.exists()
+    assert stats.entries == 2
+    assert stats.size == 8
+
+
+def test_cleanup_cache_without_dataroot_area(cachedir):
+    '''A cache that has never resolved anything under the new layout is fine.'''
+    assert not (cachedir / "dataroot").exists()
+
+    stats = cleanup.cleanup_cache(cachedir, 90)
+
+    assert stats.entries == 0
+    assert stats.errors == 0
+
+
+def test_cleanup_cache_spares_the_areas_themselves(cachedir, dataroot):
+    '''The subdirectories of the cache are areas, not entries left by an old release.
+
+    Both are old enough and lock-file-adorned enough to look collectable to the
+    sweep of the root, which is exactly the mistake to avoid: collecting either
+    would delete every entry inside it.
+    '''
+    toolcache = cachedir / "tools"
+    toolcache.mkdir()
+    for area in (dataroot, toolcache):
+        lock = cachedir / f"{area.name}.lock"
+        lock.touch()
+        age_lock(lock, 500)
+
+    stats = cleanup.cleanup_cache(cachedir, 90)
+
+    assert dataroot.is_dir()
+    assert toolcache.is_dir()
+    assert stats.entries == 0
+
+
+def test_cleanup_cache_leaves_the_tool_cache_alone(cachedir):
+    '''Nothing collects a tool cache; the tool that writes it caps it itself.'''
+    toolcache = cachedir / "tools" / "verilator"
+    toolcache.mkdir(parents=True)
+    stale = toolcache / "0" / "stats"
+    stale.parent.mkdir()
+    stale.write_bytes(b"data")
+    age_lock(stale, 500)
+
+    stats = cleanup.cleanup_cache(cachedir, 90)
+
+    assert stale.exists()
+    assert stats.entries == 0
+    assert stats.locks == 0
+
+
+# ============================================================================
 # auto_cleanup: the unattended sweep at the start of a local run
 # ============================================================================
 
@@ -492,6 +604,19 @@ def test_auto_cleanup_first_call_spares_entries(project, cachedir, caplog):
     assert not orphan.exists()
     assert (cachedir / cleanup.STAMP_FILE).exists()
     assert "Cleaned up 1 orphaned lock file" in caplog.text
+
+
+def test_auto_cleanup_sweeps_the_dataroot_area(project, swept_cache, caplog):
+    '''The unattended sweep reaches where data sources actually land.'''
+    dataroot = swept_cache / "dataroot"
+    dataroot.mkdir()
+    entry = make_entry(dataroot, "old", age_days=cleanup.DEFAULT_DAYS + 1)
+    caplog.set_level(logging.INFO)
+
+    cleanup.auto_cleanup(project)
+
+    assert not entry.exists()
+    assert "Cleaned up 1 cache entry (4.0B) not used in 90 days" in caplog.text
 
 
 def test_auto_cleanup_sweeps_after_baseline(project, swept_cache, caplog):

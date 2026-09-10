@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 
 from siliconcompiler import Project
-from siliconcompiler.package import RemoteResolver
 from siliconcompiler.package.cleanup import cleanup_cache, format_size, DEFAULT_DAYS
+from siliconcompiler.utils.paths import cachedir as cachedir_path
 
 
 ###########################
@@ -14,11 +14,14 @@ def main():
     ------------------------------------------------------------
     Utility script to clean up old cache entries.
 
-    Scans the cache directory and removes entries that haven't been
+    Scans the cached data sources and removes entries that haven't been
     accessed in the specified number of days, using lock file modification
     times to determine access times. A .lock or .sc_lock file whose entry
     is already gone is removed whatever its age, unless it was taken in the
     last hour, which may mean another process is holding it.
+
+    The caches tools keep for themselves are not touched; a tool that keeps
+    one caps it itself.
     ------------------------------------------------------------
     """
 
@@ -56,7 +59,7 @@ def main():
     if cachedir_opt:
         cachedir = Path(cachedir_opt).expanduser().resolve()
     else:
-        cachedir = Path(RemoteResolver.determine_cache_dir(proj))
+        cachedir = Path(cachedir_path(proj))
 
     if not cachedir.exists():
         proj.logger.error(f"Cache directory does not exist: {cachedir}")

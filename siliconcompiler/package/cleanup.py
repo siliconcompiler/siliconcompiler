@@ -2,11 +2,33 @@
 """
 Collection of stale entries from the on-disk data source cache.
 
-The cache in ``~/.sc/cache`` (or ``[option,cachedir]``) only ever grows: every
-new version of a data source lands beside the old ones, and nothing removes an
-entry once the design that needed it has moved on. This module is the garbage
-collector for that directory, used both by the ``cleanup`` support app and by
-the automatic sweep at the start of every run (:func:`auto_cleanup`).
+The data source cache in ``~/.sc/cache/dataroot`` (or
+``[option,cachedir]/dataroot``) only ever grows: every new version of a data
+source lands beside the old ones, and nothing removes an entry once the design
+that needed it has moved on. This module is the garbage collector for that
+directory, used both by the ``cleanup`` support app and by the automatic sweep
+at the start of every run (:func:`auto_cleanup`).
+
+Only the data source area is collected. The tool cache
+(:func:`~siliconcompiler.utils.paths.toolcachedir`, the cache's other
+subdirectory) is deliberately left alone: a tool that keeps a cache between runs
+caps it itself -- ccache has ``max_size`` -- and a sweep here that judged it by
+lock files would collect nothing, since a tool writes no lock file. That is a
+decision, not an oversight: if a tool is ever added that grows without bound,
+the answer is a sweep that knows that tool's layout, not this one.
+
+Entries left by releases before the cache was split into subdirectories sit
+loose in the cache root. They are collected here too, on the same clock, so that
+the split does not strand them where nothing will ever look again. Nothing is
+migrated: an entry that is still wanted is re-downloaded into ``dataroot/`` the
+next time it resolves, which costs a download and no data.
+
+That legacy pass is dead code the day nobody upgrades across the split any more.
+It is scheduled for removal after **2027-09-09**, a year of releases on: by then
+an install that has run once has had its loose entries collected on the ordinary
+90-day clock, and one that has not run in a year is not being upgraded either.
+Delete the root half of :func:`cleanup_cache` and the two area names it reads
+back: sweeping ``dataroot/`` needs neither, since everything in it is an entry.
 
 Two kinds of residue are collected:
 
@@ -32,12 +54,14 @@ import os.path
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 from fasteners import InterProcessLock
 
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.paths import cachedir as cachedir_path, \
+    datarootdir, toolcachedir
 
 
 #: Settings category (in ``~/.sc/settings.json``) holding the automatic sweep's knobs.
@@ -220,7 +244,8 @@ def _collect_entries(cachedir: Path,
                      cutoff: float,
                      dryrun: bool,
                      logger: logging.Logger,
-                     stats: CleanupStats) -> None:
+                     stats: CleanupStats,
+                     skip: Tuple[str, ...] = ()) -> None:
     """
     Removes cache entry directories that have gone unused, and their lock files.
 
@@ -233,9 +258,14 @@ def _collect_entries(cachedir: Path,
         dryrun (bool): Report what would be removed without removing it.
         logger (logging.Logger): Logger for progress and errors.
         stats (CleanupStats): Tally to add this pass's removals to.
+        skip (tuple of str): Names in this directory that are not entries and
+            must be left alone, whatever their age.
     """
     for entry in sorted(cachedir.iterdir()):
         if not os.path.isdir(entry):
+            continue
+
+        if entry.name in skip:
             continue
 
         try:
@@ -382,11 +412,17 @@ def cleanup_cache(cachedir: Union[str, Path],
     not created its directory yet. See :func:`_collect_entries` and
     :func:`_collect_orphan_locks`.
 
+    Two directories are swept: the data source area,
+    :func:`~siliconcompiler.utils.paths.datarootdir`, and the cache root itself,
+    where releases before the split left their entries. The tool cache is stepped
+    over -- see this module's own documentation for why nothing collects it.
+
     Deleting a cache entry is not destructive; it is re-downloaded the next time
     it is resolved.
 
     Args:
-        cachedir (Path): The cache directory to sweep.
+        cachedir (Path): The cache directory to sweep. This is the root of the
+            cache, not the data source area inside it.
         days (int): Remove entries not accessed in this many days.
         dryrun (bool): Report what would be removed without removing it.
         logger (logging.Logger): Logger for progress and errors.
@@ -395,19 +431,40 @@ def cleanup_cache(cachedir: Union[str, Path],
             history to judge.
 
     Returns:
-        CleanupStats: What was removed.
+        CleanupStats: What was removed, totalled over both areas.
     """
     if logger is None:
         logger = logging.getLogger("siliconcompiler")
 
     cachedir = Path(cachedir)
     stats = CleanupStats()
+    cutoff = (datetime.now() - timedelta(days=days)).timestamp()
 
-    if collect_entries:
-        cutoff = (datetime.now() - timedelta(days=days)).timestamp()
-        _collect_entries(cachedir, cutoff, dryrun, logger, stats)
+    # Both subdirectory names are read back from the path functions rather than
+    # spelled here: one that drifted from the name the resolvers write to would
+    # turn stepping over a live area into deleting it.
+    default_root = cachedir_path(None)
+    dataroot = os.path.relpath(datarootdir(None), default_root)
+    toolcache = os.path.relpath(toolcachedir(None), default_root)
 
-    _collect_orphan_locks(cachedir, dryrun, logger, stats)
+    # The root is swept last: an entry there is residue from before the cache was
+    # split, so the area that is actually in use is the one worth reporting on
+    # first. Both subdirectories are stepped over on that pass -- each is an area
+    # in its own right, not an entry an older release left loose. That pass is
+    # temporary; see this module's documentation for when it goes.
+    areas = (
+        (cachedir / dataroot, ()),
+        (cachedir, (dataroot, toolcache))
+    )
+
+    for area, skip in areas:
+        if not os.path.isdir(area):
+            continue
+
+        if collect_entries:
+            _collect_entries(area, cutoff, dryrun, logger, stats, skip=skip)
+
+        _collect_orphan_locks(area, dryrun, logger, stats)
 
     return stats
 
@@ -451,7 +508,7 @@ def auto_cleanup(project) -> None:
         if days <= 0:
             return
 
-        cachedir = RemoteResolver.determine_cache_dir(project)
+        cachedir = Path(cachedir_path(project))
         if not os.path.isdir(cachedir):
             # Nothing has been cached yet
             return
