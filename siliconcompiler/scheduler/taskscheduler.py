@@ -641,10 +641,6 @@ class TaskScheduler:
         """
         info = self.__nodes[node]
 
-        if not info["node"].is_local:
-            # using a different scheduler, so allow
-            return True
-
         running_nodes = self.get_running_nodes()
 
         if len(running_nodes) >= self.__max_parallel_run:
