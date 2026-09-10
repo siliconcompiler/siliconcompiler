@@ -289,8 +289,8 @@ def test_task_get_digest_exact(configured_node):
     """
     with configured_node.task.runtime(configured_node) as task:
         assert task.get_digest() == \
-            "f759039b73148bce5dec4f161e22f5b337447464aa59a6ec3ad15216e40ba4a3"
-        assert task.get_digest(length=16) == "f759039b73148bce"
+            "d8709b2465656a75b8f88f7adfeabdf0d669f441aff6e0ea10e169f57de00c38"
+        assert task.get_digest(length=16) == "d8709b2465656a75"
 
 
 def test_task_get_digest_exact_material(configured_node):
@@ -308,6 +308,7 @@ def test_task_get_digest_exact_material(configured_node):
     keys = [
         ["library", "testdesign", "fileset", "rtl", "topmodule"],
         ["tool", "builtin", "task", "nop", "env", "BUILD"],
+        ["tool", "builtin", "task", "nop", "exe"],
         ["tool", "builtin", "task", "nop", "option"],
         ["tool", "builtin", "task", "nop", "postscript"],
         ["tool", "builtin", "task", "nop", "prescript"],
@@ -323,6 +324,7 @@ def test_task_get_digest_exact_material(configured_node):
         "builtin", "nop",
         ["library,testdesign,fileset,rtl,topmodule", "designtop"],
         ["tool,builtin,task,nop,env,BUILD", "here"],
+        ["tool,builtin,task,nop,exe", None],
         ["tool,builtin,task,nop,option", ["-fast", "-x"]],
         ["tool,builtin,task,nop,postscript", [], []],
         ["tool,builtin,task,nop,prescript", [], []],
@@ -466,6 +468,31 @@ def test_task_get_digest_tracks_version_requirement(running_node):
     running_node.project.get_nop().set("version", ">=2.0")
     with running_node.task.runtime(running_node) as task:
         assert task.get_digest() != before
+
+
+def test_task_get_digest_tracks_exe(running_node):
+    """Which binary runs is part of what a cache belongs to."""
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    running_node.project.get_nop().set("exe", "nop-ng")
+    with running_node.task.runtime(running_node) as task:
+        assert task.get_digest() != before
+
+
+def test_task_get_digest_ignores_the_tool_install_path(running_node):
+    """Where the executable was found is a property of the machine, not the task.
+
+    klayout sets [path] to ~/AppData/Roaming/KLayout or
+    /Applications/klayout.app/..., so hashing it would give one task a different
+    digest per machine and partition the shared cache the digest exists to name.
+    """
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    running_node.project.get_nop().set("path", os.path.abspath("some_install"))
+    with running_node.task.runtime(running_node) as task:
+        assert task.get_digest() == before
 
 
 def test_task_get_digest_tracks_env(running_node):

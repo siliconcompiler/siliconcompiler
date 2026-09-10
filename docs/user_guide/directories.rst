@@ -248,7 +248,7 @@ Naming things after a task
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`.Task.get_digest` returns a hex digest of everything that configures a
-task -- its command line, threads, scripts, environment, tool version
+task -- its command line, threads, scripts, environment, executable and version
 requirement, and every keypath its driver declared with
 :meth:`.Task.add_required_key`. Two tasks configured the same way get the same
 digest; two that differ anywhere, including in a single boolean, do not:
@@ -267,7 +267,9 @@ machine -- a cache directory named after it can be shared across a cluster. What
 that leaves out is worth knowing before you rely on it: the contents of the input
 files, and the version of the tool actually installed. A driver that needs either
 composes it -- :meth:`.Task.get_exe_version` for the second -- or requires the
-keys that stand in for them, such as a dataroot's ``tag``.
+keys that stand in for them, such as a dataroot's ``tag``. The *directory* the
+executable was found in is left out on purpose: it differs per machine, and a
+digest that moved with it would partition the shared cache rather than share it.
 
 Settings and credentials
 ------------------------

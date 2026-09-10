@@ -1908,8 +1908,9 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         The digest answers *what configuration is this?* -- a value computed from
         this task alone, which is what it takes to name a directory. It covers
-        the tool and task names, every keypath in :meth:`get_digest_keys` and the
-        tool version requirement, and it changes when any of their values change.
+        the tool and task names, every keypath in :meth:`get_digest_keys`, and
+        the executable and version requirement, and it changes when any of their
+        values change.
         Two tasks that differ only in a threshold, an effort level or a boolean
         get different digests, which is the whole point: a cache key that ignored
         scalars would hand one configuration's results to another.
@@ -1931,9 +1932,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
           :keypath:`option,hash` is set, so the digest would change with a flag
           rather than with the configuration.
         * The tool **version found on the system** is not included either, since
-          reading it means running the executable. Only the requirement is. A
-          driver that wants its cache keyed by the installed version has
-          :meth:`get_exe_version`, and can compose the two.
+          reading it means running the executable. Only the requirement, and the
+          executable's name. A driver that wants its cache keyed by the
+          installed version has :meth:`get_exe_version`, and can compose the
+          two. The **directory** the executable was found in is left out for the
+          same reason a resolved path is: it differs per machine.
 
         Values are read at this task's step and index, so two nodes running the
         same task share a digest exactly when nothing was set per-node to tell
@@ -1970,15 +1973,26 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             raise RuntimeError("get_digest() requires a runtime, "
                                "call it on the task yielded by Task.runtime()")
 
-        # A cache named for a task pinned to >=v2.0 must not be handed to the
-        # same task pinned to <v2.0, so the version requirement is part of the
-        # digest. It is not part of get_digest_keys(), because that set is also
-        # what decides whether a node has to run again and a tightened
-        # specifier does not make an existing result wrong: the version
-        # actually found is checked before every execution and recorded in
+        # Which binary this is, and which versions of it are acceptable, are
+        # part of what a cache belongs to: a cache named for a task pinned to
+        # >=v2.0 must not be handed to the same task pinned to <v2.0.
+        #
+        # Neither is added to get_digest_keys(), because that set also decides
+        # whether a node has to run again, and neither makes an existing result
+        # wrong: the executable is resolved and its version checked before every
+        # execution, and both are recorded in [record,toolpath] and
         # [record,toolversion].
+        #
+        # [tool,<t>,task,<t>,path] is deliberately absent. It is the directory
+        # the executable was found in -- klayout sets it to
+        # ~/AppData/Roaming/KLayout or /Applications/klayout.app/... -- so
+        # hashing it would give the same task a different digest on every
+        # machine, partitioning the shared cache this digest exists to name. It
+        # is also a 'dir', so putting it in the key set would have the rerun
+        # check hash or mtime-walk an entire tool installation per node.
         keys = set(self.get_digest_keys())
-        keys.add(("tool", self.tool(), "task", self.task(), "version"))
+        prefix = ("tool", self.tool(), "task", self.task())
+        keys.update((*prefix, key) for key in ("exe", "version"))
 
         keys = sorted(keys)
         # Add keys
