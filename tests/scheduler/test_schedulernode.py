@@ -35,6 +35,18 @@ from siliconcompiler.utils.logging import SC_CONSOLE_QUIET_ATTR
 from siliconcompiler.utils.paths import jobdir, workdir
 
 
+class OwnKeysTask(NOPTask):
+    """A driver that decides for itself what configures it."""
+    def tool(self):
+        return "ownkeys"
+
+    def task(self):
+        return "ownkeys"
+
+    def get_digest_keys(self):
+        return {("option", "novercheck"), ("option", "builddir")}
+
+
 @pytest.fixture
 def project():
     flow = Flowgraph("testflow")
@@ -715,6 +727,19 @@ def test_get_check_changed_keys(project):
         ('tool', 'builtin', 'task', 'nop', 'postscript'),
         ('tool', 'builtin', 'task', 'nop', 'prescript'),
         ('tool', 'builtin', 'task', 'nop', 'script')}
+
+
+def test_get_check_changed_keys_follows_the_task(project):
+    """The task owns the definition; the node only sorts it into values and paths."""
+    flow = Flowgraph("ownkeys")
+    flow.node("stepone", OwnKeysTask())
+    project.set_flow(flow)
+
+    node = SchedulerNode(project, "stepone", "0")
+    with node.runtime():
+        values, paths = node.get_check_changed_keys()
+    assert values == {("option", "novercheck")}
+    assert paths == {("option", "builddir")}
 
 
 def test_get_check_changed_keys_with_invalid_require(project):

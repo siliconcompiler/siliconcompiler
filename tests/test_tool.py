@@ -3,6 +3,7 @@ import copy
 import csv
 import gc
 import hashlib
+import json
 import logging
 import pathlib
 import re
@@ -241,6 +242,336 @@ def test_task_cachedir_override(running_node):
     with task.runtime(running_node) as runtool:
         assert pathlib.Path(runtool.cachedir) == \
             pathlib.Path(os.path.abspath("thiscache")) / "tools" / "builtin" / "1.2.3"
+
+
+@pytest.fixture
+def configured_node(running_node):
+    """A node whose task sets one of everything the digest has to encode.
+
+    A string, a bool, a float, a tuple list, a string list, an int, a path with
+    a dataroot, an environment variable, a version specifier, and a required key
+    outside the task.
+    """
+    nop = running_node.project.get_nop()
+
+    nop.add_parameter("effort", "str", "effort", defvalue="high")
+    nop.add_parameter("aggressive", "bool", "aggressive", defvalue=False)
+    nop.add_parameter("margin", "float", "margin")
+    nop.add_parameter("plusargs", "[(str,str)]", "plusargs")
+    nop.set("var", "aggressive", True)
+    nop.set("var", "margin", 0.25)
+    nop.set("var", "plusargs", [("seed", "7"), ("trace", None)])
+    for var in ("effort", "aggressive", "margin", "plusargs"):
+        nop.add_required_key("var", var)
+
+    nop.add_required_key("library", "testdesign", "fileset", "rtl", "topmodule")
+
+    nop.set("option", ["-fast", "-x"])
+    nop.set("threads", 4)
+    nop.set("version", ">=2.0")
+    nop.set("env", "BUILD", "here")
+
+    nop.set_dataroot("mydata", "git+https://example.invalid/x", tag="v1")
+    nop.set_script("sc_nop.tcl", dataroot="mydata")
+
+    return running_node
+
+
+def test_task_get_digest_exact(configured_node):
+    """The cache-key contract: this configuration has this digest.
+
+    A directory named after a digest is findable only for as long as the digest
+    is the same value. Changing the key set, the ordering, the encoding or the
+    hash function orphans every cache directory a released SiliconCompiler ever
+    named, and nothing collects them. So this number changing is a decision to
+    take deliberately, with a release note -- never a test updated to match a
+    diff.
+    """
+    with configured_node.task.runtime(configured_node) as task:
+        assert task.get_digest() == \
+            "f759039b73148bce5dec4f161e22f5b337447464aa59a6ec3ad15216e40ba4a3"
+        assert task.get_digest(length=16) == "f759039b73148bce"
+
+
+def test_task_get_digest_exact_material(configured_node):
+    """Which values are hashed, and in what shape.
+
+    The keys are hashed first, so that a key carrying no value still moves the
+    digest by being there at all; then each value in the same order. Note the
+    shapes: a path carries a second element for its dataroot, an unset one
+    carries both, and a tuple keeps its interior None rather than closing the
+    gap the way the Tcl writer does.
+
+    Built independently of the digest above so that a break names the entry that
+    moved rather than only the number.
+    """
+    keys = [
+        ["library", "testdesign", "fileset", "rtl", "topmodule"],
+        ["tool", "builtin", "task", "nop", "env", "BUILD"],
+        ["tool", "builtin", "task", "nop", "option"],
+        ["tool", "builtin", "task", "nop", "postscript"],
+        ["tool", "builtin", "task", "nop", "prescript"],
+        ["tool", "builtin", "task", "nop", "refdir"],
+        ["tool", "builtin", "task", "nop", "script"],
+        ["tool", "builtin", "task", "nop", "threads"],
+        ["tool", "builtin", "task", "nop", "var", "aggressive"],
+        ["tool", "builtin", "task", "nop", "var", "effort"],
+        ["tool", "builtin", "task", "nop", "var", "margin"],
+        ["tool", "builtin", "task", "nop", "var", "plusargs"],
+        ["tool", "builtin", "task", "nop", "version"]]
+    material = [
+        "builtin", "nop",
+        ["library,testdesign,fileset,rtl,topmodule", "designtop"],
+        ["tool,builtin,task,nop,env,BUILD", "here"],
+        ["tool,builtin,task,nop,option", ["-fast", "-x"]],
+        ["tool,builtin,task,nop,postscript", [], []],
+        ["tool,builtin,task,nop,prescript", [], []],
+        ["tool,builtin,task,nop,refdir", [], []],
+        ["tool,builtin,task,nop,script", ["sc_nop.tcl"], ["mydata"]],
+        ["tool,builtin,task,nop,threads", 4],
+        ["tool,builtin,task,nop,var,aggressive", True],
+        ["tool,builtin,task,nop,var,effort", "high"],
+        ["tool,builtin,task,nop,var,margin", 0.25],
+        ["tool,builtin,task,nop,var,plusargs", [["seed", "7"], ["trace", None]]],
+        ["tool,builtin,task,nop,version", [">=2.0"]]]
+
+    expect = hashlib.sha256()
+    expect.update(json.dumps(keys, default=repr).encode("utf-8"))
+    expect.update(json.dumps(material, default=repr).encode("utf-8"))
+
+    with configured_node.task.runtime(configured_node) as task:
+        assert task.get_digest() == expect.hexdigest()
+
+
+def test_task_get_digest_keys(running_node):
+    """The task's own configuration, with nothing required yet."""
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_digest_keys() == {
+            ("tool", "builtin", "task", "nop", "option"),
+            ("tool", "builtin", "task", "nop", "threads"),
+            ("tool", "builtin", "task", "nop", "refdir"),
+            ("tool", "builtin", "task", "nop", "script"),
+            ("tool", "builtin", "task", "nop", "prescript"),
+            ("tool", "builtin", "task", "nop", "postscript")}
+
+
+def test_task_get_digest_keys_require_and_env(running_node):
+    """Required keypaths and task environment variables join the set."""
+    nop = running_node.project.get_nop()
+    nop.add_required_key("library", "testdesign", "fileset", "rtl", "topmodule")
+    nop.set("env", "BUILD", "here")
+
+    with running_node.task.runtime(running_node) as runtool:
+        keys = runtool.get_digest_keys()
+    assert ("library", "testdesign", "fileset", "rtl", "topmodule") in keys
+    assert ("tool", "builtin", "task", "nop", "env", "BUILD") in keys
+
+
+def test_task_get_digest(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        digest = runtool.get_digest()
+    assert re.match(r"^[0-9a-f]{64}$", digest)
+
+
+def test_task_get_digest_stable(running_node):
+    """The same configuration digests the same, every time."""
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_digest() == runtool.get_digest()
+
+    other = SchedulerNode(running_node.project, "running", "0")
+    with other.task.runtime(other) as runtool:
+        repeat = runtool.get_digest()
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_digest() == repeat
+
+
+def test_task_get_digest_survives_a_manifest(running_node):
+    """A cache key is read on the far side of a scheduler, from the manifest."""
+    nop = running_node.project.get_nop()
+    nop.add_parameter("effort", "str", "how hard to try", defvalue="high")
+    nop.add_required_key("var", "effort")
+    nop.set("env", "BUILD", "here")
+
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    running_node.project.write_manifest("digest.json")
+    reloaded = Project.from_manifest(filepath="digest.json")
+    node = SchedulerNode(reloaded, "running", "0")
+    with node.task.runtime(node) as task:
+        assert task.get_digest() == before
+
+
+def test_task_get_digest_length(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_digest()[:16] == runtool.get_digest(length=16)
+        assert len(runtool.get_digest(length=16)) == 16
+
+
+@pytest.mark.parametrize("length", (0, -1, 65))
+def test_task_get_digest_length_invalid(running_node, length):
+    with running_node.task.runtime(running_node) as runtool:
+        with pytest.raises(ValueError, match=r"^length must be between 1 and 64$"):
+            runtool.get_digest(length=length)
+
+
+def test_task_get_digest_no_runtime():
+    """A digest needs a project to read the required keypaths from."""
+    with pytest.raises(RuntimeError,
+                       match=r"^get_digest\(\) requires a runtime, "
+                             r"call it on the task yielded by Task.runtime\(\)$"):
+        NOPTask().get_digest()
+
+
+def test_task_get_digest_invalid_require(running_node):
+    running_node.project.get_nop().add("require", "this,key")
+
+    with running_node.task.runtime(running_node) as runtool:
+        with pytest.raises(KeyError, match=r"^'\[this,key\] not found'$"):
+            runtool.get_digest()
+
+
+def test_task_get_digest_tracks_task_option(running_node):
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    running_node.project.get_nop().add("option", "-fast")
+    with running_node.task.runtime(running_node) as task:
+        assert task.get_digest() != before
+
+
+def test_task_get_digest_tracks_scalar_require(running_node):
+    """The point of the digest: a required non-path value counts.
+
+    Drivers put booleans and thresholds in [require] -- openroad's
+    repair_timing requires five of them -- and a cache key that only looked at
+    paths would hand one configuration's results to another.
+    """
+    nop = running_node.project.get_nop()
+    nop.add_parameter("aggressive", "bool", "run aggressively", defvalue=False)
+    nop.add_required_key("var", "aggressive")
+
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    nop.set("var", "aggressive", True)
+    with running_node.task.runtime(running_node) as task:
+        assert task.get_digest() != before
+
+
+def test_task_get_digest_tracks_version_requirement(running_node):
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    running_node.project.get_nop().set("version", ">=2.0")
+    with running_node.task.runtime(running_node) as task:
+        assert task.get_digest() != before
+
+
+def test_task_get_digest_tracks_env(running_node):
+    nop = running_node.project.get_nop()
+    nop.set("env", "BUILD", "here")
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    nop.set("env", "BUILD", "there")
+    with running_node.task.runtime(running_node) as task:
+        assert task.get_digest() != before
+
+
+def test_task_get_digest_tracks_dataroot(running_node):
+    """A path and its dataroot are both part of what the path is."""
+    design = running_node.project.get_library("testdesign")
+    design.set_dataroot("one", os.path.abspath("one"))
+    design.set_dataroot("two", os.path.abspath("two"))
+    with design.active_fileset("rtl"):
+        with design.active_dataroot("one"):
+            design.add_file("top.v")
+
+    nop = running_node.project.get_nop()
+    nop.add_required_key(design, "fileset", "rtl", "file", "verilog")
+
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    design.unset("fileset", "rtl", "file", "verilog")
+    with design.active_fileset("rtl"):
+        with design.active_dataroot("two"):
+            design.add_file("top.v")
+    with running_node.task.runtime(running_node) as task:
+        assert task.get_digest() != before
+
+
+def test_task_get_digest_ignores_where_the_build_is(running_node):
+    """A digest a shared cache can be named after cannot depend on the machine."""
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    running_node.project.option.set_builddir(os.path.abspath("somewhere_else"))
+    running_node.project.option.set_cachedir(os.path.abspath("some_cache"))
+    with running_node.task.runtime(running_node) as task:
+        assert task.get_digest() == before
+
+
+def test_task_get_digest_ignores_option_hash(running_node):
+    """Unlike every other hash in the schema, this one is not optional."""
+    with running_node.task.runtime(running_node) as task:
+        before = task.get_digest()
+
+    running_node.project.option.set_hash(True)
+    with running_node.task.runtime(running_node) as task:
+        assert task.get_digest() == before
+
+
+def test_task_get_digest_pernode(running_node):
+    """Two nodes of one task diverge only when their configuration does."""
+    notrunning = SchedulerNode(running_node.project, "notrunning", "0")
+
+    with running_node.task.runtime(running_node) as task:
+        running = task.get_digest()
+    with notrunning.task.runtime(notrunning) as task:
+        assert task.get_digest() == running
+
+    running_node.project.get_nop().set("threads", 3, step="notrunning", index="0")
+    with running_node.task.runtime(running_node) as task:
+        running = task.get_digest()
+    with notrunning.task.runtime(notrunning) as task:
+        assert task.get_digest() != running
+
+
+def test_task_get_digest_keys_override(running_node):
+    """A driver can add a key it reads without requiring."""
+    class ExtraKeyTask(NOPTask):
+        def get_digest_keys(self):
+            keys = super().get_digest_keys()
+            keys.add(("option", "novercheck"))
+            return keys
+
+    task = ExtraKeyTask()
+    with task.runtime(running_node) as runtool:
+        before = runtool.get_digest()
+    running_node.project.option.set_novercheck(True)
+    with task.runtime(running_node) as runtool:
+        assert runtool.get_digest() != before
+
+
+def test_task_cachedir_keyed_by_digest(running_node):
+    """The consumer the digest exists for: a cache private to a configuration."""
+    class DigestCacheTask(NOPTask):
+        @property
+        def cachedir(self):
+            return os.path.join(super().cachedir, self.get_digest(length=16))
+
+    task = DigestCacheTask()
+    running_node.project.option.set_cachedir("thiscache")
+    with task.runtime(running_node) as runtool:
+        before = runtool.cachedir
+        assert pathlib.Path(before).parent == \
+            pathlib.Path(os.path.abspath("thiscache")) / "tools" / "builtin"
+
+    running_node.project.get_nop().add("option", "-fast")
+    with task.runtime(running_node) as runtool:
+        assert runtool.cachedir != before
 
 
 def test_runtime_invalid_type():

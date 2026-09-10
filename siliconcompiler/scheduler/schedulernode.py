@@ -617,8 +617,10 @@ class SchedulerNode:
         """
         Gathers all schema keys that could trigger a re-run if changed.
 
-        This includes tool options, scripts, and required inputs specified
-        in the task's schema.
+        The keys are :meth:`.Task.get_digest_keys` -- the task's own settings
+        plus everything its driver required -- split by whether they hold a
+        path, since a value is compared directly while a path is compared by
+        hash or timestamp.
 
         Returns:
             tuple: A tuple containing two sets: (value_keys, path_keys).
@@ -628,21 +630,9 @@ class SchedulerNode:
         Raises:
             KeyError: If a required keypath is not found in the schema.
         """
-        all_keys = set()
-
-        all_keys.update(self.__task.get('require'))
-
-        tool_task_prefix = ('tool', self.__task.tool(), 'task', self.__task.task())
-        for key in ('option', 'threads', 'prescript', 'postscript', 'refdir', 'script',):
-            all_keys.add(",".join([*tool_task_prefix, key]))
-
-        for env_key in self.__project.getkeys(*tool_task_prefix, 'env'):
-            all_keys.add(",".join([*tool_task_prefix, 'env', env_key]))
-
         value_keys = set()
         path_keys = set()
-        for key in all_keys:
-            keypath = tuple(key.split(","))
+        for keypath in self.__task.get_digest_keys():
             if not self.__project.valid(*keypath, default_valid=True):
                 raise KeyError(f"[{','.join(keypath)}] not found")
             if self.__project.get(*keypath, field=None).is_path:
