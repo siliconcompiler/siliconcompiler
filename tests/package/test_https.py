@@ -46,7 +46,7 @@ def test_dependency_path_download_http(project_logger, datadir, path, ref, cache
     proj.logger.setLevel(logging.INFO)
 
     resolver = HTTPResolver("sc-data", proj, path, ref)
-    cache_dir = os.path.abspath(f"sc-data-{ref[0:16]}-{cache_id}")
+    cache_dir = os.path.abspath(f"dataroot/sc-data-{ref[0:16]}-{cache_id}")
     assert resolver.resolve() == Path(cache_dir)
     assert os.path.isfile(os.path.join(cache_dir, "pyproject.toml"))
     assert "Downloading sc-data data from " in caplog.text
@@ -82,7 +82,7 @@ def test_dependency_path_download_http_zstd(project_logger, datadir, caplog):
 
     resolver = HTTPResolver("sc-data", proj, "https://example.com/sky130_fd_sc_hd.tar.zst",
                             "v1.0.2")
-    cache_dir = os.path.abspath("sc-data-v1.0.2-2b8a7556f743e2a4")
+    cache_dir = os.path.abspath("dataroot/sc-data-v1.0.2-2b8a7556f743e2a4")
 
     assert resolver.resolve() == Path(cache_dir)
     assert os.path.isfile(os.path.join(cache_dir, "pyproject.toml"))

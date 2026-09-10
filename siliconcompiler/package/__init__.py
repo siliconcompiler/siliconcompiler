@@ -34,8 +34,8 @@ from urllib import parse as url_parse
 
 from siliconcompiler.package.cache import PathCache, DataRootResolutionError, \
     PermanentResolutionError
-from siliconcompiler.utils import get_plugins, default_cache_dir
-from siliconcompiler.utils.paths import cwdirsafe
+from siliconcompiler.utils import get_plugins
+from siliconcompiler.utils.paths import cwdirsafe, datarootdir
 from siliconcompiler.utils.multiprocessing import MPManager
 
 if TYPE_CHECKING:
@@ -490,40 +490,10 @@ class RemoteResolver(Resolver):
         """Sets the maximum time in seconds to wait for a lock."""
         self.__max_lock_wait = value
 
-    @staticmethod
-    def determine_cache_dir(root: Optional[Union["Project", "BaseSchema"]]) -> Path:
-        """
-        Determines the directory for the on-disk cache.
-
-        The location is determined by ['option', 'cachedir'] if set, otherwise
-        it defaults to `~/.sc/cache`.
-
-        Args:
-            root: The root Project object.
-
-        Returns:
-            Path: The path to the cache directory.
-        """
-        default_path = default_cache_dir()
-        if not root:
-            return Path(default_path)
-
-        path = None
-        if root.valid('option', 'cachedir'):
-            path = root.get('option', 'cachedir')
-            if path:
-                path = root.find_files('option', 'cachedir', missing_ok=True)
-                if not path:
-                    path = os.path.join(cwdirsafe(root), root.get('option', 'cachedir'))
-        if not path:
-            path = default_path
-
-        return Path(path)
-
     @property
     def cache_dir(self) -> Path:
         """The directory for the on-disk cache."""
-        return RemoteResolver.determine_cache_dir(self.root)
+        return Path(datarootdir(self.root))
 
     @property
     def cache_name(self) -> str:
