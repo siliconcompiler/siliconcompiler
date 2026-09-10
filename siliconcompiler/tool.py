@@ -1720,8 +1720,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if self.schema_record.get('status', step=in_step, index=in_index) == \
                     NodeStatus.SKIPPED:
                 with task_obj.runtime(self.__node.switch_node(in_step, in_index)) as task:
-                    for file, nodes in task.get_files_from_input_nodes().items():
-                        inputs.setdefault(file, []).extend(nodes)
+                    # Not `nodes`: that name holds this loop's own membership
+                    # guard, and rebinding it here silently dropped every input
+                    # node ordered after a skipped one.
+                    for file, file_nodes in task.get_files_from_input_nodes().items():
+                        inputs.setdefault(file, []).extend(file_nodes)
                 continue
 
             for output in NamedSchema.get(task_obj, "output", step=in_step, index=in_index):
