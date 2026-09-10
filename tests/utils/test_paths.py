@@ -6,7 +6,8 @@ from pathlib import Path
 
 from siliconcompiler import Project, Design
 
-from siliconcompiler.utils.paths import cwdir, cwdirsafe, builddir, jobdir, workdir, collectiondir
+from siliconcompiler.utils.paths import cwdir, cwdirsafe, builddir, jobdir, workdir, \
+    collectiondir, cachedir, datarootdir, toolcachedir
 
 
 def test_cwdir():
@@ -95,3 +96,59 @@ def test_collectiondir():
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
 def test_collectiondir_notproject(arg):
     assert collectiondir(arg) is None
+
+
+def test_cachedir_default():
+    assert cachedir(Project()) == os.path.join(Path.home(), ".sc", "cache")
+
+
+def test_cachedir_no_project():
+    """A data source can resolve without a project, and still needs a cache."""
+    assert cachedir(None) == os.path.join(Path.home(), ".sc", "cache")
+
+
+def test_cachedir_not_project():
+    """Unlike the rest of this module, any schema will do."""
+    assert cachedir(Design()) == os.path.join(Path.home(), ".sc", "cache")
+
+
+def test_cachedir_from_option():
+    project = Project("testname")
+    project.option.set_cachedir(os.path.abspath("thiscache"))
+    assert cachedir(project) == os.path.abspath("thiscache")
+
+
+def test_cachedir_from_option_relative():
+    project = Project("testname")
+    project.option.set_cachedir("thiscache")
+    assert cachedir(project) == os.path.abspath("thiscache")
+
+
+def test_datarootdir():
+    project = Project("testname")
+    project.option.set_cachedir("thiscache")
+    assert datarootdir(project) == os.path.abspath(os.path.join("thiscache", "dataroot"))
+
+
+def test_datarootdir_default():
+    assert datarootdir(None) == os.path.join(Path.home(), ".sc", "cache", "dataroot")
+
+
+def test_toolcachedir():
+    project = Project("testname")
+    project.option.set_cachedir("thiscache")
+    assert toolcachedir(project) == os.path.abspath(os.path.join("thiscache", "tools"))
+
+
+def test_toolcachedir_default():
+    assert toolcachedir(None) == os.path.join(Path.home(), ".sc", "cache", "tools")
+
+
+def test_cache_areas_are_distinct():
+    """The two areas must not overlap, or a sweep of one would reach the other."""
+    project = Project("testname")
+    project.option.set_cachedir("thiscache")
+
+    assert datarootdir(project) != toolcachedir(project)
+    assert os.path.dirname(datarootdir(project)) == cachedir(project)
+    assert os.path.dirname(toolcachedir(project)) == cachedir(project)

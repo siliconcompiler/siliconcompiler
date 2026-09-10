@@ -4,6 +4,7 @@ from typing import Union, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
+    from siliconcompiler.schema import BaseSchema
 
 
 def cwdir(project: "Project") -> str:
@@ -156,3 +157,88 @@ def collectiondir(project: "Project") -> Union[None, str]:
         return os.path.join(jobdir(project), "sc_collected_files")
     except TypeError:
         return None
+
+
+def cachedir(project: Optional[Union["Project", "BaseSchema"]]) -> str:
+    """
+    Returns the absolute path to the cache directory.
+
+    This is the root of everything SiliconCompiler caches between runs, and it
+    holds one subdirectory per kind of cached data: :func:`datarootdir` for
+    resolved data sources and :func:`toolcachedir` for the caches tools keep for
+    themselves. Cached data goes in those, never in the root itself.
+
+    The location comes from :keypath:`option,cachedir` when it is set, and
+    otherwise from ``~/.sc/cache``.
+
+    Unlike the rest of this module, this accepts any schema and not only a
+    :class:`.Project`: a data source resolves against whichever schema declared
+    it, which is often a library rather than the project using it.
+
+    Args:
+        project (Project): The SiliconCompiler project object, or None to get
+            the default location.
+
+    Returns:
+        str: The absolute path to the cache directory.
+    """
+    # siliconcompiler.utils imports this module, so this one cannot import it back
+    # at module scope.
+    from siliconcompiler.utils import default_cache_dir
+
+    default_path = default_cache_dir()
+    if not project:
+        return default_path
+
+    path = None
+    if project.valid('option', 'cachedir'):
+        path = project.get('option', 'cachedir')
+        if path:
+            path = project.find_files('option', 'cachedir', missing_ok=True)
+            if not path:
+                path = os.path.join(cwdirsafe(project), project.get('option', 'cachedir'))
+    if not path:
+        path = default_path
+
+    return str(path)
+
+
+def datarootdir(project: Optional[Union["Project", "BaseSchema"]]) -> str:
+    """
+    Returns the absolute path to the cached data source directory.
+
+    Every :term:`dataroot` fetched from a git repository or a downloadable
+    archive is extracted here, one directory per source and version. This is the
+    area :mod:`siliconcompiler.package.cleanup` collects.
+
+    Args:
+        project (Project): The SiliconCompiler project object, or None to get
+            the default location.
+
+    Returns:
+        str: The absolute path to the data source cache directory.
+    """
+    return os.path.join(cachedir(project), "dataroot")
+
+
+def toolcachedir(project: Optional[Union["Project", "BaseSchema"]]) -> str:
+    """
+    Returns the absolute path to the tool cache directory.
+
+    This is where a tool keeps whatever it carries from one run to the next --
+    a compiler cache, an incremental build directory -- one subdirectory per
+    tool, addressed by :attr:`.Task.cachedir`. It lives under
+    :func:`cachedir` so that it inherits :keypath:`option,cachedir`, and so that
+    it is inside the directory a task container gets mounted read-write.
+
+    Nothing collects this directory: a tool that keeps a cache is expected to
+    cap it itself, the way ccache does.
+
+    Args:
+        project (Project): The SiliconCompiler project object, or None to get
+            the default location.
+
+    Returns:
+        str: The absolute path to the tool cache directory.
+    """
+    return os.path.join(cachedir(project), "tools")

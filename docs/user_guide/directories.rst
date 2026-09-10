@@ -141,24 +141,49 @@ by one:
 .. code-block:: text
 
    ~/.sc/
-   ├── cache/           <- downloaded data sources (PDKs, libraries, designs)
+   ├── cache/           <- everything kept between runs (see below)
    ├── settings.json    <- your persistent defaults
    ├── credentials      <- remote server address and login
    └── tool_build/      <- scratch space for sc-install
 
 On Windows the same directory is ``C:\Users\<username>\.sc\``.
 
-The data cache
---------------
+The cache
+---------
+
+``~/.sc/cache`` holds everything SiliconCompiler keeps between runs, in one
+subdirectory per kind:
+
+.. code-block:: text
+
+   ~/.sc/cache/
+   ├── dataroot/        <- downloaded data sources (PDKs, libraries, designs)
+   └── tools/           <- caches the tools keep for themselves
+
+Cached data goes in those subdirectories, never in the directory itself, which
+holds nothing but the sweep's own ``.sc_cleanup`` timestamp.
+:keypath:`option,cachedir` moves both areas together -- to shared storage on a
+cluster, for instance, so that every user and every compute node resolves
+packages from one place:
+
+.. code-block:: python
+
+   project.option.set_cachedir("/shared/sc_cache")
+
+Both areas are safe to delete; anything missing is downloaded or rebuilt on the
+next run. Deleting either while a run is in progress is not.
+
+Data sources
+^^^^^^^^^^^^
 
 Any :term:`dataroot` that points at a git repository or a downloadable archive is
-fetched once into ``~/.sc/cache`` and reused by every project afterwards. Entries
+fetched once into ``dataroot/`` and reused by every project afterwards. Entries
 are named ``<name>-<reference>-<hash>``, where the reference is the requested
 version and the hash distinguishes sources that resolve differently:
 
 .. code-block:: text
 
-   ~/.sc/cache/
+   ~/.sc/cache/dataroot/
    ├── lambdapdk-v0.2.17-49afb2b188ee16ae/
    ├── lambdapdk-v0.2.17-49afb2b188ee16ae.lock
    └── ...
@@ -167,19 +192,8 @@ The ``.lock`` files coordinate concurrent runs so that two processes do not
 download the same package at once; they are not data and can be ignored. Their
 modification time doubles as the entry's last-use time, stamped by every resolve.
 
-Set :keypath:`option,cachedir` to move the cache -- to shared storage on a
-cluster, for instance, so that every user and every compute node resolves
-packages from one place:
-
-.. code-block:: python
-
-   project.option.set_cachedir("/shared/sc_cache")
-
-The cache is safe to delete; anything missing is downloaded again on the next
-run. Deleting it while a run is in progress is not.
-
-Because nothing in a normal run removes the version an older project needed, the
-cache only grows. Every run therefore starts with a sweep of it: entries that
+Because nothing in a normal run removes the version an older project needed, this
+area only grows. Every run therefore starts with a sweep of it: entries that
 have not been resolved in 90 days are deleted, as is any ``.lock`` or
 ``.sc_lock`` file whose entry is already gone, whatever its age -- except one
 taken in the last hour, which is kept in case a resolve is holding it and has yet
@@ -192,6 +206,30 @@ with a threshold of your own:
 .. code-block:: bash
 
    python3 -m siliconcompiler.apps.utils.cleanup -days 30 -dryrun
+
+Upgrading from a release before the cache was split, the old entries sit loose in
+``~/.sc/cache`` rather than in ``dataroot/``. Nothing moves them: they are swept
+on the same 90-day clock as everything else, and anything still wanted is
+downloaded again into the new layout the next time it resolves. A cache shared
+with a machine still on an older release therefore loses the entries that release
+is using, and that release downloads them again -- the same one-time cost, paid
+on the other machine.
+
+Tool caches
+^^^^^^^^^^^
+
+``tools/<tool>/`` is where a tool keeps whatever it carries from one run to the
+next. Unlike a node's working directory, which is emptied at the start of every
+run, this survives, and it is shared across every design built with that tool.
+Verilator's C++ builds use it: ``verilated.mk`` invokes ccache unconditionally, so
+SiliconCompiler points ``CCACHE_DIR`` at ``tools/verilator`` rather than letting
+it write to ``~/.cache/ccache``, where it would be outside
+:keypath:`option,cachedir` and invisible to a task running in a container. Set
+``CCACHE_DIR`` yourself, in the environment or on the task, and your setting is
+left alone.
+
+Nothing collects this area. A tool that keeps a cache is expected to cap it
+itself -- ccache does, at 5GB by default -- so if you want it gone, delete it.
 
 Settings and credentials
 ------------------------
