@@ -9,9 +9,21 @@ proc sc_count_logic_depth { args } {
 
     set count 0
     set drivers []
-    set paths [find_timing_paths -sort_by_slack]
-    if { [llength $paths] > 0 } {
-        set path_ref [[lindex $paths 0] path]
+    # Only the single worst path is needed, so ask for one setup path per
+    # group and pick the worst in Tcl instead of having OpenSTA sort across
+    # every group. The catch keeps a failed path search from taking the whole
+    # task down with it: this runs partway through reporting, so an error
+    # raised here loses every report that would follow.
+    set worst {}
+    if { ![catch { find_timing_paths -path_delay max -group_path_count 1 } ends] } {
+        foreach path_end $ends {
+            if { $worst eq {} || [$path_end slack] < [$worst slack] } {
+                set worst $path_end
+            }
+        }
+    }
+    if { $worst ne {} } {
+        set path_ref [$worst path]
         set pins [$path_ref pins]
         foreach pin $pins {
             if { [$pin is_driver] } {
