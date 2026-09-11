@@ -102,9 +102,16 @@ connect_by_abutment
 ########################################################################
 # 5. Bond pads
 #
-# The opening in the passivation that a wire or bump lands on. The offsets
-# place it over the cell it belongs to, and differ between the signal pads
-# and the supply pads because the cells are not the same height.
+# The opening in the passivation that a wire or bump lands on. Each pad cell
+# already carries the plate the bond pad lands on, so the bond pad has to land
+# exactly on it -- anywhere else and it hangs off onto the cell's own keep-out,
+# which the power grid check reports as the supply net shorting to the pad.
+#
+# The offset is measured to the bond pad's LEF origin, which sits 2.7um inside
+# its own outline, so each one is the plate's lower left corner plus 2.7. The
+# two differ because the signal pads and the supply pads are not the same
+# height: the plate is at (9.8 109.05) on a wrapped gpio and at (4.8 95.665)
+# on a supply pad.
 ########################################################################
-place_bondpad -bond sky130_ef_io__bare_pad padring/*.i0/gpio -offset "12.5 115"
-place_bondpad -bond sky130_ef_io__bare_pad padring/*.i0/io* -offset "8 95"
+place_bondpad -bond sky130_ef_io__bare_pad padring/*.i0/gpio -offset "12.5 111.75"
+place_bondpad -bond sky130_ef_io__bare_pad padring/*.i0/io* -offset "7.5 98.365"

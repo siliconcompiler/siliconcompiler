@@ -97,10 +97,9 @@ def setup_project(remote: bool = False) -> ASIC:
     for task in OpenROADPSMParameter.find_task(project):
         task.add_openroad_psmskipnets("*io*")
 
-    # The ring needs about 1520um a side (fourteen cells plus two corners), but the
-    # memory needs more: sky130's SRAM macro is 1041um wide at any depth and needs
-    # a placement channel, so with a 250um margin to clear the pads the macro is
-    # what sets this die, not the ring.
+    # The ring is what sets this die: fourteen cells plus two corners need about
+    # 1520um a side. sky130's SRAM macro is 683um wide, so with a 250um margin to
+    # clear the pads it fits inside that with room for its placement channel.
     project.constraint.area.set_dieoutline(1900, 1900, coremargin=250)
 
     # Keep placement off the memory macro so its pins stay reachable.

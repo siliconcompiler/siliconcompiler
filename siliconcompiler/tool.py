@@ -946,10 +946,13 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             dict: A dictionary of environment variable names to their values.
         """
 
-        # Add global environmental vars
+        # Add global environmental vars. A key can be declared without ever being
+        # given a value, which os.environ will not accept, so those are skipped.
         envvars: Dict[str, str] = {}
         for env in self.__schema_full.option.getkeys('env'):
-            envvars[env] = self.__schema_full.option.get_env(env)
+            value = self.__schema_full.option.get_env(env)
+            if value is not None:
+                envvars[env] = value
 
         # Add tool-specific license server vars
         for lic_env in self.getkeys('licenseserver'):
@@ -973,7 +976,9 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         # Add task-specific vars
         for env in self.getkeys("env"):
-            envvars[env] = self.get("env", env)
+            value = self.get("env", env)
+            if value is not None:
+                envvars[env] = value
 
         return envvars
 
