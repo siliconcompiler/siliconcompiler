@@ -360,7 +360,7 @@ Memory Libraries
 ^^^^^^^^^^^^^^^^
 
 .. schema::
-  :root: lambdapdk.sky130.libs.sky130sram/Sky130_SRAM_64x256
+  :root: lambdapdk.sky130.libs.sky130sram/Sky130_SRAM_32x512
 
 .. schema::
   :root: lambdapdk.sky130.libs.sky130sram/Sky130Lambdalib_SinglePort

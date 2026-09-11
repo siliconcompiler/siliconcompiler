@@ -138,9 +138,9 @@ The ring sets a floor: fourteen cells plus two corners need about 1520 µm a sid
 A die sized by that is **pad limited** -- set by how many pins must fit around the
 edge rather than by the logic inside.
 
-Here the memory pushes it further. sky130's SRAM macro is 1041 µm wide at any
-depth and needs a placement channel around it, so with a 250 µm margin to clear
-the pads this die lands at 1900 µm.
+The memory fits inside that. sky130's SRAM macro is 683 µm wide and needs a
+placement channel around it, which it has once the 250 µm margin holds the core
+off the pads, so this die lands at 1900 µm.
 
 What to look at
 ---------------
@@ -164,7 +164,9 @@ before anything else:
   instance names the RTL generates.
 * **Continuous supplies.** The fill cells should leave no gaps, and the rails
   should run unbroken through the corners.
-* **Bond pads** sitting over their cells, offset to clear the passivation.
+* **Bond pads** landing on the plate each pad cell carries, not merely
+  somewhere over the cell -- a bond pad off the plate sits on the cell's
+  keep-out and the power grid check reports it as a short.
 
 .. warning::
    This example stops short of a tapeout in one respect worth naming: the supply
