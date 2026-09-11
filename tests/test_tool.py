@@ -1184,6 +1184,32 @@ def test_get_runtime_environmental_variables_envs(running_node, monkeypatch):
         }
 
 
+def test_get_runtime_environmental_variables_unset(running_node):
+    """Env keys that exist without a value must be dropped, not passed through.
+
+    The scheduler hands this dict straight to os.environ.update() before it
+    launches the tool, and os.environ rejects None with a TypeError, so a None
+    here takes the node down before the tool ever starts. A key can reach that
+    state by being declared and then cleared, which is how a testcase built by
+    utils.issue records QT_QPA_PLATFORM when the run behind it was headless.
+    """
+    running_node.project.set('option', 'env', 'GLOBAL_SET', 'here')
+    running_node.project.set('option', 'env', 'GLOBAL_UNSET', 'gone')
+    running_node.project.unset('option', 'env', 'GLOBAL_UNSET')
+
+    assert running_node.project.set("tool", "builtin", 'task', "nop", 'env', 'TASK_SET', 'here')
+    assert running_node.project.set("tool", "builtin", 'task', "nop", 'env', 'TASK_UNSET', 'gone')
+    running_node.project.unset("tool", "builtin", 'task', "nop", 'env', 'TASK_UNSET')
+
+    with running_node.task.runtime(running_node) as runtool:
+        envvars = runtool.get_runtime_environmental_variables(include_path=False)
+
+    assert envvars == {'GLOBAL_SET': 'here', 'TASK_SET': 'here'}
+
+    # The values have to survive the same check that broke the scheduler.
+    os.environ.update(envvars)
+
+
 def test_get_runtime_environmental_variables_tool_path(running_node, monkeypatch):
     os.makedirs('./testpath', exist_ok=True)
     assert running_node.project.set("tool", "builtin", 'task', 'nop', 'path', './testpath')
