@@ -18,6 +18,7 @@ from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode, 
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
+from siliconcompiler.tools.builtin.join import JoinTask
 from siliconcompiler.utils.paths import jobdir
 from siliconcompiler.tool import TaskExecutableNotReceived, TaskSkip, Task
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -1879,3 +1880,612 @@ def test_project_scheduler_is_not_serialized(gcd_nop_project):
 
     assert "_Project__scheduler" not in gcd_nop_project.__getstate__()
     assert gcd_nop_project.copy()._scheduler is None
+
+
+# ---------------------------------------------------------------------------
+# [option,continue] across a whole run
+#
+# The option excuses a node's failure for the benefit of everything downstream:
+# an excused branch supplies nothing, so a fan-in assembles the branches that
+# survived. It is read from the node that failed, never from the node that
+# consumes it, and it is inert on any flow that does not set it.
+#
+# The gates themselves are unit-tested next to their own code -- the launch
+# decision in test_taskscheduler.py, input forwarding and validation in
+# test_schedulernode.py, the Task-level rules in test_tool.py. These are the
+# real runs that prove the pieces are wired together.
+# ---------------------------------------------------------------------------
+
+
+class ContinueTask(Task):
+    """A task with no file I/O, so only the node-status gates are in play."""
+
+    def __init__(self):
+        super().__init__()
+        self.add_parameter("fail", "bool", "return a nonzero exit code")
+
+    def tool(self):
+        return "continuetool"
+
+    def task(self):
+        return "noio"
+
+    def setup(self):
+        # 'require' is what drives change detection, so flipping the flag on a
+        # re-run re-runs the node instead of reusing its previous result.
+        self.add_required_key("var", "fail")
+
+    def run(self):
+        return 1 if self.get("var", "fail") else 0
+
+
+class ContinueDataTask(ContinueTask):
+    """Declares its inputs from whatever its upstreams offer, and records what
+    actually arrived so a test can assert on the fan-in."""
+
+    def __init__(self):
+        super().__init__()
+        self.add_parameter("skip", "bool", "skip this node instead of running it")
+
+    def task(self):
+        return "data"
+
+    def outfile(self):
+        return f"output.{self.step}.{self.index}.txt"
+
+    def setup(self):
+        # Skipped before anything is declared: a node that never runs must not
+        # be held to outputs it never promised.
+        if self.get("var", "skip"):
+            raise TaskSkip("skipped")
+
+        super().setup()
+        self.add_input_file(sorted(self.get_files_from_input_nodes().keys()))
+        self.add_output_file(self.outfile())
+
+    def run(self):
+        if self.get("var", "fail"):
+            # Fails before writing anything, so a consumer that sees this
+            # node's output saw a stale one.
+            return 1
+
+        Path("outputs").mkdir(exist_ok=True)
+        received = sorted(f.name for f in os.scandir("inputs") if f.name.endswith(".txt"))
+        Path("outputs", self.outfile()).write_text("\n".join(received))
+        return 0
+
+
+class ContinueNoisyTask(ContinueTask):
+    """Exits cleanly but reports errors in its metrics."""
+
+    def task(self):
+        return "noisy"
+
+    def post_process(self):
+        self.record_metric("errors", 3)
+
+
+class ContinueBinTask(ContinueTask):
+    """Builds the binary for one shard of a constrained-random sweep."""
+
+    def task(self):
+        return "bin"
+
+    def setup(self):
+        super().setup()
+        self.add_output_file(f"shard.{self.index}.elf")
+
+    def run(self):
+        if self.get("var", "fail"):
+            return 1
+
+        Path("outputs").mkdir(exist_ok=True)
+        Path("outputs", f"shard.{self.index}.elf").write_text("elf")
+        return 0
+
+
+class ContinueSimTask(Task):
+    """Runs one shard. A simulator handed no binary has nothing to run."""
+
+    def tool(self):
+        return "continuetool"
+
+    def task(self):
+        return "sim"
+
+    def setup(self):
+        self.add_input_file(sorted(self.get_files_from_input_nodes().keys()))
+        self.add_output_file(f"coverage.{self.index}.db")
+
+    def run(self):
+        if not any(f.name.endswith(".elf") for f in os.scandir("inputs")):
+            self.logger.error("no binary to simulate")
+            return 1
+
+        Path("outputs").mkdir(exist_ok=True)
+        Path("outputs", f"coverage.{self.index}.db").write_text(f"shard {self.index}")
+        return 0
+
+
+class ContinueMergeTask(Task):
+    """Merges the coverage databases that arrived."""
+
+    def tool(self):
+        return "continuetool"
+
+    def task(self):
+        return "merge"
+
+    def setup(self):
+        self.add_input_file(sorted(self.get_files_from_input_nodes().keys()))
+        self.add_output_file("coverage.total.db")
+
+    def run(self):
+        merged = sorted(f.name for f in os.scandir("inputs") if f.name.endswith(".db"))
+        Path("outputs").mkdir(exist_ok=True)
+        Path("outputs", "coverage.total.db").write_text("\n".join(merged))
+        return 0
+
+
+@pytest.fixture
+def continue_project():
+    """Bare project for the flows below, which each build their own flowgraph."""
+    def make():
+        design = Design("continuetest")
+        with design.active_fileset("rtl"):
+            design.set_topmodule("top")
+        project = Project(design)
+        project.add_fileset("rtl")
+        return project
+    return make
+
+
+@pytest.fixture
+def continue_diamond(continue_project):
+    """A -> {B, C} -> D, with one branch set to fail."""
+    def make(task_cls, fail_step="B"):
+        flow = Flowgraph("diamond")
+        for step in ("A", "B", "C", "D"):
+            flow.node(step, task_cls())
+        flow.edge("A", "B")
+        flow.edge("A", "C")
+        flow.edge("B", "D")
+        flow.edge("C", "D")
+
+        project = continue_project()
+        project.set_flow(flow)
+
+        # Every node needs the flag set, both so 'require' is satisfied and so
+        # flipping one later reads as a change rather than as a first assignment.
+        task = task_cls.find_task(project)
+        for step in ("A", "B", "C", "D"):
+            task.set("var", "fail", step == fail_step, step=step)
+        return project
+    return make
+
+
+@pytest.fixture
+def continue_fanout(continue_project):
+    """compile -> bin0..binN -> sim0..simN -> merge, the shape of issue #5368."""
+    def make(width=3, fail_indexes=(0,)):
+        flow = Flowgraph("fanout")
+        flow.node("compile", ContinueTask())
+        flow.node("merge", ContinueMergeTask())
+        for index in range(width):
+            flow.node("bin", ContinueBinTask(), index=index)
+            flow.node("sim", ContinueSimTask(), index=index)
+            flow.edge("compile", "bin", head_index=index)
+            flow.edge("bin", "sim", tail_index=index, head_index=index)
+            flow.edge("sim", "merge", tail_index=index)
+
+        project = continue_project()
+        project.set_flow(flow)
+
+        ContinueTask.find_task(project).set("var", "fail", False, step="compile")
+        bin_task = ContinueBinTask.find_task(project)
+        for index in range(width):
+            bin_task.set("var", "fail", index in fail_indexes, step="bin", index=index)
+        return project
+    return make
+
+
+@pytest.fixture
+def continue_chain(continue_project):
+    """A -> B, A reporting errors in its metrics rather than exiting nonzero."""
+    def make():
+        flow = Flowgraph("metricflow")
+        flow.node("A", ContinueNoisyTask())
+        flow.node("B", ContinueTask())
+        flow.edge("A", "B")
+
+        project = continue_project()
+        project.set_flow(flow)
+        ContinueNoisyTask.find_task(project).set("var", "fail", False, step="A")
+        ContinueTask.find_task(project).set("var", "fail", False, step="B")
+        return project
+    return make
+
+
+@pytest.fixture
+def continue_join(continue_project):
+    """A and B both feed a builtin join, with A set to fail."""
+    def make():
+        flow = Flowgraph("joinflow")
+        flow.node("A", ContinueDataTask())
+        flow.node("B", ContinueDataTask())
+        flow.node("join", JoinTask())
+        flow.edge("A", "join")
+        flow.edge("B", "join")
+
+        project = continue_project()
+        project.set_flow(flow)
+
+        task = ContinueDataTask.find_task(project)
+        task.set("var", "fail", True, step="A")
+        task.set("var", "fail", False, step="B")
+        return project
+    return make
+
+
+def _joblog(project, job="job0"):
+    """The run's own log. Records emitted inside a node reach the parent through
+    the log queue, which dispatches to handlers directly, so they never appear
+    in caplog -- but they do land here."""
+    return Path("build", project.name, job, "job.log").read_text()
+
+
+def _status(project, step, index="0", job="job0"):
+    return project.history(job).get("record", "status", step=step, index=index)
+
+
+def _node_dir(project, step, index="0", job="job0"):
+    return os.path.join("build", project.name, job, step, index)
+
+
+#
+# The reporter's two cases from issue #5368.
+#
+
+@pytest.mark.timeout(60)
+def test_continue_diamond_no_files(continue_diamond):
+    """A failed branch must not abort a sibling branch when continue is enabled."""
+    project = continue_diamond(ContinueTask)
+    project.option.set_continue(True, step="B")
+
+    assert project.run()
+
+    assert _status(project, "A") == NodeStatus.SUCCESS
+    assert _status(project, "B") == NodeStatus.ERROR
+    assert _status(project, "C") == NodeStatus.SUCCESS
+    assert _status(project, "D") == NodeStatus.SUCCESS
+
+
+@pytest.mark.timeout(60)
+def test_continue_diamond_with_files(continue_diamond):
+    """The same, with files passed between nodes: the requirement set shrinks."""
+    project = continue_diamond(ContinueDataTask)
+    project.option.set_continue(True, step="B")
+
+    assert project.run()
+
+    assert _status(project, "A") == NodeStatus.SUCCESS
+    assert _status(project, "B") == NodeStatus.ERROR
+    assert _status(project, "C") == NodeStatus.SUCCESS
+    assert _status(project, "D") == NodeStatus.SUCCESS
+
+    # D ran on C's output alone -- B's branch was dropped, not substituted, so
+    # A's output did not take its place either.
+    received = Path(_node_dir(project, "D"), "outputs", "output.D.0.txt").read_text()
+    assert received.splitlines() == ["output.C.0.txt"]
+
+
+@pytest.mark.timeout(60)
+def test_continue_records_only_the_surviving_input_nodes(continue_diamond):
+    """[record,inputnode] must not name a branch nothing was taken from."""
+    project = continue_diamond(ContinueDataTask)
+    project.option.set_continue(True, step="B")
+
+    assert project.run()
+
+    assert project.history("job0").get(
+        "record", "inputnode", step="D", index="0") == [("C", "0")]
+
+
+@pytest.mark.timeout(120)
+def test_continue_does_not_resurrect_a_stale_output(continue_diamond):
+    """A failed task must not leave behind outputs that it never produced.
+
+    The diamond on a clean tree cannot catch this: it takes a re-run into a
+    build tree where the node that now fails previously succeeded.
+    """
+    project = continue_diamond(ContinueDataTask, fail_step=None)
+
+    # First run: everything succeeds, so B leaves a real output behind.
+    assert project.run()
+    stale = Path(_node_dir(project, "B"), "outputs", "output.B.0.txt")
+    assert stale.exists()
+
+    # Second run into the same job: B now fails before writing anything.
+    ContinueDataTask.find_task(project).set("var", "fail", True, step="B")
+    project.option.set_continue(True, step="B")
+    assert project.run()
+
+    assert _status(project, "B") == NodeStatus.ERROR
+    assert _status(project, "D") == NodeStatus.SUCCESS
+
+    assert not stale.exists(), "the failed node's previous output survived its re-run"
+    assert not Path(_node_dir(project, "D"), "inputs", "output.B.0.txt").exists()
+    received = Path(_node_dir(project, "D"), "outputs", "output.D.0.txt").read_text()
+    assert received.splitlines() == ["output.C.0.txt"]
+
+
+#
+# The shape the issue is actually about: the failure is two levels up from the
+# merge, and the node the merge waits on fails as a consequence.
+#
+
+@pytest.mark.timeout(120)
+def test_continue_fanout_merges_surviving_shards(continue_fanout, caplog):
+    """bin0 fails -> sim0 fails as a consequence -> merge runs on the rest."""
+    project = continue_fanout(width=3, fail_indexes=(0,))
+    # Two calls cover a fan-out of any width: [option,continue] is pernode.
+    project.option.set_continue(True, step="bin")
+    project.option.set_continue(True, step="sim")
+
+    assert project.run()
+
+    assert _status(project, "bin", "0") == NodeStatus.ERROR
+    assert _status(project, "bin", "1") == NodeStatus.SUCCESS
+    assert _status(project, "bin", "2") == NodeStatus.SUCCESS
+
+    # sim0 ran and failed -- it was launched on an excused input and had no
+    # binary -- rather than being starved before it ever started. The two take
+    # different paths through the gates, so name which one it is.
+    assert _status(project, "sim", "0") == NodeStatus.ERROR
+    assert os.path.isdir(_node_dir(project, "sim", "0"))
+    assert _status(project, "sim", "1") == NodeStatus.SUCCESS
+    assert _status(project, "sim", "2") == NodeStatus.SUCCESS
+
+    assert _status(project, "merge") == NodeStatus.SUCCESS
+    merged = Path(_node_dir(project, "merge"), "outputs", "coverage.total.db").read_text()
+    assert merged.splitlines() == ["coverage.1.db", "coverage.2.db"]
+
+    # A green run must not hide the dead branch.
+    assert "Run completed with errors in: bin/0, sim/0" in caplog.text
+
+
+@pytest.mark.timeout(120)
+def test_continue_does_not_propagate_down_a_branch(continue_fanout):
+    """continue on bin but not sim: sim0's own failure must still halt the flow.
+
+    Marking one node must not quietly excuse everything below it -- which is
+    why the answer to the issue is that *both* nodes need marking.
+    """
+    project = continue_fanout(width=3, fail_indexes=(0,))
+    project.option.set_continue(True, step="bin")
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(merge\) due to errors in: "
+                             r"bin/0, sim/0"):
+        project.run()
+
+    assert _status(project, "bin", "0") == NodeStatus.ERROR
+    assert _status(project, "sim", "0") == NodeStatus.ERROR
+    assert _status(project, "merge") == NodeStatus.PENDING
+
+
+@pytest.mark.timeout(120)
+def test_continue_on_the_consumer_branch_alone_starves_it(continue_fanout):
+    """continue on sim but not bin: sim0 is never launched at all.
+
+    The other of the two failure modes -- the merge's missing input comes from
+    a starved predecessor rather than a failed one.
+    """
+    project = continue_fanout(width=3, fail_indexes=(0,))
+    project.option.set_continue(True, step="sim")
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(merge\) due to errors in: bin/0"):
+        project.run()
+
+    assert _status(project, "bin", "0") == NodeStatus.ERROR
+    assert _status(project, "sim", "0") == NodeStatus.PENDING
+    assert not os.path.isdir(_node_dir(project, "sim", "0"))
+
+
+@pytest.mark.timeout(120)
+def test_continue_with_every_input_excused_still_fails(continue_fanout):
+    """A merge with nothing to merge is not a success.
+
+    "At least one" behaves differently at k = N, and this is the case where a
+    best-effort relaxation would otherwise report a green run over no work.
+    """
+    project = continue_fanout(width=3, fail_indexes=(0, 1, 2))
+    project.option.set_continue(True, step="bin")
+    project.option.set_continue(True, step="sim")
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(merge\) due to errors in: "
+                             r"bin/0, bin/1, bin/2, merge/0, sim/0, sim/1, sim/2"):
+        project.run()
+
+    # Each sim's only input was excused, so each launched, found its fan-in
+    # empty and said so, rather than being left pending with no explanation.
+    for index in ("0", "1", "2"):
+        assert _status(project, "sim", index) == NodeStatus.ERROR
+        assert f"No inputs selected for sim/{index}" in _joblog(project)
+    assert _status(project, "merge") == NodeStatus.ERROR
+
+
+#
+# Blast radius: the change must be inert unless a node opts in.
+#
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize("task_cls", (ContinueTask, ContinueDataTask))
+def test_without_continue_a_failed_branch_still_halts(continue_diamond, task_cls):
+    """A task that does not opt in fails exactly as it does today."""
+    project = continue_diamond(task_cls)
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(D\) due to errors in: B/0"):
+        project.run()
+
+    assert _status(project, "B") == NodeStatus.ERROR
+    assert _status(project, "D") == NodeStatus.PENDING
+
+
+@pytest.mark.timeout(60)
+def test_a_global_continue_excuses_every_node(continue_diamond):
+    """The CLI switch (-continue) carries no step, and [option,continue] is
+    pernode=OPTIONAL, so the global value answers for every node. That is the
+    broad form of the option and it has to work -- and be the user's explicit
+    choice rather than something a per-node fix leaks into."""
+    project = continue_diamond(ContinueDataTask)
+    project.option.set_continue(True)
+
+    assert project.run()
+
+    assert _status(project, "B") == NodeStatus.ERROR
+    assert _status(project, "D") == NodeStatus.SUCCESS
+    received = Path(_node_dir(project, "D"), "outputs", "output.D.0.txt").read_text()
+    assert received.splitlines() == ["output.C.0.txt"]
+
+
+@pytest.mark.timeout(60)
+def test_a_skipped_upstream_is_traversed_not_dropped(continue_diamond):
+    """The distinction the whole design turns on. A SKIPPED node is
+    transparent -- its own inputs stand in for it -- while an excused failure
+    supplies nothing at all. Setting continue must not collapse the two: B is
+    skipped here, so D still receives A's output through it.
+    """
+    project = continue_diamond(ContinueDataTask, fail_step=None)
+    project.option.set_continue(True)
+    # Skip B without failing it.
+    ContinueDataTask.find_task(project).set("var", "skip", True, step="B")
+
+    assert project.run()
+
+    assert _status(project, "B") == NodeStatus.SKIPPED
+    assert _status(project, "D") == NodeStatus.SUCCESS
+    assert project.history("job0").get(
+        "record", "inputnode", step="D", index="0") == [("A", "0"), ("C", "0")]
+
+    # A's output arrived through the skipped node, which is exactly what an
+    # excused *failure* must not do.
+    received = Path(_node_dir(project, "D"), "outputs", "output.D.0.txt").read_text()
+    assert received.splitlines() == ["output.A.0.txt", "output.C.0.txt"]
+
+
+@pytest.mark.timeout(60)
+def test_continue_on_an_unrelated_node_does_not_excuse_the_failure(continue_diamond):
+    """The excuse is read from the node that failed, not from any other."""
+    project = continue_diamond(ContinueTask)
+    project.option.set_continue(True, step="C")
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(D\) due to errors in: B/0"):
+        project.run()
+
+
+def test_continue_still_requires_an_input_a_live_node_owes(continue_diamond, caplog):
+    """Excusing one branch must not suppress the pre-run validator's finding
+    about an input nothing produces. The run refuses to start, as it should."""
+    project = continue_diamond(ContinueDataTask)
+    project.option.set_continue(True, step="B")
+    ContinueDataTask.find_task(project).add_input_file("missing.txt", step="D", index="0")
+
+    with pytest.raises(RuntimeError, match=r"Flowgraph file IO constrains errors"):
+        project.run()
+
+    assert "Invalid flow: D/0 will not receive required input missing.txt" in caplog.text
+
+
+@pytest.mark.timeout(60)
+def test_the_metrics_halt_still_halts_without_continue(continue_chain):
+    """errors > 0 and no continue is the documented default, and is not in scope."""
+    project = continue_chain()
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(B\) due to errors in: A/0"):
+        project.run()
+
+    assert "continuetool/noisy reported 3 errors during A/0" in _joblog(project)
+
+
+@pytest.mark.timeout(60)
+def test_the_metrics_halt_is_the_one_place_continue_already_worked(continue_chain):
+    """It is also the only gate where continue leaves the node a SUCCESS."""
+    project = continue_chain()
+    project.option.set_continue(True, step="A")
+
+    assert project.run()
+
+    assert _status(project, "A") == NodeStatus.SUCCESS
+    assert _status(project, "B") == NodeStatus.SUCCESS
+    assert project.history("job0").get("metric", "errors", step="A", index="0") == 3
+
+
+@pytest.mark.timeout(60)
+def test_a_builtin_join_merges_the_arms_that_survived(continue_join):
+    """The builtins were already exempt at the launch gate but died forwarding
+    a failed arm's outputs. An excused arm is now dropped instead."""
+    project = continue_join()
+    project.option.set_continue(True, step="A")
+
+    assert project.run()
+
+    assert _status(project, "A") == NodeStatus.ERROR
+    assert _status(project, "join") == NodeStatus.SUCCESS
+    assert sorted(f.name for f in os.scandir(os.path.join(_node_dir(project, "join"), "outputs"))
+                  if f.name.endswith(".txt")) == ["output.B.0.txt"]
+
+
+@pytest.mark.timeout(60)
+def test_a_builtin_join_with_every_arm_excused_fails_rather_than_stalling(continue_join):
+    """Nothing left to join is not a success -- and it must be an ERROR, not a
+    node left PENDING. A builtin's own consumers wait on a terminal status just
+    like anyone else's, so it launches and says it has nothing to work with."""
+    project = continue_join()
+    ContinueDataTask.find_task(project).set("var", "fail", True, step="B")
+    project.option.set_continue(True, step="A")
+    project.option.set_continue(True, step="B")
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(join\) due to errors in: "
+                             r"A/0, B/0, join/0"):
+        project.run()
+
+    assert _status(project, "join") == NodeStatus.ERROR
+    assert "No inputs selected for join/0" in _joblog(project)
+
+
+@pytest.mark.timeout(60)
+def test_a_builtin_join_with_one_arm_unexcused_behaves_like_a_normal_task(continue_join):
+    """Both arms dead but only one excused: the join is pruned, not launched.
+
+    The excuse is per node, so a mix must not relax the whole fan-in -- and the
+    outcome has to match what a non-builtin does with the same inputs, which is
+    to stay PENDING and let the run report the unreached exit step."""
+    project = continue_join()
+    ContinueDataTask.find_task(project).set("var", "fail", True, step="B")
+    project.option.set_continue(True, step="A")
+    # B failed with no excuse of its own.
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(join\) due to errors in: A/0, B/0"):
+        project.run()
+
+    assert _status(project, "join") == NodeStatus.PENDING
+
+
+@pytest.mark.timeout(60)
+def test_a_builtin_join_still_dies_on_an_unexcused_arm(continue_join):
+    """Without continue the builtins behave exactly as they do today: the
+    launch-gate exemption gets the join started, and forwarding the failed
+    arm's outputs then halts it."""
+    project = continue_join()
+
+    with pytest.raises(RuntimeError,
+                       match=r"Could not run final steps \(join\) due to errors in: A/0"):
+        project.run()

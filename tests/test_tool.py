@@ -24,6 +24,7 @@ from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler import Task
 from siliconcompiler import Design, Project
+from siliconcompiler import NodeStatus
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema._metadata import version as schema_version
 from siliconcompiler.schema.parameter import PerNode, Scope
@@ -3162,6 +3163,46 @@ def test_select_input_nodes_entry_has_input(running_node):
         assert runtool.select_input_nodes() == [('running', '0')]
 
 
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_select_input_nodes_drops_an_excused_failure(running_node, error):
+    running_node.project.set("record", "status", error, step="running", index="0")
+    running_node.project.option.set_continue(True, step="running")
+
+    with running_node.task.runtime(running_node.switch_node("notrunning", "0")) as \
+            runtool:
+        assert runtool.select_input_nodes() == []
+
+
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_select_input_nodes_keeps_an_unexcused_failure(running_node, error):
+    running_node.project.set("record", "status", error, step="running", index="0")
+
+    with running_node.task.runtime(running_node.switch_node("notrunning", "0")) as \
+            runtool:
+        assert runtool.select_input_nodes() == [('running', '0')]
+
+
+def test_is_input_excused_needs_a_failure(running_node):
+    """continue on a node that did not fail excuses nothing."""
+    running_node.project.set("record", "status", NodeStatus.SUCCESS,
+                             step="running", index="0")
+    running_node.project.option.set_continue(True, step="running")
+
+    with running_node.task.runtime(running_node.switch_node("notrunning", "0")) as \
+            runtool:
+        assert runtool._is_input_excused("running", "0") is False
+
+
+def test_is_input_excused_reads_the_upstream_node(running_node):
+    """The excuse lives with the node that failed, not with its consumer."""
+    running_node.project.set("record", "status", NodeStatus.ERROR, step="running", index="0")
+    running_node.project.option.set_continue(True, step="notrunning")
+
+    with running_node.task.runtime(running_node.switch_node("notrunning", "0")) as \
+            runtool:
+        assert runtool._is_input_excused("running", "0") is False
+
+
 def test_task_add_parameter():
     task = Task()
 
@@ -3281,6 +3322,38 @@ def test_get_files_from_input_nodes_skipped(running_node):
     with running_node.task.runtime(running_node.switch_node("lastnode", "0")) as runtool:
         assert runtool.get_files_from_input_nodes() == {
             'file0.txt': [('running', '0')]
+        }
+
+
+def test_get_files_from_input_nodes_skipped_does_not_hide_a_later_input(running_node):
+    """Regression: traversing a skipped node must not drop the input nodes
+    ordered after it.
+
+    The recursion is the only place a second dict of node lists is in scope,
+    and it used to rebind the name holding this loop's own membership guard --
+    so a live sibling listed after a skipped node vanished silently, with the
+    edge order deciding whether it happened."""
+    flow = running_node.project.get("flowgraph", "testflow", field="schema")
+    flow.node("sibling", NOPTask())
+    flow.node("lastnode", NOPTask())
+    flow.edge("notrunning", "lastnode")
+    flow.edge("sibling", "lastnode")
+
+    running_node.project.set("tool", "builtin", "task", "nop", "output", "file0.txt",
+                             step="running", index="0")
+    running_node.project.set("tool", "builtin", "task", "nop", "output", "file1.txt",
+                             step="sibling", index="0")
+    running_node.project.set("record", "status", "skipped", step="notrunning", index="0")
+
+    # notrunning is listed first, so the recursion runs before sibling is read.
+    assert running_node.project.get("flowgraph", "testflow", "lastnode", "0", "input") == [
+        ("notrunning", "0"), ("sibling", "0")
+    ]
+
+    with running_node.task.runtime(running_node.switch_node("lastnode", "0")) as runtool:
+        assert runtool.get_files_from_input_nodes() == {
+            'file0.txt': [('running', '0')],
+            'file1.txt': [('sibling', '0')],
         }
 
 
@@ -5752,6 +5825,122 @@ def test_validate_io_duplicate_input_fails(project_logger, io_project, caplog):
     with nop.runtime(node) as task_obj:
         assert Task._validate_io(task_obj) is False
     assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text
+
+
+# -- Task._get_required_inputs -------------------------------------------------
+#
+# ``input`` is declared once, before the run, when nothing has failed. The
+# requirement set can therefore only shrink at runtime, and only for names that
+# no *live* upstream still offers -- an upstream whose failure [option,continue]
+# excused supplies nothing at all.
+
+def _required_inputs(project, step, index):
+    """Helper: enter runtime context for (step, index) and call the method."""
+    flow = project.get_flow(project.option.get_flow())
+    task_class = project.get("tool", flow.get(step, index, "tool"),
+                             "task", flow.get(step, index, "task"), field="schema")
+    with task_class.runtime(SchedulerNode(project, step, index)) as task_obj:
+        return task_obj._get_required_inputs()
+
+
+@pytest.fixture
+def fanin_project(io_project):
+    """stepone/0 and stepone/1 both feed steptwo/0, each with its own file."""
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask(), index=0)
+    flow.node("stepone", NOPTask(), index=1)
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo", tail_index=0)
+    flow.edge("stepone", "steptwo", tail_index=1)
+    io_project.set_flow(flow)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("zero.v", step="stepone", index="0")
+    nop.add_output_file("one.v", step="stepone", index="1")
+    nop.add_input_file(["zero.v", "one.v"], step="steptwo", index="0")
+    return io_project
+
+
+def test_get_required_inputs_unchanged_with_nothing_excused(fanin_project):
+    assert _required_inputs(fanin_project, "steptwo", "0") == ["zero.v", "one.v"]
+
+
+def test_get_required_inputs_unchanged_by_an_unexcused_failure(fanin_project):
+    """A failure with no excuse is not this method's business -- the node never
+    launches, and if it somehow does the requirement still stands."""
+    fanin_project.set("record", "status", NodeStatus.ERROR, step="stepone", index="0")
+
+    assert _required_inputs(fanin_project, "steptwo", "0") == ["zero.v", "one.v"]
+
+
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_get_required_inputs_drops_an_excused_branch(project_logger, fanin_project, caplog,
+                                                     error):
+    project_logger(fanin_project)
+    fanin_project.set("record", "status", error, step="stepone", index="0")
+    fanin_project.option.set_continue(True, step="stepone", index="0")
+
+    assert _required_inputs(fanin_project, "steptwo", "0") == ["one.v"]
+    assert "No longer requiring input zero.v for steptwo/0" in caplog.text
+
+
+def test_get_required_inputs_keeps_a_name_a_live_upstream_still_offers(io_project):
+    """Excusing one arm of a fan-in where every arm offers the same file drops
+    nothing: the file still arrives."""
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask(), index=0)
+    flow.node("stepone", NOPTask(), index=1)
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo", tail_index=0)
+    flow.edge("stepone", "steptwo", tail_index=1)
+    io_project.set_flow(flow)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_output_file("test.v", step="stepone", index="1")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+
+    io_project.set("record", "status", NodeStatus.ERROR, step="stepone", index="0")
+    io_project.option.set_continue(True, step="stepone", index="0")
+
+    assert _required_inputs(io_project, "steptwo", "0") == ["test.v"]
+
+
+def test_get_required_inputs_keeps_a_name_nothing_ever_offered(project_logger, fanin_project,
+                                                               caplog):
+    """A genuinely missing input must not be swept away with the excused one --
+    that is the pre-run validator's finding to report, not something to drop."""
+    project_logger(fanin_project)
+    NOPTask.find_task(fanin_project).add_input_file("absent.v", step="steptwo", index="0")
+    fanin_project.set("record", "status", NodeStatus.ERROR, step="stepone", index="0")
+    fanin_project.option.set_continue(True, step="stepone", index="0")
+
+    assert _required_inputs(fanin_project, "steptwo", "0") == ["one.v", "absent.v"]
+
+
+def test_get_required_inputs_drops_a_renamed_input(project_logger, io_project, caplog):
+    """A fan-in whose arms offer the *same* filename declares per-node names via
+    compute_input_file_node_name, so the requirement is bound to the node list.
+    When an arm dies, the name and the arm have to go together."""
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask(), index=0)
+    flow.node("stepone", NOPTask(), index=1)
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo", tail_index=0)
+    flow.edge("stepone", "steptwo", tail_index=1)
+    io_project.set_flow(flow)
+    project_logger(io_project)
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_output_file("test.v", step="stepone", index="1")
+    nop.add_input_file(["test.stepone0.v", "test.stepone1.v"], step="steptwo", index="0")
+
+    io_project.set("record", "status", NodeStatus.ERROR, step="stepone", index="0")
+    io_project.option.set_continue(True, step="stepone", index="0")
+
+    assert _required_inputs(io_project, "steptwo", "0") == ["test.stepone1.v"]
+    assert "No longer requiring input test.stepone0.v for steptwo/0" in caplog.text
 
 
 ###########################

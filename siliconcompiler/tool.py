@@ -1720,8 +1720,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if self.schema_record.get('status', step=in_step, index=in_index) == \
                     NodeStatus.SKIPPED:
                 with task_obj.runtime(self.__node.switch_node(in_step, in_index)) as task:
-                    for file, nodes in task.get_files_from_input_nodes().items():
-                        inputs.setdefault(file, []).extend(nodes)
+                    # Not `nodes`: that name holds this loop's own membership
+                    # guard, and rebinding it here silently dropped every input
+                    # node ordered after a skipped one.
+                    for file, file_nodes in task.get_files_from_input_nodes().items():
+                        inputs.setdefault(file, []).extend(file_nodes)
                 continue
 
             for output in NamedSchema.get(task_obj, "output", step=in_step, index=in_index):
@@ -1749,6 +1752,74 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         in_task = self.schema_flow.get(in_step, in_index, "task")
         in_task_class = self.project.get("tool", in_tool, "task", in_task, field="schema")
         return list(in_task_class.get("output", step=in_step, index=in_index))
+
+    def _is_input_excused(self, in_step: str, in_index: str) -> bool:
+        """
+        Returns True when a failure in ``in_step``/``in_index`` is excused by
+        ``[option,continue]`` set on that node, so this task must proceed
+        without whatever it would have produced.
+
+        An excused branch is **dropped, not traversed**. Unlike a ``SKIPPED``
+        node -- whose own inputs stand in for it -- an excused node supplies
+        nothing at all, so a merge that loses one arm assembles the arms that
+        remain rather than inheriting the dead arm's grandparent.
+
+        The excuse lives with the node that failed, never with the node that
+        consumes it: a task asking this question is asking whether *its input's*
+        failure was sanctioned, not whether its own would be.
+
+        Args:
+            in_step (str): The step name of the upstream node.
+            in_index (str): The index of the upstream node.
+        """
+        if not NodeStatus.is_error(self.schema_record.get("status",
+                                                          step=in_step, index=in_index)):
+            return False
+        return self.project.option.get_continue(step=in_step, index=in_index)
+
+    def _get_required_inputs(self) -> List[str]:
+        """
+        Returns the declared input files this node must actually receive.
+
+        Every entry in ``input`` is required unless the only upstream nodes
+        that could have supplied it had their failure excused by
+        ``[option,continue]`` -- see :meth:`_is_input_excused`. A name that some
+        surviving upstream still provides stays required, so excusing one arm of
+        a builtin-style fan-in (where every arm offers the same file) drops
+        nothing.
+
+        ``input`` is declared once, before the run, when nothing has failed yet;
+        the requirement set can therefore only shrink here, at runtime, against
+        the statuses the run actually produced.
+
+        Returns:
+            list of str: The subset of ``input`` that must be present.
+        """
+        requirements = self.get("input")
+
+        in_nodes = self._io_runtime_flow.get_node_inputs(
+            self.step, self.index, record=self.schema_record)
+        excused = [node for node in in_nodes if self._is_input_excused(*node)]
+        if not excused:
+            return requirements
+
+        # A name is only dropped if every node offering it was excused, so
+        # partition the offers rather than subtracting node by node.
+        dead: Set[str] = set()
+        live: Set[str] = set()
+        for in_step, in_index in in_nodes:
+            offered = dead if (in_step, in_index) in excused else live
+            for inp in self._list_upstream_outputs(in_step, in_index):
+                offered.add(inp)
+                offered.add(self.compute_input_file_node_name(inp, in_step, in_index))
+
+        dropped = dead.difference(live)
+        for requirement in sorted(dropped.intersection(requirements)):
+            self.logger.warning(f'No longer requiring input {requirement} for '
+                                f'{self.step}/{self.index}: the node producing it was '
+                                'excused by [option,continue]')
+
+        return [requirement for requirement in requirements if requirement not in dropped]
 
     def _validate_io(self) -> bool:
         """
@@ -2836,9 +2907,14 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     def select_input_nodes(self) -> List[Tuple[str, str]]:
         """
         Determines which preceding nodes are inputs to this task.
+
+        Nodes whose failure was excused by ``[option,continue]`` are dropped --
+        see :meth:`_is_input_excused` -- so this task consumes nothing from a
+        branch it has been told to proceed without.
         """
-        return self.schema_flowruntime.get_node_inputs(
-            self.step, self.index, record=self.schema_record)
+        return [node for node in self.schema_flowruntime.get_node_inputs(
+                    self.step, self.index, record=self.schema_record)
+                if not self._is_input_excused(*node)]
 
     def pre_process(self) -> None:
         """
