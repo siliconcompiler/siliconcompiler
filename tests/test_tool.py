@@ -1184,7 +1184,7 @@ def test_get_runtime_environmental_variables_envs(running_node, monkeypatch):
         }
 
 
-def test_get_runtime_environmental_variables_unset(running_node):
+def test_get_runtime_environmental_variables_unset(running_node, monkeypatch):
     """Env keys that exist without a value must be dropped, not passed through.
 
     The scheduler hands this dict straight to os.environ.update() before it
@@ -1204,10 +1204,14 @@ def test_get_runtime_environmental_variables_unset(running_node):
     with running_node.task.runtime(running_node) as runtool:
         envvars = runtool.get_runtime_environmental_variables(include_path=False)
 
-    assert envvars == {'GLOBAL_SET': 'here', 'TASK_SET': 'here'}
+    # os.environ is what raised the TypeError that took the node down before the
+    # tool started, so put the values through the same check. setitem assigns
+    # exactly as the scheduler does and is undone at teardown, where setenv would
+    # coerce a None to the string "None" and hide the regression.
+    for name, value in envvars.items():
+        monkeypatch.setitem(os.environ, name, value)
 
-    # The values have to survive the same check that broke the scheduler.
-    os.environ.update(envvars)
+    assert envvars == {'GLOBAL_SET': 'here', 'TASK_SET': 'here'}
 
 
 def test_get_runtime_environmental_variables_tool_path(running_node, monkeypatch):
