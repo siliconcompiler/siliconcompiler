@@ -325,8 +325,33 @@ linkcheck_allowed_redirects = {
 }
 
 # Being rate-limited by a host is not a broken link; back off and retry rather
-# than failing the run.
-linkcheck_rate_limit_timeout = 60.0
+# than failing the run. These two settings only work as a pair, so change them
+# together.
+#
+# github.com answers 429 with no Retry-After, which puts Sphinx on its own
+# backoff: the first 429 for a host parks it for 60s and each further 429
+# doubles that, and the moment a doubled value exceeds the ceiling below the
+# link is reported broken instead. The doublings are driven by 429s, not by
+# elapsed time -- once one worker parks the host the others requeue rather than
+# request, but every worker already in flight still gets its own 429. So a
+# single burst can double once per worker, and the ceiling has to absorb one
+# 429 per worker or the run reports a working link as broken.
+#
+# At the previous 60.0 the ceiling absorbed exactly one: the second worker in a
+# burst doubled to 120s, blew the ceiling and had its link called broken. That is
+# issues #5323 and #5394 -- both of them install-script links that were, and
+# still are, perfectly valid. 300.0 (Sphinx's own default) absorbs four, parking
+# the host for 60s, 120s, 240s and then 300s, because Sphinx clamps a doubling
+# that overshoots down to the ceiling once before giving up on the next one.
+#
+# Four absorbed leaves no margin at the default five workers, so the workers are
+# held to three: a burst can now cost at most 60s, 120s and 240s of parking, and
+# there is a spare doubling in hand. Three rather than five also spreads the
+# ~140 generated install-script links out enough to make the 429 less likely to
+# begin with, and costs a couple of minutes in a step that takes ten and is
+# allowed thirty, most of which is the docs build rather than the network.
+linkcheck_rate_limit_timeout = 300.0
+linkcheck_workers = 3
 
 # Skip the auto-generated "File: <source>.py" links emitted by autodoc/linkcode
 # and the schema generators. There are ~1100 of them, they are all mechanically
