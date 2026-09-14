@@ -1,7 +1,7 @@
 '''
 OpenSTA is a gate level static timing verifier.
 
-Documentation: https://github.com/The-OpenROAD-Project/OpenSTA/blob/master/doc/OpenSTA.pdf
+Documentation: https://opensta.readthedocs.io/en/latest/
 
 Sources: https://github.com/The-OpenROAD-Project/OpenSTA
 
