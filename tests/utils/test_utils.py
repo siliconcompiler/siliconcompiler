@@ -458,7 +458,7 @@ def test_installed_distribution_versions(monkeypatch):
         FakeDist("broken", "9.9", raise_meta=True),  # metadata raises -> skipped
         FakeDist("Foo-Bar", "2.0.0"),          # duplicate canonical -> first wins
     ]
-    monkeypatch.setattr(utils, "distributions", lambda: iter(dists))
+    monkeypatch.setattr("importlib.metadata.distributions", lambda: iter(dists))
 
     installed = _installed_distribution_versions()
     assert installed == {"foo-bar": "1.2.3"}
@@ -512,7 +512,7 @@ def test_evaluate_requirement_specifier_contains_raises(monkeypatch):
             self.name = "foo"
             self.specifier = BadSpecifier()
 
-    monkeypatch.setattr(utils, "Requirement", FakeReq)
+    monkeypatch.setattr("packaging.requirements.Requirement", FakeReq)
     assert _evaluate_requirement("foo", {"foo": "weird"}) == ("skip", "foo", "weird")
 
 
@@ -527,7 +527,7 @@ def test_evaluate_requirement_marker_evaluate_raises(monkeypatch):
             self.name = "foo"
             self.specifier = None
 
-    monkeypatch.setattr(utils, "Requirement", FakeReq)
+    monkeypatch.setattr("packaging.requirements.Requirement", FakeReq)
     assert _evaluate_requirement("foo", {}) == ("skip", None, None)
 
 

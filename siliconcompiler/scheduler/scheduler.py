@@ -1,6 +1,5 @@
 import glob
 import logging
-import multiprocessing
 import os
 import re
 import shutil
@@ -19,7 +18,6 @@ from siliconcompiler.schema import Journal
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler import SlurmSchedulerNode
-from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, SchedulerNodeReset
 from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceived
@@ -130,6 +128,10 @@ class Scheduler:
             if node_scheduler == 'slurm':
                 node_cls = SlurmSchedulerNode
             elif node_scheduler == 'docker':
+                # Imported at the point of selection: the docker package is the
+                # most expensive import in the tree and is only needed here.
+                from siliconcompiler.scheduler.docker import DockerSchedulerNode
+
                 node_cls = DockerSchedulerNode
             elif node_scheduler is None:
                 pass
@@ -764,6 +766,9 @@ class Scheduler:
         pool_size = min(pool_size, len(nodes))
 
         self.__logger.debug(f"Check pool size: {pool_size}")
+
+        # Imported here rather than at module scope: see get_process_context().
+        import multiprocessing
 
         # Call this in case this was invoked without __main__
         multiprocessing.freeze_support()

@@ -1,18 +1,15 @@
 import contextlib
 import copy
 import csv
-import hashlib
 import json
 import logging
 import os
-import psutil
 import re
 import shlex
 import shutil
 import subprocess
 import sys
 import time
-import yaml
 
 try:
     # 'resource' is not available on Windows, so we handle its absence gracefully.
@@ -27,9 +24,6 @@ except ModuleNotFoundError:
     pty = None
 
 import os.path
-
-from packaging.version import Version, InvalidVersion
-from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
 from typing import Any, List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, \
     TYPE_CHECKING
@@ -878,6 +872,12 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             # No requirement, so always true
             return True
 
+        # Imported here rather than at module scope: packaging's version parser
+        # pulls in platform/sysconfig probing and is only needed once a tool
+        # with a version requirement actually reports one.
+        from packaging.version import Version, InvalidVersion
+        from packaging.specifiers import SpecifierSet, InvalidSpecifier
+
         for spec_set in spec_sets:
             split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
             specs_list = []
@@ -1096,6 +1096,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
     def __write_yaml_manifest(self, fout: TextIO, manifest: BaseSchema) -> None:
         """Private helper to write a manifest in YAML format."""
+        import yaml
+
         class YamlIndentDumper(yaml.Dumper):
             def increase_indent(self, flow=False, indentless=False):
                 return super().increase_indent(flow=flow, indentless=indentless)
@@ -1331,6 +1333,9 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         Args:
             proc (subprocess.Process): The process to terminate.
         """
+        # Imported here rather than at module scope: psutil costs ~10 ms to
+        # import and is only needed once a run is actually executing.
+        import psutil
 
         def terminate_process(pid: int, timeout: int = 3) -> None:
             """Terminates a process and all its (grand+)children.
@@ -1367,6 +1372,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 terminate_process(proc.pid, timeout=timeout)
 
     def __collect_memory(self, pid) -> Optional[int]:
+        import psutil
+
         try:
             pproc = psutil.Process(pid)
             proc_mem_bytes = pproc.memory_full_info().uss
@@ -1384,6 +1391,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         return None
 
     def __check_memory_limit(self, warn_limit: int, kill_limit_mb: int) -> int:
+        import psutil
+
         try:
             memory_usage = psutil.virtual_memory()
             available_mb = memory_usage.available / (1024 * 1024)
@@ -2038,6 +2047,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             >>> os.path.join(task.cachedir, task.get_digest(length=16))
             A cache directory for this tool, private to this configuration.
         '''
+
+        import hashlib
 
         hashobj = hashlib.sha256()
 

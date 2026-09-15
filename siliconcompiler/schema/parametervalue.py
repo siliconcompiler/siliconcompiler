@@ -1,7 +1,7 @@
 import copy
-import hashlib
 import os
 import pathlib
+import sys
 
 import os.path
 
@@ -9,14 +9,35 @@ from typing import Dict, List, Tuple, Union, Optional
 
 from .parametertype import NodeType
 
-try:
-    from base64 import b64encode, b64decode
-    from hashlib import blake2b
-    _has_sign = True
-except ImportError:
-    # blake2b is absent from interpreters built without it, which costs signing
-    # but nothing else.
-    _has_sign = False
+
+def __getattr__(name):
+    """Resolve ``_has_sign`` on first access (PEP 562).
+
+    Probing for blake2b imports hashlib, which is ~1 ms that a plain
+    ``import siliconcompiler`` should not pay for a feature almost nothing uses.
+    The answer is cached into the module globals, so this runs once.
+    """
+    if name == "_has_sign":
+        try:
+            from hashlib import blake2b  # noqa: F401
+            value = True
+        except ImportError:
+            # blake2b is absent from interpreters built without it, which costs
+            # signing but nothing else.
+            value = False
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def _has_signing() -> bool:
+    """Whether blake2b-based signing is available on this interpreter.
+
+    Read through the module object rather than as a plain global so that the
+    lazy ``__getattr__`` above resolves it on first use, and so an override of
+    ``_has_sign`` is honoured.
+    """
+    return getattr(sys.modules[__name__], "_has_sign")
 
 
 class NodeListValue:
@@ -628,6 +649,8 @@ class NodeValue:
         self.__type = NodeType.parse(sctype)
 
     def __compute_signature(self, person: bytes, key: bytes, salt: bytes) -> str:
+        from hashlib import blake2b
+
         h = blake2b(key=key, salt=salt, person=person)
         for field in self.fields:
             if field is None:
@@ -647,8 +670,11 @@ class NodeValue:
             key (str): Key to used to sign this value
             salt (bytes): salt to use, if not specified, a random number will be selected.
         """
-        if not _has_sign:
+        if not _has_signing():
             raise RuntimeError("encoding not available")
+
+        from base64 import b64encode
+        from hashlib import blake2b
 
         bperson = person.encode("utf-8")
         bkey = key.encode("utf-8")
@@ -673,8 +699,10 @@ class NodeValue:
         if not self.__signature:
             raise ValueError("no signature available")
 
-        if not _has_sign:
+        if not _has_signing():
             raise RuntimeError("encoding not available")
+
+        from base64 import b64encode, b64decode
 
         bkey = key.encode("utf-8")
         bperson = person.encode("utf-8")
@@ -853,6 +881,8 @@ class PathNodeValue(NodeValue):
 
         path_to_hash = f'{dataroot}{str(pure_path.parent)}'
 
+        import hashlib
+
         pathhash = hashlib.sha1(path_to_hash.encode('utf-8')).hexdigest()
 
         return f'{filename}_{pathhash}{ext}'
@@ -897,6 +927,8 @@ class PathNodeValue(NodeValue):
             if hashfunction is None:
                 raise ValueError("hashfunction must be a string")
 
+            import hashlib
+
             hashfunc = getattr(hashlib, hashfunction, None)
             if not hashfunc:
                 raise RuntimeError("Unable to hash directory due to missing "
@@ -935,6 +967,8 @@ class PathNodeValue(NodeValue):
         if not hashobj:
             if hashfunction is None:
                 raise ValueError("hashfunction must be a string")
+
+            import hashlib
 
             hashfunc = getattr(hashlib, hashfunction, None)
             if not hashfunc:

@@ -22,7 +22,7 @@ def test_get_process_context_linux(monkeypatch):
     test is portable: Windows has no fork context, so actually calling
     get_context("fork") there raises ValueError.'''
     monkeypatch.setattr("sys.platform", "linux")
-    with patch("siliconcompiler.utils.multiprocessing.multiprocessing.get_context") as get_ctx:
+    with patch("multiprocessing.get_context") as get_ctx:
         get_process_context()
         get_ctx.assert_called_once_with("fork")
 
@@ -32,7 +32,7 @@ def test_get_process_context_non_linux(monkeypatch, platform):
     '''Off Linux fork is either unavailable (Windows) or unsafe with threads
     (macOS), so we pin spawn explicitly rather than relying on the default.'''
     monkeypatch.setattr("sys.platform", platform)
-    with patch("siliconcompiler.utils.multiprocessing.multiprocessing.get_context") as get_ctx:
+    with patch("multiprocessing.get_context") as get_ctx:
         get_process_context()
         get_ctx.assert_called_once_with("spawn")
 

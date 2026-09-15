@@ -3,7 +3,6 @@ import functools
 import logging
 import re
 import pathlib
-import psutil
 import shutil
 import stat
 import sys
@@ -14,15 +13,10 @@ import os.path
 
 from io import StringIO
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader, Template
 
 from typing import IO, Dict, Optional, Tuple, Type, Union, Callable, List, cast, TYPE_CHECKING
 
 import importlib.util
-from importlib.metadata import distributions, entry_points
-
-from packaging.requirements import Requirement
-from packaging.utils import canonicalize_name
 
 try:
     import tomllib
@@ -43,6 +37,7 @@ except ImportError:  # pragma: no cover - a build or install without Zstandard
 from siliconcompiler.utils.paths import builddir
 
 if TYPE_CHECKING:
+    from jinja2 import Template
     from siliconcompiler.project import Project
 
 
@@ -569,7 +564,7 @@ def get_file_template(path: str,
                           os.path.dirname(
                               os.path.dirname(os.path.abspath(__file__))),
                           'data',
-                          'templates')) -> Template:
+                          'templates')) -> "Template":
     """
     Retrieves a Jinja2 template object for the specified file.
 
@@ -584,6 +579,10 @@ def get_file_template(path: str,
     if os.path.isabs(path):
         root = os.path.dirname(path)
         path = os.path.basename(path)
+
+    # Imported here rather than at module scope: jinja2 is one of the more
+    # expensive imports in the tree and is only needed for templated output.
+    from jinja2 import Environment, FileSystemLoader
 
     import siliconcompiler
     scroot = os.path.dirname(siliconcompiler.__file__)
@@ -748,6 +747,8 @@ def get_plugins(system: str, name: Optional[str] = None) -> List[Callable]:
     Returns:
         List[Callable]: A list of loaded plugin functions.
     '''
+    from importlib.metadata import entry_points
+
     plugins = []
     discovered_plugins = entry_points(group=f'siliconcompiler.{system}')
     for plugin in discovered_plugins:
@@ -808,6 +809,10 @@ def get_cores(physical: bool = False) -> int:
     Returns:
         int: The number of available cores. Defaults to 1 if detection fails.
     '''
+
+    # Imported here rather than at module scope so that merely importing
+    # siliconcompiler does not pay for psutil.
+    import psutil
 
     cores = None
 
@@ -930,6 +935,11 @@ def _installed_distribution_versions() -> Dict[str, str]:
         dict: A mapping of :func:`packaging.utils.canonicalize_name` names to
             installed version strings for every distribution in the environment.
     """
+    # Imported here rather than at module scope: importlib.metadata and
+    # packaging together cost several ms and only dependency reporting uses them.
+    from importlib.metadata import distributions
+    from packaging.utils import canonicalize_name
+
     installed: Dict[str, str] = {}
     for dist in distributions():
         try:
@@ -960,6 +970,11 @@ def _evaluate_requirement(req_str: str, installed: Dict[str, str]):
             distribution name (or None when unparsable) and ``have`` is the
             installed version (or None when not installed).
     """
+    # Imported here rather than at module scope: packaging's parser is a
+    # noticeable slice of import time and only dependency checks need it.
+    from packaging.requirements import Requirement
+    from packaging.utils import canonicalize_name
+
     try:
         req = Requirement(req_str)
     except Exception:

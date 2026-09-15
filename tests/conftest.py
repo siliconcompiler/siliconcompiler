@@ -340,7 +340,7 @@ def fake_plugins(monkeypatch):
             return []
         return list(registry.get(group[len(prefix):], []))
 
-    monkeypatch.setattr(utils, "entry_points", fake_entry_points)
+    monkeypatch.setattr("importlib.metadata.entry_points", fake_entry_points)
 
     return register
 

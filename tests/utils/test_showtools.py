@@ -310,7 +310,7 @@ shutil.which = lambda name, *a, **k: ("/usr/bin/" + name) if name == want else N
 
 from unittest.mock import patch
 import siliconcompiler.utils as utils
-with patch.object(utils, "entry_points", lambda group: []):
+with patch("importlib.metadata.entry_points", lambda group: []):
     from siliconcompiler import ShowTask
     assert "siliconcompiler.utils.showtools" not in sys.modules, "showtools imported early"
     print(ShowTask.get_task("vcd").tool())
@@ -492,7 +492,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "early":
 
 from unittest.mock import patch
 import siliconcompiler.utils as utils
-with patch.object(utils, "entry_points", lambda group: []):
+with patch("importlib.metadata.entry_points", lambda group: []):
     from siliconcompiler import ShowTask
     order = []
     for cls in ShowTask.get_task(None):

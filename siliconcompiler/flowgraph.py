@@ -1,4 +1,3 @@
-import graphviz
 import importlib
 import inspect
 import logging
@@ -1018,6 +1017,10 @@ class Flowgraph(NamedSchema, DocsSchema):
             rankdir = 'LR'
         else:
             rankdir = 'TB'
+
+        # Imported here rather than at module scope: graphviz is only needed to
+        # render a flowgraph, which is not something every run does.
+        import graphviz
 
         nodes, edges, edges_io, has_io = self.__get_graph_information(landscape)
 
