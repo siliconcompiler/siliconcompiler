@@ -5831,6 +5831,63 @@ def test_validate_io_input_from_disk(io_project):
     assert _validate_io(io_project, "steptwo", "0") is True
 
 
+def _make_excluded_upstream(io_project, status=None):
+    """stepone/0 sits outside the run (option.from=steptwo) but left outputs on
+    disk; steptwo/0 declares that file as its input."""
+    from siliconcompiler.utils.paths import workdir as _workdir
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    io_project.set_flow(flow)
+    io_project.option.add_from("steptwo")
+    if status:
+        io_project.set("record", "status", status, step="stepone", index="0")
+
+    out_dir = os.path.join(_workdir(io_project, step="stepone", index="0"), 'outputs')
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, 'test.v'), 'w') as f:
+        f.write("test")
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.stepone0.v", step="steptwo", index="0")
+    return io_project
+
+
+def test_validate_io_input_from_disk_recorded_success(io_project):
+    """The ordinary -from case: the excluded upstream succeeded last run, so its
+    outputs/ is the authority on what the downstream node will receive."""
+    _make_excluded_upstream(io_project, NodeStatus.SUCCESS)
+
+    assert _validate_io(io_project, "steptwo", "0") is True
+
+
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_validate_io_rejects_disk_of_failed_excluded_upstream(project_logger, io_project,
+                                                              caplog, error):
+    """An excluded upstream recorded as failed left a partial write, and nothing
+    in this run will correct it -- so its outputs/ must not satisfy an input,
+    even when the file names happen to line up."""
+    _make_excluded_upstream(io_project, error)
+    project_logger(io_project)
+
+    assert _validate_io(io_project, "steptwo", "0") is False
+    assert "stepone/0 is excluded from this run and is recorded as failed, so " \
+        "steptwo/0 cannot use its outputs." in caplog.text
+
+
+def test_validate_io_trusts_disk_when_status_is_absent(project_logger, io_project, caplog):
+    """Only a *positive* error status disqualifies the directory. A build tree
+    whose manifest never loaded has no status at all, and refusing that would
+    break -from runs that work today."""
+    _make_excluded_upstream(io_project, None)
+    project_logger(io_project)
+
+    assert _validate_io(io_project, "steptwo", "0") is True
+    assert "cannot use its outputs" not in caplog.text
+
+
 def test_validate_io_duplicate_input_fails(project_logger, io_project, caplog):
     """A non-builtin task with two upstreams providing the same input name has
     ambiguous fan-in: the runtime can't decide which upstream's file is the
@@ -5971,6 +6028,40 @@ def test_get_required_inputs_drops_a_renamed_input(project_logger, io_project, c
 
     assert _required_inputs(io_project, "steptwo", "0") == ["test.stepone1.v"]
     assert "No longer requiring input test.stepone0.v for steptwo/0" in caplog.text
+
+
+def test_get_required_inputs_drops_an_excused_branch_outside_the_run(project_logger, io_project,
+                                                                     caplog):
+    """An excused upstream is a *failed* upstream, so the two rules meet here:
+    IO validation refuses to read a failed excluded node's outputs/, but this
+    method still must, or [option,continue] would stop dropping the inputs of
+    any node that option.from excludes."""
+    from siliconcompiler.utils.paths import workdir as _workdir
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask(), index=0)
+    flow.node("stepone", NOPTask(), index=1)
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo", tail_index=0)
+    flow.edge("stepone", "steptwo", tail_index=1)
+    io_project.set_flow(flow)
+    io_project.option.add_from("steptwo")
+    project_logger(io_project)
+
+    for index, name in (("0", "zero.v"), ("1", "one.v")):
+        out_dir = os.path.join(_workdir(io_project, step="stepone", index=index), "outputs")
+        os.makedirs(out_dir, exist_ok=True)
+        with open(os.path.join(out_dir, name), "w") as f:
+            f.write("test")
+
+    nop = NOPTask.find_task(io_project)
+    nop.add_input_file(["zero.v", "one.v"], step="steptwo", index="0")
+
+    io_project.set("record", "status", NodeStatus.ERROR, step="stepone", index="0")
+    io_project.set("record", "status", NodeStatus.SUCCESS, step="stepone", index="1")
+    io_project.option.set_continue(True, step="stepone", index="0")
+
+    assert _required_inputs(io_project, "steptwo", "0") == ["one.v"]
+    assert "No longer requiring input zero.v for steptwo/0" in caplog.text
 
 
 ###########################

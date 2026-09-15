@@ -11,7 +11,7 @@ import os.path
 
 from datetime import datetime
 
-from typing import Final, Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
+from typing import Final, Iterable, Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
 
 from siliconcompiler import NodeStatus, Task
 from siliconcompiler.schema import Journal
@@ -27,7 +27,7 @@ from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager, get_process_context, forking
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
 from siliconcompiler.package.cleanup import auto_cleanup
-from siliconcompiler.utils.paths import collectiondir, jobdir
+from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 from siliconcompiler.utils.curation import collect
 
 if TYPE_CHECKING:
@@ -427,6 +427,204 @@ class Scheduler:
 
         return not error
 
+    @staticmethod
+    def __format_nodes(nodes: Iterable[Tuple[str, str]]) -> str:
+        """Formats nodes as a sorted, comma separated ``step/index`` list."""
+        return ", ".join(f"{step}/{index}" for step, index in sorted(nodes))
+
+    def __unreadable(self, step: str, index: str) -> Optional[str]:
+        """
+        Returns why an excluded node's outputs cannot be used, or None.
+
+        This is what ``setup_input_directory`` demands of an upstream before a
+        consumer will run, asked early enough to still do something about it. A
+        failure the user excused with ``[option,continue]`` is not a reason: that
+        branch supplies nothing on purpose.
+        """
+        if NodeStatus.is_error(self.__record.get('status', step=step, index=index)):
+            if self.__project.option.get_continue(step=step, index=index):
+                # The excuse Task._is_input_excused applies, read straight from
+                # the schema: that method needs a runtime context and this runs
+                # before any node has one.
+                return None
+            return "it is recorded as failed"
+
+        if not os.path.isdir(os.path.join(
+                workdir(self.__project, step=step, index=index), "outputs")):
+            return "it has no outputs directory"
+
+        return None
+
+    def __from_inputs(self) -> Set[Tuple[str, str]]:
+        """
+        Returns the nodes feeding a step the user named in ``[option,from]``.
+
+        These are the only nodes this run is *told* not to execute: ``-from place``
+        is a statement that whatever ``place`` reads is already correct. So when
+        their files are wrong, that is fatal and stays fatal -- rebuilding them
+        would answer a question the user has already answered.
+
+        Every other excluded upstream is excluded as a side effect of computing
+        the window, not by instruction. In a diamond fed by two arms, ``-from``
+        on one arm drops the other; nothing was said about that arm, so it can be
+        rebuilt when a node in the run needs it.
+        """
+        from_steps = set(self.__project.option.get_from())
+        if not from_steps:
+            return set()
+
+        protected: Set[Tuple[str, str]] = set()
+        for step, index in self.__flow_runtime.get_nodes():
+            if step in from_steps:
+                protected.update(self.__flow.get(step, index, 'input'))
+        return protected
+
+    def __upstreams_to_rebuild(self) -> Set[Tuple[str, str]]:
+        """
+        Returns excluded upstreams that this run cannot get what it needs from
+        *and* is free to rebuild.
+
+        Two things make an excluded upstream unusable, and neither sees the
+        other's cases:
+
+        - It cannot be *read*. ``setup_input_directory`` halts a consumer outright
+          when an upstream is recorded as failed or has no ``outputs/`` directory,
+          whatever was declared as ``input``. ``_validate_io`` cannot see this:
+          builtin tasks derive ``input`` from the runtime window, so an excluded
+          upstream contributes no requirement whose absence would be noticed.
+        - It can be read but does not *hold the right files*, which is exactly
+          what ``_validate_io`` checks.
+
+        What feeds a ``[option,from]`` step is excluded from the result either
+        way -- see :meth:`__from_inputs`. That case is left to
+        ``__check_flowgraph_io`` to report, and is the one disk-backed IO failure
+        that should stop the run.
+
+        Validation runs with the logger raised to ``CRITICAL``: this asks before
+        the answer is final, and logging errors for problems about to be resolved
+        is how the original defect misdirected people.
+        """
+        rebuild: Set[Tuple[str, str]] = set()
+        protected = self.__from_inputs()
+
+        cur_level = self.__project.logger.level
+        self.__project.logger.setLevel(logging.CRITICAL)
+        try:
+            for step, index in self.__flow_runtime.get_nodes():
+                if self.__is_skipped(step, index):
+                    # Never runs, so it reads nothing and requires nothing.
+                    continue
+
+                excluded = [node for node in self.__flow_runtime.get_node_inputs(
+                                step, index, record=self.__record)
+                            if node not in self.__flow_runtime.get_nodes()
+                            and node not in protected]
+                if not excluded:
+                    continue
+
+                for in_step, in_index in excluded:
+                    if self.__unreadable(in_step, in_index):
+                        rebuild.add((in_step, in_index))
+
+                tool = self.__flow.get(step, index, "tool")
+                task = self.__flow.get(step, index, "task")
+                task_class = self.__project.get("tool", tool, "task", task, field="schema")
+                with task_class.runtime(self.__tasks[(step, index)]) as task_obj:
+                    if not task_obj._validate_io():
+                        rebuild.update(excluded)
+        finally:
+            self.__project.logger.setLevel(cur_level)
+
+        return rebuild
+
+    def __is_skipped(self, step: str, index: str) -> bool:
+        """
+        Returns True when this run will not execute ``step``/``index``.
+
+        A node whose ``setup()`` raised ``TaskSkip`` never runs, so it never
+        receives inputs and cannot fail to. The rest of the IO path already
+        treats a skipped node as absent -- ``get_node_inputs`` walks straight
+        through one to reach its parents -- so validation has to agree, or a node
+        that was removed from the run gets to abort it.
+        """
+        return (step, index) in self.__skippedtasks or \
+            self.__record.get("status", step=step, index=index) == NodeStatus.SKIPPED
+
+    def __leading_entries(self, steps: Set[str]) -> List[str]:
+        """
+        Reduces a set of entry steps to those nothing else in the set reaches.
+
+        ``RuntimeFlowgraph`` walks backwards from the exit nodes and stops at the
+        first ``[option,from]`` node it meets, so an entry sitting downstream of
+        another hides it completely: adding ``syn`` beside an existing ``place``
+        leaves the window at ``place`` and changes nothing. Widening therefore
+        means *replacing* the entries that the new one feeds, not adding to them.
+        """
+        reachable: Set[str] = set()
+        for step in steps:
+            for index in self.__flow.getkeys(step):
+                seen: Set[Tuple[str, str]] = set()
+                queue: List[Tuple[str, str]] = [(step, index)]
+                while queue:
+                    for out_node in self.__flow.get_node_outputs(*queue.pop()):
+                        if out_node not in seen:
+                            seen.add(out_node)
+                            queue.append(out_node)
+                reachable.update(out_step for out_step, _ in seen)
+
+        return sorted(steps.difference(reachable))
+
+    def __configure_expand_for_missing_inputs(self) -> None:
+        """
+        Pulls excluded upstreams back into the run when the nodes that depend on
+        them cannot otherwise get their inputs.
+
+        option.from / option.to / option.prune say where the user wants the run
+        to start. They are not a claim that what sits on disk ahead of that point
+        is usable -- and when it is not, because the node never ran or ran and
+        failed, the only thing that can supply the missing file is that upstream.
+        So it is added to the run and re-executed, rather than the run aborting
+        on an input nobody can produce.
+
+        An upstream whose outputs *do* satisfy its consumers is left alone,
+        out of date or not. That is the ``from``/``to`` contract, and widening
+        the window there would re-run work the user asked to skip.
+
+        An upstream that is already in the run and still cannot supply the file
+        is a flowgraph error, not a scheduling one: re-running it produces the
+        same declared outputs. Those are left for ``__check_flowgraph_io`` to
+        report.
+
+        Expansion mutates ``[option,from]``, which is the single lever the whole
+        run derives its node set from -- ``Task._io_runtime_flow`` rebuilds from
+        it too -- so the manifest records the run that actually happened rather
+        than the one that was asked for.
+        """
+        # Each pass can only add nodes, so the flow's size bounds the walk back.
+        for _ in range(len(self.__flow.get_nodes())):
+            rebuild = self.__upstreams_to_rebuild()
+            if not rebuild:
+                # Either everything is satisfied, or what is left is a flowgraph
+                # error that adding a node cannot fix.
+                return
+
+            self.__logger.warning(
+                f"Adding {self.__format_nodes(rebuild)} to this run: the existing build "
+                "directory cannot supply what depends on it.")
+
+            entries = set(self.__project.option.get_from())
+            entries.update(step for step, _ in rebuild)
+            self.__project.option.add_from(self.__leading_entries(entries), clobber=True)
+            self.__flow_runtime = RuntimeFlowgraph(
+                self.__flow,
+                from_steps=self.__project.option.get_from(),
+                to_steps=self.__project.option.get_to(),
+                prune_nodes=self.__project.option.get_prune())
+
+            for step, index in rebuild:
+                # Now inside the window, so this also marks everything downstream.
+                self.__mark_pending(step, index)
+
     def __check_flowgraph_io(self) -> bool:
         """
         Validate that every runtime node will receive its required input files.
@@ -440,7 +638,21 @@ class Scheduler:
         """
         error = False
 
+        # The one disk-backed IO failure that should stop the run: [option,from]
+        # says what this node reads is already correct, so there is no rebuilding
+        # our way out of it being wrong.
+        for step, index in sorted(self.__from_inputs()):
+            reason = self.__unreadable(step, index)
+            if reason:
+                self.__logger.error(
+                    f"{step}/{index} supplies a [option,from] step but {reason}. "
+                    "Rerun without [option,from] to rebuild it.")
+                error = True
+
         for (step, index) in self.__flow_runtime.get_nodes():
+            if self.__is_skipped(step, index):
+                continue
+
             tool = self.__flow.get(step, index, "tool")
             task = self.__flow.get(step, index, "task")
             task_class = self.__project.get("tool", tool, "task", task, field="schema")
@@ -459,6 +671,17 @@ class Scheduler:
         it and all subsequent nodes in the flowgraph are marked as PENDING,
         effectively queueing them for execution.
 
+        A node whose ``setup()`` removed it from this run is left alone. Its
+        SKIPPED status is not a result to be invalidated, it is the statement
+        that the node does not exist for this run -- and
+        ``RuntimeFlowgraph.get_node_inputs`` reads exactly that status to decide
+        whether to look *through* the node to its parents. Overwriting it with
+        PENDING strands every consumer downstream: they stop being able to see
+        past a node that will never produce anything. The descendant loop below
+        has always honoured this; the node itself did not, so a caller that
+        marks every node -- the SchedulerFlowReset handler -- undid its own
+        setup.
+
         Args:
             step (str): The step of the node to mark.
             index (str): The index of the node to mark.
@@ -466,7 +689,8 @@ class Scheduler:
         if (step, index) not in self.__flow_runtime.get_nodes():
             return
 
-        self.__record.set('status', NodeStatus.PENDING, step=step, index=index)
+        if (step, index) not in self.__skippedtasks:
+            self.__record.set('status', NodeStatus.PENDING, step=step, index=index)
         for next_step, next_index in self.__flow_runtime.get_nodes_starting_at(step, index):
             if (next_step, next_index) in self.__skippedtasks:
                 continue
@@ -595,6 +819,64 @@ class Scheduler:
                     if os.path.exists(parent_dir) and len(os.listdir(parent_dir)) == 0:
                         # Step directory is empty so safe to remove
                         os.rmdir(parent_dir)
+
+    @staticmethod
+    def __flow_signature(flow: "Flowgraph") -> Tuple:
+        """
+        Returns a comparable summary of what a flow will actually execute.
+
+        Covers the node set, each node's tool and task, and its inputs -- which
+        is the edges. Two flows with the same signature run the same work, so
+        results carried over from one are meaningful to the other.
+        """
+        return tuple(sorted(
+            (step, index,
+             flow.get(step, index, "tool"),
+             flow.get(step, index, "task"),
+             tuple(sorted(flow.get(step, index, "input"))))
+            for step, index in flow.get_nodes()))
+
+    def __configure_check_flow_changed(self) -> Optional[str]:
+        """
+        Returns why this job's flow differs from the one that wrote the build
+        directory, or None when it is the same flow.
+
+        Whether the flow changed is a property of the *job*, so it is asked once,
+        here, from the job manifest -- which ``configure_nodes`` writes before any
+        node runs, and which therefore survives an interrupted run.
+
+        It used to be discovered only through ``requires_run()``, per node, behind
+        a status filter and two manifest-loading guards that each returned a
+        *node* reset first. A node that never ran, or was interrupted mid-write,
+        could not report it, so a whole run could proceed against a build
+        directory another flow had written.
+
+        A missing or unreadable job manifest is not treated as a change: there is
+        nothing to compare, and the per-node checks still apply.
+        """
+        if not os.path.exists(self.manifest):
+            return None
+
+        from siliconcompiler import Project
+        try:
+            previous = Project.from_manifest(filepath=self.manifest)
+            previous_name = previous.option.get_flow()
+            previous_flow = previous.get_flow(previous_name)
+        except Exception as e:
+            self.__logger.debug(f"Unable to read {self.manifest} to compare flows: {e}")
+            return None
+
+        if previous_name != self.__flow.name:
+            return f"Flow changed from {previous_name} to {self.__flow.name}, " \
+                   "require full reset"
+
+        if Scheduler.__flow_signature(previous_flow) != \
+                Scheduler.__flow_signature(self.__flow):
+            # Same name, different work: the build directory was written by
+            # something else wearing this name.
+            return f"Flow {self.__flow.name} changed since the last run, require full reset"
+
+        return None
 
     def __configure_collect_previous_information(self) -> Dict[Tuple[str, str], "Project"]:
         """Collects information from previous runs for nodes that won't be re-executed.
@@ -811,8 +1093,15 @@ class Scheduler:
                             # This node must be run
                             self.__mark_pending(*node)
                         else:
-                            self.__logger.warning(f"{node[0]}/{node[1]} requires a rerun but is "
-                                                  "not in the current execution flow, skipping")
+                            # option.from / option.to / option.prune exclude this
+                            # node, so it keeps its existing outputs and the run
+                            # continues on them. Only staleness is tolerated here;
+                            # outputs that cannot actually be used instead pull the
+                            # node back in -- see __configure_expand_for_missing_inputs.
+                            self.__logger.warning(
+                                f"{node[0]}/{node[1]} requires a rerun but is not in the "
+                                "current execution flow, skipping; nodes downstream will "
+                                "be built from its existing (out of date) outputs")
                             replay.append(node)
                     else:
                         # import old information
@@ -847,13 +1136,21 @@ class Scheduler:
 
         # Check for modified information
         try:
+            # Job-level first: if the flow itself changed, nothing in the build
+            # directory is comparable and there is no point asking node by node.
+            flow_changed = self.__configure_check_flow_changed()
+            if flow_changed:
+                raise SchedulerFlowReset(flow_changed)
+
             replay = self.__configure_check_run_required()
 
             # Replay previous information
             for step, index in replay:
                 if (step, index) in extra_setup_nodes:
                     Journal.access(extra_setup_nodes[(step, index)]).replay(self.__project)
-        except SchedulerFlowReset:
+        except SchedulerFlowReset as reset:
+            self.__logger.warning(f"{reset.msg}; rerunning every node")
+
             # Mark all nodes as pending
             self.__clean_build_dir_full(recheck=True)
 
@@ -868,6 +1165,12 @@ class Scheduler:
                 status = self.__record.get("status", step=step, index=index)
                 if NodeStatus.is_waiting(status) or NodeStatus.is_error(status):
                     self.__mark_pending(step, index)
+
+        # Pull back any excluded upstream whose outputs cannot satisfy the run.
+        # Done here, before the build directory is cleaned and the manifest is
+        # written, so the nodes this adds are treated like any other node in the
+        # run rather than appearing after those decisions were made.
+        self.__configure_expand_for_missing_inputs()
 
         self.__print_status("FINAL")
 

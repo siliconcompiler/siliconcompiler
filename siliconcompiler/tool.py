@@ -1746,15 +1746,39 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         return inputs
 
-    def _list_upstream_outputs(self, in_step: str, in_index: str) -> List[str]:
+    def _list_upstream_outputs(self, in_step: str, in_index: str,
+                               include_failed: bool = False) -> List[str]:
         """
         Returns the file names that an upstream node will provide to this task.
 
         If the upstream is part of the active IO runtime, its declared output
         files are returned. Otherwise its on-disk ``outputs/`` directory is
         scanned (excluding the manifest), since that node will not be re-run.
+
+        A node excluded from the run whose *recorded* status is an error is the
+        one case where that directory is not trusted: whatever it holds is a
+        partial write from the failed attempt, and the node will not be re-run
+        to correct it. Only a positive error status disqualifies it -- an absent
+        or unknown status still reads from disk, because a valid ``outputs/``
+        whose manifest is missing or unreadable is the normal way an older build
+        directory presents itself, and refusing those would fail runs that work
+        today.
+
+        Args:
+            in_step (str): The step name of the upstream node.
+            in_index (str): The index of the upstream node.
+            include_failed (bool): List the directory even when the recorded
+                status is an error. Callers deciding what this node *offered*
+                -- rather than what may be consumed -- need that, so excusing a
+                failure via ``[option,continue]`` still drops its inputs.
         """
         if (in_step, in_index) not in set(self._io_runtime_flow.get_nodes()):
+            if not include_failed and NodeStatus.is_error(
+                    self.schema_record.get("status", step=in_step, index=in_index)):
+                self.logger.error(
+                    f'{in_step}/{in_index} is excluded from this run and is recorded as '
+                    f'failed, so {self.step}/{self.index} cannot use its outputs.')
+                return []
             in_step_out_dir = os.path.join(
                 paths.workdir(self.project, step=in_step, index=in_index), 'outputs')
             if not os.path.isdir(in_step_out_dir):
@@ -1823,7 +1847,9 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         live: Set[str] = set()
         for in_step, in_index in in_nodes:
             offered = dead if (in_step, in_index) in excused else live
-            for inp in self._list_upstream_outputs(in_step, in_index):
+            # include_failed: an excused node is by definition a failed one, and
+            # what it offered is exactly what this node must stop requiring.
+            for inp in self._list_upstream_outputs(in_step, in_index, include_failed=True):
                 offered.add(inp)
                 offered.add(self.compute_input_file_node_name(inp, in_step, in_index))
 

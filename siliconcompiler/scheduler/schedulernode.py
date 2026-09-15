@@ -622,6 +622,23 @@ class SchedulerNode:
         path, since a value is compared directly while a path is compared by
         hash or timestamp.
 
+        The task's declared ``input`` and ``output`` are added on top of that
+        set, because what a node consumes and emits decides whether its previous
+        result is still the right one. Without them, a change that alters the
+        declaration -- a var the driver forgot to ``add_required_key`` -- leaves
+        the node unrun, and everything downstream reads the file the previous
+        configuration wrote.
+
+        They are added **here rather than to get_digest_keys()**, which also
+        names the cache digest: a changed declaration does not make a cached
+        *result* wrong, and putting them there would repartition every existing
+        cache to no purpose.
+
+        They are compared as **values, not paths**, though both are ``[file]``.
+        What matters is the declaration changing, and the files themselves are
+        already covered -- inputs by the upstream node that produced them, and
+        outputs by this node's own output check.
+
         Returns:
             tuple: A tuple containing two sets: (value_keys, path_keys).
                 `value_keys` are keys for simple values.
@@ -639,6 +656,9 @@ class SchedulerNode:
                 path_keys.add(keypath)
             else:
                 value_keys.add(keypath)
+
+        prefix = ("tool", self.__task.tool(), "task", self.__task.task())
+        value_keys.update((*prefix, key) for key in ("input", "output"))
 
         return value_keys, path_keys
 

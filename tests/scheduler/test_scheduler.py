@@ -1,6 +1,7 @@
 import logging
 import os
 import pytest
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -19,7 +20,7 @@ from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
-from siliconcompiler.utils.paths import jobdir
+from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.tool import TaskExecutableNotReceived, TaskSkip, Task
 from siliconcompiler.utils.multiprocessing import MPManager
 
@@ -1070,8 +1071,569 @@ def test_resume_value_changed_not_before_from(gcd_nop_project):
 
     with open("build/gcd/job0/job.log", "r") as f:
         log_text = f.read()
-        assert "steptwo/0 requires a rerun but is not in the current execution flow, skipping" \
-            in log_text
+        # The warning fires in configure_nodes(), phases before anything those
+        # nodes do goes wrong, so on its own it has to say what it is about.
+        assert "steptwo/0 requires a rerun but is not in the current execution flow, " \
+            "skipping; nodes downstream will be built from its existing (out of date) " \
+            "outputs" in log_text
+
+
+def test_check_flowgraph_io_reports_an_unsatisfiable_input(
+        project_logger, basic_project, caplog):
+    """Once expansion has pulled back everything it can, a declared input that no
+    upstream produces is a flowgraph error and still fails the run."""
+    flow = Flowgraph("staleflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project.set_flow(flow)
+    project_logger(basic_project)
+    NOPTask.find_task(basic_project).add_input_file("missing.v", step="steptwo", index="0")
+
+    scheduler = Scheduler(basic_project)
+
+    assert scheduler._Scheduler__check_flowgraph_io() is False
+    assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
+
+
+# -- switching flows over a shared build directory -----------------------------
+#
+# Reported from CI (2026-09-16): an asicflow run was interrupted with Ctrl+C, the
+# project was switched to a different asic flow, and the rerun stopped with a node
+# not receiving its inputs. Deleting the build directory cleared it.
+#
+# The trigger is that the second run trusts node directories written by the first.
+# `check_previous_run_status` decides whether to trust them, and the only
+# flow-level thing it compares is the flow *name* (schedulernode.py, "Flow name
+# changed, require full reset") -- never the flow's node set, edges or tasks.
+#
+# The exact trigger for the reported run was never confirmed: its log was not
+# kept, and the two real flows default to different names (`asicflow-<lang>` vs
+# `tardigrade-asicflow-<lang>`), which does force a full reset. These tests pin
+# down what is reproducible, so the next person starts here rather than from
+# scratch.
+class VersionedGenTask(Task):
+    """Writes a file whose name comes from a var that is deliberately NOT in
+    `require` -- standing in for a flow-to-flow difference that per-node change
+    detection does not notice."""
+
+    def __init__(self):
+        super().__init__()
+        self.add_parameter("name", "str", "output file name", defvalue="a.v")
+
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "versionedgen"
+
+    def setup(self):
+        self.add_output_file(self.get("var", "name"))
+
+    def run(self):
+        with open(os.path.join("outputs", self.get("var", "name")), "w") as f:
+            f.write("generated\n")
+        return 0
+
+
+class ForwardTask(Task):
+    """Copies whatever the upstream offers straight through."""
+
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "forward"
+
+    def setup(self):
+        for name in sorted(self.get_files_from_input_nodes()):
+            self.add_input_file(name)
+            self.add_output_file(name)
+
+    def run(self):
+        for name in self.get("input"):
+            shutil.copy(os.path.join("inputs", name), os.path.join("outputs", name))
+        return 0
+
+
+class ConsumeTask(Task):
+    """Requires whatever the upstream offers."""
+
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "consume"
+
+    def setup(self):
+        for name in sorted(self.get_files_from_input_nodes()):
+            self.add_input_file(name)
+
+    def run(self):
+        return 0
+
+
+def _flow_switch_project(gcd_design, flow_name, generated):
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = Flowgraph(flow_name)
+    flow.node("syn", VersionedGenTask())
+    flow.node("place", ForwardTask())
+    flow.node("antenna_repair", ConsumeTask())
+    flow.edge("syn", "place")
+    flow.edge("place", "antenna_repair")
+    project.set_flow(flow)
+    VersionedGenTask.find_task(project).set("var", "name", generated,
+                                            step="syn", index="0")
+    return project
+
+
+def _run_first_flow(gcd_design):
+    """First flow, stopped before the last node -- the state a Ctrl+C leaves."""
+    first = _flow_switch_project(gcd_design, "firstflow", "a.v")
+    first.option.add_to("place")
+    first.run()
+    assert os.listdir(os.path.join(
+        workdir(first, step="place", index="0"), "outputs")) != []
+    return first
+
+
+@pytest.mark.timeout(60)
+def test_switching_flows_does_not_reuse_stale_outputs(gcd_design):
+    """A differently *named* flow forces a full reset, so the second run rebuilds
+    rather than consuming the first flow's files. This is the path that works;
+    it is here so a change to the reset logic cannot quietly remove it."""
+    _run_first_flow(gcd_design)
+
+    second = _flow_switch_project(gcd_design, "secondflow", "b.v")
+    second.run()
+
+    place_outputs = os.listdir(os.path.join(
+        workdir(second, step="place", index="0"), "outputs"))
+    assert "b.v" in place_outputs
+    assert "a.v" not in place_outputs
+
+
+@pytest.mark.timeout(60)
+def test_same_named_flow_with_different_nodes_triggers_full_reset(gcd_design, project_logger,
+                                                                  caplog):
+    """Same flow name, different node set. The job-level check compares what the
+    flow will execute, not just its name, so the build directory written by the
+    other flow is discarded rather than consumed."""
+    _run_first_flow(gcd_design)
+
+    second = Project(gcd_design)
+    second.add_fileset("rtl")
+    second.add_fileset("sdc")
+    flow = Flowgraph("firstflow")          # same name as the first run
+    flow.node("syn", VersionedGenTask())
+    flow.node("antenna_repair", ConsumeTask())
+    flow.edge("syn", "antenna_repair")     # `place` is gone -- different flow
+    second.set_flow(flow)
+    VersionedGenTask.find_task(second).set("var", "name", "b.v", step="syn", index="0")
+    project_logger(second)
+
+    second.run()
+
+    assert "Flow firstflow changed since the last run, require full reset; " \
+        "rerunning every node" in caplog.text
+    assert not os.path.exists(workdir(second, step="place", index="0"))
+
+
+@pytest.mark.timeout(60)
+def test_changing_a_declared_output_reruns_the_node(gcd_design):
+    """The reported failure, reduced.
+
+    Both runs use the same flow, same nodes, same tools and tasks -- so neither
+    the job-level flow check nor `check_previous_run_status` sees a difference.
+    What changed is the *file* `syn` declares as its output, via a var the driver
+    never passed to `add_required_key`. Before declared IO was part of
+    `get_check_changed_keys`, `syn` was not rerun: `place` kept the first run's
+    `a.v` and `antenna_repair` halted without the `b.v` it now required --
+    exactly the "not getting the right inputs" that deleting the build directory
+    cleared."""
+    _run_first_flow(gcd_design)
+
+    second = _flow_switch_project(gcd_design, "firstflow", "b.v")
+    second.run()
+
+    place_outputs = os.listdir(os.path.join(
+        workdir(second, step="place", index="0"), "outputs"))
+    assert "b.v" in place_outputs
+    assert "a.v" not in place_outputs
+
+
+def _write_job_manifest(project):
+    """The manifest configure_nodes() writes before any node runs."""
+    path = os.path.join(jobdir(project), f"{project.name}.pkg.json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    project.write_manifest(path)
+    return path
+
+
+def test_flow_change_check_detects_a_rename(gcd_design):
+    """The job manifest is enough on its own -- no node has to have run, let
+    alone completed with both of its manifests intact."""
+    _write_job_manifest(_flow_switch_project(gcd_design, "firstflow", "a.v"))
+
+    second = _flow_switch_project(gcd_design, "secondflow", "a.v")
+
+    assert Scheduler(second)._Scheduler__configure_check_flow_changed() == \
+        "Flow changed from firstflow to secondflow, require full reset"
+
+
+def test_flow_change_check_detects_a_changed_node_set(gcd_design):
+    """Same name, different work."""
+    _write_job_manifest(_flow_switch_project(gcd_design, "firstflow", "a.v"))
+
+    second = Project(gcd_design)
+    second.add_fileset("rtl")
+    second.add_fileset("sdc")
+    flow = Flowgraph("firstflow")
+    flow.node("syn", VersionedGenTask())
+    flow.node("antenna_repair", ConsumeTask())
+    flow.edge("syn", "antenna_repair")
+    second.set_flow(flow)
+
+    assert Scheduler(second)._Scheduler__configure_check_flow_changed() == \
+        "Flow firstflow changed since the last run, require full reset"
+
+
+def test_flow_change_check_accepts_an_identical_flow(gcd_design):
+    """A task var differs, which is the per-node checks' business, not this one's."""
+    _write_job_manifest(_flow_switch_project(gcd_design, "firstflow", "a.v"))
+
+    second = _flow_switch_project(gcd_design, "firstflow", "b.v")
+
+    assert Scheduler(second)._Scheduler__configure_check_flow_changed() is None
+
+
+def test_flow_change_check_is_quiet_without_a_job_manifest(gcd_design):
+    """Nothing to compare against, so the per-node checks still decide."""
+    project = _flow_switch_project(gcd_design, "firstflow", "a.v")
+
+    assert Scheduler(project)._Scheduler__configure_check_flow_changed() is None
+
+
+# -- a full reset must not resurrect a node setup() removed --------------------
+#
+# From the reported CI failure (ebrick_south, 2026-09-16):
+#
+#   WARNING | Removing route.repair_timing/0 due to post route timing repair is disabled
+#   ERROR   | Invalid flow: route.antenna_repair/0 will not receive required input ....sdc
+#   ERROR   | Invalid flow: route.antenna_repair/0 will not receive required input ....odb.gz
+#
+# Every status in that run's manifest read `pending`, including the node the log
+# says was removed. `RuntimeFlowgraph.get_node_inputs` looks *through* a node
+# only while the record says SKIPPED, so once the status was overwritten
+# route.antenna_repair could no longer see past route.repair_timing to
+# route.global -- and route.repair_timing declares nothing, having raised
+# TaskSkip before super().setup(). Deleting the build directory cleared it
+# because with no previous manifest there was no reset to trigger the overwrite.
+class SkipMiddleTask(Task):
+    """Removes itself the way AntennaRepairTask and FillMetalTask do."""
+
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "skipmiddle"
+
+    def setup(self):
+        raise TaskSkip("disabled")
+
+    def run(self):
+        return 0
+
+
+def _skipped_middle_project(gcd_design, flow_name):
+    """gen -> skipped -> consume, so `consume` can only be satisfied by looking
+    through the removed node to `gen`."""
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = Flowgraph(flow_name)
+    flow.node("gen", VersionedGenTask())
+    flow.node("middle", SkipMiddleTask())
+    flow.node("consume", ConsumeTask())
+    flow.edge("gen", "middle")
+    flow.edge("middle", "consume")
+    project.set_flow(flow)
+    return project
+
+
+@pytest.mark.timeout(60)
+def test_full_reset_keeps_a_skipped_node_skipped(gcd_design, project_logger, caplog):
+    """A flow change marks every node pending. The node setup() removed must not
+    be swept up in that: its SKIPPED status is what lets consumers see past it."""
+    _skipped_middle_project(gcd_design, "firstflow").run()
+
+    # A different flow over the same build directory -> full reset -> every node
+    # marked pending, which is where the skipped node used to be resurrected.
+    second = _skipped_middle_project(gcd_design, "secondflow")
+    project_logger(second)
+    second.run()
+
+    assert second.history("job0").get("record", "status", step="middle", index="0") == \
+        NodeStatus.SKIPPED
+    assert "will not receive required input" not in caplog.text
+
+
+def test_mark_pending_leaves_a_skipped_node_alone(basic_project):
+    """The descendant loop has always honoured __skippedtasks; so must the node
+    itself, or a caller that marks every node undoes its own setup."""
+    flow = Flowgraph("staleflow")
+    flow.node("gen", NOPTask())
+    flow.node("middle", NOPTask())
+    flow.node("consume", NOPTask())
+    flow.edge("gen", "middle")
+    flow.edge("middle", "consume")
+    basic_project.set_flow(flow)
+
+    scheduler = Scheduler(basic_project)
+    scheduler._Scheduler__skippedtasks.add(("middle", "0"))
+    basic_project.set("record", "status", NodeStatus.SKIPPED, step="middle", index="0")
+
+    for step, index in basic_project.get_flow("staleflow").get_nodes():
+        scheduler._Scheduler__mark_pending(step, index)
+
+    assert basic_project.get("record", "status", step="middle", index="0") == \
+        NodeStatus.SKIPPED
+    assert basic_project.get("record", "status", step="gen", index="0") == NodeStatus.PENDING
+    assert basic_project.get("record", "status", step="consume", index="0") == \
+        NodeStatus.PENDING
+
+
+# -- a node removed from the run cannot fail to receive inputs -----------------
+
+
+def test_is_skipped_tracks_both_the_set_and_the_record(basic_project):
+    """Either signal means the node does not execute, and the rest of the IO path
+    already treats a record-SKIPPED node as absent."""
+    scheduler = Scheduler(basic_project)
+
+    assert scheduler._Scheduler__is_skipped("stepone", "0") is False
+
+    scheduler._Scheduler__skippedtasks.add(("stepone", "0"))
+    assert scheduler._Scheduler__is_skipped("stepone", "0") is True
+
+    scheduler._Scheduler__skippedtasks.clear()
+    basic_project.set("record", "status", NodeStatus.SKIPPED, step="stepone", index="0")
+    assert scheduler._Scheduler__is_skipped("stepone", "0") is True
+
+
+@pytest.mark.timeout(60)
+def test_check_flowgraph_io_ignores_a_skipped_node(project_logger, basic_project, caplog):
+    """A node whose setup() raised TaskSkip never runs, so it never receives
+    inputs. Validating it anyway let a node that had been removed from the run
+    abort the whole run -- the antenna_repair report."""
+    flow = Flowgraph("skipflow")
+    flow.node("syn", NOPTask())
+    flow.node("antenna_repair", SetupSkip())
+    flow.node("detailed", NOPTask())
+    flow.edge("syn", "antenna_repair")
+    flow.edge("antenna_repair", "detailed")
+    basic_project.set_flow(flow)
+    project_logger(basic_project)
+
+    # A declaration left over from a configuration in which this node did run;
+    # setup() raises before it can be replaced.
+    SetupSkip.find_task(basic_project).add_input_file(
+        "top.odb.gz", step="antenna_repair", index="0")
+
+    scheduler = Scheduler(basic_project)
+    scheduler._Scheduler__run_setup()
+    scheduler.configure_nodes()
+
+    assert basic_project.get("record", "status", step="antenna_repair", index="0") == \
+        NodeStatus.SKIPPED
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+    assert "will not receive required input" not in caplog.text
+
+
+@pytest.mark.timeout(60)
+def test_check_flowgraph_io_still_fails_for_a_live_node(project_logger, basic_project, caplog):
+    """Guard for the above: the skip filter must not silence a node that does run."""
+    flow = Flowgraph("skipflow")
+    flow.node("syn", NOPTask())
+    flow.node("detailed", NOPTask())
+    flow.edge("syn", "detailed")
+    basic_project.set_flow(flow)
+    project_logger(basic_project)
+
+    NOPTask.find_task(basic_project).add_input_file("top.odb.gz", step="detailed", index="0")
+
+    scheduler = Scheduler(basic_project)
+    scheduler._Scheduler__run_setup()
+    scheduler.configure_nodes()
+
+    assert scheduler._Scheduler__check_flowgraph_io() is False
+    assert "Invalid flow: detailed/0 will not receive required input top.odb.gz" in caplog.text
+
+
+# -- pulling excluded upstreams back into the run ------------------------------
+#
+# option.from says where the user wants the run to start. It is not a claim that
+# what sits on disk ahead of that point is usable, so when it is not, the upstream
+# is re-run rather than the run being aborted.
+
+
+def test_leading_entries_drops_a_shadowed_entry(basic_project):
+    """RuntimeFlowgraph stops its backward walk at the first option.from node, so
+    an entry downstream of another hides it. Widening has to replace, not add."""
+    flow = Flowgraph("staleflow")
+    for step in ("stepone", "steptwo", "stepthree"):
+        flow.node(step, NOPTask())
+    flow.edge("stepone", "steptwo")
+    flow.edge("steptwo", "stepthree")
+    basic_project.set_flow(flow)
+
+    scheduler = Scheduler(basic_project)
+    leading = scheduler._Scheduler__leading_entries
+
+    assert leading({"stepthree", "steptwo"}) == ["steptwo"]
+    assert leading({"stepone", "stepthree"}) == ["stepone"]
+    assert leading({"steptwo"}) == ["steptwo"]
+
+
+@pytest.fixture
+def excluded_upstream_project(basic_project):
+    """stepone/0 feeds steptwo/0, the -from step, so it is protected."""
+    flow = Flowgraph("staleflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project.set_flow(flow)
+    basic_project.option.add_from("steptwo")
+    return basic_project
+
+
+@pytest.fixture
+def side_arm_project(basic_project):
+    """A diamond with -from on one arm. `armtwo` feeds `join` but is dropped by
+    computing the window, not by instruction, so it may be rebuilt. `start` feeds
+    the -from step and may not."""
+    flow = Flowgraph("staleflow")
+    flow.node("start", NOPTask())
+    flow.node("armone", NOPTask())
+    flow.node("armtwo", NOPTask())
+    flow.node("join", JoinTask())
+    flow.edge("start", "armone")
+    flow.edge("start", "armtwo")
+    flow.edge("armone", "join")
+    flow.edge("armtwo", "join")
+    basic_project.set_flow(flow)
+    basic_project.option.add_from("armone")
+    return basic_project
+
+
+def _outputs_dir(project, step):
+    path = os.path.join(workdir(project, step=step, index="0"), "outputs")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def test_upstream_rebuilt_when_outputs_are_missing(side_arm_project):
+    assert Scheduler(side_arm_project)._Scheduler__upstreams_to_rebuild() == {("armtwo", "0")}
+
+
+def test_upstream_left_alone_when_outputs_exist(side_arm_project):
+    _outputs_dir(side_arm_project, "armtwo")
+
+    assert Scheduler(side_arm_project)._Scheduler__upstreams_to_rebuild() == set()
+
+
+@pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
+def test_upstream_rebuilt_when_recorded_failed(side_arm_project, error):
+    """Outputs present, but the node that wrote them failed -- a partial write."""
+    _outputs_dir(side_arm_project, "armtwo")
+    side_arm_project.set("record", "status", error, step="armtwo", index="0")
+
+    assert Scheduler(side_arm_project)._Scheduler__upstreams_to_rebuild() == {("armtwo", "0")}
+
+
+def test_upstream_rebuild_respects_option_continue(side_arm_project):
+    """A failure the user excused supplies nothing on purpose; re-running it is
+    exactly what [option,continue] says not to insist on."""
+    _outputs_dir(side_arm_project, "armtwo")
+    side_arm_project.set("record", "status", NodeStatus.ERROR, step="armtwo", index="0")
+    side_arm_project.option.set_continue(True, step="armtwo", index="0")
+
+    assert Scheduler(side_arm_project)._Scheduler__upstreams_to_rebuild() == set()
+
+
+def test_from_input_is_fatal_not_rebuilt(excluded_upstream_project):
+    """The rule: a disk-backed IO failure stops the run only when the node with
+    the wrong files is what a -from step reads. Rebuilding it would answer a
+    question the user already answered."""
+    scheduler = Scheduler(excluded_upstream_project)
+
+    assert scheduler._Scheduler__from_inputs() == {("stepone", "0")}
+    assert scheduler._Scheduler__upstreams_to_rebuild() == set()
+
+
+def test_expand_terminates_when_nothing_can_be_added(project_logger, basic_project, caplog):
+    """A node inside the run that still cannot supply a declared input is a
+    flowgraph error, not a scheduling one. Expansion must give up rather than
+    loop, and leave the report to __check_flowgraph_io."""
+    flow = Flowgraph("staleflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project.set_flow(flow)
+    project_logger(basic_project)
+    NOPTask.find_task(basic_project).add_input_file("nobody_makes_this.v",
+                                                    step="steptwo", index="0")
+
+    scheduler = Scheduler(basic_project)
+    scheduler._Scheduler__configure_expand_for_missing_inputs()
+
+    assert "Adding" not in caplog.text
+    assert scheduler._Scheduler__check_flowgraph_io() is False
+
+
+@pytest.mark.timeout(60)
+def test_run_fails_when_a_from_input_has_no_outputs(gcd_nop_project):
+    """-from stepthree says steptwo's outputs are already correct. When they are
+    not, that is the one disk-backed IO failure that stops the run: rebuilding
+    steptwo would override the instruction, so it fails early and by name."""
+    assert gcd_nop_project.run()
+
+    shutil.rmtree(os.path.join(
+        workdir(gcd_nop_project, step="steptwo", index="0"), "outputs"))
+
+    gcd_nop_project.option.add_from("stepthree")
+    with pytest.raises(RuntimeError, match="Flowgraph file IO constrains errors"):
+        gcd_nop_project.run()
+
+    with open("build/gcd/job0/job.log", "r") as f:
+        assert "steptwo/0 supplies a [option,from] step but it has no outputs " \
+            "directory. Rerun without [option,from] to rebuild it." in f.read()
+
+
+@pytest.mark.timeout(60)
+def test_run_leaves_a_readable_excluded_upstream_alone(gcd_nop_project):
+    """Control for the above: intact outputs mean -from is honored exactly, and
+    nothing ahead of it is re-run."""
+    assert gcd_nop_project.run()
+    run_copy = gcd_nop_project.copy()
+    time.sleep(1)
+
+    gcd_nop_project.option.add_from("stepthree")
+    assert gcd_nop_project.run()
+
+    def endtime(proj, step):
+        return proj.history("job0").get("record", "endtime", step=step, index="0")
+
+    assert endtime(run_copy, "stepone") == endtime(gcd_nop_project, "stepone")
+    assert endtime(run_copy, "steptwo") == endtime(gcd_nop_project, "steptwo")
+    assert endtime(run_copy, "stepthree") != endtime(gcd_nop_project, "stepthree")
+
+    with open("build/gcd/job0/job.log", "r") as f:
+        assert "Adding" not in f.read()
 
 
 def test_check_tool_requirements_local(project_logger, gcd_nop_project, caplog):
