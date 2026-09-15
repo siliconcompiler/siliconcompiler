@@ -4,6 +4,7 @@ from unittest.mock import patch
 from siliconcompiler.utils import default_email_credentials_file
 import json
 import re
+from email import message_from_string
 from pathlib import Path
 import os
 from itertools import combinations_with_replacement
@@ -187,6 +188,39 @@ def test_email_step_index(asic_gcd, email_creds):
         context = mock_smtp.return_value.__enter__.return_value
         context.login.assert_called()
         context.sendmail.assert_called()
+
+
+@pytest.mark.timeout(30)
+@pytest.mark.parametrize("msg_type", ("begin", "summary"))
+def test_email_max_file_size_zero(asic_gcd, email_creds, msg_type):
+    # Zero caps the attachments at nothing; the notification itself still goes
+    # out, with the rendered body on it.
+    with open(email_creds, 'w') as f:
+        json.dump(
+            {
+                "server": "local",
+                "port": 555,
+                "username": "test",
+                "password": "pass",
+                "max_file_size": 0
+            },
+            f
+        )
+
+    asic_gcd.set('option', 'scheduler', 'msgevent', 'all')
+    asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
+
+    with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
+        send_messages.send(asic_gcd, msg_type, "import", "0")
+
+        context = mock_smtp.return_value.__enter__.return_value
+        context.sendmail.assert_called()
+        sent = message_from_string(context.sendmail.call_args[0][2])
+
+    parts = list(sent.walk())[1:]
+    assert [part.get_content_type() for part in parts] == ["text/html"]
+    assert not [part for part in parts
+                if part.get('Content-Disposition', '').startswith('attachment')]
 
 
 validate = send_messages.__validate_config

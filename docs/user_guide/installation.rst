@@ -227,8 +227,13 @@ features below are packaged as extras, installed by naming them in brackets:
      - Running the test suite. Tests covering an extra that is not installed
        report themselves as skipped.
 
-Quitting an extra later is ``pip uninstall`` of the packages it brought in;
-SiliconCompiler itself keeps working without them.
+SiliconCompiler itself keeps working whether or not any of these are present;
+only the feature stops. There is no ``pip uninstall`` of an extra, though:
+extras are requirement groups rather than something pip records and can later
+remove as a unit, and the packages one pulls in are shared with anything else
+in the environment that needs them, so removing them by hand can break that
+other software. To try an extra out without committing to it, install it into
+a throwaway virtual environment.
 
 
 .. _asic_demo:

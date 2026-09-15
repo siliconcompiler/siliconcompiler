@@ -162,9 +162,13 @@ def send(project, msg_type, step, index):
     msg['To'] = ", ".join(to)
     msg['X-Entity-Ref-ID'] = uuid.uuid4().hex  # keep emails from getting grouped
 
-    if cred["max_file_size"] > 0:
-        if msg_type == "summary":
-            # Handle summary message: attach layout image and metrics summary
+    # max_file_size caps the log lines a message carries; zero turns the
+    # attachments off, and the body is rendered and sent either way.
+    attach_files = cred["max_file_size"] > 0
+
+    if msg_type == "summary":
+        # Handle summary message: attach layout image and metrics summary
+        if attach_files:
             layout_img = report_utils._find_summary_image(project)
             if layout_img and os.path.isfile(layout_img):
                 with open(layout_img, 'rb') as img_file:
@@ -174,26 +178,27 @@ def send(project, msg_type, step, index):
                                           filename=os.path.basename(layout_img))
                     msg.attach(img_attach)
 
-            runtime = RuntimeFlowgraph(
-                project.get_flow(flow),
-                from_steps=project.option.get_from(),
-                to_steps=project.option.get_to(),
-                prune_nodes=project.option.get_prune())
+        runtime = RuntimeFlowgraph(
+            project.get_flow(flow),
+            from_steps=project.option.get_from(),
+            to_steps=project.option.get_to(),
+            prune_nodes=project.option.get_prune())
 
-            nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
-                report_utils._collect_data(project, flow=flow,
-                                           flowgraph_nodes=runtime.get_nodes())
+        nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
+            report_utils._collect_data(project, flow=flow,
+                                       flowgraph_nodes=runtime.get_nodes())
 
-            text_msg = get_file_template('email/summary.j2').render(
-                design=project.name,
-                nodes=nodes,
-                errors=errors,
-                metrics=metrics,
-                metrics_unit=metrics_unit,
-                metric_keys=metrics_to_show)
-        else:
-            # Handle general node message: attach log files and node-specific data
-            # Attach logs
+        text_msg = get_file_template('email/summary.j2').render(
+            design=project.name,
+            nodes=nodes,
+            errors=errors,
+            metrics=metrics,
+            metrics_unit=metrics_unit,
+            metric_keys=metrics_to_show)
+    else:
+        # Handle general node message: attach log files and node-specific data
+        # Attach logs
+        if attach_files:
             for log in (f'sc_{step}_{index}.log', f'{step}.log'):
                 log_file = f'{workdir(project, step=step, index=index)}/{log}'
                 if os.path.exists(log_file):
@@ -209,37 +214,37 @@ def send(project, msg_type, step, index):
                                               filename=f'{log_name}.txt')
                         msg.attach(log_attach)
 
-            # Collect records for the specific node
-            records = {}
-            for record in project.getkeys('record'):
-                value = None
-                if project.get('record', record, field='pernode').is_never():
-                    value = project.get('record', record)
-                else:
-                    value = project.get('record', record, step=step, index=index)
+        # Collect records for the specific node
+        records = {}
+        for record in project.getkeys('record'):
+            value = None
+            if project.get('record', record, field='pernode').is_never():
+                value = project.get('record', record)
+            else:
+                value = project.get('record', record, step=step, index=index)
 
-                if value is not None:
-                    records[record] = value
+            if value is not None:
+                records[record] = value
 
-            # Collect metrics for the specific node
-            nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
-                report_utils._collect_data(project, flow=flow, flowgraph_nodes=[(step, index)])
+        # Collect metrics for the specific node
+        nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
+            report_utils._collect_data(project, flow=flow, flowgraph_nodes=[(step, index)])
 
-            status = project.get('record', 'status', step=step, index=index)
+        status = project.get('record', 'status', step=step, index=index)
 
-            # Render the general email template
-            text_msg = get_file_template('email/general.j2').render(
-                design=project.name,
-                job=jobname,
-                step=step,
-                index=index,
-                status=status,
-                records=records,
-                nodes=nodes,
-                errors=errors,
-                metrics=metrics,
-                metrics_unit=metrics_unit,
-                metric_keys=metrics_to_show)
+        # Render the general email template
+        text_msg = get_file_template('email/general.j2').render(
+            design=project.name,
+            job=jobname,
+            step=step,
+            index=index,
+            status=status,
+            records=records,
+            nodes=nodes,
+            errors=errors,
+            metrics=metrics,
+            metrics_unit=metrics_unit,
+            metric_keys=metrics_to_show)
 
     body = MIMEText(text_msg, 'html')
     msg.attach(body)
