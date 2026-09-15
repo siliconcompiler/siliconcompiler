@@ -49,12 +49,12 @@ def test_server_app_run_without_aiohttp(monkeypatch, capsys):
 
     err = capsys.readouterr().err
     assert "sc-server is unavailable" in err
-    assert "pip install siliconcompiler[server]" in err
+    assert 'pip install "siliconcompiler[server]"' in err
 
 
 def test_server_run_without_aiohttp(monkeypatch):
     monkeypatch.setattr(server_module, 'missing_server_dependency', 'aiohttp')
 
     with pytest.raises(ModuleNotFoundError,
-                       match=r"pip install siliconcompiler\[server\]"):
+                       match=r'pip install "siliconcompiler\[server\]"'):
         Server().run()

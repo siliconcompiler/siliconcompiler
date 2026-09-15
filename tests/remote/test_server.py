@@ -9,7 +9,10 @@ import time
 
 import os.path
 
+# Both packages in the "server" extra: aiohttp for the module below, and
+# fastjsonschema because Server.run() refuses to start without it.
 pytest.importorskip("aiohttp", reason="the server extra is not installed")
+pytest.importorskip("fastjsonschema", reason="the server extra is not installed")
 
 from aiohttp import web  # noqa: E402
 from unittest.mock import Mock, AsyncMock, patch  # noqa: E402

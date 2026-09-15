@@ -205,7 +205,7 @@ class Server(ServerSchema):
         if missing_server_dependency:
             raise ModuleNotFoundError(
                 f"{missing_server_dependency} is required to run the SiliconCompiler "
-                "server, install it with 'pip install siliconcompiler[server]'",
+                'server, install it with: pip install "siliconcompiler[server]"',
                 name=missing_server_dependency)
 
         # makedirs() raises if it cannot deliver the directory, so there is

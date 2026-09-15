@@ -84,3 +84,25 @@ def test_wrap_keeps_column_wider_than_line_width():
 
 def test_empty():
     assert render_table([], [], ['unit']) == ""
+
+
+def test_wrap_reserves_room_for_the_continuation_marker():
+    # A table whose natural width exactly equals line_width still wraps: the
+    # last column reserves the character its trailing pad occupies. This
+    # matches what DataFrame.to_string(line_width=11) emitted for the same
+    # input, which is what keeps printed summaries byte-identical, so it is
+    # deliberate rather than an off-by-one.
+    data, rows, cols = [['x', 'y']], ['r'], ['a', 'b']
+
+    assert max(len(line) for line in render_table(data, rows, cols).splitlines()) == 11
+
+    assert render_table(data, rows, cols, line_width=11).split("\n") == [
+        '      a  \\',
+        'r     x   ',
+        '',
+        '      b  ',
+        'r     y  ']
+
+    # One character more and it fits on a single line.
+    assert len(render_table(data, rows, cols, line_width=12).split("\n\n")) == 2
+    assert len(render_table(data, rows, cols, line_width=13).split("\n\n")) == 1

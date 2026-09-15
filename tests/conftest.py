@@ -549,9 +549,12 @@ def _shutdown_server(proc, timeout=10):
 
 @pytest.fixture
 def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeypatch):
-    # Every consumer of this fixture launches a real sc-server, which runs on
-    # aiohttp from the "server" extra.
+    # Every consumer of this fixture launches a real sc-server, which needs
+    # both packages in the "server" extra. Either one missing on its own would
+    # otherwise leave the server dying at startup and the test waiting out the
+    # port timeout instead of reporting itself as skipped.
     pytest.importorskip("aiohttp", reason="the server extra is not installed")
+    pytest.importorskip("fastjsonschema", reason="the server extra is not installed")
 
     srv_procs = []
 
