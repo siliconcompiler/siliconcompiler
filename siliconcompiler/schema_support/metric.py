@@ -9,6 +9,7 @@ from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.utils import truncate_text, units
+from siliconcompiler.utils.table import render_table
 from siliconcompiler.schema_support.record import RecordTime, RecordSchema
 
 
@@ -276,13 +277,17 @@ class MetricSchema(BaseSchema):
             return units.format_si(self.get(metric, step=step, index=index),
                                    self.get(metric, field="unit"))
 
-    def summary_table(self,
+    def _summary_data(self,
                       nodes: Optional[List[Tuple[str, str]]] = None,
                       column_width: int = 15,
                       formatted: bool = True,
-                      trim_empty_metrics: bool = True) -> "DataFrame":
+                      trim_empty_metrics: bool = True) -> \
+            Tuple[List[List[Union[str, float, None]]], List[str], List[str]]:
         '''
-        Generates a summary of metrics as a pandas DataFrame.
+        Collects the metric summary as plain rows, labels and headers.
+
+        Backs both :meth:`summary` and :meth:`summary_table`, so that printing
+        a summary does not need pandas.
 
         Args:
             nodes (List[Tuple[str, str]], optional): A list of (step, index)
@@ -297,9 +302,9 @@ class MetricSchema(BaseSchema):
                 Defaults to True.
 
         Returns:
-            pandas.DataFrame: A DataFrame containing the metric summary.
+            tuple: The rows, the metric name labelling each row, and the
+            column headers. The first column is always the metric unit.
         '''
-        from pandas import DataFrame
 
         if not nodes:
             unique_nodes = set()
@@ -362,6 +367,51 @@ class MetricSchema(BaseSchema):
                 row.append(value)
             data.append(row)
 
+        return data, row_labels, column_labels
+
+    def summary_table(self,
+                      nodes: Optional[List[Tuple[str, str]]] = None,
+                      column_width: int = 15,
+                      formatted: bool = True,
+                      trim_empty_metrics: bool = True) -> "DataFrame":
+        '''
+        Generates a summary of metrics as a pandas DataFrame.
+
+        pandas is not installed by default; see :meth:`summary` for printing a
+        summary without it.
+
+        Args:
+            nodes (List[Tuple[str, str]], optional): A list of (step, index)
+                tuples to include in the summary. If None, all nodes with
+                metrics are included. Defaults to None.
+            column_width (int, optional): The width for each column.
+                Defaults to 15.
+            formatted (bool, optional): If True, metric values are formatted
+                for human readability. Defaults to True.
+            trim_empty_metrics (bool, optional): If True, metrics that have no
+                value for any of the specified nodes are excluded.
+                Defaults to True.
+
+        Raises:
+            ModuleNotFoundError: If pandas is not installed.
+
+        Returns:
+            pandas.DataFrame: A DataFrame containing the metric summary.
+        '''
+
+        try:
+            from pandas import DataFrame
+        except ModuleNotFoundError as e:
+            raise ModuleNotFoundError(
+                "pandas is required by summary_table(), install it with "
+                "'pip install pandas'") from e
+
+        data, row_labels, column_labels = self._summary_data(
+            nodes=nodes,
+            column_width=column_width,
+            formatted=formatted,
+            trim_empty_metrics=trim_empty_metrics)
+
         return DataFrame(data, row_labels, column_labels)
 
     def summary(self,
@@ -397,7 +447,8 @@ class MetricSchema(BaseSchema):
 
         if not max_line_width:
             max_line_width = max(4 * column_width, int(0.95*shutil.get_terminal_size().columns))
-        data = self.summary_table(nodes=nodes, column_width=column_width)
+        data, row_labels, column_labels = self._summary_data(
+            nodes=nodes, column_width=column_width)
 
         if not fd:
             fd = sys.stdout
@@ -405,10 +456,11 @@ class MetricSchema(BaseSchema):
         print("-" * max_line_width, file=fd)
         print("\n".join(header), file=fd)
         print(file=fd)
-        if data.empty:
+        if not data:
             print("  No metrics to display!", file=fd)
         else:
-            print(data.to_string(line_width=max_line_width, col_space=3), file=fd)
+            print(render_table(data, row_labels, column_labels,
+                               line_width=max_line_width), file=fd)
         print("-" * max_line_width, file=fd)
 
     @classmethod

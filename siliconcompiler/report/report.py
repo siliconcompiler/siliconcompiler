@@ -20,8 +20,17 @@ def make_metric_dataframe(project):
     Example:
         >>> make_metric_dataframe(project)
         Returns pandas dataframe of tracked metrics.
+
+    Raises:
+        ModuleNotFoundError: If pandas is not installed.
     '''
-    from pandas import DataFrame
+
+    try:
+        from pandas import DataFrame
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(
+            "pandas is required by make_metric_dataframe(), install it with "
+            "'pip install pandas'") from e
 
     _, _, metrics, metrics_unit, metrics_to_show, _ = utils._collect_data(project)
     # converts from 2d dictionary to pandas DataFrame, transposes so

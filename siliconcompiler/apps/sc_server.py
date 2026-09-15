@@ -23,6 +23,11 @@ Silicon Compiler Collection Remote Job Server (sc-server)
 
     try:
         server.run()
+    except ModuleNotFoundError as e:
+        # A missing optional dependency is a setup problem rather than a
+        # crash, so it gets a message instead of a traceback.
+        print(f"{progname} is unavailable: {e}", file=sys.stderr)
+        return 1
     except Exception as e:
         server.logger.exception(e)
         return 1

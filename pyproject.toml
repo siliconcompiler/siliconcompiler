@@ -35,10 +35,8 @@ classifiers = [
 ]
 requires-python = ">= 3.10"
 dependencies = [
-    "aiohttp >= 3.10.11, < 3.15.0",
     "distro >= 1.9.0, < 2.0.0",
     "docker >= 7.1.0, < 8.0.0",
-    "fastjsonschema >= 2.20.0, < 2.23.0",
     "graphviz >= 0.20, < 0.22",
     "orjson >= 3.11.0, < 4",
     "packaging >= 21.3, < 27",
@@ -56,7 +54,6 @@ dependencies = [
     "tomli >= 2.0.0; python_version < '3.11'",
     # Zstandard entered the stdlib in 3.14 (PEP 784); older releases need the backport.
     "backports.zstd >= 1.6.0, < 2.0.0; python_version < '3.14'",
-    "pandas >= 1.1.5",
     "psutil >= 5.8.0",
     "Jinja2 >= 2.11.3",
 
@@ -113,7 +110,14 @@ optimizer = [
 cocotb = [
     "cocotb >= 2.1.0, < 2.2.0"
 ]
+server = [
+    "aiohttp >= 3.10.11, < 3.15.0",
+    "fastjsonschema >= 2.20.0, < 2.23.0"
+]
 dashboard = [
+    # Used directly by the dashboard, and by MetricSchema.summary_table().
+    "pandas >= 1.1.5",
+
     # dashboard
     "streamlit == 1.63.0",
     "streamlit_agraph == 0.0.45",

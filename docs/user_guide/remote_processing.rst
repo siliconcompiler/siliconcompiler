@@ -122,6 +122,12 @@ For Developers: Custom Servers
 
 If you are interested in deploying your own custom server, we provide a minimal example development server that can be used as a starting point: :ref:`sc-server <app-sc-server>` using the :ref:`remote API <server_api>`.
 
+Running a server needs the ``server`` :ref:`extra <install_extras>`, which a default install does not carry -- submitting jobs to one, as the rest of this page does, needs nothing beyond SiliconCompiler itself:
+
+.. code-block:: bash
+
+   pip install --upgrade "siliconcompiler[server]"
+
 A ready-to-run deployment of it is checked in at ``setup/server/``: a Docker Compose stack that brings up ``sc-server`` backed by a real Slurm cluster -- ``slurmctld``, ``slurmdbd`` with a MariaDB accounting store, ``slurmrestd``, and one or more ``slurmd`` compute nodes -- with the EDA tools already in the image, so full flows run and not just the scheduler path.
 
 .. code-block:: bash

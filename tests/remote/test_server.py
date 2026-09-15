@@ -9,11 +9,16 @@ import time
 
 import os.path
 
-from aiohttp import web
-from unittest.mock import Mock, AsyncMock, patch
-from siliconcompiler import NodeStatus
-from siliconcompiler.remote.server import Server
-from siliconcompiler.remote import JobStatus, NodeStatus as RemoteNodeStatus
+# Both packages in the "server" extra: aiohttp for the module below, and
+# fastjsonschema because Server.run() refuses to start without it.
+pytest.importorskip("aiohttp", reason="the server extra is not installed")
+pytest.importorskip("fastjsonschema", reason="the server extra is not installed")
+
+from aiohttp import web  # noqa: E402
+from unittest.mock import Mock, AsyncMock, patch  # noqa: E402
+from siliconcompiler import NodeStatus  # noqa: E402
+from siliconcompiler.remote.server import Server  # noqa: E402
+from siliconcompiler.remote import JobStatus, NodeStatus as RemoteNodeStatus  # noqa: E402
 
 
 def _job_owner(nfs_path):

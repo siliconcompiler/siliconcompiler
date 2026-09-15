@@ -7,7 +7,6 @@ It loads SMTP server credentials from a configuration file, constructs
 HTML-formatted emails with relevant job data and attachments (logs, images),
 and sends them to specified recipients.
 """
-import fastjsonschema
 import json
 import os
 import smtplib
@@ -18,7 +17,6 @@ from email.mime.multipart import MIMEMultipart
 
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
-from pathlib import Path
 
 from siliconcompiler import sc_open
 from siliconcompiler.utils import default_email_credentials_file, get_file_template
@@ -27,20 +25,66 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.paths import workdir
 
 
-# Compile validation code for API request bodies.
-api_dir = Path(__file__).parent / 'validation'
+# Every field the email credentials file may carry, and the type it takes.
+CREDENTIAL_TYPES = {
+    "username": str,     # Username on the email server
+    "password": str,     # Password on the email server
+    "from": str,         # Source address; defaults to the first recipient
+    "server": str,       # Address of the SMTP server
+    "port": int,         # Port number of the SMTP server
+    "ssl": bool,         # Whether to connect over SSL
+    "max_file_size": int  # Maximum number of log lines to attach
+}
 
-# 'remote_run': Run a stage of a job using the server's cluster settings.
-with open(api_dir / 'email_credentials.json') as schema:
-    validate_creds = fastjsonschema.compile(json.loads(schema.read()))
+# Fields a usable credentials file cannot leave out.
+REQUIRED_CREDENTIALS = ("username", "password", "server", "port")
+
+# Fields the sender reads unconditionally, so an absent one gets a value here.
+CREDENTIAL_DEFAULTS = {
+    "ssl": True,
+    "max_file_size": 1000
+}
+
+
+def __validate_config(creds):
+    """
+    Checks an email credentials mapping and fills in the defaults.
+
+    Args:
+        creds (dict): Credentials as read from the file.
+
+    Raises:
+        ValueError: If a field is missing, unrecognized, or of the wrong type.
+
+    Returns:
+        dict: The credentials, with :data:`CREDENTIAL_DEFAULTS` applied to
+        whatever the file did not set.
+    """
+    if not isinstance(creds, dict):
+        raise ValueError(f"must be an object, not {type(creds).__name__}")
+
+    unknown = sorted(set(creds) - set(CREDENTIAL_TYPES))
+    if unknown:
+        raise ValueError(f"unrecognized field(s): {', '.join(unknown)}")
+
+    missing = [field for field in REQUIRED_CREDENTIALS if field not in creds]
+    if missing:
+        raise ValueError(f"missing field(s): {', '.join(missing)}")
+
+    for field, value in creds.items():
+        expected = CREDENTIAL_TYPES[field]
+        # bool is a subclass of int, so an int field would otherwise take True.
+        if not isinstance(value, expected) or \
+                (expected is int and isinstance(value, bool)):
+            raise ValueError(f"'{field}' must be {expected.__name__}, "
+                             f"not {type(value).__name__}")
+
+    return {**CREDENTIAL_DEFAULTS, **creds}
 
 
 def __load_config(project):
     """
     Loads and validates email credentials from the default configuration file.
-
-    This function locates the email credentials JSON file, loads its content,
-    and validates it against a predefined JSON schema.
 
     Args:
         project (Project): The project object, used for logging.
@@ -54,12 +98,12 @@ def __load_config(project):
         project.logger.warning(f'Email credentials are not available: {path}')
         return {}
 
-    with open(path) as f:
-        creds = json.load(f)
-
     try:
-        return validate_creds(creds)
-    except fastjsonschema.JsonSchemaException as e:
+        with open(path) as f:
+            # JSONDecodeError is a ValueError, so malformed JSON is reported
+            # the same way as a malformed field rather than ending the run.
+            return __validate_config(json.load(f))
+    except ValueError as e:
         project.logger.error(f'Email credentials failed to validate: {e}')
         return {}
 
@@ -118,9 +162,13 @@ def send(project, msg_type, step, index):
     msg['To'] = ", ".join(to)
     msg['X-Entity-Ref-ID'] = uuid.uuid4().hex  # keep emails from getting grouped
 
-    if cred["max_file_size"] > 0:
-        if msg_type == "summary":
-            # Handle summary message: attach layout image and metrics summary
+    # max_file_size caps the log lines a message carries; zero turns the
+    # attachments off, and the body is rendered and sent either way.
+    attach_files = cred["max_file_size"] > 0
+
+    if msg_type == "summary":
+        # Handle summary message: attach layout image and metrics summary
+        if attach_files:
             layout_img = report_utils._find_summary_image(project)
             if layout_img and os.path.isfile(layout_img):
                 with open(layout_img, 'rb') as img_file:
@@ -130,26 +178,27 @@ def send(project, msg_type, step, index):
                                           filename=os.path.basename(layout_img))
                     msg.attach(img_attach)
 
-            runtime = RuntimeFlowgraph(
-                project.get_flow(flow),
-                from_steps=project.option.get_from(),
-                to_steps=project.option.get_to(),
-                prune_nodes=project.option.get_prune())
+        runtime = RuntimeFlowgraph(
+            project.get_flow(flow),
+            from_steps=project.option.get_from(),
+            to_steps=project.option.get_to(),
+            prune_nodes=project.option.get_prune())
 
-            nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
-                report_utils._collect_data(project, flow=flow,
-                                           flowgraph_nodes=runtime.get_nodes())
+        nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
+            report_utils._collect_data(project, flow=flow,
+                                       flowgraph_nodes=runtime.get_nodes())
 
-            text_msg = get_file_template('email/summary.j2').render(
-                design=project.name,
-                nodes=nodes,
-                errors=errors,
-                metrics=metrics,
-                metrics_unit=metrics_unit,
-                metric_keys=metrics_to_show)
-        else:
-            # Handle general node message: attach log files and node-specific data
-            # Attach logs
+        text_msg = get_file_template('email/summary.j2').render(
+            design=project.name,
+            nodes=nodes,
+            errors=errors,
+            metrics=metrics,
+            metrics_unit=metrics_unit,
+            metric_keys=metrics_to_show)
+    else:
+        # Handle general node message: attach log files and node-specific data
+        # Attach logs
+        if attach_files:
             for log in (f'sc_{step}_{index}.log', f'{step}.log'):
                 log_file = f'{workdir(project, step=step, index=index)}/{log}'
                 if os.path.exists(log_file):
@@ -165,37 +214,37 @@ def send(project, msg_type, step, index):
                                               filename=f'{log_name}.txt')
                         msg.attach(log_attach)
 
-            # Collect records for the specific node
-            records = {}
-            for record in project.getkeys('record'):
-                value = None
-                if project.get('record', record, field='pernode').is_never():
-                    value = project.get('record', record)
-                else:
-                    value = project.get('record', record, step=step, index=index)
+        # Collect records for the specific node
+        records = {}
+        for record in project.getkeys('record'):
+            value = None
+            if project.get('record', record, field='pernode').is_never():
+                value = project.get('record', record)
+            else:
+                value = project.get('record', record, step=step, index=index)
 
-                if value is not None:
-                    records[record] = value
+            if value is not None:
+                records[record] = value
 
-            # Collect metrics for the specific node
-            nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
-                report_utils._collect_data(project, flow=flow, flowgraph_nodes=[(step, index)])
+        # Collect metrics for the specific node
+        nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
+            report_utils._collect_data(project, flow=flow, flowgraph_nodes=[(step, index)])
 
-            status = project.get('record', 'status', step=step, index=index)
+        status = project.get('record', 'status', step=step, index=index)
 
-            # Render the general email template
-            text_msg = get_file_template('email/general.j2').render(
-                design=project.name,
-                job=jobname,
-                step=step,
-                index=index,
-                status=status,
-                records=records,
-                nodes=nodes,
-                errors=errors,
-                metrics=metrics,
-                metrics_unit=metrics_unit,
-                metric_keys=metrics_to_show)
+        # Render the general email template
+        text_msg = get_file_template('email/general.j2').render(
+            design=project.name,
+            job=jobname,
+            step=step,
+            index=index,
+            status=status,
+            records=records,
+            nodes=nodes,
+            errors=errors,
+            metrics=metrics,
+            metrics_unit=metrics_unit,
+            metric_keys=metrics_to_show)
 
     body = MIMEText(text_msg, 'html')
     msg.attach(body)
