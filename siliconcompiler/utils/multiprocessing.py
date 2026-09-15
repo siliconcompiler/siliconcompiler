@@ -1,7 +1,6 @@
 import atexit
 import contextlib
 import logging
-import multiprocessing
 import sys
 import tempfile
 import threading
@@ -13,19 +12,20 @@ from typing import Iterator, Union, Optional, TYPE_CHECKING
 
 from datetime import datetime
 from logging.handlers import QueueHandler
-from multiprocessing.context import BaseContext
-from multiprocessing.managers import SyncManager, RemoteError
 
 from siliconcompiler.utils.settings import SettingsManager
 from siliconcompiler.utils import default_sc_path, default_sc_system_path
 
-from siliconcompiler.report.dashboard.cli.board import Board
 
 if TYPE_CHECKING:
+    from multiprocessing.context import BaseContext
+    from multiprocessing.managers import SyncManager
+
     from siliconcompiler.package.cache import PathCache
+    from siliconcompiler.report.dashboard.cli.board import Board
 
 
-def get_process_context() -> BaseContext:
+def get_process_context() -> "BaseContext":
     """Returns the multiprocessing context used to launch scheduler workers.
 
     SiliconCompiler launches node workers and the run-check pool by handing
@@ -47,6 +47,11 @@ def get_process_context() -> BaseContext:
     platforms callers must guard scripts with ``if __name__ == "__main__"``, as
     has always been required.
     """
+    # Imported here rather than at module scope: multiprocessing and its manager
+    # machinery are among the costlier imports in the tree, and nothing needs
+    # them until a run actually starts.
+    import multiprocessing
+
     if sys.platform.startswith("linux"):
         return multiprocessing.get_context("fork")
     return multiprocessing.get_context("spawn")
@@ -189,6 +194,8 @@ class MPManager(metaclass=_ManagerSingleton):
         multiprocessing manager, and registers the cleanup function (`stop`)
         to be called on program exit.
         """
+        from multiprocessing.managers import SyncManager
+
         self.__start = datetime.now()
         self.__error = False
 
@@ -288,6 +295,8 @@ class MPManager(metaclass=_ManagerSingleton):
         if not _ManagerSingleton.has_cls(MPManager):
             return
 
+        from multiprocessing.managers import RemoteError
+
         manager = MPManager()
 
         try:
@@ -358,7 +367,7 @@ class MPManager(metaclass=_ManagerSingleton):
         manager.__error = True
 
     @staticmethod
-    def get_manager() -> SyncManager:
+    def get_manager() -> "SyncManager":
         """
         Provides access to the shared multiprocessing.Manager instance.
 
@@ -402,7 +411,7 @@ class MPManager(metaclass=_ManagerSingleton):
         return MPManager().__path_cache
 
     @staticmethod
-    def get_dashboard() -> Board:
+    def get_dashboard() -> "Board":
         """
         Lazily initializes and returns the singleton dashboard Board instance.
 
@@ -414,6 +423,11 @@ class MPManager(metaclass=_ManagerSingleton):
         """
         manager = MPManager()
         if not manager.__board:
+            # Imported here rather than at module scope: the board drags in the
+            # whole rich/requests/PIL reporting stack, which no import of
+            # siliconcompiler should have to pay for.
+            from siliconcompiler.report.dashboard.cli.board import Board
+
             with manager.__board_lock:
                 # Double-check locking to ensure thread safety
                 if not manager.__board:
@@ -447,10 +461,22 @@ class MPManager(metaclass=_ManagerSingleton):
 
 
 class MPQueueHandler(QueueHandler):
+    def __init__(self, queue):
+        super().__init__(queue)
+
+        # Bound once here rather than imported at module scope: the queue this
+        # handler wraps is always a SyncManager proxy, so multiprocessing's
+        # manager machinery -- one of the costlier imports in the tree -- is
+        # already loaded by the time a handler exists.
+        from multiprocessing.managers import RemoteError
+
+        self._remote_error = RemoteError
+
     def enqueue(self, record):
         try:
             super().enqueue(record)
-        except (BrokenPipeError, EOFError, ConnectionResetError, OSError, RemoteError):
+        except (BrokenPipeError, EOFError, ConnectionResetError, OSError,
+                self._remote_error):
             # The queue is no longer reachable so fail silently. This is
             # most likely happening during shutdown, when the parent's
             # SyncManager has gone away before the child finished logging.

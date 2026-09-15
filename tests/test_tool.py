@@ -42,7 +42,7 @@ import siliconcompiler.tool as dut_tool
 from siliconcompiler.tool import shutil as imported_shutil
 from siliconcompiler.tool import subprocess as imported_subprocess
 from siliconcompiler.tool import os as imported_os
-from siliconcompiler.tool import psutil as imported_psutil
+import psutil as imported_psutil
 from siliconcompiler.tool import resource as imported_resource
 
 

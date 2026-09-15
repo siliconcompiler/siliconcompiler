@@ -24,7 +24,6 @@ from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
-from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.scheduler import Scheduler, SCRuntimeError
 from siliconcompiler.utils.logging import get_stream_handler, SCHistoryLogHandler
 from siliconcompiler.utils import get_file_ext
@@ -176,6 +175,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 pass
             self.__dashboard = None
         else:
+            # Imported here rather than at module scope so that a run with the
+            # dashboard turned off -- sc-server sets nodashboard on every job --
+            # never loads the rich/requests/PIL reporting stack.
+            from siliconcompiler.report.dashboard.cli import CliDashboard
+
             self.__dashboard = CliDashboard(self)
 
     def __init_option_callbacks(self):
@@ -602,9 +606,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.option.add_fileset(fileset, clobber=True)
 
         # Disable dashboard if breakpoints are set
-        if self.__dashboard and self.__dashboard.is_running() and \
-                CliDashboard.should_disable(self):
-            self.__dashboard.stop()
+        if self.__dashboard and self.__dashboard.is_running():
+            from siliconcompiler.report.dashboard.cli import CliDashboard
+
+            if CliDashboard.should_disable(self):
+                self.__dashboard.stop()
 
     def run(self) -> TProject:
         '''

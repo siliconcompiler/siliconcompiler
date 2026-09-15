@@ -3,7 +3,6 @@
 import distro
 import getpass
 import platform
-import psutil
 import shlex
 import socket
 
@@ -157,6 +156,10 @@ class RecordSchema(BaseSchema):
             "mac": str
             }
         '''
+        # Imported here rather than at module scope: psutil costs ~10 ms to
+        # import and is only needed when a record is being written.
+        import psutil
+
         try:
             for interface, addrs in psutil.net_if_addrs().items():
                 if interface == 'lo':

@@ -1,7 +1,5 @@
 import logging
-import multiprocessing
 import pickle
-import psutil
 import sys
 import threading
 import time
@@ -12,7 +10,6 @@ import os.path
 from typing import List, Dict, Tuple, Optional, Callable, Any, Literal, TYPE_CHECKING
 
 from logging.handlers import QueueListener
-from multiprocessing.managers import RemoteError
 
 from siliconcompiler import NodeStatus
 from siliconcompiler import utils
@@ -26,6 +23,8 @@ from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
 from siliconcompiler.scheduler import SCRuntimeError
 
 if TYPE_CHECKING:
+    import psutil
+
     from siliconcompiler import Flowgraph
     from siliconcompiler.project import Project
     from siliconcompiler.scheduler import SchedulerNode
@@ -210,6 +209,13 @@ class TaskScheduler:
         Args:
             job_log_handler (logging.FileHandler): The handler for the main job log file.
         """
+        # Imported here rather than at module scope: multiprocessing and its
+        # manager machinery are among the costlier imports in the tree, and
+        # nothing needs them until a run actually starts.
+        import multiprocessing
+
+        from multiprocessing.managers import RemoteError
+
         # Call this in case this was invoked without __main__
         multiprocessing.freeze_support()
 
@@ -472,7 +478,7 @@ class TaskScheduler:
             return True
 
     @staticmethod
-    def __descendants_of(proc) -> List[psutil.Process]:
+    def __descendants_of(proc) -> List["psutil.Process"]:
         """Everything a node process has started, at the moment of asking.
 
         Args:
@@ -484,6 +490,10 @@ class TaskScheduler:
                 a pid reused after this snapshot is not mistaken for the process
                 that held it.
         """
+        # Imported here rather than at module scope: psutil costs ~10 ms to
+        # import and is only needed once a run is actually executing.
+        import psutil
+
         try:
             return psutil.Process(proc.pid).children(recursive=True)
         except (psutil.Error, AttributeError, TypeError, ValueError, OSError):
@@ -492,13 +502,15 @@ class TaskScheduler:
             return []
 
     @staticmethod
-    def __end_processes(procs: List[psutil.Process]) -> None:
+    def __end_processes(procs: List["psutil.Process"]) -> None:
         """Ends processes left over from a node, politely and then not.
 
         Args:
             procs (list of psutil.Process): The processes to end. Ones that have
                 already exited are skipped.
         """
+        import psutil
+
         for proc in procs:
             try:
                 proc.terminate()

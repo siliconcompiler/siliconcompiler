@@ -9,18 +9,12 @@ and sends them to specified recipients.
 """
 import json
 import os
-import smtplib
 import uuid
 
 import os.path
-from email.mime.multipart import MIMEMultipart
-
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
 
 from siliconcompiler import sc_open
 from siliconcompiler.utils import default_email_credentials_file, get_file_template
-from siliconcompiler.report import utils as report_utils
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.paths import workdir
 
@@ -136,6 +130,17 @@ def send(project, msg_type, step, index):
     if 'all' not in event and msg_type not in event:
         # nothing to do
         return
+
+    # Imported here rather than at module scope: smtplib pulls in ssl and the
+    # report package pulls in Pillow, and this module is reached from
+    # schedulernode on every run, almost none of which send mail.
+    import smtplib
+
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.mime.application import MIMEApplication
+
+    from siliconcompiler.report import utils as report_utils
 
     cred = __load_config(project)
 

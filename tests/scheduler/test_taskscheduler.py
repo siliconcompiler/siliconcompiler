@@ -7,6 +7,7 @@ import weakref
 
 import pytest
 
+from multiprocessing.managers import RemoteError
 from threading import Lock, Thread
 from unittest.mock import MagicMock
 
@@ -380,7 +381,7 @@ def test_run_completion_leaves_nodes_untouched(large_flow, make_tasks, monkeypat
     ConnectionResetError("reset"),
     EOFError("eof"),
     OSError("oserr"),
-    taskscheduler_module.RemoteError("remote"),
+    RemoteError("remote"),
 ])
 def test_run_log_listener_stop_tolerates_dead_queue(large_flow, make_tasks,
                                                     monkeypatch, exc):
