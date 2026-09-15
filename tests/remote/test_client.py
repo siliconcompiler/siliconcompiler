@@ -416,6 +416,10 @@ def test_get_results_body_matches_published_schema(gcd_nop_project):
        body rejects every fetch a client makes -- on any server that validates
        the body as sent.
     '''
+    # Compiling the published schema needs fastjsonschema, from the server
+    # extra. Everything else in this file is client side and needs neither.
+    pytest.importorskip("fastjsonschema", reason="the server extra is not installed")
+
     from siliconcompiler.remote.server import validate_get_results
 
     client = Client(gcd_nop_project)

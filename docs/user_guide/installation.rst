@@ -188,6 +188,49 @@ Finally, to clone and install SiliconCompiler, run the following:
 .. include:: include/installation_confirm_version.inc
 
 
+.. _install_extras:
+
+Optional features
+-----------------
+
+A default install carries what a local flow needs and nothing more. The
+features below are packaged as extras, installed by naming them in brackets:
+
+.. code-block:: bash
+
+ (venv) pip install --upgrade "siliconcompiler[dashboard]"       # one extra
+ (venv) pip install --upgrade "siliconcompiler[dashboard,server]"  # several
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Extra
+     - Adds
+   * - ``dashboard``
+     - The :ref:`web dashboard <dashboard_tutorial>`, and the ``pandas``
+       DataFrames returned by :meth:`.MetricSchema.summary_table()` and
+       ``report.make_metric_dataframe()``. Printing a summary with
+       :meth:`.Project.summary()` needs neither.
+   * - ``server``
+     - Running your own :ref:`remote server <custom-servers>` with
+       :ref:`sc-server <app-sc-server>`. Submitting jobs to someone else's
+       server does not need it.
+   * - ``cocotb``
+     - The `cocotb <https://www.cocotb.org/>`_ testbench flow.
+   * - ``optimizer``
+     - Parameter optimization through `google-vizier
+       <https://github.com/google/vizier>`_.
+   * - ``docs``
+     - Building this documentation.
+   * - ``test``
+     - Running the test suite. Tests covering an extra that is not installed
+       report themselves as skipped.
+
+Quitting an extra later is ``pip uninstall`` of the packages it brought in;
+SiliconCompiler itself keeps working without them.
+
+
 .. _asic_demo:
 
 ASIC Demo

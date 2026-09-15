@@ -1,4 +1,6 @@
+import importlib.util
 import pytest
+import sys
 
 from datetime import datetime, timezone
 from io import StringIO
@@ -10,6 +12,13 @@ from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.schema_support.record import RecordTime
 from siliconcompiler.schema import PerNode, Scope
 from siliconcompiler.tools.builtin.nop import NOPTask
+
+
+# summary_table() hands back a DataFrame, the one part of MetricSchema that
+# needs pandas. pandas is not in the default install, so these skip without it.
+requires_pandas = pytest.mark.skipif(
+    importlib.util.find_spec("pandas") is None,
+    reason="pandas is not installed")
 
 
 def test_keys():
@@ -389,6 +398,7 @@ def test_record_totaltime_overlap_staggered_with_all_contained():
     assert schema.get("totaltime", step="testtwo", index="0") == 15.0
 
 
+@requires_pandas
 def test_summary_table_all_nodes():
     schema = MetricSchema()
 
@@ -419,6 +429,7 @@ def test_summary_table_all_nodes():
     }
 
 
+@requires_pandas
 def test_summary_table_nodes_sorted():
     schema = MetricSchema()
 
@@ -449,6 +460,7 @@ def test_summary_table_nodes_sorted():
     }
 
 
+@requires_pandas
 def test_summary_table_select_nodes():
     schema = MetricSchema()
 
@@ -473,6 +485,7 @@ def test_summary_table_select_nodes():
     }
 
 
+@requires_pandas
 def test_summary_table_raw():
     schema = MetricSchema()
 
@@ -503,6 +516,7 @@ def test_summary_table_raw():
     }
 
 
+@requires_pandas
 def test_summary_table_multiple_metrics():
     schema = MetricSchema()
 
@@ -543,6 +557,7 @@ def test_summary_table_multiple_metrics():
     }
 
 
+@requires_pandas
 def test_summary_table_no_trim():
     schema = MetricSchema()
 
@@ -693,3 +708,66 @@ def test_summary_column_width(capsys):
         '         unit     s...0     s...1     s...2     s...3',
         'tasktime    s  0:05.000  0:07.000  0:12.500  0:15.500',
         '----------------------------------------------------------------------------']
+
+
+def test_summary_without_pandas(capsys):
+    # pandas is not installed by default, so printing a summary must not reach
+    # for it. None in sys.modules makes importing it raise.
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("tasktime", 7, step="step", index="1")
+    assert schema.set("tasktime", 12.5, step="step", index="2")
+    assert schema.set("tasktime", 15.5, step="step", index="3")
+
+    with patch.dict(sys.modules, {"pandas": None}):
+        with patch("shutil.get_terminal_size") as get_terminal_size:
+            get_terminal_size.return_value.columns = 80
+            schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")])
+
+    out = capsys.readouterr().out
+    assert out.splitlines() == [
+        '----------------------------------------------------------------------------',
+        'SUMMARY :',
+        'pdk     : asap7',
+        'library : asap7_library',
+        '',
+        '         unit    step/0    step/1    step/2    step/3',
+        'tasktime    s  0:05.000  0:07.000  0:12.500  0:15.500',
+        '----------------------------------------------------------------------------']
+
+
+def test_summary_empty_without_pandas(capsys):
+    with patch.dict(sys.modules, {"pandas": None}):
+        with patch("shutil.get_terminal_size") as get_terminal_size:
+            get_terminal_size.return_value.columns = 80
+            MetricSchema().summary(headers=[("pdk", "asap7")])
+
+    assert "  No metrics to display!" in capsys.readouterr().out
+
+
+def test_summary_table_requires_pandas():
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+
+    with patch.dict(sys.modules, {"pandas": None}):
+        with pytest.raises(ModuleNotFoundError,
+                           match="pandas is required by summary_table"):
+            schema.summary_table()
+
+
+@requires_pandas
+def test_summary_matches_summary_table():
+    # The printed summary and the DataFrame are built from the same data.
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("errors", 3, step="step", index="0")
+
+    data, row_labels, column_labels = schema._summary_data()
+    table = schema.summary_table()
+
+    assert row_labels == table.index.to_list()
+    assert column_labels == table.columns.to_list()
+    assert data == table.values.tolist()

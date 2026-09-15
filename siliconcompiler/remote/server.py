@@ -2,7 +2,6 @@
 
 import asyncio
 import contextlib
-import fastjsonschema
 import json
 import logging
 import os
@@ -13,9 +12,7 @@ import threading
 import time
 import uuid
 
-from aiohttp import web
 from pathlib import Path
-from fastjsonschema import JsonSchemaException
 
 import os.path
 
@@ -34,34 +31,68 @@ from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.utils import tar_extract_kwargs
 from siliconcompiler.utils.paths import jobdir
 
+# aiohttp and fastjsonschema ship in the "server" extra rather than the default
+# install, since only a server needs them. Nothing above run() uses either, so
+# importing this module, building a Server and rendering its command line all
+# work without the extra, and run() is where a missing one is reported.
+try:
+    from aiohttp import web
+    from fastjsonschema import JsonSchemaException
+except ModuleNotFoundError as e:
+    web = None
+    JsonSchemaException = None
+    missing_server_dependency = e.name
+else:
+    missing_server_dependency = None
 
-# Compile validation code for API request bodies.
+
+# Validation for the API request bodies.
 api_dir = Path(__file__).parent / 'server_schema' / 'requests'
 
+
+class _RequestSchema:
+    """
+    The validator for one API request body, read and compiled on first use.
+
+    Compiling needs fastjsonschema, which arrives with the "server" extra, so
+    it cannot happen while this module is being imported.
+
+    Args:
+        name (str): Base name of the schema file under
+            ``server_schema/requests``.
+    """
+
+    def __init__(self, name):
+        self.__name = name
+        self.__validate = None
+
+    def __call__(self, request):
+        if self.__validate is None:
+            import fastjsonschema
+            with open(api_dir / f'{self.__name}.json') as schema:
+                self.__validate = fastjsonschema.compile(json.loads(schema.read()))
+
+        return self.__validate(request)
+
+
 # 'remote_run': Run a stage of a job using the server's cluster settings.
-with open(api_dir / 'remote_run.json') as schema:
-    validate_remote_run = fastjsonschema.compile(json.loads(schema.read()))
+validate_remote_run = _RequestSchema('remote_run')
 
 # 'check_progress': Check whether a given job stage is currently running.
-with open(api_dir / 'check_progress.json') as schema:
-    validate_check_progress = fastjsonschema.compile(json.loads(schema.read()))
+validate_check_progress = _RequestSchema('check_progress')
 
 # 'check_server': Check whether a given job stage is currently running.
-with open(api_dir / 'check_server.json') as schema:
-    validate_check_server = fastjsonschema.compile(json.loads(schema.read()))
+validate_check_server = _RequestSchema('check_server')
 
 # 'cancel_job': Cancel a running job.
-with open(api_dir / 'cancel_job.json') as schema:
-    validate_cancel_job = fastjsonschema.compile(json.loads(schema.read()))
+validate_cancel_job = _RequestSchema('cancel_job')
 
 # 'delete_job': Delete a job and remove it from server-side storage.
-with open(api_dir / 'delete_job.json') as schema:
-    validate_delete_job = fastjsonschema.compile(json.loads(schema.read()))
+validate_delete_job = _RequestSchema('delete_job')
 
 # 'get_results': Fetch the results of a job run.
 # Currently, the 'job_hash' is included in the URL for this call.
-with open(api_dir / 'get_results.json') as schema:
-    validate_get_results = fastjsonschema.compile(json.loads(schema.read()))
+validate_get_results = _RequestSchema('get_results')
 
 
 class Server(ServerSchema):
@@ -171,6 +202,12 @@ class Server(ServerSchema):
             node["endtime"] = time.time()
 
     def run(self):
+        if missing_server_dependency:
+            raise ModuleNotFoundError(
+                f"{missing_server_dependency} is required to run the SiliconCompiler "
+                "server, install it with 'pip install siliconcompiler[server]'",
+                name=missing_server_dependency)
+
         # makedirs() raises if it cannot deliver the directory, so there is
         # nothing left to test for afterwards.
         os.makedirs(self.nfs_mount, exist_ok=True)

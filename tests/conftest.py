@@ -549,6 +549,10 @@ def _shutdown_server(proc, timeout=10):
 
 @pytest.fixture
 def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeypatch):
+    # Every consumer of this fixture launches a real sc-server, which runs on
+    # aiohttp from the "server" extra.
+    pytest.importorskip("aiohttp", reason="the server extra is not installed")
+
     srv_procs = []
 
     def start_server(cluster='local', auth=False, extra_args=None):
