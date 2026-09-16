@@ -1382,6 +1382,70 @@ def test_full_reset_keeps_a_skipped_node_skipped(gcd_design, project_logger, cap
     assert "will not receive required input" not in caplog.text
 
 
+class RuntimeSkipTask(Task):
+    """Removes itself from pre_process(), the way macro_placement does when there
+    are no macros to place. Unlike a setup() skip this leaves a node manifest
+    behind, recording SKIPPED."""
+
+    def __init__(self):
+        super().__init__()
+        self.add_parameter("enabled", "bool", "run this node", defvalue=False)
+
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "runtimeskip"
+
+    def setup(self):
+        for name in sorted(self.get_files_from_input_nodes()):
+            self.add_input_file(name)
+            self.add_output_file(name)
+
+    def pre_process(self):
+        if not self.get("var", "enabled"):
+            raise TaskSkip("disabled")
+        super().pre_process()
+
+    def run(self):
+        for name in self.get("input"):
+            shutil.copy(os.path.join("inputs", name), os.path.join("outputs", name))
+        return 0
+
+
+def _runtime_skip_project(gcd_design, enabled):
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = Flowgraph("skipflow")
+    flow.node("gen", VersionedGenTask())
+    flow.node("middle", RuntimeSkipTask())
+    flow.node("consume", ConsumeTask())
+    flow.edge("gen", "middle")
+    flow.edge("middle", "consume")
+    project.set_flow(flow)
+    RuntimeSkipTask.find_task(project).set("var", "enabled", enabled,
+                                           step="middle", index="0")
+    return project
+
+
+@pytest.mark.timeout(60)
+def test_reenabling_a_previously_skipped_node_runs_it(gcd_design):
+    """SKIPPED describes a run, not a result. A runtime skip leaves a manifest
+    recording it, and forwarding that into the next run strands the node: it is
+    excused from IO validation, consumers look straight through it, and
+    TaskScheduler only creates PENDING nodes -- so a step the user just
+    re-enabled would silently never run."""
+    _runtime_skip_project(gcd_design, False).run()
+
+    second = _runtime_skip_project(gcd_design, True)
+    second.run()
+
+    assert second.history("job0").get("record", "status", step="middle", index="0") == \
+        NodeStatus.SUCCESS
+
+
 def test_mark_pending_leaves_a_skipped_node_alone(basic_project):
     """The descendant loop has always honoured __skippedtasks; so must the node
     itself, or a caller that marks every node undoes its own setup."""

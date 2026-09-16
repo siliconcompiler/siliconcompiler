@@ -974,6 +974,17 @@ class Scheduler:
                         node_status = schema.get('record', 'status', step=step, index=index)
                     except:  # noqa E722
                         pass
+                    if node_status == NodeStatus.SKIPPED and \
+                            (step, index) not in self.__skippedtasks:
+                        # A previous run removed this node; this run's setup() did
+                        # not. SKIPPED is a statement about a run, not a result to
+                        # carry over, and forwarding it here strands the node:
+                        # __is_skipped() excuses it from IO validation,
+                        # get_node_inputs looks straight through it, and
+                        # TaskScheduler only creates nodes that are PENDING -- so a
+                        # step the user just re-enabled would silently never run.
+                        # __reset_flow_nodes already set PENDING; leave it.
+                        node_status = None
                     if node_status:
                         # Forward old status
                         self.__record.set('status', node_status, step=step, index=index)
