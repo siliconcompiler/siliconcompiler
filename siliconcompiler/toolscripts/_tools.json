@@ -452,7 +452,7 @@
       "graphviz",
       "xdot"
     ],
-    "git-commit": "v0.68",
+    "git-commit": "v0.69",
     "version-prefix": "",
     "auto-update": true,
     "docker-drop-pkgs": [
