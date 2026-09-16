@@ -720,7 +720,11 @@ def test_get_check_changed_keys(project):
         values, paths = node.get_check_changed_keys()
     assert values == {
         ('tool', 'builtin', 'task', 'nop', 'threads'),
-        ('tool', 'builtin', 'task', 'nop', 'option')
+        ('tool', 'builtin', 'task', 'nop', 'option'),
+        # Declared IO is compared as a value: the declaration changing is the
+        # signal, and the files themselves are checked elsewhere.
+        ('tool', 'builtin', 'task', 'nop', 'input'),
+        ('tool', 'builtin', 'task', 'nop', 'output')
     }
     assert paths == {
         ('tool', 'builtin', 'task', 'nop', 'refdir'),
@@ -738,7 +742,9 @@ def test_get_check_changed_keys_follows_the_task(project):
     node = SchedulerNode(project, "stepone", "0")
     with node.runtime():
         values, paths = node.get_check_changed_keys()
-    assert values == {("option", "novercheck")}
+    assert values == {("option", "novercheck"),
+                      ("tool", "ownkeys", "task", "ownkeys", "input"),
+                      ("tool", "ownkeys", "task", "ownkeys", "output")}
     assert paths == {("option", "builddir")}
 
 
@@ -765,7 +771,9 @@ def test_get_check_changed_keys_with_require(project):
         ('library', 'testdesign', 'fileset', 'rtl', 'param', 'N'),
         ('tool', 'builtin', 'task', 'nop', 'env', "BUILD"),
         ('tool', 'builtin', 'task', 'nop', 'threads'),
-        ('tool', 'builtin', 'task', 'nop', 'option')
+        ('tool', 'builtin', 'task', 'nop', 'option'),
+        ('tool', 'builtin', 'task', 'nop', 'input'),
+        ('tool', 'builtin', 'task', 'nop', 'output')
     }
     assert paths == {
         ('library', 'testdesign', 'fileset', 'rtl', 'idir'),
