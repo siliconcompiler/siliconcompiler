@@ -18,6 +18,21 @@ fi
 install_prereq_group "Development Tools"
 install_prereqs git wget
 
+# RHEL 8 ships python 3.6 as python3, and verilator's build-time code
+# generators -- astgen, vlcovgen, bisonpre, flexfix -- use the walrus operator,
+# which needs 3.8 or newer. Install a newer interpreter alongside the system one
+# rather than displacing it: python3 is what the distribution's own tooling, yum
+# included, runs on, and these scripts also call it for _tools.py.
+#
+# configure picks the interpreter up from PYTHON3 (AC_CHECK_PROG lets the
+# environment override the probe) and substitutes it into the makefiles, so
+# every generator the build runs uses it. Nothing verilator installs needs it
+# afterwards: bin/verilator is perl.
+if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)'; then
+    install_prereqs python3.12
+    export PYTHON3=python3.12
+fi
+
 mkdir -p deps
 cd deps
 
