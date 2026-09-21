@@ -273,21 +273,23 @@ class InitFloorplanTask(APRTask,
 
             area = self.project.constraint.area
 
-            # sc_init_floorplan.tcl reads the two corners of a rectangle, and OpenROAD's
-            # polygonal floorplan support is not usable yet, so refuse a polygon rather
-            # than silently floorplanning its first two points.
-            for name, points in (("die", area.get_diearea(step=self.step, index=self.index)),
-                                 ("core", area.get_corearea(step=self.step, index=self.index))):
-                if points and len(points) != 2:
-                    raise ValueError(
-                        f"openroad does not support a polygonal {name} area yet, "
-                        f"the {name} area must be given as two points")
-
             floorplan_areas = area.calc_floorplan_areas(step=self.step, index=self.index)
-            if floorplan_areas:
+            if not floorplan_areas and self.get("var", "padringfileset"):
+                # A padring is drawn at absolute coordinates, so it only lines up with a
+                # die the script was told the size of. Sizing from utilization and aspect
+                # ratio picks that size after the fact, which would place the ring
+                # somewhere other than the die edge. Requiring the areas that were not
+                # set fails the node with the keypaths that have to be filled in.
+                self.logger.warning("A padring needs an explicit die and core area, "
+                                    "sizing the floorplan from the density and aspect "
+                                    "ratio would not line the ring up with the die")
+                self.add_required_key(area, "diearea")
+                self.add_required_key(area, "corearea")
+            elif floorplan_areas:
                 # sc_init_floorplan.tcl needs both an explicit die and core area, so record
                 # the area that was derived from the core margin.
                 diearea, corearea = floorplan_areas
+
                 from_coremargin = False
                 if not area.get_diearea(step=self.step, index=self.index):
                     area.set_diearea(diearea, step=self.step, index=self.index)

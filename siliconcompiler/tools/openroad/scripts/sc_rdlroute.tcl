@@ -86,19 +86,35 @@ if { [llength $sc_floorplan_def] > 0 } {
     puts "Reading floorplan DEF: ${def}"
     read_def -floorplan_initialize $def
 } else {
-    #NOTE: assuming a two tuple value as lower left, upper right
+    # NOTE: two points are the lower left and upper right of a rectangle, more than
+    # two are the vertices of a rectilinear outline.
     set sc_diearea [sc_cfg_get constraint area diearea]
 
-    # Use die and core sizes
-    set sc_diesize "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
+    # Use die and core sizes, flattened into "x y x y ..."
+    set sc_diesize [concat {*}$sc_diearea]
 
-    set outline [odb::Rect]
-    $outline set_xlo [ord::microns_to_dbu [lindex $sc_diesize 0]]
-    $outline set_ylo [ord::microns_to_dbu [lindex $sc_diesize 1]]
-    $outline set_xhi [ord::microns_to_dbu [lindex $sc_diesize 2]]
-    $outline set_yhi [ord::microns_to_dbu [lindex $sc_diesize 3]]
+    if { [llength $sc_diesize] > 4 } {
+        if { [sc_check_version 24 3 7516] == 0 } {
+            utl::error FLW 1 "polygonal floorplans are not supported in this version of\
+                openroad"
+        }
 
-    [ord::get_db_block] setDieArea $outline
+        set outline []
+        foreach { x y } $sc_diesize {
+            lappend outline [ord::microns_to_dbu $x]
+            lappend outline [ord::microns_to_dbu $y]
+        }
+
+        ifp::make_polygon_die $outline
+    } else {
+        set outline [odb::Rect]
+        $outline set_xlo [ord::microns_to_dbu [lindex $sc_diesize 0]]
+        $outline set_ylo [ord::microns_to_dbu [lindex $sc_diesize 1]]
+        $outline set_xhi [ord::microns_to_dbu [lindex $sc_diesize 2]]
+        $outline set_yhi [ord::microns_to_dbu [lindex $sc_diesize 3]]
+
+        [ord::get_db_block] setDieArea $outline
+    }
 }
 
 puts "Floorplan information:"
@@ -121,8 +137,15 @@ foreach rdl_file [sc_cfg_tool_task_get var rdlroute] {
 # Do fill
 ######################
 
+# System reserved obstructions fill the gap between a polygonal die outline and its
+# bounding box, so they are left alone here: they are the die shape rather than a
+# routing constraint, and odb refuses to delete them anyway (ODB-1111).
+set sc_has_system_obs [sc_check_version 24 3 4645]
 set removed_obs 0
 foreach obstruction [[ord::get_db_block] getObstructions] {
+    if { $sc_has_system_obs && [$obstruction isSystemReserved] } {
+        continue
+    }
     odb::dbObstruction_destroy $obstruction
     incr removed_obs
 }

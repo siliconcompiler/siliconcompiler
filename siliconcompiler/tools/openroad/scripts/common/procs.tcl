@@ -1531,6 +1531,17 @@ proc sc_format_area { area } {
     return "([lindex $area 0], [lindex $area 1]) - ([lindex $area 2], [lindex $area 3])"
 }
 
+# Rewrite a "x0 y0 x1 y1" rectangle as the four corners of the same shape, walked
+# counter-clockwise. An outline that is already a polygon is returned untouched.
+proc sc_area_to_polygon { area } {
+    if { [llength $area] != 4 } {
+        return $area
+    }
+
+    lassign $area x0 y0 x1 y1
+    return [list $x0 $y0 $x1 $y0 $x1 $y1 $x0 $y1]
+}
+
 proc sc_is_scene_enabled { scene check } {
     if { [lsearch -exact [sc_cfg_get constraint timing scenario $scene check] $check] != -1 } {
         return true
