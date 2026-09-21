@@ -44,16 +44,32 @@ if { [llength $sc_floorplan_def] > 0 } {
 } else {
     set sc_site [lindex [sc_cfg_get library $sc_mainlib asic site] 0]
 
-    #NOTE: assuming a two tuple value as lower left, upper right
+    # NOTE: two points are the lower left and upper right of a rectangle, more than
+    # two are the vertices of a rectilinear outline.
     set sc_diearea [sc_cfg_get constraint area diearea]
     set sc_corearea [sc_cfg_get constraint area corearea]
     if {
         $sc_diearea != "" &&
         $sc_corearea != ""
     } {
-        # Use die and core sizes
-        set sc_diesize "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
-        set sc_coresize "[lindex $sc_corearea 0] [lindex $sc_corearea 1]"
+        # Use die and core sizes, flattened into the "x y x y ..." initialize_floorplan
+        # takes for both a rectangle and a polygon.
+        set sc_diesize [concat {*}$sc_diearea]
+        set sc_coresize [concat {*}$sc_corearea]
+
+        # initialize_floorplan reads more than four coordinates as a polygon, and then
+        # wants one for both areas. A rectangle is a polygon with four corners, so spell
+        # it out that way when the other area brought a polygon along. This is what lets
+        # a rectangular core sit in a polygonal die, and the other way round.
+        if { [llength $sc_diesize] > 4 || [llength $sc_coresize] > 4 } {
+            if { [sc_check_version 24 3 7516] == 0 } {
+                utl::error FLW 1 "polygonal floorplans are not supported in this version\
+                    of openroad"
+            }
+
+            set sc_diesize [sc_area_to_polygon $sc_diesize]
+            set sc_coresize [sc_area_to_polygon $sc_coresize]
+        }
 
         initialize_floorplan -die_area $sc_diesize \
             -core_area $sc_coresize \

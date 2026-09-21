@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
+import pathlib
 import re
 import pytest
 
@@ -2590,20 +2591,114 @@ def test_openroad_init_floorplan_derives_corearea_no_coremargin(asic_gcd):
     assert "constraint,area,coremargin" in require
 
 
-@pytest.mark.parametrize("area,expect", [
-    ("diearea", "die"),
-    ("corearea", "core"),
-])
-def test_openroad_init_floorplan_rejects_polygon(asic_gcd, area, expect):
-    # sc_init_floorplan.tcl floorplans the first two points of an outline, so a polygon has
-    # to be refused until OpenROAD's polygonal floorplan support is usable.
-    getattr(asic_gcd.constraint.area, f"set_{area}")(
-        [(0, 0), (0, 200), (200, 200), (200, 100), (300, 100), (300, 0)])
+def test_openroad_init_floorplan_polygon_derives_corearea(asic_gcd):
+    # initialize_floorplan takes a rectilinear outline, so a polygonal die is passed
+    # through and its core is inset from it edge by edge.
+    area = asic_gcd.constraint.area
+    area.set_diearea([(0, 0), (300, 0), (300, 100), (200, 100), (200, 200), (0, 200)])
+    assert area.get_coremargin() == 1.0, "freepdk45 must supply a core margin"
 
-    with pytest.raises(ValueError,
-                       match=rf"^openroad does not support a polygonal {expect} area yet, "
-                             rf"the {expect} area must be given as two points$"):
-        _setup_node(asic_gcd, "floorplan.init")
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert area.get_diearea(step="floorplan.init", index="0") == [
+        (0.0, 0.0), (300.0, 0.0), (300.0, 100.0),
+        (200.0, 100.0), (200.0, 200.0), (0.0, 200.0)]
+    # The notch corner is concave, so both of its edges inset away from it and the
+    # core is trimmed by more than the margin right at that corner.
+    assert area.get_corearea(step="floorplan.init", index="0") == [
+        (1.0, 1.0), (299.0, 1.0), (299.0, 99.0),
+        (199.0, 99.0), (199.0, 199.0), (1.0, 199.0)]
+
+    assert "constraint,area,diearea" in require
+    assert "constraint,area,corearea" in require
+    assert "constraint,area,coremargin" in require
+
+
+def test_openroad_init_floorplan_polygon_explicit_areas(asic_gcd):
+    # Both outlines given by hand are passed through untouched.
+    area = asic_gcd.constraint.area
+    diearea = [(0, 0), (300, 0), (300, 100), (200, 100), (200, 200), (0, 200)]
+    corearea = [(5, 5), (295, 5), (295, 95), (195, 95), (195, 195), (5, 195)]
+    area.set_diearea(diearea)
+    area.set_corearea(corearea)
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert area.get_diearea(step="floorplan.init", index="0") == \
+        [(float(x), float(y)) for x, y in diearea]
+    assert area.get_corearea(step="floorplan.init", index="0") == \
+        [(float(x), float(y)) for x, y in corearea]
+
+    assert "constraint,area,diearea" in require
+    assert "constraint,area,corearea" in require
+    assert "constraint,area,coremargin" not in require
+
+
+@pytest.mark.parametrize("diearea,corearea", [
+    ([(0, 0), (300, 0), (300, 100), (200, 100), (200, 200), (0, 200)], [(5, 5), (295, 195)]),
+    ([(0, 0), (300, 200)], [(5, 5), (295, 5), (295, 95), (195, 95), (195, 195), (5, 195)]),
+])
+def test_openroad_init_floorplan_allows_mixed_shapes(asic_gcd, diearea, corearea):
+    # sc_init_floorplan.tcl spells a rectangle out as its four corners when the other
+    # area is a polygon, so a rectangle and a polygon can be paired up.
+    asic_gcd.constraint.area.set_diearea(diearea)
+    asic_gcd.constraint.area.set_corearea(corearea)
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert asic_gcd.constraint.area.get_diearea(step="floorplan.init", index="0") == \
+        [(float(x), float(y)) for x, y in diearea]
+    assert asic_gcd.constraint.area.get_corearea(step="floorplan.init", index="0") == \
+        [(float(x), float(y)) for x, y in corearea]
+
+    assert "constraint,area,diearea" in require
+    assert "constraint,area,corearea" in require
+
+
+def _add_padring_fileset(project, fileset="padring"):
+    """Give the design a padring fileset and point init_floorplan at it."""
+    src = pathlib.Path("padring.tcl")
+    src.write_text("# padring")
+
+    design = project.design
+    design.set_dataroot("padring-pytest", str(src.parent.resolve()))
+    with design.active_dataroot("padring-pytest"), design.active_fileset(fileset):
+        design.add_file(src.name, filetype="tcl")
+
+    init_floorplan.InitFloorplanTask.find_task(project).add_openroad_padringfileset(fileset)
+
+
+def test_openroad_init_floorplan_padring_requires_explicit_area(asic_gcd, caplog):
+    # A padring sits at absolute coordinates, so density driven sizing would pick a die
+    # that does not line up with it. Requiring the unset areas is what fails the node.
+    _add_padring_fileset(asic_gcd)
+    asic_gcd._logger_console.setLevel("WARNING")
+
+    node = SchedulerNode(asic_gcd, "floorplan.init", "0")
+    with node.runtime():
+        node.setup()
+        require = node.task.get("require")
+
+        assert "A padring needs an explicit die and core area" in caplog.text
+
+        assert "constraint,area,diearea" in require
+        assert "constraint,area,corearea" in require
+        # Neither area has a value, so the node cannot run.
+        assert node.validate() is False
+
+    assert "No value set for required keypath [constraint,area,diearea]" in caplog.text
+    assert "No value set for required keypath [constraint,area,corearea]" in caplog.text
+
+
+def test_openroad_init_floorplan_padring_with_explicit_area(asic_gcd):
+    # The same padring is fine once the die has been sized.
+    _add_padring_fileset(asic_gcd)
+    asic_gcd.constraint.area.set_dieoutline(300, 600)
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert "constraint,area,diearea" in require
+    assert "constraint,area,corearea" in require
 
 
 def test_openroad_init_floorplan_density_sizing(asic_gcd):
@@ -2945,6 +3040,22 @@ def test_openroad_rdlroute_skips_fill_deck_when_disabled(asic_gcd, tmp_path):
     require = _setup_node(asic_gcd, "rdlroute").get("require")
 
     assert f"library,{pdk.name},fileset,{fileset},file,fill" not in require
+
+
+@pytest.mark.parametrize("diearea", [
+    [(0, 0), (300, 200)],
+    [(0, 0), (300, 0), (300, 80), (200, 80), (200, 200), (100, 200), (100, 80), (0, 80)],
+])
+def test_openroad_rdlroute_requires_diearea(asic_gcd, diearea):
+    """sc_rdlroute.tcl floorplans a rectangle or a polygon, so both are accepted."""
+    asic_gcd.set_flow(InterposerFlow())
+    asic_gcd.constraint.area.set_diearea(diearea)
+
+    require = _setup_node(asic_gcd, "rdlroute").get("require")
+
+    assert asic_gcd.constraint.area.get_diearea(step="rdlroute", index="0") == \
+        [(float(x), float(y)) for x, y in diearea]
+    assert "constraint,area,diearea" in require
 
 
 def test_openroad_repair_design_parameter_tie_separation():
