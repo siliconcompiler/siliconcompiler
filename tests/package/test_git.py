@@ -441,9 +441,16 @@ def test_git_path_hostless_url(monkeypatch):
 
 
 def test_git_env_disables_prompt_without_tty():
-    """Without a terminal the prompt cannot be answered, so it is turned off."""
+    """
+    Without a terminal neither prompting route can be answered, so both close.
+
+    GIT_TERMINAL_PROMPT only closes the terminal one. An askpass helper left in
+    the environment would still be called and would block on a dialog no build
+    machine shows, so GIT_ASKPASS is emptied as well -- git then skips askpass
+    entirely, including the core.askpass and SSH_ASKPASS fallbacks.
+    """
     with patch.object(sys, "stdin", MagicMock(isatty=MagicMock(return_value=False))):
-        assert GitResolver._git_env() == {"GIT_TERMINAL_PROMPT": "0"}
+        assert GitResolver._git_env() == {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": ""}
 
 
 def test_git_env_leaves_interactive_alone():
@@ -457,7 +464,56 @@ def test_git_env_handles_closed_stdin():
     stdin = MagicMock()
     stdin.isatty.side_effect = ValueError("I/O operation on closed file")
     with patch.object(sys, "stdin", stdin):
-        assert GitResolver._git_env() == {"GIT_TERMINAL_PROMPT": "0"}
+        assert GitResolver._git_env() == {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": ""}
+
+
+@pytest.mark.parametrize("url,expect", [
+    ("https://x-access-token:ghs_SECRET@github.com/o/r.git",
+     "https://x-access-token:***@github.com/o/r.git"),
+    ("https://oauth2:SECRET@gitlab.com/o/r.git",
+     "https://oauth2:***@gitlab.com/o/r.git"),
+    ("https://x-token-auth:SECRET@bitbucket.org/o/r.git",
+     "https://x-token-auth:***@bitbucket.org/o/r.git"),
+    # Self-hosted keeps its public username too.
+    ("https://oauth2:SECRET@gitlab.corp.com:8443/o/r.git",
+     "https://oauth2:***@gitlab.corp.com:8443/o/r.git"),
+    # Fallback form: the username IS the token, so it cannot be shown.
+    ("https://SECRET:@git.example.com/o/r.git", "https://***@git.example.com/o/r.git"),
+    ("https://SECRET:@[::1]:8443/o/r.git", "https://***@[::1]:8443/o/r.git"),
+    # A username this resolver did not choose is not known to be public.
+    ("https://myuser:SECRET@git.example.com/o/r.git",
+     "https://***@git.example.com/o/r.git"),
+    # Nothing to redact.
+    ("https://github.com/o/r.git", "https://github.com/o/r.git"),
+])
+def test_redact_url(url, expect):
+    """No credential reaches the log, whichever URL form carried it."""
+    redacted = GitResolver._redact_url(url)
+    assert redacted == expect
+    assert "SECRET" not in redacted
+
+
+def test_clone_logs_redacted_url_but_clones_with_the_real_one(monkeypatch, caplog):
+    """The log is redacted while git still receives the working credential."""
+    monkeypatch.setenv("GITHUB_TOKEN", "ghs_SECRET")
+    proj = Project("testproj")
+    resolver = GitResolver("test", proj, "git+https://github.com/owner/repo.git", "main")
+    resolver.logger.setLevel(logging.INFO)
+
+    mock_repo = MagicMock()
+    mock_repo.submodules = []
+
+    import siliconcompiler.package.git as git_module
+    with patch.object(git_module, "Repo") as mock_repo_class, \
+         patch.object(GitResolver, "_repo_uses_lfs", return_value=False):
+        mock_repo_class.clone_from.return_value = mock_repo
+        resolver.resolve_remote()
+
+    assert "ghs_SECRET" not in caplog.text
+    assert "x-access-token:***@github.com" in caplog.text
+    # ...but the clone itself got the real credential.
+    assert mock_repo_class.clone_from.call_args[0][0] == \
+        "https://x-access-token:ghs_SECRET@github.com/owner/repo.git"
 
 
 @pytest.mark.parametrize("error", [

@@ -178,6 +178,38 @@ class GitResolver(RemoteResolver):
                 return forge
         return None
 
+    @classmethod
+    def _redact_url(cls, url: str) -> str:
+        """
+        Replaces the credential in ``url`` with a placeholder, for logging.
+
+        :attr:`git_path` carries the token as basic-auth userinfo, and the line
+        that announces a clone reaches both the console and the on-disk job log.
+        GitHub Actions masks its own registered secrets wherever they appear, but
+        nothing else does, so the URL is redacted here rather than relied upon to
+        be masked downstream.
+
+        The username survives only when it is the fixed, public one this resolver
+        picked for the host. In the fallback form the username *is* the token, so
+        there it goes too.
+
+        Args:
+            url (str): The URL to redact.
+
+        Returns:
+            str: The URL with any credential replaced.
+        """
+        parsed = url_parse.urlparse(url)
+        if not parsed.netloc or '@' not in parsed.netloc:
+            return url
+        host = parsed.netloc.rpartition('@')[2]
+        user = parsed.username
+        if user and user == cls._token_username(parsed.hostname):
+            userinfo = f'{user}:***'
+        else:
+            userinfo = '***'
+        return parsed._replace(netloc=f'{userinfo}@{host}').geturl()
+
     def _get_token(self, hostname: Optional[str]) -> Optional[str]:
         """
         Finds an authentication token for ``hostname`` in the environment.
@@ -215,6 +247,15 @@ class GitResolver(RemoteResolver):
         failure back into a clean one. An interactive session is left alone, so a
         developer without a token is still asked for one.
 
+        ``GIT_TERMINAL_PROMPT`` closes only the *terminal* route. If an askpass
+        helper is reachable -- ``GIT_ASKPASS``, ``core.askpass`` or
+        ``SSH_ASKPASS``, and a macOS session usually has one -- git calls that
+        instead and waits on a dialog that a build machine will never show, so
+        the clone hangs rather than failing. Setting ``GIT_ASKPASS`` to an empty
+        string is what stops that: git finds the variable set, finds it empty,
+        and skips every askpass route including the two it would otherwise fall
+        back to.
+
         Returns:
             dict: Environment variables to set, empty when running interactively.
         """
@@ -225,7 +266,7 @@ class GitResolver(RemoteResolver):
             interactive = False
         if interactive:
             return {}
-        return {'GIT_TERMINAL_PROMPT': '0'}
+        return {'GIT_TERMINAL_PROMPT': '0', 'GIT_ASKPASS': ''}
 
     @property
     def git_path(self) -> str:
@@ -377,7 +418,8 @@ class GitResolver(RemoteResolver):
         env = self._git_env()
         try:
             path = self.git_path
-            self.logger.info(f'Cloning {self.display_name} data from {path}')
+            self.logger.info(
+                f'Cloning {self.display_name} data from {self._redact_url(path)}')
             repo = Repo.clone_from(path, self.cache_path,
                                    recurse_submodules=self.include_submodules,
                                    env=env or None)
