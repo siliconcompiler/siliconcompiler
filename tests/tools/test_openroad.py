@@ -2670,24 +2670,21 @@ def _add_padring_fileset(project, fileset="padring"):
 
 def test_openroad_init_floorplan_padring_requires_explicit_area(asic_gcd, caplog):
     # A padring sits at absolute coordinates, so density driven sizing would pick a die
-    # that does not line up with it. Requiring the unset areas is what fails the node.
+    # that does not line up with it. Requiring the unset areas is what fails the node:
+    # validate() rejects a required keypath that has no value, which
+    # tests/scheduler/test_scheduler.py covers, so this only checks the areas are asked
+    # for. Calling validate() here would resolve every required path and fetch the PDK.
     _add_padring_fileset(asic_gcd)
-    asic_gcd._logger_console.setLevel("WARNING")
 
-    node = SchedulerNode(asic_gcd, "floorplan.init", "0")
-    with node.runtime():
-        node.setup()
-        require = node.task.get("require")
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
 
-        assert "A padring needs an explicit die and core area" in caplog.text
+    assert "A padring needs an explicit die and core area" in caplog.text
 
-        assert "constraint,area,diearea" in require
-        assert "constraint,area,corearea" in require
-        # Neither area has a value, so the node cannot run.
-        assert node.validate() is False
-
-    assert "No value set for required keypath [constraint,area,diearea]" in caplog.text
-    assert "No value set for required keypath [constraint,area,corearea]" in caplog.text
+    assert "constraint,area,diearea" in require
+    assert "constraint,area,corearea" in require
+    # Neither area was set, so those two requirements are what stops the node.
+    assert asic_gcd.constraint.area.get_diearea(step="floorplan.init", index="0") == []
+    assert asic_gcd.constraint.area.get_corearea(step="floorplan.init", index="0") == []
 
 
 def test_openroad_init_floorplan_padring_with_explicit_area(asic_gcd):
