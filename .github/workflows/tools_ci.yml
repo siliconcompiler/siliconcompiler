@@ -106,7 +106,7 @@ jobs:
 
       - name: Build and Push SiliconCompiler Builder Docker image
         if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/build-push-action@v7.3.0
+        uses: docker/build-push-action@v7.4.0
         with:
           context: docker/sc_tool_builder
           push: true
@@ -142,7 +142,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.3.0
+        uses: docker/build-push-action@v7.4.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -180,7 +180,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.3.0
+        uses: docker/build-push-action@v7.4.0
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -207,7 +207,7 @@ jobs:
           name: tools
 
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@v1.3.1
+        uses: jlumbroso/free-disk-space@v2.0.0
         with:
           tool-cache: true
           android: true
@@ -229,7 +229,7 @@ jobs:
           buildkitd-flags: --debug
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.3.0
+        uses: docker/build-push-action@v7.4.0
         with:
           context: ./sc_tools/
           push: true
@@ -296,7 +296,7 @@ jobs:
         name: tools
 
     - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space@v1.3.1
+      uses: jlumbroso/free-disk-space@v2.0.0
       with:
         tool-cache: false
         android: true
@@ -318,7 +318,7 @@ jobs:
         echo "RUNNER_TAG=${runner_latest_tag}" >> $GITHUB_ENV
 
     - name: Build and Push Tool Docker image
-      uses: docker/build-push-action@v7.3.0
+      uses: docker/build-push-action@v7.4.0
       with:
         context: ./sc_runner/
         push: true
