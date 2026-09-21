@@ -677,7 +677,15 @@ class RemoteResolver(Resolver):
                         self._make_writable(self.cache_path)
                     except OSError as e:
                         self.logger.warning(f"Could not make cache writable before cleanup: {e}")
-                    shutil.rmtree(self.cache_path)
+                    try:
+                        shutil.rmtree(self.cache_path)
+                    except FileNotFoundError:
+                        # git removes a failed clone's directory itself, so a
+                        # missing path is the normal case and must not be logged
+                        # over the failure that brought us here. Anything else
+                        # still reaches the handler below: a cache this could not
+                        # remove is one a later run may wrongly accept.
+                        pass
                 except BaseException as cleane:
                     self.logger.error(f"Exception occurred during cleanup: {cleane} "
                                       f"({cleane.__class__.__name__})")

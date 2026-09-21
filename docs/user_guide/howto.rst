@@ -38,6 +38,55 @@ The path may be a local directory, a git URL, or an archive URL. ``tag`` applies
 to remote sources only, and is a git commit, branch, or tag. See
 :term:`dataroot`.
 
+Dataroot: authenticate against a private repository
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A ``git+https`` dataroot takes its credential from the environment. Set whichever
+variable matches the host. A dataroot-specific variable, ``GITHUB_<DATAROOT>_TOKEN``,
+outranks the general one, and ``GIT_TOKEN`` is the fallback for every host.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 40 45
+
+   * - Host
+     - Environment variable
+     - Sent to the server as
+   * - ``github.com``
+     - ``GITHUB_TOKEN``, ``GH_TOKEN``
+     - ``x-access-token:<token>``
+   * - ``gitlab.com``
+     - ``GITLAB_TOKEN``, ``GL_TOKEN``
+     - ``oauth2:<token>``
+   * - ``bitbucket.org``
+     - ``BITBUCKET_TOKEN``
+     - ``x-token-auth:<token>``
+   * - anything else
+     - ``GIT_TOKEN``
+     - the host's username above if it has one, else ``<token>`` as the
+       username with an empty password
+
+The token travels as the basic-auth password, under the username that host
+expects. The username matters: a GitHub App installation token is accepted only
+in the form above, while a classic personal access token is accepted either way.
+
+A forge's own variable unlocks only for that forge's own domains. A **self-hosted**
+GitHub Enterprise or GitLab -- ``gitlab.example.com`` -- still gets the right
+username, but takes its credential from ``GIT_TOKEN``: a forge name in a host
+label is not evidence that the forge owns the host, and ``GITLAB_TOKEN`` must not
+be handed to ``gitlab.attacker.example`` on the strength of one.
+
+For a host that needs some other username, write it into the URL and the token
+becomes its password:
+
+.. code-block:: python
+
+   design.set_dataroot("<name>", "git+https://<user>@git.example.com/<owner>/<repo>")
+
+Prefer ``git+ssh://`` where you can. A token supplied this way is written into
+the cached clone's ``.git/config``, whereas SSH keeps the credential out of the
+URL entirely.
+
 Dataroot relative to my current file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
