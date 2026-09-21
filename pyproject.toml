@@ -119,7 +119,7 @@ dashboard = [
     "pandas >= 1.1.5",
 
     # dashboard
-    "streamlit == 1.63.0",
+    "streamlit == 1.64.0",
     "streamlit_agraph == 0.0.45",
     "streamlit-antd-components == 0.3.2",
     "streamlit_javascript == 0.1.5",
