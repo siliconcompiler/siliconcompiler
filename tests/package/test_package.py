@@ -473,7 +473,7 @@ def test_get_path_new_data_error(errorcls):
     with patch("shutil.rmtree") as rmtree:
         with pytest.raises(errorcls, match=r"^Match me$"):
             resolver.get_path()
-        rmtree.assert_called_once_with(os.path.abspath("path"))
+        rmtree.assert_called_once_with(os.path.abspath("path"), ignore_errors=True)
 
 
 @pytest.mark.parametrize("errorcls", (KeyboardInterrupt, IOError, SystemExit))
@@ -495,7 +495,7 @@ def test_get_path_new_data_error_failed_to_clean(project_logger, errorcls, caplo
     project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
-    def dummy_rm(tree):
+    def dummy_rm(tree, **kwargs):
         raise errorcls("this error")
 
     resolver = AlwaysNew("alwaysnew", proj, "notused", "notused")
@@ -503,7 +503,7 @@ def test_get_path_new_data_error_failed_to_clean(project_logger, errorcls, caplo
         rmtree.side_effect = dummy_rm
         with pytest.raises(KeyboardInterrupt, match=r"^Match me$"):
             resolver.get_path()
-        rmtree.assert_called_once_with(os.path.abspath("path"))
+        rmtree.assert_called_once_with(os.path.abspath("path"), ignore_errors=True)
 
     assert f"Exception occurred during cleanup: this error ({errorcls.__name__})" in caplog.text
 
