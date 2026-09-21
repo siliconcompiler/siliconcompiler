@@ -110,7 +110,13 @@ To delete a job, use:
 
         if not remote.get("cmdarg", 'add') and not remote.get("cmdarg", 'remove'):
             client = ConfigureClient(remote)
-            client.configure_server(server=remote.get("cmdarg", 'server'))
+            try:
+                client.configure_server(server=remote.get("cmdarg", 'server'))
+            except ValueError as e:
+                # An answer that is needed and was not given, most often the server
+                # address, which has no default to fall back on.
+                remote.logger.error(str(e))
+                return 3
         else:
             client = ConfigureClient(remote)
             client.configure_whitelist(add=remote.get("cmdarg", 'add'),

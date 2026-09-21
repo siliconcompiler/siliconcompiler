@@ -7,9 +7,6 @@ except ImportError:
     version = None
     detailed_version = None
 
-# Default server address for remote runs, if unspecified.
-default_server = 'https://server.siliconcompiler.com'
-
 # This is the list of significant contributors to SiliconCompiler in
 # chronological order.
 #

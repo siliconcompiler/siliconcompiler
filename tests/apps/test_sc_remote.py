@@ -14,7 +14,6 @@ from unittest.mock import patch
 from pathlib import Path
 
 from siliconcompiler.utils import default_credentials_file
-from siliconcompiler._metadata import default_server
 
 from siliconcompiler import Flowgraph, Project
 from siliconcompiler.tools.builtin.nop import NOPTask
@@ -245,37 +244,32 @@ def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scse
                                        f"{gcd_nop_project.name}.pkg.json"))
 
 
-def test_configure_default(monkeypatch):
+def test_configure_blank_address(monkeypatch):
+    """There is no server to fall back on, so a blank address configures nothing."""
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure'])
 
     # Use sys.stdin to simulate user input.
     with open('cfg_stdin.txt', 'w') as wf:
-        wf.write('\ny\n')
+        wf.write('\n')
     with open('cfg_stdin.txt', 'r') as rf:
         monkeypatch.setattr(sys, "stdin", rf)
 
-        sc_remote.main()
+        assert sc_remote.main() == 3
 
-    # Check that generated credentials match the expected values.
-    generated_creds = {}
-    with open(default_credentials_file(), 'r') as cf:
-        generated_creds = json.loads(cf.read())
-
-    assert generated_creds['address'] == default_server
-    assert 'username' not in generated_creds
-    assert 'password' not in generated_creds
+    assert not os.path.exists(default_credentials_file())
 
 
 def test_configure_specify_file(monkeypatch):
     cred_file = 'testing_credentials.json'
+    server_name = 'https://example.com'
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-credentials', cred_file])
 
     # Use sys.stdin to simulate user input.
     with open('cfg_stdin.txt', 'w') as wf:
-        wf.write('\ny\n')
+        wf.write(f'{server_name}\n\n\n')
     with open('cfg_stdin.txt', 'r') as rf:
         monkeypatch.setattr(sys, "stdin", rf)
 
@@ -288,31 +282,7 @@ def test_configure_specify_file(monkeypatch):
     with open(cred_file, 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert generated_creds['address'] == default_server
-    assert 'username' not in generated_creds
-    assert 'password' not in generated_creds
-
-
-def test_configure_default_in_args(monkeypatch):
-    monkeypatch.setattr('sys.argv', ['sc-remote',
-                                     '-configure',
-                                     '-server',
-                                     default_server])
-
-    # Use sys.stdin to simulate user input.
-    with open('cfg_stdin.txt', 'w') as wf:
-        wf.write('y\n')
-    with open('cfg_stdin.txt', 'r') as rf:
-        monkeypatch.setattr(sys, "stdin", rf)
-
-        sc_remote.main()
-
-    # Check that generated credentials match the expected values.
-    generated_creds = {}
-    with open(default_credentials_file(), 'r') as cf:
-        generated_creds = json.loads(cf.read())
-
-    assert generated_creds['address'] == default_server
+    assert generated_creds['address'] == server_name
     assert 'username' not in generated_creds
     assert 'password' not in generated_creds
 
@@ -548,7 +518,7 @@ def credentials_file(monkeypatch):
 
     # Use sys.stdin to simulate user input.
     with open('cfg_stdin.txt', 'w') as wf:
-        wf.write('\ny\n')
+        wf.write('https://example.com\n\n\n')
     with open('cfg_stdin.txt', 'r') as rf:
         monkeypatch.setattr(sys, "stdin", rf)
 
