@@ -10,7 +10,7 @@ import threading
 import os.path
 
 from git import Repo, Actor
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from urllib.parse import urlparse
@@ -226,10 +226,12 @@ def test_git_resolver_git_path_https_no_token():
      "https://oauth2:tok@gitlab.com/owner/repo.git"),
     ("BITBUCKET_TOKEN", "git+https://bitbucket.org/owner/repo.git",
      "https://x-token-auth:tok@bitbucket.org/owner/repo.git"),
-    # Self-hosted instances are matched on a whole label, not a substring.
-    ("GITHUB_TOKEN", "git+https://github.mycorp.com/owner/repo.git",
+    # A self-hosted instance still gets the right username, but its credential
+    # comes from the generic GIT_TOKEN: a forge name in a label is not evidence
+    # that the forge owns the host, so it cannot unlock that forge's variable.
+    ("GIT_TOKEN", "git+https://github.mycorp.com/owner/repo.git",
      "https://x-access-token:tok@github.mycorp.com/owner/repo.git"),
-    ("GITLAB_TOKEN", "git+https://gitlab.example.com/owner/repo.git",
+    ("GIT_TOKEN", "git+https://gitlab.example.com/owner/repo.git",
      "https://oauth2:tok@gitlab.example.com/owner/repo.git"),
     # An unrecognised host keeps the token in the username field, where it has
     # always gone, but with the empty password spelled out. Identical on the
@@ -253,7 +255,7 @@ def test_git_path_token_username_per_host(monkeypatch, env, source, expect):
 
 def test_git_path_preserves_port(monkeypatch):
     """The port survives token injection; url.hostname would have dropped it."""
-    monkeypatch.setenv("GITLAB_TOKEN", "tok")
+    monkeypatch.setenv("GIT_TOKEN", "tok")
 
     resolver = GitResolver("test", None, "git+https://gitlab.example.com:8443/o/r.git", "main")
     assert resolver.git_path == "https://oauth2:tok@gitlab.example.com:8443/o/r.git"
@@ -294,6 +296,63 @@ def test_git_path_quotes_token(monkeypatch):
 
     resolver = GitResolver("test", None, "git+https://git.example.com/o/r.git", "main")
     assert resolver.git_path == "https://a%2Fb%40c%3Ad:@git.example.com/o/r.git"
+
+
+@pytest.mark.parametrize("env,source", [
+    ("GITHUB_TOKEN", "git+https://github.attacker.example/o/r.git"),
+    ("GITLAB_TOKEN", "git+https://gitlab.attacker.example/o/r.git"),
+    ("BITBUCKET_TOKEN", "git+https://bitbucket.attacker.example/o/r.git"),
+    # A forge name glued to a longer label is not that forge either.
+    ("GITHUB_TOKEN", "git+https://notgithub.com/o/r.git"),
+    ("GITHUB_TOKEN", "git+https://github.com.attacker.example/o/r.git"),
+])
+def test_forge_token_not_sent_to_lookalike_host(monkeypatch, env, source):
+    """
+    A forge's own token is never handed to a host that forge does not own.
+
+    A forge name in some DNS label says nothing about who controls the host, so
+    it cannot be what unlocks the ambient GITHUB_TOKEN/GITLAB_TOKEN. Without a
+    GIT_TOKEN these URLs must carry no credential at all.
+    """
+    monkeypatch.setenv(env, "secret")
+
+    resolver = GitResolver("test", None, source, "main")
+    assert "secret" not in resolver.git_path
+    assert resolver.git_path == source.replace("git+https://", "https://")
+
+
+@pytest.mark.parametrize("hostname,expect", [
+    ("github.com", "github"),
+    ("gist.github.com", "github"),
+    ("gitlab.com", "gitlab"),
+    ("bitbucket.org", "bitbucket"),
+    # Ownership, not name matching: none of these belong to the forge.
+    ("github.attacker.example", None),
+    ("gitlab.attacker.example", None),
+    ("github.com.attacker.example", None),
+    ("notgithub.com", None),
+    ("github.mycorp.com", None),
+    ("gitlab.example.com", None),
+    (None, None),
+])
+def test_saas_forge(hostname, expect):
+    """Only a forge's own domains unlock that forge's token variables."""
+    assert GitResolver._saas_forge(hostname) == expect
+
+
+def test_git_path_percent_encoded_username(monkeypatch):
+    """
+    A percent-escaped username round-trips instead of being double-encoded.
+
+    ParseResult.username hands back the raw escapes, so re-quoting without
+    decoding first would turn 'user%40corp' into 'user%2540corp' and
+    authenticate as the wrong name.
+    """
+    monkeypatch.setenv("GIT_TOKEN", "tok")
+
+    resolver = GitResolver("test", None,
+                           "git+https://user%40corp@git.example.com/o/r.git", "main")
+    assert resolver.git_path == "https://user%40corp:tok@git.example.com/o/r.git"
 
 
 def test_git_path_github_token_not_sent_to_gitlab(monkeypatch):
@@ -401,16 +460,22 @@ def test_git_env_handles_closed_stdin():
         assert GitResolver._git_env() == {"GIT_TERMINAL_PROMPT": "0"}
 
 
-def test_auth_failure_is_permanent():
-    """A refused credential is settled, so it must not burn the retry budget."""
-    resolver = GitResolver("test", None, "git+https://github.com/o/r.git", "main")
-    assert resolver.is_permanent_failure(GitAuthenticationError("nope")) is True
+@pytest.mark.parametrize("error", [
+    GitAuthenticationError("nope"),
+    RuntimeError("connection reset"),
+])
+def test_auth_failure_is_not_permanent(error):
+    """
+    A credential failure must stay retryable.
 
-
-def test_other_failures_stay_retryable():
-    """Everything else keeps the base class's transient verdict."""
+    The failure cache is keyed by cache_id -- a hash of the source URI and
+    reference -- which says nothing about credentials. Recording an auth failure
+    as settled would outlive the expired token that caused it and keep refusing
+    the source after a valid one is set. The HTTPS resolver takes the same
+    position on 401 and 403.
+    """
     resolver = GitResolver("test", None, "git+https://github.com/o/r.git", "main")
-    assert resolver.is_permanent_failure(RuntimeError("connection reset")) is False
+    assert resolver.is_permanent_failure(error) is False
 
 
 @pytest.fixture
@@ -435,7 +500,10 @@ def auth_probe():
         def log_message(self, *args):
             pass
 
-    server = HTTPServer(("127.0.0.1", 0), Handler)
+    # Threaded, with daemon threads: a handler left mid-request must never be
+    # able to wedge shutdown and take the whole test with it.
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server.daemon_threads = True
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -449,15 +517,36 @@ def auth_probe():
 def _probe_git(port, userinfo):
     """Points git at the probe carrying ``userinfo``, and returns its stderr."""
     host = f"{userinfo}@127.0.0.1:{port}" if userinfo else f"127.0.0.1:{port}"
+
+    # Built from nothing rather than inherited, because this asserts on the exact
+    # bytes git transmits and the ambient environment can change them. Dropping
+    # the inherited variables is also what stops the run hanging: GIT_TERMINAL_PROMPT
+    # closes only the *terminal* prompt, so an askpass helper left in the
+    # environment -- macOS sessions routinely have one -- would still be called
+    # and would sit waiting on a GUI dialog that never appears.
+    home = os.path.abspath("probe-home")
+    os.makedirs(home, exist_ok=True)
+    env = {
+        # An empty HOME plus no system or global config keeps the developer's
+        # credential helpers, proxies and insteadOf rewrites out of the result.
+        "HOME": home,
+        "USERPROFILE": home,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_TERMINAL_PROMPT": "0",
+    }
+    # Carried over only because git needs them to run at all -- SYSTEMROOT for
+    # sockets and TEMP/TMP for scratch files on Windows. None of them can change
+    # which credential git offers.
+    for passthrough in ("PATH", "SYSTEMROOT", "TEMP", "TMP"):
+        if passthrough in os.environ:
+            env[passthrough] = os.environ[passthrough]
     return subprocess.run(
-        # An empty credential.helper neutralises whatever the developer has
-        # configured; without it a helper may answer before git reaches the wire.
         ["git", "-c", "credential.helper=", "ls-remote", f"http://{host}/repo.git"],
-        capture_output=True, text=True, timeout=60,
-        # Disabled so a missing credential fails rather than blocking on a prompt.
-        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}).stderr
+        capture_output=True, text=True, timeout=30, env=env).stderr
 
 
+@pytest.mark.timeout(60)
 @pytest.mark.skipif(not shutil.which("git"), reason="git is not installed")
 def test_git_sends_token_as_password_on_the_wire(auth_probe, monkeypatch):
     """The URL git_path builds arrives as 'x-access-token:<token>', not '<token>:'."""
@@ -475,6 +564,7 @@ def test_git_sends_token_as_password_on_the_wire(auth_probe, monkeypatch):
     assert "could not read Password" not in stderr
 
 
+@pytest.mark.timeout(60)
 @pytest.mark.skipif(not shutil.which("git"), reason="git is not installed")
 def test_git_empty_password_form_does_not_prompt(auth_probe, monkeypatch):
     """
@@ -498,6 +588,7 @@ def test_git_empty_password_form_does_not_prompt(auth_probe, monkeypatch):
     assert "could not read Password" not in stderr
 
 
+@pytest.mark.timeout(60)
 @pytest.mark.skipif(not shutil.which("git"), reason="git is not installed")
 def test_git_bare_username_form_is_the_defect(auth_probe):
     """

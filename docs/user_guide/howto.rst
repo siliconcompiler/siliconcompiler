@@ -52,24 +52,31 @@ outranks the general one, and ``GIT_TOKEN`` is the fallback for every host.
    * - Host
      - Environment variable
      - Sent to the server as
-   * - GitHub
+   * - ``github.com``
      - ``GITHUB_TOKEN``, ``GH_TOKEN``
      - ``x-access-token:<token>``
-   * - GitLab
+   * - ``gitlab.com``
      - ``GITLAB_TOKEN``, ``GL_TOKEN``
      - ``oauth2:<token>``
-   * - Bitbucket
+   * - ``bitbucket.org``
      - ``BITBUCKET_TOKEN``
      - ``x-token-auth:<token>``
    * - anything else
      - ``GIT_TOKEN``
-     - ``<token>`` as the username, with an empty password
+     - the host's username above if it has one, else ``<token>`` as the
+       username with an empty password
 
 The token travels as the basic-auth password, under the username that host
 expects. The username matters: a GitHub App installation token is accepted only
 in the form above, while a classic personal access token is accepted either way.
 
-For a host not in the table, write the username into the URL and the token
+A forge's own variable unlocks only for that forge's own domains. A **self-hosted**
+GitHub Enterprise or GitLab -- ``gitlab.example.com`` -- still gets the right
+username, but takes its credential from ``GIT_TOKEN``: a forge name in a host
+label is not evidence that the forge owns the host, and ``GITLAB_TOKEN`` must not
+be handed to ``gitlab.attacker.example`` on the strength of one.
+
+For a host that needs some other username, write it into the URL and the token
 becomes its password:
 
 .. code-block:: python

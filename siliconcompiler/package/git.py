@@ -26,8 +26,15 @@ class GitAuthenticationError(RuntimeError):
 
     Subclasses :class:`RuntimeError`, which is what this resolver has always
     raised for an authentication failure, so existing handlers keep working. The
-    distinct type is what lets :meth:`GitResolver.is_permanent_failure` tell a
-    settled credential problem from a transient network one.
+    distinct type lets a caller tell a credential problem from the other reasons
+    a clone can fail.
+
+    Note this is deliberately *not* a
+    :class:`~siliconcompiler.package.cache.PermanentResolutionError`. The failure
+    cache is keyed by ``cache_id``, a hash of the source URI and reference, which
+    says nothing about credentials -- so recording a settled failure here would
+    outlive the expired token that caused it and refuse the source even once a
+    valid one is set. The HTTPS resolver takes the same position on 401 and 403.
     """
 
 
@@ -143,13 +150,42 @@ class GitResolver(RemoteResolver):
             "bitbucket": "x-token-auth",
         }.get(cls._host_forge(hostname))
 
+    @staticmethod
+    def _saas_forge(hostname: Optional[str]) -> Optional[str]:
+        """
+        Identifies a forge's own hosted service, by exact domain.
+
+        This is the ownership check, and it is deliberately stricter than
+        :meth:`_host_forge`. Matching a forge name in any label is fine for
+        choosing a username -- that is a fixed, public string -- but it is not
+        evidence of who owns a host, and ``gitlab.attacker.example`` must not be
+        handed the ambient ``GITLAB_TOKEN``. A self-hosted instance supplies its
+        credential through ``GIT_TOKEN``, or through a username in the URL.
+
+        Args:
+            hostname (str or None): The host from the source URL.
+
+        Returns:
+            str or None: The forge key, or None if the host is not that forge's.
+        """
+        if not hostname:
+            return None
+        host = hostname.lower()
+        for forge, domain in (("github", "github.com"),
+                              ("gitlab", "gitlab.com"),
+                              ("bitbucket", "bitbucket.org")):
+            if host == domain or host.endswith(f".{domain}"):
+                return forge
+        return None
+
     def _get_token(self, hostname: Optional[str]) -> Optional[str]:
         """
         Finds an authentication token for ``hostname`` in the environment.
 
-        The host's own prefixes are searched before the generic ``GIT`` one, so
-        ``GITHUB_TOKEN`` and ``GITLAB_TOKEN`` are honoured for their own hosts
-        while ``GIT_TOKEN`` keeps working everywhere.
+        A forge's own variables are searched first, but only for a host that
+        forge actually owns (:meth:`_saas_forge`) -- otherwise a URL naming a
+        lookalike would be handed the ambient token. Everything else, self-hosted
+        instances included, uses ``GIT_TOKEN``, which is the generic opt-in.
 
         Args:
             hostname (str or None): The host from the source URL.
@@ -161,7 +197,7 @@ class GitResolver(RemoteResolver):
             "github": ["GITHUB", "GH"],
             "gitlab": ["GITLAB", "GL"],
             "bitbucket": ["BITBUCKET"],
-        }.get(self._host_forge(hostname), [])
+        }.get(self._saas_forge(hostname), [])
         try:
             return self._get_auth_token(srvs + ["GIT"])
         except ValueError:
@@ -227,7 +263,11 @@ class GitResolver(RemoteResolver):
             # Host and port, with any existing userinfo removed. url.hostname is
             # not usable here: it drops the port and unwraps IPv6 brackets.
             host = url.netloc.rpartition('@')[2]
-            user = url.username or self._token_username(url.hostname)
+            # ParseResult.username keeps the raw percent escapes, so it has to be
+            # decoded before being re-quoted or 'user%40corp' becomes
+            # 'user%2540corp' and authenticates as the wrong name.
+            user = url_parse.unquote(url.username) if url.username \
+                else self._token_username(url.hostname)
             if user:
                 userinfo = f'{url_parse.quote(user, safe="")}:' \
                            f'{url_parse.quote(token, safe="")}'
@@ -319,25 +359,6 @@ class GitResolver(RemoteResolver):
                     "Repository uses Git LFS but 'git-lfs' is not installed. "
                     "Install git-lfs or pass '?lfs=false' in the source URL to skip.")
             raise
-
-    def is_permanent_failure(self, error: BaseException) -> bool:
-        """
-        Widens the base rule with Git's authentication failures.
-
-        A credential that a host has refused, or that was never supplied, earns
-        the same answer on every attempt. Retrying it spends the whole budget --
-        and the backoff between each try -- to arrive where the first attempt
-        already was.
-
-        Args:
-            error (BaseException): The error a resolution attempt raised.
-
-        Returns:
-            bool: True if the source should be abandoned without further attempts.
-        """
-        if isinstance(error, GitAuthenticationError):
-            return True
-        return super().is_permanent_failure(error)
 
     def resolve_remote(self) -> None:
         """
