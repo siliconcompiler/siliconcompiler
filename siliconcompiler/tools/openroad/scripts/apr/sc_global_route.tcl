@@ -18,8 +18,17 @@ source "$sc_refdir/apr/preamble.tcl"
 if { [sc_cfg_tool_task_get var grt_use_pin_access] } {
     sc_setup_detailed_route
 
-    set sc_minmetal [sc_get_layer_name [sc_cfg_get pdk $sc_pdk minlayer]]
-    set sc_maxmetal [sc_get_layer_name [sc_cfg_get pdk $sc_pdk maxlayer]]
+    set sc_minmetal [sc_cfg_get asic minlayer]
+    if { $sc_minmetal == {} } {
+        set sc_minmetal [sc_cfg_get library $sc_pdk pdk minlayer]
+    }
+
+    set sc_maxmetal [sc_cfg_get asic maxlayer]
+    if { $sc_maxmetal == {} } {
+        set sc_maxmetal [sc_cfg_get library $sc_pdk pdk maxlayer]
+    }
+    set sc_minmetal [sc_get_layer_name $sc_minmetal]
+    set sc_maxmetal [sc_get_layer_name $sc_maxmetal]
 
     set pin_access_args []
     if { [sc_check_version 24 3 7648] } {

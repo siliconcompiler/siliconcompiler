@@ -340,8 +340,17 @@ proc sc_detailed_route_args { } {
     }
     lappend drt_arguments -drc_report_iter_step [sc_cfg_tool_task_get {var} drt_report_interval]
 
-    set sc_minmetal [sc_get_layer_name [sc_cfg_get library $sc_pdk pdk minlayer]]
-    set sc_maxmetal [sc_get_layer_name [sc_cfg_get library $sc_pdk pdk maxlayer]]
+    set sc_minmetal [sc_cfg_get asic minlayer]
+    if { $sc_minmetal == {} } {
+        set sc_minmetal [sc_cfg_get library $sc_pdk pdk minlayer]
+    }
+
+    set sc_maxmetal [sc_cfg_get asic maxlayer]
+    if { $sc_maxmetal == {} } {
+        set sc_maxmetal [sc_cfg_get library $sc_pdk pdk maxlayer]
+    }
+    set sc_minmetal [sc_get_layer_name $sc_minmetal]
+    set sc_maxmetal [sc_get_layer_name $sc_maxmetal]
 
     if { [sc_check_version 24 3 7648] } {
         set_routing_layers -signal "${sc_minmetal}-${sc_maxmetal}"
