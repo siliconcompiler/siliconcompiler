@@ -8,6 +8,22 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.9 (2026-09-21)
+=========================================
+
+**Minor:**
+
+ * Reworked how a run reuses an existing build directory: an upstream excluded by `[option,from]`, `[option,to]` or `[option,prune]` that cannot supply what depends on it is now rebuilt, rather than the run failing on an input nothing in it can produce.
+ * Added a task's declared `input` and `output` to what decides whether a node has to rerun.
+ * Fixed a previous run's `SKIPPED` status being carried into the next run, which stopped a re-enabled step from running.
+ * Added token authentication for gitlab and bitbucket dataroots, and fixed tokens being sent under the wrong username, written into the logged clone URL, and prompted for on a machine that cannot answer.
+ * Moved `pandas` into the `dashboard` extra and added a `server` extra for running `sc-server`, so a default install carries only what a local flow needs.
+ * Sped up the initial load by deferring imports that only part of a run needs.
+
+ * Tools:
+
+  * openroad: added support for rectilinear floorplans, and required an explicit die and core area when a padring is used.
+
 SiliconCompiler 0.38.8 (2026-09-14)
 =========================================
 
