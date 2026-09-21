@@ -40,6 +40,16 @@ def _has_signing() -> bool:
     return getattr(sys.modules[__name__], "_has_sign")
 
 
+class PathTypeError(ValueError):
+    """
+    Raised when a path resolves to something other than what its parameter
+    type declares, such as a ``file`` parameter pointing at a directory.
+
+    Subclasses :class:`ValueError` so that callers that do not care about the
+    distinction can keep catching that.
+    """
+
+
 class NodeListValue:
     '''
     Holds the data for a list schema type.
@@ -1035,7 +1045,7 @@ class DirectoryNodeValue(BasePathNodeValue):
             return
 
         if not os.path.isdir(path):
-            raise ValueError(f"{path} is not a directory")
+            raise PathTypeError(f"{path} is not a directory")
 
     @property
     def type(self) -> str:
@@ -1149,7 +1159,7 @@ class FileNodeValue(BaseFileNodeValue):
             return
 
         if not os.path.isfile(path):
-            raise ValueError(f"{path} is not a file")
+            raise PathTypeError(f"{path} is not a file")
 
     @property
     def type(self) -> str:

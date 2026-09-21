@@ -2629,6 +2629,68 @@ def test_check_filepaths_not_found_ignored_list():
     assert schema._check_filepaths(ignore_keys=[["directory"]]) is True
 
 
+def test_check_filepaths_wrong_type_file(caplog):
+    """A file parameter pointing at a directory is reported, not raised."""
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("file", Parameter("[file]"))
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("file", "test0")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema._check_filepaths(logger=logger) is False
+    assert f"Parameter [file] path {os.path.abspath('test0')} is not a file" in caplog.text
+
+
+def test_check_filepaths_wrong_type_directory(caplog):
+    """A dir parameter pointing at a file is reported, not raised."""
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("directory", Parameter("dir", pernode=PerNode.OPTIONAL))
+
+    with open("test0.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("directory", "test0.txt", step="thisstep", index="0")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema._check_filepaths(logger=logger) is False
+    assert f"Parameter [directory] (thisstep/0) path " \
+        f"{os.path.abspath('test0.txt')} is not a directory" in caplog.text
+
+
+def test_check_filepaths_wrong_type_no_logger():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("file", Parameter("file"))
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("file", "test0")
+
+    assert schema._check_filepaths() is False
+
+
+def test_check_filepaths_path_accepts_both():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("path", Parameter("[path]"))
+
+    os.makedirs("test0", exist_ok=True)
+    with open("test0.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("path", ["test0", "test0.txt"])
+
+    assert schema._check_filepaths() is True
+
+
 def test_get_no_with_journal():
     schema = BaseSchema()
     edit = EditableSchema(schema)

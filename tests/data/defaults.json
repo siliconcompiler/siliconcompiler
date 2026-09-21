@@ -17719,7 +17719,7 @@
         },
         "doc": {
           "datasheet": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -17731,7 +17731,7 @@
               "cli: -package_doc_datasheet datasheet.pdf",
               "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
             ],
-            "help": "Package list of datasheet documents.",
+            "help": "Package list of datasheet documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17750,7 +17750,7 @@
             "copy": false
           },
           "reference": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -17762,7 +17762,7 @@
               "cli: -package_doc_reference reference.pdf",
               "api: schema.set('doc', 'reference', 'reference.pdf')"
             ],
-            "help": "Package list of reference documents.",
+            "help": "Package list of reference documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17781,7 +17781,7 @@
             "copy": false
           },
           "userguide": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -17793,7 +17793,7 @@
               "cli: -package_doc_userguide userguide.pdf",
               "api: schema.set('doc', 'userguide', 'userguide.pdf')"
             ],
-            "help": "Package list of userguide documents.",
+            "help": "Package list of userguide documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17812,7 +17812,7 @@
             "copy": false
           },
           "quickstart": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -17824,7 +17824,7 @@
               "cli: -package_doc_quickstart quickstart.pdf",
               "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
             ],
-            "help": "Package list of quickstart documents.",
+            "help": "Package list of quickstart documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17843,7 +17843,7 @@
             "copy": false
           },
           "releasenotes": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -17855,7 +17855,7 @@
               "cli: -package_doc_releasenotes releasenotes.pdf",
               "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
             ],
-            "help": "Package list of releasenotes documents.",
+            "help": "Package list of releasenotes documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17874,7 +17874,7 @@
             "copy": false
           },
           "testplan": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -17886,7 +17886,7 @@
               "cli: -package_doc_testplan testplan.pdf",
               "api: schema.set('doc', 'testplan', 'testplan.pdf')"
             ],
-            "help": "Package list of testplan documents.",
+            "help": "Package list of testplan documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17905,7 +17905,7 @@
             "copy": false
           },
           "signoff": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -17917,7 +17917,7 @@
               "cli: -package_doc_signoff signoff.pdf",
               "api: schema.set('doc', 'signoff', 'signoff.pdf')"
             ],
-            "help": "Package list of signoff documents.",
+            "help": "Package list of signoff documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17936,7 +17936,7 @@
             "copy": false
           },
           "tutorial": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -17948,7 +17948,7 @@
               "cli: -package_doc_tutorial tutorial.pdf",
               "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
             ],
-            "help": "Package list of tutorial documents.",
+            "help": "Package list of tutorial documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18488,7 +18488,7 @@
         },
         "doc": {
           "datasheet": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -18500,7 +18500,7 @@
               "cli: -package_doc_datasheet datasheet.pdf",
               "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
             ],
-            "help": "Package list of datasheet documents.",
+            "help": "Package list of datasheet documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18519,7 +18519,7 @@
             "copy": false
           },
           "reference": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -18531,7 +18531,7 @@
               "cli: -package_doc_reference reference.pdf",
               "api: schema.set('doc', 'reference', 'reference.pdf')"
             ],
-            "help": "Package list of reference documents.",
+            "help": "Package list of reference documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18550,7 +18550,7 @@
             "copy": false
           },
           "userguide": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -18562,7 +18562,7 @@
               "cli: -package_doc_userguide userguide.pdf",
               "api: schema.set('doc', 'userguide', 'userguide.pdf')"
             ],
-            "help": "Package list of userguide documents.",
+            "help": "Package list of userguide documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18581,7 +18581,7 @@
             "copy": false
           },
           "quickstart": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -18593,7 +18593,7 @@
               "cli: -package_doc_quickstart quickstart.pdf",
               "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
             ],
-            "help": "Package list of quickstart documents.",
+            "help": "Package list of quickstart documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18612,7 +18612,7 @@
             "copy": false
           },
           "releasenotes": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -18624,7 +18624,7 @@
               "cli: -package_doc_releasenotes releasenotes.pdf",
               "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
             ],
-            "help": "Package list of releasenotes documents.",
+            "help": "Package list of releasenotes documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18643,7 +18643,7 @@
             "copy": false
           },
           "testplan": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -18655,7 +18655,7 @@
               "cli: -package_doc_testplan testplan.pdf",
               "api: schema.set('doc', 'testplan', 'testplan.pdf')"
             ],
-            "help": "Package list of testplan documents.",
+            "help": "Package list of testplan documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18674,7 +18674,7 @@
             "copy": false
           },
           "signoff": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -18686,7 +18686,7 @@
               "cli: -package_doc_signoff signoff.pdf",
               "api: schema.set('doc', 'signoff', 'signoff.pdf')"
             ],
-            "help": "Package list of signoff documents.",
+            "help": "Package list of signoff documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18705,7 +18705,7 @@
             "copy": false
           },
           "tutorial": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -18717,7 +18717,7 @@
               "cli: -package_doc_tutorial tutorial.pdf",
               "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
             ],
-            "help": "Package list of tutorial documents.",
+            "help": "Package list of tutorial documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -19897,7 +19897,7 @@
         },
         "doc": {
           "datasheet": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -19909,7 +19909,7 @@
               "cli: -package_doc_datasheet datasheet.pdf",
               "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
             ],
-            "help": "Package list of datasheet documents.",
+            "help": "Package list of datasheet documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -19928,7 +19928,7 @@
             "copy": false
           },
           "reference": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -19940,7 +19940,7 @@
               "cli: -package_doc_reference reference.pdf",
               "api: schema.set('doc', 'reference', 'reference.pdf')"
             ],
-            "help": "Package list of reference documents.",
+            "help": "Package list of reference documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -19959,7 +19959,7 @@
             "copy": false
           },
           "userguide": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -19971,7 +19971,7 @@
               "cli: -package_doc_userguide userguide.pdf",
               "api: schema.set('doc', 'userguide', 'userguide.pdf')"
             ],
-            "help": "Package list of userguide documents.",
+            "help": "Package list of userguide documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -19990,7 +19990,7 @@
             "copy": false
           },
           "quickstart": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20002,7 +20002,7 @@
               "cli: -package_doc_quickstart quickstart.pdf",
               "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
             ],
-            "help": "Package list of quickstart documents.",
+            "help": "Package list of quickstart documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20021,7 +20021,7 @@
             "copy": false
           },
           "releasenotes": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20033,7 +20033,7 @@
               "cli: -package_doc_releasenotes releasenotes.pdf",
               "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
             ],
-            "help": "Package list of releasenotes documents.",
+            "help": "Package list of releasenotes documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20052,7 +20052,7 @@
             "copy": false
           },
           "testplan": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20064,7 +20064,7 @@
               "cli: -package_doc_testplan testplan.pdf",
               "api: schema.set('doc', 'testplan', 'testplan.pdf')"
             ],
-            "help": "Package list of testplan documents.",
+            "help": "Package list of testplan documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20083,7 +20083,7 @@
             "copy": false
           },
           "signoff": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20095,7 +20095,7 @@
               "cli: -package_doc_signoff signoff.pdf",
               "api: schema.set('doc', 'signoff', 'signoff.pdf')"
             ],
-            "help": "Package list of signoff documents.",
+            "help": "Package list of signoff documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20114,7 +20114,7 @@
             "copy": false
           },
           "tutorial": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20126,7 +20126,7 @@
               "cli: -package_doc_tutorial tutorial.pdf",
               "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
             ],
-            "help": "Package list of tutorial documents.",
+            "help": "Package list of tutorial documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20718,7 +20718,7 @@
         },
         "doc": {
           "datasheet": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20730,7 +20730,7 @@
               "cli: -package_doc_datasheet datasheet.pdf",
               "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
             ],
-            "help": "Package list of datasheet documents.",
+            "help": "Package list of datasheet documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20749,7 +20749,7 @@
             "copy": false
           },
           "reference": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20761,7 +20761,7 @@
               "cli: -package_doc_reference reference.pdf",
               "api: schema.set('doc', 'reference', 'reference.pdf')"
             ],
-            "help": "Package list of reference documents.",
+            "help": "Package list of reference documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20780,7 +20780,7 @@
             "copy": false
           },
           "userguide": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20792,7 +20792,7 @@
               "cli: -package_doc_userguide userguide.pdf",
               "api: schema.set('doc', 'userguide', 'userguide.pdf')"
             ],
-            "help": "Package list of userguide documents.",
+            "help": "Package list of userguide documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20811,7 +20811,7 @@
             "copy": false
           },
           "quickstart": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20823,7 +20823,7 @@
               "cli: -package_doc_quickstart quickstart.pdf",
               "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
             ],
-            "help": "Package list of quickstart documents.",
+            "help": "Package list of quickstart documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20842,7 +20842,7 @@
             "copy": false
           },
           "releasenotes": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20854,7 +20854,7 @@
               "cli: -package_doc_releasenotes releasenotes.pdf",
               "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
             ],
-            "help": "Package list of releasenotes documents.",
+            "help": "Package list of releasenotes documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20873,7 +20873,7 @@
             "copy": false
           },
           "testplan": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20885,7 +20885,7 @@
               "cli: -package_doc_testplan testplan.pdf",
               "api: schema.set('doc', 'testplan', 'testplan.pdf')"
             ],
-            "help": "Package list of testplan documents.",
+            "help": "Package list of testplan documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20904,7 +20904,7 @@
             "copy": false
           },
           "signoff": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20916,7 +20916,7 @@
               "cli: -package_doc_signoff signoff.pdf",
               "api: schema.set('doc', 'signoff', 'signoff.pdf')"
             ],
-            "help": "Package list of signoff documents.",
+            "help": "Package list of signoff documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20935,7 +20935,7 @@
             "copy": false
           },
           "tutorial": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
@@ -20947,7 +20947,7 @@
               "cli: -package_doc_tutorial tutorial.pdf",
               "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
             ],
-            "help": "Package list of tutorial documents.",
+            "help": "Package list of tutorial documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {

@@ -34,6 +34,7 @@ from typing import Dict, Type, Tuple, TypeVar, Union, Set, Callable, List, Optio
     TextIO, Iterable, Iterator, Any
 
 from .parameter import Parameter, NodeValue
+from .parametervalue import PathTypeError
 from .journal import Journal
 from ._metadata import version
 
@@ -1337,9 +1338,32 @@ class BaseSchema:
                     # nothing set so continue
                     continue
 
-                found_files = BaseSchema._find_files(
-                    self, *keypath, missing_ok=True, step=step, index=index,
-                    dataroots=dataroots, collection_dir=collection_dir, cwd=cwd)
+                def report(msg: str) -> None:
+                    node_indicator = ""
+                    if step is not None:
+                        if index is None:
+                            node_indicator = f" ({step})"
+                        else:
+                            node_indicator = f" ({step}/{index})"
+
+                    name = ""
+                    if hasattr(self, "name"):
+                        name = f"({self.name}) "
+
+                    logger.error(f"Parameter {name}"
+                                 f"{self.__format_key(*keypath)}{node_indicator} {msg}")
+
+                try:
+                    found_files = BaseSchema._find_files(
+                        self, *keypath, missing_ok=True, step=step, index=index,
+                        dataroots=dataroots, collection_dir=collection_dir, cwd=cwd)
+                except PathTypeError as e:
+                    # A path that resolves to the wrong kind is an invalid path, and
+                    # this method reports invalid paths rather than raising on them.
+                    error = True
+                    if logger:
+                        report(f"path {e}")
+                    continue
 
                 if not param.istype("list", "set"):
                     check_files = [check_files]
@@ -1349,20 +1373,7 @@ class BaseSchema:
                     if not found_file:
                         error = True
                         if logger:
-                            node_indicator = ""
-                            if step is not None:
-                                if index is None:
-                                    node_indicator = f" ({step})"
-                                else:
-                                    node_indicator = f" ({step}/{index})"
-
-                            name = ""
-                            if hasattr(self, "name"):
-                                name = f"({self.name}) "
-
-                            logger.error(f"Parameter {name}"
-                                         f"{self.__format_key(*keypath)}{node_indicator} "
-                                         f"path {check_file} is invalid")
+                            report(f"path {check_file} is invalid")
 
         return not error
 
