@@ -3,6 +3,7 @@ import sys
 
 from siliconcompiler import Project, Design
 from siliconcompiler.remote import Client, ConfigureClient
+from siliconcompiler.scheduler.error import SCRuntimeError
 
 
 def main():
@@ -85,6 +86,17 @@ To delete a job, use:
     remote = RemoteProject.create_cmdline(progname, switchlist=switchlist, description=description,
                                           use_sources=False)
 
+    try:
+        return _dispatch(remote)
+    except SCRuntimeError as e:
+        # A client that cannot be built is a message and an exit code, never a
+        # traceback -- same rule the server entry point follows when its extra
+        # is missing.
+        remote.logger.error(str(e))
+        return 1
+
+
+def _dispatch(remote):
     # Sanity checks.
     exclusive = ['configure', 'reconnect', 'cancel', 'delete']
     cfg_only = ['reconnect', 'cancel', 'delete']

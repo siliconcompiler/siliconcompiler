@@ -2,10 +2,8 @@ import logging
 import os
 import pytest
 import glob
-import json
 import re
 import platform
-import psutil
 import shutil
 import signal
 import socket
@@ -22,15 +20,14 @@ from pathlib import Path
 from pyvirtualdisplay import Display
 from unittest.mock import patch
 
-from typing import Optional, Tuple
+from typing import Tuple
 
 from siliconcompiler import utils, ASIC, Design, Project, OpenTask
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager, \
-    get_process_context, forking
-from siliconcompiler.apps import sc_server
+    get_process_context
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.schema import BaseSchema
 
@@ -487,117 +484,6 @@ def examples_root(scroot):
 
 
 @pytest.fixture
-def scserver_nfs_path():
-    work_dir = os.path.abspath('local_server_work')
-    os.makedirs(work_dir, exist_ok=True)
-    return work_dir
-
-
-@pytest.fixture
-def scserver_users(scserver_nfs_path):
-    def add_user(username, password):
-        with open(os.path.join(scserver_nfs_path, 'users.json'), 'w') as f:
-            f.write(json.dumps({'users': [{
-                'username': username,
-                'password': password,
-            }]}))
-    return add_user
-
-
-def _shutdown_server(proc, timeout=10):
-    '''
-    Stop an sc-server process and everything it started.
-
-    SIGTERM rather than SIGKILL: aiohttp installs a SIGTERM handler that turns it
-    into a graceful exit of web.run_app(), so sc_server.main() returns and the
-    server process runs its own teardown -- releasing its handles on the session
-    manager and joining the node workers it forked. Under SIGKILL none of that
-    happens, and whatever the server started is orphaned rather than collected.
-
-    The recursive sweep afterwards is the backstop for a server that had to be
-    killed after all: read the tree before signalling the parent, because once it
-    is gone its children are reparented and no longer findable from here.
-    '''
-    if proc.pid is None:
-        return
-
-    try:
-        descendants = psutil.Process(proc.pid).children(recursive=True)
-    except psutil.NoSuchProcess:
-        descendants = []
-
-    proc.terminate()
-    proc.join(timeout)
-    if proc.is_alive():
-        proc.kill()
-        proc.join(timeout)
-
-    alive = [child for child in descendants if child.is_running()]
-    for child in alive:
-        try:
-            child.terminate()
-        except psutil.NoSuchProcess:
-            pass
-    _, alive = psutil.wait_procs(alive, timeout=timeout)
-    for child in alive:
-        try:
-            child.kill()
-        except psutil.NoSuchProcess:
-            pass
-    psutil.wait_procs(alive, timeout=timeout)
-
-
-@pytest.fixture
-def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeypatch):
-    # Every consumer of this fixture launches a real sc-server, which needs
-    # both packages in the "server" extra. Either one missing on its own would
-    # otherwise leave the server dying at startup and the test waiting out the
-    # port timeout instead of reporting itself as skipped.
-    pytest.importorskip("aiohttp", reason="the server extra is not installed")
-    pytest.importorskip("fastjsonschema", reason="the server extra is not installed")
-
-    srv_procs = []
-
-    def start_server(cluster='local', auth=False, extra_args=None):
-        args = [
-            '-nfsmount', scserver_nfs_path,
-            '-cluster', cluster,
-            '-port', str(unused_tcp_port),
-            '-checkinterval', '1'
-        ]
-        if auth:
-            args.append('-auth')
-        if extra_args:
-            args.extend(extra_args)
-
-        monkeypatch.setattr(sys, "argv", ["sc-server", *args])
-
-        # Launch with the start method the scheduler pins (fork on Linux), not
-        # the interpreter default. Under the 3.14 default, forkserver, the server
-        # comes up in a freshly exec'd interpreter that has none of this
-        # session's state -- in particular no shared_manager_server address, so
-        # it starts an MPManager server process of its own, which then has to be
-        # cleaned up along with it.
-        srv_proc = get_process_context().Process(target=sc_server.main)
-        with forking():
-            srv_proc.start()
-        srv_procs.append(srv_proc)
-
-        # Wait for server to become available
-        wait_for_port(unused_tcp_port)
-
-        return unused_tcp_port
-
-    def stop_server():
-        for srv_proc in srv_procs:
-            _shutdown_server(srv_proc)
-
-    request.addfinalizer(stop_server)
-
-    return start_server
-
-
-@pytest.fixture
 def wait_for_port():
     def is_open(port: int, timeout: int = 1):
         test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -621,35 +507,6 @@ def wait_for_port():
         pytest.skip(f"{port} failed to become available")
 
     return wait
-
-
-@pytest.fixture
-def scserver_credential():
-    cred_file = "scserver_test_credentials.json"
-
-    def write(port: int,
-              username: Optional[str] = None,
-              password: Optional[str] = None,
-              project: Optional[Project] = None):
-        creds = {
-            'address': 'localhost',
-            'port': port
-        }
-        if username:
-            creds['username'] = username
-        if password:
-            creds['password'] = password
-
-        with open(cred_file, 'w') as f:
-            f.write(json.dumps(creds))
-
-        if project:
-            project.set('option', 'remote', True)
-            project.set('option', 'credentials', cred_file)
-
-        return cred_file
-
-    return write
 
 
 @pytest.fixture

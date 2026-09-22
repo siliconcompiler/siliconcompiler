@@ -64,8 +64,8 @@ API. See [Migrating from the Chip API](docs/user_guide/migration.rst) for the
 old-to-new table.
 
 **2. There is no `sc` command.** The entry points are `sc-dashboard`, `sc-issue`,
-`sc-remote`, `sc-server`, `sc-show`, `sc-install` and `smake` -- that is the whole
-list, from `[project.scripts]` in `pyproject.toml`. A bare `sc -target ...`
+`sc-remote`, `sc-show`, `sc-install` and `smake` -- that is the whole list, from
+`[project.scripts]` in `pyproject.toml`. A bare `sc -target ...`
 invocation is from the pre-0.35 CLI and will fail with `command not found`. To
 run something from the shell, use a Python script, `smake`, or the demos:
 
@@ -142,7 +142,7 @@ still resolves through the MRO -- but check that it does.
 | `siliconcompiler/schema/` | the schema itself; `CHANGELOG.rst` records every change to it under its own semver |
 | `siliconcompiler/tools/` | one directory per EDA tool driver |
 | `siliconcompiler/flows/`, `targets/` | pre-defined flowgraphs and target bundles |
-| `siliconcompiler/apps/` | the seven CLI entry points |
+| `siliconcompiler/apps/` | the six CLI entry points |
 | `siliconcompiler/toolscripts/` | per-OS tool install scripts, indexed by `_tools.json` |
 | `examples/` | working, tested designs -- the entry script is `make.py` or `<dirname>.py` |
 | `docs/` | Sphinx sources; `_ext/` holds build-time generators |
@@ -202,10 +202,15 @@ documentation runs its `setup()`, and theirs needs `cocotb` importable. Install
 `docs` alone and the build fails on the first cocotb task.
 `.github/workflows/docs.yml` installs `.[docs,cocotb]` for the same reason.
 
-That also makes the docs build the one gate needing **Python 3.13 or older**, because
-`cocotb` is pinned to `python_version <= '3.13'`; above that it resolves to nothing
-and the extra installs successfully but empty. Everything else in the list is fine on
-3.14.
+⚠️ **The symptom is worth knowing, because it is not a missing-package message:**
+Sphinx dies mid-build with `RuntimeError: Cocotb is not installed; cannot run test.`
+out of `tools/_common/cocotb/cocotb_task.py`, during *reading*, so nothing later is
+checked and a broken cross-reference elsewhere stays hidden behind it.
+
+**There is no Python ceiling on this.** `cocotb` used to carry
+`python_version <= '3.13'`, which made the docs build the one gate that could not run
+on 3.14 -- the extra resolved to nothing and installed empty. **That bound was dropped
+in `55d949f6e` (2026-09-08)** and `cocotb` installs on 3.14 like everything else.
 
 The fourth gate is **Verilog**, and it is the sharpest edge: it needs
 [Verible](https://github.com/chipsalliance/verible) (not a Python package), and

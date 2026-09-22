@@ -1,0 +1,21 @@
+{
+  "api_version": "v1",
+  "software": {
+    "siliconcompiler": ["0.38.9"]
+  },
+  "grant_types_supported": ["client_credentials", "refresh_token"],
+  "limits": {
+    "max_job_nodes": 1000,
+    "max_upload_bytes": 1073741824,
+    "job_retention_days": 30,
+    "pending_uploads": 8,
+    "concurrent_jobs": 4,
+    "concurrent_log_streams": 8,
+    "max_log_stream_seconds": 14400,
+    "max_archive_members": 100000,
+    "max_archive_expanded_bytes": 10737418240
+  },
+  "features": ["logs", "logs.stream"],
+  "identity_assurance": "self-asserted",
+  "notices": []
+}

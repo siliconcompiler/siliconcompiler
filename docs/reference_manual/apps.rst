@@ -14,9 +14,6 @@ CLI apps
   :app: sc-remote
 
 .. scapp::
-  :app: sc-server
-
-.. scapp::
   :app: sc-show
 
 .. scapp::

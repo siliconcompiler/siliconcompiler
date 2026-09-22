@@ -315,7 +315,7 @@ The command line
 ================
 
 There is **no** ``sc`` command, and there never was one after v0.35.0. The
-entry points are ``sc-dashboard``, ``sc-issue``, ``sc-remote``, ``sc-server``,
+entry points are ``sc-dashboard``, ``sc-issue``, ``sc-remote``,
 ``sc-show``, ``sc-install`` and ``smake``.
 
 .. list-table::

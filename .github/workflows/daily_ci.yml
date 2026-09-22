@@ -321,6 +321,12 @@ jobs:
   remote_server:
     name: 'Remote server (slurm) demos'
     needs: [cache, docker_image]
+    # Off while the client and the server are rewritten against the v1 API.
+    # Neither half is in the tree, so setup/server/ does not come up and there
+    # is no client to drive it. Turn this back on with the phase that makes a
+    # design run end to end again; leaving it red daily teaches people to
+    # ignore it.
+    if: false
     # Generous: the job pulls a multi-GB base image and builds on top of it
     # before either demo starts, and a 2-core runner routes the ASIC design a
     # good deal slower than a workstation does.
