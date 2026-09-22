@@ -18,8 +18,8 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
     Reuses the APR input handling so the same odb/def/vg/sdc selection logic
     (including ``enablehier`` linking and ``load_sdcs``) is applied. When a
     ``showfilepath`` is provided (e.g. via ``sc-show -open``) the file plus any
-    sibling ``vg``/``sdc`` files from the source node are copied into ``inputs``
-    at runtime.
+    sibling ``sdc`` files from the source node are copied into ``inputs`` at
+    runtime.
     '''
     def __init__(self):
         super().__init__()
@@ -68,14 +68,6 @@ class OpenTask(BaseOpenTask, APRTask, OpenROADSTAParameter):
             return
 
         src_outputs = os.path.join(show_workdir, "outputs")
-
-        # Copy companion verilog netlist when linking a placed/routed def with -hier
-        if show_type in ("def", "def.gz"):
-            for vg_ext in ("vg.gz", "vg"):
-                vg_file = os.path.join(src_outputs, f"{self.design_topmodule}.{vg_ext}")
-                if os.path.exists(vg_file):
-                    shutil.copy2(vg_file, f"inputs/{self.design_topmodule}.{vg_ext}")
-                    break
 
         # Copy SDCs when load_sdcs is enabled: prefer per-mode files, otherwise
         # fall back to the generic <top>.sdc.

@@ -3483,26 +3483,22 @@ def test_openroad_open_copy_basic_def(open_project):
         assert fh.read() == "def-content"
 
 
-def test_openroad_open_copy_with_vg_companion(open_project):
-    """Opening a def pulls in a sibling vg netlist for -hier linking."""
-    src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
-        "gcd.def": "def-content",
-        "gcd.vg": "verilog-content",
-    })
-    src_def = os.path.join(src_outputs, "gcd.def")
+@pytest.mark.parametrize("task_cls", [
+    openroad_open.OpenTask,
+    openroad_show.ShowTask,
+    openroad_show.WebTask,
+])
+def test_openroad_open_copy_never_pairs_vg_with_def(open_project, task_cls):
+    """No vg is staged beside a def, for any viewer.
 
-    _run_copy(open_project,
-              show_step="route.detailed", show_index="0",
-              show_type="def", show_path=src_def)
+    read_input_files.tcl links a netlist found next to a def with -hier, which puts
+    read_def into floorplan_initialize mode and drops def content the netlist does not
+    declare. write_verilog escapes the hierarchy delimiter, so a design that kept its
+    hierarchy through synthesis loses everything. WebTask keeps enablehier on for
+    netlist-only views, so it must be covered here too.
+    """
+    _set_open_flow(open_project, task_cls=task_cls)
 
-    assert os.path.exists("inputs/gcd.def")
-    assert os.path.exists("inputs/gcd.vg")
-    with open("inputs/gcd.vg") as fh:
-        assert fh.read() == "verilog-content"
-
-
-def test_openroad_open_copy_prefers_gz_vg(open_project):
-    """vg.gz is preferred over plain vg when both exist alongside the def."""
     src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
         "gcd.def": "def-content",
         "gcd.vg": "plain-vg",
@@ -3514,8 +3510,9 @@ def test_openroad_open_copy_prefers_gz_vg(open_project):
               show_step="route.detailed", show_index="0",
               show_type="def", show_path=src_def)
 
-    assert os.path.exists("inputs/gcd.vg.gz")
+    assert os.path.exists("inputs/gcd.def")
     assert not os.path.exists("inputs/gcd.vg")
+    assert not os.path.exists("inputs/gcd.vg.gz")
 
 
 def test_openroad_open_copy_skips_vg_for_odb(open_project):
@@ -3589,7 +3586,6 @@ def test_openroad_open_copy_cross_job(open_project):
               show_job="rtl2gds")
 
     assert os.path.exists("inputs/gcd.def")
-    assert os.path.exists("inputs/gcd.vg")
     assert os.path.exists("inputs/gcd.sdc")
 
 
@@ -3655,7 +3651,6 @@ def test_openroad_show_screenshot_inherit_copy(open_project, task_cls):
         task._copy_show_files()
 
     assert os.path.exists("inputs/gcd.def")
-    assert os.path.exists("inputs/gcd.vg")
     assert os.path.exists("inputs/gcd.sdc")
 
 
