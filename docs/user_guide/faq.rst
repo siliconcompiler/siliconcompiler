@@ -137,6 +137,26 @@ accessor, which mostly means reading :term:`metrics <metric>` and
 :term:`records <record>`. Neither is deprecated -- see
 :ref:`Working with the Schema <schema_access>`.
 
+.. index:: ! how do I set the die area, ! floorplan constraints,
+   ! option floorplan diearea
+
+How do I set the die area, and what happens if I don't?
+-------------------------------------------------------
+
+``project.constraint.area.set_dieoutline(500, 500, coremargin=10)`` -- width and
+height in µm, on the **project**. Set nothing and the floorplanner sizes the die
+from a :term:`utilization` target instead -- 40% in every demo target, which is
+why the :ref:`quickstart <quickstart_guide>` never mentions a die. That holds
+until the design contains a :term:`macro` or a pad ring, at which point the size
+has to be chosen with those in it.
+
+Constraints hang off the project rather than the :class:`.Design`, because a die
+size describes one compilation while a design is meant to be reused across
+several. There is no ``option,floorplan`` keypath on either -- it has never
+existed in any release, so code that sets one was invented rather than ported.
+:ref:`Floorplanning <howto_floorplanning>` has the rest: macro halos and
+placements, pin sides, and pad rings.
+
 .. index:: ! where are files written, ! build directory location
 
 Where does SiliconCompiler put things?

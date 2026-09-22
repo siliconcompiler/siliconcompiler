@@ -367,7 +367,8 @@ ASIC design
     floorplan
        The physical plan of a block before detailed implementation: die and core
        area, where :term:`macros <macro>` and I/O sit, and the power grid.
-       Set through the project's area constraints, and settled early because
+       Set through the project's area constraints -- see
+       :ref:`Floorplanning <howto_floorplanning>` -- and settled early because
        :term:`placement` and :term:`routing` both have to work inside it.
 
     hardened macro
