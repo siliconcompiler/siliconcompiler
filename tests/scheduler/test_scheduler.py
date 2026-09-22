@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import pytest
@@ -16,6 +17,7 @@ from unittest.mock import patch, MagicMock
 from siliconcompiler import Project, Flowgraph, Design, NodeStatus
 from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode, \
     SlurmSchedulerNode, DockerSchedulerNode
+from siliconcompiler.scheduler.schedulernode import SchedulerNodeReset
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
@@ -1263,6 +1265,64 @@ def test_changing_a_declared_output_reruns_the_node(gcd_design):
         workdir(second, step="place", index="0"), "outputs"))
     assert "b.v" in place_outputs
     assert "a.v" not in place_outputs
+
+
+def _poison_manifest(path):
+    """Rewrites a manifest into one this schema cannot read: a version it does
+    not know, holding a parameter type it cannot parse.
+
+    That is what a build directory written by a newer SiliconCompiler looks like
+    from here. The failure lands where the manifest is first *used*, not where it
+    is loaded -- loading is lazy -- so it arrives past the guard `requires_run()`
+    puts around the load.
+    """
+    with open(path) as f:
+        manifest = json.load(f)
+    manifest["schemaversion"]["node"]["default"]["default"]["value"] = "999.0.0"
+    manifest["option"]["jobname"]["type"] = "futuretype"
+    with open(path, "w") as f:
+        json.dump(manifest, f)
+    return path
+
+
+@pytest.mark.timeout(60)
+def test_unreadable_previous_manifest_reruns_the_node(gcd_design, project_logger, caplog):
+    """An unreadable manifest is a statement about the previous run, not this one.
+
+    Before, the exception came back out of the checking pool's `map()` and ended
+    the job -- the user saw a backtrace through `configure_nodes` and no run.
+    """
+    first = _flow_switch_project(gcd_design, "firstflow", "a.v")
+    first.run()
+
+    _poison_manifest(os.path.join(jobdir(first), f"{first.name}.pkg.json"))
+    _poison_manifest(os.path.join(workdir(first, step="syn", index="0"), "inputs",
+                                  f"{first.name}.pkg.json"))
+
+    second = _flow_switch_project(gcd_design, "firstflow", "a.v")
+    project_logger(second)
+
+    assert second.run()
+
+    assert "manifest schema version (999.0.0) is newer than the supported schema version" \
+        in caplog.text
+    assert "Unable to determine if syn/0 changed since the previous run" in caplog.text
+    assert "rerunning node" in caplog.text
+    assert os.path.exists(os.path.join(
+        workdir(second, step="syn", index="0"), "outputs", "a.v"))
+
+
+def test_run_required_check_reports_an_unexpected_failure_as_a_rerun(gcd_design):
+    """Whatever the check raises, the node is redone -- it is never the run's end."""
+    project = _flow_switch_project(gcd_design, "firstflow", "a.v")
+    node = SchedulerNode(project, "syn", "0")
+
+    with patch.object(SchedulerNode, "requires_run", side_effect=ValueError("path")):
+        reset = Scheduler._configure_run_required(node)
+
+    assert isinstance(reset, SchedulerNodeReset)
+    assert reset.msg == ("Unable to determine if syn/0 changed since the previous "
+                         "run (ValueError: path), rerunning node")
 
 
 def _write_job_manifest(project):

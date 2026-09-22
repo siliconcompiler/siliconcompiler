@@ -2,11 +2,13 @@ import contextlib
 import logging
 import re
 import sys
+import warnings
 
 from collections import deque
 from types import MappingProxyType
 
 from siliconcompiler import utils
+from siliconcompiler.schema import SchemaVersionWarning
 
 
 # Levels for output the *tool* produced, as opposed to SiliconCompiler's own
@@ -110,6 +112,60 @@ def console_quiet(logger: logging.Logger, active: bool = True):
         yield
     finally:
         logger.removeFilter(tagger)
+
+
+@contextlib.contextmanager
+def report_schema_warnings(logger: logging.Logger, context: str,
+                           level: int = logging.WARNING):
+    """
+    Routes schema warnings raised inside the block into the run log.
+
+    The schema cannot report these itself. It is standalone by design -- tool
+    drivers import it in environments that have no SiliconCompiler around it --
+    and the object it is populating when this matters is a throwaway loaded from
+    a *previous* run, whose logger is not this run's. Left to ``warnings``, the
+    message goes to stderr, away from the log that records what the run then did
+    about it.
+
+    A message is logged once per block however many manifests raised it, so a
+    twenty-node flow reading twenty manifests written by the same newer schema
+    says so once. Any other warning raised inside the block is re-emitted
+    unchanged, at its original location, so this cannot quietly swallow one.
+
+    Args:
+        logger (logging.Logger): The logger to report through.
+        context (str): What was being read, used as the prefix of the message.
+        level (int): Level to report at. A block that runs once per node passes
+            ``logging.DEBUG``: every node in a build directory written by a newer
+            schema raises the same warning, and which node hit it first is not
+            what the reader needs -- the job-level read has already said it once,
+            where it can be read.
+    """
+    caught = []
+    try:
+        with warnings.catch_warnings(record=True) as recorded:
+            # filterwarnings rather than simplefilter: it prepends, leaving
+            # filters an enclosing block set (the fork warning silenced by
+            # forking(), say) in place.
+            warnings.filterwarnings("always", category=SchemaVersionWarning)
+            caught = recorded
+            yield
+    finally:
+        # Reported from here, past the end of the recording block, so that a
+        # block which raised -- the manifest this warned about turning out to be
+        # unreadable, most of all -- still says what it saw, and so that
+        # re-emitting is not recorded straight back into the list being walked.
+        reported = set()
+        for entry in caught:
+            if issubclass(entry.category, SchemaVersionWarning):
+                message = str(entry.message)
+                if message in reported:
+                    continue
+                reported.add(message)
+                logger.log(level, f"{context}: {message}")
+            else:
+                warnings.warn_explicit(entry.message, entry.category,
+                                       entry.filename, entry.lineno)
 
 
 class SCHistoryLogHandler(logging.Handler):
