@@ -112,6 +112,9 @@ Constraints your design will probably need:
 Without a die area the floorplanner picks one from a utilisation target, which
 is fine until you have macros -- see
 :ref:`Instantiating a hardened module <hardened_modules>`.
+:ref:`Floorplanning <howto_floorplanning>` covers the rest of what goes on a
+project: macro halos and placements, which side a pin comes out on, and pad
+rings.
 
 4. Run it
 =========

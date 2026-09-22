@@ -114,7 +114,18 @@ the gaps -- otherwise the ring is a ring of islands.
 Wiring it to the flow
 ---------------------
 
-None of those scripts do anything until a task is told to read them. These are
+None of those scripts do anything until a task is told to read them, and that
+happens in two steps. First the design carries each script in a fileset of its
+own -- ``"padring.sky130"`` and the two beside it are names this design invents,
+not names SiliconCompiler looks for:
+
+.. literalinclude:: examples/padring/padring.py
+   :language: python
+   :start-at: # Physical construction, kept in separate filesets
+   :end-at: self.add_file("openroad/global_connect.tcl")
+   :caption: Three filesets, one per script
+
+Then the project hands those filesets to the tasks that read them. These are
 task variables rather than schema keys, because each configures one step:
 
 .. literalinclude:: examples/padring/padring.py
@@ -123,9 +134,21 @@ task variables rather than schema keys, because each configures one step:
    :end-at: task.add_openroad_globalconnectfileset
    :caption: Attaching the physical filesets
 
+.. important::
+   The second block is the end of the setup, not the whole of it. Each line
+   names a fileset that the first block created; on a design without them the
+   three hooks point at nothing, and the tasks run as if no ring had been asked
+   for.
+
 .. note::
    The pad ring hook takes only a fileset name, while the power grid and global
-   connect hooks also take the library that owns the fileset.
+   connect hooks also take the library that owns the fileset. That is because a
+   pad ring is always read from the design being built, while a power grid or a
+   set of global connections often comes from a library instead: when neither is
+   set explicitly, both tasks collect them from the ASIC libraries in the
+   build. Set
+   one here, as this design does, and that fallback no longer runs -- so a
+   library's grid has to be named alongside the design's rather than inherited.
 
 The power grid then needs one addition an ordinary design does not: the core's
 rings are tied out to the supply pads with ``-connect_to_pads``, so the core is
@@ -137,6 +160,16 @@ How big does the die have to be?
 The ring sets a floor: fourteen cells plus two corners need about 1520 µm a side.
 A die sized by that is **pad limited** -- set by how many pins must fit around the
 edge rather than by the logic inside.
+
+It also has to be set explicitly. ``init_floorplan`` refuses to size a die with a
+ring in it from the usual density and aspect ratio, because the ring is placed at
+absolute coordinates and a die chosen after the fact would not line up with it:
+
+.. literalinclude:: examples/padring/padring.py
+   :language: python
+   :start-at: project.constraint.area.set_dieoutline
+   :end-at: project.constraint.area.set_dieoutline
+   :caption: The die the ring is drawn against
 
 The memory fits inside that. sky130's SRAM macro is 683 µm wide and needs a
 placement channel around it, which it has once the 250 µm margin holds the core

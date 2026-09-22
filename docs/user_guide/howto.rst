@@ -363,6 +363,182 @@ Check my setup before running
 
     project.check_manifest()
 
+.. _howto_floorplanning:
+
+Floorplanning
+=============
+
+.. index:: ! floorplan, ! floorplanning, ! die area, ! core area, ! diearea,
+   ! corearea, ! coremargin, ! utilization, ! macro placement, ! pin placement,
+   ! constraints
+
+Floorplan constraints belong to the **project**, not to the design: a die size
+is a property of one compilation, while a :class:`.Design` is meant to be reused
+across several. They all hang off ``project.constraint`` -- ``area`` for the die
+and core, ``component`` for macros, ``pin`` for I/O.
+
+.. warning::
+   There is no ``option,floorplan`` keypath, on the design or anywhere else.
+   ``design.set('option', 'floorplan', 'diearea', ...)`` is not an older
+   spelling of something that moved: no release has ever had it, so code that
+   contains it was invented rather than ported. The calls below are the real
+   ones, and every one of them is on the project.
+
+Set the die size
+^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   project.constraint.area.set_dieoutline(500, 500, coremargin=10)
+
+Width and height in µm, with the die's lower-left corner at the origin.
+``coremargin`` is the gap between the die edge and the core the standard cells
+are placed in -- room for the power ring and the I/O.
+
+Give the core size instead when what you know is how much room the logic needs;
+the die is grown outwards from it by the margin:
+
+.. code-block:: python
+
+   project.constraint.area.set_coreoutline(480, 480, coremargin=10)
+
+Only one of the two is needed -- whichever is missing is derived from the other
+and the margin -- but setting both is allowed, and then both are used as given.
+For an outline that is not a rectangle, pass the vertices to
+:meth:`.ASICAreaConstraint.set_diearea`; the core is offset edge by edge so it
+follows the die rather than its bounding box.
+
+Let the tool pick the die size
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Set neither area and the floorplanner sizes the die from a :term:`utilization`
+target and an aspect ratio. Every demo target already sets those -- 40% and a
+small core margin -- which is why the :ref:`quickstart <quickstart_guide>` never
+mentions a die. Change them with:
+
+.. code-block:: python
+
+   project.constraint.area.set_density(40, aspectratio=1.0, coremargin=10)
+
+Density is the percentage of the core the cells occupy after synthesis; 40--70%
+is the usual range, lower for congested designs. Both it and the aspect ratio
+are ignored once a die or core area is given.
+
+Automatic sizing is fine until the design contains something the tool cannot
+size around. A :term:`macro` needs a die chosen with it in mind, and a pad ring
+needs one it can be drawn against -- ``init_floorplan`` refuses to size a ring
+from density, because the ring is placed at absolute coordinates and a die
+picked afterwards would not line up with it.
+
+Place a macro, or keep the placer away from one
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Component constraints are made by instance name, and the name may be a glob:
+
+.. code-block:: python
+
+   sram = project.constraint.component.make_component("*sram*memory")
+   sram.set_halo(5.0, 5.0)         # placement keepout around it, in um
+   sram.set_placement(100, 250)    # pin it down instead of letting the tool choose
+   sram.set_rotation("R90")
+
+A halo on its own is usually enough -- it stops standard cells crowding the
+macro's pins, which is the common failure. Fixing the placement starts to matter
+once several macros have to share an edge. :ref:`Instantiating a hardened module
+<hardened_modules>` covers getting the macro into the build in the first place.
+
+Put a pin on a particular side
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   project.constraint.pin.make_pinconstraint("clk").set_side("west")
+
+Sides are ``left``/``west``, ``top``/``north``, ``right``/``east`` and
+``bottom``/``south``. A bus is constrained as a unit rather than a pin at a
+time, which is what keeps its order along the edge:
+
+.. code-block:: python
+
+   project.constraint.pin.make_buspinconstraints(
+       [f"data[{i}]" for i in range(32)], side="north", pitch=2.0)
+
+:meth:`.ASICPinConstraints.make_buspinconstraints` documents how ``pitch``,
+``side_width``, ``center`` and ``side_offset`` divide up an edge: one of the
+first two sets the spacing, one of the last two sets where the bus sits.
+
+Wrap a design in an IO pad ring
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index:: ! padring, ! pad ring, ! IO pads, ! bond pad, ! CELLMAP,
+   ! place_pads, ! connect_by_abutment
+
+:ref:`Implementing an IO pad ring <padring_tutorial>` walks through this end to
+end, and ``examples/padring`` is the working design it builds. In short, four
+pieces are involved:
+
+#. **The ring in RTL.** Depend on lambdalib's pad ring generator rather than
+   naming technology cells, and describe the cell order per side in a
+   ``CELLMAP``. ``lambdalib`` installs with ``lambdapdk``, so it is already
+   present::
+
+       from lambdalib.padring import Padring
+       ...
+       self.add_depfileset(Padring(), "rtl")
+
+#. **A top level whose ports are the pads.** Name them for what they carry, and
+   declare the direction each is really used in -- the ring's cells are all
+   bidirectional, but a pin on the finished part is not, and only the supplies are
+   genuinely ``inout``. Underneath, the logic talks to the ring through
+   ``din``/``dout``/``oen``/``ie`` and a technology configuration bus per side,
+   never touching a pad cell, which is what keeps it portable between
+   technologies.
+
+#. **Physical construction in TCL**, in filesets of your own on the design.
+   These names are yours rather than reserved ones, and nothing looks for them
+   until step 4 below names them:
+
+   .. code-block:: python
+
+      with self.active_dataroot("mydesign"), self.active_fileset("padring.sky130"):
+          self.add_file("openroad/padring.tcl")
+      # likewise "pdn.sky130" and "globalconns.sky130"
+
+#. **The hooks that point the tasks at those filesets.** These are task
+   variables, not schema keys:
+
+   .. code-block:: python
+
+      InitFloorplanTask.find_task(project).add_openroad_padringfileset("padring.sky130")
+      PowerGridTask.find_task(project).add_openroad_powergridfileset("mydesign", "pdn.sky130")
+      for task in APRTask.find_task(project):
+          task.add_openroad_globalconnectfileset("mydesign", "globalconns.sky130")
+
+   These three lines are the end of the setup rather than the whole of it --
+   each names a fileset that has to have been created first, and copying them
+   alone gets you three hooks pointing at nothing. The pad ring hook takes only
+   a fileset name because a pad ring is always read from the design being built;
+   the power grid and global connect hooks take the owning library first, since
+   those two are often supplied by a library instead -- when neither is set,
+   both are collected from the ASIC libraries in the build, and setting one
+   turns that fallback off.
+
+The TCL itself places pads into IO rows, then corners, then fill, then calls
+``connect_by_abutment`` so the supply and configuration signals pass between
+neighbouring cells, then adds bond pads. The order matters. Use
+``-connect_to_pads`` on the core power rings so the core is fed from the ring.
+
+These are OpenROAD commands rather than SiliconCompiler ones, so their arguments
+are documented upstream: `pad <https://openroad.readthedocs.io/en/latest/main/src/pad/README.html>`_ for ``place_pads``, ``place_corners``,
+``place_io_fill``, ``connect_by_abutment`` and ``place_bondpad``, and
+`pdn <https://openroad.readthedocs.io/en/latest/main/src/pdn/README.html>`_ for ``define_pdn_grid``, ``add_pdn_ring``, ``add_pdn_stripe`` and
+``add_global_connection``.
+
+A die with a ring is usually **pad limited**: its size is set by how many pads
+must fit around the edge, not by the logic inside. Set it explicitly --
+``init_floorplan`` will not size a ring from density, because the ring is placed
+at absolute coordinates and a die chosen afterwards would not line up with it.
+
 Extend SiliconCompiler
 ======================
 
@@ -491,60 +667,6 @@ macro exists.
 .. code-block:: python
 
    uq.build(target=freepdk45_demo, macros="mymodule__N8", rebuild=True)
-
-Wrap a design in an IO pad ring
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. index:: ! padring, ! pad ring, ! IO pads, ! bond pad, ! CELLMAP,
-   ! place_pads, ! connect_by_abutment
-
-:ref:`Implementing an IO pad ring <padring_tutorial>` walks through this end to
-end, and ``examples/padring`` is the working design it builds. In short, three
-pieces are involved:
-
-#. **The ring in RTL.** Depend on lambdalib's pad ring generator rather than
-   naming technology cells, and describe the cell order per side in a
-   ``CELLMAP``. ``lambdalib`` installs with ``lambdapdk``, so it is already
-   present::
-
-       from lambdalib.padring import Padring
-       ...
-       self.add_depfileset(Padring(), "rtl")
-
-#. **A top level whose ports are the pads.** Name them for what they carry, and
-   declare the direction each is really used in -- the ring's cells are all
-   bidirectional, but a pin on the finished part is not, and only the supplies are
-   genuinely ``inout``. Underneath, the logic talks to the ring through
-   ``din``/``dout``/``oen``/``ie`` and a technology configuration bus per side,
-   never touching a pad cell, which is what keeps it portable between
-   technologies.
-
-#. **Physical construction in TCL**, attached to the tasks that read it. These
-   are task variables, not schema keys:
-
-   .. code-block:: python
-
-      InitFloorplanTask.find_task(project).add_openroad_padringfileset("padring.sky130")
-      PowerGridTask.find_task(project).add_openroad_powergridfileset("mydesign", "pdn.sky130")
-      for task in APRTask.find_task(project):
-          task.add_openroad_globalconnectfileset("mydesign", "globalconns.sky130")
-
-   Note that the pad ring hook takes only a fileset name while the other two also
-   take the library that owns the fileset.
-
-The TCL itself places pads into IO rows, then corners, then fill, then calls
-``connect_by_abutment`` so the supply and configuration signals pass between
-neighbouring cells, then adds bond pads. The order matters. Use
-``-connect_to_pads`` on the core power rings so the core is fed from the ring.
-
-These are OpenROAD commands rather than SiliconCompiler ones, so their arguments
-are documented upstream: `pad <https://openroad.readthedocs.io/en/latest/main/src/pad/README.html>`_ for ``place_pads``, ``place_corners``,
-``place_io_fill``, ``connect_by_abutment`` and ``place_bondpad``, and
-`pdn <https://openroad.readthedocs.io/en/latest/main/src/pdn/README.html>`_ for ``define_pdn_grid``, ``add_pdn_ring``, ``add_pdn_stripe`` and
-``add_global_connection``.
-
-A die with a ring is usually **pad limited**: its size is set by how many pads
-must fit around the edge, not by the logic inside.
 
 Schema internals
 ================
