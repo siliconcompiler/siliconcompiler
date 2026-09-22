@@ -1,4 +1,5 @@
 import pytest
+import warnings
 
 from unittest.mock import patch
 
@@ -6,6 +7,7 @@ from siliconcompiler.schema import Parameter
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import SafeSchema
+from siliconcompiler.schema import SchemaVersionWarning
 
 
 @pytest.fixture
@@ -302,3 +304,36 @@ def test_from_dict_with_list():
             'sctype': 'SafeSchema'
         }
     }
+
+
+def _versioned_cfg(schema, version):
+    """The fixture's manifest, stamped with the version that wrote it."""
+    EditableSchema(schema).insert("schemaversion", Parameter("str", defvalue=version))
+    return schema.getdict()
+
+
+def test_from_manifest_warns_on_a_newer_schema_version(schema):
+    """SafeSchema overrides _from_dict rather than delegating to it, so the check
+    the base class does on the way in has to be made here too -- this is the
+    loader a tool driver in an isolated environment reads a manifest with."""
+    with pytest.warns(SchemaVersionWarning,
+                      match=r"manifest schema version \(999\.0\.0\) is newer"):
+        SafeSchema.from_manifest(cfg=_versioned_cfg(schema, "999.0.0"))
+
+
+def test_read_manifest_warns_on_a_newer_schema_version(schema):
+    """The instance loader reaches _from_dict by its own route."""
+    schema.write_manifest("test.json")
+    EditableSchema(schema).insert("schemaversion", Parameter("str", defvalue="999.0.0"))
+    schema.write_manifest("newer.json")
+
+    safe = SafeSchema()
+    with pytest.warns(SchemaVersionWarning,
+                      match=r"manifest schema version \(999\.0\.0\) is newer"):
+        safe.read_manifest("newer.json")
+
+
+def test_from_manifest_is_quiet_for_a_supported_schema_version(schema):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SchemaVersionWarning)
+        SafeSchema.from_manifest(cfg=_versioned_cfg(schema, "0.1.0"))

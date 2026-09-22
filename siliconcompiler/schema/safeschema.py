@@ -41,6 +41,14 @@ class SafeSchema(BaseSchema):
         if not isinstance(manifest, dict):
             return set(), set()
 
+        if version is None and not keypath:
+            # The root of the read. SafeSchema decodes a manifest without the
+            # classes that wrote it, so it never reaches BaseSchema._from_dict
+            # and has to ask for itself whether it is reading something newer
+            # than it understands. Only the warning is taken from it: what this
+            # class does with a parameter it cannot parse is unchanged.
+            BaseSchema._resolve_version(manifest)
+
         if "__meta__" in manifest:
             del manifest["__meta__"]
 

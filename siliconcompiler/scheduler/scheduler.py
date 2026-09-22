@@ -23,7 +23,7 @@ from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, Schedule
 from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceived
 
 from siliconcompiler import utils
-from siliconcompiler.utils.logging import SCLoggerFormatter
+from siliconcompiler.utils.logging import SCLoggerFormatter, report_schema_warnings
 from siliconcompiler.utils.multiprocessing import MPManager, get_process_context, forking
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
 from siliconcompiler.package.cleanup import auto_cleanup
@@ -859,9 +859,10 @@ class Scheduler:
 
         from siliconcompiler import Project
         try:
-            previous = Project.from_manifest(filepath=self.manifest)
-            previous_name = previous.option.get_flow()
-            previous_flow = previous.get_flow(previous_name)
+            with report_schema_warnings(self.__logger, f"Reading {self.manifest}"):
+                previous = Project.from_manifest(filepath=self.manifest)
+                previous_name = previous.option.get_flow()
+                previous_flow = previous.get_flow(previous_name)
         except Exception as e:
             self.__logger.debug(f"Unable to read {self.manifest} to compare flows: {e}")
             return None
@@ -916,22 +917,23 @@ class Scheduler:
             load_nodes = load_runtime.get_nodes()
 
         # Collect previous run information
-        for step, index in self.__flow.get_nodes():
-            if (step, index) not in load_nodes:
-                # Node not marked for loading
-                continue
-            if (step, index) in from_nodes:
-                # Node will be run so no need to load
-                continue
+        with report_schema_warnings(self.__logger, "Reading previous run"):
+            for step, index in self.__flow.get_nodes():
+                if (step, index) not in load_nodes:
+                    # Node not marked for loading
+                    continue
+                if (step, index) in from_nodes:
+                    # Node will be run so no need to load
+                    continue
 
-            manifest = self.__tasks[(step, index)].get_manifest()
-            if os.path.exists(manifest):
-                # ensure we setup these nodes again
-                try:
-                    extra_setup_nodes[(step, index)] = Project.from_manifest(filepath=manifest)
-                except Exception as e:
-                    self.__logger.debug(f"Reading {manifest} caused: {e}")
-                    pass
+                manifest = self.__tasks[(step, index)].get_manifest()
+                if os.path.exists(manifest):
+                    # ensure we setup these nodes again
+                    try:
+                        extra_setup_nodes[(step, index)] = Project.from_manifest(filepath=manifest)
+                    except Exception as e:
+                        self.__logger.debug(f"Reading {manifest} caused: {e}")
+                        pass
 
         self.__print_status("End - collect")
 
@@ -995,12 +997,30 @@ class Scheduler:
             -> Optional[Union[SchedulerFlowReset, SchedulerNodeReset]]:
         """
         Helper method to run requires_run() with threads.
+
+        Anything this check raises is a statement about the *previous* run, not
+        this one: the comparison could not be made, so the node has to be redone.
+        requires_run() reports the failures it can name itself, but not every one
+        reaches it -- a manifest is loaded lazily, so a manifest this schema
+        cannot parse (one a newer schema wrote, say) raises where it is first
+        read, past the guard around the load. Returning a reset keeps that a
+        rerun rather than the end of the run: this runs in a process pool, and an
+        exception raised here comes back out of pool.map and takes the job with
+        it.
         """
-        with task.runtime():
-            try:
+        try:
+            with task.runtime(), \
+                    report_schema_warnings(task.logger,
+                                           f"Checking {task.step}/{task.index}",
+                                           level=logging.DEBUG):
                 task.requires_run()
-            except (SchedulerFlowReset, SchedulerNodeReset) as e:
-                return e
+        except (SchedulerFlowReset, SchedulerNodeReset) as e:
+            return e
+        except Exception as e:
+            return SchedulerNodeReset(
+                f"Unable to determine if {task.step}/{task.index} changed since the "
+                f"previous run "
+                f"({e.__class__.__name__}: {e}), rerunning node")
         return None
 
     def __configure_check_run_required(self) -> List[Tuple[str, str]]:
