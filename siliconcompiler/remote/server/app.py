@@ -13,6 +13,7 @@ from typing import Optional, Union
 
 from pathlib import Path
 
+from siliconcompiler.remote.server.auth import TokenIssuer
 from siliconcompiler.remote.server.config import Config
 from siliconcompiler.remote.server.errors import ERRORS, ProblemError, problem
 from siliconcompiler.remote.server.store import Store
@@ -45,11 +46,18 @@ def require_server_dependency() -> None:
             name=missing_server_dependency)
 
 
-def create_app(datadir: Union[str, Path], cluster: str = "local"):
+def create_app(datadir: Union[str, Path], cluster: str = "local",
+               bind_keys: bool = True):
     '''Build the application for one deployment.
 
-    Everything a handler needs hangs off the app: the store, the config, and
-    which scheduler a job is dispatched through.
+    Everything a handler needs hangs off the app: the store, the config, the
+    token issuer, and which scheduler a job is dispatched through.
+
+    ``bind_keys`` is the first-contact key binding, and it is on by default.
+    Turning it off declares the deployment a single trust domain -- which a
+    container fleet has to do, because /etc/machine-id is per image and every
+    container derives the same subject, so with binding on the first one binds
+    and every later one is refused.
     '''
     require_server_dependency()
 
@@ -63,12 +71,16 @@ def create_app(datadir: Union[str, Path], cluster: str = "local"):
 
     app = flask.Flask(__name__)
     app.config.update(SC_DATADIR=datadir, SC_CONFIG=config,
-                      SC_STORE=store, SC_CLUSTER=cluster)
+                      SC_STORE=store, SC_CLUSTER=cluster,
+                      SC_ISSUER=TokenIssuer(datadir, store, bind_keys=bind_keys),
+                      SC_BIND_KEYS=bind_keys)
 
     _register_error_handlers(app)
 
-    from siliconcompiler.remote.server.routes import meta
+    from siliconcompiler.remote.server.routes import auth, identity, meta
     app.register_blueprint(meta.blueprint)
+    app.register_blueprint(auth.blueprint)
+    app.register_blueprint(identity.blueprint)
 
     # `siliconcompiler` must be advertised or this server does not start. A
     # check rather than a column: it is satisfied by an empty registry today,

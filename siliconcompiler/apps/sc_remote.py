@@ -1,8 +1,10 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import sys
 
-from siliconcompiler import Project, Design
-from siliconcompiler.remote import Client, ConfigureClient
+from pathlib import Path
+
+from siliconcompiler import Project, Design, utils
+from siliconcompiler.remote import Client, Credentials, RemoteError
 from siliconcompiler.scheduler.error import SCRuntimeError
 
 
@@ -13,15 +15,11 @@ def main():
 SC app that provides an entry point to common remote / server
 interactions.
 
-To generate a configuration file, use:
-    sc-remote -configure
-
-    or to specify a specific server and/or port:
+To configure a server, use:
     sc-remote -configure -server https://example.com
-    sc-remote -configure -server https://example.com:1234
 
-    to add or remove directories from upload whitelist, these
-        also support globbing:
+    to add or remove directories from the upload whitelist,
+        these also support globbing:
     sc-remote -configure -add ./fine_to_upload
     sc-remote -configure -remove ./no_longer_okay_to_upload
 
@@ -88,12 +86,25 @@ To delete a job, use:
 
     try:
         return _dispatch(remote)
-    except SCRuntimeError as e:
-        # A client that cannot be built is a message and an exit code, never a
-        # traceback -- same rule the server entry point follows when its extra
-        # is missing.
+    except (RemoteError, SCRuntimeError) as e:
+        # A refusal is a message and an exit code, never a traceback. The
+        # client already renders a server's problem+json in three lines, so
+        # printing it is the whole job here.
         remote.logger.error(str(e))
         return 1
+
+
+def _credentials(remote) -> Credentials:
+    '''Where this machine keeps its key and its session.
+
+    The path is taken as given rather than resolved through find_files, which
+    requires the file to exist -- and creating it is exactly what -configure is
+    for.
+    '''
+    configured = remote.option.get_credentials()
+    if configured:
+        return Credentials(Path(configured).expanduser().absolute())
+    return Credentials(Path(utils.default_credentials_file()))
 
 
 def _dispatch(remote):
@@ -114,78 +125,42 @@ def _dispatch(remote):
         remote.logger.error('Error: -server cannot be specified with '
                             f'{", ".join(["-"+e for e in cfg_only])}')
 
+    client = Client(_credentials(remote), logger=remote.logger)
+
     if remote.get("cmdarg", 'configure'):
         if remote.get("cmdarg", 'list'):
-            client = Client(remote)
             client.print_configuration()
             return 0
 
-        if not remote.get("cmdarg", 'add') and not remote.get("cmdarg", 'remove'):
-            client = ConfigureClient(remote)
-            try:
-                client.configure_server(server=remote.get("cmdarg", 'server'))
-            except ValueError as e:
-                # An answer that is needed and was not given, most often the server
-                # address, which has no default to fall back on.
-                remote.logger.error(str(e))
-                return 3
-        else:
-            client = ConfigureClient(remote)
+        if remote.get("cmdarg", 'add') or remote.get("cmdarg", 'remove'):
             client.configure_whitelist(add=remote.get("cmdarg", 'add'),
                                        remove=remote.get("cmdarg", 'remove'))
-
-        return 0
-
-    if project_cfg:
-        cfg_path = remote.find_files('cmdarg', 'cfg')
-        try:
-            project = Project.from_manifest(filepath=cfg_path)
-        except FileNotFoundError:
-            remote.logger.error(f'Configuration manifest not found: {cfg_path}')
-            return 1
-    else:
-        project = remote
-
-    if remote.option.get_credentials():
-        project.option.set_credentials(remote.find_files("option", "credentials"))
-
-    client = Client(project)
-    # Main logic.
-    # If no job-related options are specified, fetch and report basic info.
-    # Create temporary project object and check on the server.
-    client.check()
-
-    # If the -cancel flag is specified, cancel the job.
-    if remote.get("cmdarg", 'cancel'):
-        client.cancel_job()
-
-    # If the -delete flag is specified, delete the job.
-    elif remote.get("cmdarg", 'delete'):
-        client.delete_job()
-
-    # If the -reconnect flag is specified, re-enter the client flow
-    # in its "check_progress/ until job is done" loop.
-    elif remote.get("cmdarg", 'reconnect'):
-        # Start from successors of entry nodes, so entry nodes are not fetched from remote.
-        entry_nodes = project.get_flow().get_entry_nodes()
-        for entry_node in entry_nodes:
-            outputs = project.get_flow().get_node_outputs(*entry_node)
-            project.option.add_from(list(map(lambda node: node[0], outputs)), clobber=True)
-        # Enter the remote run loop.
-        try:
-            client._run_loop()
-        except KeyboardInterrupt:
             return 0
 
-        # Summarize the run.
-        project.summary()
+        try:
+            client.configure_server(server=remote.get("cmdarg", 'server'))
+        except RemoteError as e:
+            # An answer that is needed and was not given, most often the server
+            # address, which has no default to fall back on.
+            remote.logger.error(str(e))
+            return 3
+        return 0
 
-    # If only a manifest is specified, make a 'check_progress/' request and report results:
-    elif project_cfg:
-        info = client.check_job_status()
-        client._report_job_status(info)
+    # Everything below submits, watches or acts on a job, and the job path is
+    # not on this branch yet. Reaching the server at all is what works today.
+    if project_cfg or any(remote.get("cmdarg", arg) for arg in cfg_only):
+        raise SCRuntimeError(
+            "acting on a job is not available yet: the v1 client can configure "
+            "a server, log in and read it, but the job path has not landed")
 
-    # Done
+    # No job named: report what this machine is configured for and who the
+    # server says it is.
+    client.print_configuration()
+    identity = client.me()
+    remote.logger.info(f"Server reports you as {identity['id']} "
+                       f"(issuer {identity['issuer']})")
+    remote.logger.info(f"Jobs running: {identity['usage']['jobs_active']}")
+
     return 0
 
 

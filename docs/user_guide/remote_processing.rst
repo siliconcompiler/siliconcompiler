@@ -14,70 +14,62 @@ SiliconCompiler does not host a server for you -- see
 Step 1: Configure Your Remote Server
 ------------------------------------
 
-All remote server settings are managed through a ``credentials`` file located in your home directory (``$HOME/.sc/`` on Linux/macOS or ``C:\Users\<USERNAME>\.sc\`` on Windows).
-The file holds JSON, but has no file extension.
+Run ``sc-remote -configure`` and give it the server's address:
 
-While you can create this file manually, the recommended method is to use the interactive ``sc-remote`` command.
+.. code-block:: bash
+
+  sc-remote -configure -server https://your-server.example.com
+
+There is no username and no password. On first use the client generates a
+**key pair** for this machine, keeps the private half locally, and proves it
+holds that key on every request. The server records the public half the first
+time it sees you, and thereafter only something holding that key can act as
+you.
+
+The command reaches the server, logs in, and reports what it found:
+
+.. code-block:: text
+
+  Configured https://your-server.example.com/v1
+  This machine's key: 6VnuUMHokGfjlyAQjS56zCQTPEIb1PesAsRNubDmHK4
+  You are 01a0cac7-2bb6-75ae-bdfd-59ff615f6dc1 on this server
+  Saved to /home/user/.sc/credentials
+
+There is no default server, so the address is required: leaving it out is an
+error rather than a redirect somewhere you did not choose.
+
+What is written, and where
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Two files, both in ``$HOME/.sc/`` (``C:\Users\<USERNAME>\.sc\`` on Windows),
+both readable only by you:
+
+``credentials``
+  JSON: the server address, your session, and the upload whitelist.
+
+``credentials.key``
+  Your machine's private key. **This is the credential.**
 
 .. warning::
 
-   This file stores your password or API key **in plain text**, so treat it as a
-   secret.
+   ``credentials.key`` identifies this machine to the server. Treat it the way
+   you would an SSH private key.
 
-   * ``sc-remote -configure`` creates it readable only by you. If you write or
-     copy the file yourself, restrict it too -- on Linux and macOS,
-     ``chmod 600 $HOME/.sc/credentials``. On Windows, remove the inherited
-     permissions and grant access to your account alone, through the file's
+   * Both files are created readable only by you, and re-running
+     ``sc-remote -configure`` tightens them if something widened them. If you
+     copy them yourself, restrict them too -- ``chmod 600`` on Linux and macOS;
+     on Windows, remove the inherited permissions through the file's
      *Properties > Security* dialog or ``icacls``.
-   * **Never commit it to version control**, and do not paste its contents into
-     an issue, a pull request or a build log. If you need the credentials on a
-     build machine, use the secret store your CI provides rather than a file in
-     the repository -- see :ref:`Running builds in CI <ci_tutorial>`.
+   * **Never commit either file**, and do not paste their contents into an
+     issue, a pull request or a build log.
+   * Do not copy the key between machines. Each machine generates its own, and
+     a server shows you the list: ``sc-remote -configure -list``.
 
-Method 1: Interactive Setup (Recommended)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. note::
 
-Open your terminal and run the following command:
-
-.. code-block:: bash
-
-  sc-remote -configure
-
-You will be prompted to enter your server's details. Follow the prompts based on the type of server you are connecting to:
-
-* **Authenticated Server:** Provide the server address, your username, and your password/API key when prompted.
-
-.. code-block:: bash
-
-  Remote server address: https://your-secure-server.com
-  Remote username: your-username
-  Remote password: your-key
-  Remote configuration saved to: /home/user/.sc/credentials
-
-* **Unauthenticated Server:** Enter the server address and press Enter to leave the username and password fields blank.
-
-.. code-block:: bash
-
-  Remote server address: https://your-server.example.com
-  Remote username:
-  Remote password:
-  Remote configuration saved to: /home/user/.sc/credentials
-
-Method 2: Manual Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you prefer, you can create the ``credentials`` file manually in the appropriate directory.
-The file must contain the following JSON structure:
-
-.. code-block::
-
-  {
-    "address": "your-server-address",
-    "username": "your-username",
-    "password": "your-password-or-key"
-  }
-
-For an unauthenticated server, simply leave the username and password fields as empty strings ("").
+   A server that does not verify who you are -- which the bundled
+   ``sc-server`` does not -- separates your jobs from other users' but is not a
+   security boundary. ``sc-remote -configure`` says so when it connects.
 
 Step 2: Verify the Connection
 -----------------------------

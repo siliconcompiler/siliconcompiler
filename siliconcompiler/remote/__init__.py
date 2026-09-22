@@ -1,14 +1,14 @@
 '''
 Remote execution -- the client, and the server it talks to.
 
-Both halves are being rewritten against the `v1` API, and neither exists yet.
-What is left here is the vocabulary the rest of the tree imports (the two status
-enums and the step name the logger reserves a column for) plus placeholders that
-refuse clearly, so that importing SiliconCompiler, rendering ``sc-remote -h`` and
-running a local build all keep working while the rewrite lands.
+The client speaks the `v1` API and nothing else: it holds a DPoP key pair, signs
+a proof on every request, and is told by `GET /v1` what the server can do. The
+server lives in :mod:`siliconcompiler.remote.server` and runs as
+``python -m siliconcompiler.remote.server``.
 
-See ``tests/remote/BEHAVIOUR.md`` for what the deleted client did and what the
-rewrite owes back.
+`ClientScheduler` is still a placeholder: submitting a job needs the job path,
+which is the next phase. See ``tests/remote/BEHAVIOUR.md`` for what the client
+this replaces did and what the rewrite owes back.
 '''
 
 from siliconcompiler._common import NodeStatus as SCNodeStatus
@@ -31,8 +31,8 @@ banner = r'''
 '''
 
 _UNAVAILABLE = (
-    "remote execution is unavailable: the client and server are being rewritten "
-    "against the v1 API and neither has landed on this branch yet"
+    "submitting a remote job is not available yet: the v1 client can log in and "
+    "read this server, but the job path has not landed on this branch"
 )
 
 
@@ -61,26 +61,6 @@ class JobStatus():
     UNKNOWN = "unknown"
 
 
-class Client():
-    '''
-    Placeholder for the rewritten remote client.
-
-    Constructing one is deliberately allowed to fail rather than deferred to the
-    first request: there is nothing this object could usefully do, and a caller
-    that is told at construction has not yet collected and packed a build
-    directory.
-    '''
-
-    def __init__(self, project):
-        raise SCRuntimeError(_UNAVAILABLE)
-
-
-class ConfigureClient(Client):
-    '''
-    Placeholder for the rewritten ``sc-remote -configure`` client.
-    '''
-
-
 class ClientScheduler(Scheduler):
     '''
     Placeholder for the scheduler a remote run is handed off to.
@@ -94,11 +74,18 @@ class ClientScheduler(Scheduler):
         raise SCRuntimeError(_UNAVAILABLE)
 
 
+from siliconcompiler.remote.client import (            # noqa: E402
+    Client, Credentials, RemoteError, ServerProblem, SessionEnded)
+
+
 __all__ = [
     "NodeStatus",
     "JobStatus",
     "Client",
-    "ConfigureClient",
+    "Credentials",
+    "RemoteError",
+    "ServerProblem",
+    "SessionEnded",
     "ClientScheduler",
     "banner",
     "remote_step_name"

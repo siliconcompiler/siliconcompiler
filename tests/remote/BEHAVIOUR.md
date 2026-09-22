@@ -178,3 +178,50 @@ removals, not migrations** — do not port any of them.
 | H7 | **`-maxuploadsize` in MB** | `limits.max_upload_bytes`, in bytes, published at `GET /v1` and refused with `upload-too-large` naming the key |
 | H8 | **`-checkinterval`** | `Retry-After`, set by the server per response |
 | H9 | **The RPC verbs** — `/remote_run/`, `/check_progress/`, `/check_server/`, `/get_results/`, `/cancel_job/`, `/delete_job/` | the 18 endpoints of the `sc-server` profile |
+
+---
+
+## Notes taken while a phase had two things in view at once
+
+**These are decisions recorded where they were cheap to make, for work that
+happens elsewhere.** Each names what it is for, so a later phase does not
+re-derive it.
+
+### The Slurm JWT surface is the identity surface (phase 2, for the REST follow-on)
+
+🔴 **`slurmrestd` over TCP needs `AuthAltTypes=auth/jwt` and a JWT key, and that
+is the same JWT machinery the identity work already reasons about** — so they
+are decided together rather than twice. `slurm.conf.in` sets no `AuthAltTypes`
+at all today; the stack is pure munge, which authenticates only callers sharing
+the munge key.
+
+⚠️ **The alternative — a local UNIX socket under munge — only helps a client
+already on the controller host**, which is precisely the shape the REST work
+exists to escape: it is what lets the API server and `slurmctld` be separate
+containers.
+
+✅ **What this server already does that the follow-on needs:** it holds a
+signing secret at `<datadir>/token-signing-key`, 0600, created on first start.
+A Slurm JWT key is the same kind of object with the same handling, and
+`slurmrestd` **does not need the key itself** — it forwards the caller's token
+and `slurmctld` verifies it, so the key stays `0600 slurm:slurm`.
+
+🔴 **Pin `data_parser` to `v0.0.41`.** Valid through 25.11.8, gone at 26.05.4.
+
+### Dispatch is batch-submit-and-poll (phase 1, for the job path)
+
+**`slurmrestd` submits batch jobs only** — there is no `srun` over REST — so
+`sbatch` and REST are one design with two transports rather than two designs.
+What would make them two is writing today's shape: one blocking `srun` per
+node, held by the client.
+
+🔴 **So the job path writes: submit a batch job, record `scheduler_job_id`,
+poll, read the log off the shared filesystem.** ⚠️ **Poll once per run over the
+job list, never once per node** — every REST request is one or more RPCs into
+`slurmctld`, and a per-node poll at N-wide fan-out is the traffic
+`--max-connections` exists to throttle.
+
+The seam that matters is **not** a `Dispatcher` base class with one
+implementation. It is that nothing in the job model assumes the API process is
+a Slurm submit host: `jobs.scheduler_job_id` is already just text, and dispatch
+lives in one module.

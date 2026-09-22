@@ -38,16 +38,25 @@ def test_require_cfg(arg, monkeypatch):
     assert sc_remote.main() == 2
 
 
-def test_client_unavailable_is_reported(monkeypatch, caplog):
-    '''The rewrite is a message and an exit code, never a traceback.
-
-    Both halves of the remote path are absent until the v1 client lands, so
-    every command that needs one has to say so rather than raising out of
-    main(). Delete this test with the placeholders.
-    '''
+def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
+    '''A refusal is a message and an exit code, never a traceback.'''
     monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-credentials', 'creds.json',
                                      '-configure',
-                                     '-server', 'https://example.com'])
+                                     '-server', 'https://127.0.0.1:1/'])
+
+    assert sc_remote.main() != 0
+    assert caplog.text
+
+
+def test_acting_on_a_job_says_it_is_not_available_yet(monkeypatch, caplog):
+    '''The job path has not landed, so every verb that needs one says so
+    rather than failing somewhere further away. Delete this with phase 3.'''
+    Path('manifest.json').write_text('{}')
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-credentials', 'creds.json',
+                                     '-cancel',
+                                     '-cfg', 'manifest.json'])
 
     assert sc_remote.main() == 1
-    assert 'remote execution is unavailable' in caplog.text
+    assert 'not available yet' in caplog.text

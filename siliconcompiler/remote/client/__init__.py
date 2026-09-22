@@ -1,0 +1,295 @@
+'''
+The ``v1`` remote client.
+
+``Client`` is the library surface; ``sc-remote`` is a thin wrapper over it, so
+every capability lands here rather than in the app. That is what keeps a later
+CLI rename off the critical path.
+'''
+
+import logging
+
+from typing import Any, Dict, Optional
+
+from siliconcompiler.remote.client.credentials import Credentials
+from siliconcompiler.remote.client.errors import (
+    RemoteError, ServerProblem, SessionEnded, describe)
+from siliconcompiler.remote.client.identity import local_subject, display_name
+from siliconcompiler.remote.client.transport import Transport, normalize_server
+
+__all__ = [
+    "Client", "Credentials", "RemoteError", "ServerProblem", "SessionEnded",
+    "describe",
+]
+
+
+logger = logging.getLogger(__name__)
+
+
+class Client:
+    '''One machine talking to one server.'''
+
+    def __init__(self, credentials: Credentials,
+                 logger: Optional[logging.Logger] = None):
+        self.credentials = credentials
+        self.logger = logger or logging.getLogger(__name__)
+
+        if not credentials.address:
+            # There is no default server to fall back on, so this is an error
+            # rather than a redirect. It is raised on use rather than on
+            # construction so that `sc-remote -configure` can build a client in
+            # order to fix it.
+            self._transport = None
+            return
+
+        self._transport = Transport(
+            normalize_server(credentials.address, credentials.port),
+            credentials.key(),
+            credentials=credentials)
+        self._transport.set_tokens(credentials.access_token,
+                                   credentials.refresh_token)
+
+    ######################################################################
+    # Configuration
+    ######################################################################
+
+    @property
+    def transport(self) -> Transport:
+        if self._transport is None:
+            raise RemoteError(
+                "No remote server address is configured. "
+                "Run: sc-remote -configure -server https://<host>")
+        return self._transport
+
+    @property
+    def base_url(self) -> Optional[str]:
+        return self._transport.base_url if self._transport else None
+
+    def print_configuration(self) -> None:
+        '''What this machine would use, and what the server knows it by.'''
+        if self._transport is None:
+            self.logger.info("Server: not configured")
+        else:
+            self.logger.info(f"Server: {self.base_url}")
+
+        self.logger.info(f"Machine key: {self.credentials.thumbprint}")
+        if self.credentials.user_id:
+            self.logger.info(f"Identity on this server: {self.credentials.user_id}")
+
+        whitelist = self.credentials.directory_whitelist
+        self.logger.info("Directory whitelist:")
+        for entry in whitelist or ["  (empty)"]:
+            self.logger.info(f"  {entry}" if whitelist else entry)
+
+    ######################################################################
+    # Discovery
+    ######################################################################
+
+    def capabilities(self) -> Dict[str, Any]:
+        '''``GET /v1``: the first call on every path, and it carries no
+        credential.
+
+        A JSON capabilities block means this is a ``v1`` server. What a client
+        branches on inside it is ``grant_types_supported`` and never
+        ``identity_assurance``, which is advisory.
+        '''
+        return self.transport.request(
+            "GET", "", authenticated=False).json()
+
+    ######################################################################
+    # Sessions
+    ######################################################################
+
+    def login(self) -> Dict[str, Any]:
+        '''Obtain a session with no human involved.
+
+        ``client_credentials`` against a fixed local client: no browser, no
+        issuer, no prompt. The key is generated on first use and bound by the
+        server on first contact.
+        '''
+        subject, machine_hash, source = local_subject()
+
+        form = {
+            "grant_type": "client_credentials",
+            "client_id": f"local:{subject}",
+            "machine_id_source": source,
+            "display_name": display_name(),
+        }
+        if machine_hash:
+            form["machine_id_hash"] = machine_hash
+
+        body = self.transport.login(form)
+        self.credentials.save_tokens(body)
+        return body
+
+    def ensure_session(self) -> None:
+        '''Log in if there is no usable session.'''
+        if self.transport.access_token is None:
+            self.login()
+
+    def logout(self) -> None:
+        '''End this session on the server, then forget it here.'''
+        try:
+            self.transport.request("POST", "auth/revoke")
+        except SessionEnded:
+            # Already over; forgetting it locally is the whole remaining job.
+            pass
+        finally:
+            self.credentials.forget_tokens()
+            self.transport.set_tokens(None, None)
+
+    ######################################################################
+    # Identity
+    ######################################################################
+
+    def me(self) -> Dict[str, Any]:
+        '''``GET /v1/me``, and remember which principal this server saw.'''
+        self.ensure_session()
+        body = self.transport.request("GET", "me").json()
+
+        seen = self.credentials.user_id
+        if seen and seen != body.get("id"):
+            # Not an error: a reimage, a new container or a changed uid each
+            # mint a new identity without anyone doing anything wrong. Saying so
+            # is what stops it reading as "my jobs were deleted".
+            self.logger.warning(
+                "This server now knows this machine as a different user "
+                f"({seen} -> {body.get('id')}). Jobs submitted as the previous "
+                "identity are not visible to this one.")
+
+        self.credentials.update(user_id=body.get("id"))
+        return body
+
+    def devices(self) -> list:
+        '''The machines that can act as me.'''
+        self.ensure_session()
+        return self.transport.request("GET", "devices").json()["devices"]
+
+    def revoke_device(self, device_id: str) -> None:
+        '''Revoke a machine, ending every session it holds.'''
+        self.ensure_session()
+        self.transport.request("DELETE", f"devices/{device_id}")
+
+    ######################################################################
+    # sc-remote -configure
+    ######################################################################
+
+    def configure_server(self, server: Optional[str] = None,
+                         clobber: bool = False,
+                         prompt: bool = True) -> None:
+        '''Point this machine at a server and prove it can reach it.
+
+        There is no default address, so an unanswerable prompt is an error and
+        nothing is written -- a half-written credentials file is worse than
+        none, because the next command fails somewhere further away.
+        '''
+        if self.credentials.address and not clobber:
+            if not prompt:
+                raise RemoteError(
+                    f"{self.credentials.path} already configures "
+                    f"{self.credentials.address}; pass clobber=True instead")
+            answer = _ask(f"Overwrite the configuration for "
+                          f"{self.credentials.address}? [y/N] ")
+            if answer.strip().lower() not in ("y", "yes"):
+                self.logger.info("Left unchanged.")
+                return
+
+        if not server and prompt:
+            server = _ask("Remote server address: ")
+
+        if not server or not server.strip():
+            raise RemoteError(
+                "a remote server address is required: there is no default "
+                "server to fall back on")
+
+        address, port, had_credentials = _split_address(server.strip())
+
+        if had_credentials:
+            # Under v1 a username and password are not the credential -- the
+            # key is. Dropping them silently would leave a user believing they
+            # had configured something.
+            self.logger.warning(
+                "Ignoring the username and password in that address: this "
+                "server authenticates with a key held on this machine, which "
+                "is generated for you.")
+
+        self.credentials.update(address=address, port=port,
+                                access_token=None, refresh_token=None)
+        self._transport = Transport(
+            normalize_server(address, port), self.credentials.key(),
+            credentials=self.credentials)
+
+        capabilities = self.capabilities()
+        if "client_credentials" not in capabilities.get("grant_types_supported", []):
+            raise RemoteError(
+                f"{self.base_url} does not offer a login this client can use "
+                f"(it offers {capabilities.get('grant_types_supported')})")
+
+        self.login()
+        identity = self.me()
+
+        self.logger.info(f"Configured {self.base_url}")
+        self.logger.info(f"This machine's key: {self.credentials.thumbprint}")
+        self.logger.info(f"You are {identity['id']} on this server")
+        if capabilities.get("identity_assurance") != "verified":
+            # "verified" is the only value that asserts anything; every other
+            # value, known or unknown, means do not rely on this identity.
+            self.logger.warning(
+                "This server does not verify who you are. Your jobs are "
+                "separated from other users', but that separation is not a "
+                "security boundary.")
+        self.logger.info(f"Saved to {self.credentials.path}")
+
+    def configure_whitelist(self, add=None, remove=None) -> None:
+        '''Which directories may be uploaded from.
+
+        Entries are absolute, added once, and removing one that was never there
+        is not an error.
+        '''
+        import os.path
+
+        entries = list(self.credentials.directory_whitelist)
+
+        for path in add or []:
+            absolute = os.path.abspath(path)
+            if absolute not in entries:
+                entries.append(absolute)
+
+        for path in remove or []:
+            absolute = os.path.abspath(path)
+            if absolute in entries:
+                entries.remove(absolute)
+
+        self.credentials.update(directory_whitelist=entries)
+        self.logger.info(f"Directory whitelist saved to {self.credentials.path}")
+
+
+def _ask(question: str) -> str:
+    '''A prompt that a scripted run answers by failing rather than hanging.'''
+    try:
+        return input(question)
+    except EOFError:
+        raise RemoteError(
+            "no answer available and no default to fall back on: "
+            "choose a server address with -server") from None
+
+
+def _split_address(server: str):
+    '''Split an address into its parts, keeping the scheme it was given.
+
+    A port in the address is split out; a username and password in it are
+    reported as ignored rather than stored, because they are not the credential
+    any more.
+    '''
+    from urllib.parse import urlsplit
+
+    if "://" not in server:
+        server = f"https://{server}"
+
+    parts = urlsplit(server)
+    had_credentials = bool(parts.username or parts.password)
+
+    host = parts.hostname or ""
+    if parts.path.rstrip("/"):
+        host += parts.path.rstrip("/")
+
+    return f"{parts.scheme}://{host}", parts.port, had_credentials

@@ -98,6 +98,36 @@ def capabilities(datadir):
 
 
 @pytest.fixture
+def client_credentials():
+    '''A shape-correct token response, for tests that are not about login.'''
+    return {
+        "access_token": "access-token-one",
+        "token_type": "DPoP",
+        "expires_in": 900,
+        "refresh_token": "refresh-token-one",
+        "refresh_token_expires_in": 604800,
+        "session_expires_in": 1036800,
+        "scope": ("jobs:read jobs:write artifacts:read devices:read "
+                  "devices:write profile:read"),
+    }
+
+
+def problem(slug, status, **members):
+    '''An RFC 9457 body, built the way a server would build it.
+
+    Written here rather than imported from the server so that a client test
+    does not pass merely because both halves share a bug. The URI is the
+    contract's, which is what a client branches on.
+    '''
+    return {
+        "type": f"https://siliconcompiler.com/server-errors/{slug}",
+        "title": slug.replace("-", " ").capitalize(),
+        "status": status,
+        **members,
+    }
+
+
+@pytest.fixture
 def fake_v1(capabilities):
     '''A v1 server answering in-process, with GET /v1 already registered.
 
@@ -109,3 +139,32 @@ def fake_v1(capabilities):
         server = FakeV1(mock, V1_URL)
         server.route(responses.GET, "", capabilities)
         yield server
+
+
+@pytest.fixture
+def logged_in(fake_v1, client_credentials, tmp_credentials):
+    '''A client that has a session, for tests about what comes after one.'''
+    from siliconcompiler.remote import Client
+
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+
+    client = Client(tmp_credentials)
+    client.login()
+    return client
+
+
+@pytest.fixture
+def tmp_credentials():
+    '''Credentials in this test's own directory.
+
+    Never the real ~/.sc: these tests generate a key and write tokens, and a
+    suite that touched the developer's own credentials would be rewriting the
+    machine's identity.
+    '''
+    from pathlib import Path
+
+    from siliconcompiler.remote import Credentials
+
+    creds = Credentials(Path("sc-home/credentials"))
+    creds.update(address=V1_URL.rsplit("/v1", 1)[0])
+    return creds
