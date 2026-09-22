@@ -127,7 +127,7 @@ For Developers: Custom Servers
    section describes the deployment as it will be, and the ``setup/server/``
    stack does not come up until that work lands.
 
-If you are interested in deploying your own custom server, we provide a minimal example development server that can be used as a starting point.
+If you are interested in deploying your own custom server, we provide a minimal example development server that can be used as a starting point: :ref:`sc-server <app-sc-server>`, run as ``python3 -m siliconcompiler.remote.server``.
 
 Running a server needs the ``server`` :ref:`extra <install_extras>`, which a default install does not carry -- submitting jobs to one, as the rest of this page does, needs nothing beyond SiliconCompiler itself:
 

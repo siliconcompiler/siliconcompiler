@@ -155,35 +155,24 @@ ctld)
         echo "NOTE: slurmrestd was not built into this image" >&2
     fi
 
-    # Point a client run *inside this container* at this server rather than at
-    # the public default, so `python3 -m siliconcompiler.demos.asic_demo
-    # -remote` works out of the box here. Harmless to the runners, which share
-    # this volume but are not clients.
-    #
-    # The path is asked of siliconcompiler rather than assumed: it is
-    # "~/.sc/credentials", with no extension, which is easy to get wrong -- and
-    # getting it wrong is silent, the client just uses the public default
-    # server instead.
-    creds=$(python3 -c 'from siliconcompiler import utils; print(utils.default_credentials_file())')
-    mkdir -p "$(dirname "$creds")"
-    if [ ! -f "$creds" ]; then
-        printf '{"address": "localhost", "port": 8080}\n' > "$creds"
-        echo "wrote client credentials to $creds"
-    fi
+    # No client credential is seeded here. Under the v1 API a client holds a
+    # DPoP key pair rather than an address and a password, so the file this
+    # used to write has no meaning until the client that mints one exists.
+    # It comes back with that client.
 
-    # sc-server creates builds/ and cache/ under the mount itself.
+    # The server lays out <datadir> itself: the store, the artifacts, and one
+    # tree per user for builds and caches.
     mkdir -p /sc_server
     cd /sc_server
-    sc-server \
+    python3 -m siliconcompiler.remote.server \
         -cluster slurm \
         -port 8080 \
-        -nfsmount /sc_server \
-        -checkinterval 5 &
+        -datadir /sc_server &
     server_pid=$!
 
     # Supervise rather than exec, so this shell stays PID 1 and all three
-    # daemons are watched. Under "exec sc-server" the container reports healthy
-    # for as long as the server process lives, even with slurmctld dead
+    # daemons are watched. Under an "exec" of the server the container reports
+    # healthy for as long as that process lives, even with slurmctld dead
     # underneath it -- which surfaces later and far away, as jobs that never
     # dispatch. Exiting on the first child to die makes the container's status
     # say what actually happened.

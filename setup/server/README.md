@@ -1,28 +1,41 @@
 # Local sc-server on a real Slurm cluster
 
-A throwaway cluster for testing `sc-server -cluster slurm` end to end:
-`slurmctld`, `slurmdbd` with a MariaDB accounting store, `slurmrestd`, and a
-compute node running `slurmd`.
+A throwaway cluster for testing `-cluster slurm` end to end: `slurmctld`,
+`slurmdbd` with a MariaDB accounting store, `slurmrestd`, and a compute node
+running `slurmd`.
 
 ```sh
 docker compose up --build          # first run pulls the base image
-curl -X POST http://localhost:8080/check_server/ -d '{}'
+curl http://localhost:8080/v1      # the capabilities block
+curl http://localhost:8080/v1/healthz
 docker compose down -v             # -v also drops the munge key and job files
 ```
 
-`sc-server` is on <http://localhost:8080>, `slurmrestd` on port 6820.
+The `v1` API is on <http://localhost:8080>, `slurmrestd` on port 6820.
+
+The server runs as `python3 -m siliconcompiler.remote.server` — there is no
+`sc-server` console script. It takes three flags:
+
+```sh
+python3 -m siliconcompiler.remote.server -port 8080 -datadir /sc_server -cluster slurm
+```
+
+Everything else a deployment might say — its nine `limits`, what it advertises
+in `features`, any `notices` — has a working default and can be overridden in
+`<datadir>/config.json`. Nothing there is required, so a bare `-datadir` starts
+a server that serves a complete `GET /v1`.
 
 ## Running a real flow through it
 
 The stack carries the EDA tools, so a full ASIC flow works, not just the
-scheduler path. Submit from your own machine: point a client at the server by
-writing its credentials file — the path is `~/.sc/credentials`, **with no
-extension**:
+scheduler path.
 
-```sh
-echo '{"address": "localhost", "port": 8080}' > ~/.sc/credentials
-python3 -m siliconcompiler.demos.asic_demo -remote
-```
+> **The client is not here yet.** Submitting a job needs the `v1` client, which
+> is being written alongside this server; until it lands, the stack is brought
+> up and exercised with `curl` against the endpoints that exist. Under `v1` a
+> client holds a DPoP key pair rather than an address and a password, so the
+> `~/.sc/credentials` file this section used to describe has been left out
+> rather than documented in a shape that is about to change.
 
 If in doubt about where that file belongs, ask siliconcompiler rather than
 assuming:
@@ -117,20 +130,28 @@ is. `sinfo -N -l` lists them.
 
 ## What the shared mount looks like
 
-`sc-server` is given `-nfsmount /sc_server` (a named volume) and lays it out
+The server is given `-datadir /sc_server` (a named volume) and lays it out
 itself:
 
 ```
-/sc_server/builds/<jobhash>/   one directory per job
-/sc_server/cache/              downloaded PDKs and data packages
+/sc_server/server.db                     the job store
+/sc_server/artifacts/<job>/              what a finished run left behind
+/sc_server/users/<user>/builds/<job>/    one directory per user per job
+/sc_server/users/<user>/cache/           that user's PDKs and data packages
 ```
 
-Both matter for a cluster. The job directory is written by the server and read
-back by the compute node at the same path, and the **cache has to be here too**:
-a compute node need not share a home directory with the server, and the
-scheduler hands the server's `cachedir` to the node — so it must be a path they
-both see. Without that, every node re-downloads the PDK into its own
-`~/.sc/cache`.
+Both of the last two matter for a cluster. The job directory is written by the
+server and read back by the compute node at the same path, and the **cache has
+to be here too**: a compute node need not share a home directory with the
+server, and the scheduler hands the server's `cachedir` to the node — so it must
+be a path they both see. Without that, every node re-downloads the PDK into its
+own `~/.sc/cache`.
+
+They are per user rather than cluster-wide because `ccache` and `coursier`
+create their own directories: under one shared tree they land with the first
+user's uid and the second user gets `EPERM`, and `chmod` is owner-only, so the
+server cannot repair a directory it did not create. The cost is one copy of each
+PDK per user rather than one per cluster.
 
 ## Credentials
 

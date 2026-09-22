@@ -61,7 +61,7 @@ ENV VIRTUAL_ENV=/venv
 ENV PATH="/venv/bin:$PATH"
 
 COPY --from=wheel /wheels /tmp/wheels
-# [server] pulls aiohttp, which sc-server needs and a default install omits.
+# [server] pulls Flask, which the server needs and a default install omits.
 # The glob goes through echo because an extra cannot be appended to a pattern,
 # and stage 1 builds exactly one wheel.
 RUN pip install --no-cache-dir --upgrade "$(echo /tmp/wheels/*.whl)[server]" \

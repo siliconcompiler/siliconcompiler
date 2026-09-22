@@ -202,7 +202,7 @@ documentation runs its `setup()`, and theirs needs `cocotb` importable. Install
 `docs` alone and the build fails on the first cocotb task.
 `.github/workflows/docs.yml` installs `.[docs,cocotb]` for the same reason.
 
-⚠️ **The symptom is worth knowing, because it is not a missing-package message:**
+**The symptom is worth knowing, because it is not a missing-package message:**
 Sphinx dies mid-build with `RuntimeError: Cocotb is not installed; cannot run test.`
 out of `tools/_common/cocotb/cocotb_task.py`, during *reading*, so nothing later is
 checked and a broken cross-reference elsewhere stays hidden behind it.

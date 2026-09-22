@@ -1,4 +1,4 @@
-# A local sc-server backed by a real slurm cluster.
+# A local SiliconCompiler server backed by a real slurm cluster.
 #
 #   docker compose up --build      # http://localhost:8080
 #
@@ -98,18 +98,20 @@ services:
       slurmdb:
         condition: service_healthy
 
-  # Controller and submit host: slurmctld, slurmrestd, and sc-server itself.
+  # Controller and submit host: slurmctld, slurmrestd, and the SiliconCompiler
+  # server itself.
   scserver:
     <<: *sc-slurm
     hostname: scserver
     command: ["ctld"]
-    # Loopback only. sc-server runs without -auth here, so this is an
-    # unauthenticated job-submission endpoint: published on 0.0.0.0 it would be
-    # reachable by anything that can route to this host. "Reachable from my own
-    # machine" is all the stack needs. Exposing it more widely means adding
-    # authentication and firewalling first.
+    # Loopback only. This deployment runs the unauthenticated profile: nothing
+    # verifies who a caller is, and the DPoP key bound on first contact is the
+    # only real control it has. Published on 0.0.0.0 it would be reachable by
+    # anything that can route to this host. "Reachable from my own machine" is
+    # all the stack needs; exposing it more widely means an identity provider
+    # and firewalling first.
     ports:
-      - "127.0.0.1:8080:8080"   # sc-server
+      - "127.0.0.1:8080:8080"   # the v1 API
       - "127.0.0.1:6820:6820"   # slurmrestd, built but not yet used by SC
     volumes:
       - munge-key:/etc/munge
@@ -121,15 +123,24 @@ services:
     <<: *scrunner
 
 volumes:
-  # The shared filesystem, mounted at /sc_server and handed to sc-server as
-  # -nfsmount. The server lays it out itself:
+  # The shared filesystem, mounted at /sc_server and handed to the server as
+  # -datadir. The server lays it out itself:
   #
-  #   builds/<jobhash>/   one directory per job, written by the server and read
-  #                      back by the compute node at the same path
-  #   cache/              downloaded PDKs and data packages, shared by the
-  #                      whole cluster
+  #   server.db                       the job store
+  #   artifacts/<job>/                what a finished run left behind
+  #   users/<user>/builds/<job>/      one directory per user per job, written by
+  #                                   the server and read back by the compute
+  #                                   node at the same path
+  #   users/<user>/cache/             that user's downloaded PDKs and data
+  #                                   packages
   #
-  # The cache is here rather than in each container's ~/.sc because a compute
+  # Per user rather than cluster-wide: ccache and coursier create their own
+  # directories, so under one shared tree they land with the first user's uid
+  # and the second gets EPERM -- and chmod is owner-only, so the server cannot
+  # repair a directory it did not create. The cost is one copy of each PDK per
+  # user rather than one per cluster.
+  #
+  # It is on this volume rather than in each container's ~/.sc because a compute
   # node need not share a home directory with the server, and because the
   # scheduler hands the server's cachedir to the node -- so it has to be a path
   # they both see.
