@@ -10,6 +10,45 @@ client asserts the equivalent somewhere, or strike it and say why it no longer a
 gate is that no row is left untouched.** A row whose `v1` column reads *"gone"* still has to be a
 deliberate answer, not an oversight.
 
+---
+
+## Where phase 3 left each section
+
+**Signed off 2026-09-22, at the end of phase 3.** Every row below has an answer; this table is where
+to look for it, and the four rows that are deliberately still open say so.
+
+| | | |
+|---|---|---|
+| **A** job status | ✅ | `tests/remote/test_client_jobs.py`. A1 is `terminal`, A3 is `_record`, A6 became the node-state mapping, A8 is `_report_state`. **A4 and A5 are struck** — see below |
+| **B** fetching results | ⏳ | **phase 4.** Nothing in this section is asserted yet, and `sc-remote` says so at the end of a run rather than leaving an empty build directory unexplained |
+| **C** transport | ✅ | C1/C2 in `transport.py` (phase 2), C3–C7 in `test_client_jobs.py`, C8 is `delete_job`, C11–C13 were the phase-2 design requirements |
+| **D** credentials | ✅ | phase 2 |
+| **E** no server configured | ✅ | E4 is `test_an_unconfigured_client_refuses_before_it_packs_anything` — the test fails if the collection runs at all |
+| **F** the CLI | ✅ | `tests/remote/test_parity.py`, against a live server. F7 and F8 are the reconnect path |
+| **G** submit-time sanitation | ✅ | `runspec.normalize`, asserted end to end in `test_the_run_happens_inside_the_users_own_tree`. **G7 is struck** — see below |
+| **I** the server entry point | ✅ | phase 1 |
+| **H** not carried forward | ✅ | every one is gone, and the job path is what replaced H2, H3, H4 and H9 |
+
+### The three rows that were struck rather than ticked
+
+🔴 **A4 — elapsed time converted into a start time.** `v1` publishes `nodes[].started_at` and
+`state_changed_at` as timestamps, so the derivation has nothing to derive. **What it bought survives
+and is stronger**: the server records a node's start once, so a reconnect gets the same instant the
+first connection did, where the old arithmetic restarted the clock at every poll.
+
+🔴 **A5 — the `null` key is the setup manifest.** Gone with the protocol that had a magic node name.
+`manifest` is an artifact kind, and phase 4 fetches it like any other.
+
+🔴 **G7 — `scheduler.set_name(cluster)` on the submitted project.** **Struck, and it is the one
+substantive change in the sanitation list.** The old server ran the flow in its own process and
+dispatched each node to Slurm, holding a blocking `srun` per node for the length of the run. The job
+is now the unit of submission: one `sbatch` for the whole flow, polled once per run, with the flow
+inside it using SiliconCompiler's local scheduler. `-cluster` still names how a job is handed over —
+it now names it to the *server*, not to the project. **That is what makes the API process something
+other than a Slurm submit host, and it is the shape a `slurmrestd` transport swaps into.** The
+consequence, stated: `-cluster docker` is no longer a choice the server CLI offers, because under
+batch submission the container is the cluster's business.
+
 Deleted in the same commit as this file was written:
 
 | | |

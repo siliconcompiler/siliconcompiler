@@ -170,6 +170,145 @@ class Client:
         self.transport.request("DELETE", f"devices/{device_id}")
 
     ######################################################################
+    # Jobs
+    ######################################################################
+
+    def create_job(self, design: str, jobname: str, *,
+                   flow: Optional[Dict[str, Any]] = None,
+                   resources: Optional[Dict[str, Any]] = None,
+                   versions: Optional[Dict[str, str]] = None,
+                   run_hash: Optional[str] = None,
+                   idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        '''``POST /v1/jobs``: the job exists, and nothing has moved yet.
+
+        ``design`` and ``jobname`` are authoritative -- nothing in a manifest
+        names either, so the server cannot re-derive them. Everything else is
+        the descriptor: advisory, re-derived at submit, and present only to let
+        the server refuse before the archive uploads.
+
+        ``run_hash`` is the client's opaque hash of the work, for job reuse. The
+        server looks it up owner-scoped and hands back the caller's own earlier
+        result instead of running it again. 🔴 **Nothing in this client computes
+        one yet** -- what SiliconCompiler should hash is its own decision, and a
+        hash that is wrong in the direction of *the same* is a wrong answer.
+        '''
+        self.ensure_session()
+
+        body: Dict[str, Any] = {"design": design, "jobname": jobname}
+        for name, value in (("flow", flow), ("resources", resources),
+                            ("versions", versions), ("run_hash", run_hash)):
+            if value:
+                body[name] = value
+
+        headers = {}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+
+        return self.transport.request(
+            "POST", "jobs", json_body=body, headers=headers).json()
+
+    def upload_grant(self, job_id: str) -> Dict[str, Any]:
+        '''``POST /v1/jobs/{id}/upload-grant``: where to put the bytes.
+
+        Its own call rather than a member of the create response, which is what
+        gives an expired grant a way back: re-issuing is this endpoint, where
+        before it meant creating a second job and leaking the first.
+        '''
+        self.ensure_session()
+        return self.transport.request("POST", f"jobs/{job_id}/upload-grant").json()
+
+    def upload(self, grant: Dict[str, Any], path) -> None:
+        '''Send the archive to wherever the grant points.
+
+        🔴 ``content-length`` is dropped and recomputed from the file. The grant
+        publishes the byte count it was issued for, and on a deployment whose
+        descriptor carried no size that number is the server's ceiling rather
+        than this archive's length -- sending it verbatim would announce a
+        gigabyte and then send twenty kilobytes, and the server would wait for
+        the rest for ever. The count the server enforces is in the signature,
+        not in this header.
+        '''
+        headers = {name: value for name, value in (grant.get("headers") or {}).items()
+                   if name.lower() != "content-length"}
+        self.transport.put_object(grant["url"], headers, path)
+
+    def submit_job(self, job_id: str, digest: str, size: int,
+                   idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        '''``POST /v1/jobs/{id}/submit``: carrying the digest of what was PUT.
+
+        The digest describes the bytes that moved, not a freshly built archive:
+        a re-tar of the same directory is a different digest, and the server
+        compares against what storage reports.
+        '''
+        self.ensure_session()
+
+        headers = {}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+
+        return self.transport.request(
+            "POST", f"jobs/{job_id}/submit",
+            json_body={"digest": digest, "bytes": size}, headers=headers).json()
+
+    def job(self, job_id: str) -> tuple:
+        '''``GET /v1/jobs/{id}``, and the interval the server asked for.
+
+        The pace is the server's: `Retry-After` is read per response rather than
+        once at the start of a run, which is what the client this replaces did
+        with a single number.
+        '''
+        self.ensure_session()
+        response = self.transport.request("GET", f"jobs/{job_id}")
+
+        retry_after = None
+        header = response.headers.get("Retry-After")
+        if header:
+            try:
+                retry_after = max(1, int(header))
+            except ValueError:
+                # A date-form Retry-After is legal HTTP and nothing here serves
+                # one; an unreadable value is not a reason to fail a poll.
+                retry_after = None
+
+        return response.json(), retry_after
+
+    def jobs(self, **filters) -> list:
+        '''``GET /v1/jobs``, following ``Link`` to the end.
+
+        The cursor is opaque and is only ever taken from the header, never
+        built: a cursor a client made up continues from a position the server
+        never named, which silently skips rows.
+        '''
+        self.ensure_session()
+
+        params = {k: v for k, v in filters.items() if v is not None}
+        items = []
+        path = "jobs"
+
+        while True:
+            response = self.transport.request("GET", path, params=params)
+            items.extend(response.json().get("items") or [])
+
+            link = response.headers.get("Link")
+            cursor = _next_cursor(link)
+            if not cursor:
+                return items
+            params = dict(params, cursor=cursor)
+
+    def cancel_job(self, job_id: str, reason: Optional[str] = None) -> Dict[str, Any]:
+        '''``POST /v1/jobs/{id}/cancel``. Idempotent, and the body is optional.'''
+        self.ensure_session()
+
+        body = {"reason": reason} if reason else {}
+        return self.transport.request(
+            "POST", f"jobs/{job_id}/cancel", json_body=body).json()
+
+    def delete_job(self, job_id: str) -> None:
+        '''``DELETE /v1/jobs/{id}``. Idempotent; the job stays readable.'''
+        self.ensure_session()
+        self.transport.request("DELETE", f"jobs/{job_id}")
+
+    ######################################################################
     # sc-remote -configure
     ######################################################################
 
@@ -261,6 +400,18 @@ class Client:
 
         self.credentials.update(directory_whitelist=entries)
         self.logger.info(f"Directory whitelist saved to {self.credentials.path}")
+
+
+def _next_cursor(link: Optional[str]) -> Optional[str]:
+    '''The `cursor` of a `rel="next"` link, or None on the last page.'''
+    if not link or 'rel="next"' not in link:
+        return None
+
+    from urllib.parse import parse_qs, urlsplit
+
+    target = link.split(">", 1)[0].lstrip("<")
+    values = parse_qs(urlsplit(target).query).get("cursor")
+    return values[0] if values else None
 
 
 def _ask(question: str) -> str:

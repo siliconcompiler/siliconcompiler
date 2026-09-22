@@ -15,7 +15,10 @@ from pathlib import Path
 
 from siliconcompiler.remote.server.auth import TokenIssuer
 from siliconcompiler.remote.server.config import Config
+from siliconcompiler.remote.server.dispatch import dispatcher_for
 from siliconcompiler.remote.server.errors import ERRORS, ProblemError, problem
+from siliconcompiler.remote.server.jobs import JobService
+from siliconcompiler.remote.server.storage import Storage
 from siliconcompiler.remote.server.store import Store
 
 __all__ = ["create_app", "missing_server_dependency"]
@@ -69,18 +72,28 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     store.ensure_storage_location(config["storage_location_id"],
                                   config["storage_uri_base"])
 
+    issuer = TokenIssuer(datadir, store, bind_keys=bind_keys)
+
+    # Derived from the same secret the tokens are signed with, so an operator
+    # has one file to protect. What keeps that safe is that neither signature
+    # can be presented as the other: see Storage's key derivation.
+    storage = Storage(datadir, config["storage_uri_base"], issuer.secret)
+
     app = flask.Flask(__name__)
     app.config.update(SC_DATADIR=datadir, SC_CONFIG=config,
                       SC_STORE=store, SC_CLUSTER=cluster,
-                      SC_ISSUER=TokenIssuer(datadir, store, bind_keys=bind_keys),
-                      SC_BIND_KEYS=bind_keys)
+                      SC_ISSUER=issuer, SC_BIND_KEYS=bind_keys,
+                      SC_STORAGE=storage,
+                      SC_JOBS=JobService(store, config, storage,
+                                         dispatcher_for(cluster), datadir))
 
     _register_error_handlers(app)
 
-    from siliconcompiler.remote.server.routes import auth, identity, meta
+    from siliconcompiler.remote.server.routes import auth, identity, jobs, meta
     app.register_blueprint(meta.blueprint)
     app.register_blueprint(auth.blueprint)
     app.register_blueprint(identity.blueprint)
+    app.register_blueprint(jobs.blueprint)
 
     # `siliconcompiler` must be advertised or this server does not start. A
     # check rather than a column: it is satisfied by an empty registry today,

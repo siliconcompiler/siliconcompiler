@@ -79,6 +79,20 @@ class FakeV1:
         self._mock.add(method, self.url(path), body=body, status=status,
                        content_type=content_type, headers=headers)
 
+    def elsewhere(self, method, url, body="", status=200,
+                  content_type="application/json", headers=None):
+        '''Answer a request to somewhere that is not this server.
+
+        Storage is the case this exists for: the upload goes to whatever the
+        grant points at, which on another deployment is a bucket on a different
+        origin -- so a test that registered it under this server's base would be
+        testing a shape the contract does not promise.
+        '''
+        if not isinstance(body, (str, bytes)):
+            body = json.dumps(body)
+        self._mock.add(method, url, body=body, status=status,
+                       content_type=content_type, headers=headers)
+
     @property
     def calls(self):
         '''Every request made, in order.'''
@@ -168,3 +182,125 @@ def tmp_credentials():
     creds = Credentials(Path("sc-home/credentials"))
     creds.update(address=V1_URL.rsplit("/v1", 1)[0])
     return creds
+
+
+###########################
+# The integration rig, in-process
+###########################
+#
+# The other half: a real store, a real archive, a real dispatcher and a real
+# run, against `app.test_client()`. No port and no event loop -- seventeen of
+# this profile's eighteen endpoints are request-in, response-out, which is what
+# Flask was chosen for.
+
+BASE = "http://localhost/v1"
+
+
+def slug(response):
+    '''The condition a refusal named, which is what a client branches on.'''
+    body = response.get_json() or {}
+    return (body.get("type") or "").rsplit("/", 1)[-1]
+
+
+def login(client, key, subject="machine:1000", **extra):
+    from siliconcompiler.remote import dpop
+
+    form = {"grant_type": "client_credentials",
+            "client_id": f"local:{subject}", **extra}
+    return client.post(
+        "/v1/auth/token", data=form,
+        headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/token")},
+        content_type="application/x-www-form-urlencoded")
+
+
+def call(client, key, method, path, token, **kwargs):
+    '''One authenticated request, proof and all.'''
+    from siliconcompiler.remote import dpop
+
+    url = "http://localhost" + path
+    return client.open(
+        path, method=method,
+        headers={"Authorization": f"DPoP {token}",
+                 "DPoP": dpop.sign_proof(key, method, url, access_token=token),
+                 **(kwargs.pop("headers", None) or {})},
+        **kwargs)
+
+
+@pytest.fixture
+def server():
+    '''A server on its own datadir, dispatching locally.'''
+    pytest.importorskip("flask", reason="the server extra is not installed")
+
+    from siliconcompiler.remote.server.app import create_app
+
+    return create_app("datadir", cluster="local")
+
+
+@pytest.fixture
+def server_client(server):
+    return server.test_client()
+
+
+@pytest.fixture
+def key():
+    from siliconcompiler.remote import dpop
+
+    return dpop.generate_key()
+
+
+@pytest.fixture
+def token(server_client, key):
+    return login(server_client, key).get_json()["access_token"]
+
+
+@pytest.fixture
+def nop_project(gcd_nop_project):
+    '''A two-node flow that needs no EDA tool, ready to be packed and sent.'''
+    gcd_nop_project.option.set_nodashboard(True)
+    gcd_nop_project.option.set_jobname("job0")
+    gcd_nop_project.option.set_builddir(os.path.abspath("build"))
+    return gcd_nop_project
+
+
+@pytest.fixture
+def job_archive(nop_project):
+    '''Build the archive a client would PUT, and report it as storage would.
+
+    Returns ``(path, digest, size)``. The manifest goes inside rather than
+    beside: the server re-derives every advisory value from it, so it has to
+    arrive with the bytes it describes.
+    '''
+    import hashlib
+    import tarfile
+
+    from siliconcompiler.utils.paths import jobdir
+
+    def build(project=None, extra=None):
+        project = project or nop_project
+
+        root = jobdir(project)
+        os.makedirs(root, exist_ok=True)
+        project.write_manifest(os.path.join(root, f"{project.name}.pkg.json"))
+
+        path = os.path.abspath(f"upload-{project.name}-{project.option.get_jobname()}.tar.gz")
+        with tarfile.open(path, "w:gz") as tar:
+            tar.add(root, arcname="")
+            for name, body in (extra or {}).items():
+                import io
+                info = tarfile.TarInfo(name)
+                info.size = len(body)
+                tar.addfile(info, io.BytesIO(body))
+
+        digest = hashlib.sha256()
+        size = 0
+        with open(path, "rb") as f:
+            while True:
+                chunk = f.read(65536)
+                if not chunk:
+                    break
+                size += len(chunk)
+                digest.update(chunk)
+
+        return path, f"sha256:{digest.hexdigest()}", size
+
+    return build

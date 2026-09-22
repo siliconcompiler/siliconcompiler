@@ -11,6 +11,22 @@ curl http://localhost:8080/v1/healthz
 docker compose down -v             # -v also drops the munge key and job files
 ```
 
+**From a git worktree, build through `./compose.sh` instead** — same arguments,
+same result:
+
+```sh
+./compose.sh up --build
+```
+
+A worktree has no `.git` directory: it has a 64-byte file pointing at one in the
+main checkout, which is outside the build context and so unreachable from inside
+the container. `setuptools_scm` then fails with a `TypeError` out of
+`_version_missing()` that mentions neither git nor the worktree. `compose.sh`
+resolves the version on the host with `scversion.sh` and passes it as
+`SC_VERSION`, which the Dockerfile uses instead of asking git. A plain
+`docker compose build` in a worktree says the same thing in one line rather than
+failing obscurely.
+
 The `v1` API is on <http://localhost:8080>, `slurmrestd` on port 6820.
 
 The server runs as `python3 -m siliconcompiler.remote.server` — there is no
@@ -30,25 +46,47 @@ a server that serves a complete `GET /v1`.
 The stack carries the EDA tools, so a full ASIC flow works, not just the
 scheduler path.
 
-> **The client is not here yet.** Submitting a job needs the `v1` client, which
-> is being written alongside this server; until it lands, the stack is brought
-> up and exercised with `curl` against the endpoints that exist. Under `v1` a
-> client holds a DPoP key pair rather than an address and a password, so the
-> `~/.sc/credentials` file this section used to describe has been left out
-> rather than documented in a shape that is about to change.
+```sh
+sc-remote -configure -server http://localhost:8080
+cd ../../examples/heartbeat && python3 heartbeat.py -remote
+```
 
-If in doubt about where that file belongs, ask siliconcompiler rather than
-assuming:
+`-configure` generates this machine's key, enrols it with the server on first
+contact and saves the session. There is no username and no password: under `v1`
+the key **is** the credential, and an address that carries a username and a
+password has both ignored with a warning saying so.
+
+Where the key and the session are kept:
 
 ```sh
 python3 -c 'from siliconcompiler import utils; print(utils.default_credentials_file())'
 ```
 
-⚠️ Getting the path wrong is not silent, but it is reported late: the client has
-no address to fall back on, so it warns *"Could not find remote server
-configuration"* when it starts and then fails the run with *"No remote server
-address is configured"*. Either message means the file is not where the client
-looked.
+The private key sits beside that file as `credentials.key`, both `0600`.
+
+⚠️ There is no default server, so a client that has not been configured says so
+twice: *"No remote server address is configured"* when it is asked to do
+anything, and the same again from `sc-remote` with the command that fixes it.
+
+**Fetching the results back is the next phase.** The run executes on the cluster
+and the server's own build tree is complete — `<datadir>/users/<user>/builds/`
+— but the artifact endpoints that bring it back to the client have not landed,
+so `sc-remote` says so at the end of a run rather than leaving an empty build
+directory unexplained.
+
+### Watching, cancelling and reconnecting
+
+A run writes `sc_remote.pkg.json` into its job directory before it uploads
+anything, and every command that acts on a job takes that path:
+
+```sh
+sc-remote -cfg build/heartbeat/job0/sc_remote.pkg.json              # status
+sc-remote -cfg build/heartbeat/job0/sc_remote.pkg.json -reconnect   # re-enter the wait
+sc-remote -cfg build/heartbeat/job0/sc_remote.pkg.json -cancel
+sc-remote -cfg build/heartbeat/job0/sc_remote.pkg.json -delete
+```
+
+Ctrl-C on a running job prints those first two lines with the path filled in.
 
 ## The base image
 

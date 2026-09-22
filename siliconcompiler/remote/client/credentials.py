@@ -40,6 +40,21 @@ _PRIVATE = 0o600
 class Credentials:
     '''One machine's configuration for one server.'''
 
+    @classmethod
+    def for_project(cls, project) -> "Credentials":
+        '''Where one project's run looks for its key and its session.
+
+        The path is taken as given rather than resolved through `find_files`,
+        which requires the file to exist -- and creating it is exactly what
+        `sc-remote -configure` is for.
+        '''
+        from siliconcompiler import utils
+
+        configured = project.option.get_credentials()
+        if configured:
+            return cls(Path(configured).expanduser().absolute())
+        return cls(Path(utils.default_credentials_file()))
+
     def __init__(self, path: Path):
         self.path = Path(path)
         self.key_path = self.path.parent / KEY_FILENAME

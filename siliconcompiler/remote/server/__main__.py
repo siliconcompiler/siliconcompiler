@@ -24,7 +24,12 @@ from siliconcompiler.remote import banner
 __all__ = ["main"]
 
 
-CLUSTERS = ("local", "slurm", "docker")
+# How a job is handed over, and the list is short because the job is the unit
+# of submission: one batch job per run, not one dispatch per node. `docker` was
+# offered here while the server ran the flow in its own process and put each
+# node in a container; under batch submission the container is the cluster's
+# business rather than this server's, so it is not a choice this flag makes.
+CLUSTERS = ("local", "slurm")
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -45,7 +50,7 @@ def _parser() -> argparse.ArgumentParser:
              "(default: %(default)s)")
     parser.add_argument(
         "-cluster", choices=CLUSTERS, default="local", metavar="<name>",
-        help=f"how nodes are dispatched: {', '.join(CLUSTERS)} "
+        help=f"how a job is handed over to run: {', '.join(CLUSTERS)} "
              "(default: %(default)s)")
     parser.add_argument(
         "-version", action="version", version=sc_version)

@@ -1,9 +1,8 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
+import os
 import sys
 
-from pathlib import Path
-
-from siliconcompiler import Project, Design, utils
+from siliconcompiler import Project, Design
 from siliconcompiler.remote import Client, Credentials, RemoteError
 from siliconcompiler.scheduler.error import SCRuntimeError
 
@@ -95,16 +94,8 @@ To delete a job, use:
 
 
 def _credentials(remote) -> Credentials:
-    '''Where this machine keeps its key and its session.
-
-    The path is taken as given rather than resolved through find_files, which
-    requires the file to exist -- and creating it is exactly what -configure is
-    for.
-    '''
-    configured = remote.option.get_credentials()
-    if configured:
-        return Credentials(Path(configured).expanduser().absolute())
-    return Credentials(Path(utils.default_credentials_file()))
+    '''Where this machine keeps its key and its session.'''
+    return Credentials.for_project(remote)
 
 
 def _dispatch(remote):
@@ -146,12 +137,8 @@ def _dispatch(remote):
             return 3
         return 0
 
-    # Everything below submits, watches or acts on a job, and the job path is
-    # not on this branch yet. Reaching the server at all is what works today.
-    if project_cfg or any(remote.get("cmdarg", arg) for arg in cfg_only):
-        raise SCRuntimeError(
-            "acting on a job is not available yet: the v1 client can configure "
-            "a server, log in and read it, but the job path has not landed")
+    if project_cfg:
+        return _act_on_job(remote, client, project_cfg)
 
     # No job named: report what this machine is configured for and who the
     # server says it is.
@@ -162,6 +149,80 @@ def _dispatch(remote):
     remote.logger.info(f"Jobs running: {identity['usage']['jobs_active']}")
 
     return 0
+
+
+def _act_on_job(remote, client, project_cfg):
+    '''Everything that names a job names it with a manifest, not an id.
+
+    The two commands a user is given after a Ctrl-C both take the path of the
+    manifest the run wrote, so a person who interrupted a long job needs the
+    path they already have rather than an id they would have to find.
+    '''
+    if not os.path.isfile(project_cfg):
+        remote.logger.error(f"Unable to find manifest: {project_cfg}")
+        return 1
+
+    try:
+        project = Project.from_manifest(filepath=project_cfg)
+    except Exception as e:
+        remote.logger.error(f"Unable to read {project_cfg}: {e}")
+        return 1
+
+    job_id = project.get('record', 'remoteid')
+    if not job_id:
+        remote.logger.error(
+            f"{project_cfg} names no remote job: it was never submitted, or it "
+            "was submitted by a different run")
+        return 1
+
+    # The server is confirmed before it is acted on, which is the order the
+    # client this replaces used and the reason a cancel against an unreachable
+    # server says so rather than reporting the job as gone.
+    remote.logger.info(f"Server: {client.base_url}")
+
+    if remote.get("cmdarg", 'cancel'):
+        job = client.cancel_job(job_id)
+        remote.logger.info(f"Job {job_id} is {job['state']}")
+        return 0
+
+    if remote.get("cmdarg", 'delete'):
+        client.delete_job(job_id)
+        remote.logger.info(f"Job {job_id} deleted")
+        return 0
+
+    if remote.get("cmdarg", 'reconnect'):
+        from siliconcompiler.remote.client.run import RemoteRun
+
+        RemoteRun(project, client).reconnect(job_id)
+
+        try:
+            project.summary()
+        except ValueError:
+            # A summary reads the run's history, and the history is rebuilt from
+            # the manifests the results carry -- which are not fetched yet. The
+            # job's own status was already printed by the wait, so this is a
+            # missing extra rather than a failed command.
+            _print_status(remote.logger, client.job(job_id)[0])
+        return 0
+
+    job, _ = client.job(job_id)
+    _print_status(remote.logger, job)
+    return 0
+
+
+def _print_status(logger, job) -> None:
+    logger.info(f"Job {job['id']}: {job['state']}")
+    logger.info(f"  design:  {job['design']}/{job['jobname']}")
+    logger.info(f"  created: {job['created_at']}")
+
+    progress = job.get('progress') or {}
+    if progress.get('total_count'):
+        logger.info(f"  nodes:   {progress.get('completed_count', 0)} completed, "
+                    f"{progress.get('failed_count', 0)} failed, "
+                    f"of {progress['total_count']}")
+
+    if job.get('error'):
+        logger.error(f"  error:   {job['error'].get('title')}")
 
 
 #########################

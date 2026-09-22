@@ -164,6 +164,16 @@ class TokenIssuer:
         # `iat` regardless.
         self._seen: Dict[str, float] = {}
 
+    @property
+    def secret(self) -> bytes:
+        '''The deployment's signing secret.
+
+        One key for an operator to protect rather than several. Everything that
+        signs with it derives a key of its own from it first, so a signature
+        made for one purpose cannot be presented for another.
+        '''
+        return self._secret
+
     ######################################################################
     # Minting
     ######################################################################

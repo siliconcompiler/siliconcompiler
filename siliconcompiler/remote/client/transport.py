@@ -203,6 +203,33 @@ class Transport:
         raise ServerProblem(problem, response.status_code)
 
     ######################################################################
+    # Storage
+    ######################################################################
+
+    def put_object(self, url: str, headers: Dict[str, str], path) -> None:
+        '''Send the bytes to wherever the grant points.
+
+        The one request this client makes that does NOT go through
+        :meth:`request`, and the exception is the contract rather than an
+        oversight: this addresses storage, not the API. A presigned URL carries
+        its own credential in its signature, so attaching this session's token
+        and a DPoP proof would hand them to a third party that never asked for
+        them -- and on a deployment whose storage is somebody else's bucket,
+        that third party is somebody else.
+        '''
+        with open(path, "rb") as f:
+            try:
+                response = self._session.put(
+                    url, data=f, headers=dict(headers or {}),
+                    timeout=TIMEOUT_SECONDS)
+            except requests.RequestException as e:
+                raise RemoteError(f"could not upload to {url}: {_why(e)}") from None
+
+        if response.status_code >= 400:
+            problem = _problem_body(response)
+            raise ServerProblem(problem, response.status_code)
+
+    ######################################################################
     # Login
     ######################################################################
 

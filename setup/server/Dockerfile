@@ -26,20 +26,44 @@ ARG SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:latest
 #
 # It cannot be skipped by inventing a version: lambdapdk requires
 # siliconcompiler>=0.38.5, so a placeholder makes pip's resolver refuse.
+#
+# 🔴 A git WORKTREE has no .git directory -- it has a 64-byte file pointing at
+# one in the main checkout, which is outside the build context and therefore
+# unreachable from in here. setuptools_scm then fails with a TypeError out of
+# _version_missing() that names neither git nor the worktree. SC_VERSION is the
+# way through: pass the version the host resolved and this stage does not ask
+# git anything. setup/server/compose.sh works it out and passes it for you.
 ##############################################################################
 FROM ubuntu:24.04 AS wheel
 
 ARG DEBIAN_FRONTEND=noninteractive
+ARG SC_VERSION=""
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates git python3 python3-venv python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /src
-RUN python3 -m venv /build \
-    && /build/bin/pip install --no-cache-dir build \
-    && cd /src \
-    && /build/bin/python -m build --wheel --outdir /wheels \
-    && ls -l /wheels
+RUN set -eu; \
+    if [ -n "$SC_VERSION" ]; then \
+        # Told what this is, so git is not consulted at all. The repository is
+        # removed rather than left in place: setuptools_scm prefers what it can
+        # read over what it was told, and in a worktree what it can read is a
+        # pointer to somewhere that does not exist here.
+        rm -rf /src/.git; \
+        export SETUPTOOLS_SCM_PRETEND_VERSION="$SC_VERSION"; \
+    elif [ -f /src/.git ]; then \
+        echo "This context is a git worktree: .git is a pointer to a directory" >&2; \
+        echo "outside it, so setuptools_scm cannot derive a version in here." >&2; \
+        echo "Build through setup/server/compose.sh, or pass the version:" >&2; \
+        echo "  SC_VERSION=\$(setup/server/scversion.sh) docker compose build" >&2; \
+        exit 1; \
+    fi; \
+    python3 -m venv /build; \
+    /build/bin/pip install --no-cache-dir build; \
+    cd /src; \
+    /build/bin/python -m build --wheel --outdir /wheels; \
+    ls -l /wheels
 
 
 ##############################################################################

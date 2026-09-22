@@ -30,6 +30,11 @@ x-sc-slurm: &sc-slurm
       # CI passes the image its docker_image job resolved, so the stack is
       # exercised against the same one as the rest of the suite.
       SC_TOOLS_IMAGE: ${SC_TOOLS_IMAGE:-ghcr.io/siliconcompiler/sc_tools:latest}
+      # Empty in a normal checkout, where setuptools_scm reads the version out
+      # of .git itself. Set when building from a git WORKTREE, whose .git is a
+      # pointer to a directory outside the build context -- compose.sh works it
+      # out and passes it, and the Dockerfile says so if it is missing.
+      SC_VERSION: ${SC_VERSION:-}
   image: sc-server-slurm:local
   environment:
     SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}

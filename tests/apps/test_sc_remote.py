@@ -49,9 +49,20 @@ def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
     assert caplog.text
 
 
-def test_acting_on_a_job_says_it_is_not_available_yet(monkeypatch, caplog):
-    '''The job path has not landed, so every verb that needs one says so
-    rather than failing somewhere further away. Delete this with phase 3.'''
+def test_a_missing_manifest_names_the_path(monkeypatch, caplog):
+    '''F9: an absent -cfg manifest is an error with the path in it.'''
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-credentials', 'creds.json',
+                                     '-cancel',
+                                     '-cfg', 'nowhere.json'])
+
+    assert sc_remote.main() == 1
+    assert 'nowhere.json' in caplog.text
+
+
+def test_a_manifest_with_no_job_is_refused(monkeypatch, caplog):
+    '''A manifest that was never submitted names no job to act on, and saying
+    so here is cheaper than a 404 from a server that was never asked.'''
     Path('manifest.json').write_text('{}')
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-credentials', 'creds.json',
@@ -59,4 +70,4 @@ def test_acting_on_a_job_says_it_is_not_available_yet(monkeypatch, caplog):
                                      '-cfg', 'manifest.json'])
 
     assert sc_remote.main() == 1
-    assert 'not available yet' in caplog.text
+    assert 'names no remote job' in caplog.text

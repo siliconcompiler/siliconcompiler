@@ -6,14 +6,15 @@ a proof on every request, and is told by `GET /v1` what the server can do. The
 server lives in :mod:`siliconcompiler.remote.server` and runs as
 ``python -m siliconcompiler.remote.server``.
 
-`ClientScheduler` is still a placeholder: submitting a job needs the job path,
-which is the next phase. See ``tests/remote/BEHAVIOUR.md`` for what the client
-this replaces did and what the rewrite owes back.
+`ClientScheduler` is what `Project.run()` reaches when `option,remote` is set.
+See ``tests/remote/BEHAVIOUR.md`` for what the client this replaces did and what
+the rewrite owes back.
 '''
 
 from siliconcompiler._common import NodeStatus as SCNodeStatus
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.scheduler.error import SCRuntimeError
+from siliconcompiler.utils.logging import get_console_formatter
 
 
 # Step name to use while logging. The logger sizes its step column against the
@@ -29,11 +30,6 @@ banner = r'''
  ___) | |___   ___) |  __/ |   \ V /  __/ |
 |____/ \____| |____/ \___|_|    \_/ \___|_|
 '''
-
-_UNAVAILABLE = (
-    "submitting a remote job is not available yet: the v1 client can log in and "
-    "read this server, but the job path has not landed on this branch"
-)
 
 
 class NodeStatus(SCNodeStatus):
@@ -62,16 +58,50 @@ class JobStatus():
 
 
 class ClientScheduler(Scheduler):
-    '''
-    Placeholder for the scheduler a remote run is handed off to.
+    '''The scheduler a remote run is handed off to.
 
-    The base class is kept so that a flow which could not run at all still says
-    so first -- an undefined flow is reported as an undefined flow rather than
-    being masked by the rewrite.
+    It is a `Scheduler` rather than a separate entry point so that everything
+    which can be decided locally still is: a flow that does not resolve, a task
+    class that is missing, a flowgraph whose IO does not connect. Those are
+    reported here, before an archive is built and before a server is asked to
+    refuse them.
+
+    Two of the base class's steps are skipped, and for the same reason in both
+    cases -- they are about running nodes on this machine, which is what a
+    remote run is not doing.
     '''
 
-    def run(self) -> None:
-        raise SCRuntimeError(_UNAVAILABLE)
+    def run_core(self) -> None:
+        from siliconcompiler.remote.client.run import RemoteRun
+
+        project = self.project
+        credentials = Credentials.for_project(project)
+        client = Client(credentials, logger=project.logger.getChild("remote"))
+
+        formatter = get_console_formatter(project, True, remote_step_name, None)
+        previous = project._logger_console.formatter
+        project._logger_console.setFormatter(formatter)
+        try:
+            RemoteRun(project, client).run()
+        except RemoteError as e:
+            # A refusal is a message and an exit code. The client already
+            # renders a server's problem+json in three lines, so what is left is
+            # to stop the run with it rather than with a traceback.
+            raise SCRuntimeError(str(e)) from None
+        finally:
+            project._logger_console.setFormatter(previous)
+
+    def configure_nodes(self) -> None:
+        '''Nothing to configure: no node runs here.'''
+        return
+
+    def check_manifest(self) -> bool:
+        '''The server checks the manifest it is sent, against what it will run.
+
+        Checking here as well would be checking a second copy of the answer,
+        and the copy that matters is the one that arrives with the bytes.
+        '''
+        return True
 
 
 from siliconcompiler.remote.client import (            # noqa: E402
