@@ -56,14 +56,18 @@ def main():
     freepdk45_demo(project)
 
     # --- Execution ---
-    # The run() command executes the entire pre-defined flow, which typically
-    # includes steps like:
-    # 1. Synthesis (converting Verilog to a netlist of standard cells)
-    # 2. Floorplanning (defining the chip's overall shape and layout)
-    # 3. Placement (placing the standard cells)
-    # 4. Clock Tree Synthesis (building the clock distribution network)
-    # 5. Routing (connecting the cells with metal wires)
-    # 6. Finishing (DRC, LVS, GDS export)
+    # The run() command executes the flow the target set up, ASICFlow, which
+    # runs these steps:
+    # 1. Elaboration (resolving the RTL sources into a single design)
+    # 2. Synthesis (converting Verilog to a netlist of standard cells)
+    # 3. Floorplanning (defining the chip's overall shape and layout)
+    # 4. Placement (placing the standard cells)
+    # 5. Clock Tree Synthesis (building the clock distribution network)
+    # 6. Routing (connecting the cells with metal wires)
+    # 7. DFM (design-for-manufacturing steps, primarily metal fill)
+    # 8. Write (exporting the final views of the design, including GDSII)
+    # Physical signoff is not part of this flow: DRC and LVS are run by
+    # DRCFlow, LVSFlow and SignoffFlow, which this example does not load.
     project.run()
 
     # --- Analysis ---

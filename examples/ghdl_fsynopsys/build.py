@@ -49,9 +49,11 @@ def main():
 
     # --- Task-Specific Adjustments ---
     # Get the specific task that handles the VHDL conversion (ConvertTask).
-    # We then set a tool-specific option on it. The `set_ghdl_usefsynopsys(True)`
-    # option tells GHDL to add a `use` clause for Synopsys libraries, which
-    # helps ensure the generated Verilog is compatible with synthesis tools.
+    # We then set a tool-specific option on it. `set_ghdl_usefsynopsys(True)`
+    # passes -fsynopsys to GHDL, which makes the non-standard Synopsys
+    # packages (std_logic_arith, std_logic_signed, std_logic_unsigned)
+    # available inside the ieee library. This design uses one of them, so it
+    # does not analyze without the flag.
     ConvertTask.find_task(project).set_ghdl_usefsynopsys(True)
 
     # --- Execution & Analysis ---
