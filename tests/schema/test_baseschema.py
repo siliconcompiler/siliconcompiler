@@ -3,6 +3,7 @@ import gzip
 import json
 import logging
 import pytest
+import warnings
 
 import os.path
 
@@ -14,7 +15,9 @@ from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter, PerNode
 from siliconcompiler.schema import Journal
 from siliconcompiler.schema import NamedSchema
-from siliconcompiler.schema import CachedSchema, CachedSchemaMeta, SchemaFrozenError
+from siliconcompiler.schema import CachedSchema, CachedSchemaMeta, SchemaFrozenError, \
+    SchemaVersionWarning
+from siliconcompiler.schema._metadata import version as schema_version
 
 
 @pytest.fixture
@@ -1377,6 +1380,30 @@ def test_from_manifest_file_stdjson(monkeypatch):
         new_schema = NewSchema.from_manifest(filepath="test.json.gz")
 
     assert new_schema.getdict() == schema.getdict()
+
+
+def _versioned_cfg(version):
+    """A manifest carrying nothing but the version that wrote it."""
+    schema = BaseSchema()
+    EditableSchema(schema).insert("schemaversion", Parameter("str", defvalue=version))
+    return schema.getdict()
+
+
+def test_from_manifest_warns_on_a_newer_schema_version():
+    """Reading is only backwards compatible, so say so rather than quietly
+    returning defaults for everything the newer schema changed."""
+    with pytest.warns(SchemaVersionWarning,
+                      match=r"manifest schema version \(999\.0\.0\) is newer than the "
+                            r"supported schema version"):
+        BaseSchema.from_manifest(cfg=_versioned_cfg("999.0.0"))
+
+
+@pytest.mark.parametrize("version", ("0.1.0", schema_version))
+def test_from_manifest_is_quiet_for_a_supported_schema_version(version):
+    """An older manifest is migrated, and the current one needs no comment."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SchemaVersionWarning)
+        BaseSchema.from_manifest(cfg=_versioned_cfg(version))
 
 
 def test_from_manifest_cfg():

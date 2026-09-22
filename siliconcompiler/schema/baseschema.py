@@ -9,6 +9,7 @@ import contextlib
 import copy
 import importlib
 import logging
+import warnings
 import pathlib
 
 try:
@@ -67,6 +68,22 @@ class SchemaFrozenError(RuntimeError):
     Raised when an attempt is made to modify a frozen (immutable) schema.
 
     See :meth:`BaseSchema._freeze` and :class:`CachedSchema`.
+    """
+
+
+class SchemaVersionWarning(UserWarning):
+    """
+    Warned when a manifest is read that was written by a newer schema than this
+    library implements.
+
+    Reading is only backwards compatible: this schema knows how to migrate an
+    older manifest, but nothing about what a newer one holds. A key it does not
+    have is dropped and a value whose type or legal values changed since is
+    rejected or silently replaced by its default, so the read either fails or
+    quietly returns something other than what was written. Neither is worth
+    ending a run over -- a caller that cannot use the result should fall back to
+    redoing the work, which is what the scheduler does, rerunning the node whose
+    manifest it could not read -- but it is always worth saying.
     """
 
 
@@ -366,6 +383,13 @@ class BaseSchema:
 
             if version is None:
                 version = BaseSchema.__version
+            elif version > BaseSchema.__version:
+                warnings.warn(
+                    f"manifest schema version ({'.'.join([str(v) for v in version])}) is "
+                    "newer than the supported schema version "
+                    f"({'.'.join([str(v) for v in BaseSchema.__version])}), "
+                    "values may be incomplete or incorrect",
+                    SchemaVersionWarning)
 
         handled = set()
         missing = set()
