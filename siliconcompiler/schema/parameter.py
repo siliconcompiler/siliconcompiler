@@ -85,6 +85,7 @@ class Parameter:
                  **kwargs):
 
         self.__type = NodeType.parse(type)
+        NodeType.check_path_containers(self.__type)
         self.__scope = Scope(scope)
         self.__lock = lock
         self.__require = require
@@ -634,6 +635,7 @@ class Parameter:
                     re.sub("enum", f"<{','.join(manifest['enum'])}>", manifest['type']))
             else:
                 self.__type = NodeType.parse(manifest["type"])
+        NodeType.check_path_containers(self.__type)
 
         self.__require = manifest.get("require", self.__require)
         self.__scope = Scope(manifest.get("scope", self.__scope))
@@ -791,8 +793,7 @@ class Parameter:
         Returns true if this parameter's type contains a ``file`` type.
 
         This is true for plain ``file`` parameters as well as for container
-        types whose leaf is ``file`` (e.g. ``[file]``, ``{file}``, or tuples
-        containing ``file``).
+        types whose leaf is ``file`` (``[file]`` or ``{file}``).
         """
 
         return NodeType.contains(self.__type, 'file')
@@ -803,8 +804,7 @@ class Parameter:
         Returns true if this parameter's type contains a ``dir`` type.
 
         This is true for plain ``dir`` parameters as well as for container
-        types whose leaf is ``dir`` (e.g. ``[dir]``, ``{dir}``, or tuples
-        containing ``dir``).
+        types whose leaf is ``dir`` (``[dir]`` or ``{dir}``).
         """
 
         return NodeType.contains(self.__type, 'dir')
