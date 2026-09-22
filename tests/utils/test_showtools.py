@@ -523,25 +523,28 @@ def test_registry_order_independent_of_viewer_import_order(when):
 
     order, unhinted, hinted = proc.stdout.strip().splitlines()
 
+    # Registration order, so lowest priority first: the layout viewers are
+    # registered last so they lead sc-show -list and win any tie.
     assert order.split(",") == [
+        "graphviz/show",
+        "vpr/show",
+        "gtkwave/show",
+        "surfer/show",
         "klayout/show",
         "openroad/web",
         "openroad/show",
         "openroad/web3dblox",
         "openroad/show3dblox",
-        "graphviz/show",
-        "vpr/show",
-        "gtkwave/show",
-        "surfer/show",
     ]
     assert unhinted == "openroad/show"
     assert hinted == "openroad/show"
 
 
 # ---------------------------------------------------------------------------
-# vg is claimed by three open tasks. showtasks() registers openroad first (so
-# get_extension_map keeps odb ahead of vg in the search Project.show() falls
-# back on) and opensta last (so it wins the extension).
+# vg is claimed by three open tasks. showtasks() registers opensta last, so it
+# wins the extension. What keeps odb ahead of vg in the search Project.show()
+# falls back on is separate: openroad/open lists vg last of the three formats
+# it reads.
 # ---------------------------------------------------------------------------
 
 
@@ -605,3 +608,167 @@ def test_open_registration_leaves_show_alone():
     """The show/screenshot registries are untouched by the new open tasks."""
     assert ShowTask.get_task("vg").tool() == "openroad"
     assert ScreenshotTask.get_task("def").tool() in ("openroad", "klayout")
+
+
+# ---------------------------------------------------------------------------
+# Extension search order.
+#
+# get_extension_map()'s key order is what Project.show() searches a build
+# directory in, and the search is extension-major, so it is a global priority
+# across every node rather than a tie-break inside one.
+#
+# It is derived, not declared: each task lists the formats it reads best-first,
+# an extension takes the worst rank any task gives it, and ties go to the
+# higher-priority tool. These pin the outcome rather than the mechanism, and on
+# relative order only -- an installed plugin outranks every core viewer, so its
+# formats legitimately lead the list.
+# ---------------------------------------------------------------------------
+
+#: Formats an ASIC flow emits into the same node, so their relative order is
+#: the only part of the search that can actually change which file is shown.
+COEXISTING_ASIC_EXTS = ["odb", "gds", "oas", "def", "vg", "lef"]
+
+
+def asic_search_order(task_cls, tool=None):
+    """The search order restricted to formats that share a build."""
+    exts = list(task_cls.get_extension_map(tool=tool).keys())
+    return [ext for ext in exts if ext in COEXISTING_ASIC_EXTS]
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("task_cls", [ShowTask, ScreenshotTask, OpenTask])
+def test_odb_is_searched_before_def(task_cls):
+    """A node holding both must be shown from its odb, not the def beside it."""
+    order = asic_search_order(task_cls)
+
+    assert order.index("odb") < order.index("def"), \
+        f"{task_cls.__name__} searches for a def before the odb in the same node"
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("task_cls", [ShowTask, ScreenshotTask])
+def test_real_layout_outranks_abstract(task_cls):
+    """write.views emits both a gds and a lef; the abstract must never win."""
+    order = asic_search_order(task_cls)
+
+    assert order.index("gds") < order.index("lef")
+    assert order.index("oas") < order.index("lef")
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("task_cls", [ShowTask, ScreenshotTask])
+def test_asic_search_order_is_pinned(task_cls):
+    """The whole coexisting set, so a new viewer cannot quietly reshuffle it."""
+    assert asic_search_order(task_cls) == COEXISTING_ASIC_EXTS
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_tool_filtered_order_keeps_priority():
+    """Restricting to one tool drops extensions but does not reorder them."""
+    exts = list(ShowTask.get_extension_map(tool="klayout").keys())
+
+    assert exts == ["gds", "oas", "def", "lef", "lyrdb", "ascii"]
+    assert "odb" not in exts
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_order_is_derived_from_declared_extensions(monkeypatch):
+    """Nothing holds a list of extensions -- a task's own order decides.
+
+    Reversing what openroad declares has to reverse the search, or the order
+    is coming from somewhere other than the tools.
+    """
+    for task_cls in (openroad_show.ShowTask, openroad_show.WebTask):
+        monkeypatch.setattr(task_cls, "get_supported_task_extentions",
+                            lambda self: ["vg", "def", "odb"])
+
+    order = asic_search_order(ShowTask)
+
+    assert order.index("vg") < order.index("def") < order.index("odb")
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_single_format_viewer_cannot_promote_its_extension():
+    """opensta reads only a vg, and that is not an opinion about richness.
+
+    It is registered last, so it wins the vg extension and outranks openroad
+    on every tie. Taking the *worst* rank any task gives an extension rather
+    than the best is what stops that from dragging vg to the head of the
+    search: openroad reads all three formats and ranks vg last, so the
+    informed opinion decides. A new single-format viewer can therefore only
+    ever demote an extension, never displace what a build is shown from.
+    """
+    assert OpenTask.get_task("vg").tool() == "opensta"
+
+    assert asic_search_order(OpenTask) == ["odb", "def", "vg"]
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_priority_is_independent_of_registration_order():
+    """klayout must stay registered first without owning the head of the search.
+
+    Registration order answers "which tool wins a shared extension" and is read
+    backwards to do it; this pins that using it for the search order too did not
+    invert it.
+    """
+    ext_map = ShowTask.get_extension_map()
+
+    assert asic_search_order(ShowTask)[0] == "odb"
+    assert ext_map["def"].tool() == "openroad"
+    assert ext_map["gds"].tool() == "klayout"
+
+
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_project_show_picks_odb_over_sibling_def(monkeypatch):
+    """The regression: a node holding both is shown from the odb.
+
+    Both artifacts sit in write.views/0/outputs, and the def used to win
+    because it led the search order. The def is the weaker view -- no netlist
+    and no dbModule tree, since SC's <top>.vg is one flat module -- so reading
+    it costs hierarchy that the odb beside it carries.
+    """
+    from pathlib import Path
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    outputs = Path("write.views/0/outputs")
+    outputs.mkdir(parents=True)
+    (outputs / "top.def.gz").touch()
+    (outputs / "top.odb.gz").touch()
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("write.views", NOPTask())
+    proj.set_flow(flow)
+
+    monkeypatch.setattr("siliconcompiler.project.workdir",
+                        lambda *args, **kwargs: os.path.abspath("write.views/0"))
+
+    shown = []
+
+    def capture_run(self):
+        flow_obj = self.get_flow(self.option.get_flow())
+        for task_cls in flow_obj.get_all_tasks():
+            task = task_cls.find_task(self)
+            shown.append((task.get("var", "showfiletype"),
+                          os.path.basename(task.get("var", "showfilepath"))))
+
+    monkeypatch.setattr(Project, "run", capture_run)
+
+    proj.show()
+
+    assert shown == [("odb", "top.odb.gz")]

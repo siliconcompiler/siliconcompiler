@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import sys
+import textwrap
 
 import os.path
 
@@ -19,22 +20,22 @@ def main():
     Examples:
 
     sc-show
-    (displays build/adder/job0/write.gds/0/outputs/adder.gds)
+    (displays build/adder/job0/write.views/0/outputs/adder.odb)
 
     sc-show -design adder
-    (displays build/adder/job0/write.gds/0/outputs/adder.gds)
+    (displays build/adder/job0/write.views/0/outputs/adder.odb)
 
     sc-show -design adder -arg_step floorplan
-    (displays build/adder/job0/floorplan/0/outputs/adder.def)
+    (displays build/adder/job0/floorplan/0/outputs/adder.odb)
 
     sc-show -design adder -arg_step place -arg_index 1
-    (displays build/adder/job0/place/1/outputs/adder.def)
+    (displays build/adder/job0/place/1/outputs/adder.odb)
 
     sc-show -design adder -jobname rtl2gds
-    (displays build/adder/rtl2gds/write.gds/0/outputs/adder.gds)
+    (displays build/adder/rtl2gds/write.views/0/outputs/adder.odb)
 
     sc-show build/adder/rtl2gds/adder.pkg.json
-    (displays build/adder/rtl2gds/write.gds/0/outputs/adder.gds)
+    (displays build/adder/rtl2gds/write.views/0/outputs/adder.odb)
 
     sc-show -design adder -ext odb
     (displays build/adder/job0/write.views/0/outputs/adder.odb)
@@ -70,7 +71,7 @@ def main():
     (lists only the openroad/show task and its supported extensions)
 
     sc-show -design adder -open
-    (opens build/adder/job0/write.gds/0/outputs/adder.gds in an interactive open tool)
+    (opens build/adder/job0/write.views/0/outputs/adder.odb in an interactive open tool)
     """
 
     class ShowProject(Project):
@@ -135,12 +136,15 @@ def main():
         if show.get("cmdarg", "screenshot"):
             task_cls = ScreenshotTask
             task_type = "Screenshot"
+            action_verb = "sc-show -screenshot"
         elif show.get("cmdarg", "open"):
             task_cls = OpenTask
             task_type = "Open"
+            action_verb = "sc-show -open"
         else:
             task_cls = ShowTask
             task_type = "Show"
+            action_verb = "sc-show"
 
         tool_filter = show.get("cmdarg", "tool")
 
@@ -148,6 +152,11 @@ def main():
         if not tasks:
             print(f"No registered {task_type} tools found")
             return 0
+
+        # Highest priority first, so the numbering agrees with the "*" markers
+        # and with the order get_task() resolves an extension in. get_task(None)
+        # hands back registration order, and later registration wins.
+        tasks = list(reversed(tasks))
 
         # When -tool is provided, restrict the listing (and preference
         # resolution) to that tool/task spec.
@@ -193,7 +202,11 @@ def main():
                 exts = task_inst.get_supported_task_extentions()
                 if exts:
                     formatted = []
-                    for ext in sorted(exts):
+                    # Declared order, not alphabetical: a task lists the
+                    # formats it reads best-first, and that is what decides
+                    # which one sc-show reaches for. Sorting hid it -- openroad
+                    # prefers an odb but printed "def, odb, vg".
+                    for ext in exts:
                         preferred = ext_map.get(ext)
                         if (preferred is not None
                                 and preferred.tool() == tool_name
@@ -214,6 +227,23 @@ def main():
         print("=" * 70)
         if has_preferred:
             print("* indicates the preferred tool for that extension")
+
+        # The map's key order is exactly what Project.show() walks when it has
+        # no filename, so print it rather than leaving the reader to infer it
+        # from the per-tool lists above -- the interleaving across tools is not
+        # something you can work out by eye.
+        if ext_map:
+            print()
+            for line in textwrap.wrap(
+                    f"{action_verb} scans every node for the first of these "
+                    "it can find, in order:", width=70):
+                print(line)
+            for line in textwrap.wrap(', '.join(ext_map), width=66):
+                print(f"  {line}")
+            for line in textwrap.wrap(
+                    "A format the flow never emits is simply skipped, so only "
+                    "the formats that share a build really compete.", width=70):
+                print(line)
         return 0
 
     manifest = None
