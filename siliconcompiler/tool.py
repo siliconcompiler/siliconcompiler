@@ -3542,7 +3542,8 @@ class OpenTask(Task):
     interactive session that keeps running after the file is loaded.
 
     Subclasses should implement `get_supported_task_extentions` to declare
-    which file extensions they can handle.
+    which file extensions they can handle, best view of a design first --
+    see :meth:`get_extension_map` for what that order is used for.
     """
     def __init__(self):
         """Initialize an OpenTask, adding the parameters shared by open tasks."""
@@ -3581,6 +3582,14 @@ class OpenTask(Task):
         """
         Returns a list of file extensions supported by this task.
         This method must be implemented by subclasses.
+
+        **Order is meaningful**: list them best view of a design first. A task
+        that reads several formats is the only thing that knows how they rank
+        against each other -- openroad reading ``["odb", "def", "vg"]`` is
+        stating that an odb beats the def beside it, which beats the netlist --
+        and :meth:`get_extension_map` builds the search order
+        :meth:`Project.show <siliconcompiler.Project.show>` uses out of those
+        statements. A task supporting one extension says nothing either way.
         """
         if hasattr(self, "get_supported_show_extentions"):
             import warnings
@@ -3979,10 +3988,27 @@ class OpenTask(Task):
         "which tool handles extension X" and is shared by ``sc-show -list``
         and :meth:`Project.show` to keep their behavior consistent.
 
-        Key insertion order is deterministic: extensions appear in the order
-        they are first encountered while iterating registered tasks in
-        registration order (within a task, the order returned by
-        :meth:`get_supported_task_extentions`).
+        Key insertion order is deterministic, and is the order
+        :meth:`Project.show <siliconcompiler.Project.show>` searches a build
+        directory in when it has no filename to work from -- richest view of a
+        node first, so an ``odb`` is found ahead of the ``def`` beside it.
+
+        Nothing here holds a list of extensions. The order is derived from what
+        the tasks declare: each ranks the formats it reads best-first in
+        :meth:`get_supported_task_extentions`, and an extension takes the worst
+        rank any task gives it, ties going to the higher-priority tool (see the
+        implementation for why the worst rather than the best). So an extension
+        only ever moves because the tool that reads it said something about it.
+
+        Two extensions that never appear in the same build cannot affect each
+        other, whatever order they land in: the search simply misses on every
+        node and moves on. Only formats a single flow emits together -- an
+        ``odb``, ``def``, ``vg`` and ``lef`` in one node -- are really being
+        ordered here, and those are all ranked by a task that reads them all.
+
+        This is independent of which *tool* wins an extension, which
+        :meth:`get_task` resolves from the same registration order and which
+        shows up here only in the values.
 
         Args:
             tool (str, optional): Restrict the map to one tool/task, in
@@ -4001,16 +4027,29 @@ class OpenTask(Task):
         if not tasks:
             return {}
 
-        ordered_exts: List[str] = []
-        seen: Set[str] = set()
-        for task_cls in tasks:
+        # An extension is ranked by the *worst* position any task that reads it
+        # puts it in. A task reading one format has no opinion to offer -- its
+        # favorite is just its only option -- while one reading several has
+        # ranked them against each other, so taking the maximum lets the
+        # informed opinion decide: openroad lists vg last of its three and that
+        # demotes vg globally, even though opensta reads nothing else. It also
+        # means a new single-format viewer can only ever demote an extension,
+        # never promote one, so adding a tool cannot reshuffle the head of the
+        # list out from under an existing flow.
+        rank: Dict[str, int] = {}
+        origin: Dict[str, Tuple[int, int]] = {}
+        # reversed(): same walk as get_task(), so "which tool wins an
+        # extension" and "which extension leads a tie" answer to one order.
+        for tool_rank, task_cls in enumerate(reversed(tasks)):
             try:
-                for ext in task_cls().get_supported_task_extentions():
-                    if ext not in seen:
-                        seen.add(ext)
-                        ordered_exts.append(ext)
+                exts = task_cls().get_supported_task_extentions()
             except NotImplementedError:
                 continue
+            for pos, ext in enumerate(exts):
+                rank[ext] = max(rank.get(ext, 0), pos)
+                origin.setdefault(ext, (tool_rank, pos))
+
+        ordered_exts = sorted(rank, key=lambda ext: (rank[ext], origin[ext]))
 
         ext_map: Dict[str, TOpenTask] = {}
         for ext in ordered_exts:

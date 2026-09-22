@@ -30,31 +30,28 @@ def showtasks():
     """
     Registers show and screenshot tasks in a stable order.
 
-    Registration order:
-    1. Core siliconcompiler tools (KLayout, OpenROAD variants, Graphviz, VPR)
-    2. Optional tools based on system availability (Surfer or GTKWave for VCD)
-
-    Later registrations take precedence when multiple tools support the same extension.
+    Later registrations take precedence when multiple tools support the same
+    extension, so this reads lowest priority first. The layout viewers are
+    registered last, which puts them at the top of ``sc-show -list`` and ahead
+    of the waveform and FPGA viewers on any tie in
+    :meth:`~siliconcompiler.OpenTask.get_extension_map`. They share no
+    extension with those tools, so this decides presentation and tie-breaks
+    only -- nothing changes hands.
     """
     # Register Open tasks
     # All three of openroad, yosys and opensta read a vg. opensta is registered
     # last so it wins that extension; openroad still owns odb and def, and yosys
     # stays reachable through "-tool yosys".
     #
-    # openroad leads for a second reason: get_extension_map() lists extensions in
-    # first-encounter order, so registering it first is what keeps odb ahead of vg
-    # in the search Project.show() runs when it has no filename to work from.
+    # This order also breaks ties in get_extension_map(), but nothing here has
+    # to be arranged to keep odb ahead of vg: openroad/open lists vg last of the
+    # three formats it reads, and that is what demotes it.
     OpenTask.register_task(OpenROADOpen)
     OpenTask.register_task(OpenROADOpen3DBlox)
     OpenTask.register_task(YosysOpen)
     OpenTask.register_task(OpenSTAOpen)
 
-    # Register Show tasks - core tools first
-    ShowTask.register_task(KlayoutShow)
-    ShowTask.register_task(OpenROADWeb)
-    ShowTask.register_task(OpenROADShow)
-    ShowTask.register_task(OpenROADShow3DBloxWeb)
-    ShowTask.register_task(OpenROADShow3DBlox)
+    # Register Show tasks - graph and FPGA viewers first
     ShowTask.register_task(GraphvizShow)
     ShowTask.register_task(VPRShow)
 
@@ -69,8 +66,17 @@ def showtasks():
         ShowTask.register_task(GTKWaveShow)
         ShowTask.register_task(SurferShow)
 
+    # Register the layout viewers last, so they lead. klayout stays ahead of
+    # openroad within this group: def is the only extension they share, and
+    # registering klayout first is what hands it to openroad.
+    ShowTask.register_task(KlayoutShow)
+    ShowTask.register_task(OpenROADWeb)
+    ShowTask.register_task(OpenROADShow)
+    ShowTask.register_task(OpenROADShow3DBloxWeb)
+    ShowTask.register_task(OpenROADShow3DBlox)
+
     # Register Screenshot tasks - same order as Show tasks
-    ScreenshotTask.register_task(KlayoutScreenshot)
-    ScreenshotTask.register_task(OpenROADScreenshot)
     ScreenshotTask.register_task(GraphvizScreenshot)
     ScreenshotTask.register_task(VPRSScreenshot)
+    ScreenshotTask.register_task(KlayoutScreenshot)
+    ScreenshotTask.register_task(OpenROADScreenshot)

@@ -392,11 +392,12 @@ def test_sc_show_list_show_tools(monkeypatch, capsys):
     assert "Registered Show Tools (in order):" in output
     assert "=" * 70 in output
 
-    # Verify tools are listed with their extensions, with preferred ones starred
-    assert "1. tool1/task1" in output
-    assert "Extensions: ext1*, ext2" in output
-    assert "2. tool2/task2" in output
+    # Listed highest priority first: MockShowTask2 is registered last, so it
+    # outranks MockShowTask1 and leads.
+    assert "1. tool2/task2" in output
     assert "Extensions: ext3*" in output
+    assert "2. tool1/task1" in output
+    assert "Extensions: ext1*, ext2" in output
     assert "* indicates the preferred tool for that extension" in output
 
 
@@ -425,11 +426,11 @@ def test_sc_show_list_screenshot_tools(monkeypatch, capsys):
     assert "Registered Screenshot Tools (in order):" in output
     assert "=" * 70 in output
 
-    # Verify tools are listed with their extensions, with preferred ones starred
-    assert "1. tool1/screenshot1" in output
-    assert "Extensions: ext1*, ext2*" in output
-    assert "2. tool2/screenshot2" in output
+    # Listed highest priority first (see test_sc_show_list_show_tools).
+    assert "1. tool2/screenshot2" in output
     assert "Extensions: ext3*" in output
+    assert "2. tool1/screenshot1" in output
+    assert "Extensions: ext1*, ext2*" in output
 
 
 @pytest.mark.timeout(90)
@@ -457,11 +458,11 @@ def test_sc_show_list_open_tools(monkeypatch, capsys):
     assert "Registered Open Tools (in order):" in output
     assert "=" * 70 in output
 
-    # Verify tools are listed with their extensions, with preferred ones starred
-    assert "1. tool1/open1" in output
-    assert "Extensions: ext1*, ext2*" in output
-    assert "2. tool2/open2" in output
+    # Listed highest priority first (see test_sc_show_list_show_tools).
+    assert "1. tool2/open2" in output
     assert "Extensions: ext3*" in output
+    assert "2. tool1/open1" in output
+    assert "Extensions: ext1*, ext2*" in output
 
 
 @pytest.mark.timeout(90)
@@ -599,8 +600,14 @@ def test_sc_show_list_single_tool(monkeypatch, capsys):
 
 
 @pytest.mark.timeout(90)
-def test_sc_show_list_sorted_extensions(monkeypatch, capsys):
-    '''Test sc-show -list displays extensions in sorted order.'''
+def test_sc_show_list_declared_extension_order(monkeypatch, capsys):
+    '''Test sc-show -list displays extensions as the task declares them.
+
+    A task lists the formats it reads best-first, and that is what decides
+    which one sc-show reaches for. Alphabetizing hid it: openroad declares
+    ["odb", "def", "vg"] but printed "def, odb, vg", reading as though a def
+    outranked the odb beside it.
+    '''
     monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
 
     class MockTaskWithUnsortedExts:
@@ -611,7 +618,7 @@ def test_sc_show_list_sorted_extensions(monkeypatch, capsys):
             return "task"
 
         def get_supported_task_extentions(self):
-            # Return unsorted extensions
+            # Declared in preference order, which is not alphabetical
             return ["zed", "abc", "mno"]
 
     mock_tasks = [MockTaskWithUnsortedExts]
@@ -626,8 +633,8 @@ def test_sc_show_list_sorted_extensions(monkeypatch, capsys):
     captured = capsys.readouterr()
     output = captured.out
 
-    # Verify extensions are sorted alphabetically
-    assert "Extensions: abc, mno, zed" in output
+    # Verify extensions keep the order the task declared them in
+    assert "Extensions: zed, abc, mno" in output
 
 
 @pytest.mark.timeout(90)
@@ -1038,3 +1045,66 @@ def test_sc_show_with_file_does_not_reset_params(monkeypatch, make_manifests,
     assert getattr(proj, '_Project__skipreset', False) is True
     assert proj._Project__reset_job_params() is None
     assert asic_gcd.get("arg", "index") == "99"
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_prints_search_order(monkeypatch, capsys):
+    '''Test sc-show -list reports the order the build directory is searched in.
+
+    The per-tool lists above it cannot be read as a search order: the map
+    interleaves them, so the answer to "which file will sc-show pick" is not
+    something to work out by eye.
+    '''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
+
+    mock_tasks = [MockShowTask1, MockShowTask2]
+    mock_ext_map = {"ext3": MockShowTask2(), "ext1": MockShowTask1()}
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = mock_tasks
+        mock_ext.return_value = mock_ext_map
+        assert sc_show.main() == 0
+
+    output = capsys.readouterr().out
+
+    assert "sc-show scans every node for the first of these it can find, in order:" in output
+    # The map's key order, not the order the tools were listed in.
+    assert "ext3, ext1" in output
+
+
+@pytest.mark.timeout(90)
+@pytest.mark.parametrize('flag,verb', [
+    ('-screenshot', 'sc-show -screenshot'),
+    ('-open', 'sc-show -open'),
+])
+def test_sc_show_list_search_order_names_the_mode(flag, verb, monkeypatch, capsys):
+    '''The note names the invocation it describes, since each mode differs.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list', flag])
+
+    if flag == '-screenshot':
+        task_name, mock_task = 'ScreenshotTask', MockScreenshotTask1
+    else:
+        task_name, mock_task = 'OpenTask', MockOpenTask1
+
+    with patch(f'siliconcompiler.apps.sc_show.{task_name}.get_task') as mock_get_task, \
+            patch(f'siliconcompiler.apps.sc_show.{task_name}.get_extension_map') as mock_ext:
+        mock_get_task.return_value = [mock_task]
+        mock_ext.return_value = {"ext1": mock_task()}
+        assert sc_show.main() == 0
+
+    assert verb in capsys.readouterr().out
+
+
+@pytest.mark.timeout(90)
+def test_sc_show_list_no_search_order_when_empty(monkeypatch, capsys):
+    '''Nothing registered for an extension means nothing to say about order.'''
+    monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
+
+    with patch('siliconcompiler.apps.sc_show.ShowTask.get_task') as mock_get_task, \
+            patch('siliconcompiler.apps.sc_show.ShowTask.get_extension_map') as mock_ext:
+        mock_get_task.return_value = [MockShowTask1]
+        mock_ext.return_value = {}
+        assert sc_show.main() == 0
+
+    assert "scans every node" not in capsys.readouterr().out

@@ -3275,7 +3275,13 @@ def test_show_tool_not_found_for_extension(monkeypatch):
 
 
 def test_show_auto_find_preserves_tool_order(monkeypatch):
-    """Test that auto-find respects tool registration order."""
+    """Test that auto-find respects tool priority order.
+
+    Both tasks read a single format, so neither says anything about how the two
+    rank against each other and the tie falls to the higher-priority tool --
+    the same order get_task() resolves a shared extension in, which is
+    registration order read backwards.
+    """
     design = Design("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -3295,8 +3301,8 @@ def test_show_auto_find_preserves_tool_order(monkeypatch):
 
     def track_find_result(self, ext, step=None, index=None):
         tool_check_order.append(ext)
-        # Return file for 'def' only on second call to allow both extensions to be tried
-        return "/path/to/design.def" if ext == 'def' else None
+        # Resolve only on the extension searched second, so both are tried.
+        return "/path/to/design.gds" if ext == 'gds' else None
 
     monkeypatch.setattr(Project, "find_result", track_find_result)
 
@@ -3344,10 +3350,10 @@ def test_show_auto_find_preserves_tool_order(monkeypatch):
 
     result = proj.show()
     assert result is None
-    # Extensions should be checked in order from task registration: gds first (tool1),
-    # then def (tool2)
-    assert tool_check_order == ['gds', 'def'], \
-        f"Expected tool order ['gds', 'def'] but got {tool_check_order}"
+    # tool2 is registered last, so it outranks tool1 and its def is checked
+    # first.
+    assert tool_check_order == ['def', 'gds'], \
+        f"Expected tool order ['def', 'gds'] but got {tool_check_order}"
 
 
 def test_show_with_history(monkeypatch):

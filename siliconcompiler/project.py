@@ -1563,9 +1563,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     search_nodes = [node for node in search_nodes if node[1] == sc_index]
 
             # Use the shared extension map so the preferred tool for each
-            # extension matches what sc-show -list reports. The map preserves
-            # registration order, so higher-priority tools are tried first.
-            # A user-supplied tool is a hard requirement, so the search is
+            # extension matches what sc-show -list reports. Its keys are
+            # ordered richest view first, so an odb is found ahead of the def
+            # beside it. The search below is extension-major, so that ordering
+            # is a global priority across every node, not a tie-break within
+            # one. A user-supplied tool is a hard requirement, so the search is
             # restricted to the extensions that tool can actually handle.
             ext_map = tool_cls.get_extension_map(tool=tool)
             search_exts = list(ext_map.keys())

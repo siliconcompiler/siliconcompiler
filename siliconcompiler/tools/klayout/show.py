@@ -32,7 +32,11 @@ class ShowTask(ShowTask, KLayoutTask):
         self.add_commandline_option(["-nc", "-rm"], clobber=True)
 
     def get_supported_task_extentions(self):
-        return ["def", "lef", "gds", "oas", "lyrdb", "ascii"]
+        # Best view of a design first: the real layout, then the exchange
+        # format, then the abstract. get_extension_map() reads this order, so
+        # listing lef before gds would have it hunt for an abstract while the
+        # layout it was cut from sits in the same node.
+        return ["gds", "oas", "def", "lef", "lyrdb", "ascii"]
 
     def pre_process(self):
         super().pre_process()

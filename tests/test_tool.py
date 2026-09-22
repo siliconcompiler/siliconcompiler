@@ -4958,9 +4958,14 @@ def test_get_extension_map_single_tool(isolated_tasks):
 
 
 def test_get_extension_map_collects_all_extensions(isolated_tasks):
-    """All extensions across all registered tasks are present as keys, in
-    deterministic registration order (within a task, in the order returned by
-    get_supported_task_extentions)."""
+    """All extensions across all registered tasks are present as keys.
+
+    The order is derived, not registration order: an extension takes the worst
+    rank any task gives it, ties going to the higher-priority tool. ToolMulti
+    is registered last, so it outranks ToolA and its first choice leads; ToolA
+    reads one format, so all it can say is that "ext" is a first choice too,
+    which lands it in the same rank behind ToolMulti's.
+    """
 
     class ToolMulti(ShowTask):
         def tool(self):
@@ -4983,9 +4988,9 @@ def test_get_extension_map_collects_all_extensions(isolated_tasks):
 
         ext_map = ShowTask.get_extension_map()
 
-        # Order: ToolA registered first (its "ext"), then ToolMulti (a, b, c
-        # in the order it returns them).
-        assert list(ext_map.keys()) == ["ext", "a", "b", "c"]
+        # Rank 0: ToolMulti's "a", then ToolA's "ext" (ToolA is lower
+        # priority). Then ToolMulti's second and third choices.
+        assert list(ext_map.keys()) == ["a", "ext", "b", "c"]
 
 
 def test_get_extension_map_conflict_uses_last_registered(isolated_tasks):
