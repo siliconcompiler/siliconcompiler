@@ -213,7 +213,7 @@ class NodeType:
                        for pathtype in ('file', 'dir', 'path')):
                     raise ValueError(
                         f"{NodeType.encode(sctype)} is not a supported type: "
-                        "file, dir and path cannot be members of a tuple")
+                        "file, dir, and path cannot be members of a tuple")
 
     @staticmethod
     def istype(sctype: SchemaType, *types: TypeCheck) -> bool:

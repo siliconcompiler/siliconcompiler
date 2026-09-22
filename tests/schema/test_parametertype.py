@@ -991,5 +991,5 @@ def test_check_path_containers_allowed(sctype):
 def test_check_path_containers_rejects_tuple(sctype, reported):
     with pytest.raises(ValueError,
                        match=rf"^{re.escape(reported)} is not a supported type: "
-                             r"file, dir and path cannot be members of a tuple$"):
+                             r"file, dir, and path cannot be members of a tuple$"):
         NodeType.check_path_containers(sctype)

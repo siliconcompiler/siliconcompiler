@@ -1007,7 +1007,7 @@ def test_path_in_tuple_rejected(sctype):
     # The type parser places no constraint on tuple members, so without a guard
     # these are silently built as a plain file / directory instead of a tuple.
     with pytest.raises(ValueError,
-                       match=r"is not a supported type: file, dir and path cannot be "
+                       match=r"is not a supported type: file, dir, and path cannot be "
                              r"members of a tuple$"):
         Parameter(sctype)
 
@@ -1023,7 +1023,7 @@ def test_path_containers_still_supported(sctype):
 def test_path_in_tuple_rejected_from_dict(sctype):
     # A manifest read assigns the type directly, so it needs the same guard.
     with pytest.raises(ValueError,
-                       match=rf"^{re.escape(sctype)} is not a supported type: file, dir "
+                       match=rf"^{re.escape(sctype)} is not a supported type: file, dir, "
                              r"and path cannot be members of a tuple$"):
         Parameter.from_dict({
             'lock': False,
