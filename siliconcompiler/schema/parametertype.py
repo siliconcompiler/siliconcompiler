@@ -183,6 +183,37 @@ class NodeType:
         return value == check
 
     @staticmethod
+    def check_path_containers(sctype: SchemaType) -> None:
+        """
+        Raise a :class:`ValueError` if a ``file`` or ``dir`` type is nested in a
+        container which does not support it.
+
+        These are not ordinary scalars, they carry resolution, hashing and
+        collection behavior, so they are only supported on their own or as the
+        element of a list or set. :meth:`parse` places no constraint on which
+        types may appear in a tuple, so without this check ``(str,file)`` would
+        be accepted and then silently built as a plain file.
+
+        Args:
+            sctype (str, NodeType, or type): the type to inspect.
+        """
+
+        if isinstance(sctype, NodeType):
+            sctype = sctype.type
+        elif isinstance(sctype, str):
+            sctype = NodeType.parse(sctype)
+
+        if isinstance(sctype, (list, set)):
+            for subtype in sctype:
+                NodeType.check_path_containers(subtype)
+        elif isinstance(sctype, tuple):
+            for subtype in sctype:
+                if NodeType.contains(subtype, 'file') or NodeType.contains(subtype, 'dir'):
+                    raise ValueError(
+                        f"{NodeType.encode(sctype)} is not a supported type: "
+                        "file and dir cannot be members of a tuple")
+
+    @staticmethod
     def istype(sctype: SchemaType, *types: TypeCheck) -> bool:
         """
         Check whether the top-level type is exactly one of ``types``.
