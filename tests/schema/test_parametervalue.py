@@ -2,6 +2,7 @@ import os
 import pathlib
 import pytest
 import re
+import sys
 
 import os.path
 
@@ -612,7 +613,9 @@ def test_path_resolve_path_cwd(monkeypatch):
 
     value.set("test")
 
-    value.resolve_path(search=[search_cwd]) == os.path.abspath("test")
+    # The expectation is built from search_cwd, not from the cwd this now runs in:
+    # abspath("test") after the chdir would name test/test, which is not there.
+    assert value.resolve_path(search=[search_cwd]) == os.path.join(search_cwd, "test")
 
 
 def test_resolve_path_always_asserts_path():
@@ -821,13 +824,25 @@ def test_path_assert_path():
 
     value = PathNodeValue()
 
-    # a path accepts anything, since it may be either a file or a directory
+    # None, files and directories are all accepted, since a path may be either
     assert value._assert_path(None) is None
     assert value._assert_path("test.txt") is None
     assert value._assert_path("testdir") is None
     assert value._assert_path(pathlib.Path("test.txt")) is None
     assert value._assert_path(pathlib.Path("testdir")) is None
-    assert value._assert_path("notthere") is None
+
+    # something that is neither is not
+    with pytest.raises(ValueError, match=r"^notthere is not a file or directory$"):
+        value._assert_path("notthere")
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows has no mkfifo")
+def test_path_assert_path_rejects_a_fifo():
+    """Existing is not enough: a fifo would hang the read that hashing it does."""
+    os.mkfifo("fifo")
+
+    with pytest.raises(ValueError, match=r"^fifo is not a file or directory$"):
+        PathNodeValue()._assert_path("fifo")
 
 
 def test_file_resolve_path_directory_error_message():
@@ -1530,7 +1545,9 @@ def test_directory_resolve_path_cwd(monkeypatch):
 
     value.set("test")
 
-    value.resolve_path(search=[search_cwd]) == os.path.abspath("test")
+    # The expectation is built from search_cwd, not from the cwd this now runs in:
+    # abspath("test") after the chdir would name test/test, which is not there.
+    assert value.resolve_path(search=[search_cwd]) == os.path.join(search_cwd, "test")
 
 
 def test_path_resolve_path_collected_empty():

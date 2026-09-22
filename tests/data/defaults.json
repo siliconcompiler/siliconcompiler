@@ -1649,14 +1649,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -1680,14 +1680,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -5309,14 +5309,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -5340,14 +5340,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -9311,14 +9311,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -9342,14 +9342,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -13047,14 +13047,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -13078,14 +13078,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -16019,14 +16019,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -16050,14 +16050,14 @@
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -17724,7 +17724,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_datasheet <file>"
+              "-package_doc_datasheet <path>"
             ],
             "shorthelp": "Package: datasheet document",
             "example": [
@@ -17755,7 +17755,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_reference <file>"
+              "-package_doc_reference <path>"
             ],
             "shorthelp": "Package: reference document",
             "example": [
@@ -17786,7 +17786,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_userguide <file>"
+              "-package_doc_userguide <path>"
             ],
             "shorthelp": "Package: userguide document",
             "example": [
@@ -17817,7 +17817,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_quickstart <file>"
+              "-package_doc_quickstart <path>"
             ],
             "shorthelp": "Package: quickstart document",
             "example": [
@@ -17848,7 +17848,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_releasenotes <file>"
+              "-package_doc_releasenotes <path>"
             ],
             "shorthelp": "Package: releasenotes document",
             "example": [
@@ -17879,7 +17879,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_testplan <file>"
+              "-package_doc_testplan <path>"
             ],
             "shorthelp": "Package: testplan document",
             "example": [
@@ -17910,7 +17910,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_signoff <file>"
+              "-package_doc_signoff <path>"
             ],
             "shorthelp": "Package: signoff document",
             "example": [
@@ -17941,7 +17941,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_tutorial <file>"
+              "-package_doc_tutorial <path>"
             ],
             "shorthelp": "Package: tutorial document",
             "example": [
@@ -18493,7 +18493,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_datasheet <file>"
+              "-package_doc_datasheet <path>"
             ],
             "shorthelp": "Package: datasheet document",
             "example": [
@@ -18524,7 +18524,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_reference <file>"
+              "-package_doc_reference <path>"
             ],
             "shorthelp": "Package: reference document",
             "example": [
@@ -18555,7 +18555,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_userguide <file>"
+              "-package_doc_userguide <path>"
             ],
             "shorthelp": "Package: userguide document",
             "example": [
@@ -18586,7 +18586,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_quickstart <file>"
+              "-package_doc_quickstart <path>"
             ],
             "shorthelp": "Package: quickstart document",
             "example": [
@@ -18617,7 +18617,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_releasenotes <file>"
+              "-package_doc_releasenotes <path>"
             ],
             "shorthelp": "Package: releasenotes document",
             "example": [
@@ -18648,7 +18648,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_testplan <file>"
+              "-package_doc_testplan <path>"
             ],
             "shorthelp": "Package: testplan document",
             "example": [
@@ -18679,7 +18679,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_signoff <file>"
+              "-package_doc_signoff <path>"
             ],
             "shorthelp": "Package: signoff document",
             "example": [
@@ -18710,7 +18710,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_tutorial <file>"
+              "-package_doc_tutorial <path>"
             ],
             "shorthelp": "Package: tutorial document",
             "example": [
@@ -19902,7 +19902,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_datasheet <file>"
+              "-package_doc_datasheet <path>"
             ],
             "shorthelp": "Package: datasheet document",
             "example": [
@@ -19933,7 +19933,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_reference <file>"
+              "-package_doc_reference <path>"
             ],
             "shorthelp": "Package: reference document",
             "example": [
@@ -19964,7 +19964,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_userguide <file>"
+              "-package_doc_userguide <path>"
             ],
             "shorthelp": "Package: userguide document",
             "example": [
@@ -19995,7 +19995,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_quickstart <file>"
+              "-package_doc_quickstart <path>"
             ],
             "shorthelp": "Package: quickstart document",
             "example": [
@@ -20026,7 +20026,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_releasenotes <file>"
+              "-package_doc_releasenotes <path>"
             ],
             "shorthelp": "Package: releasenotes document",
             "example": [
@@ -20057,7 +20057,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_testplan <file>"
+              "-package_doc_testplan <path>"
             ],
             "shorthelp": "Package: testplan document",
             "example": [
@@ -20088,7 +20088,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_signoff <file>"
+              "-package_doc_signoff <path>"
             ],
             "shorthelp": "Package: signoff document",
             "example": [
@@ -20119,7 +20119,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_tutorial <file>"
+              "-package_doc_tutorial <path>"
             ],
             "shorthelp": "Package: tutorial document",
             "example": [
@@ -20723,7 +20723,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_datasheet <file>"
+              "-package_doc_datasheet <path>"
             ],
             "shorthelp": "Package: datasheet document",
             "example": [
@@ -20754,7 +20754,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_reference <file>"
+              "-package_doc_reference <path>"
             ],
             "shorthelp": "Package: reference document",
             "example": [
@@ -20785,7 +20785,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_userguide <file>"
+              "-package_doc_userguide <path>"
             ],
             "shorthelp": "Package: userguide document",
             "example": [
@@ -20816,7 +20816,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_quickstart <file>"
+              "-package_doc_quickstart <path>"
             ],
             "shorthelp": "Package: quickstart document",
             "example": [
@@ -20847,7 +20847,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_releasenotes <file>"
+              "-package_doc_releasenotes <path>"
             ],
             "shorthelp": "Package: releasenotes document",
             "example": [
@@ -20878,7 +20878,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_testplan <file>"
+              "-package_doc_testplan <path>"
             ],
             "shorthelp": "Package: testplan document",
             "example": [
@@ -20909,7 +20909,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_signoff <file>"
+              "-package_doc_signoff <path>"
             ],
             "shorthelp": "Package: signoff document",
             "example": [
@@ -20940,7 +20940,7 @@
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_tutorial <file>"
+              "-package_doc_tutorial <path>"
             ],
             "shorthelp": "Package: tutorial document",
             "example": [

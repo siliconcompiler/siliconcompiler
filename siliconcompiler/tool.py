@@ -3267,17 +3267,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 scope=Scope.JOB,
                 pernode=PerNode.REQUIRED,
                 shorthelp="Task: input files",
-                switch="-tool_task_input 'tool task <file>'",
+                switch="-tool_task_input 'tool task <path>'",
                 example=[
                     "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                     "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', "
                     "step='place', index='0')"],
                 help=trim("""
-                List of data files to be copied from previous flowgraph steps 'output'
-                directory. The list of steps to copy files from is defined by the
+                List of data files and directories to be copied from previous flowgraph
+                steps 'output' directory. The list of steps to copy from is defined by the
                 list defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.
-                All files must be available for flow to continue. If a file
-                is missing, the program exists on an error.""")))
+                All entries must be available for flow to continue. If one
+                is missing, the program exits on an error.""")))
 
         schema.insert(
             'output',
@@ -3286,15 +3286,15 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 scope=Scope.JOB,
                 pernode=PerNode.REQUIRED,
                 shorthelp="Task: output files",
-                switch="-tool_task_output 'tool task <file>'",
+                switch="-tool_task_output 'tool task <path>'",
                 example=[
                     "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                     "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', "
                     "step='place', index='0')"],
                 help=trim("""
-                List of data files written to the 'output' directory of the
-                tool/task/step/index used in the keypath. All files must be available
-                for flow to continue. If a file is missing, the program exists on an error.""")))
+                List of data files and directories written to the 'output' directory of
+                the tool/task/step/index used in the keypath. All entries must be available
+                for flow to continue. If one is missing, the program exits on an error.""")))
 
     @staticmethod
     def __schema_task_stdio(schema):

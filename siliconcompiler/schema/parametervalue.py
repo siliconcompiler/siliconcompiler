@@ -844,10 +844,14 @@ class BasePathNodeValue(NodeValue):
             collection_dir (path): path to collection directory.
         """
         def return_value(path: Optional[Union[str, pathlib.Path]]) -> Optional[str]:
+            # Normalize before asserting, not after: a stored value is held in posix
+            # form and a searched one comes back in the platform's own, so on Windows
+            # the two reach _assert_path spelled differently unless they are made to
+            # agree here. The assert and the caller then see the same path.
+            if path is not None:
+                path = str(pathlib.Path(path))
             self._assert_path(path)
-            if path is None:
-                return None
-            return str(pathlib.Path(path))
+            return path
 
         value: Optional[Union[str, pathlib.Path]] = self.get()
         if value is None:
@@ -1200,7 +1204,14 @@ class PathNodeValue(BaseFileNodeValue):
                 path, hashfunction=function)
 
     def _assert_path(self, path: Optional[Union[str, pathlib.Path]]) -> None:
-        pass
+        if path is None:
+            return
+
+        # A path is a file or a directory, not merely something that exists: a fifo,
+        # a socket or a device node would otherwise resolve and then be hashed as a
+        # file, which blocks or fails.
+        if not os.path.isfile(path) and not os.path.isdir(path):
+            raise PathTypeError(f"{path} is not a file or directory")
 
     @property
     def type(self) -> str:

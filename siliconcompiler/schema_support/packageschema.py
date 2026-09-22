@@ -277,7 +277,7 @@ def schema_package(schema):
                 '[path]',
                 scope=Scope.GLOBAL,
                 shorthelp=f"Package: {item} document",
-                switch=f"-package_doc_{item} <file>",
+                switch=f"-package_doc_{item} <path>",
                 example=[
                     f"cli: -package_doc_{item} {item}.pdf",
                     f"api: schema.set('doc', '{item}', '{item}.pdf')"],
