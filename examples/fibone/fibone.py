@@ -4,18 +4,14 @@
 from siliconcompiler import ASIC, Design
 # Import a pre-defined target for the FreePDK45 process.
 from siliconcompiler.targets import freepdk45_demo
-# Import the base ASIC flow to customize it.
-from siliconcompiler.flows.asicflow import ASICFlow
-# Import the specific tool task for compiling Bluespec.
-from siliconcompiler.tools.bluespec import convert
 
 
 def main():
     '''
     This script demonstrates a Bluespec SystemVerilog (BSV) to GDSII flow.
-    It shows how to create a custom compilation flow in SiliconCompiler
-    to handle high-level synthesis from BSV before proceeding with the
-    standard synthesis, place, and route steps.
+    It shows that a Bluespec design needs no custom flow: the target reads the
+    source language off the design's files and puts the Bluespec compiler in
+    front of the standard synthesis, place, and route steps.
 
     Requires: bsc (Bluespec), yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     '''
@@ -41,35 +37,18 @@ def main():
     # Tell the project to use the "rtl" fileset we defined.
     project.add_fileset("rtl")
 
-    # Load the target configuration for the FreePDK45 technology.
+    # --- Target Loading ---
+    # Load the target configuration for the FreePDK45 technology. This is the
+    # key part of the example: the target picks the flow's front end from the
+    # design's sources, so the .bsv file above selects a 'convert' step running
+    # the Bluespec compiler (bsc) where a Verilog design would get 'elaborate'.
+    # The resulting flow is named 'asicflow-bluespec'. Passing
+    # language="bluespec" here would select the same front end explicitly.
     freepdk45_demo(project)
 
-    # --- Custom Flow Definition ---
-    # This is the key part of the example. We will modify the standard
-    # ASIC flow to include a Bluespec compilation step.
-
-    # 1. Start with a copy of the standard ASIC flow.
-    flow = ASICFlow("asic-bluespec")
-
-    # 2. The standard flow has an 'elaborate' step for SystemVerilog that is
-    #    not needed, as the Bluespec compiler handles elaboration. Remove it.
-    flow.remove_node("elaborate")
-
-    # 3. Add a new step (node) to the flow graph named "convert".
-    #    This step will run the Bluespec compiler (bsc) to convert the
-    #    .bsv source into Verilog.
-    flow.node("convert", convert.ConvertTask())
-
-    # 4. Modify the flow graph's connections (edges). Reroute the flow so
-    #    that the output of our new "convert" step feeds into the "synthesis" step.
-    flow.edge("convert", "synthesis")
-
-    # 5. Apply this new, custom flow to our project.
-    project.set_flow(flow)
-
     # --- Execution & Analysis ---
-    # Run the custom flow. SiliconCompiler will now execute the 'convert'
-    # step first, then proceed to synthesis, place, route, etc.
+    # Run the flow. SiliconCompiler will execute the 'convert' step first, then
+    # proceed with synthesis, place, route, and GDS export.
     project.run()
 
     # Display a summary of the results (timing, area, etc.).
