@@ -70,7 +70,7 @@ invocation is from the pre-0.35 CLI and will fail with `command not found`. To
 run something from the shell, use a Python script, `smake`, or the demos:
 
 ```sh
-python3 -m siliconcompiler.demos.asic_demo      # ASIC, remote by default
+python3 -m siliconcompiler.demos.asic_demo      # ASIC; -remote to run on a server
 python3 -m siliconcompiler.demos.fpga_demo      # FPGA
 ```
 

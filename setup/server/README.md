@@ -31,10 +31,11 @@ assuming:
 python3 -c 'from siliconcompiler import utils; print(utils.default_credentials_file())'
 ```
 
-⚠️ Getting the path wrong is silent: the client falls back to the **public**
-server at siliconcompiler.com and your job is uploaded there instead. If the log
-says *"Your job will be uploaded to a public server"*, the file is not where the
-client looked.
+⚠️ Getting the path wrong is not silent, but it is reported late: the client has
+no address to fall back on, so it warns *"Could not find remote server
+configuration"* when it starts and then fails the run with *"No remote server
+address is configured"*. Either message means the file is not where the client
+looked.
 
 ## The base image
 
