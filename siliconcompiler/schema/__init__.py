@@ -6,7 +6,7 @@ from .journal import Journal
 from .safeschema import SafeSchema
 from .editableschema import EditableSchema
 from .baseschema import BaseSchema, LazyLoad, CachedSchema, CachedSchemaMeta, \
-    SchemaFrozenError
+    SchemaFrozenError, SchemaVersionWarning
 from .namedschema import NamedSchema
 from .docschema import DocsSchema
 
@@ -24,7 +24,8 @@ __all__ = [
     "LazyLoad",
     "CachedSchema",
     "CachedSchemaMeta",
-    "SchemaFrozenError"
+    "SchemaFrozenError",
+    "SchemaVersionWarning"
 ]
 
 SCHEMA_VERSION = __version__

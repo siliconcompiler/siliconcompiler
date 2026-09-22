@@ -235,6 +235,7 @@ proc sc_read_design_verilog { } {
             -D SYNTHESIS \
             --keep-hierarchy \
             --ignore-assertions \
+            --ignore-timing \
             --allow-use-before-declare \
             --top $sc_topmodule \
             {*}$slang_params \

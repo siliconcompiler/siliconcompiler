@@ -1,4 +1,5 @@
 import pytest
+import re
 
 from pathlib import Path
 
@@ -960,3 +961,35 @@ def test_basetype_accepts_nodetype_and_type_objects():
 def test_astype(spec, expect):
     """astype maps friendly tokens to check objects and passes the rest through."""
     assert NodeType.astype(spec) == expect
+
+
+@pytest.mark.parametrize("sctype", (
+    "file", "dir", "path", "[file]", "{file}", "[dir]", "{dir}", "[path]", "{path}",
+    "str", "[int]", "(str,int)", "[(str,str)]", "<one,two>", "int<0..10>",
+))
+def test_check_path_containers_allowed(sctype):
+    assert NodeType.check_path_containers(sctype) is None
+    assert NodeType.check_path_containers(NodeType(sctype)) is None
+
+
+@pytest.mark.parametrize("sctype,reported", (
+    ("(str,file)", "(str,file)"),
+    ("(str,dir)", "(str,dir)"),
+    ("(str,path)", "(str,path)"),
+    ("(file,file)", "(file,file)"),
+    ("(path,path)", "(path,path)"),
+    ("(str,[file])", "(str,[file])"),
+    ("(str,[path])", "(str,[path])"),
+    ("((str,file),int)", "((str,file),int)"),
+    # The innermost offending tuple is the one reported.
+    ("[(str,file)]", "(str,file)"),
+    ("{(str,dir)}", "(str,dir)"),
+    ("[(str,path)]", "(str,path)"),
+    ("[(str,(int,dir))]", "(str,(int,dir))"),
+    ("[(str,(int,path))]", "(str,(int,path))"),
+))
+def test_check_path_containers_rejects_tuple(sctype, reported):
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(reported)} is not a supported type: "
+                             r"file, dir and path cannot be members of a tuple$"):
+        NodeType.check_path_containers(sctype)

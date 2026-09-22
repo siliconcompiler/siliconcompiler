@@ -1,5 +1,6 @@
 import argparse
 import pytest
+import re
 
 from unittest.mock import patch
 
@@ -982,20 +983,6 @@ def test_is_file_directory_false(sctype):
     assert param.is_directory is False
 
 
-def test_is_path_tuple_with_file():
-    param = Parameter("(str,file)")
-    assert param.is_file is True
-    assert param.is_directory is False
-    assert param.is_path is True
-
-
-def test_is_path_tuple_with_dir():
-    param = Parameter("(str,dir)")
-    assert param.is_directory is True
-    assert param.is_file is False
-    assert param.is_path is True
-
-
 @pytest.mark.parametrize("sctype", ("path", "[path]", "{path}"))
 def test_is_path_type_true(sctype):
     # a path may be either a file or a directory, so it is neither exclusively
@@ -1005,18 +992,6 @@ def test_is_path_type_true(sctype):
     assert param.is_directory is False
 
 
-def test_is_path_tuple_with_path():
-    param = Parameter("(str,path)")
-    assert param.is_path is True
-    assert param.is_file is False
-    assert param.is_directory is False
-
-
-def test_is_path_list_of_tuple_with_path():
-    param = Parameter("[(str,path)]")
-    assert param.is_path is True
-
-
 def test_is_path_tuple_without_path():
     param = Parameter("(str,int)")
     assert param.is_file is False
@@ -1024,10 +999,40 @@ def test_is_path_tuple_without_path():
     assert param.is_path is False
 
 
-def test_is_path_list_of_tuple_with_file():
-    param = Parameter("[(str,file)]")
-    assert param.is_file is True
-    assert param.is_path is True
+@pytest.mark.parametrize("sctype", (
+    "(str,file)", "(str,dir)", "(str,path)", "(file,file)", "(path,path)",
+    "[(str,file)]", "{(str,dir)}", "[(str,path)]", "((str,file),int)", "(str,[file])",
+))
+def test_path_in_tuple_rejected(sctype):
+    # The type parser places no constraint on tuple members, so without a guard
+    # these are silently built as a plain file / directory instead of a tuple.
+    with pytest.raises(ValueError,
+                       match=r"is not a supported type: file, dir and path cannot be "
+                             r"members of a tuple$"):
+        Parameter(sctype)
+
+
+@pytest.mark.parametrize("sctype", (
+    "file", "[file]", "{file}", "dir", "[dir]", "{dir}", "path", "[path]", "{path}"))
+def test_path_containers_still_supported(sctype):
+    # The guard sits next to the branch which builds these correctly.
+    assert Parameter(sctype).is_path is True
+
+
+@pytest.mark.parametrize("sctype", ("(str,file)", "(str,path)"))
+def test_path_in_tuple_rejected_from_dict(sctype):
+    # A manifest read assigns the type directly, so it needs the same guard.
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(sctype)} is not a supported type: file, dir "
+                             r"and path cannot be members of a tuple$"):
+        Parameter.from_dict({
+            'lock': False,
+            'node': {},
+            'pernode': 'never',
+            'require': False,
+            'scope': 'global',
+            'type': sctype,
+        }, [], tuple([int(v) for v in __version__.split('.')]))
 
 
 def test_is_path_properties_are_properties():

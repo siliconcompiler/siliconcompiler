@@ -2,11 +2,13 @@ import contextlib
 import logging
 import re
 import sys
+import warnings
 
 from collections import deque
 from types import MappingProxyType
 
 from siliconcompiler import utils
+from siliconcompiler.schema import SchemaVersionWarning
 
 
 # Levels for output the *tool* produced, as opposed to SiliconCompiler's own
@@ -110,6 +112,58 @@ def console_quiet(logger: logging.Logger, active: bool = True):
         yield
     finally:
         logger.removeFilter(tagger)
+
+
+@contextlib.contextmanager
+def report_schema_warnings(logger: logging.Logger, context: str,
+                           level: int = logging.WARNING):
+    """
+    Routes schema warnings raised inside the block into the run log.
+
+    The schema cannot report these itself. It is standalone by design -- tool
+    drivers import it in environments that have no SiliconCompiler around it --
+    and the object it is populating when this matters is a throwaway loaded from
+    a *previous* run, whose logger is not this run's. Left to ``warnings``, the
+    message goes to stderr, away from the log that records what the run then did
+    about it.
+
+    Each message is logged once per block, however many manifests raised it, so a
+    twenty-node flow reading twenty manifests written by the same newer schema
+    says so once. It is logged as it is raised, so a block that goes on to fail
+    on the manifest it warned about still says what it saw.
+
+    Only the display of a schema warning is taken over. Anything else raised
+    inside the block goes to the handler that was already installed, untouched
+    and at the point it was raised, so its filters and its ``__warningregistry__``
+    -- the once-per-location suppression that stops a repeated warning from
+    repeating -- behave exactly as they would without this block.
+
+    Args:
+        logger (logging.Logger): The logger to report through.
+        context (str): What was being read, used as the prefix of the message.
+        level (int): Level to report at. A block that runs once per node passes
+            ``logging.DEBUG``: every node in a build directory written by a newer
+            schema raises the same warning, and which node hit it first is not
+            what the reader needs -- the job-level read has already said it once,
+            where it can be read.
+    """
+    reported = set()
+    previous = warnings.showwarning
+
+    def showwarning(message, category, filename, lineno, file=None, line=None):
+        if issubclass(category, SchemaVersionWarning):
+            text = str(message)
+            if text not in reported:
+                reported.add(text)
+                logger.log(level, f"{context}: {text}")
+            return
+        previous(message, category, filename, lineno, file, line)
+
+    warnings.showwarning = showwarning
+    try:
+        yield
+    finally:
+        warnings.showwarning = previous
 
 
 class SCHistoryLogHandler(logging.Handler):

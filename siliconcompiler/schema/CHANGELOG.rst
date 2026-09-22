@@ -20,8 +20,8 @@ development, so a few dates are non-monotonic relative to the semver ordering.
   parameters where the distinction is not known up front. It carries the same fields as
   ``file`` (``filehash``, ``dataroot``, ``date``, ``author``) and hashes as a file or a
   directory depending on what the value resolves to. Available as a scalar and in the
-  list and set containers (``[path]``, ``{path}``); tuples of ``path`` are declarable
-  but cannot be set, the same long-standing limitation ``file`` and ``dir`` have.
+  list and set containers (``[path]``, ``{path}``); like ``file`` and ``dir`` it cannot
+  be a member of a tuple, which is rejected when the parameter is built.
 - Changed ``tool,<tool>,task,<task>,input`` and ``tool,<tool>,task,<task>,output`` from
   ``[file]`` to ``[path]`` so tasks can declare directories as inputs and outputs.
   ``tool,<tool>,task,<task>,report,<metric>`` remains ``[file]``.
