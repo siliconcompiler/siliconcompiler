@@ -25,6 +25,9 @@ class WebTask(ShowTask):
         return "web"
 
     def _default_enable_hier(self) -> bool:
+        # Only meaningful for netlist-only views: a hierarchical vg links into real
+        # dbModules for the hierarchy browser. A def is never paired with a netlist
+        # (see OpenTask._copy_show_files), so this does not affect def views.
         return True
 
     def setup(self):
