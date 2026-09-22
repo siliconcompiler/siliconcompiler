@@ -127,10 +127,16 @@ def report_schema_warnings(logger: logging.Logger, context: str,
     message goes to stderr, away from the log that records what the run then did
     about it.
 
-    A message is logged once per block however many manifests raised it, so a
+    Each message is logged once per block, however many manifests raised it, so a
     twenty-node flow reading twenty manifests written by the same newer schema
-    says so once. Any other warning raised inside the block is re-emitted
-    unchanged, at its original location, so this cannot quietly swallow one.
+    says so once. It is logged as it is raised, so a block that goes on to fail
+    on the manifest it warned about still says what it saw.
+
+    Only the display of a schema warning is taken over. Anything else raised
+    inside the block goes to the handler that was already installed, untouched
+    and at the point it was raised, so its filters and its ``__warningregistry__``
+    -- the once-per-location suppression that stops a repeated warning from
+    repeating -- behave exactly as they would without this block.
 
     Args:
         logger (logging.Logger): The logger to report through.
@@ -141,31 +147,23 @@ def report_schema_warnings(logger: logging.Logger, context: str,
             what the reader needs -- the job-level read has already said it once,
             where it can be read.
     """
-    caught = []
+    reported = set()
+    previous = warnings.showwarning
+
+    def showwarning(message, category, filename, lineno, file=None, line=None):
+        if issubclass(category, SchemaVersionWarning):
+            text = str(message)
+            if text not in reported:
+                reported.add(text)
+                logger.log(level, f"{context}: {text}")
+            return
+        previous(message, category, filename, lineno, file, line)
+
+    warnings.showwarning = showwarning
     try:
-        with warnings.catch_warnings(record=True) as recorded:
-            # filterwarnings rather than simplefilter: it prepends, leaving
-            # filters an enclosing block set (the fork warning silenced by
-            # forking(), say) in place.
-            warnings.filterwarnings("always", category=SchemaVersionWarning)
-            caught = recorded
-            yield
+        yield
     finally:
-        # Reported from here, past the end of the recording block, so that a
-        # block which raised -- the manifest this warned about turning out to be
-        # unreadable, most of all -- still says what it saw, and so that
-        # re-emitting is not recorded straight back into the list being walked.
-        reported = set()
-        for entry in caught:
-            if issubclass(entry.category, SchemaVersionWarning):
-                message = str(entry.message)
-                if message in reported:
-                    continue
-                reported.add(message)
-                logger.log(level, f"{context}: {message}")
-            else:
-                warnings.warn_explicit(entry.message, entry.category,
-                                       entry.filename, entry.lineno)
+        warnings.showwarning = previous
 
 
 class SCHistoryLogHandler(logging.Handler):

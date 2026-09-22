@@ -495,7 +495,7 @@ def test_schema_warning_is_logged_when_the_block_raises(logger, caplog):
     """The manifest that warned turning out to be unreadable is exactly when the
     warning explains the failure, so it cannot be dropped with the exception."""
     with caplog.at_level(logging.WARNING, logger=logger.name):
-        with pytest.raises(ValueError, match="^path$"):
+        with pytest.raises(ValueError, match=r"^path$"):
             with report_schema_warnings(logger, "Checking syn/0"):
                 _warn_newer_schema()
                 raise ValueError("path")
@@ -512,8 +512,7 @@ def test_schema_warning_level_is_selectable(logger, caplog):
 
 
 def test_other_warnings_are_left_alone(logger, caplog):
-    """Recording swallows every warning raised in the block, so anything that is
-    not the schema's has to come back out."""
+    """Anything that is not the schema's is none of this block's business."""
     with caplog.at_level(logging.WARNING, logger=logger.name):
         with pytest.warns(DeprecationWarning, match="not mine"):
             with report_schema_warnings(logger, "Reading previous run"):
@@ -522,3 +521,34 @@ def test_other_warnings_are_left_alone(logger, caplog):
 
     assert "not mine" not in caplog.text
     assert "0.99.0 is newer" in caplog.text
+
+
+def test_other_warnings_reach_the_handler_that_was_installed(logger):
+    """Handed straight to the previous handler as they are raised, rather than
+    recorded and re-emitted afterwards: re-emitting loses the registry that makes
+    a repeated warning report once, so an unrelated warning would start repeating
+    every time a block ran -- once per node check.
+    """
+    seen = []
+
+    previous = warnings.showwarning
+    warnings.showwarning = \
+        lambda message, category, filename, lineno, file=None, line=None: \
+        seen.append((str(message), category, filename))
+    try:
+        with report_schema_warnings(logger, "Reading previous run"):
+            warnings.warn("not mine", DeprecationWarning)
+            _warn_newer_schema()
+    finally:
+        warnings.showwarning = previous
+
+    assert [(message, category) for message, category, _ in seen] == \
+        [("not mine", DeprecationWarning)]
+    assert seen[0][2] == __file__
+
+
+def test_the_previous_handler_is_restored(logger):
+    previous = warnings.showwarning
+    with report_schema_warnings(logger, "Reading previous run"):
+        assert warnings.showwarning is not previous
+    assert warnings.showwarning is previous

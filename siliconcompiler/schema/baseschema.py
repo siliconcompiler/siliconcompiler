@@ -355,6 +355,36 @@ class BaseSchema:
             return tuple([int(v) for v in param.get().split('.')])
         return None
 
+    @staticmethod
+    def _resolve_version(manifest: Dict) -> Tuple[int, ...]:
+        """
+        Returns the schema version a manifest was written with, warning when it
+        is newer than this schema's.
+
+        Shared with :class:`SafeSchema`, which decodes manifests without any of
+        the classes that wrote them and so overrides :meth:`_from_dict` rather
+        than reaching this through it.
+
+        Args:
+            manifest (dict): Manifest to read the version from.
+        """
+        version = BaseSchema.__extractversion(manifest)
+
+        if version is None:
+            # Not every manifest records one -- a design or library written on
+            # its own does not -- so read it as this schema's own.
+            return BaseSchema.__version
+
+        if version > BaseSchema.__version:
+            warnings.warn(
+                f"manifest schema version ({'.'.join([str(v) for v in version])}) is "
+                "newer than the supported schema version "
+                f"({'.'.join([str(v) for v in BaseSchema.__version])}), "
+                "values may be incomplete or incorrect",
+                SchemaVersionWarning, stacklevel=2)
+
+        return version
+
     def __ensure_lazy_elab(self):
         if not self.__lazy:
             return
@@ -379,17 +409,7 @@ class BaseSchema:
         '''
         # find schema version
         if not version:
-            version = BaseSchema.__extractversion(manifest)
-
-            if version is None:
-                version = BaseSchema.__version
-            elif version > BaseSchema.__version:
-                warnings.warn(
-                    f"manifest schema version ({'.'.join([str(v) for v in version])}) is "
-                    "newer than the supported schema version "
-                    f"({'.'.join([str(v) for v in BaseSchema.__version])}), "
-                    "values may be incomplete or incorrect",
-                    SchemaVersionWarning)
+            version = BaseSchema._resolve_version(manifest)
 
         handled = set()
         missing = set()
