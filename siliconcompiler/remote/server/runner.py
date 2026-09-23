@@ -22,7 +22,7 @@ import traceback
 from pathlib import Path
 
 from siliconcompiler.remote.server.runspec import (
-    PROGRESS_FILENAME, node_state, runtime_nodes, write_progress)
+    PROGRESS_FILENAME, node_image, node_state, runtime_nodes, write_progress)
 from siliconcompiler.remote.server.store import now
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
 
@@ -101,7 +101,7 @@ def run(manifest: Path) -> int:
     # settling only at the end left a node the run had already written off
     # reading `pending` for the whole run -- and the client showed it as
     # pending right up until the job finished.
-    TaskScheduler.register_callback("pre_run", _settle)
+    TaskScheduler.register_callback("pre_run", _before_the_flow)
     TaskScheduler.register_callback("post_run", _settle)
 
     try:
@@ -129,8 +129,97 @@ def run(manifest: Path) -> int:
 
 def _sweep() -> None:
     for node in _progress["nodes"].values():
-        if node["state"] in ("pending", "queued", "running"):
+        if node["state"] in ("pending", "queued", "preparing", "running"):
             node["state"] = "cancelled"
+
+
+def _before_the_flow(project) -> None:
+    '''The one `pre_run` hook, because there is only one slot for it.
+
+    `TaskScheduler.register_callback` sets a hook rather than appending to it,
+    so a second registration replaces the first. Two things have to happen
+    before the flow starts and they are sequenced here rather than fighting
+    over the slot.
+    '''
+    _settle(project)
+    _fetch_images(project)
+
+
+def _fetch_images(project) -> None:
+    '''Make every container this run needs present, before the flow starts.
+
+    🔴 **This is what `preparing` is for.** A tool image is gigabytes and takes
+    minutes on a cold host, and without a state for it the wait is
+    indistinguishable from a hang -- a node sitting at `pending` while nothing
+    appears to happen is the report a user opens a ticket about.
+
+    Front-loaded rather than fetched at each node's turn, and the reason is the
+    scheduler's own shape: `pre_node` fires inside the loop that also reaps
+    finished nodes, so a multi-minute pull there would stall the whole flow and
+    not just the node waiting for it. Here the pulls are serial -- which is what
+    two nodes wanting the same twelve-gigabyte image should do anyway -- and the
+    flow starts with everything it needs.
+
+    ⚠️ **A pull that fails is not fatal here.** The node's own launch will try
+    again and fail with the message that knows about registry credentials, and
+    a node that fails is already something this reports. Ending the run from
+    here would replace that with a worse error.
+    '''
+    wanted = {}
+    for key, node in _progress["nodes"].items():
+        # `_settle` has already run, so a node the flow decided to skip is
+        # terminal here. Nothing waits for an image it will never use, and
+        # walking it back to `preparing` would be a state going backwards.
+        if node["state"] not in ("pending", "queued"):
+            continue
+
+        step, _, index = key.partition("/")
+        ref = node_image(project, step, index)
+        if ref:
+            wanted.setdefault(ref, []).append(key)
+
+    if not wanted:
+        # Every deployment that runs no containers, which is the default one.
+        return
+
+    for ref, keys in sorted(wanted.items()):
+        if _image_present(ref):
+            continue
+
+        for key in keys:
+            _progress["nodes"][key]["state"] = "preparing"
+        _publish()
+
+        try:
+            _pull_image(ref)
+        except Exception as e:                                   # noqa: BLE001
+            print(f"could not fetch {ref}: {e}", file=sys.stderr)
+
+        for key in keys:
+            # `queued` and not `running`: they are with the scheduler and have
+            # not started. Only forwards -- a node that has already begun while
+            # a later image was still coming down must not be walked back.
+            if _progress["nodes"][key]["state"] == "preparing":
+                _progress["nodes"][key]["state"] = "queued"
+        _publish()
+
+
+def _image_present(ref: str) -> bool:
+    try:
+        import docker
+
+        docker.from_env().images.get(ref)
+        return True
+    except Exception:                                            # noqa: BLE001
+        # No daemon, no image, or no docker package. All three mean *not here*,
+        # and the only cost of being wrong is one redundant pull.
+        return False
+
+
+def _pull_image(ref: str) -> None:
+    import docker
+
+    docker.from_env().images.pull(ref)
 
 
 def _silence_console(project) -> None:

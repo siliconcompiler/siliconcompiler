@@ -84,6 +84,25 @@ DEFAULTS: Dict[str, Any] = {
 
     # How long a client is told to wait before polling a job again.
     "poll_interval_seconds": 5,
+
+    # Whether the compute nodes run each job's work inside a container this
+    # deployment registered.
+    #
+    # Off, and it has to default off: whether a compute node has a container
+    # runtime at all is not something the API process can find out by looking,
+    # and a bare Slurm cluster that runs jobs on the host is conforming rather
+    # than degraded -- it leaves both image_id columns NULL for the life of
+    # every job.
+    #
+    # What turning it on changes, all of it:
+    #   - `GET /v1`'s `software` is filtered to the versions a live image
+    #     actually holds, because a version with no image is a promise this
+    #     server cannot keep
+    #   - submit resolves one image per node and RECORDS it, which is only
+    #     honest if the node really ran there
+    #   - a node whose tool this deployment tracks and has no image for is
+    #     refused, for the whole job, before anything runs
+    "containers": False,
 }
 
 

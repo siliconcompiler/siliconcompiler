@@ -19,8 +19,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-__all__ = ["normalize", "runtime_flow", "runtime_nodes", "node_state",
-           "PROGRESS_FILENAME", "read_progress", "write_progress"]
+__all__ = ["normalize", "node_image", "runtime_flow", "runtime_nodes",
+           "node_state", "PROGRESS_FILENAME", "read_progress", "write_progress"]
 
 
 # Written by the run, read by the API process, and the only channel between
@@ -58,7 +58,7 @@ def node_state(status: Optional[str]) -> str:
     return _NODE_STATES.get(status, "failed")
 
 
-def normalize(project, job_id: str, builddir, cachedir) -> None:
+def normalize(project, job_id: str, builddir, cachedir, images=None) -> None:
     '''Everything the server decides about how a submitted run executes.
 
     Applied once, at submit, after the digest has been verified and after the
@@ -96,13 +96,22 @@ def normalize(project, job_id: str, builddir, cachedir) -> None:
     - **the remote id** -- the server-owned job id, which is what a user pastes
       back into ``sc-remote``
 
-    🔴 **The per-node scheduler is deliberately NOT set here, and that is a
-    change.** The old server ran the flow in its own process and dispatched each
-    node to Slurm, holding a blocking ``srun`` per node for the length of the
-    run. The job is now the unit of submission -- one batch job for the whole
-    flow, polled once per run -- so the flow inside it runs with the local
+    🔴 **The per-node SLURM scheduler is deliberately NOT set here, and that is
+    a change.** The old server ran the flow in its own process and dispatched
+    each node to Slurm, holding a blocking ``srun`` per node for the length of
+    the run. The job is now the unit of submission -- one batch job for the
+    whole flow, polled once per run -- so the flow inside it runs with the local
     scheduler. That is what makes the API process something other than a Slurm
     submit host, and it is the shape a REST transport can be swapped into.
+
+    ⚠️ **The per-node CONTAINER is a different question and it is set here**,
+    for the deployments that answered it. ``images`` maps a node to the
+    repository-at-a-digest the server resolved for it, and each one is written
+    into ``option,scheduler,queue`` -- which
+    :func:`~siliconcompiler.scheduler.docker.get_image` reads ahead of the
+    environment and ahead of its own default, so it is the documented place for
+    a server to say what a node runs in. Empty on a deployment that runs no
+    containers, which is every deployment until an operator says otherwise.
     '''
     project.option.set_nodashboard(True)
     project.option.set_builddir(str(builddir))
@@ -110,6 +119,30 @@ def normalize(project, job_id: str, builddir, cachedir) -> None:
     project.option.set_remote(False)
     project.option.set_nodisplay(True)
     project.set('record', 'remoteid', job_id)
+
+    for (step, index), ref in (images or {}).items():
+        # 🔴 A digest, never a tag. `registry_ref` is what a human typed and it
+        # can be rebuilt underneath this job; the digest is what the operator
+        # approved. Two runs a month apart silently executing different code is
+        # exactly what pinning at registration exists to prevent, and it only
+        # prevents it if the pinned form is the one that reaches the node.
+        project.option.scheduler.set_name('docker', step=step, index=index)
+        project.option.scheduler.set_queue(ref, step=step, index=index)
+
+
+def node_image(project, step: str, index: str) -> Optional[str]:
+    '''The container this node was placed in, or None.
+
+    Read back out of the manifest by the runner, which has no database
+    connection and should not need one: the server wrote the answer into the
+    same file the run loads.
+    '''
+    try:
+        if project.option.scheduler.get_name(step=step, index=index) != 'docker':
+            return None
+        return project.option.scheduler.get_queue(step=step, index=index)
+    except Exception:                                            # noqa: BLE001
+        return None
 
 
 def runtime_flow(project):

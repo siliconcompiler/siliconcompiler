@@ -1,0 +1,295 @@
+'''
+``python3 -m siliconcompiler.remote.server.registry``
+
+The operator's side of the image registry: which distributions this deployment
+curates, at which versions, and which containers hold them.
+
+🔴 **Registering an image is the most dangerous write this server has.** It
+chooses what code executes on the cluster -- higher stakes than any read
+permission, because a permission decides who may see something and this decides
+what runs as the account a job maps to. So every write here names the person who
+made it, taken from the account running the command on the server host, and the
+tag is resolved to a digest once, here, rather than re-resolved at every
+dispatch.
+
+⚠️ **A separate entry point rather than more flags on the server**, which has
+three and should keep them. This one runs against a datadir, not against a
+running server, and needs nothing from the ``server`` extra: a deployment can be
+curated before it is first started, and from a shell on the host rather than
+over the API. When the portal arrives it calls the same functions in
+:mod:`~siliconcompiler.remote.server.images`, so there is one implementation of
+each of these writes and not two.
+'''
+
+import argparse
+import getpass
+import json
+import logging
+import socket
+import sys
+
+from pathlib import Path
+from typing import List, Optional
+
+from siliconcompiler.remote.server import images
+from siliconcompiler.remote.server.store import Store
+
+__all__ = ["main"]
+
+
+logger = logging.getLogger("sc-server")
+
+# A registry write is administrative, and identity.md's rule is that an
+# administrative action is authenticated as a person and never as a service
+# account. On this deployment the person is whoever has a shell on the host, so
+# that is what is recorded -- under its own issuer, so it can never collide with
+# a client that logged in over the API or with an identity provider added later.
+OPERATOR_ISSUER = "operator"
+
+
+def _operator(store) -> str:
+    '''The user id every write in this session is recorded against.'''
+    subject = f"{getpass.getuser()}@{socket.gethostname()}"
+    with store.transaction():
+        user = store.upsert_user(OPERATOR_ISSUER, subject, display_name=subject)
+    return user["id"]
+
+
+def _contains(values: Optional[List[str]]):
+    '''``-contains siliconcompiler==0.38.9`` into pairs.
+
+    ``==`` and nothing else: no ranges anywhere in this registry. A range needs
+    a version-comparison grammar that the client, the server and every tool
+    agree on, and two implementations disagreeing about what ``>=0.38`` covers
+    is a job dispatched into the wrong container.
+    '''
+    pairs = []
+    for value in values or []:
+        name, sep, version = value.partition("==")
+        if not sep or not name or not version:
+            raise SystemExit(f"{value!r} is not name==version")
+        pairs.append((name.strip(), version.strip()))
+    return pairs
+
+
+def _resolve_digest(registry_ref: str) -> str:
+    '''Pin a tag to the bytes it names right now.
+
+    🔴 Once, here, and never again. Rebuilding ``sc-runtime:0.39.1`` must not
+    silently change what a job runs -- that takes a re-registration, which is a
+    decision somebody made. Two jobs a month apart running different code off
+    the same tag is the failure this prevents.
+    '''
+    try:
+        import docker
+    except ModuleNotFoundError:                                  # pragma: no cover
+        raise SystemExit("resolving a tag needs the docker package; "
+                         "pass -digest sha256:... instead")
+
+    client = docker.from_env()
+    try:
+        image = client.images.get(registry_ref)
+    except Exception:                                            # noqa: BLE001
+        image = client.images.pull(registry_ref)
+
+    for digest in image.attrs.get("RepoDigests") or []:
+        return digest.split("@", 1)[1]
+
+    # A locally built image has no repository digest because it was never
+    # pushed. Its own id is a sha256 of the config rather than of the manifest,
+    # which is not the same thing -- so it is refused rather than recorded as
+    # something it is not.
+    raise SystemExit(
+        f"{registry_ref} has no repository digest: push it to a registry, or "
+        "pass -digest sha256:... if you know the one it will have")
+
+
+######################################################################
+# The commands
+######################################################################
+
+def _cmd_list(store, args) -> int:
+    catalogue = images.catalogue(store, include_retired=args.all)
+
+    if args.json:
+        print(json.dumps(catalogue, indent=2))
+        return 0
+
+    versions = {}
+    for row in catalogue["versions"]:
+        versions.setdefault(row["software_name"], []).append(row)
+
+    print("software")
+    for row in catalogue["software"] or []:
+        retired = " (retired)" if row["retired_at"] else ""
+        print(f"  {row['name']}{retired}")
+        for version in versions.get(row["name"], []):
+            mark = " (retired)" if version["retired_at"] else ""
+            print(f"    {version['version']}  preference {version['preference']}{mark}")
+    if not catalogue["software"]:
+        print("  (none)")
+
+    print("images")
+    for row in catalogue["images"] or []:
+        retired = " (retired)" if row["retired_at"] else ""
+        print(f"  {row['registry_ref']}{retired}")
+        print(f"    {row['id']}")
+        print(f"    {row['digest']}")
+        print(f"    holds {', '.join(row['contents']) or '(nothing)'}")
+    if not catalogue["images"]:
+        print("  (none)")
+
+    return 0
+
+
+def _cmd_add_software(store, args) -> int:
+    images.register_software(store, args.name, args.display or args.name,
+                             _operator(store))
+    print(f"registered {args.name}")
+    return 0
+
+
+def _cmd_add_version(store, args) -> int:
+    try:
+        images.register_version(store, args.name, args.version, _operator(store),
+                                preference=args.preference)
+    except ValueError as e:
+        raise SystemExit(str(e))
+    print(f"registered {args.name}=={args.version}")
+    return 0
+
+
+def _cmd_add_image(store, args) -> int:
+    digest = args.digest or _resolve_digest(args.ref)
+
+    try:
+        image_id = images.register_image(
+            store, args.ref, digest, _contains(args.contains), _operator(store),
+            note=args.note)
+    except ValueError as e:
+        raise SystemExit(str(e))
+
+    print(f"registered {args.ref}")
+    print(f"  {image_id}")
+    print(f"  {digest}")
+    return 0
+
+
+def _cmd_retire(store, args) -> int:
+    actor = _operator(store)
+
+    if args.what == "image":
+        images.retire_image(store, args.name, actor)
+    elif args.what == "version":
+        name, sep, version = args.name.partition("==")
+        if not sep:
+            raise SystemExit("retiring a version takes name==version")
+        images.retire_version(store, name, version, actor)
+    else:
+        images.retire_software(store, args.name, actor)
+
+    print(f"retired {args.what} {args.name}")
+    return 0
+
+
+def _cmd_resolve(store, args) -> int:
+    '''Ask what a job would be placed in, without submitting one.
+
+    The one command here that writes nothing. An operator curating a registry
+    needs to see the answer the submit path will give before a user does, and
+    the alternative -- submitting a job to find out -- is a slow way to learn
+    that a tool has no image.
+    '''
+    declared = dict(_contains(args.versions))
+    tools = {(tool, "0"): tool for tool in (args.tools or [])} or {("job", "0"): None}
+
+    try:
+        plan = images.plan_for_job(store, declared, tools)
+    except Exception as e:                                       # noqa: BLE001
+        print(str(e))
+        return 1
+
+    refs = {image["id"]: image["registry_ref"] for image in images.live_images(store)}
+    print(f"job: {refs.get(plan.job, '(none)')}")
+    for (step, _), image_id in sorted(plan.nodes.items()):
+        print(f"  {step}: {refs.get(image_id, '(none)')}")
+    return 0
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="python3 -m siliconcompiler.remote.server.registry",
+        description="Curate what a SiliconCompiler server runs jobs in.")
+    parser.add_argument(
+        "-datadir", default="./sc_server", metavar="<dir>",
+        help="the server's data directory (default: %(default)s)")
+
+    commands = parser.add_subparsers(dest="command", required=True)
+
+    listing = commands.add_parser("list", help="show the registry")
+    listing.add_argument("-all", action="store_true", help="include retired rows")
+    listing.add_argument("-json", action="store_true", help="as JSON")
+    listing.set_defaults(run=_cmd_list)
+
+    software = commands.add_parser(
+        "add-software",
+        help="declare that this deployment curates images for a distribution")
+    software.add_argument("name", help="the distribution name: siliconcompiler, openroad")
+    software.add_argument("-display", metavar="<text>", help="what to call it")
+    software.set_defaults(run=_cmd_add_software)
+
+    version = commands.add_parser("add-version", help="one exact version of it")
+    version.add_argument("name")
+    version.add_argument("version")
+    version.add_argument(
+        "-preference", type=int, default=0, metavar="<int>",
+        help="higher is offered first, and breaks a tie between two images "
+             "that both fit (default: %(default)s)")
+    version.set_defaults(run=_cmd_add_version)
+
+    image = commands.add_parser("add-image", help="a container this server may run")
+    image.add_argument("ref", help="ghcr.io/org/sc-runtime:0.39.1")
+    image.add_argument(
+        "-digest", metavar="sha256:...",
+        help="what it pins to. Resolved from the tag through docker if omitted")
+    image.add_argument(
+        "-contains", action="append", metavar="name==version",
+        help="what is inside it, repeatable. Declared and unverified: nothing "
+             "opens the image to check, so a wrong one fails at run time")
+    image.add_argument("-note", metavar="<text>")
+    image.set_defaults(run=_cmd_add_image)
+
+    retire = commands.add_parser(
+        "retire", help="stop using one, and keep the row")
+    retire.add_argument("what", choices=("image", "version", "software"))
+    retire.add_argument("name", help="an image id, name==version, or a name")
+    retire.set_defaults(run=_cmd_retire)
+
+    resolve = commands.add_parser(
+        "resolve", help="what a job would be placed in, without submitting one")
+    resolve.add_argument(
+        "-versions", action="append", metavar="name==version",
+        help="what the job would declare, repeatable")
+    resolve.add_argument(
+        "-tools", action="append", metavar="<tool>",
+        help="one node per tool, repeatable")
+    resolve.set_defaults(run=_cmd_resolve)
+
+    return parser
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    args = _parser().parse_args(argv)
+
+    logging.basicConfig(level=logging.INFO, format="| %(levelname)-8s | %(message)s")
+
+    datadir = Path(args.datadir).resolve()
+    if not datadir.exists():
+        raise SystemExit(f"{datadir} does not exist")
+
+    with Store(datadir / "server.db") as store:
+        return args.run(store, args)
+
+
+if __name__ == "__main__":                                      # pragma: no cover
+    sys.exit(main())

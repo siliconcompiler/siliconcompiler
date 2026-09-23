@@ -152,6 +152,31 @@ rather than a clock that never stops.
    failure afterwards, in a few lines that say what to do next without opening
    a URL.
 
+Versions, and being told before you upload
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A server publishes the versions it runs, and the client checks its own against
+that list at the first call of every session -- before a job exists, before a
+byte moves. ``sc-remote -configure`` prints them:
+
+.. code-block:: text
+
+  Configured https://your-server.example.com/v1
+  This server runs siliconcompiler 0.39.1, 0.39.0
+
+Two refusals come out of that list and they mean different things:
+
+*Unsupported client or software version*
+  You are running something the server does not. Install a version it accepts,
+  or ask the operator to add yours. The job is refused at creation, so nothing
+  was uploaded.
+
+*This server cannot provide that*
+  Your flow needs a tool the deployment tracks and cannot place -- the name is
+  in ``resource``. Waiting will not help and neither will retrying; it is a
+  fact about the deployment rather than about this moment. Refused at submit,
+  before the job is handed to the cluster, so nothing ran and nothing queued.
+
 Two things a remote run does not bring back, both on purpose:
 
 ``inputs/`` and ``sc_collected_files/``
@@ -273,3 +298,72 @@ Each job is handed to the cluster as **one batch job**, not one dispatch per
 node, and the server polls it once per run. ``-cluster`` names how that handover
 happens: ``local`` runs it in a process on the server itself, ``slurm`` submits
 it with ``sbatch``.
+
+.. _server-images:
+
+What a job runs in
+^^^^^^^^^^^^^^^^^^
+
+A server can run each job inside a container it has registered. **The submitter
+names a version and the operator names the image** -- and that inversion is the
+whole of the security argument. A client that could name an image would choose
+what executes on the cluster; a client naming ``siliconcompiler==0.39.1`` is
+naming data, which either matches something an operator added on purpose or
+does not.
+
+It is off until an operator turns it on, because whether the compute nodes can
+run a container at all is not something the server can find out by looking. A
+deployment that runs jobs on the host is a supported deployment, not a degraded
+one. To turn it on, put ``{"containers": true}`` in ``<datadir>/config.json``
+and register at least one image:
+
+.. code-block:: bash
+
+  python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+      add-software siliconcompiler
+  python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+      add-version siliconcompiler 0.39.1 -preference 10
+  python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+      add-image ghcr.io/org/sc-runtime:0.39.1 -contains siliconcompiler==0.39.1
+
+``add-image`` **resolves the tag to a digest once, there and then**, and the
+digest is what is dispatched. Rebuilding ``sc-runtime:0.39.1`` afterwards does
+not change what any job runs -- that takes registering it again, which is a
+decision somebody made rather than one that happened. Nothing is ever deleted:
+retiring a row stops it being used and keeps it readable, because a job from
+last year names it.
+
+Four things follow, and each is a behaviour rather than a setting:
+
+**A version is advertised only when it is runnable.** ``software`` renders from
+what is registered, joined to a live image that holds it. A version with no
+image is not offered, so a client is never told yes and refused at submit.
+
+**Submit resolves one image per node.** An import node running thirty seconds of
+Python has no business pulling a twelve-gigabyte OpenROAD image, so among the
+images that fit, the one with the fewest declared contents wins. There is no
+flag for *this one is python-only* -- an image whose contents are framework
+distributions and no tool already is one.
+
+**A tool with no image fails the whole submit**, before anything is handed to
+the cluster. Only a tool the deployment has registered counts: a server that
+curates images for the framework and says nothing about Verilator is not
+claiming to have a Verilator image and is not refused for lacking one.
+Registering the name is how an operator takes that claim on.
+
+**A node waiting for its image reports** ``preparing``. A tool image is minutes
+on a host that has not seen it, and without a state for that the wait is
+indistinguishable from a hang.
+
+.. warning::
+
+   ``-contains`` is **declared and unverified**. Nothing opens the image to
+   check that what it claims to hold is inside it, so a wrong entry means a job
+   runs in a container without what it asked for and fails at run time rather
+   than at submit. ``resolve`` shows what a job would be placed in without
+   submitting one:
+
+   .. code-block:: bash
+
+     python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+         resolve -versions siliconcompiler==0.39.1 -tools openroad

@@ -22,7 +22,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from siliconcompiler.remote.server import archive, artifacts, runspec
+from siliconcompiler.remote.server import archive, artifacts, images, runspec
 from siliconcompiler.remote.server.dispatch import DispatchError
 from siliconcompiler.remote.server.errors import ERRORS, ProblemError, TYPE_BASE
 from siliconcompiler.remote.server.ids import uuid7
@@ -226,7 +226,7 @@ class JobService:
         '''
         from siliconcompiler.remote.server.routes.meta import advertised_software
 
-        available = advertised_software(self._store)
+        available = advertised_software(self._store, self._config)
         for name, wanted in versions.items():
             if name not in available:
                 continue
@@ -358,7 +358,8 @@ class JobService:
         self._storage.discard_upload(job["id"])
 
         derived = self._derive(session, job, root)
-        manifest = self._normalize(session, job, root, derived)
+        plan = self._resolve_images(session, job, derived)
+        manifest = self._normalize(session, job, root, derived, plan)
 
         try:
             # The job's own root, so the batch script and the run's stdout land
@@ -373,7 +374,7 @@ class JobService:
 
         try:
             self._record_submission(job, derived, digest, size, idempotency_key,
-                                    scheduler_job_id)
+                                    scheduler_job_id, plan)
         except sqlite3.IntegrityError:
             # The only thing here that can collide is the submit key, and the
             # index that catches it is per user. Reusing one across two jobs is
@@ -387,22 +388,50 @@ class JobService:
         logger.info(f"submitted {job['id']} as {scheduler_job_id}")
         return self.wire(self._row(job["id"]))
 
+    def _resolve_images(self, session, job, derived):
+        '''Which container every node of this job runs in.
+
+        🔴 Before the dispatcher is called and after the archive is open, which
+        is the only place both facts are in hand: the flow's real node list
+        comes from the manifest, and nothing may be handed to the cluster that
+        this server cannot place. A node whose tool this deployment tracks and
+        has no image for fails the WHOLE submit here, rather than queueing and
+        dying on node thirty-one with the cluster already paid for.
+
+        ⚠️ Skipped entirely where the deployment runs no containers, and that
+        answer is NULL rather than a default image -- `job_nodes.image_id` is
+        *what that node actually ran in*, so writing one for a node that ran on
+        the host would be a record of something that did not happen.
+        '''
+        if not self._config["containers"]:
+            return images.Plan(None, {node: None for node in derived["nodes"]}, {})
+
+        declared = (json.loads(job["descriptor"]) or {}).get("versions") or {}
+
+        try:
+            return images.plan_for_job(self._store, declared, derived["node_tools"])
+        except ProblemError:
+            self._reject(session, job, "unsatisfiable-request")
+            raise
+
     def _record_submission(self, job, derived, digest, size, idempotency_key,
-                           scheduler_job_id) -> None:
+                           scheduler_job_id, plan) -> None:
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET manifest_flow = ?, manifest_nodes = ?, "
                 "  manifest_tools = ?, manifest_pdk = ?, upload_digest = ?, "
                 "  upload_bytes = ?, submit_idempotency_key = ?, "
-                "  scheduler_job_id = ?, submitted_at = ? WHERE id = ?",
+                "  scheduler_job_id = ?, image_id = ?, submitted_at = ? "
+                "WHERE id = ?",
                 (derived["flow"], len(derived["nodes"]),
                  json.dumps(derived["tools"]), derived["pdk"], digest, size,
-                 idempotency_key, scheduler_job_id, now(), job["id"]))
+                 idempotency_key, scheduler_job_id, plan.job, now(), job["id"]))
 
             for step, index in derived["nodes"]:
                 self._store.execute(
-                    'INSERT INTO job_nodes (job_id, step, "index", state) '
-                    "VALUES (?, ?, ?, 'pending')", (job["id"], step, index))
+                    'INSERT INTO job_nodes (job_id, step, "index", state, image_id) '
+                    "VALUES (?, ?, ?, 'pending', ?)",
+                    (job["id"], step, index, plan.nodes.get((step, index))))
             for from_step, from_index, to_step, to_index in derived["edges"]:
                 self._store.execute(
                     "INSERT INTO job_node_edges "
@@ -490,16 +519,19 @@ class JobService:
                 if (in_step, in_index) in nodes:
                     edges.append((in_step, in_index, step, index))
 
+        node_tools = _node_tools(project.get_flow(), nodes)
+
         return {
             "project": project,
             "flow": project.get_flow().name,
             "nodes": nodes,
             "edges": edges,
-            "tools": _tools(project.get_flow(), nodes),
+            "node_tools": node_tools,
+            "tools": sorted({tool for tool in node_tools.values() if tool}),
             "pdk": _pdk(project),
         }
 
-    def _normalize(self, session, job, root: Path, derived) -> Path:
+    def _normalize(self, session, job, root: Path, derived, plan) -> Path:
         '''Apply the server's settings and write the manifest the run will load.
 
         One place, once, after the digest check and after the archive limits
@@ -511,7 +543,8 @@ class JobService:
         cache = self.cache_dir(session.user_id)
         cache.mkdir(parents=True, exist_ok=True)
 
-        runspec.normalize(project, job["id"], root, cache)
+        runspec.normalize(project, job["id"], root, cache,
+                          images=plan.placements())
 
         manifest = root / job["design"] / job["jobname"] / f"{job['design']}.pkg.json"
         project.write_manifest(str(manifest))
@@ -1083,20 +1116,27 @@ def _opaque(value, field: str) -> Optional[str]:
     return value
 
 
-def _tools(flow, nodes) -> List[str]:
-    '''Which tools this flow needs, for the image resolution that arrives later.
+def _node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
+    '''Which tool each node runs, which is what the image resolution needs.
+
+    🔴 Per node rather than a set for the whole flow, because submit resolves N
+    images and not one: an `import` node needing nothing but Python has no
+    business pulling a twelve-gigabyte OpenROAD image, and the only thing that
+    can tell them apart is which tool each node names.
 
     Derived from the task classes the flowgraph names rather than from the
     manifest's `tool` section, which is written during a run and so is empty in
-    anything a client uploads.
+    anything a client uploads. A node whose task will not load names no tool,
+    which resolves to the job's own image -- the safe direction, since that is
+    what a node needing nothing gets.
     '''
-    tools = set()
+    tools: Dict[Tuple[str, str], Optional[str]] = {}
     for step, index in nodes:
         try:
-            tools.add(flow.get_task_module(step, index)().tool())
+            tools[(step, index)] = flow.get_task_module(step, index)().tool()
         except Exception:                                       # noqa: BLE001
-            continue
-    return sorted(tools)
+            tools[(step, index)] = None
+    return tools
 
 
 def _pdk(project) -> str:

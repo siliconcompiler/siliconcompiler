@@ -494,6 +494,7 @@ class Client:
         self.logger.info(f"Configured {self.base_url}")
         self.logger.info(f"This machine's key: {self.credentials.thumbprint}")
         self.logger.info(f"You are {identity['id']} on this server")
+        self._report_software(capabilities)
         if capabilities.get("identity_assurance") != "verified":
             # "verified" is the only value that asserts anything; every other
             # value, known or unknown, means do not rely on this identity.
@@ -502,6 +503,37 @@ class Client:
                 "separated from other users', but that separation is not a "
                 "security boundary.")
         self.logger.info(f"Saved to {self.credentials.path}")
+
+    def _report_software(self, capabilities) -> None:
+        '''What this server runs, and whether this machine is on the list.
+
+        🔴 The check is the client's and the decision is the server's, and the
+        asymmetry is deliberate: a client that skips this is not broken -- it
+        gets a `version-skew` a moment later -- and a server that trusted it
+        would be. What it buys is that the mismatch is visible while somebody is
+        watching, rather than at the first submit of the first job.
+
+        Said here rather than at every run because it is the answer to a
+        question `-configure` is already asking: *can this machine use that
+        server*.
+        '''
+        from siliconcompiler import __version__ as sc_version
+
+        runs = (capabilities.get("software") or {}).get("siliconcompiler")
+        if not runs:
+            # REQUIRED on the wire, so its absence is an older or a broken
+            # server rather than a deployment with an opinion. Nothing useful
+            # to say about it and nothing worth refusing over.
+            return
+
+        self.logger.info(f"This server runs siliconcompiler {', '.join(runs)}")
+
+        if sc_version not in runs:
+            self.logger.warning(
+                f"This machine has {sc_version}, which is not one of them. "
+                "Jobs from here will be refused when they are created -- "
+                "before anything is uploaded -- until you install a version "
+                "this server accepts or an operator adds yours.")
 
     def configure_whitelist(self, add=None, remove=None) -> None:
         '''Which directories may be uploaded from.

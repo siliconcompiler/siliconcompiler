@@ -694,3 +694,60 @@ def test_a_refresh_cannot_start_inside_a_refresh(fake_v1, tmp_credentials):
     client.transport._refreshing = True
     assert client.transport.refresh() is False
     assert not fake_v1.calls[1:]        # nothing beyond discovery
+
+
+def test_configure_says_what_the_server_runs(fake_v1, tmp_credentials,
+                                             client_credentials, caplog):
+    '''🔴 The check is the client's and the decision is the server's.
+
+    A client that skips it is not broken -- it gets a `version-skew` a moment
+    later -- and a server that trusted it would be. What saying it here buys is
+    that the mismatch is visible while somebody is watching, rather than at the
+    first submit of the first job.
+    '''
+    import logging
+
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u-1", "issuer": "local"})
+
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).configure_server(
+        server=V1_URL.rsplit("/v1", 1)[0], clobber=True, prompt=False)
+
+    assert "This server runs siliconcompiler 0.38.9" in caplog.text
+
+
+def test_configure_says_so_when_this_machine_is_not_on_the_list(
+        fake_v1, capabilities, tmp_credentials, client_credentials, caplog):
+    '''Before a job exists, which is the cheapest possible refusal.'''
+    import logging
+
+    capabilities["software"] = {"siliconcompiler": ["9.9.9"]}
+    fake_v1.replace(responses.GET, "", capabilities)
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u-1", "issuer": "local"})
+
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).configure_server(
+        server=V1_URL.rsplit("/v1", 1)[0], clobber=True, prompt=False)
+
+    assert "which is not one of them" in caplog.text
+    assert "before anything is uploaded" in caplog.text
+
+
+def test_a_server_that_names_no_software_is_not_second_guessed(
+        fake_v1, capabilities, tmp_credentials, client_credentials, caplog):
+    '''REQUIRED on the wire, so its absence is an older or a broken server
+    rather than a deployment with an opinion.'''
+    import logging
+
+    capabilities["software"] = {}
+    fake_v1.replace(responses.GET, "", capabilities)
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u-1", "issuer": "local"})
+
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).configure_server(
+        server=V1_URL.rsplit("/v1", 1)[0], clobber=True, prompt=False)
+
+    assert "This server runs" not in caplog.text

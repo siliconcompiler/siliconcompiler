@@ -208,24 +208,33 @@ class Store:
     # Reads the capabilities block needs
     ######################################################################
 
-    def advertised_software(self) -> dict:
+    def advertised_software(self, containers: bool = True) -> dict:
         '''``GET /v1``'s ``software`` map: every runnable version, best first.
 
-        A version is advertised only when a live image contains it, so this is a
-        join and not a listing. Until the image registry is populated the answer
-        is empty, which is honest -- the alternative is promising a version the
-        server cannot run and refusing it at submit.
+        🔴 **On a deployment that runs containers a version is advertised only
+        where a live image holds it**, so this is a join and not a listing.
+        Without that filter the trap is the familiar one: a version registered
+        and never put in an image is advertised as supported and refused at
+        submit, and the client did exactly what it was told.
+
+        ⚠️ **Where nothing runs in a container the join would be a lie in the
+        other direction.** Such a deployment has no images by definition, so
+        joining to them would advertise nothing at all while the versions it
+        genuinely runs sit in the table. It lists what it tracks.
         '''
+        joins = (
+            "JOIN image_contents ic "
+            "  ON ic.software_name = sv.software_name AND ic.version = sv.version "
+            "JOIN images i ON i.id = ic.image_id AND i.retired_at IS NULL "
+        ) if containers else ""
+
         rows = self.all(
             "SELECT DISTINCT sv.software_name AS name, sv.version, sv.preference "
             "FROM software_versions sv "
             "JOIN software s ON s.name = sv.software_name "
-            "JOIN image_contents ic "
-            "  ON ic.software_name = sv.software_name AND ic.version = sv.version "
-            "JOIN images i ON i.id = ic.image_id "
+            f"{joins}"
             "WHERE s.retired_at IS NULL "
             "  AND sv.retired_at IS NULL "
-            "  AND i.retired_at IS NULL "
             "ORDER BY sv.software_name, sv.preference DESC, sv.version DESC")
 
         software: dict = {}

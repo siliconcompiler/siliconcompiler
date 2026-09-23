@@ -101,15 +101,17 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     app.register_blueprint(artifacts.blueprint)
 
     # `siliconcompiler` must be advertised or this server does not start. A
-    # check rather than a column: it is satisfied by an empty registry today,
-    # and it becomes load-bearing once an operator is curating one -- a registry
-    # that lists every tool and forgets the framework is a deployment where
-    # nothing can be submitted, and finding that out at startup is much cheaper
-    # than finding it out at the first submit.
-    if "siliconcompiler" not in meta.advertised_software(store):
+    # check rather than a column, and this is where it earns its keep: a
+    # deployment running jobs in containers has no fallback, so a registry that
+    # lists every tool and forgets the framework -- or that has no live image at
+    # all -- is a server on which nothing can be submitted. Finding that out at
+    # startup is much cheaper than finding it out at somebody's first submit.
+    if "siliconcompiler" not in meta.advertised_software(store, config):
         raise RuntimeError(
-            "no runnable siliconcompiler version: this deployment advertises "
-            "no image containing it, so no job could be dispatched")
+            "no runnable siliconcompiler version: this deployment runs jobs in "
+            "containers and no live image holds one, so nothing could be "
+            "dispatched. Register one with "
+            "python3 -m siliconcompiler.remote.server.registry")
 
     return app
 

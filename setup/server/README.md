@@ -119,6 +119,46 @@ Nothing outside the repo is referenced at runtime: a public base image, one
 local build, and named volumes for all shared state. No host paths are bind
 mounted.
 
+## The image registry, and why this stack does not use it
+
+A server can run every job inside a container it has registered, resolving one
+image per node from what the job says it needs. **This stack deliberately leaves
+that off**, and the reason is structural rather than an oversight: the tools are
+already in the compute image, and `scrunner` has no docker socket — so a node
+told to launch a container could not. Giving it one would mean handing every
+task in the cluster the ability to start containers on the host, which is a
+much larger grant than running a flow.
+
+So this is the deployment the switch defaults to: SiliconCompiler is advertised
+from the version the server process was installed with, both `image_id` columns
+stay `NULL` for the life of every job, and nothing is degraded by it.
+
+To exercise the registry on a host that *can* run containers, turn it on in the
+server's datadir and register at least one image — a deployment that runs
+containers and has none does not start, which is the check catching the
+misconfiguration at the cheapest possible moment:
+
+```sh
+echo '{"containers": true}' > <datadir>/config.json
+
+python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+    add-software siliconcompiler
+python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+    add-version siliconcompiler 0.38.9 -preference 10
+python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+    add-image ghcr.io/siliconcompiler/sc_runner:v0.38.9 \
+    -contains siliconcompiler==0.38.9
+
+python3 -m siliconcompiler.remote.server.registry -datadir <datadir> list
+python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+    resolve -versions siliconcompiler==0.38.9 -tools openroad
+```
+
+`add-image` resolves the tag to a digest once, at registration, and the digest
+is what gets dispatched — so rebuilding the tag afterwards does not silently
+change what jobs run. `resolve` answers *what would this job be placed in*
+without submitting one, which is how to check a registry before a user does.
+
 ## Adding compute nodes
 
 ```sh

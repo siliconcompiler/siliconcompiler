@@ -1007,3 +1007,200 @@ def test_a_job_that_really_is_gone_is_still_reported_lost(
 
     assert read["state"] == "failed"
     assert read["error"]["type"].endswith("scheduler-lost")
+
+
+###########################
+# Placing a job in a container
+###########################
+
+def digest(letter):
+    return "sha256:" + letter * 64
+
+
+def operator(store):
+    return store.one("SELECT id FROM users WHERE issuer = 'operator'")["id"]
+
+
+@pytest.fixture
+def registry():
+    """A curated registry, seeded before any server opens it.
+
+    🔴 Before, and not after: a deployment that runs jobs in containers and has
+    no live image holding SiliconCompiler does not start, which is the startup
+    check doing exactly what it is for. One image, holding the framework and
+    nothing else -- which is enough for the whole flow, because `nopflow`'s
+    tool is `builtin`, nobody has registered that name, and a tool nobody
+    registered raises no requirement.
+    """
+    import json
+    import os
+
+    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.store import Store
+
+    os.makedirs("container-datadir", exist_ok=True)
+    with open("container-datadir/config.json", "w") as f:
+        json.dump({"containers": True}, f)
+
+    with Store("container-datadir/server.db") as store:
+        with store.transaction():
+            actor = store.upsert_user("operator", "someone@host")["id"]
+
+        images.register_software(store, "siliconcompiler", "SiliconCompiler", actor)
+        images.register_version(store, "siliconcompiler", "0.39.1", actor,
+                                preference=10)
+        images.register_image(store, "ghcr.io/x/sc:0.39.1", digest("a"),
+                              [("siliconcompiler", "0.39.1")], actor)
+
+
+@pytest.fixture
+def container_server(registry):
+    """A deployment that runs its jobs inside images it registered.
+
+    Its own server rather than a flag on the shared one, because `containers`
+    is read at startup: it decides what `GET /v1` advertises, so a value that
+    changed under a running server would make two requests in the same second
+    answer differently.
+    """
+    from siliconcompiler.remote.server.app import create_app
+
+    return create_app("container-datadir", cluster="local")
+
+
+@pytest.fixture
+def container_client(container_server):
+    return container_server.test_client()
+
+
+@pytest.fixture
+def container_token(container_client, key):
+    return login(container_client, key).get_json()["access_token"]
+
+
+@pytest.fixture
+def container_dispatcher(container_server):
+    fake = FakeDispatcher()
+    container_server.config["SC_JOBS"]._dispatcher = fake
+    return fake
+
+
+def test_a_container_deployment_with_no_images_does_not_start():
+    """🔴 Where phase 1's startup check finds its real home.
+
+    With no fallback to this process's own version, an empty registry is a
+    server on which nothing can be submitted -- and that is much cheaper to
+    learn at startup than at somebody's first submit.
+    """
+    import json
+    import os
+
+    from siliconcompiler.remote.server.app import create_app
+
+    os.makedirs("empty-registry", exist_ok=True)
+    with open("empty-registry/config.json", "w") as f:
+        json.dump({"containers": True}, f)
+
+    with pytest.raises(RuntimeError, match="no runnable siliconcompiler"):
+        create_app("empty-registry", cluster="local")
+
+
+def test_submit_records_the_image_each_node_ran_in(
+        container_server, container_client, key, container_token,
+        job_archive, container_dispatcher):
+    archive, upload_digest, size = job_archive()
+    job = stage(container_client, key, container_token, archive, size,
+                versions={"siliconcompiler": "0.39.1"})
+
+    submit(container_client, key, container_token, job["id"], upload_digest, size)
+
+    store = container_server.config["SC_STORE"]
+    placed = store.one("SELECT image_id FROM jobs WHERE id = ?", (job["id"],))
+    nodes = store.all("SELECT * FROM job_nodes WHERE job_id = ?", (job["id"],))
+
+    assert placed["image_id"]
+    assert [node["image_id"] for node in nodes] == [placed["image_id"]] * 2
+
+
+def test_the_node_is_told_a_digest_and_never_a_tag(
+        container_server, container_client, key, container_token,
+        job_archive, container_dispatcher):
+    """🔴 Rebuilding `sc:0.39.1` must not change what a job already accepted
+    runs, which is only true if the pinned form is what reaches the manifest."""
+    from siliconcompiler import Project
+
+    archive, upload_digest, size = job_archive()
+    job = stage(container_client, key, container_token, archive, size,
+                versions={"siliconcompiler": "0.39.1"})
+    submit(container_client, key, container_token, job["id"], upload_digest, size)
+
+    manifest = container_dispatcher.submitted[0][2]
+    project = Project.from_manifest(filepath=str(manifest))
+
+    assert project.option.scheduler.get_name(step="stepone", index="0") == "docker"
+    assert project.option.scheduler.get_queue(step="stepone", index="0") == \
+        f"ghcr.io/x/sc@{digest('a')}"
+
+
+def test_a_tool_with_no_image_fails_the_whole_submit(
+        container_server, container_client, key, container_token,
+        job_archive, container_dispatcher):
+    """🔴 Before anything runs, which is the correct direction: the alternative
+    is a job that queues, dispatches and dies on node thirty-one with the
+    cluster already paid for."""
+    from siliconcompiler.remote.server import images
+
+    store = container_server.config["SC_STORE"]
+
+    # The operator takes the claim on and never puts it in an image, which is
+    # the whole condition: this deployment now says it curates `builtin` and
+    # cannot place a node that needs it.
+    images.register_software(store, "builtin", "SiliconCompiler builtins",
+                             operator(store))
+    images.register_version(store, "builtin", "1.0", operator(store))
+
+    archive, upload_digest, size = job_archive()
+    job = stage(container_client, key, container_token, archive, size)
+
+    response = submit(container_client, key, container_token, job["id"],
+                      upload_digest, size)
+
+    assert response.status_code == 422
+    assert slug(response) == "unsatisfiable-request"
+    assert response.get_json()["resource_kind"] == "tool"
+    assert response.get_json()["resource"] == "builtin"
+    assert not container_dispatcher.submitted
+
+    read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
+                container_token).get_json()
+    assert read["state"] == "rejected"
+
+
+def test_a_version_with_no_image_is_never_advertised(container_server, container_client):
+    """So a client is refused before it uploads, rather than told yes and
+    refused at submit."""
+    from siliconcompiler.remote.server import images
+
+    store = container_server.config["SC_STORE"]
+    images.register_version(store, "siliconcompiler", "0.40.0", operator(store),
+                            preference=99)
+
+    software = container_client.get("/v1").get_json()["software"]
+
+    assert software["siliconcompiler"] == ["0.39.1"]
+
+
+def test_a_deployment_that_runs_no_containers_places_nothing(
+        server, server_client, key, token, job_archive, dispatcher):
+    """⚠️ NULL rather than a default image. `job_nodes.image_id` is what that
+    node actually ran in, so writing one for a node that ran on the host would
+    record something that did not happen."""
+    archive, upload_digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], upload_digest, size)
+
+    store = server.config["SC_STORE"]
+
+    assert store.one("SELECT image_id FROM jobs WHERE id = ?",
+                     (job["id"],))["image_id"] is None
+    assert all(node["image_id"] is None for node in store.all(
+        "SELECT image_id FROM job_nodes WHERE job_id = ?", (job["id"],)))

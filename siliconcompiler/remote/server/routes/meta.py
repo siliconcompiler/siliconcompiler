@@ -25,25 +25,32 @@ logger = logging.getLogger("sc-server")
 CAPABILITIES_MAX_AGE = 60
 
 
-def advertised_software(store):
+def advertised_software(store, config=None):
     '''What this deployment can actually run, keyed on distribution name.
 
-    A version is advertised only when it is runnable, so normally this is the
-    join in the store: software_versions, through image_contents, to a live
-    image. `siliconcompiler` is the only required key.
+    Normally the registry, rendered: every live version this deployment tracks,
+    best first, and where it runs containers only the ones a live image holds.
+    ``siliconcompiler`` is the only required key.
 
-    An empty registry is not an empty answer, though, and that is the case this
-    function exists for. A deployment that runs no containers is conforming --
-    it leaves both image_id columns NULL for the life of every job -- and what
-    it runs is the SiliconCompiler this server process was installed with. So
-    with no images registered, that version is the truthful answer, and it stops
-    being used the moment an operator registers one.
+    🔴 **An empty registry is not an empty answer, and that is the case this
+    function exists for.** A deployment that has registered nothing runs what
+    this server process was installed with, and saying so is truthful where
+    saying nothing would leave the one REQUIRED key missing.
+
+    ⚠️ **And the fallback belongs to that deployment alone.** Where jobs run in
+    containers there is nothing to fall back to: a version this process happens
+    to have installed says nothing about what any image holds, and advertising
+    it would be the exact promise the image join exists to stop -- a client told
+    yes and refused at submit. Such a server with an empty registry advertises
+    nothing, which is what the startup check reads.
     '''
-    software = store.advertised_software()
-    if software:
+    containers = bool(config["containers"]) if config is not None else True
+
+    software = store.advertised_software(containers=containers)
+    if containers:
         return software
 
-    return {"siliconcompiler": [sc_version]}
+    return software or {"siliconcompiler": [sc_version]}
 
 
 @blueprint.route("/v1", methods=["GET"])
@@ -62,7 +69,7 @@ def capabilities():
     config = flask.current_app.config["SC_CONFIG"]
     store = flask.current_app.config["SC_STORE"]
 
-    response = flask.jsonify(config.capabilities(advertised_software(store)))
+    response = flask.jsonify(config.capabilities(advertised_software(store, config)))
     response.headers["Cache-Control"] = f"public, max-age={CAPABILITIES_MAX_AGE}"
     return response
 
