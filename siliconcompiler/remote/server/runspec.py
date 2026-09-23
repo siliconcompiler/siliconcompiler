@@ -20,7 +20,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 __all__ = ["normalize", "node_image", "runtime_flow", "runtime_nodes",
-           "node_state", "PROGRESS_FILENAME", "read_progress", "write_progress"]
+           "node_state", "PROGRESS_FILENAME", "IMAGES_FILENAME",
+           "read_images", "write_images", "read_progress", "write_progress"]
 
 
 # Written by the run, read by the API process, and the only channel between
@@ -28,6 +29,16 @@ __all__ = ["normalize", "node_image", "runtime_flow", "runtime_nodes",
 # two processes share a filesystem and need not share a database -- which is the
 # property that lets the scheduler and the API be separated later.
 PROGRESS_FILENAME = "sc-server-progress.json"
+
+# Written by the API process, read by the run, and it answers exactly one
+# question: where do the bytes for this container come from.
+#
+# 🔴 It is not a second copy of the placement. The manifest already says which
+# node runs in what, because that is what SiliconCompiler's scheduler executes
+# with -- but a bundle path names a directory that may not exist yet, and
+# nothing in that path says which registry reference to unpack into it. Two
+# consumers, two different facts.
+IMAGES_FILENAME = "sc-server-images.json"
 
 
 # SiliconCompiler's runner has its own node vocabulary and it is not the
@@ -58,7 +69,8 @@ def node_state(status: Optional[str]) -> str:
     return _NODE_STATES.get(status, "failed")
 
 
-def normalize(project, job_id: str, builddir, cachedir, images=None) -> None:
+def normalize(project, job_id: str, builddir, cachedir, images=None,
+              cluster: str = "local") -> None:
     '''Everything the server decides about how a submitted run executes.
 
     Applied once, at submit, after the digest has been verified and after the
@@ -105,13 +117,27 @@ def normalize(project, job_id: str, builddir, cachedir, images=None) -> None:
     submit host, and it is the shape a REST transport can be swapped into.
 
     ⚠️ **The per-node CONTAINER is a different question and it is set here**,
-    for the deployments that answered it. ``images`` maps a node to the
-    repository-at-a-digest the server resolved for it, and each one is written
-    into ``option,scheduler,queue`` -- which
-    :func:`~siliconcompiler.scheduler.docker.get_image` reads ahead of the
-    environment and ahead of its own default, so it is the documented place for
-    a server to say what a node runs in. Empty on a deployment that runs no
-    containers, which is every deployment until an operator says otherwise.
+    for the deployments that answered it -- and 🔴 **how depends on what is
+    scheduling, because the two mechanisms are mutually exclusive.**
+    ``option,scheduler,name`` holds ONE value, so a node placed by
+    SiliconCompiler's docker scheduler is a node Slurm never sees. On a cluster
+    that is the wrong trade: Slurm is what should place the work, and it has its
+    own container support.
+
+    ================  ====================================================
+    ``cluster``       how a node's image reaches it
+    ================  ====================================================
+    ``slurm``         the node is a Slurm step, ``srun --container <bundle>``
+    ``local``         SiliconCompiler's docker scheduler, by digest
+    ================  ====================================================
+
+    ⚠️ **``option,scheduler,queue`` is only free on the second row**, and that
+    is not a style point: for Slurm it is the PARTITION and goes straight to
+    ``srun --partition``. Writing an image reference into it on a cluster would
+    submit every node to a partition named after a container.
+
+    Empty on a deployment that runs no containers, which is every deployment
+    until an operator registers an image.
     '''
     project.option.set_nodashboard(True)
     project.option.set_builddir(str(builddir))
@@ -120,29 +146,52 @@ def normalize(project, job_id: str, builddir, cachedir, images=None) -> None:
     project.option.set_nodisplay(True)
     project.set('record', 'remoteid', job_id)
 
-    for (step, index), ref in (images or {}).items():
-        # 🔴 A digest, never a tag. `registry_ref` is what a human typed and it
-        # can be rebuilt underneath this job; the digest is what the operator
-        # approved. Two runs a month apart silently executing different code is
-        # exactly what pinning at registration exists to prevent, and it only
-        # prevents it if the pinned form is the one that reaches the node.
-        project.option.scheduler.set_name('docker', step=step, index=index)
-        project.option.scheduler.set_queue(ref, step=step, index=index)
+    for (step, index), where in (images or {}).items():
+        # 🔴 A digest, never a tag, whichever mechanism carries it.
+        # `registry_ref` is what a human typed and it can be rebuilt underneath
+        # this job; the digest is what the operator approved. Two runs a month
+        # apart silently executing different code is exactly what pinning at
+        # registration prevents, and it only prevents it if the pinned form is
+        # what reaches the node.
+        if cluster == "slurm":
+            project.option.scheduler.set_name('slurm', step=step, index=index)
+            # --overlap because these are steps inside ONE allocation: the job
+            # is still the unit of submission, and without it each step would
+            # wait for the allocation's single task instead of running beside
+            # its siblings. SiliconCompiler's own scheduler already decides how
+            # many nodes run at once; Slurm's part here is placing each one in
+            # its container.
+            project.option.scheduler.add_options(
+                ['--overlap', '--container', str(where)], step=step, index=index)
+        else:
+            project.option.scheduler.set_name('docker', step=step, index=index)
+            project.option.scheduler.set_queue(str(where), step=step, index=index)
 
 
-def node_image(project, step: str, index: str) -> Optional[str]:
-    '''The container this node was placed in, or None.
+def node_image(project, step: str, index: str) -> Optional[Tuple[str, str]]:
+    '''How this node is placed, as ``(mechanism, where)``, or None.
 
     Read back out of the manifest by the runner, which has no database
     connection and should not need one: the server wrote the answer into the
-    same file the run loads.
+    same file the run loads. ``mechanism`` is ``container`` for a Slurm step
+    naming an OCI bundle and ``image`` for a digest the docker scheduler pulls,
+    and the runner has to make a different thing exist for each.
     '''
     try:
-        if project.option.scheduler.get_name(step=step, index=index) != 'docker':
-            return None
-        return project.option.scheduler.get_queue(step=step, index=index)
+        placed_by = project.option.scheduler.get_name(step=step, index=index)
+
+        if placed_by == 'docker':
+            ref = project.option.scheduler.get_queue(step=step, index=index)
+            return ("image", ref) if ref else None
+
+        if placed_by == 'slurm':
+            options = project.option.scheduler.get_options(step=step, index=index) or []
+            if '--container' in options:
+                return ("container", options[options.index('--container') + 1])
     except Exception:                                            # noqa: BLE001
         return None
+
+    return None
 
 
 def runtime_flow(project):
@@ -176,6 +225,24 @@ def runtime_nodes(project) -> List[Tuple[str, str]]:
 ######################################################################
 # The progress file
 ######################################################################
+
+def read_images(path) -> Dict[str, str]:
+    '''Bundle directory to the reference it is unpacked from.'''
+    try:
+        with open(path) as f:
+            body = json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+    return body if isinstance(body, dict) else {}
+
+
+def write_images(path, sources: Dict[str, str]) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(sources, f)
+
 
 def read_progress(path) -> Optional[Dict[str, Any]]:
     '''What the run last said, or None.

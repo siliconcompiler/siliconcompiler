@@ -119,19 +119,35 @@ Nothing outside the repo is referenced at runtime: a public base image, one
 local build, and named volumes for all shared state. No host paths are bind
 mounted.
 
-## The image registry, and why this stack does not use it
+## The image registry, and what this stack still needs for it
 
 A server can run every job inside a container it has registered, resolving one
-image per node from what the job says it needs. **This stack deliberately leaves
-that off**, and the reason is structural rather than an oversight: the tools are
-already in the compute image, and `scrunner` has no docker socket — so a node
-told to launch a container could not. Giving it one would mean handing every
-task in the cluster the ability to start containers on the host, which is a
-much larger grant than running a flow.
+image per node from what the job says it needs. **Slurm places those
+containers** — `srun --container <bundle>`, inside the one allocation the job
+already has — rather than SiliconCompiler's docker scheduler, because
+`option,scheduler,name` holds a single value and a node handed to docker is a
+node Slurm never sees. It also keeps `option,scheduler,queue` meaning what it
+means on a cluster, which is the partition.
 
-So this is the deployment the switch defaults to: SiliconCompiler is advertised
-from the version the server process was installed with, both `image_id` columns
-stay `NULL` for the life of every job, and nothing is degraded by it.
+**This stack leaves the switch off**, because the compute image is not yet
+equipped for it. What it needs, none of it hard:
+
+| | |
+|---|---|
+| An OCI runtime | `crun` (or `runc`) — Slurm invokes it, and nothing needs a docker socket |
+| `skopeo` and `umoci` | to unpack a registry reference into a bundle |
+| `/etc/slurm/oci.conf` | how Slurm calls that runtime. Slurm refuses `--container` without it |
+
+All three are `apt` packages on the Ubuntu 24.04 userland this image already
+has. The open question is **mounts**: a bundle is a root filesystem, so the
+shared `/sc_server` tree has to be visible inside it, and where that is declared
+— the bundle's own `config.json`, or the `RunTimeRun` line in `oci.conf` — is a
+deployment decision rather than something the server should assume.
+
+Until then this is the deployment the switch defaults to: SiliconCompiler is
+advertised from the version the server process was installed with, both
+`image_id` columns stay `NULL` for the life of every job, and nothing is
+degraded by it.
 
 To exercise the registry on a host that *can* run containers, turn it on in the
 server's datadir and register at least one image — a deployment that runs
@@ -158,6 +174,13 @@ python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
 is what gets dispatched — so rebuilding the tag afterwards does not silently
 change what jobs run. `resolve` answers *what would this job be placed in*
 without submitting one, which is how to check a registry before a user does.
+
+Bundles are unpacked to `<datadir>/images/<digest>/`, which is the one thing in
+this layout that is deliberately **not** per user: a root filesystem is
+read-only and identical for everybody who runs that digest, so a copy per user
+would buy nothing and cost one copy of every tool image per user. The run
+unpacks a missing one before the flow starts, and the nodes waiting report
+`preparing`.
 
 ## Adding compute nodes
 

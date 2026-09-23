@@ -355,6 +355,27 @@ Registering the name is how an operator takes that claim on.
 on a host that has not seen it, and without a state for that the wait is
 indistinguishable from a hang.
 
+Whatever is scheduling is what places the container, and the two mechanisms are
+mutually exclusive because :keypath:`option,scheduler,name` holds one value:
+
+``-cluster slurm``
+  The node runs as a Slurm step, ``srun --overlap --container <bundle>``, inside
+  the one allocation the job already has. The cluster needs an OCI runtime and
+  an ``/etc/slurm/oci.conf`` telling Slurm how to call it; bundles are unpacked
+  to ``<datadir>/images/<digest>/`` and shared by every job that names that
+  digest.
+
+``-cluster local``
+  There is no Slurm to place anything, so the node runs through
+  SiliconCompiler's own docker scheduler, by digest.
+
+.. important::
+
+   On a cluster :keypath:`option,scheduler,queue` keeps meaning what it means
+   there -- the **partition** -- and the server does not touch it. A server that
+   wrote an image reference into it would submit every node to a partition named
+   after a container.
+
 .. warning::
 
    ``-contains`` is **declared and unverified**. Nothing opens the image to

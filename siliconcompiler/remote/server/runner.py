@@ -16,13 +16,16 @@ the API process is a Slurm submit host.
 '''
 
 import argparse
+import shutil
+import subprocess
 import sys
 import traceback
 
 from pathlib import Path
 
 from siliconcompiler.remote.server.runspec import (
-    PROGRESS_FILENAME, node_image, node_state, runtime_nodes, write_progress)
+    IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_images,
+    runtime_nodes, write_progress)
 from siliconcompiler.remote.server.store import now
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
 
@@ -35,6 +38,9 @@ __all__ = ["main"]
 # unchanged.
 _progress_path = None
 _progress = None
+
+# Bundle directory to the reference it unpacks from, as the server wrote it.
+_image_sources = {}
 
 
 def _publish() -> None:
@@ -77,6 +83,8 @@ def run(manifest: Path) -> int:
     # Beside the manifest, which is the job's own directory. The server put the
     # manifest there and knows where to look without being told a second path.
     _progress_path = Path(manifest).parent / PROGRESS_FILENAME
+    global _image_sources
+    _image_sources = read_images(Path(manifest).parent / IMAGES_FILENAME)
 
     _progress = {
         "state": "running",
@@ -155,13 +163,13 @@ def _fetch_images(project) -> None:
 
     Front-loaded rather than fetched at each node's turn, and the reason is the
     scheduler's own shape: `pre_node` fires inside the loop that also reaps
-    finished nodes, so a multi-minute pull there would stall the whole flow and
-    not just the node waiting for it. Here the pulls are serial -- which is what
-    two nodes wanting the same twelve-gigabyte image should do anyway -- and the
+    finished nodes, so a multi-minute fetch there would stall the whole flow and
+    not just the node waiting for it. Here they are serial -- which is what two
+    nodes wanting the same twelve-gigabyte image should do anyway -- and the
     flow starts with everything it needs.
 
-    ⚠️ **A pull that fails is not fatal here.** The node's own launch will try
-    again and fail with the message that knows about registry credentials, and
+    ⚠️ **A fetch that fails is not fatal here.** The node's own launch tries
+    again and fails with the message that knows about registry credentials, and
     a node that fails is already something this reports. Ending the run from
     here would replace that with a worse error.
     '''
@@ -174,16 +182,16 @@ def _fetch_images(project) -> None:
             continue
 
         step, _, index = key.partition("/")
-        ref = node_image(project, step, index)
-        if ref:
-            wanted.setdefault(ref, []).append(key)
+        placement = node_image(project, step, index)
+        if placement:
+            wanted.setdefault(placement, []).append(key)
 
     if not wanted:
         # Every deployment that runs no containers, which is the default one.
         return
 
-    for ref, keys in sorted(wanted.items()):
-        if _image_present(ref):
+    for placement, keys in sorted(wanted.items()):
+        if _placement_present(placement):
             continue
 
         for key in keys:
@@ -191,9 +199,9 @@ def _fetch_images(project) -> None:
         _publish()
 
         try:
-            _pull_image(ref)
+            _make_placement(placement)
         except Exception as e:                                   # noqa: BLE001
-            print(f"could not fetch {ref}: {e}", file=sys.stderr)
+            print(f"could not fetch {placement[1]}: {e}", file=sys.stderr)
 
         for key in keys:
             # `queued` and not `running`: they are with the scheduler and have
@@ -204,11 +212,19 @@ def _fetch_images(project) -> None:
         _publish()
 
 
-def _image_present(ref: str) -> bool:
+def _placement_present(placement) -> bool:
+    mechanism, where = placement
+
+    if mechanism == "container":
+        # An OCI bundle is a directory with a config and a root filesystem.
+        # Testing for the config rather than the directory is what makes a
+        # half-written bundle count as absent.
+        return (Path(where) / "config.json").is_file()
+
     try:
         import docker
 
-        docker.from_env().images.get(ref)
+        docker.from_env().images.get(where)
         return True
     except Exception:                                            # noqa: BLE001
         # No daemon, no image, or no docker package. All three mean *not here*,
@@ -216,10 +232,66 @@ def _image_present(ref: str) -> bool:
         return False
 
 
-def _pull_image(ref: str) -> None:
+def _make_placement(placement) -> None:
+    mechanism, where = placement
+
+    if mechanism == "container":
+        _unpack_bundle(where)
+        return
+
     import docker
 
-    docker.from_env().images.pull(ref)
+    docker.from_env().images.pull(where)
+
+
+def _unpack_bundle(bundle: str) -> None:
+    '''Turn a registry reference into an OCI bundle Slurm can run.
+
+    🔴 `srun --container` takes a bundle on disk and not a registry reference,
+    so somebody has to do this -- and it is here rather than at submit because
+    an unpack is gigabytes and minutes, which is not something to do on the
+    thread answering an HTTP request.
+
+    Built through a `.part` directory and renamed, so a bundle either exists
+    complete or does not exist. Two jobs starting together want the same
+    digest and one of them loses the rename; losing is fine, because the
+    content is addressed by that digest and both copies are the same bytes.
+    '''
+    source = _image_sources.get(bundle)
+    if not source:
+        raise RuntimeError(f"nothing recorded to unpack into {bundle}")
+
+    for tool in ("skopeo", "umoci"):
+        if shutil.which(tool) is None:
+            raise RuntimeError(
+                f"{tool} is not installed on this compute node, and unpacking "
+                "an OCI bundle needs it")
+
+    target = Path(bundle)
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    staging = target.with_name(target.name + ".part")
+    shutil.rmtree(staging, ignore_errors=True)
+
+    layout = staging.with_name(staging.name + ".oci")
+    shutil.rmtree(layout, ignore_errors=True)
+
+    try:
+        subprocess.run(
+            ["skopeo", "copy", f"docker://{source}", f"oci:{layout}:sc"],
+            check=True)
+        subprocess.run(
+            ["umoci", "unpack", "--rootless", "--image", f"{layout}:sc", str(staging)],
+            check=True)
+        try:
+            staging.rename(target)
+        except OSError:
+            # Somebody else finished first. Their bundle is this bundle.
+            if not (target / "config.json").is_file():
+                raise
+    finally:
+        shutil.rmtree(layout, ignore_errors=True)
+        shutil.rmtree(staging, ignore_errors=True)
 
 
 def _silence_console(project) -> None:

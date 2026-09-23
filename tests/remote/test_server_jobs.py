@@ -1204,3 +1204,41 @@ def test_a_deployment_that_runs_no_containers_places_nothing(
                      (job["id"],))["image_id"] is None
     assert all(node["image_id"] is None for node in store.all(
         "SELECT image_id FROM job_nodes WHERE job_id = ?", (job["id"],)))
+
+
+def test_a_cluster_gets_a_bundle_and_never_a_partition(
+        container_server, container_client, key, container_token, job_archive):
+    '''🔴 On a cluster Slurm places the container, and `scheduler,queue` is its
+    PARTITION -- so an image reference there would submit every node to a
+    partition named after a container.'''
+    from siliconcompiler import Project
+    from siliconcompiler.remote.server import runspec
+
+    fake = FakeDispatcher()
+    fake.name = "slurm"
+    container_server.config["SC_JOBS"]._dispatcher = fake
+
+    archive, upload_digest, size = job_archive()
+    job = stage(container_client, key, container_token, archive, size,
+                versions={"siliconcompiler": "0.39.1"})
+    submit(container_client, key, container_token, job["id"], upload_digest, size)
+
+    manifest = fake.submitted[0][2]
+    project = Project.from_manifest(filepath=str(manifest))
+    scheduler = project.option.scheduler
+
+    assert scheduler.get_name(step="stepone", index="0") == "slurm"
+    assert scheduler.get_queue(step="stepone", index="0") is None
+
+    options = scheduler.get_options(step="stepone", index="0")
+    bundle = options[options.index("--container") + 1]
+    # Content-addressed and outside any user's tree: the same digest is the
+    # same read-only root filesystem for everybody who runs it.
+    assert bundle.endswith(digest("a").replace("sha256:", ""))
+    assert "/images/" in bundle
+    assert "/users/" not in bundle
+
+    # And the run is told where to get the bytes, which the bundle path alone
+    # cannot say.
+    sources = runspec.read_images(manifest.parent / runspec.IMAGES_FILENAME)
+    assert sources[bundle] == f"ghcr.io/x/sc@{digest('a')}"

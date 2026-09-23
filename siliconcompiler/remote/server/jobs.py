@@ -84,6 +84,18 @@ class JobService:
     def cache_dir(self, user_id: str) -> Path:
         return self.user_root(user_id) / "cache"
 
+    def bundles_root(self) -> Path:
+        '''Where unpacked container images live.
+
+        🔴 Beside the store rather than under a user's tree, which is the one
+        place in this layout that is deliberately NOT per user. A bundle is a
+        read-only root filesystem identical for everybody who runs that digest,
+        so per-user copies would buy nothing and cost a copy of every tool image
+        per user -- the one number decision 3 accepted for the cache and would
+        not accept twice.
+        '''
+        return self._datadir / "images"
+
     def job_root(self, user_id: str, job_id: str) -> Path:
         '''The build directory for one job of one user.
 
@@ -543,8 +555,29 @@ class JobService:
         cache = self.cache_dir(session.user_id)
         cache.mkdir(parents=True, exist_ok=True)
 
-        runspec.normalize(project, job["id"], root, cache,
-                          images=plan.placements())
+        # Where each node's image reaches it depends on what is scheduling: a
+        # Slurm step names an unpacked bundle, and the docker scheduler pulls a
+        # digest. The dispatcher is the only thing that knows which.
+        placements = plan.placements()
+        sources = {}
+
+        if self._dispatcher.name == "slurm":
+            refs = placements
+            placements = {}
+            for node, ref in refs.items():
+                bundle = str(images.bundle_path(self.bundles_root(),
+                                                ref.split("@", 1)[1]))
+                placements[node] = bundle
+                sources[bundle] = ref
+
+        runspec.normalize(project, job["id"], root, cache, images=placements,
+                          cluster=self._dispatcher.name)
+
+        # Only the bundles need a source: a digest the docker scheduler pulls
+        # already says where it comes from.
+        runspec.write_images(
+            root / job["design"] / job["jobname"] / runspec.IMAGES_FILENAME,
+            sources)
 
         manifest = root / job["design"] / job["jobname"] / f"{job['design']}.pkg.json"
         project.write_manifest(str(manifest))

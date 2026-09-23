@@ -256,24 +256,78 @@ def test_retiring_the_software_retracts_the_claim(registry, store):
 # What the compute node does with it
 ###########################
 
+def test_a_cluster_is_placed_by_slurm_and_never_by_docker(nop_project):
+    """🔴 `option,scheduler,name` holds ONE value, so a node handed to the
+    docker scheduler is a node Slurm never sees -- and on a cluster Slurm is
+    what should be placing the work.
+
+    ⚠️ `queue` must stay untouched there too: for Slurm it is the PARTITION and
+    goes straight to `srun --partition`, so an image reference in it would
+    submit every node to a partition named after a container.
+    """
+    from siliconcompiler.remote.server import runspec
+
+    runspec.normalize(nop_project, "job-id", "build", "cache",
+                      images={("stepone", "0"): "/sc_server/images/659b"},
+                      cluster="slurm")
+
+    scheduler = nop_project.option.scheduler
+    assert scheduler.get_name(step="stepone", index="0") == "slurm"
+    assert scheduler.get_queue(step="stepone", index="0") is None
+
+    options = scheduler.get_options(step="stepone", index="0")
+    assert "--container" in options
+    assert options[options.index("--container") + 1] == "/sc_server/images/659b"
+    # Steps inside ONE allocation, because the job is still the unit of
+    # submission: without this each would wait for the allocation's single task
+    # instead of running beside its siblings.
+    assert "--overlap" in options
+
+
+def test_a_server_with_no_cluster_uses_the_docker_scheduler(nop_project):
+    """There is no Slurm to place anything, and a digest is what the docker
+    scheduler reads out of `queue`."""
+    from siliconcompiler.remote.server import runspec
+
+    runspec.normalize(nop_project, "job-id", "build", "cache",
+                      images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"},
+                      cluster="local")
+
+    scheduler = nop_project.option.scheduler
+    assert scheduler.get_name(step="stepone", index="0") == "docker"
+    assert scheduler.get_queue(step="stepone", index="0") == \
+        f"ghcr.io/x/sc@{digest('a')}"
+
+
 def test_the_manifest_carries_the_placement_to_the_compute_node(nop_project):
-    '''The runner holds no database connection and should not need one: the
-    server writes the answer into the same file the run loads.'''
+    """The runner holds no database connection and should not need one: the
+    server writes the answer into the same file the run loads."""
     from siliconcompiler.remote.server import runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"})
 
     assert runspec.node_image(nop_project, "stepone", "0") == \
-        f"ghcr.io/x/sc@{digest('a')}"
+        ("image", f"ghcr.io/x/sc@{digest('a')}")
     assert runspec.node_image(nop_project, "steptwo", "0") is None
 
 
+def test_a_slurm_placement_reads_back_as_a_bundle(nop_project):
+    from siliconcompiler.remote.server import runspec
+
+    runspec.normalize(nop_project, "job-id", "build", "cache",
+                      images={("stepone", "0"): "/sc_server/images/659b"},
+                      cluster="slurm")
+
+    assert runspec.node_image(nop_project, "stepone", "0") == \
+        ("container", "/sc_server/images/659b")
+
+
 def test_a_node_waiting_for_its_image_is_preparing(monkeypatch, nop_project):
-    '''🔴 What `preparing` is for. A tool image is gigabytes and takes minutes
+    """🔴 What `preparing` is for. A tool image is gigabytes and takes minutes
     on a cold host; without a state for it the wait is indistinguishable from a
     hang, and a node sitting at `pending` while nothing happens is the report
-    somebody opens a ticket about.'''
+    somebody opens a ticket about."""
     from siliconcompiler.remote.server import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
@@ -281,10 +335,10 @@ def test_a_node_waiting_for_its_image_is_preparing(monkeypatch, nop_project):
                               ("steptwo", "0"): f"ghcr.io/x/sc@{digest('a')}"})
 
     seen = []
-    monkeypatch.setattr(runner, "_image_present", lambda ref: False)
+    monkeypatch.setattr(runner, "_placement_present", lambda placement: False)
     monkeypatch.setattr(
-        runner, "_pull_image",
-        lambda ref: seen.append(
+        runner, "_make_placement",
+        lambda placement: seen.append(
             {key: node["state"] for key, node in runner._progress["nodes"].items()}))
 
     runner._progress_path = None
@@ -292,7 +346,7 @@ def test_a_node_waiting_for_its_image_is_preparing(monkeypatch, nop_project):
                                   "steptwo/0": {"state": "pending"}}}
     runner._fetch_images(nop_project)
 
-    # Both nodes were visibly waiting while the pull was happening...
+    # Both nodes were visibly waiting while the fetch was happening...
     assert seen == [{"stepone/0": "preparing", "steptwo/0": "preparing"}]
     # ...and neither was left there afterwards.
     assert {key: node["state"] for key, node in runner._progress["nodes"].items()} == \
@@ -300,14 +354,15 @@ def test_a_node_waiting_for_its_image_is_preparing(monkeypatch, nop_project):
 
 
 def test_an_image_already_on_the_host_is_never_preparing(monkeypatch, nop_project):
-    '''There was nothing to wait for, so saying so would be noise.'''
+    """There was nothing to wait for, so saying so would be noise."""
     from siliconcompiler.remote.server import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"})
 
-    monkeypatch.setattr(runner, "_image_present", lambda ref: True)
-    monkeypatch.setattr(runner, "_pull_image", lambda ref: pytest.fail("pulled"))
+    monkeypatch.setattr(runner, "_placement_present", lambda placement: True)
+    monkeypatch.setattr(runner, "_make_placement",
+                        lambda placement: pytest.fail("fetched"))
 
     runner._progress_path = None
     runner._progress = {"nodes": {"stepone/0": {"state": "pending"}}}
@@ -316,18 +371,34 @@ def test_an_image_already_on_the_host_is_never_preparing(monkeypatch, nop_projec
     assert runner._progress["nodes"]["stepone/0"]["state"] == "pending"
 
 
-def test_a_pull_that_fails_does_not_end_the_run(monkeypatch, nop_project):
-    '''⚠️ The node's own launch tries again and fails with the message that
+def test_a_half_written_bundle_counts_as_absent(monkeypatch):
+    """An OCI bundle is a directory, so its existence says nothing. The config
+    is what a complete one has, and the unpack renames it into place last."""
+    import os
+
+    from siliconcompiler.remote.server import runner
+
+    os.makedirs("bundle", exist_ok=True)
+    assert runner._placement_present(("container", "bundle")) is False
+
+    with open("bundle/config.json", "w") as f:
+        f.write("{}")
+    assert runner._placement_present(("container", "bundle")) is True
+
+
+def test_a_fetch_that_fails_does_not_end_the_run(monkeypatch, nop_project):
+    """⚠️ The node's own launch tries again and fails with the message that
     knows about registry credentials, and a failed node is already something
-    this reports. Ending the run from here would replace that with worse.'''
+    this reports. Ending the run from here would replace that with worse."""
     from siliconcompiler.remote.server import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"})
 
-    monkeypatch.setattr(runner, "_image_present", lambda ref: False)
-    monkeypatch.setattr(runner, "_pull_image",
-                        lambda ref: (_ for _ in ()).throw(RuntimeError("no such host")))
+    monkeypatch.setattr(runner, "_placement_present", lambda placement: False)
+    monkeypatch.setattr(
+        runner, "_make_placement",
+        lambda placement: (_ for _ in ()).throw(RuntimeError("no such host")))
 
     runner._progress_path = None
     runner._progress = {"nodes": {"stepone/0": {"state": "pending"}}}
@@ -336,14 +407,25 @@ def test_a_pull_that_fails_does_not_end_the_run(monkeypatch, nop_project):
     assert runner._progress["nodes"]["stepone/0"]["state"] == "queued"
 
 
+def test_a_bundle_with_no_recorded_source_says_so(nop_project):
+    """The bundle path names a digest and nothing in it says which registry to
+    unpack from, which is the whole reason the sources file exists."""
+    from siliconcompiler.remote.server import runner
+
+    runner._image_sources = {}
+
+    with pytest.raises(RuntimeError, match="nothing recorded to unpack"):
+        runner._unpack_bundle("/sc_server/images/659b")
+
+
 def test_a_run_with_no_placement_fetches_nothing(monkeypatch, nop_project):
-    '''Every deployment that runs no containers, which is the default one.'''
+    """Every deployment that runs no containers, which is the default one."""
     from siliconcompiler.remote.server import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache")
 
-    monkeypatch.setattr(runner, "_image_present",
-                        lambda ref: pytest.fail("looked for an image"))
+    monkeypatch.setattr(runner, "_placement_present",
+                        lambda placement: pytest.fail("looked for an image"))
 
     runner._progress_path = None
     runner._progress = {"nodes": {"stepone/0": {"state": "pending"}}}
@@ -353,16 +435,17 @@ def test_a_run_with_no_placement_fetches_nothing(monkeypatch, nop_project):
 
 
 def test_a_node_the_flow_skipped_never_waits_for_an_image(monkeypatch, nop_project):
-    '''`_settle` runs first, so a node the flow has already written off is
+    """`_settle` runs first, so a node the flow has already written off is
     terminal here -- and walking it back to `preparing` would be a state going
-    backwards on a client that renders them.'''
+    backwards on a client that renders them."""
     from siliconcompiler.remote.server import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"})
 
-    monkeypatch.setattr(runner, "_image_present", lambda ref: False)
-    monkeypatch.setattr(runner, "_pull_image", lambda ref: pytest.fail("pulled"))
+    monkeypatch.setattr(runner, "_placement_present", lambda placement: False)
+    monkeypatch.setattr(runner, "_make_placement",
+                        lambda placement: pytest.fail("fetched"))
 
     runner._progress_path = None
     runner._progress = {"nodes": {"stepone/0": {"state": "skipped"}}}

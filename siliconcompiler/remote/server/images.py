@@ -30,10 +30,10 @@ from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
 
-__all__ = ["PRIMARY", "Requirement", "Plan", "catalogue", "live_images",
-           "live_software", "pinned_ref", "plan_for_job", "register_image",
-           "register_software", "register_version", "resolve", "retire_image",
-           "retire_software", "retire_version"]
+__all__ = ["PRIMARY", "Requirement", "Plan", "bundle_path", "catalogue",
+           "live_images", "live_software", "pinned_ref", "plan_for_job",
+           "register_image", "register_software", "register_version", "resolve",
+           "retire_image", "retire_software", "retire_version"]
 
 
 logger = logging.getLogger("sc-server")
@@ -79,6 +79,17 @@ class Plan(NamedTuple):
 
     def ref(self, image_id: Optional[str]) -> Optional[str]:
         return self.refs.get(image_id) if image_id else None
+
+    def digests(self) -> Dict[Tuple[str, str], str]:
+        '''Every node that has an image, as the digest that identifies it.
+
+        Taken back off the pinned reference rather than carried separately: the
+        reference IS repository-at-digest, so a second copy could only ever
+        disagree with it.
+        '''
+        return {node: self.refs[image].split("@", 1)[1]
+                for node, image in self.nodes.items()
+                if image and image in self.refs}
 
     def placements(self) -> Dict[Tuple[str, str], str]:
         '''Every node that has an image, as the reference to pull.
@@ -334,6 +345,20 @@ def pinned_ref(registry_ref: str, digest: str) -> str:
     used.
     '''
     return f"{_repository(registry_ref)}@{digest}"
+
+
+def bundle_path(root, digest: str):
+    '''Where the OCI bundle for one image lives.
+
+    Content-addressed and shared: two jobs naming the same digest are the same
+    bytes, so they unpack once and every later run finds it. It sits beside the
+    store rather than under a user's tree for the same reason -- a root
+    filesystem is read-only and identical for everybody, and per-user copies of
+    a twelve-gigabyte image would be the one cost this design exists to avoid.
+    '''
+    from pathlib import Path
+
+    return Path(root) / digest.replace("sha256:", "")
 
 
 def _repository(registry_ref: str) -> str:
