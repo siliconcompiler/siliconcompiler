@@ -119,7 +119,7 @@ Nothing outside the repo is referenced at runtime: a public base image, one
 local build, and named volumes for all shared state. No host paths are bind
 mounted.
 
-## The image registry, and what this stack still needs for it
+## The image registry, and running a job inside one
 
 A server can run every job inside a container it has registered, resolving one
 image per node from what the job says it needs. **Slurm places those
@@ -167,22 +167,55 @@ living in it.
 a partition, and what `get_slurm_partition()` finds via the `*` that `sinfo`
 appends.
 
-**This stack leaves the switch off**, because the compute image is not yet
-equipped for it. What it needs, none of it hard:
+This stack can run it. The image carries `crun` (the OCI runtime Slurm invokes
+— a binary it execs, so no socket and no daemon), plus `skopeo` and `umoci` to
+turn a registry reference into a bundle, and `oci.conf` tells Slurm how to call
+crun. A `registry` service on the internal network gives images a real
+repository digest, which a locally built image does not have and which is the
+whole point of pinning one.
+
+```sh
+setup/server/publish.sh          # builds and pushes both images, prints the rest
+```
+
+It builds **two**, and the pair is the point rather than a convenience:
 
 | | |
 |---|---|
-| An OCI runtime | `crun` (or `runc`) — Slurm invokes it, and nothing needs a docker socket |
-| `skopeo` and `umoci` | to unpack a registry reference into a bundle |
-| `/etc/slurm/oci.conf` | how Slurm calls that runtime. Slurm refuses `--container` without it |
-| A framework image with the Slurm client | it submits every node, so it needs `srun`, `slurm.conf` and the munge socket |
+| `sc-runtime` | SiliconCompiler and the Slurm client, no EDA tools — **0.5 GB** |
+| `sc-tools` | this stack's own image: the same SiliconCompiler, plus the tools — **6.5 GB** |
 
-The first three are `apt` packages on the Ubuntu 24.04 userland this image
-already has. The open question is **mounts**: a bundle is a root filesystem, so
-the shared `/sc_server` tree has to be visible inside it, and where that is
-declared — the bundle's own `config.json`, or the `RunTimeRun` line in
-`oci.conf` — is a deployment decision rather than something the server should
-assume.
+A node that runs no tool resolves to the small one, because among the images
+that fit, the one with the fewest declared contents wins. So does the run's
+orchestrator. Only a node whose tool lives in the big image pulls the big image.
+
+🔴 **`sc-runtime` carries the Slurm client, and it is not optional.** A
+framework image submits every node of the flow it drives. That is ~10 MB of
+plugins beside `libslurm`, copied from the same build the cluster runs so the
+two cannot drift, against ~6 GB of tools left behind.
+
+### What a container has to be able to see
+
+A bundle is a root filesystem, so anything outside the image has to be bind
+mounted in. `container_mounts` in `/sc_server/config.json` is that list, and the
+data directory is always added because every path in a job's manifest is under
+it. This stack names three more:
+
+| | |
+|---|---|
+| `/run/munge` | the socket `slurmctld` authenticates the container through |
+| `/sc_tools/etc` | where `slurm.conf` lives |
+| `/etc/resolv.conf` | 🔴 or the container cannot **resolve** `slurmctld` |
+
+That last one is the least obvious and the most misleading. Slurm builds its own
+runtime spec from the bundle's and does not carry over the `resolv.conf` bind an
+unpacked image has, so the container gets the image's own — empty, on a bare
+Ubuntu. It fails as `Unable to contact slurm controller (connect failure)`,
+which reads like the controller being down.
+
+⚠️ **Changing the list does not restage bundles that already exist**: the mounts
+are written into each `config.json` when it is unpacked. `rm -rf
+/sc_server/images` and re-stage.
 
 Until then this is the deployment the switch defaults to: SiliconCompiler is
 advertised from the version the server process was installed with, both
@@ -270,8 +303,20 @@ is. `sinfo -N -l` lists them.
   so `SLURMRESTD_SECURITY=disable_unshare_sysv,disable_unshare_files` turns
   those off instead. It still refuses to run as root or `SlurmUser`, and still
   runs under its own unprivileged account.
-- **Recreating `scserver` alone can leave the node unregistered** (`sinfo`
-  shows `unk*`). Restart the runner, or bring the stack up together.
+- 🔴 **Restarting or recreating `scserver` alone leaves the cluster with NO
+  NODES.** `scserver` runs `slurmctld`, and the runners are dynamic nodes:
+  `slurmd -Z` registers at startup and appears in no configuration file, so a
+  controller that restarts has no record of them. `sinfo` then reports `0 n/a`
+  rather than anything that looks like an error, and every job queues for ever.
+
+  ```sh
+  docker compose restart scserver
+  docker compose restart scrunner    # <- and this, in this order
+  ```
+
+  ⚠️ It bites exactly where it is least expected: editing `/sc_server/config.json`
+  needs the server restarted, and the server shares a container with the
+  controller.
 
 ## What the shared mount looks like
 

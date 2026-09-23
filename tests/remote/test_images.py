@@ -501,3 +501,43 @@ def test_a_server_with_no_cluster_schedules_nothing_per_node(nop_project):
     runspec.normalize(nop_project, "job-id", "build", "cache", cluster="local")
 
     assert nop_project.option.scheduler.get_name(step="stepone", index="0") is None
+
+
+def test_rebuilding_a_tag_supersedes_the_build_before_it(registry, store):
+    '''🔴 One live image per reference.
+
+    The digest identifies the bytes and the reference identifies the thing an
+    operator curates. Two live rows for one reference are indistinguishable to
+    the resolution -- same declared contents, same name -- so it would pick
+    between them arbitrarily, and a rebuild would appear to have no effect
+    while the old bytes went on running. Which is exactly what happened on the
+    rig: a rebuilt runtime image was registered, and jobs kept starting in the
+    previous one.
+    '''
+    before = next(image for image in images.live_images(store)
+                  if image["registry_ref"] == "ghcr.io/x/sc-python:0.39.1")
+
+    images.register_image(store, "ghcr.io/x/sc-python:0.39.1", digest("e"),
+                          [("siliconcompiler", "0.39.1")], store.actor)
+
+    live = [image for image in images.live_images(store)
+            if image["registry_ref"] == "ghcr.io/x/sc-python:0.39.1"]
+
+    assert [image["digest"] for image in live] == [digest("e")]
+
+    # ⚠️ Superseded and not deleted: a job from last year names that row, and
+    # *what did this run in* has to stay answerable.
+    assert store.one("SELECT retired_at FROM images WHERE id = ?",
+                     (before["id"],))["retired_at"]
+
+
+def test_the_same_digest_again_supersedes_nothing(registry, store):
+    '''Re-registering identical bytes is an update to one row, so there is no
+    earlier build to retire -- and retiring it would retire itself.'''
+    images.register_image(store, "ghcr.io/x/sc-python:0.39.1", digest("a"),
+                          [("siliconcompiler", "0.39.1")], store.actor)
+
+    live = [image for image in images.live_images(store)
+            if image["registry_ref"] == "ghcr.io/x/sc-python:0.39.1"]
+
+    assert [image["digest"] for image in live] == [digest("a")]

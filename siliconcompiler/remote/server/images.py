@@ -362,7 +362,7 @@ def bundle_path(root, digest: str):
     return Path(root) / digest.replace("sha256:", "")
 
 
-def stage_bundle(root, ref: str, digest: str):
+def stage_bundle(root, ref: str, digest: str, mounts=()):
     '''Unpack one image into a bundle Slurm can run, if it is not there.
 
     🔴 ``srun --container`` takes a bundle on disk and not a registry
@@ -378,9 +378,16 @@ def stage_bundle(root, ref: str, digest: str):
     and one loses the rename; losing is fine, because the content is addressed
     by that digest and both copies are the same bytes.
 
+    ``mounts`` are the host directories a job needs to see from inside -- the
+    build tree it writes to and the cache it reads. They go into the bundle's
+    own ``config.json`` rather than into ``oci.conf``, because the shared tree
+    is this server's business and a mount configured on the cluster would apply
+    to every container Slurm ever ran, including ones it knows nothing about.
+
     Returns the bundle path. Already staged is a no-op, which is what makes it
     safe to call on every submit.
     '''
+    import os
     import shutil
     import subprocess
 
@@ -404,8 +411,18 @@ def stage_bundle(root, ref: str, digest: str):
     try:
         subprocess.run(["skopeo", "copy", f"docker://{ref}", f"oci:{layout}:sc"],
                        check=True)
-        subprocess.run(["umoci", "unpack", "--rootless",
-                        "--image", f"{layout}:sc", str(staging)], check=True)
+        # 🔴 `--rootless` only when this really is unprivileged, and it is not
+        # a safety flag: it makes umoci write a spec with a USER namespace and
+        # no uid mapping, and a container in one cannot mount its own /proc.
+        # The failure is "mount `proc` to `proc`: Operation not permitted",
+        # which reads like a missing capability rather than like a spec that
+        # asked for an unprivileged container nobody wanted.
+        unpack = ["umoci", "unpack", "--image", f"{layout}:sc", str(staging)]
+        if os.geteuid() != 0:
+            unpack.insert(2, "--rootless")
+
+        subprocess.run(unpack, check=True)
+        _prepare_spec(staging / "config.json", mounts)
         try:
             staging.rename(target)
         except OSError:
@@ -417,6 +434,55 @@ def stage_bundle(root, ref: str, digest: str):
         shutil.rmtree(staging, ignore_errors=True)
 
     return target
+
+
+def _prepare_spec(config, mounts) -> None:
+    '''Make the unpacked bundle runnable for a job on this cluster.
+
+    ⚠️ Two edits, and both are about what an image knows nothing about: it
+    describes a filesystem, and a job needs a machine.
+
+    **The mounts.** A container's root filesystem is the image's, so without
+    them a node starts in a world where its own build directory does not exist.
+    Bind mounts at the same path inside as out, because the manifest the run
+    loads names absolute paths resolved on the server -- a different path
+    inside would need every one of them rewritten.
+
+    🔴 **The network namespace is removed.** A container in its own one cannot
+    reach `slurmctld`, which is fatal for the framework image -- it submits
+    every node of the flow it is driving -- and wrong for a task that needs a
+    licence server. A compute job belongs on the cluster's network.
+    '''
+    import json
+
+    with open(config) as f:
+        spec = json.load(f)
+
+    # ⚠️ An image's config asks for a terminal because a person usually runs
+    # it. Slurm does not give one: it captures stdout to a file, and crun then
+    # dies with "tcgetattr: Inappropriate ioctl for device" before the task
+    # starts -- which says nothing about a terminal to anybody reading it.
+    spec.setdefault("process", {})["terminal"] = False
+
+    namespaces = spec.get("linux", {}).get("namespaces")
+    if namespaces is not None:
+        spec["linux"]["namespaces"] = [
+            entry for entry in namespaces if entry.get("type") != "network"]
+
+    existing = {entry.get("destination") for entry in spec.get("mounts", [])}
+    for path in mounts:
+        path = str(path)
+        if path in existing:
+            continue
+        spec.setdefault("mounts", []).append({
+            "destination": path,
+            "source": path,
+            "type": "none",
+            "options": ["rbind", "rw"],
+        })
+
+    with open(config, "w") as f:
+        json.dump(spec, f)
 
 
 def is_staged(bundle) -> bool:
@@ -509,7 +575,26 @@ def register_image(store, registry_ref: str, digest: str,
     existing = store.one("SELECT id FROM images WHERE digest = ?", (digest,))
     image_id = existing["id"] if existing else str(uuid7())
 
+    # 🔴 One live image per reference. The digest identifies the BYTES and the
+    # reference identifies the thing an operator curates, so re-registering a
+    # rebuilt tag supersedes the build before it rather than standing beside
+    # it. Two live rows for one reference are indistinguishable to the
+    # resolution -- same declared contents, same name -- so it would pick
+    # between them arbitrarily, and a rebuild would appear to have no effect
+    # while the old bytes went on running.
+    #
+    # ⚠️ Superseded and not deleted. A job from last year names that row, and
+    # *what did this run in* has to stay answerable.
+    superseded = [row["id"] for row in store.all(
+        "SELECT id FROM images WHERE registry_ref = ? AND digest <> ? "
+        "  AND retired_at IS NULL", (registry_ref, digest))]
+
     with store.transaction():
+        for old_id in superseded:
+            store.execute(
+                "UPDATE images SET retired_at = ?, retired_by = ? WHERE id = ?",
+                (now(), actor, old_id))
+
         if existing:
             # Re-registering the same bytes under a new tag or a new content
             # list. The digest is the identity, so this is an update rather than
@@ -531,6 +616,10 @@ def register_image(store, registry_ref: str, digest: str,
             store.execute(
                 "INSERT INTO image_contents (image_id, software_name, version) "
                 "VALUES (?, ?, ?)", (image_id, name, version))
+
+    if superseded:
+        logger.info(f"{registry_ref} supersedes {len(superseded)} earlier "
+                    "image(s) at that reference")
 
     logger.info(f"registered {registry_ref} as {digest}")
     return image_id

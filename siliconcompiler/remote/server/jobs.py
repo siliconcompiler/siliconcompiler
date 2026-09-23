@@ -87,6 +87,17 @@ class JobService:
     def cache_dir(self, user_id: str) -> Path:
         return self.user_root(user_id) / "cache"
 
+    def container_mounts(self):
+        '''What every container this deployment runs must be able to see.
+
+        The data directory always, because every path in a job's manifest is
+        under it, plus whatever the cluster needs named -- the munge socket and
+        slurm.conf on Slurm, since a framework image submits the nodes of the
+        flow it is driving.
+        '''
+        return [str(self._datadir)] + [
+            str(path) for path in (self._config["container_mounts"] or [])]
+
     def bundles_root(self) -> Path:
         '''Where unpacked container images live.
 
@@ -458,7 +469,8 @@ class JobService:
 
         try:
             return str(images.stage_bundle(self.bundles_root(), ref,
-                                           ref.split("@", 1)[1]))
+                                           ref.split("@", 1)[1],
+                                           mounts=self.container_mounts()))
         except Exception as e:                                   # noqa: BLE001
             # Refused rather than dispatched without it. Dropping the image
             # silently would run the job against whatever SiliconCompiler this
@@ -646,7 +658,7 @@ class JobService:
         # already says where it comes from.
         runspec.write_images(
             root / job["design"] / job["jobname"] / runspec.IMAGES_FILENAME,
-            sources)
+            sources, self.container_mounts() if sources else [])
 
         manifest = root / job["design"] / job["jobname"] / f"{job['design']}.pkg.json"
         project.write_manifest(str(manifest))

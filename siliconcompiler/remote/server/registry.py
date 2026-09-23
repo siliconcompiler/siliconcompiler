@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from siliconcompiler.remote.server import images
+from siliconcompiler.remote.server.config import Config
 from siliconcompiler.remote.server.store import Store
 
 __all__ = ["main"]
@@ -188,9 +189,18 @@ def _stage(args, ref: str, digest: str):
     nobody staged is unpacked by the first submit that needs it -- correct, and
     minutes of somebody's HTTP request.
     '''
+    datadir = Path(args.datadir).resolve()
+
+    # 🔴 The deployment's own mount list, read from the same config the server
+    # reads. Staging with a different one produces a bundle that looks right
+    # and is missing whatever the cluster needed -- and the failure lands far
+    # away, as a node that cannot contact the controller.
+    mounts = [datadir] + [
+        str(path) for path in (Config.load(datadir)["container_mounts"] or [])]
+
     try:
-        return images.stage_bundle(Path(args.datadir).resolve() / "images",
-                                   ref, digest)
+        return images.stage_bundle(datadir / "images", ref, digest,
+                                   mounts=mounts)
     except Exception as e:                                       # noqa: BLE001
         raise SystemExit(f"could not stage {ref}: {e}")
 

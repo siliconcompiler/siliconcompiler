@@ -1226,8 +1226,9 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
     # The unpack itself needs skopeo and umoci, which are the cluster's
     # business and not this test's: what is under test is where the bundle is
     # and what the dispatcher is handed.
-    monkeypatch.setattr(images, "stage_bundle",
-                        lambda root, ref, digest: images.bundle_path(root, digest))
+    monkeypatch.setattr(
+        images, "stage_bundle",
+        lambda root, ref, digest, mounts=(): images.bundle_path(root, digest))
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
@@ -1251,8 +1252,12 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
 
     # And the run is told where to get the bytes, which the bundle path alone
     # cannot say.
-    sources = runspec.read_images(manifest.parent / runspec.IMAGES_FILENAME)
+    sources, mounts = runspec.read_images(
+        manifest.parent / runspec.IMAGES_FILENAME)
     assert sources[bundle] == f"ghcr.io/x/sc@{digest('a')}"
+    # The data directory is always mounted: every path in a job's manifest is
+    # under it, and a container's root filesystem is the image's.
+    assert any(path.endswith("container-datadir") for path in mounts)
 
     # 🔴 And the batch job itself runs in the framework image, which is what
     # makes version matching real: the process that INTERPRETS the manifest is
@@ -1275,8 +1280,9 @@ def test_the_orchestrator_goes_to_its_own_queue(
     fake.name = "slurm"
     container_server.config["SC_JOBS"]._dispatcher = fake
     container_server.config["SC_CONFIG"]._values["batch_queue"] = "coordinator"
-    monkeypatch.setattr(images, "stage_bundle",
-                        lambda root, ref, digest: images.bundle_path(root, digest))
+    monkeypatch.setattr(
+        images, "stage_bundle",
+        lambda root, ref, digest, mounts=(): images.bundle_path(root, digest))
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size)

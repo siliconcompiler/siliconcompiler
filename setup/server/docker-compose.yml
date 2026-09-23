@@ -103,6 +103,28 @@ services:
       slurmdb:
         condition: service_healthy
 
+  # A registry on the internal network, so the whole image path can be
+  # exercised without pushing anything off this machine.
+  #
+  # 🔴 It is here because the alternative is not testing it. "srun --container"
+  # takes an unpacked bundle, sc-server unpacks it from a registry reference,
+  # and the digest pinned at registration is the thing that makes two runs a
+  # month apart the same code. None of that is exercised by an image that only
+  # ever existed in the local docker daemon -- a locally built image has no
+  # repository digest at all, which is why registering one is refused.
+  #
+  # Plain HTTP, named as insecure in registries.conf. Published on loopback so
+  # "publish.sh" can push to it from the host; the cluster reaches it as
+  # registry:5000 over the compose network.
+  registry:
+    image: registry:2
+    hostname: registry
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - registry-data:/var/lib/registry
+
   # Controller and submit host: slurmctld, slurmrestd, and the SiliconCompiler
   # server itself.
   scserver:
@@ -136,6 +158,11 @@ services:
       replicas: 2
 
 volumes:
+  # What the local registry keeps. Its own volume rather than the shared tree:
+  # it is a registry's storage, not the deployment's data, and wiping one
+  # should not wipe the other.
+  registry-data:
+
   # The shared filesystem, mounted at /sc_server and handed to the server as
   # -datadir. The server lays it out itself:
   #

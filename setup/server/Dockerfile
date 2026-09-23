@@ -103,10 +103,27 @@ RUN pip install --no-cache-dir --upgrade "$(echo /tmp/wheels/*.whl)[server]" \
 # ("Munge decode failed: Invalid credential"). entrypoint.sh creates the key in
 # a volume shared by all of them instead.
 
+# Running a job inside a registered image needs three things the base image
+# does not carry, and none of them is a container daemon:
+#
+#   crun     the OCI runtime Slurm invokes for "srun --container". A binary it
+#            execs, so no socket, no daemon and no privilege beyond the task's
+#   skopeo   copies an image out of a registry into an OCI layout
+#   umoci    unpacks that layout into the bundle crun runs
+#
+# 🔴 Deliberately NOT docker or podman. Handing a compute node the ability to
+# start containers on the host is a much larger grant than running a flow, and
+# Slurm's own container support exists precisely so that grant is unnecessary.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        crun skopeo umoci \
+    && rm -rf /var/lib/apt/lists/*
+
 # cgroup.conf overrides the base image's, which disables cgroups entirely --
 # see the file for what this stack needs instead, and why.
 COPY setup/server/slurm.conf /sc_tools/etc/slurm.conf
 COPY setup/server/cgroup.conf /sc_tools/etc/cgroup.conf
+COPY setup/server/oci.conf /sc_tools/etc/oci.conf
+COPY setup/server/registries.conf /etc/containers/registries.conf
 COPY setup/server/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

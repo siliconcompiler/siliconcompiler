@@ -235,22 +235,26 @@ def runtime_nodes(project) -> List[Tuple[str, str]]:
 # The progress file
 ######################################################################
 
-def read_images(path) -> Dict[str, str]:
-    '''Bundle directory to the reference it is unpacked from.'''
+def read_images(path) -> Tuple[Dict[str, str], List[str]]:
+    '''What the run needs to make a bundle exist: where from, and what to
+    mount into it.'''
     try:
         with open(path) as f:
             body = json.load(f)
     except (OSError, ValueError):
-        return {}
+        return {}, []
 
-    return body if isinstance(body, dict) else {}
+    if not isinstance(body, dict):
+        return {}, []
+
+    return body.get("sources") or {}, body.get("mounts") or []
 
 
-def write_images(path, sources: Dict[str, str]) -> None:
+def write_images(path, sources: Dict[str, str], mounts) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
-        json.dump(sources, f)
+        json.dump({"sources": sources, "mounts": [str(m) for m in mounts]}, f)
 
 
 def read_progress(path) -> Optional[Dict[str, Any]]:

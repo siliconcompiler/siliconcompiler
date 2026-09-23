@@ -117,6 +117,22 @@ DEFAULTS: Dict[str, Any] = {
     # None leaves it to the cluster's default, which is correct for a
     # deployment that has not made a partition for it.
     "batch_queue": None,
+
+    # Host paths every container must be able to see, on top of the data
+    # directory, which is always mounted because every path in a job's manifest
+    # is under it.
+    #
+    # 🔴 Deployment config rather than something derived, because what a
+    # container needs is a fact about the cluster. A framework image submits
+    # every node of the flow it drives, so on Slurm it needs the munge socket
+    # and wherever slurm.conf lives; a deployment whose licence server is
+    # reached through a file, or whose tools read a shared scratch, names those
+    # here too.
+    #
+    # ⚠️ Changing this does not restage bundles that already exist: the mounts
+    # are written into each bundle's config.json when it is unpacked. Remove
+    # <datadir>/images and re-stage.
+    "container_mounts": [],
 }
 
 

@@ -169,11 +169,33 @@ ctld)
     # so an operator who edits it in the volume keeps their edit across a
     # restart -- which is the whole reason it is a file and not a flag.
     #
-    # batch_queue is the one value this stack has an opinion about: the run's
-    # orchestrating process computes nothing and would otherwise hold a compute
-    # slot for the length of the flow. See the two partitions in slurm.conf.
+    # batch_queue: the run's orchestrating process computes nothing and would
+    # otherwise hold a compute slot for the length of the flow. See the two
+    # partitions in slurm.conf.
+    #
+    # container_mounts: what a container has to see beyond the data directory,
+    # which is always mounted. A framework image submits every node of the flow
+    # it drives, so it needs all three:
+    #
+    #   /run/munge        the socket slurmctld authenticates it through
+    #   /sc_tools/etc     where slurm.conf lives
+    #   /etc/resolv.conf  🔴 or it cannot RESOLVE slurmctld. Slurm builds its
+    #                     own runtime spec from the bundle's and does not carry
+    #                     over the resolv.conf bind an unpacked image has, so
+    #                     the container gets the image's own -- empty, on a bare
+    #                     Ubuntu. The failure is "Unable to contact slurm
+    #                     controller (connect failure)", which reads like the
+    #                     controller being down.
+    #
+    # "containers" stays off until an operator registers an image --
+    # setup/server/publish.sh prints how.
     if [ ! -f /sc_server/config.json ]; then
-        printf '{\n  "batch_queue": "coordinate"\n}\n' > /sc_server/config.json
+        cat > /sc_server/config.json <<'JSON'
+{
+  "batch_queue": "coordinate",
+  "container_mounts": ["/run/munge", "/sc_tools/etc", "/etc/resolv.conf"]
+}
+JSON
         echo "seeded /sc_server/config.json"
     fi
 
@@ -199,6 +221,10 @@ ctld)
     ;;
 
 node)
+    # Where crun keeps container state, named explicitly in oci.conf. Created
+    # here because crun will not make its own root directory.
+    mkdir -p /run/crun
+
     # slurmd builds its own cgroup hierarchy, because cgroup.conf sets
     # IgnoreSystemd=yes and there is no systemd here to ask over DBus. Two
     # things have to be true for that to work, and neither is by default:

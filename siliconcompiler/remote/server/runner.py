@@ -39,8 +39,10 @@ __all__ = ["main"]
 _progress_path = None
 _progress = None
 
-# Bundle directory to the reference it unpacks from, as the server wrote it.
+# Bundle directory to the reference it unpacks from, and what to mount into
+# it, as the server wrote them beside the manifest.
 _image_sources = {}
+_image_mounts = []
 
 
 def _publish() -> None:
@@ -86,7 +88,9 @@ def run(manifest: Path) -> int:
     # manifest there and knows where to look without being told a second path.
     _progress_path = Path(manifest).parent / PROGRESS_FILENAME
     global _image_sources
-    _image_sources = read_images(Path(manifest).parent / IMAGES_FILENAME)
+    global _image_mounts
+    _image_sources, _image_mounts = read_images(
+        Path(manifest).parent / IMAGES_FILENAME)
 
     _progress = {
         "state": "running",
@@ -277,7 +281,8 @@ def _unpack_bundle(bundle: str) -> None:
     if not source:
         raise RuntimeError(f"nothing recorded to unpack into {bundle}")
 
-    images.stage_bundle(Path(bundle).parent, source, Path(bundle).name)
+    images.stage_bundle(Path(bundle).parent, source, Path(bundle).name,
+                        mounts=_image_mounts)
 
 
 def _silence_console(project) -> None:
