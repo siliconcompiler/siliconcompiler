@@ -151,7 +151,7 @@
   },
   "bluespec": {
     "git-url": "https://github.com/B-Lang-org/bsc.git",
-    "git-commit": "2026.07",
+    "git-commit": "2026.07.1",
     "version-prefix": "",
     "auto-update": true,
     "_comment-drop-pkgs": [
