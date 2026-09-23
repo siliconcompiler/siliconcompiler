@@ -103,6 +103,20 @@ DEFAULTS: Dict[str, Any] = {
     #   - a node whose tool this deployment tracks and has no image for is
     #     refused, for the whole job, before anything runs
     "containers": False,
+
+    # Which Slurm partition the job's own orchestrating process runs in.
+    #
+    # 🔴 It is not where the work happens. That process loads the manifest,
+    # runs SiliconCompiler's scheduler and writes the progress file; every node
+    # is submitted from it as a job of its own, with its own resources, in
+    # whatever partition the cluster makes default. So this wants a small
+    # partition with a long time limit -- it holds one core for the length of
+    # the flow and uses almost none of it, and on a compute partition that is a
+    # node slot doing nothing.
+    #
+    # None leaves it to the cluster's default, which is correct for a
+    # deployment that has not made a partition for it.
+    "batch_queue": None,
 }
 
 

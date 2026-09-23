@@ -50,7 +50,8 @@ class Dispatcher:
 
     name = "none"
 
-    def submit(self, job_id: str, jobroot: Path, manifest: Path) -> str:
+    def submit(self, job_id: str, jobroot: Path, manifest: Path,
+               image: Optional[str] = None, queue: Optional[str] = None) -> str:
         raise NotImplementedError
 
     def is_alive(self, scheduler_job_id: str) -> bool:
@@ -81,7 +82,8 @@ class LocalDispatcher(Dispatcher):
         # the /proc fallback below is for.
         self._children: Dict[int, subprocess.Popen] = {}
 
-    def submit(self, job_id: str, jobroot: Path, manifest: Path) -> str:
+    def submit(self, job_id: str, jobroot: Path, manifest: Path,
+               image: Optional[str] = None, queue: Optional[str] = None) -> str:
         log = open(jobroot / RUN_LOG, "ab")
         try:
             process = subprocess.Popen(
@@ -139,24 +141,49 @@ class SlurmDispatcher(Dispatcher):
 
     name = "slurm"
 
-    def submit(self, job_id: str, jobroot: Path, manifest: Path) -> str:
+    def submit(self, job_id: str, jobroot: Path, manifest: Path,
+               image: Optional[str] = None, queue: Optional[str] = None) -> str:
         script = jobroot / RUN_SCRIPT
         script.write_text(
             "#!/bin/sh\n"
-            "# Written by sc-server. One batch job per run: the flow inside it\n"
-            "# uses SiliconCompiler's local scheduler, so this is the only\n"
-            "# thing the cluster is asked to schedule.\n"
+            "# Written by sc-server. This batch job is the run's ORCHESTRATOR:\n"
+            "# it loads the manifest, drives SiliconCompiler's scheduler and\n"
+            "# writes the progress file. Each node is submitted from here as a\n"
+            "# job of its own, so this process holds one core and uses almost\n"
+            "# none of it.\n"
             f"exec {shlex.quote(sys.executable)} "
             "-m siliconcompiler.remote.server.runner "
             f"{shlex.quote(str(manifest))}\n")
         script.chmod(0o755)
 
-        completed = _run([
+        command = [
             "sbatch", "--parsable",
             f"--job-name=sc-{job_id}",
             f"--chdir={jobroot}",
             f"--output={jobroot / RUN_LOG}",
-            str(script)])
+        ]
+
+        if queue:
+            # A partition of its own, because this process coordinates rather
+            # than computes. On a compute partition it is a node slot held for
+            # the length of the flow doing nothing.
+            command.append(f"--partition={queue}")
+
+        if image:
+            # 🔴 The framework image, and this is what makes version matching
+            # real rather than half-done: the process that INTERPRETS the
+            # manifest is then the SiliconCompiler the job asked for, not
+            # whichever one this cluster happens to have installed.
+            #
+            # ⚠️ Which puts a requirement on that image: it submits every node,
+            # so it needs the Slurm client, slurm.conf and the munge socket
+            # inside it. An image that has SiliconCompiler and no srun cannot
+            # be a framework image on a cluster.
+            command.append(f"--container={image}")
+
+        command.append(str(script))
+
+        completed = _run(command)
 
         if completed.returncode != 0:
             raise DispatchError(

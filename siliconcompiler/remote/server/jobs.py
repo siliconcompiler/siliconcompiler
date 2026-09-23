@@ -377,7 +377,10 @@ class JobService:
             # The job's own root, so the batch script and the run's stdout land
             # beside what the run produced and go away with it when the job is
             # deleted.
-            scheduler_job_id = self._dispatcher.submit(job["id"], root, manifest)
+            scheduler_job_id = self._dispatcher.submit(
+                job["id"], root, manifest,
+                image=self._framework_bundle(plan),
+                queue=self._config["batch_queue"])
         except DispatchError as e:
             self._reject(session, job, "run-failed")
             raise ProblemError(
@@ -425,6 +428,43 @@ class JobService:
         except ProblemError:
             self._reject(session, job, "unsatisfiable-request")
             raise
+
+    def _framework_bundle(self, plan) -> Optional[str]:
+        '''The container the job's own orchestrating process runs in.
+
+        🔴 This is what makes version matching real rather than half-done. The
+        per-node images decide what each TOOL runs in; this decides what
+        interprets the manifest -- and without it a job asking for
+        SiliconCompiler 0.39 has its flow driven by whatever version the cluster
+        installed, which is the question version-matched-images.md calls the
+        real one.
+
+        Staged here rather than on the compute node, because `sbatch
+        --container` names a bundle that has to exist before the job starts and
+        there is nothing running yet to unpack it. It is a no-op once staged, so
+        the cost falls on the first submit after an operator registers an image
+        -- and `registry add-image -stage` is how an operator keeps it off the
+        request path entirely.
+        '''
+        if self._dispatcher.name != "slurm" or not plan.job:
+            return None
+
+        ref = plan.refs.get(plan.job)
+        if not ref:
+            return None
+
+        try:
+            return str(images.stage_bundle(self.bundles_root(), ref,
+                                           ref.split("@", 1)[1]))
+        except Exception as e:                                   # noqa: BLE001
+            # Refused rather than dispatched without it. Dropping the image
+            # silently would run the job against whatever SiliconCompiler this
+            # cluster has, which is the thing the registry exists to stop --
+            # and it would do it while the record said otherwise.
+            raise ProblemError(
+                "unsatisfiable-request", resource_kind="library", resource=ref,
+                detail=f"this server could not unpack the image its own job "
+                       f"needs to run in: {e}") from None
 
     def _record_submission(self, job, derived, digest, size, idempotency_key,
                            scheduler_job_id, plan) -> None:

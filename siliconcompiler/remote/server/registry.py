@@ -172,6 +172,42 @@ def _cmd_add_image(store, args) -> int:
     print(f"registered {args.ref}")
     print(f"  {image_id}")
     print(f"  {digest}")
+
+    if args.stage:
+        print(f"  {_stage(args, images.pinned_ref(args.ref, digest), digest)}")
+
+    return 0
+
+
+def _stage(args, ref: str, digest: str):
+    '''Unpack one image where a Slurm job can run it.
+
+    🔴 Only needed on a deployment whose cluster runs the containers, and doing
+    it here is what keeps it off the request path: ``sbatch --container`` names
+    a bundle that has to exist before the job starts, so a framework image
+    nobody staged is unpacked by the first submit that needs it -- correct, and
+    minutes of somebody's HTTP request.
+    '''
+    try:
+        return images.stage_bundle(Path(args.datadir).resolve() / "images",
+                                   ref, digest)
+    except Exception as e:                                       # noqa: BLE001
+        raise SystemExit(f"could not stage {ref}: {e}")
+
+
+def _cmd_stage(store, args) -> int:
+    '''Unpack every live image, or one of them.'''
+    staged = 0
+    for image in images.live_images(store):
+        if args.image and image["id"] != args.image:
+            continue
+        ref = images.pinned_ref(image["registry_ref"], image["digest"])
+        print(f"{image['registry_ref']}")
+        print(f"  {_stage(args, ref, image['digest'])}")
+        staged += 1
+
+    if not staged:
+        print("nothing to stage")
     return 0
 
 
@@ -257,7 +293,19 @@ def _parser() -> argparse.ArgumentParser:
         help="what is inside it, repeatable. Declared and unverified: nothing "
              "opens the image to check, so a wrong one fails at run time")
     image.add_argument("-note", metavar="<text>")
+    image.add_argument(
+        "-stage", action="store_true",
+        help="unpack it into an OCI bundle now. Needed before a Slurm cluster "
+             "can run it, and doing it here keeps the unpack off the first "
+             "submit that wants it")
     image.set_defaults(run=_cmd_add_image)
+
+    stage = commands.add_parser(
+        "stage", help="unpack registered images into OCI bundles")
+    stage.add_argument(
+        "image", nargs="?", metavar="<id>",
+        help="one image id; every live image if omitted")
+    stage.set_defaults(run=_cmd_stage)
 
     retire = commands.add_parser(
         "retire", help="stop using one, and keep the row")

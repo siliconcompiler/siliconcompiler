@@ -359,11 +359,11 @@ Whatever is scheduling is what places the container, and the two mechanisms are
 mutually exclusive because :keypath:`option,scheduler,name` holds one value:
 
 ``-cluster slurm``
-  The node runs as a Slurm step, ``srun --overlap --container <bundle>``, inside
-  the one allocation the job already has. The cluster needs an OCI runtime and
-  an ``/etc/slurm/oci.conf`` telling Slurm how to call it; bundles are unpacked
-  to ``<datadir>/images/<digest>/`` and shared by every job that names that
-  digest.
+  Each node is submitted as **a Slurm job of its own** --
+  ``srun --container <bundle>`` -- with its own resources and its own place in
+  the queue. The cluster needs an OCI runtime and an ``/etc/slurm/oci.conf``
+  telling Slurm how to call it; bundles are unpacked to
+  ``<datadir>/images/<digest>/`` and shared by every job that names that digest.
 
 ``-cluster local``
   There is no Slurm to place anything, so the node runs through
@@ -375,6 +375,45 @@ mutually exclusive because :keypath:`option,scheduler,name` holds one value:
    there -- the **partition** -- and the server does not touch it. A server that
    wrote an image reference into it would submit every node to a partition named
    after a container.
+
+The job's own orchestrator
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+One batch job per run is still all the API process submits, and that job is the
+run's **orchestrator**: it loads the manifest, drives the flow and writes the
+progress the server polls. It submits every node and computes nothing itself.
+
+Two things follow, and a deployment should set both:
+
+``batch_queue``
+  The partition that job runs in. It holds one core for the length of the flow
+  and uses almost none of it, so a small partition with a long time limit fits
+  it and a compute partition is a node slot doing nothing. Unset leaves it to
+  the cluster's default.
+
+**It runs in the job's framework image**, where the deployment runs containers
+-- which is what makes version matching real rather than half-done. Without it
+a job asking for SiliconCompiler 0.39 has its flow driven by whatever version
+the cluster installed, and only the tools would match.
+
+.. warning::
+
+   That puts a requirement on any image that can be a framework image: **it
+   submits every node, so it needs the Slurm client, ``slurm.conf`` and the
+   munge socket inside it.** An image carrying SiliconCompiler and no ``srun``
+   cannot drive a flow on a cluster.
+
+   Unpacking happens before ``sbatch`` can name the bundle, so an image nobody
+   staged is unpacked by the first submit that needs it -- correct, and minutes
+   of somebody's request. Stage it when you register it:
+
+   .. code-block:: bash
+
+     python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+         add-image ghcr.io/org/sc-runtime:0.39.1 \
+         -contains siliconcompiler==0.39.1 -stage
+
+     python3 -m siliconcompiler.remote.server.registry -datadir <dir> stage
 
 .. warning::
 

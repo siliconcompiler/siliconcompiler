@@ -278,10 +278,11 @@ def test_a_cluster_is_placed_by_slurm_and_never_by_docker(nop_project):
     options = scheduler.get_options(step="stepone", index="0")
     assert "--container" in options
     assert options[options.index("--container") + 1] == "/sc_server/images/659b"
-    # Steps inside ONE allocation, because the job is still the unit of
-    # submission: without this each would wait for the allocation's single task
-    # instead of running beside its siblings.
-    assert "--overlap" in options
+    # 🔴 A job of its own and never a step in the orchestrator's allocation.
+    # `--partition` on a step is accepted and then silently ignored, so a node
+    # sharing that allocation would quietly run on the one core the
+    # orchestrator was given.
+    assert "--overlap" not in options
 
 
 def test_a_server_with_no_cluster_uses_the_docker_scheduler(nop_project):
@@ -310,6 +311,26 @@ def test_the_manifest_carries_the_placement_to_the_compute_node(nop_project):
     assert runspec.node_image(nop_project, "stepone", "0") == \
         ("image", f"ghcr.io/x/sc@{digest('a')}")
     assert runspec.node_image(nop_project, "steptwo", "0") is None
+
+
+def test_the_runner_leaves_its_own_allocation(monkeypatch):
+    """🔴 Slurm decides between a STEP and a JOB by whether SLURM_JOB_ID is set.
+
+    Measured on the rig: `srun --partition=sc` inside an allocation returned
+    `job=5 step=1` -- the same allocation, the partition silently ignored --
+    and the identical call with SLURM_JOB_ID cleared returned `job=6 step=0`.
+    """
+    import os
+
+    from siliconcompiler.remote.server import runner
+
+    monkeypatch.setenv("SLURM_JOB_ID", "5")
+    monkeypatch.setenv("SLURM_STEP_ID", "1")
+
+    runner._leave_the_allocation()
+
+    assert "SLURM_JOB_ID" not in os.environ
+    assert "SLURM_STEP_ID" not in os.environ
 
 
 def test_a_slurm_placement_reads_back_as_a_bundle(nop_project):
@@ -452,3 +473,31 @@ def test_a_node_the_flow_skipped_never_waits_for_an_image(monkeypatch, nop_proje
     runner._fetch_images(nop_project)
 
     assert runner._progress["nodes"]["stepone/0"]["state"] == "skipped"
+
+
+def test_a_cluster_schedules_every_node_image_or_not(nop_project):
+    '''🔴 The cluster is what should be scheduling the work.
+
+    Inside one allocation a flow can never use more than the machine it landed
+    on, so scaling the cluster would do nothing for a single run -- and the
+    orchestrator could not be given a partition of its own, because the work
+    would follow it there.
+    '''
+    from siliconcompiler.remote.server import runspec
+
+    runspec.normalize(nop_project, "job-id", "build", "cache", cluster="slurm")
+
+    scheduler = nop_project.option.scheduler
+    for step in ("stepone", "steptwo"):
+        assert scheduler.get_name(step=step, index="0") == "slurm"
+        assert not scheduler.get_options(step=step, index="0")
+
+
+def test_a_server_with_no_cluster_schedules_nothing_per_node(nop_project):
+    '''There is no Slurm, so a node with no image is left exactly as the
+    caller sent it.'''
+    from siliconcompiler.remote.server import runspec
+
+    runspec.normalize(nop_project, "job-id", "build", "cache", cluster="local")
+
+    assert nop_project.option.scheduler.get_name(step="stepone", index="0") is None

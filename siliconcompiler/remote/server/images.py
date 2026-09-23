@@ -31,9 +31,10 @@ from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
 
 __all__ = ["PRIMARY", "Requirement", "Plan", "bundle_path", "catalogue",
-           "live_images", "live_software", "pinned_ref", "plan_for_job",
-           "register_image", "register_software", "register_version", "resolve",
-           "retire_image", "retire_software", "retire_version"]
+           "is_staged", "live_images", "live_software", "pinned_ref",
+           "plan_for_job", "register_image", "register_software",
+           "register_version", "resolve", "retire_image", "retire_software",
+           "retire_version", "stage_bundle"]
 
 
 logger = logging.getLogger("sc-server")
@@ -359,6 +360,74 @@ def bundle_path(root, digest: str):
     from pathlib import Path
 
     return Path(root) / digest.replace("sha256:", "")
+
+
+def stage_bundle(root, ref: str, digest: str):
+    '''Unpack one image into a bundle Slurm can run, if it is not there.
+
+    🔴 ``srun --container`` takes a bundle on disk and not a registry
+    reference, so somebody has to do this. Shared by the three callers that
+    need it at three different moments -- an operator staging ahead of time,
+    submit making sure the FRAMEWORK bundle exists before ``sbatch`` names it,
+    and the run fetching a node's image while that node reports ``preparing``
+    -- because three implementations of an unpack is three ways for a bundle to
+    be subtly different.
+
+    Built through a ``.part`` directory and renamed, so a bundle either exists
+    complete or does not exist at all. Two callers wanting the same digest race
+    and one loses the rename; losing is fine, because the content is addressed
+    by that digest and both copies are the same bytes.
+
+    Returns the bundle path. Already staged is a no-op, which is what makes it
+    safe to call on every submit.
+    '''
+    import shutil
+    import subprocess
+
+    target = bundle_path(root, digest)
+    if is_staged(target):
+        return target
+
+    for tool in ("skopeo", "umoci"):
+        if shutil.which(tool) is None:
+            raise RuntimeError(
+                f"{tool} is not installed here, and unpacking an OCI bundle "
+                "needs it")
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    staging = target.with_name(target.name + ".part")
+    layout = target.with_name(target.name + ".oci")
+    shutil.rmtree(staging, ignore_errors=True)
+    shutil.rmtree(layout, ignore_errors=True)
+
+    try:
+        subprocess.run(["skopeo", "copy", f"docker://{ref}", f"oci:{layout}:sc"],
+                       check=True)
+        subprocess.run(["umoci", "unpack", "--rootless",
+                        "--image", f"{layout}:sc", str(staging)], check=True)
+        try:
+            staging.rename(target)
+        except OSError:
+            # Somebody else finished first. Their bundle is this bundle.
+            if not is_staged(target):
+                raise
+    finally:
+        shutil.rmtree(layout, ignore_errors=True)
+        shutil.rmtree(staging, ignore_errors=True)
+
+    return target
+
+
+def is_staged(bundle) -> bool:
+    '''Whether a bundle is there and complete.
+
+    An OCI bundle is a directory, so its existence says nothing: the config is
+    what a finished one has, and the unpack renames it into place last.
+    '''
+    from pathlib import Path
+
+    return (Path(bundle) / "config.json").is_file()
 
 
 def _repository(registry_ref: str) -> str:

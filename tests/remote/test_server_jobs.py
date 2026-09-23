@@ -26,10 +26,12 @@ class FakeDispatcher:
     def __init__(self):
         self.submitted = []
         self.cancelled = []
+        self.handed = {}
         self.alive = True
 
-    def submit(self, job_id, jobroot, manifest):
+    def submit(self, job_id, jobroot, manifest, image=None, queue=None):
         self.submitted.append((job_id, jobroot, manifest))
+        self.handed = {"image": image, "queue": queue}
         return f"fake:{len(self.submitted)}"
 
     def is_alive(self, scheduler_job_id):
@@ -1207,16 +1209,25 @@ def test_a_deployment_that_runs_no_containers_places_nothing(
 
 
 def test_a_cluster_gets_a_bundle_and_never_a_partition(
-        container_server, container_client, key, container_token, job_archive):
+        container_server, container_client, key, container_token, job_archive,
+        monkeypatch):
     '''🔴 On a cluster Slurm places the container, and `scheduler,queue` is its
     PARTITION -- so an image reference there would submit every node to a
     partition named after a container.'''
     from siliconcompiler import Project
     from siliconcompiler.remote.server import runspec
 
+    from siliconcompiler.remote.server import images
+
     fake = FakeDispatcher()
     fake.name = "slurm"
     container_server.config["SC_JOBS"]._dispatcher = fake
+
+    # The unpack itself needs skopeo and umoci, which are the cluster's
+    # business and not this test's: what is under test is where the bundle is
+    # and what the dispatcher is handed.
+    monkeypatch.setattr(images, "stage_bundle",
+                        lambda root, ref, digest: images.bundle_path(root, digest))
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
@@ -1242,3 +1253,44 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
     # cannot say.
     sources = runspec.read_images(manifest.parent / runspec.IMAGES_FILENAME)
     assert sources[bundle] == f"ghcr.io/x/sc@{digest('a')}"
+
+    # 🔴 And the batch job itself runs in the framework image, which is what
+    # makes version matching real: the process that INTERPRETS the manifest is
+    # the SiliconCompiler the job asked for rather than the cluster's own.
+    assert fake.handed["image"] == bundle
+
+
+def test_the_orchestrator_goes_to_its_own_queue(
+        container_server, container_client, key, container_token, job_archive,
+        monkeypatch):
+    '''🔴 The batch job coordinates; it does not compute.
+
+    Every node is submitted from it as a job of its own, so it holds one core
+    for the length of the flow and uses almost none of it. On a compute
+    partition that is a node slot doing nothing.
+    '''
+    from siliconcompiler.remote.server import images
+
+    fake = FakeDispatcher()
+    fake.name = "slurm"
+    container_server.config["SC_JOBS"]._dispatcher = fake
+    container_server.config["SC_CONFIG"]._values["batch_queue"] = "coordinator"
+    monkeypatch.setattr(images, "stage_bundle",
+                        lambda root, ref, digest: images.bundle_path(root, digest))
+
+    archive, upload_digest, size = job_archive()
+    job = stage(container_client, key, container_token, archive, size)
+    submit(container_client, key, container_token, job["id"], upload_digest, size)
+
+    assert fake.handed["queue"] == "coordinator"
+
+
+def test_no_queue_leaves_it_to_the_cluster(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''None is the default, and it is correct for a deployment that has not
+    made a partition for this.'''
+    archive, upload_digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], upload_digest, size)
+
+    assert dispatcher.handed == {"image": None, "queue": None}

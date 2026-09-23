@@ -129,6 +129,44 @@ already has — rather than SiliconCompiler's docker scheduler, because
 node Slurm never sees. It also keeps `option,scheduler,queue` meaning what it
 means on a cluster, which is the partition.
 
+Each node becomes **its own Slurm job**, not a step inside the batch job. That
+is not a preference — measured on this stack:
+
+```
+batch       job=5 partition=sc
+plain-step  job=5 step=0
+srun --partition=sc ...   -> job=5 step=1   # the partition is SILENTLY IGNORED
+SLURM_JOB_ID unset, same  -> job=6 step=0   # its own job
+```
+
+A step shares the batch job's allocation and its `--partition` does nothing, so
+the runner clears `SLURM_JOB_ID` and every node is scheduled on its own terms.
+That is also what lets the batch job itself sit in a small partition: it
+coordinates and computes nothing.
+
+### Two partitions, and which work goes where
+
+```
+compute*     a node's task -- EDA tools, real cores, real memory
+coordinate   the run's own orchestrating process
+```
+
+The orchestrator loads the manifest, drives the flow, and submits every node as
+a job of its own. It computes nothing and holds one core for as long as the flow
+takes, so on a single-partition cluster it is the most expensive idle process
+there. `entrypoint.sh` seeds `/sc_server/config.json` with
+`"batch_queue": "coordinate"` to put it in its own; edit that file in the volume
+and the edit survives restarts, because it is only ever seeded when absent.
+
+Both partitions cover the same nodes, because this stack has one. A real cluster
+would give `coordinate` a small machine of its own — `MaxCPUsPerNode=4` stands
+in for that here, capping what it can take so compute work cannot quietly end up
+living in it.
+
+`compute` is `Default=YES`, which is what a node's task gets when nothing names
+a partition, and what `get_slurm_partition()` finds via the `*` that `sinfo`
+appends.
+
 **This stack leaves the switch off**, because the compute image is not yet
 equipped for it. What it needs, none of it hard:
 
@@ -137,12 +175,14 @@ equipped for it. What it needs, none of it hard:
 | An OCI runtime | `crun` (or `runc`) — Slurm invokes it, and nothing needs a docker socket |
 | `skopeo` and `umoci` | to unpack a registry reference into a bundle |
 | `/etc/slurm/oci.conf` | how Slurm calls that runtime. Slurm refuses `--container` without it |
+| A framework image with the Slurm client | it submits every node, so it needs `srun`, `slurm.conf` and the munge socket |
 
-All three are `apt` packages on the Ubuntu 24.04 userland this image already
-has. The open question is **mounts**: a bundle is a root filesystem, so the
-shared `/sc_server` tree has to be visible inside it, and where that is declared
-— the bundle's own `config.json`, or the `RunTimeRun` line in `oci.conf` — is a
-deployment decision rather than something the server should assume.
+The first three are `apt` packages on the Ubuntu 24.04 userland this image
+already has. The open question is **mounts**: a bundle is a root filesystem, so
+the shared `/sc_server` tree has to be visible inside it, and where that is
+declared — the bundle's own `config.json`, or the `RunTimeRun` line in
+`oci.conf` — is a deployment decision rather than something the server should
+assume.
 
 Until then this is the deployment the switch defaults to: SiliconCompiler is
 advertised from the version the server process was installed with, both
@@ -188,11 +228,15 @@ unpacks a missing one before the flow starts, and the nodes waiting report
 docker compose up -d --scale scrunner=4     # or any N
 ```
 
+The stack starts **two** by default. That is the smallest rig that shows a
+single flow being spread across the cluster: every node is submitted to Slurm as
+a job of its own, so with one runner the fan-out is real but invisible.
+
 That is the whole of it — no config change, and the running services are not
 restarted. The runners **register themselves**: each starts `slurmd -Z`
 (Slurm's dynamic nodes), and the controller records the address and hostname it
 registers with, so nothing has to know their names in advance. `slurm.conf` has
-no `NodeName` lines at all; `PartitionName=sc Nodes=ALL` is what admits a node
+no `NodeName` lines at all; `Nodes=ALL` on each partition is what admits a node
 the moment it appears.
 
 Scaling down works too — a runner runs `scontrol delete nodename=$(hostname)`

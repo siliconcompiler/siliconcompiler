@@ -126,6 +126,14 @@ services:
 
   scrunner:
     <<: *scrunner
+    # Two by default, and the second one earns its keep: every node of a flow
+    # is submitted to Slurm as a job of its own, so a run really does spread
+    # across compute nodes. With one runner that fan-out is invisible -- the
+    # flow would finish either way and nothing would show whether the cluster
+    # was being used as a cluster. Scale up or down from here with
+    # "--scale scrunner=N"; nothing is configured per replica.
+    deploy:
+      replicas: 2
 
 volumes:
   # The shared filesystem, mounted at /sc_server and handed to the server as

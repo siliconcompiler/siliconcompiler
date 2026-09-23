@@ -164,6 +164,19 @@ ctld)
     # tree per user for builds and caches.
     mkdir -p /sc_server
     cd /sc_server
+
+    # Policy the server reads at startup. Seeded once and never overwritten,
+    # so an operator who edits it in the volume keeps their edit across a
+    # restart -- which is the whole reason it is a file and not a flag.
+    #
+    # batch_queue is the one value this stack has an opinion about: the run's
+    # orchestrating process computes nothing and would otherwise hold a compute
+    # slot for the length of the flow. See the two partitions in slurm.conf.
+    if [ ! -f /sc_server/config.json ]; then
+        printf '{\n  "batch_queue": "coordinate"\n}\n' > /sc_server/config.json
+        echo "seeded /sc_server/config.json"
+    fi
+
     python3 -m siliconcompiler.remote.server \
         -cluster slurm \
         -port 8080 \

@@ -108,26 +108,30 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     - **the remote id** -- the server-owned job id, which is what a user pastes
       back into ``sc-remote``
 
-    🔴 **The per-node SLURM scheduler is deliberately NOT set here, and that is
-    a change.** The old server ran the flow in its own process and dispatched
-    each node to Slurm, holding a blocking ``srun`` per node for the length of
-    the run. The job is now the unit of submission -- one batch job for the
-    whole flow, polled once per run -- so the flow inside it runs with the local
-    scheduler. That is what makes the API process something other than a Slurm
-    submit host, and it is the shape a REST transport can be swapped into.
+    🔴 **On a cluster every node is its own Slurm job, and that is set here.**
+    The API process still submits exactly one thing and polls one id -- the
+    run's orchestrator -- so it is not a Slurm submit host and the REST
+    transport stays a swap. But the orchestrator computes nothing: it drives the
+    flow and hands each node to the cluster, which is what a cluster is for.
+    Inside one allocation a flow could never use more than the machine it landed
+    on, so scaling the cluster would do nothing for a single run, and the
+    orchestrator could not be given a partition of its own because the work
+    would follow it there.
 
-    ⚠️ **The per-node CONTAINER is a different question and it is set here**,
-    for the deployments that answered it -- and 🔴 **how depends on what is
-    scheduling, because the two mechanisms are mutually exclusive.**
-    ``option,scheduler,name`` holds ONE value, so a node placed by
-    SiliconCompiler's docker scheduler is a node Slurm never sees. On a cluster
-    that is the wrong trade: Slurm is what should place the work, and it has its
-    own container support.
+    ⚠️ **A job and not a step.** ``srun`` inside an allocation makes a step that
+    shares it, and ``--partition`` on a step is accepted and then silently
+    ignored -- so the runner drops ``SLURM_JOB_ID`` before the flow starts.
+
+    ⚠️ **The per-node CONTAINER rides on that**, for the deployments that run
+    them, and 🔴 **how depends on what is scheduling, because the two mechanisms
+    are mutually exclusive.** ``option,scheduler,name`` holds ONE value, so a
+    node placed by SiliconCompiler's docker scheduler is a node Slurm never
+    sees.
 
     ================  ====================================================
     ``cluster``       how a node's image reaches it
     ================  ====================================================
-    ``slurm``         the node is a Slurm step, ``srun --container <bundle>``
+    ``slurm``         ``srun --container <bundle>`` on the node's own job
     ``local``         SiliconCompiler's docker scheduler, by digest
     ================  ====================================================
 
@@ -135,9 +139,6 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     is not a style point: for Slurm it is the PARTITION and goes straight to
     ``srun --partition``. Writing an image reference into it on a cluster would
     submit every node to a partition named after a container.
-
-    Empty on a deployment that runs no containers, which is every deployment
-    until an operator registers an image.
     '''
     project.option.set_nodashboard(True)
     project.option.set_builddir(str(builddir))
@@ -146,24 +147,32 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     project.option.set_nodisplay(True)
     project.set('record', 'remoteid', job_id)
 
-    for (step, index), where in (images or {}).items():
-        # 🔴 A digest, never a tag, whichever mechanism carries it.
-        # `registry_ref` is what a human typed and it can be rebuilt underneath
-        # this job; the digest is what the operator approved. Two runs a month
-        # apart silently executing different code is exactly what pinning at
-        # registration prevents, and it only prevents it if the pinned form is
-        # what reaches the node.
-        if cluster == "slurm":
+    if cluster == "slurm":
+        # 🔴 EVERY node is its own Slurm job, image or no image. The cluster is
+        # what should be scheduling the work: inside one allocation a flow can
+        # never use more than the machine it landed on, so scaling the cluster
+        # would do nothing for a single run -- and the orchestrator could not
+        # be given a partition of its own, because the work would follow it
+        # there.
+        #
+        # ⚠️ A job and not a step, and the runner detaches from its own
+        # allocation so it becomes one. A step shares the orchestrator's
+        # resources and `--partition` on it is accepted and then SILENTLY
+        # IGNORED, so per-node placement would look configured and do nothing.
+        for step, index in runtime_nodes(project):
             project.option.scheduler.set_name('slurm', step=step, index=index)
-            # --overlap because these are steps inside ONE allocation: the job
-            # is still the unit of submission, and without it each step would
-            # wait for the allocation's single task instead of running beside
-            # its siblings. SiliconCompiler's own scheduler already decides how
-            # many nodes run at once; Slurm's part here is placing each one in
-            # its container.
-            project.option.scheduler.add_options(
-                ['--overlap', '--container', str(where)], step=step, index=index)
-        else:
+
+            where = (images or {}).get((step, index))
+            if where:
+                project.option.scheduler.add_options(
+                    ['--container', str(where)], step=step, index=index)
+    else:
+        for (step, index), where in (images or {}).items():
+            # 🔴 A digest, never a tag. `registry_ref` is what a human typed
+            # and it can be rebuilt underneath this job; the digest is what the
+            # operator approved. Two runs a month apart silently executing
+            # different code is exactly what pinning at registration prevents,
+            # and it only prevents it if the pinned form reaches the node.
             project.option.scheduler.set_name('docker', step=step, index=index)
             project.option.scheduler.set_queue(str(where), step=step, index=index)
 

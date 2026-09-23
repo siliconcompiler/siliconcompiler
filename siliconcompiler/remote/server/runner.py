@@ -16,13 +16,13 @@ the API process is a Slurm submit host.
 '''
 
 import argparse
-import shutil
-import subprocess
+import os
 import sys
 import traceback
 
 from pathlib import Path
 
+from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.runspec import (
     IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_images,
     runtime_nodes, write_progress)
@@ -76,6 +76,8 @@ def run(manifest: Path) -> int:
 
     from siliconcompiler import Project
     from siliconcompiler.scheduler.taskscheduler import TaskScheduler
+
+    _leave_the_allocation()
 
     project = Project.from_manifest(filepath=str(manifest))
     _silence_console(project)
@@ -133,6 +135,28 @@ def run(manifest: Path) -> int:
         # reaching them.
         _sweep()
         _publish()
+
+
+def _leave_the_allocation() -> None:
+    '''Stop this process's own batch job from swallowing every node.
+
+    🔴 Slurm decides between a STEP and a JOB by whether ``SLURM_JOB_ID`` is
+    set. Inside the orchestrator's allocation every ``srun`` becomes a step in
+    it, sharing its resources -- and ``--partition`` on a step is accepted and
+    then silently ignored, so a node asking for the compute partition would
+    quietly run on the one core the orchestrator was given. Measured on the
+    rig rather than assumed::
+
+        srun --partition=sc ...        ->  job=5 step=1    (same allocation)
+        SLURM_JOB_ID unset, same call  ->  job=6 step=0    (its own job)
+
+    ⚠️ Cleared for the whole process rather than per call, because nodes run in
+    forked children and the environment is what they inherit. Nothing here
+    needs the allocation: this process coordinates, and every piece of work it
+    submits is scheduled on its own terms.
+    '''
+    for name in ("SLURM_JOB_ID", "SLURM_JOBID", "SLURM_STEP_ID", "SLURM_STEPID"):
+        os.environ.pop(name, None)
 
 
 def _sweep() -> None:
@@ -216,10 +240,7 @@ def _placement_present(placement) -> bool:
     mechanism, where = placement
 
     if mechanism == "container":
-        # An OCI bundle is a directory with a config and a root filesystem.
-        # Testing for the config rather than the directory is what makes a
-        # half-written bundle count as absent.
-        return (Path(where) / "config.json").is_file()
+        return images.is_staged(where)
 
     try:
         import docker
@@ -247,51 +268,16 @@ def _make_placement(placement) -> None:
 def _unpack_bundle(bundle: str) -> None:
     '''Turn a registry reference into an OCI bundle Slurm can run.
 
-    🔴 `srun --container` takes a bundle on disk and not a registry reference,
-    so somebody has to do this -- and it is here rather than at submit because
-    an unpack is gigabytes and minutes, which is not something to do on the
-    thread answering an HTTP request.
-
-    Built through a `.part` directory and renamed, so a bundle either exists
-    complete or does not exist. Two jobs starting together want the same
-    digest and one of them loses the rename; losing is fine, because the
-    content is addressed by that digest and both copies are the same bytes.
+    The unpack itself is in `images.stage_bundle`, shared with the two callers
+    on the server side. What is here is the one thing only this process knows:
+    a bundle path names a digest and nothing in it says which registry to pull
+    from, so the server wrote that down beside the manifest.
     '''
     source = _image_sources.get(bundle)
     if not source:
         raise RuntimeError(f"nothing recorded to unpack into {bundle}")
 
-    for tool in ("skopeo", "umoci"):
-        if shutil.which(tool) is None:
-            raise RuntimeError(
-                f"{tool} is not installed on this compute node, and unpacking "
-                "an OCI bundle needs it")
-
-    target = Path(bundle)
-    target.parent.mkdir(parents=True, exist_ok=True)
-
-    staging = target.with_name(target.name + ".part")
-    shutil.rmtree(staging, ignore_errors=True)
-
-    layout = staging.with_name(staging.name + ".oci")
-    shutil.rmtree(layout, ignore_errors=True)
-
-    try:
-        subprocess.run(
-            ["skopeo", "copy", f"docker://{source}", f"oci:{layout}:sc"],
-            check=True)
-        subprocess.run(
-            ["umoci", "unpack", "--rootless", "--image", f"{layout}:sc", str(staging)],
-            check=True)
-        try:
-            staging.rename(target)
-        except OSError:
-            # Somebody else finished first. Their bundle is this bundle.
-            if not (target / "config.json").is_file():
-                raise
-    finally:
-        shutil.rmtree(layout, ignore_errors=True)
-        shutil.rmtree(staging, ignore_errors=True)
+    images.stage_bundle(Path(bundle).parent, source, Path(bundle).name)
 
 
 def _silence_console(project) -> None:
