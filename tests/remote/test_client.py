@@ -8,12 +8,14 @@ from pathlib import Path
 import pytest
 import responses
 
+from unittest import mock
+
 from siliconcompiler.remote import (
     Client, Credentials, RemoteError, ServerProblem, SessionEnded)
 from siliconcompiler.remote.client.errors import describe
 from siliconcompiler.remote.client.transport import join_url, normalize_server
 
-from conftest import problem
+from conftest import V1_URL, problem
 
 
 # Driven against the conformance rig: responses-based fixtures with no store,
@@ -559,3 +561,58 @@ def _proof_claims(proof):
     import jwt
 
     return jwt.decode(proof, options={"verify_signature": False})
+
+
+def test_reconfiguring_forgets_which_principal_the_old_server_used(
+        fake_v1, tmp_credentials, client_credentials, capabilities):
+    '''Pointing at a different server is not identity drift.
+
+    `user_id` is per server, so keeping one across a change of address would
+    have the first `me()` announce that this machine became somebody else --
+    on the one occasion when a different principal is exactly what was asked
+    for.
+    '''
+    tmp_credentials.update(user_id="who-the-old-server-called-me")
+
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u-new", "issuer": "local"})
+
+    client = Client(tmp_credentials)
+    client.configure_server(server=V1_URL.rsplit("/v1", 1)[0],
+                            clobber=True, prompt=False)
+
+    assert tmp_credentials.user_id == "u-new"
+
+
+def test_the_derivation_salt_is_pinned():
+    '''🔴 Editing this constant is a silent, uncoordinated identity migration.
+
+    The salt is compile-time and ships in the source. It provides domain
+    separation, NOT secrecy -- anybody with the source computes the same
+    digest, which is fine, because its whole job is to keep this project's
+    hash of a machine id different from every other program's hash of the same
+    machine id.
+
+    What it must never do is change. Every unauthenticated deployment derives
+    its subjects from it, so a new value makes every existing user a stranger
+    on every server at once: their jobs are still there and are no longer
+    theirs. There is no migration path, because the server cannot know the old
+    subject and the new one are the same person.
+
+    A comment asking for that is not a gate. This is.
+    '''
+    from siliconcompiler.remote.client import identity
+
+    assert identity._SALT == b"siliconcompiler.remote.v1"
+
+    # And the shape it produces, so a change to the derivation ITSELF is caught
+    # too -- reordering the inputs or dropping a separator is the same break
+    # with none of the visibility.
+    with mock.patch.object(identity, "machine_fingerprint",
+                           return_value=("a-machine-id", "linux_machine_id")), \
+         mock.patch.object(identity, "_uid", return_value="1000"):
+        subject, label, source = identity.local_subject()
+
+    assert subject == "ef75e01d65b55facdf7413b2840745d7:1000"
+    assert label == "7eb20bb0b9607154b02dac185bb497d7"
+    assert source == "linux_machine_id"

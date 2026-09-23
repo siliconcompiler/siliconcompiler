@@ -377,8 +377,14 @@ class Client:
                 "server authenticates with a key held on this machine, which "
                 "is generated for you.")
 
+        # user_id goes with the tokens, because all three are about ONE server
+        # and the address is changing. Keeping it would make the first `me()`
+        # against the new server report a drift that did not happen -- the
+        # principal is different because the server is, which is the one case
+        # that warning must not fire on.
         self.credentials.update(address=address, port=port,
-                                access_token=None, refresh_token=None)
+                                access_token=None, refresh_token=None,
+                                user_id=None)
         self._transport = Transport(
             normalize_server(address, port), self.credentials.key(),
             credentials=self.credentials)
