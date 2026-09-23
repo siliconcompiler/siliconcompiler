@@ -85,6 +85,11 @@ _NEXT_STEP = {
     "insecure-transport": "Use an https address for this server.",
     "idempotency-key-reuse": "A retry changed the request; start a new job.",
     "invalid-cursor": "Start the listing again.",
+    # The two that are never HTTP responses: they are `type` values on a job's
+    # or a node's error object, which is where a user meets them.
+    "run-failed": "Read the failing node's log: sc-remote -cfg <manifest>, then "
+                  "look in the build directory this fetched.",
+    "scheduler-lost": "The run went away rather than failing; submit it again.",
 }
 
 

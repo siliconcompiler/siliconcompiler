@@ -335,6 +335,68 @@ class Client:
         self.transport.request("DELETE", f"jobs/{job_id}")
 
     ######################################################################
+    # Artifacts
+    ######################################################################
+
+    def artifacts(self, job_id: str, **filters) -> list:
+        '''``GET /v1/jobs/{id}/artifacts``, following ``Link`` to the end.
+
+        🔴 `items` may be `[]` and no kind is guaranteed, the manifest
+        included. This returns what the server listed and judges none of it;
+        deciding what an entry means is the caller's, because the five
+        not-fetchable cases are five different sentences to a person.
+        '''
+        self.ensure_session()
+
+        params = {k: v for k, v in filters.items() if v is not None}
+        items = []
+        path = f"jobs/{job_id}/artifacts"
+
+        while True:
+            response = self.transport.request("GET", path, params=params)
+            items.extend(response.json().get("items") or [])
+
+            cursor = _next_cursor(response.headers.get("Link"))
+            if not cursor:
+                return items
+            params = dict(params, cursor=cursor)
+
+    def fetch_artifact(self, job_id: str, artifact_id: str, dest) -> str:
+        '''``GET /v1/jobs/{id}/artifacts/{artifact_id}``, followed to the bytes.
+
+        The redirect is the contract: this endpoint never carries a payload, so
+        the bytes come from wherever it points -- which on another deployment is
+        a bucket on a different origin.
+        '''
+        self.ensure_session()
+
+        response = self.transport.request(
+            "GET", f"jobs/{job_id}/artifacts/{artifact_id}", stream=True)
+        return self.transport.save(response, dest)
+
+    def node_log(self, job_id: str, step: str, index: str, dest) -> str:
+        '''``GET /v1/jobs/{id}/logs``: one node's log, followed to its bytes.
+
+        🔴 Branch on the `Content-Type` that comes back, never on the `303`. A
+        node can finish between the redirect and the fetch, so what the server
+        decided at the endpoint can already be stale; what was actually served
+        cannot be. `text/event-stream` is a live tail, anything else is the
+        archived file.
+        '''
+        self.ensure_session()
+
+        response = self.transport.request(
+            "GET", f"jobs/{job_id}/logs", params={"step": step, "index": index},
+            stream=True)
+
+        if response.headers.get("Content-Type", "").startswith("text/event-stream"):
+            raise RemoteError(
+                "this node is still running and the server offered a live "
+                "stream, which this client does not read yet")
+
+        return self.transport.save(response, dest)
+
+    ######################################################################
     # sc-remote -configure
     ######################################################################
 

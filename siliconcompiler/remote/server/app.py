@@ -89,11 +89,13 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     _register_error_handlers(app)
 
-    from siliconcompiler.remote.server.routes import auth, identity, jobs, meta
+    from siliconcompiler.remote.server.routes import (
+        artifacts, auth, identity, jobs, meta)
     app.register_blueprint(meta.blueprint)
     app.register_blueprint(auth.blueprint)
     app.register_blueprint(identity.blueprint)
     app.register_blueprint(jobs.blueprint)
+    app.register_blueprint(artifacts.blueprint)
 
     # `siliconcompiler` must be advertised or this server does not start. A
     # check rather than a column: it is satisfied by an empty registry today,

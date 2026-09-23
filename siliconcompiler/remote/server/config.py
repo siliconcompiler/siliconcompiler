@@ -45,8 +45,11 @@ DEFAULTS: Dict[str, Any] = {
     "grant_types_supported": ["client_credentials", "refresh_token"],
 
     # A registry, not free text: absent and unrecognised mean the same thing to
-    # a client, so a value is only listed once it is served.
-    "features": ["logs", "logs.stream"],
+    # a client, so a value is only listed once it is served. `logs.stream` is
+    # NOT here: the archived log is served and the live tail is not, and
+    # advertising it would have a client follow a 303 to a stream host that
+    # does not exist. It arrives with the endpoint that answers it.
+    "features": ["logs"],
 
     # The honesty half, pairing with the startup log. "verified" is the only
     # value that asserts anything; every other value, known or unknown, means

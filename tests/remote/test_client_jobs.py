@@ -494,3 +494,64 @@ def test_an_archive_refusal_names_the_rule_that_was_broken(fake_v1, logged_in):
         logged_in.submit_job("01J9-job", "sha256:" + "0" * 64, 10)
 
     assert "violation: link_member" in str(raised.value)
+
+
+###########################
+# A failed run says why, without opening a URL
+###########################
+
+def test_a_failed_run_explains_itself_and_still_fetches(fake_v1, run, caplog):
+    '''🔴 Results are retrieved on EVERY terminal state. A failed run is the one
+    whose log and manifest a user most wants, and a client that fetches nothing
+    when a job fails has hidden the evidence at the moment it became useful.'''
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "failed",
+        error={"type": "https://siliconcompiler.com/server-errors/run-failed",
+               "title": "The run failed"}))
+    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts",
+                  {"items": []})
+
+    with caplog.at_level("INFO"):
+        with pytest.raises(RemoteError):
+            run._poll("01J9-job")
+
+    assert "The run failed" in caplog.text
+    # The next step is in the client, because the type page is static and
+    # identical on every deployment -- so the server cannot say anything
+    # specific through it.
+    assert "Read the failing node's log" in caplog.text
+    # It asked for the results rather than giving up on them.
+    assert any("artifacts" in call.request.path_url for call in fake_v1.calls)
+
+
+def test_a_lost_run_is_told_apart_from_a_failed_one(fake_v1, run, caplog):
+    '''The hash did not determine it and re-running would succeed: different
+    words, and a different next step.'''
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "failed",
+        error={"type": "https://siliconcompiler.com/server-errors/scheduler-lost",
+               "title": "The scheduler lost this job"}))
+    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
+
+    with caplog.at_level("INFO"):
+        with pytest.raises(RemoteError):
+            run._poll("01J9-job")
+
+    assert "submit it again" in caplog.text
+
+
+def test_the_failure_render_needs_no_url(fake_v1, run, caplog):
+    '''Short enough to read in a terminal, and self-contained.'''
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "failed",
+        error={"type": "https://siliconcompiler.com/server-errors/run-failed",
+               "title": "The run failed"}))
+    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
+
+    with caplog.at_level("ERROR"):
+        with pytest.raises(RemoteError):
+            run._poll("01J9-job")
+
+    rendered = [r.message for r in caplog.records if "run failed" in r.message.lower()]
+    assert rendered
+    assert len(rendered[0].splitlines()) <= 4

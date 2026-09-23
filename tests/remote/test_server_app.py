@@ -59,7 +59,10 @@ def test_every_required_member_is_real(client):
 
     assert body["identity_assurance"] == "self-asserted"
     assert body["notices"] == []
-    assert body["features"] == ["logs", "logs.stream"]
+    # Only what is served. `logs.stream` is absent until something answers it:
+    # a client that saw it would follow a 303 to a stream host that is not
+    # there, and absent and unrecognised mean the same thing to a client.
+    assert body["features"] == ["logs"]
 
 
 def test_the_device_grant_is_not_advertised(client):

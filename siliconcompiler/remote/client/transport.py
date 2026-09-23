@@ -229,6 +229,32 @@ class Transport:
             problem = _problem_body(response)
             raise ServerProblem(problem, response.status_code)
 
+    def save(self, response, dest) -> str:
+        '''Stream a response body to a file.
+
+        Written through a temporary name and renamed, so an interrupted
+        download never leaves something that looks like a complete artifact --
+        the client's own build directory is the one place a half-file would be
+        picked up by the next step as though it were real.
+        '''
+        import os
+        import shutil
+
+        dest = str(dest)
+        os.makedirs(os.path.dirname(dest) or ".", exist_ok=True)
+
+        partial = dest + ".part"
+        try:
+            with open(partial, "wb") as f:
+                shutil.copyfileobj(response.raw, f)
+            os.replace(partial, dest)
+        except BaseException:
+            if os.path.exists(partial):
+                os.remove(partial)
+            raise
+
+        return dest
+
     ######################################################################
     # Login
     ######################################################################

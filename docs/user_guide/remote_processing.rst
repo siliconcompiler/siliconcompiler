@@ -146,6 +146,17 @@ running on the server.
 already stopped, or deleting one that is already deleted, is the same answer
 again. A job cannot be deleted while it is still running -- cancel it first.
 
+One node's log can be read on its own, without fetching the whole run:
+
+.. code-block:: python
+
+  client.node_log(job_id, "place", "0", "place.log")
+
+A node that has not started is reported as not ready and is worth asking about
+again. A node that is still running is refused permanently rather than
+transiently: this server keeps the finished log and does not serve a live tail,
+and the archived log arrives when the node finishes.
+
 Troubleshooting
 ---------------
 

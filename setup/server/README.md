@@ -68,11 +68,11 @@ The private key sits beside that file as `credentials.key`, both `0600`.
 twice: *"No remote server address is configured"* when it is asked to do
 anything, and the same again from `sc-remote` with the command that fixes it.
 
-**Fetching the results back is the next phase.** The run executes on the cluster
-and the server's own build tree is complete — `<datadir>/users/<user>/builds/`
-— but the artifact endpoints that bring it back to the client have not landed,
-so `sc-remote` says so at the end of a run rather than leaving an empty build
-directory unexplained.
+When the run ends the client pulls the results back and merges them into its own
+build directory, so `project.summary()` works exactly as it does after a local
+run. The server keeps its copy under `<datadir>/users/<user>/builds/`, indexed
+as artifacts with per-kind retention: manifests and logs for years, bulk outputs
+for the deployment's floor.
 
 ### Watching, cancelling and reconnecting
 

@@ -34,7 +34,9 @@ from siliconcompiler.schema import Parameter
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.paths import collectiondir, jobdir
 
-from siliconcompiler.remote.client.errors import RemoteError, ServerProblem
+from siliconcompiler.remote.client.errors import (
+    RemoteError, ServerProblem, describe)
+from siliconcompiler.remote.client.results import Results
 
 __all__ = ["RemoteRun", "REMOTE_MANIFEST"]
 
@@ -370,16 +372,20 @@ class RemoteRun:
         if state == "completed":
             self.logger.info("Remote job completed")
         elif job.get("error"):
-            self.logger.error(f"Remote job {state}: {job['error'].get('title')}")
+            self.logger.error(f"Remote job {state}: {_why_it_failed(job)}")
         else:
             self.logger.error(f"Remote job {state}")
 
-        # Fetching what the run produced is the next endpoint group and is not
-        # on this branch yet, so say so rather than leaving a user looking at an
-        # empty build directory and guessing.
-        self.logger.info(
-            "Results are on the server. Retrieving them is not available yet: "
-            "the artifact endpoints land in the next phase.")
+        # 🔴 Retrieved on EVERY terminal state, not only on success. A failed
+        # run is the one whose log and manifest a user most wants, and a client
+        # that fetches nothing when a job fails has hidden the evidence at the
+        # moment it became useful.
+        try:
+            Results(self.project, self.client).fetch(job["id"])
+        except ServerProblem as e:
+            self.logger.error(str(e))
+        except RemoteError as e:
+            self.logger.error(f"Could not retrieve results: {e}")
 
         # Unset so that a later summary() or show() is not narrowed by a run
         # that is over.
@@ -387,6 +393,17 @@ class RemoteRun:
 
         if state != "completed":
             raise RemoteError(f"the remote job ended {state}")
+
+
+def _why_it_failed(job: Dict[str, Any]) -> str:
+    '''Three lines about the failure, without opening a URL.
+
+    The `type` pages are static and identical on every deployment, so the server
+    cannot say anything specific through them -- which leaves the client holding
+    the only copy of the specific failure.
+    '''
+    error = job.get("error") or {}
+    return describe(error) if error.get("type") else "no reason given"
 
 
 def _is_refusal(problem: ServerProblem) -> bool:

@@ -20,7 +20,7 @@ to look for it, and the four rows that are deliberately still open say so.
 | | | |
 |---|---|---|
 | **A** job status | ✅ | `tests/remote/test_client_jobs.py`. A1 is `terminal`, A3 is `_record`, A6 became the node-state mapping, A8 is `_report_state`. **A4 and A5 are struck** — see below |
-| **B** fetching results | ⏳ | **phase 4.** Nothing in this section is asserted yet, and `sc-remote` says so at the end of a run rather than leaving an empty build directory unexplained |
+| **B** fetching results | ✅ | `tests/remote/test_client_results.py`, and the client half of `test_parity.py`. B1 is the tree assertion, B2 became *the manifest may be the only one there is*, B3 is the five sentences, B4 is `test_one_objects_failure_does_not_abort_the_others` |
 | **C** transport | ✅ | C1/C2 in `transport.py` (phase 2), C3–C7 in `test_client_jobs.py`, C8 is `delete_job`, C11–C13 were the phase-2 design requirements |
 | **D** credentials | ✅ | phase 2 |
 | **E** no server configured | ✅ | E4 is `test_an_unconfigured_client_refuses_before_it_packs_anything` — the test fails if the collection runs at all |
@@ -28,6 +28,22 @@ to look for it, and the four rows that are deliberately still open say so.
 | **G** submit-time sanitation | ✅ | `runspec.normalize`, asserted end to end in `test_the_run_happens_inside_the_users_own_tree`. **G7 is struck** — see below |
 | **I** the server entry point | ✅ | phase 1 |
 | **H** not carried forward | ✅ | every one is gone, and the job path is what replaced H2, H3, H4 and H9 |
+
+### What phase 4 answered in section B
+
+🔴 **B3 was the one row that said *one message becomes five sentences*, and it is now five.** Absent,
+blocked by an agreement, ungranted, deleted and expired each read differently, and the order they are
+checked in is part of it: a deleted object may also be past its retention, so **deleted is decided
+first** — retention lapsing is the system doing what it said, and a deletion is somebody deciding.
+
+🔴 **B1's destination holds, with two deliberate gaps.** `inputs/` is not shipped, because it is
+copies of the upstream node's outputs which the caller is already getting from the upstream node;
+and `sc_remote.pkg.json` exists only on the client, because it is the handle a reconnect uses.
+`test_a_design_runs_to_completion_and_the_tree_matches` asserts exactly that difference rather than
+a subset, so a third gap would fail it.
+
+✅ **B4's pool is gone and what it bought is not.** One object failing is reported and the rest still
+land; the parallelism it also bought was never the point of the row.
 
 ### The three rows that were struck rather than ticked
 

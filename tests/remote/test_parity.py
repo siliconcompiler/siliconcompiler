@@ -117,6 +117,55 @@ def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, live_serve
                         "gcd", "job0")
     assert local_tree <= tree(root), sorted(local_tree - tree(root))
 
+    # 🔴 And now on THIS machine, which is what a user actually looks at. The
+    # two differences are both deliberate: `inputs/` is copies of the upstream
+    # node's outputs, which the caller has from the upstream node, and
+    # sc_remote.pkg.json is the client's own handle for reconnecting.
+    here = tree(jobdir(remote))
+    missing = {name for name in local_tree - here
+               if os.sep + "inputs" + os.sep not in os.sep + name}
+    assert not missing, sorted(missing)
+    assert here - local_tree == {"sc_remote.pkg.json"}
+
+
+def test_a_summary_works_after_a_remote_run(gcd_design, live_server):
+    '''What the manifests are fetched FOR. The record, the metrics and the tool
+    versions are in them and in nothing the poll loop saw, so a run whose
+    results did not come back can report node states and no numbers.'''
+    Credentials(os.path.abspath("sc-home/credentials")).update(address=live_server)
+
+    remote = build_project(gcd_design, "remote-build")
+    remote.option.set_credentials(os.path.abspath("sc-home/credentials"))
+    remote.option.set_remote(True)
+    history = remote.run()
+
+    remote.summary()
+
+    # Read off the history `run()` returns, which is where a LOCAL run leaves
+    # them too: the live parameters are reset when a run ends.
+    for step in ("stepone", "steptwo"):
+        assert history.get("metric", "tasktime", step=step, index="0") is not None
+        assert history.get("record", "status", step=step, index="0") == "success"
+
+
+def test_one_nodes_log_comes_back_as_text(gcd_design, live_server):
+    '''Endpoint 20 followed to its bytes. A log at rest IS an artifact, so
+    this is the same machinery the listing uses with a different scope gate.'''
+    Credentials(os.path.abspath("sc-home/credentials")).update(address=live_server)
+
+    remote = build_project(gcd_design, "remote-build")
+    remote.option.set_credentials(os.path.abspath("sc-home/credentials"))
+    remote.option.set_remote(True)
+    remote.run()
+
+    from siliconcompiler.remote import Client
+
+    client = Client(Credentials(os.path.abspath("sc-home/credentials")))
+    job = client.jobs()[0]
+
+    client.node_log(job["id"], "stepone", "0", "fetched.log")
+    assert "stepone" in open("fetched.log").read()
+
 
 def test_the_run_happens_inside_the_users_own_tree(gcd_design, live_server):
     '''Per user as well as per job -- build directory AND cache. Nothing a user

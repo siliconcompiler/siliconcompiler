@@ -22,7 +22,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from siliconcompiler.remote.server import archive, runspec
+from siliconcompiler.remote.server import archive, artifacts, runspec
 from siliconcompiler.remote.server.dispatch import DispatchError
 from siliconcompiler.remote.server.errors import ERRORS, ProblemError, TYPE_BASE
 from siliconcompiler.remote.server.ids import uuid7
@@ -745,6 +745,12 @@ class JobService:
     def _finish(self, job, state: str, progress) -> None:
         if job["state"] == state:
             return
+
+        # Indexed before the transition, so a job is never readable as terminal
+        # with an empty listing: the first thing a client does on seeing
+        # `terminal` is ask what the run produced.
+        self._index(job)
+
         with self._store.transaction():
             if state == "failed":
                 self._store.execute(
@@ -755,6 +761,132 @@ class JobService:
                 (progress.get("finished_at") or now(), job["id"]))
             self._transition(job["id"], job["state"], state,
                              reason=progress.get("error"))
+
+    def _index(self, job) -> None:
+        '''Turn what the run left on disk into rows.
+
+        Never fatal: a job that ran is a job that ran, and failing to index its
+        output must not make it read as failed. The listing is empty, which is
+        a legal answer, and the log says why.
+        '''
+        try:
+            artifacts.collect(self._store, self._storage, self._config, job,
+                              self.job_root(job["user_id"], job["id"]))
+        except Exception as e:                                   # noqa: BLE001
+            logger.error(f"could not index the results of {job['id']}: {e}")
+
+    ######################################################################
+    # Artifacts
+    ######################################################################
+
+    def artifacts(self, session, job_id: str, args):
+        '''Endpoint 21: what this run produced, as far as this caller is
+        concerned.'''
+        job = self.owned(session, job_id)
+        if job["deleted_at"]:
+            # The job stays readable and its subresources do not.
+            raise ProblemError("not-found", detail="this job's data was deleted")
+
+        where = ["job_id = ?"]
+        params: List[Any] = [job["id"]]
+
+        kind = args.get("kind")
+        if kind:
+            if self._store.one("SELECT 1 FROM artifact_kinds WHERE kind = ?",
+                               (kind,)) is None:
+                raise ProblemError("invalid-request", detail=f"no such kind: {kind}")
+            where.append("kind = ?")
+            params.append(kind)
+
+        if args.get("step"):
+            where.append("step = ?")
+            params.append(args["step"])
+        if args.get("index"):
+            where.append('"index" = ?')
+            params.append(args["index"])
+
+        cursor = args.get("cursor")
+        if cursor:
+            created_at, artifact_id = _decode_cursor(cursor)
+            where.append("(created_at > ? OR (created_at = ? AND id > ?))")
+            params.extend([created_at, created_at, artifact_id])
+
+        limit = _limit(args.get("limit"))
+        rows = self._store.all(
+            f"SELECT * FROM artifacts WHERE {' AND '.join(where)} "
+            "ORDER BY created_at, id LIMIT ?", (*params, limit + 1))
+
+        more = len(rows) > limit
+        rows = rows[:limit]
+
+        items = [artifacts.wire(row) for row in rows]
+        return items, (_encode_cursor(rows[-1]) if more and rows else None)
+
+    def artifact(self, session, job_id: str, artifact_id: str):
+        '''Endpoint 22's row, with the two refusals it can make.'''
+        job = self.owned(session, job_id)
+        if job["deleted_at"]:
+            raise ProblemError("not-found", detail="this job's data was deleted")
+
+        row = self._store.one(
+            "SELECT * FROM artifacts WHERE id = ? AND job_id = ?",
+            (artifact_id, job["id"]))
+        if row is None:
+            raise ProblemError("not-found", detail="no such artifact")
+
+        if row["deleted_at"]:
+            # The bytes are gone. 404 rather than 403: there is nothing to be
+            # entitled to.
+            raise ProblemError("not-found", detail="these bytes were deleted")
+
+        if not artifacts.fetchable(row):
+            raise ProblemError(
+                "entitlement-denied", resource_kind="artifact", resource=row["kind"],
+                detail="this artifact is not available to fetch")
+
+        return row
+
+    def node_log(self, session, job_id: str, step: str, index: str):
+        '''Endpoint 20's target: the archived log for one terminal node.
+
+        Returns the artifact row to redirect to. Everything else this endpoint
+        can answer is a refusal, and which one depends on the node's state
+        rather than on the artifact -- a node that has not run has no log, and
+        saying `not-found` would tell a client to stop asking.
+        '''
+        job = self.owned(session, job_id)
+        if job["deleted_at"]:
+            raise ProblemError("not-found", detail="this job's data was deleted")
+
+        node = self._store.one(
+            'SELECT * FROM job_nodes WHERE job_id = ? AND step = ? AND "index" = ?',
+            (job["id"], step, index))
+        if node is None:
+            raise ProblemError("not-found", detail=f"no node {step}/{index} in this job")
+
+        if node["state"] in ("pending", "queued", "preparing"):
+            raise ProblemError(
+                "not-ready", artifact_kind="logs",
+                detail=f"{step}/{index} has not started",
+                headers={"Retry-After": str(self._config["poll_interval_seconds"])})
+
+        if node["state"] == "running":
+            # Permanent for the tail and not for the log: the archive still
+            # arrives when the node finishes. A client must not retry this.
+            raise ProblemError(
+                "feature-unsupported", feature="logs.stream",
+                detail="this deployment does not serve a live log; the archived "
+                       "log is available once the node finishes")
+
+        row = self._store.one(
+            "SELECT * FROM artifacts WHERE job_id = ? AND step = ? "
+            'AND "index" = ? AND kind = \'logs\' AND deleted_at IS NULL '
+            "ORDER BY created_at LIMIT 1", (job["id"], step, index))
+        if row is None:
+            raise ProblemError(
+                "not-found", detail=f"no log was kept for {step}/{index}")
+
+        return row
 
     ######################################################################
     # Rows, and the objects they become

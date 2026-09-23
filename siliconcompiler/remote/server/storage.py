@@ -29,6 +29,11 @@ __all__ = ["Storage", "SignatureError"]
 # was interrupted asks for another rather than holding one open.
 GRANT_SECONDS = 900
 
+# How long an artifact link stands up. Much shorter than an upload grant,
+# because nothing has to be prepared before it is used: the client is redirected
+# to it and follows it in the same breath.
+DOWNLOAD_SECONDS = 300
+
 _CHUNK = 1024 * 1024
 
 
@@ -170,6 +175,41 @@ class Storage:
 
     def artifact_dir(self, job_id: str) -> Path:
         return self.artifacts / job_id
+
+    def artifact_path(self, storage_key: str) -> Path:
+        '''Where one artifact's bytes are.
+
+        The key is the server's own, never the client's, and it is resolved
+        against the artifact root and checked -- a storage layer that joins a
+        stored string onto a path without looking is one schema change away
+        from serving whatever that string says.
+        '''
+        resolved = (self.artifacts / storage_key).resolve()
+        root = self.artifacts.resolve()
+        if root not in resolved.parents:
+            raise SignatureError(f"{storage_key} is not inside this store")
+        return resolved
+
+    def sign_download(self, artifact_id: str, expires_at: int) -> str:
+        '''The capability half of an artifact handover.
+
+        A different message prefix from an upload's, so a grant to PUT one job's
+        archive can never be presented as a grant to GET another job's outputs.
+        '''
+        return self._sign(f"download\n{artifact_id}\n{expires_at}")
+
+    def verify_download(self, artifact_id: str, expires_at: str,
+                        signature: str, when: float) -> None:
+        try:
+            deadline = int(expires_at)
+        except (TypeError, ValueError):
+            raise SignatureError("malformed link") from None
+
+        expected = self._sign(f"download\n{artifact_id}\n{deadline}")
+        if not hmac.compare_digest(expected, signature or ""):
+            raise SignatureError("the signature does not match this URL")
+        if when > deadline:
+            raise SignatureError("this link has expired")
 
     def discard_artifacts(self, job_id: str) -> None:
         shutil.rmtree(self.artifact_dir(job_id), ignore_errors=True)

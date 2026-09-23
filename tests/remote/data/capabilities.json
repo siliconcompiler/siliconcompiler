@@ -15,7 +15,7 @@
     "max_archive_members": 100000,
     "max_archive_expanded_bytes": 10737418240
   },
-  "features": ["logs", "logs.stream"],
+  "features": ["logs"],
   "identity_assurance": "self-asserted",
   "notices": []
 }
