@@ -90,6 +90,11 @@ def run(manifest: Path) -> int:
 
     TaskScheduler.register_callback("pre_node", _node_started)
     TaskScheduler.register_callback("post_node", _node_finished)
+    # 🔴 Settled HERE rather than after project.run() returns, because
+    # Project.run() resets every non-global parameter on its way out --
+    # `record,status` included. Read afterwards it is empty, and every node no
+    # callback fired for looks like one the run never reached.
+    TaskScheduler.register_callback("post_run", _settle)
 
     try:
         project.run()
@@ -107,12 +112,49 @@ def run(manifest: Path) -> int:
         return 0
     finally:
         _progress["finished_at"] = now()
-        for node in _progress["nodes"].values():
-            if node["state"] in ("pending", "queued", "running"):
-                # It never ran and never will: the run is over. Left as it was,
-                # it is a node a client polls for ever.
-                node["state"] = "cancelled"
+        # A run that died before post_run fired leaves its pending nodes here,
+        # and `cancelled` is the right answer for those: the run stopped before
+        # reaching them.
+        _sweep()
         _publish()
+
+
+def _sweep() -> None:
+    for node in _progress["nodes"].values():
+        if node["state"] in ("pending", "queued", "running"):
+            node["state"] = "cancelled"
+
+
+def _settle(project) -> None:
+    '''Decide what became of every node no callback fired for.
+
+    Runs as the `post_run` hook, while the record still exists.
+
+    🔴 Ask the run what it recorded before assuming the worst. A node the
+    scheduler decided not to execute -- metal fill on a PDK that disables it,
+    post-route timing repair that is switched off -- is never launched, so
+    neither `pre_node` nor `post_node` ever fires for it and it is still
+    `pending` here. It was not cancelled: the run considered it and skipped it,
+    and `record,status` says so.
+
+    ⚠️ Reporting those as `cancelled` read as *the job ended before this node
+    started*, which the client then mapped to an error -- so a perfectly
+    successful run showed two failures for work nobody ever intended to do.
+
+    `cancelled` is kept for the case it describes: a node with no recorded
+    status at all, because the run stopped before reaching it.
+    '''
+    for key, node in _progress["nodes"].items():
+        if node["state"] not in ("pending", "queued", "running"):
+            continue
+
+        step, _, index = key.partition("/")
+        try:
+            recorded = project.get('record', 'status', step=step, index=index)
+        except Exception:                                        # noqa: BLE001
+            recorded = None
+
+        node["state"] = node_state(recorded) if recorded else "cancelled"
 
 
 def main(argv=None) -> int:

@@ -48,6 +48,7 @@ def main():
     # This configures the project with the correct PDK, standard cell libraries,
     # and tool flow for this technology.
     freepdk45_demo(project)
+    project.option.set_remote(True)
 
     # --- Execution & Analysis ---
     # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).

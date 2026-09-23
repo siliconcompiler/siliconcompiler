@@ -510,3 +510,90 @@ def test_the_session_is_not_handed_to_the_stream_target(live):
     sent = response.request.headers
     assert "Authorization" not in sent
     assert "DPoP" not in sent
+
+
+###########################
+# A node the run skipped is not a node that failed
+###########################
+
+def test_a_skipped_node_is_reported_as_skipped(nop_project):
+    '''🔴 A node the scheduler decides not to execute is never launched, so
+    neither callback fires for it and it is still `pending` when the run ends.
+
+    Reporting that as `cancelled` read as *the job ended before this node
+    started*, which the client mapped to an error -- so a run that did exactly
+    what it was asked showed failures for work nobody intended to do. It is
+    what happens to metal fill on a PDK that disables it, and to post-route
+    timing repair that is switched off.
+    '''
+    from siliconcompiler.remote.server import runner
+
+    nop_project.set('record', 'status', 'skipped', step="steptwo", index="0")
+
+    runner._progress = {"nodes": {
+        "stepone/0": {"state": "completed"},
+        "steptwo/0": {"state": "pending"},
+    }}
+    runner._settle(nop_project)
+
+    assert runner._progress["nodes"]["steptwo/0"]["state"] == "skipped"
+    assert runner._progress["nodes"]["stepone/0"]["state"] == "completed"
+
+
+def test_a_node_the_run_never_reached_is_still_cancelled(nop_project):
+    '''The case `cancelled` is for: no recorded status at all, because the run
+    stopped before it got there.'''
+    from siliconcompiler.remote.server import runner
+
+    runner._progress = {"nodes": {"steptwo/0": {"state": "pending"}}}
+    runner._settle(nop_project)
+
+    assert runner._progress["nodes"]["steptwo/0"]["state"] == "cancelled"
+
+
+def test_a_failed_node_keeps_its_own_verdict(nop_project):
+    '''Only nodes no callback fired for are settled here.'''
+    from siliconcompiler.remote.server import runner
+
+    runner._progress = {"nodes": {"stepone/0": {"state": "failed"}}}
+    runner._settle(nop_project)
+
+    assert runner._progress["nodes"]["stepone/0"]["state"] == "failed"
+
+
+def test_the_client_reads_skipped_as_skipped_not_as_an_error(nop_project):
+    '''The other half: `skipped` is a SiliconCompiler status of its own, and
+    only `cancelled` has to borrow `error`.'''
+    from siliconcompiler.remote.client.run import node_status
+
+    assert node_status("skipped", True) == "skipped"
+    assert node_status("cancelled", True) == "error"
+
+
+def test_the_verdict_is_taken_before_the_record_is_reset(nop_project):
+    '''🔴 Project.run() resets every non-global parameter on its way out,
+    `record,status` included -- which is why this is a post_run callback and
+    not something the runner does after run() returns. Read afterwards the
+    record is empty, and every node no callback fired for looks like one the
+    run never reached.'''
+    from siliconcompiler.remote.server import runner
+    from siliconcompiler.scheduler.taskscheduler import TaskScheduler
+    from siliconcompiler.utils.multiprocessing import MPManager
+
+    nop_project.option.set_builddir("build")
+    runner._progress_path = None
+    runner._progress = {"nodes": {"stepone/0": {"state": "pending"},
+                                  "steptwo/0": {"state": "pending"}}}
+
+    TaskScheduler.register_callback("post_run", runner._settle)
+    nop_project.run()
+
+    # Both ran, so post_run found real statuses rather than nothing.
+    assert runner._progress["nodes"]["stepone/0"]["state"] == "completed"
+    assert runner._progress["nodes"]["steptwo/0"]["state"] == "completed"
+
+    # And the record really is gone by the time run() returns, which is the
+    # thing that made the first attempt at this wrong.
+    assert nop_project.get("record", "status", step="stepone", index="0") is None
+    MPManager.get_transient_settings().set("TaskScheduler", "post_run",
+                                           lambda project: None)
