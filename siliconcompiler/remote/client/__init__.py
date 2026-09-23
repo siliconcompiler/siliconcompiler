@@ -371,8 +371,9 @@ class Client:
         self.ensure_session()
 
         response = self.transport.request(
-            "GET", f"jobs/{job_id}/artifacts/{artifact_id}", stream=True)
-        return self.transport.save(response, dest)
+            "GET", f"jobs/{job_id}/artifacts/{artifact_id}", stream=True,
+            allow_redirects=False)
+        return self.transport.save(self.transport.follow(response), dest)
 
     def node_log(self, job_id: str, step: str, index: str, dest) -> str:
         '''``GET /v1/jobs/{id}/logs``: one node's log, followed to its bytes.
@@ -383,18 +384,48 @@ class Client:
         cannot be. `text/event-stream` is a live tail, anything else is the
         archived file.
         '''
+        response = self.follow_log(job_id, step, index)
+
+        if _is_stream(response):
+            response.close()
+            raise RemoteError(
+                f"{step}/{index} is still running; use tail_log() to read it "
+                "as it is written")
+
+        return self.transport.save(response, dest)
+
+    def follow_log(self, job_id: str, step: str, index: str,
+                   last_event_id=None):
+        '''``GET /v1/jobs/{id}/logs``, followed to whatever it points at.
+
+        🔴 Re-requested on every reconnect and never reused. Authorization is
+        evaluated here, at the endpoint that takes the token and the proof, and
+        the URL it hands back carries a lifetime of its own -- so a six-hour log
+        is a sequence of capability-length streams rather than one connection
+        outliving the credential that opened it.
+        '''
         self.ensure_session()
 
         response = self.transport.request(
             "GET", f"jobs/{job_id}/logs", params={"step": step, "index": index},
-            stream=True)
+            stream=True, allow_redirects=False)
 
-        if response.headers.get("Content-Type", "").startswith("text/event-stream"):
-            raise RemoteError(
-                "this node is still running and the server offered a live "
-                "stream, which this client does not read yet")
+        headers = {}
+        if last_event_id:
+            headers["Last-Event-ID"] = str(last_event_id)
 
-        return self.transport.save(response, dest)
+        return self.transport.follow(response, headers=headers)
+
+    def tail_log(self, job_id: str, step: str, index: str, write=None):
+        '''Read one node's log as it is written, to the end.
+
+        Returns the text it emitted. Reconnects for as long as the node is
+        running, because a capability expiring is the ordinary way a long tail
+        ends rather than a failure.
+        '''
+        from siliconcompiler.remote.client.logs import LogTail
+
+        return LogTail(self, job_id, step, index).follow(write=write)
 
     ######################################################################
     # sc-remote -configure
@@ -494,6 +525,16 @@ class Client:
 
         self.credentials.update(directory_whitelist=entries)
         self.logger.info(f"Directory whitelist saved to {self.credentials.path}")
+
+
+def _is_stream(response) -> bool:
+    '''🔴 The ONLY thing that says a live tail from a finished file.
+
+    Deliberately not a flag on the 303: a node can finish between the redirect
+    and the fetch, so anything the server computed at `/logs` can be stale by
+    the time it is used. What was actually served cannot be.
+    '''
+    return response.headers.get("Content-Type", "").startswith("text/event-stream")
 
 
 def _next_cursor(link: Optional[str]) -> Optional[str]:

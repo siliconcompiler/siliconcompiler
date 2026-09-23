@@ -276,14 +276,17 @@ def test_a_half_written_download_is_never_left_behind(fake_v1, logged_in,
     assert not (tmp_path / "thing.json.part").exists()
 
 
-def test_a_live_stream_is_recognised_and_refused_for_now(fake_v1, logged_in,
-                                                         tmp_path):
+def test_asking_for_a_file_and_being_served_a_stream_says_where_to_go(
+        fake_v1, logged_in, tmp_path):
     '''🔴 Branch on the Content-Type that was served, never on the 303: a node
-    can finish between the redirect and the fetch.'''
+    can finish between the redirect and the fetch, so `node_log` can be asked
+    for a file and handed a tail. It names the call that reads one rather than
+    writing event frames into a .log.'''
     fake_v1.route(responses.GET, "jobs/j1/logs", "event: log\n\n",
                   content_type="text/event-stream")
 
     with pytest.raises(RemoteError) as raised:
         logged_in.node_log("j1", "stepone", "0", tmp_path / "node.log")
 
-    assert "live stream" in str(raised.value)
+    assert "tail_log" in str(raised.value)
+    assert not (tmp_path / "node.log").exists()

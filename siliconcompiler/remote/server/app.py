@@ -18,6 +18,7 @@ from siliconcompiler.remote.server.config import Config
 from siliconcompiler.remote.server.dispatch import dispatcher_for
 from siliconcompiler.remote.server.errors import ERRORS, ProblemError, problem
 from siliconcompiler.remote.server.jobs import JobService
+from siliconcompiler.remote.server.logstream import StreamLimiter
 from siliconcompiler.remote.server.storage import Storage
 from siliconcompiler.remote.server.store import Store
 
@@ -85,7 +86,9 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
                       SC_ISSUER=issuer, SC_BIND_KEYS=bind_keys,
                       SC_STORAGE=storage,
                       SC_JOBS=JobService(store, config, storage,
-                                         dispatcher_for(cluster), datadir))
+                                         dispatcher_for(cluster), datadir),
+                      SC_STREAMS=StreamLimiter(
+                          config.limits["concurrent_log_streams"]))
 
     _register_error_handlers(app)
 

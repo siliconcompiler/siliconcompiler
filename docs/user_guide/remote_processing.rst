@@ -146,16 +146,39 @@ running on the server.
 already stopped, or deleting one that is already deleted, is the same answer
 again. A job cannot be deleted while it is still running -- cancel it first.
 
-One node's log can be read on its own, without fetching the whole run:
+Reading one node's log
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+  sc-remote -cfg build/<design>/<job>/sc_remote.pkg.json -tail place/0
+
+**If the node is still running this follows the log live**, and if it has
+finished it prints the archived one. The same call covers both, because a node
+can finish between asking and reading and a client that decided in advance
+would sometimes be wrong.
+
+``<step>/<index>`` is two fields rather than one name on purpose: ``place/10``
+and ``place1/0`` would otherwise both read as ``place10``. The index defaults to
+``0``.
+
+From Python:
 
 .. code-block:: python
 
-  client.node_log(job_id, "place", "0", "place.log")
+  client.tail_log(job_id, "place", "0", write=print)   # live, to the end
+  client.node_log(job_id, "place", "0", "place.log")   # the archived file
 
-A node that has not started is reported as not ready and is worth asking about
-again. A node that is still running is refused permanently rather than
-transiently: this server keeps the finished log and does not serve a live tail,
-and the archived log arrives when the node finishes.
+A long tail survives being interrupted. The URL the server hands out has a
+lifetime of its own, shorter than most place-and-route runs, so the client
+re-asks and resumes from where it stopped -- which is also what happens when a
+laptop closes its lid or a proxy drops an idle connection. Nothing is repeated
+and nothing is skipped.
+
+A node that has not started yet is reported as not ready and is worth asking
+about again. A deployment that keeps finished logs but serves no live tail says
+so permanently rather than transiently, so a client stops asking for the tail
+and still gets the log when the node finishes.
 
 Troubleshooting
 ---------------

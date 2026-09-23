@@ -694,12 +694,20 @@ class JobService:
 
         for key, node in (progress.get("nodes") or {}).items():
             step, _, index = key.partition("/")
+            state = node.get("state", "pending")
+
             self._store.execute(
                 'UPDATE job_nodes SET state = ?, started_at = ?, finished_at = ?, '
                 '  exit_code = ? WHERE job_id = ? AND step = ? AND "index" = ?',
-                (node.get("state", "pending"), node.get("started_at"),
-                 node.get("finished_at"), node.get("exit_code"),
-                 job["id"], step, index))
+                (state, node.get("started_at"), node.get("finished_at"),
+                 node.get("exit_code"), job["id"], step, index))
+
+            if state in TERMINAL_NODE_STATES:
+                # Indexed as the node finishes rather than as the job does, so
+                # a node that is done answers /logs with its archive while the
+                # rest of the flow is still running -- which is precisely the
+                # moment somebody tailing it asks.
+                self._index_node_log(job, step, index)
 
         reported = progress.get("state")
         started_at = progress.get("started_at")
@@ -775,6 +783,14 @@ class JobService:
         except Exception as e:                                   # noqa: BLE001
             logger.error(f"could not index the results of {job['id']}: {e}")
 
+    def _index_node_log(self, job, step: str, index: str) -> None:
+        try:
+            artifacts.collect_node_log(
+                self._store, self._storage, self._config, job,
+                self.job_root(job["user_id"], job["id"]), step, index)
+        except Exception as e:                                   # noqa: BLE001
+            logger.error(f"could not index the log of {job['id']} {step}/{index}: {e}")
+
     ######################################################################
     # Artifacts
     ######################################################################
@@ -849,10 +865,11 @@ class JobService:
     def node_log(self, session, job_id: str, step: str, index: str):
         '''Endpoint 20's target: the archived log for one terminal node.
 
-        Returns the artifact row to redirect to. Everything else this endpoint
-        can answer is a refusal, and which one depends on the node's state
-        rather than on the artifact -- a node that has not run has no log, and
-        saying `not-found` would tell a client to stop asking.
+        Returns ``("stream", node)`` or ``("artifact", row)`` -- the two things
+        a 303 can point at. Everything else this endpoint can answer is a
+        refusal, and which one depends on the node's state rather than on the
+        artifact: a node that has not run has no log, and saying `not-found`
+        would tell a client to stop asking.
         '''
         job = self.owned(session, job_id)
         if job["deleted_at"]:
@@ -871,22 +888,72 @@ class JobService:
                 headers={"Retry-After": str(self._config["poll_interval_seconds"])})
 
         if node["state"] == "running":
-            # Permanent for the tail and not for the log: the archive still
-            # arrives when the node finishes. A client must not retry this.
-            raise ProblemError(
-                "feature-unsupported", feature="logs.stream",
-                detail="this deployment does not serve a live log; the archived "
-                       "log is available once the node finishes")
+            if "logs.stream" not in self._config["features"]:
+                # Permanent for the tail and not for the log: the archive still
+                # arrives when the node finishes. A client must not retry this.
+                raise ProblemError(
+                    "feature-unsupported", feature="logs.stream",
+                    detail="this deployment does not serve a live log; the "
+                           "archived log is available once the node finishes")
+            return "stream", node
+
+        self._index_node_log(job, step, index)
 
         row = self._store.one(
             "SELECT * FROM artifacts WHERE job_id = ? AND step = ? "
             'AND "index" = ? AND kind = \'logs\' AND deleted_at IS NULL '
             "ORDER BY created_at LIMIT 1", (job["id"], step, index))
+
         if row is None:
+            if job["state"] not in TERMINAL_STATES:
+                # The node is over and the job is not, so the archive may still
+                # be on its way. 🔴 Transient rather than `not-found`: a 404
+                # tells a client to stop asking about a log that is about to
+                # exist.
+                raise ProblemError(
+                    "not-ready", artifact_kind="logs",
+                    detail=f"the log for {step}/{index} has not been archived yet",
+                    headers={"Retry-After":
+                             str(self._config["poll_interval_seconds"])})
             raise ProblemError(
                 "not-found", detail=f"no log was kept for {step}/{index}")
 
-        return row
+        return "artifact", row
+
+    def node_log_path(self, job, step: str, index: str):
+        '''Where the bytes a tail reads are.'''
+        return (self.job_root(job["user_id"], job["id"]) / job["design"] /
+                job["jobname"] / step / index / f"sc_{step}_{index}.log")
+
+    def node_state(self, job_id: str, step: str, index: str):
+        '''What this node is doing NOW.
+
+        Read fresh every time rather than captured, because a stream asks over
+        and over across the hours it may be open.
+        '''
+        row = self._store.one(
+            'SELECT state FROM job_nodes WHERE job_id = ? AND step = ? '
+            'AND "index" = ?', (job_id, step, index))
+        return row["state"] if row else None
+
+    def node_log_artifact(self, job_id: str, step: str, index: str):
+        '''The archived log's id, indexing it first if it is not there yet.
+
+        🔴 Called as a tail reaches the end of a node. The alternative is
+        waiting for the next poll to reconcile, which leaves a window where the
+        stream has said `terminal` and the archive it names does not exist --
+        so a client that follows the `end` event straight to `/logs` is told
+        there is no log for a node whose log it has just finished reading.
+        '''
+        job = self._row(job_id)
+        if job is not None:
+            self._index_node_log(job, step, index)
+
+        row = self._store.one(
+            "SELECT id FROM artifacts WHERE job_id = ? AND step = ? "
+            'AND "index" = ? AND kind = \'logs\' AND deleted_at IS NULL '
+            "ORDER BY created_at LIMIT 1", (job_id, step, index))
+        return row["id"] if row else None
 
     ######################################################################
     # Rows, and the objects they become

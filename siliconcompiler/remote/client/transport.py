@@ -229,6 +229,34 @@ class Transport:
             problem = _problem_body(response)
             raise ServerProblem(problem, response.status_code)
 
+    def follow(self, response, headers=None, stream: bool = True):
+        '''Follow a 303 to storage, with this session left behind.
+
+        🔴 Not `allow_redirects=True`, and the difference matters where storage
+        is somebody else's bucket. `requests` drops `Authorization` when a
+        redirect changes host and knows nothing about `DPoP`, so an
+        automatically-followed redirect hands a signed proof to a third party.
+        The proof is bound to the API's URI and could not be replayed against
+        it, but a credential-shaped thing arriving at a bucket is not something
+        to rely on being harmless.
+
+        The target carries its own credential in its signature, which is what a
+        presigned URL is.
+        '''
+        if response.status_code not in (301, 302, 303, 307, 308):
+            return response
+
+        target = response.headers.get("Location")
+        if not target:
+            raise RemoteError("the server redirected without saying where")
+
+        try:
+            return self._session.get(
+                target, headers=dict(headers or {}), stream=stream,
+                timeout=TIMEOUT_SECONDS, allow_redirects=False)
+        except requests.RequestException as e:
+            raise RemoteError(f"could not reach {target}: {_why(e)}") from None
+
     def save(self, response, dest) -> str:
         '''Stream a response body to a file.
 

@@ -31,7 +31,18 @@ DEFAULT_LIMITS: Dict[str, int] = {
     "job_retention_days": 30,               # days
     "pending_uploads": 8,                   # jobs held in created or awaiting_input
     "concurrent_jobs": 4,                   # jobs in queued, running or cancelling
-    "concurrent_log_streams": 8,            # open /logs streams per caller
+    # Open /logs streams per caller, and the number is chosen rather than
+    # inherited. What one costs, now that there is something to measure: a
+    # worker thread and an open file for as long as it lives, which is up to
+    # max_log_stream_seconds, plus a stat twice a second while the log is quiet.
+    # Under a threaded WSGI server there is no fixed pool to exhaust, so what
+    # runs out is memory and descriptors rather than capacity.
+    #
+    # 8 is generous for a person -- nobody reads eight logs at once -- and
+    # deliberately not generous enough for a client that would open one per node
+    # of a wide flow. That client should poll the job, which is one request for
+    # the whole run, and tail only the nodes somebody is actually watching.
+    "concurrent_log_streams": 8,
     "max_log_stream_seconds": 14400,        # 4h; the client sets its reconnect timer from it,
                                             # and jobs routinely outlast it
     "max_archive_members": 100000,          # members in the upload archive
@@ -45,11 +56,11 @@ DEFAULTS: Dict[str, Any] = {
     "grant_types_supported": ["client_credentials", "refresh_token"],
 
     # A registry, not free text: absent and unrecognised mean the same thing to
-    # a client, so a value is only listed once it is served. `logs.stream` is
-    # NOT here: the archived log is served and the live tail is not, and
-    # advertising it would have a client follow a 303 to a stream host that
-    # does not exist. It arrives with the endpoint that answers it.
-    "features": ["logs"],
+    # a client, so a value is only listed once it is served. Both are, now:
+    # `logs` is the archived file and `logs.stream` is the live tail, and they
+    # are two strings because one could not say which of the two a deployment
+    # had.
+    "features": ["logs", "logs.stream"],
 
     # The honesty half, pairing with the startup log. "verified" is the only
     # value that asserts anything; every other value, known or unknown, means

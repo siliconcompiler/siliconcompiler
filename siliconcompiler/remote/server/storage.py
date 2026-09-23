@@ -198,6 +198,28 @@ class Storage:
         '''
         return self._sign(f"download\n{artifact_id}\n{expires_at}")
 
+    def sign_stream(self, job_id: str, step: str, index: str,
+                    expires_at: int) -> str:
+        '''The capability half of a live tail.
+
+        A third prefix, so none of the three grants this server issues can be
+        presented as either of the others.
+        '''
+        return self._sign(f"stream\n{job_id}\n{step}\n{index}\n{expires_at}")
+
+    def verify_stream(self, job_id: str, step: str, index: str,
+                      expires_at: str, signature: str, when: float) -> None:
+        try:
+            deadline = int(expires_at)
+        except (TypeError, ValueError):
+            raise SignatureError("malformed link") from None
+
+        expected = self._sign(f"stream\n{job_id}\n{step}\n{index}\n{deadline}")
+        if not hmac.compare_digest(expected, signature or ""):
+            raise SignatureError("the signature does not match this URL")
+        if when > deadline:
+            raise SignatureError("this stream link has expired")
+
     def verify_download(self, artifact_id: str, expires_at: str,
                         signature: str, when: float) -> None:
         try:

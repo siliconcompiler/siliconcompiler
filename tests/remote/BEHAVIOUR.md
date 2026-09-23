@@ -24,7 +24,7 @@ to look for it, and the four rows that are deliberately still open say so.
 | **C** transport | ✅ | C1/C2 in `transport.py` (phase 2), C3–C7 in `test_client_jobs.py`, C8 is `delete_job`, C11–C13 were the phase-2 design requirements |
 | **D** credentials | ✅ | phase 2 |
 | **E** no server configured | ✅ | E4 is `test_an_unconfigured_client_refuses_before_it_packs_anything` — the test fails if the collection runs at all |
-| **F** the CLI | ✅ | `tests/remote/test_parity.py`, against a live server. F7 and F8 are the reconnect path |
+| **F** the CLI | ✅ | `tests/remote/test_parity.py`, against a live server. F7 and F8 are the reconnect path, and `-tail` is new rather than carried forward |
 | **G** submit-time sanitation | ✅ | `runspec.normalize`, asserted end to end in `test_the_run_happens_inside_the_users_own_tree`. **G7 is struck** — see below |
 | **I** the server entry point | ✅ | phase 1 |
 | **H** not carried forward | ✅ | every one is gone, and the job path is what replaced H2, H3, H4 and H9 |

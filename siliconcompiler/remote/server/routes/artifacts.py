@@ -16,6 +16,7 @@ import time
 
 import flask
 
+from siliconcompiler.remote.server import logstream
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.routes.auth import require
 from siliconcompiler.remote.server.storage import DOWNLOAD_SECONDS, SignatureError
@@ -98,12 +99,102 @@ def logs(session, job_id):
         raise ProblemError(
             "invalid-request", detail="both step and index are required")
 
-    return _redirect(_jobs().node_log(session, job_id, step, index))
+    target, payload = _jobs().node_log(session, job_id, step, index)
+
+    if target == "artifact":
+        return _redirect(payload)
+    return _stream_redirect(job_id, step, index)
+
+
+def _stream_redirect(job_id, step, index):
+    '''A capability URL on this host, with its own lifetime.
+
+    The contract sends a live tail to a stream host on its own origin and this
+    deployment has one origin, so the answer is the one `file://` storage
+    already gives for artifacts: a signed route here, reached through the same
+    `303`. 🔴 Nothing on the wire changes -- authorization was still evaluated
+    at `/logs`, and the URL still carries a TTL of its own rather than the
+    access token's, which is what lets a six-hour log outlive a 900-second
+    token.
+    '''
+    config = flask.current_app.config["SC_CONFIG"]
+    storage = flask.current_app.config["SC_STORAGE"]
+
+    expires = int(time.time()) + config.limits["max_log_stream_seconds"]
+    signature = storage.sign_stream(job_id, step, index, expires)
+
+    target = (f"{flask.request.url_root.rstrip('/')}/stream/logs/"
+              f"{job_id}/{step}/{index}?expires={expires}&sig={signature}")
+
+    response = flask.make_response("", 303)
+    response.headers["Location"] = target
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 ######################################################################
 # Not an endpoint: where a 303 above points
 ######################################################################
+
+@blueprint.route("/stream/logs/<job_id>/<step>/<index>", methods=["GET"])
+def tail(job_id, step, index):
+    '''The live tail, where a `303` from ``/logs`` points.
+
+    Served as ``text/event-stream``, which is the ONLY thing that tells a client
+    this is a stream rather than a file -- and deliberately so: a node can
+    finish between the redirect and the fetch, so anything decided at ``/logs``
+    can be stale by the time it is used, and the type of what was actually
+    served cannot be.
+    '''
+    config = flask.current_app.config["SC_CONFIG"]
+    storage = flask.current_app.config["SC_STORAGE"]
+    store = flask.current_app.config["SC_STORE"]
+    jobs = flask.current_app.config["SC_JOBS"]
+    limiter = flask.current_app.config["SC_STREAMS"]
+
+    args = flask.request.args
+    try:
+        storage.verify_stream(job_id, step, index, args.get("expires"),
+                              args.get("sig"), time.time())
+    except SignatureError as e:
+        raise ProblemError("invalid-request", detail=str(e)) from None
+
+    job = store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
+    if job is None or job["deleted_at"]:
+        raise ProblemError("not-found", detail="no such job")
+
+    owner = job["user_id"]
+    if not limiter.acquire(owner):
+        raise ProblemError(
+            "limit-exceeded", limit="concurrent_log_streams",
+            detail=f"you already have {limiter.held(owner)} logs open",
+            headers={"Retry-After": str(config["poll_interval_seconds"])})
+
+    start = logstream.resume_from(
+        flask.request.headers.get("Last-Event-ID"), args.get("last_event_id"))
+    deadline = time.monotonic() + config.limits["max_log_stream_seconds"]
+
+    def frames():
+        try:
+            yield from logstream.events(
+                jobs.node_log_path(job, step, index), step, index,
+                node_state=lambda: jobs.node_state(job_id, step, index),
+                start=start, deadline=deadline,
+                artifact_id=lambda: jobs.node_log_artifact(job_id, step, index))
+        finally:
+            # In a finally, because the commonest way a tail ends is the reader
+            # hanging up -- which reaches this generator as GeneratorExit and
+            # would otherwise leak the slot for the life of the process.
+            limiter.release(owner)
+
+    response = flask.Response(frames(), mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-store"
+    # For whatever fronts this: an SSE response that is buffered is not a
+    # stream, and the exemption is owed by the proxy rather than by the client.
+    response.headers["X-Accel-Buffering"] = "no"
+    response.headers["Connection"] = "keep-alive"
+    return response
+
 
 @blueprint.route("/storage/artifact/<job_id>/<artifact_id>", methods=["GET"])
 def download(job_id, artifact_id):

@@ -347,12 +347,10 @@ def test_a_node_that_has_not_started_is_not_ready(server_client, key, token,
     assert response.headers["Retry-After"]
 
 
-def test_a_running_node_refuses_the_tail_and_not_the_log(server, server_client,
-                                                         key, token, job_archive,
-                                                         dispatcher):
-    '''🔴 Permanent, so a client must not retry it -- and the archive still
-    arrives when the node finishes. Without this a deployment that will never
-    serve a live log could only say "try later", for ever.'''
+def test_a_running_node_redirects_to_the_live_tail(server, server_client, key,
+                                                   token, job_archive, dispatcher):
+    '''This deployment advertises logs.stream, so a running node is a stream
+    rather than a refusal.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
@@ -362,9 +360,67 @@ def test_a_running_node_refuses_the_tail_and_not_the_log(server, server_client,
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{job['id']}/logs?step=stepone&index=0", token)
 
+    assert response.status_code == 303
+    assert "/stream/logs/" in response.headers["Location"]
+
+
+def test_a_deployment_without_the_tail_refuses_it_permanently(tmp_path, monkeypatch):
+    '''🔴 Permanent, so a client must not retry it -- and the archive still
+    arrives when the node finishes, so this refuses the live read and not the
+    log. Without it a deployment that will never serve a live log could only
+    say "try later", for ever.'''
+    import json as _json
+
+    from siliconcompiler.remote import dpop
+    from siliconcompiler.remote.server.app import create_app
+    from siliconcompiler.remote.server.ids import uuid7
+
+    datadir = tmp_path / "quiet"
+    datadir.mkdir()
+    (datadir / "config.json").write_text(_json.dumps({"features": ["logs"]}))
+
+    app = create_app(datadir)
+    client = app.test_client()
+    quiet_key = dpop.generate_key()
+    quiet_token = login(client, quiet_key).get_json()["access_token"]
+
+    assert client.get("/v1").get_json()["features"] == ["logs"]
+
+    store = app.config["SC_STORE"]
+    me = call(client, quiet_key, "GET", "/v1/me", quiet_token).get_json()["id"]
+    job_id = str(uuid7())
+    store.execute(
+        "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
+        "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
+        (job_id, me))
+    store.execute('INSERT INTO job_nodes (job_id, step, "index", state) '
+                  "VALUES (?, 'place', '0', 'running')", (job_id,))
+
+    response = call(client, quiet_key, "GET",
+                    f"/v1/jobs/{job_id}/logs?step=place&index=0", quiet_token)
+
     assert response.status_code == 501
     assert slug(response) == "feature-unsupported"
     assert response.get_json()["feature"] == "logs.stream"
+
+
+def test_a_finished_node_whose_log_is_not_archived_yet_is_not_ready(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''🔴 Transient, not 404. The node is over and the job is not, so the
+    archive may still be on its way -- and a 404 tells a client to stop asking
+    about a log that is about to exist.'''
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+    server.config["SC_STORE"].execute(
+        "UPDATE job_nodes SET state = 'completed' WHERE job_id = ?", (job["id"],))
+
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{job['id']}/logs?step=stepone&index=0", token)
+
+    assert response.status_code == 409
+    assert slug(response) == "not-ready"
+    assert response.headers["Retry-After"]
 
 
 def test_a_node_this_job_does_not_have(server_client, key, token, finished):

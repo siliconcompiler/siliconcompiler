@@ -36,6 +36,9 @@ To reconnect an ongoing job, use:
 
 To delete a job, use:
     sc-remote -delete -cfg <stepdir>/outputs/<design>.pkg.json
+
+To read one node's log, live if it is still running, use:
+    sc-remote -tail place/0 -cfg <stepdir>/outputs/<design>.pkg.json
 -----------------------------------------------------------
 """
 
@@ -67,6 +70,9 @@ To delete a job, use:
                                            "cancel a running job on the remote")
             self._add_commandline_argument("delete", "bool",
                                            "delete a job on the remote")
+            self._add_commandline_argument("tail", "str",
+                                           "read one node's log as <step>/<index>; "
+                                           "follows it live while the node runs")
 
     switchlist = ['-cfg',
                   '-credentials',
@@ -77,7 +83,8 @@ To delete a job, use:
                   '-list',
                   '-reconnect',
                   '-cancel',
-                  '-delete']
+                  '-delete',
+                  '-tail']
 
     # Argument Parser
     remote = RemoteProject.create_cmdline(progname, switchlist=switchlist, description=description,
@@ -100,8 +107,8 @@ def _credentials(remote) -> Credentials:
 
 def _dispatch(remote):
     # Sanity checks.
-    exclusive = ['configure', 'reconnect', 'cancel', 'delete']
-    cfg_only = ['reconnect', 'cancel', 'delete']
+    exclusive = ['configure', 'reconnect', 'cancel', 'delete', 'tail']
+    cfg_only = ['reconnect', 'cancel', 'delete', 'tail']
 
     exclusive_count = sum([1 for arg in exclusive if remote.get("cmdarg", arg)])
     if exclusive_count > 1:
@@ -188,6 +195,20 @@ def _act_on_job(remote, client, project_cfg):
     if remote.get("cmdarg", 'delete'):
         client.delete_job(job_id)
         remote.logger.info(f"Job {job_id} deleted")
+        return 0
+
+    node = remote.get("cmdarg", 'tail')
+    if node:
+        step, _, index = node.partition("/")
+        if not step:
+            remote.logger.error("-tail takes <step>/<index>, for example place/0")
+            return 1
+        # Two fields rather than one string, which is why the separator is
+        # required rather than parsed out of a run-together name: step=place
+        # index=10 and step=place1 index=0 both render "place10".
+        client.tail_log(job_id, step, index or "0",
+                        write=lambda text: (sys.stdout.write(text),
+                                            sys.stdout.flush()))
         return 0
 
     if remote.get("cmdarg", 'reconnect'):

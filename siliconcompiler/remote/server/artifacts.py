@@ -39,7 +39,7 @@ from typing import Any, Dict, List, Optional
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
 
-__all__ = ["collect", "wire", "fetchable", "KINDS"]
+__all__ = ["collect", "collect_node_log", "wire", "fetchable", "KINDS"]
 
 
 logger = logging.getLogger("sc-server")
@@ -51,19 +51,36 @@ KINDS = ("manifest", "logs", "reports", "outputs")
 _CHUNK = 1024 * 1024
 
 
+def collect_node_log(store, storage, config, job, build_root, step, index) -> int:
+    '''Index one node's log, the moment that node is done.
+
+    🔴 Not deferrable to the end of the job. A terminal node answers `/logs`
+    with a `303` to its archived log, and a node finishing while the rest of the
+    flow runs on is the ORDINARY case -- it is exactly what happens to somebody
+    tailing that node. Waiting for the job would answer *no log was kept* for a
+    node that had just written one.
+    '''
+    root = Path(build_root) / job["design"] / job["jobname"]
+    log = root / step / index / f"sc_{step}_{index}.log"
+    if not log.is_file():
+        return 0
+
+    return _index(store, storage, job, config["storage_location_id"],
+                  config.limits["job_retention_days"], "logs", step, index,
+                  log, "text/plain")
+
+
 def collect(store, storage, config, job, build_root) -> int:
     '''Index everything one finished job produced. Returns how many rows.
 
-    Called once, when the job reaches a terminal state. Anything already
-    indexed for this job is left alone, so a second call after a restart adds
-    nothing rather than duplicating the listing.
+    Called when the job reaches a terminal state. Every write is conditional on
+    there being no row for that kind and node yet, so the node logs already
+    indexed as their nodes finished are left alone, and a second call after a
+    restart adds nothing rather than duplicating the listing.
     '''
     root = Path(build_root) / job["design"] / job["jobname"]
     if not root.is_dir():
         logger.warning(f"{job['id']} left no build directory to index")
-        return 0
-
-    if store.one("SELECT 1 FROM artifacts WHERE job_id = ? LIMIT 1", (job["id"],)):
         return 0
 
     location = config["storage_location_id"]
@@ -111,9 +128,25 @@ def _has_files(path: Path) -> bool:
     return path.is_dir() and any(path.rglob("*"))
 
 
+def _exists(store, job, kind, step, index) -> bool:
+    '''Whether this kind is already indexed for this node.
+
+    One row per (job, kind, node) is the rule that makes indexing idempotent,
+    and it is checked here rather than by the callers so that no path can
+    forget it.
+    '''
+    return store.one(
+        'SELECT 1 FROM artifacts WHERE job_id = ? AND kind = ? '
+        "AND step IS ? AND \"index\" IS ? LIMIT 1",
+        (job["id"], kind, step, index)) is not None
+
+
 def _index(store, storage, job, location, floor, kind, step, index,
            source: Path, media_type: str) -> int:
     '''One file, copied into the artifact store and recorded.'''
+    if _exists(store, job, kind, step, index):
+        return 0
+
     artifact_id = str(uuid7())
     target = storage.artifact_dir(job["id"]) / artifact_id
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -131,6 +164,9 @@ def _archive(store, storage, job, location, floor, kind, step, index,
     straight into the same place without knowing anything about this server's
     layout -- which is the reason the contract has no per-artifact path.
     '''
+    if _exists(store, job, kind, step, index):
+        return 0
+
     artifact_id = str(uuid7())
     target = storage.artifact_dir(job["id"]) / artifact_id
     target.parent.mkdir(parents=True, exist_ok=True)

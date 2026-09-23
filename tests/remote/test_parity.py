@@ -290,3 +290,27 @@ def test_cancel_through_the_cli_is_an_answer_not_an_exception(
 def test_reconnect_through_the_cli(monkeypatch, caplog, submitted):
     with caplog.at_level("INFO"):
         assert run_cli(monkeypatch, "-cfg", submitted, "-reconnect") == 0
+
+
+def test_tailing_a_node_through_the_cli(monkeypatch, capsys, submitted):
+    '''`-tail` against a finished node reaches the archive by the same call a
+    live tail uses, and the client tells them apart by what it was served.'''
+    assert run_cli(monkeypatch, "-cfg", submitted, "-tail", "stepone/0") == 0
+
+    assert "stepone" in capsys.readouterr().out
+
+
+def test_tail_needs_a_step(monkeypatch, caplog, submitted):
+    '''An index with no step names no node. (An empty -tail is indistinguishable
+    from not passing it, so the reachable bad input is this one.)'''
+    with caplog.at_level("ERROR"):
+        assert run_cli(monkeypatch, "-cfg", submitted, "-tail", "/0") == 1
+
+    assert "step" in caplog.text
+
+
+def test_tail_defaults_the_index(monkeypatch, capsys, submitted):
+    '''`-tail stepone` is the common case and means index 0.'''
+    assert run_cli(monkeypatch, "-cfg", submitted, "-tail", "stepone") == 0
+
+    assert "stepone" in capsys.readouterr().out
