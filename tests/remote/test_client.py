@@ -616,3 +616,81 @@ def test_the_derivation_salt_is_pinned():
     assert subject == "ef75e01d65b55facdf7413b2840745d7:1000"
     assert label == "7eb20bb0b9607154b02dac185bb497d7"
     assert source == "linux_machine_id"
+
+
+###########################
+# 🔴 A refusal must never become a flood
+###########################
+
+def test_a_stale_refresh_token_does_not_recurse(fake_v1, tmp_credentials,
+                                                client_credentials):
+    '''🔴 A 401 from the TOKEN endpoint is not an expired access token.
+
+    Treating it as one made the client refresh in answer to a failed refresh,
+    and the loop was not bounded by the retry counter: every hop went through
+    login(), which starts a fresh request with the counter back at zero. It
+    ended in a RecursionError after a couple of hundred REAL round trips, so
+    the client flooded the server on its way to crashing.
+    '''
+    tmp_credentials.update(refresh_token="long-since-revoked")
+
+    fake_v1.route(responses.POST, "auth/token",
+                  problem("invalid-token", 401), status=401,
+                  content_type="application/problem+json")
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    assert Client(tmp_credentials).me()["id"] == "u1"
+
+    grants = [_form(c.request.body)["grant_type"]
+              for c in fake_v1.calls if c.request.method == "POST"]
+    # Exactly two: the refresh that was refused, then the enrolment that
+    # replaced it. Not a third, and certainly not two hundred.
+    assert grants == ["refresh_token", "client_credentials"]
+
+
+def test_a_stale_refresh_token_is_replaced_on_disk(fake_v1, tmp_credentials,
+                                                   client_credentials):
+    '''Self-healing, so the next command costs one request rather than two.'''
+    tmp_credentials.update(refresh_token="long-since-revoked")
+
+    fake_v1.route(responses.POST, "auth/token",
+                  problem("invalid-token", 401), status=401,
+                  content_type="application/problem+json")
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    Client(tmp_credentials).me()
+
+    assert tmp_credentials.refresh_token == "refresh-token-one"
+
+
+def test_an_unauthenticated_request_never_refreshes(fake_v1, tmp_credentials):
+    '''There is no access token on one, so there is nothing a refresh could
+    repair.'''
+    tmp_credentials.update(refresh_token="whatever")
+
+    fake_v1.route(responses.POST, "auth/token",
+                  problem("invalid-token", 401), status=401,
+                  content_type="application/problem+json")
+
+    client = Client(tmp_credentials)
+    with pytest.raises(ServerProblem):
+        client.transport.login({"grant_type": "refresh_token",
+                                "refresh_token": "whatever"})
+
+    posts = [c for c in fake_v1.calls if c.request.method == "POST"]
+    assert len(posts) == 1
+
+
+def test_a_refresh_cannot_start_inside_a_refresh(fake_v1, tmp_credentials):
+    '''Belt and braces behind the check above. A refresh that provokes a
+    refresh is the one failure here that costs the SERVER rather than this
+    process, so it is impossible by construction rather than by one condition
+    being right.'''
+    client = Client(tmp_credentials)
+    client.transport.set_tokens(None, "a-token")
+
+    client.transport._refreshing = True
+    assert client.transport.refresh() is False
+    assert not fake_v1.calls[1:]        # nothing beyond discovery

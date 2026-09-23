@@ -92,6 +92,9 @@ class Transport:
         self._refresh_token: Optional[str] = None
         self._nonce: Optional[str] = None
 
+        # Whether a refresh is in flight. See refresh().
+        self._refreshing = False
+
     ######################################################################
     # Tokens
     ######################################################################
@@ -192,8 +195,19 @@ class Transport:
                 # The server wants the nonce it just gave us. Re-send as is.
                 return self.request(method, path, _attempt=attempt + 1, **kwargs)
 
-            if slug == "invalid-token":
-                # An expired access token, and the session is still alive.
+            # 🔴 Only an AUTHENTICATED request can have an expired access
+            # token, and only it can be worth refreshing. The token endpoint
+            # carries no token, so its own 401 means the credential presented
+            # TO it was refused -- and refreshing in answer to that is a
+            # refresh that fails, asks for a refresh, and fails again.
+            #
+            # That loop is not bounded by `attempt`: every hop goes through
+            # login(), which starts a fresh request with the counter back at
+            # zero. It ended in a RecursionError after a couple of hundred real
+            # round trips, so the client flooded the server on its way to
+            # crashing.
+            if kwargs.get("authenticated") and slug == "invalid-token":
+                # An expired access token, and the session may still be alive.
                 if self.refresh():
                     return self.request(method, path, _attempt=attempt + 1, **kwargs)
 
@@ -308,6 +322,16 @@ class Transport:
         if not self._refresh_token:
             return False
 
+        if self._refreshing:
+            # Belt and braces behind the check in _handle_refusal. A refresh
+            # that provokes a refresh is the one failure here that costs the
+            # SERVER rather than this process: every turn of it is a real
+            # request, so it must be impossible by construction rather than by
+            # one condition being right.
+            logger.debug("declining to refresh inside a refresh")
+            return False
+
+        self._refreshing = True
         try:
             body = self.login({"grant_type": "refresh_token",
                                "refresh_token": self._refresh_token})
@@ -319,6 +343,8 @@ class Transport:
         except ServerProblem as e:
             logger.debug(f"refresh failed: {e}")
             return False
+        finally:
+            self._refreshing = False
 
         if self._credentials is not None:
             self._credentials.save_tokens(body)
