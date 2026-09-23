@@ -26,6 +26,8 @@ class FakeDispatcher:
     def __init__(self):
         self.submitted = []
         self.cancelled = []
+        self.cancelled_nodes = []
+        self.still_running = set()
         self.handed = {}
         self.alive = True
 
@@ -37,8 +39,21 @@ class FakeDispatcher:
     def is_alive(self, scheduler_job_id):
         return self.alive
 
-    def cancel(self, scheduler_job_id):
-        self.cancelled.append(scheduler_job_id)
+    def cancel(self, scheduler_job_id, node_job_ids=()):
+        # None means "only the orphans": the run itself is already gone, and
+        # the real dispatcher skips it rather than scancelling a finished job.
+        if scheduler_job_id:
+            self.cancelled.append(scheduler_job_id)
+        self.cancelled_nodes = list(node_job_ids)
+
+    def node_jobs(self, job_id, nodes):
+        # What a real cluster answers: one scheduler id per node, addressed by
+        # the name the server can derive without being told anything.
+        return {node: f"{job_id}_{node[0]}_{node[1]}" for node in nodes}
+
+    def running_nodes(self, job_id, nodes):
+        return [f"{job_id}_{step}_{index}" for step, index in nodes
+                if (step, index) in self.still_running]
 
 
 @pytest.fixture
@@ -1374,3 +1389,152 @@ def test_a_server_may_not_advertise_what_it_cannot_read(registry):
 
     with pytest.raises(RuntimeError, match="which it cannot read"):
         create_app("container-datadir", cluster="local")
+
+
+###########################
+# Which scheduler job a node became
+###########################
+
+def running(server, server_client, key, token, job_archive, me):
+    '''A submitted job whose run has reported its nodes as started.'''
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-23T10:00:00.000Z",
+        "nodes": {"stepone/0": {"state": "running"},
+                  "steptwo/0": {"state": "pending"}}})
+    return job
+
+
+def test_a_nodes_scheduler_job_is_written_down(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 *Which Slurm job was that* is the question a person brings to a
+    support thread, and nothing else can answer it.
+
+    Not published on the wire -- a registry path and a scheduler id are
+    deployment detail -- but recorded, because the portal reads these rows
+    directly and a cancel needs them.
+    '''
+    job = running(server, server_client, key, token, job_archive, me)
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+
+    rows = server.config["SC_STORE"].all(
+        'SELECT step, scheduler_job_id FROM job_nodes WHERE job_id = ? '
+        'ORDER BY step', (job["id"],))
+
+    assert [row["scheduler_job_id"] for row in rows] == \
+        [f"{job['id']}_stepone_0", f"{job['id']}_steptwo_0"]
+
+
+def test_it_is_asked_for_once_and_then_never_again(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''⚠️ Only the nodes still missing an id are looked up, which is what keeps
+    this inside the once-per-run poll instead of turning it into per-node
+    polling.'''
+    job = running(server, server_client, key, token, job_archive, me)
+
+    asked = []
+    original = dispatcher.node_jobs
+
+    def counting(job_id, nodes):
+        asked.append(list(nodes))
+        return original(job_id, nodes)
+
+    dispatcher.node_jobs = counting
+
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+
+    # Once, for the two nodes that had no id. Then nothing to ask about.
+    assert len(asked) == 1
+    assert sorted(asked[0]) == [("stepone", "0"), ("steptwo", "0")]
+
+
+def test_cancel_stops_the_work_and_not_only_the_coordinator(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 The nodes are jobs of their own now.
+
+    Cancelling the orchestrator alone leaves them to Slurm's own cleanup --
+    which usually does end them, because a job dies with the `srun` that
+    allocated it, but "usually" is not what a cancel should rest on when the
+    alternative is naming them.
+    '''
+    job = running(server, server_client, key, token, job_archive, me)
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+
+    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel",
+                    token, json={})
+
+    assert response.status_code == 202
+    assert dispatcher.cancelled == ["fake:1"]
+    assert sorted(dispatcher.cancelled_nodes) == \
+        [f"{job['id']}_stepone_0", f"{job['id']}_steptwo_0"]
+
+
+def test_a_node_dispatched_since_the_last_poll_is_still_reached(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''The one a cancel most needs to reach is the one that started a moment
+    ago, so the ids are refreshed before they are used rather than read out of
+    whatever the last poll happened to see.'''
+    job = running(server, server_client, key, token, job_archive, me)
+
+    # No poll at all: nothing has been recorded yet.
+    assert not server.config["SC_STORE"].all(
+        "SELECT 1 FROM job_nodes WHERE job_id = ? AND scheduler_job_id IS NOT NULL",
+        (job["id"],))
+
+    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token, json={})
+
+    assert len(dispatcher.cancelled_nodes) == 2
+
+
+def test_a_deployment_with_no_cluster_has_no_node_jobs(server):
+    '''🔴 An empty answer is the truthful one rather than a gap. Nodes are
+    processes inside the run, and the process group is what a cancel signals --
+    which is why the column is nullable.'''
+    from siliconcompiler.remote.server.dispatch import LocalDispatcher
+
+    assert LocalDispatcher().node_jobs("job", [("a", "0")]) == {}
+
+
+def test_a_run_that_went_away_does_not_leave_its_nodes_running(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 Marking a node `cancelled` in the store does not cancel anything.
+
+    Seen for real on the compose rig: an orchestrator failed and its OpenROAD
+    detailed route went on running for another fifty-five minutes, while the
+    record said the node was cancelled.
+    '''
+    job = running(server, server_client, key, token, job_archive, me)
+
+    dispatcher.still_running = {("stepone", "0")}
+    dispatcher.alive = False
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert read["state"] == "failed"
+    assert read["error"]["type"].endswith("scheduler-lost")
+    assert dispatcher.cancelled_nodes == [f"{job['id']}_stepone_0"]
+    # 🔴 And the orchestrator is NOT scancelled: it is already gone, and
+    # scancel answers an error for a job that has finished.
+    assert dispatcher.cancelled == []
+
+
+def test_a_node_that_already_finished_is_not_scancelled(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''⚠️ A warning per finished node is how an operator learns to ignore
+    warnings.'''
+    job = running(server, server_client, key, token, job_archive, me)
+
+    dispatcher.still_running = set()
+    dispatcher.alive = False
+
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+
+    assert dispatcher.cancelled_nodes == []

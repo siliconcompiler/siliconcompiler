@@ -24,7 +24,7 @@ import subprocess
 import sys
 
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 __all__ = ["dispatcher_for", "Dispatcher", "LocalDispatcher", "SlurmDispatcher",
            "DispatchError"]
@@ -63,8 +63,23 @@ class Dispatcher:
         '''
         raise NotImplementedError
 
-    def cancel(self, scheduler_job_id: str) -> None:
+    def cancel(self, scheduler_job_id: str, node_job_ids=()) -> None:
         raise NotImplementedError
+
+    def node_jobs(self, job_id: str, nodes) -> Dict[Tuple[str, str], str]:
+        '''The scheduler's own id for each node of this job, where it has one.
+
+        🔴 Only meaningful where a node IS a scheduler job. On a deployment that
+        runs the whole flow in one process the nodes are processes inside it,
+        and an empty answer is the truthful one rather than a gap -- which is
+        why `job_nodes.scheduler_job_id` is nullable.
+        '''
+        return {}
+
+    def running_nodes(self, job_id: str, nodes) -> List[str]:
+        '''The node jobs the scheduler still has. Nothing, where nodes are not
+        scheduler jobs.'''
+        return []
 
 
 class LocalDispatcher(Dispatcher):
@@ -120,7 +135,9 @@ class LocalDispatcher(Dispatcher):
         except OSError:
             return False
 
-    def cancel(self, scheduler_job_id: str) -> None:
+    def cancel(self, scheduler_job_id: str, node_job_ids=()) -> None:
+        # `node_job_ids` is empty here by construction: nodes are processes in
+        # the run's own tree, and the process group below covers them.
         pid = _local_pid(scheduler_job_id)
         if pid is None:
             return
@@ -215,11 +232,100 @@ class SlurmDispatcher(Dispatcher):
         return bool(states & {"PENDING", "RUNNING", "CONFIGURING", "COMPLETING",
                               "RESIZING", "SUSPENDED", "REQUEUED"})
 
-    def cancel(self, scheduler_job_id: str) -> None:
-        completed = _run(["scancel", scheduler_job_id])
+    def cancel(self, scheduler_job_id: str, node_job_ids=()) -> None:
+        '''Stop the run, and stop the work it started.
+
+        🔴 The nodes are jobs of their own now, so cancelling the orchestrator
+        alone leaves them to Slurm's own cleanup -- which usually does end them,
+        because a job dies with the ``srun`` that allocated it, but "usually"
+        is not what a cancel should rest on when the alternative is naming them.
+
+        Node ids first in the one call, so the work stops before the process
+        coordinating it does. One call rather than one per node: a cancel is
+        rare and user-initiated, and it should still not be N requests into
+        slurmctld.
+        '''
+        targets = [str(node_id) for node_id in node_job_ids if node_id]
+        if scheduler_job_id:
+            # Falsy when the run is already gone and only its orphans are being
+            # reaped: scancel on a job that has finished answers with an error,
+            # and a warning per cancelled job would train an operator to ignore
+            # them.
+            targets.append(scheduler_job_id)
+
+        if not targets:
+            return
+
+        completed = _run(["scancel", *targets])
         if completed.returncode != 0:
             logger.warning(
-                f"scancel {scheduler_job_id} failed: {completed.stderr.strip()}")
+                f"scancel {' '.join(targets)} failed: {completed.stderr.strip()}")
+
+    def node_jobs(self, job_id: str, nodes) -> Dict[Tuple[str, str], str]:
+        '''Which Slurm job each node became.
+
+        Addressed by NAME, because the name is derived from this server's own
+        job id -- ``SlurmSchedulerNode.get_job_name`` spells it
+        ``<remoteid>_<step>_<index>`` -- so nothing has to be passed back from
+        the compute node to know what to ask for.
+
+        ⚠️ Two queries and not one per node. ``squeue`` answers for the jobs
+        that still exist, which is what a cancel needs; ``sacct`` is asked only
+        for whatever is left, which is what the record needs after a node has
+        finished and squeue has forgotten it.
+        '''
+        return self._by_name(job_id, nodes, remembered=True)
+
+    def running_nodes(self, job_id: str, nodes) -> List[str]:
+        '''The node jobs the scheduler still has, as ids.
+
+        🔴 Still has, which is the whole difference from `node_jobs`. This is
+        what a reaper needs: a job that already finished must not be scancelled,
+        because scancel answers an error for it and a warning per finished node
+        would train an operator to ignore them.
+        '''
+        return list(self._by_name(job_id, nodes, remembered=False).values())
+
+    def _by_name(self, job_id: str, nodes, remembered: bool):
+        '''Look node jobs up by the name the server can derive for them.
+
+        ⚠️ Two queries and not one per node. `squeue` answers for the jobs that
+        still exist; `sacct` is asked only for whatever is left, and only when
+        a caller wants the ones it has forgotten.
+        '''
+        wanted = {f"{job_id}_{step}_{index}": (step, index) for step, index in nodes}
+        if not wanted:
+            return {}
+
+        names = ",".join(wanted)
+        commands = [["squeue", "-h", "-o", "%i %j", "--name", names]]
+        if remembered:
+            commands.append(["sacct", "-n", "-X", "--name", names,
+                             "-o", "JobID,JobName%128"])
+
+        found: Dict[Tuple[str, str], str] = {}
+
+        for command in commands:
+            if len(found) == len(wanted):
+                break
+
+            completed = _run(command)
+            if completed.returncode != 0:
+                # No accounting configured, or a wedged controller. A missing id
+                # is a gap in the record, not a reason to fail the request that
+                # happened to be reconciling this job.
+                continue
+
+            for line in completed.stdout.splitlines():
+                parts = line.split()
+                if len(parts) != 2:
+                    continue
+                scheduler_id, name = parts
+                node = wanted.get(name)
+                if node is not None and node not in found:
+                    found[node] = scheduler_id
+
+        return found
 
 
 def dispatcher_for(cluster: str) -> Dispatcher:

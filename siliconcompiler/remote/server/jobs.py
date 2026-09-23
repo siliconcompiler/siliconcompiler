@@ -770,7 +770,8 @@ class JobService:
             return self.wire(job)
 
         if job["scheduler_job_id"]:
-            self._dispatcher.cancel(job["scheduler_job_id"])
+            self._dispatcher.cancel(job["scheduler_job_id"],
+                                    node_job_ids=self._node_job_ids(job))
 
         # A running job goes to `cancelling` and the scheduler writes the
         # terminal state; one that never started has nothing to wind down, so it
@@ -856,6 +857,8 @@ class JobService:
                 # moment somebody tailing it asks.
                 self._index_node(job, step, index)
 
+        self._record_node_jobs(job)
+
         reported = progress.get("state")
         started_at = progress.get("started_at")
 
@@ -892,6 +895,86 @@ class JobService:
             else:
                 self._lost(job)
 
+    def _reap_orphans(self, job) -> None:
+        '''Stop the work a run left behind when it went away.
+
+        🔴 Marking a node `cancelled` in the store does not cancel anything. A
+        node is a scheduler job of its own, so a run that died abruptly leaves
+        its nodes running with nobody watching -- and the record then says
+        `cancelled` about work that is still burning a compute slot. Seen for
+        real: an orchestrator that failed left an OpenROAD detailed route
+        running for another fifty-five minutes.
+
+        ⚠️ Only the jobs the scheduler still HAS. scancel answers an error for
+        one that has finished, and a warning per finished node is how an
+        operator learns to ignore warnings.
+        '''
+        nodes = [(row["step"], row["index"]) for row in self._store.all(
+            'SELECT step, "index" FROM job_nodes WHERE job_id = ?', (job["id"],))]
+
+        try:
+            orphans = self._dispatcher.running_nodes(job["id"], nodes)
+        except Exception as e:                                   # noqa: BLE001
+            logger.debug(f"could not look for orphans of {job['id']}: {e}")
+            return
+
+        if not orphans:
+            return
+
+        logger.warning(f"{job['id']} left {len(orphans)} node job(s) behind; "
+                       "cancelling them")
+        self._dispatcher.cancel(None, node_job_ids=orphans)
+
+    def _record_node_jobs(self, job) -> None:
+        '''Write down which scheduler job each node became.
+
+        🔴 Two things need it and neither can be done without it. A cancel has
+        to stop the work and not only the process coordinating it, now that a
+        node is a job of its own; and *which Slurm job was that* is the question
+        a person brings to a support thread, which nothing else can answer.
+
+        ⚠️ Asked for once and then never again. Only the nodes still missing an
+        id are looked up, so a job whose nodes are all recorded costs nothing --
+        which is what keeps this inside the once-per-run poll rather than
+        turning it into per-node polling.
+        '''
+        missing = [(row["step"], row["index"]) for row in self._store.all(
+            'SELECT step, "index" FROM job_nodes '
+            "WHERE job_id = ? AND scheduler_job_id IS NULL", (job["id"],))]
+
+        if not missing:
+            return
+
+        try:
+            found = self._dispatcher.node_jobs(job["id"], missing)
+        except Exception as e:                                   # noqa: BLE001
+            # A gap in the record, and nothing more: this runs inside a poll
+            # that is answering somebody's request about the job itself.
+            logger.debug(f"could not read node jobs for {job['id']}: {e}")
+            return
+
+        if not found:
+            return
+
+        with self._store.transaction():
+            for (step, index), scheduler_id in found.items():
+                self._store.execute(
+                    "UPDATE job_nodes SET scheduler_job_id = ? "
+                    'WHERE job_id = ? AND step = ? AND "index" = ?',
+                    (scheduler_id, job["id"], step, index))
+
+    def _node_job_ids(self, job):
+        '''Every node job this run has, as far as the store knows.
+
+        Refreshed first, because a node dispatched since the last poll has no
+        id recorded and is exactly the one a cancel most needs to reach.
+        '''
+        self._record_node_jobs(job)
+
+        return [row["scheduler_job_id"] for row in self._store.all(
+            "SELECT scheduler_job_id FROM job_nodes "
+            "WHERE job_id = ? AND scheduler_job_id IS NOT NULL", (job["id"],))]
+
     def _alive(self, job) -> bool:
         try:
             return self._dispatcher.is_alive(job["scheduler_job_id"])
@@ -904,6 +987,7 @@ class JobService:
     def _lost(self, job) -> None:
         '''The scheduler no longer has it and it never said how it ended.'''
         logger.warning(f"{job['id']} is gone from the scheduler with no result")
+        self._reap_orphans(job)
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, finished_at = ? WHERE id = ?",
@@ -914,6 +998,12 @@ class JobService:
             self._transition(job["id"], job["state"], "failed", reason="scheduler-lost")
 
     def _finish(self, job, state: str, progress) -> None:
+        # Belt and braces, and cheap: a run that ended by crashing rather than
+        # by finishing can leave the same orphans a lost one does, and on a
+        # deployment where a node is not a scheduler job this asks nothing.
+        if state == "failed":
+            self._reap_orphans(job)
+
         if job["state"] == state:
             return
 

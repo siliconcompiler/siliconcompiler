@@ -144,6 +144,23 @@ the runner clears `SLURM_JOB_ID` and every node is scheduled on its own terms.
 That is also what lets the batch job itself sit in a small partition: it
 coordinates and computes nothing.
 
+### What happens to a node job when the run goes away
+
+Each node is a Slurm job of its own, and the server writes its id into
+`job_nodes.scheduler_job_id` — so *which Slurm job was that* stays answerable
+after the fact, which is the question that reaches a support thread.
+
+🔴 **It is also what makes a cancel real.** Cancelling the orchestrator alone
+leaves the node jobs to Slurm's own cleanup, which usually ends them and
+sometimes does not. Seen here for real: an orchestrator failed and its OpenROAD
+detailed route went on running for another **1h47m**, while the store said the
+node was cancelled. A cancel now names the node jobs, and a run that is found
+gone has its survivors reaped.
+
+⚠️ Only the jobs the scheduler still has are scancelled. `scancel` answers an
+error for one that has already finished, and a warning per finished node is how
+an operator learns to ignore warnings.
+
 ### Two partitions, and which work goes where
 
 ```
