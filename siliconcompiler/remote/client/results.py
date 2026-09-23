@@ -40,10 +40,11 @@ __all__ = ["Results"]
 logger = logging.getLogger(__name__)
 
 
-# What this client knows how to put back on disk. A kind it does not recognise
-# is listed and left alone rather than refused: the set is closed and published,
-# so an unknown one means this client is older than the server.
-_ARCHIVES = ("outputs", "reports")
+# Kinds that arrive as a gzipped tar and expand in place. A kind this client
+# does not recognise is listed and left alone rather than refused: the set is
+# closed and published, so an unknown one means this client is older than the
+# server.
+_ARCHIVES = ("bundle", "outputs", "reports")
 
 
 class Results:
@@ -53,6 +54,67 @@ class Results:
         self.project = project
         self.client = client
         self.logger = project.logger.getChild("remote")
+
+        # What has already landed, so the sweep at the end of the run does not
+        # fetch it a second time.
+        self._fetched: set = set()
+        self._taken_nodes: set = set()
+        self._landed = 0
+
+    ######################################################################
+    # During the run
+    ######################################################################
+
+    def take(self, job_id: str, job: Dict[str, Any]) -> int:
+        '''Fetch what each node left, as that node finishes.
+
+        🔴 Not at the end of the run. A node's bundle carries its manifest, so
+        taking it as it appears is what keeps the local record -- metrics, tool
+        versions, node states -- current while the rest of the flow is still
+        going. It is also what lets the dashboard show a finished node's real
+        runtime rather than a timer that never stops.
+
+        One listing per poll in which something finished, filtered to bundles,
+        rather than one request per node: a wide flow finishes many nodes
+        between two polls.
+        '''
+        done = {(node.get("step"), node.get("index"))
+                for node in job.get("nodes") or []
+                if node.get("terminal") and node.get("step")
+                and node.get("index") is not None}
+
+        fresh = done - self._taken_nodes
+        if not fresh:
+            return 0
+
+        try:
+            items = self.client.artifacts(job_id, kind="bundle")
+        except Exception as e:                                   # noqa: BLE001
+            # Nothing is lost by failing here: the sweep at the end asks again.
+            logger.debug(f"could not list bundles yet: {e}")
+            return 0
+
+        landed = 0
+        for item in items:
+            key = (item.get("step"), item.get("index"))
+            if key not in fresh or not item.get("fetchable"):
+                continue
+            if item["id"] in self._fetched:
+                continue
+
+            try:
+                landed += self._retrieve(job_id, item)
+                self._fetched.add(item["id"])
+                self._taken_nodes.add(key)
+                self._landed += 1
+            except Exception as e:                               # noqa: BLE001
+                # It will be tried again by the sweep at the end of the run.
+                logger.debug(f"{self._name(item)} not taken yet: {e}")
+
+        if landed:
+            self._replay()
+
+        return landed
 
     def fetch(self, job_id: str) -> int:
         '''Retrieve everything fetchable and say what was not. Returns the
@@ -69,13 +131,20 @@ class Results:
                 "is all there is, and it is not an error.")
             return 0
 
+        items = _worth_fetching(items)
+
         landed = 0
         for item in items:
+            if item.get("id") in self._fetched:
+                # Already taken while the run was going.
+                continue
             if not item.get("fetchable"):
                 self.logger.warning(self._explain(item))
                 continue
             try:
                 landed += self._retrieve(job_id, item)
+                self._fetched.add(item["id"])
+                self._landed += 1
             except Exception as e:                               # noqa: BLE001
                 # One object failing does not abort the others: a node whose
                 # bytes went missing must not cost the caller the rest of the
@@ -85,7 +154,9 @@ class Results:
         self._report_absent(items)
         self._replay()
 
-        self.logger.info(f"Retrieved {landed} of {len(items)} objects")
+        # Counted across the whole run, not just this sweep: most of it
+        # arrived as the nodes finished, and "2 of 26" reads like 24 failures.
+        self.logger.info(f"Retrieved {self._landed} objects")
         return landed
 
     ######################################################################
@@ -144,7 +215,14 @@ class Results:
             return 1
 
         step, index = item.get("step"), item.get("index")
+
         if step is None or index is None:
+            if kind == "logs":
+                # The run's own job log, which belongs to no node.
+                self.client.fetch_artifact(
+                    job_id, item["id"],
+                    os.path.join(jobdir(self.project), "job.log"))
+                return 1
             logger.debug(f"nothing to do with a job-level {kind}")
             return 0
 
@@ -225,6 +303,34 @@ class Results:
         if step is None:
             return kind
         return f"{kind} for {step}/{index}"
+
+
+def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    '''Drop what a bundle already contains.
+
+    🔴 A node's bundle IS that node's results, so fetching it and then fetching
+    the objects inside it downloads everything twice. A bundle covers only its
+    own node, so a node whose bundle is missing or refused keeps every object
+    it has.
+
+    The manifest is always kept: it is small, it is what the record is replayed
+    from, and a client that relied on finding one inside the bundle would break
+    on the deployment that indexes a manifest and no bulk output at all.
+
+    Only a FETCHABLE bundle displaces anything. One that is present and
+    refused -- a bundle is never grantable, so that is the ordinary case on a
+    deployment with approvals -- leaves every other object exactly as it was,
+    and the caller is told why it could not have it.
+    '''
+    covered = {(item.get("step"), item.get("index")) for item in items
+               if item.get("kind") == "bundle" and item.get("fetchable")}
+    if not covered:
+        return items
+
+    return [item for item in items
+            if item.get("kind") in ("bundle", "manifest")
+            or not item.get("fetchable")
+            or (item.get("step"), item.get("index")) not in covered]
 
 
 def _now() -> str:

@@ -79,6 +79,20 @@ class FakeV1:
         self._mock.add(method, self.url(path), body=body, status=status,
                        content_type=content_type, headers=headers)
 
+    def replace(self, method, path, body, status=200,
+                content_type="application/json", headers=None):
+        '''Change an answer this fixture already set up.
+
+        Registrations are consumed in order, so adding a second one for a path
+        queues it behind the first rather than replacing it -- which is what a
+        test wants for a sequence and never what it wants for a fixture's
+        default.
+        '''
+        if not isinstance(body, (str, bytes)):
+            body = json.dumps(body)
+        self._mock.replace(method, self.url(path), body=body, status=status,
+                           content_type=content_type, headers=headers)
+
     def elsewhere(self, method, url, body="", status=200,
                   content_type="application/json", headers=None):
         '''Answer a request to somewhere that is not this server.

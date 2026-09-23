@@ -78,8 +78,13 @@ def test_a_finished_run_is_indexed(server_client, key, token, finished):
     kinds = {(item["kind"], item["step"]) for item in items}
     assert ("manifest", None) in kinds
     assert ("logs", "stepone") in kinds
-    assert ("outputs", "stepone") in kinds
-    assert ("reports", "steptwo") in kinds
+    assert ("logs", "steptwo") in kinds
+    # A bundle per node, indexed as that node finishes -- which is what lets a
+    # client take a node's results while the rest of the flow runs on. No
+    # outputs or reports: they would be a second copy of what it holds.
+    assert ("bundle", "stepone") in kinds
+    assert ("bundle", "steptwo") in kinds
+    assert not [k for k, _ in kinds if k in ("outputs", "reports")]
 
 
 def test_every_required_member_is_published(server_client, key, token, finished):
@@ -103,26 +108,59 @@ def test_retention_is_per_kind_and_the_job_floor_is_only_a_floor(
     items = listing(server_client, key, token, finished["id"])
     by_kind = {item["kind"]: item["expires_at"] for item in items}
 
-    assert by_kind["manifest"] > by_kind["outputs"]
-    # `outputs` has no number of its own, so it gets the deployment's floor.
-    assert by_kind["outputs"] > "2026"
+    assert by_kind["manifest"] > by_kind["bundle"]
+    # `bundle` has no number of its own, so it gets the deployment's floor --
+    # and a bundle may never outlive its contents.
+    assert by_kind["bundle"] > "2026"
+    # Same retention rule, so the same day; they are written moments apart.
+    assert by_kind["logs"][:10] == by_kind["manifest"][:10]
 
 
-def test_inputs_are_not_shipped(server, server_client, key, token, finished):
-    '''They are copies of the upstream node's outputs, which the caller is
-    already getting from the upstream node.'''
+def test_a_bundle_holds_its_node_and_leaves_out_its_inputs(
+        server, server_client, key, token, finished):
+    '''A node's bundle is that node's working directory. `inputs/` is left out
+    because it is copies of the upstream node's outputs, which the caller is
+    getting from the upstream node's own bundle.'''
     import tarfile
 
     row = server.config["SC_STORE"].one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'outputs' LIMIT 1",
-        (finished["id"],))
+        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+        "AND step = 'stepone'", (finished["id"],))
     path = server.config["SC_STORAGE"].artifact_path(row["storage_key"])
 
     with tarfile.open(path) as tar:
         names = tar.getnames()
 
-    assert any(name.startswith("outputs") for name in names)
-    assert not any(name.startswith("inputs") for name in names)
+    # Relative to the node's own directory, so a client unpacks it straight
+    # back into the same place.
+    assert "outputs/gcd.pkg.json" in names
+    assert "sc_stepone_0.log" in names
+    assert not any("inputs" in name.split("/") for name in names)
+
+
+def test_what_the_client_uploaded_is_never_sent_back(
+        server, server_client, key, token, finished):
+    '''`sc_collected_files/` is what the CLIENT uploaded. It deletes its own
+    copy once the archive is built -- it is the largest thing in a build
+    directory -- so sending it back undoes that and pays for the bytes twice.'''
+    import tarfile
+
+    me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
+    root = server.config["SC_JOBS"].job_root(me, finished["id"]) / "gcd" / "job0"
+    (root / "stepone" / "0" / "sc_collected_files").mkdir(parents=True, exist_ok=True)
+    (root / "stepone" / "0" / "sc_collected_files" / "gcd.v").write_text("module m;")
+
+    store = server.config["SC_STORE"]
+    store.execute("DELETE FROM artifacts WHERE job_id = ?", (finished["id"],))
+    server.config["SC_JOBS"]._index(
+        store.one("SELECT * FROM jobs WHERE id = ?", (finished["id"],)))
+
+    row = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+                    "AND step = 'stepone'", (finished["id"],))
+    with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
+        names = tar.getnames()
+
+    assert not any("sc_collected_files" in name.split("/") for name in names)
 
 
 def test_indexing_twice_does_not_duplicate_the_listing(server, server_client,
@@ -156,6 +194,10 @@ def test_the_listing_filters_by_kind_step_and_index(server_client, key, token,
     logs = listing(server_client, key, token, finished["id"], "?kind=logs")
     assert {item["kind"] for item in logs} == {"logs"}
 
+    # A kind that is absent was never indexed here, which is a true answer and
+    # not an error: this deployment stores a bundle instead.
+    assert listing(server_client, key, token, finished["id"], "?kind=reports") == []
+
     one = listing(server_client, key, token, finished["id"],
                   "?step=stepone&index=0")
     assert {item["step"] for item in one} == {"stepone"}
@@ -185,8 +227,8 @@ def test_the_listing_pages(server_client, key, token, finished):
         response = call(server_client, key, "GET",
                         link.split(">", 1)[0].lstrip("<"), token)
 
-    # manifest, plus logs + reports + outputs for each of the two nodes.
-    assert len(seen) == len(set(seen)) == 7
+    # manifest, plus a log and a bundle for each of the two nodes.
+    assert len(seen) == len(set(seen)) == 5
 
 
 def test_a_strangers_listing_is_a_404(server_client, key, token, finished):

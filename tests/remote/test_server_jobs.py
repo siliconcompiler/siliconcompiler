@@ -942,3 +942,68 @@ def test_an_upload_past_the_ceiling_is_refused_as_it_arrives(
 
     assert response.status_code == 413
     assert slug(response) == "upload-too-large"
+
+
+def test_a_job_that_finished_while_we_looked_is_not_lost(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 "The run says it is going" and "the scheduler has never heard of it"
+    are read at two different moments, and a run that finished in between
+    satisfies both. The progress file in hand is stale and the scheduler's
+    answer is fresh -- so the file is read once more before the job is
+    declared lost.
+
+    This is not theoretical: it fired on a real asicflow run, and everything
+    reconcile does between the two readings widens the window.
+    '''
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
+    progress = root / runspec.PROGRESS_FILENAME
+
+    # What the poll reads first: still going.
+    runspec.write_progress(progress, {
+        "state": "running", "started_at": "2026-09-22T10:00:00.000Z",
+        "nodes": {"stepone/0": {"state": "running"}}})
+
+    # The scheduler has already forgotten it, and the run writes its result
+    # while the server is between the two readings.
+    def gone(scheduler_job_id):
+        runspec.write_progress(progress, {
+            "state": "completed",
+            "started_at": "2026-09-22T10:00:00.000Z",
+            "finished_at": "2026-09-22T10:01:00.000Z",
+            "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
+                      "steptwo/0": {"state": "completed", "exit_code": 0}}})
+        return False
+    dispatcher.is_alive = gone
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert read["state"] == "completed"
+    assert read["error"] is None
+
+
+def test_a_job_that_really_is_gone_is_still_reported_lost(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''Reading the file twice must not turn a lost job into a hung one.'''
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-22T10:00:00.000Z",
+        "nodes": {"stepone/0": {"state": "running"}}})
+
+    dispatcher.alive = False
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert read["state"] == "failed"
+    assert read["error"]["type"].endswith("scheduler-lost")

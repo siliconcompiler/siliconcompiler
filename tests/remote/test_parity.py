@@ -125,7 +125,12 @@ def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, live_serve
     missing = {name for name in local_tree - here
                if os.sep + "inputs" + os.sep not in os.sep + name}
     assert not missing, sorted(missing)
-    assert here - local_tree == {"sc_remote.pkg.json"}
+    # What the remote run has and a local one does not: its own handle for
+    # reconnecting, and the job log the server's run wrote.
+    extra = here - local_tree
+    assert "sc_remote.pkg.json" in extra
+    assert all(name == "sc_remote.pkg.json" or name.startswith("job.")
+               for name in extra), sorted(extra)
 
 
 def test_a_summary_works_after_a_remote_run(gcd_design, live_server):

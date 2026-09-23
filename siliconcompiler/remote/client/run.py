@@ -21,6 +21,7 @@ import os
 import shutil
 import tarfile
 import tempfile
+import threading
 import time
 import uuid
 
@@ -32,6 +33,7 @@ from siliconcompiler._common import NodeStatus as SCNodeStatus
 from siliconcompiler.package import PythonPathResolver, FileResolver, KeyPathResolver
 from siliconcompiler.schema import Parameter
 from siliconcompiler.utils.curation import collect
+from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.utils.paths import collectiondir, jobdir
 
 from siliconcompiler.remote.client.errors import (
@@ -98,6 +100,11 @@ class RemoteRun:
         self.project = project
         self.client = client
         self.logger = project.logger.getChild("remote")
+
+        # Everything this run prints goes through here. The tails run on their
+        # own threads and the poll loop on this one, and they share a console
+        # whose formatter gets swapped per line -- so they have to take turns.
+        self.output_lock = threading.Lock()
 
     ######################################################################
 
@@ -287,6 +294,8 @@ class RemoteRun:
     def _poll(self, job_id: str) -> None:
         transient = 0
         seen: Dict[Tuple[str, str], str] = {}
+        tails = _Tails(self)
+        results = Results(self.project, self.client)
 
         while True:
             try:
@@ -310,23 +319,34 @@ class RemoteRun:
                 time.sleep(DEFAULT_POLL_SECONDS)
                 continue
 
-            self._record(job, seen)
+            changed = self._record(job, seen)
+            results.take(job_id, job)
+            self._paint(job)
+            tails.follow(job_id, job)
 
             if job.get("terminal"):
                 break
 
-            self._report(job)
+            self._report(job, changed)
             time.sleep(retry_after or DEFAULT_POLL_SECONDS)
 
-        self._finish(job)
+        tails.finish()
+        self._finish(job, results)
 
-    def _record(self, job: Dict[str, Any], seen) -> None:
+    def _record(self, job: Dict[str, Any], seen) -> list:
         '''Write what the server says into this project's record.
+
+        Returns the nodes whose state moved since the last poll, which is all
+        the output a dashboard run needs: the dashboard is already showing
+        every node's state, so repeating the whole table each poll is noise
+        over the top of it.
 
         Tolerant on purpose: a body that is not the documented shape must not
         end a run that is still going. What cannot be read is skipped, and the
         loop is driven by `terminal` alone.
         '''
+        changed = []
+
         for node in job.get("nodes") or []:
             step, index = node.get("step"), node.get("index")
             if not step or index is None:
@@ -337,9 +357,26 @@ class RemoteRun:
             except Exception as e:                               # noqa: BLE001
                 logger.debug(f"could not record {step}/{index}: {e}")
                 continue
+
+            if seen.get((step, index)) != status:
+                changed.append((step, index, node.get("state")))
             seen[(step, index)] = status
 
-    def _report(self, job: Dict[str, Any]) -> None:
+        return changed
+
+    def _report(self, job: Dict[str, Any], changed=None) -> None:
+        with self.output_lock:
+            self._report_locked(job, changed)
+
+    def _report_locked(self, job: Dict[str, Any], changed=None) -> None:
+        if self._dashboard():
+            # 🔴 The dashboard is already rendering every node's state, so the
+            # full table underneath it is the same information twice. What it
+            # cannot show is the moment something moved.
+            for step, index, state in changed or []:
+                self.logger.info(f"  {step}/{index} -> {state}")
+            return
+
         by_state: Dict[str, list] = {}
         for node in job.get("nodes") or []:
             by_state.setdefault(node.get("state", "unknown"), []).append(node)
@@ -366,7 +403,39 @@ class RemoteRun:
                 break
         self.logger.info(f"  {state.title()} ({len(nodes)}): {', '.join(names)}")
 
-    def _finish(self, job: Dict[str, Any]) -> None:
+    def _paint(self, job: Dict[str, Any]) -> None:
+        '''Hand the dashboard the states and the clocks.
+
+        🔴 Without this the dashboard renders whatever it had when the run
+        started: the record is updated on this project, and nothing tells the
+        board to look at it again.
+
+        ``starttimes`` is what makes the per-node timer run. The client this
+        replaces had to derive it -- the old server sent an elapsed string like
+        ``0:01:05`` and the client subtracted it from now, which restarted the
+        clock at every poll and drifted. `v1` publishes ``started_at`` as an
+        instant, so a node's timer is continuous across a poll, across a
+        reconnect, and across a client restart.
+        '''
+        board = self._dashboard()
+        if board is None:
+            return
+
+        try:
+            board.update_manifest({"starttimes": _starttimes(job)})
+        except Exception as e:                                   # noqa: BLE001
+            # A repaint that fails is a repaint. It must not end a run.
+            logger.debug(f"could not update the dashboard: {e}")
+
+    def _dashboard(self):
+        '''The dashboard this run is being watched through, if any.'''
+        board = getattr(self.project, "_Project__dashboard", None)
+        try:
+            return board if board is not None and board.is_running() else None
+        except Exception:                                        # noqa: BLE001
+            return None
+
+    def _finish(self, job: Dict[str, Any], results=None) -> None:
         state = job.get("state")
 
         if state == "completed":
@@ -381,7 +450,7 @@ class RemoteRun:
         # that fetches nothing when a job fails has hidden the evidence at the
         # moment it became useful.
         try:
-            Results(self.project, self.client).fetch(job["id"])
+            (results or Results(self.project, self.client)).fetch(job["id"])
         except ServerProblem as e:
             self.logger.error(str(e))
         except RemoteError as e:
@@ -393,6 +462,190 @@ class RemoteRun:
 
         if state != "completed":
             raise RemoteError(f"the remote job ended {state}")
+
+
+class _Tails:
+    '''The live logs of whatever is running, on this terminal.
+
+    🔴 One stream per running node, interleaved. SiliconCompiler's own log
+    lines already carry ``job | step | index``, so several at once read exactly
+    the way a local run does -- which is the point: a remote run should not
+    look like a different program.
+
+    Bounded by the server's published ``concurrent_log_streams``, because it is
+    the server's thread and file descriptor being held. Nodes past the ceiling
+    are named once and their logs arrive with the results like everything else.
+    '''
+
+    def __init__(self, run: "RemoteRun"):
+        self._run = run
+        self._client = run.client
+        self._logger = run.logger
+
+        self._threads: Dict[Tuple[str, str], threading.Thread] = {}
+        self._started: set = set()
+        self._over_ceiling: set = set()
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+
+        self._enabled, self._ceiling = self._decide()
+
+    def _decide(self) -> Tuple[bool, int]:
+        '''Whether to tail at all, and how many at once.
+
+        Three things can switch it off, and only one of them is an opinion:
+        the deployment does not serve a live tail, or the caller asked for
+        quiet -- which means the same thing here as it does locally, *do not
+        put tool output on my terminal*.
+        '''
+        if self._run.project.option.get_quiet():
+            return False, 0
+
+        try:
+            capabilities = self._client.capabilities()
+        except RemoteError as e:
+            logger.debug(f"no capabilities, so no tailing: {e}")
+            return False, 0
+
+        if "logs.stream" not in (capabilities.get("features") or []):
+            # 🔴 Absent and unrecognised mean the same thing. The archived log
+            # still arrives with the results, so this costs the live view and
+            # not the log.
+            return False, 0
+
+        ceiling = (capabilities.get("limits") or {}).get("concurrent_log_streams")
+        return True, max(1, int(ceiling or 1))
+
+    def follow(self, job_id: str, job: Dict[str, Any]) -> None:
+        '''Start a tail for anything newly running.'''
+        if not self._enabled:
+            return
+
+        for node in job.get("nodes") or []:
+            if node.get("state") != "running":
+                continue
+
+            key = (node.get("step"), node.get("index"))
+            if None in key or key in self._started:
+                continue
+
+            if len(self._threads) >= self._ceiling:
+                if key not in self._over_ceiling:
+                    self._over_ceiling.add(key)
+                    self._logger.info(
+                        f"  (not tailing {key[0]}/{key[1]}: this server allows "
+                        f"{self._ceiling} live logs at once)")
+                continue
+
+            self._started.add(key)
+            thread = threading.Thread(
+                target=self._tail, args=(job_id, *key), daemon=True)
+            self._threads[key] = thread
+            thread.start()
+
+    def _tail(self, job_id: str, step: str, index: str) -> None:
+        try:
+            self._client.tail_log(job_id, step, index, write=self._write)
+        except Exception as e:                                   # noqa: BLE001
+            # One node's log going away must not disturb the run or the other
+            # tails. It is still fetched with the results.
+            logger.debug(f"stopped tailing {step}/{index}: {e}")
+        finally:
+            with self._lock:
+                self._threads.pop((step, index), None)
+
+    def _write(self, text: str) -> None:
+        '''One chunk of somebody's log, on the one terminal everybody shares.
+
+        🔴 Emitted with a blank formatter, because these lines are already
+        formatted: they come out of a node's own log, which carries
+        ``job | step | index`` on every line. Logging them normally produced
+        ``| INFO | job0 | remote | - | | INFO | job0 | route.detailed | 0 | …``
+        -- this run's prefix stamped on top of the prefix that says which node
+        it actually came from.
+
+        Swapping the CONSOLE handler's formatter covers the dashboard too: its
+        sink formats with whatever the terminal handler currently has, so one
+        swap serves both and there is no branch on which is listening. It is
+        the same thing the Slurm scheduler does when it echoes a node's log.
+        '''
+        if self._stop.is_set():
+            return
+
+        console = getattr(self._run.project, "_logger_console", None)
+
+        with self._run.output_lock:
+            original = console.formatter if console is not None else None
+            if console is not None:
+                console.setFormatter(SCBlankLoggerFormatter())
+            try:
+                for line in text.splitlines():
+                    self._logger.info(line)
+            finally:
+                if console is not None:
+                    console.setFormatter(original)
+
+    def finish(self, timeout: float = 5.0) -> None:
+        '''Let the tails drain, then stop waiting for them.
+
+        A tail normally ends itself when its node does. This bounds the case
+        where one is mid-reconnect as the job goes terminal: the log is in the
+        results either way, so waiting on it is a courtesy rather than a
+        requirement.
+        '''
+        for thread in list(self._threads.values()):
+            thread.join(timeout=timeout)
+        self._stop.set()
+
+
+def _starttimes(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
+    '''When each node started, in the shape the dashboard already takes.
+
+    Keyed by (step, index) and valued in epoch seconds, which is what a local
+    run hands it.
+    '''
+    starttimes = {}
+
+    for node in job.get("nodes") or []:
+        step, index = node.get("step"), node.get("index")
+        started = node.get("started_at")
+        if not step or index is None or not started:
+            continue
+
+        if node.get("terminal"):
+            # 🔴 A finished node must stop counting. `starttimes` is what the
+            # board ticks against `now`, so leaving one here would have a node
+            # that ended ten minutes ago still climbing. The board renders a
+            # done node from `metric,tasktime` instead -- which arrives when
+            # that node's manifest is replayed, out of the bundle fetched as it
+            # finished.
+            continue
+
+        moment = _epoch(started)
+        if moment is not None:
+            starttimes[(step, index)] = moment
+
+    return starttimes
+
+
+def _epoch(timestamp: str) -> Optional[float]:
+    '''An RFC 3339 instant as epoch seconds, or None if it cannot be read.
+
+    Unreadable is not fatal: it costs one node its timer, where raising would
+    cost the run.
+    '''
+    from datetime import datetime, timezone
+
+    try:
+        moment = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        logger.debug(f"unreadable timestamp: {timestamp!r}")
+        return None
+
+    if moment.tzinfo is None:
+        # The contract says UTC; a server that omits the offset meant it.
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment.timestamp()
 
 
 def _why_it_failed(job: Dict[str, Any]) -> str:

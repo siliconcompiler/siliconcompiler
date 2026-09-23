@@ -555,3 +555,120 @@ def test_the_failure_render_needs_no_url(fake_v1, run, caplog):
     rendered = [r.message for r in caplog.records if "run failed" in r.message.lower()]
     assert rendered
     assert len(rendered[0].splitlines()) <= 4
+
+
+###########################
+# Watching a run
+###########################
+
+def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run, nop_project,
+                                                       capsys):
+    '''🔴 A node's log already carries `job | step | index` on every line.
+    Logging it normally stamped this run's own prefix on top:
+
+      | INFO | job0 | remote | - | | INFO | job0 | route.detailed | 0 | Running
+
+    The line that says which node it came from is the one that matters, so the
+    lines go out with a blank formatter.
+    '''
+    from siliconcompiler.remote.client.run import _Tails
+
+    tails = _Tails.__new__(_Tails)
+    tails._run = run
+    tails._logger = run.logger
+    tails._stop = __import__("threading").Event()
+
+    tails._write("| INFO     | job0 | route.detailed       | 0 | Running\n")
+
+    printed = capsys.readouterr().err + capsys.readouterr().out
+    assert "remote" not in printed
+
+
+def test_the_dashboard_is_given_the_states_and_the_clocks(fake_v1, run,
+                                                          nop_project):
+    '''🔴 Without this the dashboard renders whatever it had when the run
+    started -- the record is updated on the project and nothing tells the board
+    to look again. `starttimes` is what makes the per-node timer run.'''
+    painted = []
+
+    class Board:
+        def is_running(self):
+            return True
+
+        def update_manifest(self, payload=None):
+            painted.append(payload)
+
+    nop_project._Project__dashboard = Board()
+
+    run._paint(job_body("running", nodes=[
+        {"step": "stepone", "index": "0", "state": "running", "terminal": False,
+         "started_at": "2026-09-22T10:00:00.000Z"},
+        {"step": "steptwo", "index": "0", "state": "pending", "terminal": False,
+         "started_at": None}]))
+
+    assert painted
+    starttimes = painted[0]["starttimes"]
+    assert starttimes == {("stepone", "0"): 1790071200.0}
+
+
+def test_a_dashboard_run_reports_only_what_moved(fake_v1, run, nop_project, caplog):
+    '''The dashboard is already showing every node's state, so the full table
+    underneath it is the same information twice. What it cannot show is the
+    moment something moved.'''
+    class Board:
+        def is_running(self):
+            return True
+
+        def update_manifest(self, payload=None):
+            pass
+
+    nop_project._Project__dashboard = Board()
+
+    with caplog.at_level("INFO"):
+        run._report(job_body("running"), changed=[("stepone", "0", "running")])
+
+    assert "stepone/0 -> running" in caplog.text
+    assert "Job is still running" not in caplog.text
+
+
+def test_without_a_dashboard_the_whole_table_is_printed(fake_v1, run, caplog):
+    with caplog.at_level("INFO"):
+        run._report(job_body("running"), changed=[])
+
+    assert "Job is still running" in caplog.text
+
+
+def test_a_server_with_no_live_tail_simply_does_not_tail(fake_v1, run,
+                                                         capabilities):
+    '''Point 2: if the logs cannot be streamed, what we already print is fine.
+    The archived log still arrives with the results.'''
+    from siliconcompiler.remote.client.run import _Tails
+
+    run.project.option.set_quiet(False)
+    fake_v1.replace(responses.GET, "", dict(capabilities, features=["logs"]))
+
+    assert _Tails(run)._enabled is False
+
+
+def test_quiet_means_quiet(fake_v1, run, nop_project):
+    '''The same thing it means locally: do not put tool output on my
+    terminal.'''
+    from siliconcompiler.remote.client.run import _Tails
+
+    nop_project.option.set_quiet(False)
+    assert _Tails(run)._enabled is True
+
+    nop_project.option.set_quiet(True)
+    assert _Tails(run)._enabled is False
+
+
+def test_the_tail_count_is_the_servers_published_ceiling(fake_v1, run):
+    '''It is the server's thread and file descriptor being held, so the server
+    says how many.'''
+    from siliconcompiler.remote.client.run import _Tails
+
+    run.project.option.set_quiet(False)
+
+    tails = _Tails(run)
+    assert tails._enabled is True
+    assert tails._ceiling == 8

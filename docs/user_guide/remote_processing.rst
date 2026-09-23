@@ -117,13 +117,56 @@ While it runs, the client polls and reports each node as the server moves it:
 
 The server sets the polling interval per response, so a client never guesses one.
 
+**The log of every running node is printed as it is written**, exactly as a
+local run prints it, with each line saying which node it came from:
+
+.. code-block:: text
+
+  | INFO | job0 | place.detailed | 0 | Running in /sc_server/...
+  | INFO | job0 | route.global   | 0 | Tool 'openroad' found with version ...
+  | INFO | job0 | place.detailed | 0 | Finished task in 12.4s
+
+Several nodes at once are interleaved. The server says how many logs one caller
+may hold open at a time (``limits.concurrent_log_streams``); past that, nodes
+are named once and their logs arrive with their results like everything else.
+Set :keypath:`option,quiet` to turn the live output off -- it means here what it
+means locally. A server that offers no live tail simply reports node states, and
+the logs still arrive with the results.
+
+**Results arrive as each node finishes, not at the end.** A node's outputs,
+reports, log and manifest come down as one object the moment that node is done,
+so the local build directory and :meth:`.Project.summary` are current while the
+rest of the flow is still running -- and a long flow does not end with one large
+download.
+
+With the dashboard open (:keypath:`option,nodashboard` unset) the node table is
+the dashboard's, so the run prints only what changed. Per-node timers run off
+the server's own start times, which makes them continuous across a poll, a
+reconnect or a client restart; a node that has finished shows its final runtime
+rather than a clock that never stops.
+
 .. note::
 
-   **Retrieving what the run produced is not available yet.** The job runs to
-   completion on the server and its build directory there is complete, but the
-   endpoints that fetch the results back have not landed on this branch. A
-   finished run says so rather than leaving an empty build directory
-   unexplained.
+   **Results are retrieved whether the run succeeded or failed.** A failed run
+   is the one whose log you want, so the client fetches first and reports the
+   failure afterwards, in a few lines that say what to do next without opening
+   a URL.
+
+Two things a remote run does not bring back, both on purpose:
+
+``inputs/`` and ``sc_collected_files/``
+  The first is copies of the upstream node's outputs, which you already have
+  from the upstream node. The second is what this machine uploaded; the client
+  removes its own copy once the archive is built, so sending it back would undo
+  that and pay for the same bytes twice.
+
+Anything the server did not keep
+  Retention is per kind rather than per job -- a manifest is kept for years and
+  bulk results for the deployment's floor -- so an older job may list its
+  manifest and nothing else. **That is a successful run, not a degraded one:**
+  the manifest carries the record, so what happened is still answerable. The
+  client says which objects were not available and why, in the words that fit
+  the case: aged out, deleted, or held back.
 
 Watching, cancelling and reconnecting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

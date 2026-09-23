@@ -290,3 +290,163 @@ def test_asking_for_a_file_and_being_served_a_stream_says_where_to_go(
 
     assert "tail_log" in str(raised.value)
     assert not (tmp_path / "node.log").exists()
+
+
+###########################
+# A bundle is the rest of the run
+###########################
+
+def test_a_bundle_displaces_what_it_contains(fake_v1, results, nop_project):
+    '''🔴 A bundle IS the rest of the run, so fetching it and then fetching the
+    objects inside it downloads everything twice. On a real flow that is two
+    requests instead of sixty-two.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("manifest"),
+        artifact("bundle", "stepone", "0"),
+        artifact("bundle", "steptwo", "0"),
+        artifact("logs", "stepone", "0"),
+        artifact("logs", "steptwo", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-None-None",
+                  json.dumps({"schemaversion": "0.0.0"}))
+    for step in ("stepone", "steptwo"):
+        fake_v1.route(responses.GET, f"jobs/j1/artifacts/art-bundle-{step}-0",
+                      tarball(["outputs/gcd.pkg.json", f"sc_{step}_0.log"]),
+                      content_type="application/gzip")
+
+    assert results.fetch("j1") == 3
+
+    fetched = sorted(c.request.path_url for c in fake_v1.calls
+                     if "/artifacts/" in c.request.path_url)
+    # The two logs are inside the two bundles, so they are not asked for.
+    assert fetched == ["/v1/jobs/j1/artifacts/art-bundle-stepone-0",
+                       "/v1/jobs/j1/artifacts/art-bundle-steptwo-0",
+                       "/v1/jobs/j1/artifacts/art-manifest-None-None"]
+
+
+def test_a_bundle_expands_in_its_own_nodes_directory(fake_v1, results,
+                                                     nop_project):
+    '''Stored relative to the node's working directory, which is why the
+    contract has no per-artifact path: step, index and kind are enough.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts",
+                  {"items": [artifact("bundle", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+                  tarball(["outputs/gcd.pkg.json", "reports/metrics.json"]),
+                  content_type="application/gzip")
+
+    results.fetch("j1")
+
+    from siliconcompiler.utils.paths import workdir
+    into = workdir(nop_project, step="stepone", index="0")
+    assert os.path.isfile(os.path.join(into, "outputs", "gcd.pkg.json"))
+    assert os.path.isfile(os.path.join(into, "reports", "metrics.json"))
+
+
+def test_the_manifest_is_fetched_even_beside_a_bundle(fake_v1, results):
+    '''It is small, it is what the record is replayed from, and a client that
+    relied on finding one inside the bundle would break on the deployment that
+    indexes a manifest and no bulk output at all.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("manifest"), artifact("bundle", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-None-None",
+                  json.dumps({"schemaversion": "0.0.0"}))
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+                  tarball(["outputs/gcd.pkg.json"]),
+                  content_type="application/gzip")
+
+    assert results.fetch("j1") == 2
+
+
+def test_a_bundle_that_is_refused_displaces_nothing(fake_v1, results, caplog):
+    '''🔴 A bundle is never grantable, so present-and-refused is the ordinary
+    case on a deployment with approvals. Everything else must still be
+    fetched, and the caller told why it could not have the bundle.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("bundle", "stepone", "0", fetchable=False),
+        artifact("logs", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-stepone-0", "ran\n")
+
+    with caplog.at_level("WARNING"):
+        assert results.fetch("j1") == 1
+
+    assert "may not have this" in caplog.text
+
+
+###########################
+# Taking results as the run goes
+###########################
+
+def test_a_nodes_results_are_taken_when_that_node_finishes(fake_v1, results,
+                                                           nop_project):
+    '''🔴 Not at the end of the run. A node's bundle carries its manifest, so
+    taking it as it appears is what keeps the local record -- metrics, tool
+    versions, node states -- current while the rest of the flow runs on.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts",
+                  {"items": [artifact("bundle", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+                  tarball(["outputs/gcd.pkg.json"]),
+                  content_type="application/gzip")
+
+    taken = results.take("j1", {"nodes": [
+        {"step": "stepone", "index": "0", "state": "completed", "terminal": True},
+        {"step": "steptwo", "index": "0", "state": "running", "terminal": False}]})
+
+    assert taken == 1
+
+    from siliconcompiler.utils.paths import workdir
+    assert os.path.isfile(os.path.join(
+        workdir(nop_project, step="stepone", index="0"), "outputs", "gcd.pkg.json"))
+
+
+def test_a_node_is_only_taken_once(fake_v1, results):
+    '''The poll repeats every few seconds; the download must not.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts",
+                  {"items": [artifact("bundle", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+                  tarball(["outputs/gcd.pkg.json"]),
+                  content_type="application/gzip")
+
+    job = {"nodes": [{"step": "stepone", "index": "0", "state": "completed",
+                      "terminal": True}]}
+
+    assert results.take("j1", job) == 1
+    assert results.take("j1", job) == 0
+
+    fetches = [c for c in fake_v1.calls if "/artifacts/art-" in c.request.path_url]
+    assert len(fetches) == 1
+
+
+def test_nothing_is_listed_until_something_finishes(fake_v1, results):
+    '''One listing per poll in which something finished, not one per poll.'''
+    assert results.take("j1", {"nodes": [
+        {"step": "stepone", "index": "0", "state": "running", "terminal": False}]}) == 0
+
+    assert not [c for c in fake_v1.calls if "artifacts" in c.request.path_url]
+
+
+def test_the_final_sweep_does_not_fetch_what_the_run_already_took(
+        fake_v1, results, nop_project):
+    fake_v1.route(responses.GET, "jobs/j1/artifacts",
+                  {"items": [artifact("bundle", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+                  tarball(["outputs/gcd.pkg.json"]),
+                  content_type="application/gzip")
+
+    results.take("j1", {"nodes": [{"step": "stepone", "index": "0",
+                                   "state": "completed", "terminal": True}]})
+
+    fake_v1.route(responses.GET, "jobs/j1/artifacts",
+                  {"items": [artifact("bundle", "stepone", "0")]})
+    assert results.fetch("j1") == 0
+
+    fetches = [c for c in fake_v1.calls if "/artifacts/art-" in c.request.path_url]
+    assert len(fetches) == 1
+
+
+def test_a_listing_that_fails_mid_run_is_not_fatal(fake_v1, results):
+    '''Nothing is lost: the sweep at the end of the run asks again.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", "<html>502</html>",
+                  status=502, content_type="text/html")
+
+    assert results.take("j1", {"nodes": [{"step": "stepone", "index": "0",
+                                          "state": "completed",
+                                          "terminal": True}]}) == 0

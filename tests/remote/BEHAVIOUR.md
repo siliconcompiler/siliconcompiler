@@ -47,10 +47,14 @@ land; the parallelism it also bought was never the point of the row.
 
 ### The three rows that were struck rather than ticked
 
-🔴 **A4 — elapsed time converted into a start time.** `v1` publishes `nodes[].started_at` and
-`state_changed_at` as timestamps, so the derivation has nothing to derive. **What it bought survives
-and is stronger**: the server records a node's start once, so a reconnect gets the same instant the
-first connection did, where the old arithmetic restarted the clock at every poll.
+✅ **A4 — elapsed time converted into a start time. Ticked, not struck.** `v1` publishes
+`nodes[].started_at` as an instant, so the derivation is gone -- but what it bought had to be wired
+up, and at first was not: the dashboard got no updates at all, so nothing ticked. It is now handed
+`starttimes` on every poll, **for running nodes only**, because the board counts those against
+*now* and a finished node must show its final runtime instead. That number comes from
+`metric,tasktime`, which arrives when the node's manifest is replayed out of the bundle fetched as
+it finished. The old arithmetic restarted the clock at every poll; this one is continuous across a
+poll, a reconnect and a client restart.
 
 🔴 **A5 — the `null` key is the setup manifest.** Gone with the protocol that had a magic node name.
 `manifest` is an artifact kind, and phase 4 fetches it like any other.

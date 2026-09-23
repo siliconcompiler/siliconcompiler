@@ -7,7 +7,7 @@ per node and no record of it; a tarball is not a row, so it carries no kind, no
 retention and no per-object gate. Here every object is indexed, and the listing
 is the answer to *where did my results go* even when the bytes are gone.
 
-Four kinds are produced, and each file has exactly one home:
+Three kinds are produced, and every byte is stored once:
 
 ``manifest``  the job's own ``<design>.pkg.json``. Job-level, so no step. **The
               kind most likely to be the only one there is**: it is small, and
@@ -15,17 +15,29 @@ Four kinds are produced, and each file has exactly one home:
               so *what happened* is answerable with no outputs on disk at all
 ``logs``      one node's ``sc_<step>_<index>.log``, as text. This is what
               ``GET /v1/jobs/{id}/logs`` redirects to, which is why it stays a
-              readable file rather than being folded into an archive
-``reports``   that node's ``reports/``. Also inside ``outputs``, and separate on
-              purpose: the two kinds have different default policies, so a
-              caller who may have one and not the other still gets its metrics
-``outputs``   *everything a node produced, intermediates included* -- the node's
-              working directory minus ``inputs/``, which holds nothing but
-              copies of the upstream node's outputs
+              readable file rather than only living inside the bundle
+``bundle``    🔴 **one node's whole working directory, indexed the moment that
+              node finishes.** *"The results tarball does not disappear -- it
+              stops being an endpoint and becomes an artifact, assembled during
+              the run and indexed like everything else."* Per node rather than
+              per job precisely so that it IS assembled during the run: a
+              client can take each node's results as they appear instead of
+              waiting for the last node to decide whether the first one's work
+              is available.
 
-``input`` is deliberately not produced. It is the archive the client uploaded,
-the client still has it, and keeping a second copy costs the whole upload again
-for something nobody fetches.
+⚠️ **`outputs` and `reports` are deliberately NOT produced, and that is a
+choice with a cost.** They would be a second copy of bytes the bundle already
+holds -- on this deployment roughly doubling what a job occupies. What it buys
+elsewhere is that a bundle is **never grantable**, so on a deployment with
+approvals a caller who may not have the bundle could still be given its reports.
+There is no approval machinery here and the only caller who can see a job is its
+owner, so nobody is losing anything that exists. ✅ **A client asking
+``?kind=reports`` gets an empty list, which is the true answer:** *this server
+does not index those*.
+
+``input`` is not produced either. It is the archive the client uploaded, the
+client still has it, and keeping a second copy costs the whole upload again for
+something nobody fetches.
 '''
 
 import hashlib
@@ -33,41 +45,56 @@ import logging
 import shutil
 import tarfile
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Optional
 
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
 
-__all__ = ["collect", "collect_node_log", "wire", "fetchable", "KINDS"]
+__all__ = ["collect", "collect_node", "wire", "fetchable", "KINDS"]
 
 
 logger = logging.getLogger("sc-server")
 
 
 # The eight are the contract's; these four are what this deployment produces.
-KINDS = ("manifest", "logs", "reports", "outputs")
+KINDS = ("manifest", "logs", "bundle")
 
 _CHUNK = 1024 * 1024
 
 
-def collect_node_log(store, storage, config, job, build_root, step, index) -> int:
-    '''Index one node's log, the moment that node is done.
+def collect_node(store, storage, config, job, build_root, step, index) -> int:
+    '''Index one node's results, the moment that node is done.
 
-    🔴 Not deferrable to the end of the job. A terminal node answers `/logs`
-    with a `303` to its archived log, and a node finishing while the rest of the
-    flow runs on is the ORDINARY case -- it is exactly what happens to somebody
-    tailing that node. Waiting for the job would answer *no log was kept* for a
-    node that had just written one.
+    🔴 Not deferrable to the end of the job, and for two reasons. A terminal
+    node answers `/logs` with a `303` to its archived log, and a node finishing
+    while the rest of the flow runs on is the ORDINARY case -- waiting for the
+    job would answer *no log was kept* for a node that had just written one.
+    And the bundle carries that node's manifest, so a client that takes it as
+    it appears has the run's record, metrics included, while the run is still
+    going.
     '''
-    root = Path(build_root) / job["design"] / job["jobname"]
-    log = root / step / index / f"sc_{step}_{index}.log"
-    if not log.is_file():
+    workdir = Path(build_root) / job["design"] / job["jobname"] / step / index
+    if not workdir.is_dir():
         return 0
 
-    return _index(store, storage, job, config["storage_location_id"],
-                  config.limits["job_retention_days"], "logs", step, index,
-                  log, "text/plain")
+    location = config["storage_location_id"]
+    floor = config.limits["job_retention_days"]
+    written = 0
+
+    log = workdir / f"sc_{step}_{index}.log"
+    if log.is_file():
+        written += _index(store, storage, job, location, floor, "logs",
+                          step, index, log, "text/plain")
+
+    members = [child for child in sorted(workdir.iterdir())
+               if child.name not in _NOT_IN_A_BUNDLE]
+    if members:
+        written += _archive(store, storage, job, location, floor, "bundle",
+                            step, index, members, workdir,
+                            exclude=_bundle_filter)
+
+    return written
 
 
 def collect(store, storage, config, job, build_root) -> int:
@@ -92,40 +119,42 @@ def collect(store, storage, config, job, build_root) -> int:
         written += _index(store, storage, job, location, floor, "manifest",
                           None, None, manifest, "application/json")
 
+    # The run's own job log, which belongs to no node. Job-level `logs`, since
+    # that is exactly what it is.
+    for job_log in sorted(root.glob("job.*.log")):
+        written += _index(store, storage, job, location, floor, "logs",
+                          None, None, job_log, "text/plain")
+        break
+
+    # Every node again, because a node whose bundle was missed while the run
+    # was going still has to be indexed -- the nodes that were caught cost one
+    # SELECT each and write nothing.
     for node in store.all(
             'SELECT step, "index" FROM job_nodes WHERE job_id = ? ORDER BY step, "index"',
             (job["id"],)):
-        step, index = node["step"], node["index"]
-        workdir = root / step / index
-        if not workdir.is_dir():
-            # A node that never ran leaves nothing, which is a true answer and
-            # not an error: its state already says so.
-            continue
-
-        log = workdir / f"sc_{step}_{index}.log"
-        if log.is_file():
-            written += _index(store, storage, job, location, floor, "logs",
-                              step, index, log, "text/plain")
-
-        reports = workdir / "reports"
-        if _has_files(reports):
-            written += _archive(store, storage, job, location, floor, "reports",
-                                step, index, [reports], workdir)
-
-        # `inputs/` is excluded: it is copies of the upstream node's outputs,
-        # which the caller is getting from the upstream node.
-        produced = [child for child in sorted(workdir.iterdir())
-                    if child.name != "inputs"]
-        if produced:
-            written += _archive(store, storage, job, location, floor, "outputs",
-                                step, index, produced, workdir)
+        written += collect_node(store, storage, config, job, build_root,
+                                node["step"], node["index"])
 
     logger.info(f"indexed {written} artifacts for {job['id']}")
     return written
 
 
-def _has_files(path: Path) -> bool:
-    return path.is_dir() and any(path.rglob("*"))
+# What a bundle leaves out, and every one of them for the same reason: the
+# caller already has it, or it is this server talking to itself.
+#
+#   inputs/              copies of the upstream node's outputs, which are in
+#                        here already under the node that produced them
+#   sc_collected_files/  what the CLIENT uploaded. It deletes its own copy once
+#                        the archive is built, deliberately -- it is the largest
+#                        thing in a build directory -- so sending it back
+#                        undoes that and pays for the same bytes twice
+_NOT_IN_A_BUNDLE = ("inputs", "sc_collected_files")
+
+
+def _bundle_filter(info: "tarfile.TarInfo"):
+    '''Drop the excluded directories wherever they appear in the tree.'''
+    parts = PurePosixPath(info.name).parts
+    return None if any(part in _NOT_IN_A_BUNDLE for part in parts) else info
 
 
 def _exists(store, job, kind, step, index) -> bool:
@@ -157,7 +186,7 @@ def _index(store, storage, job, location, floor, kind, step, index,
 
 
 def _archive(store, storage, job, location, floor, kind, step, index,
-             members: List[Path], base: Path) -> int:
+             members: List[Path], base: Path, exclude=None) -> int:
     '''Several paths, as one gzipped tar, recorded as one artifact.
 
     Stored relative to the node's working directory, so a client unpacks it
@@ -173,7 +202,7 @@ def _archive(store, storage, job, location, floor, kind, step, index,
 
     with tarfile.open(target, "w:gz") as tar:
         for member in members:
-            tar.add(member, arcname=str(member.relative_to(base)))
+            tar.add(member, arcname=str(member.relative_to(base)), filter=exclude)
 
     return _record(store, job, artifact_id, location, floor, kind, step, index,
                    target, "application/gzip")

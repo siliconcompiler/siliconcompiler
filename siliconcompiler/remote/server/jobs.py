@@ -707,7 +707,7 @@ class JobService:
                 # a node that is done answers /logs with its archive while the
                 # rest of the flow is still running -- which is precisely the
                 # moment somebody tailing it asks.
-                self._index_node_log(job, step, index)
+                self._index_node(job, step, index)
 
         reported = progress.get("state")
         started_at = progress.get("started_at")
@@ -727,7 +727,23 @@ class JobService:
                 final = "cancelled"
             self._finish(job, final, progress)
         elif reported == "running" and job["scheduler_job_id"] and not self._alive(job):
-            self._lost(job)
+            # 🔴 Look again before declaring it lost. "The run says it is
+            # going" and "the scheduler has never heard of it" are read at two
+            # different moments, and a run that finished in between satisfies
+            # both -- the progress file in hand is stale and the scheduler's
+            # answer is fresh. Everything between the two readings widens that
+            # window, and indexing a node's results is not cheap.
+            #
+            # A job that really is gone reads the same file twice and is still
+            # `running`, which costs one stat to be sure of.
+            settled = runspec.read_progress(
+                self.job_root(job["user_id"], job["id"]) / job["design"] /
+                job["jobname"] / runspec.PROGRESS_FILENAME)
+
+            if settled and settled.get("state") in ("completed", "failed"):
+                self._finish(job, settled["state"], settled)
+            else:
+                self._lost(job)
 
     def _alive(self, job) -> bool:
         try:
@@ -783,13 +799,14 @@ class JobService:
         except Exception as e:                                   # noqa: BLE001
             logger.error(f"could not index the results of {job['id']}: {e}")
 
-    def _index_node_log(self, job, step: str, index: str) -> None:
+    def _index_node(self, job, step: str, index: str) -> None:
+        """Index one node's log and bundle, as that node finishes."""
         try:
-            artifacts.collect_node_log(
+            artifacts.collect_node(
                 self._store, self._storage, self._config, job,
                 self.job_root(job["user_id"], job["id"]), step, index)
         except Exception as e:                                   # noqa: BLE001
-            logger.error(f"could not index the log of {job['id']} {step}/{index}: {e}")
+            logger.error(f"could not index {job['id']} {step}/{index}: {e}")
 
     ######################################################################
     # Artifacts
@@ -897,7 +914,7 @@ class JobService:
                            "archived log is available once the node finishes")
             return "stream", node
 
-        self._index_node_log(job, step, index)
+        self._index_node(job, step, index)
 
         row = self._store.one(
             "SELECT * FROM artifacts WHERE job_id = ? AND step = ? "
@@ -947,7 +964,7 @@ class JobService:
         '''
         job = self._row(job_id)
         if job is not None:
-            self._index_node_log(job, step, index)
+            self._index_node(job, step, index)
 
         row = self._store.one(
             "SELECT id FROM artifacts WHERE job_id = ? AND step = ? "
