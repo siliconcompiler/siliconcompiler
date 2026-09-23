@@ -450,3 +450,58 @@ def test_a_listing_that_fails_mid_run_is_not_fatal(fake_v1, results):
     assert results.take("j1", {"nodes": [{"step": "stepone", "index": "0",
                                           "state": "completed",
                                           "terminal": True}]}) == 0
+
+
+def test_a_node_with_no_bundle_is_not_asked_about_again(fake_v1, results):
+    '''🔴 A node the run skipped produces no working directory, so there is
+    nothing to archive and its bundle never appears. Recording only the nodes
+    whose bundles were FOUND left it outstanding for ever, and this listing
+    then happened on every single poll for the length of the run -- per client.
+    On a server with a few hundred of them that is the whole cost of watching
+    a job.
+    '''
+    job = {"nodes": [{"step": "stepone", "index": "0", "state": "skipped",
+                      "terminal": True}]}
+
+    # The listing is empty: a skipped node archives nothing.
+    for _ in range(4):
+        fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": []})
+        results.take("j1", job)
+
+    listings = [c for c in fake_v1.calls
+                if c.request.path_url.startswith("/v1/jobs/j1/artifacts?")
+                or c.request.path_url == "/v1/jobs/j1/artifacts"]
+    assert len(listings) == 1
+
+
+def test_one_listing_per_batch_of_finished_nodes(fake_v1, results):
+    '''Not one per poll, and not one per node: a wide flow finishes several
+    nodes between two polls, and a quiet poll asks nothing at all.'''
+    def bundle_for(step):
+        return artifact("bundle", step, "0")
+
+    def node(step, terminal):
+        return {"step": step, "index": "0", "terminal": terminal,
+                "state": "completed" if terminal else "running"}
+
+    # Poll 1: nothing has finished -> no listing at all.
+    results.take("j1", {"nodes": [node("stepone", False)]})
+
+    # Poll 2: two finished together -> one listing, two fetches.
+    fake_v1.route(responses.GET, "jobs/j1/artifacts",
+                  {"items": [bundle_for("stepone"), bundle_for("steptwo")]})
+    for step in ("stepone", "steptwo"):
+        fake_v1.route(responses.GET, f"jobs/j1/artifacts/art-bundle-{step}-0",
+                      tarball(["outputs/gcd.pkg.json"]),
+                      content_type="application/gzip")
+
+    assert results.take("j1", {"nodes": [node("stepone", True),
+                                         node("steptwo", True)]}) == 2
+
+    # Poll 3: nothing new -> no listing.
+    results.take("j1", {"nodes": [node("stepone", True), node("steptwo", True)]})
+
+    listings = [c for c in fake_v1.calls
+                if "artifacts" in c.request.path_url
+                and "/artifacts/" not in c.request.path_url]
+    assert len(listings) == 1

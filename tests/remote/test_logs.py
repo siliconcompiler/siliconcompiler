@@ -530,6 +530,7 @@ def test_a_skipped_node_is_reported_as_skipped(nop_project):
 
     nop_project.set('record', 'status', 'skipped', step="steptwo", index="0")
 
+    runner._progress_path = None
     runner._progress = {"nodes": {
         "stepone/0": {"state": "completed"},
         "steptwo/0": {"state": "pending"},
@@ -542,12 +543,17 @@ def test_a_skipped_node_is_reported_as_skipped(nop_project):
 
 def test_a_node_the_run_never_reached_is_still_cancelled(nop_project):
     '''The case `cancelled` is for: no recorded status at all, because the run
-    stopped before it got there.'''
+    stopped before it got there. Decided by the sweep at the end, never by
+    settling -- which also runs before the flow starts.'''
     from siliconcompiler.remote.server import runner
 
+    runner._progress_path = None
     runner._progress = {"nodes": {"steptwo/0": {"state": "pending"}}}
-    runner._settle(nop_project)
 
+    runner._settle(nop_project)
+    assert runner._progress["nodes"]["steptwo/0"]["state"] == "pending"
+
+    runner._sweep()
     assert runner._progress["nodes"]["steptwo/0"]["state"] == "cancelled"
 
 
@@ -555,6 +561,7 @@ def test_a_failed_node_keeps_its_own_verdict(nop_project):
     '''Only nodes no callback fired for are settled here.'''
     from siliconcompiler.remote.server import runner
 
+    runner._progress_path = None
     runner._progress = {"nodes": {"stepone/0": {"state": "failed"}}}
     runner._settle(nop_project)
 
@@ -597,3 +604,98 @@ def test_the_verdict_is_taken_before_the_record_is_reset(nop_project):
     assert nop_project.get("record", "status", step="stepone", index="0") is None
     MPManager.get_transient_settings().set("TaskScheduler", "post_run",
                                            lambda project: None)
+
+
+###########################
+# The server does not rewrite the caller's settings
+###########################
+
+def test_quiet_is_left_as_the_caller_set_it(nop_project, tmp_path):
+    '''🔴 `quiet` mutes the console sink and nothing else -- file sinks ignore
+    it, which is why a quiet run's node logs were always complete. Setting it
+    here rewrote a caller's own setting to achieve something it does not do,
+    and handed them back a manifest that did not describe their run.'''
+    from siliconcompiler.remote.server import runspec
+
+    nop_project.option.set_quiet(False)
+    runspec.normalize(nop_project, "job-1", tmp_path / "builds",
+                      tmp_path / "cache")
+
+    assert nop_project.option.get_quiet() is False
+
+    nop_project.option.set_quiet(True)
+    runspec.normalize(nop_project, "job-1", tmp_path / "builds",
+                      tmp_path / "cache")
+
+    assert nop_project.option.get_quiet() is True
+
+
+def test_the_runner_silences_the_console_instead(nop_project):
+    '''🔴 Suppressed with a filter, not detached. TaskScheduler captures this
+    handler OBJECT and hands it to the QueueListener that re-emits every child
+    node's records, so detaching it from the logger silences the parent's own
+    lines and not one line of any node's -- which is exactly what happened:
+    the server's run log still held all 8797 lines the nodes produced.'''
+    import logging
+
+    from siliconcompiler.remote.server import runner
+
+    console = nop_project._logger_console
+    runner._silence_console(nop_project)
+
+    # Still attached, because things hold a reference to it.
+    assert console in nop_project.logger.handlers
+
+    record = logging.LogRecord("x", logging.INFO, "f", 1, "hello", None, None)
+    assert not all(f.filter(record) for f in console.filters)
+
+
+def test_detaching_twice_is_not_an_error(nop_project):
+    from siliconcompiler.remote.server import runner
+
+    runner._silence_console(nop_project)
+    runner._silence_console(nop_project)
+
+
+def test_a_node_the_run_writes_off_is_reported_before_the_run_ends(nop_project):
+    '''🔴 SiliconCompiler decides which nodes it will not execute during setup,
+    before the first one starts. Settling only at the end left a node the run
+    had already written off reading `pending` for the whole run -- and the
+    client showed it as pending right up until the job finished.'''
+    from siliconcompiler.remote.server import runner
+
+    published = []
+    runner._progress_path = None
+    runner._progress = {"nodes": {"steptwo/0": {"state": "pending"}}}
+    nop_project.set('record', 'status', 'skipped', step="steptwo", index="0")
+
+    original = runner._publish
+    runner._publish = lambda: published.append(dict(runner._progress["nodes"]))
+    try:
+        runner._settle(nop_project)
+    finally:
+        runner._publish = original
+
+    # Settled AND written out, because settling at the start of a run is only
+    # useful if somebody can see it before the run ends.
+    assert published
+    assert published[0]["steptwo/0"]["state"] == "skipped"
+
+
+def test_settling_with_nothing_to_change_writes_nothing(nop_project):
+    '''The common case, on every node of every run.'''
+    from siliconcompiler.remote.server import runner
+
+    published = []
+    runner._progress_path = None
+    runner._progress = {"nodes": {"stepone/0": {"state": "running"}}}
+    nop_project.set('record', 'status', 'running', step="stepone", index="0")
+
+    original = runner._publish
+    runner._publish = lambda: published.append(1)
+    try:
+        runner._settle(nop_project)
+    finally:
+        runner._publish = original
+
+    assert not published

@@ -105,11 +105,25 @@ class Results:
             try:
                 landed += self._retrieve(job_id, item)
                 self._fetched.add(item["id"])
-                self._taken_nodes.add(key)
                 self._landed += 1
             except Exception as e:                               # noqa: BLE001
                 # It will be tried again by the sweep at the end of the run.
                 logger.debug(f"{self._name(item)} not taken yet: {e}")
+
+        # 🔴 Every node that had just finished has now been LOOKED FOR, and
+        # that is what is recorded -- not which ones were found.
+        #
+        # Recording only the ones that were found meant a terminal node with no
+        # bundle stayed outstanding for ever, and a node the run skipped never
+        # has one: it produces no working directory, so there is nothing to
+        # archive. Three skipped nodes were enough to make this listing happen
+        # on every single poll for the length of the run, per client. On a
+        # server with a few hundred of those, that is the whole cost of
+        # watching a job.
+        #
+        # Anything that appears late is picked up by the sweep at the end,
+        # which is what that sweep is for.
+        self._taken_nodes |= fresh
 
         if landed:
             self._replay()

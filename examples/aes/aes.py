@@ -54,6 +54,7 @@ def main():
     # including the process design kit (PDK), standard cell libraries,
     # and a default tool flow.
     freepdk45_demo(project)
+    project.option.set_remote(True)
 
     # --- Execution ---
     # The run() command executes the flow the target set up, ASICFlow, which

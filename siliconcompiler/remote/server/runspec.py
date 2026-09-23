@@ -77,8 +77,22 @@ def normalize(project, job_id: str, builddir, cachedir) -> None:
       directory it did not create
     - 🔴 **remote off** -- the one setting whose absence is an infinite loop.
       Left on, the compute node submits the job again
-    - **no display, and quiet** -- no display on a compute node, and the
-      server's own logging is the record
+    - **no display** -- there is none on a compute node
+
+    🔴 **`quiet` is deliberately NOT set, and that is a change.** It used to be,
+    on the grounds that *the server's own logging is the record*. It is not what
+    `quiet` does: the filter is on the console sink only, and file sinks ignore
+    it entirely, so a quiet run's node logs were always complete. What it
+    actually did was mute the batch job's stdout -- which is redirected to a
+    file nobody tails -- while silently rewriting a setting the submitter owns.
+    A manifest that comes back saying `quiet` when the caller never asked for it
+    is a manifest that does not describe their run.
+
+    ⚠️ **The thing it was reaching for is real** and is solved where it belongs:
+    the runner detaches the project's console handler, so nothing writes to
+    stdout on the server. That keeps every node log complete, keeps the server's
+    own run log to the run's own messages instead of a concatenation of every
+    node's output, and leaves the caller's `quiet` meaning what they set it to.
     - **the remote id** -- the server-owned job id, which is what a user pastes
       back into ``sc-remote``
 
@@ -95,7 +109,6 @@ def normalize(project, job_id: str, builddir, cachedir) -> None:
     project.option.set_cachedir(str(cachedir))
     project.option.set_remote(False)
     project.option.set_nodisplay(True)
-    project.option.set_quiet(True)
     project.set('record', 'remoteid', job_id)
 
 

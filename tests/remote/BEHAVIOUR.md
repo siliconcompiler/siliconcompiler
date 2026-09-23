@@ -45,6 +45,19 @@ a subset, so a third gap would fail it.
 ✅ **B4's pool is gone and what it bought is not.** One object failing is reported and the rest still
 land; the parallelism it also bought was never the point of the row.
 
+🔴 **G6 — `option.set_quiet(True)` — struck, because it was reaching for the right thing with the
+wrong lever.** `quiet` mutes the console sink and nothing else: file sinks ignore it entirely, so a
+quiet run's node logs were always complete. What it actually did here was silence the batch job's
+stdout -- which is redirected to a file nobody reads -- while rewriting a setting the submitter
+owns, so a manifest came back saying `quiet` when the caller had never asked for it.
+
+✅ **The intent is now stated where it belongs:** the runner suppresses the project's console
+handler. ⚠️ **Suppressed rather than detached, and the distinction is load-bearing** --
+`TaskScheduler` captures that handler OBJECT and hands it to the `QueueListener` that re-emits every
+child node's records, so detaching it from the logger silences the parent's own lines and not one
+line of any node's. Measured on a real asicflow run: the server's run log went from **8797 lines to
+0**, with the node logs still at 8797 and `job.log` at 8842.
+
 ### The three rows that were struck rather than ticked
 
 ✅ **A4 — elapsed time converted into a start time. Ticked, not struck.** `v1` publishes
@@ -204,7 +217,7 @@ archive limits bind.**
 | G3 | `option.set_cachedir(<cache>)` | 🆕 **now `<datadir>/users/<user_id>/cache/`.** Was deliberately cluster-wide, *"cluster-wide rather than per-job — under `job_root` every job would re-download the PDK"*. **The per-user cost is accepted**; it is what makes the tree single-owner and fixes the `ccache`/`coursier` `EPERM` and the owner-only dataroot sweep together |
 | G4 | `option.set_remote(False)` | 🔴 **without it the compute node tries to submit the job again.** The one setting whose absence is an infinite loop |
 | G5 | `option.set_nodisplay(True)` | no display on a compute node |
-| G6 | `option.set_quiet(True)` | the server's own logging is the record |
+| G6 | ~~`option.set_quiet(True)`~~ | 🔴 **struck.** See below |
 | G7 | `scheduler.set_name(cluster)` **when it is not `local`** | `local` already means *unset*; any other value names the per-node scheduler |
 | G8 | `set('record', 'remoteid', <hash>)` | 🆕 **now the server-owned job id, and a UUIDv7** rather than `uuid.uuid4().hex`, so a user's ids sort by when they ran |
 

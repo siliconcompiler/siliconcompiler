@@ -24,6 +24,7 @@ from pathlib import Path
 from siliconcompiler.remote.server.runspec import (
     PROGRESS_FILENAME, node_state, runtime_nodes, write_progress)
 from siliconcompiler.remote.server.store import now
+from siliconcompiler.utils.logging import SCSuppressLoggerFilter
 
 __all__ = ["main"]
 
@@ -71,6 +72,7 @@ def run(manifest: Path) -> int:
     from siliconcompiler.scheduler.taskscheduler import TaskScheduler
 
     project = Project.from_manifest(filepath=str(manifest))
+    _silence_console(project)
 
     # Beside the manifest, which is the job's own directory. The server put the
     # manifest there and knows where to look without being told a second path.
@@ -94,6 +96,12 @@ def run(manifest: Path) -> int:
     # Project.run() resets every non-global parameter on its way out --
     # `record,status` included. Read afterwards it is empty, and every node no
     # callback fired for looks like one the run never reached.
+    # 🔴 Registered on BOTH ends of the run. SiliconCompiler decides which
+    # nodes it will not execute during setup, before the first one starts, so
+    # settling only at the end left a node the run had already written off
+    # reading `pending` for the whole run -- and the client showed it as
+    # pending right up until the job finished.
+    TaskScheduler.register_callback("pre_run", _settle)
     TaskScheduler.register_callback("post_run", _settle)
 
     try:
@@ -125,6 +133,41 @@ def _sweep() -> None:
             node["state"] = "cancelled"
 
 
+def _silence_console(project) -> None:
+    '''Stop this run writing to stdout.
+
+    🔴 The lever the server actually wants, in place of setting `quiet` on
+    somebody else's project. `quiet` mutes the console sink and nothing else --
+    file sinks ignore it, which is why a quiet run's logs were always complete
+    -- so using it here rewrote a caller's setting to achieve something it does
+    not do.
+
+    ⚠️ **Suppressed with a filter rather than detached, and that distinction is
+    load-bearing.** `TaskScheduler` captures this handler OBJECT at
+    construction and hands it to the `QueueListener` that re-emits every child
+    node's records, so removing it from the logger silences the parent's own
+    lines and not one line of any node's. It is the same reason the CLI
+    dashboard suppresses rather than detaches.
+
+    Every node still writes its own log and the job still writes `job.log`,
+    because those are file handlers; what stops is the batch job's stdout,
+    which is redirected into the server's run log and would otherwise hold a
+    second copy of every line every node produced.
+    '''
+    console = getattr(project, "_logger_console", None)
+    if console is None:
+        return
+
+    for existing in console.filters:
+        if isinstance(existing, SCSuppressLoggerFilter):
+            existing.active = True
+            return
+
+    suppress = SCSuppressLoggerFilter()
+    suppress.active = True
+    console.addFilter(suppress)
+
+
 def _settle(project) -> None:
     '''Decide what became of every node no callback fired for.
 
@@ -141,9 +184,13 @@ def _settle(project) -> None:
     started*, which the client then mapped to an error -- so a perfectly
     successful run showed two failures for work nobody ever intended to do.
 
-    `cancelled` is kept for the case it describes: a node with no recorded
-    status at all, because the run stopped before reaching it.
+    Nothing is written off here: a node the record says nothing about is left
+    as it is, because this runs before the flow starts as well as after it
+    ends. `_sweep` is what decides that a node the run never reached is
+    `cancelled`, and it only runs once the run is over.
     '''
+    changed = False
+
     for key, node in _progress["nodes"].items():
         if node["state"] not in ("pending", "queued", "running"):
             continue
@@ -152,9 +199,20 @@ def _settle(project) -> None:
         try:
             recorded = project.get('record', 'status', step=step, index=index)
         except Exception:                                        # noqa: BLE001
-            recorded = None
+            continue
 
-        node["state"] = node_state(recorded) if recorded else "cancelled"
+        if not recorded:
+            continue
+
+        mapped = node_state(recorded)
+        if mapped != node["state"]:
+            node["state"] = mapped
+            changed = True
+
+    if changed:
+        # Published straight away: settling at the start of a run is only
+        # useful if somebody can see it before the run ends.
+        _publish()
 
 
 def main(argv=None) -> int:
