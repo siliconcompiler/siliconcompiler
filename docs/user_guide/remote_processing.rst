@@ -351,6 +351,14 @@ curates images for the framework and says nothing about Verilator is not
 claiming to have a Verilator image and is not refused for lacking one.
 Registering the name is how an operator takes that claim on.
 
+**A version is advertised only when the server can read it.** Submitting
+re-derives the flow from the uploaded manifest, and that happens in the server's
+own SiliconCompiler -- reading a manifest is only backwards compatible, so a
+newer one loses the keys this schema does not have. A deployment therefore
+**upgrades the server before registering a version newer than it**, and a server
+asked to advertise one it cannot read refuses to start rather than accepting
+jobs it would have to turn away after the upload.
+
 **A node waiting for its image reports** ``preparing``. A tool image is minutes
 on a host that has not seen it, and without a state for that the wait is
 indistinguishable from a hang.

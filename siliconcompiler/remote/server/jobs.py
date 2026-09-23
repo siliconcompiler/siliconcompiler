@@ -18,9 +18,12 @@ import logging
 import re
 import shutil
 import sqlite3
+import warnings
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from siliconcompiler.schema.baseschema import SchemaVersionWarning
 
 from siliconcompiler.remote.server import archive, artifacts, images, runspec
 from siliconcompiler.remote.server.dispatch import DispatchError
@@ -521,13 +524,39 @@ class JobService:
                 detail=f"the archive holds no {job['design']}/{job['jobname']}/"
                        f"{job['design']}.pkg.json")
 
-        try:
-            project = Project.from_manifest(filepath=str(manifest))
-        except Exception as e:
-            self._reject(session, job, "declared-mismatch")
+        # 🔴 Reading a manifest is only BACKWARDS compatible, and the failure
+        # in the other direction is silent. SiliconCompiler migrates an older
+        # manifest, but a newer one holds keys this schema does not have: they
+        # are dropped, and a value whose type or legal values changed since is
+        # rejected or replaced by its default. So the read "either fails or
+        # quietly returns something other than what was written" -- and this
+        # server acts on what it read, deciding the node list, the flow and the
+        # limits from it.
+        #
+        # Caught rather than re-derived, because SiliconCompiler already knows
+        # when it is out of its depth and says so; what is wrong is only that
+        # it says it as a warning, which is right for a scheduler that can rerun
+        # the node and wrong for a server admitting somebody else's work.
+        with warnings.catch_warnings(record=True) as raised:
+            warnings.simplefilter("always", SchemaVersionWarning)
+            try:
+                project = Project.from_manifest(filepath=str(manifest))
+            except Exception as e:
+                self._reject(session, job, "declared-mismatch")
+                raise ProblemError(
+                    "declared-mismatch",
+                    detail=f"the uploaded manifest could not be read: {e}") from None
+
+        newer = [str(warning.message) for warning in raised
+                 if issubclass(warning.category, SchemaVersionWarning)]
+        if newer:
+            self._reject(session, job, "version-skew")
             raise ProblemError(
-                "declared-mismatch",
-                detail=f"the uploaded manifest could not be read: {e}") from None
+                "version-skew",
+                detail=f"this server cannot read that manifest: {newer[0]}. "
+                       "It was written by a newer SiliconCompiler than this "
+                       "deployment runs, and reading one is only backwards "
+                       "compatible")
 
         if project.name != job["design"] or project.option.get_jobname() != job["jobname"]:
             self._reject(session, job, "declared-mismatch")

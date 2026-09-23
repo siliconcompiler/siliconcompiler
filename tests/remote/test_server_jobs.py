@@ -1049,10 +1049,10 @@ def registry():
             actor = store.upsert_user("operator", "someone@host")["id"]
 
         images.register_software(store, "siliconcompiler", "SiliconCompiler", actor)
-        images.register_version(store, "siliconcompiler", "0.39.1", actor,
+        images.register_version(store, "siliconcompiler", "0.38.0", actor,
                                 preference=10)
-        images.register_image(store, "ghcr.io/x/sc:0.39.1", digest("a"),
-                              [("siliconcompiler", "0.39.1")], actor)
+        images.register_image(store, "ghcr.io/x/sc:0.38.0", digest("a"),
+                              [("siliconcompiler", "0.38.0")], actor)
 
 
 @pytest.fixture
@@ -1111,7 +1111,7 @@ def test_submit_records_the_image_each_node_ran_in(
         job_archive, container_dispatcher):
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions={"siliconcompiler": "0.39.1"})
+                versions={"siliconcompiler": "0.38.0"})
 
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
@@ -1126,13 +1126,13 @@ def test_submit_records_the_image_each_node_ran_in(
 def test_the_node_is_told_a_digest_and_never_a_tag(
         container_server, container_client, key, container_token,
         job_archive, container_dispatcher):
-    """🔴 Rebuilding `sc:0.39.1` must not change what a job already accepted
+    """🔴 Rebuilding `sc:0.38.0` must not change what a job already accepted
     runs, which is only true if the pinned form is what reaches the manifest."""
     from siliconcompiler import Project
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions={"siliconcompiler": "0.39.1"})
+                versions={"siliconcompiler": "0.38.0"})
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = container_dispatcher.submitted[0][2]
@@ -1183,12 +1183,12 @@ def test_a_version_with_no_image_is_never_advertised(container_server, container
     from siliconcompiler.remote.server import images
 
     store = container_server.config["SC_STORE"]
-    images.register_version(store, "siliconcompiler", "0.40.0", operator(store),
+    images.register_version(store, "siliconcompiler", "0.38.1", operator(store),
                             preference=99)
 
     software = container_client.get("/v1").get_json()["software"]
 
-    assert software["siliconcompiler"] == ["0.39.1"]
+    assert software["siliconcompiler"] == ["0.38.0"]
 
 
 def test_a_deployment_that_runs_no_containers_places_nothing(
@@ -1231,7 +1231,7 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions={"siliconcompiler": "0.39.1"})
+                versions={"siliconcompiler": "0.38.0"})
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = fake.submitted[0][2]
@@ -1294,3 +1294,77 @@ def test_no_queue_leaves_it_to_the_cluster(
     submit(server_client, key, token, job["id"], upload_digest, size)
 
     assert dispatcher.handed == {"image": None, "queue": None}
+
+
+###########################
+# Reading somebody else's manifest
+###########################
+
+def test_a_manifest_from_a_newer_schema_is_refused(
+        server_client, key, token, nop_project, job_archive, dispatcher):
+    """🔴 Reading a manifest is only BACKWARDS compatible, and the failure in
+    the other direction is silent.
+
+    SiliconCompiler migrates an older manifest; a newer one holds keys this
+    schema does not have, which are dropped, and values whose type or legal
+    values changed, which are replaced by defaults. The read "either fails or
+    quietly returns something other than what was written" -- and this server
+    decides the node list, the flow and the limits from what it read. A warning
+    is right for a scheduler that can rerun the node, and wrong for a server
+    admitting somebody else's work.
+    """
+    import json
+    import os
+
+    from siliconcompiler.utils.paths import jobdir
+
+    root = jobdir(nop_project)
+    os.makedirs(root, exist_ok=True)
+    path = os.path.join(root, f"{nop_project.name}.pkg.json")
+    nop_project.write_manifest(path)
+
+    with open(path) as f:
+        body = json.load(f)
+    body["schemaversion"]["node"]["default"]["default"]["value"] = "99.0.0"
+
+    # A second member of the same name, which is what extraction ends up with:
+    # the builder writes the real manifest itself, so this is how a manifest
+    # from the future gets into the archive.
+    archive, upload_digest, size = job_archive(
+        extra={f"{nop_project.name}.pkg.json": json.dumps(body).encode()})
+    job = stage(server_client, key, token, archive, size)
+
+    response = submit(server_client, key, token, job["id"], upload_digest, size)
+
+    assert response.status_code == 422
+    assert slug(response) == "version-skew"
+    assert "only backwards compatible" in response.get_json()["detail"]
+    assert not dispatcher.submitted
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}",
+                token).get_json()
+    assert read["state"] == "rejected"
+
+
+def test_a_server_may_not_advertise_what_it_cannot_read(registry):
+    '''🔴 The framework image decides what RUNS a flow; it does not decide what
+    READS it.
+
+    Submit re-derives the flow from the uploaded manifest in the API process,
+    with the API process's SiliconCompiler -- so advertising a newer version is
+    a promise that ends in a refusal AFTER the upload. Caught when an operator
+    restarts the server they just configured, which is the cheapest moment
+    there is.
+    '''
+    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.app import create_app
+    from siliconcompiler.remote.server.store import Store
+
+    with Store("container-datadir/server.db") as store:
+        actor = operator(store)
+        images.register_version(store, "siliconcompiler", "99.0.0", actor)
+        images.register_image(store, "ghcr.io/x/future:99", digest("f"),
+                              [("siliconcompiler", "99.0.0")], actor)
+
+    with pytest.raises(RuntimeError, match="which it cannot read"):
+        create_app("container-datadir", cluster="local")
