@@ -45,8 +45,9 @@ class Client:
             normalize_server(credentials.address, credentials.port),
             credentials.key(),
             credentials=credentials)
-        self._transport.set_tokens(credentials.access_token,
-                                   credentials.refresh_token)
+        # No access token: it is never written down, so a command starts with
+        # the refresh token and spends it once.
+        self._transport.set_tokens(None, credentials.refresh_token)
 
     ######################################################################
     # Configuration
@@ -122,17 +123,42 @@ class Client:
         return body
 
     def ensure_session(self) -> None:
-        '''Log in if there is no usable session.'''
-        if self.transport.access_token is None:
-            self.login()
+        '''Get an access token for this command, the cheapest way there is.
+
+        🔴 The refresh token is spent FIRST and a fresh grant is the fallback,
+        not the other way round. `client_credentials` mints a new token family
+        every time it is called, and a family lives twelve days whether or not
+        anything uses it -- so logging in per command would leave a trail of
+        live sessions behind, one for every invocation.
+        '''
+        if self.transport.access_token is not None:
+            return
+
+        try:
+            if self.transport.refresh():
+                return
+        except SessionEnded:
+            # Over rather than stale: there is nothing to renew, and this
+            # machine's key is still enrolled, so a fresh grant is the answer.
+            self.logger.info("This session has ended; starting a new one.")
+
+        self.login()
 
     def logout(self) -> None:
-        '''End this session on the server, then forget it here.'''
+        '''End this session on the server, then forget it here.
+
+        Revoking needs a live access token and this client holds none between
+        commands, so the refresh token is spent to get one. That is worth a
+        round trip: the alternative is dropping the refresh token locally and
+        leaving the family alive on the server for its twelve-day cap.
+        '''
         try:
+            self.ensure_session()
             self.transport.request("POST", "auth/revoke")
-        except SessionEnded:
-            # Already over; forgetting it locally is the whole remaining job.
-            pass
+        except (SessionEnded, RemoteError) as e:
+            # Already over, or unreachable. Forgetting it locally is the whole
+            # remaining job either way, and it must still happen.
+            logger.debug(f"could not revoke on the server: {e}")
         finally:
             self.credentials.forget_tokens()
             self.transport.set_tokens(None, None)

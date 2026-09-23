@@ -5,11 +5,20 @@ Three things live here and they are not equally sensitive:
 
 ``address``        which server. Not a secret.
 ``dpop_key``       the private key. **The machine pin itself.**
-``access_token`` / ``refresh_token``   a live session.
+``refresh_token``  a session, spendable only by something holding that key.
 
 The file this replaces held a password and was made ``0600`` by a shipped fix.
 That mode is a floor, not a starting point: a long-lived refresh token is a
 session rather than one service's password, and a DPoP private key is the pin.
+
+🔴 **The access token is deliberately NOT written down.** It lives fifteen
+minutes and this file lives for weeks, so a stored one is stale far more often
+than it is useful -- the client would present a dead token, take a 401 and
+refresh anyway. Keeping it in memory for the length of one command costs a
+refresh at the start of the next and removes a credential from disk entirely.
+What is left is bound to the key beside it: the server pins a token family to a
+thumbprint and checks it on every refresh, so this file without
+``credentials.key`` spends nothing.
 
 The key is kept beside the credentials rather than inside them, in its own
 ``0600`` file, for one reason: ``scheduler/docker.py`` mounts ``~/.sc`` into task
@@ -64,6 +73,11 @@ class Credentials:
         if self.path.exists():
             self._values = json.loads(self.path.read_text())
 
+        # Dropped on read, not just on write: a file written by a client that
+        # persisted one must not have it read back, and popping it here means
+        # no later save can put it back.
+        self._values.pop("access_token", None)
+
     ######################################################################
     # Reading
     ######################################################################
@@ -77,10 +91,6 @@ class Credentials:
         return self._values.get("port")
 
     @property
-    def access_token(self) -> Optional[str]:
-        return self._values.get("access_token")
-
-    @property
     def refresh_token(self) -> Optional[str]:
         return self._values.get("refresh_token")
 
@@ -88,11 +98,19 @@ class Credentials:
     def user_id(self) -> Optional[str]:
         '''The `id` GET /v1/me last reported for this server.
 
-        Persisted so a user can tell "my jobs were deleted" from "I am a
-        different person now". Five things replace the principal without anyone
-        doing anything wrong -- a reimage, a container, a CI image, a changed
-        uid, a client release that changes the derivation salt -- and those have
-        very different next steps.
+        **Not a credential, and it authenticates nothing.** It is the server's
+        opaque public id for the caller -- the same value it puts in `owner` on
+        every job object it returns.
+
+        Persisted because it is the one thing here that CANNOT be fetched when
+        it is needed. `GET /v1/me` answers *who you are now*, and the question
+        this answers is *who did this server say I was last time* -- which the
+        server has no record of, because it does not know the old principal was
+        the same machine. Five things replace the principal without anyone doing
+        anything wrong: a reimage, a rebuilt container, a CI image, a changed
+        uid, and a client release that moves the derivation salt. All five look
+        identical to "every job I ever ran has been deleted", and they have very
+        different next steps.
         '''
         return self._values.get("user_id")
 
@@ -144,8 +162,13 @@ class Credentials:
         self.save()
 
     def save_tokens(self, body: Dict[str, Any]) -> None:
-        '''Persist a session so the next command does not log in again.'''
-        self.update(access_token=body.get("access_token"),
+        '''Persist the half of a session that outlives this command.
+
+        The refresh token only. The access token stays in memory, and
+        `access_token=None` is passed so that a file written by a client which
+        stored one has it removed the first time this is called.
+        '''
+        self.update(access_token=None,
                     refresh_token=body.get("refresh_token"))
 
     def forget_tokens(self) -> None:

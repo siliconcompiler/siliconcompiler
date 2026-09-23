@@ -102,17 +102,17 @@ def test_the_fix_is_a_command_the_user_can_run():
 def test_the_credentials_file_is_private(tmp_credentials):
     '''A shipped security fix, and the floor rather than the starting point: a
     refresh token is a session, not one service's password.'''
-    tmp_credentials.update(access_token="secret")
+    tmp_credentials.update(refresh_token="secret")
 
     assert _mode(tmp_credentials.path) == 0o600
 
 
 def test_an_existing_wider_file_is_tightened(tmp_credentials):
     '''Re-running configure over a file somebody widened has to fix it.'''
-    tmp_credentials.update(access_token="secret")
+    tmp_credentials.update(refresh_token="secret")
     os.chmod(tmp_credentials.path, 0o644)
 
-    tmp_credentials.update(access_token="secret-again")
+    tmp_credentials.update(refresh_token="secret-again")
 
     assert _mode(tmp_credentials.path) == 0o600
 
@@ -182,8 +182,10 @@ def test_login_needs_no_human(fake_v1, tmp_credentials, client_credentials):
     body = Client(tmp_credentials).login()
 
     assert body["access_token"] == "access-token-one"
-    assert tmp_credentials.access_token == "access-token-one"
     assert tmp_credentials.refresh_token == "refresh-token-one"
+    # 🔴 The access token is never written down: it lives fifteen minutes and
+    # this file lives for weeks.
+    assert "access_token" not in json.loads(tmp_credentials.path.read_text())
 
 
 def test_login_asserts_a_derived_subject(fake_v1, tmp_credentials, client_credentials):
@@ -222,8 +224,16 @@ def test_the_machine_label_is_not_the_subject(tmp_credentials):
     assert label is None or label != subject
 
 
-def test_a_session_is_reused_by_the_next_command(fake_v1, tmp_credentials,
-                                                 client_credentials):
+def test_the_next_command_refreshes_rather_than_enrolling_again(
+        fake_v1, tmp_credentials, client_credentials):
+    '''🔴 The property that matters is WHICH grant the second process uses.
+
+    The access token is not written down, so a later command always goes to the
+    token endpoint -- and it must go with `refresh_token`. `client_credentials`
+    mints a NEW token family every time it is called and a family lives twelve
+    days whether or not anything uses it, so enrolling per command would leave
+    one live session behind per invocation.
+    '''
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
@@ -232,8 +242,56 @@ def test_a_session_is_reused_by_the_next_command(fake_v1, tmp_credentials,
     # A second client, as a second process would be.
     Client(Credentials(tmp_credentials.path)).me()
 
-    posts = [c for c in fake_v1.calls if c.request.method == "POST"]
-    assert len(posts) == 1
+    grants = [_form(c.request.body)["grant_type"]
+              for c in fake_v1.calls if c.request.method == "POST"]
+    assert grants == ["client_credentials", "refresh_token"]
+
+
+def test_a_first_command_with_nothing_stored_enrolls(fake_v1, tmp_credentials,
+                                                     client_credentials):
+    '''And the fallback still exists: no refresh token means no session to
+    renew, so the grant is the one that creates one.'''
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    Client(tmp_credentials).me()
+
+    grants = [_form(c.request.body)["grant_type"]
+              for c in fake_v1.calls if c.request.method == "POST"]
+    assert grants == ["client_credentials"]
+
+
+def test_a_dead_refresh_token_falls_back_to_enrolling(fake_v1, tmp_credentials,
+                                                      client_credentials):
+    '''A session that ended is not a session to renew, and this machine's key
+    is still enrolled -- so the answer is a new session, not a failure.'''
+    tmp_credentials.update(refresh_token="long-dead")
+
+    fake_v1.route(responses.POST, "auth/token",
+                  problem("session-ended", 401, reason="revoked"), status=401,
+                  content_type="application/problem+json")
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    assert Client(tmp_credentials).me()["id"] == "u1"
+
+    grants = [_form(c.request.body)["grant_type"]
+              for c in fake_v1.calls if c.request.method == "POST"]
+    assert grants == ["refresh_token", "client_credentials"]
+
+
+def test_an_access_token_left_by_an_older_client_is_dropped(tmp_credentials):
+    '''Popped on read rather than only on write, so a file written by a client
+    that stored one can never have it read back.'''
+    values = json.loads(tmp_credentials.path.read_text())
+    values["access_token"] = "left-behind"
+    tmp_credentials.path.write_text(json.dumps(values))
+
+    reopened = Credentials(tmp_credentials.path)
+    assert not hasattr(reopened, "access_token")
+
+    reopened.update(refresh_token="fresh")
+    assert "access_token" not in json.loads(tmp_credentials.path.read_text())
 
 
 ###########################
@@ -256,7 +314,9 @@ def test_an_expired_token_is_refreshed_silently(fake_v1, tmp_credentials,
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
     assert client.me()["id"] == "u1"
-    assert tmp_credentials.access_token == "access-token-two"
+    # The rotated refresh token is persisted; the new access token is not.
+    assert tmp_credentials.refresh_token == "refresh-token-one"
+    assert "access_token" not in json.loads(tmp_credentials.path.read_text())
 
 
 def test_a_nonce_challenge_is_retried_not_refreshed(fake_v1, tmp_credentials,
@@ -468,7 +528,6 @@ def test_logout_ends_the_session_and_forgets_it(fake_v1, tmp_credentials,
     fake_v1.route(responses.POST, "auth/revoke", "", status=204)
     client.logout()
 
-    assert tmp_credentials.access_token is None
     assert tmp_credentials.refresh_token is None
 
 
@@ -485,7 +544,7 @@ def test_logout_of_an_already_dead_session_still_forgets_it(
                   content_type="application/problem+json")
     client.logout()
 
-    assert tmp_credentials.access_token is None
+    assert tmp_credentials.refresh_token is None
 
 
 def _form(body):

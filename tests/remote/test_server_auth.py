@@ -482,3 +482,65 @@ def test_the_registry_uri_is_the_frozen_namespace(client):
 
     assert body["type"].startswith(f"{TYPE_BASE}/")
     assert TYPE_BASE == "https://siliconcompiler.com/server-errors"
+
+
+###########################
+# The same key, a new derivation
+###########################
+
+def test_a_changed_derivation_mints_a_new_identity(client, key):
+    '''🔴 A reimaged host, a rebuilt container, a changed uid or a client
+    release that moves the salt all present the SAME key under a NEW subject.
+
+    The device row for the old identity still holds this thumbprint, which is
+    unique across live devices -- so before this was handled the insert raised
+    an IntegrityError and the one endpoint a client cannot get past answered
+    500 with an HTML body.
+    '''
+    first = login(client, key, subject="machine-old:1000")
+    assert first.status_code == 200
+    was = call(client, key, "GET", "/v1/me", first.get_json()["access_token"]) \
+        .get_json()["id"]
+
+    second = login(client, key, subject="machine-new:1000")
+    assert second.status_code == 200
+
+    now = call(client, key, "GET", "/v1/me", second.get_json()["access_token"]) \
+        .get_json()["id"]
+    assert now != was
+
+
+def test_the_previous_enrolment_ends_rather_than_lingering(client, key):
+    '''One live device per key. The old session is over, and it says so with
+    the slug that means re-authenticate and do NOT refresh.'''
+    first = login(client, key, subject="machine-old:1000")
+    stale_token = first.get_json()["access_token"]
+
+    login(client, key, subject="machine-new:1000")
+
+    response = call(client, key, "GET", "/v1/me", stale_token)
+    assert response.status_code == 401
+    assert slug(response) == "session-ended"
+
+
+def test_the_retirement_is_recorded(server, client, key):
+    '''device_events is append-only and is the half of this story with a
+    reader: a machine that changed who it is should be visible afterwards.'''
+    login(client, key, subject="machine-old:1000")
+    login(client, key, subject="machine-new:1000")
+
+    kinds = [row["kind"] for row in server.config["SC_STORE"].all(
+        "SELECT kind FROM device_events ORDER BY id")]
+    assert kinds == ["enrolled", "revoked", "enrolled"]
+
+
+def test_the_new_identity_sees_none_of_the_old_ones_jobs(client, key):
+    '''Which is the whole reason the client warns about it: the jobs did not go
+    anywhere, and the person asking is no longer their owner.'''
+    old = login(client, key, subject="machine-old:1000").get_json()["access_token"]
+    call(client, key, "POST", "/v1/jobs", old,
+         json={"design": "gcd", "jobname": "job0"})
+
+    new = login(client, key, subject="machine-new:1000").get_json()["access_token"]
+
+    assert call(client, key, "GET", "/v1/jobs", new).get_json()["items"] == []

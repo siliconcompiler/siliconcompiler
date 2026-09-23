@@ -238,6 +238,8 @@ class TokenIssuer:
             (user_id,))
 
         if existing is None:
+            self._retire_elsewhere(user_id, jkt)
+
             device_id = str(uuid7())
             self._store.execute(
                 "INSERT INTO devices "
@@ -511,6 +513,46 @@ class TokenIssuer:
             "UPDATE token_families SET revoked_at = ?, revoked_reason = ? "
             "WHERE id = ? AND revoked_at IS NULL",
             (now(), reason, family_id))
+
+    def _retire_elsewhere(self, user_id: str, jkt: str) -> None:
+        '''This key was last seen as somebody else. End that enrolment.
+
+        🔴 The case is a machine whose *derivation* changed while its key did
+        not: a reimaged host, a rebuilt container, a changed uid, or a client
+        release that moves the salt. The subject is new, so the store mints a
+        new user -- and the device row for the old one still holds this
+        thumbprint, which is UNIQUE across live devices. Left alone it is an
+        IntegrityError out of the insert below, surfacing as a 500 with an HTML
+        body on the one endpoint a client cannot get past.
+
+        Retiring rather than refusing, because a refusal is a machine that can
+        never log in again without deleting its own key, and because it hands
+        the caller nothing: whoever holds this key could already act as the
+        previous user. What it does do is make the change visible -- the event
+        is recorded here, and `GET /v1/me` tells the user their jobs belong to
+        an identity they no longer are.
+        '''
+        stale = self._store.one(
+            "SELECT * FROM devices WHERE dpop_jkt = ? AND revoked_at IS NULL "
+            "AND user_id <> ?", (jkt, user_id))
+        if stale is None:
+            return
+
+        logger.warning(
+            f"device {stale['id']} presented a new identity: retiring its "
+            f"enrolment as {stale['user_id']}")
+
+        timestamp = now()
+        self._store.execute(
+            "UPDATE devices SET revoked_at = ? WHERE id = ?", (timestamp, stale["id"]))
+        self._store.execute(
+            "UPDATE token_families SET revoked_at = ?, "
+            "revoked_reason = 'device_revoked' "
+            "WHERE device_id = ? AND revoked_at IS NULL", (timestamp, stale["id"]))
+        # actor_id stays NULL: nobody decided this, a derivation changed.
+        self._store.execute(
+            "INSERT INTO device_events (device_id, kind) VALUES (?, 'revoked')",
+            (stale["id"],))
 
     def revoke_device(self, device_id: str, actor_id: str) -> None:
         '''Revoking a machine ends every session it holds.'''

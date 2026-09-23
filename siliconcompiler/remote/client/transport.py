@@ -194,7 +194,7 @@ class Transport:
 
             if slug == "invalid-token":
                 # An expired access token, and the session is still alive.
-                if self._refresh():
+                if self.refresh():
                     return self.request(method, path, _attempt=attempt + 1, **kwargs)
 
         if slug == "session-ended":
@@ -243,8 +243,14 @@ class Transport:
         self.set_tokens(body.get("access_token"), body.get("refresh_token"))
         return body
 
-    def _refresh(self) -> bool:
-        '''Silently, on a 401. Returns whether it worked.'''
+    def refresh(self) -> bool:
+        '''Spend the refresh token for a new access token.
+
+        Called on a 401, and called once at the start of a command -- the
+        access token is never written to disk, so a session that survives
+        between invocations survives as its refresh token and nothing else.
+        Returns whether it worked.
+        '''
         if not self._refresh_token:
             return False
 
