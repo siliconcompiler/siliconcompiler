@@ -81,8 +81,30 @@ set synth_args []
 if { $flatten_design } {
     lappend synth_args "-flatten"
 }
+
+# Cross-boundary optimization only applies to a design that keeps some hierarchy. It is
+# still useful on the auto_flatten path below, where keep_hierarchy preserves the modules
+# above hier_threshold. opt_hier was added in 0.56 and fixed in 0.58.
+set hier_opt [expr { !$flatten_design && [sc_cfg_tool_task_get var hier_opt] }]
+if { $hier_opt && ![sc_check_version 0 58] } {
+    puts "WARNING: hier_opt requires yosys >= 0.58, disabling cross-boundary optimization"
+    set hier_opt 0
+}
+set hier_opt_max_rounds 0
+if { $hier_opt } {
+    set hier_opt_max_rounds [sc_cfg_tool_task_get var hier_opt_max_rounds]
+    lappend synth_args "-hieropt"
+}
 foreach extra_map [sc_cfg_tool_task_get var synth_extra_map] {
     lappend synth_args "-extra-map" $extra_map
+}
+
+# Give each instance its own module so opt_hier can specialize it, before synth runs any
+# of its own opt_hier calls. uniquify leaves the modules it copied from behind, and yosys
+# crashes in stat if they are still around, so let hierarchy drop them.
+if { $hier_opt && [sc_cfg_tool_task_get var hier_opt_uniquify] } {
+    sc_uniquify_loop $hier_opt_max_rounds
+    yosys hierarchy -top $sc_topmodule
 }
 
 # Specify hierarchy separator
@@ -172,7 +194,18 @@ yosys chformal -remove
 # Recheck hierarchy to remove all unused modules
 yosys hierarchy -top $sc_topmodule
 
-yosys opt -purge
+set final_opt_args [list -purge]
+if { [sc_cfg_tool_task_get var opt_dff_sat] } {
+    lappend final_opt_args "-sat"
+}
+
+# synth only calls opt_hier once per opt invocation, which advances the design by one level
+# of hierarchy, so loop it here until the design stops changing.
+if { $hier_opt && $hier_opt_max_rounds > 0 } {
+    sc_opt_hier_loop $hier_opt_max_rounds $final_opt_args
+} else {
+    yosys opt {*}$final_opt_args
+}
 
 ########################################################
 # Technology Mapping
