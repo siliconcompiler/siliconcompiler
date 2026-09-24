@@ -708,9 +708,11 @@ class ASICSynthesis(ASICSynthesisBase):
             "true/false, give each module instance its own copy before hierarchical "
             "optimization. opt_hier can only propagate what every instance of a shared "
             "module has in common, so without this two instances wired to different "
-            "constants block each other. Modules named in preserve_modules are left "
-            "shared. Has no effect unless hier_opt is enabled.",
-            True)
+            "constants block each other. Opt in, because this renames the instances in "
+            "the output netlist and a module kept for reuse is no longer shared between "
+            "its instances. Modules named in preserve_modules are left shared. Has no "
+            "effect unless hier_opt is enabled.",
+            False)
         self.add_parameter(
             "hier_opt_max_rounds",
             "int<1..>",
