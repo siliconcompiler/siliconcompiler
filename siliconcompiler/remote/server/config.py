@@ -124,8 +124,19 @@ DEFAULTS: Dict[str, Any] = {
     "storage_location_id": "primary",
     "storage_uri_base": None,               # defaults to file://<datadir>/artifacts/
 
-    # How long a client is told to wait before polling a job again.
-    "poll_interval_seconds": 5,
+    # How long a client is told to wait before polling a job again, served as
+    # `Retry-After`.
+    #
+    # 🔴 One second, and it is affordable only because a poll no longer costs a
+    # scheduler query. Reading a job is a SQLite read plus a stat of the run's
+    # progress file -- cheap, local, and the thing that actually changes second
+    # to second. Asking Slurm which job each node became is the expensive half,
+    # and it is throttled independently (`SCHEDULER_QUERY_FLOOR`), so shortening
+    # this makes the CLI feel live without multiplying RPCs into slurmctld.
+    #
+    # ⚠️ A deployment with many concurrent watchers should raise it. This
+    # profile is a demo and a test rig, where the watcher is a person waiting.
+    "poll_interval_seconds": 1,
 
     # Where a person reads about a job, as an absolute origin -- this
     # deployment then appends its own portal path. `GET /v1/jobs/{id}` and the

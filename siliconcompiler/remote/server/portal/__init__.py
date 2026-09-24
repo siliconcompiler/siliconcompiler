@@ -19,6 +19,7 @@ mints no access token and carries no DPoP binding. A path from one to the other
 would be the shortest way around the key pinning, so there is none.
 '''
 
+import json
 import logging
 import posixpath
 import secrets
@@ -927,6 +928,44 @@ def account(session):
         lifetime=accounts.lifetime(_store(), session.user_id),
         assurance=config["identity_assurance"],
         containers=config["containers"])
+
+
+######################################################################
+# What this deployment is
+######################################################################
+
+@blueprint.route("/portal/server", methods=["GET"])
+@screen
+def deployment(session):
+    """`GET /v1` and `GET /v1/healthz`, as a page.
+
+    🔴 Built by CALLING the endpoints' own code, not by reading config and
+    hoping it matches. `capabilities` and `healthz` are the two answers a
+    client branches on, and a screen that renders a second opinion of them is
+    a screen that can disagree with the API about what this server promises --
+    which is worse than no screen, because somebody would trust it.
+
+    ⚠️ The raw JSON is on the page too, folded away. This deployment is a
+    reference implementation, so *what does `GET /v1` actually return* is a
+    question its own portal should be able to answer without curl.
+    """
+    from siliconcompiler.remote.server.routes import meta
+
+    config = flask.current_app.config["SC_CONFIG"]
+    store = _store()
+
+    published = config.capabilities(meta.advertised_software(store, config))
+
+    # The same read the liveness probe makes, and the same three answers. It is
+    # cheap on purpose -- a probe is scraped every few seconds.
+    with flask.current_app.test_request_context("/v1/healthz"):
+        health = json.loads(meta.healthz().get_data())
+
+    return flask.render_template(
+        "server.html", published=published, health=health,
+        pretty=json.dumps(published, indent=2, sort_keys=True),
+        containers=config["containers"],
+        cluster=flask.current_app.config.get("SC_CLUSTER"))
 
 
 ######################################################################

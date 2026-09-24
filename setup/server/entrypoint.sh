@@ -141,6 +141,18 @@ ctld)
     # seconds. `job_state` is deliberately left alone.
     rm -f /sc_tools/spool/slurm/node_state /sc_tools/spool/slurm/node_state.old
 
+    # ⚠️ Say so before slurmctld does. On a first start there is genuinely no
+    # saved state, and slurmctld announces that as two `error:` lines and
+    # "Jobs may be lost!" -- which is true of no jobs and reads like a fault on
+    # a deployment that has never run one. It cannot be suppressed: it is the
+    # controller's own logging, and there is no quieter cold start. What can be
+    # fixed is that nothing says it was expected.
+    if [ ! -f /sc_tools/spool/slurm/job_state ]; then
+        echo "first start on this state volume: slurmctld is about to report" >&2
+        echo "  no job_state and 'Jobs may be lost!'. There are no jobs yet;" >&2
+        echo "  it saves on shutdown and recovers from here on." >&2
+    fi
+
     # Nothing to do for StateSaveLocation. It is slurm-owned in the image --
     # install-slurm.sh does it for the base, the server stage does it for the
     # slim one -- and docker pre-populates an empty NAMED volume from the image

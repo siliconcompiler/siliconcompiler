@@ -711,3 +711,48 @@ def test_the_jobs_list_refreshes_only_while_something_is_going(
     busy = signed_in.get("/portal/").get_data(as_text=True)
     assert 'http-equiv="refresh"' in busy
     assert "1 still going" in busy
+
+
+###########################
+# What this deployment is
+###########################
+
+def test_the_server_screen_answers_what_v1_answers(signed_in, server_client):
+    '''🔴 Built by calling the endpoints' own code. A screen that renders a
+    second opinion of `GET /v1` can disagree with the API about what this
+    server promises, which is worse than no screen because somebody would
+    trust it.'''
+    import json as _json
+
+    published = _json.loads(server_client.get("/v1").get_data())
+    page = signed_in.get("/portal/server").get_data(as_text=True)
+
+    assert published["api_version"] in page
+    assert published["identity_assurance"] in page
+    for name in published["software"]:
+        assert name in page
+    for limit in published["limits"]:
+        assert limit in page
+    for feature in published["features"]:
+        assert feature in page
+
+
+def test_the_server_screen_shows_liveness(signed_in):
+    page = signed_in.get("/portal/server").get_data(as_text=True)
+
+    assert "Health" in page
+    assert "pass" in page
+
+
+def test_the_server_screen_carries_the_raw_block(signed_in, server_client):
+    '''⚠️ This deployment is a reference implementation, so "what does GET /v1
+    actually return" is a question its own portal should answer without
+    curl.'''
+    page = signed_in.get("/portal/server").get_data(as_text=True)
+
+    assert "&#34;api_version&#34;" in page or '"api_version"' in page
+    assert "<details>" in page
+
+
+def test_the_server_screen_needs_a_session(server_client):
+    assert server_client.get("/portal/server").status_code == 401

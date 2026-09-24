@@ -89,6 +89,7 @@
     <a href="{{ url_for('portal.devices') }}" class="{{ 'on' if active == 'devices' }}">Devices</a>
     <a href="{{ url_for('portal.registry') }}" class="{{ 'on' if active == 'images' }}">Images</a>
     <a href="{{ url_for('portal.account') }}" class="{{ 'on' if active == 'account' }}">Account</a>
+    <a href="{{ url_for('portal.deployment') }}" class="{{ 'on' if active == 'server' }}">Server</a>
   </nav>
   {% if csrf %}
   <form method="post" action="{{ url_for('portal.logout') }}" class="inline">

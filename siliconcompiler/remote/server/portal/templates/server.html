@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% set active = 'server' %}
+{% block title %}Server · sc-server{% endblock %}
+{% block body %}
+<h2>This deployment</h2>
+<p class="lede">
+  What <span class="mono">GET /v1</span> and
+  <span class="mono">GET /v1/healthz</span> answer, which is what every client
+  branches on.
+</p>
+
+<div class="panel">
+  <div class="grid">
+    <div><b>Health</b><br>
+      {#
+        The same three values the probe has -- pass, warn, fail -- and no
+        reason for any of them. `warn` exists for a server that is degraded and
+        should stay in rotation; nothing produces it yet.
+      #}
+      <span class="tag {{ 'good' if health.status == 'pass'
+                          else 'bad' if health.status == 'fail' }}"
+        >{{ health.status }}</span>
+    </div>
+    <div><b>API</b><br>{{ published.api_version }}</div>
+    <div><b>Jobs run</b><br>
+      {{ 'in registered containers' if containers else 'on the compute node' }}
+      {% if cluster %}<span class="muted"> via {{ cluster }}</span>{% endif %}
+    </div>
+    <div><b>Identity</b><br>
+      <span class="tag {{ 'bad' if published.identity_assurance != 'verified' }}"
+        >{{ published.identity_assurance }}</span>
+    </div>
+  </div>
+</div>
+
+{% if published.notices %}
+{#
+  Scheduled downtime lives here rather than on the liveness probe: an
+  announcement is read once by a person, and this is where they are.
+#}
+{% for notice in published.notices %}
+<div class="panel warn"><p>{{ notice }}</p></div>
+{% endfor %}
+{% endif %}
+
+<div class="split">
+<div class="main">
+<h3>Software it can run</h3>
+<table>
+  <tr><th>Distribution</th><th>Versions</th></tr>
+  {% for name, versions in published.software.items() %}
+  <tr>
+    <td class="mono">{{ name }}</td>
+    <td class="mono">{{ versions | join(', ') }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="2" class="muted">
+    Nothing advertised. On a deployment that runs jobs in containers that means
+    no live image holds a siliconcompiler, and nothing could be dispatched.
+  </td></tr>
+  {% endfor %}
+</table>
+
+<h3>Limits</h3>
+<table>
+  <tr><th>Limit</th><th>Value</th></tr>
+  {% for name, value in published.limits.items() %}
+  <tr>
+    <td class="mono">{{ name }}</td>
+    {#
+      The deployment's own numbers. A limit that can differ per account is
+      shown against yours on the account screen; this is what everybody gets
+      by default.
+    #}
+    <td class="mono">
+      {%- if value is none %}unlimited
+      {%- elif name.endswith('_bytes') %}{{ value | size }}
+      {%- elif name.endswith('_seconds') %}{{ value | duration }}
+      {%- else %}{{ value }}{% endif -%}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+
+<div class="beside">
+<h3>What a client may ask for</h3>
+<table>
+  <tr><th>Feature</th></tr>
+  {% for feature in published.features %}
+  <tr><td class="mono">{{ feature }}</td></tr>
+  {% else %}
+  <tr><td class="muted">None advertised.</td></tr>
+  {% endfor %}
+</table>
+
+<h3>Sign-in</h3>
+<table>
+  <tr><th>Grant type</th></tr>
+  {% for grant in published.grant_types_supported %}
+  <tr><td class="mono">{{ grant }}</td></tr>
+  {% endfor %}
+</table>
+
+{% if published.terms_url %}
+<p><a href="{{ published.terms_url }}">Terms</a></p>
+{% endif %}
+</div>
+</div>
+
+<h3>The block itself</h3>
+<p class="muted">
+  {#
+    This deployment is a reference implementation, so "what does GET /v1
+    actually return" is a question its own portal should answer without curl.
+  #}
+  Exactly what <span class="mono">GET /v1</span> serves. It carries no
+  credential and is identical for every caller.
+</p>
+<details>
+  <summary>Show it</summary>
+  <pre class="log">{{ pretty }}</pre>
+</details>
+{% endblock %}

@@ -6,6 +6,8 @@ from conftest import call, login, slug
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
+from siliconcompiler.remote.server.store import now                  # noqa: E402
+
 
 # The integration rig, in process. Every ordering rule the contract calls
 # normative is asserted here rather than in the conformance fixtures, because
@@ -1895,3 +1897,72 @@ def test_the_sweep_settles_the_jobs_nobody_opens(server, server_client, key,
     assert taken["abandoned"] == 1
     assert server.config["SC_STORE"].one(
         "SELECT state FROM jobs WHERE id = ?", (created["id"],))["state"] == "abandoned"
+
+
+###########################
+# Polling fast without asking the scheduler fast
+###########################
+
+def test_a_fast_poll_does_not_become_a_fast_squeue(server, server_client, key,
+                                                   token, job_archive,
+                                                   dispatcher, me):
+    '''🔴 Reading a job is a local SQLite read and a stat; asking Slurm which
+    job each node became is one or more RPCs into slurmctld. Without a floor,
+    shortening the poll interval multiplies scheduler load by the same factor
+    -- which is the load `--max-connections` exists to throttle.'''
+    from siliconcompiler.remote.server import runspec
+
+    asked = []
+    real = dispatcher.node_jobs
+
+    def counted(job_id, nodes):
+        asked.append(job_id)
+        return real(job_id, nodes)
+
+    dispatcher.node_jobs = counted
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
+        "heartbeat": now(), "nodes": {"stepone/0": {"state": "running"},
+                                      "steptwo/0": {"state": "pending"}}})
+
+    # The store forgets the ids between polls so every poll WOULD ask.
+    for _ in range(5):
+        server.config["SC_STORE"].execute(
+            "UPDATE job_nodes SET scheduler_job_id = NULL WHERE job_id = ?",
+            (job["id"],))
+        call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+
+    assert len(asked) == 1, f"asked the scheduler {len(asked)} times in five polls"
+
+
+def test_a_cancel_never_takes_a_stale_answer(server, server_client, key, token,
+                                             job_archive, dispatcher, me):
+    '''⚠️ The floor is a rate limit on watching, not on acting. A cancel needs
+    the ids to reach the work, so it asks whatever the clock says.'''
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
+        "heartbeat": now(), "nodes": {"stepone/0": {"state": "running"},
+                                      "steptwo/0": {"state": "pending"}}})
+
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+    server.config["SC_STORE"].execute(
+        "UPDATE job_nodes SET scheduler_job_id = NULL WHERE job_id = ?",
+        (job["id"],))
+
+    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
+         json={"reason": "changed my mind"})
+
+    assert dispatcher.cancelled_nodes, "a cancel reached no node jobs"

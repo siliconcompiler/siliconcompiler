@@ -44,6 +44,14 @@ TERMINAL_STATES = frozenset(
     ("completed", "failed", "cancelled", "rejected", "abandoned"))
 TERMINAL_NODE_STATES = frozenset(("completed", "failed", "skipped", "cancelled"))
 
+# 🔴 How often ONE process will ask the scheduler about ONE job, at most.
+# Deliberately decoupled from `poll_interval_seconds`: reading a job is a local
+# SQLite read and a stat, and can be answered as fast as anybody asks, while
+# `squeue` is one or more RPCs into slurmctld and is the only part that leaves
+# the machine. Without this, shortening the poll interval multiplied scheduler
+# load by the same factor -- the load `--max-connections` exists to throttle.
+SCHEDULER_QUERY_FLOOR = 5
+
 # Job reuse returns a result the hash determines and never a refusal it does
 # not: `rejected` is an entitlement decision about a person at a moment, and
 # `cancelled` and `abandoned` are somebody having stopped.
@@ -77,6 +85,9 @@ class JobService:
         self._storage = storage
         self._dispatcher = dispatcher
         self._datadir = Path(datadir)
+
+        # Per job, the last time this process asked the scheduler anything.
+        self._asked = {}
 
     ######################################################################
     # Where a user's work lives
@@ -1054,13 +1065,21 @@ class JobService:
                     'SELECT step, "index", image_id, scheduler_job_id '
                     "FROM job_nodes WHERE job_id = ?", (job["id"],))}
 
-    def _record_node_jobs(self, job) -> None:
+    def _record_node_jobs(self, job, force: bool = False) -> None:
         '''Write down which scheduler job each node became.
 
         🔴 Two things need it and neither can be done without it. A cancel has
         to stop the work and not only the process coordinating it, now that a
         node is a job of its own; and *which Slurm job was that* is the question
         a person brings to a support thread, which nothing else can answer.
+
+        🔴 **Throttled, because this is the only part of a poll that leaves the
+        machine.** Every call is a `squeue`, and every `squeue` is one or more
+        RPCs into slurmctld -- so at a one-second poll interval it would be one
+        per second per running job, which is exactly the load
+        `--max-connections` exists to throttle. `force` is for the two callers
+        that cannot accept a stale answer: a cancel, which needs the ids to
+        reach the work, and the last look before a job goes terminal.
 
         ⚠️ Asked for once and then never again. Only the nodes still missing an
         id are looked up, so a job whose nodes are all recorded costs nothing --
@@ -1072,6 +1091,8 @@ class JobService:
             "WHERE job_id = ? AND scheduler_job_id IS NULL", (job["id"],))]
 
         if not missing:
+            return
+        if not force and not self._may_ask_scheduler(job["id"]):
             return
 
         try:
@@ -1098,11 +1119,30 @@ class JobService:
         Refreshed first, because a node dispatched since the last poll has no
         id recorded and is exactly the one a cancel most needs to reach.
         '''
-        self._record_node_jobs(job)
+        self._record_node_jobs(job, force=True)
 
         return [row["scheduler_job_id"] for row in self._store.all(
             "SELECT scheduler_job_id FROM job_nodes "
             "WHERE job_id = ? AND scheduler_job_id IS NOT NULL", (job["id"],))]
+
+    def _may_ask_scheduler(self, job_id: str) -> bool:
+        """Whether enough time has passed to ask the scheduler again.
+
+        ⚠️ In memory and per process, which is the right shape rather than a
+        shortcut: it is a rate limit on THIS process's outbound calls, and two
+        API processes each asking at their own floor is exactly what a floor
+        per process means. Nothing depends on it being exact, and nothing is
+        lost when it resets -- the worst case is one extra `squeue`.
+        """
+        import time as _time
+
+        now_at = _time.monotonic()
+        last = self._asked.get(job_id, 0.0)
+        if now_at - last < SCHEDULER_QUERY_FLOOR:
+            return False
+
+        self._asked[job_id] = now_at
+        return True
 
     def _alive(self, job) -> bool:
         try:
@@ -1178,7 +1218,7 @@ class JobService:
         # job does, so the poll that records the others has nothing to find for
         # it -- and once the job is terminal no poll runs at all. A diamond
         # flow came back with three of its four nodes carrying a scheduler id.
-        self._record_node_jobs(job)
+        self._record_node_jobs(job, force=True)
 
         if job["state"] == state:
             return
