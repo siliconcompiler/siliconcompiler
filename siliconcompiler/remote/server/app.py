@@ -92,6 +92,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     _register_error_handlers(app)
 
+    from siliconcompiler.remote.server import portal
     from siliconcompiler.remote.server.routes import (
         artifacts, auth, identity, jobs, meta)
     app.register_blueprint(meta.blueprint)
@@ -99,6 +100,11 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     app.register_blueprint(identity.blueprint)
     app.register_blueprint(jobs.blueprint)
     app.register_blueprint(artifacts.blueprint)
+    app.register_blueprint(portal.blueprint)
+
+    # Browser sessions live here and nowhere else -- see portal.Sessions for
+    # why they are not a table.
+    app.config["SC_PORTAL"] = portal.Sessions()
 
     # `siliconcompiler` must be advertised or this server does not start. A
     # check rather than a column, and this is where it earns its keep: a

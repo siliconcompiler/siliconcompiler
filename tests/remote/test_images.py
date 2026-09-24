@@ -541,3 +541,26 @@ def test_the_same_digest_again_supersedes_nothing(registry, store):
             if image["registry_ref"] == "ghcr.io/x/sc-python:0.39.1"]
 
     assert [image["digest"] for image in live] == [digest("a")]
+
+
+def test_builtin_is_not_a_tool_anybody_installs(registry, store):
+    '''🔴 SiliconCompiler's own joins, minimums and nops run in its process.
+
+    Treating `builtin` as a tool invites an operator to register a name no
+    image can honestly claim -- and then every flow with a join in it is
+    refused. Seen on the rig: a four-node nop flow refused with
+    `unsatisfiable-request, resource: builtin`.
+    '''
+    from siliconcompiler.remote.server.jobs import _node_tools
+
+    class Flow:
+        def get_task_module(self, step, index):
+            class Task:
+                def tool(self_inner):
+                    return "builtin" if step == "join" else "openroad"
+            return Task
+
+    assert _node_tools(Flow(), [("join", "0"), ("place", "0")]) == {
+        ("join", "0"): None,
+        ("place", "0"): "openroad",
+    }

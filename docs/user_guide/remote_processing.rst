@@ -214,6 +214,33 @@ running on the server.
 already stopped, or deleting one that is already deleted, is the same answer
 again. A job cannot be deleted while it is still running -- cancel it first.
 
+Looking at it in a browser
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+  sc-remote -portal
+
+A server carries a portal: your jobs and their nodes, each node's log live or
+archived, the artifacts a run produced, the machines that may act as you, your
+account, and the images the deployment runs jobs in.
+
+**There is no login.** Your machine's key is the credential, and a browser
+arriving cold holds none of it -- so the client proves possession of that key
+and passes a session across. The link it opens is **good for one use and lives
+under a minute**: it reaches the browser's history and possibly an access log,
+and spending it on arrival is what makes both worthless.
+
+.. note::
+
+   **A portal session is a cookie, and it never becomes an API credential.** It
+   mints no token and carries no key binding. Every credential this system
+   issues is bound to a key; a cookie is not, and a path from one to the other
+   would be the shortest way around that.
+
+Cancelling a job in the browser is the same cancel the command line makes, so a
+run you are still waiting on reports it and stops.
+
 Reading one node's log
 ^^^^^^^^^^^^^^^^^^^^^^
 

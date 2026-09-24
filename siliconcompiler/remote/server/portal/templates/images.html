@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% set active = 'images' %}
+{% block title %}Images and software · sc-server{% endblock %}
+{% block body %}
+<h2>Images and software</h2>
+<p class="lede">What this deployment can run, and what it runs it in.</p>
+
+{% if not containers %}
+<div class="panel">
+  <p>This deployment runs jobs <b>directly on the compute nodes</b>.</p>
+  <p class="muted">
+    Registering images here changes nothing until <code>containers</code> is
+    set in the server's <code>config.json</code>. Whether a compute node can
+    run a container is not something this process can find out by looking, so
+    it is the operator's switch.
+  </p>
+</div>
+{% endif %}
+
+<div class="panel warn">
+  <p><b>Registering an image chooses what code executes on the cluster.</b></p>
+  <p class="muted">
+    Higher stakes than any read permission: a permission decides who may see
+    something, this decides what runs as the account a job maps to. The tag is
+    pinned to a digest the moment you register it, so rebuilding that tag later
+    does not change what already-accepted jobs run &mdash; that takes
+    registering it again. Every image here has a person on it.
+  </p>
+</div>
+
+<h3>Software</h3>
+<p class="muted">
+  Registering a name is a claim: from then on, a job whose flow needs that tool
+  and finds no image holding it is refused at submit.
+</p>
+<table>
+  <tr><th>Distribution</th><th>Versions</th></tr>
+  {% for row in catalogue.software %}
+  <tr>
+    <td>
+      {{ row.name }}
+      {% if row.retired_at %}<span class="tag">retired</span>{% endif %}
+    </td>
+    <td class="mono muted">
+      {%- for version in catalogue.versions if version.software_name == row.name -%}
+        {{ version.version }}{% if version.preference %} (pref {{ version.preference }}){% endif %}
+        {%- if version.retired_at %} [retired]{% endif %}{% if not loop.last %}, {% endif %}
+      {%- else -%}none{%- endfor -%}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="2" class="muted">Nothing registered.</td></tr>
+  {% endfor %}
+</table>
+
+<form method="post" action="{{ url_for('portal.add_software') }}" class="panel">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="grid">
+    <label>Distribution name
+      <input type="text" name="name" placeholder="siliconcompiler" required></label>
+    <label>Version <input type="text" name="version" placeholder="0.39.1"></label>
+    <label>Preference (higher is offered first)
+      <input type="text" name="preference" placeholder="0"></label>
+  </div>
+  <button>Register software</button>
+</form>
+
+<h3>Images</h3>
+<table>
+  <tr><th>Reference</th><th>Digest</th><th>Holds</th><th>Bundle</th><th></th></tr>
+  {% for image in catalogue.images %}
+  <tr>
+    <td>
+      {{ image.registry_ref }}
+      {% if image.retired_at %}<span class="tag">retired</span>{% endif %}
+      {% if image.note %}<br><span class="muted">{{ image.note }}</span>{% endif %}
+    </td>
+    {# The digest is what actually runs; registry_ref is only what a human typed. #}
+    <td class="mono muted">{{ image.digest[:19] }}…</td>
+    <td class="mono muted">{{ image.contents | join(', ') or '—' }}</td>
+    <td>
+      {% if image.retired_at %}<span class="muted">—</span>
+      {% elif staged.get(image.digest) %}<span class="tag good">staged</span>
+      {% else %}<span class="tag">not staged</span>{% endif %}
+    </td>
+    <td>
+      {% if not image.retired_at %}
+      <form method="post"
+            action="{{ url_for('portal.retire_image', image_id=image.id) }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="danger">Retire</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">Nothing registered.</td></tr>
+  {% endfor %}
+</table>
+<p class="muted">
+  An image is never deleted. A job from last year names one, so retiring keeps
+  the row and stops it being dispatched into.
+</p>
+
+<form method="post" action="{{ url_for('portal.register_image') }}" class="panel">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Registry reference
+    <input type="text" name="ref" placeholder="ghcr.io/org/sc-runtime:0.39.1" required></label>
+  <label>Digest &mdash; what actually runs
+    <input type="text" name="digest" placeholder="sha256:…" required></label>
+  <label>Holds, one <code>name==version</code> per line
+    <textarea name="contains" rows="3"
+              placeholder="siliconcompiler==0.39.1&#10;openroad==2.0"></textarea></label>
+  <label>Note <input type="text" name="note"></label>
+  <label><input type="checkbox" name="stage" value="1"> Unpack it now
+    <span class="muted">&mdash; needed before a Slurm cluster can run it</span></label>
+  <button>Register image</button>
+</form>
+<p class="muted">
+  What an image holds is <b>declared and unverified</b>: nothing opens it to
+  check. A wrong entry means a job runs in a container without what it asked
+  for, and fails at run time rather than at submit.
+</p>
+{% endblock %}

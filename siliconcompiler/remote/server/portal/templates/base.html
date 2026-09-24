@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}sc-server{% endblock %}</title>
+{#
+  One stylesheet, inline, and no build. SiliconCompiler ships as a pip wheel,
+  and a node toolchain in the release pipeline would be paid by every release
+  for a handful of screens nobody styles twice.
+#}
+<style>
+  :root {
+    --ink: #16181d; --dim: #5b6270; --line: #d9dde5; --bg: #fff;
+    --panel: #f6f7f9; --accent: #1f5fd0; --bad: #b4232c; --good: #1d7a4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e7eaf0; --dim: #99a2b3; --line: #333947; --bg: #14161b;
+      --panel: #1c1f27; --accent: #6ea8ff; --bad: #ff8189; --good: #56cc90;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { border-bottom: 1px solid var(--line); padding: 0 16px;
+           display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 14px 0; letter-spacing: .02em; }
+  nav { display: flex; gap: 16px; flex: 1; flex-wrap: wrap; }
+  nav a { color: var(--dim); text-decoration: none; padding: 14px 0; }
+  nav a:hover, nav a.on { color: var(--ink); box-shadow: inset 0 -2px var(--accent); }
+  main { padding: 20px 16px 60px; max-width: 1100px; }
+  h2 { font-size: 19px; margin: 0 0 4px; }
+  p.lede { color: var(--dim); margin: 0 0 20px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line);
+           vertical-align: top; }
+  th { color: var(--dim); font-weight: 600; font-size: 12px;
+       text-transform: uppercase; letter-spacing: .04em; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                     font-size: 13px; }
+  pre.log { background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+            padding: 12px; overflow: auto; max-height: 70vh; white-space: pre-wrap;
+            word-break: break-word; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 10px;
+         font-size: 12px; background: var(--panel); border: 1px solid var(--line); }
+  .tag.bad { color: var(--bad); border-color: var(--bad); }
+  .tag.good { color: var(--good); border-color: var(--good); }
+  .panel { background: var(--panel); border: 1px solid var(--line);
+           border-radius: 6px; padding: 14px 16px; margin: 0 0 20px; }
+  .warn { border-left: 3px solid var(--bad); }
+  form.inline { display: inline; }
+  button { font: inherit; padding: 5px 11px; border-radius: 5px;
+           border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+           cursor: pointer; }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.danger:hover { border-color: var(--bad); color: var(--bad); }
+  input[type=text], textarea { font: inherit; width: 100%; padding: 6px 8px;
+      border: 1px solid var(--line); border-radius: 5px;
+      background: var(--bg); color: var(--ink); }
+  label { display: block; margin: 0 0 10px; font-size: 13px; color: var(--dim); }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .muted { color: var(--dim); }
+  .right { text-align: right; }
+</style>
+<header>
+  <h1>sc-server</h1>
+  <nav>
+    <a href="{{ url_for('portal.jobs') }}" class="{{ 'on' if active == 'jobs' }}">Jobs</a>
+    <a href="{{ url_for('portal.devices') }}" class="{{ 'on' if active == 'devices' }}">Devices</a>
+    <a href="{{ url_for('portal.registry') }}" class="{{ 'on' if active == 'images' }}">Images</a>
+    <a href="{{ url_for('portal.account') }}" class="{{ 'on' if active == 'account' }}">Account</a>
+  </nav>
+  {% if csrf %}
+  <form method="post" action="{{ url_for('portal.logout') }}" class="inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button>Sign out</button>
+  </form>
+  {% endif %}
+</header>
+<main>{% block body %}{% endblock %}</main>

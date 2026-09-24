@@ -73,6 +73,9 @@ To read one node's log, live if it is still running, use:
             self._add_commandline_argument("tail", "str",
                                            "read one node's log as <step>/<index>; "
                                            "follows it live while the node runs")
+            self._add_commandline_argument("portal", "bool",
+                                           "open this server's portal in a browser, "
+                                           "signed in as this machine")
 
     switchlist = ['-cfg',
                   '-credentials',
@@ -84,7 +87,8 @@ To read one node's log, live if it is still running, use:
                   '-reconnect',
                   '-cancel',
                   '-delete',
-                  '-tail']
+                  '-tail',
+                  '-portal']
 
     # Argument Parser
     remote = RemoteProject.create_cmdline(progname, switchlist=switchlist, description=description,
@@ -107,7 +111,7 @@ def _credentials(remote) -> Credentials:
 
 def _dispatch(remote):
     # Sanity checks.
-    exclusive = ['configure', 'reconnect', 'cancel', 'delete', 'tail']
+    exclusive = ['configure', 'reconnect', 'cancel', 'delete', 'tail', 'portal']
     cfg_only = ['reconnect', 'cancel', 'delete', 'tail']
 
     exclusive_count = sum([1 for arg in exclusive if remote.get("cmdarg", arg)])
@@ -142,6 +146,12 @@ def _dispatch(remote):
             # address, which has no default to fall back on.
             remote.logger.error(str(e))
             return 3
+        return 0
+
+    if remote.get("cmdarg", 'portal'):
+        # 🔴 Nothing about a job, so it takes no -cfg: the browser gets a
+        # session for this machine's identity, and finds its jobs itself.
+        client.portal()
         return 0
 
     if project_cfg:

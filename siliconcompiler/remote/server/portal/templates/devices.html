@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% set active = 'devices' %}
+{% block title %}Devices · sc-server{% endblock %}
+{% block body %}
+<h2>Devices</h2>
+<p class="lede">
+  The machines that may act as you. {#
+    Not incidental on this deployment: the key bound on first contact is the
+    only real control the unauthenticated profile has, and this list plus the
+    revoke button is its visible half.
+  #}
+</p>
+
+<table>
+  <tr><th>Name</th><th>Key</th><th>Derived from</th><th>Enrolled</th><th>Last seen</th><th></th></tr>
+  {% for device in devices %}
+  <tr>
+    <td>{{ device.name }}</td>
+    {# The pin itself, so a person can compare it with what their client prints. #}
+    <td class="mono muted">{{ device.dpop_jkt }}</td>
+    <td class="muted">{{ device.machine_id_source or '—' }}</td>
+    <td class="mono muted">{{ device.enrolled_at[:19].replace('T', ' ') }}</td>
+    <td class="mono muted">{{ (device.last_seen_at or '—')[:19].replace('T', ' ') }}</td>
+    <td>
+      <form method="post"
+            action="{{ url_for('portal.revoke', device_id=device.id) }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="danger">Revoke</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="muted">
+  Revoking a machine ends every session it holds. It enrols again the next time
+  it connects, because nothing here verifies who you are.
+</p>
+{% endblock %}

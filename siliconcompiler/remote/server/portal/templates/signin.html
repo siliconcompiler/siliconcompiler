@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Sign in · sc-server{% endblock %}
+{% block body %}
+<h2>This browser has no session</h2>
+<p class="lede">
+  There is no identity provider here, and a browser arriving cold holds none of
+  what the command line holds.
+</p>
+<div class="panel">
+  <p>Your machine's key is the credential. Ask it to hand this browser a session:</p>
+  <p><code>sc-remote -portal</code></p>
+  <p class="muted">
+    That proves possession of the key this server already knows, and opens a
+    link good for one use and under a minute.
+  </p>
+</div>
+{% endblock %}

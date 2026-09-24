@@ -49,6 +49,10 @@ TERMINAL_NODE_STATES = frozenset(("completed", "failed", "skipped", "cancelled")
 # `cancelled` and `abandoned` are somebody having stopped.
 REUSABLE_STATES = ("completed", "failed")
 
+# SiliconCompiler's own tasks -- nop, join, minimum, maximum, verify. They run
+# in the framework's process, so they name no tool a deployment could install.
+BUILTIN = "builtin"
+
 # Long enough for any real design or job name and short enough that the column,
 # the path and the log line all stay sane.
 MAX_NAME = 100
@@ -985,9 +989,22 @@ class JobService:
             return True
 
     def _lost(self, job) -> None:
-        '''The scheduler no longer has it and it never said how it ended.'''
-        logger.warning(f"{job['id']} is gone from the scheduler with no result")
+        '''The scheduler no longer has it and it never said how it ended.
+
+        🔴 Unless somebody was cancelling it, in which case this IS how it
+        ended. A cancel kills the run, so the very next poll finds a scheduler
+        with no job and a progress file still saying `running` -- which is
+        exactly the shape of a lost job and is not one. Telling a person their
+        cluster ate the run they just stopped is worse than saying nothing.
+        '''
         self._reap_orphans(job)
+
+        if job["state"] == "cancelling":
+            logger.info(f"{job['id']} is gone from the scheduler, as asked")
+            self._settle_cancelled(job)
+            return
+
+        logger.warning(f"{job['id']} is gone from the scheduler with no result")
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, finished_at = ? WHERE id = ?",
@@ -996,6 +1013,16 @@ class JobService:
                 "UPDATE job_nodes SET state = 'cancelled' WHERE job_id = ? "
                 "AND state NOT IN ('completed', 'failed', 'skipped')", (job["id"],))
             self._transition(job["id"], job["state"], "failed", reason="scheduler-lost")
+
+    def _settle_cancelled(self, job) -> None:
+        '''A cancel that has taken effect. No error: nothing went wrong.'''
+        with self._store.transaction():
+            self._store.execute(
+                "UPDATE jobs SET finished_at = ? WHERE id = ?", (now(), job["id"]))
+            self._store.execute(
+                "UPDATE job_nodes SET state = 'cancelled' WHERE job_id = ? "
+                "AND state NOT IN ('completed', 'failed', 'skipped')", (job["id"],))
+            self._transition(job["id"], "cancelling", "cancelled", reason="cancelled")
 
     def _finish(self, job, state: str, progress) -> None:
         # Belt and braces, and cheap: a run that ended by crashing rather than
@@ -1337,9 +1364,16 @@ def _node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
     tools: Dict[Tuple[str, str], Optional[str]] = {}
     for step, index in nodes:
         try:
-            tools[(step, index)] = flow.get_task_module(step, index)().tool()
+            tool = flow.get_task_module(step, index)().tool()
         except Exception:                                       # noqa: BLE001
-            tools[(step, index)] = None
+            tool = None
+
+        # 🔴 `builtin` is not a tool anybody installs. SiliconCompiler's own
+        # joins, minimums and nops run in its process, so a node using one
+        # needs the framework and nothing else -- and treating it as a tool
+        # invites an operator to register a name no image can honestly claim,
+        # which then refuses every flow that has a join in it.
+        tools[(step, index)] = None if tool == BUILTIN else tool
     return tools
 
 

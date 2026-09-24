@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% set active = 'account' %}
+{% block title %}Account · sc-server{% endblock %}
+{% block body %}
+<h2>Account</h2>
+<p class="lede mono">{{ user.id }}</p>
+
+{% if assurance != 'verified' %}
+<div class="panel warn">
+  <p><b>This server does not verify who you are.</b></p>
+  <p class="muted">
+    Your identity is <span class="mono">{{ assurance }}</span>: it is derived
+    from this machine and your uid, and pinned to a key on first contact. Your
+    jobs are separated from other people's, and that separation is not a
+    security boundary.
+  </p>
+</div>
+{% endif %}
+
+<h3>Usage</h3>
+<div class="panel grid">
+  <div><b>Jobs running</b><br>{{ usage.jobs_active }}</div>
+  <div><b>Compute this month</b><br>{{ usage.compute_seconds.used }}s</div>
+  <div><b>Stored</b><br>{{ '{:,}'.format(usage.storage_bytes.used) }} bytes</div>
+  <div><b>Resets</b><br><span class="mono muted">{{ usage.compute_seconds.resets_at[:10] }}</span></div>
+</div>
+
+<h3>Limits</h3>
+<table>
+  <tr><th>Limit</th><th>Value</th></tr>
+  {% for name, value in limits.items() %}
+  <tr>
+    <td class="mono">{{ name }}</td>
+    {# null is unlimited, and it is not zero. #}
+    <td class="mono">{{ 'unlimited' if value is none else value }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h3>This deployment</h3>
+<p class="muted">
+  Jobs run {{ 'inside registered container images' if containers
+              else 'directly on the compute nodes' }}.
+</p>
+{% endblock %}

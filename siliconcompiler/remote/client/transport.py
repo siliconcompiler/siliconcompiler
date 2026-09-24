@@ -111,6 +111,18 @@ class Transport:
     def url(self, path: str = "") -> str:
         return join_url(self.base_url, path)
 
+    @property
+    def origin(self) -> str:
+        '''The server without the version prefix.
+
+        ⚠️ Not everything a deployment serves is an endpoint. The signed upload
+        PUT and the portal handover both live outside ``/v1``, deliberately, so
+        that the version prefix stays exactly the contract's surface -- and a
+        caller reaching them needs the origin rather than the base.
+        '''
+        base = self.base_url
+        return base[:-len("/v1")] if base.endswith("/v1") else base
+
     ######################################################################
     # The request
     ######################################################################
@@ -123,9 +135,10 @@ class Transport:
                 headers: Optional[Dict[str, str]] = None,
                 allow_redirects: bool = True,
                 stream: bool = False,
+                on_v1: bool = True,
                 _attempt: int = 0) -> requests.Response:
         '''Send one request, proof and all.'''
-        url = self.url(path)
+        url = self.url(path) if on_v1 else join_url(self.origin, path)
 
         sent = dict(headers or {})
         token = self._access_token if authenticated else None

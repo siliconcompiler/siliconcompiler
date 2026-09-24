@@ -88,6 +88,26 @@ sc-remote -cfg build/heartbeat/job0/sc_remote.pkg.json -delete
 
 Ctrl-C on a running job prints those first two lines with the path filled in.
 
+## The portal
+
+```sh
+sc-remote -portal
+```
+
+Six screens over the same decisions the API makes: jobs and their nodes, logs
+live or archived, artifacts, devices, account, and the image registry. It is
+where the two columns nothing publishes on the wire are read &mdash; which image
+a node ran in, and which Slurm job it became.
+
+🔴 **Every authorization decision goes through the code the API handlers call.**
+The portal does not call its own API over HTTP &mdash; a browser holds no device
+key &mdash; so it reads through the shared layer instead, and every link it
+hands the browser for bytes is a *signed* storage URL whose signature is the
+whole credential.
+
+Browser sessions live in the server process and in no table, so restarting it
+signs everyone out. Running `sc-remote -portal` again is the whole recovery.
+
 ## The base image
 
 Everything the cluster runs comes from `ghcr.io/siliconcompiler/sc_tools`:

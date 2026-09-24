@@ -1160,20 +1160,24 @@ def test_the_node_is_told_a_digest_and_never_a_tag(
 
 def test_a_tool_with_no_image_fails_the_whole_submit(
         container_server, container_client, key, container_token,
-        job_archive, container_dispatcher):
+        job_archive, container_dispatcher, monkeypatch):
     """🔴 Before anything runs, which is the correct direction: the alternative
     is a job that queues, dispatches and dies on node thirty-one with the
     cluster already paid for."""
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server import images, jobs as jobs_module
 
     store = container_server.config["SC_STORE"]
 
     # The operator takes the claim on and never puts it in an image, which is
-    # the whole condition: this deployment now says it curates `builtin` and
+    # the whole condition: this deployment now says it curates OpenROAD and
     # cannot place a node that needs it.
-    images.register_software(store, "builtin", "SiliconCompiler builtins",
-                             operator(store))
-    images.register_version(store, "builtin", "1.0", operator(store))
+    images.register_software(store, "openroad", "OpenROAD", operator(store))
+    images.register_version(store, "openroad", "2.0", operator(store))
+
+    # `nopflow` names only `builtin`, which is not a tool anybody installs and
+    # raises no requirement. This is the one thing the test needs it to be.
+    monkeypatch.setattr(jobs_module, "_node_tools",
+                        lambda flow, nodes: {node: "openroad" for node in nodes})
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size)
@@ -1184,7 +1188,7 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
     assert response.status_code == 422
     assert slug(response) == "unsatisfiable-request"
     assert response.get_json()["resource_kind"] == "tool"
-    assert response.get_json()["resource"] == "builtin"
+    assert response.get_json()["resource"] == "openroad"
     assert not container_dispatcher.submitted
 
     read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
@@ -1538,3 +1542,32 @@ def test_a_node_that_already_finished_is_not_scancelled(
     call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
 
     assert dispatcher.cancelled_nodes == []
+
+
+def test_a_cancelled_run_is_cancelled_and_not_lost(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 A cancel kills the run, so the very next poll finds a scheduler with
+    no job and a progress file still saying `running`.
+
+    That is exactly the shape of a lost job and is not one. Caught by the
+    portal gate: cancelling from the browser reported `scheduler-lost` to the
+    waiting CLI, which tells a person their cluster ate the run they just
+    stopped.
+    '''
+    job = running(server, server_client, key, token, job_archive, me)
+
+    cancelled = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel",
+                     token, json={}).get_json()
+    assert cancelled["state"] == "cancelling"
+
+    # The scheduler has let go of it, and the run never got to write a
+    # terminal progress file.
+    dispatcher.alive = False
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert read["state"] == "cancelled"
+    assert read["terminal"] is True
+    # Nothing went wrong, so there is no error to report.
+    assert read.get("error") is None
+    assert all(node["state"] == "cancelled" for node in read["nodes"])

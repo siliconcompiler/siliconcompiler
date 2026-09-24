@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% set active = 'jobs' %}
+{% block title %}{{ step }}/{{ index }} · {{ job.design }} · sc-server{% endblock %}
+{% block body %}
+<h2>{{ step }}/{{ index }}</h2>
+<p class="lede">
+  <a href="{{ url_for('portal.job', job_id=job.id) }}">{{ job.design }}/{{ job.jobname }}</a>
+</p>
+
+{% if stream %}
+  {#
+    🔴 The viewer follows the SAME signed stream URL the command line does.
+    Log streaming is the API; this is a viewer for it, not a second
+    implementation of tailing. A dozen lines of EventSource is not a
+    JavaScript build -- there is no toolchain here and nothing to compile.
+  #}
+  <p class="muted">Following this node as it runs.</p>
+  <pre class="log" id="log"></pre>
+  <script>
+    const out = document.getElementById('log');
+    const source = new EventSource({{ stream | tojson }});
+    source.onmessage = (event) => {
+      const atBottom =
+        out.scrollHeight - out.scrollTop - out.clientHeight < 40;
+      out.textContent += event.data + '\n';
+      if (atBottom) { out.scrollTop = out.scrollHeight; }
+    };
+    source.onerror = () => {
+      // The capability URL has its own lifetime, shorter than many runs.
+      // Reloading asks for a fresh one, which is what the CLI does too.
+      source.close();
+      out.textContent += '\n(stream ended — reload to continue)\n';
+    };
+  </script>
+{% else %}
+  <pre class="log">{{ text }}</pre>
+{% endif %}
+{% endblock %}

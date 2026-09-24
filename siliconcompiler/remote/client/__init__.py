@@ -535,6 +535,42 @@ class Client:
                 "before anything is uploaded -- until you install a version "
                 "this server accepts or an operator adds yours.")
 
+    def portal(self, open_browser: bool = True) -> str:
+        '''Hand this machine's browser a session, and open it there.
+
+        🔴 The browser has none of what this client has. Identity here is a
+        machine-and-uid derivation pinned to a key on first contact, and a
+        browser arriving cold can present none of it -- so the client proves
+        possession of the key and passes a session across.
+
+        ⚠️ The URL it gets back is a capability and is spent on arrival. It
+        reaches the browser's history and possibly an access log, and being
+        single-use is what makes both worthless. It lives under a minute,
+        because it is handed to a browser on the same machine and there is no
+        legitimate slow path.
+        '''
+        self.ensure_session()
+
+        # Outside /v1, because /v1 is exactly the contract's endpoints and this
+        # is not one of them.
+        answer = self.transport.request(
+            "POST", "/portal/session", authenticated=True, on_v1=False).json()
+
+        url = answer["url"]
+        self.logger.info(f"Opening {url}")
+        self.logger.info(
+            f"It is good for one use and about {answer['expires_in']} seconds.")
+
+        if open_browser:
+            import webbrowser
+
+            if not webbrowser.open(url):
+                self.logger.warning(
+                    "No browser could be opened here. Paste that URL into one "
+                    "on this machine -- quickly.")
+
+        return url
+
     def configure_whitelist(self, add=None, remove=None) -> None:
         '''Which directories may be uploaded from.
 

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% set active = 'jobs' %}
+{% block title %}{{ job.design }}/{{ job.jobname }} · sc-server{% endblock %}
+{% block body %}
+<h2>{{ job.design }} <span class="muted">/ {{ job.jobname }}</span></h2>
+<p class="lede mono">{{ job.id }}</p>
+
+<div class="panel">
+  <div class="grid">
+    <div><b>State</b><br>
+      <span class="tag {{ 'bad' if job.state in ('failed', 'rejected')
+                          else 'good' if job.state == 'completed' }}">{{ job.state }}</span>
+      {% if job.terminal %}<span class="muted"> terminal</span>{% endif %}
+    </div>
+    <div><b>Flow</b><br>{{ job.flow or '—' }}</div>
+    <div><b>Progress</b><br>
+      {{ job.progress.completed_count }} of {{ job.progress.total_count }} done,
+      {{ job.progress.failed_count }} failed</div>
+    <div><b>Submitted</b><br><span class="mono">{{ (job.submitted_at or '—')[:19].replace('T', ' ') }}</span></div>
+  </div>
+  {% if job.error %}
+    <p class="warn panel" style="margin-top:14px">
+      <b>{{ job.error.title }}</b><br>
+      <span class="mono muted">{{ job.error.type }}</span>
+    </p>
+  {% endif %}
+</div>
+
+{% if not job.terminal %}
+<form method="post" action="{{ url_for('portal.cancel', job_id=job.id) }}" class="inline">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button class="danger">Cancel this job</button>
+</form>
+{% else %}
+<form method="post" action="{{ url_for('portal.delete', job_id=job.id) }}" class="inline">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button class="danger">Delete what it produced</button>
+</form>
+{% endif %}
+<a href="{{ url_for('portal.artifacts', job_id=job.id) }}"
+   style="margin-left:12px">Artifacts</a>
+
+<h3>Nodes</h3>
+<table>
+  <tr>
+    <th>Node</th><th>State</th><th>Started</th><th>Runtime</th>
+    <th>Ran in</th><th>Scheduler</th><th></th>
+  </tr>
+  {% for node in job.nodes %}
+  {% set placed = placements.get((node.step, node['index'])) %}
+  <tr>
+    <td class="mono">{{ node.step }}/{{ node['index'] }}</td>
+    <td>
+      <span class="tag {{ 'bad' if node.state == 'failed'
+                          else 'good' if node.state == 'completed' }}">{{ node.state }}</span>
+    </td>
+    <td class="mono muted">{{ (node.started_at or '—')[:19].replace('T', ' ') }}</td>
+    <td class="mono muted">{{ node | runtime }}</td>
+    {#
+      Neither column is on the wire: a registry path and a scheduler id are
+      deployment detail, and the contract's answer to where a person sees them
+      is this screen.
+    #}
+    <td class="mono muted">{{ (placed[0] if placed else None) or '—' }}</td>
+    <td class="mono muted">{{ (placed[1] if placed else None) or '—' }}</td>
+    <td><a href="{{ url_for('portal.log', job_id=job.id,
+                            step=node.step, index=node['index']) }}">log</a></td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% if edges %}
+<h3>Flow</h3>
+<table>
+  <tr><th>From</th><th>To</th></tr>
+  {% for edge in edges %}
+  <tr>
+    <td class="mono">{{ edge.from_step }}/{{ edge.from_index }}</td>
+    <td class="mono">{{ edge.to_step }}/{{ edge.to_index }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+<h3>History</h3>
+<table>
+  <tr><th>When</th><th>From</th><th>To</th><th>Why</th></tr>
+  {% for row in history %}
+  <tr>
+    <td class="mono muted">{{ row.occurred_at[:19].replace('T', ' ') }}</td>
+    <td class="mono muted">{{ row.from_state or '—' }}</td>
+    <td class="mono">{{ row.to_state }}</td>
+    <td class="muted">{{ row.reason or '' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

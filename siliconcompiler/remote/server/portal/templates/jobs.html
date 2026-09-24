@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% set active = 'jobs' %}
+{% block title %}Jobs · sc-server{% endblock %}
+{% block body %}
+<h2>Jobs</h2>
+<p class="lede">
+  Yours, newest first. {#
+    Mine by default and no "all jobs" filter, because there is nothing to
+    filter to: this deployment has no admin role and the API answers one
+    person's jobs. A screen offering a switch that returns the same rows is
+    worse than no switch.
+  #}
+</p>
+
+{% if not jobs %}
+  <div class="panel"><p>No jobs yet. Submit one with <code>-remote</code>.</p></div>
+{% else %}
+<table>
+  <tr>
+    <th>Design</th><th>Job</th><th>Flow</th><th>State</th>
+    <th>Nodes</th><th>Created</th><th></th>
+  </tr>
+  {% for job in jobs %}
+  <tr>
+    <td><a href="{{ url_for('portal.job', job_id=job.id) }}">{{ job.design }}</a></td>
+    <td class="mono muted">{{ job.jobname }}</td>
+    <td>{{ job.flow or '—' }}</td>
+    <td>
+      <span class="tag {{ 'bad' if job.state in ('failed', 'rejected')
+                          else 'good' if job.state == 'completed' }}">{{ job.state }}</span>
+    </td>
+    <td class="mono">
+      {{ job.progress.completed_count }}/{{ job.progress.total_count }}
+    </td>
+    <td class="mono muted">{{ job.created_at[:19].replace('T', ' ') }}</td>
+    <td class="right mono muted">{{ job.id[:8] }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

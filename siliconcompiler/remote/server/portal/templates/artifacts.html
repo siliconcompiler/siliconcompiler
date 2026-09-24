@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% set active = 'jobs' %}
+{% block title %}Artifacts · {{ job.design }} · sc-server{% endblock %}
+{% block body %}
+<h2>Artifacts</h2>
+<p class="lede">
+  <a href="{{ url_for('portal.job', job_id=job.id) }}">{{ job.design }}/{{ job.jobname }}</a>
+</p>
+
+{% if not artifacts %}
+<div class="panel">
+  <p>This server kept nothing from this run.</p>
+  <p class="muted">
+    {# A listing with nothing in it is a legal answer and not a degraded one. #}
+    Retention is per kind, so an older job may list its manifest and nothing
+    else. That is a successful run: the manifest carries the record.
+  </p>
+</div>
+{% else %}
+<table>
+  <tr><th>Kind</th><th>Node</th><th>Size</th><th>Expires</th><th></th></tr>
+  {% for item in artifacts %}
+  <tr>
+    <td>{{ item.kind }}</td>
+    <td class="mono">
+      {%- if item.step -%}{{ item.step }}/{{ item['index'] }}{%- else -%}
+      <span class="muted">the job</span>{%- endif -%}
+    </td>
+    <td class="mono muted">{{ '{:,}'.format(item.size_bytes or 0) }}</td>
+    <td class="mono muted">{{ (item.expires_at or '—')[:10] }}</td>
+    <td>
+      {% if item.fetchable %}
+        <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
+      {% elif item.deleted_at %}
+        <span class="muted">deleted {{ item.deleted_at[:10] }}</span>
+      {% elif item.blocked_by %}
+        <span class="muted">held back ({{ item.blocked_by }})</span>
+      {% else %}
+        <span class="muted">not available</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}
