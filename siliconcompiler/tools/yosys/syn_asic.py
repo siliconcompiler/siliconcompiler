@@ -713,10 +713,10 @@ class ASICSynthesis(ASICSynthesisBase):
             True)
         self.add_parameter(
             "hier_opt_max_rounds",
-            "int<0..>",
-            "Maximum rounds of the opt_hier convergence loop. opt_hier propagates across one "
-            "level of hierarchy per round, so a design needs roughly as many rounds as it is "
-            "deep. Set to 0 to rely only on the opt_hier calls inside synth.",
+            "int<1..>",
+            "Maximum rounds of the opt_hier and uniquify convergence loops. Both propagate "
+            "across one level of hierarchy per round, so a design needs roughly as many "
+            "rounds as it is deep.",
             10)
 
     def __init_abc_parameter(self):

@@ -126,13 +126,13 @@ proc sc_opt_hier_loop { max_rounds opt_args } {
         }
 
         if { !$changed } {
-            puts "SC: opt_hier converged after $round round(s)"
+            yosys log "opt_hier converged after $round round(s)"
             return $round
         }
     }
 
-    puts "WARNING: opt_hier did not converge within $max_rounds rounds, consider\
-        increasing hier_opt_max_rounds"
+    yosys log "Warning: opt_hier did not converge within $max_rounds rounds,\
+        consider increasing hier_opt_max_rounds"
     return $max_rounds
 }
 
@@ -154,13 +154,13 @@ proc sc_uniquify_loop { max_rounds } {
         set uniquify_log [yosys tee -s result.string uniquify {*}$selection]
 
         if { [string first "Creating module" $uniquify_log] == -1 } {
-            puts "SC: uniquify converged after $round round(s)"
+            yosys log "uniquify converged after $round round(s)"
             return $round
         }
     }
 
-    puts "WARNING: uniquify did not converge within $max_rounds rounds, consider\
-        increasing hier_opt_max_rounds"
+    yosys log "Warning: uniquify did not converge within $max_rounds rounds,\
+        consider increasing hier_opt_max_rounds"
     return $max_rounds
 }
 

@@ -314,19 +314,17 @@ def test_hier_opt_loop_converges():
         "expected the loop to converge within hier_opt_max_rounds"
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(300)
-def test_hier_opt_max_rounds_zero_skips_loop():
-    '''hier_opt_max_rounds = 0 leaves only the opt_hier calls inside synth.'''
-    lines = _run_asic_synthesis(_deep_hierarchy_design(), True,
-                                flatten=False, auto_flatten=False,
-                                hier_opt=True, hier_opt_max_rounds=0)
+def test_hier_opt_max_rounds_rejects_zero(heartbeat_design):
+    """A zero round limit would run neither loop, so the schema rules it out.
 
-    assert any("-hieropt" in line for line in lines), \
-        "expected -hieropt to still be passed to synth"
-    assert not any("opt_hier converged after" in line for line in lines), \
-        "did not expect the opt_hier loop to run when hier_opt_max_rounds is 0"
+    synth's own opt_hier calls advance the design by a single level of hierarchy and
+    measurably do nothing on their own, so there is no useful configuration below one
+    round.
+    """
+    node = _asic_synthesis_node(heartbeat_design)
+    with node.runtime():
+        with pytest.raises(ValueError):
+            node.task.set_yosys_hieroptmaxrounds(0)
 
 
 @pytest.mark.eda
