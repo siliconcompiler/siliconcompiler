@@ -561,7 +561,7 @@ def test_builtin_is_not_a_tool_anybody_installs(registry, store):
     refused. Seen on the rig: a four-node nop flow refused with
     `unsatisfiable-request, resource: builtin`.
     '''
-    from siliconcompiler.remote.server.jobs import _node_tools
+    from siliconcompiler.remote.server.runspec import node_tools
 
     class Flow:
         def get_task_module(self, step, index):
@@ -570,7 +570,7 @@ def test_builtin_is_not_a_tool_anybody_installs(registry, store):
                     return "builtin" if step == "join" else "openroad"
             return Task
 
-    assert _node_tools(Flow(), [("join", "0"), ("place", "0")]) == {
+    assert node_tools(Flow(), [("join", "0"), ("place", "0")]) == {
         ("join", "0"): None,
         ("place", "0"): "openroad",
     }
@@ -605,10 +605,14 @@ def test_a_range_nothing_satisfies_is_refused_before_anything_runs(registry,
 def test_a_bare_version_still_means_exactly_that(registry, store):
     '''⚠️ It is what every client sent before the wire carried ranges, and it
     is what a person writes.'''
-    assert images.specifier("0.39.1") == "==0.39.1"
-    assert images.specifier(">=0.39") == ">=0.39"
-    assert images.specifier("") is None
-    assert images.specifier(None) is None
+    assert images.specifiers("0.39.1") == ("==0.39.1",)
+    assert images.specifiers(">=0.39") == (">=0.39",)
+    assert images.specifiers("") == ()
+    assert images.specifiers(None) == ()
+    # A list is alternatives, which is what SiliconCompiler already means by a
+    # version requirement -- and an empty entry in it is not a requirement.
+    assert images.specifiers([">=0.39", "2.0"]) == (">=0.39", "==2.0")
+    assert images.specifiers([""]) == ()
 
     plan = images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                                {("import", "0"): None})
@@ -884,3 +888,41 @@ def test_an_image_may_name_the_version_the_tool_printed(store):
 
     held = images.live_images(store)[0]["contents"]
     assert [(entry.name, entry.version) for entry in held] == [("verilator", "5.52")]
+
+
+def test_a_requirement_is_a_list_of_alternatives(registry, store):
+    '''🔴 Two tasks of the same tool can want different versions, and
+    SiliconCompiler already says so with a list: `Task.get('version')` holds
+    alternative specifier sets and `check_exe_version` accepts a match against
+    any of them. Saying it once beats naming every node that wants it.'''
+    plan = images.plan_for_job(
+        store, py(tools={"openroad": [">=9.0", "==2.0"]}),
+        {("place", "0"): "openroad"})
+
+    assert plan.ref(plan.nodes[("place", "0")]).startswith("ghcr.io/x/sc-tools@")
+
+
+def test_none_of_the_alternatives_holding_is_still_a_refusal(registry, store):
+    with pytest.raises(ProblemError) as raised:
+        images.plan_for_job(store, py(tools={"openroad": [">=9.0", "==8.0"]}),
+                            {("place", "0"): "openroad"})
+
+    assert raised.value.error.slug == "unsatisfiable-request"
+    assert raised.value.members["resource"] == "openroad>=9.0 or ==8.0"
+
+
+def test_an_empty_list_is_any_version(registry, store):
+    '''What a client that knows the tool and not the version sends, which is
+    the ordinary case: a task's requirement is set in setup(), and setup
+    happens in the image.'''
+    plan = images.plan_for_job(store, py(tools={"openroad": []}),
+                               {("place", "0"): "openroad"})
+
+    assert plan.nodes[("place", "0")]
+
+
+def test_a_python_requirement_may_be_a_list_too(registry, store):
+    plan = images.plan_for_job(store, py("siliconcompiler", ["==9.9.9", "0.39.1"]),
+                               {("import", "0"): None})
+
+    assert plan.ref(plan.job).startswith("ghcr.io/x/sc-python@")

@@ -62,7 +62,6 @@ REUSABLE_STATES = ("completed", "failed")
 
 # SiliconCompiler's own tasks -- nop, join, minimum, maximum, verify. They run
 # in the framework's process, so they name no tool a deployment could install.
-BUILTIN = "builtin"
 
 # Long enough for any real design or job name and short enough that the column,
 # the path and the log line all stay sane.
@@ -339,7 +338,7 @@ class JobService:
                 if name not in here:
                     continue
 
-                spec = images.specifier(asked)
+                spec = images.specifiers(asked)
                 if any(images.matches(version, "reported", spec)
                        for version in said.get(name, ())):
                     continue
@@ -700,7 +699,7 @@ class JobService:
                 if (in_step, in_index) in nodes:
                     edges.append((in_step, in_index, step, index))
 
-        node_tools = _node_tools(project.get_flow(), nodes)
+        node_tools = runspec.node_tools(project.get_flow(), nodes)
 
         return {
             "project": project,
@@ -1890,6 +1889,14 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     satisfied per node. Accepting a flat map would mean guessing which, and
     guessing wrong resolves a node against the wrong image while looking like
     it worked.
+
+    ⚠️ **A requirement's value may be a LIST**, and that is how two tasks of
+    the same tool wanting different versions is expressed:
+    `{"openroad": [">=24Q3-2011", "==2.0"]}` means any one of them will do.
+    It is what SiliconCompiler already means by a version requirement --
+    `Task.get('version')` is a list and `check_exe_version` accepts a match
+    against any entry -- and it says once what naming every node would say
+    forty-two times.
     """
     from siliconcompiler.remote.server.images import BUCKETS
 
@@ -1949,36 +1956,6 @@ def _opaque(value, field: str) -> Optional[str]:
         raise ProblemError("invalid-request",
                            detail=f"{field} is an opaque string of at most 200 characters")
     return value
-
-
-def _node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
-    '''Which tool each node runs, which is what the image resolution needs.
-
-    🔴 Per node rather than a set for the whole flow, because submit resolves N
-    images and not one: an `import` node needing nothing but Python has no
-    business pulling a twelve-gigabyte OpenROAD image, and the only thing that
-    can tell them apart is which tool each node names.
-
-    Derived from the task classes the flowgraph names rather than from the
-    manifest's `tool` section, which is written during a run and so is empty in
-    anything a client uploads. A node whose task will not load names no tool,
-    which resolves to the job's own image -- the safe direction, since that is
-    what a node needing nothing gets.
-    '''
-    tools: Dict[Tuple[str, str], Optional[str]] = {}
-    for step, index in nodes:
-        try:
-            tool = flow.get_task_module(step, index)().tool()
-        except Exception:                                       # noqa: BLE001
-            tool = None
-
-        # 🔴 `builtin` is not a tool anybody installs. SiliconCompiler's own
-        # joins, minimums and nops run in its process, so a node using one
-        # needs the framework and nothing else -- and treating it as a tool
-        # invites an operator to register a name no image can honestly claim,
-        # which then refuses every flow that has a join in it.
-        tools[(step, index)] = None if tool == BUILTIN else tool
-    return tools
 
 
 def _pdk(project) -> str:

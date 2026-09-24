@@ -243,6 +243,59 @@ the wrong image while looking like it worked.
 
 **Where it goes:** `surface.md` at `POST /v1/jobs`.
 
+### 11. A requirement is a LIST of specifier sets, any one of which will do
+
+The decision gives `requires.tools` one specifier per tool. That cannot say
+what SiliconCompiler routinely means.
+
+🔴 **A version requirement in SiliconCompiler is already a list.**
+`Task.get('version')` holds alternative specifier sets and `check_exe_version`
+accepts a tool that matches ANY of them. A requirement is declared **per task**,
+so a flow with two tasks of the same tool has two lists — and one string per
+tool has to either drop one or invent an intersection nobody asked for.
+
+```jsonc
+"requires": {"python": {"siliconcompiler": ">=0.38"},
+             "tools":  {"openroad": [">=24Q3-2011", "==2.0"]}}
+```
+
+⚠️ **Alternatives are OR; a single set's commas are still AND.** A bare string
+is the one-alternative case and stays legal. An **empty list is *any version of
+this***, which is not the same as not naming the tool: it says the flow reaches
+for it, which is what lets the server refuse before the upload.
+
+**Per-node requirements were built first and taken out.** They are expressible
+— tools already resolve per node — but they say the same thing once per node,
+forty-two times for a flow, and the information that differs is the version
+set rather than the node. The safety net is that a node's own
+`check_exe_version` runs inside the container regardless, so image selection
+being a little permissive ends in a clear per-task refusal rather than a wrong
+run.
+
+**Where it goes:** `surface.md` at `POST /v1/jobs`.
+
+### 12. A specifier has to be normalised by the side that has the driver
+
+🔴 **Normalising the stored version is only half of it, and the other half is
+not optional.** OpenROAD declares `openroad>=24Q3-2011`. That is not a PEP 440
+specifier at all, so a server given it raw cannot parse it, falls back to
+comparing the string, and refuses an image that plainly satisfies it — *after*
+the registry has carefully normalised what the image holds.
+
+`Task.normalize_version` is the only thing that knows how to turn `24Q3-2011`
+into `24.3.2011`, it is per tool, and it lives in the driver. So the CLIENT
+normalises the requirement before sending it, keeping the operator and
+normalising only the version, exactly as `check_exe_version` does before
+comparing.
+
+⚠️ **An unparsable part is dropped rather than forwarded.** It would match
+nothing on the far side, which turns *this server has no version I can read*
+into *this server has no OpenROAD*.
+
+**Where it goes:** `surface.md`, beside the specifier rule — whoever implements
+a client needs to be told this, because getting it wrong produces a refusal
+that looks like a registry problem.
+
 ---
 
 ## Already in the contract — implemented here, no change needed

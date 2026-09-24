@@ -18,6 +18,7 @@ omitted.
 import hashlib
 import logging
 import os
+import re
 import sys
 import shutil
 import tarfile
@@ -27,7 +28,7 @@ import time
 import uuid
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler._common import NodeStatus as SCNodeStatus
@@ -153,7 +154,7 @@ class RemoteRun:
                 versions={"python": {"siliconcompiler": sc_version},
                           "tools": {}},
                 requires={"python": {"siliconcompiler": _framework_requirement()},
-                          "tools": {}},
+                          "tools": self._tool_requirements()},
                 idempotency_key=_key())
 
             job_id = job["id"]
@@ -319,6 +320,81 @@ class RemoteRun:
         except Exception as e:                                   # noqa: BLE001
             logger.debug(f"no flow descriptor: {e}")
             return None
+
+    def _tool_requirements(self) -> Dict[str, Any]:
+        """What this flow will reach for, so the server can refuse early.
+
+        🔴 **The point is the refusal BEFORE the upload.** The server derives
+        the same tool list from the manifest at submit, so this changes no
+        placement -- what it changes is when a deployment that curates images
+        for OpenROAD and has none says so: at create, for free, instead of
+        after the whole archive has moved.
+
+        ⚠️ **Every value is a LIST, because a version requirement is one.**
+        `Task.get('version')` holds alternative specifier sets and
+        `check_exe_version` accepts a match against any, so two tasks of the
+        same tool contribute two entries rather than one of them winning. An
+        empty list is *any version of this*, which is what a client that knows
+        the tool and not the version means -- and is the ordinary case, since
+        a task's requirement is set in `setup()` and setup happens in the
+        image.
+
+        ⚠️ Advisory, like the rest of the descriptor, and never worth failing
+        a run over. A flow this cannot walk sends nothing and is checked at
+        submit like every other sparse descriptor.
+        """
+        wanted: Dict[str, Any] = {}
+        try:
+            from siliconcompiler.remote.server.runspec import (
+                node_tools, runtime_nodes)
+
+            flow = self.project.get_flow()
+            for node, tool in node_tools(flow, runtime_nodes(self.project)).items():
+                if not tool:
+                    continue
+                for one in self._declared_versions(flow, node):
+                    if one not in wanted.setdefault(tool, []):
+                        wanted[tool].append(one)
+                wanted.setdefault(tool, [])
+        except Exception as e:                                   # noqa: BLE001
+            logger.debug(f"no tool requirements: {e}")
+            return {}
+
+        return wanted
+
+    @staticmethod
+    def _declared_versions(flow, node) -> List[str]:
+        """What one node's task says it needs of its tool, if it says anything.
+
+        🔴 **Normalised with the TASK's own `normalize_version`, the same way
+        `check_exe_version` does it before comparing.** OpenROAD declares
+        `>=24Q3-2011`, which is not a PEP 440 specifier at all -- sent raw, the
+        server cannot parse it, falls back to comparing the string, and refuses
+        an image that plainly satisfies it. The driver is the only thing that
+        knows how to turn that into something comparable, and the client is the
+        side that has the driver.
+
+        ⚠️ The operator is kept and only the VERSION is normalised, because
+        `>=` means the same thing in both spellings and the version does not.
+
+        ⚠️ Usually there is nothing to normalise. A task declares its version
+        requirement inside `setup()`, and setup runs where the flow runs -- in
+        the image, on the compute node. Reading it here would mean running
+        every node's setup locally for a run whose whole point is not to run
+        locally.
+        """
+        try:
+            step, index = node
+            task = flow.get_task_module(step, index)()
+        except Exception:                                        # noqa: BLE001
+            return []
+
+        found = []
+        for declared in task.get("version") or []:
+            normalized = _normalize_spec(task, declared)
+            if normalized:
+                found.append(normalized)
+        return found
 
     def _save_manifest(self) -> None:
         path = os.path.join(jobdir(self.project), REMOTE_MANIFEST)
@@ -747,6 +823,38 @@ def _is_refusal(problem: ServerProblem) -> bool:
     if problem.slug is None:
         return False
     return problem.slug not in ("not-ready", "rate-limited")
+
+
+# The shape of one entry in a version requirement, and the same one
+# `Task.check_exe_version` parses: an operator, then a version that may be
+# almost anything, because a tool's own versioning is its own business.
+_ONE_SPEC = re.compile(r"^\s*(?P<operator>==|!=|<=|>=|<|>|~=)\s*"
+                       r"(?P<version>[^,;\s)]*)\s*$")
+
+
+def _normalize_spec(task, declared: str) -> Optional[str]:
+    """One specifier set, with each version put through the task's normaliser.
+
+    A set is comma-separated and every part is normalised on its own, so
+    `>=24Q3-2011,<27Q1` survives intact. A part this cannot parse is dropped
+    rather than sent raw: an unparsable requirement matches nothing on the far
+    side, so passing it on would turn *this server has no version I can read*
+    into *this server has no OpenROAD*.
+    """
+    parts = []
+    for one in str(declared).split(","):
+        found = _ONE_SPEC.match(one)
+        if not found:
+            logger.debug(f"dropping an unreadable version requirement: {one!r}")
+            return None
+        try:
+            version = task.normalize_version(found.group("version"))
+        except Exception as e:                                   # noqa: BLE001
+            logger.debug(f"could not normalize {one!r}: {e}")
+            return None
+        parts.append(f"{found.group('operator')}{version}")
+
+    return ",".join(parts) if parts else None
 
 
 def _framework_requirement() -> str:

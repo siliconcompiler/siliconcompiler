@@ -32,7 +32,7 @@ from siliconcompiler.remote.server.store import now
 
 __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
            "catalogue", "contents_of", "declared_requirements", "digests_for",
-           "sweep_bundles", "matches", "normalize", "specifier",
+           "sweep_bundles", "matches", "normalize", "specifiers",
            "is_staged", "live_images", "live_software", "pinned_ref",
            "plan_for_job", "register_image", "register_software",
            "register_version", "registered_drivers", "resolve",
@@ -64,12 +64,19 @@ BUCKETS = {"python": "python", "tool": "tools"}
 class Requirement(NamedTuple):
     '''One thing an image has to hold.
 
-    ``version`` is a **PEP 440 specifier** -- ``>=0.38,<0.40``, ``==0.38.9`` --
-    and None for *any live version of this software*, which is the ordinary
-    case for a tool: SiliconCompiler does not know which version of OpenROAD it
-    will find until the node runs, so a submit that demanded an exact one could
-    never resolve. A pinned requirement comes from what the client declared,
-    where naming the version is the client's whole point.
+    ``wanted`` is a tuple of **PEP 440 specifier sets, any one of which will
+    do** -- ``(">=0.38,<0.40",)``, ``("==2.0", ">=26Q3")`` -- and empty for
+    *any live version of this software*, which is the ordinary case for a tool:
+    SiliconCompiler does not know which version of OpenROAD it will find until
+    the node runs.
+
+    🔴 **A list rather than one string, because that is what SiliconCompiler
+    already means by a version requirement.** `Task.get('version')` is a list
+    of specifier sets and `check_exe_version` accepts a tool that matches ANY
+    of them -- so a flow with two tasks of the same tool has two lists, and
+    collapsing them to one string would either lose one or invent an
+    intersection nobody asked for. ⚠️ Alternatives are OR; a single set's
+    commas are still AND.
 
     🔴 **A range on the wire and never in storage.** The *no ranges* rule is
     about what a row records -- a stored range is a promise nobody can check --
@@ -81,16 +88,13 @@ class Requirement(NamedTuple):
     resolves.
     '''
     name: str
-    version: Optional[str]
+    wanted: Tuple[str, ...]
     kind: str               # 'library' or 'tool' -- what a refusal calls it
 
     def __str__(self) -> str:
-        if self.version is None:
+        if not self.wanted:
             return self.name
-        # A bare version reads as an exact pin, which is what it means.
-        joined = self.version if _HAS_OPERATOR.match(self.version) \
-            else f"=={self.version}"
-        return f"{self.name}{joined}"
+        return f"{self.name}{' or '.join(self.wanted)}"
 
 
 # A specifier begins with an operator; anything else is a bare version, and a
@@ -99,19 +103,28 @@ class Requirement(NamedTuple):
 _HAS_OPERATOR = re.compile(r"^\s*(===|==|!=|~=|<=|>=|<|>)")
 
 
-def specifier(declared) -> Optional[str]:
-    '''What the client asked for, as a PEP 440 specifier set, or None.
+def specifiers(declared) -> Tuple[str, ...]:
+    '''What the client asked for, as PEP 440 specifier sets. Empty is *any*.
 
-    ⚠️ A bare ``0.38.9`` becomes ``==0.38.9`` rather than being refused. It is
-    what every client sent before the wire carried ranges, and it is what a
-    person writes.
+    Takes one string or a list of them, because a requirement is a list and
+    one alternative is the ordinary case. ⚠️ A bare ``0.38.9`` becomes
+    ``==0.38.9`` rather than being refused: it is what every client sent before
+    the wire carried ranges, and it is what a person writes.
     '''
     if declared is None:
-        return None
-    text = str(declared).strip()
-    if not text:
-        return None
-    return text if _HAS_OPERATOR.match(text) else f"=={text}"
+        return ()
+
+    given = declared if isinstance(declared, (list, tuple)) else [declared]
+
+    wanted = []
+    for one in given:
+        text = str(one).strip()
+        if not text:
+            # An empty string is how a client says *any version of this*, which
+            # is not the same as not naming the tool at all.
+            continue
+        wanted.append(text if _HAS_OPERATOR.match(text) else f"=={text}")
+    return tuple(wanted)
 
 
 def normalize(version: str) -> str:
@@ -135,17 +148,21 @@ def normalize(version: str) -> str:
         return version
 
 
-def matches(version: str, source: str, wanted: Optional[str]) -> bool:
+def matches(version: str, source: str, wanted: Sequence[str]) -> bool:
     '''Whether one registered version answers one requirement.
 
-    🔴 **`published_date` never does, whatever the numbers say.** A tool that
-    reports no version is recorded with the date its image was published --
-    a complete tool list beats a partial one -- but `20260924` beats `2.0.1`
+    ⚠️ **Any alternative will do**, which is `Task.check_exe_version`'s rule
+    one level up: a requirement is a list of specifier sets and a tool that
+    matches one of them is acceptable. An empty list is *any version*.
+
+    🔴 **`published_date` never answers, whatever the numbers say.** A tool
+    that reports no version is recorded with the date its image was published
+    -- a complete tool list beats a partial one -- but `20260924` beats `2.0.1`
     under every comparison there is, so an unversioned build from years ago
     would outrank a current release for ever. The mark exists for exactly this
     check, and it is made before any comparison.
     '''
-    if wanted is None:
+    if not wanted:
         return True
     if source != "reported":
         return False
@@ -153,15 +170,19 @@ def matches(version: str, source: str, wanted: Optional[str]) -> bool:
     from packaging.specifiers import InvalidSpecifier, SpecifierSet
     from packaging.version import InvalidVersion, Version
 
-    try:
-        # prereleases=True: a server that registered 1.0rc1 registered it on
-        # purpose, and silently skipping it would refuse a job for a version
-        # the catalogue lists.
-        return Version(version) in SpecifierSet(wanted, prereleases=True)
-    except (InvalidSpecifier, InvalidVersion):
-        # Either side unparsable falls back to the only comparison that is
-        # always defined: the exact string somebody registered.
-        return wanted.lstrip("=") == version
+    for one in wanted:
+        try:
+            # prereleases=True: a server that registered 1.0rc1 registered it
+            # on purpose, and silently skipping it would refuse a job for a
+            # version the catalogue lists.
+            if Version(version) in SpecifierSet(one, prereleases=True):
+                return True
+        except (InvalidSpecifier, InvalidVersion):
+            # Either side unparsable falls back to the only comparison that is
+            # always defined: the exact string somebody registered.
+            if one.lstrip("=") == version:
+                return True
+    return False
 
 
 class Held(NamedTuple):
@@ -389,7 +410,7 @@ def _satisfies(image, requirements: Sequence[Requirement]) -> bool:
     held = image["contents"]
     for want in requirements:
         if not any(entry.name == want.name
-                   and matches(entry.version, entry.source, want.version)
+                   and matches(entry.version, entry.source, want.wanted)
                    for entry in held):
             return False
     return True
@@ -472,8 +493,6 @@ def plan_for_job(store, requires: Dict[str, Any],
     refs = {image["id"]: pinned_ref(image["registry_ref"], image["digest"])
             for image in images}
 
-    asked = (requires or {}).get("tools") or {}
-
     nodes: Dict[Tuple[str, str], Optional[str]] = {}
     for node, tool in node_tools.items():
         if not tool or tool not in software["tools"]:
@@ -486,8 +505,10 @@ def plan_for_job(store, requires: Dict[str, Any],
         # 🔴 The python set PLUS this node's tool, which is exactly what
         # `job_nodes.image_id` has always meant. Resolved per node, because two
         # tools need not be in one image and requiring that would mean one
-        # image holding everything.
-        wants = list(pinned) + [Requirement(tool, specifier(asked.get(tool)), "tool")]
+        # image holding everything -- and because two NODES may want different
+        # versions of the same tool, which is the other half of per node.
+        asked = ((requires or {}).get("tools") or {}).get(tool)
+        wants = list(pinned) + [Requirement(tool, specifiers(asked), "tool")]
         found = resolve(images, wants)
         if found is None:
             raise _unsatisfiable(wants, images, blame=tool)
@@ -517,9 +538,9 @@ def declared_requirements(software, requires: Dict[str, Any]) -> List[Requiremen
     tracked = software["python"]
     asked = (requires or {}).get("python") or {}
 
-    pinned = [Requirement(name, specifier(wanted), "library")
+    pinned = [Requirement(name, specifiers(wanted), "library")
               for name, wanted in sorted(asked.items())
-              if name in tracked and isinstance(wanted, (str, int, float))]
+              if name in tracked and isinstance(wanted, (str, int, float, list))]
 
     if PRIMARY in tracked and not any(want.name == PRIMARY for want in pinned):
         # The client named no framework version. The deployment's own
@@ -640,7 +661,7 @@ def _present_but_unversioned(requirements: Sequence[Requirement], images):
     this: one that does not is satisfied by any live version, mark or no mark.
     '''
     for want in requirements:
-        if want.version is None:
+        if not want.wanted:
             continue
         sources = {entry.source for image in images
                    for entry in image["contents"] if entry.name == want.name}

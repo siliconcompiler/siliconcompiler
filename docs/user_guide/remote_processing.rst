@@ -408,6 +408,20 @@ pins. ``versions.tools`` is usually ``{}`` -- a client submitting remotely
 generally has no tools installed, which is usually why it is submitting
 remotely.
 
+**A requirement may be a list, and that is how two tasks disagree.** A version
+requirement in SiliconCompiler is already a list of alternative specifier sets
+-- :meth:`~siliconcompiler.Task.check_exe_version` accepts a tool matching any
+of them -- and it is declared per task, so a flow can hold two tasks of one
+tool wanting different things. ``{"openroad": [">=24Q3-2011", "==2.0"]}`` says
+both once. An empty list means *any version of this*, which is not the same as
+not naming the tool: naming it is what lets the server refuse before the
+upload.
+
+⚠️ **`sc-remote` normalises those specifiers before sending them**, with the
+task's own ``normalize_version``. ``>=24Q3-2011`` is not a PEP 440 specifier at
+all, and only the driver knows how to turn it into ``>=24.3.2011``; sent raw it
+would be refused against an image that plainly satisfies it.
+
 **Versions can be read out of the image rather than typed.** The probe runs
 inside it and asks: ``importlib.metadata`` for a python distribution, and for a
 tool its driver's own executable, version switch and parser -- the same ones a

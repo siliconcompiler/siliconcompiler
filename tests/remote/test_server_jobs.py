@@ -1182,7 +1182,7 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
     """🔴 Before anything runs, which is the correct direction: the alternative
     is a job that queues, dispatches and dies on node thirty-one with the
     cluster already paid for."""
-    from siliconcompiler.remote.server import images, jobs as jobs_module
+    from siliconcompiler.remote.server import images
 
     store = container_server.config["SC_STORE"]
 
@@ -1194,7 +1194,9 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
 
     # `nopflow` names only `builtin`, which is not a tool anybody installs and
     # raises no requirement. This is the one thing the test needs it to be.
-    monkeypatch.setattr(jobs_module, "_node_tools",
+    from siliconcompiler.remote.server import runspec
+
+    monkeypatch.setattr(runspec, "node_tools",
                         lambda flow, nodes: {node: "openroad" for node in nodes})
 
     archive, upload_digest, size = job_archive()

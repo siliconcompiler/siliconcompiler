@@ -19,7 +19,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-__all__ = ["normalize", "node_image", "runtime_flow", "runtime_nodes",
+__all__ = ["BUILTIN", "normalize", "node_image", "node_tools",
+           "runtime_flow", "runtime_nodes",
            "node_state", "PROGRESS_FILENAME", "IMAGES_FILENAME",
            "read_images", "write_images", "read_progress", "write_progress"]
 
@@ -229,6 +230,45 @@ def runtime_nodes(project) -> List[Tuple[str, str]]:
     matching what actually ran.
     '''
     return list(runtime_flow(project).get_nodes())
+
+
+# 🔴 Not a tool anybody installs. SiliconCompiler's own joins, minimums and
+# nops run in its process, so a node using one needs the framework and nothing
+# else -- and treating it as a tool invites an operator to register a name no
+# image can honestly claim, which then refuses every flow that has a join in
+# it.
+BUILTIN = "builtin"
+
+
+def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
+    '''Which tool each node runs, which is what the image resolution needs.
+
+    🔴 Per node rather than a set for the whole flow, because submit resolves N
+    images and not one: an `import` node needing nothing but Python has no
+    business pulling a twelve-gigabyte OpenROAD image, and the only thing that
+    can tell them apart is which tool each node names.
+
+    Derived from the task classes the flowgraph names rather than from the
+    manifest's `tool` section, which is written during a run and so is empty in
+    anything a client uploads. A node whose task will not load names no tool,
+    which resolves to the job's own image -- the safe direction, since that is
+    what a node needing nothing gets.
+
+    ⚠️ **Here rather than in the server, because both ends derive it.** The
+    server needs it to place nodes; the client needs it to say what its flow
+    will reach for, which is what lets the server refuse before the archive
+    moves. Two copies of this would be two answers to *which image does this
+    node need*.
+    '''
+    tools: Dict[Tuple[str, str], Optional[str]] = {}
+    for step, index in nodes:
+        try:
+            tool = flow.get_task_module(step, index)().tool()
+        except Exception:                                       # noqa: BLE001
+            tool = None
+
+        tools[(step, index)] = None if tool == BUILTIN else tool
+    return tools
 
 
 ######################################################################

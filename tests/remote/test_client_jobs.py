@@ -738,3 +738,75 @@ def test_the_tail_count_is_the_servers_published_ceiling(fake_v1, run):
     tails = _Tails(run)
     assert tails._enabled is True
     assert tails._ceiling == 8
+
+
+###########################
+# What the flow will reach for
+###########################
+
+def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in,
+                                                       gcd_nop_project):
+    '''🔴 The point is the refusal BEFORE the upload. The server derives the
+    same list from the manifest at submit, so this changes no placement -- it
+    changes when a deployment that curates images for a tool and has none says
+    so.'''
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.remote.client.run import RemoteRun
+    from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
+
+    flow = Flowgraph("withtools")
+    flow.node("syn", ASICSynthesis())
+    gcd_nop_project.set_flow(flow)
+
+    wanted = RemoteRun(gcd_nop_project, logged_in)._tool_requirements()
+
+    # ⚠️ An empty list is *any version of this*, which is the ordinary case: a
+    # task's requirement is set in setup() and setup happens in the image.
+    assert wanted == {"yosys": []}
+
+
+def test_a_builtin_node_names_no_tool(fake_v1, logged_in, nop_project):
+    '''🔴 SiliconCompiler's own joins and nops run in its process. Treating
+    `builtin` as a tool invites an operator to register a name no image can
+    honestly claim, which then refuses every flow that has a join in it.'''
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    assert RemoteRun(nop_project, logged_in)._tool_requirements() == {}
+
+
+def test_a_declared_requirement_is_normalised_before_it_is_sent():
+    '''🔴 OpenROAD declares `>=24Q3-2011`, which is not a PEP 440 specifier at
+    all. Sent raw the server cannot parse it, falls back to comparing the
+    string, and refuses an image that plainly satisfies it. The driver is the
+    only thing that knows how to make it comparable, and the client is the side
+    that has the driver.'''
+    from packaging.specifiers import SpecifierSet
+    from packaging.version import Version
+
+    from siliconcompiler.remote.client.run import _normalize_spec
+    from siliconcompiler.tools.openroad import OpenROADTask
+
+    spec = _normalize_spec(OpenROADTask(), ">=24Q3-2011")
+
+    assert spec == ">=24.3.2011"
+    # And what the probe stores for a real OpenROAD satisfies it, which is the
+    # whole round trip.
+    assert Version("26.3.2418") in SpecifierSet(spec)
+
+
+def test_a_comma_separated_set_keeps_all_of_its_parts():
+    '''A set's commas are AND and each part is normalised on its own.'''
+    from siliconcompiler.remote.client.run import _normalize_spec
+    from siliconcompiler.tools.openroad import OpenROADTask
+
+    assert _normalize_spec(OpenROADTask(), ">=24Q3-2011,<27Q1-0") == \
+        ">=24.3.2011,<27.1.0"
+
+
+def test_an_unreadable_requirement_is_dropped_rather_than_sent():
+    '''An unparsable requirement matches nothing on the far side, so passing it
+    on turns *no version I can read* into *no OpenROAD at all*.'''
+    from siliconcompiler.remote.client.run import _normalize_spec
+    from siliconcompiler.tools.openroad import OpenROADTask
+
+    assert _normalize_spec(OpenROADTask(), "whatever") is None
