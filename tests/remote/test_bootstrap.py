@@ -1,0 +1,123 @@
+import importlib.util
+import os
+
+import pytest
+
+
+# `setup/server/bootstrap.py` runs as a compose service and had no tests. Two
+# real bugs came out of it in one afternoon -- a `Cmd` that never ran because
+# the image has an ENTRYPOINT, and a loop variable that shadowed the
+# SiliconCompiler version -- and both were found by a person bringing the
+# stack up rather than by anything here.
+#
+# It is loaded by path because it is a script beside a Dockerfile and not part
+# of the package.
+
+HERE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SCRIPT = os.path.join(HERE, "setup", "server", "bootstrap.py")
+
+
+@pytest.fixture
+def bootstrap(monkeypatch):
+    spec = importlib.util.spec_from_file_location("sc_bootstrap", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    # Nothing reaches the docker socket or the registry command.
+    module.calls = []
+    monkeypatch.setattr(module, "registry",
+                        lambda *args: module.calls.append(list(args)))
+    monkeypatch.setattr(module, "say", lambda message: None)
+    return module
+
+
+def commands(module, name):
+    return [call for call in module.calls if call and call[0] == name]
+
+
+def test_the_images_are_tagged_with_the_siliconcompiler_version(bootstrap):
+    """🔴 The regression this file exists for. A loop binding each tool's
+    version to `version` shadowed the parameter, so both images were tagged
+    with whatever the LAST tool reported -- `19.1.5`, which is mlir's -- and
+    declared to contain `siliconcompiler==19.1.5`. The server then refused to
+    start, correctly, saying it could not read a siliconcompiler nobody had
+    asked it to.
+    """
+    held = {tool: {"kind": "tool", "version": f"{n}.0"}
+            for n, tool in enumerate(bootstrap.TOOLS)}
+    drivers = {tool: f"siliconcompiler.tools.{tool}" for tool in bootstrap.TOOLS}
+
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", held, drivers)
+
+    refs = [call[1] for call in commands(bootstrap, "add-image")]
+    assert refs == [f"{bootstrap.PULL_FROM}/sc-runtime:0.38.9",
+                    f"{bootstrap.PULL_FROM}/sc-tools:0.38.9"]
+
+    for call in commands(bootstrap, "add-image"):
+        assert "siliconcompiler==0.38.9" in call
+
+
+def test_a_tool_that_reported_is_registered_as_reported(bootstrap):
+    held = {"yosys": {"kind": "tool", "version": "0.69"}}
+    drivers = {"yosys": "siliconcompiler.tools.yosys"}
+
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", held, drivers)
+
+    added = [call for call in commands(bootstrap, "add-version")
+             if call[1] == "yosys"]
+    assert added == [["add-version", "yosys", "0.69"]]
+
+
+def test_a_tool_that_said_nothing_gets_the_publish_date_and_the_mark(bootstrap):
+    """🔴 `20260924` beats `2.0.1` under every comparison there is, so an
+    unmarked date would outrank every real release for ever."""
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", {},
+                       {tool: None for tool in bootstrap.TOOLS})
+
+    for tool in bootstrap.TOOLS:
+        assert ["add-version", tool, "20260924", "-unversioned"] in bootstrap.calls
+
+
+def test_a_tool_with_a_driver_records_it_and_one_without_does_not(bootstrap):
+    drivers = {tool: None for tool in bootstrap.TOOLS}
+    drivers["yosys"] = "siliconcompiler.tools.yosys"
+
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", {}, drivers)
+
+    added = {call[1]: call for call in commands(bootstrap, "add-software")}
+    assert added["yosys"][-2:] == ["-driver", "siliconcompiler.tools.yosys"]
+    assert "-driver" not in added["openroad"]
+    # And every tool says so, because the kind is stated and never derived.
+    assert added["openroad"][2:4] == ["-kind", "tool"]
+    assert added["siliconcompiler"][2:4] == ["-kind", "python"]
+
+
+def test_the_image_declares_what_the_probe_found(bootstrap):
+    """What goes in `-contains` is the version that was registered, or the
+    registry refuses a version it just accepted."""
+    held = {"yosys": {"kind": "tool", "version": "0.69"}}
+
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", held,
+                       {"yosys": "siliconcompiler.tools.yosys"})
+
+    tools = commands(bootstrap, "add-image")[-1]
+    assert "yosys==0.69" in tools
+    # Every other tool reported nothing and falls back to the date.
+    assert "openroad==20260924" in tools
+
+
+def test_a_driver_is_recorded_as_the_package_and_not_one_task_file(bootstrap):
+    """🔴 `icarus` has no task in its package's `__init__`, so *shallowest
+    module* picked whichever task file sorted first -- the probe imported that
+    one module, walked no submodules because a module has none, and never saw
+    the class that sets the executable. Nine tools reported and one did not."""
+    found = bootstrap.drivers_for(["icarus", "klayout", "openroad"])
+
+    assert found["icarus"] == "siliconcompiler.tools.icarus"
+    assert found["klayout"] == "siliconcompiler.tools.klayout"
+    assert found["openroad"] == "siliconcompiler.tools.openroad"
+
+
+def test_a_name_nothing_drives_records_no_driver(bootstrap):
+    assert bootstrap.drivers_for(["not-a-tool-anybody-has"]) == \
+        {"not-a-tool-anybody-has": None}

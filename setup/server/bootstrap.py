@@ -490,13 +490,21 @@ def register(version: str, tools_digest: str, runtime_digest: str,
             add += ["-driver", driver]
         registry(*add)
 
+        # ⚠️ NOT `version`, which is the SiliconCompiler version this whole
+        # function is about and is used again below. Binding the tool's version
+        # to that name shadowed it, so after the loop it held whatever the last
+        # tool reported -- and both images were tagged `:19.1.5` and declared
+        # to contain `siliconcompiler==19.1.5`, which is mlir's version. The
+        # server then refused to start, correctly, saying it could not read a
+        # siliconcompiler it had never been asked to.
+        #
         # The COMPARABLE one -- the driver's own normalisation, already
         # applied -- because that is what a version range is matched against.
         # What the tool printed went to the log above.
-        version = (held.get(tool) or {}).get("version")
-        if version:
-            registry("add-version", tool, version)
-            contains += ["-contains", f"{tool}=={version}"]
+        found = (held.get(tool) or {}).get("version")
+        if found:
+            registry("add-version", tool, found)
+            contains += ["-contains", f"{tool}=={found}"]
         else:
             # In the image, listed, and nobody asked it what it was.
             registry("add-version", tool, published, "-unversioned")
