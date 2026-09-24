@@ -45,8 +45,13 @@ def test_capabilities_carry_every_required_member(capabilities):
         "max_job_nodes", "max_upload_bytes", "job_retention_days",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_log_stream_seconds", "max_archive_members",
-        "max_archive_expanded_bytes", "auto_fetch_max_bytes",
-        "run_heartbeat_seconds",
+        "max_archive_expanded_bytes",
+        # The nine above are the contract's; these two are this profile's,
+        # and `run_heartbeat_seconds` is deliberately NOT among them -- no
+        # client sends a heartbeat or is told about one, so publishing its
+        # period would be a promise about machinery on the far side of the
+        # API. It is deployment config.
+        "max_download_bytes",
         "abandon_after_seconds"}
 
     # terms_url is OPTIONAL and absent unless an operator sets one, which is

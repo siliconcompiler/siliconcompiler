@@ -48,7 +48,7 @@ _image_mounts = []
 
 # Often enough that a stall is noticed in minutes, rarely enough that it is one
 # small write a minute on a filesystem every compute node shares. The server's
-# patience is `limits.run_heartbeat_seconds` and is many times this, because a
+# patience is its `run_heartbeat_seconds` and is many times this, because a
 # missed beat must never be read as a dead run.
 HEARTBEAT_SECONDS = 60
 

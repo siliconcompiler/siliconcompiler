@@ -104,9 +104,9 @@ def test_a_listing_with_no_manifest_says_so_without_calling_it_a_failure(
 ###########################
 
 def test_deleted_is_never_reported_as_expired(fake_v1, results, caplog):
-    '''🔴 Retention lapsing is the system doing what it said; a deleted_at is
-    somebody deciding. Reported in that order, because a deleted object may
-    also be past its retention.'''
+    '''🔴 Reported before the expiry, because an object whose bytes are gone
+    is usually also past its retention, and the useful sentence is the one that
+    says why they went.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("outputs", "stepone", "0", fetchable=False,
                  deleted_at="2026-09-20T00:00:00.000Z",
@@ -117,6 +117,42 @@ def test_deleted_is_never_reported_as_expired(fake_v1, results, caplog):
 
     assert "deleted on 2026-09-20" in caplog.text
     assert "aged out" not in caplog.text
+
+
+def test_the_reason_is_repeated_rather_than_interpreted(fake_v1, results,
+                                                        caplog):
+    '''🔴 A reaper sets `deleted_at` when retention lapses -- it has to,
+    because `fetchable` asks first whether the bytes are there -- so the column
+    alone no longer separates *the system did what it said* from *somebody
+    removed this*. `deleted_reason` is what does.
+
+    Repeated verbatim and never matched against a vocabulary this client
+    holds: a deployment that grows a new reason is understood by a client that
+    shipped before it.
+    '''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("outputs", "stepone", "0", fetchable=False,
+                 deleted_at="2026-09-20T00:00:00.000Z",
+                 deleted_reason="retention lapsed")]})
+
+    with caplog.at_level("WARNING"):
+        results.fetch("j1")
+
+    assert "gone on 2026-09-20 -- retention lapsed" in caplog.text
+
+
+def test_a_server_that_gives_no_reason_still_gets_a_sentence(fake_v1, results,
+                                                             caplog):
+    '''`deleted_reason` may be null, and a missing one is not a blank line.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("outputs", "stepone", "0", fetchable=False,
+                 deleted_at="2026-09-20T00:00:00.000Z",
+                 deleted_reason=None)]})
+
+    with caplog.at_level("WARNING"):
+        results.fetch("j1")
+
+    assert "deleted on 2026-09-20" in caplog.text
 
 
 def test_expired_says_when_it_aged_out(fake_v1, results, caplog):
@@ -231,7 +267,7 @@ def test_a_kind_this_client_has_no_home_for_is_left_alone(fake_v1, results):
     '''The set is closed and published, so an unrecognised kind means this
     client is older than the server -- not that the server is wrong.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts",
-                  {"items": [artifact("bundle", "stepone", "0")]})
+                  {"items": [artifact("node", "stepone", "0")]})
 
     assert results.fetch("j1") == 0
 
@@ -293,23 +329,23 @@ def test_asking_for_a_file_and_being_served_a_stream_says_where_to_go(
 
 
 ###########################
-# A bundle is the rest of the run
+# A node archive is the rest of the run
 ###########################
 
-def test_a_bundle_displaces_what_it_contains(fake_v1, results, nop_project):
-    '''🔴 A bundle IS the rest of the run, so fetching it and then fetching the
+def test_a_node_archive_displaces_what_it_contains(fake_v1, results, nop_project):
+    '''🔴 A node archive IS the rest of the run, so fetching it and then fetching the
     objects inside it downloads everything twice. On a real flow that is two
     requests instead of sixty-two.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("manifest"),
-        artifact("bundle", "stepone", "0"),
-        artifact("bundle", "steptwo", "0"),
+        artifact("node", "stepone", "0"),
+        artifact("node", "steptwo", "0"),
         artifact("logs", "stepone", "0"),
         artifact("logs", "steptwo", "0")]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-None-None",
                   json.dumps({"schemaversion": "0.0.0"}))
     for step in ("stepone", "steptwo"):
-        fake_v1.route(responses.GET, f"jobs/j1/artifacts/art-bundle-{step}-0",
+        fake_v1.route(responses.GET, f"jobs/j1/artifacts/art-node-{step}-0",
                       tarball(["outputs/gcd.pkg.json", f"sc_{step}_0.log"]),
                       content_type="application/gzip")
 
@@ -317,19 +353,19 @@ def test_a_bundle_displaces_what_it_contains(fake_v1, results, nop_project):
 
     fetched = sorted(c.request.path_url for c in fake_v1.calls
                      if "/artifacts/" in c.request.path_url)
-    # The two logs are inside the two bundles, so they are not asked for.
-    assert fetched == ["/v1/jobs/j1/artifacts/art-bundle-stepone-0",
-                       "/v1/jobs/j1/artifacts/art-bundle-steptwo-0",
-                       "/v1/jobs/j1/artifacts/art-manifest-None-None"]
+    # The two logs are inside the two node archives, so they are not asked for.
+    assert fetched == ["/v1/jobs/j1/artifacts/art-manifest-None-None",
+                       "/v1/jobs/j1/artifacts/art-node-stepone-0",
+                       "/v1/jobs/j1/artifacts/art-node-steptwo-0"]
 
 
-def test_a_bundle_expands_in_its_own_nodes_directory(fake_v1, results,
-                                                     nop_project):
+def test_a_node_archive_expands_in_its_own_nodes_directory(
+        fake_v1, results, nop_project):
     '''Stored relative to the node's working directory, which is why the
     contract has no per-artifact path: step, index and kind are enough.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts",
-                  {"items": [artifact("bundle", "stepone", "0")]})
-    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+                  {"items": [artifact("node", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
                   tarball(["outputs/gcd.pkg.json", "reports/metrics.json"]),
                   content_type="application/gzip")
 
@@ -341,27 +377,27 @@ def test_a_bundle_expands_in_its_own_nodes_directory(fake_v1, results,
     assert os.path.isfile(os.path.join(into, "reports", "metrics.json"))
 
 
-def test_the_manifest_is_fetched_even_beside_a_bundle(fake_v1, results):
+def test_the_manifest_is_fetched_even_beside_a_node_archive(fake_v1, results):
     '''It is small, it is what the record is replayed from, and a client that
-    relied on finding one inside the bundle would break on the deployment that
+    relied on finding one inside the node archive would break on the deployment that
     indexes a manifest and no bulk output at all.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("manifest"), artifact("bundle", "stepone", "0")]})
+        artifact("manifest"), artifact("node", "stepone", "0")]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-None-None",
                   json.dumps({"schemaversion": "0.0.0"}))
-    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
                   tarball(["outputs/gcd.pkg.json"]),
                   content_type="application/gzip")
 
     assert results.fetch("j1") == 2
 
 
-def test_a_bundle_that_is_refused_displaces_nothing(fake_v1, results, caplog):
-    '''🔴 A bundle is never grantable, so present-and-refused is the ordinary
+def test_a_node_archive_that_is_refused_displaces_nothing(fake_v1, results, caplog):
+    '''🔴 A node archive is never grantable, so present-and-refused is the ordinary
     case on a deployment with approvals. Everything else must still be
-    fetched, and the caller told why it could not have the bundle.'''
+    fetched, and the caller told why it could not have the node archive.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("bundle", "stepone", "0", fetchable=False),
+        artifact("node", "stepone", "0", fetchable=False),
         artifact("logs", "stepone", "0")]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-stepone-0", "ran\n")
 
@@ -377,12 +413,12 @@ def test_a_bundle_that_is_refused_displaces_nothing(fake_v1, results, caplog):
 
 def test_a_nodes_results_are_taken_when_that_node_finishes(fake_v1, results,
                                                            nop_project):
-    '''🔴 Not at the end of the run. A node's bundle carries its manifest, so
+    '''🔴 Not at the end of the run. A node's node archive carries its manifest, so
     taking it as it appears is what keeps the local record -- metrics, tool
     versions, node states -- current while the rest of the flow runs on.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts",
-                  {"items": [artifact("bundle", "stepone", "0")]})
-    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+                  {"items": [artifact("node", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
                   tarball(["outputs/gcd.pkg.json"]),
                   content_type="application/gzip")
 
@@ -400,8 +436,8 @@ def test_a_nodes_results_are_taken_when_that_node_finishes(fake_v1, results,
 def test_a_node_is_only_taken_once(fake_v1, results):
     '''The poll repeats every few seconds; the download must not.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts",
-                  {"items": [artifact("bundle", "stepone", "0")]})
-    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+                  {"items": [artifact("node", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
                   tarball(["outputs/gcd.pkg.json"]),
                   content_type="application/gzip")
 
@@ -426,8 +462,8 @@ def test_nothing_is_listed_until_something_finishes(fake_v1, results):
 def test_the_final_sweep_does_not_fetch_what_the_run_already_took(
         fake_v1, results, nop_project):
     fake_v1.route(responses.GET, "jobs/j1/artifacts",
-                  {"items": [artifact("bundle", "stepone", "0")]})
-    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-bundle-stepone-0",
+                  {"items": [artifact("node", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
                   tarball(["outputs/gcd.pkg.json"]),
                   content_type="application/gzip")
 
@@ -435,7 +471,7 @@ def test_the_final_sweep_does_not_fetch_what_the_run_already_took(
                                    "state": "completed", "terminal": True}]})
 
     fake_v1.route(responses.GET, "jobs/j1/artifacts",
-                  {"items": [artifact("bundle", "stepone", "0")]})
+                  {"items": [artifact("node", "stepone", "0")]})
     assert results.fetch("j1") == 0
 
     fetches = [c for c in fake_v1.calls if "/artifacts/art-" in c.request.path_url]
@@ -452,10 +488,10 @@ def test_a_listing_that_fails_mid_run_is_not_fatal(fake_v1, results):
                                           "terminal": True}]}) == 0
 
 
-def test_a_node_with_no_bundle_is_not_asked_about_again(fake_v1, results):
+def test_a_node_with_no_archive_is_not_asked_about_again(fake_v1, results):
     '''🔴 A node the run skipped produces no working directory, so there is
-    nothing to archive and its bundle never appears. Recording only the nodes
-    whose bundles were FOUND left it outstanding for ever, and this listing
+    nothing to archive and its node archive never appears. Recording only the nodes
+    whose node archives were FOUND left it outstanding for ever, and this listing
     then happened on every single poll for the length of the run -- per client.
     On a server with a few hundred of them that is the whole cost of watching
     a job.
@@ -477,8 +513,8 @@ def test_a_node_with_no_bundle_is_not_asked_about_again(fake_v1, results):
 def test_one_listing_per_batch_of_finished_nodes(fake_v1, results):
     '''Not one per poll, and not one per node: a wide flow finishes several
     nodes between two polls, and a quiet poll asks nothing at all.'''
-    def bundle_for(step):
-        return artifact("bundle", step, "0")
+    def archive_for(step):
+        return artifact("node", step, "0")
 
     def node(step, terminal):
         return {"step": step, "index": "0", "terminal": terminal,
@@ -489,9 +525,9 @@ def test_one_listing_per_batch_of_finished_nodes(fake_v1, results):
 
     # Poll 2: two finished together -> one listing, two fetches.
     fake_v1.route(responses.GET, "jobs/j1/artifacts",
-                  {"items": [bundle_for("stepone"), bundle_for("steptwo")]})
+                  {"items": [archive_for("stepone"), archive_for("steptwo")]})
     for step in ("stepone", "steptwo"):
-        fake_v1.route(responses.GET, f"jobs/j1/artifacts/art-bundle-{step}-0",
+        fake_v1.route(responses.GET, f"jobs/j1/artifacts/art-node-{step}-0",
                       tarball(["outputs/gcd.pkg.json"]),
                       content_type="application/gzip")
 
@@ -563,7 +599,7 @@ def _ceiling(fake_v1, capabilities, limit):
               "pending_uploads": 8, "max_job_nodes": 1000, "devices": None,
               "job_retention_days": 30}
     if limit is not None:
-        limits["auto_fetch_max_bytes"] = limit
+        limits["max_download_bytes"] = limit
 
     fake_v1.route(responses.GET, "me", {
         "id": "01J9-user", "issuer": "local", "projects": [],
@@ -582,7 +618,7 @@ def test_an_object_over_the_servers_ceiling_is_listed_and_not_pulled(
     client picks a different one and the operator sets no policy at all.'''
     _ceiling(fake_v1, capabilities, 1000)
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("bundle", "stepone", "0", size_bytes=50_000_000,
+        artifact("node", "stepone", "0", size_bytes=50_000_000,
                  media_type="application/gzip")]})
 
     with caplog.at_level("WARNING"):
@@ -594,14 +630,14 @@ def test_an_object_over_the_servers_ceiling_is_listed_and_not_pulled(
     assert "1000 B" in caplog.text
 
 
-def test_a_bundle_left_behind_does_not_displace_its_nodes_log(
+def test_a_node_archive_left_behind_does_not_displace_its_nodes_log(
         fake_v1, capabilities, results, nop_project):
-    '''🔴 A bundle displaces the objects inside it only because fetching it
+    '''🔴 A node archive displaces the objects inside it only because fetching it
     gets you them. One that is not being fetched displaces nothing -- which is
     the case this ceiling exists to produce.'''
     _ceiling(fake_v1, capabilities, 1000)
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("bundle", "stepone", "0", size_bytes=50_000_000,
+        artifact("node", "stepone", "0", size_bytes=50_000_000,
                  media_type="application/gzip"),
         artifact("logs", "stepone", "0", size_bytes=120)]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-stepone-0",

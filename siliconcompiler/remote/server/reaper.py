@@ -11,8 +11,8 @@ next cheaper to decide:
 
 ``bundles``    an image unpacked onto the filesystem. The largest by far
 ``artifacts``  bytes whose ``retention_until`` has passed. The row stays --
-               *where did my results go* has to stay answerable -- and the
-               bytes do not
+               *where did my results go* has to stay answerable -- and records
+               that retention was what took them
 ``builds``     a job's working tree, once nothing it produced is left. It is
                the source the artifacts were indexed FROM, so it may only go
                after them
@@ -94,22 +94,31 @@ def _bundles(store, storage, config, datadir) -> int:
     return images.sweep_bundles(datadir / "images", store)
 
 
+# What the reaper writes into `delete_reason`, and it is a constant because a
+# client compares against it. `deleted_by` distinguishes the reaper from a
+# person in the table -- NULL is the reaper -- but `deleted_by` is not on the
+# wire and cannot be: it names a user to callers who may not know that user
+# exists.
+RETENTION_LAPSED = "retention lapsed"
+
+
 def _artifacts(store, storage, config, datadir) -> int:
     '''Bytes past their retention. The row stays; only the bytes go.
 
-    🔴 **`deleted_at` is deliberately NOT set, and that is the opposite of what
-    it looks like.** The column means *somebody decided*, and a client renders
-    it as exactly that -- "deleted on 24 Sep" -- ahead of every other reason,
-    because [saying a thing expired when a person removed it] is the one wrong
-    answer that matters. Retention lapsing is the system doing what it said it
-    would, and `expires_at` in the past already says so. Setting `deleted_at`
-    here would have turned every aged-out object into a report that somebody
-    took it.
+    🔴 **`deleted_at` IS set, and the tempting alternative breaks the ladder.**
+    Leaving the row untouched reads better -- the column means *the bytes are
+    gone* and a client renders it "deleted on 24 Sep", which sounds like a
+    person -- but `fetchable` is decided by an ordered ladder whose first row is
+    `deleted_at`. `expires_at` passing is deliberately NOT a row on it, because
+    retention lapsing is followed by this, and this is where it lands. Take the
+    write away and a reaped artifact falls through to the entitlement rows and
+    reports `fetchable: true` for bytes that are not there.
 
-    ⚠️ **So nothing in the row distinguishes *expired, bytes still on disk*
-    from *expired, bytes reclaimed*, and nothing needs to:** `fetchable` is
-    false either way and no caller can have them either way. The distinction
-    would only matter to an operator, who has the filesystem.
+    ✅ **The real defect the alternative was aimed at is that a client could
+    not tell an expiry from a deletion, and the fix is to say which.**
+    `delete_reason` is written here and published as `deleted_reason`, so
+    *aged out on 24 Sep* and *deleted on 24 Sep* are two different sentences
+    again -- without `fetchable` having to lie for it.
 
     A legal hold is skipped. It is not only policy -- the table would refuse
     the write, since an artifact cannot be both held and deleted.
@@ -127,9 +136,18 @@ def _artifacts(store, storage, config, datadir) -> int:
             if path.is_file():
                 freed += path.stat().st_size
                 path.unlink()
-                gone += 1
         except OSError as e:
             logger.debug(f"could not unlink {row['storage_key']}: {e}")
+            continue
+
+        # 🔴 Recorded whether or not a file was there to unlink. The row is the
+        # claim that these bytes are unavailable, and an artifact whose file
+        # had already vanished is the case where that claim matters most.
+        # `deleted_by` stays NULL, which is how the table says *the reaper*.
+        store.execute(
+            "UPDATE artifacts SET deleted_at = ?, delete_reason = ? WHERE id = ?",
+            (now(), RETENTION_LAPSED, row["id"]))
+        gone += 1
 
     if gone:
         logger.info(f"{gone} aged-out artifact(s) reclaimed")

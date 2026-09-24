@@ -149,7 +149,7 @@ that anyone cancelled it. A node the flow considered and chose not to run reads
         artifacts page -- which is the page nobody reaches first, so the
         feature may as well not have existed. An archive small enough to open
         opens; everything else downloads, because that is the honest answer for
-        a six-gigabyte bundle.
+        a six-gigabyte node archive.
       -#}
       {%- for item in per_node.get((node.step, node['index']), []) -%}
         {%- if not item.fetchable -%}

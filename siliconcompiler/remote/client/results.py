@@ -18,9 +18,13 @@ kind to be present has the same bug one kind further along.
 🔴 **Five states stay five sentences.** Absent, blocked by an agreement,
 ungranted, deleted and expired are five different things to tell a person, and
 collapsing them answers *where did my results go* with the one sentence that
-fits none of the cases. ⚠️ **Never say *expired* for a ``deleted_at``**:
-retention lapsing is the system doing what it said, a deletion is somebody
-deciding.
+fits none of the cases.
+
+⚠️ **``deleted_at`` alone does not say which of the last two it is.** A server's
+reaper sets it when retention lapses -- it has to, because ``fetchable`` asks
+first whether the bytes are there -- so the column covers *the system did what
+it said it would* as well as *somebody removed this*. ``deleted_reason`` is what
+tells them apart, and this client repeats it rather than guessing.
 '''
 
 import logging
@@ -45,7 +49,7 @@ logger = logging.getLogger(__name__)
 # does not recognise is listed and left alone rather than refused: the set is
 # closed and published, so an unknown one means this client is older than the
 # server.
-_ARCHIVES = ("bundle", "outputs", "reports")
+_ARCHIVES = ("node", "outputs", "reports")
 
 # Where the run's own log lands. It belongs to no node, so it goes beside them
 # in the job directory.
@@ -75,7 +79,7 @@ class Results:
         self._taken_nodes: set = set()
         self._landed = 0
 
-        # The server's auto-fetch ceiling, read once and remembered. `False`
+        # The server's download ceiling, read once and remembered. `False`
         # means not looked up yet; `None` means this server publishes none.
         self._ceiling: Any = False
 
@@ -85,7 +89,14 @@ class Results:
 
     @property
     def ceiling(self):
-        '''The largest object this server wants pulled without being asked.
+        '''The largest single object this server will hand over.
+
+        🔴 **The server enforces it; reading it here is only so the refusal
+        does not have to happen.** An over-ceiling fetch is answered
+        `limit-exceeded` naming `max_download_bytes`, so a client that ignores
+        this number does not get more -- it gets the same results plus a
+        failed request per oversized object. Knowing the number in advance is
+        what turns forty refusals into one sentence.
 
         🔴 The server's number and not the client's. A deployment knows what
         its link and its disks are for; a client picking its own threshold
@@ -105,11 +116,12 @@ class Results:
             self._ceiling = None
             try:
                 limits = (self.client.me() or {}).get("limits") or {}
-                self._ceiling = limits.get("auto_fetch_max_bytes")
+                self._ceiling = limits.get("max_download_bytes")
             except Exception as e:                               # noqa: BLE001
-                # No ceiling is the old behaviour, which is the safe direction
-                # to fail: the results arrive.
-                logger.debug(f"no auto-fetch ceiling: {e}")
+                # Not knowing it is not the same as there not being one: the
+                # server still refuses. What is lost is the single tidy
+                # sentence, and each oversized object is reported on its own.
+                logger.debug(f"no download ceiling: {e}")
         return self._ceiling
 
     def _oversized(self, item: Dict[str, Any]) -> bool:
@@ -135,9 +147,9 @@ class Results:
 
         self.logger.warning(
             f"{len(items)} object(s) were left on the server ({size(total)}), "
-            f"each larger than its auto-fetch limit of {size(self.ceiling)}: "
-            f"{names}. Fetch them from the portal (sc-remote -portal), or take "
-            "the whole run with: sc-remote -reconnect")
+            f"each larger than the {size(self.ceiling)} this account may "
+            f"download over the API: {names}. The web portal is the way to "
+            "get them -- sc-remote -portal opens it.")
 
     ######################################################################
     # During the run
@@ -146,15 +158,15 @@ class Results:
     def take(self, job_id: str, job: Dict[str, Any]) -> int:
         '''Fetch what each node left, as that node finishes.
 
-        🔴 Not at the end of the run. A node's bundle carries its manifest, so
-        taking it as it appears is what keeps the local record -- metrics, tool
-        versions, node states -- current while the rest of the flow is still
-        going. It is also what lets the dashboard show a finished node's real
-        runtime rather than a timer that never stops.
+        🔴 Not at the end of the run. A node's archive carries its manifest,
+        so taking it as it appears is what keeps the local record -- metrics,
+        tool versions, node states -- current while the rest of the flow is
+        still going. It is also what lets the dashboard show a finished node's
+        real runtime rather than a timer that never stops.
 
-        One listing per poll in which something finished, filtered to bundles,
-        rather than one request per node: a wide flow finishes many nodes
-        between two polls.
+        One listing per poll in which something finished, filtered to the
+        `node` kind, rather than one request per node: a wide flow finishes
+        many nodes between two polls.
         '''
         done = {(node.get("step"), node.get("index"))
                 for node in job.get("nodes") or []
@@ -166,10 +178,10 @@ class Results:
             return 0
 
         try:
-            items = self.client.artifacts(job_id, kind="bundle")
+            items = self.client.artifacts(job_id, kind="node")
         except Exception as e:                                   # noqa: BLE001
             # Nothing is lost by failing here: the sweep at the end asks again.
-            logger.debug(f"could not list bundles yet: {e}")
+            logger.debug(f"could not list node archives yet: {e}")
             return 0
 
         landed = 0
@@ -196,7 +208,7 @@ class Results:
         # that is what is recorded -- not which ones were found.
         #
         # Recording only the ones that were found meant a terminal node with no
-        # bundle stayed outstanding for ever, and a node the run skipped never
+        # archive stayed outstanding for ever, and a node the run skipped never
         # has one: it produces no working directory, so there is nothing to
         # archive. Three skipped nodes were enough to make this listing happen
         # on every single poll for the length of the run, per client. On a
@@ -228,9 +240,9 @@ class Results:
             return 0
 
         # 🔴 Taken out BEFORE `_worth_fetching`, and the order is the point: a
-        # bundle displaces the objects inside it only because fetching it gets
-        # you them. One that is not being fetched displaces nothing, so the
-        # node's log and reports still come back -- which is the case this
+        # node archive displaces the objects inside it only because fetching it
+        # gets you them. One that is not being fetched displaces nothing, so
+        # the node's log and reports still come back -- which is the case this
         # ceiling exists to produce.
         oversized = [item for item in items if self._oversized(item)]
         items = _worth_fetching([item for item in items if not self._oversized(item)])
@@ -270,11 +282,19 @@ class Results:
         '''Why this object is not coming, in the words that fit its case.'''
         name = self._name(item)
 
-        # 🔴 Checked before the expiry, and the order is the point: a deleted
-        # object may also be past its retention, and saying it expired would
-        # tell a user the system aged out data that somebody removed.
+        # 🔴 Checked before the expiry, and the order is the point: an object
+        # whose bytes are gone is also, usually, past its retention, and the
+        # useful sentence is the one that says why they went.
         if item.get("deleted_at"):
-            return f"{name}: deleted on {_day(item['deleted_at'])}."
+            day = _day(item["deleted_at"])
+            reason = item.get("deleted_reason")
+            # Repeated, never interpreted. The reason is prose a deployment
+            # chose and this client has no vocabulary to match it against --
+            # which is the point: a server that grows a new one is understood
+            # by a client that shipped before it.
+            if reason:
+                return f"{name}: gone on {day} -- {reason}."
+            return f"{name}: deleted on {day}."
 
         blocked = item.get("blocked_by")
         if blocked:
@@ -408,29 +428,30 @@ class Results:
 
 
 def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    '''Drop what a bundle already contains.
+    '''Drop what a node archive already contains.
 
-    🔴 A node's bundle IS that node's results, so fetching it and then fetching
-    the objects inside it downloads everything twice. A bundle covers only its
-    own node, so a node whose bundle is missing or refused keeps every object
-    it has.
+    🔴 A `node` artifact IS that node's results, so fetching it and then
+    fetching the objects inside it downloads everything twice. It covers only
+    its own node -- it is always bound to a step and an index, and there is no
+    job-level one -- so a node whose archive is missing or refused keeps every
+    object it has.
 
     The manifest is always kept: it is small, it is what the record is replayed
-    from, and a client that relied on finding one inside the bundle would break
-    on the deployment that indexes a manifest and no bulk output at all.
+    from, and a client that relied on finding one inside the node archive would
+    break on the deployment that indexes a manifest and no bulk output at all.
 
-    Only a FETCHABLE bundle displaces anything. One that is present and
-    refused -- a bundle is never grantable, so that is the ordinary case on a
-    deployment with approvals -- leaves every other object exactly as it was,
-    and the caller is told why it could not have it.
+    Only a FETCHABLE node archive displaces anything. One that is present and
+    refused -- withheld, or over this account's download ceiling -- leaves
+    every other object exactly as it was, and the caller is told why it could
+    not have it.
     '''
     covered = {(item.get("step"), item.get("index")) for item in items
-               if item.get("kind") == "bundle" and item.get("fetchable")}
+               if item.get("kind") == "node" and item.get("fetchable")}
     if not covered:
         return items
 
     return [item for item in items
-            if item.get("kind") in ("bundle", "manifest")
+            if item.get("kind") in ("node", "manifest")
             or not item.get("fetchable")
             or (item.get("step"), item.get("index")) not in covered]
 

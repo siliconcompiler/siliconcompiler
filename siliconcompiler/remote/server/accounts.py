@@ -31,7 +31,7 @@ def user(store, user_id: str):
 # Which limits a `user_limits` row may override. One today, and the list is
 # here rather than derived from the table so that adding a column is a
 # deliberate act in two places rather than an accident in one.
-OVERRIDABLE = ("auto_fetch_max_bytes",)
+OVERRIDABLE = ("max_download_bytes",)
 
 
 def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
@@ -63,9 +63,9 @@ def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[s
     ⚠️ Six members and not ``GET /v1``'s key set. Four keys appear in both
     blocks and a client combines only those.
 
-    🆕 **`auto_fetch_max_bytes` is the seventh, and it is here because it is
-    the only one that can differ per account.** `GET /v1` carries no credential
-    and cannot vary by caller, so a per-user ceiling has nowhere else to be
+    🆕 **`max_download_bytes` is the seventh, and it is here because it is the
+    only one that can differ per account.** `GET /v1` carries no credential and
+    cannot vary by caller, so a per-user ceiling has nowhere else to be
     published -- which makes this the block a client must read for it. The
     deployment's default stays on `GET /v1`, and the two disagreeing is exactly
     what an override looks like.
@@ -81,7 +81,7 @@ def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[s
         "devices": None,                    # null = unlimited, not zero
         "job_retention_days": ceiling["job_retention_days"],
         # null here means UNLIMITED, which is the wire's meaning everywhere.
-        "auto_fetch_max_bytes": ceiling["auto_fetch_max_bytes"],
+        "max_download_bytes": ceiling["max_download_bytes"],
     }
 
 

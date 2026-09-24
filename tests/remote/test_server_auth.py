@@ -443,7 +443,7 @@ def test_me_carries_the_account_limits(client, key):
     '''Not the same key set as GET /v1's ceiling: five overlap and a client
     combines only those.
 
-    🆕 `auto_fetch_max_bytes` is here as well as on `GET /v1`, and it is the
+    🆕 `max_download_bytes` is here as well as on `GET /v1`, and it is the
     reason this block matters to a client at all now: `GET /v1` carries no
     credential, so it cannot vary by caller. The deployment's default is there
     and the value that applies to THIS caller is here.
@@ -453,7 +453,7 @@ def test_me_carries_the_account_limits(client, key):
 
     assert set(limits) == {"concurrent_jobs", "concurrent_nodes",
                            "pending_uploads", "max_job_nodes", "devices",
-                           "job_retention_days", "auto_fetch_max_bytes"}
+                           "job_retention_days", "max_download_bytes"}
 
 
 def test_me_usage_is_derived_and_reported_only(client, key):
@@ -595,17 +595,17 @@ def test_an_override_reaches_the_caller_and_not_the_capabilities(client, key):
     token = login(client, key).get_json()["access_token"]
     me = call(client, key, "GET", "/v1/me", token).get_json()
 
-    default = client.get("/v1").get_json()["limits"]["auto_fetch_max_bytes"]
-    assert me["limits"]["auto_fetch_max_bytes"] == default
+    default = client.get("/v1").get_json()["limits"]["max_download_bytes"]
+    assert me["limits"]["max_download_bytes"] == default
 
     store = client.application.config["SC_STORE"]
-    accounts.set_limit(store, me["id"], "auto_fetch_max_bytes", 1024,
+    accounts.set_limit(store, me["id"], "max_download_bytes", 1024,
                        me["id"], note="a slow link")
 
     again = call(client, key, "GET", "/v1/me", token).get_json()
-    assert again["limits"]["auto_fetch_max_bytes"] == 1024
+    assert again["limits"]["max_download_bytes"] == 1024
     # The deployment's own number is unmoved, and uncredentialed.
-    assert client.get("/v1").get_json()["limits"]["auto_fetch_max_bytes"] == default
+    assert client.get("/v1").get_json()["limits"]["max_download_bytes"] == default
 
 
 def test_minus_one_is_unlimited_and_never_reaches_a_client(client, key):
@@ -618,11 +618,11 @@ def test_minus_one_is_unlimited_and_never_reaches_a_client(client, key):
     me = call(client, key, "GET", "/v1/me", token).get_json()
     store = client.application.config["SC_STORE"]
 
-    accounts.set_limit(store, me["id"], "auto_fetch_max_bytes", -1, me["id"])
+    accounts.set_limit(store, me["id"], "max_download_bytes", -1, me["id"])
 
     limits = call(client, key, "GET", "/v1/me", token).get_json()["limits"]
-    assert limits["auto_fetch_max_bytes"] is None
-    assert store.one("SELECT auto_fetch_max_bytes AS n FROM user_limits "
+    assert limits["max_download_bytes"] is None
+    assert store.one("SELECT max_download_bytes AS n FROM user_limits "
                      "WHERE user_id = ?", (me["id"],))["n"] == -1
 
 
@@ -634,12 +634,12 @@ def test_a_null_column_inherits_rather_than_meaning_unlimited(client, key):
     me = call(client, key, "GET", "/v1/me", token).get_json()
     store = client.application.config["SC_STORE"]
 
-    accounts.set_limit(store, me["id"], "auto_fetch_max_bytes", 1024, me["id"])
-    accounts.set_limit(store, me["id"], "auto_fetch_max_bytes", None, me["id"])
+    accounts.set_limit(store, me["id"], "max_download_bytes", 1024, me["id"])
+    accounts.set_limit(store, me["id"], "max_download_bytes", None, me["id"])
 
-    default = client.get("/v1").get_json()["limits"]["auto_fetch_max_bytes"]
+    default = client.get("/v1").get_json()["limits"]["max_download_bytes"]
     limits = call(client, key, "GET", "/v1/me", token).get_json()["limits"]
-    assert limits["auto_fetch_max_bytes"] == default
+    assert limits["max_download_bytes"] == default
 
 
 def test_only_a_declared_limit_can_be_overridden(client, key):

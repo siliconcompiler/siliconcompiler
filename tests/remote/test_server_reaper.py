@@ -12,6 +12,8 @@ from conftest import call
 from test_server_jobs import FakeDispatcher, stage, submit
 from test_server_artifacts import ran
 
+from siliconcompiler.remote.server.reaper import RETENTION_LAPSED
+
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
@@ -49,12 +51,15 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
     '''🔴 The row stays. *Where did my results go* has to stay answerable when
     the bytes are gone -- that is the whole reason the listing exists.
 
-    🔴 And `deleted_at` stays NULL, which is the opposite of what it looks
-    like. That column means SOMEBODY DECIDED, and a client renders it as
-    exactly that, ahead of every other reason. Retention lapsing is the system
-    doing what it said, and `expires_at` in the past already says so -- setting
-    `deleted_at` here would turn every aged-out object into a report that
-    somebody took it.
+    🔴 And `deleted_at` IS set, which reads like the wrong answer and is not.
+    `fetchable` is decided by an ordered ladder whose first question is whether
+    the bytes are there; `expires_at` passing is deliberately not a rung on it,
+    because retention lapsing ends HERE. Leave the column NULL and a reaped
+    artifact falls through to the entitlement rungs and reports itself
+    fetchable for bytes that are gone.
+
+    ✅ What keeps *aged out* and *somebody removed this* apart is
+    `deleted_reason`, which is the member that exists for it.
     '''
     job = ran(server, server_client, key, token, job_archive)
     store, storage = server.config["SC_STORE"], server.config["SC_STORAGE"]
@@ -69,7 +74,11 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
     after = artifact_rows(server, job["id"])
     assert len(after) == len(rows)
     for row in after:
-        assert row["deleted_at"] is None
+        assert row["deleted_at"] is not None
+        # NULL deleted_by is how the table says *the reaper*, and it is the
+        # half that never reaches a client: it names a user.
+        assert row["deleted_by"] is None
+        assert row["delete_reason"] == RETENTION_LAPSED
         assert not storage.artifact_path(row["storage_key"]).exists()
 
     # And the endpoint still answers, with fetchable false rather than a 404.
@@ -77,8 +86,26 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
                    token).get_json()["items"]
     assert listing and not any(item["fetchable"] for item in listing)
     # What the client branches on to pick its sentence: aged out, not removed.
-    assert all(item["deleted_at"] is None for item in listing)
+    assert all(item["deleted_reason"] == RETENTION_LAPSED for item in listing)
     assert all(item["expires_at"] < "2021" for item in listing)
+
+
+def test_the_reaper_runs_twice_and_takes_nothing_the_second_time(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''Idempotence, and it is what `deleted_at` buys beyond the ladder.
+
+    A demo rig restarts constantly and the sweep is at startup, so an aged-out
+    artifact is reconsidered on every boot for the rest of its row's life.
+    Recording that it was taken is what stops that being a stat of every
+    reclaimed object, for ever.
+    '''
+    job = ran(server, server_client, key, token, job_archive)
+    server.config["SC_STORE"].execute(
+        "UPDATE artifacts SET retention_until = '2020-01-01T00:00:00.000Z' "
+        "WHERE job_id = ?", (job["id"],))
+
+    assert sweep(server)["artifacts"] > 0
+    assert sweep(server)["artifacts"] == 0
 
 
 def test_an_artifact_on_legal_hold_is_never_reaped(

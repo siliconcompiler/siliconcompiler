@@ -13,9 +13,12 @@ costs a line; a missing row costs a major version, and two implementations that
 each mint a slug for the same condition cost a client a second table.
 '''
 
+import re
+
 from typing import Any, Dict, Optional
 
-__all__ = ["ERRORS", "TYPE_BASE", "ProblemError", "problem"]
+__all__ = ["DETAIL_MAX", "ERRORS", "TYPE_BASE", "ProblemError", "bound",
+           "problem"]
 
 
 # Fixed by the contract and identical on every deployment.
@@ -141,6 +144,52 @@ class ProblemError(Exception):
                        status=self.status, **self.members)
 
 
+# How much of a `detail` reaches a caller, and it is bounded rather than
+# trusted.
+#
+# 🔴 **Some details are built out of text this server did not write.** A tool's
+# exception, a tarfile member's name, a manifest's parse error: every one of
+# them can carry a path the CLIENT chose, and `detail` is published to anybody
+# who can read the job. The contract's rule is that it does not echo
+# unvalidated input; this is where that is enforced, once, for every refusal,
+# because a rule applied at each call site is a rule somebody forgets at the
+# next one.
+#
+# ⚠️ What is bounded is what is PUBLISHED. The full text still reaches the
+# server's log, which has an entitled reader.
+DETAIL_MAX = 300
+
+# Everything that is not text: NUL, the escapes a terminal acts on, and the
+# rest of C0 and C1's delete. Tab, newline and carriage return are handled by
+# the whitespace collapse instead, because they are ordinary in an exception.
+_UNPRINTABLE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def bound(detail: Optional[str]) -> Optional[str]:
+    '''One line of somebody else's text, short enough to publish.
+
+    Three things, and each is a different reader being protected: control
+    characters go because a `detail` is printed to a terminal; newlines go
+    because a refusal is one line and a multi-line one breaks every log that
+    reads it; and the length goes because a stack trace pasted into a JSON
+    body is not prose, it is a copy of the log in the wrong place.
+    '''
+    if not detail:
+        return detail
+
+    text = _UNPRINTABLE.sub("", detail)
+    text = " ".join(text.split())
+    if len(text) <= DETAIL_MAX:
+        return text
+
+    # Cut at a word where there is one nearby, so the tail is not half a path.
+    cut = text[:DETAIL_MAX]
+    space = cut.rfind(" ")
+    if space > DETAIL_MAX - 40:
+        cut = cut[:space]
+    return cut + "..."
+
+
 def problem(slug: str, detail: Optional[str] = None,
             status: Optional[int] = None, **members) -> Dict[str, Any]:
     '''An RFC 9457 body.
@@ -148,6 +197,10 @@ def problem(slug: str, detail: Optional[str] = None,
     ``type`` and ``title`` come from the registry so that every occurrence of a
     condition is identical; ``detail`` is prose and may be reworded, which is
     why a client branches on ``type`` and never on it.
+
+    🔴 `detail` is bounded here and nowhere else -- see `bound`. It is the one
+    funnel every refusal passes through, which is what makes the rule hold for
+    the call site nobody has written yet.
     '''
     err = ERRORS[slug]
 
@@ -160,7 +213,7 @@ def problem(slug: str, detail: Optional[str] = None,
     if resolved is not None:
         body["status"] = resolved
     if detail:
-        body["detail"] = detail
+        body["detail"] = bound(detail)
 
     body.update(members)
     return body

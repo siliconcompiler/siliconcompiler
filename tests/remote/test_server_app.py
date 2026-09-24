@@ -80,6 +80,32 @@ def test_projects_are_not_a_feature(client):
     assert "projects" not in client.get("/v1").get_json()["features"]
 
 
+def test_a_detail_never_carries_more_than_a_line_of_borrowed_text(client):
+    """🔴 Some details are built out of text this server did not write -- a
+    tool's exception, a tarfile member's name -- and every one of those can
+    carry a path the CLIENT chose. The contract forbids `detail` echoing
+    unvalidated input, so the bound is in `problem()` and not at each call
+    site: a rule applied per call site is a rule somebody forgets at the next
+    one."""
+    from siliconcompiler.remote.server.errors import DETAIL_MAX, problem
+
+    body = problem("invalid-request", detail="/a/path " * 200)
+
+    assert len(body["detail"]) <= DETAIL_MAX + 3       # the ellipsis
+    assert body["detail"].endswith("...")
+
+
+def test_a_detail_is_one_line_and_holds_no_escapes(client):
+    """A refusal is printed to a terminal and read back out of a log, and both
+    of those are broken by text somebody else chose."""
+    from siliconcompiler.remote.server.errors import problem
+
+    body = problem("invalid-request",
+                   detail="first line\n\tsecond\x1b[31m red \x00")
+
+    assert body["detail"] == "first line second[31m red"
+
+
 def test_every_limit_is_a_base_unit(client):
     """Bytes are never MB and a count is never a duration: the refusal that
     names a key back spells it identically, which is what makes the error
@@ -90,8 +116,13 @@ def test_every_limit_is_a_base_unit(client):
         "max_job_nodes", "max_upload_bytes", "job_retention_days",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_log_stream_seconds", "max_archive_members",
-        "max_archive_expanded_bytes", "auto_fetch_max_bytes",
-        "run_heartbeat_seconds",
+        "max_archive_expanded_bytes",
+        # The nine above are the contract's; these two are this profile's,
+        # and `run_heartbeat_seconds` is deliberately NOT among them -- no
+        # client sends a heartbeat or is told about one, so publishing its
+        # period would be a promise about machinery on the far side of the
+        # API. It is deployment config.
+        "max_download_bytes",
         "abandon_after_seconds"}
     assert all(isinstance(value, int) for value in limits.values())
 

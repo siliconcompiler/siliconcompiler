@@ -17,36 +17,70 @@
   </p>
 </div>
 {% else %}
-<table>
-  <tr><th>Kind</th><th>Node</th><th>Size</th><th>Expires</th><th></th></tr>
-  {% for item in artifacts %}
-  <tr>
-    <td>{{ item.kind }}</td>
-    <td class="mono">
-      {%- if item.step -%}{{ item.step }}/{{ item['index'] }}{%- else -%}
-      <span class="muted">the job</span>{%- endif -%}
-    </td>
-    <td class="mono muted">{{ item.size_bytes | size }}</td>
-    <td class="mono muted">{{ item.expires_at | when }}</td>
-    <td>
-      {% if item.fetchable %}
-        {%- if item.media_type == 'application/gzip'
-               and (item.size_bytes or 0) <= browse_limit %}
-        <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
-           >look inside</a> &middot;
-        {% endif -%}
-        <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
-      {% elif item.deleted_at %}
-        <span class="muted">deleted {{ item.deleted_at | when }}</span>
-      {% elif item.blocked_by %}
-        <span class="muted">held back ({{ item.blocked_by }})</span>
-      {% else %}
-        <span class="muted">not available</span>
-      {% endif %}
-    </td>
-  </tr>
-  {% endfor %}
-</table>
+{#
+  🔴 Grouped by node, because the node is the unit of deletion. A node's logs,
+  its reports and its archive are three rows over ONE set of bytes -- the
+  archive holds the other two -- so a flat table of kinds would suggest a row
+  could be removed on its own. It cannot: doing that frees nothing and leaves a
+  "deleted" that the disk disagrees with.
+#}
+{% for group in groups %}
+<div class="panel">
+  <h3 style="margin-top:0">
+    {% if group.step %}<span class="mono">{{ group.step }}/{{ group['index'] }}</span>
+    {% else %}The run itself{% endif %}
+  </h3>
+  {% if not group.step %}
+  <p class="muted">
+    The manifest and the run's own log belong to no node, so they are not any
+    node's to discard.
+  </p>
+  {% endif %}
+  <table>
+    <tr><th>Kind</th><th>Size</th><th>Expires</th><th></th></tr>
+    {% for item in group['items'] %}
+    <tr>
+      <td>{{ item.kind }}</td>
+      <td class="mono muted">{{ item.size_bytes | size }}</td>
+      <td class="mono muted">{{ item.expires_at | when }}</td>
+      <td>
+        {% if item.fetchable %}
+          {%- if item.media_type == 'application/gzip'
+                 and (item.size_bytes or 0) <= browse_limit %}
+          <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
+             >look inside</a> &middot;
+          {% endif -%}
+          <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
+        {% elif item.deleted_at %}
+          {#
+            The reason, not just the date. Retention lapsing ends in a
+            deleted_at like everything else, so without it this line cannot
+            tell "the server did what it said" from "somebody removed this".
+          #}
+          <span class="muted">gone {{ item.deleted_at | when }}{%
+            if item.deleted_reason %} — {{ item.deleted_reason }}{% endif %}</span>
+        {% elif item.blocked_by %}
+          <span class="muted">held back ({{ item.blocked_by }})</span>
+        {% else %}
+          <span class="muted">not available</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  {% if group.step and job.terminal and not job.deleted_at
+        and group['items'] | selectattr('deleted_at', 'none') | list %}
+  <form method="post" action="{{ url_for('portal.discard_node', job_id=job.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="step" value="{{ group.step }}">
+    <input type="hidden" name="index" value="{{ group['index'] }}">
+    <button class="danger">Discard this node's output</button>
+    <span class="muted">Everything above, and this node's working directory.</span>
+  </form>
+  {% endif %}
+</div>
+{% endfor %}
 {% endif %}
 
 {#
@@ -56,17 +90,18 @@
 #}
 {% if job.terminal and not job.deleted_at %}
 <div class="panel warn" style="margin-top:32px">
-  <p><b>Discard what this run produced</b></p>
+  <p><b>Discard everything this run produced</b></p>
   <p class="muted">
     {#
       🔴 The OBJECTS, not the job. Deleting the job sets `jobs.deleted_at`,
       which takes it out of every listing -- far more than somebody means when
       they ask to reclaim the space a finished run is using.
     #}
-    Every object above, and the build directory behind them. The job stays
-    where it is, with its states, its timings and this list -- the rows remain
-    and say the bytes are gone, so <i>where did my results go</i> still has an
-    answer. Nothing it produced comes back.
+    Every node above and the job's own objects with them, and the build
+    directory behind all of it. The job stays where it is, with its states, its
+    timings and this list -- the rows remain and say the bytes are gone, so
+    <i>where did my results go</i> still has an answer. Nothing it produced
+    comes back.
   </p>
   <form method="post" action="{{ url_for('portal.discard', job_id=job.id) }}">
     <input type="hidden" name="csrf" value="{{ csrf }}">

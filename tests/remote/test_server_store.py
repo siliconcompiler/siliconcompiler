@@ -70,7 +70,7 @@ def test_eighteen_tables():
         "artifact_kinds", "storage_locations", "artifacts",
         "software", "software_versions", "images", "image_contents",
         # 🆕 The nineteenth, and the contract's own table. It arrived with a
-        # per-user `auto_fetch_max_bytes`: a limit that can differ per account
+        # per-user `max_download_bytes`: a limit that can differ per account
         # has to be stored per account.
         "user_limits",
     }
@@ -141,7 +141,7 @@ def test_artifact_kinds_carry_retention():
                  store.all("SELECT kind, retention_days FROM artifact_kinds")}
 
     assert set(kinds) == {"manifest", "logs", "reports", "issue", "final",
-                          "outputs", "input", "bundle"}
+                          "outputs", "input", "node"}
     assert kinds["manifest"] == 1825
     assert kinds["outputs"] is None
 

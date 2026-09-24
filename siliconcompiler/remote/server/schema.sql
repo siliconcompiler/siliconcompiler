@@ -332,7 +332,9 @@ INSERT INTO artifact_kinds (kind, retention_days) VALUES
     ('final',    1825),      -- the deliverables. Re-making one is a re-run
     ('outputs',  NULL),      -- large, regenerable, and the most sensitive: the floor, no more
     ('input',    NULL),      -- the uploaded archive. The owner has a copy
-    ('bundle',   NULL);      -- and a bundle may never outlive its contents
+    ('node',     NULL);      -- one node's whole working directory, and it may never outlive
+                             -- its contents. ALWAYS bound to a step and an index: there is no
+                             -- job-level tarball, because the kind is named for what it is
 -- Starting values. The numbers are the deployment's; the SHAPE is the contract.
 -- The set is CLOSED and PUBLISHED, so a new value is a version bump.
 
@@ -488,8 +490,8 @@ CREATE INDEX image_contents_lookup_idx ON image_contents (software_name, version
 -- same way an image is registered. The account screen renders it read-only.
 CREATE TABLE user_limits (                          -- sparse: only the overrides
     user_id             text PRIMARY KEY REFERENCES users(id),
-    auto_fetch_max_bytes integer
-        CHECK (auto_fetch_max_bytes IS NULL OR auto_fetch_max_bytes >= -1),
+    max_download_bytes  integer                     -- NULL inherits, -1 is unlimited
+        CHECK (max_download_bytes IS NULL OR max_download_bytes >= -1),
     set_at              text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     set_by              text NOT NULL REFERENCES users(id),
     note                text                        -- why, for the person who reads it later

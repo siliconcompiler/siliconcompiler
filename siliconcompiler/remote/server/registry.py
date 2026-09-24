@@ -314,7 +314,7 @@ def _cmd_limits(store, args) -> int:
             raise SystemExit("-set needs a user")
         name, sep, value = args.set.partition("=")
         if not sep:
-            raise SystemExit("-set takes name=value, e.g. auto_fetch_max_bytes=1GiB")
+            raise SystemExit("-set takes name=value, e.g. max_download_bytes=1GiB")
         try:
             accounts.set_limit(store, people[0], name.strip(), _bytes(value),
                                _operator(store), note=args.note)
@@ -415,7 +415,7 @@ def _parser() -> argparse.ArgumentParser:
     limits.add_argument("user", nargs="?", help="a user id or subject; omit for all")
     limits.add_argument(
         "-set", metavar="name=value",
-        help="auto_fetch_max_bytes=1GiB, =unlimited, or =inherit")
+        help="max_download_bytes=1GiB, =unlimited, or =inherit")
     limits.add_argument("-note", help="why, for whoever reads this later")
     limits.set_defaults(run=_cmd_limits)
 

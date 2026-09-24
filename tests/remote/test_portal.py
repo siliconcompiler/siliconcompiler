@@ -418,14 +418,15 @@ def test_a_cancelled_job_is_not_told_nobody_cancelled_it(
 # Looking inside an archive
 ###########################
 
-def test_a_bundle_can_be_browsed_without_downloading_it(signed_in, finished,
-                                                        server, me):
-    '''🔴 What "report viewing" needs: a node's reports are inside its bundle,
-    and a page that can only hand over the whole archive cannot show one.'''
+def test_a_node_archive_can_be_browsed_without_downloading_it(
+        signed_in, finished, server, me):
+    '''🔴 What "report viewing" needs: a node's reports are inside its
+    archive, and a page that can only hand over the whole thing cannot show
+    one.'''
     store = server.config["SC_STORE"]
     row = store.one(
         'SELECT id FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
-        (finished["id"], "bundle", "stepone"))
+        (finished["id"], "node", "stepone"))
 
     page = signed_in.get(
         f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
@@ -438,7 +439,7 @@ def test_one_file_out_of_an_archive_renders_as_text(signed_in, finished, server)
     store = server.config["SC_STORE"]
     row = store.one(
         'SELECT id FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
-        (finished["id"], "bundle", "stepone"))
+        (finished["id"], "node", "stepone"))
 
     page = signed_in.get(
         f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
@@ -455,7 +456,7 @@ def test_a_name_the_archive_does_not_hold_is_not_found(signed_in, finished,
     store = server.config["SC_STORE"]
     row = store.one(
         'SELECT id FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
-        (finished["id"], "bundle", "stepone"))
+        (finished["id"], "node", "stepone"))
 
     response = signed_in.get(
         f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
@@ -473,8 +474,8 @@ def test_the_raw_route_never_serves_html(signed_in, finished, server, me):
     (root / "stepone" / "0" / "trouble.html").write_text(
         "<script>alert(1)</script>")
 
-    # Re-index so the new file is in the bundle.
-    store.execute("DELETE FROM artifacts WHERE job_id = ? AND kind = 'bundle'",
+    # Re-index so the new file is in the node archive.
+    store.execute("DELETE FROM artifacts WHERE job_id = ? AND kind = 'node'",
                   (finished["id"],))
     from siliconcompiler.remote.server import artifacts as indexer
     job = store.one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
@@ -485,7 +486,7 @@ def test_the_raw_route_never_serves_html(signed_in, finished, server, me):
 
     row = store.one(
         'SELECT id FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
-        (finished["id"], "bundle", "stepone"))
+        (finished["id"], "node", "stepone"))
     response = signed_in.get(
         f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
         "?file=trouble.html&raw=1")
@@ -537,13 +538,13 @@ def test_the_job_page_opens_an_archive_rather_than_downloading_it(
     download a .tar.gz, with the only way to look inside sitting on the
     artifacts page -- the page nobody reaches first.'''
     store = server.config["SC_STORE"]
-    bundle = store.one(
-        "SELECT id FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+    archive = store.one(
+        "SELECT id FROM artifacts WHERE job_id = ? AND kind = 'node' "
         "AND step = 'stepone'", (finished["id"],))
 
     page = signed_in.get(f"/portal/jobs/{finished['id']}").get_data(as_text=True)
 
-    assert f"/artifacts/{bundle['id']}/inside" in page
+    assert f"/artifacts/{archive['id']}/inside" in page
 
 
 def test_the_browse_page_offers_the_whole_archive(signed_in, finished, server):
@@ -551,7 +552,7 @@ def test_the_browse_page_offers_the_whole_archive(signed_in, finished, server):
     there was. Picking files out of a page one at a time is not a substitute
     for taking the lot.'''
     row = server.config["SC_STORE"].one(
-        "SELECT id FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+        "SELECT id FROM artifacts WHERE job_id = ? AND kind = 'node' "
         "AND step = 'stepone'", (finished["id"],))
 
     page = signed_in.get(
@@ -562,6 +563,42 @@ def test_the_browse_page_offers_the_whole_archive(signed_in, finished, server):
     assert f"/artifacts/{row['id']}\"" in page or f"/artifacts/{row['id']}'" in page
 
 
+def test_the_portal_is_the_way_past_the_download_ceiling(signed_in, finished,
+                                                         server, server_client,
+                                                         key, token):
+    '''🔴 `max_download_bytes` has no API override -- not a query parameter,
+    not a header -- so the portal has to be the way past it or an object over
+    the ceiling is simply unreachable by its owner.
+
+    It is allowed to be because it is a different surface with a person on it:
+    a browser download is somebody deciding, one object at a time, and the
+    ceiling exists to stop an automated sweep pulling gigabytes nobody asked
+    for.
+    '''
+    row = server.config["SC_STORE"].one(
+        "SELECT id FROM artifacts WHERE job_id = ? AND kind = 'node' "
+        "AND step = 'stepone'", (finished["id"],))
+    server.config["SC_CONFIG"].limits["max_download_bytes"] = 1
+
+    # The API refuses it, which is the half that makes this test mean anything.
+    assert call(server_client, key, "GET",
+                f"/v1/jobs/{finished['id']}/artifacts/{row['id']}",
+                token).status_code == 429
+
+    response = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts/{row['id']}")
+    assert response.status_code == 302
+
+    bytes_response = signed_in.get(response.headers["Location"])
+    assert bytes_response.status_code == 200
+
+    # And browsing it, which reads one bounded member out of it rather than
+    # handing over the whole thing.
+    assert signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
+    ).status_code == 200
+
+
 def test_the_account_page_shows_the_ceiling_and_the_default(signed_in, server,
                                                             server_client, key,
                                                             token):
@@ -570,12 +607,12 @@ def test_the_account_page_shows_the_ceiling_and_the_default(signed_in, server,
     from siliconcompiler.remote.server import accounts
 
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
-    accounts.set_limit(server.config["SC_STORE"], me, "auto_fetch_max_bytes",
+    accounts.set_limit(server.config["SC_STORE"], me, "max_download_bytes",
                        1024, me, note="a slow link")
 
     page = signed_in.get("/portal/account").get_data(as_text=True)
 
-    assert "auto_fetch_max_bytes" in page
+    assert "max_download_bytes" in page
     assert "1.0 KiB" in page                       # what this account gets
     assert "100 MiB" in page                       # what the deployment gives
     assert "set for you" in page
@@ -787,6 +824,88 @@ def test_discarding_the_output_keeps_the_job(signed_in, finished, server):
         (finished["id"],))
     assert rows and all(r["deleted_at"] for r in rows)
     assert all(r["delete_reason"] == "discarded from the portal" for r in rows)
+
+
+def test_the_node_is_the_unit_of_deletion(signed_in, finished, server):
+    '''🔴 Not one artifact. A node's logs, its reports and its archive are
+    three rows over ONE set of bytes -- the archive holds the other two -- so
+    deleting a row on its own frees nothing and leaves a `deleted_at` the disk
+    disagrees with. The coordinates go together.'''
+    store = server.config["SC_STORE"]
+    token = csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
+
+    done = signed_in.post(f"/portal/jobs/{finished['id']}/discard-node",
+                          data={"csrf": token, "step": "stepone", "index": "0"})
+    assert done.status_code == 302
+
+    gone = store.all(
+        'SELECT kind, deleted_at, delete_reason FROM artifacts '
+        'WHERE job_id = ? AND step = ? AND "index" = ?',
+        (finished["id"], "stepone", "0"))
+    assert {row["kind"] for row in gone} == {"logs", "node"}
+    assert all(row["deleted_at"] for row in gone)
+    assert all(row["delete_reason"] == "discarded from the portal" for row in gone)
+
+    # And nothing else. The other node is untouched, and so is the job.
+    other = store.all(
+        'SELECT deleted_at FROM artifacts WHERE job_id = ? AND step = ?',
+        (finished["id"], "steptwo"))
+    assert other and not any(row["deleted_at"] for row in other)
+    assert store.one("SELECT deleted_at FROM jobs WHERE id = ?",
+                     (finished["id"],))["deleted_at"] is None
+
+
+def test_a_discarded_node_takes_its_working_directory(signed_in, finished,
+                                                      server):
+    '''🔴 The tree is what those rows were indexed FROM, so leaving it
+    reclaims the smaller copy and keeps the larger one. Only this node's.'''
+    jobs = server.config["SC_JOBS"]
+    job = server.config["SC_STORE"].one(
+        "SELECT * FROM jobs WHERE id = ?", (finished["id"],))
+    root = jobs.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
+
+    assert (root / "stepone" / "0").is_dir()
+    token = csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
+    signed_in.post(f"/portal/jobs/{finished['id']}/discard-node",
+                   data={"csrf": token, "step": "stepone", "index": "0"})
+
+    assert not (root / "stepone" / "0").exists()
+    assert (root / "steptwo" / "0").is_dir()
+
+
+def test_the_job_level_objects_are_no_nodes_to_discard(signed_in, finished,
+                                                       server):
+    '''The manifest and the run's own log belong to the run. A node button
+    that took them would make discarding one node destroy the record of all of
+    them.'''
+    token = csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
+    signed_in.post(f"/portal/jobs/{finished['id']}/discard-node",
+                   data={"csrf": token, "step": "stepone", "index": "0"})
+
+    rows = server.config["SC_STORE"].all(
+        "SELECT deleted_at FROM artifacts WHERE job_id = ? AND step IS NULL",
+        (finished["id"],))
+    assert rows and not any(row["deleted_at"] for row in rows)
+
+
+def test_a_node_this_job_does_not_have_is_a_404(signed_in, finished):
+    token = csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
+
+    response = signed_in.post(f"/portal/jobs/{finished['id']}/discard-node",
+                              data={"csrf": token, "step": "nope", "index": "0"})
+    assert response.status_code == 404
+
+
+def test_the_listing_is_grouped_by_node_because_that_is_what_deletes(
+        signed_in, finished):
+    '''A flat table of kinds suggests a row could go on its own, and the
+    button that removes them has to sit against all three at once.'''
+    page = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts").get_data(as_text=True)
+
+    assert "The run itself" in page
+    assert "stepone/0" in page and "steptwo/0" in page
+    assert page.count("Discard this node's output") == 2
 
 
 def test_archiving_hides_a_job_from_the_default_list_and_nothing_else(

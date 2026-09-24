@@ -25,9 +25,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler.schema.baseschema import SchemaVersionWarning
 
+from siliconcompiler.remote import units
 from siliconcompiler.remote.server import archive, artifacts, images, runspec
 from siliconcompiler.remote.server.dispatch import DispatchError
-from siliconcompiler.remote.server.errors import ERRORS, ProblemError, TYPE_BASE
+from siliconcompiler.remote.server.errors import (
+    bound, ERRORS, ProblemError, TYPE_BASE)
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
 from siliconcompiler.remote.server.storage import GRANT_SECONDS
@@ -845,6 +847,67 @@ class JobService:
             "WHERE job_id = ? AND deleted_at IS NULL",
             (now(), session.user_id, job["id"]))
 
+    def discard_node(self, session, job_id: str, step: str, index: str,
+                     reason: str) -> int:
+        '''Throw away what ONE node produced, and keep the run.
+
+        🔴 **The node is the unit of deletion, and per-artifact would be the
+        wrong grain.** There is no deleting a node's reports and keeping its
+        logs: the node archive holds both, so removing one row while the
+        archive still carried a copy would free nothing and make its
+        `deleted_at` a claim the disk disagreed with. Taking the coordinates
+        together is what actually reclaims the space.
+
+        ⚠️ Job-level rows -- the manifest, the run's own log -- belong to no
+        node and are never touched here. `discard_artifacts` is the whole-job
+        version and takes those too.
+        '''
+        job = self.owned(session, job_id)
+
+        if job["deleted_at"]:
+            raise ProblemError(
+                "not-found", detail="this job's data was already deleted")
+
+        if self._store.one(
+                'SELECT 1 FROM job_nodes WHERE job_id = ? AND step = ? '
+                'AND "index" = ?', (job_id, step, index)) is None:
+            raise ProblemError(
+                "not-found", detail=f"no node {step}/{index} in this job")
+
+        rows = self._store.all(
+            'SELECT id, storage_key FROM artifacts WHERE job_id = ? '
+            'AND step = ? AND "index" = ? AND deleted_at IS NULL '
+            "AND legal_hold_at IS NULL", (job_id, step, index))
+
+        self._unlink(rows)
+        if rows:
+            self._store.execute(
+                "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
+                '  delete_reason = ? WHERE job_id = ? AND step = ? AND "index" = ? '
+                "  AND deleted_at IS NULL AND legal_hold_at IS NULL",
+                (now(), session.user_id, reason, job_id, step, index))
+
+        # 🔴 The node's working tree goes with them, for the same reason the
+        # whole-job version takes the job's: it is what these were indexed
+        # FROM, so leaving it reclaims the smaller copy and keeps the larger
+        # one. Only this node's directory, so the rest of the run is untouched.
+        work = (self.job_root(job["user_id"], job["id"]) / job["design"] /
+                job["jobname"] / step / index)
+        shutil.rmtree(work, ignore_errors=True)
+
+        logger.info(f"discarded {len(rows)} artifact(s) of {job_id} {step}/{index}")
+        return len(rows)
+
+    def _unlink(self, rows) -> None:
+        '''Drop the bytes of some artifact rows. The rows are the caller's.'''
+        for row in rows:
+            try:
+                path = self._storage.artifact_path(row["storage_key"])
+                if path.is_file():
+                    path.unlink()
+            except OSError as e:
+                logger.debug(f"could not unlink {row['storage_key']}: {e}")
+
     def discard_artifacts(self, session, job_id: str, reason: str) -> int:
         '''Throw away what a run produced, and keep the run.
 
@@ -874,14 +937,7 @@ class JobService:
             "WHERE job_id = ? AND deleted_at IS NULL AND legal_hold_at IS NULL",
             (job_id,))
 
-        for row in rows:
-            try:
-                path = self._storage.artifact_path(row["storage_key"])
-                if path.is_file():
-                    path.unlink()
-            except OSError as e:
-                logger.debug(f"could not unlink {row['storage_key']}: {e}")
-
+        self._unlink(rows)
         if rows:
             self._store.execute(
                 "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
@@ -1049,7 +1105,7 @@ class JobService:
         if not beat:
             return False
 
-        patience = self._config.limits["run_heartbeat_seconds"]
+        patience = self._config["run_heartbeat_seconds"]
         return beat < _ago(patience)
 
     def abandon_if_expired(self, job) -> bool:
@@ -1338,7 +1394,7 @@ class JobService:
             logger.error(f"could not index the results of {job['id']}: {e}")
 
     def _index_node(self, job, step: str, index: str) -> None:
-        """Index one node's log and bundle, as that node finishes."""
+        """Index one node's log, reports and archive, as it finishes."""
         try:
             artifacts.collect_node(
                 self._store, self._storage, self._config, job,
@@ -1393,8 +1449,21 @@ class JobService:
         items = [artifacts.wire(row) for row in rows]
         return items, (_encode_cursor(rows[-1]) if more and rows else None)
 
-    def artifact(self, session, job_id: str, artifact_id: str):
-        '''Endpoint 22's row, with the two refusals it can make.'''
+    def artifact(self, session, job_id: str, artifact_id: str,
+                 ceiling: bool = True):
+        '''Endpoint 22's row, with the refusals it can make.
+
+        ``ceiling`` is what the two surfaces disagree about, and it is a
+        parameter rather than two code paths so that the disagreement is
+        written down in one place. 🔴 **`max_download_bytes` binds the API and
+        not the portal.** There is no API override for it -- no query
+        parameter, no header -- because a limit a caller can switch off is not
+        a limit. The portal is the way past it, and it is allowed to be because
+        it is a different surface with a person on it who has just clicked the
+        object: a browser download is somebody deciding, one object at a time,
+        and the ceiling exists to stop an automated sweep pulling gigabytes
+        nobody asked for.
+        '''
         job = self.owned(session, job_id)
         if job["deleted_at"]:
             raise ProblemError("not-found", detail="this job's data was deleted")
@@ -1415,7 +1484,40 @@ class JobService:
                 "entitlement-denied", resource_kind="artifact", resource=row["kind"],
                 detail="this artifact is not available to fetch")
 
+        if ceiling:
+            self._check_download_ceiling(session, row)
+
         return row
+
+    def _check_download_ceiling(self, session, row) -> None:
+        '''Refuse one object that is larger than this caller may pull.
+
+        🔴 The CALLER's number and not the deployment's: `max_download_bytes`
+        is the one limit a `user_limits` row may override, so reading
+        `config.limits` here would enforce a ceiling the account was
+        deliberately lifted above. `None` is unlimited, which is the wire's
+        meaning for it everywhere.
+
+        ⚠️ `limit-exceeded` is a 429 and this condition never clears on its
+        own, so no `Retry-After` is offered. Retrying is not the answer and
+        saying when to would be a lie; the detail says what is.
+        '''
+        from siliconcompiler.remote.server import accounts
+
+        allowed = accounts.effective_limits(
+            self._store, self._config, session.user_id)["max_download_bytes"]
+        if allowed is None:
+            return
+
+        stored = row["size_bytes"] or 0
+        if stored <= allowed:
+            return
+
+        raise ProblemError(
+            "limit-exceeded", limit="max_download_bytes",
+            detail=f"{units.size(stored)} is larger than the "
+                   f"{units.size(allowed)} this account may download over the "
+                   "API; open it from the web portal instead")
 
     def node_log(self, session, job_id: str, step: str, index: str):
         '''Endpoint 20's target: the archived log for one terminal node.
@@ -1472,6 +1574,11 @@ class JobService:
                              str(self._config["poll_interval_seconds"])})
             raise ProblemError(
                 "not-found", detail=f"no log was kept for {step}/{index}")
+
+        # The same bytes as endpoint 22 and the same signed URL, so the same
+        # ceiling: a caller that cannot fetch a log as an artifact must not be
+        # handed it by asking for it as a log.
+        self._check_download_ceiling(session, row)
 
         return "artifact", row
 
@@ -1774,6 +1881,11 @@ def _error(error_type: Optional[str],
     `detail` the object says only that something went wrong, which the `state`
     already said. The specific reason was being recorded on the transition and
     published nowhere, so a person on the CLI could not reach it at all.
+
+    ⚠️ Bounded like every other `detail`, and this is the path that needs it
+    most: a run's reason can be a tool's own exception text, which carries
+    whatever paths the client's design named. It does not pass through
+    `problem()`, so the bound is applied here rather than inherited.
     '''
     if not error_type:
         return None
@@ -1784,7 +1896,7 @@ def _error(error_type: Optional[str],
     # Prose that only repeats the slug is not prose: the slug is already the
     # `type`, and a client branches on that.
     if detail and detail != slug:
-        body["detail"] = detail
+        body["detail"] = bound(detail)
     return body
 
 

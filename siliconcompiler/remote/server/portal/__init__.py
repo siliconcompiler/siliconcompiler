@@ -669,6 +669,32 @@ def discard(session, job_id):
     return flask.redirect(flask.url_for("portal.artifacts", job_id=job_id))
 
 
+@blueprint.route("/portal/jobs/<job_id>/discard-node", methods=["POST"])
+@screen
+def discard_node(session, job_id):
+    """Throw away one node's output.
+
+    🔴 **The node and not one artifact, which is what the grouped listing on
+    this page is for.** A node's logs, its reports and its archive are three
+    rows over one set of bytes -- the archive holds the other two -- so
+    deleting a row on its own frees nothing and leaves a `deleted_at` the disk
+    disagrees with.
+
+    ⚠️ No typed confirmation, unlike the two whole-job buttons. This takes one
+    node out of a run somebody is looking at, it is named beside the node it
+    affects, and asking people to type something for every row is how a
+    confirmation stops being read.
+    """
+    step = (flask.request.form.get("step") or "").strip()
+    index = (flask.request.form.get("index") or "").strip()
+    if not step or not index:
+        raise ProblemError("invalid-request", detail="step and index are required")
+
+    _jobs().discard_node(session, job_id, step, index,
+                         "discarded from the portal")
+    return flask.redirect(flask.url_for("portal.artifacts", job_id=job_id))
+
+
 @blueprint.route("/portal/jobs/<job_id>/delete", methods=["POST"])
 @screen
 def delete(session, job_id):
@@ -706,8 +732,34 @@ def artifacts(session, job_id):
     detail = _jobs().get(session, job_id)
     items = _all_artifacts(session, job_id, flask.request.args)
     return flask.render_template("artifacts.html", job=detail, artifacts=items,
+                                 groups=_by_node(items),
                                  kind=flask.request.args.get("kind", ""),
                                  step=flask.request.args.get("step", ""))
+
+
+def _by_node(items):
+    """The listing grouped by the node each object came from.
+
+    🔴 **Because the node is the unit of deletion**, and a flat table of kinds
+    makes it look as though a row could go on its own. It cannot: a node's
+    archive holds its logs and its reports, so the three rows are one set of
+    bytes and the button that removes them has to sit against all three.
+
+    Job-level objects come first, under no node -- the manifest and the run's
+    own log belong to the run and are not any node's to discard. Nodes follow
+    in the order the listing gave, which is creation order, so a node that
+    finished first is first.
+    """
+    groups, seen = [], {}
+
+    for item in items:
+        key = (item.get("step"), item.get("index"))
+        if key not in seen:
+            seen[key] = {"step": key[0], "index": key[1], "items": []}
+            groups.append(seen[key])
+        seen[key]["items"].append(item)
+
+    return sorted(groups, key=lambda group: (group["step"] is not None,))
 
 
 @blueprint.route("/portal/jobs/<job_id>/artifacts/<artifact_id>", methods=["GET"])
@@ -719,8 +771,16 @@ def fetch(session, job_id, artifact_id):
     same signature: a browser can follow a signed storage URL because the
     signature is the credential. Nothing here invents a way for a cookie to
     authorise a download.
+
+    ⚠️ **One refusal is not the same, and it is the only one:
+    `max_download_bytes` does not apply here.** That ceiling exists so an
+    automated sweep does not pull gigabytes nobody asked for, and it has no API
+    override for the same reason -- a limit a caller can switch off is not one.
+    This is the surface it is allowed to be lifted on, because the request is a
+    person clicking one object. It is stated as `ceiling=False` rather than
+    left implicit, so the exception is visible at both ends.
     '''
-    row = _jobs().artifact(session, job_id, artifact_id)
+    row = _jobs().artifact(session, job_id, artifact_id, ceiling=False)
     storage = flask.current_app.config["SC_STORAGE"]
 
     expires = int(time.time()) + DOWNLOAD_SECONDS
@@ -758,11 +818,11 @@ MAX_INLINE_BYTES = 2 * 1024 * 1024
 
 # 🔴 How large an archive this will open at all, and the reason is that a
 # gzipped tar HAS NO INDEX. Listing what one holds means decompressing the
-# whole stream, so a six-gigabyte bundle is a minute of a request thread before
-# the first row is drawn -- and then again for the file somebody clicks. The
-# object people actually want to read is the `reports` archive, which is
-# kilobytes; above this the answer is to download the bundle, which costs the
-# same bytes and does not hold a worker.
+# whole stream, so a six-gigabyte node archive is a minute of a request thread
+# before the first row is drawn -- and then again for the file somebody clicks.
+# The object people actually want to read is the `reports` archive, which is
+# kilobytes; above this the answer is to download the whole node, which costs
+# the same bytes and does not hold a worker.
 MAX_BROWSE_BYTES = 1024 * 1024 * 1024
 
 
@@ -803,7 +863,10 @@ def inside(session, job_id, artifact_id):
     same answer the API would give.
     """
     detail = _jobs().get(session, job_id)
-    row = _jobs().artifact(session, job_id, artifact_id)
+    # `ceiling=False` for the same reason the download does, and with one more:
+    # nothing leaves this server whole. What is served is one member, bounded
+    # by MAX_INLINE_BYTES, out of an archive bounded by MAX_BROWSE_BYTES.
+    row = _jobs().artifact(session, job_id, artifact_id, ceiling=False)
     archive = _stored_at(row)
 
     # A log or a manifest is one file and has nothing to look inside. Showing

@@ -96,13 +96,13 @@ def test_a_finished_run_is_indexed(server_client, key, token, finished):
     assert ("manifest", None) in kinds
     assert ("logs", "stepone") in kinds
     assert ("logs", "steptwo") in kinds
-    # A bundle per node, indexed as that node finishes -- which is what lets a
+    # A node archive per node, indexed as that node finishes -- which is what lets a
     # client take a node's results while the rest of the flow runs on.
-    assert ("bundle", "stepone") in kinds
-    assert ("bundle", "steptwo") in kinds
+    assert ("node", "stepone") in kinds
+    assert ("node", "steptwo") in kinds
     # 🔴 And the reports on their own, which IS a second copy of bytes the
-    # bundle holds. A node's reports are kilobytes and its bundle is often
-    # gigabytes, and above `auto_fetch_max_bytes` the bundle is not fetched at
+    # node archive holds. A node's reports are kilobytes and its node archive is often
+    # gigabytes, and above `max_download_bytes` the node archive is not fetched at
     # all while these still are.
     assert ("reports", "stepone") in kinds
     assert ("reports", "steptwo") in kinds
@@ -115,6 +115,10 @@ def test_every_required_member_is_published(server_client, key, token, finished)
     for item in listing(server_client, key, token, finished["id"]):
         for member in ("id", "step", "index", "kind", "media_type", "size_bytes",
                        "content_hash", "created_at", "expires_at", "deleted_at",
+                       # 🔴 Without it `deleted_at` cannot be read: retention
+                       # lapsing ends in one too, so the column alone cannot
+                       # say whether the system or a person took the bytes.
+                       "deleted_reason",
                        "fetchable"):
             assert member in item, member
         assert item["content_hash"].startswith("sha256:")
@@ -132,23 +136,23 @@ def test_retention_is_per_kind_and_the_job_floor_is_only_a_floor(
     items = listing(server_client, key, token, finished["id"])
     by_kind = {item["kind"]: item["expires_at"] for item in items}
 
-    assert by_kind["manifest"] > by_kind["bundle"]
-    # `bundle` has no number of its own, so it gets the deployment's floor --
-    # and a bundle may never outlive its contents.
-    assert by_kind["bundle"] > "2026"
+    assert by_kind["manifest"] > by_kind["node"]
+    # `node archive` has no number of its own, so it gets the deployment's floor --
+    # and a node archive may never outlive its contents.
+    assert by_kind["node"] > "2026"
     # Same retention rule, so the same day; they are written moments apart.
     assert by_kind["logs"][:10] == by_kind["manifest"][:10]
 
 
-def test_a_bundle_holds_its_node_and_leaves_out_its_inputs(
+def test_a_node_archive_holds_its_node_and_leaves_out_its_inputs(
         server, server_client, key, token, finished):
-    '''A node's bundle is that node's working directory. `inputs/` is left out
+    '''A node's node archive is that node's working directory. `inputs/` is left out
     because it is copies of the upstream node's outputs, which the caller is
-    getting from the upstream node's own bundle.'''
+    getting from the upstream node's own node archive.'''
     import tarfile
 
     row = server.config["SC_STORE"].one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'node' "
         "AND step = 'stepone'", (finished["id"],))
     path = server.config["SC_STORAGE"].artifact_path(row["storage_key"])
 
@@ -179,7 +183,7 @@ def test_what_the_client_uploaded_is_never_sent_back(
     server.config["SC_JOBS"]._index(
         store.one("SELECT * FROM jobs WHERE id = ?", (finished["id"],)))
 
-    row = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+    row = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'node' "
                     "AND step = 'stepone'", (finished["id"],))
     with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
         names = tar.getnames()
@@ -222,7 +226,7 @@ def test_the_listing_filters_by_kind_step_and_index(server_client, key, token,
     assert {item["kind"] for item in reports} == {"reports"}
 
     # A kind that is absent was never indexed here, which is a true answer and
-    # not an error: this deployment stores a bundle instead.
+    # not an error: this deployment stores a node archive instead.
     assert listing(server_client, key, token, finished["id"], "?kind=outputs") == []
 
     one = listing(server_client, key, token, finished["id"],
@@ -254,7 +258,7 @@ def test_the_listing_pages(server_client, key, token, finished):
         response = call(server_client, key, "GET",
                         link.split(">", 1)[0].lstrip("<"), token)
 
-    # manifest, plus a log, a reports and a bundle for each of the two nodes.
+    # manifest, plus a log, a reports and a node archive for each of the two nodes.
     assert len(seen) == len(set(seen)) == 7
 
 
@@ -371,6 +375,123 @@ def test_an_artifact_past_its_retention_is_not_fetchable(server, server_client,
 
     assert response.status_code == 403
     assert slug(response) == "entitlement-denied"
+
+
+###########################
+# max_download_bytes
+###########################
+
+def _ceiling(server, bytes_allowed):
+    server.config["SC_CONFIG"].limits["max_download_bytes"] = bytes_allowed
+
+
+def test_an_object_over_the_ceiling_is_refused_rather_than_redirected(
+        server, server_client, key, token, finished):
+    '''🔴 A real limit, not advice. It began as a number a client was trusted
+    to apply to itself, which made it the only published ceiling with no
+    refusal behind it -- so an operator who set it was setting policy any
+    client could ignore by not reading it.'''
+    item = listing(server_client, key, token, finished["id"])[0]
+    _ceiling(server, item["size_bytes"] - 1)
+
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
+
+    assert response.status_code == 429
+    assert slug(response) == "limit-exceeded"
+    # The key it names is the key it is published under, which is what makes
+    # the registry double as the enforcement trace.
+    assert response.get_json()["limit"] == "max_download_bytes"
+
+
+def test_an_object_exactly_at_the_ceiling_is_served(
+        server, server_client, key, token, finished):
+    '''A ceiling is inclusive. The alternative makes a limit set to exactly
+    an object's size refuse it, which reads as off by one to everybody.'''
+    item = listing(server_client, key, token, finished["id"])[0]
+    _ceiling(server, item["size_bytes"])
+
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
+
+    assert response.status_code == 303
+
+
+def test_no_query_parameter_or_header_lifts_the_ceiling(
+        server, server_client, key, token, finished):
+    '''🔴 There is no API override, and this is what that means in practice:
+    the obvious spellings do nothing. A limit a caller can switch off is not a
+    limit, so the way past it is a different surface -- the portal -- and not
+    a flag on this one.'''
+    item = listing(server_client, key, token, finished["id"])[0]
+    _ceiling(server, 1)
+
+    for attempt in (f"/v1/jobs/{finished['id']}/artifacts/{item['id']}?force=1",
+                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}"
+                    "?max_download_bytes=0"):
+        assert call(server_client, key, "GET", attempt, token).status_code == 429
+
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token,
+                    headers={"X-Max-Download-Bytes": "0",
+                             "Range": "bytes=0-100"})
+    assert response.status_code == 429
+
+
+def test_unlimited_is_null_and_serves_anything(
+        server, server_client, key, token, finished):
+    item = listing(server_client, key, token, finished["id"])[0]
+    _ceiling(server, None)
+
+    assert call(server_client, key, "GET",
+                f"/v1/jobs/{finished['id']}/artifacts/{item['id']}",
+                token).status_code == 303
+
+
+def test_the_ceiling_that_binds_is_this_accounts_and_not_the_deployments(
+        server, server_client, key, token, finished):
+    '''🔴 `max_download_bytes` is the one limit a `user_limits` row may
+    override, so reading the deployment's number here would enforce a ceiling
+    the account was deliberately lifted above.'''
+    from siliconcompiler.remote.server import accounts
+
+    item = listing(server_client, key, token, finished["id"])[0]
+    _ceiling(server, 1)
+
+    me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
+    accounts.set_limit(server.config["SC_STORE"], me, "max_download_bytes",
+                       -1, me)          # -1 is the table's spelling of unlimited
+
+    assert call(server_client, key, "GET",
+                f"/v1/jobs/{finished['id']}/artifacts/{item['id']}",
+                token).status_code == 303
+
+
+def test_a_log_is_the_same_bytes_and_therefore_the_same_ceiling(
+        server, server_client, key, token, finished):
+    '''`/logs` hands out the signed URL endpoint 22 hands out, so a caller
+    that cannot fetch a log as an artifact must not get it by asking for it as
+    a log.'''
+    _ceiling(server, 1)
+
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{finished['id']}/logs?step=stepone&index=0", token)
+
+    assert response.status_code == 429
+    assert response.get_json()["limit"] == "max_download_bytes"
+
+
+def test_retrying_is_not_the_answer_so_no_retry_after_is_offered(
+        server, server_client, key, token, finished):
+    '''`limit-exceeded` is a 429 and a 429 usually says when to come back.
+    This one never clears on its own, and naming a moment would be a lie.'''
+    item = listing(server_client, key, token, finished["id"])[0]
+    _ceiling(server, 1)
+
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
+
+    assert "Retry-After" not in response.headers
 
 
 ###########################
@@ -504,8 +625,8 @@ def test_one_row_per_kind_per_node_even_under_a_race(server, finished):
 
     Indexing runs on whichever request thread gets there first, and a client
     polling its job while tailing two logs has three of them. Two that check
-    together both pass -- so a real aes run came back with 38 bundles for 23
-    nodes, and the portal showed one node owning "logs, bundle, bundle". The
+    together both pass -- so a real aes run came back with 38 node archives for 23
+    nodes, and the portal showed one node owning "logs, node archive, node archive". The
     unique index is what actually decides.
     '''
     import sqlite3
@@ -514,7 +635,7 @@ def test_one_row_per_kind_per_node_even_under_a_race(server, finished):
 
     store = server.config["SC_STORE"]
     existing = store.one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'node' "
         "AND step IS NOT NULL LIMIT 1", (finished["id"],))
     assert existing is not None
 
@@ -525,7 +646,7 @@ def test_one_row_per_kind_per_node_even_under_a_race(server, finished):
             "  location_id, storage_key, size_bytes, media_type, kind, "
             "  provenance) "
             "VALUES (?, ?, ?, ?, 'sha256:x', ?, 'k', 1, 'application/gzip', "
-            "        'bundle', 'declared')",
+            "        'node', 'declared')",
             (str(uuid7()), finished["id"], existing["step"], existing["index"],
              existing["location_id"]))
 

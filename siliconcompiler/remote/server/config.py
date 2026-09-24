@@ -48,34 +48,31 @@ DEFAULT_LIMITS: Dict[str, int] = {
     "max_archive_members": 100000,          # members in the upload archive
     "max_archive_expanded_bytes": 10737418240,   # bytes, after expansion
 
-    # 🆕 The largest artifact a client should pull without being asked. Above
-    # it the object is LISTED and not fetched, and the client says so and says
-    # how to get it.
+    # The largest single object this server will hand over an API fetch.
     #
-    # 🔴 It is a limit and deliberately not `fetchable: false`. `fetchable`
-    # answers *may this caller have these bytes*, and a client renders a false
-    # one as deleted, withheld, aged out or not entitled -- so using it for
-    # size would tell somebody they lack permission to read their own output.
-    # A ceiling the server publishes lets the deployment set the policy, which
-    # is the point, without lying about what kind of answer it is.
+    # 🔴 **A real ceiling that refuses, not advice a client applies to
+    # itself.** It began as the latter and that was the defect: it was the only
+    # published limit with no refusal behind it, so an operator who set it was
+    # setting policy that any client could ignore by not reading it. An
+    # over-ceiling fetch is `limit-exceeded` naming this key, and `null` means
+    # unlimited exactly as it does everywhere else on the wire.
+    #
+    # 🔴 **There is no API override -- not a query parameter, not a header.**
+    # The portal is the only way past it, because the portal is a different
+    # surface with a person on it who has just clicked the thing.
+    #
+    # 🔴 It is deliberately not `fetchable: false`. `fetchable` answers *may
+    # this caller have these bytes*, and a client renders a false one as
+    # deleted, withheld, aged out or not entitled -- so using it for size would
+    # tell somebody they lack permission to read their own output.
     #
     # ⚠️ It bounds one object, not the run. Forty nodes each just under it
     # still fetch forty times it, because the alternative -- a budget for the
     # whole listing -- makes what arrives depend on what order it arrives in.
-    "auto_fetch_max_bytes": 104857600,      # bytes, per artifact (100 MiB)
-
-    # 🆕 How long a running job may go without its runner saying anything
-    # before this server stops believing it is running.
     #
-    # 🔴 The backstop for a scheduler that is wrong. Until this existed the
-    # ONLY way a dead run was noticed was the scheduler forgetting it, so a
-    # node that vanished without deleting itself left Slurm reporting RUNNING
-    # for ever and the job with it.
-    #
-    # ⚠️ Generously larger than the runner's own 60s beat. A missed beat is a
-    # busy filesystem; fifteen minutes of silence from a process whose only job
-    # is to write one line a minute is a dead process.
-    "run_heartbeat_seconds": 900,           # seconds
+    # ⚠️ Per account, so `GET /v1/me` carries the number that binds THIS
+    # caller and `GET /v1` carries the deployment's default.
+    "max_download_bytes": 104857600,        # bytes, per artifact (100 MiB)
 
     # 🆕 How long a job may sit with no upload before it is `abandoned`.
     #
@@ -123,6 +120,26 @@ DEFAULTS: Dict[str, Any] = {
     # a presigned URL somewhere else.
     "storage_location_id": "primary",
     "storage_uri_base": None,               # defaults to file://<datadir>/artifacts/
+
+    # How long a running job may go without its runner saying anything before
+    # this server stops believing it is running.
+    #
+    # 🔴 **Deployment config and NOT a published limit, because no client can
+    # see it or act on it.** The heartbeat is written by this server's own
+    # runner on the compute node; a caller neither sends one nor is told when
+    # the last one arrived, so a number on `GET /v1` would be a promise about
+    # machinery on the other side of the API. It is the state reconciler's
+    # tuning parameter, which is what deployment config is for.
+    #
+    # 🔴 The backstop for a scheduler that is wrong. Until this existed the
+    # ONLY way a dead run was noticed was the scheduler forgetting it, so a
+    # node that vanished without deleting itself left Slurm reporting RUNNING
+    # for ever and the job with it.
+    #
+    # ⚠️ Generously larger than the runner's own 60s beat. A missed beat is a
+    # busy filesystem; fifteen minutes of silence from a process whose only job
+    # is to write one line a minute is a dead process.
+    "run_heartbeat_seconds": 900,
 
     # How long a client is told to wait before polling a job again, served as
     # `Retry-After`.

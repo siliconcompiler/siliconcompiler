@@ -676,7 +676,7 @@ def _starttimes(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
             # board ticks against `now`, so leaving one here would have a node
             # that ended ten minutes ago still climbing. The board renders a
             # done node from `metric,tasktime` instead -- which arrives when
-            # that node's manifest is replayed, out of the bundle fetched as it
+            # that node's manifest is replayed, out of the archive fetched as it
             # finished.
             continue
 

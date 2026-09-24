@@ -7,7 +7,7 @@ per node and no record of it; a tarball is not a row, so it carries no kind, no
 retention and no per-object gate. Here every object is indexed, and the listing
 is the answer to *where did my results go* even when the bytes are gone.
 
-Three kinds are produced, and every byte is stored once:
+Four kinds are produced, and every byte is stored once:
 
 ``manifest``  the job's own ``<design>.pkg.json``. Job-level, so no step. **The
               kind most likely to be the only one there is**: it is small, and
@@ -15,12 +15,12 @@ Three kinds are produced, and every byte is stored once:
               so *what happened* is answerable with no outputs on disk at all
 ``logs``      one node's ``sc_<step>_<index>.log``, as text. This is what
               ``GET /v1/jobs/{id}/logs`` redirects to, which is why it stays a
-              readable file rather than only living inside the bundle. **One
-              more is job-level**: the run's own account of itself, which is
-              ``job.log`` where the flow got far enough to write one and the
+              readable file rather than only living inside the node archive.
+              **One more is job-level**: the run's own account of itself, which
+              is ``job.log`` where the flow got far enough to write one and the
               server's ``sc-server-run.log`` where it did not -- see
               ``_the_run_itself``
-``bundle``    🔴 **one node's whole working directory, indexed the moment that
+``node``      🔴 **one node's whole working directory, indexed the moment that
               node finishes.** *"The results tarball does not disappear -- it
               stops being an endpoint and becomes an artifact, assembled during
               the run and indexed like everything else."* Per node rather than
@@ -29,21 +29,24 @@ Three kinds are produced, and every byte is stored once:
               waiting for the last node to decide whether the first one's work
               is available.
 
+              🔴 **It is ALWAYS bound to a step and an index, and there is no
+              job-level one.** The kind is named for the thing it is, so a row
+              of this kind with no coordinates would be a contradiction rather
+              than a broader archive.
 ``reports``   one node's ``reports/`` directory, as its own archive. 🔴 **A
-              second copy of bytes the bundle already holds, and that is the
-              point rather than an oversight.** A bundle is **never grantable**
-              -- gated by what is in it, which nothing can enumerate -- so on a
-              deployment with approvals a caller who may not have the bundle
-              can still be given the reports. Here that gate is moot, and what
-              it buys instead is a small object somebody can take on its own: a
-              node's reports are kilobytes and its bundle is often gigabytes,
-              and above ``limits.auto_fetch_max_bytes`` the bundle is not
-              fetched at all while the reports still are.
+              second copy of bytes the node archive already holds, and that is
+              the point rather than an oversight.** A node's reports are
+              kilobytes and its whole working directory is often gigabytes, so
+              above ``limits.max_download_bytes`` the node archive is refused
+              outright while the reports are still served -- which is the case
+              this kind exists for. On a deployment with approvals it is also
+              the object that can be granted when the whole node cannot.
 
 ⚠️ **The cost, stated: roughly what the reports occupy, twice.** Measured
-rather than assumed -- on an asicflow node it is the difference between a
-bundle and a bundle plus a few hundred kilobytes, because the heavy things in
-a working directory are the DEF and the database, not the reports.
+rather than assumed -- on an asicflow node it is the difference between the
+node archive and the node archive plus a few hundred kilobytes, because the
+heavy things in a working directory are the DEF and the database, not the
+reports.
 
 ⚠️ **`outputs` is still deliberately NOT produced.** THAT would be a second
 copy of the large half.
@@ -51,6 +54,16 @@ copy of the large half.
 ``input`` is not produced either. It is the archive the client uploaded, the
 client still has it, and keeping a second copy costs the whole upload again for
 something nobody fetches.
+
+⚠️ **A `node` artifact IS grantable, and this deployment has nothing to grant
+with.** Where a server does, the way to hold one back is ``withheld_at``, which
+lowers the derived policy without claiming the bytes are gone. 🔴 And an
+``issue`` at a node's coordinates is excluded from what a node archive is
+considered to contain, by kind: ``issue`` is never fetchable, so a ladder that
+derived a node's entitlement from everything at its coordinates would make one
+click of a generate-an-issue button turn a node archive undownloadable over a
+file that is not inside it. Nothing here derives that ladder -- ``fetchable``
+is per row -- so the exclusion is a note for the deployment that does.
 '''
 
 import hashlib
@@ -73,7 +86,10 @@ logger = logging.getLogger("sc-server")
 
 
 # The eight are the contract's; these four are what this deployment produces.
-KINDS = ("manifest", "logs", "reports", "bundle")
+# Expected of the profile: manifest, logs, reports, input, node. Optional:
+# outputs, final, issue. `input` is in the expected set and deliberately not
+# produced here -- see above.
+KINDS = ("manifest", "logs", "reports", "node")
 
 _CHUNK = 1024 * 1024
 
@@ -85,9 +101,9 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     node answers `/logs` with a `303` to its archived log, and a node finishing
     while the rest of the flow runs on is the ORDINARY case -- waiting for the
     job would answer *no log was kept* for a node that had just written one.
-    And the bundle carries that node's manifest, so a client that takes it as
-    it appears has the run's record, metrics included, while the run is still
-    going.
+    And the node archive carries that node's manifest, so a client that takes
+    it as it appears has the run's record, metrics included, while the run is
+    still going.
     '''
     workdir = Path(build_root) / job["design"] / job["jobname"] / step / index
     if not workdir.is_dir():
@@ -102,20 +118,20 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
         written += _index(store, storage, job, location, floor, "logs",
                           step, index, log, "text/plain")
 
-    # 🔴 Indexed before the bundle, not after. If a node finishes and something
-    # goes wrong partway through indexing it, the small object a person
-    # actually reads is the one already written.
+    # 🔴 Indexed before the node archive, not after. If a node finishes and
+    # something goes wrong partway through indexing it, the small object a
+    # person actually reads is the one already written.
     reports = workdir / "reports"
     if reports.is_dir() and any(reports.iterdir()):
         written += _archive(store, storage, job, location, floor, "reports",
                             step, index, [reports], workdir)
 
     members = [child for child in sorted(workdir.iterdir())
-               if child.name not in _NOT_IN_A_BUNDLE]
+               if child.name not in _NOT_IN_A_NODE]
     if members:
-        written += _archive(store, storage, job, location, floor, "bundle",
+        written += _archive(store, storage, job, location, floor, "node",
                             step, index, members, workdir,
-                            exclude=_bundle_filter)
+                            exclude=_node_filter)
 
     return written
 
@@ -151,7 +167,7 @@ def collect(store, storage, config, job, build_root) -> int:
         written += _index(store, storage, job, location, floor, "manifest",
                           None, None, manifest, "application/json")
 
-    # Every node again, because a node whose bundle was missed while the run
+    # Every node again, because a node whose archive was missed while the run
     # was going still has to be indexed -- the nodes that were caught cost one
     # SELECT each and write nothing.
     for node in store.all(
@@ -206,8 +222,8 @@ def _the_run_itself(job_root: Path, build_dir: Path) -> Optional[Path]:
     return run_log if run_log.is_file() else None
 
 
-# What a bundle leaves out, and every one of them for the same reason: the
-# caller already has it, or it is this server talking to itself.
+# What a node archive leaves out, and every one of them for the same reason:
+# the caller already has it, or it is this server talking to itself.
 #
 #   inputs/              copies of the upstream node's outputs, which are in
 #                        here already under the node that produced them
@@ -215,13 +231,13 @@ def _the_run_itself(job_root: Path, build_dir: Path) -> Optional[Path]:
 #                        the archive is built, deliberately -- it is the largest
 #                        thing in a build directory -- so sending it back
 #                        undoes that and pays for the same bytes twice
-_NOT_IN_A_BUNDLE = ("inputs", "sc_collected_files")
+_NOT_IN_A_NODE = ("inputs", "sc_collected_files")
 
 
-def _bundle_filter(info: "tarfile.TarInfo"):
+def _node_filter(info: "tarfile.TarInfo"):
     '''Drop the excluded directories wherever they appear in the tree.'''
     parts = PurePosixPath(info.name).parts
-    return None if any(part in _NOT_IN_A_BUNDLE for part in parts) else info
+    return None if any(part in _NOT_IN_A_NODE for part in parts) else info
 
 
 def _exists(store, job, kind, step, index) -> bool:
@@ -363,10 +379,19 @@ def wire(row) -> Dict[str, Any]:
         "created_at": row["created_at"],
         # null means held indefinitely -- a legal hold has no expiry to state.
         "expires_at": None if row["legal_hold_at"] else row["retention_until"],
-        # non-null means the bytes are gone and the row is not. Distinct from
-        # expires_at passing: retention lapsing is the system doing what it
-        # said, a deleted_at is somebody deciding.
+        # non-null means the bytes are gone and the row is not.
         "deleted_at": row["deleted_at"],
+        # 🔴 Why they are gone, and without it `deleted_at` cannot be read.
+        # Retention lapsing ends in a `deleted_at` like everything else -- it
+        # has to, because `fetchable`'s first question is whether the bytes are
+        # there -- so the column alone cannot tell *the system did what it said
+        # it would* from *somebody removed this*. Those are two different
+        # sentences to a person and the reason is what picks between them.
+        #
+        # ⚠️ Named for the wire and not for the column. The table calls it
+        # `delete_reason`, beside `deleted_by`; on the wire it sits beside
+        # `deleted_at` and reads as its explanation.
+        "deleted_reason": row["delete_reason"],
         "fetchable": fetchable(row),
     }
     # No `blocked_by` and no `access_request_url`: both are about an agreement

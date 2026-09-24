@@ -77,9 +77,9 @@
 <p class="muted">
   {# Said rather than left to be worked out from a button that is not there. #}
   Limits are the operator's policy, so this screen shows them and does not set
-  them. <span class="mono">auto_fetch_max_bytes</span> is the largest single
-  object <span class="mono">sc-remote</span> pulls without being asked; above
-  it, results are listed and fetched on request.
+  them. <span class="mono">max_download_bytes</span> is the largest single
+  object the API will hand over; anything above it is listed, refused over the
+  API, and downloadable from these pages, which is the way past it.
 </p>
 
 <h3>This deployment</h3>
