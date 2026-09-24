@@ -25,19 +25,13 @@ earlier wording here over-froze the request side.
 
 ---
 
-## The first list is closed
+## Two lists have already closed
 
-The nine items this file carried through 2026-09 were reviewed and decided in
-`crucible/orchestration/api/contract-changes.md`. They are implemented and
-their home is now the contract, so they have been removed rather than edited:
-`max_download_bytes` (renamed from `auto_fetch_max_bytes`, and a real limit
-rather than advice), `run_heartbeat_seconds` taken off the wire, `reports` as a
-produced kind, `error.detail` as a SHOULD, `error_type: "run-failed"`,
-`deleted_at` keeping its writer with `deleted_reason` beside it, `user_limits`
-without `plans`, no all-time `usage` figure, and `web_url`.
-
-**What follows is the second list**, started the same way: everything found
-while implementing those decisions that changes the published shape.
+The nine items of the first, and the five of the software-buckets review
+after it, were decided in `crucible/orchestration/api/contract-changes.md`,
+are implemented here, and have been removed rather than edited — their home
+is the contract now. What follows is everything found **while implementing
+those decisions** that still changes the published shape.
 
 ---
 
@@ -206,25 +200,48 @@ its version.
 
 **Where it goes:** `database.md`'s `software` table.
 
-### 9. The probe is a published surface, because both ends need the same one
+### 9. The probe runs the command in the image and parses it outside
 
 `version_source` distinguishes a reported version from a publish date, and
-something has to do the reporting. That something runs **inside the image**,
-which means it is not the server and cannot share its process — so it is a
-module with a command line and a marker-prefixed JSON line, not an internal
-function:
+something has to do the reporting. The obvious shape is a module that runs
+**inside** the image — and it was built that way first, and it is wrong.
+
+🔴 **Most tool images are not SiliconCompiler images.**
+`ghcr.io/siliconcompiler/sc_tools` is the one SiliconCompiler's own CI runs its
+tools in, and CI installs the framework into it at test time. Requiring the
+framework in every image an operator wants to register is requiring them to
+rebuild somebody else's image.
+
+So the split is: **the command runs in the image, the parsing happens where
+SiliconCompiler is.** One shell script asks every name and frames each answer;
+the caller runs it wherever it can start a container; the framing is read back
+against the drivers.
 
 ```
-python3 -m siliconcompiler.remote.server.probe \
+python3 -m siliconcompiler.remote.server.probe -script \
     -python siliconcompiler -tool openroad=siliconcompiler.tools.openroad
 ```
 
-🔴 **The marker is not decoration.** A version check RUNS the tool, and a tool
-that prints a banner writes to the same stream as the answer.
+Four things that only showed up against a real image, and every one of them is
+a trap for the next implementation:
 
-Not a contract change by itself — but the *shape* is worth carrying, because
-every implementation that wants honest `reported` versions needs the same two
-mechanisms and the same problem of getting an answer back out of a container.
+- 🔴 **A missing tool invents a version.** Unguarded, the shell's own
+  `openroad: not found` lands in the frame, and OpenROAD's `parse_version`
+  takes the last word — an absent tool registered at version `0`, parsed out
+  of the message saying it was absent. Guard on the executable existing.
+- 🔴 **A TTY changes what the tools print.** klayout colours its output when it
+  thinks it is on a terminal, which put an escape in front of the marker
+  closing its own frame: the frame never closed and a tool that HAD answered
+  read as absent. Others wrap to 80 columns. Asking a program its version must
+  not be a question about the terminal.
+- 🔴 **The trailing newline is load-bearing.** A parser is entitled to count on
+  what `subprocess` produces; bambu's takes `stdout.split('\n')[-3]`, so
+  reconstructing the output without it reads the line above the version.
+- ⚠️ **The frame is needed at all** because a version check RUNS the tool, and
+  a tool that prints a banner writes to the same stream as the answer.
+
+Not a wire change — but the *shape* is worth carrying, because every
+implementation that wants honest `reported` versions meets all four.
 
 **Where it goes:** `sc-server-profile.md`, as how this profile fills
 `version_source`.
@@ -292,9 +309,101 @@ comparing.
 nothing on the far side, which turns *this server has no version I can read*
 into *this server has no OpenROAD*.
 
+🔴 **And normalisation has to happen wherever a version is NAMED, not only
+where one is written.** `verilator` reports `5.052`; PEP 440 stores `5.52`.
+Registering an image whose contents named `verilator==5.052` — the number the
+tool actually printed — was refused as *not a registered version*, by the
+registry that had just registered it. Anywhere a version is looked up, it goes
+through the same normalisation that stored it.
+
 **Where it goes:** `surface.md`, beside the specifier rule — whoever implements
 a client needs to be told this, because getting it wrong produces a refusal
 that looks like a registry problem.
+
+### 13. A tool no image holds is refused, wherever every node runs in a container
+
+🔴 **This reverses a rule the profile states, and a live failure is why.** The
+rule is that only a REGISTERED name raises a requirement — *a server that
+curates images for the framework and says nothing about Verilator is not
+claiming to have a Verilator image and is not refused for lacking one.*
+
+That reasoning holds for a deployment running jobs on the host, which may
+perfectly well have Verilator installed without anyone saying so. **It is
+wrong once jobs run in containers, because then the registry IS the world.**
+
+Observed: a Bluespec design was submitted to a deployment that had never heard
+of `bsc`. Nothing raised a requirement, so its `convert` node was placed in the
+**python-only** image, dispatched, and died on the first node with every other
+node cancelled behind it. The cluster was paid for to learn something submit
+already knew.
+
+⚠️ **The discriminator is the driver, not a list of names.** A task declaring
+an `exe` cannot run without that program; one declaring none runs in the
+framework's own process and needs nothing from the image. A name-based rule
+gets three cases wrong in two directions:
+
+| | |
+|---|---|
+| `builtin` | joins, nops and minimums — no program, and already excluded by name |
+| `execute` | runs a command the USER supplied, so there is nothing a registry could hold. A name-based rule would demand an image for it |
+| `slang` | looks like a tool and is a Python binding. A name-based rule would refuse a flow that was always going to work |
+
+⚠️ It costs building the task to ask, so it is asked ONLY where the answer
+decides a refusal — never for a tool an image already holds. A deployment
+holding everything its flows use never asks at all.
+
+**Where it goes:** `sc-server-profile.md`, replacing the *unregistered tools
+raise no requirement* rule with one conditioned on containers.
+
+### 14. A tool's version can live in a python distribution under another name
+
+`slang` is a tool to a flow — a node names it and has to be placed in an image
+holding it — and it has no executable at all: its driver runs `pyslang` in the
+framework's own process. So `kind = 'tool'`, and the version is read the
+`python` way.
+
+🔴 **And the distribution is not called what the tool is called.** The
+registry's key is `slang`, because that is what the flow names and what the
+resolution matches on; the version is `importlib.metadata.version("pyslang")`.
+Nothing in `software` can record that mapping, so this profile keeps it in the
+one place that knows its own images.
+
+⚠️ **It also has to be declared by the SMALL image.** `slang` arrives with the
+framework rather than with the EDA stack, so it is in both — and a tool
+declared only by the big image drags every node that touches it into twelve
+gigabytes for nothing. Each image declares what it actually answered for.
+
+**Proposed:** `software` gains a nullable column for the distribution a tool's
+version is read from — or the contract states that the mapping is a profile's
+own business and says so, so nobody assumes the tool name is the package name.
+
+**Where it goes:** `database.md`'s `software` table.
+
+### 15. Two answers to *what version of SiliconCompiler is this*
+
+Not a contract change, and it decides what a deployment advertises, so it
+belongs on the list:
+
+| | |
+|---|---|
+| `siliconcompiler.__version__` | from `_metadata.py`. What the client sends, what the bootstrap tags images with |
+| `importlib.metadata.version(...)` | from the installed distribution. What the probe reads |
+
+On a released install they agree. **On a development checkout they do not** —
+`0.38.9` against `0.38.10.dev43+g20db24fa2.d20260924` — so the same deployment
+answers differently depending on which one asked. They agree again inside an
+image, because the wheel is built with the version pinned deliberately: the
+Dockerfile derives the last TAG, since setuptools_scm would otherwise stamp the
+dev version, and the image would then advertise a version no client asks for.
+
+⚠️ **Worth stating because the honest answer is arguably the one nobody uses.**
+An image built from 43 commits past `v0.38.9` contains `0.38.10.dev43` code and
+says `0.38.9`. Nothing is inconsistent — the wheel really is stamped `0.38.9` —
+but *what did this job run* is answered with a released version number for code
+that is not that release.
+
+**Where it goes:** nowhere in the contract. It is a note for whoever writes the
+next profile, because the choice of source is theirs and both are defensible.
 
 ---
 
@@ -320,6 +429,19 @@ Recorded so nobody re-proposes them.
 - **`GET /v1`'s `limits` has nine members** in the contract. This profile
   publishes eleven: those nine plus `max_download_bytes` and
   `abandon_after_seconds`.
+- **`software` has two buckets**, `python` and `tools`, a closed set with both
+  always present. They are two because they are satisfied differently: the
+  whole python set shares an interpreter and must be held by ONE image, and a
+  tool is satisfied per node.
+- **`images.built_at` breaks the tie two images with identical versions
+  leave.** ⚠️ It is a TIMESTAMP and storing a date does not work — two images
+  built on the same day is the ordinary case, not the rare one, so a date
+  breaks nothing. And never `resolved_at`: that records when the operator
+  pinned the tag, so registering a two-year-old image today would make it the
+  newest.
+- **No `python_only` flag.** Now that `kind` exists the derivation works — an
+  image whose contents are all `kind = 'python'` is one — which is exactly why
+  a boolean beside it would be a second source that drifts.
 
 ---
 
@@ -330,8 +452,11 @@ Recorded so nobody re-proposes them.
   want to download a gigabyte to see one file.
 - **`run_heartbeat_seconds`** is deployment config. No client sends a heartbeat
   or is told about one.
-- **`version_source`** is a column and not a member. `GET /v1`'s `software` is
-  a flat array of strings and its shape is frozen, so a version recorded from
-  an image's publish date is advertised beside one a tool reported. Accepted in
-  review: the preflight is advisory, the server is binding, and the refusal has
-  to say *present but reports no version*.
+- **`version_source`** is a column and not a member. A bucket of `software`
+  maps a name to a flat array of strings and that shape is frozen, so a version
+  recorded from an image's publish date is advertised beside one a tool
+  reported. Accepted in review: the preflight is advisory, the server is
+  binding, and the refusal has to say *present but reports no version*.
+- **`software.driver`** is not published either. It says where a Task driver
+  lives so a probe can be handed it, which is an operator's concern and not a
+  caller's.
