@@ -102,6 +102,68 @@ proc sc_check_version { min_major min_minor { min_patch 0 } } {
     return false
 }
 
+# opt_hier propagates constants, unused signals and tie-togethers across a single level
+# of hierarchy per invocation, so it has to be repeated until the design stops changing.
+# yosys' own convergence flag cannot be used to detect that: opt_hier only sets
+# opt.did_something when it disconnects an unused output, not when it substitutes a
+# constant or a tie-together, and opt clears the flag before it returns. Watch for the
+# messages opt_hier prints when it changes something instead.
+proc sc_opt_hier_loop { max_rounds opt_args } {
+    set markers [list \
+        "Substituting constant" \
+        "Disconnected unused output terminal" \
+        "input terminal bits with tie-togethers"]
+
+    for { set round 1 } { $round <= $max_rounds } { incr round } {
+        set opt_log [yosys tee -s result.string opt -hier {*}$opt_args]
+
+        set changed false
+        foreach marker $markers {
+            if { [string first $marker $opt_log] != -1 } {
+                set changed true
+                break
+            }
+        }
+
+        if { !$changed } {
+            yosys log "opt_hier converged after $round round(s)"
+            return $round
+        }
+    }
+
+    yosys log "Warning: opt_hier did not converge within $max_rounds rounds,\
+        consider increasing hier_opt_max_rounds"
+    return $max_rounds
+}
+
+# uniquify only copies modules that are themselves already marked unique, and only the
+# top starts out that way, so like opt_hier it descends one level of hierarchy per call.
+# Without it opt_hier can only propagate what every instance of a module has in common,
+# which is nothing once two instances are wired to different constants. Modules the user
+# asked to preserve keep their shared definition, so a boundary that exists to be reused
+# is not specialized away.
+proc sc_uniquify_loop { max_rounds } {
+    set selection [list "*/c:*"]
+    foreach pmodule [sc_cfg_tool_task_get var preserve_modules] {
+        foreach module [sc_get_modules $pmodule] {
+            lappend selection "*/t:$module" "%d"
+        }
+    }
+
+    for { set round 1 } { $round <= $max_rounds } { incr round } {
+        set uniquify_log [yosys tee -s result.string uniquify {*}$selection]
+
+        if { [string first "Creating module" $uniquify_log] == -1 } {
+            yosys log "uniquify converged after $round round(s)"
+            return $round
+        }
+    }
+
+    yosys log "Warning: uniquify did not converge within $max_rounds rounds,\
+        consider increasing hier_opt_max_rounds"
+    return $max_rounds
+}
+
 proc sc_load_slang { } {
     if { [sc_check_version 0 67] } {
         return 1
