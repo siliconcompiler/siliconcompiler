@@ -15,7 +15,11 @@ Three kinds are produced, and every byte is stored once:
               so *what happened* is answerable with no outputs on disk at all
 ``logs``      one node's ``sc_<step>_<index>.log``, as text. This is what
               ``GET /v1/jobs/{id}/logs`` redirects to, which is why it stays a
-              readable file rather than only living inside the bundle
+              readable file rather than only living inside the bundle. **One
+              more is job-level**: the run's own account of itself, which is
+              ``job.log`` where the flow got far enough to write one and the
+              server's ``sc-server-run.log`` where it did not -- see
+              ``_the_run_itself``
 ``bundle``    🔴 **one node's whole working directory, indexed the moment that
               node finishes.** *"The results tarball does not disappear -- it
               stops being an endpoint and becomes an artifact, assembled during
@@ -49,6 +53,7 @@ import tarfile
 from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Optional
 
+from siliconcompiler.remote.server.dispatch import RUN_LOG
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
 
@@ -107,25 +112,27 @@ def collect(store, storage, config, job, build_root) -> int:
     restart adds nothing rather than duplicating the listing.
     '''
     root = Path(build_root) / job["design"] / job["jobname"]
-    if not root.is_dir():
-        logger.warning(f"{job['id']} left no build directory to index")
-        return 0
 
     location = config["storage_location_id"]
     floor = config.limits["job_retention_days"]
     written = 0
 
+    # 🔴 Before the build directory is checked for, and that ordering is the
+    # whole point: the run that leaves no build directory is the run whose log
+    # somebody needs.
+    account = _the_run_itself(Path(build_root), root)
+    if account is not None:
+        written += _index(store, storage, job, location, floor, "logs",
+                          None, None, account, "text/plain")
+
+    if not root.is_dir():
+        logger.warning(f"{job['id']} left no build directory to index")
+        return written
+
     manifest = root / f"{job['design']}.pkg.json"
     if manifest.is_file():
         written += _index(store, storage, job, location, floor, "manifest",
                           None, None, manifest, "application/json")
-
-    # The run's own job log, which belongs to no node. Job-level `logs`, since
-    # that is exactly what it is.
-    for job_log in sorted(root.glob("job.*.log")):
-        written += _index(store, storage, job, location, floor, "logs",
-                          None, None, job_log, "text/plain")
-        break
 
     # Every node again, because a node whose bundle was missed while the run
     # was going still has to be indexed -- the nodes that were caught cost one
@@ -138,6 +145,48 @@ def collect(store, storage, config, job, build_root) -> int:
 
     logger.info(f"indexed {written} artifacts for {job['id']}")
     return written
+
+
+def _the_run_itself(job_root: Path, build_dir: Path) -> Optional[Path]:
+    '''The one log that belongs to the run rather than to any node.
+
+    🔴 **`job.log` when the flow wrote one, and the server's own run log when
+    it did not** -- which is the case somebody is far more likely to be looking
+    at, because it is the case where nothing else exists. A run that dies
+    before SiliconCompiler installs its file handler -- a manifest this build
+    cannot read, an image that will not unpack, a system package missing from
+    the runtime -- leaves no build directory at all, so the listing was empty,
+    every node read `cancelled`, and the only account of what happened stayed
+    on the server where the person who ran the job could not reach it.
+
+    ⚠️ **One of the two, never both, and the constraint is the contract's
+    rather than this deployment's.** An artifact is identified by
+    `(job, kind, step, index)` and carries no name on the wire, so two
+    job-level `logs` rows reach a client as two objects it cannot tell apart --
+    the duplicate-looking listing this server has already produced once. The
+    two files are also nearly disjoint by design: `_silence_console` keeps the
+    flow's output out of the run log precisely so it does not hold a second
+    copy of every line, which leaves the run log holding what SiliconCompiler
+    never saw, and `job.log` holding what it did. ✅ **Measured on an asicflow
+    run, the run log is 0 lines and `job.log` is 8842** -- so preferring
+    `job.log` is not a coin toss between two accounts, it is taking the only
+    one with anything in it, and falling back is taking the only one there is.
+
+    🔴 Both are reached through the JOB root and not the build directory.
+    `job.log` sits beside the nodes at `<design>/<jobname>/`; the run log is
+    one level up, beside the batch script, because the scheduler wrote it
+    before anything knew a design name.
+    '''
+    # NOT `job.*.log`, which was the bug: that glob matches the timestamped
+    # backups a re-run leaves and never `job.log` itself. On this server every
+    # job gets its own directory, so there are no backups -- the pattern
+    # matched nothing, every time, and no job has ever had a job-level log.
+    current = build_dir / "job.log"
+    if current.is_file():
+        return current
+
+    run_log = job_root / RUN_LOG
+    return run_log if run_log.is_file() else None
 
 
 # What a bundle leaves out, and every one of them for the same reason: the

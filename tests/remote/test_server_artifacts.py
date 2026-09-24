@@ -21,9 +21,14 @@ def dispatcher(server):
     return fake
 
 
-@pytest.fixture
-def finished(server, server_client, key, token, job_archive, dispatcher):
-    '''A job that ran to completion, with its results indexed.'''
+def ran(server, server_client, key, token, job_archive, prepare=None,
+        state="completed", error=None):
+    '''Submit a job, leave what a run leaves, and let the poll index it.
+
+    `prepare(job_root, build_dir)` runs after the work directories exist and
+    before the job is read as terminal, which is the only window in which the
+    indexer can see a file: `collect` runs once, at the transition.
+    '''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
@@ -48,19 +53,31 @@ def finished(server, server_client, key, token, job_archive, dispatcher):
         (work / "reports" / "metrics.json").write_text("{}")
         (work / "inputs" / "upstream.json").write_text("{}")
 
-    runspec.write_progress(node_root / runspec.PROGRESS_FILENAME, {
-        "state": "completed",
+    if prepare is not None:
+        prepare(root, node_root)
+
+    progress = {
+        "state": state,
         "started_at": "2026-09-22T10:00:00.000Z",
         "finished_at": "2026-09-22T10:01:00.000Z",
         "nodes": {f"{step}/0": {"state": "completed", "exit_code": 0,
                                 "started_at": "2026-09-22T10:00:00.000Z",
                                 "finished_at": "2026-09-22T10:00:30.000Z"}
                   for step in ("stepone", "steptwo")},
-    })
+    }
+    if error is not None:
+        progress["error"] = error
+    runspec.write_progress(node_root / runspec.PROGRESS_FILENAME, progress)
 
-    assert call(server_client, key, "GET", f"/v1/jobs/{job['id']}",
-                token).get_json()["state"] == "completed"
-    return job
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == state
+    return read
+
+
+@pytest.fixture
+def finished(server, server_client, key, token, job_archive, dispatcher):
+    '''A job that ran to completion, with its results indexed.'''
+    return ran(server, server_client, key, token, job_archive)
 
 
 def listing(client, key, token, job_id, query=""):
@@ -525,3 +542,90 @@ def test_the_job_level_rows_are_protected_too(server, finished):
             "        ?, 'declared')",
             (str(uuid7()), finished["id"], existing["location_id"],
              existing["kind"]))
+
+
+###########################
+# The run's own log
+###########################
+
+def _only(items, kind, step=None):
+    return [item for item in items
+            if item["kind"] == kind and item["step"] == step]
+
+
+def test_the_runs_own_job_log_is_indexed(server, server_client, key, token,
+                                         job_archive, dispatcher):
+    '''🔴 It never was. The glob was `job.*.log`, which matches the timestamped
+    backups a re-run leaves and never `job.log` itself -- and on this server
+    every job gets its own directory, so there are no backups. The pattern
+    matched nothing, every time.'''
+    def prepare(job_root, build_dir):
+        (build_dir / "job.log").write_text("the flow ran\n")
+
+    job = ran(server, server_client, key, token, job_archive, prepare)
+    items = listing(server_client, key, token, job["id"])
+
+    assert len(_only(items, "logs")) == 1
+    assert _only(items, "logs")[0]["media_type"] == "text/plain"
+
+
+def test_a_stale_backup_log_is_not_mistaken_for_this_run(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''What the old glob would have picked: the oldest rotated backup, which is
+    a previous run's log presented as this one's.'''
+    def prepare(job_root, build_dir):
+        (build_dir / "job.20200101-000000.log").write_text("a different run\n")
+
+    job = ran(server, server_client, key, token, job_archive, prepare)
+    assert not _only(listing(server_client, key, token, job["id"]), "logs")
+
+
+def test_the_server_run_log_stands_in_when_the_flow_wrote_none(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''🔴 The case somebody is most likely to be looking at: the run died
+    before SiliconCompiler installed its file handler, so there is no
+    `job.log`, and the server's own run log is the only account there is.'''
+    from siliconcompiler.remote.server.dispatch import RUN_LOG
+
+    def prepare(job_root, build_dir):
+        (job_root / RUN_LOG).write_text("Traceback (most recent call last):\n")
+
+    job = ran(server, server_client, key, token, job_archive, prepare)
+    items = _only(listing(server_client, key, token, job["id"]), "logs")
+
+    assert len(items) == 1
+    got = call(server_client, key, "GET",
+               f"/v1/jobs/{job['id']}/artifacts/{items[0]['id']}", token)
+    assert got.status_code == 303
+
+
+def test_only_one_job_level_log_is_ever_indexed(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''⚠️ An artifact is identified by `(job, kind, step, index)` and carries no
+    name on the wire, so two job-level logs would reach a client as two objects
+    it cannot tell apart -- the duplicate-looking listing this server has
+    already produced once.'''
+    from siliconcompiler.remote.server.dispatch import RUN_LOG
+
+    def prepare(job_root, build_dir):
+        (build_dir / "job.log").write_text("the flow ran\n")
+        (job_root / RUN_LOG).write_text("and the batch job said this\n")
+
+    job = ran(server, server_client, key, token, job_archive, prepare)
+    assert len(_only(listing(server_client, key, token, job["id"]), "logs")) == 1
+
+
+def test_the_job_level_log_is_named_for_the_job(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''No node in the name, because there is no node -- rather than an empty
+    segment where one would go.'''
+    def prepare(job_root, build_dir):
+        (build_dir / "job.log").write_text("the flow ran\n")
+
+    job = ran(server, server_client, key, token, job_archive, prepare)
+    item = _only(listing(server_client, key, token, job["id"]), "logs")[0]
+
+    got = call(server_client, key, "GET",
+               f"/v1/jobs/{job['id']}/artifacts/{item['id']}", token)
+    fetched = server_client.get(got.headers["Location"])
+    assert "gcd-job0-logs.log" in fetched.headers["Content-Disposition"]

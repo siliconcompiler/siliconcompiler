@@ -354,6 +354,25 @@ is. `sinfo -N -l` lists them.
   ⚠️ It bites exactly where it is least expected: editing `/sc_server/config.json`
   needs the server restarted, and the server shares a container with the
   controller.
+- 🔴 **`server.db` has its own version and there is no migration.** A store
+  written by a different shape of `schema.sql` is refused at startup, by name
+  and with what to do about it. Move it aside and let the server create a new
+  one; the old file stays readable with the server that wrote it.
+
+  ⚠️ **Then re-run `publish.sh`,** because a new store has an empty image
+  registry, and a deployment with `containers: true` and nothing registered
+  refuses to start — correctly, since nothing on it could be dispatched.
+  `publish.sh` works with the server down for exactly this reason: it registers
+  against the volume rather than through the container, so the bootstrap is not
+  a deadlock.
+- 🔴 **The rig advertises the version this checkout's SiliconCompiler
+  reports**, which is the last tag and not the next-dev version — because
+  `siliconcompiler.__version__` is `__base_version__`, and setuptools_scm
+  leaves that at the tag for every commit after it. Getting it wrong is not
+  cosmetic: an image advertising `0.38.10.dev42` refuses every submit from the
+  checkout that built it with `version-skew`, and there is no version to
+  install that would fix it. `scversion.sh` prints `git describe` to stderr, so
+  the build log still says which commit is in the image.
 
 ## What the shared mount looks like
 
@@ -362,6 +381,8 @@ itself:
 
 ```
 /sc_server/server.db                     the job store
+/sc_server/config.json                   the policy overlay, if there is one
+/sc_server/images/                       the OCI bundles Slurm runs
 /sc_server/artifacts/<job>/              what a finished run left behind
 /sc_server/users/<user>/builds/<job>/    one directory per user per job
 /sc_server/users/<user>/cache/           that user's PDKs and data packages

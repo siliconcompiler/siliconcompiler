@@ -21,6 +21,14 @@
   {% if job.error %}
     <p class="warn panel" style="margin-top:14px">
       <b>{{ job.error.title }}</b><br>
+      {#- The `detail` is the only part of this that is about THIS run: the
+          title and the type are frozen and read the same on every failure
+          there has ever been. -#}
+      {% if job.error.detail %}{{ job.error.detail }}<br>{% endif %}
+      {% if job.state == 'failed' and job.progress.failed_count == 0 %}
+        No node failed &mdash; the run itself did, before or between the nodes.
+        {% if job_level %}Its log is under <b>The job itself</b> below.{% endif %}<br>
+      {% endif %}
       <span class="mono muted">{{ job.error.type }}</span>
     </p>
   {% endif %}
@@ -52,6 +60,19 @@
 
 <div class="main">
 <h3>Nodes</h3>
+{#- Not on a job somebody DID cancel, where the word means what it looks like
+    and the note would contradict the page. -#}
+{% if job.state != 'cancelling' and job.state != 'cancelled'
+      and job.nodes | selectattr('state', 'equalto', 'cancelled') | first %}
+{#- The question this answers has been asked. `cancelled` on a node means the
+    job ended before that node started, which is not the same as somebody
+    cancelling the job -- and on a failed run every node the flow never got to
+    reads this way. `skipped` is the other one, and it is deliberately
+    different: the flow considered that node and chose not to run it. -#}
+<p class="muted">Cancelled means the job ended before that node started, not
+that anyone cancelled it. A node the flow considered and chose not to run reads
+<i>skipped</i>.</p>
+{% endif %}
 <table>
   <tr>
     <th>Node</th><th>State</th><th>Started</th><th>Runtime</th>

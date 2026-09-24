@@ -1,17 +1,30 @@
 #!/bin/sh
-# The version setuptools_scm would derive, worked out with git alone.
+# The version this checkout's SiliconCompiler reports, worked out with git alone.
 #
 # It exists because a git worktree cannot be versioned from inside a container:
 # its .git is a 64-byte file pointing at the main checkout, which is not in the
 # build context. Rather than install setuptools_scm on the host to ask it, this
-# reproduces its default "guess-next-dev" rule -- the patch level of the last
-# tag, plus one, plus the number of commits since.
+# reproduces the one number that matters, using git alone.
 #
-#   v0.38.9-25-g3ff1d8d0d  ->  0.38.10.dev25
+# 🔴 That number is the last TAG, and not the next-dev version setuptools_scm
+# derives -- because `siliconcompiler.__version__` is `__base_version__`, which
+# setuptools_scm sets to the tag and leaves alone for every commit after it.
+# So a normal checkout 42 commits past v0.38.9 reports 0.38.9, and the image
+# built from it has to report 0.38.9 too:
 #
-# The local segment (+g<hash>) is deliberately left off: it is what makes two
-# builds of the same commit produce differently-named wheels, and the image is
-# already identified by its tag.
+#   v0.38.9-42-g3ff1d8d0d  ->  0.38.9
+#
+# ⚠️ Getting this wrong is not cosmetic, and it was wrong. Emitting
+# 0.38.10.dev42 made the image advertise a version the very checkout that built
+# it never sends, so `GET /v1` offered `siliconcompiler 0.38.10.dev42`, the
+# client declared 0.38.9, and every submit from the machine running the rig was
+# refused with `version-skew` and told to install a version this server
+# accepts. There was none to install.
+#
+# ⚠️ The cost, stated: the image no longer names which commit it holds. That is
+# what the digest is for, and the digest is what gets registered and what
+# actually runs -- see publish.sh. `git describe` below is echoed to stderr so
+# the build log still says.
 set -eu
 
 described=$(git describe --tags --long --match 'v[0-9]*') || {
@@ -19,7 +32,5 @@ described=$(git describe --tags --long --match 'v[0-9]*') || {
     exit 1
 }
 
-echo "$described" | sed -E 's/^v//' | awk -F'-' '{
-    split($1, v, ".")
-    printf "%s.%s.%s.dev%s\n", v[1], v[2], v[3] + 1, $2
-}'
+echo "building $described" >&2
+echo "$described" | sed -E 's/^v//; s/-[0-9]+-g[0-9a-f]+$//'

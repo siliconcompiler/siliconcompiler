@@ -12,7 +12,8 @@ trace id beside the page.
 
 from typing import Any, Dict, Optional
 
-__all__ = ["RemoteError", "ServerProblem", "SessionEnded", "describe"]
+__all__ = ["RemoteError", "ServerProblem", "SessionEnded", "describe",
+           "NO_NODE_FAILED"]
 
 
 class RemoteError(Exception):
@@ -92,13 +93,28 @@ _NEXT_STEP = {
     "scheduler-lost": "The run went away rather than failing; submit it again.",
 }
 
+# 🔴 What to say instead when the run failed and no NODE did. Pointing at *the
+# failing node's log* when there is no failing node sends a person looking for
+# a file that does not exist -- and it is not the rare case: a flow that dies
+# before its first node, or during setup, fails with every node `cancelled`
+# and none of them `failed`. The run's own log is the answer, and it arrives
+# with the results like everything else.
+NO_NODE_FAILED = ("No node failed -- the run itself did. Read remote-job.log "
+                  "in the job directory this fetched.")
 
-def describe(problem: Dict[str, Any], status: Optional[int] = None) -> str:
+
+def describe(problem: Dict[str, Any], status: Optional[int] = None,
+             next_step: Optional[str] = None) -> str:
     '''Three lines: what failed, which one, and where to look.
 
     Tolerant by construction, because the bodies this has to render include the
     ones no handler produced -- a proxy's HTML 502 reaches here as a title and a
     status and nothing else.
+
+    ``next_step`` overrides the table. A slug names a kind of failure, so the
+    advice keyed on it is right for the kind and can be wrong for the instance;
+    a caller that knows more about this occurrence than the slug does says so
+    here.
     '''
     lines = []
 
@@ -115,7 +131,7 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None) -> str:
         lines.append("  " + ", ".join(named))
 
     slug = _slug(problem)
-    step = _NEXT_STEP.get(slug) if slug else None
+    step = next_step or (_NEXT_STEP.get(slug) if slug else None)
     if step:
         lines.append(f"  {step}")
 

@@ -101,11 +101,37 @@ class Store:
         con.execute(f"PRAGMA user_version = {STORE_VERSION}")
 
     def _check_version(self) -> None:
+        '''Refuse a store this server does not speak, and say what to do.
+
+        🔴 There is no migration, deliberately: this deployment is a demo, a
+        test rig and a reference implementation, and a migration engine is one
+        of the bells it does without. What it may not do is stop with a version
+        number and no next step -- a server that will not start is the worst
+        moment to make somebody read the source.
+
+        ⚠️ The 1 -> 2 bump is why a migration would not have been free anyway.
+        It adds the unique index that stops an artifact being indexed twice,
+        and a store written before it HAS those duplicates, so creating the
+        index fails on exactly the data that needs it. Migrating would mean
+        deciding which of two rows to drop and unlinking the other's bytes.
+        '''
         found = self.connection.execute("PRAGMA user_version").fetchone()[0]
-        if found != STORE_VERSION:
-            raise StoreVersionError(
-                f"{self.path} holds schema version {found}, and this server "
-                f"speaks version {STORE_VERSION}")
+        if found == STORE_VERSION:
+            return
+
+        if found > STORE_VERSION:
+            advice = ("Upgrade this server: the store was written by a newer "
+                      "one, and opening it here would read columns this build "
+                      "does not know about.")
+        else:
+            advice = (f"There is no migration. Move {self.path} aside and let "
+                      "this server create a new one -- the jobs it holds stay "
+                      "readable with the older server that wrote them, and "
+                      "nothing on disk is deleted by doing so.")
+
+        raise StoreVersionError(
+            f"{self.path} holds schema version {found}, and this server "
+            f"speaks version {STORE_VERSION}. {advice}")
 
     @property
     def connection(self) -> sqlite3.Connection:

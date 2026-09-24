@@ -505,3 +505,43 @@ def test_one_listing_per_batch_of_finished_nodes(fake_v1, results):
                 if "artifacts" in c.request.path_url
                 and "/artifacts/" not in c.request.path_url]
     assert len(listings) == 1
+
+
+###########################
+# The run's own log
+###########################
+
+def test_the_job_level_log_lands_beside_the_nodes_not_on_top_of_job_log(
+        fake_v1, results, nop_project):
+    '''🔴 A remote run is still a `Scheduler` run -- which is what makes a flow
+    that does not resolve fail here rather than on somebody else's machine --
+    so the local `job.log` has an open handler appending to it for the whole
+    run. Downloading onto it truncates a file this process is still writing.'''
+    from siliconcompiler.utils.paths import jobdir
+
+    fake_v1.route(responses.GET, "jobs/j1/artifacts",
+                  {"items": [artifact("logs", media_type="text/plain")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-None-None",
+                  body="RuntimeError: git is required\n",
+                  content_type="text/plain")
+
+    here = jobdir(nop_project)
+    os.makedirs(here, exist_ok=True)
+    with open(os.path.join(here, "job.log"), "w") as local:
+        local.write("what this process logged\n")
+
+    assert results.fetch("j1") == 1
+
+    assert open(os.path.join(here, "job.log")).read() == "what this process logged\n"
+    landed = os.path.join(here, "remote-job.log")
+    assert "git is required" in open(landed).read()
+
+
+def test_the_advice_names_the_file_the_client_actually_writes():
+    """The two live in different modules -- the message is rendered where
+    problems are and the file is written where results are -- so nothing but
+    this stops them drifting apart."""
+    from siliconcompiler.remote.client.errors import NO_NODE_FAILED
+    from siliconcompiler.remote.client.results import REMOTE_JOB_LOG
+
+    assert REMOTE_JOB_LOG in NO_NODE_FAILED

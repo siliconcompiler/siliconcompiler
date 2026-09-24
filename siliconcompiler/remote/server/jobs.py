@@ -353,17 +353,15 @@ class JobService:
         # unpack -- which is what turns the re-derivation from a TOCTOU into a
         # check.
         if reported_digest != digest or size != declared_bytes:
-            self._reject(session, job, "upload-digest-mismatch")
-            raise ProblemError(
+            raise self._refuse(session, job, ProblemError(
                 "upload-digest-mismatch",
-                detail=f"storage holds {size} bytes, {reported_digest}")
+                detail=f"storage holds {size} bytes, {reported_digest}"))
 
         if size > self._config.limits["max_upload_bytes"]:
-            self._reject(session, job, "upload-too-large")
-            raise ProblemError(
+            raise self._refuse(session, job, ProblemError(
                 "upload-too-large", limit="max_upload_bytes",
                 detail=f"{size} bytes, and this server accepts at most "
-                       f"{self._config.limits['max_upload_bytes']}")
+                       f"{self._config.limits['max_upload_bytes']}"))
 
         self._check_concurrent_jobs(session.user_id)
 
@@ -381,9 +379,9 @@ class JobService:
                             self._config.limits)
         except archive.ArchiveRejected as rejected:
             shutil.rmtree(root, ignore_errors=True)
-            self._reject(session, job, "archive-rejected")
-            raise ProblemError("archive-rejected", violation=rejected.violation,
-                               detail=rejected.detail) from None
+            raise self._refuse(session, job, ProblemError(
+                "archive-rejected", violation=rejected.violation,
+                detail=rejected.detail)) from None
 
         self._storage.discard_upload(job["id"])
 
@@ -400,10 +398,10 @@ class JobService:
                 image=self._framework_bundle(plan),
                 queue=self._config["batch_queue"])
         except DispatchError as e:
-            self._reject(session, job, "run-failed")
-            raise ProblemError(
+            raise self._refuse(session, job, ProblemError(
                 "not-ready",
-                detail=f"this server could not hand the job to its scheduler: {e}") from None
+                detail=f"this server could not hand the job to its "
+                       f"scheduler: {e}")) from None
 
         try:
             self._record_submission(job, derived, digest, size, idempotency_key,
@@ -443,9 +441,11 @@ class JobService:
 
         try:
             return images.plan_for_job(self._store, declared, derived["node_tools"])
-        except ProblemError:
-            self._reject(session, job, "unsatisfiable-request")
-            raise
+        except ProblemError as problem:
+            # Its own slug, not a guessed one: `plan_for_job` refuses for more
+            # than one reason and the job must record the one the caller was
+            # given.
+            raise self._refuse(session, job, problem) from None
 
     def _framework_bundle(self, plan) -> Optional[str]:
         '''The container the job's own orchestrating process runs in.
@@ -534,11 +534,10 @@ class JobService:
 
         manifest = root / job["design"] / job["jobname"] / f"{job['design']}.pkg.json"
         if not manifest.is_file():
-            self._reject(session, job, "declared-mismatch")
-            raise ProblemError(
+            raise self._refuse(session, job, ProblemError(
                 "declared-mismatch",
                 detail=f"the archive holds no {job['design']}/{job['jobname']}/"
-                       f"{job['design']}.pkg.json")
+                       f"{job['design']}.pkg.json"))
 
         # 🔴 Reading a manifest is only BACKWARDS compatible, and the failure
         # in the other direction is silent. SiliconCompiler migrates an older
@@ -558,49 +557,44 @@ class JobService:
             try:
                 project = Project.from_manifest(filepath=str(manifest))
             except Exception as e:
-                self._reject(session, job, "declared-mismatch")
-                raise ProblemError(
+                raise self._refuse(session, job, ProblemError(
                     "declared-mismatch",
-                    detail=f"the uploaded manifest could not be read: {e}") from None
+                    detail=f"the uploaded manifest could not be read: {e}")) from None
 
         newer = [str(warning.message) for warning in raised
                  if issubclass(warning.category, SchemaVersionWarning)]
         if newer:
-            self._reject(session, job, "version-skew")
-            raise ProblemError(
+            raise self._refuse(session, job, ProblemError(
                 "version-skew",
                 detail=f"this server cannot read that manifest: {newer[0]}. "
                        "It was written by a newer SiliconCompiler than this "
                        "deployment runs, and reading one is only backwards "
-                       "compatible")
+                       "compatible"))
 
         if project.name != job["design"] or project.option.get_jobname() != job["jobname"]:
-            self._reject(session, job, "declared-mismatch")
-            raise ProblemError(
+            raise self._refuse(session, job, ProblemError(
                 "declared-mismatch",
                 detail=f"the manifest is {project.name}/{project.option.get_jobname()} "
-                       f"and the job is {job['design']}/{job['jobname']}")
+                       f"and the job is {job['design']}/{job['jobname']}"))
 
         try:
             runtime = runspec.runtime_flow(project)
             nodes = list(runtime.get_nodes())
         except Exception as e:
-            self._reject(session, job, "declared-mismatch")
-            raise ProblemError(
+            raise self._refuse(session, job, ProblemError(
                 "declared-mismatch",
-                detail=f"the manifest names no runnable flow: {e}") from None
+                detail=f"the manifest names no runnable flow: {e}")) from None
 
         if not nodes:
-            self._reject(session, job, "declared-mismatch")
-            raise ProblemError("declared-mismatch",
-                               detail="the manifest's flow has no nodes to run")
+            raise self._refuse(session, job, ProblemError(
+                "declared-mismatch",
+                detail="the manifest's flow has no nodes to run"))
 
         if len(nodes) > self._config.limits["max_job_nodes"]:
-            self._reject(session, job, "node-limit-exceeded")
-            raise ProblemError(
+            raise self._refuse(session, job, ProblemError(
                 "node-limit-exceeded", limit="max_job_nodes",
                 detail=f"{len(nodes)} nodes, and this server runs at most "
-                       f"{self._config.limits['max_job_nodes']}")
+                       f"{self._config.limits['max_job_nodes']}"))
 
         # 🔴 The software version is NOT re-derived here, and that is a
         # limitation worth stating rather than a check that was forgotten. A
@@ -668,19 +662,36 @@ class JobService:
         project.write_manifest(str(manifest))
         return manifest
 
-    def _reject(self, session, job, error_slug: str) -> None:
-        '''A refused job is `rejected` and never `failed`.
+    def _refuse(self, session, job, problem: ProblemError) -> ProblemError:
+        '''Record a refusal, and hand back the problem for the caller to raise.
 
-        A refused job never ran, and keeping it out of `failed` is what stops a
-        run of entitlement denials reading as a run of broken designs.
+        A refused job is `rejected` and never `failed`: a refused job never ran,
+        and keeping it out of `failed` is what stops a run of entitlement
+        denials reading as a run of broken designs.
+
+        🔴 **What is stored is the problem the caller was handed, whole.** The
+        two used to be written separately and drifted: a job the scheduler
+        would not take was recorded as `run-failed` while its submitter was
+        told `not-ready`, so the person and the page they were looking at
+        disagreed about a job neither of them could re-read. Taking the
+        `ProblemError` itself is what makes that impossible rather than
+        unlikely.
+
+        🔴 **And the stored reason is the problem's `detail`, not its slug.**
+        The slug is already `jobs.error_type` and is published as `error.type`;
+        writing it a second time as prose told a person nothing they could not
+        already see, while `detail` -- *which* limit, *which* mismatch -- was
+        computed one line later and thrown away.
         '''
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, finished_at = ? WHERE id = ?",
-                (f"{TYPE_BASE}/{error_slug}", now(), job["id"]))
+                (problem.error.uri, now(), job["id"]))
             self._transition(job["id"], job["state"], "rejected",
-                             actor=session.user_id, reason=error_slug)
+                             actor=session.user_id,
+                             reason=problem.detail or problem.error.slug)
         self._storage.discard_upload(job["id"])
+        return problem
 
     ######################################################################
     # 16, 17. list and get
@@ -848,11 +859,21 @@ class JobService:
             step, _, index = key.partition("/")
             state = node.get("state", "pending")
 
+            # 🔴 A published field with no writer is a published field that
+            # lies. `error_type` was null on every node this server has ever
+            # run, including the ones that failed, so a client could not tell
+            # *this node is why* from *this node is fine* without re-deriving
+            # it from the state it already had. `run-failed` is registered
+            # precisely for this: it is one of the three slugs that are never
+            # an HTTP response and only ever a `type` on an error object.
+            error_type = f"{TYPE_BASE}/run-failed" if state == "failed" else None
+
             self._store.execute(
                 'UPDATE job_nodes SET state = ?, started_at = ?, finished_at = ?, '
-                '  exit_code = ? WHERE job_id = ? AND step = ? AND "index" = ?',
+                '  exit_code = ?, error_type = ? '
+                'WHERE job_id = ? AND step = ? AND "index" = ?',
                 (state, node.get("started_at"), node.get("finished_at"),
-                 node.get("exit_code"), job["id"], step, index))
+                 node.get("exit_code"), error_type, job["id"], step, index))
 
             if state in TERMINAL_NODE_STATES:
                 # Indexed as the node finishes rather than as the job does, so
@@ -1037,7 +1058,10 @@ class JobService:
             self._store.execute(
                 "UPDATE job_nodes SET state = 'cancelled' WHERE job_id = ? "
                 "AND state NOT IN ('completed', 'failed', 'skipped')", (job["id"],))
-            self._transition(job["id"], job["state"], "failed", reason="scheduler-lost")
+            self._transition(
+                job["id"], job["state"], "failed",
+                reason="the scheduler no longer has this job and the run never "
+                       "recorded how it ended")
 
     def _settle_cancelled(self, job) -> None:
         '''A cancel that has taken effect. No error: nothing went wrong.'''
@@ -1316,6 +1340,28 @@ class JobService:
     def _row(self, job_id: str):
         return self._store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
 
+    def _why(self, job) -> Optional[str]:
+        '''What actually went wrong, in the run's own words.
+
+        🔴 Read back off `job_state_transitions` rather than stored a second
+        time on the job. The transition into the state the job is in IS the
+        record of why it got there -- `jobs` has an `error_type` and no
+        `error_detail`, and adding one would mean two writers for one fact.
+
+        The runner writes it into the progress file as the exception that
+        ended the run, and the reaper and the refusal path write theirs the
+        same way, so every terminal state has one and it is the same string
+        the portal has always rendered in the history table.
+        '''
+        if not job["error_type"]:
+            return None
+
+        row = self._store.one(
+            "SELECT reason FROM job_state_transitions "
+            "WHERE job_id = ? AND to_state = ? ORDER BY id DESC LIMIT 1",
+            (job["id"], job["state"]))
+        return row["reason"] if row else None
+
     def _transition(self, job_id: str, from_state: Optional[str], to_state: str,
                     actor: Optional[str] = None, reason: Optional[str] = None) -> None:
         self._store.execute(
@@ -1351,7 +1397,7 @@ class JobService:
             "finished_at": job["finished_at"],
             "archived_at": job["archived_at"],
             "deleted_at": job["deleted_at"],
-            "error": _error(job["error_type"]),
+            "error": _error(job["error_type"], self._why(job)),
         }
         # No `web_url`: absent, never null, where the deployment serves no web
         # UI. A null would claim there is a portal and this job has no page.
@@ -1451,12 +1497,28 @@ def _pdk(project) -> str:
     return pdk or "none"
 
 
-def _error(error_type: Optional[str]) -> Optional[Dict[str, Any]]:
+def _error(error_type: Optional[str],
+           detail: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    '''A job's error, as an RFC 9457 object.
+
+    🔴 `detail` is what makes it worth reading. `type` and `title` are frozen
+    and identical on every deployment and for every occurrence -- *The run
+    failed* is true of every failed run there has ever been -- so without a
+    `detail` the object says only that something went wrong, which the `state`
+    already said. The specific reason was being recorded on the transition and
+    published nowhere, so a person on the CLI could not reach it at all.
+    '''
     if not error_type:
         return None
     slug = error_type.rsplit("/", 1)[-1]
     title = ERRORS[slug].title if slug in ERRORS else "The job failed"
-    return {"type": error_type, "title": title}
+
+    body = {"type": error_type, "title": title}
+    # Prose that only repeats the slug is not prose: the slug is already the
+    # `type`, and a client branches on that.
+    if detail and detail != slug:
+        body["detail"] = detail
+    return body
 
 
 def _flag(value) -> bool:

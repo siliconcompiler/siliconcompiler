@@ -263,8 +263,31 @@ def test_a_store_from_another_schema_version_is_refused():
     con.commit()
     con.close()
 
-    with pytest.raises(StoreVersionError, match="schema version 99"):
+    with pytest.raises(StoreVersionError, match="schema version 99") as raised:
         Store(path)
+
+    # 🔴 And it says what to do about it. A server that will not start is the
+    # worst moment to make somebody read the source for the answer.
+    assert "Upgrade this server" in str(raised.value)
+
+
+def test_a_store_from_an_older_schema_version_says_there_is_no_migration():
+    """There is none, deliberately -- and the refusal has to say so rather than
+    leave an operator waiting for one."""
+    path = Path("older.db")
+    with Store(path):
+        pass
+
+    con = sqlite3.connect(str(path))
+    con.execute("PRAGMA user_version = 1")
+    con.commit()
+    con.close()
+
+    with pytest.raises(StoreVersionError, match="schema version 1") as raised:
+        Store(path)
+
+    assert "no migration" in str(raised.value)
+    assert "Move" in str(raised.value)
 
 
 ###########################

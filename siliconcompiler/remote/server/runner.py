@@ -126,7 +126,13 @@ def run(manifest: Path) -> int:
         # still saying `running`, which is indistinguishable from a node that
         # went away -- so the terminal write happens on every path.
         _progress["state"] = "failed"
-        _progress["error"] = str(e)
+        # 🔴 This string is the ONLY account of the failure a person on the CLI
+        # ever sees: the server publishes it as the job's `error.detail`, and
+        # `error.title` is frozen prose that is true of every failed run there
+        # has ever been. The class only when there is no message -- a bare
+        # `RuntimeError` beats a blank line, and in front of a message that
+        # already says what happened it is noise.
+        _progress["error"] = str(e) or type(e).__name__
         traceback.print_exc()
         return 1
     else:

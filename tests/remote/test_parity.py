@@ -126,10 +126,17 @@ def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, live_serve
                if os.sep + "inputs" + os.sep not in os.sep + name}
     assert not missing, sorted(missing)
     # What the remote run has and a local one does not: its own handle for
-    # reconnecting, and the job log the server's run wrote.
+    # reconnecting, and the log the server's own run wrote.
+    #
+    # 🔴 `remote-job.log` and not `job.log`: a remote run is still a
+    # `Scheduler` run, so the local `job.log` is open and being appended to for
+    # the whole of it, and downloading onto it would truncate a file this
+    # process is still writing.
     extra = here - local_tree
     assert "sc_remote.pkg.json" in extra
-    assert all(name == "sc_remote.pkg.json" or name.startswith("job.")
+    assert "remote-job.log" in extra
+    assert all(name in ("sc_remote.pkg.json", "remote-job.log")
+               or name.startswith("job.")
                for name in extra), sorted(extra)
 
 

@@ -38,8 +38,12 @@ def job_body(state="running", nodes=None, terminal=None, **extra):
         "started_at": None, "finished_at": None,
         "archived_at": None, "deleted_at": None, "error": None,
         "nodes": nodes,
-        "progress": {"total_count": len(nodes), "completed_count": 0,
-                     "failed_count": 0},
+        # Derived rather than fixed, because the client now reads
+        # `failed_count` to decide what advice to print.
+        "progress": {
+            "total_count": len(nodes),
+            "completed_count": sum(1 for n in nodes if n["state"] == "completed"),
+            "failed_count": sum(1 for n in nodes if n["state"] == "failed")},
         **extra,
     }
 
@@ -500,12 +504,22 @@ def test_an_archive_refusal_names_the_rule_that_was_broken(fake_v1, logged_in):
 # A failed run says why, without opening a URL
 ###########################
 
+def _node(step, state, **extra):
+    node = {"step": step, "index": "0", "state": state,
+            "terminal": state in ("completed", "failed", "skipped", "cancelled"),
+            "started_at": None, "finished_at": None, "exit_code": None,
+            "error_type": None}
+    node.update(extra)
+    return node
+
+
 def test_a_failed_run_explains_itself_and_still_fetches(fake_v1, run, caplog):
     '''🔴 Results are retrieved on EVERY terminal state. A failed run is the one
     whose log and manifest a user most wants, and a client that fetches nothing
     when a job fails has hidden the evidence at the moment it became useful.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
         "failed",
+        nodes=[_node("stepone", "failed"), _node("steptwo", "cancelled")],
         error={"type": "https://siliconcompiler.com/server-errors/run-failed",
                "title": "The run failed"}))
     fake_v1.route(responses.GET, "jobs/01J9-job/artifacts",
@@ -522,6 +536,30 @@ def test_a_failed_run_explains_itself_and_still_fetches(fake_v1, run, caplog):
     assert "Read the failing node's log" in caplog.text
     # It asked for the results rather than giving up on them.
     assert any("artifacts" in call.request.path_url for call in fake_v1.calls)
+
+
+def test_a_run_that_failed_with_no_failed_node_says_so(fake_v1, run, caplog):
+    '''🔴 A flow that dies before its first node fails with every node
+    `cancelled` and none of them `failed`, and *read the failing node's log*
+    then names a file nobody can open. The advice is chosen from the job, not
+    from the slug.'''
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "failed",
+        nodes=[_node("stepone", "cancelled"), _node("steptwo", "cancelled")],
+        error={"type": "https://siliconcompiler.com/server-errors/run-failed",
+               "title": "The run failed",
+               "detail": "RuntimeError: git is required to import GitPython"}))
+    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
+
+    with caplog.at_level("INFO"):
+        with pytest.raises(RemoteError):
+            run._poll("01J9-job")
+
+    assert "Read the failing node's log" not in caplog.text
+    assert "No node failed" in caplog.text
+    # And the server's `detail` is the only part of the body that is about THIS
+    # run, so it has to survive the render.
+    assert "git is required" in caplog.text
 
 
 def test_a_lost_run_is_told_apart_from_a_failed_one(fake_v1, run, caplog):

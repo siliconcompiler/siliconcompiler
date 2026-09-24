@@ -323,3 +323,92 @@ def test_a_retired_distribution_offers_no_per_version_button(signed_in, server):
     retired = signed_in.get("/portal/images").get_data(as_text=True)
     assert "retire</button>" not in retired
     assert "Stop curating" not in retired
+
+
+###########################
+# A failed job says why, on the page
+###########################
+
+@pytest.fixture
+def died(server, server_client, key, token, job_archive, dispatcher, me):
+    '''A run that failed before it reached a node -- the shape that prompted
+    the question: state `failed`, every node `cancelled`, nothing else said.'''
+    from test_server_jobs import stage, submit
+    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.dispatch import RUN_LOG
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    jobroot = server.config["SC_JOBS"].job_root(me, job["id"])
+    (jobroot / RUN_LOG).write_text(
+        "Traceback (most recent call last):\n"
+        "RuntimeError: git is required to import GitPython\n")
+
+    runspec.write_progress(jobroot / "gcd" / "job0" / runspec.PROGRESS_FILENAME, {
+        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:00:02.000Z",
+        "error": "RuntimeError: git is required to import GitPython",
+        "nodes": {"stepone/0": {"state": "cancelled"},
+                  "steptwo/0": {"state": "cancelled"}}})
+
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+    return job
+
+
+def test_the_page_says_why_it_failed(signed_in, died):
+    '''The title is frozen and reads the same on every failure there has ever
+    been. The detail is the only part of the banner that is about this run.'''
+    page = signed_in.get(f"/portal/jobs/{died['id']}").get_data(as_text=True)
+
+    assert "The run failed" in page
+    assert "git is required to import GitPython" in page
+
+
+def test_the_page_says_no_node_failed_when_none_did(signed_in, died):
+    '''🔴 The question that prompted this: a failed job whose nodes all read
+    `cancelled`, with nothing on the page to say that is what an unreached node
+    looks like.'''
+    page = signed_in.get(f"/portal/jobs/{died['id']}").get_data(as_text=True)
+
+    assert "No node failed" in page
+    assert "the job ended before that node started" in page
+
+
+def test_the_run_log_is_on_the_page_of_the_job_that_left_no_other(signed_in, died):
+    '''Before this the listing was empty and the only account of what happened
+    stayed on the server, where the person who ran the job could not reach
+    it.'''
+    page = signed_in.get(f"/portal/jobs/{died['id']}").get_data(as_text=True)
+
+    assert "The job itself" in page
+    assert "download" in page
+
+
+def test_a_cancelled_job_is_not_told_nobody_cancelled_it(
+        signed_in, server, server_client, key, token, job_archive, dispatcher, me):
+    '''The note explains `cancelled` on a node of a job that ended some other
+    way. On a job somebody DID cancel the word means what it looks like, and
+    the note would contradict the page.'''
+    from test_server_jobs import stage, submit
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-23T10:00:00.000Z",
+        "nodes": {"stepone/0": {"state": "running"},
+                  "steptwo/0": {"state": "pending"}}})
+
+    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
+    dispatcher.alive = False
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+
+    page = signed_in.get(f"/portal/jobs/{job['id']}").get_data(as_text=True)
+    assert "cancelled" in page
+    assert "not\nthat anyone cancelled it" not in page
+    assert "the job ended before that node started" not in page

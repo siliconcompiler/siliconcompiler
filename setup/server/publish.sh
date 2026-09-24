@@ -32,6 +32,16 @@ cd "$(dirname "$0")"
 STACK=${STACK:-sc-server-slurm:local}
 SERVER=${SERVER:-sc-server-slurm-scserver-1}
 DATADIR=${DATADIR:-/sc_server}
+# The shared tree, as a volume rather than through the server container, and
+# the network the cluster reaches its registry on. Both are named after the
+# compose project, which docker-compose.yml pins.
+#
+# ⚠️ The network is not optional: staging a bundle pulls from `registry:5000`,
+# which is a compose service name and resolves on that network and nowhere
+# else. A container started outside it registers the image and then fails to
+# fetch it, leaving a row whose bytes are not there.
+DATAVOL=${DATAVOL:-sc-server-slurm_sc-server-data}
+DATANET=${DATANET:-sc-server-slurm_default}
 
 # Every tool a flow might use has to be declared. These are what asicflow needs.
 TOOLS=${TOOLS:-klayout openroad opensta slang surelog yosys}
@@ -44,9 +54,15 @@ if ! curl -sSf -m 5 http://localhost:5000/v2/ >/dev/null 2>&1; then
     echo "no registry on localhost:5000: run setup/server/compose.sh up -d" >&2
     exit 1
 fi
+# 🔴 Not a precondition, and that is a fix rather than a relaxation. A
+# deployment with `containers: true` and an empty registry REFUSES TO START --
+# deliberately, because on it nothing could ever be dispatched -- so the one
+# moment this script is most needed is the one where there is no container to
+# exec into. Requiring the server to be up made that a deadlock: the server
+# will not start until the registry is populated, and the registry could only
+# be populated through the server.
 if ! docker exec "$SERVER" true >/dev/null 2>&1; then
-    echo "$SERVER is not running: run setup/server/compose.sh up -d" >&2
-    exit 1
+    echo "$SERVER is not running; registering against the volume instead" >&2
 fi
 
 echo "building sc-runtime (no EDA tools) from $STACK" >&2
@@ -82,9 +98,32 @@ tools_digest=$(push "$STACK" sc-tools)
 echo "pushed  registry:5000/sc-runtime:local  $runtime_digest" >&2
 echo "pushed  registry:5000/sc-tools:local    $tools_digest" >&2
 
+# Registration is an operation on the DATADIR, not on the server: the registry
+# tool opens the same SQLite file and holds no HTTP connection. So it runs in
+# the server container when there is one, and in a throwaway container on the
+# same volume when there is not.
 reg() {
-    docker exec "$SERVER" python3 -m siliconcompiler.remote.server.registry \
-        -datadir "$DATADIR" "$@"
+    if docker exec "$SERVER" true >/dev/null 2>&1; then
+        docker exec "$SERVER" python3 \
+            -m siliconcompiler.remote.server.registry -datadir "$DATADIR" "$@"
+    else
+        docker run --rm --entrypoint python3 --network "$DATANET" \
+            -v "$DATAVOL:$DATADIR" "$STACK" \
+            -m siliconcompiler.remote.server.registry -datadir "$DATADIR" "$@"
+    fi
+}
+
+# The same, for the one thing that is not a registry command.
+in_datadir() {
+    if docker exec "$SERVER" true >/dev/null 2>&1; then
+        # 🔴 -i, because docker exec does not attach stdin without it and a
+        # heredoc fed to a program reading "-" then silently gets nothing. The
+        # config is written, nothing complains, and containers stay off.
+        docker exec -i "$SERVER" python3 - "$DATADIR"
+    else
+        docker run --rm -i --entrypoint python3 --network "$DATANET" \
+            -v "$DATAVOL:$DATADIR" "$STACK" - "$DATADIR"
+    fi
 }
 
 reg add-software siliconcompiler >/dev/null
@@ -104,10 +143,7 @@ reg add-image registry:5000/sc-runtime:local -digest "$runtime_digest" \
 reg add-image registry:5000/sc-tools:local -digest "$tools_digest" \
     -contains "siliconcompiler==$version" $tools_contains -stage >/dev/null
 
-# 🔴 -i, because docker exec does not attach stdin without it and a heredoc
-# fed to a program reading "-" then silently gets nothing. The config is
-# written, nothing complains, and containers stay off.
-docker exec -i "$SERVER" python3 - "$DATADIR" <<'PY'
+in_datadir <<'PY'
 import json, sys
 path = sys.argv[1] + "/config.json"
 config = json.load(open(path))
@@ -120,8 +156,13 @@ PY
 # no config file -- so sinfo comes back showing 0 nodes and every job queues for
 # ever. Restarting the runners is what re-registers them.
 echo "restarting the server, then the runners" >&2
-docker compose restart scserver >/dev/null 2>&1
-docker compose restart scrunner >/dev/null 2>&1
+# stop + up rather than restart, because a service that is DOWN is the case
+# this has to handle: `docker compose restart` on a container that is not
+# running is an error on some versions, and the server not running is exactly
+# how somebody arrives here.
+docker compose stop scserver scrunner >/dev/null 2>&1
+docker compose up -d scserver >/dev/null 2>&1
+docker compose up -d scrunner >/dev/null 2>&1
 
 sleep 12
 

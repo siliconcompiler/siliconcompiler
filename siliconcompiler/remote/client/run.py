@@ -37,7 +37,7 @@ from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.utils.paths import collectiondir, jobdir
 
 from siliconcompiler.remote.client.errors import (
-    RemoteError, ServerProblem, describe)
+    NO_NODE_FAILED, RemoteError, ServerProblem, describe)
 from siliconcompiler.remote.client.results import Results
 
 __all__ = ["RemoteRun", "REMOTE_MANIFEST"]
@@ -654,9 +654,25 @@ def _why_it_failed(job: Dict[str, Any]) -> str:
     The `type` pages are static and identical on every deployment, so the server
     cannot say anything specific through them -- which leaves the client holding
     the only copy of the specific failure.
+
+    🔴 The advice is chosen from the job and not from the slug alone. A run can
+    fail with no failed node at all -- it died before the first one, or in
+    setup, and every node reads `cancelled` -- and *read the failing node's
+    log* then names a file nobody can open.
     '''
     error = job.get("error") or {}
-    return describe(error) if error.get("type") else "no reason given"
+    if not error.get("type"):
+        return "no reason given"
+
+    # Only `run-failed` -- it is the one whose advice names a node. Every other
+    # slug's advice is about the job and stays right however the nodes ended:
+    # `scheduler-lost` says submit it again, and it would be no less true for a
+    # run that got halfway.
+    failed = (job.get("progress") or {}).get("failed_count")
+    ran_out = str(error["type"]).rstrip("/").rsplit("/", 1)[-1] == "run-failed"
+
+    return describe(error,
+                    next_step=NO_NODE_FAILED if ran_out and failed == 0 else None)
 
 
 def _is_refusal(problem: ServerProblem) -> bool:

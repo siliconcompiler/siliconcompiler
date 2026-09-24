@@ -1571,3 +1571,130 @@ def test_a_cancelled_run_is_cancelled_and_not_lost(
     # Nothing went wrong, so there is no error to report.
     assert read.get("error") is None
     assert all(node["state"] == "cancelled" for node in read["nodes"])
+
+
+###########################
+# Why it failed, in the run's own words
+###########################
+
+def test_a_failed_run_publishes_the_reason_the_run_gave(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 `type` and `title` are frozen and identical on every occurrence --
+    *The run failed* is true of every failed run there has ever been -- so
+    without `detail` the error object says only what `state` already said. The
+    runner records the exception that ended the run and it was being stored on
+    the transition and published nowhere, which is why a person on the CLI
+    could not reach it at all.'''
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "failed",
+        "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:00:10.000Z",
+        "error": "RuntimeError: git is required to import GitPython",
+        "nodes": {"stepone/0": {"state": "cancelled"},
+                  "steptwo/0": {"state": "cancelled"}}})
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert read["state"] == "failed"
+    assert read["error"]["type"].endswith("run-failed")
+    assert read["error"]["detail"] == "RuntimeError: git is required to import GitPython"
+    # And the shape a client reads it from: a run can fail with no failed node,
+    # which is what makes "read the failing node's log" the wrong advice.
+    assert read["progress"]["failed_count"] == 0
+
+
+def test_a_refusal_publishes_which_one_on_the_job(server_client, key, token,
+                                                  job_archive, dispatcher):
+    '''The detail was computed one line from where the job was recorded and
+    thrown away: the submitter saw it in the response and nobody who read the
+    job afterwards ever could.'''
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+
+    submit(server_client, key, token, job["id"], "sha256:" + "0" * 64, size)
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["error"]["type"].endswith("upload-digest-mismatch")
+    assert "storage holds" in read["error"]["detail"]
+
+
+def test_a_reason_that_only_repeats_the_slug_is_not_published(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''`detail` is prose about this occurrence. The slug is already `type`, and
+    a client branches on that.'''
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:00:10.000Z",
+        "nodes": {"stepone/0": {"state": "failed"},
+                  "steptwo/0": {"state": "cancelled"}}})
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["error"]["type"].endswith("run-failed")
+    assert "detail" not in read["error"]
+
+
+def test_a_job_the_scheduler_would_not_take_records_what_the_caller_was_told(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''🔴 The two used to be written separately and drifted: the job was
+    recorded as `run-failed` while its submitter was told `not-ready`, so the
+    person and the page they were looking at disagreed about a job neither of
+    them could re-read.'''
+    from siliconcompiler.remote.server.dispatch import DispatchError
+
+    def refuse(*args, **kwargs):
+        raise DispatchError("slurmctld is not answering")
+
+    dispatcher.submit = refuse
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    response = submit(server_client, key, token, job["id"], digest, size)
+
+    assert slug(response) == "not-ready"
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == "rejected"
+    assert read["error"]["type"].endswith("not-ready")
+    assert "slurmctld is not answering" in read["error"]["detail"]
+
+
+def test_a_failed_node_carries_the_type_that_says_so(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 `error_type` is published on every node and was null on every node
+    this server had ever run, the failed ones included -- so a client could not
+    tell *this node is why* from *this node is fine* except by re-deriving it
+    from the state it already had.'''
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:00:10.000Z",
+        "nodes": {"stepone/0": {"state": "failed", "exit_code": 1},
+                  "steptwo/0": {"state": "cancelled"}}})
+
+    nodes = {(n["step"], n["index"]): n for n in call(
+        server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()["nodes"]}
+
+    assert nodes[("stepone", "0")]["error_type"].endswith("run-failed")
+    # And nothing on the node that never ran: it did not fail, the job ended
+    # before it started.
+    assert nodes[("steptwo", "0")]["error_type"] is None

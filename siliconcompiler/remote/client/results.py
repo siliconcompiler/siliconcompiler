@@ -34,7 +34,7 @@ from siliconcompiler import utils
 from siliconcompiler.schema import Journal
 from siliconcompiler.utils.paths import jobdir, workdir
 
-__all__ = ["Results"]
+__all__ = ["Results", "REMOTE_JOB_LOG"]
 
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,19 @@ logger = logging.getLogger(__name__)
 # closed and published, so an unknown one means this client is older than the
 # server.
 _ARCHIVES = ("bundle", "outputs", "reports")
+
+# Where the run's own log lands. It belongs to no node, so it goes beside them
+# in the job directory.
+#
+# 🔴 **Not `job.log`, which is the local run's own file and is OPEN.** A remote
+# run is still a `Scheduler` run -- that is what makes a flow that does not
+# resolve fail here rather than on somebody else's machine -- so `job.log` is
+# being written by a live handler for the whole of it, and downloading onto it
+# truncates a file this process is still appending to.
+#
+# ⚠️ And not `job.<something>.log` either: that is the pattern SiliconCompiler
+# rotates its own backups under, and it prunes all but the most recent few.
+REMOTE_JOB_LOG = "remote-job.log"
 
 
 class Results:
@@ -232,10 +245,9 @@ class Results:
 
         if step is None or index is None:
             if kind == "logs":
-                # The run's own job log, which belongs to no node.
                 self.client.fetch_artifact(
                     job_id, item["id"],
-                    os.path.join(jobdir(self.project), "job.log"))
+                    os.path.join(jobdir(self.project), REMOTE_JOB_LOG))
                 return 1
             logger.debug(f"nothing to do with a job-level {kind}")
             return 0
