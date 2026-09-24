@@ -121,3 +121,57 @@ def test_a_driver_is_recorded_as_the_package_and_not_one_task_file(bootstrap):
 def test_a_name_nothing_drives_records_no_driver(bootstrap):
     assert bootstrap.drivers_for(["not-a-tool-anybody-has"]) == \
         {"not-a-tool-anybody-has": None}
+
+
+def test_main_tags_and_registers_with_the_siliconcompiler_version(bootstrap,
+                                                                  monkeypatch):
+    """🔴 The same shadowing happened twice -- once in `register` and once in
+    `main`'s own logging loop -- and both times both images were tagged with
+    whatever the LAST tool reported. This covers the outer scope, which the
+    `register` test cannot: `main` is where the version is read and where it
+    is handed to `push`.
+    """
+    import siliconcompiler
+
+    pushed, registered = [], []
+
+    monkeypatch.setattr(bootstrap, "wait_for_registry", lambda: None)
+    monkeypatch.setattr(bootstrap, "write_config", lambda: None)
+    monkeypatch.setattr(bootstrap, "published_on", lambda image: "20260924")
+    monkeypatch.setattr(bootstrap, "drivers_for",
+                        lambda names: {name: None for name in names})
+    # Every tool answers with a different version, which is what made the last
+    # one win.
+    monkeypatch.setattr(
+        bootstrap, "ask_image",
+        lambda image, python, drivers: {
+            tool: {"kind": "tool", "version": f"{n}.0", "reported": f"{n}.0"}
+            for n, tool in enumerate(bootstrap.TOOLS)})
+    monkeypatch.setattr(
+        bootstrap, "push",
+        lambda local, repo, tag: pushed.append((repo, tag)) or f"sha256:{repo}")
+    monkeypatch.setattr(
+        bootstrap, "register",
+        lambda version, *rest: registered.append(version))
+
+    assert bootstrap.main() == 0
+
+    assert pushed == [("sc-runtime", siliconcompiler.__version__),
+                      ("sc-tools", siliconcompiler.__version__)]
+    assert registered == [siliconcompiler.__version__]
+
+
+def test_both_numbers_are_logged_where_they_differ(bootstrap, capsys,
+                                                   monkeypatch):
+    """`verilator` says 5.052 and PEP 440 stores 5.52. An operator reading the
+    log is owed the first; the registry needs the second."""
+    said = []
+    monkeypatch.setattr(bootstrap, "say", said.append)
+
+    bootstrap.say_what_it_holds({
+        "verilator": {"version": "5.52", "reported": "5.052"},
+        "yosys": {"version": "0.69", "reported": "0.69"}})
+
+    assert "  verilator: 5.52  (reported 5.052)" in said
+    assert "  yosys: 0.69" in said
+    assert "  openroad: no version reported" in said

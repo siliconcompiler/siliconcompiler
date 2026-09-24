@@ -464,6 +464,33 @@ def _common(modules) -> str:
     return prefix if prefix.count(".") >= 2 else min(modules, key=len)
 
 
+def say_what_it_holds(held: dict) -> None:
+    """One line per tool, with both numbers where they differ.
+
+    🔴 **A function and not a loop in `main`, and that is not style.** Twice
+    now a loop variable named `version` has shadowed the SiliconCompiler
+    version that `main` holds and `register` is given -- once here and once
+    inside `register` -- and both times the result was two images tagged with
+    whatever the LAST tool reported. The failure lands at server startup,
+    which says it cannot read a version nobody asked it to run. A scope with
+    nothing else in it cannot do that.
+    """
+    for tool in TOOLS:
+        answer = held.get(tool) or {}
+        found, reported = answer.get("version"), answer.get("reported")
+
+        if not found:
+            say(f"  {tool}: no version reported")
+        elif reported and reported != found:
+            # Both, because they differ for real tools and only one of them is
+            # what the tool actually printed: verilator says 5.052 and PEP 440
+            # makes that 5.52, and OpenROAD's own normaliser rewrites its
+            # version wholesale.
+            say(f"  {tool}: {found}  (reported {reported})")
+        else:
+            say(f"  {tool}: {found}")
+
+
 def register(version: str, tools_digest: str, runtime_digest: str,
              published: str, held: dict, drivers: dict) -> None:
     '''Put what the probe found into the registry.
@@ -544,19 +571,7 @@ def main() -> int:
 
     say("asking the tools image what it actually holds")
     held = ask_image(STACK_IMAGE, ["siliconcompiler"], drivers)
-    for tool in TOOLS:
-        answer = held.get(tool) or {}
-        version, reported = answer.get("version"), answer.get("reported")
-        if not version:
-            say(f"  {tool}: no version reported")
-        elif reported and reported != version:
-            # Both, because they differ for real tools and only one of them is
-            # what the tool actually printed: verilator says 5.052 and PEP 440
-            # makes that 5.52, and OpenROAD's own normaliser rewrites its
-            # version wholesale.
-            say(f"  {tool}: {version}  (reported {reported})")
-        else:
-            say(f"  {tool}: {version}")
+    say_what_it_holds(held)
 
     runtime_digest = push(RUNTIME_IMAGE, "sc-runtime", version)
     tools_digest = push(STACK_IMAGE, "sc-tools", version)
