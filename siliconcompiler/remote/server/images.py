@@ -1016,6 +1016,14 @@ def register_image(store, registry_ref: str, digest: str,
     if not contents:
         raise ValueError("an image with no declared contents can satisfy nothing")
 
+    # 🔴 Normalised before it is looked up, with the SAME rule that stored it.
+    # `verilator 5.052` is stored as `5.52` -- PEP 440 strips the leading zero
+    # -- so a caller naming the version the tool actually printed would be told
+    # it is not registered, by the registry that just registered it. The
+    # normalisation has to happen wherever a version is named, not only where
+    # one is written.
+    contents = [(name, normalize(version)) for name, version in contents]
+
     for name, version in contents:
         if store.one("SELECT version FROM software_versions "
                      "WHERE software_name = ? AND version = ?",

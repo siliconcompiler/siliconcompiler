@@ -70,7 +70,8 @@ def python_version(name: str) -> Optional[str]:
         return None
 
 
-def tool_version(name: str, driver: Optional[str] = None) -> Optional[str]:
+def tool_version(name: str,
+                 driver: Optional[str] = None) -> Optional[Tuple[str, str]]:
     '''Run the tool's executable with its version switch, and parse the output.
 
     🔴 **`Task.get_exe_version` and not a command of this module's own.** The
@@ -86,11 +87,13 @@ def tool_version(name: str, driver: Optional[str] = None) -> Optional[str]:
     ⚠️ Every Task class in that module is tried, because the one that sets the
     executable is usually a base the concrete tasks inherit, and an abstract
     base cannot be built.
+
+    Returns ``(comparable, reported)`` -- see `_ask` for why there are two.
     '''
     for task_cls in _drivers(name, driver):
-        version = _ask(task_cls, name)
-        if version:
-            return version
+        answer = _ask(task_cls, name)
+        if answer:
+            return answer
     return None
 
 
@@ -106,9 +109,14 @@ def probe(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> Dict[str, Dict[st
     for name, kind, driver in wanted:
         if kind not in KINDS:
             raise ValueError(f"{kind} is not a software kind")
-        version = (python_version(name) if kind == "python"
-                   else tool_version(name, driver))
-        found[name] = {"kind": kind, "version": version}
+        if kind == "python":
+            version = python_version(name)
+            reported = version
+        else:
+            answer = tool_version(name, driver)
+            version, reported = answer if answer else (None, None)
+
+        found[name] = {"kind": kind, "version": version, "reported": reported}
     return found
 
 
@@ -180,6 +188,20 @@ def _ask(task_cls, name: str) -> Optional[str]:
     does -- so `get_exe()` on the returned object reads nothing. The project it
     was built in is reachable as the schema's root, and re-entering a node on
     it is what binds the values `setup()` wrote.
+
+    🔴 **The driver's `normalize_version` is applied, and that is not
+    cosmetic.** OpenROAD reports `26Q3-2418-g3ab04b4dd1`, which is not a PEP
+    440 version at all -- stored raw it can never satisfy a range, so
+    `openroad>=26.3` would be refused against an image that plainly has it. Its
+    driver knows how to turn that into `26.3.2418`, the same way its
+    `parse_version` knows the four shapes the tool answers in. Where SC has a
+    rule for a tool, that is the rule.
+
+    Returns ``(comparable, reported)``: the normalised version, which is what
+    gets stored and matched, and what the tool actually printed, which is what
+    an operator should see in a log. `verilator` says `5.052` and PEP 440 makes
+    that `5.52`; the catalogue needs the second and a person reading it is
+    owed the first.
     '''
     from siliconcompiler.scheduler import SchedulerNode
 
@@ -191,7 +213,19 @@ def _ask(task_cls, name: str) -> Optional[str]:
         with node.task.runtime(node) as task:
             if task.tool() != name:
                 return None
-            return task.get_exe_version()
+
+            reported = task.get_exe_version()
+            if not reported:
+                return None
+
+            try:
+                return task.normalize_version(reported), reported
+            except Exception as e:                               # noqa: BLE001
+                # A normaliser that cannot read its own tool's output. The raw
+                # string is still true and still selectable by name; what it
+                # loses is being matchable against a range.
+                logger.debug(f"{name}: could not normalize {reported}: {e}")
+                return reported, reported
     except Exception as e:                                       # noqa: BLE001
         # Every one of these is ordinary: an abstract base, a class whose
         # make_docs needs something this image has not got, a tool that is not

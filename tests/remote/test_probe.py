@@ -35,7 +35,9 @@ def test_a_tool_is_asked_by_running_it():
     if not shutil.which("klayout"):
         pytest.skip("the klayout executable is not on this machine")
 
-    assert probe.tool_version("klayout", "siliconcompiler.tools.klayout")
+    comparable, reported = probe.tool_version("klayout",
+                                              "siliconcompiler.tools.klayout")
+    assert comparable and reported
 
 
 def test_a_tool_with_no_driver_reports_no_version():
@@ -78,7 +80,7 @@ def test_probe_reports_a_kind_and_a_version_for_each_name():
 
     assert found["siliconcompiler"]["kind"] == "python"
     assert found["siliconcompiler"]["version"]
-    assert found["magic"] == {"kind": "tool", "version": None}
+    assert found["magic"] == {"kind": "tool", "version": None, "reported": None}
 
 
 def test_a_kind_outside_the_closed_set_is_refused():
@@ -126,3 +128,25 @@ def test_probing_nothing_is_a_usage_error(quiet_restored):
         probe.main([])
 
     assert logging.root.manager.disable < logging.CRITICAL
+
+
+def test_the_drivers_own_normalisation_is_applied():
+    '''🔴 Not cosmetic. OpenROAD reports `26Q3-2418-g3ab04b4dd1`, which is not
+    a PEP 440 version at all -- stored raw it can never satisfy a range, so
+    `openroad>=26.3` would be refused against an image that plainly has it. Its
+    driver knows how to turn that into a comparable one, the same way its
+    `parse_version` knows the four shapes the tool answers in.'''
+    from packaging.version import Version
+    from siliconcompiler.tools.openroad import OpenROADTask
+
+    raw = "26Q3-2418-g3ab04b4dd1"
+    assert Version(OpenROADTask.normalize_version(OpenROADTask(), raw))
+
+
+def test_what_the_tool_said_is_reported_beside_what_compares():
+    '''`verilator` says `5.052` and PEP 440 makes that `5.52`. The catalogue
+    needs the second; a person reading a log is owed the first.'''
+    found = probe.probe([("siliconcompiler", "python", None)])
+
+    assert found["siliconcompiler"]["reported"] == \
+        found["siliconcompiler"]["version"]

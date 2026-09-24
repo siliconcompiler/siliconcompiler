@@ -868,3 +868,19 @@ def test_preference_still_wins_over_the_build_time(store):
     plan = images.plan_for_job(store, py(), {("import", "0"): None})
 
     assert plan.ref(plan.job).startswith("ghcr.io/x/old@")
+
+
+def test_an_image_may_name_the_version_the_tool_printed(store):
+    '''🔴 `verilator 5.052` is stored as `5.52` -- PEP 440 strips the leading
+    zero -- so naming what the tool actually said has to find the row that
+    normalisation created, or the registry refuses a version it just
+    registered.'''
+    images.register_software(store, "verilator", "Verilator", store.actor, "tool")
+    stored = images.register_version(store, "verilator", "5.052", store.actor)
+    assert stored == "5.52"
+
+    images.register_image(store, "ghcr.io/x/v:1", digest("a"),
+                          [("verilator", "5.052")], store.actor)
+
+    held = images.live_images(store)[0]["contents"]
+    assert [(entry.name, entry.version) for entry in held] == [("verilator", "5.52")]

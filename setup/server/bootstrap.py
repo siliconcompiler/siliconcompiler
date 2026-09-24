@@ -55,6 +55,11 @@ RUNTIME_IMAGE = os.environ.get("SC_RUNTIME_IMAGE", "sc-runtime:local")
 PUSH_TO = os.environ.get("SC_PUSH_REGISTRY", "localhost:5000")
 PULL_FROM = os.environ.get("SC_PULL_REGISTRY", "registry:5000")
 
+# The interpreter INSIDE the images, which is not this one. Overridable
+# because an image that puts SiliconCompiler in a venv has it somewhere else,
+# and the probe is only useful if it can be started.
+PYTHON = os.environ.get("SC_IMAGE_PYTHON", "python3")
+
 DATADIR = Path(os.environ.get("SC_DATADIR", "/sc_server"))
 DOCKER_SOCK = os.environ.get("SC_DOCKER_SOCKET", "/var/run/docker.sock")
 
@@ -187,8 +192,14 @@ def run_in(image: str, command) -> str:
     its version lands in the same stream as the answer.
     '''
     created = _call("POST", "/containers/create",
-                    {"Image": image, "Cmd": list(command), "Tty": True,
-                     "NetworkDisabled": True})
+                    # 🔴 `Entrypoint: []` and not just `Cmd`. These images have
+                    # an ENTRYPOINT, so a Cmd on its own becomes ARGUMENTS to
+                    # it: the command never runs, the entrypoint does something
+                    # else entirely, and the probe reports nothing for every
+                    # tool -- which reads exactly like an image that holds
+                    # none of them.
+                    {"Image": image, "Entrypoint": [], "Cmd": list(command),
+                     "Tty": True, "NetworkDisabled": True})
     container = created["Id"]
     try:
         _call("POST", f"/containers/{container}/start")
@@ -213,7 +224,7 @@ def ask_image(image: str, python_names, tools) -> dict:
     '''
     from siliconcompiler.remote.server import probe
 
-    command = ["python3", "-m", "siliconcompiler.remote.server.probe"]
+    command = [PYTHON, "-m", "siliconcompiler.remote.server.probe"]
     for name in python_names:
         command += ["-python", name]
     for name, driver in sorted(tools.items()):
@@ -407,21 +418,50 @@ def drivers_for(names) -> dict:
         except Exception:                                        # noqa: BLE001
             continue
 
-    modules: dict = {}
+    seen: dict = {}
     for task_cls in set(descendants(Task)):
         try:
             tool = task_cls().tool()
         except Exception:                                        # noqa: BLE001
             continue
-        if tool not in names:
-            continue
-        module = task_cls.__module__ or ""
-        # The shallowest, so a tool driven from several task files is recorded
-        # as its package rather than whichever file was seen first.
-        if tool not in modules or module.count(".") < modules[tool].count("."):
-            modules[tool] = module
+        if tool in names and task_cls.__module__:
+            seen.setdefault(tool, set()).add(task_cls.__module__)
 
-    return {name: modules.get(name) for name in names}
+    return {name: _common(seen.get(name, ())) for name in names}
+
+
+def _common(modules) -> str:
+    """The package every one of a tool's task classes lives under.
+
+    🔴 **The common prefix and NOT the shallowest module**, which is what this
+    did first and what silently cost `icarus` its version. Its classes are
+    spread over `...tools.icarus.compile`, `...icarus.cocotb_exec` and more,
+    with nothing in the package's own `__init__` -- so the shallowest was
+    whichever task file sorted first, the probe imported that one module, and
+    the class that actually sets the executable was in a different file it
+    never looked at. Every tool reported a version except that one, which is
+    the shape of a bug nobody notices.
+
+    ⚠️ Falls back to the shortest module where the prefix collapses to
+    something too general to import usefully -- two classes in unrelated trees
+    share only `siliconcompiler`, and importing that drives nothing.
+    """
+    modules = sorted(modules)
+    if not modules:
+        return None
+    if len(modules) == 1:
+        return modules[0]
+
+    parts = modules[0].split(".")
+    for module in modules[1:]:
+        other = module.split(".")
+        keep = 0
+        while keep < min(len(parts), len(other)) and parts[keep] == other[keep]:
+            keep += 1
+        parts = parts[:keep]
+
+    prefix = ".".join(parts)
+    return prefix if prefix.count(".") >= 2 else min(modules, key=len)
 
 
 def register(version: str, tools_digest: str, runtime_digest: str,
@@ -450,10 +490,13 @@ def register(version: str, tools_digest: str, runtime_digest: str,
             add += ["-driver", driver]
         registry(*add)
 
-        reported = (held.get(tool) or {}).get("version")
-        if reported:
-            registry("add-version", tool, reported)
-            contains += ["-contains", f"{tool}=={reported}"]
+        # The COMPARABLE one -- the driver's own normalisation, already
+        # applied -- because that is what a version range is matched against.
+        # What the tool printed went to the log above.
+        version = (held.get(tool) or {}).get("version")
+        if version:
+            registry("add-version", tool, version)
+            contains += ["-contains", f"{tool}=={version}"]
         else:
             # In the image, listed, and nobody asked it what it was.
             registry("add-version", tool, published, "-unversioned")
@@ -494,8 +537,18 @@ def main() -> int:
     say("asking the tools image what it actually holds")
     held = ask_image(STACK_IMAGE, ["siliconcompiler"], drivers)
     for tool in TOOLS:
-        reported = (held.get(tool) or {}).get("version")
-        say(f"  {tool}: {reported or 'no version reported'}")
+        answer = held.get(tool) or {}
+        version, reported = answer.get("version"), answer.get("reported")
+        if not version:
+            say(f"  {tool}: no version reported")
+        elif reported and reported != version:
+            # Both, because they differ for real tools and only one of them is
+            # what the tool actually printed: verilator says 5.052 and PEP 440
+            # makes that 5.52, and OpenROAD's own normaliser rewrites its
+            # version wholesale.
+            say(f"  {tool}: {version}  (reported {reported})")
+        else:
+            say(f"  {tool}: {version}")
 
     runtime_digest = push(RUNTIME_IMAGE, "sc-runtime", version)
     tools_digest = push(STACK_IMAGE, "sc-tools", version)
