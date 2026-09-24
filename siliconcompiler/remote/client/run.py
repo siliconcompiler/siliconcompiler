@@ -150,7 +150,7 @@ class RemoteRun:
                 design=design, jobname=jobname,
                 flow=self._flow_descriptor(),
                 resources={"upload_bytes": size},
-                versions={"siliconcompiler": sc_version},
+                versions={"siliconcompiler": _framework_requirement()},
                 idempotency_key=_key())
 
             job_id = job["id"]
@@ -744,6 +744,30 @@ def _is_refusal(problem: ServerProblem) -> bool:
     if problem.slug is None:
         return False
     return problem.slug not in ("not-ready", "rate-limited")
+
+
+def _framework_requirement() -> str:
+    """What this client needs the server's framework image to hold.
+
+    The request carries a PEP 440 specifier and the SERVER resolves it, which
+    is what lets a deployment answer *which image has all of these* -- a
+    question a client cannot answer, because `GET /v1`'s `software` map is flat
+    per name while the image join is over combinations.
+
+    🔴 **`==` and deliberately not `>=`, which is the tempting one.** Reading a
+    manifest is only backwards compatible: a newer SiliconCompiler reads an
+    older manifest, and the reverse either fails or quietly returns something
+    other than what was written. `>=` gets the upload read correctly -- a newer
+    image reads this client's manifest -- and then every manifest that comes
+    BACK is written by that newer version and read by this one, which is the
+    unsupported direction. The node states and the metrics `summary()` prints
+    come out of those.
+
+    ⚠️ So the ceiling is not caution, it is the same rule in the other
+    direction. A deployment that wants a range here is asking this client to
+    read manifests it cannot.
+    """
+    return f"=={sc_version}"
 
 
 def _key() -> str:

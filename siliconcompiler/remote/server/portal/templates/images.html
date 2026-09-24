@@ -44,6 +44,17 @@
     <td>
       {%- for version in catalogue.versions if version.software_name == row.name -%}
       <span class="mono muted">{{ version.version }}</span>
+      {#-
+        🔴 Marked, because the number alone is a trap: a tool that reports no
+        version is recorded with its image's publish date, and 20260924 beats
+        2.0.1 under every comparison there is. Such a row can never satisfy a
+        version requirement, and it always sorts below a reported one.
+      -#}
+      {%- if version.version_source != 'reported' %}
+      <span class="tag" title="the tool reports no version, so this is when its
+            image was published; it can never satisfy a version requirement"
+        >no version reported</span>
+      {%- endif -%}
       {%- if version.preference %} <span class="muted">(pref {{ version.preference }})</span>{% endif -%}
       {#
         No per-version button once the distribution itself is retired: the
@@ -91,6 +102,12 @@
     <label>Preference (higher is offered first)
       <input type="text" name="preference" placeholder="0"></label>
   </div>
+  <label>
+    <input type="checkbox" name="unversioned" value="1">
+    This tool reports no version, so the box above is the date its image was
+    published. Listing it beats leaving it out, and it can never satisfy a
+    version requirement.
+  </label>
   <button>Register software</button>
 </form>
 

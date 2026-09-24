@@ -13,6 +13,7 @@ again.
 '''
 
 import base64
+import hashlib
 import json
 import logging
 import re
@@ -173,8 +174,13 @@ class JobService:
                         detail="this Idempotency-Key was used for a different request")
                 return self.wire(existing), 200
 
-        if run_hash:
-            hit = self._reuse(session.user_id, run_hash)
+        # 🔴 Before the reuse lookup, because the answer is part of what the
+        # lookup is keyed on -- and before the upload, which is the whole point
+        # of resolving here at all.
+        identity = self._identity(run_hash, body.get("versions") or {})
+
+        if identity:
+            hit = self._reuse(session.user_id, identity)
             if hit is not None:
                 # 200 rather than 201: a 201 carrying an old job's id is
                 # indistinguishable from a new one. The body is the job object
@@ -192,31 +198,65 @@ class JobService:
         with self._store.transaction():
             self._store.execute(
                 "INSERT INTO jobs (id, user_id, device_id, state, design, jobname, "
-                "                  descriptor, idempotency_key, run_hash, retention_until) "
-                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?)",
+                "                  descriptor, idempotency_key, run_hash, "
+                "                  job_identity, retention_until) "
+                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?)",
                 (job_id, session.user_id, device_id, design, jobname,
-                 json.dumps(body), idempotency_key, run_hash,
+                 json.dumps(body), idempotency_key, run_hash, identity,
                  _retention(self._config.limits["job_retention_days"])))
             self._transition(job_id, None, "created", actor=session.user_id)
 
         return self.wire(self._row(job_id)), 201
 
-    def _reuse(self, user_id: str, run_hash: str):
-        '''The caller's own newest job with this hash, if it may be handed back.
+    def _identity(self, run_hash: Optional[str], declared) -> Optional[str]:
+        '''``H(client hash || the digests it resolved to)``, or None.
 
-        🔴 Owner-scoped, and that is the whole safety argument. The hash is the
-        client's and the server never recomputes or normalises it, so a wrong
-        one hands a user their own stale job -- confusing, and not a disclosure.
-        An archived job is excluded, which is how a person says *stop handing me
-        that result* without an endpoint for it.
+        🔴 **The client's hash alone is not the job's identity, and treating it
+        as one hands back a result produced by different code.** The client
+        hashes the work; this server chooses what runs it. Folding in the
+        digests means two runs asking for the same thing but resolved to
+        different images are correctly different jobs -- and re-registering an
+        image invalidates reuse exactly when it should, because a new digest is
+        precisely *the code changed*.
+
+        🔴 **Computed from the descriptor and the registry only.** No uploaded
+        bytes are involved, which is what lets this happen at create and save
+        the upload. It is therefore the same value at create and at submit for
+        the same declared versions, and it is written once.
+
+        ⚠️ None where the client sent no hash, which is every SiliconCompiler
+        client today: what SC should hash is a decision that lives elsewhere,
+        and this half is proven by the conformance fixtures rather than left as
+        dead code.
+        '''
+        if not run_hash:
+            return None
+
+        digests: List[str] = []
+        if self._config["containers"]:
+            digests = images.digests_for(self._store, declared)
+
+        payload = "\n".join([run_hash, *sorted(digests)])
+        return hashlib.sha256(payload.encode()).hexdigest()
+
+    def _reuse(self, user_id: str, identity: str):
+        '''The caller's own newest job with this identity, if it may be handed
+        back.
+
+        🔴 Owner-scoped, and that is the whole safety argument. Half of the
+        identity is the client's own hash, which this server never recomputes
+        or normalises, so a wrong one hands a user their own stale job --
+        confusing, and not a disclosure. An archived job is excluded, which is
+        how a person says *stop handing me that result* without an endpoint for
+        it.
         '''
         placeholders = ", ".join("?" * len(REUSABLE_STATES))
         return self._store.one(
-            "SELECT * FROM jobs WHERE user_id = ? AND run_hash = ? "
+            "SELECT * FROM jobs WHERE user_id = ? AND job_identity = ? "
             f"  AND state IN ({placeholders}) "
             "  AND deleted_at IS NULL AND archived_at IS NULL "
             "ORDER BY created_at DESC, id DESC LIMIT 1",
-            (user_id, run_hash, *REUSABLE_STATES))
+            (user_id, identity, *REUSABLE_STATES))
 
     def _check_pending_uploads(self, user_id: str) -> None:
         held = self._store.one(
@@ -262,22 +302,52 @@ class JobService:
     def _check_versions(self, versions: Dict[str, Any]) -> None:
         '''Refuse a client this deployment cannot run.
 
-        The same comparison the client could have made itself against `GET /v1`'s
-        `software`, which is the point of publishing it -- but a client that
-        omitted `versions` reaches this check at submit instead, after the whole
-        archive has moved.
+        The cheap check, before the upload -- but only the cheap one: a client
+        that omits `versions` reaches the binding check at submit instead,
+        after the whole archive has moved.
+
+        🔴 **A requirement is a PEP 440 specifier and the SERVER resolves it.**
+        A client cannot: `GET /v1`'s `software` is flat per name while the
+        image join is over combinations, so a client resolving each
+        requirement on its own can name a set no single image holds -- every
+        version published, every one satisfiable, and nothing to run them in.
+        ⚠️ A bare version means `==`, which is what every client sent before
+        the wire carried ranges.
+
+        🔴 **A name that is present and reports no version gets its own
+        answer.** A tool recorded from its image's publish date is in
+        `software`, which has nowhere to carry the mark, so a client's
+        preflight says yes and this says no. Telling them *no image matches*
+        would send them looking for a version that is already installed; the
+        true answer is that nothing here can be matched against a range.
         '''
-        from siliconcompiler.remote.server.routes.meta import advertised_software
+        from siliconcompiler.remote.server.routes.meta import (
+            advertised_reported, advertised_software)
 
         available = advertised_software(self._store, self._config)
+        reported = advertised_reported(self._store, self._config)
+
         for name, wanted in versions.items():
             if name not in available:
                 continue
-            if wanted not in available[name]:
+
+            spec = images.specifier(wanted)
+            if any(images.matches(version, "reported", spec)
+                   for version in reported.get(name, ())):
+                continue
+
+            if available[name] and not reported.get(name):
                 raise ProblemError(
                     "version-skew",
-                    detail=f"this server runs {name} "
-                           f"{', '.join(available[name])}, and you have {wanted}")
+                    detail=f"this server has {name}, and reports no version "
+                           "for it -- so nothing here can be matched against a "
+                           f"version requirement. Ask for {name} without one")
+
+            raise ProblemError(
+                "version-skew",
+                detail=f"this server runs {name} "
+                       f"{', '.join(available[name])}, and you asked for "
+                       f"{wanted}")
 
     ######################################################################
     # 14. upload-grant
@@ -1665,6 +1735,20 @@ class JobService:
     def _row(self, job_id: str):
         return self._store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
 
+    def resolved_versions(self, job) -> Dict[str, List[str]]:
+        """Every distribution version this job's images declare.
+
+        The job image and each node's, taken together: a forty-node flow over
+        six tools resolves six images, and *what did this run* is the union of
+        what they hold.
+        """
+        rows = self._store.all(
+            "SELECT DISTINCT image_id FROM job_nodes WHERE job_id = ? "
+            "  AND image_id IS NOT NULL", (job["id"],))
+
+        return images.contents_of(
+            self._store, [job["image_id"], *(row["image_id"] for row in rows)])
+
     def web_url(self, job_id: str) -> Optional[str]:
         """This job's page for a person, where this deployment has one."""
         base = self._config["web_url_base"]
@@ -1739,6 +1823,17 @@ class JobService:
         page = self.web_url(job["id"])
         if page:
             body["web_url"] = page
+
+        # 🔴 What it actually ran in. Once a request can carry a range, nothing
+        # else answers *what did this job run* -- the descriptor says what was
+        # asked for and this says what the server chose.
+        #
+        # ⚠️ Absent rather than empty where nothing was resolved: on a
+        # deployment that runs jobs on the host there is no image and no
+        # answer, and `{}` would claim this job ran nothing at all.
+        resolved = self.resolved_versions(job)
+        if resolved:
+            body["resolved_versions"] = resolved
 
         rows = self._store.all(
             'SELECT step, "index", state, started_at, finished_at, exit_code, error_type '

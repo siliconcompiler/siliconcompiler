@@ -305,6 +305,39 @@ def test_software_can_be_retired_from_the_screen(signed_in, server):
                      "WHERE name = 'yosys'")["retired_at"]
 
 
+def test_a_version_nothing_reported_is_marked_on_the_screen(signed_in, server):
+    '''🔴 The number alone is a trap: a tool that reports no version is
+    recorded with its image's publish date, and 20260924 beats 2.0.1 under
+    every comparison there is. The operator reading this screen is the person
+    who has to know it can never satisfy a version requirement.'''
+    from siliconcompiler.remote.server import images
+
+    store = server.config["SC_STORE"]
+    actor = store.upsert_user("operator", "someone@host")["id"]
+    images.register_software(store, "magic", "Magic", actor)
+    images.register_version(store, "magic", "20260924", actor,
+                            source="published_date")
+    images.register_version(store, "magic", "8.3.2", actor)
+
+    page = signed_in.get("/portal/images").get_data(as_text=True)
+
+    assert "no version reported" in page
+    # And ordered: reported first, whatever the numbers say.
+    assert page.index("8.3.2") < page.index("20260924")
+
+
+def test_the_operator_can_record_a_tool_that_reports_nothing(signed_in, server):
+    token = csrf(signed_in, "/portal/images")
+
+    signed_in.post("/portal/images/software",
+                   data={"csrf": token, "name": "magic", "version": "20260924",
+                         "unversioned": "1"})
+
+    assert server.config["SC_STORE"].one(
+        "SELECT version_source FROM software_versions "
+        "WHERE software_name = 'magic'")["version_source"] == "published_date"
+
+
 def test_a_retired_distribution_offers_no_per_version_button(signed_in, server):
     '''Once the whole name has stopped raising a requirement, retiring one of
     its versions would change nothing -- and offering it says otherwise.'''

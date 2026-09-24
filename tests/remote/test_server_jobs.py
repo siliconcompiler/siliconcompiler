@@ -240,16 +240,22 @@ def test_one_users_key_does_not_collide_with_anothers(server_client, key, token)
 # Job reuse
 ###########################
 
-def reuse_job(jobs, store, user_id, run_hash, state, **columns):
-    '''A finished job with a hash, written straight into the store.'''
+def reuse_job(jobs, store, user_id, run_hash, state, declared=None, **columns):
+    '''A finished job with a hash, written straight into the store.
+
+    ⚠️ It writes `job_identity` as well, through the service, because that is
+    what the lookup is keyed on: the client's hash is only half of it and the
+    server's resolved digests are the other half.
+    '''
     from siliconcompiler.remote.server.ids import uuid7
 
     job_id = str(uuid7())
     store.execute(
         "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
-        "                  run_hash, manifest_pdk) "
-        "VALUES (?, ?, ?, 'gcd', 'old', '{}', ?, 'none')",
-        (job_id, user_id, state, run_hash))
+        "                  run_hash, job_identity, manifest_pdk) "
+        "VALUES (?, ?, ?, 'gcd', 'old', '{}', ?, ?, 'none')",
+        (job_id, user_id, state, run_hash,
+         jobs._identity(run_hash, declared or {})))
     if columns:
         # One statement, because the archived_at/archived_by CHECK is on the
         # pair: setting them one at a time fails on the first.
@@ -1196,6 +1202,132 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
     read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
                 container_token).get_json()
     assert read["state"] == "rejected"
+
+
+def test_the_job_publishes_the_versions_the_server_resolved(
+        container_server, container_client, key, container_token, job_archive,
+        container_dispatcher):
+    """🔴 Once a request can carry a range, nothing else answers *what did this
+    job run*: the descriptor says what was asked for and this says what the
+    server chose."""
+    archive, upload_digest, size = job_archive()
+    job = stage(container_client, key, container_token, archive, size,
+                versions={"siliconcompiler": ">=0.38,<0.39"})
+    submit(container_client, key, container_token, job["id"], upload_digest, size)
+
+    read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
+                container_token).get_json()
+
+    assert read["resolved_versions"] == {"siliconcompiler": ["0.38.0"]}
+
+
+def test_a_job_that_resolved_nothing_says_nothing(server, server_client, key,
+                                                  token, job_archive, dispatcher):
+    """⚠️ Absent and not empty. On a deployment that runs jobs on the host
+    there is no image and no answer, and `{}` would claim this job ran
+    nothing at all."""
+    archive, upload_digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], upload_digest, size)
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}",
+                token).get_json()
+
+    assert "resolved_versions" not in read
+
+
+def test_a_range_no_image_satisfies_is_refused_at_create(
+        container_server, container_client, key, container_token):
+    """✅ Resolution needs the declared versions and the registry, not the
+    uploaded bytes -- so it happens before the upload, where it is free."""
+    response = create(container_client, key, container_token,
+                      versions={"siliconcompiler": ">=0.40"})
+
+    assert response.status_code == 422
+    assert slug(response) == "version-skew"
+
+
+def test_a_range_the_registry_can_serve_is_accepted_at_create(
+        container_server, container_client, key, container_token):
+    assert create(container_client, key, container_token,
+                  versions={"siliconcompiler": ">=0.38,<0.39"}).status_code == 201
+
+
+def test_a_bare_version_is_still_an_exact_pin(container_server,
+                                              container_client, key,
+                                              container_token):
+    """⚠️ It is what every client sent before the wire carried ranges."""
+    assert create(container_client, key, container_token,
+                  versions={"siliconcompiler": "0.38.0"}).status_code == 201
+    assert create(container_client, key, container_token,
+                  versions={"siliconcompiler": "0.38.1"}).status_code == 422
+
+
+def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
+        container_server, container_client, key, container_token):
+    """🔴 `GET /v1`'s `software` has nowhere to carry the mark, so a client's
+    own preflight said yes. *No image matches* would send them looking for a
+    version of a tool that is already installed; the true answer is that
+    nothing here can be matched against a range."""
+    from siliconcompiler.remote.server import images
+
+    store = container_server.config["SC_STORE"]
+    images.register_software(store, "magic", "Magic", operator(store))
+    images.register_version(store, "magic", "20260924", operator(store),
+                            source="published_date")
+    images.register_image(store, "ghcr.io/x/sc-magic:1", digest("c"),
+                          [("siliconcompiler", "0.38.0"), ("magic", "20260924")],
+                          operator(store))
+
+    response = create(container_client, key, container_token,
+                      versions={"magic": ">=8.0"})
+
+    assert response.status_code == 422
+    assert slug(response) == "version-skew"
+    assert "reports no version" in response.get_json()["detail"]
+
+
+def test_the_job_identity_folds_in_what_the_server_chose(
+        container_server, container_client, key, container_token):
+    """🔴 The client's hash alone is not the job's identity. It hashes the
+    work; this server chooses what runs it -- so re-registering an image
+    invalidates reuse exactly when it should, because a new digest is
+    precisely *the code changed*."""
+    from siliconcompiler.remote.server import images
+
+    store = container_server.config["SC_STORE"]
+    jobs = container_server.config["SC_JOBS"]
+    mine = call(container_client, key, "GET", "/v1/me",
+                container_token).get_json()["id"]
+
+    existing = reuse_job(jobs, store, mine, "h-1", "completed")
+
+    # 200 and the old job: same work, same image.
+    again = create(container_client, key, container_token, run_hash="h-1")
+    assert again.status_code == 200
+    assert again.get_json()["id"] == existing
+
+    # The same tag, rebuilt. The old row is superseded and the digest is new,
+    # which is precisely "the code changed".
+    images.register_image(store, "ghcr.io/x/sc:0.38.0", digest("b"),
+                          [("siliconcompiler", "0.38.0")], operator(store))
+
+    after = create(container_client, key, container_token, run_hash="h-1")
+    assert after.status_code == 201
+    assert after.get_json()["id"] != existing
+
+
+def test_the_stored_identity_is_not_the_clients_own_hash(
+        container_server, container_client, key, container_token):
+    """The client keeps computing its own hash and tracks nothing extra, and
+    the server records both halves: what was sent, and what it is keyed on."""
+    create(container_client, key, container_token, run_hash="h-1")
+
+    row = container_server.config["SC_STORE"].one(
+        "SELECT run_hash, job_identity FROM jobs WHERE run_hash = 'h-1'")
+
+    assert row["run_hash"] == "h-1"
+    assert row["job_identity"] and row["job_identity"] != "h-1"
 
 
 def test_a_version_with_no_image_is_never_advertised(container_server, container_client):

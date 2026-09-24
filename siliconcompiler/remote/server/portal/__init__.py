@@ -1108,8 +1108,11 @@ def add_software(session):
                              flask.request.form.get("display") or name,
                              session.user_id)
     if version:
-        images.register_version(_store(), name, version, session.user_id,
-                                preference=_int(flask.request.form.get("preference")))
+        images.register_version(
+            _store(), name, version, session.user_id,
+            preference=_int(flask.request.form.get("preference")),
+            source=("published_date" if flask.request.form.get("unversioned")
+                    else "reported"))
 
     return flask.redirect(flask.url_for("portal.registry"))
 

@@ -30,12 +30,13 @@ from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
 
-__all__ = ["PRIMARY", "Requirement", "Plan", "bundle_path", "catalogue",
-           "sweep_bundles",
+__all__ = ["PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
+           "catalogue", "contents_of", "declared_requirements", "digests_for",
+           "sweep_bundles", "matches", "normalize", "specifier",
            "is_staged", "live_images", "live_software", "pinned_ref",
            "plan_for_job", "register_image", "register_software",
-           "register_version", "resolve", "retire_image", "retire_software",
-           "retire_version", "stage_bundle"]
+           "register_version", "resolve", "resolve_declared", "retire_image",
+           "retire_software", "retire_version", "stage_bundle"]
 
 
 logger = logging.getLogger("sc-server")
@@ -53,18 +54,116 @@ _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 class Requirement(NamedTuple):
     '''One thing an image has to hold.
 
-    ``version`` is None for *any live version of this software*, which is the
-    ordinary case for a tool: SiliconCompiler does not know which version of
-    OpenROAD it will find until the node runs, so a submit that demanded an
-    exact one could never resolve. A pinned requirement comes from what the
-    client declared, where naming the version is the client's whole point.
+    ``version`` is a **PEP 440 specifier** -- ``>=0.38,<0.40``, ``==0.38.9`` --
+    and None for *any live version of this software*, which is the ordinary
+    case for a tool: SiliconCompiler does not know which version of OpenROAD it
+    will find until the node runs, so a submit that demanded an exact one could
+    never resolve. A pinned requirement comes from what the client declared,
+    where naming the version is the client's whole point.
+
+    🔴 **A range on the wire and never in storage.** The *no ranges* rule is
+    about what a row records -- a stored range is a promise nobody can check --
+    and the client half is the opposite problem: ``GET /v1``'s ``software`` map
+    is flat per name, while the image join is over combinations, so a client
+    resolving each requirement on its own can name a set no single image holds,
+    with every version published and satisfiable and nothing to run them in.
+    Only the server can answer *which image has both*, so only the server
+    resolves.
     '''
     name: str
     version: Optional[str]
     kind: str               # 'library' or 'tool' -- what a refusal calls it
 
     def __str__(self) -> str:
-        return self.name if self.version is None else f"{self.name}=={self.version}"
+        if self.version is None:
+            return self.name
+        # A bare version reads as an exact pin, which is what it means.
+        joined = self.version if _HAS_OPERATOR.match(self.version) \
+            else f"=={self.version}"
+        return f"{self.name}{joined}"
+
+
+# A specifier begins with an operator; anything else is a bare version, and a
+# bare version means `==`. The same leniency `Task.check_version` has, for the
+# same reason: it is what people write.
+_HAS_OPERATOR = re.compile(r"^\s*(===|==|!=|~=|<=|>=|<|>)")
+
+
+def specifier(declared) -> Optional[str]:
+    '''What the client asked for, as a PEP 440 specifier set, or None.
+
+    ⚠️ A bare ``0.38.9`` becomes ``==0.38.9`` rather than being refused. It is
+    what every client sent before the wire carried ranges, and it is what a
+    person writes.
+    '''
+    if declared is None:
+        return None
+    text = str(declared).strip()
+    if not text:
+        return None
+    return text if _HAS_OPERATOR.match(text) else f"=={text}"
+
+
+def normalize(version: str) -> str:
+    '''One version, in PEP 440's own spelling, or unchanged.
+
+    🔴 **At registration and not at request time.** It keeps per-tool version
+    handling out of the request path, and it removes a skew risk that would
+    otherwise be invisible: a client and a server on different SC releases
+    normalising the same string differently would disagree about whether an
+    image matched, and neither would say so.
+
+    A version that is not PEP 440 at all is stored as it was given. It is still
+    a real version somebody can read and select by name; what it cannot do is
+    satisfy a range, and `matches` is where that is decided.
+    '''
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        return str(Version(version))
+    except InvalidVersion:
+        return version
+
+
+def matches(version: str, source: str, wanted: Optional[str]) -> bool:
+    '''Whether one registered version answers one requirement.
+
+    🔴 **`published_date` never does, whatever the numbers say.** A tool that
+    reports no version is recorded with the date its image was published --
+    a complete tool list beats a partial one -- but `20260924` beats `2.0.1`
+    under every comparison there is, so an unversioned build from years ago
+    would outrank a current release for ever. The mark exists for exactly this
+    check, and it is made before any comparison.
+    '''
+    if wanted is None:
+        return True
+    if source != "reported":
+        return False
+
+    from packaging.specifiers import InvalidSpecifier, SpecifierSet
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        # prereleases=True: a server that registered 1.0rc1 registered it on
+        # purpose, and silently skipping it would refuse a job for a version
+        # the catalogue lists.
+        return Version(version) in SpecifierSet(wanted, prereleases=True)
+    except (InvalidSpecifier, InvalidVersion):
+        # Either side unparsable falls back to the only comparison that is
+        # always defined: the exact string somebody registered.
+        return wanted.lstrip("=") == version
+
+
+class Held(NamedTuple):
+    '''One distribution an image declares, as the resolution reads it.
+
+    A named tuple rather than a bare one because it grew a fourth member and a
+    positional unpack of four is how the wrong field gets compared.
+    '''
+    name: str
+    version: str
+    preference: int
+    source: str             # 'reported' or 'published_date'
 
 
 class Plan(NamedTuple):
@@ -123,9 +222,10 @@ def live_images(store) -> List[Dict[str, Any]]:
         "SELECT id, registry_ref, digest, note FROM images "
         "WHERE retired_at IS NULL ORDER BY registry_ref")
 
-    contents: Dict[str, List[Tuple[str, str, int]]] = {}
+    contents: Dict[str, List[Held]] = {}
     for row in store.all(
-            "SELECT c.image_id, c.software_name, c.version, sv.preference "
+            "SELECT c.image_id, c.software_name, c.version, sv.preference, "
+            "       sv.version_source "
             "FROM image_contents c "
             "JOIN software s ON s.name = c.software_name AND s.retired_at IS NULL "
             "JOIN software_versions sv "
@@ -133,7 +233,8 @@ def live_images(store) -> List[Dict[str, Any]]:
             " AND sv.retired_at IS NULL "
             "JOIN images i ON i.id = c.image_id AND i.retired_at IS NULL"):
         contents.setdefault(row["image_id"], []).append(
-            (row["software_name"], row["version"], row["preference"]))
+            Held(row["software_name"], row["version"], row["preference"],
+                 row["version_source"]))
 
     return [{"id": row["id"], "registry_ref": row["registry_ref"],
              "digest": row["digest"], "note": row["note"],
@@ -153,7 +254,9 @@ def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
         f"SELECT * FROM software{where} ORDER BY name")]
     versions = [dict(row) for row in store.all(
         f"SELECT * FROM software_versions{where} "
-        "ORDER BY software_name, preference DESC, version")]
+        "ORDER BY software_name, "
+        "         CASE version_source WHEN 'reported' THEN 0 ELSE 1 END, "
+        "         preference DESC, version")]
     images = [dict(row) for row in store.all(
         f"SELECT * FROM images{where} ORDER BY registry_ref")]
 
@@ -183,6 +286,19 @@ def live_software(store) -> Dict[str, List[str]]:
     retiring the software is how an operator says *not any more*. Collapsing
     the two would make withdrawing the last version silently hand every job
     back to the host it was meant to stop running on.
+
+    🔴 **A `reported` version sorts above a `published_date` one whatever the
+    numbers say.** That is the whole reason the mark exists: a tool recorded
+    from its image's publish date is `20260924`, which beats `2.0.1` under
+    every comparison there is, so without the ordering an unversioned build
+    from years ago would head this list for ever.
+
+    ⚠️ **Both kinds appear here, and `GET /v1`'s `software` has nowhere to
+    carry the mark**, so a client's preflight can say yes to a version
+    requirement this server will then refuse. Accepted: the preflight is
+    advisory and the server is binding. The condition is that the refusal says
+    *present but reports no version* rather than *no image matches* -- see
+    `_unsatisfiable`.
     '''
     tracked: Dict[str, List[str]] = {
         row["name"]: []
@@ -192,7 +308,9 @@ def live_software(store) -> Dict[str, List[str]]:
             "SELECT sv.software_name AS name, sv.version FROM software_versions sv "
             "JOIN software s ON s.name = sv.software_name "
             "WHERE s.retired_at IS NULL AND sv.retired_at IS NULL "
-            "ORDER BY sv.software_name, sv.preference DESC, sv.version DESC"):
+            "ORDER BY sv.software_name, "
+            "         CASE sv.version_source WHEN 'reported' THEN 0 ELSE 1 END, "
+            "         sv.preference DESC, sv.version DESC"):
         tracked[row["name"]].append(row["version"])
 
     return tracked
@@ -230,18 +348,22 @@ def resolve(store_or_images, requirements: Sequence[Requirement]):
 def _satisfies(image, requirements: Sequence[Requirement]) -> bool:
     held = image["contents"]
     for want in requirements:
-        if want.version is None:
-            if not any(name == want.name for name, _, _ in held):
-                return False
-        elif not any(name == want.name and version == want.version
-                     for name, version, _ in held):
+        if not any(entry.name == want.name
+                   and matches(entry.version, entry.source, want.version)
+                   for entry in held):
             return False
     return True
 
 
 def _rank(image):
-    preference = max((pref for name, _, pref in image["contents"]
-                      if name == PRIMARY), default=None)
+    '''Lower sorts first. Preference, then specificity, then the name.
+
+    🔴 `preference` and NOT the newest, which the schema already refuses: a
+    rebuilt image is newer and is not necessarily preferred. Where no
+    requirement names a version this is the whole answer.
+    '''
+    preference = max((entry.preference for entry in image["contents"]
+                      if entry.name == PRIMARY), default=None)
     # An image holding no framework at all ranks below every one that does,
     # rather than being excluded: it can still be the only thing that fits a
     # requirement set which never mentioned the framework.
@@ -266,34 +388,12 @@ def plan_for_job(store, declared: Dict[str, Any],
     the operator turned the switch off to get.
     '''
     images = live_images(store)
-    if not images:
-        raise ProblemError(
-            "unsatisfiable-request", resource_kind="library", resource=PRIMARY,
-            detail="this server runs jobs in containers and has no image "
-                   "registered")
+    tracked = live_software(store)
+    pinned = declared_requirements(tracked, declared)
+    job_image = resolve_declared(images, pinned)
 
     refs = {image["id"]: pinned_ref(image["registry_ref"], image["digest"])
             for image in images}
-
-    tracked = live_software(store)
-
-    # What the run's own Python process needs, and therefore what every node
-    # needs: the framework, plus any library the client pinned. A name this
-    # deployment does not track is not a requirement -- it is a version of
-    # something nobody here curates, and `version-skew` at create is where that
-    # is answered if it is answered at all.
-    pinned = [Requirement(name, str(version), "library")
-              for name, version in sorted((declared or {}).items())
-              if name in tracked and isinstance(version, (str, int, float))]
-
-    if PRIMARY in tracked and not any(want.name == PRIMARY for want in pinned):
-        # The client named no framework version. The deployment's own
-        # preference order picks, which is what `preference` is for.
-        pinned.append(Requirement(PRIMARY, None, "library"))
-
-    job_image = resolve(images, pinned)
-    if job_image is None:
-        raise _unsatisfiable(pinned, images)
 
     nodes: Dict[Tuple[str, str], Optional[str]] = {}
     for node, tool in node_tools.items():
@@ -312,6 +412,94 @@ def plan_for_job(store, declared: Dict[str, Any],
     return Plan(job_image["id"], nodes, refs)
 
 
+def declared_requirements(tracked, declared: Dict[str, Any]) -> List[Requirement]:
+    '''What the run's own Python process needs, from the descriptor alone.
+
+    The framework, plus any library the client pinned. A name this deployment
+    does not track is not a requirement -- it is a version of something nobody
+    here curates, and `version-skew` is where that is answered if it is
+    answered at all.
+
+    🔴 **Computable without the upload**, which is what lets create resolve
+    images as well as submit: it needs the declared versions and the registry
+    and nothing else. That is what keeps the create-time reuse check able to
+    skip the upload entirely.
+    '''
+    pinned = [Requirement(name, specifier(version), "library")
+              for name, version in sorted((declared or {}).items())
+              if name in tracked and isinstance(version, (str, int, float))]
+
+    if PRIMARY in tracked and not any(want.name == PRIMARY for want in pinned):
+        # The client named no framework version. The deployment's own
+        # preference order picks, which is what `preference` is for -- and
+        # deliberately NOT the newest, because a rebuilt image is newer and is
+        # not necessarily preferred.
+        pinned.append(Requirement(PRIMARY, None, "library"))
+
+    return pinned
+
+
+def resolve_declared(images, requirements: Sequence[Requirement]):
+    '''The one image the declared versions resolve to. Raises if none fits.'''
+    if not images:
+        raise ProblemError(
+            "unsatisfiable-request", resource_kind="library", resource=PRIMARY,
+            detail="this server runs jobs in containers and has no image "
+                   "registered")
+
+    found = resolve(images, requirements)
+    if found is None:
+        raise _unsatisfiable(requirements, images)
+    return found
+
+
+def digests_for(store, declared: Dict[str, Any]) -> List[str]:
+    '''What this descriptor's declared versions resolve to, as digests.
+
+    🔴 **The server's half of the job identity.** The client keeps computing
+    its own hash over the work and tracks nothing extra; this is folded in, so
+    two runs asking for the same thing and resolved to different images are
+    correctly different jobs -- and re-registering an image invalidates reuse
+    exactly when it should, because a new digest is precisely *the code
+    changed*.
+
+    Raises the same refusal submit would, which is the point of doing it at
+    create: a descriptor nothing can run is refused before the upload rather
+    than after it.
+    '''
+    images = live_images(store)
+    requirements = declared_requirements(live_software(store), declared)
+    return [resolve_declared(images, requirements)["digest"]]
+
+
+def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str]]:
+    '''Every version the given images declare, keyed by distribution.
+
+    🔴 **What a job ran, once a request can carry a range.** Nothing else can
+    answer it: the descriptor says what was asked for and the answer is
+    whatever this server chose.
+
+    ⚠️ A list per name and not one string, for the same reason `GET /v1`'s
+    `software` is a list. A wide flow resolves several images, and where the
+    client pinned nothing they can legitimately hold different versions of the
+    same distribution -- so a single value would have to pick one and be wrong.
+    '''
+    wanted = {image_id for image_id in image_ids if image_id}
+    if not wanted:
+        return {}
+
+    found: Dict[str, List[str]] = {}
+    for image in live_images(store):
+        if image["id"] not in wanted:
+            continue
+        for entry in image["contents"]:
+            versions = found.setdefault(entry.name, [])
+            if entry.version not in versions:
+                versions.append(entry.version)
+
+    return {name: sorted(versions) for name, versions in sorted(found.items())}
+
+
 def _unsatisfiable(requirements: Sequence[Requirement], images,
                    blame: Optional[str] = None) -> ProblemError:
     '''No live image holds all of this.
@@ -319,9 +507,29 @@ def _unsatisfiable(requirements: Sequence[Requirement], images,
     🔴 `unsatisfiable-request` rather than `entitlement-denied`: the same
     catalogue and a different question. *This deployment does not have it*, not
     *you may not use it* -- and waiting will not change it.
+
+    🔴 **And it has to say WHICH of those two it is when a name is here but
+    unversioned.** A tool recorded from its publish date is in the catalogue,
+    appears in `GET /v1`'s `software` -- which has nowhere to carry the mark --
+    and can never satisfy a range. So a client's own preflight says yes and
+    this says no, which is accepted because the preflight is advisory and this
+    is binding. What is NOT acceptable is answering *no image matches* for it:
+    the honest answer is that the thing is present and reports no version, and
+    the two send somebody to completely different places.
     '''
     culprit = next((want for want in requirements if want.name == blame),
                    requirements[-1] if requirements else None)
+
+    unversioned = _present_but_unversioned(requirements, images)
+    if unversioned:
+        return ProblemError(
+            "unsatisfiable-request",
+            resource_kind=unversioned.kind, resource=str(unversioned),
+            detail=f"this server has {unversioned.name}, and every image "
+                   "holding it reports no version for it -- so nothing here "
+                   "can be matched against a version requirement. Ask for it "
+                   "without a version, or ask the operator to register the "
+                   "version its images actually hold")
 
     return ProblemError(
         "unsatisfiable-request",
@@ -330,6 +538,23 @@ def _unsatisfiable(requirements: Sequence[Requirement], images,
         detail=f"no image on this server holds "
                f"{', '.join(str(want) for want in requirements)}; "
                f"{len(images)} image(s) are registered")
+
+
+def _present_but_unversioned(requirements: Sequence[Requirement], images):
+    '''The first requirement whose name is held, but never with a version.
+
+    Distinguishes *this server does not have it* from *this server has it and
+    cannot tell you which one*. Only a requirement that NAMES a version can hit
+    this: one that does not is satisfied by any live version, mark or no mark.
+    '''
+    for want in requirements:
+        if want.version is None:
+            continue
+        sources = {entry.source for image in images
+                   for entry in image["contents"] if entry.name == want.name}
+        if sources and "reported" not in sources:
+            return want
+    return None
 
 
 ######################################################################
@@ -603,25 +828,42 @@ def register_software(store, name: str, display_name: str, actor: str) -> None:
 
 
 def register_version(store, name: str, version: str, actor: str,
-                     preference: int = 0) -> None:
-    '''One exact version, and exact is the rule.
+                     preference: int = 0, source: str = "reported") -> str:
+    '''One exact version. Returns the spelling that was stored.
 
-    🔴 No ranges. A range needs a version-comparison grammar both ends
-    implement identically -- PEP 440 against semver against whatever a tool
-    calls its releases -- and two implementations disagreeing about what
-    ``>=0.38`` means is a job dispatched into the wrong container. An exact
-    version is a row somebody added on purpose.
+    🔴 **Exact in STORAGE, and that rule is scoped to storage.** A stored range
+    is a promise nobody can check against anything; the wire carries specifiers
+    and they are matched against these rows. An exact version is a row somebody
+    added on purpose.
+
+    🔴 **Normalised here, at registration, and not at request time.** It keeps
+    per-tool version handling off the request path, and it removes a skew that
+    would otherwise be silent: a client and a server on different SC releases
+    normalising the same string differently would disagree about whether an
+    image matched, and neither would say so.
+
+    ⚠️ ``source="published_date"`` is how a tool that reports no version gets
+    into the catalogue at all -- a complete tool list beats a partial one. What
+    it costs is that such a row can never satisfy a version requirement and
+    always sorts below a reported one, whatever the numbers say.
     '''
     if store.one("SELECT name FROM software WHERE name = ?", (name,)) is None:
         raise ValueError(f"{name} is not registered software; add it first")
+    if source not in ("reported", "published_date"):
+        raise ValueError(f"{source} is not a version source")
+
+    stored = normalize(version) if source == "reported" else version
 
     with store.transaction():
         store.execute(
-            "INSERT INTO software_versions (software_name, version, preference, added_by) "
-            "VALUES (?, ?, ?, ?) "
+            "INSERT INTO software_versions "
+            "  (software_name, version, version_source, preference, added_by) "
+            "VALUES (?, ?, ?, ?, ?) "
             "ON CONFLICT (software_name, version) DO UPDATE SET "
+            "  version_source = excluded.version_source, "
             "  preference = excluded.preference, retired_at = NULL, retired_by = NULL",
-            (name, version, preference, actor))
+            (name, stored, source, preference, actor))
+    return stored
 
 
 def register_image(store, registry_ref: str, digest: str,

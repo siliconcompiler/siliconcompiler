@@ -13,7 +13,7 @@ import flask
 
 from siliconcompiler import __version__ as sc_version
 
-__all__ = ["blueprint"]
+__all__ = ["advertised_reported", "advertised_software", "blueprint"]
 
 
 blueprint = flask.Blueprint("meta", __name__)
@@ -44,12 +44,30 @@ def advertised_software(store, config=None):
     yes and refused at submit. Such a server with an empty registry advertises
     nothing, which is what the startup check reads.
     '''
+    return _advertised(store, config, store.advertised_software)
+
+
+def advertised_reported(store, config=None):
+    '''The same map, less every version that no tool actually reported.
+
+    🔴 **What a version REQUIREMENT is matched against.** A tool recorded from
+    its image's publish date belongs in `software` -- a complete tool list
+    beats a partial one -- and must never satisfy a range, because `20260924`
+    beats `2.0.1` under every comparison there is. The two readers are
+    different and so are their lists.
+    '''
+    return _advertised(store, config, store.reported_versions)
+
+
+def _advertised(store, config, read):
     containers = bool(config["containers"]) if config is not None else True
 
-    software = store.advertised_software(containers=containers)
+    software = read(containers=containers)
     if containers:
         return software
 
+    # A deployment that runs no containers runs what this process was
+    # installed with, and this process reports its own version.
     return software or {"siliconcompiler": [sc_version]}
 
 

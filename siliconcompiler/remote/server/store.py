@@ -247,21 +247,52 @@ class Store:
         other direction.** Such a deployment has no images by definition, so
         joining to them would advertise nothing at all while the versions it
         genuinely runs sit in the table. It lists what it tracks.
+
+        ⚠️ **`version_source` has nowhere to go here**, because the member is a
+        flat array of strings and its shape is frozen. So a version recorded
+        from an image's publish date is advertised beside one a tool reported,
+        a client's preflight cannot tell them apart, and it can say yes to a
+        requirement the server will refuse. That is accepted -- the preflight
+        is advisory and the server binding -- on the condition that the refusal
+        says *present but reports no version*. `reported_only` is what the
+        checks that must tell them apart read instead.
         '''
+        return self._software(containers)
+
+    def reported_versions(self, containers: bool = True) -> dict:
+        '''The same map, less every version no tool actually reported.
+
+        🔴 **The set a version REQUIREMENT may be matched against**, and the
+        reason it is a separate query rather than a filter at the call site:
+        `20260924` is a perfectly good PEP 440 version and beats `2.0.1` under
+        every comparison there is, so anything that compares numbers has to be
+        handed a list the dates are already out of.
+        '''
+        return self._software(containers, reported_only=True)
+
+    def _software(self, containers: bool, reported_only: bool = False) -> dict:
         joins = (
             "JOIN image_contents ic "
             "  ON ic.software_name = sv.software_name AND ic.version = sv.version "
             "JOIN images i ON i.id = ic.image_id AND i.retired_at IS NULL "
         ) if containers else ""
 
+        reported = "  AND sv.version_source = 'reported' " if reported_only else ""
+
         rows = self.all(
-            "SELECT DISTINCT sv.software_name AS name, sv.version, sv.preference "
+            "SELECT DISTINCT sv.software_name AS name, sv.version, sv.preference, "
+            "       sv.version_source "
             "FROM software_versions sv "
             "JOIN software s ON s.name = sv.software_name "
             f"{joins}"
             "WHERE s.retired_at IS NULL "
             "  AND sv.retired_at IS NULL "
-            "ORDER BY sv.software_name, sv.preference DESC, sv.version DESC")
+            f"{reported}"
+            "ORDER BY sv.software_name, "
+            # 🔴 Reported first whatever the numbers say. Without this an
+            # unversioned build from years ago heads the list for ever.
+            "         CASE sv.version_source WHEN 'reported' THEN 0 ELSE 1 END, "
+            "         sv.preference DESC, sv.version DESC")
 
         software: dict = {}
         for row in rows:

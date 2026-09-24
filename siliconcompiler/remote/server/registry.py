@@ -152,12 +152,23 @@ def _cmd_add_software(store, args) -> int:
 
 
 def _cmd_add_version(store, args) -> int:
+    source = "published_date" if args.unversioned else "reported"
     try:
-        images.register_version(store, args.name, args.version, _operator(store),
-                                preference=args.preference)
+        stored = images.register_version(
+            store, args.name, args.version, _operator(store),
+            preference=args.preference, source=source)
     except ValueError as e:
         raise SystemExit(str(e))
-    print(f"registered {args.name}=={args.version}")
+
+    print(f"registered {args.name}=={stored}")
+    if stored != args.version:
+        # Normalised, and said so. Silently storing a different string than
+        # the operator typed is how a later `add-image -contains` fails to
+        # match a version that is right there in the catalogue.
+        print(f"  normalised from {args.version}")
+    if args.unversioned:
+        print("  marked published_date: it can never satisfy a version "
+              "requirement, and it always sorts below a reported version")
     return 0
 
 
@@ -368,6 +379,11 @@ def _parser() -> argparse.ArgumentParser:
         "-preference", type=int, default=0, metavar="<int>",
         help="higher is offered first, and breaks a tie between two images "
              "that both fit (default: %(default)s)")
+    version.add_argument(
+        "-unversioned", action="store_true",
+        help="this tool reports no version, so <version> is the date its "
+             "image was published. Listing it beats leaving it out, but it "
+             "can never satisfy a version requirement")
     version.set_defaults(run=_cmd_add_version)
 
     image = commands.add_parser("add-image", help="a container this server may run")

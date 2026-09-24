@@ -203,6 +203,15 @@ CREATE TABLE jobs (
                                                     -- owner-scoped, which is what makes trusting
                                                     -- a client-supplied value safe: a wrong hash
                                                     -- hands a user their own stale job
+    job_identity      text,                         -- H(run_hash || the digests this job's
+                                                    -- declared versions resolved to). What reuse
+                                                    -- is actually keyed on: the client keeps
+                                                    -- computing its own hash and tracks nothing
+                                                    -- extra, and the server folds in what IT
+                                                    -- chose -- so re-registering an image
+                                                    -- invalidates reuse exactly when it should,
+                                                    -- because a new digest is precisely
+                                                    -- "the code changed"
     image_id          text REFERENCES images(id),   -- the container this job RAN IN, resolved at
                                                     -- submit. NULL before admission, and on a
                                                     -- deployment that runs no containers
@@ -263,8 +272,10 @@ CREATE INDEX jobs_active_idx ON jobs (user_id)
     WHERE state IN ('queued', 'running', 'cancelling');
 CREATE INDEX jobs_pending_idx ON jobs (user_id) WHERE state IN ('created', 'awaiting_input');
 -- Owner-scoped, per the reuse rule, and partial because almost no row has one.
-CREATE INDEX jobs_run_hash_idx ON jobs (user_id, run_hash)
-    WHERE run_hash IS NOT NULL AND deleted_at IS NULL;
+-- On job_identity and not run_hash: two runs asking for the same work but
+-- resolved to different images are correctly different jobs.
+CREATE INDEX jobs_run_hash_idx ON jobs (user_id, job_identity)
+    WHERE job_identity IS NOT NULL AND deleted_at IS NULL;
 
 CREATE TABLE job_state_transitions (                -- append-only
     id            integer PRIMARY KEY,
@@ -424,7 +435,21 @@ CREATE TABLE software (                             -- what this deployment know
 
 CREATE TABLE software_versions (                    -- which versions of it, and in what order
     software_name text NOT NULL REFERENCES software(name),
-    version       text NOT NULL,                    -- exact. No ranges
+    version       text NOT NULL,                    -- exact, and normalised to PEP 440 when the
+                                                    -- image is registered. STORAGE has no ranges:
+                                                    -- the wire carries specifiers and this is
+                                                    -- what they are matched against
+    version_source text NOT NULL DEFAULT 'reported' -- where the number came from
+                     CHECK (version_source IN
+                       ('reported',                 -- the tool said so. The ONLY kind that can
+                                                    -- satisfy a version requirement
+                        'published_date')),         -- it said nothing, so this is when the image
+                                                    -- was published. A complete tool list beats a
+                                                    -- partial one, but 20260924 beats 2.0.1 under
+                                                    -- every comparison there is -- so it is
+                                                    -- marked, it never satisfies a requirement,
+                                                    -- and it always sorts BELOW a reported one
+                                                    -- whatever the numbers say
     preference    integer NOT NULL DEFAULT 0,       -- orders GET /v1's array; higher first
     added_at      text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     added_by      text NOT NULL REFERENCES users(id),

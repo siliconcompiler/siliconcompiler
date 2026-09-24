@@ -13,231 +13,179 @@ for tables and vocabularies, [`api/sc-server-profile.md`](../../../plans/crucibl
 for what this profile serves.
 
 🔴 **The freeze is the first tagged SC release whose `sc-server` answers
-`GET /v1`.** Until then these are free. After it, an additive *request* member
-costs a version bump (`additionalProperties: false` on requests), and an
-additive *response* member has to be paired with a `GET /v1` capability flag so
-a client can tell whether it is there.
+`GET /v1`.** Until then these are free. After it, an additive *response* member
+has to be paired with a `GET /v1` capability flag so a client can tell whether
+it is there.
+
+⚠️ **`additionalProperties: false` on requests does NOT make an additive
+request member cost a version bump.** A server accepting a new optional member
+is additive — old clients do not send it. What costs is a client *relying* on
+one, which needs a capability flag exactly as a response member does. The
+earlier wording here over-froze the request side.
+
+---
+
+## The first list is closed
+
+The nine items this file carried through 2026-09 were reviewed and decided in
+`crucible/orchestration/api/contract-changes.md`. They are implemented and
+their home is now the contract, so they have been removed rather than edited:
+`max_download_bytes` (renamed from `auto_fetch_max_bytes`, and a real limit
+rather than advice), `run_heartbeat_seconds` taken off the wire, `reports` as a
+produced kind, `error.detail` as a SHOULD, `error_type: "run-failed"`,
+`deleted_at` keeping its writer with `deleted_reason` beside it, `user_limits`
+without `plans`, no all-time `usage` figure, and `web_url`.
+
+**What follows is the second list**, started the same way: everything found
+while implementing those decisions that changes the published shape.
 
 ---
 
 ## Open — not yet in the contract docs
 
-### 1. `limits.auto_fetch_max_bytes` — a new published limit
+### 1. `deleted_reason` is the wire's spelling; the column is `delete_reason`
 
-| | |
-|---|---|
-| **Where** | `GET /v1` → `limits`, beside the other ten |
-| **Type** | integer, bytes, per artifact. Default here: `104857600` |
-| **Means** | the largest single artifact a client should pull without being asked for it |
-| **Status** | **served**, and read by this repo's client |
+The review said *publish `deleted_reason` on the artifact object*, and that is
+what is served. The column it comes from is `artifacts.delete_reason`, beside
+`deleted_by`.
 
-🔴 **Why it is a limit and deliberately not `fetchable: false`.** `fetchable`
-answers *may this caller have these bytes*, and the five client sentences
-render a false one as deleted, withheld, aged out, blocked by an agreement, or
-not entitled. Using it for size would tell somebody they lack permission to
-read their own output. A published ceiling lets the deployment set the policy —
-which is the point — without lying about what kind of answer it is.
+Both names are right where they are — in the table it reads as a property of
+the delete, on the wire it reads as the explanation of `deleted_at` — but the
+two pages will look like a typo of each other unless one of them says so.
 
-⚠️ **It bounds one object, not the run.** Forty nodes each just under it still
-fetch forty times it. A budget for the whole listing was refused because it
-makes *what arrives* depend on *what order it arrives in*.
+**Where it goes:** `surface.md`'s artifact object, with a line in
+`database.md` beside the column.
 
-**Client behaviour to specify alongside it:** an object over the ceiling is
-listed and not fetched; the client says so **once**, naming the total and the
-ceiling, not once per object. An over-ceiling `bundle` must **not** displace the
-other artifacts of its node — a bundle displaces what is inside it only because
-fetching it gets you those bytes.
+### 2. `resolved_versions` is a map of name to a LIST of versions
 
-**A client that has never heard of it fetches everything**, which is why the
-absence of the key has to stay meaningful.
+🔴 **Not name to version, and the single-value shape cannot be made to work.**
+A forty-node flow over six tools resolves six images. Where the client pinned
+nothing, two of those images can legitimately hold different versions of the
+same distribution — the resolution picks per requirement set, and only the
+pinned names are constrained across all of them. A single value would have to
+choose one and be wrong about the rest.
 
-### 2. `reports` is produced by this profile after all
+A list per name is also what `GET /v1`'s `software` already is, so a client
+that reads one knows the shape of the other.
 
-| | |
-|---|---|
-| **Where** | [`sc-server-profile.md`](../../../plans/crucible/orchestration/api/sc-server-profile.md) — the produced-kinds list |
-| **Was** | `manifest`, `logs`, `bundle`; `reports` and `outputs` explicitly not produced |
-| **Now** | `manifest`, `logs`, `reports`, `bundle`. `outputs` is still not produced |
+⚠️ **Absent, never `{}`,** where nothing was resolved. A deployment that runs
+jobs on the host has no image and no answer; an empty map would claim the job
+ran nothing at all.
 
-⚠️ **Not a vocabulary change** — `reports` is already one of the eight
-`artifact_kinds`. What changes is the profile's claim that asking for it
-truthfully returns `[]`.
+**Where it goes:** `surface.md`'s job object.
 
-**The argument that moved:** it is a second copy of bytes the bundle holds, and
-that was the reason against it. It is now the reason *for* it, because of the
-ceiling above: a node's reports are kilobytes and its bundle is often
-gigabytes, so a bundle that is too large to fetch leaves the reports still
-arriving. The doubling is small — the heavy things in a working directory are
-the DEF and the database, not the reports.
+### 3. `job_identity` is computed at create, so it folds in the DECLARED resolution only
 
-### 3. `error.detail` on a job's error object
+The review has `job_identity = H(client_hash ‖ the resolved image digests)` and
+*resolve images at create as well as submit*, because that is what keeps the
+create-time reuse check able to skip the upload.
 
-| | |
-|---|---|
-| **Where** | `GET /v1/jobs/{id}` → `error` |
-| **Status** | already legal — the contract says *"an RFC 9457 object"* — but no example shows it and nothing said it SHOULD be there |
+🔴 **Those two together fix which digests are in it, and it is not all of
+them.** At create there is no flow and no node list — the manifest is inside
+the archive that has not been sent — so the only digests that exist are the
+ones the DECLARED versions resolve to. Per-node tool images are resolved at
+submit, after the upload the identity was supposed to avoid.
 
-🔴 **Worth making explicit, because the object is useless without it.** `type`
-and `title` are frozen and identical on every occurrence: *The run failed* is
-true of every failed run there has ever been. A job's error with no `detail`
-tells a caller nothing that `state` did not. Recommend: **SHOULD carry
-`detail`** where the deployment has one, and say where it comes from — here it
-is the exception that ended the run, recorded on the state transition.
+So the identity is over the declared resolution, and this follows from it:
 
-### 4. `job_nodes.error_type` needs a writer
+⚠️ **Re-registering an image that only serves a tool requirement does not
+invalidate reuse**, unless it also serves the declared set. Rebuilding an
+OpenROAD image and re-running the same design returns the old job. The
+alternative — folding in every live image that could serve the job — is
+computable at create and deterministic, but it invalidates every reuse in the
+deployment whenever any image is registered, which is a worse trade for a
+feature whose whole point is not re-running work.
 
-| | |
-|---|---|
-| **Where** | `GET /v1/jobs/{id}` → `nodes[].error_type` |
-| **Status** | REQUIRED and nullable, and this server left it null on every node ever — including failed ones |
+**Either the contract states the declared-only rule and its consequence, or it
+needs a third option nobody has.** Recording the gap rather than hiding it.
 
-**Recommend:** a node in `failed` SHOULD carry `run-failed`. It is already one
-of the three registry rows that are never an HTTP response and only ever a
-`type` on an error object, so no new slug is needed — but nothing said which
-one, and a published field with no writer is a published field that lies.
+**Where it goes:** `job-reuse.md`, and a line in `surface.md` at
+`POST /v1/jobs`.
 
-### 5. `usage` has no all-time figure, and should not grow one
+### 4. The download ceiling binds every route that yields artifact bytes
 
-Recorded as a **decision not to change the contract**, so it is not re-proposed.
+`max_download_bytes` is enforced on `GET /v1/jobs/{id}/artifacts/{id}`. It also
+has to be enforced on `GET /v1/jobs/{id}/logs`, and that is not a second
+policy: the log redirect hands out **the same signed URL** the artifact fetch
+does, for an object of the same kind in the same table. A ceiling on one and
+not the other is not a ceiling.
 
-`usage` answers *what am I consuming against my allowance*, and every window in
-it is a calendar month for that reason. An all-time total has no allowance and
-no reset, so putting it there means a published member with `limit: null`,
-`window: null` and `resets_at: null` that a client must be told to ignore. The
-portal computes and shows it; the API does not publish it.
+🔴 **Worth saying explicitly**, because the two endpoints are in different
+sections and have different scopes (`artifacts:read` against `jobs:read`), so
+the rule reads as belonging to one of them.
 
-### 6. `deleted_at` means *somebody decided* — say so
+**Where it goes:** `surface.md`, at the limit's definition rather than at
+either endpoint.
 
-| | |
-|---|---|
-| **Where** | [`database.md`](../../../plans/crucible/orchestration/api/database.md) `artifacts.deleted_at`, and the artifact object in [`surface.md`](../../../plans/crucible/orchestration/api/surface.md) |
-| **Status** | a clarification, not a change — but the absence of it produced a real defect here |
+### 5. `detail` needs a stated bound, or every deployment truncates differently
 
-The column's comment says *"NULL `deleted_by` = the reaper"*, which reads as an
-invitation for a retention reaper to set `deleted_at` when bytes age out. 🔴
-**Doing that is wrong, and this repo nearly shipped it.** A client checks
-`deleted_at` **before** expiry and renders it as *deleted on 24 Sep*, ahead of
-every other reason — deliberately, because saying a thing expired when a person
-removed it is the wrong answer that matters. So a reaper that sets it turns
-every aged-out object into a report that somebody took it.
+`error.detail` is a SHOULD, with the condition that it must not echo
+unvalidated input. This implementation bounds it: control characters removed,
+whitespace collapsed to one line, 300 characters with an ellipsis.
 
-**Recommend:** state that `deleted_at` is set only where a **decision** removed
-the bytes, and that retention lapsing is expressed by `expires_at` alone. A
-reaper reclaiming expired bytes changes nothing on the row, because `fetchable`
-is already false and no caller can have them either way.
+That number is this deployment's guess. A client that renders a refusal in a
+fixed-width box, or a log pipeline that indexes on it, sees a different
+truncation from every server — which is exactly the sort of thing that reads as
+a client bug.
 
-### 7. Two more published limits: `run_heartbeat_seconds`, `abandon_after_seconds`
+**Proposed:** the contract states a maximum length and that `detail` is a
+single line. Not what the maximum is — that is a deployment's choice — but that
+there is one and it is stated in `GET /v1` or fixed in the contract.
 
-| | |
-|---|---|
-| **Where** | `GET /v1` → `limits` |
-| **Status** | **served** |
+**Where it goes:** `surface.md`'s error object.
 
-Both exist because a job could get stuck in a state nothing would ever move it
-out of, and in both cases the published number is the operator's patience.
+### 6. `input` is in the profile's expected kinds and this deployment does not produce it
 
-- 🔴 **`run_heartbeat_seconds`** — how long a `running` job may go without its
-  runner saying anything before the server stops believing it. Until this
-  existed the ONLY way a dead run was detected was the scheduler forgetting
-  it, so a node that vanished without deleting itself left Slurm reporting
-  RUNNING for ever and the job with it. **The client half worth specifying:
-  the runner writes the heartbeat on a TIMER, not on node transitions** — a
-  single node can run for half an hour without one, so *nothing written
-  lately* and *dead* are otherwise indistinguishable. ⚠️ **A progress file
-  with no heartbeat means no opinion**, or an upgrade declares every in-flight
-  job dead.
-- 🔴 **`abandon_after_seconds`** — how long a job may sit in `created` or
-  `awaiting_input` before it becomes `abandoned`. ⚠️ **It is a floor and not
-  the whole rule:** a job still holding an unexpired upload grant is never
-  abandoned however old it is, or setting this below the grant's own lifetime
-  would kill uploads legitimately in flight.
+The produced-kinds list the review created has **expected**: `manifest`,
+`logs`, `reports`, `input`, `node`; **optional**: `outputs`, `final`, `issue`.
 
-### 8. `auto_fetch_max_bytes` appears in `GET /v1/me`'s `limits` as well
+`input` is the archive the client uploaded. This deployment deliberately does
+not keep it: the client still has the bytes it just sent, and a second copy
+costs the whole upload again for something nobody fetches. That is a
+considered decision, not an omission.
 
-| | |
-|---|---|
-| **Where** | `GET /v1/me` → `limits`, which the contract defines as a six-member set |
-| **Status** | **served**, as the seventh member |
+So either `input` belongs in the optional set, or this profile is
+non-conforming against a list written in the same review that accepted the
+reasoning for not producing `reports`' large sibling.
 
-🔴 **Because it is the only limit here that can differ per account, and
-`GET /v1` cannot express that.** The capabilities block carries no credential,
-so it cannot vary by caller — it publishes the deployment's default and
-nothing more. A per-user ceiling therefore has nowhere else to go, and a
-client must read the identity block for it.
-
-✅ **The pattern is established rather than new**: four keys already appear in
-both blocks, and the contract already says a client combines only those. This
-makes it five.
-
-### 9. `user_limits` joins this profile, without `plans`
-
-| | |
-|---|---|
-| **Where** | [`sc-server-profile.md`](../../../plans/crucible/orchestration/api/sc-server-profile.md) — the 18-table list becomes 19 |
-| **Status** | **built**, sparse and three-valued exactly as `database.md` specifies |
-
-⚠️ **The contract pairs it with `plans` and this deployment takes only one of
-the two.** A plan is a named tier and `user_limits` is the sparse override of
-one; there are no tiers here, so what a NULL column inherits from is the
-operator's `config.json` rather than a plan row. `plan_id` is therefore absent
-and that is the whole of the difference.
-
-✅ `-1` is unlimited in the column and `null` on the wire, per D16, and the
-resolver is the only thing that knows.
-
-⚠️ **The writer is the operator CLI, not the portal.** `database.md` files
-`user_limits` under *an admin screen*, and this profile has no admin mode — so
-the account screen renders it read-only and there is no endpoint.
-
-### 10. `web_url` is served now, and the profile note that said otherwise was stale
-
-| | |
-|---|---|
-| **Where** | the job object and the create response |
-| **Status** | **served** — this is the contract being implemented, not changed |
-
-Recorded because the reason it was absent is worth not repeating: the profile
-omitted it with *"absent where the deployment serves no web UI"*, which was
-true when written and became false the moment the portal landed. **A field
-whose absence is conditional needs re-checking whenever the condition moves.**
-
-🔴 The two rules that took care to honour: **absent, never `null`** — a null
-would claim there is a portal and this job has no page — and **the origin
-comes from deployment config, never `Host` or `X-Forwarded-Host`**, which is
-tested with a poisoned forwarded header.
+**Where it goes:** `sc-server-profile.md`'s produced-kinds list.
 
 ---
 
-## Already in the contract, implemented here — no port needed
+## Already in the contract — implemented here, no change needed
 
-- `POST /v1/jobs/{id}/cancel`'s optional `reason` (D75). This client now always
-  sends one — the caller's words, else *cancelled from sc-remote on `<host>`* —
-  and the portal sends *cancelled from the portal*. **Worth a line in the
-  contract as a SHOULD**: optional on the wire so a Ctrl-C stays expressible,
-  and a cancel with nothing recorded leaves a job page that cannot answer the
-  owner's own question.
-- `preparing` as the eighth node state (D78).
-- `state_changed_at`, `?design=`/`?jobname=` filters.
-- 🆕 **`archived_at` has a writer at last** (D74). It was published on every
-  job object and nothing had ever set it. The portal is the writer, which is
-  what D74 intends — archiving is a view preference and not an operation on
-  the run, which is why it has no endpoint. ⚠️ **The part that would have been
-  a trap: `?archived=` is the one filter whose default is not *everything*,
-  and there is deliberately no value meaning both** — so a screen that
-  archives without offering a way to the archived list hides a job with
-  nowhere to look for it.
-- 🆕 **Per-artifact deletion, distinct from deleting the job.** `artifacts`
-  already carried `deleted_at`, `deleted_by` and `delete_reason`, and only the
-  job-level `DELETE` ever wrote them. 🔴 Worth a sentence in the contract
-  because the distinction is easy to collapse and expensive to get wrong:
-  `jobs.deleted_at` takes the job out of the collection, which is much more
-  than a person means by *reclaim the space this run is using*.
+Recorded so nobody re-proposes them.
 
-## Not on the wire at all, and deliberately
+- **`archived_at` has a writer.** D74 names the portal, and the portal writes
+  it. ⚠️ The trap: `?archived=` has no value meaning BOTH, so its default is
+  the one filter default in the profile that is not *everything*, and a screen
+  that hides archived jobs needs an explicit way back to them.
+- **Deleting an artifact is distinct from deleting the job.** `jobs.deleted_at`
+  takes a job out of the collection; `artifacts.deleted_at` takes the bytes and
+  leaves every row listed. ⚠️ And the unit is the NODE: a node's logs, reports
+  and archive are three rows over one set of bytes, so deleting one of them
+  frees nothing.
+- **A job holding an unexpired upload grant is never abandoned**, however old
+  it is. `abandon_after_seconds` is the floor and the grant's own expiry is the
+  other half.
+- **The contract allocates paths only under `/v1/`.** The portal, the storage
+  routes and the log stream need no reservation — they are outside by
+  construction. `/v1/portal` was proposed and refused.
+- **`GET /v1`'s `limits` has nine members** in the contract. This profile
+  publishes eleven: those nine plus `max_download_bytes` and
+  `abandon_after_seconds`.
 
-The portal's archive browser — listing what a `bundle` or `reports` archive
-holds and serving one file out of it — is **a screen and not an endpoint**. The
-contract has no per-artifact path for exactly this reason: a client knows the
-step, the index and the kind, and unpacks the archive where it came from. An
-endpoint that indexed into an archive would put the server in the business of
-understanding what a job produced.
+---
+
+## Not on the wire, and deliberately
+
+- **Browsing inside an archive** is a portal screen and not an endpoint. An
+  API caller has the bytes; a person reading a report in a browser does not
+  want to download a gigabyte to see one file.
+- **`run_heartbeat_seconds`** is deployment config. No client sends a heartbeat
+  or is told about one.
+- **`version_source`** is a column and not a member. `GET /v1`'s `software` is
+  a flat array of strings and its shape is frozen, so a version recorded from
+  an image's publish date is advertised beside one a tool reported. Accepted in
+  review: the preflight is advisory, the server is binding, and the refusal has
+  to say *present but reports no version*.

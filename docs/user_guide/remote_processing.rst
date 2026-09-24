@@ -378,6 +378,27 @@ curates images for the framework and says nothing about Verilator is not
 claiming to have a Verilator image and is not refused for lacking one.
 Registering the name is how an operator takes that claim on.
 
+**A request carries a version range and the server resolves it.** A client
+declares ``siliconcompiler>=0.39,<0.40`` -- a PEP 440 specifier, and a bare
+``0.39.1`` still means ``==0.39.1`` -- and the server matches it against what
+its images hold. A client cannot do that matching itself, and the reason is not
+convenience: ``software`` is a flat list per name while the image join is over
+combinations, so a client resolving each requirement on its own can name a set
+no single image contains, with every version published, every one satisfiable,
+and nothing to run them in. What is stored is still exact; only the wire
+carries ranges.
+
+**A tool that reports no version is registered with a date and marked.**
+``add-version <tool> 20260924 -unversioned`` records that the tool is in the
+image and nobody asked it what it was -- a complete tool list beats a partial
+one. It satisfies a requirement that names no version, which is the only kind
+SiliconCompiler generates, and it can never satisfy a range: ``20260924`` beats
+``2.0.1`` under every comparison there is, so without the mark an unversioned
+build from years ago would outrank a current release for ever. A request that
+names a version for such a tool is refused with *present but reports no
+version*, rather than with *no image matches* -- the second would send somebody
+looking for something that is already installed.
+
 **A version is advertised only when the server can read it.** Submitting
 re-derives the flow from the uploaded manifest, and that happens in the server's
 own SiliconCompiler -- reading a manifest is only backwards compatible, so a

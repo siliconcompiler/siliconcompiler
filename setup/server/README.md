@@ -320,6 +320,21 @@ is what gets dispatched — so rebuilding the tag afterwards does not silently
 change what jobs run. `resolve` answers *what would this job be placed in*
 without submitting one, which is how to check a registry before a user does.
 
+`add-version` normalises what you type to PEP 440 and prints the spelling it
+stored, because `-contains` has to name the same string. For a tool that
+reports no version, register the date its image was published and say so:
+
+```sh
+python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+    add-version openroad 20260924 -unversioned
+```
+
+That lists the tool and lets a job that names no version run in it. What it
+never does is satisfy a version range — `20260924` beats `2.0.1` under every
+comparison there is, so a date that could match a range would outrank every
+real release for ever. The compose bootstrap registers every tool this way,
+because it does not run them and so cannot report their versions.
+
 Bundles are unpacked to `<datadir>/images/<digest>/`, which is the one thing in
 this layout that is deliberately **not** per user: a root filesystem is
 read-only and identical for everybody who runs that digest, so a copy per user

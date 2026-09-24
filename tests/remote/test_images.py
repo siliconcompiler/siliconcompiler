@@ -564,3 +564,153 @@ def test_builtin_is_not_a_tool_anybody_installs(registry, store):
         ("join", "0"): None,
         ("place", "0"): "openroad",
     }
+
+
+###########################
+# Version requirements, resolved here and not by the client
+###########################
+
+def test_a_range_on_the_wire_resolves_to_an_image(registry, store):
+    '''🔴 The whole reason the server resolves: `GET /v1`'s `software` map is
+    flat per name while the image join is over combinations, so a client
+    resolving each requirement on its own can name a set no single image holds
+    -- every version published, every one satisfiable, and nothing to run
+    them in.'''
+    plan = images.plan_for_job(store, {"siliconcompiler": ">=0.39,<0.40"},
+                               {("import", "0"): None})
+
+    assert plan.ref(plan.job).startswith("ghcr.io/x/sc-python@")
+
+
+def test_a_range_nothing_satisfies_is_refused_before_anything_runs(registry,
+                                                                   store):
+    with pytest.raises(ProblemError) as raised:
+        images.plan_for_job(store, {"siliconcompiler": ">=0.40"},
+                            {("import", "0"): None})
+
+    assert raised.value.error.slug == "unsatisfiable-request"
+    assert raised.value.members["resource"] == "siliconcompiler>=0.40"
+
+
+def test_a_bare_version_still_means_exactly_that(registry, store):
+    '''⚠️ It is what every client sent before the wire carried ranges, and it
+    is what a person writes.'''
+    assert images.specifier("0.39.1") == "==0.39.1"
+    assert images.specifier(">=0.39") == ">=0.39"
+    assert images.specifier("") is None
+    assert images.specifier(None) is None
+
+    plan = images.plan_for_job(store, {"siliconcompiler": "0.39.1"},
+                               {("import", "0"): None})
+    assert plan.job
+
+
+def test_a_version_is_normalised_when_it_is_registered(store):
+    '''🔴 At registration and not at request time: it keeps per-tool version
+    handling off the request path, and it removes a skew that would otherwise
+    be silent -- a client and a server on different releases normalising the
+    same string differently would disagree about whether an image matched, and
+    neither would say so.'''
+    images.register_software(store, "siliconcompiler", "SC", store.actor)
+
+    assert images.register_version(store, "siliconcompiler", "v0.39.1",
+                                   store.actor) == "0.39.1"
+    assert images.live_software(store)["siliconcompiler"] == ["0.39.1"]
+
+
+def test_a_version_that_is_not_pep_440_is_stored_as_given(store):
+    '''It is still a real version somebody can read and select by name. What
+    it cannot do is satisfy a range.'''
+    images.register_software(store, "openroad", "OpenROAD", store.actor)
+
+    assert images.register_version(store, "openroad", "2.0-rev-cafe1234",
+                                   store.actor) == "2.0-rev-cafe1234"
+
+
+###########################
+# reported vs published_date
+###########################
+
+@pytest.fixture
+def unversioned(store):
+    '''A tool that reports nothing, recorded from its image's publish date.'''
+    images.register_software(store, "siliconcompiler", "SC", store.actor)
+    images.register_version(store, "siliconcompiler", "0.39.1", store.actor)
+    images.register_software(store, "magic", "Magic", store.actor)
+    images.register_version(store, "magic", "20260924", store.actor,
+                            source="published_date")
+
+    images.register_image(store, "ghcr.io/x/sc-magic:1", digest("c"),
+                          [("siliconcompiler", "0.39.1"), ("magic", "20260924")],
+                          store.actor)
+    return store
+
+
+def test_an_unversioned_tool_still_runs_when_no_version_is_asked_for(
+        unversioned, store):
+    '''A complete tool list beats a partial one. The mark costs it version
+    matching, not existence.'''
+    plan = images.plan_for_job(store, {}, {("drc", "0"): "magic"})
+
+    assert plan.nodes[("drc", "0")]
+
+
+def test_a_published_date_can_never_satisfy_a_requirement(unversioned, store):
+    '''🔴 This is the whole reason for the mark. `20260924` beats `2.0.1` under
+    any comparison there is, so an unversioned build from years ago would
+    outrank a current release for ever.'''
+    assert not images.matches("20260924", "published_date", ">=2.0")
+    assert not images.matches("20260924", "published_date", "==20260924")
+    assert images.matches("20260924", "published_date", None)
+
+
+def test_the_refusal_says_present_but_reports_no_version(unversioned, store):
+    '''🔴 Not *no image matches*. That sends somebody looking for a version of
+    a tool that is already installed. `GET /v1`'s `software` has nowhere to
+    carry the mark, so their own preflight said yes -- the refusal has to be
+    the thing that explains it.'''
+    with pytest.raises(ProblemError) as raised:
+        images.plan_for_job(store, {"magic": ">=1.0"}, {("drc", "0"): "magic"})
+
+    assert raised.value.error.slug == "unsatisfiable-request"
+    assert "reports no version" in raised.value.detail
+    assert "no image on this server holds" not in raised.value.detail
+
+
+def test_reported_sorts_above_published_date_whatever_the_numbers_say(store):
+    images.register_software(store, "magic", "Magic", store.actor)
+    images.register_version(store, "magic", "20260924", store.actor,
+                            source="published_date")
+    images.register_version(store, "magic", "8.3.2", store.actor)
+
+    assert images.live_software(store)["magic"] == ["8.3.2", "20260924"]
+
+
+###########################
+# What the job ran in
+###########################
+
+def test_the_digests_a_descriptor_resolves_to_need_no_upload(registry, store):
+    '''🔴 What lets create fold them into the job identity and skip the
+    upload: resolution needs the declared versions and the registry, and
+    nothing else.'''
+    assert images.digests_for(store, {"siliconcompiler": ">=0.39,<0.40"}) == \
+        [digest("a")]
+
+
+def test_a_descriptor_nothing_can_run_is_refused_at_create(registry, store):
+    with pytest.raises(ProblemError):
+        images.digests_for(store, {"siliconcompiler": "==9.9.9"})
+
+
+def test_what_a_job_ran_is_the_union_of_its_images(registry, store):
+    '''⚠️ A list per name, because a wide flow resolves several images and
+    where the client pinned nothing they can hold different versions of the
+    same distribution. One value would have to pick and be wrong.'''
+    plan = images.plan_for_job(store, {}, {("import", "0"): None,
+                                           ("place", "0"): "openroad"})
+
+    held = images.contents_of(store, [plan.job, *plan.nodes.values()])
+
+    assert held == {"openroad": ["2.0"], "siliconcompiler": ["0.39.1"]}
+    assert images.contents_of(store, [None, None]) == {}

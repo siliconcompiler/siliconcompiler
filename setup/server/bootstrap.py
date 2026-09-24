@@ -150,6 +150,51 @@ def _post(path: str, headers=None):
     return events
 
 
+def _get(path: str):
+    '''One GET, as parsed JSON.'''
+    daemon = _Daemon(DOCKER_SOCK)
+    try:
+        daemon.request("GET", path)
+        response = daemon.getresponse()
+        body = response.read().decode("utf-8", "replace")
+    finally:
+        daemon.close()
+
+    if response.status >= 400:
+        raise RuntimeError(f"docker said {response.status} to {path}: {body}")
+    return json.loads(body)
+
+
+def published_on(local: str) -> str:
+    '''The day an image was built, as a version for the tools inside it.
+
+    🔴 **The honest answer to *which version of OpenROAD is in here*, which is
+    that nobody asked it.** This bootstrap does not run the tools, so it cannot
+    report their versions -- and recording them at the SiliconCompiler version,
+    which is what it used to do, was inventing a number. That number then
+    looked exactly like a reported one: a client asking for `openroad>=2.0`
+    would have been matched against `0.38.9` and refused for a reason that was
+    not true.
+
+    So the tools are registered with the date the image was published and
+    marked `published_date`, which is the mark that exists for this: they are
+    listed, they satisfy a requirement that names no version -- the only kind
+    SiliconCompiler generates -- and they can never satisfy a range.
+
+    ⚠️ The image's own creation time and not today's date, so re-running this
+    against the same image registers the same row rather than a new one every
+    day.
+    '''
+    created = _get(f"/images/{local}/json").get("Created") or ""
+    # "2026-09-24T10:11:12.345678901Z" -> "20260924". A bare integer, because a
+    # version is compared as a version and 2026-09-24 is not one.
+    stamp = created[:10].replace("-", "")
+    if len(stamp) != 8 or not stamp.isdigit():
+        raise RuntimeError(f"the daemon reported no creation time for {local}: "
+                           f"{created!r}")
+    return stamp
+
+
 def push(local: str, repository: str, tag: str) -> str:
     '''Put one locally built image in the registry. Returns its digest.
 
@@ -256,22 +301,24 @@ def registry(*args: str) -> None:
             f"registry {' '.join(args)} failed; see the message above")
 
 
-def register(version: str, tools_digest: str, runtime_digest: str) -> None:
+def register(version: str, tools_digest: str, runtime_digest: str,
+             published: str) -> None:
     registry("add-software", "siliconcompiler")
     registry("add-version", "siliconcompiler", version)
 
-    # 🔴 Declared at the SiliconCompiler version, because that is what
-    # identifies this image: the tools in it are whichever ones sc_tools
-    # shipped for this release. A tool requirement resolves by NAME --
-    # SiliconCompiler does not know a tool's version until the node runs, so a
-    # client never names one -- and the version string only has to exist and be
-    # stable. A real deployment with a curated registry records real tool
-    # versions, because there the operator is choosing between them.
+    # 🔴 The tools are registered with the date their image was published and
+    # marked `published_date`, because this bootstrap does not run them and
+    # therefore does not know their versions. See `published_on`: a made-up
+    # number here is indistinguishable from a reported one, and the mark is
+    # what keeps it from ever being matched against a range.
+    #
+    # A real deployment with a curated registry records real tool versions,
+    # because there the operator is choosing between them.
     contains = []
     for tool in TOOLS:
         registry("add-software", tool)
-        registry("add-version", tool, version)
-        contains += ["-contains", f"{tool}=={version}"]
+        registry("add-version", tool, published, "-unversioned")
+        contains += ["-contains", f"{tool}=={published}"]
 
     say("staging bundles (skopeo, then umoci -- the big one takes a minute)")
     registry("add-image", f"{PULL_FROM}/sc-runtime:{version}",
@@ -295,10 +342,14 @@ def main() -> int:
     # happen. A rebuild at a NEW version leaves the old reference live beside
     # it, which is also what should happen: they are different images and a
     # job that named the old one still can.
+    # Read before the push, off the local image: the digest changes when it is
+    # pushed and the creation time does not.
+    published = published_on(STACK_IMAGE)
+
     runtime_digest = push(RUNTIME_IMAGE, "sc-runtime", version)
     tools_digest = push(STACK_IMAGE, "sc-tools", version)
 
-    register(version, tools_digest, runtime_digest)
+    register(version, tools_digest, runtime_digest, published)
 
     say(f"this deployment runs siliconcompiler {version} in containers")
     return 0
