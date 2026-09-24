@@ -756,3 +756,72 @@ def test_the_server_screen_carries_the_raw_block(signed_in, server_client):
 
 def test_the_server_screen_needs_a_session(server_client):
     assert server_client.get("/portal/server").status_code == 401
+
+
+###########################
+# Discarding output, archiving, and deleting are three different things
+###########################
+
+def test_discarding_the_output_keeps_the_job(signed_in, finished, server):
+    '''🔴 Deleting the JOB sets `jobs.deleted_at`, which by the contract takes
+    it out of the collection entirely -- far more than somebody means when they
+    ask to reclaim the space a finished run is using.'''
+    token = csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
+
+    done = signed_in.post(f"/portal/jobs/{finished['id']}/discard",
+                          data={"csrf": token, "confirm": "gcd/job0"})
+    assert done.status_code == 302
+
+    row = server.config["SC_STORE"].one(
+        "SELECT deleted_at, archived_at FROM jobs WHERE id = ?", (finished["id"],))
+    assert row["deleted_at"] is None            # the job is still here
+
+    # Still on the list, and still readable.
+    assert finished["id"] in signed_in.get("/portal/").get_data(as_text=True)
+    assert signed_in.get(f"/portal/jobs/{finished['id']}").status_code == 200
+
+    # The rows stay and say the bytes are gone, so "where did my results go"
+    # still has an answer.
+    rows = server.config["SC_STORE"].all(
+        "SELECT deleted_at, delete_reason FROM artifacts WHERE job_id = ?",
+        (finished["id"],))
+    assert rows and all(r["deleted_at"] for r in rows)
+    assert all(r["delete_reason"] == "discarded from the portal" for r in rows)
+
+
+def test_archiving_hides_a_job_from_the_default_list_and_nothing_else(
+        signed_in, finished, server):
+    '''⚠️ A view preference and not an operation on the run: a direct read
+    still answers and every subresource still works.'''
+    token = csrf(signed_in, f"/portal/jobs/{finished['id']}")
+
+    signed_in.post(f"/portal/jobs/{finished['id']}/archive",
+                   data={"csrf": token, "archived": "1"})
+
+    assert finished["id"] not in signed_in.get("/portal/").get_data(as_text=True)
+    # 🔴 And a way back, or archiving hides it with nowhere to look.
+    assert finished["id"] in signed_in.get(
+        "/portal/?archived=true").get_data(as_text=True)
+    assert signed_in.get(f"/portal/jobs/{finished['id']}").status_code == 200
+
+    signed_in.post(f"/portal/jobs/{finished['id']}/archive",
+                   data={"csrf": token, "archived": "0"})
+    assert finished["id"] in signed_in.get("/portal/").get_data(as_text=True)
+
+
+def test_a_running_job_cannot_be_archived(signed_in, server_client, key, token,
+                                          job_archive, dispatcher):
+    '''🔴 A queued job holds a slot and a created one holds a live upload
+    grant, so hiding one that is still going makes "why can I not submit"
+    unanswerable from any screen.'''
+    from test_server_jobs import stage, submit
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    form = csrf(signed_in, f"/portal/jobs/{job['id']}")
+    refused = signed_in.post(f"/portal/jobs/{job['id']}/archive",
+                             data={"csrf": form, "archived": "1"})
+
+    assert refused.status_code == 409

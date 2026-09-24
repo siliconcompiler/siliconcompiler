@@ -9,9 +9,19 @@
   The same rule as the job page: refresh only while something is actually
   moving. A list of finished runs has no reason to reload itself.
 #}
-<h2>Jobs</h2>
+<h2>{{ 'Archived jobs' if archived else 'Jobs' }}</h2>
 <p class="lede">
   Yours, newest first.
+  {#
+    The way back. `archived` absent means the default list and `true` means
+    only the archived ones -- there is no value meaning both, so without this
+    link an archived job is hidden with nowhere to look for it.
+  #}
+  {% if archived %}
+  <a href="{{ url_for('portal.jobs') }}">Back to the current ones</a>
+  {% else %}
+  <a href="{{ url_for('portal.jobs', archived='true') }}">Archived</a>
+  {% endif %}
   {% if running %}
   <span class="live">{{ running | length }} still going &middot; refreshing every 15s
     <a href="{{ url_for('portal.jobs') }}">refresh now</a></span>

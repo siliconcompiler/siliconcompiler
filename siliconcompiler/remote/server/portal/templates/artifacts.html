@@ -56,20 +56,40 @@
 #}
 {% if job.terminal and not job.deleted_at %}
 <div class="panel warn" style="margin-top:32px">
-  <p><b>Delete what this run produced</b></p>
+  <p><b>Discard what this run produced</b></p>
   <p class="muted">
-    Every object above, and the build directory behind them. The job itself
-    stays readable -- its states, its timings and why it ended -- and nothing
-    it produced comes back.
+    {#
+      🔴 The OBJECTS, not the job. Deleting the job sets `jobs.deleted_at`,
+      which takes it out of every listing -- far more than somebody means when
+      they ask to reclaim the space a finished run is using.
+    #}
+    Every object above, and the build directory behind them. The job stays
+    where it is, with its states, its timings and this list -- the rows remain
+    and say the bytes are gone, so <i>where did my results go</i> still has an
+    answer. Nothing it produced comes back.
   </p>
-  <form method="post" action="{{ url_for('portal.delete', job_id=job.id) }}">
+  <form method="post" action="{{ url_for('portal.discard', job_id=job.id) }}">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <label>
       Type the job name to confirm:
       <input type="text" name="confirm" autocomplete="off"
              placeholder="{{ job.design }}/{{ job.jobname }}" style="max-width:320px">
     </label>
-    <button class="danger">Delete</button>
+    <button class="danger">Discard the output</button>
+  </form>
+
+  <p class="muted" style="margin-bottom:0">
+    {#
+      Offered here and nowhere else, and second, because it is the heavier of
+      the two and the one people rarely want.
+    #}
+    Removing the <b>job</b> as well takes it out of every listing and leaves it
+    reachable only by id.
+  </p>
+  <form method="post" action="{{ url_for('portal.delete', job_id=job.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="confirm" value="{{ job.design }}/{{ job.jobname }}">
+    <button class="danger">Delete the job too</button>
   </form>
 </div>
 {% endif %}

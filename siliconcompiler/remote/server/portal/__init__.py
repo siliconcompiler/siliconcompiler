@@ -408,8 +408,16 @@ def jobs(session):
     args = dict(flask.request.args)
     args.setdefault("limit", "50")
     items, _cursor = _jobs().listing(session, args)
-    return flask.render_template("jobs.html", jobs=items,
-                                 state=flask.request.args.get("state", ""))
+
+    # 🔴 `archived` is the one filter here whose default is not *everything*:
+    # absent means the unarchived list, `true` means only the archived ones,
+    # and there is deliberately no value meaning both -- a mixed list is the
+    # state archiving exists to end. So the screen needs a way back, or
+    # archiving a job hides it with no way to find it again.
+    return flask.render_template(
+        "jobs.html", jobs=items,
+        state=flask.request.args.get("state", ""),
+        archived=flask.request.args.get("archived") == "true")
 
 
 @blueprint.route("/portal/jobs/<job_id>", methods=["GET"])
@@ -625,15 +633,56 @@ def cancel(session, job_id):
     return flask.redirect(flask.url_for("portal.job", job_id=job_id))
 
 
+@blueprint.route("/portal/jobs/<job_id>/archive", methods=["POST"])
+@screen
+def archive(session, job_id):
+    """Put a job away, or take it back out.
+
+    ⚠️ The portal is the writer because the contract gives archiving no
+    endpoint: it is a view preference, not an operation on the run. `archived_at`
+    was published on every job object and nothing had ever set it.
+    """
+    _jobs().archive(session, job_id,
+                    archived=flask.request.form.get("archived") == "1")
+    return flask.redirect(flask.url_for("portal.job", job_id=job_id))
+
+
+@blueprint.route("/portal/jobs/<job_id>/discard", methods=["POST"])
+@screen
+def discard(session, job_id):
+    """Throw away what a run produced, and keep the run.
+
+    🔴 Distinct from `delete` below, and the distinction is the one that was
+    missing. This reclaims the bytes; the job stays in the list with its
+    states, its timings and its artifact rows, so *where did my results go* is
+    still answerable. Deleting the JOB takes it out of the collection.
+    """
+    job = _jobs().get(session, job_id)
+    expected = f"{job['design']}/{job['jobname']}"
+
+    if (flask.request.form.get("confirm") or "").strip() != expected:
+        raise ProblemError(
+            "invalid-request",
+            detail=f"type {expected} to confirm discarding what this run produced")
+
+    _jobs().discard_artifacts(session, job_id, "discarded from the portal")
+    return flask.redirect(flask.url_for("portal.artifacts", job_id=job_id))
+
+
 @blueprint.route("/portal/jobs/<job_id>/delete", methods=["POST"])
 @screen
 def delete(session, job_id):
-    '''Destroy what a run produced, after the person has typed its name.
+    '''Remove the job itself, which takes it out of every listing.
 
     ⚠️ The confirmation is a speed bump and not a security control -- CSRF is
     what stops somebody else pressing this. It is here because the button used
     to sit next to "Artifacts" on the job page, one position away from the link
     people click constantly, and the two do opposite things.
+
+    🔴 This is the heavier of the two. `jobs.deleted_at` removes the job from
+    the collection, so it is reachable only by id afterwards -- which is more
+    than most people mean by "delete the results". That is what `discard`
+    above is for.
     '''
     job = _jobs().get(session, job_id)
     expected = f"{job['design']}/{job['jobname']}"

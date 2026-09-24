@@ -126,6 +126,86 @@ the bytes, and that retention lapsing is expressed by `expires_at` alone. A
 reaper reclaiming expired bytes changes nothing on the row, because `fetchable`
 is already false and no caller can have them either way.
 
+### 7. Two more published limits: `run_heartbeat_seconds`, `abandon_after_seconds`
+
+| | |
+|---|---|
+| **Where** | `GET /v1` → `limits` |
+| **Status** | **served** |
+
+Both exist because a job could get stuck in a state nothing would ever move it
+out of, and in both cases the published number is the operator's patience.
+
+- 🔴 **`run_heartbeat_seconds`** — how long a `running` job may go without its
+  runner saying anything before the server stops believing it. Until this
+  existed the ONLY way a dead run was detected was the scheduler forgetting
+  it, so a node that vanished without deleting itself left Slurm reporting
+  RUNNING for ever and the job with it. **The client half worth specifying:
+  the runner writes the heartbeat on a TIMER, not on node transitions** — a
+  single node can run for half an hour without one, so *nothing written
+  lately* and *dead* are otherwise indistinguishable. ⚠️ **A progress file
+  with no heartbeat means no opinion**, or an upgrade declares every in-flight
+  job dead.
+- 🔴 **`abandon_after_seconds`** — how long a job may sit in `created` or
+  `awaiting_input` before it becomes `abandoned`. ⚠️ **It is a floor and not
+  the whole rule:** a job still holding an unexpired upload grant is never
+  abandoned however old it is, or setting this below the grant's own lifetime
+  would kill uploads legitimately in flight.
+
+### 8. `auto_fetch_max_bytes` appears in `GET /v1/me`'s `limits` as well
+
+| | |
+|---|---|
+| **Where** | `GET /v1/me` → `limits`, which the contract defines as a six-member set |
+| **Status** | **served**, as the seventh member |
+
+🔴 **Because it is the only limit here that can differ per account, and
+`GET /v1` cannot express that.** The capabilities block carries no credential,
+so it cannot vary by caller — it publishes the deployment's default and
+nothing more. A per-user ceiling therefore has nowhere else to go, and a
+client must read the identity block for it.
+
+✅ **The pattern is established rather than new**: four keys already appear in
+both blocks, and the contract already says a client combines only those. This
+makes it five.
+
+### 9. `user_limits` joins this profile, without `plans`
+
+| | |
+|---|---|
+| **Where** | [`sc-server-profile.md`](../../../plans/crucible/orchestration/api/sc-server-profile.md) — the 18-table list becomes 19 |
+| **Status** | **built**, sparse and three-valued exactly as `database.md` specifies |
+
+⚠️ **The contract pairs it with `plans` and this deployment takes only one of
+the two.** A plan is a named tier and `user_limits` is the sparse override of
+one; there are no tiers here, so what a NULL column inherits from is the
+operator's `config.json` rather than a plan row. `plan_id` is therefore absent
+and that is the whole of the difference.
+
+✅ `-1` is unlimited in the column and `null` on the wire, per D16, and the
+resolver is the only thing that knows.
+
+⚠️ **The writer is the operator CLI, not the portal.** `database.md` files
+`user_limits` under *an admin screen*, and this profile has no admin mode — so
+the account screen renders it read-only and there is no endpoint.
+
+### 10. `web_url` is served now, and the profile note that said otherwise was stale
+
+| | |
+|---|---|
+| **Where** | the job object and the create response |
+| **Status** | **served** — this is the contract being implemented, not changed |
+
+Recorded because the reason it was absent is worth not repeating: the profile
+omitted it with *"absent where the deployment serves no web UI"*, which was
+true when written and became false the moment the portal landed. **A field
+whose absence is conditional needs re-checking whenever the condition moves.**
+
+🔴 The two rules that took care to honour: **absent, never `null`** — a null
+would claim there is a portal and this job has no page — and **the origin
+comes from deployment config, never `Host` or `X-Forwarded-Host`**, which is
+tested with a poisoned forwarded header.
+
 ---
 
 ## Already in the contract, implemented here — no port needed
@@ -137,7 +217,21 @@ is already false and no caller can have them either way.
   and a cancel with nothing recorded leaves a job page that cannot answer the
   owner's own question.
 - `preparing` as the eighth node state (D78).
-- `state_changed_at`, `archived_at`, `?design=`/`?jobname=` filters.
+- `state_changed_at`, `?design=`/`?jobname=` filters.
+- 🆕 **`archived_at` has a writer at last** (D74). It was published on every
+  job object and nothing had ever set it. The portal is the writer, which is
+  what D74 intends — archiving is a view preference and not an operation on
+  the run, which is why it has no endpoint. ⚠️ **The part that would have been
+  a trap: `?archived=` is the one filter whose default is not *everything*,
+  and there is deliberately no value meaning both** — so a screen that
+  archives without offering a way to the archived list hides a job with
+  nowhere to look for it.
+- 🆕 **Per-artifact deletion, distinct from deleting the job.** `artifacts`
+  already carried `deleted_at`, `deleted_by` and `delete_reason`, and only the
+  job-level `DELETE` ever wrote them. 🔴 Worth a sentence in the contract
+  because the distinction is easy to collapse and expensive to get wrong:
+  `jobs.deleted_at` takes the job out of the collection, which is much more
+  than a person means by *reclaim the space this run is using*.
 
 ## Not on the wire at all, and deliberately
 

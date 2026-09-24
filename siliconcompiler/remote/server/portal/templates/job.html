@@ -74,6 +74,24 @@
 &middot;
 {% endif %}
 <a href="{{ url_for('portal.artifacts', job_id=job.id) }}">Artifacts</a>
+{% if job.terminal %}
+&middot;
+{#
+  🔴 A view preference and not an operation on the run. Nothing about the job
+  changes -- a direct read still answers and every subresource still works --
+  and only the default list stops including it. The contract gives it no
+  endpoint for exactly that reason, and names the portal as its writer.
+#}
+<form method="post" action="{{ url_for('portal.archive', job_id=job.id) }}"
+      class="inline">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="archived" value="{{ '0' if job.archived_at else '1' }}">
+  <button>{{ 'Unarchive' if job.archived_at else 'Archive' }}</button>
+</form>
+{% if job.archived_at %}
+<span class="tag">archived</span>
+{% endif %}
+{% endif %}
 
 <div class="split">
 <div class="beside">

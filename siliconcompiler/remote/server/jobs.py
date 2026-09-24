@@ -845,6 +845,91 @@ class JobService:
             "WHERE job_id = ? AND deleted_at IS NULL",
             (now(), session.user_id, job["id"]))
 
+    def discard_artifacts(self, session, job_id: str, reason: str) -> int:
+        '''Throw away what a run produced, and keep the run.
+
+        🔴 **Not `DELETE /v1/jobs/{id}`, and the difference is the whole point.**
+        Deleting the JOB sets `jobs.deleted_at`, which by the contract takes it
+        out of the collection entirely -- the job is gone from every listing and
+        reachable only by id. That is far more than somebody means when they
+        ask to reclaim the space a finished run is using.
+
+        This deletes the OBJECTS: the bytes go, every row stays and stays
+        listed, and the job keeps its states, its timings and its place in the
+        list. *Where did my results go* remains answerable, which is the entire
+        reason the artifact rows outlive their contents.
+
+        ⚠️ A legal hold is skipped rather than refused. One held object should
+        not stop a person clearing the other forty, and the table would reject
+        the write anyway -- an artifact cannot be both held and deleted.
+        '''
+        job = self.owned(session, job_id)
+
+        if job["deleted_at"]:
+            raise ProblemError(
+                "not-found", detail="this job's data was already deleted")
+
+        rows = self._store.all(
+            "SELECT id, storage_key FROM artifacts "
+            "WHERE job_id = ? AND deleted_at IS NULL AND legal_hold_at IS NULL",
+            (job_id,))
+
+        for row in rows:
+            try:
+                path = self._storage.artifact_path(row["storage_key"])
+                if path.is_file():
+                    path.unlink()
+            except OSError as e:
+                logger.debug(f"could not unlink {row['storage_key']}: {e}")
+
+        if rows:
+            self._store.execute(
+                "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
+                "  delete_reason = ? WHERE job_id = ? AND deleted_at IS NULL "
+                "  AND legal_hold_at IS NULL",
+                (now(), session.user_id, reason, job_id))
+
+        # 🔴 The build tree goes with them. It is what the artifacts were
+        # indexed FROM, so leaving it would reclaim the smaller copy and keep
+        # the larger one -- and the portal reads a node's log out of it, which
+        # would then outlive the artifact that replaced it.
+        shutil.rmtree(self.job_root(job["user_id"], job["id"]),
+                      ignore_errors=True)
+
+        logger.info(f"discarded {len(rows)} artifact(s) of {job_id}")
+        return len(rows)
+
+    def archive(self, session, job_id: str, archived: bool) -> None:
+        '''Put a job away, or take it back out.
+
+        ⚠️ **A view preference and not an operation on the run**, which is why
+        the contract gives it no endpoint and names the portal as its writer.
+        Nothing about the job changes: a direct read still answers, every
+        subresource still works, and only the default collection stops
+        including it.
+
+        🔴 Terminal only, and the constraint is in the schema as well as here.
+        A queued job holds a `concurrent_jobs` slot and a created one holds a
+        live upload grant, so hiding a job that is still going makes *why can I
+        not submit* unanswerable from any screen.
+        '''
+        job = self.owned(session, job_id)
+
+        if archived and job["state"] not in TERMINAL_STATES:
+            raise ProblemError(
+                "job-state-conflict",
+                detail="only a job that has stopped can be archived: hiding a "
+                       "running one makes 'why can I not submit' unanswerable")
+
+        if archived:
+            self._store.execute(
+                "UPDATE jobs SET archived_at = ?, archived_by = ? WHERE id = ?",
+                (now(), session.user_id, job_id))
+        else:
+            self._store.execute(
+                "UPDATE jobs SET archived_at = NULL, archived_by = NULL "
+                "WHERE id = ?", (job_id,))
+
     ######################################################################
     # Reconciliation: what the run says it is doing
     ######################################################################
