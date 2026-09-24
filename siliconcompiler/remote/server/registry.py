@@ -74,6 +74,25 @@ def _contains(values: Optional[List[str]]):
     return pairs
 
 
+def _wants(values: Optional[List[str]]):
+    '''``-requires openroad>=26.3`` into pairs, with any PEP 440 operator.
+
+    🔴 Not `_contains`, and the difference is the *no ranges* rule's scope: a
+    STORED version is exact, because a stored range is a promise nobody can
+    check, while a REQUIREMENT is a range by nature. Using the storage parser
+    here refused `>=26.3` as "not name==version", which is the registry
+    rejecting the one shape this command exists to try.
+    '''
+    pairs = []
+    for value in values or []:
+        found = re.match(r"^\s*([^=!<>~\s]+)\s*(.*)$", value)
+        if not found or not found.group(1):
+            raise SystemExit(f"{value!r} is not name<specifier>")
+        name, spec = found.group(1), found.group(2).strip()
+        pairs.append((name, spec or None))
+    return pairs
+
+
 def _resolve_digest(registry_ref: str) -> str:
     '''Pin a tag to the bytes it names right now.
 
@@ -290,8 +309,8 @@ def _cmd_resolve(store, args) -> int:
     # to be held by ONE image and a tool is satisfied per node. `-versions`
     # names python requirements and `-requires` names tool ones, which is the
     # same split the descriptor carries.
-    requires = {"python": dict(_contains(args.versions)),
-                "tools": dict(_contains(args.requires))}
+    requires = {"python": dict(_wants(args.versions)),
+                "tools": dict(_wants(args.requires))}
     tools = {(tool, "0"): tool for tool in (args.tools or [])} or {("job", "0"): None}
 
     try:

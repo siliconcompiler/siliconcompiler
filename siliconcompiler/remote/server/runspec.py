@@ -14,12 +14,16 @@ of the same job"* is the run hash's precondition.
 '''
 
 import json
+import logging
 import os
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-__all__ = ["BUILTIN", "normalize", "node_image", "node_tools",
+logger = logging.getLogger("sc-server")
+
+__all__ = ["BUILTIN", "needs_executable", "normalize", "node_image",
+           "node_tools",
            "runtime_flow", "runtime_nodes",
            "node_state", "PROGRESS_FILENAME", "IMAGES_FILENAME",
            "read_images", "write_images", "read_progress", "write_progress"]
@@ -269,6 +273,38 @@ def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
 
         tools[(step, index)] = None if tool == BUILTIN else tool
     return tools
+
+
+def needs_executable(flow, step: str, index: str) -> bool:
+    '''Whether this node's task runs a program, or runs in the interpreter.
+
+    🔴 **The question that decides whether an unregistered tool is fatal**, and
+    it is asked of the driver rather than of a list of names. A task declaring
+    an `exe` cannot run without that program being in its image; one declaring
+    none runs in SiliconCompiler's own process and needs nothing. `builtin` is
+    the obvious case and `execute` is the one a name-based rule would miss --
+    it runs a command the USER supplied, so there is nothing for a registry to
+    hold. `slang` is the case in the other direction: it looks like a tool and
+    is a Python binding.
+
+    ⚠️ **Costs a `make_docs` and a bind, so it is asked only where the answer
+    changes something** -- about a tenth of a second per distinct task class,
+    and a deployment holding every tool its flows use never asks at all.
+
+    ⚠️ True when it cannot be told, which is the safe direction here: on a
+    deployment that runs jobs in containers, being wrong the other way means
+    dispatching a node that cannot possibly run.
+    '''
+    from siliconcompiler.scheduler import SchedulerNode
+
+    try:
+        built = flow.get_task_module(step, index).make_docs()
+        node = SchedulerNode(built._parent(root=True), "<step>", "<index>")
+        with node.task.runtime(node) as task:
+            return bool(task.get("exe"))
+    except Exception as e:                                       # noqa: BLE001
+        logger.debug(f"could not tell whether {step}/{index} needs a program: {e}")
+        return True
 
 
 ######################################################################

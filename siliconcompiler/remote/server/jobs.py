@@ -528,8 +528,13 @@ class JobService:
 
         requires = requirements(json.loads(job["descriptor"]) or {})
 
+        flow = derived["project"].get_flow()
+
         try:
-            return images.plan_for_job(self._store, requires, derived["node_tools"])
+            return images.plan_for_job(
+                self._store, requires, derived["node_tools"],
+                needs_executable=lambda node: runspec.needs_executable(
+                    flow, node[0], node[1]))
         except ProblemError as problem:
             # Its own slug, not a guessed one: `plan_for_job` refuses for more
             # than one reason and the job must record the one the caller was

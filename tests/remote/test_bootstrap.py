@@ -28,6 +28,9 @@ def bootstrap(monkeypatch):
     monkeypatch.setattr(module, "registry",
                         lambda *args: module.calls.append(list(args)))
     monkeypatch.setattr(module, "say", lambda message: None)
+    # `built_at` reads the image off the daemon, which nothing here has.
+    monkeypatch.setattr(module, "built_at",
+                        lambda image: "2026-09-24T10:11:12.000000000Z")
     return module
 
 
@@ -47,7 +50,8 @@ def test_the_images_are_tagged_with_the_siliconcompiler_version(bootstrap):
             for n, tool in enumerate(bootstrap.TOOLS)}
     drivers = {tool: f"siliconcompiler.tools.{tool}" for tool in bootstrap.TOOLS}
 
-    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", held, drivers)
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924",
+                       held, {}, drivers)
 
     refs = [call[1] for call in commands(bootstrap, "add-image")]
     assert refs == [f"{bootstrap.PULL_FROM}/sc-runtime:0.38.9",
@@ -61,7 +65,8 @@ def test_a_tool_that_reported_is_registered_as_reported(bootstrap):
     held = {"yosys": {"kind": "tool", "version": "0.69"}}
     drivers = {"yosys": "siliconcompiler.tools.yosys"}
 
-    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", held, drivers)
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924",
+                       held, {}, drivers)
 
     added = [call for call in commands(bootstrap, "add-version")
              if call[1] == "yosys"]
@@ -71,7 +76,7 @@ def test_a_tool_that_reported_is_registered_as_reported(bootstrap):
 def test_a_tool_that_said_nothing_gets_the_publish_date_and_the_mark(bootstrap):
     """🔴 `20260924` beats `2.0.1` under every comparison there is, so an
     unmarked date would outrank every real release for ever."""
-    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", {},
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", {}, {},
                        {tool: None for tool in bootstrap.TOOLS})
 
     for tool in bootstrap.TOOLS:
@@ -82,7 +87,8 @@ def test_a_tool_with_a_driver_records_it_and_one_without_does_not(bootstrap):
     drivers = {tool: None for tool in bootstrap.TOOLS}
     drivers["yosys"] = "siliconcompiler.tools.yosys"
 
-    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", {}, drivers)
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", {}, {},
+                       drivers)
 
     added = {call[1]: call for call in commands(bootstrap, "add-software")}
     assert added["yosys"][-2:] == ["-driver", "siliconcompiler.tools.yosys"]
@@ -97,7 +103,7 @@ def test_the_image_declares_what_the_probe_found(bootstrap):
     registry refuses a version it just accepted."""
     held = {"yosys": {"kind": "tool", "version": "0.69"}}
 
-    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", held,
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", held, {},
                        {"yosys": "siliconcompiler.tools.yosys"})
 
     tools = commands(bootstrap, "add-image")[-1]
@@ -175,3 +181,52 @@ def test_both_numbers_are_logged_where_they_differ(bootstrap, capsys,
     assert "  verilator: 5.52  (reported 5.052)" in said
     assert "  yosys: 0.69" in said
     assert "  openroad: no version reported" in said
+
+
+def test_a_tool_whose_version_is_a_distribution_is_still_a_tool(bootstrap):
+    """🔴 `slang` is a tool to a flow -- a node names it and has to be placed
+    in an image holding it -- and its version is a python package, because its
+    driver runs pyslang in SiliconCompiler's own process. The difference is how
+    the version is read, not what it is."""
+    assert bootstrap.AS_DISTRIBUTION["slang"] == "pyslang"
+    assert "slang" in bootstrap.TOOLS
+
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924",
+                       {"slang": {"kind": "tool", "version": "11.0.0"}}, {},
+                       {tool: None for tool in bootstrap.TOOLS})
+
+    added = {call[1]: call for call in commands(bootstrap, "add-software")}
+    assert added["slang"][2:4] == ["-kind", "tool"]
+    assert ["add-version", "slang", "11.0.0"] in bootstrap.calls
+
+
+def test_the_runtime_image_declares_only_what_it_answered_for(bootstrap):
+    """⚠️ The fallback to the publish date belongs to the TOOLS image alone.
+    That one is built to contain the whole list, so a tool that said nothing is
+    present and mute. The runtime image is built to contain none of them, and
+    declaring a tool it does not hold sends nodes to an image that cannot run
+    them."""
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924",
+                       {}, {"slang": {"kind": "tool", "version": "11.0.0"}},
+                       {tool: None for tool in bootstrap.TOOLS})
+
+    runtime, tools = commands(bootstrap, "add-image")
+
+    assert "slang==11.0.0" in runtime
+    assert "openroad==20260924" not in runtime
+    # And the tools image falls back for everything that said nothing.
+    assert "openroad==20260924" in tools
+
+
+def test_built_at_is_a_timestamp_and_not_the_publish_date(bootstrap):
+    """🔴 They are not the same thing. The date is a VERSION for a tool that
+    reports none, so it has to compare as a version; `built_at` breaks the tie
+    between two images carrying identical versions -- and two images built on
+    the same day is the ordinary case, so a date cannot break it."""
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", {}, {},
+                       {tool: None for tool in bootstrap.TOOLS})
+
+    for call in commands(bootstrap, "add-image"):
+        built = call[call.index("-built") + 1]
+        assert built.startswith("2026-09-24T")
+        assert built != "20260924"

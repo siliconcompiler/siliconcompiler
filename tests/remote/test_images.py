@@ -122,12 +122,38 @@ def test_the_smallest_image_that_fits_wins(registry, store):
     assert plan.ref(plan.nodes[("place", "0")]).startswith("ghcr.io/x/sc-tools@")
 
 
-def test_a_tool_nobody_registered_raises_no_requirement(registry, store):
-    '''A deployment curating images for the framework and saying nothing about
-    Verilator is not claiming to have a Verilator image, and is not refused for
-    lacking one. Registering the name is how an operator takes that claim on.'''
+def test_a_tool_nobody_registered_is_refused_when_it_needs_a_program(
+        registry, store):
+    '''🔴 **This reverses the earlier rule, and a live failure is why.** It
+    used to be that only a REGISTERED name raised a requirement -- a deployment
+    curating images for the framework was not claiming to have Verilator and
+    was not refused for lacking one. That holds where jobs run on the host,
+    which may well have it.
+
+    ⚠️ Once `containers` is on the registry IS the world. A Bluespec design
+    submitted to a deployment that had never heard of `bsc` was accepted, its
+    `convert` node placed in the PYTHON-ONLY image because nothing raised a
+    requirement, dispatched, and died on the first node with every other node
+    cancelled behind it.'''
+    with pytest.raises(ProblemError) as raised:
+        images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
+                            {("lint", "0"): "verilator"})
+
+    assert raised.value.error.slug == "unsatisfiable-request"
+    assert raised.value.members["resource"] == "verilator"
+    assert "nowhere for it to run" in raised.value.detail
+
+
+def test_a_task_that_runs_no_program_needs_nothing_from_an_image(registry,
+                                                                 store):
+    '''⚠️ Asked of the driver and not of a list of names. A task declaring an
+    `exe` cannot run without that program; one declaring none runs in
+    SiliconCompiler's own process. `slang` is the case a name-based rule gets
+    backwards -- it looks like a tool and is a Python binding -- and `execute`
+    is the one it misses, since the command it runs is the user's.'''
     plan = images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
-                               {("lint", "0"): "verilator"})
+                               {("lint", "0"): "verilator"},
+                               needs_executable=lambda node: False)
 
     assert plan.nodes[("lint", "0")] == plan.job
 
@@ -252,14 +278,20 @@ def test_without_containers_the_join_is_the_wrong_answer(registry, store):
 
 def test_retiring_the_software_retracts_the_claim(registry, store):
     '''The other half of the distinction above: retiring a version says *not
-    this one*, retiring the software says *not any more*.'''
+    this one*, retiring the software says *not any more*.
+
+    ⚠️ And *not any more* now means a node needing it is refused rather than
+    quietly placed in the job's own image -- which is the same correction:
+    where every node runs in a container, a tool no image holds has nowhere to
+    run whether it was once registered or never was.'''
     images.retire_version(store, "openroad", "2.0", store.actor)
     images.retire_software(store, "openroad", store.actor)
 
-    plan = images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
-                               {("place", "0"): "openroad"})
+    with pytest.raises(ProblemError) as raised:
+        images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
+                            {("place", "0"): "openroad"})
 
-    assert plan.nodes[("place", "0")] == plan.job
+    assert raised.value.members["resource"] == "openroad"
 
 
 ###########################

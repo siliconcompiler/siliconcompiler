@@ -69,7 +69,23 @@ DOCKER_SOCK = os.environ.get("SC_DOCKER_SOCKET", "/var/run/docker.sock")
 # and fails inside a container that never had it. These are what asicflow
 # needs.
 TOOLS = (os.environ.get("SC_TOOLS")
-         or "klayout openroad opensta yosys vpr icarus verilator bambu soda mlir").split()
+         or "klayout openroad opensta yosys vpr icarus verilator bambu soda "
+            "mlir slang").split()
+
+# 🔴 Tools whose version is a PYTHON DISTRIBUTION rather than a program.
+# `slang` is the case: its driver runs pyslang in SiliconCompiler's own
+# process, so there is no executable to ask and no `exe` on the task -- and the
+# distribution is not called what the tool is called, which is why this is a
+# map and not a rule.
+#
+# ⚠️ It is still registered as a TOOL, because that is what it is to a flow: a
+# node names `slang` and has to be placed in an image holding it. The
+# difference is only how its version is read.
+#
+# ⚠️ And it is in BOTH images, because it arrives with siliconcompiler rather
+# than with the EDA stack. A tool declared only by the big image would drag
+# every node that touches it into twelve gigabytes for no reason.
+AS_DISTRIBUTION = {"slang": "pyslang"}
 
 # What a container has to see beyond the data directory, which the staging code
 # always mounts. A framework image submits every node of the flow it drives, so
@@ -271,7 +287,17 @@ def ask_image(image: str, python_names, tools) -> dict:
     from siliconcompiler.remote.server import probe
 
     wanted = [(name, "python", None) for name in python_names]
-    wanted += [(name, "tool", driver) for name, driver in sorted(tools.items())]
+    # ⚠️ A tool whose version is a distribution is asked the python way, under
+    # the distribution's name, and the answer is put back under the TOOL's --
+    # `slang` is registered as slang and read as pyslang.
+    back = {}
+    for name, driver in sorted(tools.items()):
+        distribution = AS_DISTRIBUTION.get(name)
+        if distribution:
+            wanted.append((distribution, "python", None))
+            back[distribution] = name
+        else:
+            wanted.append((name, "tool", driver))
 
     try:
         output = run_in(image, ["sh", "-c", probe.script(wanted)])
@@ -280,10 +306,17 @@ def ask_image(image: str, python_names, tools) -> dict:
         return {}
 
     try:
-        return probe.read_output(wanted, output)
+        found = probe.read_output(wanted, output)
     except Exception as e:                                       # noqa: BLE001
         say(f"could not read what {image} answered: {e}")
         return {}
+
+    for distribution, name in back.items():
+        answer = found.pop(distribution, None)
+        if answer:
+            # Recorded as a tool, whatever it was read as.
+            found[name] = {**answer, "kind": "tool"}
+    return found
 
 
 def published_on(local: str) -> str:
@@ -307,7 +340,7 @@ def published_on(local: str) -> str:
     against the same image registers the same row rather than a new one every
     day.
     '''
-    created = _get(f"/images/{local}/json").get("Created") or ""
+    created = built_at(local)
     # "2026-09-24T10:11:12.345678901Z" -> "20260924". A bare integer, because a
     # version is compared as a version and 2026-09-24 is not one.
     stamp = created[:10].replace("-", "")
@@ -315,6 +348,18 @@ def published_on(local: str) -> str:
         raise RuntimeError(f"the daemon reported no creation time for {local}: "
                            f"{created!r}")
     return stamp
+
+
+def built_at(local: str) -> str:
+    '''When the image was built, to the second.
+
+    🔴 **Not the date `published_on` returns, and the two are not the same
+    thing.** That one is a VERSION for a tool that reports none, so it has to
+    be a number that compares as a version. This one breaks the tie between
+    two images carrying identical versions -- and two images built on the same
+    day is the ordinary case, not the rare one, so a date cannot break it.
+    '''
+    return _get(f"/images/{local}/json").get("Created") or ""
 
 
 def push(local: str, repository: str, tag: str) -> str:
@@ -529,7 +574,8 @@ def say_what_it_holds(held: dict) -> None:
 
 
 def register(version: str, tools_digest: str, runtime_digest: str,
-             published: str, held: dict, drivers: dict) -> None:
+             published: str, held: dict, runtime_held: dict,
+             drivers: dict) -> None:
     '''Put what the probe found into the registry.
 
     🔴 **A version the probe READ is registered as reported; one it could not
@@ -538,15 +584,16 @@ def register(version: str, tools_digest: str, runtime_digest: str,
     beats `2.0.1` under every comparison there is, so an unmarked date would
     outrank every real release for ever.
 
-    This used to register every tool at the SILICONCOMPILER version, because
-    this process does not run the tools and so cannot report theirs. That
-    number was indistinguishable from a real one -- `openroad>=2.0` would have
-    been matched against `0.38.9` and refused for a reason that was not true.
+    ⚠️ **Each image declares what IT answered for**, and the fallback belongs
+    to the tools image alone. That one is built to contain the whole list, so a
+    tool that said nothing is present and mute; the runtime image is built to
+    contain none of them, and declaring a tool it does not hold would place
+    nodes in an image that cannot run them.
     '''
     registry("add-software", "siliconcompiler", "-kind", "python")
     registry("add-version", "siliconcompiler", version)
 
-    contains = []
+    contains, runtime_contains = [], []
     for tool in TOOLS:
         driver = drivers.get(tool)
         add = ["add-software", tool, "-kind", "tool"]
@@ -554,32 +601,38 @@ def register(version: str, tools_digest: str, runtime_digest: str,
             add += ["-driver", driver]
         registry(*add)
 
-        # ⚠️ NOT `version`, which is the SiliconCompiler version this whole
-        # function is about and is used again below. Binding the tool's version
-        # to that name shadowed it, so after the loop it held whatever the last
-        # tool reported -- and both images were tagged `:19.1.5` and declared
-        # to contain `siliconcompiler==19.1.5`, which is mlir's version. The
-        # server then refused to start, correctly, saying it could not read a
-        # siliconcompiler it had never been asked to.
+        # ⚠️ NOT `version`, which is the SiliconCompiler version this function
+        # is about and is used again below. Binding a tool's version to that
+        # name shadowed it, and both images were tagged with whatever the last
+        # tool reported.
         #
         # The COMPARABLE one -- the driver's own normalisation, already
         # applied -- because that is what a version range is matched against.
-        # What the tool printed went to the log above.
+        # What the tool printed went to the log.
         found = (held.get(tool) or {}).get("version")
         if found:
             registry("add-version", tool, found)
             contains += ["-contains", f"{tool}=={found}"]
         else:
-            # In the image, listed, and nobody asked it what it was.
+            # In the tools image, listed, and nobody asked it what it was.
             registry("add-version", tool, published, "-unversioned")
             contains += ["-contains", f"{tool}=={published}"]
 
+        # The runtime image declares a tool only where it answered for one.
+        # `slang` is the case that exists: it arrives with siliconcompiler
+        # rather than with the EDA stack, so it is in both.
+        in_runtime = (runtime_held.get(tool) or {}).get("version")
+        if in_runtime:
+            registry("add-version", tool, in_runtime)
+            runtime_contains += ["-contains", f"{tool}=={in_runtime}"]
+
     say("staging bundles (skopeo, then umoci -- the big one takes a minute)")
     registry("add-image", f"{PULL_FROM}/sc-runtime:{version}",
-             "-digest", runtime_digest, "-built", published,
-             "-contains", f"siliconcompiler=={version}", "-stage")
+             "-digest", runtime_digest, "-built", built_at(RUNTIME_IMAGE),
+             "-contains", f"siliconcompiler=={version}", *runtime_contains,
+             "-stage")
     registry("add-image", f"{PULL_FROM}/sc-tools:{version}",
-             "-digest", tools_digest, "-built", published,
+             "-digest", tools_digest, "-built", built_at(STACK_IMAGE),
              "-contains", f"siliconcompiler=={version}", *contains, "-stage")
 
 
@@ -610,10 +663,21 @@ def main() -> int:
     held = ask_image(STACK_IMAGE, ["siliconcompiler"], drivers)
     say_what_it_holds(held)
 
+    # ⚠️ Asked too, and not assumed empty. It carries whatever arrives with
+    # siliconcompiler -- `slang` does -- and a tool it holds and does not
+    # declare is a node sent to the big image for nothing.
+    say("asking the runtime image the same")
+    runtime_held = ask_image(RUNTIME_IMAGE, ["siliconcompiler"], drivers)
+    for tool in TOOLS:
+        found = (runtime_held.get(tool) or {}).get("version")
+        if found:
+            say(f"  {tool}: {found}")
+
     runtime_digest = push(RUNTIME_IMAGE, "sc-runtime", version)
     tools_digest = push(STACK_IMAGE, "sc-tools", version)
 
-    register(version, tools_digest, runtime_digest, published, held, drivers)
+    register(version, tools_digest, runtime_digest, published, held,
+             runtime_held, drivers)
 
     say(f"this deployment runs siliconcompiler {version} in containers")
     return 0

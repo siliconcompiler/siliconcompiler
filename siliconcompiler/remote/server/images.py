@@ -467,7 +467,8 @@ def _newest_first(built_at: Optional[str]) -> str:
 
 
 def plan_for_job(store, requires: Dict[str, Any],
-                 node_tools: Dict[Tuple[str, str], Optional[str]]) -> Plan:
+                 node_tools: Dict[Tuple[str, str], Optional[str]],
+                 needs_executable=None) -> Plan:
     '''Which image every node of this job runs in.
 
     🔴 **N images, not one.** A forty-node flow over six tools resolves six, and
@@ -495,10 +496,36 @@ def plan_for_job(store, requires: Dict[str, Any],
 
     nodes: Dict[Tuple[str, str], Optional[str]] = {}
     for node, tool in node_tools.items():
-        if not tool or tool not in software["tools"]:
-            # No tool, or a tool nobody registered -- which is not a
-            # requirement at all, and is what lets a deployment curate images
-            # for the framework and say nothing about Verilator.
+        if not tool:
+            nodes[node] = job_image["id"]
+            continue
+
+        if tool not in software["tools"]:
+            # 🔴 **A tool nobody registered is fatal here, and it did not use
+            # to be.** The old rule was that only a registered name raises a
+            # requirement -- so a deployment curating images for the framework
+            # was not claiming to have Verilator and was not refused for
+            # lacking one. That reasoning holds for a deployment that runs jobs
+            # on the host, where the host may well have it.
+            #
+            # ⚠️ **It is wrong once `containers` is on, because then the
+            # registry IS the world.** Observed: a Bluespec design submitted to
+            # a deployment that had never heard of `bsc` was accepted, its
+            # `convert` node placed in the PYTHON-ONLY image because nothing
+            # raised a requirement, dispatched, and died on the first node with
+            # every other node cancelled behind it. The cluster was paid for to
+            # learn something submit already knew.
+            #
+            # ⚠️ Asked of the driver and not of a list: a task declaring an
+            # `exe` cannot run without that program, and one declaring none
+            # runs in this process. `builtin` is the obvious case, `execute` is
+            # the one a list would miss -- it runs a command the user supplied
+            # -- and `slang` is the reverse, a Python binding that looks like a
+            # tool. The question costs a `make_docs`, so it is asked ONLY here,
+            # where the answer decides a refusal, and never for a tool an image
+            # already holds.
+            if needs_executable is None or needs_executable(node):
+                raise _unregistered(tool, node, images)
             nodes[node] = job_image["id"]
             continue
 
@@ -651,6 +678,24 @@ def _unsatisfiable(requirements: Sequence[Requirement], images,
         detail=f"no image on this server holds "
                f"{', '.join(str(want) for want in requirements)}; "
                f"{len(images)} image(s) are registered")
+
+
+def _unregistered(tool: str, node: Tuple[str, str], images) -> ProblemError:
+    '''A node needs a program this deployment has never heard of.
+
+    🔴 Distinct from *registered and in no image*, and the detail says which:
+    one is an operator who curated a tool and has not built an image holding
+    it, the other is a flow reaching for something nobody here offers at all.
+    They are fixed in different places by different people.
+    '''
+    step, index = node
+    return ProblemError(
+        "unsatisfiable-request", resource_kind="tool", resource=tool,
+        detail=f"{step}/{index} runs {tool}, and no image on this server holds "
+               f"it -- this deployment runs every node in a container, so there "
+               f"is nowhere for it to run. {len(images)} image(s) are "
+               "registered, and an operator adds one with "
+               "'registry add-software' and 'registry add-image'")
 
 
 def _present_but_unversioned(requirements: Sequence[Requirement], images):
