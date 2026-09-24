@@ -422,20 +422,24 @@ task's own ``normalize_version``. ``>=24Q3-2011`` is not a PEP 440 specifier at
 all, and only the driver knows how to turn it into ``>=24.3.2011``; sent raw it
 would be refused against an image that plainly satisfies it.
 
-**Versions can be read out of the image rather than typed.** The probe runs
-inside it and asks: ``importlib.metadata`` for a python distribution, and for a
-tool its driver's own executable, version switch and parser -- the same ones a
-real run uses.
+**Versions can be read out of the image rather than typed.** The probe asks:
+``importlib.metadata`` for a python distribution, and for a tool its driver's
+own executable, version switch and parser -- the same ones a real run uses.
 
 .. code-block:: bash
 
   python3 -m siliconcompiler.remote.server.probe \
       -python siliconcompiler -tool openroad=siliconcompiler.tools.openroad
 
-It prints one line of JSON behind a marker, because a version check RUNS the
-tool and a tool that prints a banner writes to the same stream as the answer.
-The compose bootstrap does this for every tool in its image, which is how a
-deployment gets real tool versions without anybody typing them.
+🔴 **The command runs in the image and the parsing happens outside it**, which
+is what lets any tools image be registered rather than only one that has
+SiliconCompiler in it -- and most do not, including the image
+SiliconCompiler's own CI runs its tools in. ``-script`` prints the shell script
+for a caller that will run it somewhere else; each answer is framed, because a
+version check RUNS the tool and a tool that prints a banner writes to the same
+stream as the answer. The compose bootstrap does this for every tool in its
+image, which is how a deployment gets real tool versions without anybody
+typing them.
 
 **A tool that reports no version is registered with a date and marked.**
 ``add-version <tool> 20260924 -unversioned`` records that the tool is in the

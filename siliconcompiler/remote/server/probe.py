@@ -4,37 +4,32 @@ What is actually inside an image, asked rather than declared.
 🔴 **The registry's one unverified claim was `image_contents`.** An operator
 typed what an image held and nothing ever opened it to check, so a wrong row
 meant a job ran in a container without what it asked for and failed at run time
-rather than at submit. This is the other half: run inside the image and report
-what is there.
+rather than at submit. This is the other half: ask the image.
 
 **Two mechanisms, and the registry says which applies to which name:**
 
 ``python``  ``importlib.metadata.version(<name>)``
-``tool``    the driver's ``exe`` and ``vswitch``, through its ``parse_version``
+``tool``    the driver's ``exe`` and ``vswitch``, read back through its
+            ``parse_version`` and ``normalize_version``
 
-🔴 **Neither the kind nor the driver is guessed here.** Both are columns on
+🔴 **The command runs in the image and the PARSING happens here, and that split
+is the whole design.** An earlier version ran this module inside the image,
+which works only for an image that has SiliconCompiler installed -- and most
+tool images do not. ``ghcr.io/siliconcompiler/sc_tools`` is the obvious case: it
+is the image SiliconCompiler's own CI runs its tools in, and CI installs the
+framework into it at test time. Requiring the framework in every image an
+operator wants to register is requiring them to rebuild somebody else's image.
+
+So :func:`script` produces a shell script that runs the tools and frames each
+answer, and :func:`read_output` turns what came back into versions. The caller
+in between is whatever can start a container.
+
+🔴 **Neither the kind nor the driver is guessed.** Both are columns on
 ``software``, set when the name is registered. A guess would work for
-SiliconCompiler's own in-tree drivers and quietly fail for everything else: a
-driver can live in any package -- a site library ships its own and a
-proprietary tool's never will be in this tree -- and the in-tree path is not
-even reliable in-tree, where ``kepler-formal`` is driven from
-``siliconcompiler.tools.keplerformal``. There is also nothing to guess FROM:
-the process that registers an image is not the process inside it and does not
-have its packages.
-
-Run inside the image:
-
-.. code-block:: bash
-
-  python3 -m siliconcompiler.remote.server.probe \\
-      -python siliconcompiler \\
-      -tool openroad=siliconcompiler.tools.openroad \\
-      -tool magic
-
-and it prints one line of JSON behind :data:`MARKER`. The marker is there
-because a container's output is not this process's alone -- a tool that writes
-to stdout while being asked its version would otherwise be indistinguishable
-from the answer.
+SiliconCompiler's own in-tree drivers and quietly fail for everything else -- a
+driver can live in any package, and the in-tree path is not even reliable
+in-tree, where ``kepler-formal`` is driven from
+``siliconcompiler.tools.keplerformal``.
 '''
 
 import argparse
@@ -43,86 +38,273 @@ import importlib.metadata
 import json
 import logging
 import pkgutil
+import re
+import shlex
+import subprocess
 import sys
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-__all__ = ["KINDS", "MARKER", "probe", "python_version", "tool_version"]
+__all__ = ["KINDS", "MARKER", "command_for", "probe", "read_output", "script"]
 
 
 # The closed set, and each half is a mechanism rather than a label.
 KINDS = ("python", "tool")
 
-# What a caller greps for. One line, JSON after it.
+# What a caller greps for when it wants only the answer. One line, JSON after.
 MARKER = "sc-probe:"
+
+# 🔴 How one name's answer is framed in the output, and it is framed because a
+# version check RUNS the tool: anything the tool prints on its way -- a banner,
+# a licence line, a warning -- lands in the same stream. Everything between one
+# name's markers belongs to it, and everything outside them belongs to nobody.
+_BEGIN = "--sc-probe-begin:"
+_END = "--sc-probe-end:"
+
+# What runs a python distribution's version check. `print(end="")` on the
+# failure so a missing distribution frames as empty rather than as the word
+# None, which is a version somebody could try to parse.
+_PYTHON_CHECK = (
+    "import importlib.metadata as m\n"
+    "try: print(m.version({name!r}))\n"
+    "except Exception: print(end='')\n"
+)
+
+# CSI and the rest of the escape sequences a colouring tool emits.
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 
 logger = logging.getLogger("sc-probe")
 
 
-def python_version(name: str) -> Optional[str]:
-    '''What ``importlib.metadata`` says, or None if it is not installed.'''
-    try:
-        return importlib.metadata.version(name)
-    except importlib.metadata.PackageNotFoundError:
-        return None
-    except Exception as e:                                       # noqa: BLE001
-        logger.debug(f"{name}: importlib could not answer: {e}")
-        return None
+def command_for(name: str, kind: str,
+                driver: Optional[str] = None) -> Optional[List[str]]:
+    '''What to run inside the image to make this name answer.
 
+    ⚠️ **Read without `shutil.which`.** `Task.get_exe` resolves the executable
+    against THIS machine's PATH and raises when it is missing, which is the
+    right behaviour for a run and the wrong one here: the tool is in the image,
+    not here, and its absence locally says nothing at all.
 
-def tool_version(name: str,
-                 driver: Optional[str] = None) -> Optional[Tuple[str, str]]:
-    '''Run the tool's executable with its version switch, and parse the output.
-
-    🔴 **`Task.get_exe_version` and not a command of this module's own.** The
-    executable name, the switch and the parser are per tool and they live in
-    the driver -- OpenROAD answers ``-version`` with four different shapes and
-    its `parse_version` knows all of them. Anything here that re-implemented
-    the call would be a second copy that drifts from the one a real run uses.
-
-    ``driver`` is the module carrying it, as the registry recorded it. Without
-    one there is nothing to run and the answer is None -- which is a real
-    answer: it is what ``published_date`` exists to record.
-
-    ⚠️ Every Task class in that module is tried, because the one that sets the
-    executable is usually a base the concrete tasks inherit, and an abstract
-    base cannot be built.
-
-    Returns ``(comparable, reported)`` -- see `_ask` for why there are two.
+    None where nothing can ask: a python name needs no driver and always has a
+    command, a tool with no driver has no executable to name, and a driver this
+    process cannot import cannot be read.
     '''
-    for task_cls in _drivers(name, driver):
-        answer = _ask(task_cls, name)
-        if answer:
-            return answer
-    return None
+    if kind not in KINDS:
+        raise ValueError(f"{kind} is not a software kind")
+
+    if kind == "python":
+        return ["python3", "-c", _PYTHON_CHECK.format(name=name)]
+
+    asked = _ask_driver(name, driver, lambda task: (task.get("exe"),
+                                                    task.get("vswitch")))
+    if not asked:
+        return None
+
+    exe, vswitch = asked
+    if not exe or not vswitch:
+        # A tool whose driver names no version switch cannot be asked. That is
+        # a fact about the driver and not a failure here.
+        return None
+    return [exe, *vswitch]
 
 
-def probe(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> Dict[str, Dict[str, Any]]:
-    '''Ask about each ``(name, kind, driver)``. Returns name to kind and
-    version.
+def read_answer(name: str, kind: str, output: str,
+                driver: Optional[str] = None) -> Optional[Tuple[str, str]]:
+    '''One name's captured output, as ``(comparable, reported)``.
 
-    ``version`` is None where nothing reported one. Not an error: a tool this
-    deployment lists and nobody drives has no version to read, and saying so is
-    the point.
+    🔴 **Two numbers, because they differ and both are wanted.** The comparable
+    one is what gets stored and matched; what the tool actually printed is what
+    an operator should see in a log. `verilator` says `5.052` and PEP 440 makes
+    that `5.52`; OpenROAD says `26Q3-2418-g3ab04b4dd1` and its own normaliser
+    makes that `26.3.2418`.
+
+    🔴 **The driver's `parse_version` and `normalize_version`, never a rule of
+    this module's own.** OpenROAD answers `-version` in four different shapes
+    and its parser knows all of them. Anything here that re-implemented the
+    reading would be a second copy that drifts from the one a real run uses.
     '''
+    text = output or ""
+    if not text.strip():
+        return None
+
+    if kind == "python":
+        # The LAST line, because anything the interpreter warned about on its
+        # way comes first. A distribution's version needs no normalising: it
+        # is PEP 440 already, by the packaging that declared it.
+        said = text.strip().splitlines()[-1].strip()
+        return (said, said) if said else None
+
+    def read(task):
+        reported = task.parse_version(text)
+        if not reported:
+            return None
+        try:
+            return task.normalize_version(reported), reported
+        except Exception as e:                                   # noqa: BLE001
+            # A normaliser that cannot read its own tool's output. The raw
+            # string is still true and still selectable by name; what it loses
+            # is being matchable against a range.
+            logger.debug(f"{name}: could not normalize {reported}: {e}")
+            return reported, reported
+
+    return _ask_driver(name, driver, read)
+
+
+def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
+    '''A shell script that asks every name, framed so the answers can be told
+    apart.
+
+    ⚠️ One script and one container rather than one each. A container start
+    per tool is a second of nothing eleven times over, and the framing already
+    does what separate runs would have bought.
+    '''
+    lines = ["#!/bin/sh"]
+    for name, kind, driver in wanted:
+        command = command_for(name, kind, driver)
+        lines.append(f"echo {shlex.quote(_BEGIN + name)}")
+        if command:
+            # 🔴 Guarded on the executable EXISTING, and this is not
+            # belt-and-braces. Without it a missing tool leaves the shell's own
+            # `openroad: not found` inside the frame, and OpenROAD's
+            # `parse_version` takes the last word of what it is given -- so an
+            # absent tool was registered at version `0`, parsed out of the
+            # error message saying it was absent. An empty frame is the honest
+            # answer and the one that ends in `published_date`.
+            #
+            # `2>&1` because a tool is as likely to answer on stderr, and
+            # `|| true` because a non-zero exit is ordinary: several print
+            # their version and then complain about having nothing to do.
+            lines.append(f"if command -v {shlex.quote(command[0])} "
+                         "> /dev/null 2>&1; then")
+            lines.append(f"  {shlex.join(command)} 2>&1 || true")
+            lines.append("fi")
+        lines.append(f"echo {shlex.quote(_END + name)}")
+    return "\n".join(lines) + "\n"
+
+
+def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
+                output: str) -> Dict[str, Dict[str, Any]]:
+    '''What :func:`script` printed, as name to kind and version.
+
+    ``version`` is None where nothing answered. Not an error: a tool this
+    deployment lists and nobody drives, or one that is not in this image, has
+    no version to read -- and saying so is what ``published_date`` is for.
+    '''
+    captured = _split(output or "")
+
     found: Dict[str, Dict[str, Any]] = {}
     for name, kind, driver in wanted:
-        if kind not in KINDS:
-            raise ValueError(f"{kind} is not a software kind")
-        if kind == "python":
-            version = python_version(name)
-            reported = version
-        else:
-            answer = tool_version(name, driver)
-            version, reported = answer if answer else (None, None)
-
+        answer = read_answer(name, kind, captured.get(name, ""), driver)
+        version, reported = answer if answer else (None, None)
         found[name] = {"kind": kind, "version": version, "reported": reported}
     return found
+
+
+def probe(wanted: Sequence[Tuple[str, str, Optional[str]]],
+          run=None) -> Dict[str, Dict[str, Any]]:
+    '''Ask about each ``(name, kind, driver)``, running the script somewhere.
+
+    ``run`` takes the script and returns what it printed; it defaults to this
+    machine, which is what makes the CLI useful for *what does this host hold*.
+    A caller with an image passes something that starts a container.
+
+    🔴 One path for both. The alternative -- a local implementation beside a
+    container one -- is two answers to the same question, and the one nobody
+    runs is the one that rots.
+    '''
+    return read_output(wanted, (run or _locally)(script(wanted)))
+
+
+def _locally(text: str) -> str:
+    done = subprocess.run(["sh"], input=text, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, universal_newlines=True)
+    return done.stdout
 
 
 ######################################################################
 # Reaching the driver
 ######################################################################
+
+def _split(output: str) -> Dict[str, str]:
+    '''Everything between each name's markers.'''
+    captured: Dict[str, str] = {}
+    name: Optional[str] = None
+    lines: List[str] = []
+
+    for line in output.splitlines():
+        # ⚠️ Escapes stripped before the marker is looked for. A tool that
+        # thinks it is on a terminal colours its output, and klayout put
+        # `\x1b[0m` in front of the marker closing its own frame -- so the
+        # frame never closed and a tool that had answered read as absent.
+        # Giving the container no TTY is the real fix and this is the belt:
+        # nothing says a tool checks before colouring.
+        stripped = _ANSI.sub("", line).strip()
+        if stripped.startswith(_BEGIN):
+            name, lines = stripped[len(_BEGIN):], []
+        elif stripped.startswith(_END):
+            if name is not None and stripped[len(_END):] == name:
+                # 🔴 The trailing newline is kept, and it is not cosmetic.
+                # `subprocess.run` hands `parse_version` output that ends in
+                # one, and a parser is entitled to count on that: bambu's
+                # takes `stdout.split('\n')[-3]`, so dropping it reads the
+                # line above the version and returns nothing. Whatever this
+                # reconstructs has to be what a real run would have passed.
+                captured[name] = "\n".join(lines) + "\n"
+            name, lines = None, []
+        elif name is not None:
+            lines.append(line)
+
+    return captured
+
+
+def _ask_driver(name: str, driver: Optional[str], read):
+    '''Build each Task in a driver module and hand the first that matches to
+    ``read``.
+
+    More than one class is tried, because the one that sets the executable is
+    usually a base the concrete tasks inherit and an abstract base cannot be
+    built.
+    '''
+    for task_cls in _drivers(name, driver):
+        try:
+            answer = _with_task(task_cls, name, read)
+        except Exception as e:                                   # noqa: BLE001
+            # Ordinary: an abstract base, or a class whose make_docs needs
+            # something this machine has not got. The next one is tried.
+            logger.debug(f"{name}/{task_cls.__name__}: {e}")
+            continue
+        if answer:
+            return answer
+    return None
+
+
+def _with_task(task_cls, name: str, read):
+    '''Build one task the way the docs build it, bind it, and read from it.
+
+    🔴 **`make_docs()` does the building, and that is the point of using it.**
+    What a task needs around it is the task's own knowledge and it differs: an
+    OpenROAD task needs an `ASIC` project with a real PDK target loaded, a
+    builtin task needs a bare `Project`, and a dozen classes override
+    `make_docs` to say so. Scaffolding built here would be a second answer to
+    that question -- right for the tasks somebody checked, silently wrong for
+    the rest, and stale the first time a driver needed something new.
+
+    ⚠️ **One thing has to be added back: `make_docs` returns an UNBOUND task.**
+    `exe` and `vswitch` are set per step and index -- that is what `setup()`
+    does -- so reading them off the returned object gets nothing. The project
+    it was built in is reachable as the schema's root, and re-entering a node
+    on it binds what `setup()` wrote.
+    '''
+    from siliconcompiler.scheduler import SchedulerNode
+
+    built = task_cls.make_docs()
+    node = SchedulerNode(built._parent(root=True), "<step>", "<index>")
+
+    with node.task.runtime(node) as task:
+        if task.tool() != name:
+            return None
+        return read(task)
+
 
 def _drivers(name: str, driver: Optional[str]) -> List[Any]:
     '''The Task classes in one module that drive one tool.
@@ -139,8 +321,6 @@ def _drivers(name: str, driver: Optional[str]) -> List[Any]:
     try:
         module = importlib.import_module(driver)
     except Exception as e:                                       # noqa: BLE001
-        # Not in this image, which is an ordinary answer for an image that does
-        # not hold the tool.
         logger.debug(f"{name}: could not import {driver}: {e}")
         return []
 
@@ -171,78 +351,14 @@ def _subclasses(cls) -> List[Any]:
     return found
 
 
-def _ask(task_cls, name: str) -> Optional[str]:
-    '''Build one task the way the docs build it, bind it, and ask its version.
-
-    🔴 **`make_docs()` does the building, and that is the whole point of using
-    it.** What a task needs around it is the task's own knowledge and it
-    differs: an OpenROAD task needs an `ASIC` project with a real PDK target
-    loaded, a builtin task needs a bare `Project`, and a dozen classes override
-    `make_docs` to say so. Scaffolding built here would be a second answer to
-    that question, right for the tasks somebody checked and silently wrong for
-    the rest -- and it would go stale the first time a driver started needing
-    something new.
-
-    ⚠️ **One thing has to be added back: `make_docs` returns an UNBOUND task.**
-    `exe` and `vswitch` are set per step and index -- that is what `setup()`
-    does -- so `get_exe()` on the returned object reads nothing. The project it
-    was built in is reachable as the schema's root, and re-entering a node on
-    it is what binds the values `setup()` wrote.
-
-    🔴 **The driver's `normalize_version` is applied, and that is not
-    cosmetic.** OpenROAD reports `26Q3-2418-g3ab04b4dd1`, which is not a PEP
-    440 version at all -- stored raw it can never satisfy a range, so
-    `openroad>=26.3` would be refused against an image that plainly has it. Its
-    driver knows how to turn that into `26.3.2418`, the same way its
-    `parse_version` knows the four shapes the tool answers in. Where SC has a
-    rule for a tool, that is the rule.
-
-    Returns ``(comparable, reported)``: the normalised version, which is what
-    gets stored and matched, and what the tool actually printed, which is what
-    an operator should see in a log. `verilator` says `5.052` and PEP 440 makes
-    that `5.52`; the catalogue needs the second and a person reading it is
-    owed the first.
-    '''
-    from siliconcompiler.scheduler import SchedulerNode
-
-    try:
-        built = task_cls.make_docs()
-        project = built._parent(root=True)
-
-        node = SchedulerNode(project, "<step>", "<index>")
-        with node.task.runtime(node) as task:
-            if task.tool() != name:
-                return None
-
-            reported = task.get_exe_version()
-            if not reported:
-                return None
-
-            try:
-                return task.normalize_version(reported), reported
-            except Exception as e:                               # noqa: BLE001
-                # A normaliser that cannot read its own tool's output. The raw
-                # string is still true and still selectable by name; what it
-                # loses is being matchable against a range.
-                logger.debug(f"{name}: could not normalize {reported}: {e}")
-                return reported, reported
-    except Exception as e:                                       # noqa: BLE001
-        # Every one of these is ordinary: an abstract base, a class whose
-        # make_docs needs something this image has not got, a tool that is not
-        # installed here. The next class is tried, and a name that answers
-        # nowhere reports no version.
-        logger.debug(f"{name}/{task_cls.__name__}: {e}")
-        return None
-
-
 ######################################################################
-# Running it inside an image
+# Asking this machine
 ######################################################################
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python3 -m siliconcompiler.remote.server.probe",
-        description="What is in this image: one JSON line, behind a marker.")
+        description="What this machine holds: one JSON line, behind a marker.")
     parser.add_argument(
         "-python", dest="python", action="append", default=[], metavar="<name>",
         help="a distribution in the interpreter, asked through "
@@ -253,6 +369,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="an executable, asked through its Task driver. Repeatable. "
              "Without a driver module it is reported with no version, which "
              "is the honest answer for a tool nobody here drives")
+    parser.add_argument(
+        "-script", action="store_true",
+        help="print the shell script instead of running it, for a caller that "
+             "will run it somewhere else -- inside an image, say")
     parser.add_argument("-verbose", action="store_true",
                         help="let SiliconCompiler's own logging through")
     args = parser.parse_args(argv)
@@ -268,17 +388,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if not wanted:
         parser.error("nothing to probe: give at least one -python or -tool")
 
-    # 🔴 After the arguments are checked, and off by default. A version check
-    # runs the tool, and a tool that prints its banner to stdout would
-    # otherwise be mixed into the answer -- which is what the marker exists
-    # for, and quieting the noise is cheaper than relying on it.
+    # 🔴 After the arguments are checked, and off by default: a usage error
+    # that had already quieted the logs would take the message about itself
+    # with it.
     #
-    # ⚠️ It is process-wide and nothing puts it back, which is right for a
-    # process whose whole job is this and wrong for anything else: a usage
-    # error that had already quieted the logs would take the message about
-    # itself with it.
+    # ⚠️ Process-wide and nothing puts it back, which is right for a process
+    # whose whole job is this and wrong for anything else.
     if not args.verbose:
         logging.disable(logging.CRITICAL)
+
+    if args.script:
+        sys.stdout.write(script(wanted))
+        return 0
 
     sys.stdout.write(MARKER + json.dumps(probe(wanted)) + "\n")
     return 0

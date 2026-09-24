@@ -155,8 +155,9 @@ def _post(path: str, headers=None):
     return events
 
 
-def _call(method: str, path: str, body=None, raw: bool = False):
-    '''One request to the daemon. Returns parsed JSON, or the raw body.'''
+def _call(method: str, path: str, body=None, raw: bool = False,
+          binary: bool = False):
+    '''One request to the daemon. Returns parsed JSON, text, or raw bytes.'''
     payload = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"} if payload else {}
 
@@ -168,9 +169,13 @@ def _call(method: str, path: str, body=None, raw: bool = False):
     finally:
         daemon.close()
 
-    text = data.decode("utf-8", "replace")
     if response.status >= 400:
-        raise RuntimeError(f"docker said {response.status} to {path}: {text}")
+        raise RuntimeError(f"docker said {response.status} to {path}: "
+                           f"{data.decode('utf-8', 'replace')}")
+    if binary:
+        return data
+
+    text = data.decode("utf-8", "replace")
     return text if raw else (json.loads(text) if text.strip() else {})
 
 
@@ -198,24 +203,65 @@ def run_in(image: str, command) -> str:
                     # else entirely, and the probe reports nothing for every
                     # tool -- which reads exactly like an image that holds
                     # none of them.
+                    #
+                    # 🔴 **No TTY, and that is not a preference.** A tool that
+                    # thinks it is on a terminal behaves differently: klayout
+                    # wraps its version in ANSI colour, which put an escape
+                    # sequence in front of the marker ending its frame, so the
+                    # frame never closed and a tool that had answered was
+                    # recorded as absent. Others wrap their output to 80
+                    # columns. Asking a program what version it is should not
+                    # be a question about the terminal.
                     {"Image": image, "Entrypoint": [], "Cmd": list(command),
-                     "Tty": True, "NetworkDisabled": True})
+                     "Tty": False, "NetworkDisabled": True})
     container = created["Id"]
     try:
         _call("POST", f"/containers/{container}/start")
         _call("POST", f"/containers/{container}/wait")
-        return _call("GET", f"/containers/{container}/logs?stdout=1&stderr=1",
-                     raw=True)
+        return _demux(_call("GET",
+                            f"/containers/{container}/logs?stdout=1&stderr=1",
+                            raw=True, binary=True))
     finally:
         _call("DELETE", f"/containers/{container}?force=1")
 
 
+def _demux(stream: bytes) -> str:
+    """Docker's multiplexed log stream, as text.
+
+    Without a TTY the daemon frames every write: eight bytes of header --
+    which stream it was, then the length -- and then that many bytes. Reading
+    it as plain text leaves the headers in the output, and a header's length
+    bytes are arbitrary, so one of them lands in the middle of a line often
+    enough to matter.
+    """
+    out, at = [], 0
+    while at + 8 <= len(stream):
+        size = int.from_bytes(stream[at + 4:at + 8], "big")
+        out.append(stream[at + 8:at + 8 + size])
+        at += 8 + size
+
+    if at < len(stream):
+        # Not framed after all, which is what a TTY container returns. Taking
+        # the rest verbatim is right for that and harmless otherwise.
+        out.append(stream[at:])
+
+    return b"".join(out).decode("utf-8", "replace")
+
+
 def ask_image(image: str, python_names, tools) -> dict:
-    '''What this image actually holds, as the probe inside it reports.
+    '''What this image actually holds, by running the probe's script in it.
+
+    🔴 **The script runs in the image and the PARSING happens here**, which is
+    what lets any tools image be registered. An earlier version ran the probe
+    module inside the image, and that works only where SiliconCompiler is
+    installed -- which `ghcr.io/siliconcompiler/sc_tools` is not: it is the
+    image SC's own CI runs tools in, and CI installs the framework into it at
+    test time. Requiring the framework in every image an operator wants to
+    register is requiring them to rebuild somebody else's image.
 
     ``tools`` maps a tool name to the module carrying its Task driver, which is
-    what the probe is handed rather than left to work out: the driver can live
-    in any package, and this process is not the image.
+    what makes the command: the driver can live in any package, and this
+    process is the one with SiliconCompiler in it.
 
     ⚠️ **Never fatal.** A probe that cannot run leaves every version unknown,
     and unknown is a state the registry has a spelling for. Refusing to
@@ -224,29 +270,20 @@ def ask_image(image: str, python_names, tools) -> dict:
     '''
     from siliconcompiler.remote.server import probe
 
-    command = [PYTHON, "-m", "siliconcompiler.remote.server.probe"]
-    for name in python_names:
-        command += ["-python", name]
-    for name, driver in sorted(tools.items()):
-        command += ["-tool", f"{name}={driver}" if driver else name]
+    wanted = [(name, "python", None) for name in python_names]
+    wanted += [(name, "tool", driver) for name, driver in sorted(tools.items())]
 
     try:
-        output = run_in(image, command)
+        output = run_in(image, ["sh", "-c", probe.script(wanted)])
     except Exception as e:                                       # noqa: BLE001
         say(f"could not probe {image}: {e}")
         return {}
 
-    for line in reversed(output.splitlines()):
-        line = line.strip()
-        if line.startswith(probe.MARKER):
-            try:
-                return json.loads(line[len(probe.MARKER):])
-            except ValueError as e:
-                say(f"the probe in {image} answered unreadably: {e}")
-                return {}
-
-    say(f"the probe in {image} said nothing; versions will be unknown")
-    return {}
+    try:
+        return probe.read_output(wanted, output)
+    except Exception as e:                                       # noqa: BLE001
+        say(f"could not read what {image} answered: {e}")
+        return {}
 
 
 def published_on(local: str) -> str:
