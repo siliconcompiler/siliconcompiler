@@ -412,3 +412,120 @@ def test_a_cancelled_job_is_not_told_nobody_cancelled_it(
     assert "cancelled" in page
     assert "not\nthat anyone cancelled it" not in page
     assert "the job ended before that node started" not in page
+
+
+###########################
+# Looking inside an archive
+###########################
+
+def test_a_bundle_can_be_browsed_without_downloading_it(signed_in, finished,
+                                                        server, me):
+    '''🔴 What "report viewing" needs: a node's reports are inside its bundle,
+    and a page that can only hand over the whole archive cannot show one.'''
+    store = server.config["SC_STORE"]
+    row = store.one(
+        'SELECT id FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
+        (finished["id"], "bundle", "stepone"))
+
+    page = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
+    ).get_data(as_text=True)
+
+    assert "sc_stepone_0.log" in page
+
+
+def test_one_file_out_of_an_archive_renders_as_text(signed_in, finished, server):
+    store = server.config["SC_STORE"]
+    row = store.one(
+        'SELECT id FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
+        (finished["id"], "bundle", "stepone"))
+
+    page = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
+        "?file=sc_stepone_0.log").get_data(as_text=True)
+
+    assert "siliconcompiler says stepone" in page
+
+
+def test_a_name_the_archive_does_not_hold_is_not_found(signed_in, finished,
+                                                       server):
+    '''🔴 Matched against the archive's own list, never joined into a path. The
+    name comes from a query string and a tar can hold `../` whatever this
+    server does.'''
+    store = server.config["SC_STORE"]
+    row = store.one(
+        'SELECT id FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
+        (finished["id"], "bundle", "stepone"))
+
+    response = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
+        "?file=../../../etc/passwd")
+
+    assert response.status_code == 404
+
+
+def test_the_raw_route_never_serves_html(signed_in, finished, server, me):
+    '''🔴 An artifact is bytes a JOB produced. Served as text/html from this
+    origin, a design that writes one would be running its own script on the
+    portal.'''
+    store = server.config["SC_STORE"]
+    root = server.config["SC_JOBS"].job_root(me, finished["id"]) / "gcd" / "job0"
+    (root / "stepone" / "0" / "trouble.html").write_text(
+        "<script>alert(1)</script>")
+
+    # Re-index so the new file is in the bundle.
+    store.execute("DELETE FROM artifacts WHERE job_id = ? AND kind = 'bundle'",
+                  (finished["id"],))
+    from siliconcompiler.remote.server import artifacts as indexer
+    job = store.one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
+    indexer.collect_node(store, server.config["SC_STORAGE"],
+                         server.config["SC_CONFIG"], job,
+                         server.config["SC_JOBS"].job_root(me, finished["id"]),
+                         "stepone", "0")
+
+    row = store.one(
+        'SELECT id FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
+        (finished["id"], "bundle", "stepone"))
+    response = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
+        "?file=trouble.html&raw=1")
+
+    assert response.status_code == 200
+    assert response.headers["Content-Type"].startswith("text/plain")
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+
+
+###########################
+# Deleting what a run produced
+###########################
+
+def test_delete_needs_the_job_named(signed_in, finished):
+    '''⚠️ A speed bump, not a security control -- CSRF is what stops somebody
+    else pressing it. It is here because the button used to sit one position
+    from the link people click constantly, and the two do opposite things.'''
+    token = csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
+
+    refused = signed_in.post(f"/portal/jobs/{finished['id']}/delete",
+                             data={"csrf": token, "confirm": "something else"})
+    assert refused.status_code == 400
+
+    accepted = signed_in.post(f"/portal/jobs/{finished['id']}/delete",
+                              data={"csrf": token, "confirm": "gcd/job0"})
+    assert accepted.status_code == 302
+
+
+def test_the_delete_button_is_on_the_artifacts_page_and_not_the_job_page(
+        signed_in, finished):
+    job = signed_in.get(f"/portal/jobs/{finished['id']}").get_data(as_text=True)
+    page = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts").get_data(as_text=True)
+
+    assert "/delete" not in job
+    assert "/delete" in page
+
+
+def test_the_job_page_offers_the_runs_own_log(signed_in, died):
+    '''The first thing anybody wants on a job that failed outside a node, and
+    it was three clicks away at the bottom of a table.'''
+    page = signed_in.get(f"/portal/jobs/{died['id']}").get_data(as_text=True)
+    assert ">Job log</a>" in page

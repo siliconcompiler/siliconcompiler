@@ -17,7 +17,8 @@ from typing import Any, Dict, List
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.store import now
 
-__all__ = ["account_limits", "devices_for", "owned_device", "usage", "user"]
+__all__ = ["account_limits", "devices_for", "lifetime", "owned_device",
+           "usage", "user"]
 
 
 def user(store, user_id: str):
@@ -84,6 +85,39 @@ def usage(store, user_id: str) -> Dict[str, Any]:
         "licence_seconds": {},
         "storage_bytes": {"used": int(stored), "limit": None},
         "jobs_active": active,
+    }
+
+
+def lifetime(store, user_id: str) -> Dict[str, Any]:
+    '''Everything this account has ever run, for the screen.
+
+    🔴 Deliberately NOT part of `usage`, which is what `GET /v1/me` publishes.
+    That object answers *what am I consuming against my allowance*, and every
+    window in it is a calendar month for that reason -- an all-time total has
+    no allowance and no reset, so putting it there would mean a published
+    member a client has to be told to ignore. A screen can show a running
+    total without the API promising one.
+
+    ⚠️ Derived from `jobs`, like `usage`, and with the same limitation: a job
+    that is still running contributes nothing until it finishes, because what
+    is being summed is `finished_at - started_at`. A metering table would fix
+    that and buy a billing history nobody here bills against.
+    '''
+    compute = store.one(
+        "SELECT coalesce(sum(julianday(finished_at) - julianday(started_at)), 0) "
+        "       * 86400 AS n FROM jobs "
+        "WHERE user_id = ? AND started_at IS NOT NULL AND finished_at IS NOT NULL",
+        (user_id,))["n"]
+
+    rows = store.all(
+        "SELECT state, count(*) AS n FROM jobs WHERE user_id = ? GROUP BY state",
+        (user_id,))
+
+    by_state = {row["state"]: row["n"] for row in rows}
+    return {
+        "compute_seconds": int(compute),
+        "jobs": sum(by_state.values()),
+        "by_state": by_state,
     }
 
 

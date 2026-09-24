@@ -31,6 +31,7 @@ import tempfile
 from typing import Any, Dict, List
 
 from siliconcompiler import utils
+from siliconcompiler.remote.units import size
 from siliconcompiler.schema import Journal
 from siliconcompiler.utils.paths import jobdir, workdir
 
@@ -74,6 +75,62 @@ class Results:
         self._taken_nodes: set = set()
         self._landed = 0
 
+        # The server's auto-fetch ceiling, read once and remembered. `False`
+        # means not looked up yet; `None` means this server publishes none.
+        self._ceiling: Any = False
+
+    ######################################################################
+    # What not to pull
+    ######################################################################
+
+    @property
+    def ceiling(self):
+        '''The largest object this server wants pulled without being asked.
+
+        🔴 The server's number and not the client's. A deployment knows what
+        its link and its disks are for; a client picking its own threshold
+        means every client picks a different one and the operator can set no
+        policy at all. Published in `GET /v1`'s `limits`, so a client that has
+        never heard of it fetches everything, exactly as before.
+        '''
+        if self._ceiling is False:
+            try:
+                limits = (self.client.capabilities() or {}).get("limits") or {}
+                self._ceiling = limits.get("auto_fetch_max_bytes")
+            except Exception as e:                               # noqa: BLE001
+                # No ceiling is the old behaviour, which is the safe direction
+                # to fail: the results arrive.
+                logger.debug(f"no auto-fetch ceiling: {e}")
+                self._ceiling = None
+        return self._ceiling
+
+    def _oversized(self, item: Dict[str, Any]) -> bool:
+        ceiling = self.ceiling
+        if not ceiling or not item.get("fetchable"):
+            return False
+        return (item.get("size_bytes") or 0) > ceiling
+
+    def _report_oversized(self, items: List[Dict[str, Any]]) -> None:
+        '''One line, naming what was left and how to get it.
+
+        ⚠️ Not a warning per object. A wide flow can leave forty of them, and
+        forty lines saying the same thing is how somebody stops reading the
+        ones that matter.
+        '''
+        if not items:
+            return
+
+        total = sum(item.get("size_bytes") or 0 for item in items)
+        names = ", ".join(sorted(self._name(item) for item in items)[:6])
+        if len(items) > 6:
+            names += ", ..."
+
+        self.logger.warning(
+            f"{len(items)} object(s) were left on the server ({size(total)}), "
+            f"each larger than its auto-fetch limit of {size(self.ceiling)}: "
+            f"{names}. Fetch them from the portal (sc-remote -portal), or take "
+            "the whole run with: sc-remote -reconnect")
+
     ######################################################################
     # During the run
     ######################################################################
@@ -113,6 +170,10 @@ class Results:
             if key not in fresh or not item.get("fetchable"):
                 continue
             if item["id"] in self._fetched:
+                continue
+            if self._oversized(item):
+                # Said once, by the sweep at the end. Here it would be said
+                # again on every poll that found this node finished.
                 continue
 
             try:
@@ -158,7 +219,13 @@ class Results:
                 "is all there is, and it is not an error.")
             return 0
 
-        items = _worth_fetching(items)
+        # 🔴 Taken out BEFORE `_worth_fetching`, and the order is the point: a
+        # bundle displaces the objects inside it only because fetching it gets
+        # you them. One that is not being fetched displaces nothing, so the
+        # node's log and reports still come back -- which is the case this
+        # ceiling exists to produce.
+        oversized = [item for item in items if self._oversized(item)]
+        items = _worth_fetching([item for item in items if not self._oversized(item)])
 
         landed = 0
         for item in items:
@@ -178,6 +245,7 @@ class Results:
                 # run.
                 self.logger.error(f"{self._name(item)}: {e}")
 
+        self._report_oversized(oversized)
         self._report_absent(items)
         self._replay()
 

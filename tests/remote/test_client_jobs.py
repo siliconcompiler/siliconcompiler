@@ -370,14 +370,33 @@ def test_listing_follows_the_link_header(fake_v1, logged_in):
     assert len(logged_in.jobs()) == 2
 
 
-def test_cancel_takes_no_body_when_there_is_no_reason(fake_v1, logged_in):
+def test_a_cancel_with_nothing_to_add_says_who_asked(fake_v1, logged_in):
+    """🔴 `reason` is optional on the wire -- requiring it would make a Ctrl-C
+    inexpressible -- and this client always sends one anyway. A job page that
+    says only "cancelled" cannot answer the owner's own question, which is
+    which of their machines did it."""
+    import socket
+
     fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
                   job_body("cancelling"), status=202)
 
     logged_in.cancel_job("01J9-job")
 
     body = json.loads(fake_v1.calls[-1].request.body)
-    assert body == {}
+    assert "sc-remote" in body["reason"]
+    assert socket.gethostname() in body["reason"]
+
+
+def test_a_cancel_with_a_reason_sends_that_one(fake_v1, logged_in):
+    """The caller's own words win: what this client can say for itself is a
+    fallback, not a prefix."""
+    fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
+                  job_body("cancelling"), status=202)
+
+    logged_in.cancel_job("01J9-job", reason="wrong constraints")
+
+    assert json.loads(fake_v1.calls[-1].request.body) == {
+        "reason": "wrong constraints"}
 
 
 def test_delete_is_a_204_with_no_body(fake_v1, logged_in):

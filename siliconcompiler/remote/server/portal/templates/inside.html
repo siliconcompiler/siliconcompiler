@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% set active = 'jobs' %}
+{% block title %}{{ name or item.kind }} · {{ job.design }} · sc-server{% endblock %}
+{% block body %}
+<h2>{{ item.kind }}{% if item.step %}
+  <span class="muted">/ {{ item.step }}/{{ item['index'] }}</span>{% endif %}</h2>
+<p class="lede">
+  <a href="{{ url_for('portal.job', job_id=job.id) }}">{{ job.design }}/{{ job.jobname }}</a>
+  &middot;
+  <a href="{{ url_for('portal.artifacts', job_id=job.id) }}">artifacts</a>
+  {% if name and not whole %}&middot;
+  <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
+     >all {{ item.kind }} files</a>{% endif %}
+</p>
+
+{% if entries is not none %}
+  {#
+    The listing. Served out of the ARCHIVE rather than the working tree,
+    because the working tree goes away with the job and the archive is the
+    thing carrying a retention date.
+  #}
+  <table>
+    <tr><th>File</th><th class="right">Size</th></tr>
+    {% for entry, nbytes in entries %}
+    <tr>
+      <td class="mono">
+        <a href="{{ url_for('portal.inside', job_id=job.id,
+                            artifact_id=item.id, file=entry) }}">{{ entry }}</a>
+      </td>
+      <td class="mono muted right">{{ nbytes | size }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="2" class="muted">This archive holds no files.</td></tr>
+    {% endfor %}
+  </table>
+
+{% else %}
+  <p class="mono muted">{{ name }} &middot; {{ nbytes | size }}</p>
+
+  {% if image %}
+    {#
+      Through the raw route, which serves a short allow-list of image types and
+      nothing else -- never text/html, and never SVG. An artifact is bytes a
+      JOB produced, so anything served from this origin that a browser would
+      execute is a design's code running on the portal.
+    #}
+    <p><img src="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id,
+                            file=name, raw=1) }}"
+            alt="{{ name }}" style="max-width:100%;height:auto;
+                 border:1px solid var(--line);border-radius:6px"></p>
+  {% elif text is not none %}
+    {% if truncated %}
+    <p class="muted">Showing the first part of this file. Download it for the
+      whole thing.</p>
+    {% endif %}
+    <pre class="log">{{ text }}</pre>
+  {% else %}
+    <p class="muted">This is not text and not an image this page will render.</p>
+  {% endif %}
+
+  <p>
+    {% if whole %}
+    <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}"
+       >Download this file</a>
+    {% else %}
+    <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id,
+                        file=name, raw=1) }}">Open the raw file</a>
+    {% endif %}
+  </p>
+{% endif %}
+{% endblock %}

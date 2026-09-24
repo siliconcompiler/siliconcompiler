@@ -13,7 +13,8 @@
     "concurrent_log_streams": 8,
     "max_log_stream_seconds": 14400,
     "max_archive_members": 100000,
-    "max_archive_expanded_bytes": 10737418240
+    "max_archive_expanded_bytes": 10737418240,
+    "auto_fetch_max_bytes": 104857600
   },
   "features": ["logs", "logs.stream"],
   "identity_assurance": "self-asserted",

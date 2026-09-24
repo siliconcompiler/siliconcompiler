@@ -19,6 +19,7 @@ from siliconcompiler.remote.server.dispatch import dispatcher_for
 from siliconcompiler.remote.server.errors import ERRORS, ProblemError, problem
 from siliconcompiler.remote.server.jobs import JobService
 from siliconcompiler.remote.server.logstream import StreamLimiter
+from siliconcompiler.remote.server import reaper
 from siliconcompiler.remote.server.storage import Storage
 from siliconcompiler.remote.server.store import Store
 
@@ -122,6 +123,12 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
             "python3 -m siliconcompiler.remote.server.registry")
 
     _check_this_server_can_read_them(advertised["siliconcompiler"])
+
+    # 🔴 Last, and after the checks, because it is the one step whose failure
+    # must not be the reason this server does not start. A full disk says what
+    # it is; a server that refused to come up because it could not delete
+    # something does not.
+    reaper.sweep(store, storage, config, datadir)
 
     return app
 

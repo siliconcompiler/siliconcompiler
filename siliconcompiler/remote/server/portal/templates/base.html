@@ -27,7 +27,9 @@
   nav { display: flex; gap: 16px; flex: 1; flex-wrap: wrap; }
   nav a { color: var(--dim); text-decoration: none; padding: 14px 0; }
   nav a:hover, nav a.on { color: var(--ink); box-shadow: inset 0 -2px var(--accent); }
-  main { padding: 20px 16px 60px; max-width: 1280px; }
+  main { padding: 20px 24px 60px; max-width: 1760px; }
+  /* Capped rather than unbounded: a table of node names stretched across
+     an ultrawide is unreadable in the other direction. */
   h2 { font-size: 19px; margin: 0 0 4px; }
   p.lede { color: var(--dim); margin: 0 0 20px; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
@@ -94,3 +96,22 @@
   {% endif %}
 </header>
 <main>{% block body %}{% endblock %}</main>
+{#
+  Every timestamp goes out as UTC in a <time datetime>, because that is what
+  the server knows. This rewrites it to the reader's own clock.
+
+  🔴 Ten lines, inline, no build and no dependency -- and the page is correct
+  without it: with scripting off every one of these still reads
+  "2026-09-24 01:34:12 UTC", which is true, just not local.
+#}
+<script>
+  for (const el of document.querySelectorAll("time.ts")) {
+    const at = new Date(el.getAttribute("datetime"));
+    if (isNaN(at)) continue;
+    el.textContent = at.toLocaleString(undefined, {
+      year: "numeric", month: "short", day: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+    });
+    el.title = el.getAttribute("datetime");
+  }
+</script>

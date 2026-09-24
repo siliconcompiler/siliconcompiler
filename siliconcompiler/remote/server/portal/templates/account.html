@@ -17,13 +17,33 @@
 </div>
 {% endif %}
 
-<h3>Usage</h3>
+<h3>This month</h3>
 <div class="panel grid">
-  <div><b>Jobs running</b><br>{{ usage.jobs_active }}</div>
-  <div><b>Compute this month</b><br>{{ usage.compute_seconds.used }}s</div>
-  <div><b>Stored</b><br>{{ '{:,}'.format(usage.storage_bytes.used) }} bytes</div>
-  <div><b>Resets</b><br><span class="mono muted">{{ usage.compute_seconds.resets_at[:10] }}</span></div>
+  <div><b>Compute</b><br>{{ usage.compute_seconds.used | duration }}</div>
+  <div><b>Jobs running now</b><br>{{ usage.jobs_active }}</div>
+  <div><b>Stored</b><br>{{ usage.storage_bytes.used | size }}</div>
+  <div><b>Resets</b><br><span class="muted">{{ usage.compute_seconds.resets_at | when }}</span></div>
 </div>
+
+{#
+  🔴 Shown here and NOT published by the API. `usage` answers "what am I
+  consuming against my allowance", and every window in it is a calendar month
+  for that reason; an all-time total has no allowance and no reset. A screen
+  can show a running total without the API promising one.
+#}
+<h3>All time</h3>
+<div class="panel grid">
+  <div><b>Compute</b><br>{{ lifetime.compute_seconds | duration }}</div>
+  <div><b>Jobs</b><br>{{ lifetime.jobs }}</div>
+  <div><b>Completed</b><br>{{ lifetime.by_state.get('completed', 0) }}</div>
+  <div><b>Failed</b><br>{{ lifetime.by_state.get('failed', 0)
+                           + lifetime.by_state.get('rejected', 0) }}</div>
+</div>
+<p class="muted">
+  {# Said rather than left to be discovered by someone comparing two numbers. #}
+  Compute is the wall time of every run that has finished, summed. A job that
+  is still going contributes nothing until it does.
+</p>
 
 <h3>Limits</h3>
 <table>

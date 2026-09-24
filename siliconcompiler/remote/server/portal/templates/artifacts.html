@@ -26,13 +26,18 @@
       {%- if item.step -%}{{ item.step }}/{{ item['index'] }}{%- else -%}
       <span class="muted">the job</span>{%- endif -%}
     </td>
-    <td class="mono muted">{{ '{:,}'.format(item.size_bytes or 0) }}</td>
-    <td class="mono muted">{{ (item.expires_at or '—')[:10] }}</td>
+    <td class="mono muted">{{ item.size_bytes | size }}</td>
+    <td class="mono muted">{{ item.expires_at | when }}</td>
     <td>
       {% if item.fetchable %}
+        {%- if item.media_type == 'application/gzip'
+               and (item.size_bytes or 0) <= browse_limit %}
+        <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
+           >look inside</a> &middot;
+        {% endif -%}
         <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
       {% elif item.deleted_at %}
-        <span class="muted">deleted {{ item.deleted_at[:10] }}</span>
+        <span class="muted">deleted {{ item.deleted_at | when }}</span>
       {% elif item.blocked_by %}
         <span class="muted">held back ({{ item.blocked_by }})</span>
       {% else %}
@@ -42,5 +47,30 @@
   </tr>
   {% endfor %}
 </table>
+{% endif %}
+
+{#
+  🔴 At the bottom of the page that lists what it would destroy, and not on the
+  job page next to the things you press all the time. It was one button away
+  from "Artifacts" there, and the two do opposite things.
+#}
+{% if job.terminal and not job.deleted_at %}
+<div class="panel warn" style="margin-top:32px">
+  <p><b>Delete what this run produced</b></p>
+  <p class="muted">
+    Every object above, and the build directory behind them. The job itself
+    stays readable -- its states, its timings and why it ended -- and nothing
+    it produced comes back.
+  </p>
+  <form method="post" action="{{ url_for('portal.delete', job_id=job.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>
+      Type the job name to confirm:
+      <input type="text" name="confirm" autocomplete="off"
+             placeholder="{{ job.design }}/{{ job.jobname }}" style="max-width:320px">
+    </label>
+    <button class="danger">Delete</button>
+  </form>
+</div>
 {% endif %}
 {% endblock %}

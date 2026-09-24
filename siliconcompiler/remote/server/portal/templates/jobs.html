@@ -32,7 +32,7 @@
     <td class="mono">
       {{ job.progress.completed_count }}/{{ job.progress.total_count }}
     </td>
-    <td class="mono muted">{{ job.created_at[:19].replace('T', ' ') }}</td>
+    <td class="mono muted">{{ job.created_at | when }}</td>
     <td class="right mono muted">{{ job.id[:8] }}</td>
   </tr>
   {% endfor %}

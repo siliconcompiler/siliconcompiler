@@ -29,15 +29,24 @@ Three kinds are produced, and every byte is stored once:
               waiting for the last node to decide whether the first one's work
               is available.
 
-⚠️ **`outputs` and `reports` are deliberately NOT produced, and that is a
-choice with a cost.** They would be a second copy of bytes the bundle already
-holds -- on this deployment roughly doubling what a job occupies. What it buys
-elsewhere is that a bundle is **never grantable**, so on a deployment with
-approvals a caller who may not have the bundle could still be given its reports.
-There is no approval machinery here and the only caller who can see a job is its
-owner, so nobody is losing anything that exists. ✅ **A client asking
-``?kind=reports`` gets an empty list, which is the true answer:** *this server
-does not index those*.
+``reports``   one node's ``reports/`` directory, as its own archive. 🔴 **A
+              second copy of bytes the bundle already holds, and that is the
+              point rather than an oversight.** A bundle is **never grantable**
+              -- gated by what is in it, which nothing can enumerate -- so on a
+              deployment with approvals a caller who may not have the bundle
+              can still be given the reports. Here that gate is moot, and what
+              it buys instead is a small object somebody can take on its own: a
+              node's reports are kilobytes and its bundle is often gigabytes,
+              and above ``limits.auto_fetch_max_bytes`` the bundle is not
+              fetched at all while the reports still are.
+
+⚠️ **The cost, stated: roughly what the reports occupy, twice.** Measured
+rather than assumed -- on an asicflow node it is the difference between a
+bundle and a bundle plus a few hundred kilobytes, because the heavy things in
+a working directory are the DEF and the database, not the reports.
+
+⚠️ **`outputs` is still deliberately NOT produced.** THAT would be a second
+copy of the large half.
 
 ``input`` is not produced either. It is the archive the client uploaded, the
 client still has it, and keeping a second copy costs the whole upload again for
@@ -64,7 +73,7 @@ logger = logging.getLogger("sc-server")
 
 
 # The eight are the contract's; these four are what this deployment produces.
-KINDS = ("manifest", "logs", "bundle")
+KINDS = ("manifest", "logs", "reports", "bundle")
 
 _CHUNK = 1024 * 1024
 
@@ -92,6 +101,14 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     if log.is_file():
         written += _index(store, storage, job, location, floor, "logs",
                           step, index, log, "text/plain")
+
+    # 🔴 Indexed before the bundle, not after. If a node finishes and something
+    # goes wrong partway through indexing it, the small object a person
+    # actually reads is the one already written.
+    reports = workdir / "reports"
+    if reports.is_dir() and any(reports.iterdir()):
+        written += _archive(store, storage, job, location, floor, "reports",
+                            step, index, [reports], workdir)
 
     members = [child for child in sorted(workdir.iterdir())
                if child.name not in _NOT_IN_A_BUNDLE]

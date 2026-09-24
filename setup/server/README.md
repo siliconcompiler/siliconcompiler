@@ -5,27 +5,60 @@ A throwaway cluster for testing `-cluster slurm` end to end: `slurmctld`,
 running `slurmd`.
 
 ```sh
-docker compose up --build          # first run pulls the base image
+docker compose up                  # that is the whole procedure
 curl http://localhost:8080/v1      # the capabilities block
 curl http://localhost:8080/v1/healthz
+docker compose up --build          # after you change the source
 docker compose down -v             # -v also drops the munge key and job files
 ```
 
-**From a git worktree, build through `./compose.sh` instead** — same arguments,
-same result:
+🔴 **There is no second command and no order to get right.** A one-shot
+`bootstrap` service pushes the images compose just built into this stack's
+registry, registers them, stages their bundles and writes `config.json`, and
+`scserver` does not start until it has exited 0. It used to be `compose.sh up
+--build` followed by `publish.sh` with a restart ordering that bit whenever it
+was forgotten — and, worse, a deadlock: a deployment set to run jobs in
+containers with an empty registry refuses to start, so resetting the store left
+a server that would not come up and a registration tool that needed it running.
 
-```sh
-./compose.sh up --build
-```
+⚠️ **`bootstrap` is the one thing in this stack with the docker socket**, for
+as long as it runs and for exactly two calls. The images have to get from the
+daemon that just built them into the registry, and the daemon is the only thing
+that knows their layers. Nothing else can see it — the compute nodes
+deliberately cannot, because they run containers through `crun`, which is a
+binary Slurm execs.
 
-A worktree has no `.git` directory: it has a 64-byte file pointing at one in the
-main checkout, which is outside the build context and so unreachable from inside
-the container. `setuptools_scm` then fails with a `TypeError` out of
-`_version_missing()` that mentions neither git nor the worktree. `compose.sh`
-resolves the version on the host with `scversion.sh` and passes it as
-`SC_VERSION`, which the Dockerfile uses instead of asking git. A plain
-`docker compose build` in a worktree says the same thing in one line rather than
-failing obscurely.
+**A git worktree needs nothing special.** A worktree has no `.git` directory —
+it has a 64-byte file pointing at one in the main checkout, outside the build
+context — so the build reads the version from `siliconcompiler/_version.py`,
+which an editable install has already written. `SC_VERSION=...` overrides both.
+
+🔴 **The version it uses is the last TAG, and that matters.**
+`siliconcompiler.__version__` is `__base_version__`, which stays at the tag for
+every commit after it, so a checkout 42 commits past `v0.38.9` reports `0.38.9`
+and the image has to as well. Deriving `0.38.10.dev42` made the server
+advertise a version the very checkout that built it never sends: every submit
+from that machine came back `version-skew`, *install a version this server
+accepts*, and there was none to install.
+
+## Three images, and which one runs where
+
+| | |
+|---|---|
+| `sc-server` | slurmctld, slurmdbd, slurmrestd and the API — **~0.7 GB**, no EDA tools |
+| `sc-runtime` | SiliconCompiler and the Slurm client — **~0.6 GB**, the framework image |
+| `sc-server-slurm` | the compute node, and what a node's task runs inside — **~6.5 GB** |
+
+All three come out of one `Dockerfile` as three `target:`s, so they share a
+build graph and a layer cache. A controller is not an EDA machine: it
+schedules, answers HTTP and unpacks bundles.
+
+⚠️ **What the split saves, said plainly.** It does not remove a build — the big
+image still has to exist, because it is what a node's task runs inside — and it
+frees no disk while `scrunner` runs it, since docker shares the layers. What it
+buys is a server container of a few hundred megabytes rather than seven
+gigabytes, a much faster rebuild when only SiliconCompiler changed, and a
+controller whose image contains nothing it could accidentally run.
 
 The `v1` API is on <http://localhost:8080>, `slurmrestd` on port 6820.
 
@@ -36,7 +69,7 @@ The server runs as `python3 -m siliconcompiler.remote.server` — there is no
 python3 -m siliconcompiler.remote.server -port 8080 -datadir /sc_server -cluster slurm
 ```
 
-Everything else a deployment might say — its nine `limits`, what it advertises
+Everything else a deployment might say — its `limits`, what it advertises
 in `features`, any `notices` — has a working default and can be overridden in
 `<datadir>/config.json`. Nothing there is required, so a bare `-datadir` starts
 a server that serves a complete `GET /v1`.
@@ -211,20 +244,22 @@ crun. A `registry` service on the internal network gives images a real
 repository digest, which a locally built image does not have and which is the
 whole point of pinning one.
 
-```sh
-setup/server/publish.sh          # builds and pushes both images, prints the rest
-```
-
-It builds **two**, and the pair is the point rather than a convenience:
+`bootstrap` does all of it on `docker compose up`, and the pair of published
+images is the point rather than a convenience:
 
 | | |
 |---|---|
-| `sc-runtime` | SiliconCompiler and the Slurm client, no EDA tools — **0.5 GB** |
-| `sc-tools` | this stack's own image: the same SiliconCompiler, plus the tools — **6.5 GB** |
+| `sc-runtime` | SiliconCompiler and the Slurm client, no EDA tools — **0.6 GB** |
+| `sc-tools` | the compute node's image: the same SiliconCompiler, plus the tools — **6.5 GB** |
 
 A node that runs no tool resolves to the small one, because among the images
 that fit, the one with the fewest declared contents wins. So does the run's
 orchestrator. Only a node whose tool lives in the big image pulls the big image.
+
+⚠️ **Which tools are declared is the sharpest edge here**, and it is the
+`TOOLS` list in `bootstrap.py`. A tool that is in the image and not in the
+registry raises no requirement, so its node resolves to the framework image and
+fails inside a container that never had it.
 
 🔴 **`sc-runtime` carries the Slurm client, and it is not optional.** A
 framework image submits every node of the flow it drives. That is ~10 MB of
@@ -359,20 +394,17 @@ is. `sinfo -N -l` lists them.
   and with what to do about it. Move it aside and let the server create a new
   one; the old file stays readable with the server that wrote it.
 
-  ⚠️ **Then re-run `publish.sh`,** because a new store has an empty image
-  registry, and a deployment with `containers: true` and nothing registered
-  refuses to start — correctly, since nothing on it could be dispatched.
-  `publish.sh` works with the server down for exactly this reason: it registers
-  against the volume rather than through the container, so the bootstrap is not
-  a deadlock.
+  ⚠️ **Then `docker compose up` again** and `bootstrap` repopulates the
+  registry before the server starts. That used to be a deadlock: a new store
+  has an empty registry, a deployment with `containers: true` and nothing
+  registered refuses to start, and the tool that would have fixed it needed the
+  server running.
 - 🔴 **The rig advertises the version this checkout's SiliconCompiler
-  reports**, which is the last tag and not the next-dev version — because
-  `siliconcompiler.__version__` is `__base_version__`, and setuptools_scm
-  leaves that at the tag for every commit after it. Getting it wrong is not
-  cosmetic: an image advertising `0.38.10.dev42` refuses every submit from the
-  checkout that built it with `version-skew`, and there is no version to
-  install that would fix it. `scversion.sh` prints `git describe` to stderr, so
-  the build log still says which commit is in the image.
+  reports** — see the top of this file for why that is the last tag. The build
+  log still says which commit is in the image.
+- ⚠️ **`docker compose up` does not rebuild after a source change.** That is
+  ordinary compose behaviour and it is the one thing the single command does
+  not do for you: `--build` when you have edited something.
 
 ## What the shared mount looks like
 
@@ -400,6 +432,32 @@ create their own directories: under one shared tree they land with the first
 user's uid and the second user gets `EPERM`, and `chmod` is owner-only, so the
 server cannot repair a directory it did not create. The cost is one copy of each
 PDK per user rather than one per cluster.
+
+## What gets reclaimed, and when
+
+🔴 **On startup, and nothing else reclaims anything.** Before this the rig
+filled its disk quietly and fast: **28 GB on the data volume after one
+afternoon of rebuilds, 25 of it container bundles nothing could run any more.**
+Every `--build` produces a new image digest, which supersedes the old registry
+row and leaves its six-and-a-half gigabyte unpacked bundle exactly where it
+was.
+
+| | |
+|---|---|
+| **bundles** | an image unpacked onto the filesystem, once no live image and no unfinished job names it. The largest by far |
+| **artifacts** | bytes whose retention has passed. The row stays — *where did my results go* has to stay answerable |
+| **builds** | a job's working tree, once nothing it produced is still reachable. It is what the artifacts were indexed **from**, so it may only go after them |
+| **uploads** | an archive staged for a job that was created and never submitted, past its own grant's expiry |
+
+⚠️ **Startup and nowhere else, deliberately.** A background thread is machinery
+this profile does not need — a rig is restarted constantly, and a deployment
+that runs for months wants a real scheduled job rather than something a web
+process does when it feels like it. What it must never be is a surprise inside
+somebody's request.
+
+⚠️ **A job with no artifacts at all keeps its tree.** That is a run whose
+indexing failed or has not happened, not one whose results expired, and its
+tree is the only copy.
 
 ## Credentials
 

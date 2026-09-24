@@ -16,8 +16,20 @@
     <div><b>Progress</b><br>
       {{ job.progress.completed_count }} of {{ job.progress.total_count }} done,
       {{ job.progress.failed_count }} failed</div>
-    <div><b>Submitted</b><br><span class="mono">{{ (job.submitted_at or '—')[:19].replace('T', ' ') }}</span></div>
+    <div><b>Submitted</b><br><span class="mono">{{ job.submitted_at | when }}</span></div>
   </div>
+  {#
+    Why it stopped, where a person is looking. `error.detail` covers a job that
+    FAILED; a cancelled one carries no error at all -- nothing went wrong --
+    and its reason lives on the transition. Both are in the history table at
+    the bottom, which is the wrong place to learn that somebody else stopped
+    your run.
+  #}
+  {% set stopped = history | selectattr('to_state', 'equalto', job.state)
+                           | list | last %}
+  {% if job.state in ('cancelled', 'cancelling') and stopped and stopped.reason %}
+    <p class="panel" style="margin-top:14px">{{ stopped.reason }}</p>
+  {% endif %}
   {% if job.error %}
     <p class="warn panel" style="margin-top:14px">
       <b>{{ job.error.title }}</b><br>
@@ -27,7 +39,8 @@
       {% if job.error.detail %}{{ job.error.detail }}<br>{% endif %}
       {% if job.state == 'failed' and job.progress.failed_count == 0 %}
         No node failed &mdash; the run itself did, before or between the nodes.
-        {% if job_level %}Its log is under <b>The job itself</b> below.{% endif %}<br>
+        {% if job_log %}Read the <b>Job log</b> below.
+        {% elif job_level %}Its log is under <b>The job itself</b> below.{% endif %}<br>
       {% endif %}
       <span class="mono muted">{{ job.error.type }}</span>
     </p>
@@ -39,14 +52,20 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <button class="danger">Cancel this job</button>
 </form>
-{% else %}
-<form method="post" action="{{ url_for('portal.delete', job_id=job.id) }}" class="inline">
-  <input type="hidden" name="csrf" value="{{ csrf }}">
-  <button class="danger">Delete what it produced</button>
-</form>
+&nbsp;
 {% endif %}
-<a href="{{ url_for('portal.artifacts', job_id=job.id) }}"
-   style="margin-left:12px">Artifacts</a>
+{#
+  The run's own log, next to the run. It is the first thing anybody wants on a
+  job that failed outside a node, and it was three clicks away at the bottom of
+  a table. Deleting what the job produced is NOT here any more: it lives at the
+  bottom of the artifacts page, which is the page that lists what it destroys.
+#}
+{% if job_log %}
+<a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=job_log.id) }}"
+   >Job log</a>
+&middot;
+{% endif %}
+<a href="{{ url_for('portal.artifacts', job_id=job.id) }}">Artifacts</a>
 
 <div class="split">
 <div class="beside">
@@ -86,7 +105,7 @@ that anyone cancelled it. A node the flow considered and chose not to run reads
       <span class="tag {{ 'bad' if node.state == 'failed'
                           else 'good' if node.state == 'completed' }}">{{ node.state }}</span>
     </td>
-    <td class="mono muted">{{ (node.started_at or '—')[:19].replace('T', ' ') }}</td>
+    <td class="mono muted">{{ node.started_at | when }}</td>
     <td class="mono muted">{{ node | runtime }}</td>
     {#
       Neither column is on the wire: a registry path and a scheduler id are
@@ -121,9 +140,15 @@ that anyone cancelled it. A node the flow considered and chose not to run reads
   {% for item in job_level %}
   <tr>
     <td>{{ item.kind }}</td>
-    <td class="mono muted">{{ '{:,}'.format(item.size_bytes or 0) }}</td>
+    <td class="mono muted">{{ item.size_bytes | size }}</td>
     <td>
       {% if item.fetchable %}
+        {%- if item.kind == 'logs'
+               or (item.media_type == 'application/gzip'
+                   and (item.size_bytes or 0) <= browse_limit) %}
+        <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
+           >view</a> &middot;
+        {% endif -%}
         <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
       {% else %}<span class="muted">not available</span>{% endif %}
     </td>
@@ -137,7 +162,7 @@ that anyone cancelled it. A node the flow considered and chose not to run reads
   <tr><th>When</th><th>From</th><th>To</th><th>Why</th></tr>
   {% for row in history %}
   <tr>
-    <td class="mono muted">{{ row.occurred_at[:19].replace('T', ' ') }}</td>
+    <td class="mono muted">{{ row.occurred_at | when }}</td>
     <td class="mono muted">{{ row.from_state or '—' }}</td>
     <td class="mono">{{ row.to_state }}</td>
     <td class="muted">{{ row.reason or '' }}</td>

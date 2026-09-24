@@ -38,12 +38,14 @@ def test_capabilities_carry_every_required_member(capabilities):
     assert "urn:ietf:params:oauth:grant-type:device_code" \
         not in capabilities["grant_types_supported"]
 
-    # Nine members, every one of them a base unit named by its own key.
+    # Every one of them a base unit named by its own key, and the same set the
+    # server publishes -- this fixture file is the conformance rig's copy of a
+    # real GET /v1, so the two drifting is the defect it exists to catch.
     assert set(capabilities["limits"]) == {
         "max_job_nodes", "max_upload_bytes", "job_retention_days",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_log_stream_seconds", "max_archive_members",
-        "max_archive_expanded_bytes"}
+        "max_archive_expanded_bytes", "auto_fetch_max_bytes"}
 
     # terms_url is OPTIONAL and absent unless an operator sets one, which is
     # this deployment's default. Absent is not the same as empty.

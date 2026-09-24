@@ -20,7 +20,9 @@ would be the shortest way around the key pinning, so there is none.
 '''
 
 import logging
+import posixpath
 import secrets
+import tarfile
 import threading
 import time
 
@@ -29,7 +31,9 @@ from typing import Optional
 import flask
 import markupsafe
 
+from siliconcompiler.remote import units
 from siliconcompiler.remote.server import accounts, images
+from siliconcompiler.remote.server.artifacts import fetchable
 from siliconcompiler.remote.server.auth import SCOPES, Session
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.storage import DOWNLOAD_SECONDS
@@ -215,10 +219,52 @@ def _runtime(node) -> str:
     if end is None or begin is None:
         return "\u2014"
 
-    seconds = max(0, int(end - begin))
-    if seconds < 60:
-        return f"{seconds}s"
-    return f"{seconds // 60}m {seconds % 60:02d}s"
+    return units.duration(max(0, int(end - begin)))
+
+
+@blueprint.app_context_processor
+def _limits():
+    """What the templates need to not offer a link this will refuse."""
+    return {"browse_limit": MAX_BROWSE_BYTES}
+
+
+@blueprint.app_template_filter("size")
+def _size(num_bytes) -> str:
+    """Bytes as a person reads them. Shared with the CLI -- see remote.units."""
+    return units.size(num_bytes)
+
+
+@blueprint.app_template_filter("duration")
+def _duration(seconds) -> str:
+    return units.duration(seconds)
+
+
+@blueprint.app_template_filter("when")
+def _when(timestamp) -> markupsafe.Markup:
+    '''One instant, as the reader's own clock shows it.
+
+    🔴 The server cannot know the browser's timezone, and it must not guess:
+    the container's clock is UTC, the person reading is not, and a bare
+    `2026-09-24 01:34` with no zone is the worst of the three answers because
+    it looks right.
+
+    So the instant goes out as UTC in a `<time datetime>` -- which is what it
+    is -- and ten lines of inline script at the bottom of every page rewrite
+    the text to local. ⚠️ **That spends half of "server-rendered Python, no
+    JavaScript build": there is still no build, no dependency and no
+    toolchain, and the page is correct and readable with scripting off**,
+    which is the half that was actually load-bearing.
+    '''
+    if not timestamp:
+        return markupsafe.Markup('<span class="muted">\u2014</span>')
+
+    text = str(timestamp)
+    # "2026-09-24T01:34:12.218Z" -> "2026-09-24 01:34:12 UTC", which is what a
+    # reader sees if the script never runs.
+    readable = text[:19].replace("T", " ") + " UTC"
+    return markupsafe.Markup(
+        f'<time datetime="{markupsafe.escape(text)}" '
+        f'class="ts">{markupsafe.escape(readable)}</time>')
 
 
 def _epoch(stamp: Optional[str]) -> Optional[float]:
@@ -327,6 +373,11 @@ def job(session, job_id):
         "job.html", job=detail, edges=edges, history=history,
         placements=_jobs().node_placements(session, job_id), per_node=per_node,
         job_level=per_node.get((None, None), []),
+        # The run's own log, so the job page can offer it as a button rather
+        # than as a row three tables down. It is the first thing anybody wants
+        # on a job that failed outside a node.
+        job_log=next((item for item in per_node.get((None, None), [])
+                      if item["kind"] == "logs" and item["fetchable"]), None),
         graph=_graph(detail, edges))
 
 
@@ -468,13 +519,33 @@ def _all_artifacts(session, job_id, args=None):
 @blueprint.route("/portal/jobs/<job_id>/cancel", methods=["POST"])
 @screen
 def cancel(session, job_id):
-    _jobs().cancel(session, job_id, flask.request.form.get("reason") or None)
+    # Never None. `reason` is optional on the wire -- requiring it would make
+    # a Ctrl-C inexpressible -- but a cancel with nothing recorded leaves a job
+    # page that says only "cancelled", and the owner's own question is which of
+    # their windows did it.
+    reason = (flask.request.form.get("reason") or "").strip()
+    _jobs().cancel(session, job_id, reason or "cancelled from the portal")
     return flask.redirect(flask.url_for("portal.job", job_id=job_id))
 
 
 @blueprint.route("/portal/jobs/<job_id>/delete", methods=["POST"])
 @screen
 def delete(session, job_id):
+    '''Destroy what a run produced, after the person has typed its name.
+
+    ⚠️ The confirmation is a speed bump and not a security control -- CSRF is
+    what stops somebody else pressing this. It is here because the button used
+    to sit next to "Artifacts" on the job page, one position away from the link
+    people click constantly, and the two do opposite things.
+    '''
+    job = _jobs().get(session, job_id)
+    expected = f"{job['design']}/{job['jobname']}"
+
+    if (flask.request.form.get("confirm") or "").strip() != expected:
+        raise ProblemError(
+            "invalid-request",
+            detail=f"type {expected} to confirm deleting what this run produced")
+
     _jobs().delete(session, job_id)
     return flask.redirect(flask.url_for("portal.jobs"))
 
@@ -512,6 +583,163 @@ def fetch(session, job_id, artifact_id):
     return flask.redirect(flask.url_for(
         "artifacts.download", job_id=job_id, artifact_id=row["id"],
         expires=expires, sig=signature))
+
+
+######################################################################
+# Looking inside an archive
+######################################################################
+
+# What may be handed to a browser with a media type that lets it render.
+#
+# 🔴 A short allow-list rather than a guess from the extension, and the
+# omissions are the point. An artifact is bytes a JOB produced, so a design
+# that writes an HTML file would otherwise get it served from the portal's own
+# origin -- stored cross-site scripting, with the run as the delivery
+# mechanism. SVG is left out for the same reason: it is a document that can
+# carry script, not a picture. Everything not on this list is served as plain
+# text or downloaded, and nothing is ever served as text/html.
+_RENDERABLE = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+}
+
+# Read into memory to show, and no further. A report is kilobytes; a DEF in the
+# same archive is not, and a page is not where you read one.
+MAX_INLINE_BYTES = 2 * 1024 * 1024
+
+# 🔴 How large an archive this will open at all, and the reason is that a
+# gzipped tar HAS NO INDEX. Listing what one holds means decompressing the
+# whole stream, so a six-gigabyte bundle is a minute of a request thread before
+# the first row is drawn -- and then again for the file somebody clicks. The
+# object people actually want to read is the `reports` archive, which is
+# kilobytes; above this the answer is to download the bundle, which costs the
+# same bytes and does not hold a worker.
+MAX_BROWSE_BYTES = 1024 * 1024 * 1024
+
+
+def _stored_at(row):
+    """Where the bytes of one artifact are, or a refusal."""
+    if not fetchable(row):
+        raise ProblemError("not-found", detail="those bytes are not available")
+
+    storage = flask.current_app.config["SC_STORAGE"]
+    return storage.artifact_path(row["storage_key"])
+
+
+def _member(archive, wanted: str):
+    """One entry, matched against the archive's own list.
+
+    🔴 Matched rather than joined. The name comes from a query string, and a
+    tar can hold `../` in a member name whatever this server does -- so nothing
+    here builds a path out of what the caller sent. It is compared, and a name
+    the archive does not contain simply is not found.
+    """
+    with tarfile.open(archive, "r:*") as tar:
+        for entry in tar.getmembers():
+            if entry.isfile() and entry.name == wanted:
+                handle = tar.extractfile(entry)
+                return entry, (handle.read(MAX_INLINE_BYTES + 1) if handle else b"")
+    raise ProblemError("not-found", detail="that file is not in this archive")
+
+
+@blueprint.route("/portal/jobs/<job_id>/artifacts/<artifact_id>/inside",
+                 methods=["GET"])
+@screen
+def inside(session, job_id, artifact_id):
+    """What one archive holds, and one file out of it.
+
+    ⚠️ Served from the archive rather than from the build directory, and that
+    is deliberate: the working tree is deleted when a job is, and the artifact
+    is the thing with a retention date on it. Reading what is retained is the
+    same answer the API would give.
+    """
+    detail = _jobs().get(session, job_id)
+    row = _jobs().artifact(session, job_id, artifact_id)
+    archive = _stored_at(row)
+
+    # A log or a manifest is one file and has nothing to look inside. Showing
+    # it is still what somebody clicked, so this is the viewer for both rather
+    # than a refusal and a second screen.
+    if row["media_type"] != "application/gzip":
+        return _show_one(detail, row, archive)
+
+    if (row["size_bytes"] or 0) > MAX_BROWSE_BYTES:
+        raise ProblemError(
+            "invalid-request",
+            detail=f"this {row['kind']} is {units.size(row['size_bytes'])} and "
+                   "a gzipped archive has no index, so opening it means "
+                   "decompressing all of it. Download it instead")
+
+    wanted = flask.request.args.get("file")
+    if wanted:
+        return _show(detail, row, archive, wanted)
+
+    try:
+        with tarfile.open(archive, "r:*") as tar:
+            entries = sorted(
+                ((entry.name, entry.size) for entry in tar.getmembers()
+                 if entry.isfile()),
+                key=lambda pair: pair[0])
+    except (OSError, tarfile.TarError) as e:
+        raise ProblemError(
+            "not-found", detail=f"that archive could not be read: {e}") from None
+
+    return flask.render_template("inside.html", job=detail, item=row,
+                                 entries=entries)
+
+
+def _show_one(detail, row, path):
+    """An artifact that is a single file: the run's log, or a manifest."""
+    try:
+        with open(path, "rb") as handle:
+            data = handle.read(MAX_INLINE_BYTES + 1)
+    except OSError as e:
+        raise ProblemError(
+            "not-found", detail=f"those bytes could not be read: {e}") from None
+
+    try:
+        text = data[:MAX_INLINE_BYTES].decode("utf-8")
+    except UnicodeDecodeError:
+        text = None
+
+    return flask.render_template(
+        "inside.html", job=detail, item=row, entries=None, name=row["kind"],
+        nbytes=row["size_bytes"], image=False, text=text, whole=True,
+        truncated=len(data) > MAX_INLINE_BYTES)
+
+
+def _show(detail, row, archive, wanted: str):
+    """One file, rendered where it safely can be."""
+    entry, data = _member(archive, wanted)
+    suffix = posixpath.splitext(wanted)[1].lower()
+
+    if flask.request.args.get("raw"):
+        media = _RENDERABLE.get(suffix)
+        response = flask.make_response(data[:MAX_INLINE_BYTES])
+        response.headers["Content-Type"] = media or "text/plain; charset=utf-8"
+        # Belt and braces around the allow-list above: no sniffing, and a
+        # policy that would stop anything that did slip through from running.
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Content-Security-Policy"] = \
+            "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    truncated = len(data) > MAX_INLINE_BYTES
+    text = None
+    if suffix not in _RENDERABLE:
+        try:
+            text = data[:MAX_INLINE_BYTES].decode("utf-8")
+        except UnicodeDecodeError:
+            text = None
+
+    return flask.render_template(
+        "inside.html", job=detail, item=row, entries=None, name=wanted,
+        nbytes=entry.size, image=suffix in _RENDERABLE, text=text,
+        truncated=truncated)
 
 
 @blueprint.route("/portal/jobs/<job_id>/logs/<step>/<index>", methods=["GET"])
@@ -594,6 +822,7 @@ def account(session):
         user=accounts.user(_store(), session.user_id),
         limits=accounts.account_limits(config),
         usage=accounts.usage(_store(), session.user_id),
+        lifetime=accounts.lifetime(_store(), session.user_id),
         assurance=config["identity_assurance"],
         containers=config["containers"])
 

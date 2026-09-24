@@ -19,8 +19,8 @@
     {# The pin itself, so a person can compare it with what their client prints. #}
     <td class="mono muted">{{ device.dpop_jkt }}</td>
     <td class="muted">{{ device.machine_id_source or '—' }}</td>
-    <td class="mono muted">{{ device.enrolled_at[:19].replace('T', ' ') }}</td>
-    <td class="mono muted">{{ (device.last_seen_at or '—')[:19].replace('T', ' ') }}</td>
+    <td class="mono muted">{{ device.enrolled_at | when }}</td>
+    <td class="mono muted">{{ device.last_seen_at | when }}</td>
     <td>
       <form method="post"
             action="{{ url_for('portal.revoke', device_id=device.id) }}" class="inline">

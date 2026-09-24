@@ -322,12 +322,29 @@ class Client:
             params = dict(params, cursor=cursor)
 
     def cancel_job(self, job_id: str, reason: Optional[str] = None) -> Dict[str, Any]:
-        '''``POST /v1/jobs/{id}/cancel``. Idempotent, and the body is optional.'''
+        '''``POST /v1/jobs/{id}/cancel``. Idempotent, and the body is optional.
+
+        🔴 A reason is always sent, because *why did this stop* is a question
+        the job page has to answer and "cancelled" is not an answer. Optional
+        on the wire and not optional here: the caller's own words when they
+        have any, and otherwise what this client can say for itself -- which
+        machine asked, which is the part somebody rereading a week later
+        actually wants.
+        '''
         self.ensure_session()
 
-        body = {"reason": reason} if reason else {}
+        body = {"reason": reason or self._who_asked()}
         return self.transport.request(
             "POST", f"jobs/{job_id}/cancel", json_body=body).json()
+
+    def _who_asked(self) -> str:
+        import socket
+
+        try:
+            where = socket.gethostname()
+        except Exception:                                        # noqa: BLE001
+            where = "an unknown host"
+        return f"cancelled from sc-remote on {where}"
 
     def delete_job(self, job_id: str) -> None:
         '''``DELETE /v1/jobs/{id}``. Idempotent; the job stays readable.'''

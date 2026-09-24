@@ -31,6 +31,7 @@ from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
 
 __all__ = ["PRIMARY", "Requirement", "Plan", "bundle_path", "catalogue",
+           "sweep_bundles",
            "is_staged", "live_images", "live_software", "pinned_ref",
            "plan_for_job", "register_image", "register_software",
            "register_version", "resolve", "retire_image", "retire_software",
@@ -434,6 +435,79 @@ def stage_bundle(root, ref: str, digest: str, mounts=()):
         shutil.rmtree(staging, ignore_errors=True)
 
     return target
+
+
+def sweep_bundles(root, store) -> int:
+    '''Reclaim the unpacked bundles nothing can run any more. Returns bytes.
+
+    🔴 **Without this a rig fills its disk, quietly and fast.** A bundle is an
+    image unpacked onto the filesystem, so the tools one is six and a half
+    gigabytes -- and a rebuild produces a new digest, which supersedes the old
+    row and leaves the old bundle exactly where it was. Twelve of them, 28 GB,
+    is what one afternoon of rebuilds measured.
+
+    ⚠️ **Superseded is not the same as unused, and that is what the query is
+    for.** An image row is never deleted, because *what did this run in* has to
+    stay answerable -- but the BYTES are only needed while something might
+    start in them. A retired image that no unfinished job names can go; one
+    that a running job names cannot, because `--container` points straight at
+    this path and pulling it out from under a job is a failure with no sensible
+    message.
+
+    Also takes the `.part` and `.oci` directories a crashed unpack leaves.
+    Those are intermediate by construction -- the real bundle is renamed into
+    place last -- so one being present means nothing is using it.
+    '''
+    import shutil
+
+    from pathlib import Path
+
+    root = Path(root)
+    if not root.is_dir():
+        return 0
+
+    keep = {row["digest"].replace("sha256:", "")
+            for row in store.all("SELECT digest FROM images WHERE retired_at IS NULL")}
+
+    # A retired image whose bytes something might still start in. Both columns,
+    # because a job records the framework image and each node records its own.
+    busy = {row["digest"].replace("sha256:", "") for row in store.all(
+        "SELECT i.digest FROM images i WHERE i.retired_at IS NOT NULL AND ("
+        "  EXISTS (SELECT 1 FROM jobs j WHERE j.image_id = i.id"
+        "          AND j.state NOT IN ('completed', 'failed', 'cancelled',"
+        "                              'rejected', 'abandoned'))"
+        "  OR EXISTS (SELECT 1 FROM job_nodes n JOIN jobs j ON j.id = n.job_id"
+        "             WHERE n.image_id = i.id"
+        "             AND j.state NOT IN ('completed', 'failed', 'cancelled',"
+        "                                 'rejected', 'abandoned')))")}
+
+    freed = 0
+    for entry in sorted(root.iterdir()):
+        if not entry.is_dir():
+            continue
+        if entry.name.endswith((".part", ".oci")):
+            freed += _weigh(entry)
+            shutil.rmtree(entry, ignore_errors=True)
+            continue
+        if entry.name in keep or entry.name in busy:
+            continue
+
+        logger.info(f"reclaiming the bundle for {entry.name[:12]}")
+        freed += _weigh(entry)
+        shutil.rmtree(entry, ignore_errors=True)
+
+    return freed
+
+
+def _weigh(path) -> int:
+    total = 0
+    for child in path.rglob("*"):
+        try:
+            if child.is_file() and not child.is_symlink():
+                total += child.stat().st_size
+        except OSError:
+            continue
+    return total
 
 
 def _prepare_spec(config, mounts) -> None:

@@ -97,11 +97,18 @@ def test_a_finished_run_is_indexed(server_client, key, token, finished):
     assert ("logs", "stepone") in kinds
     assert ("logs", "steptwo") in kinds
     # A bundle per node, indexed as that node finishes -- which is what lets a
-    # client take a node's results while the rest of the flow runs on. No
-    # outputs or reports: they would be a second copy of what it holds.
+    # client take a node's results while the rest of the flow runs on.
     assert ("bundle", "stepone") in kinds
     assert ("bundle", "steptwo") in kinds
-    assert not [k for k, _ in kinds if k in ("outputs", "reports")]
+    # 🔴 And the reports on their own, which IS a second copy of bytes the
+    # bundle holds. A node's reports are kilobytes and its bundle is often
+    # gigabytes, and above `auto_fetch_max_bytes` the bundle is not fetched at
+    # all while these still are.
+    assert ("reports", "stepone") in kinds
+    assert ("reports", "steptwo") in kinds
+    # `outputs` is still not produced: that WOULD be a second copy of the
+    # large half.
+    assert not [k for k, _ in kinds if k == "outputs"]
 
 
 def test_every_required_member_is_published(server_client, key, token, finished):
@@ -211,9 +218,12 @@ def test_the_listing_filters_by_kind_step_and_index(server_client, key, token,
     logs = listing(server_client, key, token, finished["id"], "?kind=logs")
     assert {item["kind"] for item in logs} == {"logs"}
 
+    reports = listing(server_client, key, token, finished["id"], "?kind=reports")
+    assert {item["kind"] for item in reports} == {"reports"}
+
     # A kind that is absent was never indexed here, which is a true answer and
     # not an error: this deployment stores a bundle instead.
-    assert listing(server_client, key, token, finished["id"], "?kind=reports") == []
+    assert listing(server_client, key, token, finished["id"], "?kind=outputs") == []
 
     one = listing(server_client, key, token, finished["id"],
                   "?step=stepone&index=0")
@@ -244,8 +254,8 @@ def test_the_listing_pages(server_client, key, token, finished):
         response = call(server_client, key, "GET",
                         link.split(">", 1)[0].lstrip("<"), token)
 
-    # manifest, plus a log and a bundle for each of the two nodes.
-    assert len(seen) == len(set(seen)) == 5
+    # manifest, plus a log, a reports and a bundle for each of the two nodes.
+    assert len(seen) == len(set(seen)) == 7
 
 
 def test_a_strangers_listing_is_a_404(server_client, key, token, finished):

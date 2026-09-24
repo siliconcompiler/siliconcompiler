@@ -47,6 +47,22 @@ DEFAULT_LIMITS: Dict[str, int] = {
                                             # and jobs routinely outlast it
     "max_archive_members": 100000,          # members in the upload archive
     "max_archive_expanded_bytes": 10737418240,   # bytes, after expansion
+
+    # 🆕 The largest artifact a client should pull without being asked. Above
+    # it the object is LISTED and not fetched, and the client says so and says
+    # how to get it.
+    #
+    # 🔴 It is a limit and deliberately not `fetchable: false`. `fetchable`
+    # answers *may this caller have these bytes*, and a client renders a false
+    # one as deleted, withheld, aged out or not entitled -- so using it for
+    # size would tell somebody they lack permission to read their own output.
+    # A ceiling the server publishes lets the deployment set the policy, which
+    # is the point, without lying about what kind of answer it is.
+    #
+    # ⚠️ It bounds one object, not the run. Forty nodes each just under it
+    # still fetch forty times it, because the alternative -- a budget for the
+    # whole listing -- makes what arrives depend on what order it arrives in.
+    "auto_fetch_max_bytes": 104857600,      # bytes, per artifact (100 MiB)
 }
 
 DEFAULTS: Dict[str, Any] = {

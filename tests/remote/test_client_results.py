@@ -545,3 +545,71 @@ def test_the_advice_names_the_file_the_client_actually_writes():
     from siliconcompiler.remote.client.results import REMOTE_JOB_LOG
 
     assert REMOTE_JOB_LOG in NO_NODE_FAILED
+
+
+###########################
+# What not to pull
+###########################
+
+def _ceiling(fake_v1, capabilities, limit):
+    '''Move this server's auto-fetch ceiling.'''
+    published = dict(capabilities)
+    published["limits"] = dict(published["limits"])
+    if limit is None:
+        published["limits"].pop("auto_fetch_max_bytes", None)
+    else:
+        published["limits"]["auto_fetch_max_bytes"] = limit
+    fake_v1.replace(responses.GET, "", published)
+
+
+def test_an_object_over_the_servers_ceiling_is_listed_and_not_pulled(
+        fake_v1, capabilities, results, caplog):
+    '''🔴 The SERVER's number, not the client's. A deployment knows what its
+    link and its disks are for; a client picking its own threshold means every
+    client picks a different one and the operator sets no policy at all.'''
+    _ceiling(fake_v1, capabilities, 1000)
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("bundle", "stepone", "0", size_bytes=50_000_000,
+                 media_type="application/gzip")]})
+
+    with caplog.at_level("WARNING"):
+        assert results.fetch("j1") == 0
+
+    assert "left on the server" in caplog.text
+    assert "47.7 MiB" in caplog.text
+    # It named the ceiling too, so the number is not a mystery.
+    assert "1000 B" in caplog.text
+
+
+def test_a_bundle_left_behind_does_not_displace_its_nodes_log(
+        fake_v1, capabilities, results, nop_project):
+    '''🔴 A bundle displaces the objects inside it only because fetching it
+    gets you them. One that is not being fetched displaces nothing -- which is
+    the case this ceiling exists to produce.'''
+    _ceiling(fake_v1, capabilities, 1000)
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("bundle", "stepone", "0", size_bytes=50_000_000,
+                 media_type="application/gzip"),
+        artifact("logs", "stepone", "0", size_bytes=120)]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-stepone-0",
+                  body="stepone ran\n", content_type="text/plain")
+
+    assert results.fetch("j1") == 1
+
+    from siliconcompiler.utils.paths import workdir
+    landed = os.path.join(workdir(nop_project, step="stepone", index="0"),
+                          "sc_stepone_0.log")
+    assert "stepone ran" in open(landed).read()
+
+
+def test_a_server_that_publishes_no_ceiling_fetches_everything(
+        fake_v1, capabilities, results):
+    '''A client that has never heard of the limit, or a server older than it,
+    behaves exactly as before.'''
+    _ceiling(fake_v1, capabilities, None)
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("logs", "stepone", "0", size_bytes=50_000_000)]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-stepone-0",
+                  body="big\n", content_type="text/plain")
+
+    assert results.fetch("j1") == 1

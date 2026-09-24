@@ -80,14 +80,17 @@ def test_projects_are_not_a_feature(client):
     assert "projects" not in client.get("/v1").get_json()["features"]
 
 
-def test_nine_limits_every_one_a_base_unit(client):
+def test_every_limit_is_a_base_unit(client):
+    """Bytes are never MB and a count is never a duration: the refusal that
+    names a key back spells it identically, which is what makes the error
+    registry double as the enforcement trace."""
     limits = client.get("/v1").get_json()["limits"]
 
     assert set(limits) == {
         "max_job_nodes", "max_upload_bytes", "job_retention_days",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_log_stream_seconds", "max_archive_members",
-        "max_archive_expanded_bytes"}
+        "max_archive_expanded_bytes", "auto_fetch_max_bytes"}
     assert all(isinstance(value, int) for value in limits.values())
 
 
