@@ -470,3 +470,58 @@ def test_a_node_this_job_does_not_have(server_client, key, token, finished):
                     f"/v1/jobs/{finished['id']}/logs?step=nowhere&index=0", token)
 
     assert response.status_code == 404
+
+
+def test_one_row_per_kind_per_node_even_under_a_race(server, finished):
+    '''🔴 The check before the insert is not enough and cannot be made enough.
+
+    Indexing runs on whichever request thread gets there first, and a client
+    polling its job while tailing two logs has three of them. Two that check
+    together both pass -- so a real aes run came back with 38 bundles for 23
+    nodes, and the portal showed one node owning "logs, bundle, bundle". The
+    unique index is what actually decides.
+    '''
+    import sqlite3
+
+    from siliconcompiler.remote.server.ids import uuid7
+
+    store = server.config["SC_STORE"]
+    existing = store.one(
+        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+        "AND step IS NOT NULL LIMIT 1", (finished["id"],))
+    assert existing is not None
+
+    # Exactly what a second thread would attempt, having passed _exists.
+    with pytest.raises(sqlite3.IntegrityError):
+        store.execute(
+            'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+            "  location_id, storage_key, size_bytes, media_type, kind, "
+            "  provenance) "
+            "VALUES (?, ?, ?, ?, 'sha256:x', ?, 'k', 1, 'application/gzip', "
+            "        'bundle', 'declared')",
+            (str(uuid7()), finished["id"], existing["step"], existing["index"],
+             existing["location_id"]))
+
+
+def test_the_job_level_rows_are_protected_too(server, finished):
+    '''SQLite counts NULLs as distinct in a unique index, which would leave
+    exactly the rows with no node unprotected -- hence the coalesce.'''
+    import sqlite3
+
+    from siliconcompiler.remote.server.ids import uuid7
+
+    store = server.config["SC_STORE"]
+    existing = store.one(
+        "SELECT * FROM artifacts WHERE job_id = ? AND step IS NULL LIMIT 1",
+        (finished["id"],))
+    assert existing is not None
+
+    with pytest.raises(sqlite3.IntegrityError):
+        store.execute(
+            'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+            "  location_id, storage_key, size_bytes, media_type, kind, "
+            "  provenance) "
+            "VALUES (?, ?, NULL, NULL, 'sha256:x', ?, 'k', 1, 'text/plain', "
+            "        ?, 'declared')",
+            (str(uuid7()), finished["id"], existing["location_id"],
+             existing["kind"]))

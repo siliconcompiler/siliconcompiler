@@ -390,6 +390,19 @@ CREATE INDEX artifacts_job_idx ON artifacts (job_id);
 CREATE INDEX artifacts_node_idx ON artifacts (job_id, step, "index");
 CREATE INDEX artifacts_hash_idx ON artifacts (content_hash);
 
+-- 🔴 One row per kind per node, and it has to be the DATABASE that says so.
+-- Indexing is driven from reconcile, which runs on whichever request thread
+-- got there first -- and a client polling its job while tailing two logs has
+-- three of them. Every writer checks before inserting, and two that check
+-- together both pass: the aes flow came back with 38 bundles for 23 nodes, and
+-- the portal showed a node owning "logs, bundle, bundle".
+--
+-- coalesce because the job-level rows carry NULL for both, and SQLite counts
+-- NULLs as distinct in a unique index -- which would leave exactly the rows
+-- with no node unprotected.
+CREATE UNIQUE INDEX artifacts_one_per_node_idx
+    ON artifacts (job_id, kind, coalesce(step, ''), coalesce("index", ''));
+
 
 --------------------------------------------------------------------------
 -- 8. Software and images

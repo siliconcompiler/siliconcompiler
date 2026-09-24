@@ -34,22 +34,51 @@
   and finds no image holding it is refused at submit.
 </p>
 <table>
-  <tr><th>Distribution</th><th>Versions</th></tr>
+  <tr><th>Distribution</th><th>Versions</th><th></th></tr>
   {% for row in catalogue.software %}
   <tr>
     <td>
       {{ row.name }}
       {% if row.retired_at %}<span class="tag">retired</span>{% endif %}
     </td>
-    <td class="mono muted">
+    <td>
       {%- for version in catalogue.versions if version.software_name == row.name -%}
-        {{ version.version }}{% if version.preference %} (pref {{ version.preference }}){% endif %}
-        {%- if version.retired_at %} [retired]{% endif %}{% if not loop.last %}, {% endif %}
-      {%- else -%}none{%- endfor -%}
+      <span class="mono muted">{{ version.version }}</span>
+      {%- if version.preference %} <span class="muted">(pref {{ version.preference }})</span>{% endif -%}
+      {#
+        No per-version button once the distribution itself is retired: the
+        whole name has stopped raising a requirement, so retiring one of its
+        versions would change nothing and offering it says otherwise.
+      #}
+      {%- if version.retired_at %} <span class="tag">retired</span>
+      {%- elif not row.retired_at %}
+      <form method="post" class="inline"
+            action="{{ url_for('portal.retire_software', name=row.name) }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="version" value="{{ version.version }}">
+        <button class="danger">retire</button>
+      </form>
+      {%- endif %}{% if not loop.last %} &middot; {% endif %}
+      {%- else -%}<span class="muted">none</span>{%- endfor -%}
+    </td>
+    <td>
+      {% if not row.retired_at %}
+      {#
+        🔴 Not the same as retiring its last version. Retiring a VERSION says
+        *not this one*, and a flow needing that tool is still refused unless an
+        image holds another. Retiring the SOFTWARE says *not any more*, and the
+        tool stops raising a requirement at all.
+      #}
+      <form method="post" class="inline"
+            action="{{ url_for('portal.retire_software', name=row.name) }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="danger">Stop curating</button>
+      </form>
+      {% endif %}
     </td>
   </tr>
   {% else %}
-  <tr><td colspan="2" class="muted">Nothing registered.</td></tr>
+  <tr><td colspan="3" class="muted">Nothing registered.</td></tr>
   {% endfor %}
 </table>
 

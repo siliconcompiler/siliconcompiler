@@ -27,6 +27,7 @@ import time
 from typing import Optional
 
 import flask
+import markupsafe
 
 from siliconcompiler.remote.server import accounts, images
 from siliconcompiler.remote.server.auth import SCOPES, Session
@@ -312,27 +313,156 @@ def job(session, job_id):
     history = _store().all(
         "SELECT * FROM job_state_transitions WHERE job_id = ? "
         "ORDER BY occurred_at", (job_id,))
-    placements = _placements(job_id)
 
-    return flask.render_template("job.html", job=detail, edges=edges,
-                                 history=history, placements=placements)
+    # 🔴 Returns (items, cursor). Handing the tuple straight to a template
+    # renders a page with nothing on it and no error, which is how this shipped
+    # once already.
+    items = _all_artifacts(session, job_id)
+
+    per_node = {}
+    for item in items:
+        per_node.setdefault((item["step"], item["index"]), []).append(item)
+
+    return flask.render_template(
+        "job.html", job=detail, edges=edges, history=history,
+        placements=_jobs().node_placements(session, job_id), per_node=per_node,
+        job_level=per_node.get((None, None), []),
+        graph=_graph(detail, edges))
 
 
-def _placements(job_id):
-    '''Which image and which scheduler job each node ran in.
+# One box, and the numbers are the whole layout engine.
+#
+# ⚠️ Laid out DOWNWARDS, not across. A flow is deep and narrow -- asicflow is
+# twenty-three nodes in about as many stages -- so left-to-right made a picture
+# wider than any page and one box tall, which is a scrollbar rather than a
+# diagram. Downwards it is narrow enough to sit beside the tables.
+_BOX_W, _BOX_H, _GAP_X, _GAP_Y, _PAD = 132, 28, 14, 22, 12
 
-    ⚠️ Neither is published on the wire -- a registry path and a scheduler id
-    are deployment detail -- and the contract's answer to *where does a person
-    see them* is this screen. It is the reason both columns are written.
+
+def _graph(job, edges):
+    '''The flowgraph, as inline SVG.
+
+    🔴 Drawn on the server, in about forty lines, because the alternative is a
+    JavaScript graph library -- and SiliconCompiler ships as a pip wheel, so a
+    node toolchain in the release pipeline would be paid by every release for
+    one picture.
+
+    A layered layout: a node's ROW is the longest path to it, which for a
+    flowgraph is exactly the order the work happens in, read top to bottom.
+    Columns inside a row are the order the nodes were listed, so two runs of
+    the same flow draw the same picture.
     '''
-    refs = {row["id"]: row["registry_ref"]
-            for row in _store().all("SELECT id, registry_ref FROM images")}
+    nodes = [(node["step"], node["index"]) for node in job.get("nodes") or []]
+    if not nodes:
+        return None
 
-    return {(row["step"], row["index"]):
-            (refs.get(row["image_id"]), row["scheduler_job_id"])
-            for row in _store().all(
-                'SELECT step, "index", image_id, scheduler_job_id '
-                "FROM job_nodes WHERE job_id = ?", (job_id,))}
+    states = {(node["step"], node["index"]): node["state"]
+              for node in job["nodes"]}
+    incoming = {node: [] for node in nodes}
+    for edge in edges:
+        target = (edge["to_step"], edge["to_index"])
+        source = (edge["from_step"], edge["from_index"])
+        if target in incoming and source in incoming:
+            incoming[target].append(source)
+
+    depth = {}
+
+    def _depth(node, seen=()):
+        if node in depth:
+            return depth[node]
+        if node in seen:
+            # A cycle cannot happen in a flowgraph, and a drawing routine is
+            # not the place to find out it did.
+            return 0
+        found = max((_depth(parent, seen + (node,)) + 1
+                     for parent in incoming[node]), default=0)
+        depth[node] = found
+        return found
+
+    for node in nodes:
+        _depth(node)
+
+    columns = {}
+    for node in nodes:
+        columns.setdefault(depth[node], []).append(node)
+
+    widest = max(len(members) for members in columns.values())
+
+    place = {}
+    for depth_of, members in columns.items():
+        # Centred, so a fan-out reads as one and a single-node stage sits under
+        # the stage above it rather than hard against the left edge.
+        offset = (widest - len(members)) * (_BOX_W + _GAP_X) / 2
+        for across, node in enumerate(members):
+            place[node] = (_PAD + offset + across * (_BOX_W + _GAP_X),
+                           _PAD + depth_of * (_BOX_H + _GAP_Y))
+
+    width = _PAD * 2 + widest * (_BOX_W + _GAP_X) - _GAP_X
+    height = _PAD * 2 + (max(columns) + 1) * (_BOX_H + _GAP_Y) - _GAP_Y
+
+    out = [f'<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" '
+           'class="flow" xmlns="http://www.w3.org/2000/svg">']
+
+    for edge in edges:
+        source = (edge["from_step"], edge["from_index"])
+        target = (edge["to_step"], edge["to_index"])
+        if source not in place or target not in place:
+            continue
+        x1, y1 = place[source]
+        x2, y2 = place[target]
+        x1, y1 = x1 + _BOX_W / 2, y1 + _BOX_H
+        x2 = x2 + _BOX_W / 2
+        mid = (y1 + y2) / 2
+        out.append(f'<path d="M{x1},{y1} C{x1},{mid} {x2},{mid} {x2},{y2}" '
+                   'class="wire" fill="none"/>')
+
+    for node, (x, y) in place.items():
+        step, index = node
+        out.append(
+            f'<g class="node {states.get(node, "pending")}">'
+            f'<rect x="{x}" y="{y}" width="{_BOX_W}" height="{_BOX_H}" rx="5"/>'
+            f'<title>{_plain(step)}/{index}</title>'
+            f'<text x="{x + _BOX_W / 2}" y="{y + _BOX_H / 2 + 4}" '
+            f'text-anchor="middle">{_clip(step)}/{index}</text></g>')
+
+    out.append("</svg>")
+    return markupsafe.Markup("".join(out))
+
+
+def _clip(step: str, width: int = 16) -> str:
+    '''A name that fits the box. The full one is in the box's <title>, which
+    is what a browser shows on hover -- so nothing is lost, only folded.'''
+    if len(step) > width:
+        step = step[:width - 1] + "\u2026"
+    return _plain(step)
+
+
+def _plain(value: str) -> str:
+    return str(markupsafe.escape(value))
+
+
+def _all_artifacts(session, job_id, args=None):
+    '''Every artifact, following the cursor.
+
+    ⚠️ The endpoint pages at 50 and caps at 200, which is right for an API and
+    wrong for a screen: a forty-node flow produces more than either, and a page
+    that silently shows the first fifty is a page that says *this run produced
+    fifty things*. Bounded anyway, because a loop over somebody else's cursor
+    should not be the thing that hangs a request.
+    '''
+    query = dict(args or {})
+    query["limit"] = "200"
+
+    items, seen = [], 0
+    while seen < 20:
+        page, cursor = _jobs().artifacts(session, job_id, query)
+        items.extend(page)
+        if not cursor:
+            break
+        query["cursor"] = cursor
+        seen += 1
+
+    return items
 
 
 @blueprint.route("/portal/jobs/<job_id>/cancel", methods=["POST"])
@@ -357,8 +487,10 @@ def delete(session, job_id):
 @screen
 def artifacts(session, job_id):
     detail = _jobs().get(session, job_id)
-    items = _jobs().artifacts(session, job_id, flask.request.args)
-    return flask.render_template("artifacts.html", job=detail, artifacts=items)
+    items = _all_artifacts(session, job_id, flask.request.args)
+    return flask.render_template("artifacts.html", job=detail, artifacts=items,
+                                 kind=flask.request.args.get("kind", ""),
+                                 step=flask.request.args.get("step", ""))
 
 
 @blueprint.route("/portal/jobs/<job_id>/artifacts/<artifact_id>", methods=["GET"])
@@ -387,18 +519,36 @@ def fetch(session, job_id, artifact_id):
 def log(session, job_id, step, index):
     '''One node's log: the archived bytes, or the live tail as it is written.'''
     detail = _jobs().get(session, job_id)
+
+    # Every log this node left, so somebody looking for the TOOL's complaint is
+    # not sent to SiliconCompiler's own record of the node.
+    available = _jobs().node_logs(session, job_id, step, index)
+    wanted = flask.request.args.get("file")
+    chosen = next((name for name, _ in available if name == wanted),
+                  available[0][0] if available else None)
+
     kind, target = _jobs().node_log(session, job_id, step, index)
 
     text, stream = "", None
-    if kind == "artifact":
-        storage = flask.current_app.config["SC_STORAGE"]
-        path = storage.artifact_path(target["storage_key"])
-        try:
-            with open(path, errors="replace") as handle:
-                text = handle.read()
-        except OSError as e:
-            text = f"(the archived log could not be read: {e})"
-    else:
+    if kind == "artifact" or (chosen and available):
+        picked = dict(available).get(chosen)
+        if picked is not None:
+            try:
+                with open(picked, errors="replace") as handle:
+                    text = handle.read()
+            except OSError as e:
+                text = f"(that log could not be read: {e})"
+        else:
+            # The working directory is gone; the archive is what is left.
+            storage = flask.current_app.config["SC_STORAGE"]
+            try:
+                with open(storage.artifact_path(target["storage_key"]),
+                          errors="replace") as handle:
+                    text = handle.read()
+            except OSError as e:
+                text = f"(the archived log could not be read: {e})"
+
+    if kind == "stream" and not text:
         # Running. The browser follows the same signed stream URL the CLI does,
         # which is what makes this a viewer for the API rather than a second
         # implementation of tailing.
@@ -410,8 +560,9 @@ def log(session, job_id, step, index):
             expires=expires,
             sig=storage.sign_stream(job_id, step, index, expires))
 
-    return flask.render_template("log.html", job=detail, step=step, index=index,
-                                 text=text, stream=stream)
+    return flask.render_template(
+        "log.html", job=detail, step=step, index=index, text=text,
+        stream=stream, available=[name for name, _ in available], chosen=chosen)
 
 
 ######################################################################
@@ -531,6 +682,26 @@ def register_image(session):
 @screen
 def retire_image(session, image_id):
     images.retire_image(_store(), image_id, session.user_id)
+    return flask.redirect(flask.url_for("portal.registry"))
+
+
+@blueprint.route("/portal/images/software/<name>/retire", methods=["POST"])
+@screen
+def retire_software(session, name):
+    '''Withdraw the claim that this deployment curates a distribution.
+
+    🔴 Not the same as retiring its last version, and the difference is
+    load-bearing: retiring a VERSION says *not this one*, and a flow needing
+    that tool is still refused unless an image holds another. Retiring the
+    SOFTWARE says *not any more*, and the tool stops raising a requirement at
+    all -- which hands its nodes back to the job's own image.
+    '''
+    version = flask.request.form.get("version")
+    if version:
+        images.retire_version(_store(), name, version, session.user_id)
+    else:
+        images.retire_software(_store(), name, session.user_id)
+
     return flask.redirect(flask.url_for("portal.registry"))
 
 

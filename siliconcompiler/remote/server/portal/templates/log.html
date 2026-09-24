@@ -7,6 +7,25 @@
   <a href="{{ url_for('portal.job', job_id=job.id) }}">{{ job.design }}/{{ job.jobname }}</a>
 </p>
 
+{% if available | length > 1 %}
+{#
+  A node writes more than one log and they answer different questions:
+  `sc_<step>_<index>.log` is SiliconCompiler's record of the node, and
+  `<step>.log` is what the tool printed -- which is where a synthesis error
+  actually is.
+#}
+<form method="get" class="panel">
+  <label>Log
+    <select name="file" onchange="this.form.submit()">
+      {% for name in available %}
+      <option value="{{ name }}" {{ 'selected' if name == chosen }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <noscript><button>Show</button></noscript>
+</form>
+{% endif %}
+
 {% if stream %}
   {#
     🔴 The viewer follows the SAME signed stream URL the command line does.

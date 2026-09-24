@@ -40,11 +40,22 @@
 <a href="{{ url_for('portal.artifacts', job_id=job.id) }}"
    style="margin-left:12px">Artifacts</a>
 
+<div class="split">
+<div class="beside">
+{% if graph %}
+<h3>Flow</h3>
+{# Drawn downwards: a flow is deep and narrow, so across the page it was a
+   scrollbar rather than a diagram. #}
+<div class="scroll">{{ graph }}</div>
+{% endif %}
+</div>
+
+<div class="main">
 <h3>Nodes</h3>
 <table>
   <tr>
     <th>Node</th><th>State</th><th>Started</th><th>Runtime</th>
-    <th>Ran in</th><th>Scheduler</th><th></th>
+    <th>Ran in</th><th>Scheduler</th><th>Logs</th><th>Artifacts</th>
   </tr>
   {% for node in job.nodes %}
   {% set placed = placements.get((node.step, node['index'])) %}
@@ -65,18 +76,36 @@
     <td class="mono muted">{{ (placed[1] if placed else None) or '—' }}</td>
     <td><a href="{{ url_for('portal.log', job_id=job.id,
                             step=node.step, index=node['index']) }}">log</a></td>
+    <td>
+      {%- for item in per_node.get((node.step, node['index']), []) -%}
+        {%- if item.fetchable -%}
+        <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}"
+           >{{ item.kind }}</a>{% if not loop.last %}, {% endif %}
+        {%- else -%}
+        <span class="muted">{{ item.kind }}</span>{% if not loop.last %}, {% endif %}
+        {%- endif -%}
+      {%- else -%}<span class="muted">—</span>{%- endfor -%}
+    </td>
   </tr>
   {% endfor %}
 </table>
 
-{% if edges %}
-<h3>Flow</h3>
+</div>
+</div>
+
+{% if job_level %}
+<h3>The job itself</h3>
 <table>
-  <tr><th>From</th><th>To</th></tr>
-  {% for edge in edges %}
+  <tr><th>Kind</th><th>Size</th><th></th></tr>
+  {% for item in job_level %}
   <tr>
-    <td class="mono">{{ edge.from_step }}/{{ edge.from_index }}</td>
-    <td class="mono">{{ edge.to_step }}/{{ edge.to_index }}</td>
+    <td>{{ item.kind }}</td>
+    <td class="mono muted">{{ '{:,}'.format(item.size_bytes or 0) }}</td>
+    <td>
+      {% if item.fetchable %}
+        <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
+      {% else %}<span class="muted">not available</span>{% endif %}
+    </td>
   </tr>
   {% endfor %}
 </table>

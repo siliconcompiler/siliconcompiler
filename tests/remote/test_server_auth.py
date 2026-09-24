@@ -544,3 +544,32 @@ def test_the_new_identity_sees_none_of_the_old_ones_jobs(client, key):
     new = login(client, key, subject="machine-new:1000").get_json()["access_token"]
 
     assert call(client, key, "GET", "/v1/jobs", new).get_json()["items"] == []
+
+
+def test_a_refresh_counts_as_the_device_being_seen(client, key):
+    '''🔴 A rotation is the only signal most devices ever give.
+
+    The client refreshes rather than logging in again -- deliberately, so a
+    session lasts its twelve days instead of minting a family per command -- so
+    writing this only at `client_credentials` left `last_seen_at` NULL for a
+    machine that had been running jobs all day.
+    '''
+    from conftest import call
+
+    granted = login(client, key).get_json()
+
+    def devices(token):
+        return call(client, key, "GET", "/v1/devices",
+                    token).get_json()["devices"][0]
+
+    first = devices(granted["access_token"])["last_seen_at"]
+    assert first is not None
+
+    rotated = client.post(
+        "/v1/auth/token",
+        data={"grant_type": "refresh_token",
+              "refresh_token": granted["refresh_token"]},
+        headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/token")},
+        content_type="application/x-www-form-urlencoded").get_json()
+
+    assert devices(rotated["access_token"])["last_seen_at"] >= first

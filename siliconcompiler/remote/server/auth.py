@@ -243,10 +243,11 @@ class TokenIssuer:
             device_id = str(uuid7())
             self._store.execute(
                 "INSERT INTO devices "
-                "(id, user_id, name, dpop_jkt, machine_id_hash, machine_id_source) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                "(id, user_id, name, dpop_jkt, machine_id_hash, "
+                " machine_id_source, last_seen_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (device_id, user_id, display_name or "this machine", jkt,
-                 machine_id_hash, machine_id_source))
+                 machine_id_hash, machine_id_source, now()))
             self._store.execute(
                 "INSERT INTO device_events (device_id, kind) VALUES (?, 'enrolled')",
                 (device_id,))
@@ -270,7 +271,12 @@ class TokenIssuer:
         self._store.execute(
             "UPDATE devices SET last_seen_at = ? WHERE id = ?",
             (now(), existing["id"]))
-        return existing
+
+        # Re-read: `existing` was fetched before the write, so returning it
+        # hands the caller a row that is already wrong about the one column
+        # this just set.
+        return self._store.one(
+            "SELECT * FROM devices WHERE id = ?", (existing["id"],))
 
     def refresh(self, refresh_token: str, jkt: str,
                 requested_scope: Optional[str]) -> dict:
@@ -366,6 +372,21 @@ class TokenIssuer:
                 self._store.execute(
                     "UPDATE token_families SET scope = ? WHERE id = ?",
                     (scope, row["family_id"]))
+
+            # 🔴 A rotation is the device being used, and it is the ONLY signal
+            # most of them give. The client refreshes rather than logging in
+            # again -- deliberately, so a session lasts its twelve days instead
+            # of a new family per command -- so writing this only at
+            # `client_credentials` left `last_seen_at` NULL for a machine that
+            # had been running jobs all day.
+            #
+            # Once per rotation rather than per request: a write on every
+            # authenticated call would cost a transaction each time to sharpen
+            # a column nobody reads to the second.
+            if row["device_id"]:
+                self._store.execute(
+                    "UPDATE devices SET last_seen_at = ? WHERE id = ?",
+                    (timestamp, row["device_id"]))
 
         return self._tokens(row["user_id"], row["device_id"], row["dpop_jkt"],
                             scope, row["family_id"], new_jti, expires,

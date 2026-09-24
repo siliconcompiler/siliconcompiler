@@ -43,6 +43,7 @@ something nobody fetches.
 import hashlib
 import logging
 import shutil
+import sqlite3
 import tarfile
 
 from pathlib import Path, PurePosixPath
@@ -210,14 +211,30 @@ def _archive(store, storage, job, location, floor, kind, step, index,
 
 def _record(store, job, artifact_id, location, floor, kind, step, index,
             stored: Path, media_type: str) -> int:
-    store.execute(
-        'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
-        "  location_id, storage_key, size_bytes, media_type, kind, "
-        "  retention_until, provenance) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'declared')",
-        (artifact_id, job["id"], step, index, _digest(stored), location,
-         f"{job['id']}/{artifact_id}", stored.stat().st_size, media_type, kind,
-         _retention(store, kind, floor)))
+    '''Write the row, or find that somebody else already did.
+
+    🔴 The `_exists` check above is not enough and cannot be made enough:
+    indexing runs on whichever request thread gets there first, and a client
+    polling its job while tailing two logs has three of them. Two that check
+    together both pass. The unique index is what actually decides, and this is
+    where losing is handled -- by dropping the bytes this thread wrote, since
+    the winner's copy is the one the row points at.
+    '''
+    try:
+        store.execute(
+            'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+            "  location_id, storage_key, size_bytes, media_type, kind, "
+            "  retention_until, provenance) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'declared')",
+            (artifact_id, job["id"], step, index, _digest(stored), location,
+             f"{job['id']}/{artifact_id}", stored.stat().st_size, media_type,
+             kind, _retention(store, kind, floor)))
+    except sqlite3.IntegrityError:
+        logger.debug(f"{kind} for {step}/{index} was indexed by another "
+                     "request; discarding this copy")
+        stored.unlink(missing_ok=True)
+        return 0
+
     return 1
 
 

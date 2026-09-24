@@ -232,7 +232,42 @@ def download(job_id, artifact_id):
         raise ProblemError(
             "not-found", detail="the bytes for this artifact are missing")
 
-    response = flask.send_file(path, mimetype=row["media_type"],
-                               as_attachment=False, conditional=True)
+    # 🔴 Named after what it IS. Without this every download lands in somebody's
+    # downloads folder as a bare uuid, and a person who fetched the logs of six
+    # nodes has six files they cannot tell apart.
+    inline = row["media_type"] in ("text/plain", "application/json")
+
+    response = flask.send_file(
+        path, mimetype=row["media_type"], conditional=True,
+        as_attachment=not inline, download_name=_download_name(store, row))
     response.headers["Cache-Control"] = "private, no-store"
     return response
+
+
+# What a browser should call each kind once it is on disk.
+_SUFFIX = {
+    "application/gzip": ".tar.gz",
+    "application/json": ".pkg.json",
+    "text/plain": ".log",
+}
+
+
+def _download_name(store, row) -> str:
+    '''``<design>-<jobname>-<step>-<index>-<kind>`` and the right suffix.
+
+    The node is in it because the node is the thing a person is looking for.
+    Job-level artifacts have no node and say so by leaving it out rather than
+    by carrying an empty segment.
+    '''
+    job = store.one("SELECT design, jobname FROM jobs WHERE id = ?",
+                    (row["job_id"],))
+
+    parts = [job["design"], job["jobname"]] if job else []
+    if row["step"]:
+        # Hyphenated, because `elaborate0` cannot be read back: it is step
+        # `elaborate` index `0` and also a step called `elaborate0`.
+        parts.append(f"{row['step']}-{row['index']}")
+    parts.append(row["kind"])
+
+    stem = "-".join(part for part in parts if part)
+    return f"{stem}{_SUFFIX.get(row['media_type'], '')}"

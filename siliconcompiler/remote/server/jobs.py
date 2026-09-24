@@ -929,6 +929,31 @@ class JobService:
                        "cancelling them")
         self._dispatcher.cancel(None, node_job_ids=orphans)
 
+    def node_placements(self, session, job_id: str):
+        '''Per node: the image it ran in, and the scheduler job it became.
+
+        Neither is published on the wire -- a registry path and a scheduler id
+        are deployment detail -- so this is what the portal reads instead, and
+        it goes through the same ownership predicate every other read does.
+
+        ⚠️ It BACKFILLS. Accounting can lag the scheduler by seconds, so a node
+        that finished just before its job did can be missing from every poll
+        that ran and present by the time somebody looks. Asking at read time is
+        what turns that from a permanent gap into a late answer, and it costs
+        nothing once every node has an id.
+        '''
+        job = self.owned(session, job_id)
+        self._record_node_jobs(job)
+
+        refs = {row["id"]: row["registry_ref"]
+                for row in self._store.all("SELECT id, registry_ref FROM images")}
+
+        return {(row["step"], row["index"]):
+                (refs.get(row["image_id"]), row["scheduler_job_id"])
+                for row in self._store.all(
+                    'SELECT step, "index", image_id, scheduler_job_id '
+                    "FROM job_nodes WHERE job_id = ?", (job["id"],))}
+
     def _record_node_jobs(self, job) -> None:
         '''Write down which scheduler job each node became.
 
@@ -1030,6 +1055,13 @@ class JobService:
         # deployment where a node is not a scheduler job this asks nothing.
         if state == "failed":
             self._reap_orphans(job)
+
+        # 🔴 One more look before nothing looks again. The LAST node to finish
+        # is dispatched after the second-to-last poll and finishes before the
+        # job does, so the poll that records the others has nothing to find for
+        # it -- and once the job is terminal no poll runs at all. A diamond
+        # flow came back with three of its four nodes carrying a scheduler id.
+        self._record_node_jobs(job)
 
         if job["state"] == state:
             return
@@ -1200,6 +1232,34 @@ class JobService:
                 "not-found", detail=f"no log was kept for {step}/{index}")
 
         return "artifact", row
+
+    def node_logs(self, session, job_id: str, step: str, index: str):
+        '''Every log one node left, as (name, path).
+
+        🔴 A node writes more than one and they answer different questions.
+        `sc_<step>_<index>.log` is SiliconCompiler's own record of the node --
+        setup, inputs, timing -- and `<step>.log` is what the TOOL printed,
+        which is where a synthesis error actually is. Offering only the first
+        sends somebody looking for OpenROAD's complaint to a file that does not
+        contain it.
+
+        Read from the node's working directory rather than from the indexed
+        artifact, because only one of them is indexed. Ownership was decided
+        above, by the same predicate the API evaluates.
+        '''
+        job = self.owned(session, job_id)
+
+        workdir = (self.job_root(job["user_id"], job["id"]) / job["design"] /
+                   job["jobname"] / step / index)
+        if not workdir.is_dir():
+            return []
+
+        # SiliconCompiler's own first: it is the one that says what the node
+        # was asked to do, which is where to start when a node failed.
+        own = f"sc_{step}_{index}.log"
+        found = sorted(workdir.glob("*.log"),
+                       key=lambda path: (path.name != own, path.name))
+        return [(path.name, path) for path in found]
 
     def node_log_path(self, job, step: str, index: str):
         '''Where the bytes a tail reads are.'''

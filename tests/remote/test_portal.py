@@ -198,3 +198,128 @@ def test_a_form_from_somewhere_else_is_refused(signed_in, server, server_client,
 
     assert response.status_code == 403
     assert not dispatcher.cancelled
+
+
+###########################
+# What a run produced
+###########################
+
+@pytest.fixture
+def finished(server, server_client, key, token, job_archive, dispatcher, me):
+    '''A job that ran to completion, with its results indexed.'''
+    from test_server_jobs import stage, submit
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    for step in ("stepone", "steptwo"):
+        node = root / step / "0"
+        node.mkdir(parents=True, exist_ok=True)
+        (node / f"sc_{step}_0.log").write_text(f"siliconcompiler says {step}\n")
+        (node / f"{step}.log").write_text(f"the tool says {step}\n")
+
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:00:05.000Z",
+        "nodes": {"stepone/0": {"state": "completed"},
+                  "steptwo/0": {"state": "completed"}}})
+
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+    return job
+
+
+def test_the_artifacts_screen_lists_them(signed_in, finished):
+    '''🔴 The listing returns (items, cursor). Handing the tuple straight to a
+    template renders a page with nothing on it and no error, which is how this
+    shipped once.'''
+    page = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts").get_data(as_text=True)
+
+    assert "download" in page
+    assert "logs" in page
+
+
+def test_a_node_offers_every_log_it_wrote(signed_in, finished):
+    '''🔴 SiliconCompiler's own record of the node and what the TOOL printed
+    answer different questions, and a synthesis error is only in the second.'''
+    page = signed_in.get(
+        f"/portal/jobs/{finished['id']}/logs/stepone/0").get_data(as_text=True)
+
+    assert "sc_stepone_0.log" in page
+    assert "stepone.log" in page
+    # SiliconCompiler's own first: it says what the node was asked to do.
+    assert "siliconcompiler says stepone" in page
+
+    other = signed_in.get(
+        f"/portal/jobs/{finished['id']}/logs/stepone/0?file=stepone.log"
+    ).get_data(as_text=True)
+    assert "the tool says stepone" in other
+
+
+def test_the_job_page_draws_the_flow(signed_in, finished):
+    '''Drawn on the server. The alternative is a JavaScript graph library, and
+    a node toolchain in the release pipeline is paid by every SC release.'''
+    page = signed_in.get(f"/portal/jobs/{finished['id']}").get_data(as_text=True)
+
+    assert "<svg" in page
+    assert 'class="wire"' in page
+    assert page.count('class="node ') == 2
+
+
+def test_artifacts_appear_beside_the_node_that_made_them(signed_in, finished):
+    page = signed_in.get(f"/portal/jobs/{finished['id']}").get_data(as_text=True)
+
+    assert "/artifacts/" in page
+
+
+###########################
+# Curating the registry
+###########################
+
+def test_software_can_be_retired_from_the_screen(signed_in, server):
+    '''🔴 Retiring a VERSION says *not this one*; retiring the SOFTWARE says
+    *not any more*, and the tool stops raising a requirement at all. Both are
+    reachable, because an operator who can only add cannot correct a
+    mistake.'''
+    from siliconcompiler.remote.server import images
+
+    store = server.config["SC_STORE"]
+    actor = store.upsert_user("operator", "someone@host")["id"]
+    images.register_software(store, "yosys", "Yosys", actor)
+    images.register_version(store, "yosys", "0.44", actor)
+
+    token = csrf(signed_in, "/portal/images")
+
+    signed_in.post("/portal/images/software/yosys/retire",
+                   data={"csrf": token, "version": "0.44"})
+    assert store.one("SELECT retired_at FROM software_versions "
+                     "WHERE software_name = 'yosys'")["retired_at"]
+    assert not store.one("SELECT retired_at FROM software "
+                         "WHERE name = 'yosys'")["retired_at"]
+
+    signed_in.post("/portal/images/software/yosys/retire", data={"csrf": token})
+    assert store.one("SELECT retired_at FROM software "
+                     "WHERE name = 'yosys'")["retired_at"]
+
+
+def test_a_retired_distribution_offers_no_per_version_button(signed_in, server):
+    '''Once the whole name has stopped raising a requirement, retiring one of
+    its versions would change nothing -- and offering it says otherwise.'''
+    from siliconcompiler.remote.server import images
+
+    store = server.config["SC_STORE"]
+    actor = store.upsert_user("operator", "someone@host")["id"]
+    images.register_software(store, "klayout", "KLayout", actor)
+    images.register_version(store, "klayout", "0.29", actor)
+
+    live = signed_in.get("/portal/images").get_data(as_text=True)
+    assert live.count("retire</button>") == 1
+
+    images.retire_software(store, "klayout", actor)
+
+    retired = signed_in.get("/portal/images").get_data(as_text=True)
+    assert "retire</button>" not in retired
+    assert "Stop curating" not in retired
