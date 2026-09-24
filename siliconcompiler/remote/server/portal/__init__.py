@@ -1104,9 +1104,23 @@ def add_software(session):
     if not name:
         raise ProblemError("invalid-request", detail="a distribution name is required")
 
-    images.register_software(_store(), name,
-                             flask.request.form.get("display") or name,
-                             session.user_id)
+    # 🔴 Stated, not derived. It decides which bucket the name is published in
+    # and therefore whether ONE image has to hold it or each node's does, and
+    # a derivation would be this process guessing about an image it is not.
+    kind = flask.request.form.get("kind")
+    driver = (flask.request.form.get("driver") or "").strip() or None
+    if kind not in ("python", "tool"):
+        raise ProblemError(
+            "invalid-request",
+            detail="say whether this is a python distribution or a tool")
+
+    try:
+        images.register_software(_store(), name,
+                                 flask.request.form.get("display") or name,
+                                 session.user_id, kind, driver=driver)
+    except ValueError as e:
+        raise ProblemError("invalid-request", detail=str(e)) from None
+
     if version:
         images.register_version(
             _store(), name, version, session.user_id,

@@ -816,7 +816,8 @@ def test_configure_says_so_when_this_machine_is_not_on_the_list(
     '''Before a job exists, which is the cheapest possible refusal.'''
     import logging
 
-    capabilities["software"] = {"siliconcompiler": ["9.9.9"]}
+    capabilities["software"] = {"python": {"siliconcompiler": ["9.9.9"]},
+                                "tools": {}}
     fake_v1.replace(responses.GET, "", capabilities)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u-1", "issuer": "local"})
@@ -835,7 +836,7 @@ def test_a_server_that_names_no_software_is_not_second_guessed(
     rather than a deployment with an opinion.'''
     import logging
 
-    capabilities["software"] = {}
+    capabilities["software"] = {"python": {}, "tools": {}}
     fake_v1.replace(responses.GET, "", capabilities)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u-1", "issuer": "local"})

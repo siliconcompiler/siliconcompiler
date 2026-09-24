@@ -124,9 +124,14 @@ def _cmd_list(store, args) -> int:
     print("software")
     for row in catalogue["software"] or []:
         retired = " (retired)" if row["retired_at"] else ""
-        print(f"  {row['name']}{retired}")
+        driven = f"  driven by {row['driver']}" if row["driver"] else ""
+        print(f"  {row['name']}  {row['kind']}{driven}{retired}")
         for version in versions.get(row["name"], []):
             mark = " (retired)" if version["retired_at"] else ""
+            if version["version_source"] != "reported":
+                # It is in the catalogue and it can never satisfy a range, and
+                # the number alone does not say so.
+                mark += "  (no version reported)"
             print(f"    {version['version']}  preference {version['preference']}{mark}")
     if not catalogue["software"]:
         print("  (none)")
@@ -137,6 +142,8 @@ def _cmd_list(store, args) -> int:
         print(f"  {row['registry_ref']}{retired}")
         print(f"    {row['id']}")
         print(f"    {row['digest']}")
+        if row["built_at"]:
+            print(f"    built {row['built_at']}")
         print(f"    holds {', '.join(row['contents']) or '(nothing)'}")
     if not catalogue["images"]:
         print("  (none)")
@@ -145,9 +152,30 @@ def _cmd_list(store, args) -> int:
 
 
 def _cmd_add_software(store, args) -> int:
-    images.register_software(store, args.name, args.display or args.name,
-                             _operator(store))
-    print(f"registered {args.name}")
+    kind = args.kind or ("tool" if args.driver else None)
+    if not kind:
+        # 🔴 Refused rather than defaulted. The kind decides which bucket the
+        # name is published in, and therefore whether ONE image has to hold it
+        # or each node's image does -- a default would make that a silent
+        # guess about what a client's job needs.
+        raise SystemExit(
+            f"{args.name}: say -kind python or -kind tool. A tool with a "
+            "driver can say -driver instead, which implies it")
+
+    try:
+        images.register_software(store, args.name, args.display or args.name,
+                                 _operator(store), kind, driver=args.driver)
+    except ValueError as e:
+        raise SystemExit(str(e))
+
+    print(f"registered {args.name} as {kind}")
+    if args.driver:
+        # Said, because it is what a probe inside an image is handed and what
+        # decides whether this tool can ever report a version.
+        print(f"  driven by {args.driver}")
+    elif kind == "tool":
+        print("  nothing here drives it, so no version can be read from an "
+              "image: register its versions with -unversioned")
     return 0
 
 
@@ -178,7 +206,7 @@ def _cmd_add_image(store, args) -> int:
     try:
         image_id = images.register_image(
             store, args.ref, digest, _contains(args.contains), _operator(store),
-            note=args.note)
+            note=args.note, built_at=args.built)
     except ValueError as e:
         raise SystemExit(str(e))
 
@@ -258,11 +286,16 @@ def _cmd_resolve(store, args) -> int:
     the alternative -- submitting a job to find out -- is a slow way to learn
     that a tool has no image.
     '''
-    declared = dict(_contains(args.versions))
+    # 🔴 The two buckets, because they resolve differently: the python set has
+    # to be held by ONE image and a tool is satisfied per node. `-versions`
+    # names python requirements and `-requires` names tool ones, which is the
+    # same split the descriptor carries.
+    requires = {"python": dict(_contains(args.versions)),
+                "tools": dict(_contains(args.requires))}
     tools = {(tool, "0"): tool for tool in (args.tools or [])} or {("job", "0"): None}
 
     try:
-        plan = images.plan_for_job(store, declared, tools)
+        plan = images.plan_for_job(store, requires, tools)
     except Exception as e:                                       # noqa: BLE001
         print(str(e))
         return 1
@@ -369,6 +402,16 @@ def _parser() -> argparse.ArgumentParser:
         "add-software",
         help="declare that this deployment curates images for a distribution")
     software.add_argument("name", help="the distribution name: siliconcompiler, openroad")
+    software.add_argument(
+        "-kind", choices=("python", "tool"),
+        help="python or tool. Derived by probing this process when omitted, "
+             "which is the right answer unless you are describing an image "
+             "this process is not")
+    software.add_argument(
+        "-driver", metavar="<module>",
+        help="the module carrying this tool's Task driver, for one that is "
+             "not in siliconcompiler's own tree. Found by scanning when "
+             "omitted, and naming one makes this a tool")
     software.add_argument("-display", metavar="<text>", help="what to call it")
     software.set_defaults(run=_cmd_add_software)
 
@@ -395,6 +438,12 @@ def _parser() -> argparse.ArgumentParser:
         "-contains", action="append", metavar="name==version",
         help="what is inside it, repeatable. Declared and unverified: nothing "
              "opens the image to check, so a wrong one fails at run time")
+    image.add_argument(
+        "-built", metavar="<when>",
+        help="when the IMAGE was built, from its own manifest. Breaks the tie "
+             "between two images carrying identical versions, which preference "
+             "cannot -- and it is never the time you registered it, or pinning "
+             "an old image on purpose would make it the newest")
     image.add_argument("-note", metavar="<text>")
     image.add_argument(
         "-stage", action="store_true",
@@ -420,7 +469,11 @@ def _parser() -> argparse.ArgumentParser:
         "resolve", help="what a job would be placed in, without submitting one")
     resolve.add_argument(
         "-versions", action="append", metavar="name==version",
-        help="what the job would declare, repeatable")
+        help="what the job requires of the PYTHON bucket, repeatable. One "
+             "image has to hold all of it")
+    resolve.add_argument(
+        "-requires", action="append", metavar="name==version",
+        help="what it requires of a TOOL, repeatable. Satisfied per node")
     resolve.add_argument(
         "-tools", action="append", metavar="<tool>",
         help="one node per tool, repeatable")

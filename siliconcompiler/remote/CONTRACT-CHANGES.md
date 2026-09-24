@@ -72,6 +72,13 @@ that reads one knows the shape of the other.
 jobs on the host has no image and no answer; an empty map would claim the job
 ran nothing at all.
 
+⚠️ **And it is NOT bucketed, unlike `software` and the descriptor** — a
+deliberate asymmetry worth confirming or overruling. Those two are split
+because a reader has to know which names must land together when forming
+requirements; this one is a record of what ran, and nothing is formed from it.
+A flat map answers *what did this job run* directly. The cost is that a reader
+comparing it to `software` meets two shapes for what look like the same thing.
+
 **Where it goes:** `surface.md`'s job object.
 
 ### 3. `job_identity` is computed at create, so it folds in the DECLARED resolution only
@@ -149,6 +156,92 @@ non-conforming against a list written in the same review that accepted the
 reasoning for not producing `reports`' large sibling.
 
 **Where it goes:** `sc-server-profile.md`'s produced-kinds list.
+
+### 7. `software.kind` is STATED at registration, not derived by probing
+
+🔴 **This departs from the decision, which was *do not make this a field on
+the registration form* — the two extraction mechanisms being the
+classification.** It was implemented that way first and taken out, because the
+derivation is not a derivation.
+
+Deriving it means asking THIS process whether it can import the name or drive
+it. That answers correctly for SiliconCompiler's own in-tree drivers on a
+machine that has them, and quietly answers wrong for everything else — a site
+library's tool, a proprietary driver, any name whose driver is not installed in
+the API process. **A classifier that is right for the cases somebody checked
+and silently wrong for the rest is the worst shape a derivation can have**, and
+`kind` decides whether ONE image has to hold a name or each node's image does.
+
+⚠️ **And there is nothing to derive FROM at the moment it matters.** The
+process that registers an image is not the process inside it. Whether the API
+host can import `openroad` says nothing about what the image holds.
+
+So `kind` is an operator's statement: `-kind python` or `-kind tool`, and
+naming a driver implies `tool`. The mechanisms are still the mechanisms — they
+are just what the *probe* does with the answer rather than how the answer is
+found.
+
+**Where it goes:** `database.md`'s `software` table, replacing the derived-kind
+note.
+
+### 8. `software.driver`, which the contract has no column for
+
+The probe has to import something to ask a tool its version, and **the module
+cannot be worked out from the name.** `siliconcompiler.tools.<name>` is an
+in-tree convention that nothing requires, and it is wrong in-tree already:
+`kepler-formal` is driven from `siliconcompiler.tools.keplerformal`. Out of
+tree it has no meaning at all.
+
+So the module is recorded when the name is registered and handed to the probe:
+
+```sql
+driver text     -- 'siliconcompiler.tools.openroad'. NULL for a python
+                -- distribution, and for a tool nobody here drives
+CHECK (driver IS NULL OR kind = 'tool')
+```
+
+⚠️ **A tool with no driver is legitimate**, and is the case `published_date`
+exists for: it is in the image, the deployment lists it, and nothing can ask
+its version.
+
+**Where it goes:** `database.md`'s `software` table.
+
+### 9. The probe is a published surface, because both ends need the same one
+
+`version_source` distinguishes a reported version from a publish date, and
+something has to do the reporting. That something runs **inside the image**,
+which means it is not the server and cannot share its process — so it is a
+module with a command line and a marker-prefixed JSON line, not an internal
+function:
+
+```
+python3 -m siliconcompiler.remote.server.probe \
+    -python siliconcompiler -tool openroad=siliconcompiler.tools.openroad
+```
+
+🔴 **The marker is not decoration.** A version check RUNS the tool, and a tool
+that prints a banner writes to the same stream as the answer.
+
+Not a contract change by itself — but the *shape* is worth carrying, because
+every implementation that wants honest `reported` versions needs the same two
+mechanisms and the same problem of getting an answer back out of a container.
+
+**Where it goes:** `sc-server-profile.md`, as how this profile fills
+`version_source`.
+
+### 10. `requires` and `versions` are two members, not one renamed
+
+The decision gives the descriptor `versions` (exact) and `requires`
+(specifiers), bucketed. Implementing it: **a bucket with no `requires` falls
+back to its `versions`, as exact pins.** That is what the single member meant
+before, so a client that sends only what it has keeps the behaviour it had —
+and *run it on exactly what I have* is a reasonable thing to mean.
+
+🔴 **A flat map is REFUSED rather than guessed at.** Flattened, nothing says
+which names have to land together, and guessing wrong resolves a node against
+the wrong image while looking like it worked.
+
+**Where it goes:** `surface.md` at `POST /v1/jobs`.
 
 ---
 

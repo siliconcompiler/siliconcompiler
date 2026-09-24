@@ -142,12 +142,18 @@ class Client:
         for notice in published.get("notices") or []:
             self.logger.warning(f"Notice: {notice}")
 
+        # Two buckets, a closed set, and both always present. They are shown
+        # apart because they are satisfied apart: the whole python set has to
+        # be in ONE image and a tool is resolved per node.
         software = published.get("software") or {}
-        self.logger.info("Software it can run:")
-        for name, versions in sorted(software.items()):
-            self.logger.info(f"  {name}: {', '.join(versions)}")
-        if not software:
-            self.logger.info("  (nothing advertised)")
+        for bucket, label in (("python", "Python distributions"),
+                              ("tools", "Tools")):
+            held = software.get(bucket) or {}
+            self.logger.info(f"{label} it can run:")
+            for name, versions in sorted(held.items()):
+                self.logger.info(f"  {name}: {', '.join(versions)}")
+            if not held:
+                self.logger.info("  (none advertised)")
 
         self.logger.info(
             f"Sign-in: {', '.join(published.get('grant_types_supported') or []) or 'none'}")
@@ -277,7 +283,8 @@ class Client:
     def create_job(self, design: str, jobname: str, *,
                    flow: Optional[Dict[str, Any]] = None,
                    resources: Optional[Dict[str, Any]] = None,
-                   versions: Optional[Dict[str, str]] = None,
+                   versions: Optional[Dict[str, Any]] = None,
+                   requires: Optional[Dict[str, Any]] = None,
                    run_hash: Optional[str] = None,
                    idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         '''``POST /v1/jobs``: the job exists, and nothing has moved yet.
@@ -286,6 +293,13 @@ class Client:
         names either, so the server cannot re-derive them. Everything else is
         the descriptor: advisory, re-derived at submit, and present only to let
         the server refuse before the archive uploads.
+
+        ``versions`` is what this machine HAS and ``requires`` is what the
+        image must HOLD -- exact versions against PEP 440 specifiers. Both are
+        keyed on ``python`` and ``tools``, and the split is structural: the
+        whole ``python`` set shares an interpreter, so ONE image has to hold all
+        of it, while a tool is satisfied per node. A bucket with no
+        ``requires`` falls back to its ``versions`` as exact pins.
 
         ``run_hash`` is the client's opaque hash of the work, for job reuse. The
         server looks it up owner-scoped and hands back the caller's own earlier
@@ -297,7 +311,8 @@ class Client:
 
         body: Dict[str, Any] = {"design": design, "jobname": jobname}
         for name, value in (("flow", flow), ("resources", resources),
-                            ("versions", versions), ("run_hash", run_hash)):
+                            ("versions", versions), ("requires", requires),
+                            ("run_hash", run_hash)):
             if value:
                 body[name] = value
 
@@ -611,7 +626,10 @@ class Client:
         '''
         from siliconcompiler import __version__ as sc_version
 
-        runs = (capabilities.get("software") or {}).get("siliconcompiler")
+        # In `python`: `siliconcompiler` is a distribution in the interpreter,
+        # and the bucket it is published under is part of what the key means.
+        published = (capabilities.get("software") or {}).get("python") or {}
+        runs = published.get("siliconcompiler")
         if not runs:
             # REQUIRED on the wire, so its absence is an older or a broken
             # server rather than a deployment with an opinion. Nothing useful

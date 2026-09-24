@@ -172,7 +172,16 @@ def test_the_descriptor_declares_the_size_before_the_upload(fake_v1, run):
                if call.request.path_url == "/v1/jobs"][0]
     body = json.loads(created.request.body)
     assert body["resources"]["upload_bytes"] > 0
-    assert body["versions"]["siliconcompiler"]
+    # 🔴 Two members and two statements: `versions` is what this machine HAS,
+    # `requires` is what the image must HOLD. Both are bucketed, because the
+    # whole python set has to be held by ONE image and a tool is satisfied per
+    # node -- flattened, nothing says which names have to land together.
+    assert body["versions"]["python"]["siliconcompiler"]
+    assert body["requires"]["python"]["siliconcompiler"].startswith("==")
+    # ⚠️ Sent and empty: a client submitting remotely generally has no tools
+    # installed, which is usually why it is submitting remotely. An absent
+    # bucket would be a client that did not know about it.
+    assert body["versions"]["tools"] == {}
     assert body["flow"]["nodes"] == 2
     # Nothing computes a run hash yet, so nothing claims one.
     assert "run_hash" not in body

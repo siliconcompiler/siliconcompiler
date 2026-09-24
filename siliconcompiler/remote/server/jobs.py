@@ -177,7 +177,7 @@ class JobService:
         # 🔴 Before the reuse lookup, because the answer is part of what the
         # lookup is keyed on -- and before the upload, which is the whole point
         # of resolving here at all.
-        identity = self._identity(run_hash, body.get("versions") or {})
+        identity = self._identity(run_hash, requirements(body))
 
         if identity:
             hit = self._reuse(session.user_id, identity)
@@ -208,7 +208,7 @@ class JobService:
 
         return self.wire(self._row(job_id)), 201
 
-    def _identity(self, run_hash: Optional[str], declared) -> Optional[str]:
+    def _identity(self, run_hash: Optional[str], requires) -> Optional[str]:
         '''``H(client hash || the digests it resolved to)``, or None.
 
         🔴 **The client's hash alone is not the job's identity, and treating it
@@ -234,7 +234,7 @@ class JobService:
 
         digests: List[str] = []
         if self._config["containers"]:
-            digests = images.digests_for(self._store, declared)
+            digests = images.digests_for(self._store, requires)
 
         payload = "\n".join([run_hash, *sorted(digests)])
         return hashlib.sha256(payload.encode()).hexdigest()
@@ -295,24 +295,28 @@ class JobService:
                     detail=f"{resources['upload_bytes']} bytes, and this server "
                            f"accepts at most {limits['max_upload_bytes']}")
 
-        versions = body.get("versions") or {}
-        if isinstance(versions, dict) and versions:
-            self._check_versions(versions)
+        self._check_versions(requirements(body))
 
-    def _check_versions(self, versions: Dict[str, Any]) -> None:
+    def _check_versions(self, requires: Dict[str, Dict[str, Any]]) -> None:
         '''Refuse a client this deployment cannot run.
 
         The cheap check, before the upload -- but only the cheap one: a client
-        that omits `versions` reaches the binding check at submit instead,
+        that declares nothing reaches the binding check at submit instead,
         after the whole archive has moved.
 
         🔴 **A requirement is a PEP 440 specifier and the SERVER resolves it.**
-        A client cannot: `GET /v1`'s `software` is flat per name while the
-        image join is over combinations, so a client resolving each
-        requirement on its own can name a set no single image holds -- every
-        version published, every one satisfiable, and nothing to run them in.
-        ⚠️ A bare version means `==`, which is what every client sent before
-        the wire carried ranges.
+        A client cannot: `GET /v1`'s `software` is flat per name within a
+        bucket while the image join is over combinations, so a client resolving
+        each requirement on its own can name a set no single image holds --
+        every version published, every one satisfiable, and nothing to run them
+        in. ⚠️ A bare version means `==`, which is what every client sent
+        before the wire carried ranges.
+
+        ⚠️ **This is the per-name check and not the resolution.** It answers
+        *does this server have anything matching* for each name on its own;
+        *does ONE image hold all of them* is `digests_for`, which runs beside
+        it at create. Both are needed: this one gives a name-specific
+        `version-skew` where the join could only say the combination failed.
 
         🔴 **A name that is present and reports no version gets its own
         answer.** A tool recorded from its image's publish date is in
@@ -327,27 +331,30 @@ class JobService:
         available = advertised_software(self._store, self._config)
         reported = advertised_reported(self._store, self._config)
 
-        for name, wanted in versions.items():
-            if name not in available:
-                continue
+        for bucket, wanted in requires.items():
+            here = available.get(bucket) or {}
+            said = reported.get(bucket) or {}
 
-            spec = images.specifier(wanted)
-            if any(images.matches(version, "reported", spec)
-                   for version in reported.get(name, ())):
-                continue
+            for name, asked in wanted.items():
+                if name not in here:
+                    continue
 
-            if available[name] and not reported.get(name):
+                spec = images.specifier(asked)
+                if any(images.matches(version, "reported", spec)
+                       for version in said.get(name, ())):
+                    continue
+
+                if here[name] and not said.get(name):
+                    raise ProblemError(
+                        "version-skew",
+                        detail=f"this server has {name}, and reports no version "
+                               "for it -- so nothing here can be matched against "
+                               f"a version requirement. Ask for {name} without one")
+
                 raise ProblemError(
                     "version-skew",
-                    detail=f"this server has {name}, and reports no version "
-                           "for it -- so nothing here can be matched against a "
-                           f"version requirement. Ask for {name} without one")
-
-            raise ProblemError(
-                "version-skew",
-                detail=f"this server runs {name} "
-                       f"{', '.join(available[name])}, and you asked for "
-                       f"{wanted}")
+                    detail=f"this server runs {name} "
+                           f"{', '.join(here[name])}, and you asked for {asked}")
 
     ######################################################################
     # 14. upload-grant
@@ -520,10 +527,10 @@ class JobService:
         if not self._config["containers"]:
             return images.Plan(None, {node: None for node in derived["nodes"]}, {})
 
-        declared = (json.loads(job["descriptor"]) or {}).get("versions") or {}
+        requires = requirements(json.loads(job["descriptor"]) or {})
 
         try:
-            return images.plan_for_job(self._store, declared, derived["node_tools"])
+            return images.plan_for_job(self._store, requires, derived["node_tools"])
         except ProblemError as problem:
             # Its own slug, not a guessed one: `plan_for_job` refuses for more
             # than one reason and the job must record the one the caller was
@@ -1862,6 +1869,64 @@ class JobService:
 ######################################################################
 # Small things, kept out of the class
 ######################################################################
+
+def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """What a job needs from its image, as specifiers, in the two buckets.
+
+    🔴 **Two descriptor members, and they answer different questions.**
+    ``versions`` is what the client HAS -- exact, and what a reproducibility
+    record wants. ``requires`` is what the image must HOLD -- a PEP 440
+    specifier, and what the resolution reads. They were one member carrying
+    both meanings, and the second is the one the join needs.
+
+    ⚠️ **A bucket with no `requires` falls back to its `versions`, as exact
+    pins.** That is what the single member meant, so a client that sends only
+    what it has keeps the behaviour it had -- and *run it on exactly what I
+    have* is a reasonable thing to mean by it.
+
+    🔴 **Both members are bucketed and a flat map is refused.** Flattened,
+    nothing says which names have to land together: the whole `python` set
+    shares an interpreter and must be held by ONE image, while a tool is
+    satisfied per node. Accepting a flat map would mean guessing which, and
+    guessing wrong resolves a node against the wrong image while looking like
+    it worked.
+    """
+    from siliconcompiler.remote.server.images import BUCKETS
+
+    buckets = tuple(BUCKETS.values())
+    found: Dict[str, Dict[str, Any]] = {bucket: {} for bucket in buckets}
+
+    for member in ("versions", "requires"):
+        given = descriptor.get(member)
+        if given is None:
+            continue
+        if not isinstance(given, dict):
+            raise ProblemError(
+                "invalid-request", detail=f"{member} must be an object")
+
+        unknown = set(given) - set(buckets)
+        if unknown:
+            raise ProblemError(
+                "invalid-request",
+                detail=f"{member} is keyed on {' and '.join(buckets)}; "
+                       f"{', '.join(sorted(unknown))} is neither")
+
+        for bucket in buckets:
+            inner = given.get(bucket)
+            if inner is None:
+                continue
+            if not isinstance(inner, dict):
+                raise ProblemError(
+                    "invalid-request",
+                    detail=f"{member}.{bucket} must be an object of "
+                           "name to version")
+            # `requires` wins where both name a bucket, because it is the one
+            # that says what the IMAGE must hold.
+            if member == "requires" or not found[bucket]:
+                found[bucket] = dict(inner)
+
+    return found
+
 
 def _name(value, field: str) -> str:
     if not isinstance(value, str) or not value:

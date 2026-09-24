@@ -288,7 +288,7 @@ def test_software_can_be_retired_from_the_screen(signed_in, server):
 
     store = server.config["SC_STORE"]
     actor = store.upsert_user("operator", "someone@host")["id"]
-    images.register_software(store, "yosys", "Yosys", actor)
+    images.register_software(store, "yosys", "Yosys", actor, "tool")
     images.register_version(store, "yosys", "0.44", actor)
 
     token = csrf(signed_in, "/portal/images")
@@ -314,7 +314,7 @@ def test_a_version_nothing_reported_is_marked_on_the_screen(signed_in, server):
 
     store = server.config["SC_STORE"]
     actor = store.upsert_user("operator", "someone@host")["id"]
-    images.register_software(store, "magic", "Magic", actor)
+    images.register_software(store, "magic", "Magic", actor, "tool")
     images.register_version(store, "magic", "20260924", actor,
                             source="published_date")
     images.register_version(store, "magic", "8.3.2", actor)
@@ -330,8 +330,8 @@ def test_the_operator_can_record_a_tool_that_reports_nothing(signed_in, server):
     token = csrf(signed_in, "/portal/images")
 
     signed_in.post("/portal/images/software",
-                   data={"csrf": token, "name": "magic", "version": "20260924",
-                         "unversioned": "1"})
+                   data={"csrf": token, "name": "magic", "kind": "tool",
+                         "version": "20260924", "unversioned": "1"})
 
     assert server.config["SC_STORE"].one(
         "SELECT version_source FROM software_versions "
@@ -345,7 +345,7 @@ def test_a_retired_distribution_offers_no_per_version_button(signed_in, server):
 
     store = server.config["SC_STORE"]
     actor = store.upsert_user("operator", "someone@host")["id"]
-    images.register_software(store, "klayout", "KLayout", actor)
+    images.register_software(store, "klayout", "KLayout", actor, "tool")
     images.register_version(store, "klayout", "0.29", actor)
 
     live = signed_in.get("/portal/images").get_data(as_text=True)

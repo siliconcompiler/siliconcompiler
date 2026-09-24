@@ -27,7 +27,7 @@ __all__ = ["Store", "STORE_VERSION", "now"]
 # Deliberately not `schemaversion`, which is SiliconCompiler's build schema and
 # moves for unrelated reasons. This is the third independent version in the
 # tree, alongside the package version, and it is the one a store file records.
-STORE_VERSION = 5
+STORE_VERSION = 6
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
@@ -235,7 +235,19 @@ class Store:
     ######################################################################
 
     def advertised_software(self, containers: bool = True) -> dict:
-        '''``GET /v1``'s ``software`` map: every runnable version, best first.
+        '''``GET /v1``'s ``software``: every runnable version, best first, in
+        two buckets.
+
+        🔴 **`python` and `tools`, a CLOSED set, and both are always present.**
+        A client branches on them, and a bucket may be `{}` -- a deployment
+        running no containers publishes no tools. Inside a bucket nothing
+        changes: distribution name to a non-empty array of versions.
+
+        🔴 **They are two buckets because they are satisfied differently.**
+        The whole `python` set has to be held by ONE image, because those names
+        share an interpreter; a tool is satisfied per node. Flattened, nothing
+        says which names have to land together, which is the question the image
+        join asks.
 
         🔴 **On a deployment that runs containers a version is advertised only
         where a live image holds it**, so this is a join and not a listing.
@@ -281,7 +293,7 @@ class Store:
 
         rows = self.all(
             "SELECT DISTINCT sv.software_name AS name, sv.version, sv.preference, "
-            "       sv.version_source "
+            "       sv.version_source, s.kind "
             "FROM software_versions sv "
             "JOIN software s ON s.name = sv.software_name "
             f"{joins}"
@@ -294,9 +306,12 @@ class Store:
             "         CASE sv.version_source WHEN 'reported' THEN 0 ELSE 1 END, "
             "         sv.preference DESC, sv.version DESC")
 
-        software: dict = {}
+        from siliconcompiler.remote.server.images import BUCKETS
+
+        software: dict = {bucket: {} for bucket in BUCKETS.values()}
         for row in rows:
-            software.setdefault(row["name"], []).append(row["version"])
+            software[BUCKETS[row["kind"]]].setdefault(row["name"], []).append(
+                row["version"])
         return software
 
 

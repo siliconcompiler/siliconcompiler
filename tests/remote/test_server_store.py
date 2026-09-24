@@ -310,8 +310,8 @@ def test_software_is_advertised_only_where_a_live_image_holds_it():
     with Store("server.db") as store:
         user = store.upsert_user("local", "machine:1000")
 
-        store.execute("INSERT INTO software (name, display_name, added_by) "
-                      "VALUES ('siliconcompiler', 'SiliconCompiler', ?)",
+        store.execute("INSERT INTO software (name, display_name, kind, added_by) "
+                      "VALUES ('siliconcompiler', 'SiliconCompiler', 'python', ?)",
                       (user["id"],))
         store.execute("INSERT INTO software_versions "
                       "(software_name, version, preference, added_by) "
@@ -321,7 +321,7 @@ def test_software_is_advertised_only_where_a_live_image_holds_it():
                       "VALUES ('siliconcompiler', '0.39.0', 5, ?)", (user["id"],))
 
         # Declared, but nothing provides it yet.
-        assert store.advertised_software() == {}
+        assert store.advertised_software() == {"python": {}, "tools": {}}
 
         image = str(uuid7())
         store.execute(
@@ -331,14 +331,15 @@ def test_software_is_advertised_only_where_a_live_image_holds_it():
         store.execute("INSERT INTO image_contents (image_id, software_name, version) "
                       "VALUES (?, 'siliconcompiler', '0.39.1')", (image,))
 
-        assert store.advertised_software() == {"siliconcompiler": ["0.39.1"]}
+        assert store.advertised_software() == {
+            "python": {"siliconcompiler": ["0.39.1"]}, "tools": {}}
 
 
 def test_a_retired_image_stops_advertising_its_contents():
     with Store("server.db") as store:
         user = store.upsert_user("local", "machine:1000")
-        store.execute("INSERT INTO software (name, display_name, added_by) "
-                      "VALUES ('openroad', 'OpenROAD', ?)", (user["id"],))
+        store.execute("INSERT INTO software (name, display_name, kind, added_by) "
+                      "VALUES ('openroad', 'OpenROAD', 'tool', ?)", (user["id"],))
         store.execute("INSERT INTO software_versions "
                       "(software_name, version, added_by) "
                       "VALUES ('openroad', '2.0.1', ?)", (user["id"],))
@@ -351,20 +352,21 @@ def test_a_retired_image_stops_advertising_its_contents():
         store.execute("INSERT INTO image_contents (image_id, software_name, version) "
                       "VALUES (?, 'openroad', '2.0.1')", (image,))
 
-        assert store.advertised_software() == {"openroad": ["2.0.1"]}
+        assert store.advertised_software() == {
+            "python": {}, "tools": {"openroad": ["2.0.1"]}}
 
         store.execute("UPDATE images SET retired_at = ?, retired_by = ? WHERE id = ?",
                       (now(), user["id"], image))
 
-        assert store.advertised_software() == {}
+        assert store.advertised_software() == {"python": {}, "tools": {}}
 
 
 def test_versions_are_ordered_most_preferred_first():
     '''GET /v1 publishes an ordered array, and the order is the operator's.'''
     with Store("server.db") as store:
         user = store.upsert_user("local", "machine:1000")
-        store.execute("INSERT INTO software (name, display_name, added_by) "
-                      "VALUES ('siliconcompiler', 'SiliconCompiler', ?)", (user["id"],))
+        store.execute("INSERT INTO software (name, display_name, kind, added_by) "
+                      "VALUES ('siliconcompiler', 'SiliconCompiler', 'python', ?)", (user["id"],))
 
         image = str(uuid7())
         store.execute(
@@ -382,7 +384,8 @@ def test_versions_are_ordered_most_preferred_first():
                           "VALUES (?, 'siliconcompiler', ?)", (image, version))
 
         assert store.advertised_software() == {
-            "siliconcompiler": ["0.39.1", "0.39.0", "0.38.4"]}
+            "python": {"siliconcompiler": ["0.39.1", "0.39.0", "0.38.4"]},
+            "tools": {}}
 
 
 ###########################

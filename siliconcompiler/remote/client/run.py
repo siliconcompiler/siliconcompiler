@@ -150,7 +150,10 @@ class RemoteRun:
                 design=design, jobname=jobname,
                 flow=self._flow_descriptor(),
                 resources={"upload_bytes": size},
-                versions={"siliconcompiler": _framework_requirement()},
+                versions={"python": {"siliconcompiler": sc_version},
+                          "tools": {}},
+                requires={"python": {"siliconcompiler": _framework_requirement()},
+                          "tools": {}},
                 idempotency_key=_key())
 
             job_id = job["id"]
@@ -749,10 +752,20 @@ def _is_refusal(problem: ServerProblem) -> bool:
 def _framework_requirement() -> str:
     """What this client needs the server's framework image to hold.
 
-    The request carries a PEP 440 specifier and the SERVER resolves it, which
-    is what lets a deployment answer *which image has all of these* -- a
-    question a client cannot answer, because `GET /v1`'s `software` map is flat
-    per name while the image join is over combinations.
+    ⚠️ **`requires`, beside `versions`, and they are not the same statement.**
+    `versions` is what this machine HAS -- exact, and what a reproducibility
+    record wants. `requires` is what the image must HOLD, as a specifier. They
+    happen to agree here, and the reason they agree is below.
+
+    ⚠️ **`tools` is `{}`, and that is the ordinary case.** A client submitting
+    remotely generally has no tools installed -- which is usually why it is
+    submitting remotely. The bucket is still sent, because it is a closed set
+    and an absent one would be a client that did not know about it.
+
+    The SERVER resolves the specifier, which is what lets a deployment answer
+    *which image has all of these* -- a question a client cannot answer,
+    because `GET /v1`'s `software` is flat per name within a bucket while the
+    image join is over combinations.
 
     🔴 **`==` and deliberately not `>=`, which is the tempting one.** Reading a
     manifest is only backwards compatible: a newer SiliconCompiler reads an

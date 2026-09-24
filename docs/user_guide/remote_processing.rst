@@ -347,11 +347,24 @@ and register at least one image:
 .. code-block:: bash
 
   python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
-      add-software siliconcompiler
+      add-software siliconcompiler -kind python
   python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
       add-version siliconcompiler 0.39.1 -preference 10
   python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
       add-image ghcr.io/org/sc-runtime:0.39.1 -contains siliconcompiler==0.39.1
+
+``-kind`` is ``python`` or ``tool`` and it is not decoration: it decides
+whether **one** image has to hold the name or each node's image does. Everything
+``python`` shares the run's interpreter -- ``siliconcompiler`` and a site
+library run in the same process -- so one container has to have all of it. A
+tool is resolved per node, against an image holding the python set and that
+tool. A tool also takes ``-driver``, the module carrying its Task driver, which
+is what lets the server read its version out of an image:
+
+.. code-block:: bash
+
+  python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+      add-software openroad -driver siliconcompiler.tools.openroad
 
 ``add-image`` **resolves the tag to a digest once, there and then**, and the
 digest is what is dispatched. Rebuilding ``sc-runtime:0.39.1`` afterwards does
@@ -382,11 +395,33 @@ Registering the name is how an operator takes that claim on.
 declares ``siliconcompiler>=0.39,<0.40`` -- a PEP 440 specifier, and a bare
 ``0.39.1`` still means ``==0.39.1`` -- and the server matches it against what
 its images hold. A client cannot do that matching itself, and the reason is not
-convenience: ``software`` is a flat list per name while the image join is over
-combinations, so a client resolving each requirement on its own can name a set
-no single image contains, with every version published, every one satisfiable,
-and nothing to run them in. What is stored is still exact; only the wire
-carries ranges.
+convenience: ``software`` is a flat list per name *within a bucket* while the
+image join is over combinations, so a client resolving each requirement on its
+own can name a set no single image contains, with every version published,
+every one satisfiable, and nothing to run them in. What is stored is still
+exact; only the wire carries ranges.
+
+**And the descriptor carries two members, keyed the same two ways.**
+``versions`` is what the client HAS and ``requires`` is what the image must
+HOLD; a bucket with no ``requires`` falls back to its ``versions`` as exact
+pins. ``versions.tools`` is usually ``{}`` -- a client submitting remotely
+generally has no tools installed, which is usually why it is submitting
+remotely.
+
+**Versions can be read out of the image rather than typed.** The probe runs
+inside it and asks: ``importlib.metadata`` for a python distribution, and for a
+tool its driver's own executable, version switch and parser -- the same ones a
+real run uses.
+
+.. code-block:: bash
+
+  python3 -m siliconcompiler.remote.server.probe \
+      -python siliconcompiler -tool openroad=siliconcompiler.tools.openroad
+
+It prints one line of JSON behind a marker, because a version check RUNS the
+tool and a tool that prints a banner writes to the same stream as the answer.
+The compose bootstrap does this for every tool in its image, which is how a
+deployment gets real tool versions without anybody typing them.
 
 **A tool that reports no version is registered with a date and marked.**
 ``add-version <tool> 20260924 -unversioned`` records that the tool is in the

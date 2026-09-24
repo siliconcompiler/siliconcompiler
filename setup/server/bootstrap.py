@@ -64,7 +64,7 @@ DOCKER_SOCK = os.environ.get("SC_DOCKER_SOCKET", "/var/run/docker.sock")
 # and fails inside a container that never had it. These are what asicflow
 # needs.
 TOOLS = (os.environ.get("SC_TOOLS")
-         or "klayout openroad opensta slang surelog yosys").split()
+         or "klayout openroad opensta yosys vpr icarus verilator bambu soda mlir").split()
 
 # What a container has to see beyond the data directory, which the staging code
 # always mounts. A framework image submits every node of the flow it drives, so
@@ -150,23 +150,97 @@ def _post(path: str, headers=None):
     return events
 
 
-def _get(path: str):
-    '''One GET, as parsed JSON.'''
+def _call(method: str, path: str, body=None, raw: bool = False):
+    '''One request to the daemon. Returns parsed JSON, or the raw body.'''
+    payload = json.dumps(body).encode() if body is not None else None
+    headers = {"Content-Type": "application/json"} if payload else {}
+
     daemon = _Daemon(DOCKER_SOCK)
     try:
-        daemon.request("GET", path)
+        daemon.request(method, path, body=payload, headers=headers)
         response = daemon.getresponse()
-        body = response.read().decode("utf-8", "replace")
+        data = response.read()
     finally:
         daemon.close()
 
+    text = data.decode("utf-8", "replace")
     if response.status >= 400:
-        raise RuntimeError(f"docker said {response.status} to {path}: {body}")
-    return json.loads(body)
+        raise RuntimeError(f"docker said {response.status} to {path}: {text}")
+    return text if raw else (json.loads(text) if text.strip() else {})
+
+
+def _get(path: str):
+    '''One GET, as parsed JSON.'''
+    return _call("GET", path)
+
+
+def run_in(image: str, command) -> str:
+    '''Run one command inside an image and return what it printed.
+
+    🔴 **The only way to find out what is in an image is to ask it from
+    inside.** Everything else -- the tag, the label, what somebody typed at
+    registration -- is a claim about the image rather than the image.
+
+    ⚠️ `Tty: true` so the output arrives as one stream rather than docker's
+    multiplexed frames. It merges stderr into stdout, which is exactly why the
+    probe prints behind a marker: a tool that writes a banner while being asked
+    its version lands in the same stream as the answer.
+    '''
+    created = _call("POST", "/containers/create",
+                    {"Image": image, "Cmd": list(command), "Tty": True,
+                     "NetworkDisabled": True})
+    container = created["Id"]
+    try:
+        _call("POST", f"/containers/{container}/start")
+        _call("POST", f"/containers/{container}/wait")
+        return _call("GET", f"/containers/{container}/logs?stdout=1&stderr=1",
+                     raw=True)
+    finally:
+        _call("DELETE", f"/containers/{container}?force=1")
+
+
+def ask_image(image: str, python_names, tools) -> dict:
+    '''What this image actually holds, as the probe inside it reports.
+
+    ``tools`` maps a tool name to the module carrying its Task driver, which is
+    what the probe is handed rather than left to work out: the driver can live
+    in any package, and this process is not the image.
+
+    ⚠️ **Never fatal.** A probe that cannot run leaves every version unknown,
+    and unknown is a state the registry has a spelling for. Refusing to
+    bootstrap because a version could not be read would trade a complete
+    catalogue for no deployment at all.
+    '''
+    from siliconcompiler.remote.server import probe
+
+    command = ["python3", "-m", "siliconcompiler.remote.server.probe"]
+    for name in python_names:
+        command += ["-python", name]
+    for name, driver in sorted(tools.items()):
+        command += ["-tool", f"{name}={driver}" if driver else name]
+
+    try:
+        output = run_in(image, command)
+    except Exception as e:                                       # noqa: BLE001
+        say(f"could not probe {image}: {e}")
+        return {}
+
+    for line in reversed(output.splitlines()):
+        line = line.strip()
+        if line.startswith(probe.MARKER):
+            try:
+                return json.loads(line[len(probe.MARKER):])
+            except ValueError as e:
+                say(f"the probe in {image} answered unreadably: {e}")
+                return {}
+
+    say(f"the probe in {image} said nothing; versions will be unknown")
+    return {}
 
 
 def published_on(local: str) -> str:
-    '''The day an image was built, as a version for the tools inside it.
+    '''The day an image was built. A version for the tools that report none,
+    and the image's own `built_at`.
 
     🔴 **The honest answer to *which version of OpenROAD is in here*, which is
     that nobody asked it.** This bootstrap does not run the tools, so it cannot
@@ -301,31 +375,96 @@ def registry(*args: str) -> None:
             f"registry {' '.join(args)} failed; see the message above")
 
 
+def drivers_for(names) -> dict:
+    '''Where each tool's Task driver lives, as this process can see it.
+
+    ⚠️ **Worked out here and RECORDED, not worked out at probe time.** The
+    probe runs in a different interpreter with different packages, so *where
+    the driver is* has to be data by the time it is asked. This process is the
+    one place that has both the tool list and a SiliconCompiler to look in.
+
+    🔴 Found by what a class says it drives and never by a module path.
+    `kepler-formal` is driven from `siliconcompiler.tools.keplerformal`, so the
+    obvious convention is already wrong in this tree, never mind for a site
+    library shipping its own.
+    '''
+    from siliconcompiler import Task
+
+    def descendants(cls):
+        for child in cls.__subclasses__():
+            yield child
+            yield from descendants(child)
+
+    import importlib
+    import pkgutil
+
+    import siliconcompiler.tools
+
+    for found in pkgutil.walk_packages(siliconcompiler.tools.__path__,
+                                       prefix="siliconcompiler.tools."):
+        try:
+            importlib.import_module(found.name)
+        except Exception:                                        # noqa: BLE001
+            continue
+
+    modules: dict = {}
+    for task_cls in set(descendants(Task)):
+        try:
+            tool = task_cls().tool()
+        except Exception:                                        # noqa: BLE001
+            continue
+        if tool not in names:
+            continue
+        module = task_cls.__module__ or ""
+        # The shallowest, so a tool driven from several task files is recorded
+        # as its package rather than whichever file was seen first.
+        if tool not in modules or module.count(".") < modules[tool].count("."):
+            modules[tool] = module
+
+    return {name: modules.get(name) for name in names}
+
+
 def register(version: str, tools_digest: str, runtime_digest: str,
-             published: str) -> None:
-    registry("add-software", "siliconcompiler")
+             published: str, held: dict, drivers: dict) -> None:
+    '''Put what the probe found into the registry.
+
+    🔴 **A version the probe READ is registered as reported; one it could not
+    is registered as the image's publish date and marked.** The difference is
+    load-bearing: only a reported version can satisfy a range, and `20260924`
+    beats `2.0.1` under every comparison there is, so an unmarked date would
+    outrank every real release for ever.
+
+    This used to register every tool at the SILICONCOMPILER version, because
+    this process does not run the tools and so cannot report theirs. That
+    number was indistinguishable from a real one -- `openroad>=2.0` would have
+    been matched against `0.38.9` and refused for a reason that was not true.
+    '''
+    registry("add-software", "siliconcompiler", "-kind", "python")
     registry("add-version", "siliconcompiler", version)
 
-    # 🔴 The tools are registered with the date their image was published and
-    # marked `published_date`, because this bootstrap does not run them and
-    # therefore does not know their versions. See `published_on`: a made-up
-    # number here is indistinguishable from a reported one, and the mark is
-    # what keeps it from ever being matched against a range.
-    #
-    # A real deployment with a curated registry records real tool versions,
-    # because there the operator is choosing between them.
     contains = []
     for tool in TOOLS:
-        registry("add-software", tool)
-        registry("add-version", tool, published, "-unversioned")
-        contains += ["-contains", f"{tool}=={published}"]
+        driver = drivers.get(tool)
+        add = ["add-software", tool, "-kind", "tool"]
+        if driver:
+            add += ["-driver", driver]
+        registry(*add)
+
+        reported = (held.get(tool) or {}).get("version")
+        if reported:
+            registry("add-version", tool, reported)
+            contains += ["-contains", f"{tool}=={reported}"]
+        else:
+            # In the image, listed, and nobody asked it what it was.
+            registry("add-version", tool, published, "-unversioned")
+            contains += ["-contains", f"{tool}=={published}"]
 
     say("staging bundles (skopeo, then umoci -- the big one takes a minute)")
     registry("add-image", f"{PULL_FROM}/sc-runtime:{version}",
-             "-digest", runtime_digest,
+             "-digest", runtime_digest, "-built", published,
              "-contains", f"siliconcompiler=={version}", "-stage")
     registry("add-image", f"{PULL_FROM}/sc-tools:{version}",
-             "-digest", tools_digest,
+             "-digest", tools_digest, "-built", published,
              "-contains", f"siliconcompiler=={version}", *contains, "-stage")
 
 
@@ -346,10 +485,22 @@ def main() -> int:
     # pushed and the creation time does not.
     published = published_on(STACK_IMAGE)
 
+    drivers = drivers_for(TOOLS)
+    missing = [tool for tool, driver in drivers.items() if not driver]
+    if missing:
+        say(f"no driver here for {', '.join(missing)}; their versions cannot "
+            "be read and will be recorded as the image's publish date")
+
+    say("asking the tools image what it actually holds")
+    held = ask_image(STACK_IMAGE, ["siliconcompiler"], drivers)
+    for tool in TOOLS:
+        reported = (held.get(tool) or {}).get("version")
+        say(f"  {tool}: {reported or 'no version reported'}")
+
     runtime_digest = push(RUNTIME_IMAGE, "sc-runtime", version)
     tools_digest = push(STACK_IMAGE, "sc-tools", version)
 
-    register(version, tools_digest, runtime_digest, published)
+    register(version, tools_digest, runtime_digest, published, held, drivers)
 
     say(f"this deployment runs siliconcompiler {version} in containers")
     return 0

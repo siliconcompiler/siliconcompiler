@@ -137,7 +137,7 @@ def test_software_falls_back_to_this_server_when_no_image_is_registered(client):
     '''A deployment that runs no containers is conforming, and what it runs is
     the SiliconCompiler this process was installed with.'''
     assert client.get("/v1").get_json()["software"] == {
-        "siliconcompiler": [sc_version]}
+        "python": {"siliconcompiler": [sc_version]}, "tools": {}}
 
 
 def test_a_registered_image_takes_over_from_the_fallback(server, client):
@@ -145,8 +145,8 @@ def test_a_registered_image_takes_over_from_the_fallback(server, client):
     store = server.config["SC_STORE"]
     user = store.upsert_user("local", "operator")
 
-    store.execute("INSERT INTO software (name, display_name, added_by) "
-                  "VALUES ('siliconcompiler', 'SiliconCompiler', ?)", (user["id"],))
+    store.execute("INSERT INTO software (name, display_name, kind, added_by) "
+                  "VALUES ('siliconcompiler', 'SiliconCompiler', 'python', ?)", (user["id"],))
     store.execute("INSERT INTO software_versions "
                   "(software_name, version, added_by) "
                   "VALUES ('siliconcompiler', '9.9.9', ?)", (user["id"],))
@@ -160,7 +160,7 @@ def test_a_registered_image_takes_over_from_the_fallback(server, client):
                   "VALUES (?, 'siliconcompiler', '9.9.9')", (image,))
 
     assert client.get("/v1").get_json()["software"] == {
-        "siliconcompiler": ["9.9.9"]}
+        "python": {"siliconcompiler": ["9.9.9"]}, "tools": {}}
 
 
 ###########################

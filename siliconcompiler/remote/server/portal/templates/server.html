@@ -46,18 +46,37 @@
 <div class="split">
 <div class="main">
 <h3>Software it can run</h3>
+<p class="muted">
+  {#
+    🔴 Two buckets because they are satisfied differently, not for tidiness.
+    Everything under Python shares one interpreter, so ONE image has to hold
+    all of it; a tool is satisfied per node, by an image holding the Python set
+    and that tool. Flattened, nothing says which names have to land together,
+    which is the question the image join asks.
+  #}
+  Python distributions share the run's interpreter, so one image holds all of
+  them. A tool is resolved per node.
+</p>
 <table>
   <tr><th>Distribution</th><th>Versions</th></tr>
-  {% for name, versions in published.software.items() %}
+  {% for bucket, label in [('python', 'Python'), ('tools', 'Tools')] %}
+  <tr><th colspan="2">{{ label }}</th></tr>
+  {% for name, versions in (published.software[bucket] or {}).items() %}
   <tr>
     <td class="mono">{{ name }}</td>
     <td class="mono">{{ versions | join(', ') }}</td>
   </tr>
   {% else %}
   <tr><td colspan="2" class="muted">
+    {%- if bucket == 'python' %}
     Nothing advertised. On a deployment that runs jobs in containers that means
     no live image holds a siliconcompiler, and nothing could be dispatched.
+    {%- else %}
+    None. A deployment that runs no containers advertises no tool image, which
+    is an answer rather than a gap.
+    {%- endif %}
   </td></tr>
+  {% endfor %}
   {% endfor %}
 </table>
 

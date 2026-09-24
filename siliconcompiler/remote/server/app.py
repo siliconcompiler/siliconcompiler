@@ -113,7 +113,10 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     # lists every tool and forgets the framework -- or that has no live image at
     # all -- is a server on which nothing can be submitted. Finding that out at
     # startup is much cheaper than finding it out at somebody's first submit.
-    advertised = meta.advertised_software(store, config)
+    # ⚠️ In the `python` bucket, which is where a REQUIRED `siliconcompiler`
+    # lives: it is a distribution in the interpreter, and the bucket it is
+    # published under is part of what that key means.
+    advertised = meta.advertised_software(store, config)["python"]
 
     if "siliconcompiler" not in advertised:
         raise RuntimeError(

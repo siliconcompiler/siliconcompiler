@@ -196,7 +196,7 @@ def test_a_superseded_bundle_is_reclaimed_and_a_live_one_is_not(server):
 
     who = store.upsert_user("operator", "op@example.test")["id"]
 
-    images.register_software(store, "siliconcompiler", "SiliconCompiler", who)
+    images.register_software(store, "siliconcompiler", "SiliconCompiler", who, "python")
     images.register_version(store, "siliconcompiler", "0.38.9", who)
 
     old_digest = "sha256:" + "a" * 64

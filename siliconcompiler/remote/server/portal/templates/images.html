@@ -98,10 +98,34 @@
   <div class="grid">
     <label>Distribution name
       <input type="text" name="name" placeholder="siliconcompiler" required></label>
+    {#
+      🔴 Stated and not derived. It decides which bucket the name is published
+      in, and therefore whether ONE image has to hold it -- everything Python
+      shares the run's interpreter -- or each node's image does. Deriving it
+      would be this process guessing about an image it is not.
+    #}
+    <label>Kind
+      <select name="kind" required>
+        <option value="python">Python distribution — one image holds all of them</option>
+        <option value="tool">Tool — resolved per node</option>
+      </select></label>
     <label>Version <input type="text" name="version" placeholder="0.39.1"></label>
     <label>Preference (higher is offered first)
       <input type="text" name="preference" placeholder="0"></label>
   </div>
+  <label>Task driver, for a tool
+    <input type="text" name="driver"
+           placeholder="siliconcompiler.tools.openroad" style="max-width:420px">
+    <span class="muted">
+      {#
+        The module a probe inside an image imports to ask this tool its
+        version. It cannot be worked out there: a driver can live in any
+        package, and the in-tree path is not reliable in-tree either --
+        kepler-formal is driven from siliconcompiler.tools.keplerformal.
+      #}
+      Where its Task driver lives. Leave it empty and no version can be read
+      from an image for it.
+    </span></label>
   <label>
     <input type="checkbox" name="unversioned" value="1">
     This tool reports no version, so the box above is the date its image was

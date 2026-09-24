@@ -15,6 +15,15 @@ def digest(letter):
     return "sha256:" + letter * 64
 
 
+def py(name=None, wanted=None, tools=None):
+    '''A bucketed `requires`, which is what the resolution reads.
+
+    🔴 Two buckets because they are satisfied differently: the whole python set
+    has to be held by ONE image, and a tool is satisfied per node.
+    '''
+    return {"python": {name: wanted} if name else {}, "tools": tools or {}}
+
+
 @pytest.fixture
 def store():
     with Store("server.db") as db:
@@ -30,9 +39,9 @@ def registry(store):
     The pair the whole design exists for -- an import node has no business
     pulling the one OpenROAD is in.
     '''
-    images.register_software(store, "siliconcompiler", "SiliconCompiler", store.actor)
+    images.register_software(store, "siliconcompiler", "SiliconCompiler", store.actor, "python")
     images.register_version(store, "siliconcompiler", "0.39.1", store.actor, preference=10)
-    images.register_software(store, "openroad", "OpenROAD", store.actor)
+    images.register_software(store, "openroad", "OpenROAD", store.actor, "tool")
     images.register_version(store, "openroad", "2.0", store.actor)
 
     images.register_image(store, "ghcr.io/x/sc-python:0.39.1", digest("a"),
@@ -63,14 +72,14 @@ def test_an_image_is_registered_by_digest_and_not_by_tag(registry, store):
 
     Which is only true if the digest is the string that reaches the node.
     '''
-    plan = images.plan_for_job(store, {"siliconcompiler": "0.39.1"},
+    plan = images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                                {("import", "0"): None})
 
     assert plan.ref(plan.job) == f"ghcr.io/x/sc-python@{digest('a')}"
 
 
 def test_a_digest_that_is_not_one_is_refused(store):
-    images.register_software(store, "siliconcompiler", "SC", store.actor)
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
     images.register_version(store, "siliconcompiler", "0.39.1", store.actor)
 
     with pytest.raises(ValueError):
@@ -106,7 +115,7 @@ def test_the_smallest_image_that_fits_wins(registry, store):
     gigabyte OpenROAD image to run thirty seconds of Python is what one image
     per job costs.'''
     plan = images.plan_for_job(
-        store, {"siliconcompiler": "0.39.1"},
+        store, py("siliconcompiler", "0.39.1"),
         {("import", "0"): None, ("place", "0"): "openroad"})
 
     assert plan.ref(plan.nodes[("import", "0")]).startswith("ghcr.io/x/sc-python@")
@@ -117,18 +126,18 @@ def test_a_tool_nobody_registered_raises_no_requirement(registry, store):
     '''A deployment curating images for the framework and saying nothing about
     Verilator is not claiming to have a Verilator image, and is not refused for
     lacking one. Registering the name is how an operator takes that claim on.'''
-    plan = images.plan_for_job(store, {"siliconcompiler": "0.39.1"},
+    plan = images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                                {("lint", "0"): "verilator"})
 
     assert plan.nodes[("lint", "0")] == plan.job
 
 
 def test_a_registered_tool_with_no_image_fails_the_whole_submit(registry, store):
-    images.register_software(store, "yosys", "Yosys", store.actor)
+    images.register_software(store, "yosys", "Yosys", store.actor, "tool")
     images.register_version(store, "yosys", "0.44", store.actor)
 
     with pytest.raises(ProblemError) as raised:
-        images.plan_for_job(store, {"siliconcompiler": "0.39.1"},
+        images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                             {("syn", "0"): "yosys"})
 
     assert raised.value.error.slug == "unsatisfiable-request"
@@ -140,7 +149,7 @@ def test_a_framework_version_no_image_holds(registry, store):
     images.register_version(store, "siliconcompiler", "0.40.0", store.actor)
 
     with pytest.raises(ProblemError) as raised:
-        images.plan_for_job(store, {"siliconcompiler": "0.40.0"},
+        images.plan_for_job(store, py("siliconcompiler", "0.40.0"),
                             {("import", "0"): None})
 
     assert raised.value.members["resource_kind"] == "library"
@@ -150,7 +159,7 @@ def test_a_framework_version_no_image_holds(registry, store):
 def test_preference_breaks_the_tie_and_not_recency(store):
     '''⚠️ Newest-wins is the tempting default and it is wrong: a rebuilt image
     is newer and is not necessarily preferred.'''
-    images.register_software(store, "siliconcompiler", "SC", store.actor)
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
     images.register_version(store, "siliconcompiler", "0.39.1", store.actor, preference=10)
     images.register_version(store, "siliconcompiler", "0.40.0", store.actor, preference=1)
 
@@ -160,13 +169,13 @@ def test_preference_breaks_the_tie_and_not_recency(store):
     images.register_image(store, "ghcr.io/x/new:0.40.0", digest("b"),
                           [("siliconcompiler", "0.40.0")], store.actor)
 
-    plan = images.plan_for_job(store, {}, {("import", "0"): None})
+    plan = images.plan_for_job(store, py(), {("import", "0"): None})
 
     assert plan.ref(plan.job).startswith("ghcr.io/x/old@")
 
 
 def test_a_client_that_names_no_version_gets_the_preferred_one(registry, store):
-    plan = images.plan_for_job(store, {}, {("import", "0"): None})
+    plan = images.plan_for_job(store, py(), {("import", "0"): None})
 
     assert plan.ref(plan.job).startswith("ghcr.io/x/sc-python@")
 
@@ -174,7 +183,7 @@ def test_a_client_that_names_no_version_gets_the_preferred_one(registry, store):
 def test_a_version_this_deployment_does_not_track_is_not_a_requirement(registry, store):
     '''`version-skew` at create is where an unknown version is answered, if it
     is answered at all. It must not become an unsatisfiable image here.'''
-    plan = images.plan_for_job(store, {"za-sclib": "0.1.80"},
+    plan = images.plan_for_job(store, py("za-sclib", "0.1.80"),
                                {("import", "0"): None})
 
     assert plan.job is not None
@@ -186,7 +195,7 @@ def test_an_empty_registry_is_a_refusal_and_not_a_bypass(store):
     conforming, and leaves both image_id columns NULL -- never calls this at
     all; see test_server_jobs.'''
     with pytest.raises(ProblemError) as raised:
-        images.plan_for_job(store, {"siliconcompiler": "0.39.1"},
+        images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                             {("import", "0"): None, ("place", "0"): "openroad"})
 
     assert raised.value.error.slug == "unsatisfiable-request"
@@ -197,7 +206,7 @@ def test_retiring_the_last_image_does_not_quietly_run_on_the_host(registry, stor
         images.retire_image(store, image["id"], store.actor)
 
     with pytest.raises(ProblemError):
-        images.plan_for_job(store, {"siliconcompiler": "0.39.1"},
+        images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                             {("import", "0"): None})
 
 
@@ -215,7 +224,7 @@ def test_a_retired_version_stops_satisfying(registry, store):
     images.retire_version(store, "openroad", "2.0", store.actor)
 
     with pytest.raises(ProblemError):
-        images.plan_for_job(store, {"siliconcompiler": "0.39.1"},
+        images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                             {("place", "0"): "openroad"})
 
 
@@ -227,7 +236,8 @@ def test_a_version_is_advertised_only_where_an_image_holds_it(registry, store):
     images.register_version(store, "siliconcompiler", "0.40.0", store.actor)
 
     assert store.advertised_software(containers=True) == {
-        "siliconcompiler": ["0.39.1"], "openroad": ["2.0"]}
+        "python": {"siliconcompiler": ["0.39.1"]},
+        "tools": {"openroad": ["2.0"]}}
 
 
 def test_without_containers_the_join_is_the_wrong_answer(registry, store):
@@ -236,8 +246,8 @@ def test_without_containers_the_join_is_the_wrong_answer(registry, store):
     runs sit in the table.'''
     images.register_version(store, "siliconcompiler", "0.40.0", store.actor)
 
-    assert store.advertised_software(containers=False)["siliconcompiler"] == \
-        ["0.39.1", "0.40.0"]
+    assert store.advertised_software(containers=False)["python"] == \
+        {"siliconcompiler": ["0.39.1", "0.40.0"]}
 
 
 def test_retiring_the_software_retracts_the_claim(registry, store):
@@ -246,7 +256,7 @@ def test_retiring_the_software_retracts_the_claim(registry, store):
     images.retire_version(store, "openroad", "2.0", store.actor)
     images.retire_software(store, "openroad", store.actor)
 
-    plan = images.plan_for_job(store, {"siliconcompiler": "0.39.1"},
+    plan = images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                                {("place", "0"): "openroad"})
 
     assert plan.nodes[("place", "0")] == plan.job
@@ -576,7 +586,7 @@ def test_a_range_on_the_wire_resolves_to_an_image(registry, store):
     resolving each requirement on its own can name a set no single image holds
     -- every version published, every one satisfiable, and nothing to run
     them in.'''
-    plan = images.plan_for_job(store, {"siliconcompiler": ">=0.39,<0.40"},
+    plan = images.plan_for_job(store, py("siliconcompiler", ">=0.39,<0.40"),
                                {("import", "0"): None})
 
     assert plan.ref(plan.job).startswith("ghcr.io/x/sc-python@")
@@ -585,7 +595,7 @@ def test_a_range_on_the_wire_resolves_to_an_image(registry, store):
 def test_a_range_nothing_satisfies_is_refused_before_anything_runs(registry,
                                                                    store):
     with pytest.raises(ProblemError) as raised:
-        images.plan_for_job(store, {"siliconcompiler": ">=0.40"},
+        images.plan_for_job(store, py("siliconcompiler", ">=0.40"),
                             {("import", "0"): None})
 
     assert raised.value.error.slug == "unsatisfiable-request"
@@ -600,7 +610,7 @@ def test_a_bare_version_still_means_exactly_that(registry, store):
     assert images.specifier("") is None
     assert images.specifier(None) is None
 
-    plan = images.plan_for_job(store, {"siliconcompiler": "0.39.1"},
+    plan = images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                                {("import", "0"): None})
     assert plan.job
 
@@ -611,17 +621,17 @@ def test_a_version_is_normalised_when_it_is_registered(store):
     be silent -- a client and a server on different releases normalising the
     same string differently would disagree about whether an image matched, and
     neither would say so.'''
-    images.register_software(store, "siliconcompiler", "SC", store.actor)
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
 
     assert images.register_version(store, "siliconcompiler", "v0.39.1",
                                    store.actor) == "0.39.1"
-    assert images.live_software(store)["siliconcompiler"] == ["0.39.1"]
+    assert images.live_software(store)["python"]["siliconcompiler"] == ["0.39.1"]
 
 
 def test_a_version_that_is_not_pep_440_is_stored_as_given(store):
     '''It is still a real version somebody can read and select by name. What
     it cannot do is satisfy a range.'''
-    images.register_software(store, "openroad", "OpenROAD", store.actor)
+    images.register_software(store, "openroad", "OpenROAD", store.actor, "tool")
 
     assert images.register_version(store, "openroad", "2.0-rev-cafe1234",
                                    store.actor) == "2.0-rev-cafe1234"
@@ -634,9 +644,9 @@ def test_a_version_that_is_not_pep_440_is_stored_as_given(store):
 @pytest.fixture
 def unversioned(store):
     '''A tool that reports nothing, recorded from its image's publish date.'''
-    images.register_software(store, "siliconcompiler", "SC", store.actor)
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
     images.register_version(store, "siliconcompiler", "0.39.1", store.actor)
-    images.register_software(store, "magic", "Magic", store.actor)
+    images.register_software(store, "magic", "Magic", store.actor, "tool")
     images.register_version(store, "magic", "20260924", store.actor,
                             source="published_date")
 
@@ -650,7 +660,7 @@ def test_an_unversioned_tool_still_runs_when_no_version_is_asked_for(
         unversioned, store):
     '''A complete tool list beats a partial one. The mark costs it version
     matching, not existence.'''
-    plan = images.plan_for_job(store, {}, {("drc", "0"): "magic"})
+    plan = images.plan_for_job(store, py(), {("drc", "0"): "magic"})
 
     assert plan.nodes[("drc", "0")]
 
@@ -670,7 +680,7 @@ def test_the_refusal_says_present_but_reports_no_version(unversioned, store):
     carry the mark, so their own preflight said yes -- the refusal has to be
     the thing that explains it.'''
     with pytest.raises(ProblemError) as raised:
-        images.plan_for_job(store, {"magic": ">=1.0"}, {("drc", "0"): "magic"})
+        images.plan_for_job(store, py(tools={"magic": ">=1.0"}), {("drc", "0"): "magic"})
 
     assert raised.value.error.slug == "unsatisfiable-request"
     assert "reports no version" in raised.value.detail
@@ -678,12 +688,12 @@ def test_the_refusal_says_present_but_reports_no_version(unversioned, store):
 
 
 def test_reported_sorts_above_published_date_whatever_the_numbers_say(store):
-    images.register_software(store, "magic", "Magic", store.actor)
+    images.register_software(store, "magic", "Magic", store.actor, "tool")
     images.register_version(store, "magic", "20260924", store.actor,
                             source="published_date")
     images.register_version(store, "magic", "8.3.2", store.actor)
 
-    assert images.live_software(store)["magic"] == ["8.3.2", "20260924"]
+    assert images.live_software(store)["tools"]["magic"] == ["8.3.2", "20260924"]
 
 
 ###########################
@@ -694,23 +704,167 @@ def test_the_digests_a_descriptor_resolves_to_need_no_upload(registry, store):
     '''🔴 What lets create fold them into the job identity and skip the
     upload: resolution needs the declared versions and the registry, and
     nothing else.'''
-    assert images.digests_for(store, {"siliconcompiler": ">=0.39,<0.40"}) == \
+    assert images.digests_for(store, py("siliconcompiler", ">=0.39,<0.40")) == \
         [digest("a")]
 
 
 def test_a_descriptor_nothing_can_run_is_refused_at_create(registry, store):
     with pytest.raises(ProblemError):
-        images.digests_for(store, {"siliconcompiler": "==9.9.9"})
+        images.digests_for(store, py("siliconcompiler", "==9.9.9"))
 
 
 def test_what_a_job_ran_is_the_union_of_its_images(registry, store):
     '''⚠️ A list per name, because a wide flow resolves several images and
     where the client pinned nothing they can hold different versions of the
     same distribution. One value would have to pick and be wrong.'''
-    plan = images.plan_for_job(store, {}, {("import", "0"): None,
-                                           ("place", "0"): "openroad"})
+    plan = images.plan_for_job(store, py(), {("import", "0"): None,
+                                             ("place", "0"): "openroad"})
 
     held = images.contents_of(store, [plan.job, *plan.nodes.values()])
 
     assert held == {"openroad": ["2.0"], "siliconcompiler": ["0.39.1"]}
     assert images.contents_of(store, [None, None]) == {}
+
+
+###########################
+# Two buckets, because they are satisfied differently
+###########################
+
+def test_the_python_set_must_be_held_by_one_image(store):
+    '''🔴 They share an interpreter. Spreading `siliconcompiler` and a site
+    library over two containers is not a deployment, it is a broken one.'''
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
+    images.register_version(store, "siliconcompiler", "0.39.1", store.actor)
+    images.register_software(store, "za-sclib", "ZA", store.actor, "python")
+    images.register_version(store, "za-sclib", "0.1.80", store.actor)
+
+    # One image each, and neither holds both.
+    images.register_image(store, "ghcr.io/x/sc:1", digest("a"),
+                          [("siliconcompiler", "0.39.1")], store.actor)
+    images.register_image(store, "ghcr.io/x/lib:1", digest("b"),
+                          [("za-sclib", "0.1.80")], store.actor)
+
+    with pytest.raises(ProblemError) as raised:
+        images.plan_for_job(
+            store,
+            {"python": {"siliconcompiler": "0.39.1", "za-sclib": "0.1.80"},
+             "tools": {}},
+            {("import", "0"): None})
+
+    assert raised.value.error.slug == "unsatisfiable-request"
+
+    # And one that holds both resolves.
+    images.register_image(store, "ghcr.io/x/both:1", digest("c"),
+                          [("siliconcompiler", "0.39.1"), ("za-sclib", "0.1.80")],
+                          store.actor)
+    plan = images.plan_for_job(
+        store,
+        {"python": {"siliconcompiler": "0.39.1", "za-sclib": "0.1.80"},
+         "tools": {}},
+        {("import", "0"): None})
+    assert plan.ref(plan.job).startswith("ghcr.io/x/both@")
+
+
+def test_a_tool_requirement_is_satisfied_per_node(registry, store):
+    '''⚠️ And each node's image carries the python set PLUS its own tool,
+    which is exactly what the two image_id columns have always meant.'''
+    plan = images.plan_for_job(store, py(tools={"openroad": ">=2.0"}),
+                               {("import", "0"): None, ("place", "0"): "openroad"})
+
+    assert plan.nodes[("import", "0")] != plan.nodes[("place", "0")]
+    assert plan.ref(plan.nodes[("import", "0")]).startswith("ghcr.io/x/sc-python@")
+    assert plan.ref(plan.nodes[("place", "0")]).startswith("ghcr.io/x/sc-tools@")
+
+
+def test_a_tool_range_nothing_holds_is_refused(registry, store):
+    with pytest.raises(ProblemError) as raised:
+        images.plan_for_job(store, py(tools={"openroad": ">=3.0"}),
+                            {("place", "0"): "openroad"})
+
+    assert raised.value.members["resource"] == "openroad>=3.0"
+
+
+def test_the_buckets_are_a_closed_set_and_both_are_always_there(store):
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
+
+    assert set(images.live_software(store)) == {"python", "tools"}
+    assert images.live_software(store)["tools"] == {}
+
+
+def test_a_python_distribution_may_not_name_a_task_driver(store):
+    '''A driver is what makes something a tool.'''
+    with pytest.raises(ValueError, match="a driver is what makes"):
+        images.register_software(store, "za-sclib", "ZA", store.actor, "python",
+                                 driver="za_sclib.tools")
+
+
+def test_a_driver_is_recorded_so_a_probe_can_be_handed_it(store):
+    '''🔴 The process that resolves an image and the process inside it are not
+    the same interpreter and do not have the same packages, so where the driver
+    lives has to be data by the time the probe runs.'''
+    images.register_software(store, "openroad", "OpenROAD", store.actor, "tool",
+                             driver="siliconcompiler.tools.openroad")
+
+    assert images.registered_drivers(store) == {
+        "openroad": "siliconcompiler.tools.openroad"}
+
+
+###########################
+# Two images, identical versions
+###########################
+
+def test_built_at_breaks_the_tie_preference_cannot(store):
+    '''🔴 Same preference, same contents, same version: nothing is left to
+    choose by, and before this the answer was whichever reference sorted
+    first.'''
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
+    images.register_version(store, "siliconcompiler", "0.39.1", store.actor)
+
+    images.register_image(store, "ghcr.io/x/a:1", digest("a"),
+                          [("siliconcompiler", "0.39.1")], store.actor,
+                          built_at="2026-01-01T00:00:00.000Z")
+    images.register_image(store, "ghcr.io/x/b:1", digest("b"),
+                          [("siliconcompiler", "0.39.1")], store.actor,
+                          built_at="2026-09-01T00:00:00.000Z")
+
+    plan = images.plan_for_job(store, py(), {("import", "0"): None})
+
+    assert plan.ref(plan.job).startswith("ghcr.io/x/b@")
+
+
+def test_an_image_whose_manifest_said_nothing_sorts_last(store):
+    '''⚠️ NULL means the manifest carried no build time, not *old*.'''
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
+    images.register_version(store, "siliconcompiler", "0.39.1", store.actor)
+
+    images.register_image(store, "ghcr.io/x/a:1", digest("a"),
+                          [("siliconcompiler", "0.39.1")], store.actor)
+    images.register_image(store, "ghcr.io/x/b:1", digest("b"),
+                          [("siliconcompiler", "0.39.1")], store.actor,
+                          built_at="2020-01-01T00:00:00.000Z")
+
+    plan = images.plan_for_job(store, py(), {("import", "0"): None})
+
+    assert plan.ref(plan.job).startswith("ghcr.io/x/b@")
+
+
+def test_preference_still_wins_over_the_build_time(store):
+    '''🔴 The order of the two levels: `built_at` breaks a tie, it does not
+    overrule the operator. Newest-wins is the tempting default and it is wrong
+    -- a rebuilt image is newer and is not necessarily preferred.'''
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
+    images.register_version(store, "siliconcompiler", "0.39.1", store.actor,
+                            preference=10)
+    images.register_version(store, "siliconcompiler", "0.40.0", store.actor,
+                            preference=1)
+
+    images.register_image(store, "ghcr.io/x/old:1", digest("a"),
+                          [("siliconcompiler", "0.39.1")], store.actor,
+                          built_at="2020-01-01T00:00:00.000Z")
+    images.register_image(store, "ghcr.io/x/new:1", digest("b"),
+                          [("siliconcompiler", "0.40.0")], store.actor,
+                          built_at="2026-09-01T00:00:00.000Z")
+
+    plan = images.plan_for_job(store, py(), {("import", "0"): None})
+
+    assert plan.ref(plan.job).startswith("ghcr.io/x/old@")

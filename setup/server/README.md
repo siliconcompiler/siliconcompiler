@@ -303,7 +303,7 @@ misconfiguration at the cheapest possible moment:
 echo '{"containers": true}' > <datadir>/config.json
 
 python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
-    add-software siliconcompiler
+    add-software siliconcompiler -kind python
 python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
     add-version siliconcompiler 0.38.9 -preference 10
 python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
@@ -320,6 +320,17 @@ is what gets dispatched — so rebuilding the tag afterwards does not silently
 change what jobs run. `resolve` answers *what would this job be placed in*
 without submitting one, which is how to check a registry before a user does.
 
+`-kind` is `python` or `tool` and it decides whether **one** image has to hold
+the name or each node's image does: everything `python` shares the run's
+interpreter, and a tool is resolved per node. A tool also takes `-driver`, the
+module carrying its Task driver, which is what lets a probe read its version
+out of an image:
+
+```sh
+python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+    add-software openroad -kind tool -driver siliconcompiler.tools.openroad
+```
+
 `add-version` normalises what you type to PEP 440 and prints the spelling it
 stored, because `-contains` has to name the same string. For a tool that
 reports no version, register the date its image was published and say so:
@@ -332,8 +343,22 @@ python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
 That lists the tool and lets a job that names no version run in it. What it
 never does is satisfy a version range — `20260924` beats `2.0.1` under every
 comparison there is, so a date that could match a range would outrank every
-real release for ever. The compose bootstrap registers every tool this way,
-because it does not run them and so cannot report their versions.
+real release for ever.
+
+To get a real version instead, ask the image:
+
+```sh
+python3 -m siliconcompiler.remote.server.probe \
+    -python siliconcompiler -tool openroad=siliconcompiler.tools.openroad
+```
+
+It runs **inside** the image and prints one line of JSON behind a marker —
+`importlib.metadata` for a python distribution, and for a tool its driver's own
+executable, version switch and parser, which are the ones a real run uses. The
+marker is there because a version check runs the tool, and a tool that prints a
+banner writes to the same stream as the answer. The compose bootstrap does this
+for every tool in its image and falls back to `-unversioned` only where nothing
+answered.
 
 Bundles are unpacked to `<datadir>/images/<digest>/`, which is the one thing in
 this layout that is deliberately **not** per user: a root filesystem is

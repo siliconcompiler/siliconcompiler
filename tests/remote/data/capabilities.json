@@ -1,7 +1,8 @@
 {
   "api_version": "v1",
   "software": {
-    "siliconcompiler": ["0.38.9"]
+    "python": {"siliconcompiler": ["0.38.9"]},
+    "tools": {"openroad": ["2.0.1"]}
   },
   "grant_types_supported": ["client_credentials", "refresh_token"],
   "limits": {

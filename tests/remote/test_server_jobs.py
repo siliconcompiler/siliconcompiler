@@ -70,6 +70,16 @@ def jobs(server):
     return server.config["SC_JOBS"]
 
 
+def wants(sc=None, tools=None):
+    """A bucketed `versions`, which is what the descriptor carries.
+
+    🔴 Two buckets because they resolve differently: the whole python set has
+    to be held by ONE image, and a tool is satisfied per node.
+    """
+    return {"python": {"siliconcompiler": sc} if sc else {},
+            "tools": tools or {}}
+
+
 def create(client, key, token, **body):
     body.setdefault("design", "gcd")
     body.setdefault("jobname", "job0")
@@ -1071,7 +1081,7 @@ def registry():
         with store.transaction():
             actor = store.upsert_user("operator", "someone@host")["id"]
 
-        images.register_software(store, "siliconcompiler", "SiliconCompiler", actor)
+        images.register_software(store, "siliconcompiler", "SiliconCompiler", actor, "python")
         images.register_version(store, "siliconcompiler", "0.38.0", actor,
                                 preference=10)
         images.register_image(store, "ghcr.io/x/sc:0.38.0", digest("a"),
@@ -1134,7 +1144,7 @@ def test_submit_records_the_image_each_node_ran_in(
         job_archive, container_dispatcher):
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions={"siliconcompiler": "0.38.0"})
+                versions=wants("0.38.0"))
 
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
@@ -1155,7 +1165,7 @@ def test_the_node_is_told_a_digest_and_never_a_tag(
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions={"siliconcompiler": "0.38.0"})
+                versions=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = container_dispatcher.submitted[0][2]
@@ -1179,7 +1189,7 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
     # The operator takes the claim on and never puts it in an image, which is
     # the whole condition: this deployment now says it curates OpenROAD and
     # cannot place a node that needs it.
-    images.register_software(store, "openroad", "OpenROAD", operator(store))
+    images.register_software(store, "openroad", "OpenROAD", operator(store), "tool")
     images.register_version(store, "openroad", "2.0", operator(store))
 
     # `nopflow` names only `builtin`, which is not a tool anybody installs and
@@ -1212,7 +1222,7 @@ def test_the_job_publishes_the_versions_the_server_resolved(
     server chose."""
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions={"siliconcompiler": ">=0.38,<0.39"})
+                versions=wants(">=0.38,<0.39"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
@@ -1241,7 +1251,7 @@ def test_a_range_no_image_satisfies_is_refused_at_create(
     """✅ Resolution needs the declared versions and the registry, not the
     uploaded bytes -- so it happens before the upload, where it is free."""
     response = create(container_client, key, container_token,
-                      versions={"siliconcompiler": ">=0.40"})
+                      versions=wants(">=0.40"))
 
     assert response.status_code == 422
     assert slug(response) == "version-skew"
@@ -1250,7 +1260,7 @@ def test_a_range_no_image_satisfies_is_refused_at_create(
 def test_a_range_the_registry_can_serve_is_accepted_at_create(
         container_server, container_client, key, container_token):
     assert create(container_client, key, container_token,
-                  versions={"siliconcompiler": ">=0.38,<0.39"}).status_code == 201
+                  versions=wants(">=0.38,<0.39")).status_code == 201
 
 
 def test_a_bare_version_is_still_an_exact_pin(container_server,
@@ -1258,9 +1268,9 @@ def test_a_bare_version_is_still_an_exact_pin(container_server,
                                               container_token):
     """⚠️ It is what every client sent before the wire carried ranges."""
     assert create(container_client, key, container_token,
-                  versions={"siliconcompiler": "0.38.0"}).status_code == 201
+                  versions=wants("0.38.0")).status_code == 201
     assert create(container_client, key, container_token,
-                  versions={"siliconcompiler": "0.38.1"}).status_code == 422
+                  versions=wants("0.38.1")).status_code == 422
 
 
 def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
@@ -1272,7 +1282,7 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
     from siliconcompiler.remote.server import images
 
     store = container_server.config["SC_STORE"]
-    images.register_software(store, "magic", "Magic", operator(store))
+    images.register_software(store, "magic", "Magic", operator(store), "tool")
     images.register_version(store, "magic", "20260924", operator(store),
                             source="published_date")
     images.register_image(store, "ghcr.io/x/sc-magic:1", digest("c"),
@@ -1280,7 +1290,7 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
                           operator(store))
 
     response = create(container_client, key, container_token,
-                      versions={"magic": ">=8.0"})
+                      versions=wants(tools={"magic": ">=8.0"}))
 
     assert response.status_code == 422
     assert slug(response) == "version-skew"
@@ -1341,7 +1351,7 @@ def test_a_version_with_no_image_is_never_advertised(container_server, container
 
     software = container_client.get("/v1").get_json()["software"]
 
-    assert software["siliconcompiler"] == ["0.38.0"]
+    assert software["python"]["siliconcompiler"] == ["0.38.0"]
 
 
 def test_a_deployment_that_runs_no_containers_places_nothing(
@@ -1385,7 +1395,7 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions={"siliconcompiler": "0.38.0"})
+                versions=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = fake.submitted[0][2]

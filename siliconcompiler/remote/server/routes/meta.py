@@ -26,7 +26,7 @@ CAPABILITIES_MAX_AGE = 60
 
 
 def advertised_software(store, config=None):
-    '''What this deployment can actually run, keyed on distribution name.
+    '''What this deployment can actually run, in its two buckets.
 
     Normally the registry, rendered: every live version this deployment tracks,
     best first, and where it runs containers only the ones a live image holds.
@@ -63,12 +63,15 @@ def _advertised(store, config, read):
     containers = bool(config["containers"]) if config is not None else True
 
     software = read(containers=containers)
-    if containers:
+    if containers or software["python"] or software["tools"]:
         return software
 
     # A deployment that runs no containers runs what this process was
-    # installed with, and this process reports its own version.
-    return software or {"siliconcompiler": [sc_version]}
+    # installed with, and this process reports its own version. `siliconcompiler`
+    # is REQUIRED and it is a python distribution, so it goes in that bucket
+    # and `tools` stays empty -- which is the true answer for a deployment that
+    # runs no containers and therefore advertises no tool image.
+    return {"python": {"siliconcompiler": [sc_version]}, "tools": {}}
 
 
 @blueprint.route("/v1", methods=["GET"])

@@ -425,11 +425,42 @@ CREATE TABLE software (                             -- what this deployment know
     name          text PRIMARY KEY,                 -- the DISTRIBUTION name, and the wire key:
                                                     -- 'siliconcompiler', 'openroad'
     display_name  text NOT NULL,
+    kind          text NOT NULL                     -- which bucket it is published in, and which
+                    CHECK (kind IN                  -- question the resolution asks about it
+                      ('python',                    -- a distribution in the interpreter. The whole
+                                                    -- python set has to be satisfied by ONE image,
+                                                    -- because they share a process
+                       'tool')),                    -- an executable. Satisfied PER NODE, by an
+                                                    -- image holding the python set and this tool
+                                                    -- 🔴 Derived and never typed: the mechanism
+                                                    -- that reads the version IS the
+                                                    -- classification. importlib.metadata answers
+                                                    -- for a python distribution and exe+vswitch
+                                                    -- for a tool, so there is no third question
+                                                    -- and no field to get wrong. See probe.py
+    driver        text,                             -- the module carrying this tool's Task driver:
+                                                    -- 'siliconcompiler.tools.openroad'. NULL for a
+                                                    -- python distribution, and for a tool nobody
+                                                    -- here drives.
+                                                    -- 🔴 RECORDED and not re-derived. A driver can
+                                                    -- live in any package -- a site library ships
+                                                    -- its own and a proprietary tool's never will
+                                                    -- be in this tree -- and the in-tree path is
+                                                    -- not even reliable in-tree: 'kepler-formal'
+                                                    -- is driven from ...tools.keplerformal. It is
+                                                    -- filled in by scanning at registration, so
+                                                    -- nothing has to be typed for a driver this
+                                                    -- process can already see
     added_at      text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     added_by      text NOT NULL REFERENCES users(id),
     retired_at    text,
     retired_by    text REFERENCES users(id),
     CHECK (length(name) <= 100),
+    -- A python distribution has no task driver, because a task driver is what
+    -- makes something a tool. The reverse is allowed: a tool this deployment
+    -- lists and nobody here drives has no version to report, which is what
+    -- `published_date` is for.
+    CHECK (driver IS NULL OR kind = 'tool'),
     CHECK ((retired_at IS NULL) = (retired_by IS NULL))
 );
 
@@ -466,6 +497,16 @@ CREATE TABLE images (                               -- a container this deployme
                                                     -- re-resolution only
     digest        text NOT NULL UNIQUE,             -- 'sha256:<hex>' -- WHAT ACTUALLY RUNS
     resolved_at   text NOT NULL,                    -- when the tag was pinned to this digest
+    built_at      text,                             -- when the IMAGE was built, from its own
+                                                    -- manifest. NULL = the manifest said nothing.
+                                                    -- 🔴 Never resolved_at: that records when the
+                                                    -- operator pinned the tag, so registering a
+                                                    -- two-year-old image today would make it the
+                                                    -- newest -- and pinning an old image on
+                                                    -- purpose is a reproducibility case, not a
+                                                    -- mistake. Breaks the tie between two images
+                                                    -- carrying IDENTICAL versions, which
+                                                    -- preference cannot
     registered_by text REFERENCES users(id),        -- a person, in the portal. Always set here:
     registered_via text,                            -- the CI registration path is crucible's, so
                                                     -- every image on this deployment has a person
