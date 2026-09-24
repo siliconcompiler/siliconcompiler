@@ -174,6 +174,100 @@ def test_every_request_carries_a_proof(fake_v1, tmp_credentials):
     assert fake_v1.calls[0].request.headers["DPoP"]
 
 
+def test_health_is_one_word(fake_v1, tmp_credentials):
+    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
+                  content_type="application/health+json")
+
+    assert Client(tmp_credentials).health() == {"status": "pass"}
+    assert "Authorization" not in fake_v1.calls[-1].request.headers
+
+
+def test_a_failing_health_arrives_as_a_503_and_is_still_an_answer(
+        fake_v1, tmp_credentials):
+    '''🔴 The endpoint serves its own worst value with a status a client
+    would otherwise raise on. Reading it as `fail` is reading the endpoint
+    correctly, not swallowing an error.'''
+    fake_v1.route(responses.GET, "healthz", {"status": "fail"}, status=503,
+                  content_type="application/health+json")
+
+    assert Client(tmp_credentials).health() == {"status": "fail"}
+
+
+def test_a_proxy_answering_for_a_dead_server_means_the_same_thing(
+        fake_v1, tmp_credentials):
+    '''Nothing that answers 503 on this path is serving, whatever it sends.'''
+    fake_v1.route(responses.GET, "healthz", "<html>502 Bad Gateway</html>",
+                  status=503, content_type="text/html")
+
+    assert Client(tmp_credentials).health() == {"status": "fail"}
+
+
+def test_the_deployment_report_is_what_the_server_says_it_is(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    '''🔴 Both halves unauthenticated, which is what makes this printable
+    before enrolment and for a server that is down -- the two states somebody
+    runs a bare `sc-remote` in.'''
+    import logging
+
+    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
+                  content_type="application/health+json")
+
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).print_deployment()
+
+    assert "Health: pass" in caplog.text
+    assert "API: v1" in caplog.text
+    assert "Identity assurance: self-asserted" in caplog.text
+    assert "siliconcompiler: 0.38.9" in caplog.text
+    assert "client_credentials" in caplog.text
+    assert "logs.stream" in caplog.text
+
+    # Base units, rendered. The wire is bytes and seconds; a person reads
+    # neither at this size.
+    assert "max_upload_bytes: 1.0 GiB" in caplog.text
+    assert "max_log_stream_seconds: 4h" in caplog.text
+    assert "max_job_nodes: 1000" in caplog.text
+
+    for call in fake_v1.calls:
+        assert "Authorization" not in call.request.headers
+
+
+def test_an_unlimited_limit_reads_as_unlimited_and_not_as_none(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    '''null is the wire's word for unlimited everywhere, and it is not zero.'''
+    import logging
+
+    capabilities["limits"]["max_download_bytes"] = None
+    fake_v1.replace(responses.GET, "", capabilities)
+    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
+                  content_type="application/health+json")
+
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).print_deployment()
+
+    assert "max_download_bytes: unlimited" in caplog.text
+
+
+def test_a_notice_is_a_warning_because_somebody_has_to_read_it(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    '''Scheduled downtime lives on `GET /v1` rather than the liveness probe:
+    an announcement is read once by a person, at the start of a session, which
+    is exactly when this runs.'''
+    import logging
+
+    capabilities["notices"] = ["maintenance on Sunday 02:00 UTC"]
+    fake_v1.replace(responses.GET, "", capabilities)
+    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
+                  content_type="application/health+json")
+
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).print_deployment()
+
+    assert "Notice: maintenance on Sunday 02:00 UTC" in caplog.text
+    assert any(record.levelname == "WARNING" and "maintenance" in record.message
+               for record in caplog.records)
+
+
 ###########################
 # Login
 ###########################

@@ -157,9 +157,17 @@ def _dispatch(remote):
     if project_cfg:
         return _act_on_job(remote, client, project_cfg)
 
-    # No job named: report what this machine is configured for and who the
-    # server says it is.
+    # No job named: report what this machine is configured for, what the
+    # server says it is, and who the server says you are.
+    #
+    # 🔴 The deployment block comes before the identity one and is printed even
+    # when the identity call fails, because it is the half that explains the
+    # failure: `GET /v1` and `GET /v1/healthz` carry no credential, so they
+    # answer for a machine that has not enrolled and for a server that is down
+    # -- which are the two states somebody runs a bare `sc-remote` in.
     client.print_configuration()
+    client.print_deployment()
+
     identity = client.me()
     remote.logger.info(f"Server reports you as {identity['id']} "
                        f"(issuer {identity['issuer']})")

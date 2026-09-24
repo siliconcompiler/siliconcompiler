@@ -96,6 +96,81 @@ class Client:
         return self.transport.request(
             "GET", "", authenticated=False).json()
 
+    def health(self) -> Dict[str, Any]:
+        '''``GET /v1/healthz``: one word, and no credential.
+
+        🔴 **A `fail` arrives as a 503, so the refusal path IS the answer.**
+        The endpoint's whole vocabulary is `pass`, `warn` and `fail`, and it
+        serves the last of those with a status a client would otherwise raise
+        on -- so catching it and reporting `fail` is reading the endpoint
+        correctly rather than swallowing an error. Anything else that answers
+        503 on this path, a proxy included, means the same thing to whoever
+        asked: this deployment is not serving.
+        '''
+        try:
+            return self.transport.request(
+                "GET", "healthz", authenticated=False).json()
+        except ServerProblem:
+            return {"status": "fail"}
+        except ValueError:
+            # 200 with something that is not JSON. Up, and not this server.
+            return {"status": "warn"}
+
+    def print_deployment(self) -> None:
+        '''What the server says it is, for a person at a terminal.
+
+        The same two blocks the portal's Server screen renders, and for the
+        same reason: `GET /v1` is what every client branches on, so *what does
+        this deployment actually allow* should be answerable without curl and
+        without a browser.
+
+        ⚠️ Unauthenticated, both of them, so this works before enrolment and
+        says the same thing to everybody.
+        '''
+        from siliconcompiler.remote.units import duration, size
+
+        health = self.health()
+        published = self.capabilities()
+
+        self.logger.info(f"Health: {health.get('status', 'unknown')}")
+        self.logger.info(f"API: {published.get('api_version', 'unknown')}")
+        self.logger.info(
+            f"Identity assurance: {published.get('identity_assurance', 'unknown')}")
+
+        # Read once by a person at the start of a session, which is exactly
+        # when this runs. An operator with something to say puts it here.
+        for notice in published.get("notices") or []:
+            self.logger.warning(f"Notice: {notice}")
+
+        software = published.get("software") or {}
+        self.logger.info("Software it can run:")
+        for name, versions in sorted(software.items()):
+            self.logger.info(f"  {name}: {', '.join(versions)}")
+        if not software:
+            self.logger.info("  (nothing advertised)")
+
+        self.logger.info(
+            f"Sign-in: {', '.join(published.get('grant_types_supported') or []) or 'none'}")
+        self.logger.info(
+            f"Features: {', '.join(published.get('features') or []) or 'none'}")
+
+        self.logger.info("Limits:")
+        for name, value in (published.get("limits") or {}).items():
+            # null is unlimited, which is the wire's meaning for it
+            # everywhere, and it is not zero.
+            if value is None:
+                shown = "unlimited"
+            elif name.endswith("_bytes"):
+                shown = size(value)
+            elif name.endswith("_seconds"):
+                shown = duration(value)
+            else:
+                shown = str(value)
+            self.logger.info(f"  {name}: {shown}")
+
+        if published.get("terms_url"):
+            self.logger.info(f"Terms: {published['terms_url']}")
+
     ######################################################################
     # Sessions
     ######################################################################
