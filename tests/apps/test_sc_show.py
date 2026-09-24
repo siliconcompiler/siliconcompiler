@@ -5,23 +5,43 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Project
+from siliconcompiler import Project, utils
 from siliconcompiler.apps import sc_show
 from siliconcompiler.utils.paths import workdir, jobdir
 
 
 @pytest.fixture
 def make_manifests():
+    """Plant a manifest in every node directory of a project's flow.
+
+    Written once and hard-linked into the other ~46 locations. An ASIC
+    manifest is ~2MB, and a copy per node directory made this one module
+    account for 4.5GB of a run's temporary space. Nothing under test writes
+    to these -- sc-show only ever reads a manifest -- so the shared inode is
+    safe, and link_symlink_copy falls back to a symlink or a real copy on a
+    filesystem that refuses the link.
+    """
     def impl(project):
+        first = None
+
+        def plant(path):
+            nonlocal first
+            if first is None:
+                project.write_manifest(path)
+                # Absolute, so the symlink fallback resolves from the link's
+                # own directory rather than from the cwd.
+                first = os.path.abspath(path)
+            else:
+                utils.link_symlink_copy(first, path)
+
         flow = project.get("option", "flow")
         for nodes in project.get("flowgraph", flow, field="schema").get_execution_order():
             for step, index in nodes:
                 for d in ('inputs', 'outputs'):
                     path = os.path.join(workdir(project, step=step, index=index), d)
                     os.makedirs(path, exist_ok=True)
-                    project.write_manifest(os.path.join(path, f"{project.name}.pkg.json"))
-        project.write_manifest(os.path.join(jobdir(project),
-                                            f"{project.name}.pkg.json"))
+                    plant(os.path.join(path, f"{project.name}.pkg.json"))
+        plant(os.path.join(jobdir(project), f"{project.name}.pkg.json"))
 
     return impl
 
