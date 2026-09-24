@@ -90,7 +90,9 @@ def test_every_limit_is_a_base_unit(client):
         "max_job_nodes", "max_upload_bytes", "job_retention_days",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_log_stream_seconds", "max_archive_members",
-        "max_archive_expanded_bytes", "auto_fetch_max_bytes"}
+        "max_archive_expanded_bytes", "auto_fetch_max_bytes",
+        "run_heartbeat_seconds",
+        "abandon_after_seconds"}
     assert all(isinstance(value, int) for value in limits.values())
 
 

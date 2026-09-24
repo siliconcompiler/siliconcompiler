@@ -1,10 +1,22 @@
 {% extends "base.html" %}
 {% set active = 'jobs' %}
+{# Top level, for the same reason as job.html. #}
+{% set running = jobs | rejectattr('terminal') | list %}
+{% set refresh = 15 if running else 0 %}
 {% block title %}Jobs · sc-server{% endblock %}
 {% block body %}
+{#
+  The same rule as the job page: refresh only while something is actually
+  moving. A list of finished runs has no reason to reload itself.
+#}
 <h2>Jobs</h2>
 <p class="lede">
-  Yours, newest first. {#
+  Yours, newest first.
+  {% if running %}
+  <span class="live">{{ running | length }} still going &middot; refreshing every 15s
+    <a href="{{ url_for('portal.jobs') }}">refresh now</a></span>
+  {% endif %}
+  {#
     Mine by default and no "all jobs" filter, because there is nothing to
     filter to: this deployment has no admin role and the API answers one
     person's jobs. A screen offering a switch that returns the same rows is

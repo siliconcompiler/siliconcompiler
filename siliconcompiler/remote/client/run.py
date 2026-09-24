@@ -18,6 +18,7 @@ omitted.
 import hashlib
 import logging
 import os
+import sys
 import shutil
 import tarfile
 import tempfile
@@ -39,6 +40,7 @@ from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, describe)
 from siliconcompiler.remote.client.results import Results
+from siliconcompiler.remote.units import size as _size
 
 __all__ = ["RemoteRun", "REMOTE_MANIFEST"]
 
@@ -161,10 +163,21 @@ class RemoteRun:
                 return job_id
 
             self.logger.info(f"Your job's reference ID is: {job_id}")
+
+            # 🔴 Followed, never constructed. The portal's route shape may
+            # change without a version bump, so this is printed only when the
+            # server sent it -- absent means the deployment has no web UI,
+            # which is a real answer rather than a missing one. It is also the
+            # whole reason the member exists: an id is useless to paste into a
+            # browser.
+            if job.get("web_url"):
+                self.logger.info(f"Watch it at: {job['web_url']}")
+                self._open_portal(job_id)
+
             self._save_manifest()
 
             grant = self.client.upload_grant(job_id)
-            self.logger.info(f"Uploading {size} bytes")
+            self.logger.info(f"Uploading {_size(size)}")
             self.client.upload(grant, upload)
 
             self.client.submit_job(job_id, digest=digest, size=size,
@@ -172,6 +185,52 @@ class RemoteRun:
 
         self.logger.info("Job submitted")
         return job_id
+
+    def _open_portal(self, job_id: str) -> None:
+        '''Open the job's page, where a person is plainly watching.
+
+        ⚠️ **Provisional.** Launching a browser from a build is a convenience
+        and not a commitment: the durable part is `web_url` on the job object,
+        which is printed either way. If this proves more annoying than useful,
+        deleting this method and its one call site removes it entirely and
+        changes nothing else.
+
+        🔴 A browser is opened only when somebody is there to see it. Three
+        things have to agree:
+
+        - the server published a `web_url`, so there IS a portal
+        - `option,nodisplay` is not set, which is SiliconCompiler's existing
+          way of saying *do not pop anything up* and is already honoured by the
+          dashboard and the layout viewers
+        - stdout is a terminal, which is the cheap proxy for *a person ran
+          this*. A CI job that opened a browser on a build agent would be a
+          small mystery at best
+
+        ⚠️ `open_portal` in the credentials file overrides all of it either
+        way, because a proxy is a guess and somebody will want it wrong on
+        purpose.
+
+        A handover rather than the bare URL: the browser holds none of what
+        this client holds, so the plain page would answer 401 and ask them to
+        run a command. This mints a single-use link that both authenticates
+        and lands on the job.
+        '''
+        wanted = self.client.credentials.get("open_portal")
+        if wanted is False:
+            return
+        if not wanted:
+            if self.project.option.get_nodisplay():
+                return
+            if not (hasattr(sys.stdout, "isatty") and sys.stdout.isatty()):
+                return
+
+        try:
+            self.client.portal(open_browser=True,
+                               landing=f"/portal/jobs/{job_id}")
+        except Exception as e:                                   # noqa: BLE001
+            # A browser that will not open is not a reason to stop a run, and
+            # the URL has already been printed.
+            logger.debug(f"could not open the portal: {e}")
 
     def _preprocess(self) -> None:
         '''Collect everything the server will need, because it has none of it.

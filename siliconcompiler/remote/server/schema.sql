@@ -461,3 +461,36 @@ CREATE TABLE image_contents (                       -- what is INSIDE it -- decl
         REFERENCES software_versions (software_name, version)
 );
 CREATE INDEX image_contents_lookup_idx ON image_contents (software_name, version);
+
+
+--------------------------------------------------------------------------
+-- 9. Per-user ceilings
+--------------------------------------------------------------------------
+-- 🔴 SPARSE: a row exists only where somebody overrode something, and a NULL
+-- column inherits the deployment's value from config.json. The contract pairs
+-- this table with `plans`, which this profile does not have -- there are no
+-- named tiers here, so the thing inherited from is the operator's config
+-- rather than a plan row. That is the one difference, and it is why
+-- `plan_id` is absent.
+--
+-- 🔴 The encoding is three-valued and it is the contract's:
+--   NULL  inherit
+--   -1    UNLIMITED
+--   >= 0  that value
+-- `-1` never reaches a client -- the resolver turns it into the wire's `null`,
+-- because the wire had already spent `null` on *unlimited* while this table
+-- needed it for *inherit*. A CHECK on every column, because a sentinel with no
+-- constraint is a typo away from a negative limit that reads as unlimited to
+-- one path and refuse-everything to another.
+--
+-- ⚠️ Written by the OPERATOR and never by the portal. A ceiling is policy, and
+-- this deployment has no admin mode: the only writer is the operator CLI, the
+-- same way an image is registered. The account screen renders it read-only.
+CREATE TABLE user_limits (                          -- sparse: only the overrides
+    user_id             text PRIMARY KEY REFERENCES users(id),
+    auto_fetch_max_bytes integer
+        CHECK (auto_fetch_max_bytes IS NULL OR auto_fetch_max_bytes >= -1),
+    set_at              text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    set_by              text NOT NULL REFERENCES users(id),
+    note                text                        -- why, for the person who reads it later
+);

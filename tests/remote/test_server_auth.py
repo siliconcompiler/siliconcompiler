@@ -439,15 +439,21 @@ def test_me_omits_authorized_and_sends_empty_projects(client, key):
     assert "blocked_reason" not in body
 
 
-def test_me_carries_the_six_account_limits(client, key):
-    '''Not the same key set as GET /v1's ceiling: four overlap and a client
-    combines only those.'''
+def test_me_carries_the_account_limits(client, key):
+    '''Not the same key set as GET /v1's ceiling: five overlap and a client
+    combines only those.
+
+    🆕 `auto_fetch_max_bytes` is here as well as on `GET /v1`, and it is the
+    reason this block matters to a client at all now: `GET /v1` carries no
+    credential, so it cannot vary by caller. The deployment's default is there
+    and the value that applies to THIS caller is here.
+    '''
     token = login(client, key).get_json()["access_token"]
     limits = call(client, key, "GET", "/v1/me", token).get_json()["limits"]
 
     assert set(limits) == {"concurrent_jobs", "concurrent_nodes",
                            "pending_uploads", "max_job_nodes", "devices",
-                           "job_retention_days"}
+                           "job_retention_days", "auto_fetch_max_bytes"}
 
 
 def test_me_usage_is_derived_and_reported_only(client, key):
@@ -573,3 +579,78 @@ def test_a_refresh_counts_as_the_device_being_seen(client, key):
         content_type="application/x-www-form-urlencoded").get_json()
 
     assert devices(rotated["access_token"])["last_seen_at"] >= first
+
+
+###########################
+# A ceiling that differs per account
+###########################
+
+def test_an_override_reaches_the_caller_and_not_the_capabilities(client, key):
+    '''🔴 `GET /v1` carries no credential, so it cannot vary by caller. The
+    deployment's default lives there and the value that applies to THIS caller
+    lives in the identity block -- which is why a per-user ceiling had to be
+    published on `/v1/me` at all.'''
+    from siliconcompiler.remote.server import accounts
+
+    token = login(client, key).get_json()["access_token"]
+    me = call(client, key, "GET", "/v1/me", token).get_json()
+
+    default = client.get("/v1").get_json()["limits"]["auto_fetch_max_bytes"]
+    assert me["limits"]["auto_fetch_max_bytes"] == default
+
+    store = client.application.config["SC_STORE"]
+    accounts.set_limit(store, me["id"], "auto_fetch_max_bytes", 1024,
+                       me["id"], note="a slow link")
+
+    again = call(client, key, "GET", "/v1/me", token).get_json()
+    assert again["limits"]["auto_fetch_max_bytes"] == 1024
+    # The deployment's own number is unmoved, and uncredentialed.
+    assert client.get("/v1").get_json()["limits"]["auto_fetch_max_bytes"] == default
+
+
+def test_minus_one_is_unlimited_and_never_reaches_a_client(client, key):
+    '''⚠️ The wire had already spent `null` on unlimited while the table needed
+    it for *inherit*, so storage uses `-1` and the resolver turns it into the
+    wire's `null`.'''
+    from siliconcompiler.remote.server import accounts
+
+    token = login(client, key).get_json()["access_token"]
+    me = call(client, key, "GET", "/v1/me", token).get_json()
+    store = client.application.config["SC_STORE"]
+
+    accounts.set_limit(store, me["id"], "auto_fetch_max_bytes", -1, me["id"])
+
+    limits = call(client, key, "GET", "/v1/me", token).get_json()["limits"]
+    assert limits["auto_fetch_max_bytes"] is None
+    assert store.one("SELECT auto_fetch_max_bytes AS n FROM user_limits "
+                     "WHERE user_id = ?", (me["id"],))["n"] == -1
+
+
+def test_a_null_column_inherits_rather_than_meaning_unlimited(client, key):
+    '''Sparse: a row can exist and override nothing.'''
+    from siliconcompiler.remote.server import accounts
+
+    token = login(client, key).get_json()["access_token"]
+    me = call(client, key, "GET", "/v1/me", token).get_json()
+    store = client.application.config["SC_STORE"]
+
+    accounts.set_limit(store, me["id"], "auto_fetch_max_bytes", 1024, me["id"])
+    accounts.set_limit(store, me["id"], "auto_fetch_max_bytes", None, me["id"])
+
+    default = client.get("/v1").get_json()["limits"]["auto_fetch_max_bytes"]
+    limits = call(client, key, "GET", "/v1/me", token).get_json()["limits"]
+    assert limits["auto_fetch_max_bytes"] == default
+
+
+def test_only_a_declared_limit_can_be_overridden(client, key):
+    '''The column list is not derived from the table, so that adding one is a
+    deliberate act rather than an accident.'''
+    from siliconcompiler.remote.server import accounts
+    import pytest as _pytest
+
+    store = client.application.config["SC_STORE"]
+    token = login(client, key).get_json()["access_token"]
+    me = call(client, key, "GET", "/v1/me", token).get_json()
+
+    with _pytest.raises(ValueError, match="not a per-user limit"):
+        accounts.set_limit(store, me["id"], "max_upload_bytes", 10, me["id"])

@@ -47,15 +47,40 @@
 
 <h3>Limits</h3>
 <table>
-  <tr><th>Limit</th><th>Value</th></tr>
+  <tr><th>Limit</th><th>Yours</th><th>This deployment</th></tr>
   {% for name, value in limits.items() %}
+  {#
+    🔴 Two columns, because one cannot say whether anybody set it. A limit the
+    operator raised for this account and the deployment's own number are
+    different facts, and "1.0 GiB" alone answers neither *is this mine* nor
+    *what would it be otherwise*.
+  #}
+  {% set default = default_limits.get(name) %}
   <tr>
-    <td class="mono">{{ name }}</td>
+    <td class="mono">{{ name }}
+      {%- if name in overridable and default is not none
+             and value != default %} <span class="tag">set for you</span>{% endif %}</td>
     {# null is unlimited, and it is not zero. #}
-    <td class="mono">{{ 'unlimited' if value is none else value }}</td>
+    <td class="mono">
+      {%- if value is none %}unlimited
+      {%- elif name.endswith('_bytes') %}{{ value | size }}
+      {%- else %}{{ value }}{% endif -%}
+    </td>
+    <td class="mono muted">
+      {%- if name not in overridable or default is none %}—
+      {%- elif name.endswith('_bytes') %}{{ default | size }}
+      {%- else %}{{ default }}{% endif -%}
+    </td>
   </tr>
   {% endfor %}
 </table>
+<p class="muted">
+  {# Said rather than left to be worked out from a button that is not there. #}
+  Limits are the operator's policy, so this screen shows them and does not set
+  them. <span class="mono">auto_fetch_max_bytes</span> is the largest single
+  object <span class="mono">sc-remote</span> pulls without being asked; above
+  it, results are listed and fetched on request.
+</p>
 
 <h3>This deployment</h3>
 <p class="muted">

@@ -14,7 +14,9 @@
     "max_log_stream_seconds": 14400,
     "max_archive_members": 100000,
     "max_archive_expanded_bytes": 10737418240,
-    "auto_fetch_max_bytes": 104857600
+    "auto_fetch_max_bytes": 104857600,
+    "run_heartbeat_seconds": 900,
+    "abandon_after_seconds": 900
   },
   "features": ["logs", "logs.stream"],
   "identity_assurance": "self-asserted",

@@ -529,3 +529,185 @@ def test_the_job_page_offers_the_runs_own_log(signed_in, died):
     it was three clicks away at the bottom of a table.'''
     page = signed_in.get(f"/portal/jobs/{died['id']}").get_data(as_text=True)
     assert ">Job log</a>" in page
+
+
+def test_the_job_page_opens_an_archive_rather_than_downloading_it(
+        signed_in, finished, server):
+    '''🔴 Clicking `reports` on the job page SHOWS you the reports. It used to
+    download a .tar.gz, with the only way to look inside sitting on the
+    artifacts page -- the page nobody reaches first.'''
+    store = server.config["SC_STORE"]
+    bundle = store.one(
+        "SELECT id FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+        "AND step = 'stepone'", (finished["id"],))
+
+    page = signed_in.get(f"/portal/jobs/{finished['id']}").get_data(as_text=True)
+
+    assert f"/artifacts/{bundle['id']}/inside" in page
+
+
+def test_the_browse_page_offers_the_whole_archive(signed_in, finished, server):
+    '''🔴 Making the job page browse an archive took away the only download
+    there was. Picking files out of a page one at a time is not a substitute
+    for taking the lot.'''
+    row = server.config["SC_STORE"].one(
+        "SELECT id FROM artifacts WHERE job_id = ? AND kind = 'bundle' "
+        "AND step = 'stepone'", (finished["id"],))
+
+    page = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
+    ).get_data(as_text=True)
+
+    assert "Download all of it" in page
+    assert f"/artifacts/{row['id']}\"" in page or f"/artifacts/{row['id']}'" in page
+
+
+def test_the_account_page_shows_the_ceiling_and_the_default(signed_in, server,
+                                                            server_client, key,
+                                                            token):
+    '''🔴 Two columns, because one cannot say whether anybody set it. "1.0 KiB"
+    alone answers neither *is this mine* nor *what would it be otherwise*.'''
+    from siliconcompiler.remote.server import accounts
+
+    me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
+    accounts.set_limit(server.config["SC_STORE"], me, "auto_fetch_max_bytes",
+                       1024, me, note="a slow link")
+
+    page = signed_in.get("/portal/account").get_data(as_text=True)
+
+    assert "auto_fetch_max_bytes" in page
+    assert "1.0 KiB" in page                       # what this account gets
+    assert "100 MiB" in page                       # what the deployment gives
+    assert "set for you" in page
+    # Read-only: a ceiling is the operator's policy and this deployment has no
+    # admin mode, so the screen shows it and never posts it.
+    assert "portal.set_limit" not in page
+
+
+def test_the_nodes_table_is_in_the_order_the_run_reaches_them(signed_in, finished):
+    '''⚠️ The API lists nodes by name, which puts `elaborate` in the middle of a
+    23-node asicflow between `cts` and `floorplan`. Fine for a listing a client
+    sorts itself, wrong for a table somebody reads top to bottom.'''
+    from siliconcompiler.remote.server.portal import running_order
+
+    job = {"nodes": [
+        {"step": "zzz_last", "index": "0"},
+        {"step": "aaa_middle", "index": "0"},
+        {"step": "mmm_first", "index": "0"},
+    ]}
+    edges = [
+        {"from_step": "mmm_first", "from_index": "0",
+         "to_step": "aaa_middle", "to_index": "0"},
+        {"from_step": "aaa_middle", "from_index": "0",
+         "to_step": "zzz_last", "to_index": "0"},
+    ]
+
+    assert [n["step"] for n in running_order(job, edges)] == [
+        "mmm_first", "aaa_middle", "zzz_last"]
+
+
+def test_nodes_at_the_same_depth_break_ties_on_the_name(signed_in):
+    '''So two runs of the same flow render identically and a reload never
+    reshuffles the rows.'''
+    from siliconcompiler.remote.server.portal import running_order
+
+    job = {"nodes": [{"step": "b", "index": "1"}, {"step": "b", "index": "0"},
+                     {"step": "a", "index": "0"}]}
+
+    assert [(n["step"], n["index"]) for n in running_order(job, [])] == [
+        ("a", "0"), ("b", "0"), ("b", "1")]
+
+
+###########################
+# Arriving cold on a job link
+###########################
+
+def test_a_cold_link_to_a_job_comes_back_to_that_job(server_client, key, token,
+                                                     finished):
+    '''🔴 `web_url` is a link somebody clicks cold. Without this the handover
+    always landed on the jobs list, so the answer to "here is your job" was
+    "here is a list, find it again".'''
+    page = f"/portal/jobs/{finished['id']}"
+
+    turned_away = server_client.get(page)
+    assert turned_away.status_code == 401
+    assert "sc-remote -portal" in turned_away.get_data(as_text=True)
+
+    url = call(server_client, key, "POST", "/portal/session", token).get_json()["url"]
+    entered = server_client.get(url.split("http://localhost", 1)[1])
+
+    assert entered.status_code == 302
+    assert entered.headers["Location"].endswith(page)
+
+
+def test_a_cold_link_to_nothing_in_particular_lands_on_the_jobs_list(
+        server_client, key, token):
+    url = call(server_client, key, "POST", "/portal/session", token).get_json()["url"]
+    entered = server_client.get(url.split("http://localhost", 1)[1])
+
+    assert entered.status_code == 302
+    assert entered.headers["Location"].rstrip("/").endswith("/portal")
+
+
+def test_the_return_path_is_never_an_open_redirect(server_client, key, token):
+    '''🔴 Anything can set a cookie on this origin, and a redirect that follows
+    one is the classic phishing primitive -- made worse here because the person
+    has just been told this link is the trustworthy way in.'''
+    url = call(server_client, key, "POST", "/portal/session", token).get_json()["url"]
+
+    for hostile in ("//evil.example/", "https://evil.example/",
+                    "/etc/passwd", "/v1/jobs"):
+        server_client.set_cookie("sc_portal_next", hostile, domain="localhost")
+        entered = server_client.get(url.split("http://localhost", 1)[1])
+        if entered.status_code == 302:
+            assert "evil.example" not in entered.headers["Location"]
+            assert entered.headers["Location"].rstrip("/").endswith("/portal")
+        # A spent handover is also an acceptable answer here.
+        server_client.delete_cookie("sc_portal_next", domain="localhost")
+
+
+###########################
+# Watching a run without pressing anything
+###########################
+
+def test_a_running_job_page_refreshes_itself(server_client, key, token,
+                                             job_archive, dispatcher, signed_in):
+    '''⚠️ `<meta http-equiv="refresh">` rather than a timer: the browser's own
+    mechanism, it stops when the tab closes, and it survives scripting being
+    off.'''
+    from test_server_jobs import stage, submit
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    page = signed_in.get(f"/portal/jobs/{job['id']}").get_data(as_text=True)
+
+    assert 'http-equiv="refresh"' in page
+    assert "refresh now" in page
+
+
+def test_a_finished_job_page_does_not(signed_in, finished):
+    '''🔴 Only while there is something to watch. A page that reloads for ever
+    reloads while somebody reads a finished run, and keeps a request in flight
+    against a server nobody is looking at.'''
+    page = signed_in.get(f"/portal/jobs/{finished['id']}").get_data(as_text=True)
+
+    assert 'http-equiv="refresh"' not in page
+    assert "refresh now" not in page
+
+
+def test_the_jobs_list_refreshes_only_while_something_is_going(
+        server_client, key, token, job_archive, dispatcher, signed_in, finished):
+    from test_server_jobs import stage, submit
+
+    quiet = signed_in.get("/portal/").get_data(as_text=True)
+    assert 'http-equiv="refresh"' not in quiet
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    busy = signed_in.get("/portal/").get_data(as_text=True)
+    assert 'http-equiv="refresh"' in busy
+    assert "1 still going" in busy

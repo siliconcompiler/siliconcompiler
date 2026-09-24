@@ -87,6 +87,11 @@ MOUNTS = ["/run/munge", "/sc_tools/etc", "/etc/resolv.conf"]
 # nodes on. See the two partitions in slurm.conf.
 BATCH_QUEUE = os.environ.get("SC_BATCH_QUEUE", "coordinate")
 
+# The origin this stack publishes to a person. Loopback, because that is where
+# the compose file publishes the API and the portal and nowhere else is
+# reachable anyway.
+WEB_URL_BASE = os.environ.get("SC_WEB_URL_BASE", "http://localhost:8080")
+
 
 # "local: digest: sha256:<hex> size: 856", the daemon's final push line.
 _DIGEST_IN_STATUS = re.compile(r"digest:\s*(sha256:[0-9a-f]{64})")
@@ -145,16 +150,27 @@ def _post(path: str, headers=None):
     return events
 
 
-def push(local: str, repository: str) -> str:
-    '''Put one locally built image in the registry. Returns its digest.'''
+def push(local: str, repository: str, tag: str) -> str:
+    '''Put one locally built image in the registry. Returns its digest.
+
+    🔴 Tagged with the SiliconCompiler version it holds, not `:local`. The tag
+    is what a person reads in `sinfo`-adjacent places, in the images screen and
+    in the bundle path, and `:local` says only *somebody built this here* --
+    which is true of every image in the registry and distinguishes none of
+    them. `registry:5000/sc-tools:0.38.9` says what is in it.
+
+    ⚠️ It does not REPLACE the digest, and nothing resolves by tag: the digest
+    is still what gets registered, staged and run, because a tag can be moved
+    and a digest cannot. The tag is for the reader.
+    '''
     target = f"{PUSH_TO}/{repository}"
 
-    say(f"pushing {local} to {target}:local")
-    _post(f"/images/{local}/tag?repo={target}&tag=local")
+    say(f"pushing {local} to {target}:{tag}")
+    _post(f"/images/{local}/tag?repo={target}&tag={tag}")
 
     # An empty credential, which the daemon requires the header for even where
     # the registry wants no authentication at all.
-    events = _post(f"/images/{target}/push?tag=local",
+    events = _post(f"/images/{target}/push?tag={tag}",
                    headers={"X-Registry-Auth": base64.urlsafe_b64encode(b"{}").decode()})
 
     digest = None
@@ -215,16 +231,29 @@ def write_config() -> None:
     config["containers"] = True
     config["container_mounts"] = MOUNTS
     config["batch_queue"] = BATCH_QUEUE
+    # Where a person reads about a job. Deployment config rather than anything
+    # derived from a request header -- see config.py for why that distinction
+    # is a security one and not a tidiness one.
+    config["web_url_base"] = WEB_URL_BASE
 
     path.write_text(json.dumps(config, indent=2) + "\n")
     say(f"wrote {path}")
 
 
 def registry(*args: str) -> None:
-    subprocess.run(
+    '''One operator command, with its own message left to speak for itself.
+
+    ⚠️ `check=True` raises a `CalledProcessError` whose traceback lands on top
+    of whatever the child already printed -- so a store this server cannot
+    speak, which prints exactly what to do about it, arrived as two stacked
+    tracebacks with the useful sentence in the middle of the first.
+    '''
+    done = subprocess.run(
         [sys.executable, "-m", "siliconcompiler.remote.server.registry",
-         "-datadir", str(DATADIR), *args],
-        check=True)
+         "-datadir", str(DATADIR), *args])
+    if done.returncode:
+        raise SystemExit(
+            f"registry {' '.join(args)} failed; see the message above")
 
 
 def register(version: str, tools_digest: str, runtime_digest: str) -> None:
@@ -245,9 +274,11 @@ def register(version: str, tools_digest: str, runtime_digest: str) -> None:
         contains += ["-contains", f"{tool}=={version}"]
 
     say("staging bundles (skopeo, then umoci -- the big one takes a minute)")
-    registry("add-image", f"{PULL_FROM}/sc-runtime:local", "-digest", runtime_digest,
+    registry("add-image", f"{PULL_FROM}/sc-runtime:{version}",
+             "-digest", runtime_digest,
              "-contains", f"siliconcompiler=={version}", "-stage")
-    registry("add-image", f"{PULL_FROM}/sc-tools:local", "-digest", tools_digest,
+    registry("add-image", f"{PULL_FROM}/sc-tools:{version}",
+             "-digest", tools_digest,
              "-contains", f"siliconcompiler=={version}", *contains, "-stage")
 
 
@@ -259,8 +290,13 @@ def main() -> int:
     wait_for_registry()
     write_config()
 
-    runtime_digest = push(RUNTIME_IMAGE, "sc-runtime")
-    tools_digest = push(STACK_IMAGE, "sc-tools")
+    # ⚠️ A rebuild at the SAME version supersedes the earlier one, because the
+    # reference is identical and the digest is not -- which is what should
+    # happen. A rebuild at a NEW version leaves the old reference live beside
+    # it, which is also what should happen: they are different images and a
+    # job that named the old one still can.
+    runtime_digest = push(RUNTIME_IMAGE, "sc-runtime", version)
+    tools_digest = push(STACK_IMAGE, "sc-tools", version)
 
     register(version, tools_digest, runtime_digest)
 
@@ -269,4 +305,12 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except SystemExit:
+        raise
+    except Exception as e:                                       # noqa: BLE001
+        # Same reason as `registry` above: this runs as a compose service, and
+        # its output is what somebody reads when `docker compose up` stops.
+        say(f"failed: {e}")
+        sys.exit(1)

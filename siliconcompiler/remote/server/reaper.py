@@ -57,7 +57,8 @@ def sweep(store, storage, config, datadir) -> Dict[str, Any]:
     for name, step in (("bundles", _bundles),
                        ("artifacts", _artifacts),
                        ("builds", _builds),
-                       ("uploads", _uploads)):
+                       ("uploads", _uploads),
+                       ("abandoned", _abandoned)):
         try:
             taken[name] = step(store, storage, config, datadir)
         except Exception as e:                                   # noqa: BLE001
@@ -66,13 +67,16 @@ def sweep(store, storage, config, datadir) -> Dict[str, Any]:
             logger.warning(f"could not reclaim {name}: {e}")
             taken[name] = 0
 
-    freed = sum(taken.values())
+    # ⚠️ `abandoned` counts jobs and the rest count bytes, so it is reported
+    # on its own rather than summed into a figure that would then be wrong.
+    freed = sum(value for name, value in taken.items() if name != "abandoned")
     if freed:
         from siliconcompiler.remote.units import size
 
         logger.info(f"reclaimed {size(freed)}: " + ", ".join(
             f"{units_of(name)} {size(value)}"
-            for name, value in taken.items() if value))
+            for name, value in taken.items()
+            if value and name != "abandoned"))
     return taken
 
 
@@ -80,7 +84,8 @@ def units_of(name: str) -> str:
     return {"bundles": "container bundles",
             "artifacts": "expired artifacts",
             "builds": "build directories",
-            "uploads": "abandoned uploads"}[name]
+            "uploads": "abandoned uploads",
+            "abandoned": "abandoned jobs"}[name]
 
 
 def _bundles(store, storage, config, datadir) -> int:
@@ -202,6 +207,38 @@ def _uploads(store, storage, config, datadir) -> int:
         storage.discard_upload(row["id"])
 
     return freed
+
+
+def _abandoned(store, storage, config, datadir) -> int:
+    '''Jobs whose upload never arrived, settled at last.
+
+    🔴 **A job settles when somebody looks at it, and this is for the ones
+    nobody does.** `reconcile` abandons an expired job on read -- but a job
+    stuck in `created` is exactly the job nobody opens, and while it sits there
+    it holds a `pending_uploads` slot against its owner's allowance. That is
+    the failure worth catching: the ceiling is reached by jobs that no longer
+    exist in any meaningful sense.
+
+    ⚠️ Returns a count and not bytes, which is why `sweep` reports it
+    separately -- the number in the log is jobs, and nothing was freed on disk
+    beyond whatever `_uploads` already took.
+    '''
+    from siliconcompiler.remote.server.jobs import JobService
+
+    # 🔴 Through the service, not a second UPDATE here. One writer for a state
+    # transition, or the two drift and only one of them writes the history row
+    # that says why.
+    jobs = JobService(store, config, storage, None, datadir)
+
+    moved = 0
+    for row in store.all(
+            "SELECT * FROM jobs WHERE state IN ('created', 'awaiting_input')"):
+        if jobs.abandon_if_expired(row):
+            moved += 1
+
+    if moved:
+        logger.info(f"{moved} job(s) were never uploaded to; abandoned")
+    return moved
 
 
 def _weigh(path: Path) -> int:

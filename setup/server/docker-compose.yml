@@ -55,6 +55,21 @@ x-sc-server: &sc-server
     <<: *build
     target: server
   image: sc-server:local
+  # 🔴 Build it; never try to fetch it. A service with both `image:` and
+  # `build:` gets compose's default `pull_policy: missing`, which means "pull
+  # if it is not here" -- so on any machine that has not built yet, compose
+  # asks Docker Hub for `sc-server:local` and reports
+  #
+  #   pull access denied for sc-server, repository does not exist
+  #
+  # before falling back to building. The tag only ever exists locally, so the
+  # request was never going to succeed and the message points at
+  # authentication, which is not the problem.
+  #
+  # ⚠️ It also means `docker compose up` alone picks up a source change. The
+  # build graph is consulted every time, which costs seconds when nothing moved
+  # and removes the one thing the single command did not do for you.
+  pull_policy: build
   environment:
     SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
   volumes:
@@ -78,6 +93,7 @@ x-scrunner: &scrunner
     <<: *build
     target: cluster
   image: sc-server-slurm:local
+  pull_policy: build
   environment:
     SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
   command: ["node"]
@@ -160,6 +176,7 @@ services:
       <<: *build
       target: runtime
     image: sc-runtime:local
+    pull_policy: build
     entrypoint: ["/bin/true"]
     restart: "no"
 
@@ -171,6 +188,7 @@ services:
       <<: *build
       target: cluster
     image: sc-server-slurm:local
+    pull_policy: build
     entrypoint: ["/bin/true"]
     restart: "no"
 
@@ -208,6 +226,11 @@ services:
     <<: *sc-server
     hostname: scserver
     command: ["ctld"]
+    # Longer than docker's default 10s, because this container stops three
+    # daemons in turn and slurmctld writes its state as it goes. Being killed
+    # partway is what leaves a half-written job_state and the "Jobs may be
+    # lost!" on the next start.
+    stop_grace_period: 30s
     # Loopback only. This deployment runs the unauthenticated profile: nothing
     # verifies who a caller is, and the DPoP key bound on first contact is the
     # only real control it has. Published on 0.0.0.0 it would be reachable by
@@ -220,6 +243,18 @@ services:
     volumes:
       - munge-key:/etc/munge
       - sc-server-data:/sc_server
+      # 🔴 StateSaveLocation, on a volume rather than in the image. Without
+      # this every recreation starts the controller with an empty state
+      # directory, so it logs
+      #
+      #   error: Could not open job state file .../job_state
+      #   error: NOTE: Trying backup state save file. Jobs may be lost!
+      #
+      # on every single start -- and the alarming half of that is true: a
+      # controller that forgets its state forgets the jobs that were queued and
+      # running. On a first start against an empty volume it still says it
+      # once, correctly, because there really is no prior state.
+      - slurm-state:/sc_tools/spool/slurm
     depends_on:
       slurmdbd:
         condition: service_started
@@ -273,3 +308,12 @@ volumes:
   sc-server-data:
   munge-key:
   slurmdb-data:
+
+  # The controller's own memory: what was queued, what was running, the
+  # reservations, and the JWT signing key the ctld role generates.
+  #
+  # ⚠️ Only the CONTROLLER's. `SlurmdSpoolDir` stays inside each runner, and
+  # deliberately: a scaled service shares one named volume between every
+  # replica, and two slurmds sharing a spool directory is worse than either of
+  # them forgetting. A runner restart already ends whatever it was running.
+  slurm-state:

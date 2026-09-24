@@ -1698,3 +1698,200 @@ def test_a_failed_node_carries_the_type_that_says_so(
     # And nothing on the node that never ran: it did not fail, the job ended
     # before it started.
     assert nodes[("steptwo", "0")]["error_type"] is None
+
+
+###########################
+# A run that stops saying anything
+###########################
+
+def test_a_silent_run_is_lost_even_while_the_scheduler_says_running(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 The backstop for a scheduler that is wrong, which is not
+    hypothetical: a dynamic node killed without deleting itself leaves Slurm
+    reporting its jobs RUNNING for ever on a machine that is gone. Observed for
+    thirteen minutes on a container that no longer existed -- and every other
+    check here asks the scheduler, so every other check believed it.'''
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
+        "heartbeat": "2026-09-24T10:00:00.000Z",     # long ago
+        "nodes": {"stepone/0": {"state": "running"},
+                  "steptwo/0": {"state": "pending"}}})
+
+    # The scheduler insists, and is not believed.
+    dispatcher.alive = True
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert read["state"] == "failed"
+    assert read["error"]["type"].endswith("scheduler-lost")
+
+
+def test_a_beating_run_is_left_alone(server, server_client, key, token,
+                                     job_archive, dispatcher, me):
+    '''A node can run for half an hour without a transition, which is why the
+    heartbeat is on a timer and not on progress.'''
+    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.store import now
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
+        "heartbeat": now(),
+        "nodes": {"stepone/0": {"state": "running"},
+                  "steptwo/0": {"state": "pending"}}})
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == "running"
+
+
+def test_no_heartbeat_means_no_opinion(server, server_client, key, token,
+                                       job_archive, dispatcher, me):
+    '''⚠️ A run started by a runner older than this writes none, and the honest
+    answer for it is the one this server always gave -- ask the scheduler.
+    Treating a missing field as silence would declare every in-flight job of an
+    upgrade dead.'''
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
+        "nodes": {"stepone/0": {"state": "running"},
+                  "steptwo/0": {"state": "pending"}}})
+
+    dispatcher.alive = True
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == "running"
+
+
+###########################
+# The job's page for a person
+###########################
+
+def test_a_deployment_with_no_web_ui_omits_web_url(server_client, key, token):
+    '''🔴 ABSENT and never null. A null would claim there IS a portal and that
+    this job has no page on it, which is never true.'''
+    created = call(server_client, key, "POST", "/v1/jobs", token, json={
+        "design": "gcd", "jobname": "job0"}).get_json()
+
+    assert "web_url" not in created
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
+                token).get_json()
+    assert "web_url" not in read
+
+
+def test_a_deployment_with_a_portal_publishes_the_page(server, server_client,
+                                                       key, token):
+    '''Followed, never constructed: the portal's route shape may change without
+    a version bump, so a client that builds this itself breaks quietly.'''
+    server.config["SC_CONFIG"]._values["web_url_base"] = "https://sc.example/"
+
+    created = call(server_client, key, "POST", "/v1/jobs", token, json={
+        "design": "gcd", "jobname": "job0"}).get_json()
+
+    assert created["web_url"] == f"https://sc.example/portal/jobs/{created['id']}"
+    # Both places: the create response is what a CLI has in hand at submit
+    # time, and the job object is what anything reading it later sees.
+    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
+                token).get_json()
+    assert read["web_url"] == created["web_url"]
+
+
+def test_the_page_origin_never_comes_from_a_request_header(server, server_client,
+                                                           key, token):
+    '''⚠️ The same trusted-proxy trap as a forwarded client address, with a
+    worse payoff: the output is a link somebody pastes into a ticket.'''
+    server.config["SC_CONFIG"]._values["web_url_base"] = "https://sc.example"
+
+    # 🔴 Only the forwarded headers, and that is not a weaker test -- it is
+    # the realistic one. `Host` cannot be moved here at all: DPoP binds the
+    # proof to the request URL, so changing it fails authentication long before
+    # any link is built. What a proxy forwards is the header that actually
+    # reaches an application unchallenged.
+    created = call(server_client, key, "POST", "/v1/jobs", token,
+                   json={"design": "gcd", "jobname": "job0"},
+                   headers={"X-Forwarded-Host": "evil.example",
+                            "X-Forwarded-Proto": "https"}).get_json()
+
+    assert created["web_url"].startswith("https://sc.example/")
+    assert "evil.example" not in created["web_url"]
+
+
+###########################
+# A job nobody ever uploaded to
+###########################
+
+def test_a_job_whose_upload_never_arrived_is_abandoned(server, server_client,
+                                                       key, token):
+    '''🔴 `abandoned` is the tenth state and nothing wrote it. A job created
+    and never uploaded to sat in `created` for ever: holding a
+    `pending_uploads` slot, on every listing, and -- because the portal
+    refreshes until a job is terminal -- reloading its own page indefinitely
+    for a run that was never going to happen.'''
+    created = call(server_client, key, "POST", "/v1/jobs", token, json={
+        "design": "gcd", "jobname": "job0"}).get_json()
+
+    # Still within the window: left alone.
+    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
+                token).get_json()
+    assert read["state"] == "created"
+
+    server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
+                token).get_json()
+    assert read["state"] == "abandoned"
+    assert read["terminal"] is True
+    assert read["finished_at"]
+
+
+def test_a_live_upload_grant_is_never_abandoned(server, server_client, key,
+                                                token):
+    '''⚠️ The window is the floor and not the whole answer. A slow link
+    uploading a gigabyte and a script that died between create and PUT look
+    identical from here, so a job still holding a good grant is left alone
+    however old it is -- otherwise setting the window below the grant's own
+    lifetime would abandon uploads that were legitimately in flight.'''
+    created = call(server_client, key, "POST", "/v1/jobs", token, json={
+        "design": "gcd", "jobname": "job0"}).get_json()
+    call(server_client, key, "POST", f"/v1/jobs/{created['id']}/upload-grant",
+         token, json={})
+
+    server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
+                token).get_json()
+    assert read["state"] == "awaiting_input"
+
+
+def test_the_sweep_settles_the_jobs_nobody_opens(server, server_client, key,
+                                                 token):
+    '''🔴 A job stuck in `created` is exactly the job nobody opens, and while
+    it sits there it holds a slot against its owner's allowance. The ceiling
+    gets reached by jobs that no longer exist in any meaningful sense.'''
+    from siliconcompiler.remote.server import reaper
+
+    created = call(server_client, key, "POST", "/v1/jobs", token, json={
+        "design": "gcd", "jobname": "job0"}).get_json()
+    server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
+
+    taken = reaper.sweep(server.config["SC_STORE"], server.config["SC_STORAGE"],
+                         server.config["SC_CONFIG"], server.config["SC_DATADIR"])
+
+    assert taken["abandoned"] == 1
+    assert server.config["SC_STORE"].one(
+        "SELECT state FROM jobs WHERE id = ?", (created["id"],))["state"] == "abandoned"

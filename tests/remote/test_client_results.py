@@ -552,14 +552,27 @@ def test_the_advice_names_the_file_the_client_actually_writes():
 ###########################
 
 def _ceiling(fake_v1, capabilities, limit):
-    '''Move this server's auto-fetch ceiling.'''
-    published = dict(capabilities)
-    published["limits"] = dict(published["limits"])
-    if limit is None:
-        published["limits"].pop("auto_fetch_max_bytes", None)
-    else:
-        published["limits"]["auto_fetch_max_bytes"] = limit
-    fake_v1.replace(responses.GET, "", published)
+    '''Move THIS CALLER's auto-fetch ceiling.
+
+    🔴 On `GET /v1/me` and not `GET /v1`, because the ceiling can differ per
+    account and the capabilities block carries no credential. What the
+    deployment publishes is a default; what applies here is in the identity
+    block.
+    '''
+    limits = {"concurrent_jobs": 4, "concurrent_nodes": None,
+              "pending_uploads": 8, "max_job_nodes": 1000, "devices": None,
+              "job_retention_days": 30}
+    if limit is not None:
+        limits["auto_fetch_max_bytes"] = limit
+
+    fake_v1.route(responses.GET, "me", {
+        "id": "01J9-user", "issuer": "local", "projects": [],
+        "limits": limits, "can_submit": True, "terms": [],
+        "usage": {"compute_seconds": {"used": 0, "limit": None,
+                                      "window": "calendar_month",
+                                      "resets_at": "2026-10-01T00:00:00.000Z"},
+                  "licence_seconds": {}, "storage_bytes": {"used": 0, "limit": None},
+                  "jobs_active": 0}})
 
 
 def test_an_object_over_the_servers_ceiling_is_listed_and_not_pulled(

@@ -90,18 +90,26 @@ class Results:
         🔴 The server's number and not the client's. A deployment knows what
         its link and its disks are for; a client picking its own threshold
         means every client picks a different one and the operator can set no
-        policy at all. Published in `GET /v1`'s `limits`, so a client that has
-        never heard of it fetches everything, exactly as before.
+        policy at all.
+
+        🔴 **Read from `GET /v1/me` and not from `GET /v1`, because it can
+        differ per account.** `GET /v1` carries no credential, so it cannot
+        vary by caller -- it publishes the deployment's default and nothing
+        more. The ceiling that applies to THIS caller is in the identity block,
+        which is the only place a per-user override can be seen.
+
+        A server that publishes neither leaves this `None`, and everything is
+        fetched exactly as before.
         '''
         if self._ceiling is False:
+            self._ceiling = None
             try:
-                limits = (self.client.capabilities() or {}).get("limits") or {}
+                limits = (self.client.me() or {}).get("limits") or {}
                 self._ceiling = limits.get("auto_fetch_max_bytes")
             except Exception as e:                               # noqa: BLE001
                 # No ceiling is the old behaviour, which is the safe direction
                 # to fail: the results arrive.
                 logger.debug(f"no auto-fetch ceiling: {e}")
-                self._ceiling = None
         return self._ceiling
 
     def _oversized(self, item: Dict[str, Any]) -> bool:

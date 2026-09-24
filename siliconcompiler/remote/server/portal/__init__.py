@@ -53,6 +53,12 @@ COOKIE = "sc_portal"
 # both worthless.
 HANDOVER_SECONDS = 60
 
+# The page somebody was turned away from, kept just long enough to run one
+# command and come back. Separate from the session cookie because it is not a
+# credential: it is a breadcrumb, and it is treated as untrusted input.
+NEXT_COOKIE = "sc_portal_next"
+HANDOVER_NEXT_SECONDS = 900
+
 # A working session. Not the API's twelve days: a browser session is a
 # convenience and re-obtaining one costs a single command.
 SESSION_SECONDS = 43200
@@ -73,16 +79,21 @@ class Sessions:
         self._sessions = {}
         self._lock = threading.Lock()
 
-    def offer(self, user_id: str) -> str:
-        '''Mint a single-use token for one browser.'''
+    def offer(self, user_id: str, landing=None) -> str:
+        """Mint a single-use token for one browser.
+
+        `landing` is where to send it once the cookie is set -- already
+        validated by the caller, because this class stores what it is given.
+        """
         token = secrets.token_urlsafe(32)
         with self._lock:
             self._expire()
-            self._handovers[token] = (user_id, time.time() + HANDOVER_SECONDS)
+            self._handovers[token] = (user_id, time.time() + HANDOVER_SECONDS,
+                                      landing)
         return token
 
     def redeem(self, token: str):
-        '''Spend a handover token. Returns ``(cookie, csrf)`` or None.
+        '''Spend a handover token. Returns ``(cookie, csrf, landing)`` or None.
 
         🔴 Removed before it is checked, so a token cannot be redeemed twice
         even by two requests arriving together.
@@ -93,14 +104,14 @@ class Sessions:
             if held is None:
                 return None
 
-            user_id, expires = held
+            user_id, expires, landing = held
             if expires < time.time():
                 return None
 
             cookie = secrets.token_urlsafe(32)
             csrf = secrets.token_urlsafe(16)
             self._sessions[cookie] = (user_id, time.time() + SESSION_SECONDS, csrf)
-            return cookie, csrf
+            return cookie, csrf, landing
 
     def lookup(self, cookie: Optional[str]):
         '''``(user_id, csrf)`` for a live session, or None.'''
@@ -123,7 +134,7 @@ class Sessions:
 
     def _expire(self) -> None:
         cutoff = time.time()
-        for token, (_, expires) in list(self._handovers.items()):
+        for token, (_, expires, _landing) in list(self._handovers.items()):
             if expires < cutoff:
                 del self._handovers[token]
         for cookie, (_, expires, _csrf) in list(self._sessions.items()):
@@ -176,7 +187,18 @@ def screen(handler):
     def guarded(*args, **kwargs):
         session = caller()
         if session is None:
-            return flask.render_template("signin.html"), 401
+            # 🔴 Remember where they were going. A `web_url` printed by the CLI
+            # is a link somebody clicks cold, and without this the handover
+            # always lands on the jobs list -- so the answer to "here is your
+            # job" was "here is a list, go and find it". It goes in a cookie
+            # because the CLI mints the handover and never sees this request.
+            page = flask.make_response(flask.render_template("signin.html"), 401)
+            if flask.request.method == "GET":
+                page.set_cookie(
+                    NEXT_COOKIE, flask.request.path,
+                    max_age=HANDOVER_NEXT_SECONDS, httponly=True,
+                    samesite="Strict", secure=flask.request.is_secure)
+            return page
 
         if flask.request.method == "POST" and not _csrf_ok():
             # A form posted from somewhere else. SameSite=Strict already
@@ -299,12 +321,44 @@ def offer_session():
     session = current_session()
     session.require("profile:read")
 
-    token = _sessions().offer(session.user_id)
+    # 🔴 Where to land, validated exactly as the cookie is -- it arrives from a
+    # client, and a redirect that follows caller-supplied input is an open
+    # redirect whichever door it came through. The client sends the job's page
+    # so that one URL both authenticates and arrives somewhere useful.
+    body = flask.request.get_json(silent=True) or {}
+    token = _sessions().offer(session.user_id, _safe_path(body.get("next")))
     url = flask.url_for("portal.enter", token=token, _external=True)
 
     response = flask.jsonify({"url": url, "expires_in": HANDOVER_SECONDS})
     response.headers["Cache-Control"] = "private, no-store"
     return response
+
+
+def _safe_path(path):
+    """A local portal path, or nothing.
+
+    🔴 Two characters decide it: it must begin `/portal/`, and must not begin
+    `//`, which a browser reads as a scheme-relative host. This is the one
+    function that says yes to a redirect target, so both doors -- the cookie
+    and the handover -- come through it.
+    """
+    if isinstance(path, str) and path.startswith("/portal/") \
+            and not path.startswith("//"):
+        return path
+    return None
+
+
+def _wanted():
+    """Where the browser was going when it was turned away.
+
+    🔴 A local portal path or nothing. Anything can set a cookie on this
+    origin, and a redirect that follows one is an open redirect -- the classic
+    phishing primitive, made worse here because the person has just been told
+    this link is the trustworthy way in. Two checks decide it: it must begin
+    `/portal/`, and must not begin `//`, which a browser reads as a
+    scheme-relative host.
+    """
+    return _safe_path(flask.request.cookies.get(NEXT_COOKIE))
 
 
 @blueprint.route("/portal/enter")
@@ -316,8 +370,15 @@ def enter():
             "problem.html", title="That link has been used or has expired",
             detail="Run sc-remote -portal again to get a new one."), 403
 
-    cookie, _csrf = redeemed
-    response = flask.redirect(flask.url_for("portal.jobs"))
+    cookie, _csrf, landing = redeemed
+
+    # 🔴 The handover's own destination first. The CLI knew which job it had
+    # just submitted; the cookie only knows where this browser was turned away
+    # from, which is nothing at all when the browser is being opened for the
+    # first time.
+    response = flask.redirect(
+        landing or _wanted() or flask.url_for("portal.jobs"))
+    response.delete_cookie(NEXT_COOKIE, samesite="Strict")
     response.set_cookie(
         COOKIE, cookie, max_age=SESSION_SECONDS, httponly=True,
         samesite="Strict",
@@ -369,6 +430,10 @@ def job(session, job_id):
     for item in items:
         per_node.setdefault((item["step"], item["index"]), []).append(item)
 
+    # 🔴 The same order as the picture beside it, which is the order the run
+    # reaches them -- not the alphabetical one the API lists.
+    detail["nodes"] = running_order(detail, edges)
+
     return flask.render_template(
         "job.html", job=detail, edges=edges, history=history,
         placements=_jobs().node_placements(session, job_id), per_node=per_node,
@@ -390,6 +455,59 @@ def job(session, job_id):
 _BOX_W, _BOX_H, _GAP_X, _GAP_Y, _PAD = 132, 28, 14, 22, 12
 
 
+def _depths(nodes, edges):
+    """How far into the run each node is: the longest path to it.
+
+    🔴 For a flowgraph that IS the order the work happens in, which is why the
+    same number lays out the picture and sorts the table beside it. Two views
+    of one run disagreeing about what comes first is worse than either ordering
+    on its own.
+    """
+    incoming = {node: [] for node in nodes}
+    for edge in edges:
+        target = (edge["to_step"], edge["to_index"])
+        source = (edge["from_step"], edge["from_index"])
+        if target in incoming and source in incoming:
+            incoming[target].append(source)
+
+    depth = {}
+
+    def _of(node, seen=()):
+        if node in depth:
+            return depth[node]
+        if node in seen:
+            # A cycle cannot happen in a flowgraph, and a layout routine is not
+            # the place to find out that one did.
+            return 0
+        found = max((_of(parent, seen + (node,)) + 1
+                     for parent in incoming[node]), default=0)
+        depth[node] = found
+        return found
+
+    for node in nodes:
+        _of(node)
+    return depth
+
+
+def running_order(job, edges):
+    """The job's nodes, in the order the run reaches them.
+
+    ⚠️ The API lists nodes by name, which puts `elaborate` in the MIDDLE of a
+    23-node asicflow, between `cts` and `floorplan`. That is a fine ordering
+    for a listing a client will sort itself and the wrong one for a table
+    somebody reads top to bottom while the run is going.
+
+    Ties break on the name, so two runs of the same flow render identically and
+    a reload never reshuffles the rows.
+    """
+    nodes = [(node["step"], node["index"]) for node in job.get("nodes") or []]
+    depth = _depths(nodes, edges)
+
+    return sorted(job.get("nodes") or [],
+                  key=lambda node: (depth.get((node["step"], node["index"]), 0),
+                                    node["step"], node["index"]))
+
+
 def _graph(job, edges):
     '''The flowgraph, as inline SVG.
 
@@ -409,29 +527,7 @@ def _graph(job, edges):
 
     states = {(node["step"], node["index"]): node["state"]
               for node in job["nodes"]}
-    incoming = {node: [] for node in nodes}
-    for edge in edges:
-        target = (edge["to_step"], edge["to_index"])
-        source = (edge["from_step"], edge["from_index"])
-        if target in incoming and source in incoming:
-            incoming[target].append(source)
-
-    depth = {}
-
-    def _depth(node, seen=()):
-        if node in depth:
-            return depth[node]
-        if node in seen:
-            # A cycle cannot happen in a flowgraph, and a drawing routine is
-            # not the place to find out it did.
-            return 0
-        found = max((_depth(parent, seen + (node,)) + 1
-                     for parent in incoming[node]), default=0)
-        depth[node] = found
-        return found
-
-    for node in nodes:
-        _depth(node)
+    depth = _depths(nodes, edges)
 
     columns = {}
     for node in nodes:
@@ -820,7 +916,13 @@ def account(session):
     return flask.render_template(
         "account.html",
         user=accounts.user(_store(), session.user_id),
-        limits=accounts.account_limits(config),
+        limits=accounts.account_limits(
+            config, accounts.effective_limits(_store(), config, session.user_id)),
+        # Read-only, and the two numbers together are the whole story: what
+        # this account gets, and what the deployment gives by default. A single
+        # figure cannot say whether somebody set it.
+        default_limits=config.limits,
+        overridable=accounts.OVERRIDABLE,
         usage=accounts.usage(_store(), session.user_id),
         lifetime=accounts.lifetime(_store(), session.user_id),
         assurance=config["identity_assurance"],

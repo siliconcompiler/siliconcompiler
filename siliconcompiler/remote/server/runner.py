@@ -18,6 +18,8 @@ the API process is a Slurm submit host.
 import argparse
 import os
 import sys
+import threading
+import time
 import traceback
 
 from pathlib import Path
@@ -44,10 +46,46 @@ _progress = None
 _image_sources = {}
 _image_mounts = []
 
+# Often enough that a stall is noticed in minutes, rarely enough that it is one
+# small write a minute on a filesystem every compute node shares. The server's
+# patience is `limits.run_heartbeat_seconds` and is many times this, because a
+# missed beat must never be read as a dead run.
+HEARTBEAT_SECONDS = 60
+
 
 def _publish() -> None:
     if _progress_path is not None:
+        _progress["heartbeat"] = now()
         write_progress(_progress_path, _progress)
+
+
+def _beat() -> None:
+    '''Say *still here* on a timer, for as long as this process lives.
+
+    🔴 **The only other evidence a run exists is the scheduler, and the
+    scheduler can be wrong.** A node killed without deleting itself leaves
+    Slurm reporting its jobs RUNNING for ever on a machine that is gone -- and
+    the API believes the scheduler, so those jobs never leave `running`
+    either. Observed exactly that: two jobs RUNNING for thirteen minutes on a
+    container that no longer existed.
+
+    ⚠️ It cannot be the node transitions, which is what `_publish` already
+    wrote on. A single OpenROAD node runs for half an hour without one, so
+    *nothing written lately* and *dead* were indistinguishable. A timer
+    separates them: the file moves every minute whatever the flow is doing,
+    and stops the moment this process does.
+
+    A daemon thread, so it never keeps the process alive a moment past the run.
+    '''
+    while True:
+        time.sleep(HEARTBEAT_SECONDS)
+        try:
+            _publish()
+        except Exception:                                        # noqa: BLE001
+            # A heartbeat that fails is not a reason to end a run. The server
+            # reads staleness, and a run whose filesystem has gone is a run
+            # that is about to fail on its own.
+            pass
 
 
 def _key(step: str, index: str) -> str:
@@ -103,6 +141,8 @@ def run(manifest: Path) -> int:
                   for step, index in runtime_nodes(project)},
     }
     _publish()
+
+    threading.Thread(target=_beat, daemon=True).start()
 
     TaskScheduler.register_callback("pre_node", _node_started)
     TaskScheduler.register_callback("post_node", _node_finished)
@@ -170,8 +210,19 @@ def _leave_the_allocation() -> None:
 
 
 def _sweep() -> None:
+    '''Decide what became of every node still open when the run ended.
+
+    🔴 Two answers, not one. A node that was RUNNING started and did not
+    finish, which is `failed`; a node that never started is `cancelled`, whose
+    published meaning is *the job ended before this node started*. Calling the
+    first one cancelled says something false about the single node somebody
+    looks at first -- it is where the work stopped.
+    '''
     for node in _progress["nodes"].values():
-        if node["state"] in ("pending", "queued", "preparing", "running"):
+        if node["state"] == "running":
+            node["state"] = "failed"
+            node["finished_at"] = node.get("finished_at") or now()
+        elif node["state"] in ("pending", "queued", "preparing"):
             node["state"] = "cancelled"
 
 

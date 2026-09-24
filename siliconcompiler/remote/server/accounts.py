@@ -12,13 +12,13 @@ Nothing here builds a response. A route renders JSON and the portal renders a
 page, and what they share is the question underneath.
 '''
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.store import now
 
-__all__ = ["account_limits", "devices_for", "lifetime", "owned_device",
-           "usage", "user"]
+__all__ = ["account_limits", "devices_for", "effective_limits", "lifetime",
+           "owned_device", "set_limit", "usage", "user", "OVERRIDABLE"]
 
 
 def user(store, user_id: str):
@@ -28,15 +28,51 @@ def user(store, user_id: str):
     return row
 
 
-def account_limits(config) -> Dict[str, Any]:
-    '''The account's allowance -- six members, and not ``GET /v1``'s key set.
+# Which limits a `user_limits` row may override. One today, and the list is
+# here rather than derived from the table so that adding a column is a
+# deliberate act in two places rather than an accident in one.
+OVERRIDABLE = ("auto_fetch_max_bytes",)
 
-    Four keys appear in both blocks and a client combines only those. Here they
-    come from the server's own config, because there are no plans and no
-    per-user overrides in this profile: a ceiling is the operator's policy
-    rather than an account's data.
+
+def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
+    '''The deployment's ceilings with this account's overrides applied.
+
+    🔴 **Sparse, three-valued, and `-1` never reaches a client.** A missing row
+    or a NULL column inherits the deployment's number; `-1` means unlimited and
+    the resolver turns it into the wire's `null`, because the wire had already
+    spent `null` on *unlimited* while the table needed it for *inherit*.
     '''
-    ceiling = config.limits
+    limits = dict(config.limits)
+
+    row = store.one("SELECT * FROM user_limits WHERE user_id = ?", (user_id,))
+    if row is None:
+        return limits
+
+    for key in OVERRIDABLE:
+        value = row[key]
+        if value is None:
+            continue                        # inherit
+        limits[key] = None if value == -1 else value
+
+    return limits
+
+
+def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    '''The account's allowance, as `GET /v1/me` publishes it.
+
+    ⚠️ Six members and not ``GET /v1``'s key set. Four keys appear in both
+    blocks and a client combines only those.
+
+    🆕 **`auto_fetch_max_bytes` is the seventh, and it is here because it is
+    the only one that can differ per account.** `GET /v1` carries no credential
+    and cannot vary by caller, so a per-user ceiling has nowhere else to be
+    published -- which makes this the block a client must read for it. The
+    deployment's default stays on `GET /v1`, and the two disagreeing is exactly
+    what an override looks like.
+    '''
+    ceiling = dict(config.limits)
+    ceiling.update(overrides or {})
+
     return {
         "concurrent_jobs": ceiling["concurrent_jobs"],
         "concurrent_nodes": None,           # reported-only, and unset here
@@ -44,7 +80,32 @@ def account_limits(config) -> Dict[str, Any]:
         "max_job_nodes": ceiling["max_job_nodes"],
         "devices": None,                    # null = unlimited, not zero
         "job_retention_days": ceiling["job_retention_days"],
+        # null here means UNLIMITED, which is the wire's meaning everywhere.
+        "auto_fetch_max_bytes": ceiling["auto_fetch_max_bytes"],
     }
+
+
+def set_limit(store, user_id: str, name: str, value: Optional[int],
+              actor: str, note: Optional[str] = None) -> None:
+    '''Record one operator decision about one account.
+
+    ⚠️ The only writer, and it is not the portal. A ceiling is policy, and this
+    deployment has no admin mode -- so the account screen renders this and
+    never sets it.
+    '''
+    if name not in OVERRIDABLE:
+        raise ValueError(
+            f"{name} is not a per-user limit; try {', '.join(OVERRIDABLE)}")
+    if value is not None and value < -1:
+        raise ValueError("a limit is -1 for unlimited, or zero and above")
+
+    store.execute(
+        f"INSERT INTO user_limits (user_id, {name}, set_by, note) "
+        "VALUES (?, ?, ?, ?) "
+        f"ON CONFLICT (user_id) DO UPDATE SET {name} = excluded.{name}, "
+        "  set_at = excluded.set_at, set_by = excluded.set_by, "
+        "  note = excluded.note",
+        (user_id, value, actor, note))
 
 
 def usage(store, user_id: str) -> Dict[str, Any]:

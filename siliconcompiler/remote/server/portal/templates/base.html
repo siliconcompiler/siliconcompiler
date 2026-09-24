@@ -62,6 +62,8 @@
   label { display: block; margin: 0 0 10px; font-size: 13px; color: var(--dim); }
   .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
   .muted { color: var(--dim); }
+  .live { float: right; font-size: 13px; color: var(--dim); }
+  .live a { margin-left: 10px; }
   .right { text-align: right; }
   .split { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
   .split .beside { flex: 0 0 auto; }
@@ -95,6 +97,20 @@
   </form>
   {% endif %}
 </header>
+{#
+  🔴 Only while there is something to watch. A page that reloads itself for ever
+  is a page that reloads while you are reading a finished run, and it keeps a
+  request in flight against a server nobody is looking at. `refresh` is set by
+  the page, and only when the job -- or something on the list -- is still
+  going.
+
+  ⚠️ `<meta http-equiv="refresh">` rather than a timer, deliberately: it is the
+  browser's own mechanism, it stops when the tab is closed, and it survives
+  scripting being off. The cost is that it discards scroll position, which is
+  why the interval is not aggressive and why the manual control exists beside
+  it.
+#}
+{% if refresh %}<meta http-equiv="refresh" content="{{ refresh }}">{% endif %}
 <main>{% block body %}{% endblock %}</main>
 {#
   Every timestamp goes out as UTC in a <time datetime>, because that is what

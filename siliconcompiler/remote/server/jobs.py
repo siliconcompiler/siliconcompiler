@@ -845,6 +845,9 @@ class JobService:
         what lets the process running the flow and the process serving this API
         be on different machines with nothing between them but a filesystem.
         '''
+        if self.abandon_if_expired(job):
+            return
+
         root = self.job_root(job["user_id"], job["id"])
         progress = runspec.read_progress(
             root / job["design"] / job["jobname"] / runspec.PROGRESS_FILENAME)
@@ -901,6 +904,12 @@ class JobService:
                 # to finish before it died does not change what was asked for.
                 final = "cancelled"
             self._finish(job, final, progress)
+        elif reported == "running" and self._silent(progress):
+            # 🔴 The run has stopped saying anything, and that is evidence the
+            # scheduler cannot give. See `_silent`.
+            logger.warning(f"{job['id']} has not reported since "
+                           f"{progress.get('heartbeat')}")
+            self._lost(job)
         elif reported == "running" and job["scheduler_job_id"] and not self._alive(job):
             # 🔴 Look again before declaring it lost. "The run says it is
             # going" and "the scheduler has never heard of it" are read at two
@@ -919,6 +928,76 @@ class JobService:
                 self._finish(job, settled["state"], settled)
             else:
                 self._lost(job)
+
+    def _silent(self, progress) -> bool:
+        '''Whether a run that claims to be going has stopped saying so.
+
+        🔴 **The backstop for a scheduler that is wrong, which is not
+        hypothetical.** A dynamic node killed without deleting itself leaves
+        Slurm reporting its jobs RUNNING for ever on a machine that is gone --
+        observed, for thirteen minutes, on a container that no longer existed.
+        Every other check here asks the scheduler, so every other check
+        believed it.
+
+        The runner writes a heartbeat on a timer rather than on node
+        transitions, because a single OpenROAD node runs for half an hour
+        without a transition: *nothing written lately* and *dead* had to be
+        told apart, and only a clock can do it.
+
+        ⚠️ **No heartbeat means no opinion.** A run started by a runner older
+        than this writes none, and the honest answer for it is the one this
+        server always gave -- ask the scheduler. Treating a missing field as
+        silence would declare every in-flight job of an upgrade dead.
+        '''
+        beat = progress.get("heartbeat")
+        if not beat:
+            return False
+
+        patience = self._config.limits["run_heartbeat_seconds"]
+        return beat < _ago(patience)
+
+    def abandon_if_expired(self, job) -> bool:
+        '''A job whose upload never arrived reaches a terminal state.
+
+        🔴 **`abandoned` is the tenth state and this is the only thing that
+        writes it.** Until now a job created and never uploaded to sat in
+        `created` for ever: it held a `pending_uploads` slot, it appeared on
+        every listing, and -- because the portal refreshes until a job is
+        terminal -- its page reloaded itself indefinitely for a run that was
+        never going to happen.
+
+        ⚠️ **Two ways to expire, because there are two ways to stall.** A job
+        that asked for a grant has one that lapses, which is the contract's
+        case. A job that was created and never asked has no expiry at all, so
+        the clock runs from its creation instead -- otherwise the only jobs
+        that could ever be abandoned are the ones that got furthest.
+
+        Returns whether it moved, so a caller can stop looking at it.
+        '''
+        if job["state"] not in ("created", "awaiting_input"):
+            return False
+
+        # The later of the two: old enough by the operator's clock, AND not
+        # holding a grant that is still good. A job whose upload is legitimately
+        # in flight has a live grant and is never taken.
+        deadline = max(
+            _after(job["created_at"],
+                   self._config.limits["abandon_after_seconds"]),
+            job["upload_grant_expires_at"] or "")
+        if deadline > now():
+            return False
+
+        logger.info(f"{job['id']} was never uploaded to; abandoning it")
+        with self._store.transaction():
+            self._store.execute(
+                "UPDATE jobs SET finished_at = ? WHERE id = ?",
+                (now(), job["id"]))
+            self._transition(
+                job["id"], job["state"], "abandoned",
+                reason="the upload never arrived and the grant expired")
+
+        self._storage.discard_upload(job["id"])
+        return True
 
     def _reap_orphans(self, job) -> None:
         '''Stop the work a run left behind when it went away.
@@ -1055,6 +1134,20 @@ class JobService:
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, finished_at = ? WHERE id = ?",
                 (f"{TYPE_BASE}/scheduler-lost", now(), job["id"]))
+
+            # 🔴 A node that had STARTED did not get cancelled, it died. The
+            # contract glosses `cancelled` as *the job ended before this node
+            # started*, so using it for a node that was running says something
+            # false about the one node somebody will look at first -- it is
+            # where the work stopped. `failed` is what *started and did not
+            # finish* means.
+            self._store.execute(
+                "UPDATE job_nodes SET state = 'failed', error_type = ? "
+                "WHERE job_id = ? AND state = 'running'",
+                (f"{TYPE_BASE}/run-failed", job["id"]))
+
+            # Everything the run never reached. These really did end before
+            # they started.
             self._store.execute(
                 "UPDATE job_nodes SET state = 'cancelled' WHERE job_id = ? "
                 "AND state NOT IN ('completed', 'failed', 'skipped')", (job["id"],))
@@ -1340,6 +1433,11 @@ class JobService:
     def _row(self, job_id: str):
         return self._store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
 
+    def web_url(self, job_id: str) -> Optional[str]:
+        """This job's page for a person, where this deployment has one."""
+        base = self._config["web_url_base"]
+        return f"{base.rstrip('/')}/portal/jobs/{job_id}" if base else None
+
     def _why(self, job) -> Optional[str]:
         '''What actually went wrong, in the run's own words.
 
@@ -1399,8 +1497,16 @@ class JobService:
             "deleted_at": job["deleted_at"],
             "error": _error(job["error_type"], self._why(job)),
         }
-        # No `web_url`: absent, never null, where the deployment serves no web
-        # UI. A null would claim there is a portal and this job has no page.
+
+        # 🔴 Followed, never constructed. The portal's route shape may change
+        # without a version bump, so a client that builds this itself breaks
+        # quietly -- which is why it is published at all rather than left as
+        # something an id could be pasted into.
+        #
+        # Absent, never null, where the deployment serves no web UI.
+        page = self.web_url(job["id"])
+        if page:
+            body["web_url"] = page
 
         rows = self._store.all(
             'SELECT step, "index", state, started_at, finished_at, exit_code, error_type '
@@ -1495,6 +1601,42 @@ def _pdk(project) -> str:
     except Exception:                                           # noqa: BLE001
         pdk = None
     return pdk or "none"
+
+
+def _after(when: str, seconds: int) -> str:
+    """`seconds` after a stored timestamp, in the format the store writes.
+
+    🔴 Milliseconds, three digits, exactly as `store.now()` writes them. These
+    are compared as STRINGS against stored timestamps, so a fraction of the
+    wrong length does not compare wrong by a rounding error -- it compares
+    wrong by character: `.12Z` sorts after `.123Z`, because `Z` is above `3`.
+    The first version of this truncated one digit too far and every deadline
+    read as *not yet*.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    try:
+        moment = datetime.fromisoformat(str(when).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        # Unreadable is not a licence to abandon somebody's job.
+        return "9999-12-31T23:59:59.999Z"
+
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    moment += timedelta(seconds=seconds)
+    return moment.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+def _ago(seconds: int) -> str:
+    """The timestamp `seconds` ago, in the one format this store writes.
+
+    A string comparison, because that is what the column holds and what `now()`
+    produces -- RFC 3339 in UTC to milliseconds sorts lexically.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    when = datetime.now(timezone.utc) - timedelta(seconds=seconds)
+    return when.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 def _error(error_type: Optional[str],

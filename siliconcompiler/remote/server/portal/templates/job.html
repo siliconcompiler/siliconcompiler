@@ -1,9 +1,17 @@
 {% extends "base.html" %}
 {% set active = 'jobs' %}
+{# 🔴 Top level, NOT inside `block body`: a `set` inside a child block never
+   reaches the parent layout, so the meta tag silently never appeared. #}
+{% set refresh = 10 if not job.terminal else 0 %}
 {% block title %}{{ job.design }}/{{ job.jobname }} · sc-server{% endblock %}
 {% block body %}
 <h2>{{ job.design }} <span class="muted">/ {{ job.jobname }}</span></h2>
-<p class="lede mono">{{ job.id }}</p>
+<p class="lede mono">{{ job.id }}
+  {% if not job.terminal %}
+  <span class="live">refreshing every 10s
+    <a href="{{ url_for('portal.job', job_id=job.id) }}">refresh now</a></span>
+  {% endif %}
+</p>
 
 <div class="panel">
   <div class="grid">
@@ -117,13 +125,25 @@ that anyone cancelled it. A node the flow considered and chose not to run reads
     <td><a href="{{ url_for('portal.log', job_id=job.id,
                             step=node.step, index=node['index']) }}">log</a></td>
     <td>
+      {#-
+        🔴 Clicking `reports` SHOWS you the reports. It used to download a
+        .tar.gz from here, with the only way to look inside sitting on the
+        artifacts page -- which is the page nobody reaches first, so the
+        feature may as well not have existed. An archive small enough to open
+        opens; everything else downloads, because that is the honest answer for
+        a six-gigabyte bundle.
+      -#}
       {%- for item in per_node.get((node.step, node['index']), []) -%}
-        {%- if item.fetchable -%}
-        <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}"
-           >{{ item.kind }}</a>{% if not loop.last %}, {% endif %}
+        {%- if not item.fetchable -%}
+        <span class="muted">{{ item.kind }}</span>
+        {%- elif item.media_type == 'application/gzip'
+                 and (item.size_bytes or 0) <= browse_limit -%}
+        <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
+           >{{ item.kind }}</a>
         {%- else -%}
-        <span class="muted">{{ item.kind }}</span>{% if not loop.last %}, {% endif %}
-        {%- endif -%}
+        <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}"
+           >{{ item.kind }}</a>
+        {%- endif %}{% if not loop.last %}, {% endif %}
       {%- else -%}<span class="muted">—</span>{%- endfor -%}
     </td>
   </tr>

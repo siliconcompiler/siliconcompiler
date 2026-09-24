@@ -69,6 +69,10 @@ def test_eighteen_tables():
         "job_nodes", "job_node_edges",
         "artifact_kinds", "storage_locations", "artifacts",
         "software", "software_versions", "images", "image_contents",
+        # 🆕 The nineteenth, and the contract's own table. It arrived with a
+        # per-user `auto_fetch_max_bytes`: a limit that can differ per account
+        # has to be stored per account.
+        "user_limits",
     }
 
 
@@ -82,8 +86,14 @@ def test_dropped_tables_are_absent():
         tables = {row["name"] for row in store.all(
             "SELECT name FROM sqlite_master WHERE type = 'table'")}
 
+    # ⚠️ `user_limits` is NOT in this list any more and `plans` still is, which
+    # looks inconsistent and is not. The contract pairs them -- a plan is a
+    # named tier and `user_limits` is the sparse override of one -- and this
+    # deployment has no tiers, so what a row inherits from is the operator's
+    # config.json rather than a plan. Taking the override table without the
+    # plan table is the whole of the difference.
     for dropped in ("grants", "resources", "resource_agreements", "plans",
-                    "user_limits", "usage_events", "terms_documents",
+                    "usage_events", "terms_documents",
                     "terms_versions", "terms_decisions", "projects",
                     "project_members", "job_project_assignments",
                     "ci_credentials", "device_authorizations", "auth_events",

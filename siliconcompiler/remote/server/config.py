@@ -63,6 +63,32 @@ DEFAULT_LIMITS: Dict[str, int] = {
     # still fetch forty times it, because the alternative -- a budget for the
     # whole listing -- makes what arrives depend on what order it arrives in.
     "auto_fetch_max_bytes": 104857600,      # bytes, per artifact (100 MiB)
+
+    # 🆕 How long a running job may go without its runner saying anything
+    # before this server stops believing it is running.
+    #
+    # 🔴 The backstop for a scheduler that is wrong. Until this existed the
+    # ONLY way a dead run was noticed was the scheduler forgetting it, so a
+    # node that vanished without deleting itself left Slurm reporting RUNNING
+    # for ever and the job with it.
+    #
+    # ⚠️ Generously larger than the runner's own 60s beat. A missed beat is a
+    # busy filesystem; fifteen minutes of silence from a process whose only job
+    # is to write one line a minute is a dead process.
+    "run_heartbeat_seconds": 900,           # seconds
+
+    # 🆕 How long a job may sit with no upload before it is `abandoned`.
+    #
+    # 🔴 A ceiling rather than a constant, because it is a judgement about
+    # people and not about the protocol: a slow link uploading a gigabyte and a
+    # script that died between create and PUT look identical from here, and
+    # only an operator knows which their deployment has more of.
+    #
+    # ⚠️ It is the floor and not the whole answer -- a job holding a grant that
+    # has not yet lapsed is never abandoned, however old it is. Otherwise
+    # setting this below the grant's own lifetime would abandon uploads that
+    # were still legitimately in flight.
+    "abandon_after_seconds": 900,           # seconds
 }
 
 DEFAULTS: Dict[str, Any] = {
@@ -100,6 +126,20 @@ DEFAULTS: Dict[str, Any] = {
 
     # How long a client is told to wait before polling a job again.
     "poll_interval_seconds": 5,
+
+    # Where a person reads about a job, as an absolute origin -- this
+    # deployment then appends its own portal path. `GET /v1/jobs/{id}` and the
+    # create response publish the result as `web_url`.
+    #
+    # 🔴 **Config, and never `Host` or `X-Forwarded-Host`.** Both are attacker
+    # controlled unless a trusted proxy is rewriting them, and the output here
+    # is a link that gets pasted into a ticket and clicked by somebody else --
+    # the same trap as trusting a forwarded client address, with a worse
+    # payoff for whoever poisons it.
+    #
+    # None means ABSENT rather than null: null would claim there is a portal
+    # and that this job has no page on it, which is never true.
+    "web_url_base": None,
 
     # Whether the compute nodes run each job's work inside a container this
     # deployment registered.

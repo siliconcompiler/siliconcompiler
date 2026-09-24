@@ -175,6 +175,13 @@ class SlurmDispatcher(Dispatcher):
 
         command = [
             "sbatch", "--parsable",
+            # 🔴 A node failure ends this run; it does not silently start it
+            # again. Slurm's default is to requeue, and a requeued batch job
+            # re-executes the runner from the top -- against a build directory
+            # that already has output in it, and quite possibly after this
+            # server has already declared the job lost and told its owner so.
+            # One dispatch, one outcome, and a resubmit is the owner's to make.
+            "--no-requeue",
             f"--job-name=sc-{job_id}",
             f"--chdir={jobroot}",
             f"--output={jobroot / RUN_LOG}",

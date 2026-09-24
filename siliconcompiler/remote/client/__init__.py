@@ -552,7 +552,7 @@ class Client:
                 "before anything is uploaded -- until you install a version "
                 "this server accepts or an operator adds yours.")
 
-    def portal(self, open_browser: bool = True) -> str:
+    def portal(self, open_browser: bool = True, landing: str = None) -> str:
         '''Hand this machine's browser a session, and open it there.
 
         🔴 The browser has none of what this client has. Identity here is a
@@ -570,8 +570,12 @@ class Client:
 
         # Outside /v1, because /v1 is exactly the contract's endpoints and this
         # is not one of them.
+        # `landing` is where the browser should end up once the cookie is
+        # set. Without it the handover lands on the jobs list, which is the
+        # wrong answer when the caller knows exactly which job it just made.
         answer = self.transport.request(
-            "POST", "/portal/session", authenticated=True, on_v1=False).json()
+            "POST", "/portal/session", authenticated=True, on_v1=False,
+            json_body={"next": landing} if landing else {}).json()
 
         url = answer["url"]
         self.logger.info(f"Opening {url}")

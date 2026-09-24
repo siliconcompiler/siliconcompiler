@@ -15,6 +15,20 @@
 
 {% if entries is not none %}
   {#
+    🔴 The whole archive, before the file list. Making the job page BROWSE an
+    archive took away the only download there was -- clicking `reports` used to
+    hand over the tar.gz -- and picking 59 files out of a page one at a time is
+    not a substitute for taking the lot.
+  #}
+  <p class="panel">
+    <b>{{ entries | length }} file{{ '' if entries | length == 1 else 's' }}</b>
+    <span class="muted">&middot; {{ item.size_bytes | size }} compressed</span>
+    &nbsp;
+    <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}"
+       >Download all of it</a>
+  </p>
+
+  {#
     The listing. Served out of the ARCHIVE rather than the working tree,
     because the working tree goes away with the job and the archive is the
     thing carrying a retention date.

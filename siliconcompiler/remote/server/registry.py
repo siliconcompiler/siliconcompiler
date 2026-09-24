@@ -25,6 +25,7 @@ import argparse
 import getpass
 import json
 import logging
+import re
 import socket
 import sys
 
@@ -33,7 +34,7 @@ from typing import List, Optional
 
 from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.config import Config
-from siliconcompiler.remote.server.store import Store
+from siliconcompiler.remote.server.store import Store, StoreVersionError
 
 __all__ = ["main"]
 
@@ -262,6 +263,82 @@ def _cmd_resolve(store, args) -> int:
     return 0
 
 
+_SCALE = {"": 1, "k": 1024, "ki": 1024, "m": 1024 ** 2, "mi": 1024 ** 2,
+          "g": 1024 ** 3, "gi": 1024 ** 3, "t": 1024 ** 4, "ti": 1024 ** 4}
+
+
+def _bytes(text: str) -> Optional[int]:
+    """`unlimited`, `inherit`, or a number with an optional binary suffix.
+
+    ⚠️ Three answers rather than two, because the table's encoding has three:
+    `inherit` clears the override back to the deployment's value, and
+    `unlimited` is a decision to have no ceiling. A bare number is the number.
+    """
+    value = text.strip().lower()
+    if value in ("inherit", "default", "none"):
+        return None
+    if value in ("unlimited", "-1"):
+        return -1
+
+    match = re.fullmatch(r"(\d+)\s*([kmgt]i?)?b?", value)
+    if not match:
+        raise SystemExit(
+            f"{text!r} is not a size: try 100MiB, unlimited, or inherit")
+    return int(match.group(1)) * _SCALE[match.group(2) or ""]
+
+
+def _cmd_limits(store, args) -> int:
+    """Show or set what one account is allowed.
+
+    🔴 The operator sets a ceiling and the portal shows it. A ceiling is
+    policy, and this deployment has no admin mode -- so there is no endpoint
+    and no form, and this is the whole of the write path.
+    """
+    from siliconcompiler.remote.server import accounts
+    from siliconcompiler.remote.server.config import Config
+
+    config = Config.load(Path(args.datadir).resolve())
+
+    if args.user:
+        who = store.one(
+            "SELECT id FROM users WHERE id = ? OR subject = ?",
+            (args.user, args.user))
+        if who is None:
+            raise SystemExit(f"no such user: {args.user}")
+        people = [who["id"]]
+    else:
+        people = [row["id"] for row in store.all("SELECT id FROM users ORDER BY id")]
+
+    if args.set:
+        if not args.user:
+            raise SystemExit("-set needs a user")
+        name, sep, value = args.set.partition("=")
+        if not sep:
+            raise SystemExit("-set takes name=value, e.g. auto_fetch_max_bytes=1GiB")
+        try:
+            accounts.set_limit(store, people[0], name.strip(), _bytes(value),
+                               _operator(store), note=args.note)
+        except ValueError as e:
+            raise SystemExit(str(e))
+
+    for user_id in people:
+        row = store.one("SELECT * FROM users WHERE id = ?", (user_id,))
+        effective = accounts.effective_limits(store, config, user_id)
+        override = store.one(
+            "SELECT * FROM user_limits WHERE user_id = ?", (user_id,))
+
+        print(f"{user_id}  {row['issuer']}:{row['subject']}")
+        for name in accounts.OVERRIDABLE:
+            value = effective[name]
+            shown = "unlimited" if value is None else str(value)
+            source = "set" if override and override[name] is not None else "default"
+            print(f"  {name} = {shown}  ({source})")
+        if override and override["note"]:
+            print(f"  note: {override['note']}")
+
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python3 -m siliconcompiler.remote.server.registry",
@@ -333,6 +410,15 @@ def _parser() -> argparse.ArgumentParser:
         help="one node per tool, repeatable")
     resolve.set_defaults(run=_cmd_resolve)
 
+    limits = commands.add_parser(
+        "limits", help="what one account is allowed, and setting it")
+    limits.add_argument("user", nargs="?", help="a user id or subject; omit for all")
+    limits.add_argument(
+        "-set", metavar="name=value",
+        help="auto_fetch_max_bytes=1GiB, =unlimited, or =inherit")
+    limits.add_argument("-note", help="why, for whoever reads this later")
+    limits.set_defaults(run=_cmd_limits)
+
     return parser
 
 
@@ -345,7 +431,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not datadir.exists():
         raise SystemExit(f"{datadir} does not exist")
 
-    with Store(datadir / "server.db") as store:
+    # 🔴 The refusal already says what to do; a traceback on top of it buries
+    # that in twenty lines of frames and makes an operational message read like
+    # a crash. This is the one error here that a person is meant to act on.
+    try:
+        store = Store(datadir / "server.db")
+    except StoreVersionError as e:
+        raise SystemExit(str(e))
+
+    with store:
         return args.run(store, args)
 
 

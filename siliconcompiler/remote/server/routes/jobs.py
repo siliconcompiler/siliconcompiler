@@ -81,12 +81,20 @@ def create(session):
     '''
     body, status = _jobs().create(session, _body(), _idempotency_key())
 
-    response = _private({
+    created = {
         "id": body["id"],
         "state": body["state"],
         "project": None,
         "created_at": body["created_at"],
-    }, status)
+    }
+    # OPTIONAL and absent where this deployment serves no web UI. It is here as
+    # well as on the job object because this is the response a CLI has in hand
+    # at submit time, and the id on its own is useless to paste into a browser.
+    page = _jobs().web_url(body["id"])
+    if page:
+        created["web_url"] = page
+
+    response = _private(created, status)
     if status == 201:
         response.headers["Location"] = f"/v1/jobs/{body['id']}"
     return response

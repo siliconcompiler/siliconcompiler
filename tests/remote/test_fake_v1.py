@@ -45,7 +45,9 @@ def test_capabilities_carry_every_required_member(capabilities):
         "max_job_nodes", "max_upload_bytes", "job_retention_days",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_log_stream_seconds", "max_archive_members",
-        "max_archive_expanded_bytes", "auto_fetch_max_bytes"}
+        "max_archive_expanded_bytes", "auto_fetch_max_bytes",
+        "run_heartbeat_seconds",
+        "abandon_after_seconds"}
 
     # terms_url is OPTIONAL and absent unless an operator sets one, which is
     # this deployment's default. Absent is not the same as empty.
