@@ -211,12 +211,13 @@ class CliDashboard(AbstractDashboard):
 
         Args:
             payload (dict, optional): A dictionary that can contain additional
-                                      data, such as node start times. Defaults to None.
+                                      data, such as node start times and the
+                                      durations of finished nodes. Defaults to None.
         """
-        starttimes = None
-        if payload and "starttimes" in payload:
-            starttimes = payload["starttimes"]
-        self._dashboard.update_manifest(self._project, starttimes=starttimes)
+        payload = payload or {}
+        self._dashboard.update_manifest(self._project,
+                                        starttimes=payload.get("starttimes"),
+                                        durations=payload.get("durations"))
 
     def update_graph_manifests(self):
         """Placeholder method for updating graph manifests. Currently not implemented."""

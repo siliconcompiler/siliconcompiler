@@ -1512,6 +1512,24 @@ def test_get_job_records_totaltime_metric(mock_project, fake_console):
 
 
 @pytest.mark.timeout(30)
+def test_get_job_falls_back_to_a_given_duration(mock_project, fake_console):
+    """A finished node with no tasktime yet shows the duration it was given --
+    a remote run knows when a node started and ended before it has the node's
+    manifest -- and the tool's own tasktime wins once there is one."""
+    mock_project.set("record", "status", "success", step="route.global", index=0)
+    mock_project.set("record", "status", "success", step="route.detailed", index=0)
+    mock_project.set("metric", "tasktime", 12.5, step="route.detailed", index=0)
+
+    dashboard = MPManager.get_dashboard()
+    job = dashboard._get_job(mock_project, durations={("route.global", "0"): 7.0,
+                                                      ("route.detailed", "0"): 99.0})
+
+    time_of = {n["step"]: n["time"]["duration"] for n in job.nodes}
+    assert time_of["route.global"] == 7.0
+    assert time_of["route.detailed"] == 12.5
+
+
+@pytest.mark.timeout(30)
 def test_render_job_dashboard_multi_job_limit_progress(
         mock_running_job_lg, mock_running_job_lg_second,
         dashboard_xsmall):

@@ -560,7 +560,8 @@ class RemoteRun:
             return
 
         try:
-            board.update_manifest({"starttimes": _starttimes(job)})
+            board.update_manifest({"starttimes": _starttimes(job),
+                                   "durations": _durations(job)})
         except Exception as e:                                   # noqa: BLE001
             # A repaint that fails is a repaint. It must not end a run.
             logger.debug(f"could not update the dashboard: {e}")
@@ -764,6 +765,37 @@ def _starttimes(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
             starttimes[(step, index)] = moment
 
     return starttimes
+
+
+def _durations(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
+    '''How long each finished node took, as the server saw it.
+
+    🔴 **The job object already says when every node started and ended**, so a
+    finished node's time does not have to wait for its manifest -- which comes
+    a poll later, and not at all from a deployment that withholds it. The board
+    shows `metric,tasktime` where it has one and this where it does not, so the
+    tool's own number replaces the server's the moment it arrives.
+
+    ⚠️ Wall time on the server, not the tool's: it includes whatever the node
+    spent starting up. Close enough for a column that is otherwise blank, and
+    never written into the record, where it would pass for the tool's.
+    '''
+    durations = {}
+
+    for node in job.get("nodes") or []:
+        step, index = node.get("step"), node.get("index")
+        if not step or index is None or not node.get("terminal"):
+            continue
+        if not node.get("started_at") or not node.get("finished_at"):
+            # A node that never ran -- skipped, or cancelled before it began.
+            continue
+
+        started = _epoch(node["started_at"])
+        finished = _epoch(node["finished_at"])
+        if started is not None and finished is not None and finished >= started:
+            durations[(step, index)] = finished - started
+
+    return durations
 
 
 def _epoch(timestamp: str) -> Optional[float]:

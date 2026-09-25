@@ -677,6 +677,34 @@ def test_the_dashboard_is_given_the_states_and_the_clocks(fake_v1, run,
     assert starttimes == {("stepone", "0"): 1790071200.0}
 
 
+def test_a_finished_node_has_a_time_before_its_manifest_arrives(
+        fake_v1, run, nop_project):
+    '''🔴 The job object says when each node started and ended, so the time
+    column need not wait for the manifest -- which a deployment may withhold.
+    A running node keeps its ticking clock; one that never ran has no time.'''
+    painted = []
+
+    class Board:
+        def is_running(self):
+            return True
+
+        def update_manifest(self, payload=None):
+            painted.append(payload)
+
+    nop_project._Project__dashboard = Board()
+
+    run._paint(job_body("running", nodes=[
+        {"step": "stepone", "index": "0", "state": "completed", "terminal": True,
+         "started_at": "2026-09-22T10:00:00.000Z",
+         "finished_at": "2026-09-22T10:01:30.500Z"},
+        {"step": "steptwo", "index": "0", "state": "running", "terminal": False,
+         "started_at": "2026-09-22T10:01:31.000Z", "finished_at": None},
+        {"step": "stepthree", "index": "0", "state": "skipped", "terminal": True,
+         "started_at": None, "finished_at": None}]))
+
+    assert painted[0]["durations"] == {("stepone", "0"): 90.5}
+
+
 def test_a_dashboard_run_reports_only_what_moved(fake_v1, run, nop_project, caplog):
     '''The dashboard is already showing every node's state, so the full table
     underneath it is the same information twice. What it cannot show is the
