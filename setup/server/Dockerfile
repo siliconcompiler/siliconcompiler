@@ -20,14 +20,19 @@ ARG SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:latest
 
 
 ##############################################################################
-# Stage 1 -- build a wheel with a real version.
+# Stage 1 -- work out which version this is.
 #
-# siliconcompiler's version is derived from git by setuptools_scm, so this
-# stage takes the whole context including .git and lets it do that properly.
-# Only the wheel crosses into the final image, so the history does not ship.
+# siliconcompiler's version is derived from git by setuptools_scm. It cannot be
+# skipped by inventing one: lambdapdk requires siliconcompiler>=0.38.5, so a
+# placeholder makes pip's resolver refuse.
 #
-# It cannot be skipped by inventing a version: lambdapdk requires
-# siliconcompiler>=0.38.5, so a placeholder makes pip's resolver refuse.
+# 🔴 **A stage of its own, and that is what keeps an unchanged tree cached.**
+# This is the one step that reads `.git`, and `.git` changes on every git
+# command -- a commit, a fetch, a `git status` refreshing the index. Read in the
+# wheel stage, it invalidated the source copy and every layer after it, so a
+# checkout whose SOURCE had not moved still rebuilt the wheel, reinstalled it
+# and rebuilt all three images. Here it only reruns this step, whose output is
+# one line; when that line is unchanged, everything downstream is a cache hit.
 #
 # 🔴 **The version is pinned to the last TAG, on every path, and that is not a
 # shortcut.** `siliconcompiler.__version__` is setuptools_scm's
@@ -44,25 +49,28 @@ ARG SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:latest
 # editable install has already written the answer into the tree, and reading it
 # is what lets a worktree build with plain `docker compose up`.
 ##############################################################################
-FROM ubuntu:24.04 AS wheel
+FROM ubuntu:24.04 AS version
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG SC_VERSION=""
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates git python3 python3-venv python3-pip \
+        ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /src
-RUN set -eu; \
+# Mounted rather than copied: nothing of the tree is kept in a layer, so the
+# only thing this stage hands on is the answer.
+RUN --mount=type=bind,target=/ctx set -eu; \
     version="$SC_VERSION"; \
-    if [ -z "$version" ] && [ -d /src/.git ]; then \
-        version=$(git -C /src describe --tags --abbrev=0 --match 'v[0-9]*' \
-                  | sed 's/^v//'); \
+    if [ -z "$version" ] && [ -d /ctx/.git ]; then \
+        # The mounted tree belongs to the host's user, and git refuses to read a
+        # repository somebody else owns unless told this one is expected.
+        version=$(git -c safe.directory='*' -C /ctx describe --tags \
+                  --abbrev=0 --match 'v[0-9]*' | sed 's/^v//'); \
     fi; \
-    if [ -z "$version" ] && [ -f /src/siliconcompiler/_version.py ]; then \
+    if [ -z "$version" ] && [ -f /ctx/siliconcompiler/_version.py ]; then \
         version=$(sed -n 's/^__base_version__ = "\(.*\)"$/\1/p' \
-                  /src/siliconcompiler/_version.py); \
+                  /ctx/siliconcompiler/_version.py); \
     fi; \
     if [ -z "$version" ]; then \
         echo "Cannot work out what version this is. There is no .git" >&2; \
@@ -73,13 +81,34 @@ RUN set -eu; \
         exit 1; \
     fi; \
     echo "building siliconcompiler $version"; \
-    # Removed rather than left in place: setuptools_scm prefers what it can
-    # read over what it was told, and what it would read is the dev version
-    # this stage exists to avoid.
-    rm -rf /src/.git; \
-    export SETUPTOOLS_SCM_PRETEND_VERSION="$version"; \
-    python3 -m venv /build; \
-    /build/bin/pip install --no-cache-dir build; \
+    echo "$version" > /version
+
+
+##############################################################################
+# Stage 2 -- build a wheel at that version.
+#
+# Only the wheel crosses into the final image. The source is copied by name --
+# the package and the four files its metadata reads -- so nothing else in the
+# tree can invalidate it; Dockerfile.dockerignore says the same thing from the
+# other side.
+##############################################################################
+FROM ubuntu:24.04 AS wheel
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates python3 python3-venv python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Before the source, so a source change does not reinstall the builder.
+RUN python3 -m venv /build && /build/bin/pip install --no-cache-dir build
+
+COPY --from=version /version /version
+COPY pyproject.toml README.md LICENSE MANIFEST.in /src/
+COPY siliconcompiler /src/siliconcompiler
+
+RUN set -eu; \
+    export SETUPTOOLS_SCM_PRETEND_VERSION="$(cat /version)"; \
     cd /src; \
     /build/bin/python -m build --wheel --outdir /wheels; \
     ls -l /wheels

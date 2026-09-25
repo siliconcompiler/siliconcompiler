@@ -1,18 +1,25 @@
 # Scoped to setup/server/Dockerfile, so the repo-root .dockerignore is left
-# alone -- it excludes /setup/docker/, which this build has no use for either.
+# alone.
 #
-# .git is deliberately NOT excluded: the first build stage needs it so
-# setuptools_scm can derive a real version, exactly as a local install does.
-# It costs a large context transfer, and it never reaches the final image --
-# only the built wheel is copied out of that stage.
-.venv/
-build/
-**/build/
+# 🔴 **Everything out, and what the build reads let back in by name.** A list
+# of what to leave out was always one file short: `.pytest_cache/` is rewritten
+# by every test run, a stray file at the root is picked up the moment it
+# appears, and either one changed the context -- so the source copy missed the
+# cache and all three images rebuilt although nothing in them had changed. An
+# allow-list means a new directory in the tree cannot do that.
+#
+# .git is let in for the `version` stage alone, which mounts it rather than
+# copying it: it changes on every git command, and there it costs one cheap
+# step. The wheel stage copies only the package and its metadata files.
+*
+
+!pyproject.toml
+!README.md
+!LICENSE
+!MANIFEST.in
+!siliconcompiler/
+!setup/server/
+!.git
+
 **/__pycache__/
-siliconcompiler.egg-info/
-/docs/
-/tests/
-/examples/
-/utils/
-/setup/docker/
-*.md
+**/*.pyc
