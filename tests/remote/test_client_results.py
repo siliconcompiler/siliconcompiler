@@ -698,3 +698,132 @@ def test_a_server_that_publishes_no_ceiling_fetches_everything(
                   body="big\n", content_type="text/plain")
 
     assert results.fetch("j1") == 1
+
+
+###########################
+# A node's manifest, where its archive is withheld
+###########################
+
+def _finished(step="stepone"):
+    return {"nodes": [{"step": step, "index": "0", "state": "completed",
+                       "terminal": True}]}
+
+
+def test_a_nodes_manifest_is_taken_where_its_archive_is_withheld(
+        fake_v1, results, nop_project):
+    '''🔴 A deployment that hands over manifests and no bulk output still
+    hands over the half that says what happened -- and taking it as the node
+    finishes is what fills the dashboard's time, warnings and errors while the
+    rest of the run goes on.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("node", "stepone", "0", fetchable=False),
+        artifact("manifest", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-stepone-0", "{}")
+
+    assert results.take("j1", _finished()) == 1
+
+    from siliconcompiler.utils.paths import workdir
+    assert os.path.isfile(os.path.join(
+        workdir(nop_project, step="stepone", index="0"), "outputs", "gcd.pkg.json"))
+
+
+def test_a_nodes_manifest_is_not_fetched_beside_its_archive(fake_v1, results):
+    '''The archive holds it, so fetching both downloads it twice.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("node", "stepone", "0"), artifact("manifest", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
+                  tarball(["outputs/gcd.pkg.json"]),
+                  content_type="application/gzip")
+
+    assert results.take("j1", _finished()) == 1
+
+    fetched = [c.request.path_url for c in fake_v1.calls
+               if "/artifacts/art-" in c.request.path_url]
+    assert fetched == ["/v1/jobs/j1/artifacts/art-node-stepone-0"]
+
+
+def test_an_archive_too_large_to_fetch_does_not_displace_the_manifest(
+        fake_v1, results):
+    '''🔴 An archive that will not be fetched covers nothing -- otherwise the
+    node's record is lost to the size of its outputs.'''
+    results._ceiling = 10
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("node", "stepone", "0", size_bytes=1000),
+        artifact("manifest", "stepone", "0", size_bytes=5)]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-stepone-0", "{}")
+
+    assert results.take("j1", _finished()) == 1
+
+
+def test_the_job_manifest_fills_in_what_every_node_did(fake_v1, results,
+                                                       nop_project):
+    '''🔴 The job manifest is the run's final state written whole, and it has
+    no journal -- so replaying it found nothing, and a listing holding only
+    that manifest came back with every node's time, warnings and errors
+    blank. Its per-node values are copied instead.'''
+    from siliconcompiler import Project
+
+    nop_project.write_manifest("final.pkg.json")
+    final = Project.from_manifest(filepath="final.pkg.json")
+    final.set("metric", "warnings", 7, step="stepone", index="0")
+    final.set("metric", "tasktime", 12.5, step="stepone", index="0")
+    final.set("record", "status", "success", step="stepone", index="0")
+    # A global value is the server's setting for the run, not the caller's.
+    final.set("option", "jobname", "servers-own")
+    final.write_manifest("final.pkg.json")
+
+    with open("final.pkg.json") as f:
+        body = f.read()
+    assert "__journal__" not in json.loads(body)
+
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [artifact("manifest")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-None-None", body)
+
+    assert nop_project.get("metric", "warnings", step="stepone", index="0") is None
+
+    results.fetch("j1")
+
+    assert nop_project.get("metric", "warnings", step="stepone", index="0") == 7
+    assert nop_project.get("metric", "tasktime", step="stepone", index="0") == 12.5
+    assert nop_project.get("record", "status", step="stepone", index="0") == "success"
+    assert nop_project.option.get_jobname() == "job0"
+
+
+def test_the_upload_manifest_is_never_folded_back_in(results, nop_project):
+    '''Until the server's copy arrives, the file at that path is the one this
+    client wrote to upload -- the pre-run record -- and folding it in would
+    put that over what the nodes have since said.'''
+    from siliconcompiler.utils.paths import jobdir
+
+    os.makedirs(jobdir(nop_project), exist_ok=True)
+    nop_project.write_manifest(os.path.join(jobdir(nop_project), "gcd.pkg.json"))
+    nop_project.set("metric", "warnings", 3, step="stepone", index="0")
+
+    results._replay()
+
+    assert nop_project.get("metric", "warnings", step="stepone", index="0") == 3
+
+
+###########################
+# Said once per reason
+###########################
+
+def test_what_is_withheld_for_one_reason_is_said_once(fake_v1, results, caplog):
+    '''⚠️ A deployment that hands over only manifests withholds three objects
+    per node. One line per object is seventy lines of the same sentence, and
+    the one that differs goes unread.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact(kind, step, "0", fetchable=False)
+        for step in ("stepone", "steptwo") for kind in ("logs", "reports", "node")
+    ] + [artifact("outputs", "stepone", "0", fetchable=False,
+                  deleted_at="2026-09-20T00:00:00.000Z",
+                  deleted_cause="removed", delete_reason=None)]})
+
+    with caplog.at_level("WARNING"):
+        results.fetch("j1")
+
+    lines = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(lines) == 2
+    assert "6 objects (logs x2, reports x2, node x2): you may not have these" in lines[0]
+    # The one that differs keeps its own line and its own name.
+    assert lines[1] == "outputs for stepone/0: deleted on 2026-09-20."

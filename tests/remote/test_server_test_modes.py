@@ -165,8 +165,11 @@ def test_mode_three_hands_over_the_manifest_and_nothing_else(
         server_client, key, token, finished):
     items = listing(server_client, key, token, finished["id"])
 
-    fetchable = {item["kind"] for item in items if item["fetchable"]}
-    assert fetchable == {"manifest"}
+    fetchable = {(item["kind"], item["step"]) for item in items if item["fetchable"]}
+    # 🔴 The node manifests too: they carry each node's record and metrics, so
+    # the client can still say how long a node took and what it warned about.
+    assert fetchable == {("manifest", None), ("manifest", "stepone"),
+                         ("manifest", "steptwo")}
 
     manifest = next(item for item in items if item["kind"] == "manifest")
     assert fetch(server_client, key, token, finished["id"], manifest).status_code == 303

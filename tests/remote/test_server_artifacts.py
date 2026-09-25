@@ -106,6 +106,11 @@ def test_a_finished_run_is_indexed(server_client, key, token, finished):
     # all while these still are.
     assert ("reports", "stepone") in kinds
     assert ("reports", "steptwo") in kinds
+    # 🔴 And each node's own manifest, bound to the node. It is what carries
+    # that node's record and metrics, so a deployment that withholds the
+    # archives can still hand over the part that says what happened.
+    assert ("manifest", "stepone") in kinds
+    assert ("manifest", "steptwo") in kinds
     # `outputs` is still not produced: that WOULD be a second copy of the
     # large half.
     assert not [k for k, _ in kinds if k == "outputs"]
@@ -260,8 +265,9 @@ def test_the_listing_pages(server_client, key, token, finished):
         response = call(server_client, key, "GET",
                         link.split(">", 1)[0].lstrip("<"), token)
 
-    # manifest, plus a log, a reports and a node archive for each of the two nodes.
-    assert len(seen) == len(set(seen)) == 7
+    # The job's manifest, plus a log, a manifest, a reports and a node archive
+    # for each of the two nodes.
+    assert len(seen) == len(set(seen)) == 9
 
 
 def test_a_strangers_listing_is_a_404(server_client, key, token, finished):

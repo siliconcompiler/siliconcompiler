@@ -81,6 +81,12 @@ class Results:
         self._taken_nodes: set = set()
         self._landed = 0
 
+        # The job-level manifest, once it has come from the server. Until then
+        # the file at that path is the one this client wrote to upload, and
+        # folding THAT back in would put the pre-run record over what the
+        # nodes have since said.
+        self._job_manifest = None
+
         # The server's download ceiling, read once and remembered. `False`
         # means not looked up yet; `None` means this server publishes none.
         self._ceiling: Any = False
@@ -166,9 +172,14 @@ class Results:
         still going. It is also what lets the dashboard show a finished node's
         real runtime rather than a timer that never stops.
 
-        One listing per poll in which something finished, filtered to the
-        `node` kind, rather than one request per node: a wide flow finishes
-        many nodes between two polls.
+        One listing per poll in which something finished rather than one
+        request per node: a wide flow finishes many nodes between two polls.
+
+        🔴 **The node archive where it may be had, and the node's own
+        manifest where it may not.** A deployment that withholds archives can
+        still hand over the manifest, and the manifest is the half that keeps
+        the record current; the archive holds it too, so it is never fetched
+        twice.
         '''
         done = {(node.get("step"), node.get("index"))
                 for node in job.get("nodes") or []
@@ -180,11 +191,23 @@ class Results:
             return 0
 
         try:
-            items = self.client.artifacts(job_id, kind="node")
+            # Every kind, because which of the two a node can be taken by is
+            # only known from the listing -- at the endpoint's largest page,
+            # since a wide flow lists four objects per node.
+            listed = self.client.artifacts(job_id, limit=200)
         except Exception as e:                                   # noqa: BLE001
             # Nothing is lost by failing here: the sweep at the end asks again.
-            logger.debug(f"could not list node archives yet: {e}")
+            logger.debug(f"could not list node results yet: {e}")
             return 0
+
+        # 🔴 Oversized dropped BEFORE `_worth_fetching`, as the sweep does: an
+        # archive that will not be fetched must not displace the manifest
+        # that could be. Said once, by the sweep at the end -- here it would
+        # be said again on every poll that found the node finished.
+        listed = [item for item in listed if not self._oversized(item)]
+        items = [item for item in _worth_fetching(listed)
+                 if item.get("kind") in ("node", "manifest")
+                 and item.get("step") is not None]
 
         landed = 0
         for item in items:
@@ -192,10 +215,6 @@ class Results:
             if key not in fresh or not item.get("fetchable"):
                 continue
             if item["id"] in self._fetched:
-                continue
-            if self._oversized(item):
-                # Said once, by the sweep at the end. Here it would be said
-                # again on every poll that found this node finished.
                 continue
 
             try:
@@ -250,12 +269,13 @@ class Results:
         items = _worth_fetching([item for item in items if not self._oversized(item)])
 
         landed = 0
+        withheld = []
         for item in items:
             if item.get("id") in self._fetched:
                 # Already taken while the run was going.
                 continue
             if not item.get("fetchable"):
-                self.logger.warning(self._explain(item))
+                withheld.append(item)
                 continue
             try:
                 landed += self._retrieve(job_id, item)
@@ -267,6 +287,7 @@ class Results:
                 # run.
                 self.logger.error(f"{self._name(item)}: {e}")
 
+        self._report_withheld(withheld)
         self._report_oversized(oversized)
         self._report_absent(items)
         self._replay()
@@ -280,9 +301,37 @@ class Results:
     # The five sentences
     ######################################################################
 
+    def _report_withheld(self, items: List[Dict[str, Any]]) -> None:
+        '''One line per reason, not one per object.
+
+        ⚠️ The five sentences stay five, and a run where every node's archive
+        is withheld for the same reason says it once. A deployment that hands
+        over only the manifest withholds three objects per node, and seventy
+        lines of the same sentence is how the one that differs goes unread.
+        '''
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
+        for item in items:
+            grouped.setdefault(self._why(item, many=True), []).append(item)
+
+        for why, same in grouped.items():
+            if len(same) == 1:
+                self.logger.warning(self._explain(same[0]))
+                continue
+
+            counts: Dict[str, int] = {}
+            for item in same:
+                kind = item.get("kind", "artifact")
+                counts[kind] = counts.get(kind, 0) + 1
+            kinds = ", ".join(f"{kind} x{count}" for kind, count in counts.items())
+            self.logger.warning(f"{len(same)} objects ({kinds}): {why}")
+
     def _explain(self, item: Dict[str, Any]) -> str:
         '''Why this object is not coming, in the words that fit its case.'''
-        name = self._name(item)
+        return f"{self._name(item)}: {self._why(item)}"
+
+    def _why(self, item: Dict[str, Any], many: bool = False) -> str:
+        '''The reason alone, for one object or for several with the same one.'''
+        this = "these" if many else "this"
 
         # 🔴 Checked before the expiry, and the order is the point: an object
         # whose bytes are gone is also, usually, past its retention, and the
@@ -296,30 +345,30 @@ class Results:
             # cause this client does not know included -- is somebody
             # deciding, which is the sentence that does not under-report it.
             if item.get("deleted_cause") == "expired":
-                return (f"{name}: aged out on {day}. Retention on this server "
+                return (f"aged out on {day}. Retention on this server "
                         "passed for that kind and the bytes were reclaimed.")
 
             # Repeated, never interpreted. `delete_reason` is prose a person
             # wrote and this client has no vocabulary to match it against.
             reason = item.get("delete_reason")
             if reason:
-                return f"{name}: deleted on {day} -- {reason}."
-            return f"{name}: deleted on {day}."
+                return f"deleted on {day} -- {reason}."
+            return f"deleted on {day}."
 
         blocked = item.get("blocked_by")
         if blocked:
             where = item.get("access_request_url")
             ask = f" Ask for access at {where}" if where else ""
-            return (f"{name}: held back by an agreement you have not accepted "
+            return (f"held back by an agreement you have not accepted "
                     f"({blocked}).{ask}")
 
         expires = item.get("expires_at")
         if expires and expires <= _now():
-            return (f"{name}: aged out on {_day(expires)}. Retention on this "
+            return (f"aged out on {_day(expires)}. Retention on this "
                     "server has passed for that kind.")
 
-        return (f"{name}: you may not have this. No agreement is named, so it "
-                "is not something asking would change.")
+        return (f"you may not have {this}. No agreement is named, so it is "
+                "not something asking would change.")
 
     def _report_absent(self, items: List[Dict[str, Any]]) -> None:
         '''A kind that is not in the listing was never indexed here.
@@ -341,13 +390,26 @@ class Results:
     def _retrieve(self, job_id: str, item: Dict[str, Any]) -> int:
         kind = item.get("kind")
 
-        if kind == "manifest":
-            target = os.path.join(jobdir(self.project),
-                                  f"{self.project.name}.pkg.json")
-            self.client.fetch_artifact(job_id, item["id"], target)
-            return 1
-
         step, index = item.get("step"), item.get("index")
+
+        if kind == "manifest":
+            if step is None or index is None:
+                target = os.path.join(jobdir(self.project),
+                                      f"{self.project.name}.pkg.json")
+                self.client.fetch_artifact(job_id, item["id"], target)
+                self._job_manifest = target
+                return 1
+
+            # A node's own manifest goes where the node wrote it, which is
+            # where the replay looks and where a node archive would have put
+            # it.
+            outputs = os.path.join(workdir(self.project, step=step, index=index),
+                                   "outputs")
+            os.makedirs(outputs, exist_ok=True)
+            self.client.fetch_artifact(
+                job_id, item["id"],
+                os.path.join(outputs, f"{self.project.name}.pkg.json"))
+            return 1
 
         if step is None or index is None:
             if kind == "logs":
@@ -405,13 +467,41 @@ class Results:
                 # the run. It has already been reported as a state.
                 logger.debug(f"could not replay {path}: {e}")
 
-    def _manifests(self) -> List[str]:
-        found = []
+        if self._job_manifest and os.path.isfile(self._job_manifest):
+            try:
+                self._fold_in_final(self._job_manifest)
+            except Exception as e:                               # noqa: BLE001
+                logger.debug(f"could not read {self._job_manifest}: {e}")
 
-        job_manifest = os.path.join(jobdir(self.project),
-                                    f"{self.project.name}.pkg.json")
-        if os.path.isfile(job_manifest):
-            found.append(job_manifest)
+    def _fold_in_final(self, path: str) -> None:
+        '''Copy the run's per-node record and metrics out of the job manifest.
+
+        🔴 **Not a journal replay, because the job manifest has no journal.**
+        It is the run's final state, written whole when the flow ended, so
+        `replay_file` found nothing in it and returned -- and a listing holding
+        only that manifest, which is a successful run, came back with every
+        node's time, warnings and errors blank. The node manifests carry
+        journals; this one carries values.
+
+        Only values bound to a node, and only in `record` and `metric`. A
+        global value in it is this server's setting for the run -- its build
+        directory, its scheduler -- and folding those in would rewrite the
+        caller's own.
+        '''
+        from siliconcompiler import Project
+
+        final = Project.from_manifest(filepath=path)
+        for group in ("record", "metric"):
+            for key in final.getkeys(group):
+                param = final.get(group, key, field=None)
+                for value, step, index in param.getvalues(return_defvalue=False):
+                    if step is None or index is None or value is None:
+                        continue
+                    self.project.set(group, key, value, step=step, index=index)
+
+    def _manifests(self) -> List[str]:
+        '''Every node manifest on disk, whichever object brought it.'''
+        found = []
 
         from siliconcompiler.remote.server.runspec import runtime_nodes
 
@@ -446,9 +536,11 @@ def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     job-level one -- so a node whose archive is missing or refused keeps every
     object it has.
 
-    The manifest is always kept: it is small, it is what the record is replayed
-    from, and a client that relied on finding one inside the node archive would
-    break on the deployment that indexes a manifest and no bulk output at all.
+    The JOB's manifest is always kept: it is small, it is what the record is
+    replayed from, and a client that relied on finding one inside the node
+    archive would break on the deployment that indexes a manifest and no bulk
+    output at all. A NODE's manifest is inside that node's archive, so it goes
+    with the rest.
 
     Only a FETCHABLE node archive displaces anything. One that is present and
     refused -- withheld, or over this account's download ceiling -- leaves
@@ -461,7 +553,8 @@ def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         return items
 
     return [item for item in items
-            if item.get("kind") in ("node", "manifest")
+            if item.get("kind") == "node"
+            or item.get("step") is None
             or not item.get("fetchable")
             or (item.get("step"), item.get("index")) not in covered]
 

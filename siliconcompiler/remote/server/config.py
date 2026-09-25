@@ -296,7 +296,8 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
         },
     },
 
-    # The manifest and nothing else over the API; no logs, live or archived;
+    # Manifests and nothing else over the API -- the job's, and each node's,
+    # which carry the record and the metrics; no logs, live or archived;
     # one job at a time; and a PDK, a library and a tool nobody may use.
     3: {
         "features": [],

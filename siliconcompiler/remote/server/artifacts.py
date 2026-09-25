@@ -118,6 +118,21 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
         written += _index(store, storage, job, location, floor, "logs",
                           step, index, log, "text/plain")
 
+    # 🔴 The node's own manifest, on its own and bound to the node, beside the
+    # job's. It is what carries that node's record and metrics -- with the
+    # journal a client replays them from -- so a deployment that hands over
+    # manifests and no bulk output can still show a finished node's runtime,
+    # warnings and errors while the rest of the run goes on. Inside the node
+    # archive only, it went wherever the archive went, and a server that
+    # withholds archives withheld the record with them.
+    #
+    # ⚠️ It is a second copy of a file the node archive holds, a few MB per
+    # node. A client with the archive does not fetch it twice.
+    manifest = workdir / "outputs" / f"{job['design']}.pkg.json"
+    if manifest.is_file():
+        written += _index(store, storage, job, location, floor, "manifest",
+                          step, index, manifest, "application/json")
+
     # 🔴 Indexed before the node archive, not after. If a node finishes and
     # something goes wrong partway through indexing it, the small object a
     # person actually reads is the one already written.

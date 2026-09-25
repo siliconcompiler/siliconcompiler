@@ -157,10 +157,15 @@ features and the limits as it would anywhere.
 |---|---|---|---|
 | live log over the API | ✅ | ❌ `feature-unsupported` | ❌ |
 | archived log over the API | ✅ | ✅ | ❌ `feature-unsupported` |
-| what the API hands over | every kind | manifest, logs, reports | manifest |
+| what the API hands over | every kind | manifests, logs, reports | manifests &mdash; the job's and each node's |
 | the portal | everything | everything | everything |
 | denied | nothing | nothing | PDK `GF180*`, library `nangate45`, tool `verilator` |
 | `concurrent_jobs` / `pending_uploads` | 4 / 8 | 2 / 4 | 1 / 2 |
+
+Mode 3 still hands over **each node's manifest**, indexed on its own as the
+node finishes, so a client can show a finished node's time, warnings and
+errors while the run goes on &mdash; they are in the manifest, not in the
+archive around it.
 
 A kind the API withholds stays **in the listing** with `fetchable: false` and
 no `access_request_url` &mdash; it exists and there is no path to yes from

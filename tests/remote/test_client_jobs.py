@@ -450,7 +450,7 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
     ("upload-too-large", 413, {"limit": "max_upload_bytes"},
      ["limit: max_upload_bytes", "Reduce what is collected"]),
     ("feature-unsupported", 501, {"feature": "projects"},
-     ["feature: projects", "never will"]),
+     ["feature: projects", "does not offer that"]),
     ("version-skew", 422, {},
      ["Install a version this server accepts"]),
     ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf12"},

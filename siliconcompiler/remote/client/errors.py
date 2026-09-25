@@ -64,10 +64,10 @@ _DISCRIMINATORS = (
 # API and `detail` is prose that may be reworded.
 _NEXT_STEP = {
     "limit-exceeded": "Wait and retry; this allowance refills.",
-    "node-limit-exceeded": "Send a smaller flow; waiting will not help.",
-    "upload-too-large": "Reduce what is collected; waiting will not help.",
+    "node-limit-exceeded": "Send a smaller flow.",
+    "upload-too-large": "Reduce what is collected.",
     "rate-limited": "Slow down and retry.",
-    "entitlement-denied": "Ask an operator for access; waiting will not help.",
+    "entitlement-denied": "Ask an operator for access.",
     "unsatisfiable-request": "This deployment cannot provide that at all.",
     "resource-unresolved": "Name the resource explicitly in your build script.",
     "terms-not-accepted": "Accept the agreement, then submit again.",
@@ -79,7 +79,7 @@ _NEXT_STEP = {
     "job-state-conflict": "This job is past the point where that is possible.",
     "not-found": "Check the id, or the job may have been deleted.",
     "not-ready": "Not available yet; retry.",
-    "feature-unsupported": "This deployment does not have that and never will.",
+    "feature-unsupported": "This deployment does not offer that.",
     "insufficient-scope": "This credential may not do that; log in again.",
     "session-ended": "Log in again with sc-remote -configure.",
     "invalid-dpop-proof": "The server did not accept this machine's key.",
