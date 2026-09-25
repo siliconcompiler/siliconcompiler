@@ -136,9 +136,9 @@ def normalize(version: str) -> str:
     normalising the same string differently would disagree about whether an
     image matched, and neither would say so.
 
-    A version that is not PEP 440 at all is stored as it was given. It is still
-    a real version somebody can read and select by name; what it cannot do is
-    satisfy a range, and `matches` is where that is decided.
+    A value that is not PEP 440 comes back unchanged -- a `published_date`
+    row, or an image's declared contents being looked up. A `reported` one is
+    never stored that way: :func:`register_version` refuses it.
     '''
     from packaging.version import InvalidVersion, Version
 
@@ -146,6 +146,16 @@ def normalize(version: str) -> str:
         return str(Version(version))
     except InvalidVersion:
         return version
+
+
+def _is_pep440(version: str) -> bool:
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        Version(version)
+        return True
+    except InvalidVersion:
+        return False
 
 
 def matches(version: str, source: str, wanted: Sequence[str]) -> bool:
@@ -1069,6 +1079,19 @@ def register_version(store, name: str, version: str, actor: str,
         raise ValueError(f"{name} is not registered software; add it first")
     if source not in ("reported", "published_date"):
         raise ValueError(f"{source} is not a version source")
+
+    # 🔴 A `reported` version that has no PEP 440 form is refused, not stored.
+    # It is the contract's `version_norm NOT NULL` said in code: the row has
+    # nothing to put there, so it cannot be written. Never coerce, pad or
+    # substitute to get one in -- a parser handed output it did not expect can
+    # return anything (`initialize`, out of gtkwave's `Could not initialize
+    # GTK!`), and a rewritten value hides that from the operator who needs to
+    # see it. The row is `published_date`, which is the fallback that works.
+    if source == "reported" and not _is_pep440(version):
+        raise ValueError(
+            f"{name} {version!r} is not a PEP 440 version, so it cannot be "
+            "recorded as reported; check what the tool printed, and register "
+            "it as published_date (-unversioned) if it reports none")
 
     stored = normalize(version) if source == "reported" else version
 

@@ -711,13 +711,26 @@ def test_a_version_is_normalised_when_it_is_registered(store):
     assert images.live_software(store)["python"]["siliconcompiler"] == ["0.39.1"]
 
 
-def test_a_version_that_is_not_pep_440_is_stored_as_given(store):
-    '''It is still a real version somebody can read and select by name. What
-    it cannot do is satisfy a range.'''
-    images.register_software(store, "openroad", "OpenROAD", store.actor, "tool")
+def test_a_reported_version_that_is_not_pep_440_is_refused(store):
+    '''🔴 `version_norm` is NOT NULL in the contract: a value with no PEP 440
+    form has nothing to put there, so the row cannot be written. Refused, not
+    coerced -- `initialize` is what gtkwave's parser took out of `Could not
+    initialize GTK!`.'''
+    images.register_software(store, "gtkwave", "GTKWave", store.actor, "tool")
 
-    assert images.register_version(store, "openroad", "2.0-rev-cafe1234",
-                                   store.actor) == "2.0-rev-cafe1234"
+    with pytest.raises(ValueError, match="not a PEP 440 version"):
+        images.register_version(store, "gtkwave", "initialize", store.actor)
+    assert store.one("SELECT version FROM software_versions "
+                     "WHERE software_name = 'gtkwave'") is None
+
+
+def test_the_same_value_is_accepted_as_published_date(store):
+    '''The fallback that works: stored exactly as given, and it can never
+    satisfy a range.'''
+    images.register_software(store, "gtkwave", "GTKWave", store.actor, "tool")
+
+    assert images.register_version(store, "gtkwave", "20260924", store.actor,
+                                   source="published_date") == "20260924"
 
 
 ###########################

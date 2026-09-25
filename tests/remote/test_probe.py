@@ -132,7 +132,8 @@ def test_a_tool_that_is_not_there_reports_nothing(quiet_restored):
     found = probe.probe([("openroad", "tool", OPENROAD)])
 
     assert found["openroad"] == {"kind": "tool", "version": None,
-                                 "reported": None, "present": False}
+                                 "reported": None, "unparsed": None,
+                                 "present": False}
 
 
 def test_the_frame_survives_a_tool_that_colours_its_output():
@@ -185,7 +186,8 @@ def test_probing_this_machine_answers_for_what_is_here(quiet_restored):
     # could not be tested -- which is not the same as the image not holding it,
     # and only a test that ran and said no refuses a registration.
     assert found["magic"] == {"kind": "tool", "version": None,
-                              "reported": None, "present": None}
+                              "reported": None, "unparsed": None,
+                              "present": None}
 
 
 def test_the_answer_is_one_line_behind_a_marker(capsys, quiet_restored):
@@ -283,4 +285,32 @@ def test_a_tool_read_through_a_distribution_is_asked_the_python_way():
         "--sc-probe-end:slang\n")
 
     assert found["slang"] == {"kind": "tool", "version": "11.0.0",
-                              "reported": "11.0.0", "present": True}
+                              "reported": "11.0.0", "unparsed": None,
+                              "present": True}
+
+
+def test_an_answer_that_is_not_a_version_is_no_version():
+    '''🔴 The presence check was right and the parse was wrong: a parser handed
+    output it did not expect can return anything. Dropped, kept for the
+    operator, and never rewritten into something that parses -- so the tool is
+    present and mute, which is `published_date`.'''
+    wanted = [("x", "python", None)]
+    found = probe.read_output(wanted, "--sc-probe-begin:x\n"
+                                      "--sc-probe-here:x\n"
+                                      "initialize\n"
+                                      "--sc-probe-end:x\n")
+
+    assert found["x"]["version"] is None
+    assert found["x"]["unparsed"] == "initialize"
+    assert found["x"]["present"] is True
+
+
+def test_an_answer_that_is_a_version_is_not_marked_unparsed():
+    wanted = [("x", "python", None)]
+    found = probe.read_output(wanted, "--sc-probe-begin:x\n"
+                                      "--sc-probe-here:x\n"
+                                      "1.2.3\n"
+                                      "--sc-probe-end:x\n")
+
+    assert found["x"]["version"] == "1.2.3"
+    assert found["x"]["unparsed"] is None

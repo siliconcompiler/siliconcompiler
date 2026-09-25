@@ -345,3 +345,29 @@ def test_a_tool_read_through_a_distribution_records_it(bootstrap):
     added = {call[1]: call for call in commands(bootstrap, "add-software")}
     assert added["slang"][-2:] == ["-version-package", "pyslang"]
     assert "-version-package" not in added["openroad"]
+
+
+def test_a_version_that_did_not_parse_lands_on_the_publish_date(bootstrap):
+    """🔴 What the probe could not parse is registered as present and mute --
+    never as `reported`, which the store refuses, and never coerced."""
+    held = {tool: {"kind": "tool", "version": None, "present": True}
+            for tool in bootstrap.TOOLS}
+    held["gtkwave"]["unparsed"] = "initialize"
+
+    bootstrap.register("0.38.9", "sha256:b", "sha256:a", "20260924", held, {})
+
+    assert ["add-version", "gtkwave", "20260924", "-unversioned"] \
+        in bootstrap.calls
+    assert not any("initialize" in call for call in bootstrap.calls)
+
+
+def test_a_version_that_did_not_parse_is_said(bootstrap, monkeypatch):
+    said = []
+    monkeypatch.setattr(bootstrap, "say", said.append)
+
+    bootstrap.say_what_it_holds({
+        "gtkwave": {"version": None, "reported": "initialize",
+                    "unparsed": "initialize", "present": True}})
+
+    assert any("gtkwave" in line and "'initialize' is not a version" in line
+               for line in said)

@@ -554,22 +554,6 @@ def _declare(tool: str, answer, published: str):
     return ["-contains", f"{tool}=={published}"]
 
 
-def _looks_like_a_version(text: str) -> bool:
-    """Whether what came back parses as a version at all.
-
-    Only a PEP 440 version can satisfy a range, so one that does not parse is
-    already limited to exact-string matching -- this is about telling an
-    operator, not about changing what is stored.
-    """
-    from packaging.version import InvalidVersion, Version
-
-    try:
-        Version(text)
-        return True
-    except InvalidVersion:
-        return False
-
-
 def _refuse_what_is_missing(image: str, held: dict) -> None:
     """Refuse the whole image where a tool it is built to hold is not in it.
 
@@ -621,19 +605,19 @@ def say_what_it_holds(held: dict) -> None:
 
         if answer.get("present") is False:
             continue
-        if found and not _looks_like_a_version(found):
+        if answer.get("unparsed"):
             # 🔴 Said loudly, because it is the `not found` trap one step
             # along: gtkwave without a display prints "Could not initialize
-            # GTK!" and its parser takes a word out of that, so the catalogue
-            # gets `initialize` as a version. Presence was right and the parse
+            # GTK!" and its parser took a word out of that, so the catalogue
+            # got `initialize` as a version. Presence was right and the parse
             # was not, and nothing downstream can tell.
             #
-            # ⚠️ Recorded anyway rather than dropped: it is what the tool said,
-            # it is still selectable by name, and it cannot satisfy a range --
-            # a version that does not parse is only ever matched as an exact
-            # string. What it needs is an operator's eye.
-            say(f"  {tool}: {found}  ⚠️ that does not look like a version -- "
-                f"check what `{tool}` prints without a terminal or a display")
+            # ⚠️ The probe has already dropped it, so the tool lands as
+            # present and mute -- the publish date -- and is never rewritten
+            # into something that parses. What it needs is an operator's eye.
+            say(f"  {tool}: present, but {answer['unparsed']!r} is not a "
+                f"version; recorded as the publish date -- check what `{tool}` "
+                "prints without a terminal or a display")
         elif not found:
             say(f"  {tool}: present, no version reported")
         elif reported and reported != found:

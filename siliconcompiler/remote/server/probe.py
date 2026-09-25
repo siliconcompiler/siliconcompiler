@@ -261,7 +261,21 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
         answer = read_answer(name, "python" if package else kind,
                              captured.get(name, ""), driver)
         version, reported = answer if answer else (None, None)
+
+        # 🔴 An answer that is not a PEP 440 version is no version, and it is
+        # said rather than rewritten. The presence check can be right and the
+        # parse wrong -- gtkwave without a display prints `Could not
+        # initialize GTK!`, and a parser counting words took `initialize` --
+        # and nothing downstream can tell. Such a value could never satisfy a
+        # range, and the store refuses it as `reported`, so the tool is
+        # present and mute: `published_date`. `unparsed` keeps what it said
+        # for the operator; never coerce it into a version.
+        unparsed = None
+        if version is not None and not _is_version(version):
+            version, unparsed = None, reported or version
+
         found[name] = {"kind": kind, "version": version, "reported": reported,
+                       "unparsed": unparsed,
                        # 🔴 Three outcomes, not two. `present` and no version
                        # is legitimate and is what `published_date` records;
                        # absent means the image does not hold what a row would
@@ -276,6 +290,16 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
                                    if _testable(name, kind, driver, package)
                                    else None)}
     return found
+
+
+def _is_version(text: str) -> bool:
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        Version(text)
+        return True
+    except InvalidVersion:
+        return False
 
 
 def _testable(name: str, kind: str, driver: Optional[str],
