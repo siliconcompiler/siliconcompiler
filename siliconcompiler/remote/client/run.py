@@ -36,7 +36,7 @@ from siliconcompiler.package import PythonPathResolver, FileResolver, KeyPathRes
 from siliconcompiler.schema import Parameter
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
-from siliconcompiler.utils.paths import collectiondir, jobdir
+from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, describe)
@@ -190,6 +190,43 @@ class RemoteRun:
         self.logger.info("Job submitted")
         return job_id
 
+    def _needed_from(self, root: str) -> List[str]:
+        '''What else of the job directory the run reads, relative to it.
+
+        The collected sources -- whatever `collect` copied, which is the whole
+        point of collecting -- and, for a run that starts part-way through the
+        flow (`option,from`), the results of the nodes it starts FROM: they
+        exist on this machine and nowhere else, and the first node to run reads
+        their outputs as its inputs. Nothing a node this run will execute left
+        behind is sent, because the run replaces it.
+        '''
+        from siliconcompiler.remote.server.runspec import runtime_flow
+
+        needed = []
+
+        collected = collectiondir(self.project)
+        if collected and os.path.isdir(collected):
+            needed.append(os.path.relpath(collected, root))
+
+        try:
+            runtime = runtime_flow(self.project)
+            running = set(runtime.get_nodes())
+            upstream = sorted({source for node in running
+                               for source in runtime.get_node_inputs(*node)
+                               if source not in running})
+        except Exception as e:                                   # noqa: BLE001
+            # A flow that will not resolve fails at the server with a reason;
+            # this is only deciding what to send.
+            logger.debug(f"could not tell which upstream results to send: {e}")
+            upstream = []
+
+        for step, index in upstream:
+            node = workdir(self.project, step=step, index=index)
+            if os.path.isdir(node):
+                needed.append(os.path.relpath(node, root))
+
+        return needed
+
     def _open_portal(self, job_id: str) -> None:
         '''Open the job's page, where a person is plainly watching.
 
@@ -272,19 +309,29 @@ class RemoteRun:
                 whitelist=list(self.client.credentials.directory_whitelist))
 
     def _pack(self, upload: Path) -> Tuple[str, int]:
-        '''The job directory, as one archive, with its manifest inside it.
+        '''What the server needs of the job directory, as one archive, with
+        the manifest inside it.
 
         The manifest goes in rather than beside: the server re-derives every
         advisory value from it, and a manifest sent as a separate field would be
         a second copy of the truth arriving on a different path from the bytes
         it describes.
+
+        🔴 **Named, not the whole directory.** It used to be `tar.add(jobdir)`,
+        and a job directory that has run before holds far more than a run
+        needs: the last run's `sc_remote.pkg.json`, its `remote-job.log`, the
+        rotated `job.<time>.log` files, and every node directory fetched back
+        from it. A four-file design uploaded three quarters of a megabyte, most
+        of it the previous run's logs -- and `job.log` itself, which this very
+        run has open and is appending to.
         '''
         root = jobdir(self.project)
-        self.project.write_manifest(
-            os.path.join(root, f"{self.project.name}.pkg.json"))
+        manifest = f"{self.project.name}.pkg.json"
+        self.project.write_manifest(os.path.join(root, manifest))
 
         with tarfile.open(upload, mode="w:gz") as tar:
-            tar.add(root, arcname="")
+            for name in [manifest, *self._needed_from(root)]:
+                tar.add(os.path.join(root, name), arcname=name)
 
         collected = collectiondir(self.project)
         if collected and os.path.isdir(collected):

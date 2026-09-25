@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 import responses
@@ -956,3 +957,64 @@ def test_a_development_client_asks_by_prefix_rather_than_exactly():
 
     with pytest.raises(InvalidSpecifier):
         SpecifierSet("==0.38.10.dev*")
+
+
+###########################
+# What is uploaded
+###########################
+
+def _packed(run, tmp_path):
+    import tarfile
+
+    upload = tmp_path / "upload.tar.gz"
+    run._pack(upload)
+    with tarfile.open(upload) as tar:
+        return {name for name in tar.getnames() if name}
+
+
+def _leftovers(project):
+    '''What a job directory that has run before holds.'''
+    from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
+
+    root = jobdir(project)
+    os.makedirs(root, exist_ok=True)
+    for name in ("sc_remote.pkg.json", "remote-job.log", "job.log",
+                 "job.20260925-102810.log"):
+        with open(os.path.join(root, name), "w") as f:
+            f.write("from the last run\n")
+    for step in ("stepone", "steptwo"):
+        node = workdir(project, step=step, index="0")
+        os.makedirs(os.path.join(node, "outputs"), exist_ok=True)
+        with open(os.path.join(node, "outputs", "gcd.pkg.json"), "w") as f:
+            f.write("{}")
+    os.makedirs(collectiondir(project), exist_ok=True)
+    with open(os.path.join(collectiondir(project), "gcd.v"), "w") as f:
+        f.write("module gcd; endmodule\n")
+
+
+def test_only_the_manifest_and_the_sources_are_uploaded(run, nop_project, tmp_path):
+    '''🔴 Not the whole job directory. One that has run before holds the last
+    run's handle, its logs, and every node it fetched back -- none of which a
+    full run reads -- and `job.log`, which this run has open.'''
+    _leftovers(nop_project)
+
+    names = _packed(run, tmp_path)
+
+    assert "gcd.pkg.json" in names
+    assert "sc_collected_files/gcd.v" in names
+    assert not {n for n in names if n.endswith(".log")}
+    assert "sc_remote.pkg.json" not in names
+    assert not {n for n in names if n.startswith(("stepone", "steptwo"))}
+
+
+def test_a_run_from_part_way_sends_the_results_it_starts_from(
+        run, nop_project, tmp_path):
+    '''`-from steptwo`: stepone's results exist on this machine and nowhere
+    else, and steptwo reads them. steptwo's own are replaced by the run.'''
+    _leftovers(nop_project)
+    nop_project.option.add_from("steptwo")
+
+    names = _packed(run, tmp_path)
+
+    assert "stepone/0/outputs/gcd.pkg.json" in names
+    assert not {n for n in names if n.startswith("steptwo")}
