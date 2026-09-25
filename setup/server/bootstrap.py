@@ -130,11 +130,21 @@ TOOLS = sorted(DRIVERS)
 # whose distribution is not called what the tool is called. Recorded on the
 # software row as `version_package`, so the probe is HANDED it.
 #
-# `slang` is the case: its driver runs pyslang in SiliconCompiler's own
-# process, so there is no executable to ask. It is still a TOOL -- a node names
-# it and has to be placed in an image holding it -- and it is in BOTH images,
-# because it arrives with siliconcompiler rather than with the EDA stack.
-AS_DISTRIBUTION = {"slang": "pyslang"}
+# `slang` is the case that needs the map: its driver runs pyslang in
+# SiliconCompiler's own process, so there is no executable to ask, and the
+# distribution is not called what the tool is. `graphviz` is the same shape and
+# happens to share its name, which is exactly why the mapping is written down
+# rather than assumed either way.
+#
+# ⚠️ **And a python wrapper still needs its program.** The graphviz
+# distribution shells out to `dot`, so the runtime image installs the system
+# package too -- see the Dockerfile. A row saying an image holds graphviz when
+# only the wrapper is there is a node placed in a container that cannot run it.
+#
+# Both are still TOOLS -- a node names one and has to be placed in an image
+# holding it -- and both are in BOTH images, because they arrive with
+# siliconcompiler rather than with the EDA stack.
+AS_DISTRIBUTION = {"slang": "pyslang", "graphviz": "graphviz"}
 
 # 🔴 What the tools image MUST hold. Everything in the catalogue is probed
 # against every image and declared where it is found; this is the shorter list

@@ -45,8 +45,9 @@ import sys
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-__all__ = ["KINDS", "MARKER", "command_for", "probe", "read_answer",
-           "read_output", "script"]
+__all__ = ["KINDS", "MARKER", "command_for", "exe_and_switch",
+           "executable_for", "probe", "read_answer", "read_output",
+           "script"]
 
 
 # The closed set, and each half is a mechanism rather than a label.
@@ -118,17 +119,41 @@ def command_for(name: str, kind: str, driver: Optional[str] = None,
                 _PYTHON_CHECK.format(name=version_package or name,
                                      here=_HERE + name)]
 
-    asked = _ask_driver(name, driver, lambda task: (task.get("exe"),
-                                                    task.get("vswitch")))
-    if not asked:
-        return None
-
-    exe, vswitch = asked
+    exe, vswitch = exe_and_switch(name, driver)
     if not exe or not vswitch:
-        # A tool whose driver names no version switch cannot be asked. That is
-        # a fact about the driver and not a failure here.
+        # A tool whose driver names no version switch cannot be ASKED its
+        # version. ⚠️ It can still be found -- see `executable_for` -- and
+        # those are two different questions: `kepler-formal`, `icepack` and
+        # `vcd2fst` all name an executable and no switch, so they are present
+        # and mute rather than absent.
         return None
     return [exe, *vswitch]
+
+
+def exe_and_switch(name: str, driver: Optional[str]):
+    '''What the driver says to run, and how to ask it its version.'''
+    asked = _ask_driver(name, driver, lambda task: (task.get("exe"),
+                                                    task.get("vswitch")))
+    return asked if asked else (None, None)
+
+
+def executable_for(name: str, kind: str, driver: Optional[str] = None,
+                   version_package: Optional[str] = None) -> Optional[str]:
+    '''The program whose existence means this name is THERE.
+
+    🔴 **Separate from the version command, and that separation is the bug
+    fix.** Tying presence to being able to ask a version made every tool whose
+    driver names no version switch untestable -- so nothing declared it, no
+    image held it, and a flow reaching for it was refused although the binary
+    was right there. That is the `bsc` failure inverted: refusing a tool the
+    image has.
+
+    None where presence is decided some other way -- a python distribution
+    answers for itself -- or cannot be decided at all.
+    '''
+    if kind == "python" or version_package:
+        return None
+    return exe_and_switch(name, driver)[0]
 
 
 def read_answer(name: str, kind: str, output: str,
@@ -184,13 +209,16 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
     lines = ["#!/bin/sh"]
     for name, kind, driver, package in map(_want, wanted):
         command = command_for(name, kind, driver, package)
+        exe = executable_for(name, kind, driver, package)
         lines.append(f"echo {shlex.quote(_BEGIN + name)}")
-        if command and (kind == "python" or package):
+
+        if kind == "python" or package:
             # The python check reports its own presence: it prints the marker
             # only once `importlib.metadata` has answered, so absence is
             # `PackageNotFoundError` and nothing else.
-            lines.append(f"{shlex.join(command)} 2>&1 || true")
-        elif command:
+            if command:
+                lines.append(f"{shlex.join(command)} 2>&1 || true")
+        elif exe:
             # 🔴 Guarded on the executable EXISTING, and this is not
             # belt-and-braces. Without it a missing tool leaves the shell's own
             # `openroad: not found` inside the frame, and OpenROAD's
@@ -202,10 +230,15 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
             # `2>&1` because a tool is as likely to answer on stderr, and
             # `|| true` because a non-zero exit is ordinary: several print
             # their version and then complain about having nothing to do.
-            lines.append(f"if command -v {shlex.quote(command[0])} "
+            lines.append(f"if command -v {shlex.quote(exe)} "
                          "> /dev/null 2>&1; then")
             lines.append(f"  echo {shlex.quote(_HERE + name)}")
-            lines.append(f"  {shlex.join(command)} 2>&1 || true")
+            # ⚠️ The version is asked INSIDE the presence guard and only where
+            # there is a switch to ask with. A tool that names an executable
+            # and no switch is present and mute, which is a row --
+            # `published_date` -- and not an absence.
+            if command:
+                lines.append(f"  {shlex.join(command)} 2>&1 || true")
             lines.append("fi")
         lines.append(f"echo {shlex.quote(_END + name)}")
     return "\n".join(lines) + "\n"
@@ -240,9 +273,22 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
                        # treated as it. Only a test that ran and said no is
                        # grounds to refuse an image.
                        "present": (present.get(name, False)
-                                   if command_for(name, kind, driver, package)
+                                   if _testable(name, kind, driver, package)
                                    else None)}
     return found
+
+
+def _testable(name: str, kind: str, driver: Optional[str],
+              package: Optional[str]) -> bool:
+    """Whether presence could be asked about at all.
+
+    ⚠️ Not the same as whether a VERSION could be. A tool naming an executable
+    and no version switch is testable and mute; one naming neither cannot be
+    tested, and untestable is not absent.
+    """
+    if kind == "python" or package:
+        return command_for(name, kind, driver, package) is not None
+    return executable_for(name, kind, driver, package) is not None
 
 
 def _want(entry):

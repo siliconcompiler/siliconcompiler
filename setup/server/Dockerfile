@@ -187,8 +187,14 @@ ARG DEBIAN_FRONTEND=noninteractive
 #
 # libmunge2 because slurm authenticates with munge, which its auth plugin
 # dlopens rather than links; without it srun fails with "authentication plugin".
+#
+# 🔴 graphviz because the PYTHON distribution of that name is a wrapper: it
+# shells out to `dot`. It arrives with siliconcompiler, so this image declares
+# it and nodes that need it are placed here rather than in the twelve-gigabyte
+# tool image -- and without the binary that placement is a container that
+# cannot run what the registry says it holds.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates git python3 python3-venv libmunge2 \
+        ca-certificates git python3 python3-venv libmunge2 graphviz \
     && rm -rf /var/lib/apt/lists/*
 
 # SiliconCompiler, exactly as the stack built it -- the same wheel, the same

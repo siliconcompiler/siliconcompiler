@@ -77,3 +77,43 @@ operator's eye, not a silent correction.
 `published_date` instead.
 
 **Where it goes:** `sc-server-profile.md`, beside the probe's four traps.
+
+### 3. Presence is the executable, and a version switch is a separate question
+
+A tool whose driver names an executable and no version switch — `kepler-formal`,
+`icepack`, `vcd2fst` — was untestable, because presence had been tied to being
+able to ask a version. So nothing declared them, no image held them, and a flow
+reaching for one was refused **although the binary was in the image**. That is
+the `bsc` failure inverted: refusing a tool the image has.
+
+Presence is now `command -v <exe>` and the version is asked inside that guard
+only where there is a switch, so those three land as *present and mute* —
+`published_date`, which is what that value is for.
+
+⚠️ **One case this does not cover: a python wrapper around a program.**
+`graphviz`'s task has no executable at all and drives the python distribution
+of that name, so its presence is `PackageNotFoundError` — which proves the
+wrapper is installed and says nothing about `dot`, which the wrapper shells out
+to. A runtime image with the wrapper and not the binary answered *present*.
+This deployment installs the system package so the claim is true; the probe
+still cannot tell the two apart.
+
+**Proposed:** a tool read through `version_package` MAY name the program its
+presence depends on, separately.
+
+**Where it goes:** `sc-server-profile.md`, beside the probe's traps.
+
+---
+
+## Not ported, deliberately
+
+- **A second database backend.** Asked about — MySQL in the compose stack,
+  SQLite locally — and declined. Every SQL call already goes through one
+  chokepoint in `Store`, so placeholders, the `sqlite3` references and the
+  `"index"` identifiers are one place each; the schema is the wall. It has 12
+  partial indexes, four of them UNIQUE, and one —
+  `devices_dpop_jkt_idx … WHERE revoked_at IS NULL`, one live device per key —
+  cannot be expressed in MySQL without a generated column, so the two schemas
+  would differ in shape and not just in dialect. ⚠️ **Postgres is the far
+  cheaper target** if this is ever wanted: it takes the partial indexes,
+  `ON CONFLICT` and the expression indexes as written.
