@@ -9,6 +9,7 @@ from unittest.mock import patch
 from siliconcompiler import Project, Design, Flowgraph, Task
 from siliconcompiler.utils.curation import collect, archive
 from siliconcompiler.utils.paths import collectiondir
+from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.schema.parametervalue import PathNodeValue
 
 
@@ -422,6 +423,36 @@ def test_collect_file_whitelist_pass():
     collect(proj, whitelist=[os.path.abspath('test')])
 
     assert len(os.listdir(collectiondir(proj))) == 1
+
+
+def test_collect_path_parameter_by_resolved_kind():
+    """A 'path' parameter holds either kind, so each value is collected by what it
+    resolves to rather than by the parameter type."""
+    design = Design("testdesign")
+    EditableSchema(design).insert("mixed", Parameter("[path]", copy=True))
+
+    os.makedirs("mixeddir", exist_ok=True)
+    with open("mixeddir/inside.txt", "w") as f:
+        f.write("test")
+    with open("mixedfile.txt", "w") as f:
+        f.write("test")
+
+    assert design.set("mixed", ["mixeddir", "mixedfile.txt"])
+
+    proj = Project(design)
+    collect(proj)
+
+    collected = sorted(os.listdir(collectiondir(proj)))
+    assert len(collected) == 2
+
+    collected_dirs = [
+        item for item in collected
+        if os.path.isdir(os.path.join(collectiondir(proj), item))]
+    assert len(collected_dirs) == 1
+    assert os.listdir(os.path.join(collectiondir(proj), collected_dirs[0])) == ["inside.txt"]
+
+    for path in design.find_files("mixed"):
+        assert path.startswith(collectiondir(proj))
 
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])

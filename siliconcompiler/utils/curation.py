@@ -83,63 +83,63 @@ def collect(project: "Project",
     dirs = {}
     files = {}
 
-    for key in project.allkeys():
-        if key[0] == 'history':
-            # skip history
-            continue
-
-        # Skip runtime directories
-        if key == ('option', 'builddir'):
-            # skip builddir
-            continue
-        if key == ('option', 'cachedir'):
-            # skip cache
-            continue
-
-        if key[0] == 'tool' and key[2] == 'task' and key[4] in ('input',
-                                                                'report',
-                                                                'output'):
-            # skip flow files files from builds
-            continue
-
-        param: Parameter = project.get(*key, field=None)
-
-        if not param.is_path:
-            continue
-
-        if not param.get(field='copy'):
-            continue
-
-        for values, step, index in param.getvalues(return_values=False):
-            if not values.has_value:
+    try:
+        for key in project.allkeys():
+            if key[0] == 'history':
+                # skip history
                 continue
 
-            if isinstance(values, (NodeSetValue, NodeListValue)):
-                values = values.values
-            else:
-                values = [values]
+            # Skip runtime directories
+            if key == ('option', 'builddir'):
+                # skip builddir
+                continue
+            if key == ('option', 'cachedir'):
+                # skip cache
+                continue
 
-            if param.is_directory:
-                dirs[(key, step, index)] = values
-            else:
-                files[(key, step, index)] = values
+            if key[0] == 'tool' and key[2] == 'task' and key[4] in ('input',
+                                                                    'report',
+                                                                    'output'):
+                # skip flow files files from builds
+                continue
 
-    try:
+            param: Parameter = project.get(*key, field=None)
+
+            if not param.is_path:
+                continue
+
+            if not param.get(field='copy'):
+                continue
+
+            for values, step, index in param.getvalues(return_values=False):
+                if not values.has_value:
+                    continue
+
+                if isinstance(values, (NodeSetValue, NodeListValue)):
+                    values = values.values
+                else:
+                    values = [values]
+
+                abs_paths = find_files(*key, step=step, index=index)
+
+                if not isinstance(abs_paths, (list, tuple, set)):
+                    abs_paths = [abs_paths]
+
+                for abs_path, value in zip(abs_paths, values):
+                    if not abs_path:
+                        raise FileNotFoundError(f"{value.get()} could not be copied")
+
+                    # A 'path' parameter holds either kind, so sort each value by what
+                    # it resolved to rather than by what its type allows.
+                    if os.path.isdir(abs_path):
+                        dirs.setdefault((key, step, index), []).append((abs_path, value))
+                    else:
+                        files.setdefault((key, step, index), []).append((abs_path, value))
+
         path_filter = FilterDirectories(project)
         collected_dirs = set()
         for key, step, index in sorted(dirs.keys()):
-            abs_paths = find_files(*key, step=step, index=index)
-
-            if not isinstance(abs_paths, (list, tuple, set)):
-                abs_paths = [abs_paths]
-
-            abs_paths = zip(abs_paths, dirs[(key, step, index)])
-            abs_paths = sorted(abs_paths, key=lambda p: p[0])
-
-            for abs_path, value in abs_paths:
-                if not abs_path:
-                    raise FileNotFoundError(f"{value.get()} could not be copied")
-
+            for abs_path, value in sorted(dirs[(key, step, index)], key=lambda p: p[0]):
                 if abs_path.startswith(directory):
                     # File already imported in directory
                     continue
@@ -168,18 +168,7 @@ def collect(project: "Project",
                 path_filter.abspath = None
 
         for key, step, index in sorted(files.keys()):
-            abs_paths = find_files(*key, step=step, index=index)
-
-            if not isinstance(abs_paths, (list, tuple, set)):
-                abs_paths = [abs_paths]
-
-            abs_paths = zip(abs_paths, files[(key, step, index)])
-            abs_paths = sorted(abs_paths, key=lambda p: p[0])
-
-            for abs_path, value in abs_paths:
-                if not abs_path:
-                    raise FileNotFoundError(f"{value.get()} could not be copied")
-
+            for abs_path, value in sorted(files[(key, step, index)], key=lambda p: p[0]):
                 if abs_path.startswith(directory):
                     # File already imported in directory
                     continue

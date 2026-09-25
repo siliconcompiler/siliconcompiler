@@ -55,8 +55,8 @@ Parameter Fields
 
     type
         The parameter type.
-        Supported types include Python compatible types ('int', 'float', 'str', and 'bool') and two custom file types ('file' and 'dir').
-        The 'file' and 'dir' type specify that the parameter is a 'regular' file or directory as described by Posix.
+        Supported types include Python compatible types ('int', 'float', 'str', and 'bool') and three custom file types ('file', 'dir', and 'path').
+        The 'file', 'dir', and 'path' types specify that the parameter is a 'regular' file, directory, or filesystem path as described by Posix.
         Enums can be specified using the ``<``  and ``>`` (eg. <input,output> specifies an enum that has the possible values of input and output.)
         Numeric types ('int' and 'float') can be restricted to a set of values or ranges using the ``<`` and ``>`` syntax (eg. ``int<0..10>`` specifies an integer that must be between 0 and 10 inclusive, ``float<0.0..1.0,2.0>`` specifies a float that is either between 0.0 and 1.0 or equal to 2.0).
         Open-ended ranges are supported using the ``<..XX>`` and ``<XX..>`` syntax (eg. ``int<0..>`` specifies an integer greater than or equal to 0, ``int<..10>`` specifies an integer less than or equal to 10).

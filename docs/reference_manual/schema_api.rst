@@ -349,6 +349,10 @@ Core Schema Classes
 .. autoclass:: siliconcompiler.schema.parametervalue.NodeValue
     :members:
 
+.. autoclass:: siliconcompiler.schema.parametervalue.BasePathNodeValue
+    :members:
+    :show-inheritance:
+
 .. autoclass:: siliconcompiler.schema.parametervalue.PathNodeValue
     :members:
     :show-inheritance:
@@ -363,6 +367,10 @@ Core Schema Classes
     :members:
     :show-inheritance:
     :inherited-members:
+
+.. autoclass:: siliconcompiler.schema.PathTypeError
+    :members:
+    :show-inheritance:
 
 .. autoclass:: siliconcompiler.schema.parametertype.NodeType
     :members:
