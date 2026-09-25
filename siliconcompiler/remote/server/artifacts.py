@@ -347,7 +347,7 @@ def _retention(store, kind: str, floor_days: int) -> str:
     return when.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
-def fetchable(row) -> bool:
+def fetchable(row, surface_allows: bool = True) -> bool:
     '''Whether THIS caller may have the bytes.
 
     🔴 Per caller, never cached across callers -- which is why it is computed
@@ -355,8 +355,11 @@ def fetchable(row) -> bool:
     who can see the job, because there is no approval machinery here and the
     only caller who can see a job is its owner. What is left are the three
     reasons the bytes are not available to anyone: deleted, withheld, or aged
-    out.
+    out -- and ``surface_allows``, which is whether the surface asking hands
+    over this kind at all (``api_fetchable_kinds``).
     '''
+    if not surface_allows:
+        return False
     if row["deleted_at"] or row["withheld_at"]:
         return False
     return not _passed(row["retention_until"])
@@ -380,7 +383,7 @@ def _passed(when: Optional[str]) -> bool:
     return bool(when) and when <= now()
 
 
-def wire(row) -> Dict[str, Any]:
+def wire(row, surface_allows: bool = True) -> Dict[str, Any]:
     '''One artifact, as §21 publishes it.'''
     return {
         "id": row["id"],
@@ -407,7 +410,7 @@ def wire(row) -> Dict[str, Any]:
         # the column it comes from, because it is the same thing.
         "deleted_cause": cause(row),
         "delete_reason": row["delete_reason"],
-        "fetchable": fetchable(row),
+        "fetchable": fetchable(row, surface_allows),
     }
     # No `blocked_by` and no `access_request_url`: both are about an agreement
     # standing in the way, and this deployment has no agreements. An

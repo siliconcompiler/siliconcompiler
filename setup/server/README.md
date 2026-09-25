@@ -141,6 +141,42 @@ whole credential.
 Browser sessions live in the server process and in no table, so restarting it
 signs everyone out. Running `sc-remote -portal` again is the whole recovery.
 
+## Test modes: serving less, on purpose
+
+```sh
+SC_SERVER_TEST_MODE=3 docker compose up
+python -m siliconcompiler.remote.server -datadir /tmp/x -test-mode 3
+```
+
+Three presets for seeing how a client copes with a deployment that withholds
+more. **Every one is a legal `v1` deployment and `GET /v1` says what it
+serves**, so nothing tells the client which mode it is in; it has to read the
+features and the limits as it would anywhere.
+
+| | 1 | 2 | 3 |
+|---|---|---|---|
+| live log over the API | ✅ | ❌ `feature-unsupported` | ❌ |
+| archived log over the API | ✅ | ✅ | ❌ `feature-unsupported` |
+| what the API hands over | every kind | manifest, logs, reports | manifest |
+| the portal | everything | everything | everything |
+| denied | nothing | nothing | PDK `GF180*`, library `nangate45`, tool `verilator` |
+| `concurrent_jobs` / `pending_uploads` | 4 / 8 | 2 / 4 | 1 / 2 |
+
+A kind the API withholds stays **in the listing** with `fetchable: false` and
+no `access_request_url` &mdash; it exists and there is no path to yes from
+here &mdash; and fetching it is `entitlement-denied`. The portal lists and
+serves it, the same split `max_download_bytes` makes.
+
+A denied PDK, library or tool is refused at submit, after the archive is
+opened, as `entitlement-denied` naming `resource_kind` and `resource`, and the
+job is `rejected`. Mode 3's three are each tripped by a different demo target,
+while the skywater130 demo still runs: `gf180_demo` for the PDK,
+`freepdk45_demo` for its library, and any flow that runs verilator for the tool.
+
+`config.json` still applies on top of a mode, so one value can be moved
+without writing out the rest &mdash; including `api_fetchable_kinds` and
+`denied_resources` themselves, which work without a mode too.
+
 ## The base image
 
 Everything the cluster runs comes from `ghcr.io/siliconcompiler/sc_tools`:

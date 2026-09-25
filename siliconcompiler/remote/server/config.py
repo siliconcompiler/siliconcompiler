@@ -14,9 +14,9 @@ an account's data.
 import json
 
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
-__all__ = ["Config", "DEFAULTS", "CONFIG_FILENAME"]
+__all__ = ["Config", "DEFAULTS", "CONFIG_FILENAME", "TEST_MODES"]
 
 
 CONFIG_FILENAME = "config.json"
@@ -229,7 +229,121 @@ DEFAULTS: Dict[str, Any] = {
     # are written into each bundle's config.json when it is unpacked. Remove
     # <datadir>/images and re-stage.
     "container_mounts": [],
+
+    # Which artifact kinds the API hands over, or None for all of them.
+    #
+    # 🔴 **The API's answer and not the portal's.** A kind left out stays in
+    # the listing with `fetchable: false` and no `access_request_url` -- it
+    # exists, and there is no path to yes from here -- and fetching it is
+    # `entitlement-denied`. The portal lists and serves it as before, which is
+    # the surface split `max_download_bytes` already makes: a person clicking
+    # one object is not an automated sweep.
+    #
+    # ⚠️ Omitting a kind from the LISTING would be legal too -- no kind is
+    # guaranteed -- but it says something different: *this server does not keep
+    # those*, which is untrue while the portal is showing them.
+    "api_fetchable_kinds": None,
+
+    # PDKs, libraries and tools no caller may use, as globs per resource kind:
+    # `{"pdk": ["GF180*"], "library": [...], "tool": [...]}`.
+    #
+    # 🔴 A stand-in for grants, which this profile does not serve, so that the
+    # refusal a grant-backed deployment gives can be seen from a client. It is
+    # a deny list where a grant is an allow list, and it binds everybody alike.
+    # What it produces is exactly the grant's refusal -- `entitlement-denied`
+    # at submit, naming `resource_kind` and `resource`, and the job `rejected`.
+    #
+    # ⚠️ `GET /v1/me` still omits `authorized`: that member lists what a caller
+    # MAY use, and a deny list cannot be written as one. So a client learns of a
+    # denial the way it would where `authorized` is too coarse to say -- at
+    # submit, after the upload.
+    "denied_resources": {},
 }
+
+# The resource kinds `denied_resources` is keyed by -- the contract's closed
+# `resource_kinds` set.
+RESOURCE_KINDS = ("pdk", "library", "tool")
+
+
+# Three presets for testing a client against deployments that serve less, from
+# what this server does by default to the most it can withhold.
+#
+# 🔴 **Every one is a legal v1 deployment, and `GET /v1` says which.** Nothing
+# here is a flag a client is told about; a client that behaves correctly under
+# these does so because it read what the server published. That is what makes
+# them worth testing against.
+#
+# ⚠️ Applied over the defaults and UNDER `config.json`, so any one value can
+# still be moved on top of a mode without writing out the rest.
+#
+# ⚠️ Mode 3's denials are chosen so that each one is tripped by a different
+# demo target and the skywater130 demo still runs: `gf180_demo` for the PDK
+# (a glob, because a grant's name is one), `freepdk45_demo` for its library,
+# and any flow that runs verilator for the tool.
+TEST_MODES: Dict[int, Dict[str, Any]] = {
+    # What this server does by default.
+    1: {},
+
+    # No live tail; the manifest, logs and reports come over the API and the
+    # node archives only through the portal.
+    2: {
+        "features": ["logs"],
+        "api_fetchable_kinds": ["manifest", "logs", "reports"],
+        "limits": {
+            "concurrent_jobs": 2,
+            "pending_uploads": 4,
+            "max_download_bytes": 52428800,             # 50 MiB
+        },
+    },
+
+    # The manifest and nothing else over the API; no logs, live or archived;
+    # one job at a time; and a PDK, a library and a tool nobody may use.
+    3: {
+        "features": [],
+        "api_fetchable_kinds": ["manifest"],
+        "denied_resources": {
+            "pdk": ["GF180*"],
+            "library": ["nangate45"],
+            "tool": ["verilator"],
+        },
+        "limits": {
+            "concurrent_jobs": 1,
+            "pending_uploads": 2,
+            "max_job_nodes": 200,
+            "max_upload_bytes": 104857600,              # 100 MiB
+            "max_download_bytes": 20971520,             # 20 MiB
+        },
+    },
+}
+
+
+def _check_policy(values: Dict[str, Any]) -> None:
+    '''Refuse a policy value that would silently mean nothing.
+
+    The same rule as an unknown key: a kind or a resource kind spelled wrong is
+    a restriction the operator believes they set.
+    '''
+    from siliconcompiler.remote.server.artifacts import KINDS
+
+    kinds = values["api_fetchable_kinds"]
+    if kinds is not None:
+        unknown = set(kinds) - set(KINDS)
+        if unknown:
+            raise ValueError(
+                f"api_fetchable_kinds names unknown kinds: "
+                f"{', '.join(sorted(unknown))}")
+
+    denied = values["denied_resources"] or {}
+    unknown = set(denied) - set(RESOURCE_KINDS)
+    if unknown:
+        raise ValueError(
+            f"denied_resources names unknown resource kinds: "
+            f"{', '.join(sorted(unknown))}; the kinds are "
+            f"{', '.join(RESOURCE_KINDS)}")
+    for kind, names in denied.items():
+        if not isinstance(names, list) or \
+                not all(isinstance(name, str) for name in names):
+            raise ValueError(f"denied_resources.{kind} must be a list of names")
 
 
 class Config:
@@ -244,10 +358,21 @@ class Config:
         self._values = values
 
     @classmethod
-    def load(cls, datadir: Union[str, Path]) -> "Config":
-        '''Defaults, overlaid with ``<datadir>/config.json`` if it is there.'''
+    def load(cls, datadir: Union[str, Path],
+             test_mode: Optional[int] = None) -> "Config":
+        '''Defaults, then ``test_mode``'s preset, then ``<datadir>/config.json``
+        if it is there.'''
         values = dict(DEFAULTS)
         values["limits"] = dict(DEFAULT_LIMITS)
+
+        if test_mode is not None:
+            if test_mode not in TEST_MODES:
+                raise ValueError(
+                    f"test mode {test_mode} is not one of "
+                    f"{', '.join(map(str, TEST_MODES))}")
+            preset = dict(TEST_MODES[test_mode])
+            values["limits"].update(preset.pop("limits", {}))
+            values.update(preset)
 
         path = Path(datadir) / CONFIG_FILENAME
         if path.exists():
@@ -273,6 +398,8 @@ class Config:
 
             values.update(overlay)
 
+        _check_policy(values)
+
         if values["storage_uri_base"] is None:
             artifacts = (Path(datadir) / "artifacts").resolve()
             values["storage_uri_base"] = artifacts.as_uri() + "/"
@@ -288,6 +415,18 @@ class Config:
     @property
     def limits(self) -> Dict[str, int]:
         return self._values["limits"]
+
+    def api_fetchable(self, kind: str) -> bool:
+        '''Whether the API hands over artifacts of this kind.'''
+        kinds = self._values["api_fetchable_kinds"]
+        return kinds is None or kind in kinds
+
+    def denied(self, resource_kind: str, name: str) -> bool:
+        '''Whether no caller may use this PDK, library or tool.'''
+        from fnmatch import fnmatchcase
+
+        patterns = (self._values["denied_resources"] or {}).get(resource_kind, [])
+        return any(fnmatchcase(name, pattern) for pattern in patterns)
 
     def capabilities(self, software: Dict[str, list]) -> Dict[str, Any]:
         '''The ``GET /v1`` body.

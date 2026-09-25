@@ -53,7 +53,7 @@ def require_server_dependency() -> None:
 
 
 def create_app(datadir: Union[str, Path], cluster: str = "local",
-               bind_keys: bool = True):
+               bind_keys: bool = True, test_mode: Optional[int] = None):
     '''Build the application for one deployment.
 
     Everything a handler needs hangs off the app: the store, the config, the
@@ -64,13 +64,15 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     container fleet has to do, because /etc/machine-id is per image and every
     container derives the same subject, so with binding on the first one binds
     and every later one is refused.
+
+    ``test_mode`` is one of ``config.TEST_MODES``, applied under config.json.
     '''
     require_server_dependency()
 
     datadir = Path(datadir).resolve()
     datadir.mkdir(parents=True, exist_ok=True)
 
-    config = Config.load(datadir)
+    config = Config.load(datadir, test_mode=test_mode)
     store = Store(datadir / "server.db")
     store.ensure_storage_location(config["storage_location_id"],
                                   config["storage_uri_base"])

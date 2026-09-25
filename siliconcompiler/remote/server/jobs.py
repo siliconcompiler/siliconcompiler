@@ -60,6 +60,11 @@ SCHEDULER_QUERY_FLOOR = 5
 # `cancelled` and `abandoned` are somebody having stopped.
 REUSABLE_STATES = ("completed", "failed")
 
+# The two surfaces a caller reaches a job through. They disagree about exactly
+# two things -- `max_download_bytes` and `api_fetchable_kinds` -- and both are
+# decided from this one value.
+SURFACES = ("api", "portal")
+
 # SiliconCompiler's own tasks -- nop, join, minimum, maximum, verify. They run
 # in the framework's process, so they name no tool a deployment could install.
 
@@ -520,6 +525,7 @@ class JobService:
         self._storage.discard_upload(job["id"])
 
         derived = self._derive(session, job, root)
+        self._check_denied(session, job, derived)
         plan = self._resolve_images(session, job, derived)
         manifest = self._normalize(session, job, root, derived, plan)
 
@@ -552,6 +558,35 @@ class JobService:
 
         logger.info(f"submitted {job['id']} as {scheduler_job_id}")
         return self.wire(self._row(job["id"]))
+
+    def _check_denied(self, session, job, derived) -> None:
+        '''Refuse a run that uses a PDK, library or tool nobody may use.
+
+        🔴 **After re-derivation and before image resolution**: what the
+        manifest names is only known once it is open, and *you may not use it*
+        is asked before *can this server provide it* -- a denied tool this
+        deployment has no image for is still a denial, and the caller should
+        hear the answer that does not change when an image is added.
+
+        ⚠️ The first one found is the one named, in the order PDK, library,
+        tool, because the slug carries one `resource`. The detail says how many
+        more there are, so fixing one is not followed by a surprise.
+        '''
+        wanted = ([("pdk", derived["pdk"])] if derived["pdk"] != "none" else []) + \
+            [("library", name) for name in derived["libraries"]] + \
+            [("tool", name) for name in derived["tools"]]
+
+        denied = [(kind, name) for kind, name in wanted
+                  if self._config.denied(kind, name)]
+        if not denied:
+            return
+
+        kind, name = denied[0]
+        more = len(denied) - 1
+        raise self._refuse(session, job, ProblemError(
+            "entitlement-denied", resource_kind=kind, resource=name,
+            detail=f"this flow uses a {kind} this deployment does not allow"
+                   + (f", and {more} more" if more else "")))
 
     def _resolve_images(self, session, job, derived):
         '''Which container every node of this job runs in.
@@ -759,6 +794,7 @@ class JobService:
             "node_tools": node_tools,
             "tools": sorted({tool for tool in node_tools.values() if tool}),
             "pdk": _pdk(project),
+            "libraries": _libraries(project),
         }
 
     def _normalize(self, session, job, root: Path, derived, plan) -> Path:
@@ -1552,7 +1588,19 @@ class JobService:
     # Artifacts
     ######################################################################
 
-    def artifacts(self, session, job_id: str, args):
+    def _surface_allows(self, surface: str, kind: str) -> bool:
+        '''Whether ``surface`` hands over artifacts of ``kind``.
+
+        🔴 **`api_fetchable_kinds` binds the API and not the portal**, for the
+        reason `max_download_bytes` does: the portal is a person choosing one
+        object. Both disagreements between the surfaces are decided from the
+        one ``surface`` argument so that they are written down in one place.
+        '''
+        if surface not in SURFACES:
+            raise ValueError(f"{surface} is not a surface")
+        return surface == "portal" or self._config.api_fetchable(kind)
+
+    def artifacts(self, session, job_id: str, args, surface: str = "api"):
         '''Endpoint 21: what this run produced, as far as this caller is
         concerned.'''
         job = self.owned(session, job_id)
@@ -1592,17 +1640,19 @@ class JobService:
         more = len(rows) > limit
         rows = rows[:limit]
 
-        items = [artifacts.wire(row) for row in rows]
+        items = [artifacts.wire(row, self._surface_allows(surface, row["kind"]))
+                 for row in rows]
         return items, (_encode_cursor(rows[-1]) if more and rows else None)
 
     def artifact(self, session, job_id: str, artifact_id: str,
-                 ceiling: bool = True):
+                 surface: str = "api"):
         '''Endpoint 22's row, with the refusals it can make.
 
-        ``ceiling`` is what the two surfaces disagree about, and it is a
+        ``surface`` is what the two surfaces disagree about, and it is a
         parameter rather than two code paths so that the disagreement is
-        written down in one place. 🔴 **`max_download_bytes` binds the API and
-        not the portal.** There is no API override for it -- no query
+        written down in one place: ``"api"`` or ``"portal"``. 🔴
+        **`max_download_bytes` and `api_fetchable_kinds` bind the API and not
+        the portal.** There is no API override for it -- no query
         parameter, no header -- because a limit a caller can switch off is not
         a limit. The portal is the way past it, and it is allowed to be because
         it is a different surface with a person on it who has just clicked the
@@ -1625,12 +1675,12 @@ class JobService:
             # entitled to.
             raise ProblemError("not-found", detail="these bytes were deleted")
 
-        if not artifacts.fetchable(row):
+        if not artifacts.fetchable(row, self._surface_allows(surface, row["kind"])):
             raise ProblemError(
                 "entitlement-denied", resource_kind="artifact", resource=row["kind"],
                 detail="this artifact is not available to fetch")
 
-        if ceiling:
+        if surface == "api":
             self._check_download_ceiling(session, row)
 
         return row
@@ -1665,7 +1715,8 @@ class JobService:
                    f"{units.size(allowed)} this account may download over the "
                    "API; open it from the web portal instead")
 
-    def node_log(self, session, job_id: str, step: str, index: str):
+    def node_log(self, session, job_id: str, step: str, index: str,
+                 surface: str = "api"):
         '''Endpoint 20's target: the archived log for one terminal node.
 
         Returns ``("stream", node)`` or ``("artifact", row)`` -- the two things
@@ -1673,10 +1724,25 @@ class JobService:
         refusal, and which one depends on the node's state rather than on the
         artifact: a node that has not run has no log, and saying `not-found`
         would tell a client to stop asking.
+
+        ⚠️ ``features`` is what the API publishes, so it gates the API and not
+        the portal -- which shows a node's log however the deployment answers
+        a client. That is the same split ``surface`` makes for the artifacts.
         '''
         job = self.owned(session, job_id)
         if job["deleted_at"]:
             raise ProblemError("not-found", detail="this job's data was deleted")
+
+        api = surface == "api"
+        features = self._config["features"]
+        if api and "logs" not in features and "logs.stream" not in features:
+            # 🔴 Refused before the node is looked at, because it does not
+            # depend on the node: this deployment serves no logs over the API,
+            # so there is nothing to wait for and a client must not retry.
+            raise ProblemError(
+                "feature-unsupported", feature="logs",
+                detail="this deployment does not serve logs over the API; "
+                       "they are on the web portal")
 
         node = self._store.one(
             'SELECT * FROM job_nodes WHERE job_id = ? AND step = ? AND "index" = ?',
@@ -1691,7 +1757,7 @@ class JobService:
                 headers={"Retry-After": str(self._config["poll_interval_seconds"])})
 
         if node["state"] == "running":
-            if "logs.stream" not in self._config["features"]:
+            if api and "logs.stream" not in features:
                 # Permanent for the tail and not for the log: the archive still
                 # arrives when the node finishes. A client must not retry this.
                 raise ProblemError(
@@ -1721,10 +1787,23 @@ class JobService:
             raise ProblemError(
                 "not-found", detail=f"no log was kept for {step}/{index}")
 
+        if api and "logs" not in features:
+            # Only the live tail is served, and this node is over.
+            raise ProblemError(
+                "feature-unsupported", feature="logs",
+                detail="this deployment serves a live log while a node runs "
+                       "and does not keep one afterwards")
+
         # The same bytes as endpoint 22 and the same signed URL, so the same
-        # ceiling: a caller that cannot fetch a log as an artifact must not be
+        # refusals: a caller that cannot fetch a log as an artifact must not be
         # handed it by asking for it as a log.
-        self._check_download_ceiling(session, row)
+        if not self._surface_allows(surface, "logs"):
+            raise ProblemError(
+                "entitlement-denied", resource_kind="artifact", resource="logs",
+                detail="this deployment does not hand logs over the API; they "
+                       "are on the web portal")
+        if api:
+            self._check_download_ceiling(session, row)
 
         return "artifact", row
 
@@ -2040,6 +2119,24 @@ def _pdk(project) -> str:
     except Exception:                                           # noqa: BLE001
         pdk = None
     return pdk or "none"
+
+
+def _libraries(project) -> List[str]:
+    '''The standard-cell libraries this run uses, main library first.
+
+    ⚠️ `asic,asiclib` is filled in from the main library when a run starts, so
+    a manifest that has never run can carry only `asic,mainlib`. Both are read.
+    '''
+    found: List[str] = []
+    for key in ("mainlib", "asiclib"):
+        try:
+            value = project.get("asic", key)
+        except Exception:                                       # noqa: BLE001
+            continue
+        for name in (value if isinstance(value, list) else [value]):
+            if name and name not in found:
+                found.append(name)
+    return found
 
 
 def _after(when: str, seconds: int) -> str:

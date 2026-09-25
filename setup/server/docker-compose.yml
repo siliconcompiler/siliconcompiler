@@ -72,6 +72,11 @@ x-sc-server: &sc-server
   pull_policy: build
   environment:
     SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
+    # FOR TESTING: 1, 2 or 3 serves one of the server's preset deployments,
+    # from its defaults to the most it withholds.
+    #
+    #   SC_SERVER_TEST_MODE=3 docker compose up
+    SC_SERVER_TEST_MODE: ${SC_SERVER_TEST_MODE:-}
   volumes:
     # Every slurm daemon must present the same munge credential. The key is
     # generated into this volume by whichever container starts first rather

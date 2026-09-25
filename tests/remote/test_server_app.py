@@ -441,9 +441,11 @@ def test_three_flags_and_their_defaults():
     assert args.port == 8080
     assert args.cluster == "local"
     assert args.datadir == "./sc_server"
+    # ⚠️ The fourth is for testing, and off unless asked for.
+    assert args.test_mode is None
 
     assert {action.dest for action in entry._parser()._actions} == {
-        "help", "port", "datadir", "cluster", "version"}
+        "help", "port", "datadir", "cluster", "test_mode", "version"}
 
 
 def test_a_broken_config_is_reported_and_exits_non_zero(caplog):

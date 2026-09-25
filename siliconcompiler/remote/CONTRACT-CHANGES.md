@@ -62,6 +62,28 @@ presence depends on, separately.
 
 **Where it goes:** `sc-server-profile.md`, beside the probe's traps.
 
+### 2. `entitlement-denied` on an artifact has no legal `resource_kind`
+
+§22 says a fetch of an artifact whose `fetchable` is false is `403
+entitlement-denied`, and the registry makes `resource_kind` and `resource`
+REQUIRED on that slug. **`resource_kinds` is closed — `pdk`, `tool`, `library` —
+and an artifact is none of them.** This profile sends `resource_kind:
+"artifact"`, `resource: <kind>`, which is a value outside the set a client is
+entitled to build one enum from — the exact trap D70 kept `logs` out of it for.
+
+It has a second raiser now: the test modes withhold whole kinds from the API,
+so the refusal is reachable on purpose rather than only through `withheld_at`.
+
+**Proposed**, one of:
+- the slug's two members are REQUIRED only where the refusal is about a
+  catalogue resource, and an artifact refusal carries `artifact_kind` instead —
+  the member `not-ready` already uses for the same vocabulary; or
+- where an artifact is gated on a resource (entitlements.md: *what an artifact
+  is gated on*), the members name **that** resource — the PDK the GDS derives
+  from — and a refusal gated on nothing catalogued uses `artifact_kind`.
+
+**Where it goes:** `surface.md` §22 and the registry row.
+
 ---
 
 ## Not ported, deliberately

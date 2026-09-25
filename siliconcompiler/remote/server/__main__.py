@@ -4,8 +4,9 @@
 A module entry point rather than a console script: it can be imported and driven
 in-process, where a console script has to be installed and spawned.
 
-Three flags. Everything else a deployment might want to say -- its limits, what
-it advertises, how long a client waits -- has a working default and can be
+Three flags, and a fourth for testing. Everything else a deployment might want
+to say -- its limits, what it advertises, how long a client waits -- has a
+working default and can be
 overridden in ``<datadir>/config.json``, so the first run of a new server needs
 no file and no arguments beyond where to keep its state.
 '''
@@ -19,6 +20,7 @@ from typing import List, Optional
 
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler.remote import banner
+from siliconcompiler.remote.server.config import TEST_MODES
 
 
 __all__ = ["main"]
@@ -53,6 +55,12 @@ def _parser() -> argparse.ArgumentParser:
         help=f"how a job is handed over to run: {', '.join(CLUSTERS)} "
              "(default: %(default)s)")
     parser.add_argument(
+        "-test-mode", type=int, choices=sorted(TEST_MODES), default=None,
+        metavar="<n>",
+        help="FOR TESTING: serve one of three preset deployments, from what "
+             "this server does by default (1) to the most it withholds (3). "
+             "config.json still applies on top")
+    parser.add_argument(
         "-version", action="version", version=sc_version)
 
     return parser
@@ -80,7 +88,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     datadir = Path(args.datadir).resolve()
 
     try:
-        app = create_app(datadir, cluster=args.cluster)
+        app = create_app(datadir, cluster=args.cluster, test_mode=args.test_mode)
     except Exception as e:                                       # noqa: BLE001
         # A bad config file or an unreadable store is a setup problem, and a
         # traceback buries the one line that says which.
@@ -94,6 +102,14 @@ def main(argv: Optional[List[str]] = None) -> int:
                 f"port {args.port}")
     logger.info(f"data directory: {datadir}")
     logger.info(f"cluster: {args.cluster}")
+    if args.test_mode is not None:
+        # Loud, because it changes what every client is told and a deployment
+        # left in it serves less than its operator thinks.
+        config = app.config["SC_CONFIG"]
+        logger.warning(f"TEST MODE {args.test_mode}: features "
+                       f"{config['features'] or 'none'}, API hands over "
+                       f"{config['api_fetchable_kinds'] or 'every kind'}, "
+                       f"denied {config['denied_resources'] or 'nothing'}")
     # The honesty half, pairing with what GET /v1 publishes. Nothing here
     # verifies who a caller is; the key bound on first contact is the only real
     # control this mode has, and an operator should know that at startup rather

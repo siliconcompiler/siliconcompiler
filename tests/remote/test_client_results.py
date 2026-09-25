@@ -28,6 +28,8 @@ def artifact(kind="manifest", step=None, index=None, fetchable=True, **extra):
         "created_at": "2026-09-22T10:00:00.000Z",
         "expires_at": "2031-09-22T10:00:00.000Z",
         "deleted_at": None,
+        "deleted_cause": None,
+        "delete_reason": None,
         "fetchable": fetchable,
         **extra,
     }
@@ -110,6 +112,7 @@ def test_deleted_is_never_reported_as_expired(fake_v1, results, caplog):
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("outputs", "stepone", "0", fetchable=False,
                  deleted_at="2026-09-20T00:00:00.000Z",
+                 deleted_cause="removed", delete_reason=None,
                  expires_at="2020-01-01T00:00:00.000Z")]})
 
     with caplog.at_level("WARNING"):
@@ -119,12 +122,44 @@ def test_deleted_is_never_reported_as_expired(fake_v1, results, caplog):
     assert "aged out" not in caplog.text
 
 
+def test_the_reaper_taking_it_is_aged_out_and_not_deleted(fake_v1, results,
+                                                          caplog):
+    '''🔴 `deleted_cause` is the only member that says so: retention lapsing
+    ends in `deleted_at` too. Reading the old `deleted_reason` spelling, this
+    client told a person *deleted* for bytes the system had reclaimed as it
+    said it would.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("outputs", "stepone", "0", fetchable=False,
+                 deleted_at="2026-09-20T00:00:00.000Z",
+                 deleted_cause="expired", delete_reason=None)]})
+
+    with caplog.at_level("WARNING"):
+        results.fetch("j1")
+
+    assert "aged out on 2026-09-20" in caplog.text
+    assert "deleted" not in caplog.text
+
+
+def test_a_cause_this_client_does_not_know_is_somebody_deciding(
+        fake_v1, results, caplog):
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("outputs", "stepone", "0", fetchable=False,
+                 deleted_at="2026-09-20T00:00:00.000Z",
+                 deleted_cause="legal", delete_reason=None)]})
+
+    with caplog.at_level("WARNING"):
+        results.fetch("j1")
+
+    assert "deleted on 2026-09-20" in caplog.text
+
+
 def test_the_reason_is_repeated_rather_than_interpreted(fake_v1, results,
                                                         caplog):
     '''🔴 A reaper sets `deleted_at` when retention lapses -- it has to,
     because `fetchable` asks first whether the bytes are there -- so the column
     alone no longer separates *the system did what it said* from *somebody
-    removed this*. `deleted_reason` is what does.
+    removed this*. `deleted_cause` is what does, and `delete_reason` is the
+    prose that says why.
 
     Repeated verbatim and never matched against a vocabulary this client
     holds: a deployment that grows a new reason is understood by a client that
@@ -133,21 +168,22 @@ def test_the_reason_is_repeated_rather_than_interpreted(fake_v1, results,
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("outputs", "stepone", "0", fetchable=False,
                  deleted_at="2026-09-20T00:00:00.000Z",
-                 deleted_reason="retention lapsed")]})
+                 deleted_cause="removed",
+                 delete_reason="superseded by the rerun")]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
 
-    assert "gone on 2026-09-20 -- retention lapsed" in caplog.text
+    assert "deleted on 2026-09-20 -- superseded by the rerun" in caplog.text
 
 
 def test_a_server_that_gives_no_reason_still_gets_a_sentence(fake_v1, results,
                                                              caplog):
-    '''`deleted_reason` may be null, and a missing one is not a blank line.'''
+    '''`delete_reason` may be null, and a missing one is not a blank line.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("outputs", "stepone", "0", fetchable=False,
                  deleted_at="2026-09-20T00:00:00.000Z",
-                 deleted_reason=None)]})
+                 deleted_cause="removed", delete_reason=None)]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")

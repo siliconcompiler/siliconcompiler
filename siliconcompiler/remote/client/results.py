@@ -23,8 +23,10 @@ fits none of the cases.
 ⚠️ **``deleted_at`` alone does not say which of the last two it is.** A server's
 reaper sets it when retention lapses -- it has to, because ``fetchable`` asks
 first whether the bytes are there -- so the column covers *the system did what
-it said it would* as well as *somebody removed this*. ``deleted_reason`` is what
-tells them apart, and this client repeats it rather than guessing.
+it said it would* as well as *somebody removed this*. ``deleted_cause`` is what
+tells them apart -- a closed enum, ``expired`` or ``removed`` -- and
+``delete_reason`` is the prose a person wrote, which this client repeats rather
+than interprets.
 '''
 
 import logging
@@ -287,13 +289,21 @@ class Results:
         # useful sentence is the one that says why they went.
         if item.get("deleted_at"):
             day = _day(item["deleted_at"])
-            reason = item.get("deleted_reason")
-            # Repeated, never interpreted. The reason is prose a deployment
-            # chose and this client has no vocabulary to match it against --
-            # which is the point: a server that grows a new one is understood
-            # by a client that shipped before it.
+
+            # 🔴 `deleted_cause` is what a client branches on, and it is the
+            # only member that can say the reaper took these: retention
+            # lapsing ends in `deleted_at` too. Anything but `expired` -- a
+            # cause this client does not know included -- is somebody
+            # deciding, which is the sentence that does not under-report it.
+            if item.get("deleted_cause") == "expired":
+                return (f"{name}: aged out on {day}. Retention on this server "
+                        "passed for that kind and the bytes were reclaimed.")
+
+            # Repeated, never interpreted. `delete_reason` is prose a person
+            # wrote and this client has no vocabulary to match it against.
+            reason = item.get("delete_reason")
             if reason:
-                return f"{name}: gone on {day} -- {reason}."
+                return f"{name}: deleted on {day} -- {reason}."
             return f"{name}: deleted on {day}."
 
         blocked = item.get("blocked_by")

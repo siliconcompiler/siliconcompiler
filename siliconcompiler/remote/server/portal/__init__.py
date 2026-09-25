@@ -611,7 +611,7 @@ def _all_artifacts(session, job_id, args=None):
 
     items, seen = [], 0
     while seen < 20:
-        page, cursor = _jobs().artifacts(session, job_id, query)
+        page, cursor = _jobs().artifacts(session, job_id, query, surface="portal")
         items.extend(page)
         if not cursor:
             break
@@ -778,10 +778,11 @@ def fetch(session, job_id, artifact_id):
     automated sweep does not pull gigabytes nobody asked for, and it has no API
     override for the same reason -- a limit a caller can switch off is not one.
     This is the surface it is allowed to be lifted on, because the request is a
-    person clicking one object. It is stated as `ceiling=False` rather than
-    left implicit, so the exception is visible at both ends.
+    person clicking one object. It is stated as `surface="portal"` rather than
+    left implicit, so the exception is visible at both ends -- and it lifts
+    `api_fetchable_kinds` for the same reason.
     '''
-    row = _jobs().artifact(session, job_id, artifact_id, ceiling=False)
+    row = _jobs().artifact(session, job_id, artifact_id, surface="portal")
     storage = flask.current_app.config["SC_STORAGE"]
 
     expires = int(time.time()) + DOWNLOAD_SECONDS
@@ -864,10 +865,10 @@ def inside(session, job_id, artifact_id):
     same answer the API would give.
     """
     detail = _jobs().get(session, job_id)
-    # `ceiling=False` for the same reason the download does, and with one more:
+    # `surface="portal"` for the same reason the download does, and with one more:
     # nothing leaves this server whole. What is served is one member, bounded
     # by MAX_INLINE_BYTES, out of an archive bounded by MAX_BROWSE_BYTES.
-    row = _jobs().artifact(session, job_id, artifact_id, ceiling=False)
+    row = _jobs().artifact(session, job_id, artifact_id, surface="portal")
     archive = _stored_at(row)
 
     # A log or a manifest is one file and has nothing to look inside. Showing
@@ -965,7 +966,8 @@ def log(session, job_id, step, index):
     chosen = next((name for name, _ in available if name == wanted),
                   available[0][0] if available else None)
 
-    kind, target = _jobs().node_log(session, job_id, step, index)
+    kind, target = _jobs().node_log(session, job_id, step, index,
+                                    surface="portal")
 
     text, stream = "", None
     if kind == "artifact" or (chosen and available):
