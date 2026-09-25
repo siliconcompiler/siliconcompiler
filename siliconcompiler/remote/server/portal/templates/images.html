@@ -126,6 +126,19 @@
       Where its Task driver lives. Leave it empty and no version can be read
       from an image for it.
     </span></label>
+  <label>Version package, for a tool with no executable
+    <input type="text" name="version_package" placeholder="pyslang"
+           style="max-width:420px">
+    <span class="muted">
+      {#
+        slang is the case: its driver runs pyslang in SiliconCompiler's own
+        process, so there is nothing to run and ask -- and the distribution is
+        not called what the tool is called, which is why this is typed rather
+        than worked out.
+      #}
+      Read the version from a python distribution of this name instead of by
+      running the tool.
+    </span></label>
   <label>
     <input type="checkbox" name="unversioned" value="1">
     This tool reports no version, so the box above is the date its image was

@@ -15,6 +15,17 @@ class ExecInputTask(Task):
     def __init__(self):
         super().__init__()
 
+    def image_requirement(self):
+        """The command comes out of the manifest, so there is nothing to
+        require: this task cannot say what it will run until it runs."""
+        return None
+
+    def inherits_image(self):
+        """Run where the inputs were produced. A computed command is most
+        likely to need the environment that produced what it consumes, and
+        following the previous node costs nothing when it does not."""
+        return True
+
     def tool(self):
         return "execute"
 

@@ -665,7 +665,8 @@ def discard(session, job_id):
             "invalid-request",
             detail=f"type {expected} to confirm discarding what this run produced")
 
-    _jobs().discard_artifacts(session, job_id, "discarded from the portal")
+    _jobs().discard_artifacts(
+        session, job_id, f"discarded from {_jobs().whodunnit(session)}")
     return flask.redirect(flask.url_for("portal.artifacts", job_id=job_id))
 
 
@@ -691,7 +692,7 @@ def discard_node(session, job_id):
         raise ProblemError("invalid-request", detail="step and index are required")
 
     _jobs().discard_node(session, job_id, step, index,
-                         "discarded from the portal")
+                         f"discarded from {_jobs().whodunnit(session)}")
     return flask.redirect(flask.url_for("portal.artifacts", job_id=job_id))
 
 
@@ -1115,9 +1116,11 @@ def add_software(session):
             detail="say whether this is a python distribution or a tool")
 
     try:
-        images.register_software(_store(), name,
-                                 flask.request.form.get("display") or name,
-                                 session.user_id, kind, driver=driver)
+        images.register_software(
+            _store(), name, flask.request.form.get("display") or name,
+            session.user_id, kind, driver=driver,
+            version_package=(flask.request.form.get("version_package")
+                             or "").strip() or None)
     except ValueError as e:
         raise ProblemError("invalid-request", detail=str(e)) from None
 

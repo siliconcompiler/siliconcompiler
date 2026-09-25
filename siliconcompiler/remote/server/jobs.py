@@ -248,14 +248,59 @@ class JobService:
         confusing, and not a disclosure. An archived job is excluded, which is
         how a person says *stop handing me that result* without an endpoint for
         it.
+
+        🔴 And a candidate is checked against the registry as it is NOW --
+        see `_still_current`. Matching is not enough: an image the job ran in
+        may have been superseded since, and handing back a result produced by
+        code that is gone is the thing reuse must not do.
         '''
         placeholders = ", ".join("?" * len(REUSABLE_STATES))
-        return self._store.one(
+        candidate = self._store.one(
             "SELECT * FROM jobs WHERE user_id = ? AND job_identity = ? "
             f"  AND state IN ({placeholders}) "
             "  AND deleted_at IS NULL AND archived_at IS NULL "
             "ORDER BY created_at DESC, id DESC LIMIT 1",
             (user_id, identity, *REUSABLE_STATES))
+
+        if candidate is None or self._still_current(candidate):
+            return candidate
+
+        logger.info(f"{candidate['id']} matches, and the images it ran in have "
+                    "been superseded; running it again")
+        return None
+
+    def _still_current(self, job) -> bool:
+        '''Whether the images this job actually ran in are still live.
+
+        🔴 **What closes the gap the identity cannot.** The identity folds in
+        the digests the DECLARED versions resolve to, because that is all there
+        is at create -- the per-node tool images need the flow, which needs the
+        manifest, which needs the upload the check exists to avoid. So
+        re-registering an image that only ever served a TOOL leaves the
+        identity unchanged, and the candidate would be handed back although the
+        code that produced it is gone.
+
+        ✅ A finished job records what its nodes RAN IN, so the question can be
+        asked the other way round: are those images still live? It is
+        computable at create, deterministic, and it invalidates only the jobs
+        whose images actually changed.
+
+        ⚠️ A job that ran in no image -- a deployment that runs on the host --
+        has nothing to check and stays reusable.
+        '''
+        rows = self._store.all(
+            "SELECT DISTINCT image_id FROM job_nodes "
+            "WHERE job_id = ? AND image_id IS NOT NULL", (job["id"],))
+
+        ran_in = {row["image_id"] for row in rows}
+        if job["image_id"]:
+            ran_in.add(job["image_id"])
+        if not ran_in:
+            return True
+
+        live = {row["id"] for row in self._store.all(
+            "SELECT id FROM images WHERE retired_at IS NULL")}
+        return ran_in <= live
 
     def _check_pending_uploads(self, user_id: str) -> None:
         held = self._store.one(
@@ -529,12 +574,12 @@ class JobService:
         requires = requirements(json.loads(job["descriptor"]) or {})
 
         flow = derived["project"].get_flow()
+        inherits = runspec.inheriting_nodes(flow, derived["nodes"],
+                                            derived["edges"])
 
         try:
-            return images.plan_for_job(
-                self._store, requires, derived["node_tools"],
-                needs_executable=lambda node: runspec.needs_executable(
-                    flow, node[0], node[1]))
+            return images.plan_for_job(self._store, requires,
+                                       derived["node_tools"], inherits)
         except ProblemError as problem:
             # Its own slug, not a guessed one: `plan_for_job` refuses for more
             # than one reason and the job must record the one the caller was
@@ -899,6 +944,26 @@ class JobService:
 
         return self.wire(self._row(job["id"]))
 
+    def whodunnit(self, session) -> str:
+        """Where an action came from, in words, for a reason nobody supplied.
+
+        🔴 **Prose and never a published user id.** Somebody reading *who took
+        my results* wants the machine, and an id is a lookup they cannot do --
+        while publishing one tells every reader of the job which account acted.
+        The device's own name is what a person recognises, because it is what
+        they named it.
+
+        ⚠️ A portal session carries no device, and says so rather than
+        inventing one: the browser is the surface, not a machine.
+        """
+        if not getattr(session, "device_id", None):
+            return "the portal"
+
+        device = self._store.one("SELECT name FROM devices WHERE id = ?",
+                                 (session.device_id,))
+        where = (device["name"] if device else "").strip()
+        return f"sc-remote on {where}" if where else "sc-remote"
+
     def delete(self, session, job_id: str) -> None:
         job = self.owned(session, job_id)
 
@@ -924,9 +989,9 @@ class JobService:
             (now(), session.user_id, job["id"]))
         self._store.execute(
             "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
-            "  delete_reason = 'the job was deleted' "
-            "WHERE job_id = ? AND deleted_at IS NULL",
-            (now(), session.user_id, job["id"]))
+            "  delete_reason = ? WHERE job_id = ? AND deleted_at IS NULL",
+            (now(), session.user_id,
+             f"the job was deleted from {self.whodunnit(session)}", job["id"]))
 
     def discard_node(self, session, job_id: str, step: str, index: str,
                      reason: str) -> int:

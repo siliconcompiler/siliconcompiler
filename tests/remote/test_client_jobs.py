@@ -810,3 +810,37 @@ def test_an_unreadable_requirement_is_dropped_rather_than_sent():
     from siliconcompiler.tools.openroad import OpenROADTask
 
     assert _normalize_spec(OpenROADTask(), "whatever") is None
+
+
+def test_a_development_client_asks_by_prefix_rather_than_exactly():
+    '''🔴 `0.38.10.dev43+g20db24fa2` carries a commit in its local segment, so
+    an exact pin from a checkout can only ever match an image built from that
+    same commit -- which is nobody's image.
+
+    ⚠️ The spelling is `==0.38.10.*`: a `.*` attaches to the release segment
+    and nothing after it, so `==0.38.10.dev*` is rejected outright. The legal
+    one matches every build of that release line, dev ones included.
+    '''
+    from packaging.specifiers import InvalidSpecifier, SpecifierSet
+    from packaging.version import Version
+
+    import siliconcompiler.remote.client.run as run
+
+    before = run.sc_version
+    try:
+        run.sc_version = "0.38.10.dev43+g20db24fa2.d20260924"
+        spec = run._framework_requirement()
+        assert spec == "==0.38.10.*"
+
+        matches = SpecifierSet(spec, prereleases=True)
+        assert Version("0.38.10.dev7") in matches
+        assert Version("0.38.10") in matches
+        assert Version("0.38.9") not in matches
+
+        run.sc_version = "0.38.9"
+        assert run._framework_requirement() == "==0.38.9"
+    finally:
+        run.sc_version = before
+
+    with pytest.raises(InvalidSpecifier):
+        SpecifierSet("==0.38.10.dev*")

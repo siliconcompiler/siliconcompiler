@@ -45,7 +45,8 @@ import sys
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-__all__ = ["KINDS", "MARKER", "command_for", "probe", "read_output", "script"]
+__all__ = ["KINDS", "MARKER", "command_for", "probe", "read_answer",
+           "read_output", "script"]
 
 
 # The closed set, and each half is a mechanism rather than a label.
@@ -61,13 +62,30 @@ MARKER = "sc-probe:"
 _BEGIN = "--sc-probe-begin:"
 _END = "--sc-probe-end:"
 
-# What runs a python distribution's version check. `print(end="")` on the
-# failure so a missing distribution frames as empty rather than as the word
-# None, which is a version somebody could try to parse.
+# 🔴 Emitted only where the thing is THERE, and this is the load-bearing one.
+# *Present but would not say* is a legitimate row -- it is what
+# `published_date` exists for -- while *not there at all* has to refuse the
+# whole image registration, because writing the row says the image holds
+# something it does not, and then a node is placed in it and dies.
+#
+# ⚠️ **Never told apart by the version failing to parse.** An unguarded
+# missing tool leaves the shell's own `openroad: not found` in the frame, and
+# OpenROAD's `parse_version` takes the last word -- so a parse-failure test
+# would register a missing tool at version `0` instead of refusing it, which
+# is the exact bug this rule exists to prevent wearing the rule's own clothes.
+# Presence is the driver's own check: the executable existing, or
+# `PackageNotFoundError` not being raised.
+_HERE = "--sc-probe-here:"
+
+# 🔴 What runs a python distribution's version check, and it says PRESENT
+# before it says anything else. Absence is `PackageNotFoundError` -- the
+# packaging machinery's own answer -- and never a version that failed to parse.
 _PYTHON_CHECK = (
     "import importlib.metadata as m\n"
-    "try: print(m.version({name!r}))\n"
-    "except Exception: print(end='')\n"
+    "try: v = m.version({name!r})\n"
+    "except m.PackageNotFoundError: raise SystemExit(0)\n"
+    "print({here!r})\n"
+    "print(v)\n"
 )
 
 # CSI and the rest of the escape sequences a colouring tool emits.
@@ -76,8 +94,8 @@ _ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 logger = logging.getLogger("sc-probe")
 
 
-def command_for(name: str, kind: str,
-                driver: Optional[str] = None) -> Optional[List[str]]:
+def command_for(name: str, kind: str, driver: Optional[str] = None,
+                version_package: Optional[str] = None) -> Optional[List[str]]:
     '''What to run inside the image to make this name answer.
 
     ⚠️ **Read without `shutil.which`.** `Task.get_exe` resolves the executable
@@ -92,8 +110,13 @@ def command_for(name: str, kind: str,
     if kind not in KINDS:
         raise ValueError(f"{kind} is not a software kind")
 
-    if kind == "python":
-        return ["python3", "-c", _PYTHON_CHECK.format(name=name)]
+    # 🔴 A tool can have no executable at all -- slang drives pyslang in this
+    # process -- and its version is then the distribution's. The marker still
+    # carries the TOOL's name, because that is what the registry calls it.
+    if kind == "python" or version_package:
+        return ["python3", "-c",
+                _PYTHON_CHECK.format(name=version_package or name,
+                                     here=_HERE + name)]
 
     asked = _ask_driver(name, driver, lambda task: (task.get("exe"),
                                                     task.get("vswitch")))
@@ -159,10 +182,15 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
     does what separate runs would have bought.
     '''
     lines = ["#!/bin/sh"]
-    for name, kind, driver in wanted:
-        command = command_for(name, kind, driver)
+    for name, kind, driver, package in map(_want, wanted):
+        command = command_for(name, kind, driver, package)
         lines.append(f"echo {shlex.quote(_BEGIN + name)}")
-        if command:
+        if command and (kind == "python" or package):
+            # The python check reports its own presence: it prints the marker
+            # only once `importlib.metadata` has answered, so absence is
+            # `PackageNotFoundError` and nothing else.
+            lines.append(f"{shlex.join(command)} 2>&1 || true")
+        elif command:
             # 🔴 Guarded on the executable EXISTING, and this is not
             # belt-and-braces. Without it a missing tool leaves the shell's own
             # `openroad: not found` inside the frame, and OpenROAD's
@@ -176,6 +204,7 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
             # their version and then complain about having nothing to do.
             lines.append(f"if command -v {shlex.quote(command[0])} "
                          "> /dev/null 2>&1; then")
+            lines.append(f"  echo {shlex.quote(_HERE + name)}")
             lines.append(f"  {shlex.join(command)} 2>&1 || true")
             lines.append("fi")
         lines.append(f"echo {shlex.quote(_END + name)}")
@@ -190,14 +219,36 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
     deployment lists and nobody drives, or one that is not in this image, has
     no version to read -- and saying so is what ``published_date`` is for.
     '''
-    captured = _split(output or "")
+    captured, present = _split(output or "")
 
     found: Dict[str, Dict[str, Any]] = {}
-    for name, kind, driver in wanted:
-        answer = read_answer(name, kind, captured.get(name, ""), driver)
+    for name, kind, driver, package in map(_want, wanted):
+        # A version read through a distribution is read the python way,
+        # whatever the registry calls the name.
+        answer = read_answer(name, "python" if package else kind,
+                             captured.get(name, ""), driver)
         version, reported = answer if answer else (None, None)
-        found[name] = {"kind": kind, "version": version, "reported": reported}
+        found[name] = {"kind": kind, "version": version, "reported": reported,
+                       # 🔴 Three outcomes, not two. `present` and no version
+                       # is legitimate and is what `published_date` records;
+                       # absent means the image does not hold what a row would
+                       # claim it does, and that refuses the registration.
+                       #
+                       # ⚠️ None where presence could not be TESTED at all --
+                       # a tool nobody drives, which stays legitimate -- and
+                       # that is not the same as absent and must not be
+                       # treated as it. Only a test that ran and said no is
+                       # grounds to refuse an image.
+                       "present": (present.get(name, False)
+                                   if command_for(name, kind, driver, package)
+                                   else None)}
     return found
+
+
+def _want(entry):
+    """One `(name, kind, driver[, version_package])`, filled out."""
+    name, kind, driver = entry[0], entry[1], entry[2]
+    return name, kind, driver, (entry[3] if len(entry) > 3 else None)
 
 
 def probe(wanted: Sequence[Tuple[str, str, Optional[str]]],
@@ -225,9 +276,15 @@ def _locally(text: str) -> str:
 # Reaching the driver
 ######################################################################
 
-def _split(output: str) -> Dict[str, str]:
-    '''Everything between each name's markers.'''
+def _split(output: str):
+    '''Everything between each name's markers, and whether it was there.
+
+    Returns ``(captured, present)``. A name with no presence marker inside its
+    frame either was not there, or could not be tested -- the caller knows
+    which, because it knows whether it asked for a presence test.
+    '''
     captured: Dict[str, str] = {}
+    present: Dict[str, bool] = {}
     name: Optional[str] = None
     lines: List[str] = []
 
@@ -241,6 +298,10 @@ def _split(output: str) -> Dict[str, str]:
         stripped = _ANSI.sub("", line).strip()
         if stripped.startswith(_BEGIN):
             name, lines = stripped[len(_BEGIN):], []
+            present.setdefault(name, False)
+        elif stripped.startswith(_HERE):
+            if name is not None and stripped[len(_HERE):] == name:
+                present[name] = True
         elif stripped.startswith(_END):
             if name is not None and stripped[len(_END):] == name:
                 # 🔴 The trailing newline is kept, and it is not cosmetic.
@@ -254,7 +315,7 @@ def _split(output: str) -> Dict[str, str]:
         elif name is not None:
             lines.append(line)
 
-    return captured
+    return captured, present
 
 
 def _ask_driver(name: str, driver: Optional[str], read):

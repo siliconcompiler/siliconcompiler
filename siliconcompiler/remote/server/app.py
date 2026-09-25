@@ -16,6 +16,7 @@ from pathlib import Path
 from siliconcompiler.remote.server.auth import TokenIssuer
 from siliconcompiler.remote.server.config import Config
 from siliconcompiler.remote.server.dispatch import dispatcher_for
+from siliconcompiler.remote.server import errors
 from siliconcompiler.remote.server.errors import ERRORS, ProblemError, problem
 from siliconcompiler.remote.server.jobs import JobService
 from siliconcompiler.remote.server.logstream import StreamLimiter
@@ -131,6 +132,11 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     # must not be the reason this server does not start. A full disk says what
     # it is; a server that refused to come up because it could not delete
     # something does not.
+    # Before anything can refuse: the bound is published in `limits`, and a
+    # server whose refusals were longer than it advertises is worse than one
+    # that truncates harder.
+    errors.set_detail_max(config.limits["max_detail_chars"])
+
     reaper.sweep(store, storage, config, datadir)
 
     return app

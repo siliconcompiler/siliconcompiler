@@ -856,7 +856,8 @@ def test_discarding_the_output_keeps_the_job(signed_in, finished, server):
         "SELECT deleted_at, delete_reason FROM artifacts WHERE job_id = ?",
         (finished["id"],))
     assert rows and all(r["deleted_at"] for r in rows)
-    assert all(r["delete_reason"] == "discarded from the portal" for r in rows)
+    assert all(r["delete_reason"] == "discarded from the portal"
+               for r in rows)
 
 
 def test_the_node_is_the_unit_of_deletion(signed_in, finished, server):
@@ -877,7 +878,8 @@ def test_the_node_is_the_unit_of_deletion(signed_in, finished, server):
         (finished["id"], "stepone", "0"))
     assert {row["kind"] for row in gone} == {"logs", "node"}
     assert all(row["deleted_at"] for row in gone)
-    assert all(row["delete_reason"] == "discarded from the portal" for row in gone)
+    assert all(row["delete_reason"] == "discarded from the portal"
+               for row in gone)
 
     # And nothing else. The other node is untouched, and so is the job.
     other = store.all(

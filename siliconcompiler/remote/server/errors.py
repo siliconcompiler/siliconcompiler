@@ -18,7 +18,7 @@ import re
 from typing import Any, Dict, Optional
 
 __all__ = ["DETAIL_MAX", "ERRORS", "TYPE_BASE", "ProblemError", "bound",
-           "problem"]
+           "problem", "set_detail_max"]
 
 
 # Fixed by the contract and identical on every deployment.
@@ -157,7 +157,23 @@ class ProblemError(Exception):
 #
 # ⚠️ What is bounded is what is PUBLISHED. The full text still reaches the
 # server's log, which has an entitled reader.
+#
+# ⚠️ **Characters and not bytes**, which is the one place this contract's usual
+# `_bytes` is wrong: truncating UTF-8 by byte count splits a codepoint, and
+# what comes out is not text.
+#
+# The default, and the deployment's `limits.max_detail_chars` replaces it at
+# startup. A module-level number rather than a parameter because `problem()` is
+# the funnel every refusal passes through, and threading config into it would
+# put a way around the bound at every call site.
 DETAIL_MAX = 300
+
+
+def set_detail_max(characters: int) -> None:
+    """Adopt the deployment's published bound. Called once, at startup."""
+    global DETAIL_MAX
+    DETAIL_MAX = int(characters)
+
 
 # Everything that is not text: NUL, the escapes a terminal acts on, and the
 # rest of C0 and C1's delete. Tab, newline and carriage return are handled by

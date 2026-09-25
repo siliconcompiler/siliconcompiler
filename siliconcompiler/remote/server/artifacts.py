@@ -79,16 +79,16 @@ from siliconcompiler.remote.server.dispatch import RUN_LOG
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
 
-__all__ = ["collect", "collect_node", "wire", "fetchable", "KINDS"]
+__all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS"]
 
 
 logger = logging.getLogger("sc-server")
 
 
 # The eight are the contract's; these four are what this deployment produces.
-# Expected of the profile: manifest, logs, reports, input, node. Optional:
-# outputs, final, issue. `input` is in the expected set and deliberately not
-# produced here -- see above.
+# Expected of the profile: manifest, logs, reports, node. Optional: input,
+# outputs, final, issue -- `input` moved there because the owner already has
+# the bytes it would hold, which is what `artifact_kinds` had said all along.
 KINDS = ("manifest", "logs", "reports", "node")
 
 _CHUNK = 1024 * 1024
@@ -362,6 +362,20 @@ def fetchable(row) -> bool:
     return not _passed(row["retention_until"])
 
 
+def cause(row) -> Optional[str]:
+    """Which of the two ways the bytes went, or None while they are here.
+
+    🔴 **`deleted_by` decides it and `deleted_by` is not on the wire** -- it
+    names a user, which is a fact about an account and not about the object.
+    NULL is the reaper, which is retention doing what it said it would; set is
+    a person, which is somebody deciding. Those are the only two ways an
+    artifact loses its bytes.
+    """
+    if not row["deleted_at"]:
+        return None
+    return "removed" if row["deleted_by"] else "expired"
+
+
 def _passed(when: Optional[str]) -> bool:
     return bool(when) and when <= now()
 
@@ -381,17 +395,18 @@ def wire(row) -> Dict[str, Any]:
         "expires_at": None if row["legal_hold_at"] else row["retention_until"],
         # non-null means the bytes are gone and the row is not.
         "deleted_at": row["deleted_at"],
-        # 🔴 Why they are gone, and without it `deleted_at` cannot be read.
-        # Retention lapsing ends in a `deleted_at` like everything else -- it
-        # has to, because `fetchable`'s first question is whether the bytes are
-        # there -- so the column alone cannot tell *the system did what it said
-        # it would* from *somebody removed this*. Those are two different
-        # sentences to a person and the reason is what picks between them.
+        # 🔴 **Two members, because they are two kinds of thing.** Without
+        # either, `deleted_at` cannot be read: retention lapsing ends in one
+        # like everything else -- it has to, because `fetchable`'s first
+        # question is whether the bytes are there -- so the column alone cannot
+        # tell *the system did what it said it would* from *somebody removed
+        # this*.
         #
-        # ⚠️ Named for the wire and not for the column. The table calls it
-        # `delete_reason`, beside `deleted_by`; on the wire it sits beside
-        # `deleted_at` and reads as its explanation.
-        "deleted_reason": row["delete_reason"],
+        # `deleted_cause` is a CLOSED enum and is what a client branches on.
+        # `delete_reason` is prose and is what a person reads; it is named for
+        # the column it comes from, because it is the same thing.
+        "deleted_cause": cause(row),
+        "delete_reason": row["delete_reason"],
         "fetchable": fetchable(row),
     }
     # No `blocked_by` and no `access_request_url`: both are about an agreement

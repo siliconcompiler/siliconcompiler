@@ -887,7 +887,29 @@ def _framework_requirement() -> str:
     ⚠️ So the ceiling is not caution, it is the same rule in the other
     direction. A deployment that wants a range here is asking this client to
     read manifests it cannot.
+
+    🔴 **A development version asks by prefix instead.** `0.38.10.dev43+g20db`
+    carries a commit in its local segment, so an exact pin from a checkout can
+    only ever match an image built from that same commit -- which is nobody's
+    image. PEP 440's prefix form covers it and needs no new grammar.
+
+    ⚠️ **The spelling is `==0.38.10.*` and not `==0.38.10.dev*`**: a `.*`
+    attaches to the release segment and nothing after it, so the second is
+    rejected outright. What the legal one matches is every build of that
+    release line, dev ones included -- which is what was wanted.
+
+    ⚠️ A dev job's resolution is therefore not stable between two dev builds,
+    which is correct: they are not the same code.
     """
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        parsed = Version(sc_version)
+    except InvalidVersion:
+        return f"=={sc_version}"
+
+    if parsed.is_devrelease:
+        return f"=={parsed.base_version}.*"
     return f"=={sc_version}"
 
 

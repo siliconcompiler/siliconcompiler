@@ -132,7 +132,7 @@ def test_a_tool_that_is_not_there_reports_nothing(quiet_restored):
     found = probe.probe([("openroad", "tool", OPENROAD)])
 
     assert found["openroad"] == {"kind": "tool", "version": None,
-                                 "reported": None}
+                                 "reported": None, "present": False}
 
 
 def test_the_frame_survives_a_tool_that_colours_its_output():
@@ -152,15 +152,15 @@ def test_the_trailing_newline_is_kept():
     '''🔴 `subprocess.run` hands `parse_version` output ending in one, and a
     parser is entitled to count on it: bambu's takes `stdout.split()[-3]`, so
     dropping it reads the line above the version and returns nothing.'''
-    captured = probe._split("--sc-probe-begin:x\nfirst\nsecond\n"
-                            "--sc-probe-end:x\n")
+    captured, _ = probe._split("--sc-probe-begin:x\nfirst\nsecond\n"
+                               "--sc-probe-end:x\n")
 
     assert captured == {"x": "first\nsecond\n"}
 
 
 def test_output_outside_any_frame_belongs_to_nobody():
-    captured = probe._split("noise\n--sc-probe-begin:x\nmine\n"
-                            "--sc-probe-end:x\nmore noise\n")
+    captured, _ = probe._split("noise\n--sc-probe-begin:x\nmine\n"
+                               "--sc-probe-end:x\nmore noise\n")
 
     assert captured == {"x": "mine\n"}
 
@@ -168,7 +168,7 @@ def test_output_outside_any_frame_belongs_to_nobody():
 def test_an_unclosed_frame_is_not_read():
     '''A tool that never returned leaves its frame open, and taking what
     followed would attribute the next tool's output to it.'''
-    assert probe._split("--sc-probe-begin:x\nhalf") == {}
+    assert probe._split("--sc-probe-begin:x\nhalf")[0] == {}
 
 
 ###########################
@@ -181,7 +181,11 @@ def test_probing_this_machine_answers_for_what_is_here(quiet_restored):
 
     assert found["siliconcompiler"]["kind"] == "python"
     assert found["siliconcompiler"]["version"]
-    assert found["magic"] == {"kind": "tool", "version": None, "reported": None}
+    # ⚠️ `present` is None and NOT False: nobody drives magic, so presence
+    # could not be tested -- which is not the same as the image not holding it,
+    # and only a test that ran and said no refuses a registration.
+    assert found["magic"] == {"kind": "tool", "version": None,
+                              "reported": None, "present": None}
 
 
 def test_the_answer_is_one_line_behind_a_marker(capsys, quiet_restored):
@@ -216,3 +220,67 @@ def test_probing_nothing_is_a_usage_error(quiet_restored):
         probe.main([])
 
     assert logging.root.manager.disable < logging.CRITICAL
+
+
+###########################
+# Three outcomes, not two
+###########################
+
+def test_present_and_silent_is_told_apart_from_not_there():
+    """🔴 The rule that decides whether a registration is refused. *Present but
+    would not say* is legitimate and is what `published_date` records; *not
+    there at all* means a row would claim the image holds something it does
+    not, and a node placed there dies.
+
+    ⚠️ Told apart by the driver's own presence check and NEVER by the version
+    failing to parse: an unguarded missing tool leaves the shell's own
+    `openroad: not found` in the frame, and OpenROAD's parser takes the last
+    word -- so a parse-failure test would register a missing tool at version
+    `0` instead of refusing it.
+    """
+    wanted = [("openroad", "tool", OPENROAD)]
+
+    silent = probe.read_output(wanted, "--sc-probe-begin:openroad\n"
+                                       "--sc-probe-here:openroad\n"
+                                       "it printed something unparsable\n"
+                                       "--sc-probe-end:openroad\n")
+    assert silent["openroad"]["present"] is True
+
+    absent = probe.read_output(wanted, "--sc-probe-begin:openroad\n"
+                                       "--sc-probe-end:openroad\n")
+    assert absent["openroad"]["present"] is False
+
+
+def test_the_presence_marker_is_emitted_only_where_the_thing_is():
+    text = probe.script([("openroad", "tool", OPENROAD)])
+
+    assert "command -v openroad" in text
+    # Inside the guard, so it is printed only when the guard passes.
+    assert text.index("command -v openroad") < text.index("--sc-probe-here:openroad")
+
+
+def test_a_python_name_reports_absence_as_package_not_found():
+    """✅ The packaging machinery's own answer, not a parse that failed."""
+    command = probe.command_for("x", "python", None)
+
+    assert "PackageNotFoundError" in command[2]
+    assert "--sc-probe-here:x" in command[2]
+
+
+def test_a_tool_read_through_a_distribution_is_asked_the_python_way():
+    """🔴 `slang` has no executable at all -- its driver runs pyslang in this
+    process -- and still has to be placed in an image holding it. The marker
+    carries the TOOL's name, because that is what the registry calls it."""
+    command = probe.command_for("slang", "tool", None, "pyslang")
+
+    assert command[:2] == ["python3", "-c"]
+    assert "'pyslang'" in command[2]
+    assert "--sc-probe-here:slang" in command[2]
+
+    found = probe.read_output(
+        [("slang", "tool", None, "pyslang")],
+        "--sc-probe-begin:slang\n--sc-probe-here:slang\n11.0.0\n"
+        "--sc-probe-end:slang\n")
+
+    assert found["slang"] == {"kind": "tool", "version": "11.0.0",
+                              "reported": "11.0.0", "present": True}

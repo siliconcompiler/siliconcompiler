@@ -13,6 +13,13 @@ class BuiltinTask(Task):
     def __init__(self):
         super().__init__()
 
+    def image_requirement(self):
+        """SiliconCompiler's own joins, nops and minimums run in its process,
+        so there is nothing for an image to hold. Requiring one under the name
+        "builtin" would invite an operator to register a name no image can
+        honestly claim, which then refuses every flow with a join in it."""
+        return None
+
     def tool(self):
         return "builtin"
 

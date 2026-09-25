@@ -35,7 +35,7 @@ __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
            "sweep_bundles", "matches", "normalize", "specifiers",
            "is_staged", "live_images", "live_software", "pinned_ref",
            "plan_for_job", "register_image", "register_software",
-           "register_version", "registered_drivers", "resolve",
+           "register_version", "how_to_ask", "resolve",
            "resolve_declared", "retire_image",
            "retire_software", "retire_version", "stage_bundle", "tracks"]
 
@@ -304,16 +304,19 @@ def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
     return {"software": software, "versions": versions, "images": images}
 
 
-def registered_drivers(store) -> Dict[str, str]:
-    '''Every tool this deployment records a driver for, as name to module.
+def how_to_ask(store) -> Dict[str, Dict[str, Optional[str]]]:
+    '''Every tool, and how its version is read: a driver, or a package.
 
-    What a probe running inside an image has to be handed: it is a different
-    interpreter with different packages, so *where the driver is* is data and
-    not something it can work out.
+    What a probe has to be handed. It is a different interpreter with different
+    packages, so *where the driver is* and *which distribution carries the
+    version* are both data rather than things it can work out -- and the second
+    is not derivable at all, because `slang`'s version is `pyslang`'s.
     '''
-    return {row["name"]: row["driver"] for row in store.all(
-        "SELECT name, driver FROM software "
-        "WHERE driver IS NOT NULL AND retired_at IS NULL")}
+    return {row["name"]: {"driver": row["driver"],
+                          "version_package": row["version_package"]}
+            for row in store.all(
+                "SELECT name, driver, version_package FROM software "
+                "WHERE kind = 'tool' AND retired_at IS NULL")}
 
 
 def live_software(store) -> Dict[str, Dict[str, List[str]]]:
@@ -468,7 +471,7 @@ def _newest_first(built_at: Optional[str]) -> str:
 
 def plan_for_job(store, requires: Dict[str, Any],
                  node_tools: Dict[Tuple[str, str], Optional[str]],
-                 needs_executable=None) -> Plan:
+                 inherits=None) -> Plan:
     '''Which image every node of this job runs in.
 
     🔴 **N images, not one.** A forty-node flow over six tools resolves six, and
@@ -494,46 +497,54 @@ def plan_for_job(store, requires: Dict[str, Any],
     refs = {image["id"]: pinned_ref(image["registry_ref"], image["digest"])
             for image in images}
 
+    inherits = inherits or {}
+    held = software["tools"]
+
     nodes: Dict[Tuple[str, str], Optional[str]] = {}
     for node, tool in node_tools.items():
         if not tool:
-            nodes[node] = job_image["id"]
+            # 🆕 A node that declares nothing but says it follows its input
+            # runs where that input ran: the execute tasks build a command out
+            # of the manifest, so there is nothing to require an image for, and
+            # the environment that produced the inputs is the one most likely
+            # to be able to run it.
+            #
+            # ⚠️ In flowgraph order, so the node it follows is already placed.
+            # An input that is not (a node outside this run) falls back to the
+            # job's image, which is what a node needing nothing gets anyway.
+            after = inherits.get(node)
+            nodes[node] = (nodes.get(after) if node in inherits else None) \
+                or job_image["id"]
             continue
 
-        if tool not in software["tools"]:
-            # 🔴 **A tool nobody registered is fatal here, and it did not use
-            # to be.** The old rule was that only a registered name raises a
-            # requirement -- so a deployment curating images for the framework
-            # was not claiming to have Verilator and was not refused for
-            # lacking one. That reasoning holds for a deployment that runs jobs
-            # on the host, where the host may well have it.
+        if tool not in held:
+            # 🔴 **A requirement no live image holds is fatal.** Where every
+            # node runs in a container the registry IS the world: there is
+            # nowhere for it to run, and placing it anywhere means dispatching
+            # a node that cannot work.
             #
-            # ⚠️ **It is wrong once `containers` is on, because then the
-            # registry IS the world.** Observed: a Bluespec design submitted to
-            # a deployment that had never heard of `bsc` was accepted, its
-            # `convert` node placed in the PYTHON-ONLY image because nothing
-            # raised a requirement, dispatched, and died on the first node with
-            # every other node cancelled behind it. The cluster was paid for to
-            # learn something submit already knew.
+            # Observed: a Bluespec design submitted to a deployment that had
+            # never heard of `bsc` was accepted, its `convert` node placed in
+            # the PYTHON-ONLY image because nothing raised a requirement,
+            # dispatched, and died on the first node with every other node
+            # cancelled behind it. The cluster was paid for to learn something
+            # submit already knew.
             #
-            # ⚠️ Asked of the driver and not of a list: a task declaring an
-            # `exe` cannot run without that program, and one declaring none
-            # runs in this process. `builtin` is the obvious case, `execute` is
-            # the one a list would miss -- it runs a command the user supplied
-            # -- and `slang` is the reverse, a Python binding that looks like a
-            # tool. The question costs a `make_docs`, so it is asked ONLY here,
-            # where the answer decides a refusal, and never for a tool an image
-            # already holds.
-            if needs_executable is None or needs_executable(node):
-                raise _unregistered(tool, node, images)
-            nodes[node] = job_image["id"]
-            continue
+            # ⚠️ What a node needs is DECLARED by its task, so nothing here
+            # infers it: `Task.image_requirement` says `openroad` for an
+            # OpenROAD task, `slang` for one that has no executable at all, and
+            # nothing for a builtin. See `runspec.node_tools`.
+            raise _unregistered(tool, node, images)
 
         # 🔴 The python set PLUS this node's tool, which is exactly what
         # `job_nodes.image_id` has always meant. Resolved per node, because two
         # tools need not be in one image and requiring that would mean one
         # image holding everything -- and because two NODES may want different
-        # versions of the same tool, which is the other half of per node.
+        # versions of the same tool.
+        #
+        # ⚠️ Pinning narrows the candidates BEFORE any tie is broken: with
+        # `siliconcompiler==0.38.9` in the python set, `built_at` chooses the
+        # newest OpenROAD *among images holding that SC*, not the newest image.
         asked = ((requires or {}).get("tools") or {}).get(tool)
         wants = list(pinned) + [Requirement(tool, specifiers(asked), "tool")]
         found = resolve(images, wants)
@@ -970,7 +981,8 @@ def _repository(registry_ref: str) -> str:
 ######################################################################
 
 def register_software(store, name: str, display_name: str, actor: str,
-                      kind: str, driver: Optional[str] = None) -> str:
+                      kind: str, driver: Optional[str] = None,
+                      version_package: Optional[str] = None) -> str:
     '''Declare that this deployment curates images for a distribution.
 
     ⚠️ It is a claim with teeth: from here on, a job whose flow needs this tool
@@ -993,6 +1005,12 @@ def register_software(store, name: str, display_name: str, actor: str,
     is not reliable in-tree, where `kepler-formal` is driven from
     `...tools.keplerformal`.
 
+    🔴 **`version_package` is the same class of fact: how do I get this name's
+    version.** A tool can have no executable at all -- slang's driver runs
+    pyslang in the framework's own process -- and still has to be placed in an
+    image holding it. The distribution is not called what the tool is called,
+    so the mapping is recorded rather than guessed.
+
     ⚠️ A tool with no driver is legitimate: it is in the image, this deployment
     lists it, and nothing here can ask its version. That is what
     `published_date` records.
@@ -1009,15 +1027,21 @@ def register_software(store, name: str, display_name: str, actor: str,
         raise ValueError(
             f"{name} is {kind} and names a task driver; a driver is what makes "
             "something a tool")
+    if version_package and kind != "tool":
+        raise ValueError(
+            f"{name} is {kind}, so its own name is where its version comes "
+            "from; naming a package would be a second source for it")
 
     with store.transaction():
         store.execute(
-            "INSERT INTO software (name, display_name, kind, driver, added_by) "
-            "VALUES (?, ?, ?, ?, ?) "
+            "INSERT INTO software (name, display_name, kind, driver, "
+            "                      version_package, added_by) "
+            "VALUES (?, ?, ?, ?, ?, ?) "
             "ON CONFLICT (name) DO UPDATE SET display_name = excluded.display_name, "
             "  kind = excluded.kind, driver = excluded.driver, "
+            "  version_package = excluded.version_package, "
             "  retired_at = NULL, retired_by = NULL",
-            (name, display_name or name, kind, driver, actor))
+            (name, display_name or name, kind, driver, version_package, actor))
     return kind
 
 

@@ -16,6 +16,7 @@
     "max_archive_members": 100000,
     "max_archive_expanded_bytes": 10737418240,
     "max_download_bytes": 104857600,
+    "max_detail_chars": 300,
     "abandon_after_seconds": 900
   },
   "features": ["logs", "logs.stream"],

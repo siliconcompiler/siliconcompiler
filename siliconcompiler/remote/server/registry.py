@@ -189,10 +189,12 @@ def _cmd_add_software(store, args) -> int:
 
     print(f"registered {args.name} as {kind}")
     if args.driver:
-        # Said, because it is what a probe inside an image is handed and what
-        # decides whether this tool can ever report a version.
+        # Said, because it is what a probe is handed and what decides whether
+        # this tool can ever report a version.
         print(f"  driven by {args.driver}")
-    elif kind == "tool":
+    if args.version_package:
+        print(f"  version read from the {args.version_package} distribution")
+    elif kind == "tool" and not args.driver:
         print("  nothing here drives it, so no version can be read from an "
               "image: register its versions with -unversioned")
     return 0
@@ -428,9 +430,14 @@ def _parser() -> argparse.ArgumentParser:
              "this process is not")
     software.add_argument(
         "-driver", metavar="<module>",
-        help="the module carrying this tool's Task driver, for one that is "
-             "not in siliconcompiler's own tree. Found by scanning when "
-             "omitted, and naming one makes this a tool")
+        help="the module carrying this tool's Task driver. 🔴 Spelled out and "
+             "never defaulted from the name: kepler-formal is driven from "
+             "siliconcompiler.tools.keplerformal, so a convention that is "
+             "right most of the time is wrong exactly where nobody looks")
+    software.add_argument(
+        "-version-package", dest="version_package", metavar="<distribution>",
+        help="read this tool's version from a python distribution of this "
+             "name instead of by running it: pyslang, for the tool slang")
     software.add_argument("-display", metavar="<text>", help="what to call it")
     software.set_defaults(run=_cmd_add_software)
 

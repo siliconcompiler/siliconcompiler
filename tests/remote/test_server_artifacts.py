@@ -115,10 +115,12 @@ def test_every_required_member_is_published(server_client, key, token, finished)
     for item in listing(server_client, key, token, finished["id"]):
         for member in ("id", "step", "index", "kind", "media_type", "size_bytes",
                        "content_hash", "created_at", "expires_at", "deleted_at",
-                       # 🔴 Without it `deleted_at` cannot be read: retention
-                       # lapsing ends in one too, so the column alone cannot
-                       # say whether the system or a person took the bytes.
-                       "deleted_reason",
+                       # 🔴 Two members, and without them `deleted_at` cannot
+                       # be read: retention lapsing ends in one too, so the
+                       # column alone cannot say whether the system or a
+                       # person took the bytes. One is a closed enum a client
+                       # branches on; the other is prose a person reads.
+                       "deleted_cause", "delete_reason",
                        "fetchable"):
             assert member in item, member
         assert item["content_hash"].startswith("sha256:")
@@ -760,3 +762,39 @@ def test_the_job_level_log_is_named_for_the_job(
                f"/v1/jobs/{job['id']}/artifacts/{item['id']}", token)
     fetched = server_client.get(got.headers["Location"])
     assert "gcd-job0-logs.log" in fetched.headers["Content-Disposition"]
+
+
+def test_the_two_ways_bytes_go_are_told_apart_by_an_enum(
+        server, server_client, key, token, finished):
+    '''🔴 `deleted_by` decides it and `deleted_by` is not on the wire: it names
+    a user, which is a fact about an account rather than about the object. NULL
+    is the reaper -- retention doing what it said -- and set is a person.'''
+    items = listing(server_client, key, token, finished["id"])
+    assert all(item["deleted_cause"] is None for item in items)
+
+    call(server_client, key, "DELETE", f"/v1/jobs/{finished['id']}", token)
+
+    after = server.config["SC_STORE"].all(
+        "SELECT * FROM artifacts WHERE job_id = ?", (finished["id"],))
+    from siliconcompiler.remote.server import artifacts as art
+
+    assert after and all(art.cause(row) == "removed" for row in after)
+
+
+def test_a_deletion_nobody_gave_a_reason_for_says_where_it_came_from(
+        server, server_client, key, token, finished):
+    '''✅ Synthesized rather than left null, and the DEVICE rather than a user
+    id: somebody reading *who took my results* wants the machine, and an id is
+    a lookup they cannot do.'''
+    call(server_client, key, "DELETE", f"/v1/jobs/{finished['id']}", token)
+
+    reasons = {row["delete_reason"] for row in server.config["SC_STORE"].all(
+        "SELECT delete_reason FROM artifacts WHERE job_id = ?",
+        (finished["id"],))}
+
+    assert len(reasons) == 1
+    said = reasons.pop()
+    assert said.startswith("the job was deleted from sc-remote")
+    # And never the account it acted as.
+    me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
+    assert me not in said

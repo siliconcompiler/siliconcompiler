@@ -109,7 +109,11 @@ def test_a_detail_is_one_line_and_holds_no_escapes(client):
 def test_every_limit_is_a_base_unit(client):
     """Bytes are never MB and a count is never a duration: the refusal that
     names a key back spells it identically, which is what makes the error
-    registry double as the enforcement trace."""
+    registry double as the enforcement trace.
+
+    ⚠️ `max_detail_chars` is the one exception and it is deliberate: bytes is
+    the WRONG unit for it, because truncating UTF-8 by byte count splits a
+    codepoint and what comes out is not text."""
     limits = client.get("/v1").get_json()["limits"]
 
     assert set(limits) == {
@@ -117,12 +121,15 @@ def test_every_limit_is_a_base_unit(client):
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_log_stream_seconds", "max_archive_members",
         "max_archive_expanded_bytes",
-        # The nine above are the contract's; these two are this profile's,
+        # The nine above are the contract's; these three are this profile's,
         # and `run_heartbeat_seconds` is deliberately NOT among them -- no
         # client sends a heartbeat or is told about one, so publishing its
         # period would be a promise about machinery on the far side of the
         # API. It is deployment config.
-        "max_download_bytes",
+        #
+        # ⚠️ `max_detail_chars` is the one limit not named in a base unit,
+        # and deliberately: truncating UTF-8 by byte count splits a codepoint.
+        "max_download_bytes", "max_detail_chars",
         "abandon_after_seconds"}
     assert all(isinstance(value, int) for value in limits.values())
 
@@ -447,3 +454,24 @@ def test_a_broken_config_is_reported_and_exits_non_zero(caplog):
     Path("datadir/config.json").write_text("{not json")
 
     assert entry.main(["-datadir", "datadir"]) == 1
+
+
+def test_the_published_bound_is_the_one_that_binds(tmp_path, monkeypatch):
+    """🔴 A server whose refusals are longer than it advertises is worse than
+    one that truncates harder: a client sizing a box from `limits` is entitled
+    to the number it was given."""
+    import json
+
+    from siliconcompiler.remote.server import errors
+    from siliconcompiler.remote.server.app import create_app
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "datadir").mkdir()
+    (tmp_path / "datadir" / "config.json").write_text(
+        json.dumps({"limits": {"max_detail_chars": 40}}))
+
+    app = create_app(str(tmp_path / "datadir"), cluster="local")
+
+    assert app.test_client().get("/v1").get_json()["limits"][
+        "max_detail_chars"] == 40
+    assert len(errors.bound("x" * 500)) <= 43          # 40 plus the ellipsis

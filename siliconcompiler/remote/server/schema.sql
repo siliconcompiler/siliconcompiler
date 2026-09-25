@@ -451,6 +451,16 @@ CREATE TABLE software (                             -- what this deployment know
                                                     -- filled in by scanning at registration, so
                                                     -- nothing has to be typed for a driver this
                                                     -- process can already see
+    version_package text,                           -- read this tool's version from a PYTHON
+                                                    -- distribution of this name instead of by
+                                                    -- running it: 'pyslang' for the tool 'slang'.
+                                                    -- 🔴 A tool can have no executable at all --
+                                                    -- slang's driver runs pyslang in the
+                                                    -- framework's own process -- and still has to
+                                                    -- be placed in an image holding it. The
+                                                    -- distribution is NOT called what the tool is
+                                                    -- called, which is why this is recorded and
+                                                    -- not derived from the name
     added_at      text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     added_by      text NOT NULL REFERENCES users(id),
     retired_at    text,
@@ -461,6 +471,10 @@ CREATE TABLE software (                             -- what this deployment know
     -- lists and nobody here drives has no version to report, which is what
     -- `published_date` is for.
     CHECK (driver IS NULL OR kind = 'tool'),
+    -- Same class of fact as `driver`: how do I get this name's version. A
+    -- python distribution needs none -- its own name IS the answer -- so
+    -- setting it there would be a second source for something already known.
+    CHECK (version_package IS NULL OR kind = 'tool'),
     CHECK ((retired_at IS NULL) = (retired_by IS NULL))
 );
 

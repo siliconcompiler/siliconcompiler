@@ -74,6 +74,18 @@ DEFAULT_LIMITS: Dict[str, int] = {
     # caller and `GET /v1` carries the deployment's default.
     "max_download_bytes": 104857600,        # bytes, per artifact (100 MiB)
 
+    # The most of a refusal's `detail` a caller is given.
+    #
+    # 🔴 **CHARACTERS and not bytes, which is the one place this contract's
+    # usual `_bytes` is wrong.** Truncating UTF-8 by byte count splits a
+    # codepoint, and what comes out is not text.
+    #
+    # 🔴 Published, because otherwise every deployment truncates differently
+    # and a client rendering a refusal in a fixed box, or a log pipeline
+    # indexing on it, sees a different answer from each server -- which reads
+    # as a client bug. `detail` is a single line.
+    "max_detail_chars": 300,
+
     # 🆕 How long a job may sit with no upload before it is `abandoned`.
     #
     # 🔴 A ceiling rather than a constant, because it is a judgement about

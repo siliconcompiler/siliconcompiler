@@ -41,6 +41,12 @@ class FilterTask(Task):
         else:
             self.add("var", "keep", keep, step=step, index=index)
 
+    def image_requirement(self):
+        """Runs in SiliconCompiler's own process, so there is nothing for a
+        container image to hold. Requiring one under the name "builtin" would
+        invite an operator to register a name no image can honestly claim."""
+        return None
+
     def tool(self):
         return "builtin"
 

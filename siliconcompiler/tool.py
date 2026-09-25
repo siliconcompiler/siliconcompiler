@@ -668,6 +668,43 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         """str: The name of this task."""
         raise NotImplementedError("task name must be implemented by the child class")
 
+    def image_requirement(self) -> Optional[str]:
+        """
+        What a container image must hold for this task to run.
+
+        Declared rather than inferred, and that is the point: an orchestrator
+        placing nodes in images has to know what each one needs, and every
+        rule that guesses gets a real task wrong.
+
+        Inferring it from ``exe`` says *nothing* for the slang tasks, which
+        have no executable and drive ``pyslang`` in this process -- and an
+        image without pyslang cannot run them. Inferring it from
+        :meth:`tool` says *builtin*, which is not a thing anybody installs.
+
+        Returns:
+            str: the name an image must hold, which defaults to this task's
+                tool. None where the task needs nothing of its image.
+
+        Examples:
+            >>> task.image_requirement()
+            'openroad'
+        """
+        return self.tool()
+
+    def inherits_image(self) -> bool:
+        """
+        Whether this task should run wherever the previous node ran.
+
+        For a task whose command is not known until it is built -- the
+        execute tasks assemble one from the manifest -- there is nothing to
+        require an image for, and the environment that produced the inputs is
+        the one most likely to be able to run it.
+
+        Returns:
+            bool: True to follow the input node's placement.
+        """
+        return False
+
     @property
     def logger(self) -> logging.Logger:
         """logging.Logger: The logger instance."""

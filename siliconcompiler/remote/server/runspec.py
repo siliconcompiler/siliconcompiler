@@ -22,8 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("sc-server")
 
-__all__ = ["BUILTIN", "needs_executable", "normalize", "node_image",
-           "node_tools",
+__all__ = ["inheriting_nodes", "normalize", "node_image", "node_tools",
            "runtime_flow", "runtime_nodes",
            "node_state", "PROGRESS_FILENAME", "IMAGES_FILENAME",
            "read_images", "write_images", "read_progress", "write_progress"]
@@ -236,75 +235,68 @@ def runtime_nodes(project) -> List[Tuple[str, str]]:
     return list(runtime_flow(project).get_nodes())
 
 
-# 🔴 Not a tool anybody installs. SiliconCompiler's own joins, minimums and
-# nops run in its process, so a node using one needs the framework and nothing
-# else -- and treating it as a tool invites an operator to register a name no
-# image can honestly claim, which then refuses every flow that has a join in
-# it.
-BUILTIN = "builtin"
-
-
 def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
-    '''Which tool each node runs, which is what the image resolution needs.
+    '''What each node's image must hold, which is what the resolution needs.
+
+    🔴 **Asked of the task and never inferred.** `Task.image_requirement`
+    declares it; every rule that guesses gets a real task wrong. Inferring
+    from `exe` says *nothing* for the slang tasks, which have no executable
+    and drive `pyslang` in this process -- and an image without pyslang cannot
+    run them. Inferring from the tool NAME says *builtin*, which is not a
+    thing anybody installs.
 
     🔴 Per node rather than a set for the whole flow, because submit resolves N
     images and not one: an `import` node needing nothing but Python has no
     business pulling a twelve-gigabyte OpenROAD image, and the only thing that
-    can tell them apart is which tool each node names.
-
-    Derived from the task classes the flowgraph names rather than from the
-    manifest's `tool` section, which is written during a run and so is empty in
-    anything a client uploads. A node whose task will not load names no tool,
-    which resolves to the job's own image -- the safe direction, since that is
-    what a node needing nothing gets.
+    can tell them apart is what each node declares.
 
     ⚠️ **Here rather than in the server, because both ends derive it.** The
     server needs it to place nodes; the client needs it to say what its flow
     will reach for, which is what lets the server refuse before the archive
     moves. Two copies of this would be two answers to *which image does this
     node need*.
+
+    ⚠️ Read off a BARE task -- no setup, no project -- so a forty-node flow
+    costs forty attribute reads and nothing else.
     '''
-    tools: Dict[Tuple[str, str], Optional[str]] = {}
+    wanted: Dict[Tuple[str, str], Optional[str]] = {}
     for step, index in nodes:
         try:
-            tool = flow.get_task_module(step, index)().tool()
+            wanted[(step, index)] = flow.get_task_module(step, index)() \
+                .image_requirement()
         except Exception:                                       # noqa: BLE001
-            tool = None
+            # A task that will not load declares nothing, which places the
+            # node in the job's own image -- the safe direction, since that is
+            # what a node needing nothing gets.
+            wanted[(step, index)] = None
+    return wanted
 
-        tools[(step, index)] = None if tool == BUILTIN else tool
-    return tools
 
+def inheriting_nodes(flow, nodes, edges) -> Dict[Tuple[str, str],
+                                                 Optional[Tuple[str, str]]]:
+    '''Nodes that run wherever their input node ran, and where that is.
 
-def needs_executable(flow, step: str, index: str) -> bool:
-    '''Whether this node's task runs a program, or runs in the interpreter.
+    🆕 The execute tasks assemble a command out of the manifest, so there is
+    nothing to require an image for -- and the environment that produced the
+    inputs is the one most likely to be able to run it. Following the previous
+    node costs nothing when it does not.
 
-    🔴 **The question that decides whether an unregistered tool is fatal**, and
-    it is asked of the driver rather than of a list of names. A task declaring
-    an `exe` cannot run without that program being in its image; one declaring
-    none runs in SiliconCompiler's own process and needs nothing. `builtin` is
-    the obvious case and `execute` is the one a name-based rule would miss --
-    it runs a command the USER supplied, so there is nothing for a registry to
-    hold. `slang` is the case in the other direction: it looks like a tool and
-    is a Python binding.
-
-    ⚠️ **Costs a `make_docs` and a bind, so it is asked only where the answer
-    changes something** -- about a tenth of a second per distinct task class,
-    and a deployment holding every tool its flows use never asks at all.
-
-    ⚠️ True when it cannot be told, which is the safe direction here: on a
-    deployment that runs jobs in containers, being wrong the other way means
-    dispatching a node that cannot possibly run.
+    ⚠️ The FIRST input, where there is more than one. A task computing a
+    command over several inputs has no better claim on one of them, and
+    picking deterministically beats picking arbitrarily.
     '''
-    from siliconcompiler.scheduler import SchedulerNode
+    before: Dict[Tuple[str, str], Tuple[str, str]] = {}
+    for from_step, from_index, to_step, to_index in edges:
+        before.setdefault((to_step, to_index), (from_step, from_index))
 
-    try:
-        built = flow.get_task_module(step, index).make_docs()
-        node = SchedulerNode(built._parent(root=True), "<step>", "<index>")
-        with node.task.runtime(node) as task:
-            return bool(task.get("exe"))
-    except Exception as e:                                       # noqa: BLE001
-        logger.debug(f"could not tell whether {step}/{index} needs a program: {e}")
-        return True
+    found: Dict[Tuple[str, str], Optional[Tuple[str, str]]] = {}
+    for step, index in nodes:
+        try:
+            if flow.get_task_module(step, index)().inherits_image():
+                found[(step, index)] = before.get((step, index))
+        except Exception:                                       # noqa: BLE001
+            continue
+    return found
 
 
 ######################################################################

@@ -144,18 +144,38 @@ def test_a_tool_nobody_registered_is_refused_when_it_needs_a_program(
     assert "nowhere for it to run" in raised.value.detail
 
 
-def test_a_task_that_runs_no_program_needs_nothing_from_an_image(registry,
-                                                                 store):
-    '''⚠️ Asked of the driver and not of a list of names. A task declaring an
-    `exe` cannot run without that program; one declaring none runs in
-    SiliconCompiler's own process. `slang` is the case a name-based rule gets
-    backwards -- it looks like a tool and is a Python binding -- and `execute`
-    is the one it misses, since the command it runs is the user's.'''
+def test_a_node_that_declares_nothing_gets_the_jobs_own_image(registry, store):
+    '''A builtin join runs in SiliconCompiler's own process, so the small
+    image is exactly right for it.'''
     plan = images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
-                               {("lint", "0"): "verilator"},
-                               needs_executable=lambda node: False)
+                               {("join", "0"): None})
 
-    assert plan.nodes[("lint", "0")] == plan.job
+    assert plan.nodes[("join", "0")] == plan.job
+
+
+def test_a_node_that_follows_its_input_runs_where_that_input_ran(registry,
+                                                                 store):
+    '''🆕 The execute tasks assemble a command out of the manifest, so there
+    is nothing to require an image for -- and the environment that produced
+    the inputs is the one most likely to be able to run it.'''
+    plan = images.plan_for_job(
+        store, py("siliconcompiler", "0.39.1"),
+        {("place", "0"): "openroad", ("after", "0"): None},
+        inherits={("after", "0"): ("place", "0")})
+
+    assert plan.nodes[("after", "0")] == plan.nodes[("place", "0")]
+    assert plan.nodes[("after", "0")] != plan.job
+
+
+def test_a_follower_whose_input_is_not_in_this_run_takes_the_jobs_image(
+        registry, store):
+    '''Falls back rather than failing: that is what a node needing nothing
+    gets anyway.'''
+    plan = images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
+                               {("after", "0"): None},
+                               inherits={("after", "0"): None})
+
+    assert plan.nodes[("after", "0")] == plan.job
 
 
 def test_a_registered_tool_with_no_image_fails_the_whole_submit(registry, store):
@@ -585,27 +605,54 @@ def test_the_same_digest_again_supersedes_nothing(registry, store):
     assert [image["digest"] for image in live] == [digest("a")]
 
 
-def test_builtin_is_not_a_tool_anybody_installs(registry, store):
-    '''🔴 SiliconCompiler's own joins, minimums and nops run in its process.
+def test_what_a_node_needs_is_declared_and_never_inferred(registry, store):
+    '''🔴 Every rule that guesses gets a real task wrong.
 
-    Treating `builtin` as a tool invites an operator to register a name no
-    image can honestly claim -- and then every flow with a join in it is
-    refused. Seen on the rig: a four-node nop flow refused with
-    `unsatisfiable-request, resource: builtin`.
+    Inferring from the tool NAME says `builtin`, which is not a thing anybody
+    installs -- seen on the rig, a four-node nop flow refused with
+    `unsatisfiable-request, resource: builtin`. Inferring from `exe` says
+    *nothing* for the slang tasks, which have no executable at all and drive
+    pyslang in this process: an image without pyslang cannot run them, so
+    "needs nothing" would place them anywhere.
+
+    ⚠️ Read off a BARE task, so a forty-node flow costs forty attribute reads.
     '''
     from siliconcompiler.remote.server.runspec import node_tools
+
+    declared = {"join": None, "compute": None, "place": "openroad",
+                "elaborate": "slang"}
 
     class Flow:
         def get_task_module(self, step, index):
             class Task:
-                def tool(self_inner):
-                    return "builtin" if step == "join" else "openroad"
+                def image_requirement(self_inner):
+                    return declared[step]
             return Task
 
-    assert node_tools(Flow(), [("join", "0"), ("place", "0")]) == {
+    assert node_tools(Flow(), [(step, "0") for step in declared]) == {
         ("join", "0"): None,
+        ("compute", "0"): None,
         ("place", "0"): "openroad",
+        ("elaborate", "0"): "slang",
     }
+
+
+def test_the_real_tasks_declare_what_they_need():
+    '''The three cases an inference rule gets wrong, from the drivers.'''
+    from siliconcompiler.tools.builtin.nop import NOPTask
+    from siliconcompiler.tools.execute.exec_input import ExecInputTask
+    from siliconcompiler.tools.slang.elaborate import Elaborate
+
+    assert NOPTask().image_requirement() is None
+    assert NOPTask().inherits_image() is False
+
+    # No executable, and still has to be placed somewhere holding it.
+    assert Elaborate().image_requirement() == "slang"
+
+    # 🆕 Nothing to require -- the command comes out of the manifest -- and it
+    # follows its input rather than defaulting to the job's image.
+    assert ExecInputTask().image_requirement() is None
+    assert ExecInputTask().inherits_image() is True
 
 
 ###########################
@@ -841,8 +888,9 @@ def test_a_driver_is_recorded_so_a_probe_can_be_handed_it(store):
     images.register_software(store, "openroad", "OpenROAD", store.actor, "tool",
                              driver="siliconcompiler.tools.openroad")
 
-    assert images.registered_drivers(store) == {
-        "openroad": "siliconcompiler.tools.openroad"}
+    assert images.how_to_ask(store) == {
+        "openroad": {"driver": "siliconcompiler.tools.openroad",
+                     "version_package": None}}
 
 
 ###########################

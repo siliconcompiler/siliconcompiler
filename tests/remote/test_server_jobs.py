@@ -1329,6 +1329,64 @@ def test_the_job_identity_folds_in_what_the_server_chose(
     assert after.get_json()["id"] != existing
 
 
+def test_a_candidate_whose_images_were_superseded_is_not_returned(
+        container_server, container_client, key, container_token):
+    """🔴 What the identity cannot catch. It folds in the digests the DECLARED
+    versions resolve to, because that is all there is at create -- the per-node
+    tool images need the flow, which needs the manifest, which needs the upload
+    the check exists to avoid. So re-registering an image that only ever served
+    a TOOL leaves the identity unchanged.
+
+    ✅ A finished job records what its nodes RAN IN, so the question is asked
+    the other way round: are those images still live?
+    """
+    from siliconcompiler.remote.server import images
+
+    store = container_server.config["SC_STORE"]
+    jobs = container_server.config["SC_JOBS"]
+    mine = call(container_client, key, "GET", "/v1/me",
+                container_token).get_json()["id"]
+
+    existing = reuse_job(jobs, store, mine, "h-1", "completed")
+
+    # It ran one node in a tool image, which nothing about the declared
+    # versions mentions.
+    images.register_software(store, "openroad", "OpenROAD", operator(store),
+                             "tool")
+    images.register_version(store, "openroad", "2.0", operator(store))
+    tools = images.register_image(
+        store, "ghcr.io/x/tools:1", digest("c"),
+        [("siliconcompiler", "0.38.0"), ("openroad", "2.0")], operator(store))
+    store.execute(
+        'INSERT INTO job_nodes (job_id, step, "index", state, image_id) '
+        "VALUES (?, 'place', '0', 'completed', ?)", (existing, tools))
+
+    # Still live, so the candidate stands.
+    assert create(container_client, key, container_token,
+                  run_hash="h-1").status_code == 200
+
+    # Rebuilt at the same reference: the old row is superseded.
+    images.register_image(
+        store, "ghcr.io/x/tools:1", digest("d"),
+        [("siliconcompiler", "0.38.0"), ("openroad", "2.0")], operator(store))
+
+    again = create(container_client, key, container_token, run_hash="h-1")
+    assert again.status_code == 201
+    assert again.get_json()["id"] != existing
+
+
+def test_a_job_that_ran_in_no_image_stays_reusable(server, server_client, key,
+                                                   token, me):
+    """A deployment that runs jobs on the host has nothing to check."""
+    existing = reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"],
+                         me, "h-1", "completed")
+
+    response = create(server_client, key, token, run_hash="h-1")
+
+    assert response.status_code == 200
+    assert response.get_json()["id"] == existing
+
+
 def test_the_stored_identity_is_not_the_clients_own_hash(
         container_server, container_client, key, container_token):
     """The client keeps computing its own hash and tracks nothing extra, and

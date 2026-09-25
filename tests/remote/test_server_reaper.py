@@ -85,8 +85,10 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
     listing = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
                    token).get_json()["items"]
     assert listing and not any(item["fetchable"] for item in listing)
-    # What the client branches on to pick its sentence: aged out, not removed.
-    assert all(item["deleted_reason"] == RETENTION_LAPSED for item in listing)
+    # 🔴 What a client BRANCHES on is the enum; the prose is what a person
+    # reads. NULL deleted_by is the reaper, which is `expired`.
+    assert all(item["deleted_cause"] == "expired" for item in listing)
+    assert all(item["delete_reason"] == RETENTION_LAPSED for item in listing)
     assert all(item["expires_at"] < "2021" for item in listing)
 
 

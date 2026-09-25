@@ -63,29 +63,87 @@ PYTHON = os.environ.get("SC_IMAGE_PYTHON", "python3")
 DATADIR = Path(os.environ.get("SC_DATADIR", "/sc_server"))
 DOCKER_SOCK = os.environ.get("SC_DOCKER_SOCKET", "/var/run/docker.sock")
 
-# 🔴 Every tool a flow might reach for has to be declared, and this list is the
-# sharpest edge in the file. A tool that is in the image and not in the
-# registry raises no requirement, so its node resolves to the framework image
-# and fails inside a container that never had it. These are what asicflow
-# needs.
-TOOLS = (os.environ.get("SC_TOOLS")
-         or "klayout openroad opensta yosys vpr icarus verilator bambu soda "
-            "mlir slang").split()
+# 🔴 **The catalogue: every tool SiliconCompiler can drive, and where its
+# driver lives.** Spelled out, and deliberately not worked out at run time.
+#
+# ⚠️ **There is no convention to fall back on.** `kepler-formal` is driven from
+# `siliconcompiler.tools.keplerformal`, so `siliconcompiler.tools.<name>` is
+# already wrong in this tree -- and a default that is right most of the time is
+# the worst kind, because it gets trusted and is wrong exactly where nobody is
+# looking. This replaces a scan that walked every task class to find out; the
+# scan was right, and a table somebody can read and correct is better than code
+# that has to be run to be understood.
+#
+# ⚠️ Registering a name is a CLAIM: from then on a flow needing that tool and
+# finding no image holding it is refused at submit, by name, rather than
+# dispatched into a container without it.
+DRIVERS = {
+    "bambu": "siliconcompiler.tools.bambu.convert",
+    "bluespec": "siliconcompiler.tools.bluespec.convert",
+    "chisel": "siliconcompiler.tools.chisel.convert",
+    "genfasm": "siliconcompiler.tools.genfasm.bitstream",
+    "ghdl": "siliconcompiler.tools.ghdl.convert",
+    "graphviz": "siliconcompiler.tools.graphviz",
+    "gtkwave": "siliconcompiler.tools.gtkwave.show",
+    "icarus": "siliconcompiler.tools.icarus",
+    "icepack": "siliconcompiler.tools.icepack.bitstream",
+    "kepler-formal": "siliconcompiler.tools.keplerformal",
+    "klayout": "siliconcompiler.tools.klayout",
+    "magic": "siliconcompiler.tools.magic",
+    "mlir": "siliconcompiler.tools.mlir",
+    "montage": "siliconcompiler.tools.montage",
+    "netgen": "siliconcompiler.tools.netgen.lvs",
+    "nextpnr": "siliconcompiler.tools.nextpnr.apr",
+    "openroad": "siliconcompiler.tools.openroad",
+    "opensta": "siliconcompiler.tools.opensta",
+    "sby": "siliconcompiler.tools.sby",
+    "slang": "siliconcompiler.tools.slang",
+    "soda": "siliconcompiler.tools.soda",
+    "surelog": "siliconcompiler.tools.surelog.parse",
+    "surfer": "siliconcompiler.tools.surfer.show",
+    "sv2v": "siliconcompiler.tools.sv2v.convert",
+    "vcd2fst": "siliconcompiler.tools.vcd2fst.convert",
+    "verilator": "siliconcompiler.tools.verilator",
+    "vpr": "siliconcompiler.tools.vpr",
+    "xdm": "siliconcompiler.tools.xdm.convert",
+    "xyce": "siliconcompiler.tools.xyce.simulate",
+    "yosys": "siliconcompiler.tools.yosys",
+}
 
-# 🔴 Tools whose version is a PYTHON DISTRIBUTION rather than a program.
+# 🔴 Tools SiliconCompiler drives that this stack deliberately does NOT
+# publish. Named rather than simply missing, so that a tool newly added to the
+# tree and forgotten here is distinguishable from one left out on purpose --
+# there is a test on exactly that difference.
+#
+# Registering a name is a claim that the deployment curates it, and a flow
+# reaching for one of these is refused by name, which is the true answer.
+NOT_PUBLISHED = {"vivado"}
+
+# ⚠️ `builtin` and `execute` are absent from both, and that is the tasks' own
+# doing:
+# both declare `image_requirement() -> None`, because a join runs in
+# SiliconCompiler's process and an execute task's command comes out of the
+# manifest. Neither is a thing anybody installs.
+TOOLS = sorted(DRIVERS)
+
+# 🔴 Tools whose version is a PYTHON DISTRIBUTION rather than a program, and
+# whose distribution is not called what the tool is called. Recorded on the
+# software row as `version_package`, so the probe is HANDED it.
+#
 # `slang` is the case: its driver runs pyslang in SiliconCompiler's own
-# process, so there is no executable to ask and no `exe` on the task -- and the
-# distribution is not called what the tool is called, which is why this is a
-# map and not a rule.
-#
-# ⚠️ It is still registered as a TOOL, because that is what it is to a flow: a
-# node names `slang` and has to be placed in an image holding it. The
-# difference is only how its version is read.
-#
-# ⚠️ And it is in BOTH images, because it arrives with siliconcompiler rather
-# than with the EDA stack. A tool declared only by the big image would drag
-# every node that touches it into twelve gigabytes for no reason.
+# process, so there is no executable to ask. It is still a TOOL -- a node names
+# it and has to be placed in an image holding it -- and it is in BOTH images,
+# because it arrives with siliconcompiler rather than with the EDA stack.
 AS_DISTRIBUTION = {"slang": "pyslang"}
+
+# 🔴 What the tools image MUST hold. Everything in the catalogue is probed
+# against every image and declared where it is found; this is the shorter list
+# whose absence refuses the registration outright, because these are what
+# `sc_tools` is built to contain and a missing one is a broken image rather
+# than a tool this deployment happens not to offer.
+EXPECTED = (os.environ.get("SC_TOOLS")
+            or "klayout openroad opensta yosys vpr icarus verilator bambu "
+               "soda mlir slang").split()
 
 # What a container has to see beyond the data directory, which the staging code
 # always mounts. A framework image submits every node of the flow it drives, so
@@ -286,18 +344,12 @@ def ask_image(image: str, python_names, tools) -> dict:
     '''
     from siliconcompiler.remote.server import probe
 
-    wanted = [(name, "python", None) for name in python_names]
-    # ⚠️ A tool whose version is a distribution is asked the python way, under
-    # the distribution's name, and the answer is put back under the TOOL's --
-    # `slang` is registered as slang and read as pyslang.
-    back = {}
+    wanted = [(name, "python", None, None) for name in python_names]
+    # ⚠️ A tool whose version is a distribution is asked the python way, and
+    # the answer comes back under the TOOL's name -- `slang` is registered as
+    # slang and read as pyslang. The probe does that itself, given the package.
     for name, driver in sorted(tools.items()):
-        distribution = AS_DISTRIBUTION.get(name)
-        if distribution:
-            wanted.append((distribution, "python", None))
-            back[distribution] = name
-        else:
-            wanted.append((name, "tool", driver))
+        wanted.append((name, "tool", driver, AS_DISTRIBUTION.get(name)))
 
     try:
         output = run_in(image, ["sh", "-c", probe.script(wanted)])
@@ -306,17 +358,10 @@ def ask_image(image: str, python_names, tools) -> dict:
         return {}
 
     try:
-        found = probe.read_output(wanted, output)
+        return probe.read_output(wanted, output)
     except Exception as e:                                       # noqa: BLE001
         say(f"could not read what {image} answered: {e}")
         return {}
-
-    for distribution, name in back.items():
-        answer = found.pop(distribution, None)
-        if answer:
-            # Recorded as a tool, whatever it was read as.
-            found[name] = {**answer, "kind": "tool"}
-    return found
 
 
 def published_on(local: str) -> str:
@@ -468,101 +513,119 @@ def registry(*args: str) -> None:
             f"registry {' '.join(args)} failed; see the message above")
 
 
-def drivers_for(names) -> dict:
-    '''Where each tool's Task driver lives, as this process can see it.
+def _declare(tool: str, answer, published: str):
+    """What one image should say it holds for one tool, as add-image arguments.
 
-    ⚠️ **Worked out here and RECORDED, not worked out at probe time.** The
-    probe runs in a different interpreter with different packages, so *where
-    the driver is* has to be data by the time it is asked. This process is the
-    one place that has both the tool list and a SiliconCompiler to look in.
+    ⚠️ **NOT `version`**, which is the SiliconCompiler version `register` is
+    about and uses again afterwards. Binding a tool's version to that name
+    shadowed it twice, and both images were tagged with whatever the last tool
+    reported.
 
-    🔴 Found by what a class says it drives and never by a module path.
-    `kepler-formal` is driven from `siliconcompiler.tools.keplerformal`, so the
-    obvious convention is already wrong in this tree, never mind for a site
-    library shipping its own.
-    '''
-    from siliconcompiler import Task
+    Three outcomes and one of them declares nothing: a version read is the
+    version; present and silent takes the image's publish date, marked, because
+    only a reported version may satisfy a range; and anything else declares
+    nothing.
 
-    def descendants(cls):
-        for child in cls.__subclasses__():
-            yield child
-            yield from descendants(child)
-
-    import importlib
-    import pkgutil
-
-    import siliconcompiler.tools
-
-    for found in pkgutil.walk_packages(siliconcompiler.tools.__path__,
-                                       prefix="siliconcompiler.tools."):
-        try:
-            importlib.import_module(found.name)
-        except Exception:                                        # noqa: BLE001
-            continue
-
-    seen: dict = {}
-    for task_cls in set(descendants(Task)):
-        try:
-            tool = task_cls().tool()
-        except Exception:                                        # noqa: BLE001
-            continue
-        if tool in names and task_cls.__module__:
-            seen.setdefault(tool, set()).add(task_cls.__module__)
-
-    return {name: _common(seen.get(name, ())) for name in names}
-
-
-def _common(modules) -> str:
-    """The package every one of a tool's task classes lives under.
-
-    🔴 **The common prefix and NOT the shallowest module**, which is what this
-    did first and what silently cost `icarus` its version. Its classes are
-    spread over `...tools.icarus.compile`, `...icarus.cocotb_exec` and more,
-    with nothing in the package's own `__init__` -- so the shallowest was
-    whichever task file sorted first, the probe imported that one module, and
-    the class that actually sets the executable was in a different file it
-    never looked at. Every tool reported a version except that one, which is
-    the shape of a bug nobody notices.
-
-    ⚠️ Falls back to the shortest module where the prefix collapses to
-    something too general to import usefully -- two classes in unrelated trees
-    share only `siliconcompiler`, and importing that drives nothing.
+    🔴 **Declared only where the probe SAW it.** Not-there is the obvious case;
+    so is a probe that could not run or could not test, because a row is a
+    claim that the image holds the thing, and a claim nobody checked is how a
+    node gets dispatched into a container without its tool.
     """
-    modules = sorted(modules)
-    if not modules:
-        return None
-    if len(modules) == 1:
-        return modules[0]
+    answer = answer or {}
+    if answer.get("present") is not True:
+        return []
 
-    parts = modules[0].split(".")
-    for module in modules[1:]:
-        other = module.split(".")
-        keep = 0
-        while keep < min(len(parts), len(other)) and parts[keep] == other[keep]:
-            keep += 1
-        parts = parts[:keep]
+    found = answer.get("version")
+    if found:
+        registry("add-version", tool, found)
+        return ["-contains", f"{tool}=={found}"]
 
-    prefix = ".".join(parts)
-    return prefix if prefix.count(".") >= 2 else min(modules, key=len)
+    registry("add-version", tool, published, "-unversioned")
+    return ["-contains", f"{tool}=={published}"]
+
+
+def _looks_like_a_version(text: str) -> bool:
+    """Whether what came back parses as a version at all.
+
+    Only a PEP 440 version can satisfy a range, so one that does not parse is
+    already limited to exact-string matching -- this is about telling an
+    operator, not about changing what is stored.
+    """
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        Version(text)
+        return True
+    except InvalidVersion:
+        return False
+
+
+def _refuse_what_is_missing(image: str, held: dict) -> None:
+    """Refuse the whole image where a tool it is built to hold is not in it.
+
+    🔴 **The whole image and not just that row.** Writing the row says the
+    image holds something it does not -- and then a node is placed in it,
+    dispatched, and dies with every other node cancelled behind it. That is the
+    `bsc` failure moved one step earlier, which is where it is cheap: an
+    operator who claimed a tool that is not there has something to fix before
+    the image is worth adding at all.
+
+    ⚠️ **`EXPECTED` and not the whole catalogue.** Every tool SiliconCompiler
+    drives is probed against every image, and one that is simply not in this
+    image is not an error -- it is a tool this deployment does not offer. These
+    are the ones `sc_tools` is built to contain, so a missing one is a broken
+    image.
+
+    ⚠️ **And only where the probe actually TESTED and said no.** A tool nobody
+    drives cannot be tested, and *present but would not say* is legitimate too
+    -- that is what `published_date` records. Absent is the only one of the
+    three that refuses.
+    """
+    missing = [tool for tool in EXPECTED
+               if (held.get(tool) or {}).get("present") is False]
+    if not missing:
+        return
+
+    raise SystemExit(
+        f"{image} does not hold {', '.join(missing)}, and registering it would "
+        "say it does -- a node would then be placed there, dispatched, and "
+        "die with the rest of the run cancelled behind it. Fix the image, or "
+        "take those out of SC_TOOLS.")
 
 
 def say_what_it_holds(held: dict) -> None:
-    """One line per tool, with both numbers where they differ.
+    """One line per tool that is there, with both numbers where they differ.
 
-    🔴 **A function and not a loop in `main`, and that is not style.** Twice
-    now a loop variable named `version` has shadowed the SiliconCompiler
-    version that `main` holds and `register` is given -- once here and once
-    inside `register` -- and both times the result was two images tagged with
-    whatever the LAST tool reported. The failure lands at server startup,
-    which says it cannot read a version nobody asked it to run. A scope with
-    nothing else in it cannot do that.
+    🔴 **A function and not a loop in `main`, and that is not style.** Twice a
+    loop variable named `version` has shadowed the SiliconCompiler version that
+    `main` holds and `register` is given, and both times both images were
+    tagged with whatever the LAST tool reported. A scope with nothing else in
+    it cannot do that.
+
+    ⚠️ Silent about a tool the image simply does not have: the catalogue is
+    every tool SiliconCompiler drives, and most images hold a handful.
     """
     for tool in TOOLS:
         answer = held.get(tool) or {}
         found, reported = answer.get("version"), answer.get("reported")
 
-        if not found:
-            say(f"  {tool}: no version reported")
+        if answer.get("present") is False:
+            continue
+        if found and not _looks_like_a_version(found):
+            # 🔴 Said loudly, because it is the `not found` trap one step
+            # along: gtkwave without a display prints "Could not initialize
+            # GTK!" and its parser takes a word out of that, so the catalogue
+            # gets `initialize` as a version. Presence was right and the parse
+            # was not, and nothing downstream can tell.
+            #
+            # ⚠️ Recorded anyway rather than dropped: it is what the tool said,
+            # it is still selectable by name, and it cannot satisfy a range --
+            # a version that does not parse is only ever matched as an exact
+            # string. What it needs is an operator's eye.
+            say(f"  {tool}: {found}  ⚠️ that does not look like a version -- "
+                f"check what `{tool}` prints without a terminal or a display")
+        elif not found:
+            say(f"  {tool}: present, no version reported")
         elif reported and reported != found:
             # Both, because they differ for real tools and only one of them is
             # what the tool actually printed: verilator says 5.052 and PEP 440
@@ -574,8 +637,7 @@ def say_what_it_holds(held: dict) -> None:
 
 
 def register(version: str, tools_digest: str, runtime_digest: str,
-             published: str, held: dict, runtime_held: dict,
-             drivers: dict) -> None:
+             published: str, held: dict, runtime_held: dict) -> None:
     '''Put what the probe found into the registry.
 
     🔴 **A version the probe READ is registered as reported; one it could not
@@ -590,41 +652,25 @@ def register(version: str, tools_digest: str, runtime_digest: str,
     contain none of them, and declaring a tool it does not hold would place
     nodes in an image that cannot run them.
     '''
+    _refuse_what_is_missing(STACK_IMAGE, held)
+
     registry("add-software", "siliconcompiler", "-kind", "python")
     registry("add-version", "siliconcompiler", version)
 
     contains, runtime_contains = [], []
     for tool in TOOLS:
-        driver = drivers.get(tool)
-        add = ["add-software", tool, "-kind", "tool"]
-        if driver:
-            add += ["-driver", driver]
+        add = ["add-software", tool, "-kind", "tool",
+               "-driver", DRIVERS[tool]]
+        if AS_DISTRIBUTION.get(tool):
+            add += ["-version-package", AS_DISTRIBUTION[tool]]
         registry(*add)
 
-        # ⚠️ NOT `version`, which is the SiliconCompiler version this function
-        # is about and is used again below. Binding a tool's version to that
-        # name shadowed it, and both images were tagged with whatever the last
-        # tool reported.
-        #
-        # The COMPARABLE one -- the driver's own normalisation, already
-        # applied -- because that is what a version range is matched against.
-        # What the tool printed went to the log.
-        found = (held.get(tool) or {}).get("version")
-        if found:
-            registry("add-version", tool, found)
-            contains += ["-contains", f"{tool}=={found}"]
-        else:
-            # In the tools image, listed, and nobody asked it what it was.
-            registry("add-version", tool, published, "-unversioned")
-            contains += ["-contains", f"{tool}=={published}"]
-
-        # The runtime image declares a tool only where it answered for one.
-        # `slang` is the case that exists: it arrives with siliconcompiler
-        # rather than with the EDA stack, so it is in both.
-        in_runtime = (runtime_held.get(tool) or {}).get("version")
-        if in_runtime:
-            registry("add-version", tool, in_runtime)
-            runtime_contains += ["-contains", f"{tool}=={in_runtime}"]
+        # 🔴 Each image declares exactly what the probe found IN IT. Every tool
+        # in the catalogue is asked of every image; most images hold a handful,
+        # and declaring one that is not there is the claim that gets a node
+        # dispatched into a container without it.
+        contains += _declare(tool, held.get(tool), published)
+        runtime_contains += _declare(tool, runtime_held.get(tool), published)
 
     say("staging bundles (skopeo, then umoci -- the big one takes a minute)")
     registry("add-image", f"{PULL_FROM}/sc-runtime:{version}",
@@ -653,21 +699,15 @@ def main() -> int:
     # pushed and the creation time does not.
     published = published_on(STACK_IMAGE)
 
-    drivers = drivers_for(TOOLS)
-    missing = [tool for tool, driver in drivers.items() if not driver]
-    if missing:
-        say(f"no driver here for {', '.join(missing)}; their versions cannot "
-            "be read and will be recorded as the image's publish date")
-
     say("asking the tools image what it actually holds")
-    held = ask_image(STACK_IMAGE, ["siliconcompiler"], drivers)
+    held = ask_image(STACK_IMAGE, ["siliconcompiler"], DRIVERS)
     say_what_it_holds(held)
 
     # ⚠️ Asked too, and not assumed empty. It carries whatever arrives with
     # siliconcompiler -- `slang` does -- and a tool it holds and does not
     # declare is a node sent to the big image for nothing.
     say("asking the runtime image the same")
-    runtime_held = ask_image(RUNTIME_IMAGE, ["siliconcompiler"], drivers)
+    runtime_held = ask_image(RUNTIME_IMAGE, ["siliconcompiler"], DRIVERS)
     for tool in TOOLS:
         found = (runtime_held.get(tool) or {}).get("version")
         if found:
@@ -677,7 +717,7 @@ def main() -> int:
     tools_digest = push(STACK_IMAGE, "sc-tools", version)
 
     register(version, tools_digest, runtime_digest, published, held,
-             runtime_held, drivers)
+             runtime_held)
 
     say(f"this deployment runs siliconcompiler {version} in containers")
     return 0

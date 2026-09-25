@@ -1,3 +1,4 @@
+import re
 import os.path
 
 from siliconcompiler import ShowTask
@@ -15,7 +16,22 @@ class ShowTask(ShowTask):
 
     def parse_version(self, stdout):
         # First line: GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-        return stdout.split()[2]
+        #
+        # 🔴 Matched rather than counted. This took the third WORD, and
+        # gtkwave answers `--version` with "Could not initialize GTK!  Is
+        # DISPLAY env var/xhost set?" when it has no display -- so the third
+        # word was "initialize", and that was reported as the version. It then
+        # failed the version check with a message about "initialize" not being
+        # a version, which says nothing about the missing display.
+        found = re.search(r"GTKWave\s+Analyzer\s+v?(\S+)", stdout)
+        if not found:
+            raise ValueError(
+                "gtkwave did not report a version. It needs a display to "
+                "answer --version at all, so this is most likely DISPLAY "
+                f"being unset. It said: {stdout.strip().splitlines()[0]!r}"
+                if stdout.strip() else
+                "gtkwave printed nothing in answer to --version")
+        return found.group(1)
 
     def normalize_version(self, version):
         if version[0] == 'v':
