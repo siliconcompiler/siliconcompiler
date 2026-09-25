@@ -3,7 +3,7 @@ import tarfile
 
 import os.path
 
-from typing import List, Optional, TYPE_CHECKING
+from typing import Callable, List, Optional, TYPE_CHECKING
 
 from siliconcompiler.schema import BaseSchema, Parameter
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
@@ -19,11 +19,12 @@ if TYPE_CHECKING:
 def collect(project: "Project",
             directory: Optional[str] = None,
             verbose: bool = True,
-            whitelist: Optional[List[str]] = None) -> None:
+            whitelist: Optional[List[str]] = None,
+            select: Optional[Callable[..., bool]] = None) -> None:
     '''
     Collects files and directories specified in the schema and places
-    them in a collection directory. The function only copies items that have
-    the 'copy' field set to True in their schema definition.
+    them in a collection directory. By default the function only copies items
+    that have the 'copy' field set to True in their schema definition.
 
     Args:
         directory (str, optional): The output directory for collected files.
@@ -33,6 +34,11 @@ def collect(project: "Project",
         whitelist (List[str], optional): A list of absolute paths that are
             allowed to be collected. If an item to be collected is not on this list,
             a `RuntimeError` is raised. Defaults to None.
+        select (callable, optional): Decides, in place of the 'copy' field,
+            whether one value is collected. Called as
+            ``select(key, dataroot, resolvers)`` with the parameter's keypath,
+            the value's dataroot name and the owning schema's dataroot
+            resolvers. Defaults to None, which reads the 'copy' field.
 
     Raises:
         RuntimeError: If a file or directory to be collected is not in the `whitelist`.
@@ -107,8 +113,13 @@ def collect(project: "Project",
         if not param.is_path:
             continue
 
-        if not param.get(field='copy'):
+        if select is None and not param.get(field='copy'):
             continue
+
+        resolvers = None
+        if select is not None:
+            resolvers = project.get(*key[:-1], field="schema") \
+                ._find_files_dataroot_resolvers(True)
 
         for values, step, index in param.getvalues(return_values=False):
             if not values.has_value:
@@ -118,6 +129,17 @@ def collect(project: "Project",
                 values = values.values
             else:
                 values = [values]
+
+            if select is not None:
+                # Every value is kept, so that the paths `find_files` returns
+                # for this key still pair up with them; the ones not selected
+                # are skipped when they do.
+                chosen = [select(key, value.get(field='dataroot'), resolvers)
+                          for value in values]
+                if not any(chosen):
+                    continue
+                values = [(value if keep else None)
+                          for value, keep in zip(values, chosen)]
 
             if param.is_directory:
                 dirs[(key, step, index)] = values
@@ -133,8 +155,9 @@ def collect(project: "Project",
             if not isinstance(abs_paths, (list, tuple, set)):
                 abs_paths = [abs_paths]
 
-            abs_paths = zip(abs_paths, dirs[(key, step, index)])
-            abs_paths = sorted(abs_paths, key=lambda p: p[0])
+            abs_paths = [(path, value) for path, value
+                         in zip(abs_paths, dirs[(key, step, index)]) if value is not None]
+            abs_paths = sorted(abs_paths, key=lambda p: p[0] or "")
 
             for abs_path, value in abs_paths:
                 if not abs_path:
@@ -173,8 +196,9 @@ def collect(project: "Project",
             if not isinstance(abs_paths, (list, tuple, set)):
                 abs_paths = [abs_paths]
 
-            abs_paths = zip(abs_paths, files[(key, step, index)])
-            abs_paths = sorted(abs_paths, key=lambda p: p[0])
+            abs_paths = [(path, value) for path, value
+                         in zip(abs_paths, files[(key, step, index)]) if value is not None]
+            abs_paths = sorted(abs_paths, key=lambda p: p[0] or "")
 
             for abs_path, value in abs_paths:
                 if not abs_path:

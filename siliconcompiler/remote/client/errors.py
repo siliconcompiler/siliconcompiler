@@ -57,6 +57,7 @@ class SessionEnded(ServerProblem):
 # A slug names a kind of failure; one of these names the instance.
 _DISCRIMINATORS = (
     "limit", "feature", "reason", "resource", "resource_kind",
+    "requirement", "available",
     "violation", "artifact_kind", "terms_scope", "blocked_by",
 )
 
@@ -69,6 +70,12 @@ _NEXT_STEP = {
     "rate-limited": "Slow down and retry.",
     "entitlement-denied": "Ask an operator for access.",
     "unsatisfiable-request": "This deployment cannot provide that at all.",
+    "software-unavailable": "Ask for a version this server has, or ask its "
+                            "operator for the one you need.",
+    "resource-unavailable": "This server does not have it: use one it holds, "
+                            "or keep a local or editable copy so it is uploaded.",
+    "upload-forbidden": "That resource may not be uploaded here; use this "
+                        "server's copy.",
     "resource-unresolved": "Name the resource explicitly in your build script.",
     "terms-not-accepted": "Accept the agreement, then submit again.",
     "version-skew": "Install a version this server accepts.",
@@ -103,6 +110,14 @@ NO_NODE_FAILED = ("No node failed -- the run itself did. Read remote-job.log "
                   "in the job directory this fetched.")
 
 
+def _member(value) -> str:
+    '''One extension member as a person reads it. A list -- `available` is
+    one -- is its items, and an empty one says so rather than printing `[]`.'''
+    if isinstance(value, (list, tuple)):
+        return " ".join(str(item) for item in value) if value else "none"
+    return str(value)
+
+
 def describe(problem: Dict[str, Any], status: Optional[int] = None,
              next_step: Optional[str] = None) -> str:
     '''Three lines: what failed, which one, and where to look.
@@ -125,7 +140,7 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     first = f"{title}" if status is None else f"{title} ({status})"
     lines.append(first if not detail else f"{first}: {detail}")
 
-    named = [f"{name}: {problem[name]}"
+    named = [f"{name}: {_member(problem[name])}"
              for name in _DISCRIMINATORS if problem.get(name) is not None]
     if named:
         lines.append("  " + ", ".join(named))

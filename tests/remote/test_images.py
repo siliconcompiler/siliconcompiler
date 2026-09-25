@@ -186,9 +186,8 @@ def test_a_registered_tool_with_no_image_fails_the_whole_submit(registry, store)
         images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                             {("syn", "0"): "yosys"})
 
-    assert raised.value.error.slug == "unsatisfiable-request"
-    assert raised.value.members["resource_kind"] == "tool"
-    assert raised.value.members["resource"] == "yosys"
+    assert raised.value.error.slug == "software-unavailable"
+    assert raised.value.members["requirement"] == "yosys"
 
 
 def test_a_framework_version_no_image_holds(registry, store):
@@ -198,8 +197,8 @@ def test_a_framework_version_no_image_holds(registry, store):
         images.plan_for_job(store, py("siliconcompiler", "0.40.0"),
                             {("import", "0"): None})
 
-    assert raised.value.members["resource_kind"] == "library"
-    assert raised.value.members["resource"] == "siliconcompiler==0.40.0"
+    assert raised.value.error.slug == "software-unavailable"
+    assert raised.value.members["requirement"] == "siliconcompiler==0.40.0"
 
 
 def test_preference_breaks_the_tie_and_not_recency(store):
@@ -677,8 +676,8 @@ def test_a_range_nothing_satisfies_is_refused_before_anything_runs(registry,
         images.plan_for_job(store, py("siliconcompiler", ">=0.40"),
                             {("import", "0"): None})
 
-    assert raised.value.error.slug == "unsatisfiable-request"
-    assert raised.value.members["resource"] == "siliconcompiler>=0.40"
+    assert raised.value.error.slug == "software-unavailable"
+    assert raised.value.members["requirement"] == "siliconcompiler>=0.40"
 
 
 def test_a_bare_version_still_means_exactly_that(registry, store):
@@ -778,7 +777,7 @@ def test_the_refusal_says_present_but_reports_no_version(unversioned, store):
     with pytest.raises(ProblemError) as raised:
         images.plan_for_job(store, py(tools={"magic": ">=1.0"}), {("drc", "0"): "magic"})
 
-    assert raised.value.error.slug == "unsatisfiable-request"
+    assert raised.value.error.slug == "software-unavailable"
     assert "reports no version" in raised.value.detail
     assert "no image on this server holds" not in raised.value.detail
 
@@ -847,7 +846,7 @@ def test_the_python_set_must_be_held_by_one_image(store):
              "tools": {}},
             {("import", "0"): None})
 
-    assert raised.value.error.slug == "unsatisfiable-request"
+    assert raised.value.error.slug == "software-unavailable"
 
     # And one that holds both resolves.
     images.register_image(store, "ghcr.io/x/both:1", digest("c"),
@@ -877,7 +876,12 @@ def test_a_tool_range_nothing_holds_is_refused(registry, store):
         images.plan_for_job(store, py(tools={"openroad": ">=3.0"}),
                             {("place", "0"): "openroad"})
 
-    assert raised.value.members["resource"] == "openroad>=3.0"
+    assert raised.value.error.slug == "software-unavailable"
+    assert raised.value.members["requirement"] == "openroad>=3.0"
+    # 🔴 D91: what IS available, so the caller can act on it.
+    assert raised.value.members["available"]
+    assert all(version.startswith("2.") for version in
+               raised.value.members["available"])
 
 
 def test_the_buckets_are_a_closed_set_and_both_are_always_there(store):
@@ -1000,8 +1004,8 @@ def test_none_of_the_alternatives_holding_is_still_a_refusal(registry, store):
         images.plan_for_job(store, py(tools={"openroad": [">=9.0", "==8.0"]}),
                             {("place", "0"): "openroad"})
 
-    assert raised.value.error.slug == "unsatisfiable-request"
-    assert raised.value.members["resource"] == "openroad>=9.0 or ==8.0"
+    assert raised.value.error.slug == "software-unavailable"
+    assert raised.value.members["requirement"] == "openroad>=9.0 or ==8.0"
 
 
 def test_an_empty_list_is_any_version(registry, store):

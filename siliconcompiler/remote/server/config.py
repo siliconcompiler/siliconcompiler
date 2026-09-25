@@ -267,7 +267,7 @@ DEFAULTS: Dict[str, Any] = {
 
 # The resource kinds `denied_resources` is keyed by -- the contract's closed
 # `resource_kinds` set.
-RESOURCE_KINDS = ("pdk", "library", "tool")
+RESOURCE_KINDS = ("pdk", "library", "fpga", "tool")
 
 
 # Three presets for testing a client against deployments that serve less, from

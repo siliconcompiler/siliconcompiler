@@ -665,9 +665,12 @@ def _unsatisfiable(requirements: Sequence[Requirement], images,
                    blame: Optional[str] = None) -> ProblemError:
     '''No live image holds all of this.
 
-    🔴 `unsatisfiable-request` rather than `entitlement-denied`: the same
-    catalogue and a different question. *This deployment does not have it*, not
-    *you may not use it* -- and waiting will not change it.
+    🔴 **`software-unavailable` (D91), naming the requirement and what is
+    available.** A bare *no image matches* is unactionable: the caller needs
+    to know WHICH of its requirements failed and what it could ask for
+    instead. ⚠️ Not `entitlement-denied` -- *this deployment does not have
+    it*, not *you may not use it* -- and not `unsatisfiable-request`, which is
+    a tool this server cannot provide at all, in any version.
 
     🔴 **And it has to say WHICH of those two it is when a name is here but
     unversioned.** A tool recorded from its publish date is in the catalogue,
@@ -684,8 +687,8 @@ def _unsatisfiable(requirements: Sequence[Requirement], images,
     unversioned = _present_but_unversioned(requirements, images)
     if unversioned:
         return ProblemError(
-            "unsatisfiable-request",
-            resource_kind=unversioned.kind, resource=str(unversioned),
+            "software-unavailable", requirement=str(unversioned),
+            available=_available(unversioned.name, images),
             detail=f"this server has {unversioned.name}, and every image "
                    "holding it reports no version for it -- so nothing here "
                    "can be matched against a version requirement. Ask for it "
@@ -693,12 +696,21 @@ def _unsatisfiable(requirements: Sequence[Requirement], images,
                    "version its images actually hold")
 
     return ProblemError(
-        "unsatisfiable-request",
-        resource_kind=culprit.kind if culprit else "tool",
-        resource=str(culprit) if culprit else "unknown",
+        "software-unavailable",
+        requirement=str(culprit) if culprit else "unknown",
+        available=_available(culprit.name, images) if culprit else [],
         detail=f"no image on this server holds "
                f"{', '.join(str(want) for want in requirements)}; "
                f"{len(images)} image(s) are registered")
+
+
+def _available(name: str, images) -> List[str]:
+    '''Every version of ``name`` a live image holds, for the refusal to
+    offer instead. ⚠️ The shape is this profile's: the contract names the
+    member and not its form.'''
+    found = sorted({entry.version for image in images
+                    for entry in image["contents"] if entry.name == name})
+    return found
 
 
 def _unregistered(tool: str, node: Tuple[str, str], images) -> ProblemError:

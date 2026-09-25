@@ -103,6 +103,24 @@ archive is complete and what its checksum is. The job can be refused at the
 first of those -- before a gigabyte has moved -- which is why the create carries
 what the client already knows about the run.
 
+What goes into the archive is decided by what owns each file, and you set
+nothing to control it:
+
+* **your design's files -- always;**
+* **a PDK's, standard-cell library's or FPGA device's files -- only when they
+  come from a local path or a package installed editable.** One fetched from a
+  release, like the PDKs in ``lambdapdk``, stays behind even though a copy is in
+  your cache: the server has its own;
+* **a tool's scripts -- only when they come from a local path or a package
+  installed editable**, such as a SiliconCompiler checkout you are working in;
+* **plus the manifest**, and, for a run that starts part-way through the flow,
+  the results of the nodes it starts from.
+
+A flow that needs a PDK, library or FPGA device the server does not hold, and
+whose files were not uploaded, is refused as soon as the server has opened the
+archive (``resource-unavailable``) rather than failing on its first node. Where
+you uploaded a copy of something the server also has, yours is used.
+
 While it runs, the client polls and reports each node as the server moves it:
 
 .. code-block:: text

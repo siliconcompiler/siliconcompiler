@@ -32,8 +32,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler._common import NodeStatus as SCNodeStatus
-from siliconcompiler.package import PythonPathResolver, FileResolver, KeyPathResolver
-from siliconcompiler.schema import Parameter
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
@@ -274,39 +272,33 @@ class RemoteRun:
             logger.debug(f"could not open the portal: {e}")
 
     def _preprocess(self) -> None:
-        '''Collect everything the server will need, because it has none of it.
+        '''Collect what the server will need and cannot have, by what owns it.
 
-        A dataroot resolved from an installed Python package, a local path or
-        another schema key exists only on this machine, so anything reached
-        through one is marked for copying before the collection runs.
+        🔴 **The design always; a PDK's, library's, FPGA device's or tool's
+        files only where their source is local or editable** -- see
+        `siliconcompiler.remote.owners`. **No flag is consulted, and nothing is
+        advertised:** the server either holds what was left out or refuses the
+        job at submit, naming it (`resource-unavailable`).
+
+        It used to mark `copy=True` on anything reached through a local path,
+        a Python package or another key, and let `collect` read the flag. Two
+        things were wrong with that: a flag set by this client was written into
+        the caller's own project, and "a Python package" included one installed
+        normally -- the same package the server's image already has -- while
+        leaving a design file with no dataroot at all behind. `copy=True` still
+        drives `collect()` everywhere else, `sc-issue` included; it just does
+        not decide what a remote run uploads.
+
+        ⚠️ **Hashes are not required.** Where the caller set `option,hash` the
+        manifest carries them; nothing here computes one, because hashing a PDK
+        takes minutes.
         '''
-        for key in self.project.allkeys():
-            if key[0] == "history":
-                continue
-
-            param: Parameter = self.project.get(*key, field=None)
-            if not param.is_path:
-                continue
-
-            schema_obj = self.project.get(*key[:-1], field="schema")
-            resolvers = schema_obj._find_files_dataroot_resolvers(True)
-
-            for value, step, index in param.getvalues():
-                if not value:
-                    continue
-                dataroots = param.get(field='dataroot', step=step, index=index)
-                if not isinstance(dataroots, list):
-                    dataroots = [dataroots]
-                for dataroot in dataroots:
-                    if not dataroot:
-                        continue
-                    if isinstance(resolvers.get(dataroot),
-                                  (PythonPathResolver, FileResolver, KeyPathResolver)):
-                        self.project.set(*key, True, field='copy', step=step, index=index)
-                        break
+        from siliconcompiler.remote import owners
 
         collect(self.project,
-                whitelist=list(self.client.credentials.directory_whitelist))
+                whitelist=list(self.client.credentials.directory_whitelist),
+                select=lambda key, dataroot, resolvers: owners.uploads(
+                    self.project, key, dataroot, resolvers))
 
     def _pack(self, upload: Path) -> Tuple[str, int]:
         '''What the server needs of the job directory, as one archive, with

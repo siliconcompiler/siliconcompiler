@@ -29,10 +29,18 @@ one, which needs a capability flag exactly as a response member does.
 The nine of the first, the five of the software-buckets review, and the fifteen
 of the third — plus the two follow-on decisions after it, the second
 follow-on (the `.*` prefix spelling, and a `reported` version that does not
-parse lands on `published_date`, never coerced), and the third (the job-level
-log stream, `logs.stream.job`, D102–D103 / profile D25) — were decided in
+parse lands on `published_date`, never coerced), the third (the job-level
+log stream, `logs.stream.job`, D102–D103 / profile D25), and the fourth (what
+the archive carries, by owner, and `resource-unavailable` — surface D104–D106,
+database D93–D94, entitlements D27, contract D34, profile D26) — were decided in
 `crucible/orchestration/api/contract-changes.md`, are implemented here, and
 have been removed rather than edited. Their home is the contract now.
+
+⚠️ **One of them had been missed until the fourth follow-on turned it up:**
+`software-unavailable` (D91, with `requirement` and `available`) was in the
+contract's registry and not in this profile's, which answered a version no
+image holds with `unsatisfiable-request`. It is implemented now, and the
+registry here is the contract's 34.
 
 ---
 
@@ -146,6 +154,62 @@ did.
 that the job-level one is the run's final record.
 
 **Where it goes:** `surface.md` §21, the kinds table.
+
+### 6. A tool's LOCAL scripts, which the rule as written leaves behind
+
+D104's table says a tool's scripts go up *only when the tool's package is
+installed editable*. **A script a user points a task at from a local path is
+not a package** — it is the user's own file, and the server has no copy of it.
+Read literally, it is left behind and the job fails on the node that runs it.
+
+✅ **This profile applies the resource rule to tools too:** a tool's file goes
+up when its dataroot's source is local **or** editable.
+
+**Proposed:** the tool row reads *only when local or editable*, as the PDK,
+library and FPGA rows do.
+
+**Where it goes:** `surface.md`, the D104 table.
+
+### 7. An env-var dataroot is "local", and that uploads foundry data
+
+The rule judges a file by its dataroot's registered source, and a path such as
+`$FOUNDRY_ROOT/…` is a local path. **That is SiliconCompiler's documented way
+to reference a proprietary PDK without committing it** — so by the rule, such a
+PDK is uploaded in every job.
+
+This profile allows it (profile D26, no NDA boundary), and its server counts an
+env-var path it can resolve itself as held — so a deployment that sets the same
+variable to its own copy still refuses nothing. ⚠️ **On crucible the same
+upload would meet `upload-forbidden`** for a controlled PDK — correct, but a
+client that ran happily against `sc-server` fails there with a PDK the user
+never thought of as "uploaded".
+
+**Proposed:** say whether an env-var dataroot counts as local; if it does, say
+so beside the trap, because it is the case the user has no reason to expect.
+
+**Where it goes:** `surface.md`, D104.
+
+### 8. `software-unavailable`'s members have no stated shape
+
+The registry names `requirement` and `available` and not their form. This
+profile sends `requirement` as one string, name then specifier
+(`openroad>=3.0`, or the bare name), and `available` as a **list** of version
+strings the live images hold for that name — `[]` when the name is held
+nowhere, which is itself the useful answer.
+
+**Proposed:** those two shapes, or others — but stated, because a client
+rendering the list has to know it is one.
+
+**Where it goes:** `surface.md`, the registry row.
+
+### 9. Waiting on the contract: where a job records an uploaded copy
+
+D106 agrees that a job which ran on a user-supplied copy of a resource must
+record it and show it; **the field is not decided** (the likely home is a
+member beside `resolved_versions`). This profile **uses the upload — SC
+resolves the archive's copy first — and logs it**, and has invented no field.
+
+**Where it goes:** `surface.md` §17, once decided.
 
 ---
 

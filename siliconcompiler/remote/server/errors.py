@@ -48,7 +48,7 @@ def _e(slug, status, title, members=()):
     return _Error(slug, status, title, members)
 
 
-# The 31 slugs, in the contract's order. `title` is the part of the body that
+# The 34 slugs, in the contract's order. `title` is the part of the body that
 # must be identical on every occurrence, so it is fixed here rather than written
 # per raise site.
 ERRORS: Dict[str, _Error] = {err.slug: err for err in (
@@ -66,6 +66,21 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
        ("resource_kind", "resource")),
     _e("resource-unresolved", 422, "Could not resolve what this flow needs",
        ("resource_kind",)),
+    # 🆕 D91: no live image satisfies a version requirement -- named, with
+    # what IS available, because the bare *no image matches* cannot be acted on.
+    _e("software-unavailable", 422, "No image provides that software",
+       ("requirement", "available")),
+    # 🆕 D105: the flow needs a PDK, library or FPGA device this deployment
+    # does not hold, and its files did not arrive in the archive. Not
+    # `resource-unresolved`, which is not knowing WHICH.
+    _e("resource-unavailable", 422, "This server does not hold that resource",
+       ("resource_kind", "resource")),
+    # 🆕 D105: crucible's, raised during extraction for a controlled resource
+    # the caller may not upload. Registered because the registry is the
+    # contract's; this profile allows every upload (profile D26) and never
+    # raises it.
+    _e("upload-forbidden", 422, "Upload of that resource is not allowed",
+       ("resource_kind", "resource")),
     _e("terms-not-accepted", 403, "Terms not accepted",
        ("terms_scope", "decision_url", "blocked_by")),
     _e("artifact-not-approved", 403, "Artifact not approved"),

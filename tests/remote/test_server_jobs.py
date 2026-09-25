@@ -1206,9 +1206,9 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
                       upload_digest, size)
 
     assert response.status_code == 422
-    assert slug(response) == "unsatisfiable-request"
-    assert response.get_json()["resource_kind"] == "tool"
-    assert response.get_json()["resource"] == "openroad"
+    assert slug(response) == "software-unavailable"
+    assert response.get_json()["requirement"] == "openroad"
+    assert response.get_json()["available"] == []
     assert not container_dispatcher.submitted
 
     read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",

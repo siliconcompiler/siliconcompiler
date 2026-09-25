@@ -324,11 +324,13 @@ def test_storage_is_a_file_uri_under_the_datadir(server):
 # Errors
 ###########################
 
-def test_the_registry_is_the_frozen_thirty_one():
+def test_the_registry_is_the_contracts_thirty_four():
     '''Frozen at v1, and the namespace is SiliconCompiler's rather than any one
     deployment's: both implementations must return the same URI or a client
     cannot branch across them.'''
-    assert len(ERRORS) == 31
+    assert len(ERRORS) == 34
+    assert {"software-unavailable", "resource-unavailable",
+            "upload-forbidden"} <= set(ERRORS)
     assert all(err.uri == f"{TYPE_BASE}/{slug}" for slug, err in ERRORS.items())
 
 

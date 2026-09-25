@@ -537,6 +537,7 @@ class JobService:
 
         derived = self._derive(session, job, root)
         self._check_denied(session, job, derived)
+        self._check_held(session, job, derived, unpacked)
         plan = self._resolve_images(session, job, derived)
         manifest = self._normalize(session, job, root, derived, plan)
 
@@ -583,9 +584,7 @@ class JobService:
         tool, because the slug carries one `resource`. The detail says how many
         more there are, so fixing one is not followed by a surprise.
         '''
-        wanted = ([("pdk", derived["pdk"])] if derived["pdk"] != "none" else []) + \
-            [("library", name) for name in derived["libraries"]] + \
-            [("tool", name) for name in derived["tools"]]
+        wanted = _resources(derived) + [("tool", name) for name in derived["tools"]]
 
         denied = [(kind, name) for kind, name in wanted
                   if self._config.denied(kind, name)]
@@ -598,6 +597,42 @@ class JobService:
             "entitlement-denied", resource_kind=kind, resource=name,
             detail=f"this flow uses a {kind} this deployment does not allow"
                    + (f", and {more} more" if more else "")))
+
+    def _check_held(self, session, job, derived, unpacked: Path) -> None:
+        '''Refuse a flow that needs a PDK, library or FPGA device this server
+        does not hold and whose files did not arrive.
+
+        🔴 **At re-derivation, after extraction and before the run** -- not
+        dispatched to fail on its first node with the cluster already paid for.
+        The client uploads a resource's files only when their source is local
+        or editable and is never told in advance what this server holds, so
+        this is where a job built on a copy only its author has is caught.
+
+        ⚠️ **`resource-unavailable`, not `resource-unresolved`**: that one is
+        not knowing WHICH resource, and this one is knowing which and not
+        having it.
+
+        ✅ **An uploaded copy wins where this server also holds one** -- the
+        run resolves the archive's copy first -- and that is logged. ⚠️ How the
+        JOB records it is not decided: a member beside `resolved_versions` is
+        the likely home, and it is not invented here.
+        '''
+        from siliconcompiler.remote import owners
+
+        collection = unpacked / "sc_collected_files"
+        project = derived["project"]
+
+        for kind, name in _resources(derived):
+            if name not in (project.getkeys("library") or []):
+                continue
+            held, uploaded = owners.holding(project, name, collection)
+            if not held:
+                raise self._refuse(session, job, ProblemError(
+                    "resource-unavailable", resource_kind=kind, resource=name,
+                    detail=f"this flow needs a {kind} this server does not "
+                           "hold, and its files were not in the upload"))
+            if uploaded:
+                logger.info(f"{job['id']} uses the uploaded copy of {kind} {name}")
 
     def _resolve_images(self, session, job, derived):
         '''Which container every node of this job runs in.
@@ -806,6 +841,7 @@ class JobService:
             "tools": sorted({tool for tool in node_tools.values() if tool}),
             "pdk": _pdk(project),
             "libraries": _libraries(project),
+            "fpga": _fpga(project),
         }
 
     def _normalize(self, session, job, root: Path, derived, plan) -> Path:
@@ -2190,6 +2226,22 @@ def _pdk(project) -> str:
     except Exception:                                           # noqa: BLE001
         pdk = None
     return pdk or "none"
+
+
+def _resources(derived) -> List[Tuple[str, str]]:
+    '''The PDK, libraries and FPGA device a derived flow needs, as
+    ``(resource_kind, name)``, in the order a refusal names them.'''
+    return (([("pdk", derived["pdk"])] if derived["pdk"] != "none" else []) +
+            [("library", name) for name in derived["libraries"]] +
+            ([("fpga", derived["fpga"])] if derived.get("fpga") else []))
+
+
+def _fpga(project) -> Optional[str]:
+    '''The FPGA device this run targets, or None for a flow with none.'''
+    try:
+        return project.get("fpga", "device") or None
+    except Exception:                                           # noqa: BLE001
+        return None
 
 
 def _libraries(project) -> List[str]:
