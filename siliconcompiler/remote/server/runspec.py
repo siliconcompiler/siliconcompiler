@@ -144,6 +144,8 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     ``srun --partition``. Writing an image reference into it on a cluster would
     submit every node to a partition named after a container.
     '''
+    _server_resolves_env_dataroots(project)
+
     project.option.set_nodashboard(True)
     project.option.set_builddir(str(builddir))
     project.option.set_cachedir(str(cachedir))
@@ -205,6 +207,39 @@ def node_image(project, step: str, index: str) -> Optional[Tuple[str, str]]:
         return None
 
     return None
+
+
+def _server_resolves_env_dataroots(project) -> List[str]:
+    '''Drop from the job's `option,env` every variable a dataroot is rooted in.
+
+    🔴 **A dataroot like `$FOUNDRY_ROOT/...` is resolved from THIS server's
+    configuration, never the job's (D109).** SiliconCompiler expands a
+    dataroot's variables with `option,env` laid over the process environment,
+    and the job's `option,env` carries the CLIENT's value -- so leaving it would
+    expand to a path that exists only on the client's machine, and the run
+    would fail on a file that the server has under its own name for it. Every
+    other `option,env` entry is left as the caller set it.
+
+    Returns the names dropped.
+    '''
+    from siliconcompiler.remote.owners import env_names
+
+    if not project.valid("option", "env"):
+        return []
+    named = set(project.getkeys("option", "env") or [])
+    if not named:
+        return []
+
+    rooted = set()
+    for key in project.allkeys():
+        if key[0] != "history" and len(key) >= 3 and key[-1] == "path" \
+                and key[-3] == "dataroot":
+            rooted.update(env_names(project.get(*key)))
+
+    dropped = sorted(named & rooted)
+    for name in dropped:
+        project.remove("option", "env", name)
+    return dropped
 
 
 def runtime_flow(project):

@@ -137,6 +137,17 @@ def exe_and_switch(name: str, driver: Optional[str]):
     return asked if asked else (None, None)
 
 
+def wrapped_for(name: str, driver: Optional[str]) -> Optional[str]:
+    '''The program a Python-wrapper tool's driver says it shells out to.
+
+    🔴 **Declared by the driver** (`Task.wrapped_executable`), never guessed:
+    for `graphviz` the distribution being installed says nothing about `dot`,
+    and a runtime image with the wrapper and not the binary answered
+    *present*.
+    '''
+    return _ask_driver(name, driver, lambda task: task.wrapped_executable())
+
+
 def executable_for(name: str, kind: str, driver: Optional[str] = None,
                    version_package: Optional[str] = None) -> Optional[str]:
     '''The program whose existence means this name is THERE.
@@ -216,7 +227,17 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
             # The python check reports its own presence: it prints the marker
             # only once `importlib.metadata` has answered, so absence is
             # `PackageNotFoundError` and nothing else.
-            if command:
+            #
+            # 🔴 And a wrapper whose driver declares the program it shells out
+            # to is present only where that program is too: guarded on it, so
+            # the marker is never printed for the wrapper alone.
+            wrapped = wrapped_for(name, driver) if package else None
+            if command and wrapped:
+                lines.append(f"if command -v {shlex.quote(wrapped)} "
+                             "> /dev/null 2>&1; then")
+                lines.append(f"  {shlex.join(command)} 2>&1 || true")
+                lines.append("fi")
+            elif command:
                 lines.append(f"{shlex.join(command)} 2>&1 || true")
         elif exe:
             # 🔴 Guarded on the executable EXISTING, and this is not

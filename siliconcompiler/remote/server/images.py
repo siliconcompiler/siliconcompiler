@@ -509,6 +509,7 @@ def plan_for_job(store, requires: Dict[str, Any],
 
     inherits = inherits or {}
     held = software["tools"]
+    failed: Dict[Requirement, List[Requirement]] = {}
 
     nodes: Dict[Tuple[str, str], Optional[str]] = {}
     for node, tool in node_tools.items():
@@ -559,8 +560,14 @@ def plan_for_job(store, requires: Dict[str, Any],
         wants = list(pinned) + [Requirement(tool, specifiers(asked), "tool")]
         found = resolve(images, wants)
         if found is None:
-            raise _unsatisfiable(wants, images, blame=tool)
+            # 🔴 Kept and not raised: a job missing two tools reports both,
+            # not the first one this loop happened to reach.
+            failed.setdefault(wants[-1], wants)
+            continue
         nodes[node] = found["id"]
+
+    if failed:
+        raise _unsatisfiable_tools(list(failed.values()), images)
 
     return Plan(job_image["id"], nodes, refs)
 
@@ -661,56 +668,91 @@ def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str
     return {name: sorted(versions) for name, versions in sorted(found.items())}
 
 
-def _unsatisfiable(requirements: Sequence[Requirement], images,
-                   blame: Optional[str] = None) -> ProblemError:
-    '''No live image holds all of this.
+def _unsatisfiable(requirements: Sequence[Requirement], images) -> ProblemError:
+    '''No live image holds the python set -- and which way it failed.
 
-    🔴 **`software-unavailable` (D91), naming the requirement and what is
-    available.** A bare *no image matches* is unactionable: the caller needs
-    to know WHICH of its requirements failed and what it could ask for
-    instead. ⚠️ Not `entitlement-denied` -- *this deployment does not have
-    it*, not *you may not use it* -- and not `unsatisfiable-request`, which is
-    a tool this server cannot provide at all, in any version.
+    🔴 **`software-unavailable`, carrying `unresolved` and a `reason`** (D110).
+    One string could not say which of several requirements failed, nor
+    describe the python set failing as a COMBINATION: these names share one
+    process, so every one of them has to be in the same image.
 
-    🔴 **And it has to say WHICH of those two it is when a name is here but
-    unversioned.** A tool recorded from its publish date is in the catalogue,
-    appears in `GET /v1`'s `software` -- which has nowhere to carry the mark --
-    and can never satisfy a range. So a client's own preflight says yes and
-    this says no, which is accepted because the preflight is advisory and this
-    is binding. What is NOT acceptable is answering *no image matches* for it:
-    the honest answer is that the thing is present and reports no version, and
-    the two send somebody to completely different places.
+    - ``reason: "unavailable"`` -- a requirement no image satisfies on its
+      own. Every such requirement is listed, not only the first.
+    - ``reason: "combination"`` -- every requirement is satisfied by SOME
+      image and no single image holds them together. Every python requirement
+      is then listed, each with what is available, because the fix is choosing
+      versions that exist side by side.
+
+    Each alternative of a requirement is checked separately -- there may be an
+    image for each -- and a requirement is met if any of them is.
+
+    ⚠️ Not `entitlement-denied` -- *this deployment does not have it*, not
+    *you may not use it* -- and not `unsatisfiable-request`, which is software
+    this server cannot provide in any version.
     '''
-    culprit = next((want for want in requirements if want.name == blame),
-                   requirements[-1] if requirements else None)
+    alone = [want for want in requirements if resolve(images, [want]) is None]
+    if alone:
+        return _software_unavailable("unavailable", alone, images)
+    return _software_unavailable("combination", list(requirements), images)
 
-    unversioned = _present_but_unversioned(requirements, images)
-    if unversioned:
-        return ProblemError(
-            "software-unavailable", requirement=str(unversioned),
-            available=_available(unversioned.name, images),
-            detail=f"this server has {unversioned.name}, and every image "
-                   "holding it reports no version for it -- so nothing here "
-                   "can be matched against a version requirement. Ask for it "
-                   "without a version, or ask the operator to register the "
-                   "version its images actually hold")
 
-    return ProblemError(
-        "software-unavailable",
-        requirement=str(culprit) if culprit else "unknown",
-        available=_available(culprit.name, images) if culprit else [],
-        detail=f"no image on this server holds "
-               f"{', '.join(str(want) for want in requirements)}; "
-               f"{len(images)} image(s) are registered")
+def _unsatisfiable_tools(failures: Sequence[Sequence[Requirement]],
+                         images) -> ProblemError:
+    '''Every node tool no image could place, as one refusal.
+
+    Each entry of ``failures`` is the python set plus one node's tool. A tool
+    that no image holds at the version asked is ``unavailable``; one that does
+    exist, beside a python set that also exists, and never in the same image as
+    it, is a ``combination`` -- and names both halves.
+    '''
+    unavailable = [wants[-1] for wants in failures
+                   if resolve(images, [wants[-1]]) is None]
+    if unavailable:
+        return _software_unavailable("unavailable", unavailable, images)
+
+    together: List[Requirement] = []
+    for wants in failures:
+        for want in wants:
+            if want not in together:
+                together.append(want)
+    return _software_unavailable("combination", together, images)
+
+
+def _software_unavailable(reason: str, unresolved: Sequence[Requirement],
+                          images) -> ProblemError:
+    entries = [{"name": want.name,
+                # The alternatives exactly as they were asked for; empty is
+                # "any version".
+                "requirement": list(want.wanted or ()),
+                "available": _available(want.name, images)}
+               for want in unresolved]
+
+    unversioned = _present_but_unversioned(unresolved, images)
+    if reason == "unavailable" and unversioned:
+        # 🔴 Said, because it is the one that is otherwise a mystery: the name
+        # is here, in `GET /v1`'s software list, and no image holding it
+        # reports a version, so nothing can match a version requirement.
+        detail = (f"this server has {unversioned.name}, and every image holding "
+                  "it reports no version for it -- so nothing here can be matched "
+                  "against a version requirement. Ask for it without a version, "
+                  "or ask the operator to register the version its images hold")
+    elif reason == "combination":
+        detail = ("each of these is available on its own, and no single image "
+                  "holds them together; choose versions that exist side by side")
+    else:
+        detail = (f"no image on this server holds "
+                  f"{', '.join(str(want) for want in unresolved)}; "
+                  f"{len(images)} image(s) are registered")
+
+    return ProblemError("software-unavailable", reason=reason,
+                        unresolved=entries, detail=detail)
 
 
 def _available(name: str, images) -> List[str]:
     '''Every version of ``name`` a live image holds, for the refusal to
-    offer instead. ⚠️ The shape is this profile's: the contract names the
-    member and not its form.'''
-    found = sorted({entry.version for image in images
-                    for entry in image["contents"] if entry.name == name})
-    return found
+    offer instead. ``[]`` when none holds it at all.'''
+    return sorted({entry.version for image in images
+                   for entry in image["contents"] if entry.name == name})
 
 
 def _unregistered(tool: str, node: Tuple[str, str], images) -> ProblemError:

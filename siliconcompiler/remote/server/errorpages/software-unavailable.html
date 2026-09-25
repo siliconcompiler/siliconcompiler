@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>software-unavailable &middot; SiliconCompiler server errors</title>
-<meta name="description" content="No image holds the version you asked for. Names the requirement and what is available.">
+<meta name="description" content="No image satisfies the job’s software. Names every requirement that failed and what is available.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,19 +21,19 @@
 </header>
 
 <main>
-<p>No live image on this deployment satisfies one of the job&rsquo;s software requirements &mdash; a SiliconCompiler version or a tool version. The body says which requirement failed and what the images do hold, so you can ask for one of those instead.</p>
+<p>No live image on this deployment satisfies the job&rsquo;s software requirements &mdash; a SiliconCompiler version, a Python library, or a tool version. The body lists every requirement that failed, each with what the images do hold, so you can ask for something that exists.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Read <code>requirement</code>: it is the one that failed.</li>
-  <li>Read <code>available</code>: the versions this deployment&rsquo;s images hold for that name. An empty list means none hold it at all.</li>
-  <li>Ask for one of those, or ask the operator for the version you need.</li>
-  <li><code>GET /v1</code>&rsquo;s <code>software</code> lists what is on offer before you submit.</li>
+  <li>Read <code>reason</code>. <code>unavailable</code>: the requirements listed are held by no image at all. <code>combination</code>: each is held by some image, and no single image holds them together.</li>
+  <li>Read <code>unresolved</code>: one entry per failed requirement, with <code>requirement</code> &mdash; your alternatives, exactly as sent &mdash; and <code>available</code>, the versions this deployment&rsquo;s images hold. An empty <code>available</code> means none holds it.</li>
+  <li>For <code>unavailable</code>, ask for a version in <code>available</code>. For <code>combination</code>, choose versions that exist in one image together.</li>
+  <li><code>GET /v1</code>&rsquo;s <code>software</code> lists what is on offer before you submit, name by name. It cannot show which names share an image, which is why <code>combination</code> exists.</li>
 </ol>
 </div>
 
-<div class="warn"><p><strong>Present but reports no version.</strong> A tool an image holds but that does not report its version is listed under the date the image was published, and such an entry satisfies no version requirement. If the name you asked for is in <code>available</code> and you still got this, ask for it without a version.</p></div>
+<div class="warn"><p><strong>Present but reports no version.</strong> A tool an image holds but that does not report its version is listed under the date the image was published, and such an entry satisfies no version requirement. If the name is in <code>available</code> and you still got this, ask for it without a version.</p></div>
 <h2>The body</h2>
 
 <pre><code>{
@@ -42,18 +42,18 @@
   "status":   422,
   "detail":   "...",
   "instance": "/v1/jobs/01J9...",
-  "requirement": "openroad&gt;=3.0",  <span class="c">// REQUIRED on this type</span>
-  "available": ["2.0.1", "2.0.0"],  <span class="c">// REQUIRED on this type</span>
+  "reason":   "unavailable",  <span class="c">// REQUIRED on this type</span>
+  "unresolved": [{"name": "openroad", "requirement": ["&gt;=24.3.2011", "==2.0"], "available": ["2.1.0"]}],  <span class="c">// REQUIRED on this type</span>
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
 
 <table>
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
-<tr><td><code>requirement</code></td><td><span class="req">REQUIRED</span></td>
-    <td>The requirement no image satisfies: the name and the version specifier you sent.</td></tr>
-<tr><td><code>available</code></td><td><span class="req">REQUIRED</span></td>
-    <td>What the live images hold for that name. It may be empty.</td></tr>
+<tr><td><code>reason</code></td><td><span class="req">REQUIRED</span></td>
+    <td><code>unavailable</code> or <code>combination</code>.</td></tr>
+<tr><td><code>unresolved</code></td><td><span class="req">REQUIRED</span></td>
+    <td>A list of <code>{name, requirement, available}</code>, one per requirement that failed. <code>requirement</code> is the list of alternatives as sent &mdash; a requirement is met if any one resolves &mdash; and <code>available</code> what the live images hold; <code>[]</code> if none.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
 </tbody>
@@ -68,7 +68,7 @@
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
     <td>The descriptor&rsquo;s <code>requires</code> cannot be met.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>The flow re-derived from the manifest cannot be placed.</td></tr>
+    <td>The flow re-derived from the manifest cannot be placed. A job missing two tools lists both.</td></tr>
 </tbody>
 </table>
 

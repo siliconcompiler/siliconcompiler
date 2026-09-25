@@ -66,10 +66,11 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
        ("resource_kind", "resource")),
     _e("resource-unresolved", 422, "Could not resolve what this flow needs",
        ("resource_kind",)),
-    # 🆕 D91: no live image satisfies a version requirement -- named, with
-    # what IS available, because the bare *no image matches* cannot be acted on.
+    # 🆕 D91, reshaped by D110: no live image satisfies the job's software
+    # requirements. `unresolved` lists each failed one with its alternatives
+    # and what is available; `reason` is "unavailable" or "combination".
     _e("software-unavailable", 422, "No image provides that software",
-       ("requirement", "available")),
+       ("reason", "unresolved")),
     # 🆕 D105: the flow needs a PDK, library or FPGA device this deployment
     # does not hold, and its files did not arrive in the archive. Not
     # `resource-unresolved`, which is not knowing WHICH.

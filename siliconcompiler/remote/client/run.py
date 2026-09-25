@@ -297,8 +297,8 @@ class RemoteRun:
 
         collect(self.project,
                 whitelist=list(self.client.credentials.directory_whitelist),
-                select=lambda key, dataroot, resolvers: owners.uploads(
-                    self.project, key, dataroot, resolvers))
+                select=lambda key, dataroot, resolvers, path: owners.uploads(
+                    self.project, key, dataroot, resolvers, path))
 
     def _pack(self, upload: Path) -> Tuple[str, int]:
         '''What the server needs of the job directory, as one archive, with

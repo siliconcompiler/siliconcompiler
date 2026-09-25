@@ -93,8 +93,23 @@ def test_the_id_is_the_jobs_and_it_only_goes_up(tmp_path):
     totals = [int(i.split("-")[0], 16) for i in ids]
 
     assert totals == sorted(totals) and len(set(totals)) == len(totals)
-    # Every id names every node's position, not just the one that spoke.
-    assert all(len(i.split("-")[1].split(".")) == 2 for i in ids)
+    # Once both have spoken, the id names both positions, not just the one
+    # that spoke last.
+    assert len(ids[-1].split("-")[1].split(".")) == 2
+
+
+def test_the_id_names_only_the_nodes_that_have_spoken(tmp_path):
+    '''⚠️ Sparse (D108): `Last-Event-ID` is a request header, and a dense
+    vector over a thousand nodes passes what common proxies accept for one.'''
+    job = Job(tmp_path, nodes=[(f"n{i}", "0") for i in range(1000)])
+    with open(job.path("n500", "0"), "a") as f:
+        f.write("hello\n")
+    job.states = {node: "completed" for node in job.nodes}
+
+    ids = [i for e, i, _ in run_to_end(job) if e == "log"]
+
+    assert ids == [f"{6:x}-{500:x}:{6:x}"]
+    assert logstream.resume_job(ids[0], None, 1000)[500] == 6
 
 
 def test_resuming_from_a_job_id_has_no_gap_and_no_repeat(tmp_path):
@@ -204,8 +219,10 @@ def test_a_node_that_never_ran_is_reported_and_ends_nothing(tmp_path):
 
 @pytest.mark.parametrize("given", [
     None, "not-an-id", "1a",               # a per-node id: a byte offset, no vector
-    "5-2.3.0",                             # three nodes, and this job has two
-    "9-2.3",                               # the total does not add up
+    "5-0:2.2:3",                           # slot 2, and this job has two nodes
+    "9-0:2.1:3",                           # the total does not add up
+    "5-0:2.0:3",                           # one node named twice
+    "5-2.3",                               # the dense form this used to emit
 ])
 def test_an_id_that_is_not_this_jobs_starts_from_the_beginning(given):
     '''A stream that replays is a nuisance; one that skips is a lost log.'''
@@ -213,8 +230,10 @@ def test_an_id_that_is_not_this_jobs_starts_from_the_beginning(given):
 
 
 def test_a_good_id_resumes_each_node_at_its_own_place():
-    assert logstream.resume_job("5-2.3", None, 2) == [2, 3]
-    assert logstream.resume_job(None, "5-2.3", 2) == [2, 3]
+    assert logstream.resume_job("5-0:2.1:3", None, 2) == [2, 3]
+    assert logstream.resume_job(None, "5-0:2.1:3", 2) == [2, 3]
+    # A node that has not spoken is not named, and starts at the beginning.
+    assert logstream.resume_job("3-1:3", None, 2) == [0, 3]
 
 
 ###########################

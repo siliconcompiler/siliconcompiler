@@ -28,6 +28,7 @@
 <ol>
   <li>Read <code>resource_kind</code> and <code>resource</code> to see which.</li>
   <li>Use one this deployment holds, or make sure its files go up with the job. A client uploads a PDK&rsquo;s, library&rsquo;s or FPGA device&rsquo;s files only when they come from a local path or a package installed editable &mdash; one fetched from a release stays behind, because a server is expected to have its own.</li>
+  <li>One rooted in an environment variable &mdash; <code>$FOUNDRY_ROOT/...</code> &mdash; is never uploaded: the server resolves the variable from its own environment, never from the job&rsquo;s <code>option,env</code>. It needs the PDK installed on the server and the variable set there.</li>
 </ol>
 </div>
 

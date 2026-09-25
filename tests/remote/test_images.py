@@ -187,7 +187,9 @@ def test_a_registered_tool_with_no_image_fails_the_whole_submit(registry, store)
                             {("syn", "0"): "yosys"})
 
     assert raised.value.error.slug == "software-unavailable"
-    assert raised.value.members["requirement"] == "yosys"
+    assert raised.value.members["reason"] == "unavailable"
+    assert raised.value.members["unresolved"] == [
+        {"name": "yosys", "requirement": [], "available": []}]
 
 
 def test_a_framework_version_no_image_holds(registry, store):
@@ -198,7 +200,9 @@ def test_a_framework_version_no_image_holds(registry, store):
                             {("import", "0"): None})
 
     assert raised.value.error.slug == "software-unavailable"
-    assert raised.value.members["requirement"] == "siliconcompiler==0.40.0"
+    assert raised.value.members["reason"] == "unavailable"
+    assert [(e["name"], e["requirement"]) for e in raised.value.members["unresolved"]] == \
+        [("siliconcompiler", ["==0.40.0"])]
 
 
 def test_preference_breaks_the_tie_and_not_recency(store):
@@ -677,7 +681,7 @@ def test_a_range_nothing_satisfies_is_refused_before_anything_runs(registry,
                             {("import", "0"): None})
 
     assert raised.value.error.slug == "software-unavailable"
-    assert raised.value.members["requirement"] == "siliconcompiler>=0.40"
+    assert raised.value.members["unresolved"][0]["requirement"] == [">=0.40"]
 
 
 def test_a_bare_version_still_means_exactly_that(registry, store):
@@ -847,6 +851,12 @@ def test_the_python_set_must_be_held_by_one_image(store):
             {("import", "0"): None})
 
     assert raised.value.error.slug == "software-unavailable"
+    # 🔴 D110: each resolves on its own and no image holds them together, so
+    # it is a combination -- and every python requirement is named, each with
+    # what is available, because the fix is choosing versions side by side.
+    assert raised.value.members["reason"] == "combination"
+    assert {(e["name"], tuple(e["available"])) for e in raised.value.members["unresolved"]} \
+        == {("siliconcompiler", ("0.39.1",)), ("za-sclib", ("0.1.80",))}
 
     # And one that holds both resolves.
     images.register_image(store, "ghcr.io/x/both:1", digest("c"),
@@ -871,17 +881,34 @@ def test_a_tool_requirement_is_satisfied_per_node(registry, store):
     assert plan.ref(plan.nodes[("place", "0")]).startswith("ghcr.io/x/sc-tools@")
 
 
+def test_a_job_missing_two_tools_reports_both(registry, store):
+    '''Not the first one the node loop happened to reach: fixing one and
+    resubmitting to be told about the next is two round trips for one answer.'''
+    images.register_software(store, "yosys", "Yosys", store.actor, "tool")
+    images.register_version(store, "yosys", "0.40", store.actor)
+    images.register_image(store, "ghcr.io/x/yosys:1", digest("e"),
+                          [("siliconcompiler", "0.39.1"), ("yosys", "0.40")],
+                          store.actor)
+
+    with pytest.raises(ProblemError) as raised:
+        images.plan_for_job(store, py(tools={"openroad": ">=3.0", "yosys": ">=99"}),
+                            {("place", "0"): "openroad", ("syn", "0"): "yosys"})
+
+    assert raised.value.members["reason"] == "unavailable"
+    assert {e["name"] for e in raised.value.members["unresolved"]} == {"openroad", "yosys"}
+
+
 def test_a_tool_range_nothing_holds_is_refused(registry, store):
     with pytest.raises(ProblemError) as raised:
         images.plan_for_job(store, py(tools={"openroad": ">=3.0"}),
                             {("place", "0"): "openroad"})
 
     assert raised.value.error.slug == "software-unavailable"
-    assert raised.value.members["requirement"] == "openroad>=3.0"
+    entry, = raised.value.members["unresolved"]
+    assert (entry["name"], entry["requirement"]) == ("openroad", [">=3.0"])
     # 🔴 D91: what IS available, so the caller can act on it.
-    assert raised.value.members["available"]
-    assert all(version.startswith("2.") for version in
-               raised.value.members["available"])
+    assert entry["available"]
+    assert all(version.startswith("2.") for version in entry["available"])
 
 
 def test_the_buckets_are_a_closed_set_and_both_are_always_there(store):
@@ -1005,7 +1032,8 @@ def test_none_of_the_alternatives_holding_is_still_a_refusal(registry, store):
                             {("place", "0"): "openroad"})
 
     assert raised.value.error.slug == "software-unavailable"
-    assert raised.value.members["requirement"] == "openroad>=9.0 or ==8.0"
+    # The alternatives exactly as asked for, each checked on its own.
+    assert raised.value.members["unresolved"][0]["requirement"] == [">=9.0", "==8.0"]
 
 
 def test_an_empty_list_is_any_version(registry, store):

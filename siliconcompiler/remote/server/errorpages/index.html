@@ -71,7 +71,7 @@ production.</p>
 <tr><td><a href="resource-unresolved.html"><code>resource-unresolved</code></a></td><td><code>422</code></td>
     <td>The server could not decide what the flow needs.</td></tr>
 <tr><td><a href="software-unavailable.html"><code>software-unavailable</code></a></td><td><code>422</code></td>
-    <td>No image holds the version you asked for. Names the requirement and what is available.</td></tr>
+    <td>No image satisfies the job&rsquo;s software. Names every requirement that failed and what is available.</td></tr>
 <tr><td><a href="resource-unavailable.html"><code>resource-unavailable</code></a></td><td><code>422</code></td>
     <td>The flow needs a PDK, library or FPGA device the server does not hold, and it was not uploaded.</td></tr>
 <tr><td><a href="upload-forbidden.html"><code>upload-forbidden</code></a></td><td><code>422</code></td>
@@ -79,7 +79,7 @@ production.</p>
 <tr><td><a href="terms-not-accepted.html"><code>terms-not-accepted</code></a></td><td><code>403</code></td>
     <td>An agreement is unaccepted. Carries where to go and accept it.</td></tr>
 <tr><td><a href="artifact-not-approved.html"><code>artifact-not-approved</code></a></td><td><code>403</code></td>
-    <td>The per-object access gate said no.</td></tr>
+    <td>The per-object gate said no: withheld, an issue, or a node archive holding something that is.</td></tr>
 <tr><td><a href="version-skew.html"><code>version-skew</code></a></td><td><code>422</code></td>
     <td>Client or software versions this deployment will not accept.</td></tr>
 <tr><td><a href="declared-mismatch.html"><code>declared-mismatch</code></a></td><td><code>422</code></td>

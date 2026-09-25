@@ -77,7 +77,6 @@ from typing import Any, Dict, List, Optional
 
 from siliconcompiler.remote.server.dispatch import RUN_LOG
 from siliconcompiler.remote.server.ids import uuid7
-from siliconcompiler.remote.server.store import now
 
 __all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS"]
 
@@ -362,22 +361,59 @@ def _retention(store, kind: str, floor_days: int) -> str:
     return when.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
-def fetchable(row, surface_allows: bool = True) -> bool:
-    '''Whether THIS caller may have the bytes.
+def ladder(row, surface_allows: bool = True,
+           members_fetchable: bool = True) -> Optional[str]:
+    '''The refusal an artifact gets, by the first row of the ladder that
+    matches -- or None when the caller may have the bytes.
 
-    🔴 Per caller, never cached across callers -- which is why it is computed
-    rather than stored. On this deployment the answer is the same for everybody
-    who can see the job, because there is no approval machinery here and the
-    only caller who can see a job is its owner. What is left are the three
-    reasons the bytes are not available to anyone: deleted, withheld, or aged
-    out -- and ``surface_allows``, which is whether the surface asking hands
-    over this kind at all (``api_fetchable_kinds``).
+    The ladder is entitlements.md's, in its order, with this profile's rows:
+
+    ===  ==========================================  ======================
+    1    ``deleted_at`` set                          ``not-found``
+    2    ``withheld_at`` set                         ``artifact-not-approved``
+    3    ``kind = 'issue'``                          ``artifact-not-approved``
+    4    a ``node`` archive with a member that is    ``artifact-not-approved``
+         not fetchable
+    --   this surface does not hand the kind over    ``artifact-not-approved``
+         (``api_fetchable_kinds``)
+    5    ``provenance = 'pending'``                  ``not-ready`` -- transient
+    ===  ==========================================  ======================
+
+    🔴 **Rows 6-8 -- grants, the resources an artifact derives from -- do not
+    exist here**: there is no approval machinery, and the only caller who can
+    see a job is its owner.
+
+    🔴 **`pending` is `not-ready` and never a permanent refusal.** It is still
+    being described, and answering it `403` told a client to abandon an
+    artifact that would shortly be fetchable. The surface row sits above it so
+    that a kind this surface never hands over is not answered *try again*.
+
+    ⚠️ **Retention passing is deliberately not a row.** The reaper follows it by
+    setting ``deleted_at``, which is row 1; between the instant and the sweep
+    the bytes are still here and still fetchable -- a promise to keep data at
+    least that long says nothing about the minute after it. This used to answer
+    *not fetchable* the moment the date passed.
+
+    Per caller, never cached across callers -- which is why it is computed
+    rather than stored.
     '''
+    if row["deleted_at"]:
+        return "not-found"
+    if row["withheld_at"] or row["kind"] == "issue":
+        return "artifact-not-approved"
+    if row["kind"] == "node" and not members_fetchable:
+        return "artifact-not-approved"
     if not surface_allows:
-        return False
-    if row["deleted_at"] or row["withheld_at"]:
-        return False
-    return not _passed(row["retention_until"])
+        return "artifact-not-approved"
+    if row["provenance"] == "pending":
+        return "not-ready"
+    return None
+
+
+def fetchable(row, surface_allows: bool = True,
+              members_fetchable: bool = True) -> bool:
+    '''Whether THIS caller may have the bytes: the ladder, with no refusal.'''
+    return ladder(row, surface_allows, members_fetchable) is None
 
 
 def cause(row) -> Optional[str]:
@@ -394,11 +430,8 @@ def cause(row) -> Optional[str]:
     return "removed" if row["deleted_by"] else "expired"
 
 
-def _passed(when: Optional[str]) -> bool:
-    return bool(when) and when <= now()
-
-
-def wire(row, surface_allows: bool = True) -> Dict[str, Any]:
+def wire(row, surface_allows: bool = True,
+         members_fetchable: bool = True) -> Dict[str, Any]:
     '''One artifact, as §21 publishes it.'''
     return {
         "id": row["id"],
@@ -425,7 +458,7 @@ def wire(row, surface_allows: bool = True) -> Dict[str, Any]:
         # the column it comes from, because it is the same thing.
         "deleted_cause": cause(row),
         "delete_reason": row["delete_reason"],
-        "fetchable": fetchable(row, surface_allows),
+        "fetchable": fetchable(row, surface_allows, members_fetchable),
     }
     # No `blocked_by` and no `access_request_url`: both are about an agreement
     # standing in the way, and this deployment has no agreements. An

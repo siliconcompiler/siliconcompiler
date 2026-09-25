@@ -29,11 +29,13 @@ silently.
 '''
 
 import os
+import re
 
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE",
-           "INSTALLED", "REMOTE", "owner", "source", "uploads", "holding"]
+           "INSTALLED", "REMOTE", "ENVIRONMENT", "owner", "source", "uploads",
+           "holding", "env_names"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -49,6 +51,14 @@ LOCAL = "local"            # a path on this machine, or no dataroot at all
 EDITABLE = "editable"      # a Python package installed editable
 INSTALLED = "installed"    # a Python package installed normally
 REMOTE = "remote"          # git, https, or anything fetched -- cached or not
+# 🔴 Rooted in an environment variable -- `$FOUNDRY_ROOT/...` -- which names a
+# location that differs by SITE. That is why SiliconCompiler documents it for
+# proprietary PDKs, and uploading one defeats the indirection: neither local
+# nor editable (D109). Told from the registered source, which keeps the
+# variable unexpanded; SiliconCompiler expands it only at resolution.
+ENVIRONMENT = "environment"
+
+_ENV_NAME = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)")
 
 # Parameters that are paths and are never the run's input. The build and cache
 # directories are this machine's; the credentials file is this machine's KEY.
@@ -83,7 +93,13 @@ def owner(project, key) -> Tuple[str, Optional[str]]:
     return PROJECT, None
 
 
-def source(resolvers, dataroot: Optional[str], _seen=None) -> str:
+def env_names(path) -> List[str]:
+    '''The environment variables a registered path is rooted in.'''
+    return _ENV_NAME.findall(str(path or ""))
+
+
+def source(resolvers, dataroot: Optional[str], _seen=None,
+           path: Optional[str] = None) -> str:
     '''Where files under ``dataroot`` come from, judged by how it was
     REGISTERED. ``resolvers`` is the owning schema's
     ``_find_files_dataroot_resolvers(True)``.
@@ -98,7 +114,8 @@ def source(resolvers, dataroot: Optional[str], _seen=None) -> str:
         RemoteResolver)
 
     if not dataroot:
-        return LOCAL
+        # A path with no dataroot is judged by itself.
+        return ENVIRONMENT if env_names(path) else LOCAL
 
     resolver = resolvers.get(dataroot)
     if resolver is None:
@@ -116,14 +133,19 @@ def source(resolvers, dataroot: Optional[str], _seen=None) -> str:
             return LOCAL
         seen.add(dataroot)
         return source(resolvers, resolver.urlpath, seen)
-    if isinstance(resolver, (FileResolver, KeyPathResolver)):
+    if isinstance(resolver, FileResolver):
+        # ⚠️ `source`, never `urlpath`: `urlpath` has already expanded the
+        # variable -- with the job's `option,env` laid over the environment.
+        return ENVIRONMENT if env_names(_registered(resolver)) else LOCAL
+    if isinstance(resolver, KeyPathResolver):
         return LOCAL
     # Something this client does not know. Sending it is the answer that
     # cannot leave a job short of a file.
     return LOCAL
 
 
-def uploads(project, key, dataroot: Optional[str], resolvers) -> bool:
+def uploads(project, key, dataroot: Optional[str], resolvers,
+            path: Optional[str] = None) -> bool:
     '''Whether one value of one parameter goes in the archive.'''
     if tuple(key[:2]) in _NEVER:
         return False
@@ -132,7 +154,7 @@ def uploads(project, key, dataroot: Optional[str], resolvers) -> bool:
     if kind in (DESIGN, PROJECT):
         return True
 
-    return source(resolvers, dataroot) in (LOCAL, EDITABLE)
+    return source(resolvers, dataroot, path=path) in (LOCAL, EDITABLE)
 
 
 def holding(project, name: str, collection_dir) -> Tuple[bool, bool]:
@@ -179,7 +201,7 @@ def holding(project, name: str, collection_dir) -> Tuple[bool, bool]:
                     uploaded = True
                     continue
 
-                kind = source(resolvers, dataroot)
+                kind = source(resolvers, dataroot, path=one.get())
                 if kind == REMOTE:
                     continue
                 if kind in (INSTALLED, EDITABLE):
@@ -213,7 +235,13 @@ def _collected(value, collection_dir) -> bool:
 
 
 def _present_here(path: str, resolver) -> bool:
-    '''Whether a local-sourced file is at its path on THIS machine.
+    '''Whether a local- or environment-sourced file is at its path on THIS
+    machine.
+
+    🔴 **Expanded with THIS process's environment and never the job's
+    `option,env`**, which carries the CLIENT's value -- honouring it would
+    expand to a path that exists only on the client's machine. See
+    `runspec.normalize`, which drops those names from the run too.
 
     Unknowable is present: a dataroot that is not a plain path is traced no
     further here, per the rule above.
@@ -229,8 +257,18 @@ def _present_here(path: str, resolver) -> bool:
     if not isinstance(resolver, FileResolver):
         return True
 
-    root = os.path.expandvars(resolver.resolve())
+    # From the REGISTERED source, expanded here with os.environ alone.
+    # `resolver.resolve()` would expand it with the job's `option,env`.
+    root = os.path.expandvars(_registered(resolver))
     if "$" in root:
         # An env var this server does not set: the path it names is not here.
         return False
+    if not os.path.isabs(root):
+        return True
     return os.path.exists(os.path.join(root, os.path.expandvars(path)))
+
+
+def _registered(resolver) -> str:
+    '''A file resolver's source as registered, variables unexpanded.'''
+    registered = str(getattr(resolver, "source", "") or "")
+    return registered[7:] if registered.startswith("file://") else registered

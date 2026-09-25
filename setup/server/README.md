@@ -141,6 +141,20 @@ whole credential.
 Browser sessions live in the server process and in no table, so restarting it
 signs everyone out. Running `sc-remote -portal` again is the whole recovery.
 
+## A PDK behind an environment variable
+
+A PDK, library or FPGA device whose dataroot is rooted in an environment
+variable &mdash; `$FOUNDRY_ROOT/...`, the usual way to reference a proprietary
+PDK without committing it &mdash; **is not uploaded**, and the server resolves
+the variable from **its own** environment. The job's `option,env` carries the
+submitter's value, a path on their machine, so the server drops that variable
+from it before the run.
+
+⚠️ **This changed.** Such a PDK used to be uploaded with every job. It now has
+to be installed on the server, with the variable set for the processes that run
+jobs &mdash; otherwise the job is refused at submit as `resource-unavailable`,
+naming the PDK.
+
 ## Error pages
 
 Every refusal's `type` is a page, and this server serves all of them at

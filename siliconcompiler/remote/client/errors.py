@@ -59,7 +59,6 @@ class SessionEnded(ServerProblem):
 # A slug names a kind of failure; one of these names the instance.
 _DISCRIMINATORS = (
     "limit", "feature", "reason", "resource", "resource_kind",
-    "requirement", "available",
     "violation", "artifact_kind", "terms_scope", "blocked_by",
 )
 
@@ -74,6 +73,8 @@ _NEXT_STEP = {
     "unsatisfiable-request": "This deployment cannot provide that at all.",
     "software-unavailable": "Ask for a version this server has, or ask its "
                             "operator for the one you need.",
+    "artifact-not-approved": "It is held back from download here; the web "
+                             "portal may have it.",
     "resource-unavailable": "This server does not have it: use one it holds, "
                             "or keep a local or editable copy so it is uploaded.",
     "upload-forbidden": "That resource may not be uploaded here; use this "
@@ -110,6 +111,13 @@ _NEXT_STEP = {
 # with the results like everything else.
 NO_NODE_FAILED = ("No node failed -- the run itself did. Read remote-job.log "
                   "in the job directory this fetched.")
+
+
+def _unresolved(entry: Dict[str, Any]) -> str:
+    wanted = " or ".join(str(one) for one in entry.get("requirement") or []) \
+        or "any version"
+    return (f"{entry.get('name', '?')} {wanted} "
+            f"(available: {_member(entry.get('available') or [])})")
 
 
 def _member(value) -> str:
@@ -152,6 +160,12 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
              for name in _DISCRIMINATORS if problem.get(name) is not None]
     if named:
         lines.append("  " + ", ".join(named))
+
+    # `software-unavailable` names every requirement that failed, each with
+    # its alternatives and what the server has instead -- one line apiece.
+    for entry in problem.get("unresolved") or []:
+        if isinstance(entry, dict):
+            lines.append("  " + _unresolved(entry))
 
     slug = _slug(problem)
     step = next_step or (_NEXT_STEP.get(slug) if slug else None)

@@ -371,18 +371,82 @@ def test_a_deleted_artifact_is_a_404_not_a_403(server, server_client, key,
     assert still and still[0]["deleted_at"] and still[0]["fetchable"] is False
 
 
-def test_an_artifact_past_its_retention_is_not_fetchable(server, server_client,
-                                                         key, token, finished):
+def test_past_its_retention_and_not_yet_swept_is_still_fetchable(
+        server, server_client, key, token, finished):
+    '''⚠️ Retention passing is deliberately not a row of the ladder: the reaper
+    follows it by setting `deleted_at`, and until then the bytes are here. A
+    promise to keep data at least that long says nothing about the minute
+    after it -- this used to answer *not fetchable* the moment the date passed.'''
     item = listing(server_client, key, token, finished["id"])[0]
     server.config["SC_STORE"].execute(
         "UPDATE artifacts SET retention_until = '2020-01-01T00:00:00.000Z' "
         "WHERE id = ?", (item["id"],))
 
+    assert next(i for i in listing(server_client, key, token, finished["id"])
+                if i["id"] == item["id"])["fetchable"] is True
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
+    assert response.status_code == 303
+
+
+def _mark(server, item, **columns):
+    sets = ", ".join(f"{name} = ?" for name in columns)
+    server.config["SC_STORE"].execute(
+        f"UPDATE artifacts SET {sets} WHERE id = ?", (*columns.values(), item["id"]))
+
+
+def _fetch(server_client, key, token, job_id, item):
+    return call(server_client, key, "GET",
+                f"/v1/jobs/{job_id}/artifacts/{item['id']}", token)
+
+
+def test_a_pending_artifact_is_not_ready_and_never_refused_for_good(
+        server, server_client, key, token, finished):
+    '''🔴 The live bug. Still being described is transient, and a permanent
+    `403` told a client to abandon an artifact that was about to be
+    fetchable.'''
+    item = listing(server_client, key, token, finished["id"])[0]
+    _mark(server, item, provenance="pending")
+
+    response = _fetch(server_client, key, token, finished["id"], item)
+
+    assert response.status_code == 409
+    assert slug(response) == "not-ready"
+    assert response.get_json()["artifact_kind"] == item["kind"]
+    assert response.headers["Retry-After"]
+
+
+def test_a_withheld_artifact_is_not_approved(server, server_client, key, token,
+                                             finished):
+    '''The per-object gate said no -- and no `resource_kind` is forced onto a
+    refusal that involves no resource.'''
+    item = listing(server_client, key, token, finished["id"])[0]
+    me = server.config["SC_STORE"].one("SELECT user_id FROM jobs WHERE id = ?",
+                                       (finished["id"],))["user_id"]
+    _mark(server, item, withheld_at="2026-09-25T00:00:00.000Z", withheld_by=me)
+
+    response = _fetch(server_client, key, token, finished["id"], item)
 
     assert response.status_code == 403
-    assert slug(response) == "entitlement-denied"
+    assert slug(response) == "artifact-not-approved"
+    assert "resource_kind" not in response.get_json()
+
+
+def test_a_node_archive_holding_a_withheld_member_is_not_fetchable(
+        server, server_client, key, token, finished):
+    '''Row 4: the archive holds every artifact at its coordinates, so handing
+    it over would hand over the one that is withheld.'''
+    items = listing(server_client, key, token, finished["id"])
+    log = next(i for i in items if i["kind"] == "logs" and i["step"] == "stepone")
+    node = next(i for i in items if i["kind"] == "node" and i["step"] == "stepone")
+    me = server.config["SC_STORE"].one("SELECT user_id FROM jobs WHERE id = ?",
+                                       (finished["id"],))["user_id"]
+    _mark(server, log, withheld_at="2026-09-25T00:00:00.000Z", withheld_by=me)
+
+    relisted = {i["id"]: i for i in listing(server_client, key, token, finished["id"])}
+    assert relisted[node["id"]]["fetchable"] is False
+    assert slug(_fetch(server_client, key, token, finished["id"], node)) == \
+        "artifact-not-approved"
 
 
 ###########################

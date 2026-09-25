@@ -691,6 +691,21 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         """
         return self.tool()
 
+    def wrapped_executable(self) -> Optional[str]:
+        """
+        The program this task drives through a Python wrapper, if any.
+
+        For a task whose tool is a Python package that shells out to a program
+        -- graphviz's, which runs ``dot`` -- the package being installed says
+        nothing about whether the program is. Declared here rather than
+        inferred, like :meth:`image_requirement`: what an image must hold for
+        the task to run is the driver's to say.
+
+        Returns:
+            str: the program's name, or None when the task wraps no program.
+        """
+        return None
+
     def inherits_image(self) -> bool:
         """
         Whether this task should run wherever the previous node ran.

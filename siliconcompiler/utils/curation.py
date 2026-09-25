@@ -36,9 +36,10 @@ def collect(project: "Project",
             a `RuntimeError` is raised. Defaults to None.
         select (callable, optional): Decides, in place of the 'copy' field,
             whether one value is collected. Called as
-            ``select(key, dataroot, resolvers)`` with the parameter's keypath,
-            the value's dataroot name and the owning schema's dataroot
-            resolvers. Defaults to None, which reads the 'copy' field.
+            ``select(key, dataroot, resolvers, path)`` with the parameter's
+            keypath, the value's dataroot name, the owning schema's dataroot
+            resolvers and the value itself. Defaults to None, which reads the
+            'copy' field.
 
     Raises:
         RuntimeError: If a file or directory to be collected is not in the `whitelist`.
@@ -134,7 +135,8 @@ def collect(project: "Project",
                 # Every value is kept, so that the paths `find_files` returns
                 # for this key still pair up with them; the ones not selected
                 # are skipped when they do.
-                chosen = [select(key, value.get(field='dataroot'), resolvers)
+                chosen = [select(key, value.get(field='dataroot'), resolvers,
+                                 value.get())
                           for value in values]
                 if not any(chosen):
                     continue

@@ -1207,8 +1207,9 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
 
     assert response.status_code == 422
     assert slug(response) == "software-unavailable"
-    assert response.get_json()["requirement"] == "openroad"
-    assert response.get_json()["available"] == []
+    assert response.get_json()["reason"] == "unavailable"
+    assert response.get_json()["unresolved"] == [
+        {"name": "openroad", "requirement": [], "available": []}]
     assert not container_dispatcher.submitted
 
     read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",

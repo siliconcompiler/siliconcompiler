@@ -1647,6 +1647,40 @@ class JobService:
             raise ValueError(f"{surface} is not a surface")
         return surface == "portal" or self._config.api_fetchable(kind)
 
+    def _members_fetchable(self, row, surface: str) -> bool:
+        '''Row 4: a `node` archive is fetchable only when every artifact at its
+        coordinates is -- other `node` rows and `issue` excepted -- because it
+        holds them all, and handing it over would hand over any one that is
+        not.'''
+        if row["kind"] != "node":
+            return True
+        members = self._store.all(
+            'SELECT * FROM artifacts WHERE job_id = ? AND step = ? AND "index" = ? '
+            "AND kind NOT IN ('node', 'issue')",
+            (row["job_id"], row["step"], row["index"]))
+        return all(artifacts.fetchable(member, self._surface_allows(surface, member["kind"]))
+                   for member in members)
+
+    def _refuse_by_ladder(self, row, surface: str) -> None:
+        '''Raise the refusal the ladder's deciding row names, if any.'''
+        refusal = artifacts.ladder(row, self._surface_allows(surface, row["kind"]),
+                                   self._members_fetchable(row, surface))
+        if refusal is None:
+            return
+        if refusal == "not-found":
+            raise ProblemError("not-found", detail="these bytes were deleted")
+        if refusal == "not-ready":
+            # Transient: it is still being described.
+            raise ProblemError(
+                "not-ready", artifact_kind=row["kind"],
+                detail="this artifact is still being described",
+                headers={"Retry-After": str(self._config["poll_interval_seconds"])})
+        raise ProblemError(
+            "artifact-not-approved",
+            detail="this artifact is not handed over here; the web portal has it"
+            if not self._surface_allows(surface, row["kind"])
+            else "this artifact is held back from download")
+
     def artifacts(self, session, job_id: str, args, surface: str = "api"):
         '''Endpoint 21: what this run produced, as far as this caller is
         concerned.'''
@@ -1687,7 +1721,8 @@ class JobService:
         more = len(rows) > limit
         rows = rows[:limit]
 
-        items = [artifacts.wire(row, self._surface_allows(surface, row["kind"]))
+        items = [artifacts.wire(row, self._surface_allows(surface, row["kind"]),
+                                self._members_fetchable(row, surface))
                  for row in rows]
         return items, (_encode_cursor(rows[-1]) if more and rows else None)
 
@@ -1722,10 +1757,7 @@ class JobService:
             # entitled to.
             raise ProblemError("not-found", detail="these bytes were deleted")
 
-        if not artifacts.fetchable(row, self._surface_allows(surface, row["kind"])):
-            raise ProblemError(
-                "entitlement-denied", resource_kind="artifact", resource=row["kind"],
-                detail="this artifact is not available to fetch")
+        self._refuse_by_ladder(row, surface)
 
         if surface == "api":
             self._check_download_ceiling(session, row)
@@ -1844,11 +1876,7 @@ class JobService:
         # The same bytes as endpoint 22 and the same signed URL, so the same
         # refusals: a caller that cannot fetch a log as an artifact must not be
         # handed it by asking for it as a log.
-        if not self._surface_allows(surface, "logs"):
-            raise ProblemError(
-                "entitlement-denied", resource_kind="artifact", resource="logs",
-                detail="this deployment does not hand logs over the API; they "
-                       "are on the web portal")
+        self._refuse_by_ladder(row, surface)
         if api:
             self._check_download_ceiling(session, row)
 

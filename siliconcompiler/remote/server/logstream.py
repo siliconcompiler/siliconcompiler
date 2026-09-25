@@ -142,10 +142,16 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline,
     🔴 **The id is job-wide, and that is the rule a merge gets wrong.** A
     per-node id is a byte offset in ONE file, and resuming a merged stream from
     one of those would start every other node at a position that is not its
-    own. So the id carries every node's offset -- `<total>-<o1>.<o2>...` in hex
-    -- led by their sum, which strictly increases with every `log` event: it is
-    a position in the job, it is monotonic, and handing it back needs this
-    server to remember nothing about the caller.
+    own. So the id carries every node's position, led by the total delivered,
+    which strictly increases with every `log` event: it is a position in the
+    job, it is monotonic, and handing it back needs this server to remember
+    nothing about the caller.
+
+    ⚠️ **Sparse** (D108): `<total>-<slot>:<offset>.<slot>:<offset>...` in hex,
+    naming only the nodes that have emitted something, by their place in the
+    job's fixed node order. `Last-Event-ID` travels as a request header, and a
+    dense vector over `max_job_nodes` of them can pass what common proxies
+    accept for one.
 
     Ordering is kept within a node and is arrival order across them: each pass
     takes what every node has written since the last, node by node.
@@ -233,9 +239,11 @@ def _log(step: str, index: str, text: str, identifier: str) -> bytes:
 
 
 def _job_id(offsets, pending) -> str:
-    '''Where every node has been delivered up to, led by the total.'''
+    '''Where every node that has said anything has been delivered up to, led
+    by the total -- sparse, so the header stays short on a wide flow.'''
     delivered = [offset - len(held) for offset, held in zip(offsets, pending)]
-    return f"{sum(delivered):x}-" + ".".join(f"{at:x}" for at in delivered)
+    return f"{sum(delivered):x}-" + ".".join(
+        f"{slot:x}:{at:x}" for slot, at in enumerate(delivered) if at)
 
 
 def resume_job(header: Optional[str], fallback, count: int):
@@ -248,11 +256,20 @@ def resume_job(header: Optional[str], fallback, count: int):
     for candidate in (header, fallback):
         if not candidate:
             continue
-        total, _, vector = str(candidate).partition("-")
+        total, dash, vector = str(candidate).partition("-")
+        offsets = [0] * count
         try:
-            offsets = [int(part, 16) for part in vector.split(".")] if vector else []
-            if len(offsets) == count and sum(offsets) == int(total, 16) \
-                    and all(offset >= 0 for offset in offsets):
+            if not dash:
+                raise ValueError("no position")
+            for pair in (vector.split(".") if vector else []):
+                slot, colon, at = pair.partition(":")
+                if not colon:
+                    raise ValueError("not a slot:offset pair")
+                slot, at = int(slot, 16), int(at, 16)
+                if not 0 <= slot < count or at < 0 or offsets[slot]:
+                    raise ValueError("not a slot of this job")
+                offsets[slot] = at
+            if sum(offsets) == int(total, 16):
                 return offsets
         except ValueError:
             pass

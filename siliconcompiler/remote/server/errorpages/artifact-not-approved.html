@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>artifact-not-approved &middot; SiliconCompiler server errors</title>
-<meta name="description" content="The per-object access gate said no.">
+<meta name="description" content="The per-object gate said no: withheld, an issue, or a node archive holding something that is.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,13 +21,14 @@
 </header>
 
 <main>
-<p>The artifact you asked for is held behind a per-object approval, and it has not been approved for you.</p>
+<p>This artifact is held back by a rule about the object itself, not about you or the resources behind it. It is withheld, it is an <code>issue</code> testcase, or it is a <code>node</code> archive that holds something that is &mdash; or this deployment does not hand its kind over the API.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
   <li>Look at the artifact in the listing: a <code>fetchable: false</code> object with an <code>access_request_url</code> has a path to approval &mdash; follow it.</li>
-  <li>Without one, there is no request to make from here.</li>
+  <li>Without one there is no request to make over the API. A deployment with a web portal may offer the object there.</li>
+  <li>For a <code>node</code> archive, fetch what it holds that you can have &mdash; its manifest, log and reports are listed on their own.</li>
 </ol>
 </div>
 
@@ -49,7 +50,9 @@
 <table>
 <tbody>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
-    <td>The object&rsquo;s approval gate.</td></tr>
+    <td>The object&rsquo;s own gate.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
+    <td>A node&rsquo;s archived log, held back the same way.</td></tr>
 </tbody>
 </table>
 
@@ -70,7 +73,9 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 
 <h2>What this is not</h2>
 
-<p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> is your account not holding the resource the artifact derives from.</p>
+<p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> is your account not holding a resource the artifact derives from, and names it.</p>
+
+<p><a href="not-ready.html"><code>not-ready</code></a> is an artifact still being described, and is worth asking about again.</p>
 
 <p><a href="not-found.html"><code>not-found</code></a> is an artifact whose bytes are gone.</p>
 </main>

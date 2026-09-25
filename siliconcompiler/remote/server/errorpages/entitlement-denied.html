@@ -84,7 +84,9 @@ read <code>resource_kind</code> and <code>resource</code> for the specifics &mda
     <td><strong>The enforcing gate</strong> &mdash; checked against the manifest re-derived from
         the archive, not against what the descriptor claimed.</td></tr>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
-    <td>The object&rsquo;s <code>fetchable</code> is false for you.</td></tr>
+    <td>You do not hold a resource the artifact derives from &mdash; and
+        <code>resource</code> names that resource. A refusal about the object itself is
+        <a href="artifact-not-approved.html"><code>artifact-not-approved</code></a>.</td></tr>
 </tbody>
 </table>
 

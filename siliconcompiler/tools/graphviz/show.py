@@ -12,6 +12,10 @@ class ShowTask(ShowTask):
     '''
     Show a graphviz dot file
     '''
+    def wrapped_executable(self):
+        # The Python wrapper renders by running Graphviz's own program.
+        return "dot"
+
     def tool(self):
         return "graphviz"
 

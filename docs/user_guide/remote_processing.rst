@@ -110,7 +110,11 @@ nothing to control it:
 * **a PDK's, standard-cell library's or FPGA device's files -- only when they
   come from a local path or a package installed editable.** One fetched from a
   release, like the PDKs in ``lambdapdk``, stays behind even though a copy is in
-  your cache: the server has its own;
+  your cache: the server has its own. **So does one rooted in an environment
+  variable** -- ``$FOUNDRY_ROOT/...`` -- because the variable names a location
+  that differs by site: the server resolves it from *its own* environment, and
+  never from your ``option,env``. Such a PDK has to be installed on the server,
+  with the variable set there;
 * **a tool's scripts -- only when they come from a local path or a package
   installed editable**, such as a SiliconCompiler checkout you are working in;
 * **plus the manifest**, and, for a run that starts part-way through the flow,

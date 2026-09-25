@@ -127,6 +127,79 @@ def test_a_dataroot_naming_another_is_judged_by_that_one(project):
 
 
 ###########################
+# 🔴 An environment-variable dataroot is neither local nor editable (D109)
+###########################
+
+def env_pdk(tmp_path, name="foundry"):
+    '''A PDK rooted in $FOUNDRY_ROOT, whose files are really at tmp_path.'''
+    root = tmp_path / "site-pdk"
+    root.mkdir()
+    (root / "datasheet.pdf").write_text("the datasheet\n")
+    return resource(PDK, name, "$FOUNDRY_ROOT", create=False), root
+
+
+def test_an_env_var_pdk_is_not_uploaded(project, tmp_path, monkeypatch):
+    '''The variable names a location that differs by site -- which is why it
+    is how proprietary PDKs are referenced -- and uploading it defeats the
+    indirection. Told from the REGISTERED source, which keeps the variable
+    unexpanded, even with it set and the file right there.'''
+    pdk, root = env_pdk(tmp_path)
+    monkeypatch.setenv("FOUNDRY_ROOT", str(root))
+    project.set_pdk(pdk)
+
+    assert decide(project, ("library", "foundry", *DATASHEET)) == (owners.ENVIRONMENT, False)
+
+
+def test_a_path_rooted_in_a_variable_with_no_dataroot_is_the_same(project):
+    resolvers = {}
+    assert owners.source(resolvers, None, path="$FOUNDRY_ROOT/x.lef") == owners.ENVIRONMENT
+    assert owners.source(resolvers, None, path="/abs/x.lef") == owners.LOCAL
+
+
+def test_the_server_holds_it_when_its_own_environment_points_at_it(
+        project, tmp_path, monkeypatch):
+    pdk, root = env_pdk(tmp_path)
+    project.set_pdk(pdk)
+
+    monkeypatch.setenv("FOUNDRY_ROOT", str(root))
+    assert owners.holding(project, "foundry", tmp_path / "none")[0] is True
+
+    monkeypatch.delenv("FOUNDRY_ROOT")
+    assert owners.holding(project, "foundry", tmp_path / "none")[0] is False
+
+
+def test_the_jobs_option_env_is_never_what_the_server_resolves_with(
+        project, tmp_path, monkeypatch):
+    '''🔴 The one that fails silently. `option,env` carries the CLIENT's value;
+    honouring it expands to a path that exists only on the client's machine.
+    Here it exists on this machine too, which is exactly the case a test run
+    would otherwise pass by accident.'''
+    pdk, root = env_pdk(tmp_path)
+    project.set_pdk(pdk)
+    project.set("option", "env", "FOUNDRY_ROOT", str(root))
+    monkeypatch.delenv("FOUNDRY_ROOT", raising=False)
+
+    assert owners.holding(project, "foundry", tmp_path / "none")[0] is False
+
+
+def test_the_run_is_not_handed_the_clients_value(project, tmp_path):
+    '''The server drops the variable from the job's `option,env`, so the run
+    resolves it from the server's own environment; everything else the caller
+    set there is left alone.'''
+    from siliconcompiler.remote.server.runspec import _server_resolves_env_dataroots
+
+    pdk, root = env_pdk(tmp_path)
+    project.set_pdk(pdk)
+    project.set("option", "env", "FOUNDRY_ROOT", str(root))
+    project.set("option", "env", "LM_LICENSE_FILE", "27000@licence")
+
+    assert _server_resolves_env_dataroots(project) == ["FOUNDRY_ROOT"]
+    assert project.getkeys("option", "env") == ["LM_LICENSE_FILE"] or \
+        "FOUNDRY_ROOT" not in project.getkeys("option", "env")
+    assert project.get("option", "env", "LM_LICENSE_FILE") == "27000@licence"
+
+
+###########################
 # collect(), told what to take
 ###########################
 
@@ -141,8 +214,8 @@ def test_collect_takes_what_the_owner_rule_selects_and_no_flag_is_touched(
                                  "https://example.test/lib.tar.gz", create=False))
 
     collect(project, verbose=False,
-            select=lambda key, dataroot, resolvers: owners.uploads(
-                project, key, dataroot, resolvers))
+            select=lambda key, dataroot, resolvers, path: owners.uploads(
+                project, key, dataroot, resolvers, path))
 
     taken = os.listdir(collectiondir(project))
     assert any(name.startswith("gcd") and name.endswith(".v") for name in taken)

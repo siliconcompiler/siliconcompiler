@@ -148,15 +148,17 @@ def test_a_kind_the_api_withholds_is_listed_and_not_fetchable(
 
 
 @pytest.mark.parametrize("mode", [2])
-def test_fetching_a_withheld_kind_is_entitlement_denied(
+def test_fetching_a_withheld_kind_is_not_approved(
         server_client, key, token, finished):
+    '''Not `entitlement-denied`, which names a resource: withholding a kind
+    is the per-object gate.'''
     item = next(item for item in listing(server_client, key, token, finished["id"])
                 if item["kind"] == "node")
 
     response = fetch(server_client, key, token, finished["id"], item)
 
     assert response.status_code == 403
-    assert slug(response) == "entitlement-denied"
+    assert slug(response) == "artifact-not-approved"
     assert "Retry-After" not in response.headers
 
 

@@ -21,7 +21,7 @@
 </header>
 
 <main>
-<p>Something the contract promises does not exist yet &mdash; today, the log of a node that has not started, or of a whole job none of whose nodes has. It is transient.</p>
+<p>Something the contract promises does not exist yet, or is not described yet &mdash; the log of a node that has not started, or of a whole job none of whose nodes has, or an artifact still being described. It is transient.</p>
 <h2>What to do</h2>
 
 <div class="do">
@@ -47,7 +47,7 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>artifact_kind</code></td><td><span class="req">REQUIRED</span></td>
-    <td>The kind of output that is not there yet &mdash; today <code>logs</code>.</td></tr>
+    <td>The kind of output that is not ready yet.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
 </tbody>
@@ -61,6 +61,8 @@
 <tbody>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
     <td>For a node, or a whole job, that has not started.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
+    <td>An artifact whose provenance is still <code>pending</code> &mdash; it will be fetchable once it is described.</td></tr>
 </tbody>
 </table>
 
