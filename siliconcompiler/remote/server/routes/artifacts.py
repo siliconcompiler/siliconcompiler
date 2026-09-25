@@ -211,6 +211,8 @@ def tail_job(job_id):
                     job_id, step, index))
         finally:
             limiter.release(owner)
+            # The generator runs after the request's teardown, on its thread.
+            store.release()
 
     return _event_stream(frames())
 
@@ -273,8 +275,11 @@ def tail(job_id, step, index):
         finally:
             # In a finally, because the commonest way a tail ends is the reader
             # hanging up -- which reaches this generator as GeneratorExit and
-            # would otherwise leak the slot for the life of the process.
+            # would otherwise leak the slot for the life of the process. The
+            # same for the connection it read states through: it runs after the
+            # request's teardown, on the request's thread.
             limiter.release(owner)
+            store.release()
 
     return _event_stream(frames())
 

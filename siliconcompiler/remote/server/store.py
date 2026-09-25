@@ -13,7 +13,7 @@ import threading
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Tuple, Union
 
 from siliconcompiler.remote.server.ids import uuid7
 
@@ -68,8 +68,17 @@ class Store:
         # connection would fail on every request that is not the first. Each
         # thread gets its own, opened on demand against the same file; WAL is
         # what lets those readers and the one writer proceed at the same time.
+        #
+        # 🔴 **And each is closed when its thread is done with it.** The
+        # threaded server starts a thread per request, so a connection per
+        # thread is a connection per request -- three file descriptors each
+        # under WAL, the database, `-wal` and `-shm`. They were kept in a list
+        # for `close()` and never taken out, so none was ever released: a
+        # client polling once a second ran the process out of descriptors in
+        # minutes, and it answered `Too many open files` to everything. See
+        # `release` and `_reap`.
         self._local = threading.local()
-        self._connections = []
+        self._connections: List[Tuple[threading.Thread, sqlite3.Connection]] = []
         self._lock = threading.Lock()
 
         if fresh:
@@ -77,7 +86,12 @@ class Store:
         self._check_version()
 
     def _connect(self) -> sqlite3.Connection:
-        con = sqlite3.connect(str(self.path), isolation_level=None)
+        # `check_same_thread=False` so that `_reap` and `close` can close a
+        # connection from another thread -- which the default refuses, and
+        # which `close()` used to attempt and silently fail at. Each connection
+        # is still only USED by the thread that opened it.
+        con = sqlite3.connect(str(self.path), isolation_level=None,
+                              check_same_thread=False)
         con.row_factory = sqlite3.Row
 
         # Both of these are per connection rather than per database, so they
@@ -92,8 +106,42 @@ class Store:
         con.execute("PRAGMA journal_mode = WAL")
 
         with self._lock:
-            self._connections.append(con)
+            self._reap()
+            self._connections.append((threading.current_thread(), con))
         return con
+
+    def _reap(self) -> None:
+        '''Close the connections of threads that have ended. Holds the lock.
+
+        The backstop for `release`: whatever a thread did not give back -- a
+        path that forgot, a stream a client dropped mid-read -- is closed the
+        next time any thread opens one, so the number held is bounded by the
+        threads alive rather than by the requests ever served.
+        '''
+        alive = []
+        for thread, con in self._connections:
+            if thread.is_alive():
+                alive.append((thread, con))
+            else:
+                _close(con)
+        self._connections = alive
+
+    def release(self) -> None:
+        '''Close THIS thread's connection, if it has one.
+
+        Called when a request ends and when a log stream does -- the stream's
+        generator runs on the request's thread after the request itself has
+        been torn down, so it needs its own. The next use on this thread opens
+        a fresh one.
+        '''
+        con = getattr(self._local, "con", None)
+        if con is None:
+            return
+        self._local.con = None
+        with self._lock:
+            self._connections = [(thread, held) for thread, held in self._connections
+                                 if held is not con]
+        _close(con)
 
     def _create(self) -> None:
         con = self.connection
@@ -150,11 +198,8 @@ class Store:
         '''
         with self._lock:
             connections, self._connections = self._connections, []
-        for con in connections:
-            try:
-                con.close()
-            except sqlite3.Error:
-                pass
+        for _, con in connections:
+            _close(con)
         self._local = threading.local()
 
     def __enter__(self) -> "Store":
@@ -329,3 +374,10 @@ class _Transaction:
         else:
             self._con.execute("ROLLBACK")
         return False
+
+
+def _close(con: sqlite3.Connection) -> None:
+    try:
+        con.close()
+    except sqlite3.Error:
+        pass

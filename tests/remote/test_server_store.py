@@ -467,3 +467,93 @@ def test_every_thread_enforces_foreign_keys():
         worker.join()
 
     assert outcome["refused"] is True
+
+
+###########################
+# 🔴 Connections are given back
+###########################
+
+def _open_fds():
+    import os
+    return len(os.listdir("/proc/self/fd"))
+
+
+@pytest.mark.skipif(not __import__("os").path.isdir("/proc/self/fd"),
+                    reason="needs /proc to count descriptors")
+def test_a_server_polled_for_a_while_does_not_run_out_of_descriptors(tmp_path):
+    '''🔴 The threaded server starts a thread per request, and each thread's
+    connection is three descriptors under WAL. They were kept for `close()`
+    and never released, so a client polling once a second ran the process out
+    of descriptors in minutes and it answered `Too many open files` to
+    everything.'''
+    import threading
+    import urllib.request
+
+    from werkzeug.serving import make_server
+
+    from siliconcompiler.remote.server.app import create_app
+
+    app = create_app(tmp_path / "datadir", cluster="local")
+    server = make_server("127.0.0.1", 0, app, threaded=True)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    url = f"http://127.0.0.1:{server.server_port}/v1/healthz"
+
+    try:
+        urllib.request.urlopen(url).read()
+        before = _open_fds()
+        for _ in range(300):
+            urllib.request.urlopen(url).read()
+        after = _open_fds()
+    finally:
+        server.shutdown()
+        thread.join(timeout=10)
+
+    # Before the fix this grew by three a request -- about 900 here.
+    assert after - before < 20
+    assert len(app.config["SC_STORE"]._connections) <= 2
+
+
+def test_a_thread_that_ends_without_releasing_is_reaped(tmp_path):
+    '''The backstop: whatever a thread did not give back is closed the next
+    time any thread opens a connection.'''
+    import threading
+
+    store = Store(tmp_path / "server.db")
+
+    def use():
+        store.one("SELECT 1")
+
+    for _ in range(20):
+        worker = threading.Thread(target=use)
+        worker.start()
+        worker.join()
+
+    store.release()
+    store.one("SELECT 1")          # a new connection reaps the dead threads'
+
+    assert len(store._connections) == 1
+    store.close()
+
+
+def test_close_really_closes_other_threads_connections(tmp_path):
+    '''It used to attempt it and fail silently: a connection can only be
+    closed from the thread that opened it unless it says otherwise.'''
+    import sqlite3
+    import threading
+
+    store = Store(tmp_path / "server.db")
+    held = []
+
+    def use():
+        store.one("SELECT 1")
+        held.append(store._local.con)
+
+    worker = threading.Thread(target=use)
+    worker.start()
+    worker.join()
+
+    store.close()
+
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        held[0].execute("SELECT 1")

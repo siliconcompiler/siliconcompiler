@@ -96,6 +96,14 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     _register_error_handlers(app)
 
+    @app.teardown_request
+    def _release_connection(_error=None):
+        # 🔴 Every request runs on a thread of its own, so the connection it
+        # opened is released as it ends -- otherwise each one held three file
+        # descriptors for the life of the process. A log stream's generator
+        # runs after this, on the same thread, and releases its own.
+        store.release()
+
     from siliconcompiler.remote.server import portal
     from siliconcompiler.remote.server.routes import (
         artifacts, auth, identity, jobs, meta)
