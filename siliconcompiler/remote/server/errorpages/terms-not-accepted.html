@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>terms-not-accepted &middot; SiliconCompiler server errors</title>
+<meta name="description" content="There is an agreement you have not accepted, and it covers something this request needs.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / terms-not-accepted</p>
+  <h1>terms-not-accepted</h1>
+  <p class="title">Terms not accepted</p>
+  <p class="meta">
+    <span class="status">403 Forbidden</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/terms-not-accepted</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>There is a document you have not accepted, and it covers something this request needs.</p>
+
+<p><strong>This one you can fix yourself.</strong> The body carries <code>decision_url</code>.</p>
+
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Open <code>decision_url</code> in a browser.</li>
+  <li>Read the document. <code>blocked_by</code> is its identifier, and it is also listed in
+      <code>GET /v1/me</code>.</li>
+  <li>Accept it, then retry the original request unchanged.</li>
+</ol>
+<p>You may also decline, and you may change your mind later. Declining is a recorded answer, not a
+failure state.</p>
+</div>
+
+<h2>Two scopes, and they cost different things</h2>
+
+<p><code>terms_scope</code> tells you which case you are in, and they are genuinely different
+situations.</p>
+
+<table>
+<thead><tr><th><code>terms_scope</code></th><th>What is blocked</th><th>How you will have noticed</th></tr></thead>
+<tbody>
+<tr><td><code>service</code></td>
+    <td><strong>Everything</strong> &mdash; no submission of any kind.</td>
+    <td><code>GET /v1/me</code> reports <code>can_submit: false</code>, and
+        <code>blocked_reason</code> is this type&rsquo;s URI.</td></tr>
+<tr><td><code>resource</code></td>
+    <td><strong>Only the jobs that name the covered resource.</strong></td>
+    <td><code>can_submit</code> stays <code>true</code>. Everything else keeps working, and this
+        refusal arrives only on a submit that names it.</td></tr>
+</tbody>
+</table>
+
+<p>If both are unaccepted you will be told about the <code>service</code> document first. Accepting a
+resource-scoped document while blocked at the service level changes nothing you can act on.</p>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":         "https://siliconcompiler.com/server-errors/terms-not-accepted",
+  "title":        "Terms not accepted",
+  "status":       403,
+  "detail":       "This flow names a PDK covered by an agreement you have not accepted.",
+  "instance":     "/v1/jobs/01J9.../submit",
+
+  "terms_scope":  "resource",                     <span class="c">// REQUIRED. "service" | "resource"</span>
+  "blocked_by":   "gf22-nda",                     <span class="c">// REQUIRED. Which document</span>
+  "decision_url": "https://.../terms/gf22-nda",   <span class="c">// REQUIRED. Where you accept or decline</span>
+
+  "trace_id":     "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>terms_scope</code></td><td><span class="req">REQUIRED</span></td>
+    <td><code>service</code> or <code>resource</code> &mdash; the table above.</td></tr>
+<tr><td><code>blocked_by</code></td><td><span class="req">REQUIRED</span></td>
+    <td>The document&rsquo;s id. The <strong>same</strong> <code>blocked_by</code> that
+        <code>GET /v1/me</code>&rsquo;s <code>authorized.pdks[]</code> entries carry, so it joins
+        against what you already have.</td></tr>
+<tr><td><code>decision_url</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Where a human accepts or declines. This is the member the page exists for.</td></tr>
+</tbody>
+</table>
+
+<p><code>blocked_by</code> is an opaque key &mdash; <code>gf22-nda</code> is a slug somebody typed.
+Do not parse it. Every document also carries a human <code>title</code>, readable at
+<code>decision_url</code> and in <code>GET /v1/me</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<p><code>POST /v1/jobs/{id}/submit</code>, checked against the manifest re-derived from your uploaded
+archive &mdash; not against what the descriptor claimed.</p>
+
+<p>So a <code>service</code>-scoped block is visible before you ever submit, by reading
+<code>can_submit</code> on <code>GET /v1/me</code>. A <code>resource</code>-scoped one may not be: it
+depends on what the real manifest names, and that is not known until the archive is opened.</p>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
+&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
+window.</p>
+<ul>
+  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
+      header, so it is in your logs even if the body is not.</li>
+  <li><code>instance</code> &mdash; the request this happened to.</li>
+</ul>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> means your account does not
+hold the resource at all. This means you hold it and have not signed for it.</p>
+
+<p><code>artifact-not-approved</code> (<code>403</code>) is a per-object decision on a specific
+output, not a document you can accept. It needs a human approval process, not a click.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

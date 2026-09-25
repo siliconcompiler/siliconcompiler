@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiliconCompiler server errors</title>
+<meta name="description" content="Documentation for every error type a SiliconCompiler-compatible orchestrator returns.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb">siliconcompiler.com/server-errors</p>
+  <h1>server-errors</h1>
+  <p class="title">Every failure a SiliconCompiler <code>v1</code> orchestrator can return</p>
+  <hr>
+</header>
+
+<main>
+
+<p>Every error from a SiliconCompiler-compatible orchestrator is an
+<a href="https://www.rfc-editor.org/rfc/rfc9457">RFC&nbsp;9457</a>
+<code>application/problem+json</code> body, and its <code>type</code> is a URI under this path. You
+are probably here because you dereferenced one.</p>
+
+<pre><code>{
+  "type":   "https://siliconcompiler.com/server-errors/entitlement-denied",
+  "title":  "Not entitled to this resource",
+  "status": 403,
+  ...
+}</code></pre>
+
+<div class="do">
+<p><strong>Clients branch on <code>type</code> and nothing else.</strong> <code>title</code> and
+<code>detail</code> are prose and may be reworded in any release &mdash; a client that string-matches
+them is broken by a typo fix. The <code>type</code> URI is frozen for the life of
+<code>v1</code>.</p>
+</div>
+
+<div class="warn">
+<p><strong>Not every failure has a <code>type</code>.</strong> The guarantee covers what a
+<code>/v1</code> request handler produced. A stopped process, a proxy refusing an oversized body, or
+a routing-level rejection can answer first, with the web server&rsquo;s own HTML. Inspect
+<code>Content-Type</code>, treat a non-<code>problem+json</code> non-2xx as an untyped failure of its
+status class, and never assume <code>type</code> exists. A client doing
+<code>resp.json()["type"]</code> on any non-2xx throws on the errors it is most likely to meet in
+production.</p>
+</div>
+
+<h2>Every type</h2>
+
+<p>All 34, in the order of the registry. Each links to its page.</p>
+
+<table>
+<thead><tr><th>Type</th><th>Status</th><th></th></tr></thead>
+<tbody>
+<tr><td><a href="limit-exceeded.html"><code>limit-exceeded</code></a></td><td><code>429</code></td>
+    <td>A ceiling that refills. <code>limit</code> names which; honour <code>Retry-After</code>.</td></tr>
+<tr><td><a href="node-limit-exceeded.html"><code>node-limit-exceeded</code></a></td><td><code>403</code></td>
+    <td>More nodes in one flow than allowed. Send a smaller flow.</td></tr>
+<tr><td><a href="upload-too-large.html"><code>upload-too-large</code></a></td><td><code>413</code></td>
+    <td>Any request body over its endpoint&rsquo;s cap, not only an upload.</td></tr>
+<tr><td><a href="rate-limited.html"><code>rate-limited</code></a></td><td><code>429</code></td>
+    <td>Calls per unit time. Honour <code>Retry-After</code>.</td></tr>
+<tr><td><a href="too-many-attempts.html"><code>too-many-attempts</code></a></td><td><code>429</code></td>
+    <td>The device-verify cap. <strong>Does not refill</strong> &mdash; restart the login.</td></tr>
+<tr><td><a href="entitlement-denied.html"><code>entitlement-denied</code></a></td><td><code>403</code></td>
+    <td>Your account may not use a PDK, tool, library, FPGA device or project this job needs.</td></tr>
+<tr><td><a href="unsatisfiable-request.html"><code>unsatisfiable-request</code></a></td><td><code>422</code></td>
+    <td>This deployment cannot provide the named resource at all.</td></tr>
+<tr><td><a href="resource-unresolved.html"><code>resource-unresolved</code></a></td><td><code>422</code></td>
+    <td>The server could not decide what the flow needs.</td></tr>
+<tr><td><a href="software-unavailable.html"><code>software-unavailable</code></a></td><td><code>422</code></td>
+    <td>No image holds the version you asked for. Names the requirement and what is available.</td></tr>
+<tr><td><a href="resource-unavailable.html"><code>resource-unavailable</code></a></td><td><code>422</code></td>
+    <td>The flow needs a PDK, library or FPGA device the server does not hold, and it was not uploaded.</td></tr>
+<tr><td><a href="upload-forbidden.html"><code>upload-forbidden</code></a></td><td><code>422</code></td>
+    <td>The archive carries files of a controlled resource you may not upload.</td></tr>
+<tr><td><a href="terms-not-accepted.html"><code>terms-not-accepted</code></a></td><td><code>403</code></td>
+    <td>An agreement is unaccepted. Carries where to go and accept it.</td></tr>
+<tr><td><a href="artifact-not-approved.html"><code>artifact-not-approved</code></a></td><td><code>403</code></td>
+    <td>The per-object access gate said no.</td></tr>
+<tr><td><a href="version-skew.html"><code>version-skew</code></a></td><td><code>422</code></td>
+    <td>Client or software versions this deployment will not accept.</td></tr>
+<tr><td><a href="declared-mismatch.html"><code>declared-mismatch</code></a></td><td><code>422</code></td>
+    <td>The manifest contradicts the descriptor.</td></tr>
+<tr><td><a href="upload-digest-mismatch.html"><code>upload-digest-mismatch</code></a></td><td><code>422</code></td>
+    <td>The digest you submitted is not what storage holds.</td></tr>
+<tr><td><a href="archive-rejected.html"><code>archive-rejected</code></a></td><td><code>422</code></td>
+    <td>The archive broke a normative limit. <code>violation</code> names which.</td></tr>
+<tr><td><a href="idempotency-key-reuse.html"><code>idempotency-key-reuse</code></a></td><td><code>422</code></td>
+    <td>The same <code>Idempotency-Key</code> with a different request.</td></tr>
+<tr><td><a href="invalid-cursor.html"><code>invalid-cursor</code></a></td><td><code>400</code></td>
+    <td>A stale or malformed <code>?cursor=</code>. Restart the pagination.</td></tr>
+<tr><td><a href="invalid-request.html"><code>invalid-request</code></a></td><td><code>400</code></td>
+    <td>A malformed request. <em>Often answered below the handler, untyped.</em></td></tr>
+<tr><td><a href="method-not-allowed.html"><code>method-not-allowed</code></a></td><td><code>405</code></td>
+    <td>Wrong method for this path. <em>Often answered below the handler, untyped.</em></td></tr>
+<tr><td><a href="unsupported-media-type.html"><code>unsupported-media-type</code></a></td><td><code>415</code></td>
+    <td>A <code>Content-Type</code> this endpoint does not accept. <em>Often answered below the handler, untyped.</em></td></tr>
+<tr><td><a href="not-acceptable.html"><code>not-acceptable</code></a></td><td><code>406</code></td>
+    <td>No representation satisfies your <code>Accept</code>. <em>Often answered below the handler, untyped.</em></td></tr>
+<tr><td><a href="job-state-conflict.html"><code>job-state-conflict</code></a></td><td><code>409</code></td>
+    <td>The job is past, or not yet at, the point where that call is possible.</td></tr>
+<tr><td><a href="not-found.html"><code>not-found</code></a></td><td><code>404</code></td>
+    <td>It does not exist, or it is not yours &mdash; deliberately indistinguishable.</td></tr>
+<tr><td><a href="not-ready.html"><code>not-ready</code></a></td><td><code>409</code></td>
+    <td>The output exists in the contract but not yet in storage. Retry.</td></tr>
+<tr><td><a href="feature-unsupported.html"><code>feature-unsupported</code></a></td><td><code>501</code></td>
+    <td>This deployment does not have the named capability. Permanent: do not retry.</td></tr>
+<tr><td><a href="invalid-token.html"><code>invalid-token</code></a></td><td><code>401</code></td>
+    <td>Expired or unverifiable access token. <strong>Refresh once</strong>, then retry.</td></tr>
+<tr><td><a href="invalid-dpop-proof.html"><code>invalid-dpop-proof</code></a></td><td><code>401</code></td>
+    <td>The request&rsquo;s DPoP proof was missing, malformed, replayed or wrongly keyed.</td></tr>
+<tr><td><a href="insufficient-scope.html"><code>insufficient-scope</code></a></td><td><code>403</code></td>
+    <td>The token is valid; its scope does not cover this call. <strong>Refreshing will not help.</strong></td></tr>
+<tr><td><a href="session-ended.html"><code>session-ended</code></a></td><td><code>401</code></td>
+    <td>The session is over. <code>reason</code> says why. <strong>Re-authenticate; never refresh.</strong></td></tr>
+<tr><td><a href="insecure-transport.html"><code>insecure-transport</code></a></td><td><code>426</code></td>
+    <td>A credential was offered over plaintext. Re-send over <code>https</code>.</td></tr>
+<tr><td><a href="scheduler-lost.html"><code>scheduler-lost</code></a></td><td>&mdash;</td>
+    <td><strong>Never an HTTP response.</strong> A <code>type</code> on a job&rsquo;s <code>error</code> object.</td></tr>
+<tr><td><a href="run-failed.html"><code>run-failed</code></a></td><td>&mdash;</td>
+    <td><strong>Never an HTTP response.</strong> A <code>type</code> on a job&rsquo;s or node&rsquo;s <code>error</code> object.</td></tr>
+</tbody>
+</table>
+
+<h2>Stability</h2>
+
+<p>The registry is <strong>frozen at <code>v1</code></strong>. A type may gain extension members
+&mdash; that is additive, and an unrecognised member is ignored, never an error. Changing what a
+member means, or retiring a URI, costs a major version.</p>
+
+<p>The URIs are identical on every deployment, whether you are talking to the reference
+<code>sc-server</code> or a commercial orchestrator. That is the property the registry exists for: a
+client switching between them needs one table, not two.</p>
+
+</main>
+
+<footer>
+  <p>The normative source is the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. These pages are a rendering of it.</p>
+</footer>
+
+</body>
+</html>

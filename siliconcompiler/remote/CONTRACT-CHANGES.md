@@ -211,6 +211,35 @@ resolves the archive's copy first — and logs it**, and has invented no field.
 
 **Where it goes:** `surface.md` §17, once decided.
 
+### 10. All 34 `type` pages, and the 29 titles they fix
+
+`server-errors/` had five pages of 31, and its README says **the pages are
+where each `title` is fixed** — the registry does not carry them. This profile
+now has all 34, in `siliconcompiler/remote/server/errorpages/`, and serves them
+at `/server-errors/<slug>` on its own host (outside `/v1`, so D83 needs nothing).
+The five that existed are carried over; the 29 new ones follow their
+structure and rules — the action first, the confusable neighbour last, the
+renamed slugs naming what they replaced, the four below-the-handler ones saying
+an untyped answer is expected.
+
+⚠️ **What the contract has to take back:**
+
+- **The 29 titles** are this profile's registry strings (`errors.py`), now
+  fixed by the pages. `entitlement-denied`'s was the one that already disagreed
+  — the registry here said *that resource* and the page *this resource* — and
+  the registry was changed to match the page.
+- **`index.html` was stale**: 31 types, three missing (`software-unavailable`,
+  `resource-unavailable`, `upload-forbidden`), and superseded one-liners. The
+  new one lists all 34 in registry order.
+- **`entitlement-denied.html`** gains `fpga` among the kinds, links to its
+  neighbours now that they have pages, and `resource-unavailable` as a
+  neighbour. Its *Waiting will not help* reads *Retrying will not change this*.
+
+**Proposed:** the folder's home moves to this tree — the README already says
+lifting it into SC is mechanical — or the pages are copied back as they are.
+
+**Where it goes:** `api/server-errors/`.
+
 ---
 
 ## Not ported, deliberately

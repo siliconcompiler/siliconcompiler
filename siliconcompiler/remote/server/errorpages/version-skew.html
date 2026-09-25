@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>version-skew &middot; SiliconCompiler server errors</title>
+<meta name="description" content="Client or software versions this deployment will not accept.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / version-skew</p>
+  <h1>version-skew</h1>
+  <p class="title">Unsupported client or software version</p>
+  <p class="meta">
+    <span class="status">422 Unprocessable Content</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/version-skew</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>The version of SiliconCompiler your client runs, or a version the job asks for, is not one this deployment accepts. The <code>detail</code> says what it runs.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Compare your version with <code>GET /v1</code>&rsquo;s <code>software</code>.</li>
+  <li>Install a version the server accepts, or submit to a deployment that runs yours.</li>
+  <li>A manifest written by a newer SiliconCompiler than the server runs is refused the same way: the server cannot read it faithfully.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/version-skew",
+  "title":    "Unsupported client or software version",
+  "status":   422,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs</code></td>
+    <td>The descriptor&rsquo;s <code>versions</code>.</td></tr>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
+    <td>The uploaded manifest&rsquo;s schema version.</td></tr>
+</tbody>
+</table>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
+&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
+window.</p>
+<ul>
+  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
+      header, so it is in your logs even if the body is not.</li>
+  <li><code>instance</code> &mdash; the request this happened to.</li>
+</ul>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="software-unavailable.html"><code>software-unavailable</code></a> is a tool or framework version no image holds, not your client being refused.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

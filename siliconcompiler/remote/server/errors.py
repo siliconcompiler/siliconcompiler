@@ -60,7 +60,7 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _e("too-many-attempts", 429, "Too many attempts"),
 
     # -- entitlement and resolution -----------------------------------------
-    _e("entitlement-denied", 403, "Not entitled to that resource",
+    _e("entitlement-denied", 403, "Not entitled to this resource",
        ("resource_kind", "resource")),
     _e("unsatisfiable-request", 422, "This server cannot provide that",
        ("resource_kind", "resource")),

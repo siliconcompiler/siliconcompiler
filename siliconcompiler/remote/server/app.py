@@ -106,8 +106,9 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     from siliconcompiler.remote.server import portal
     from siliconcompiler.remote.server.routes import (
-        artifacts, auth, identity, jobs, meta)
+        artifacts, auth, errorpages, identity, jobs, meta)
     app.register_blueprint(meta.blueprint)
+    app.register_blueprint(errorpages.blueprint)
     app.register_blueprint(auth.blueprint)
     app.register_blueprint(identity.blueprint)
     app.register_blueprint(jobs.blueprint)

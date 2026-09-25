@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>invalid-dpop-proof &middot; SiliconCompiler server errors</title>
+<meta name="description" content="The DPoP header on this request was missing, malformed, replayed, or signed by the wrong key.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / invalid-dpop-proof</p>
+  <h1>invalid-dpop-proof</h1>
+  <p class="title">Invalid DPoP proof</p>
+  <p class="meta">
+    <span class="status">401 Unauthorized</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/invalid-dpop-proof</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>The <code>DPoP</code> header on this request was missing, malformed, already seen, or signed by a
+key that is not the one your token is bound to.</p>
+
+<pre><code>HTTP/1.1 401 Unauthorized
+WWW-Authenticate: DPoP error="invalid_dpop_proof"
+Content-Type: application/problem+json</code></pre>
+
+<h2>What to do</h2>
+
+<div class="do">
+<p><strong>Fail and surface it.</strong> Do not refresh, and do not retry &mdash; retrying reproduces
+it, and a retry loop here reads from the server as a brute-force attempt against the key binding.</p>
+</div>
+
+<p>This is nearly always a client bug. Work through the proof in this order.</p>
+
+<table>
+<thead><tr><th>Check</th><th></th></tr></thead>
+<tbody>
+<tr><td>Is there a proof at all?</td>
+    <td>Every authenticated request needs one. A DPoP-bound token sent with only an
+        <code>Authorization</code> header fails here.</td></tr>
+<tr><td><code>htm</code> and <code>htu</code></td>
+    <td>Must match this request&rsquo;s method and URI. <code>htu</code> excludes the query string
+        and fragment.</td></tr>
+<tr><td><code>iat</code></td>
+    <td>Within &plusmn;60 seconds. A host with a drifting clock fails every request.</td></tr>
+<tr><td><code>jti</code></td>
+    <td>Unique per proof. Reusing one is a replay and is refused even if everything else is
+        correct.</td></tr>
+<tr><td>The signing key</td>
+    <td>Its thumbprint must equal the <code>cnf.jkt</code> claim in your access token. A client that
+        regenerated its key pair but kept the old token lands here.</td></tr>
+<tr><td>The nonce</td>
+    <td>If the server asked for one, use it &mdash; but that is a <strong>different</strong> error,
+        below.</td></tr>
+</tbody>
+</table>
+
+<h2>Also at the token endpoint</h2>
+
+<div class="warn">
+<p>This is raised at <code>POST /v1/auth/token</code> too, on
+<code>grant_type=refresh_token</code>. The refresh requires its own proof, and its thumbprint must
+match the one the token family was bound to at login.</p>
+</div>
+
+<p>That is deliberate and worth understanding: without it, every ordinary request would be key-bound
+except the one that mints the next credential &mdash; which is the only one worth stealing.</p>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/invalid-dpop-proof",
+  "title":    "Invalid DPoP proof",
+  "status":   401,
+  "detail":   "The proof's htu does not match the request URI.",
+  "instance": "/v1/jobs",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p>No required extension members. <code>detail</code> will usually name which check failed &mdash;
+useful while debugging, and not something to branch on.</p>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
+&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
+window.</p>
+<ul>
+  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
+      header, so it is in your logs even if the body is not.</li>
+  <li><code>instance</code> &mdash; the request this happened to.</li>
+</ul>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p>Four <code>401</code> conditions share this status and want opposite reactions.
+<strong>The status alone is not enough</strong> &mdash; branch on the <code>WWW-Authenticate</code>
+<code>error=</code> parameter and, for <code>invalid_token</code>, on the body&rsquo;s
+<code>type</code>.</p>
+
+<table>
+<thead><tr><th></th><th><code>error=</code></th><th>Do</th></tr></thead>
+<tbody>
+<tr><td><code>invalid-dpop-proof</code></td><td><code>invalid_dpop_proof</code></td>
+    <td><strong>Fail</strong> &mdash; you are here.</td></tr>
+<tr><td>(no type)</td><td><code>use_dpop_nonce</code></td>
+    <td><strong>Retry immediately</strong> with the <code>DPoP-Nonce</code> just supplied. Cache it
+        <strong>per origin</strong> &mdash; the authorization server and resource server have
+        separate nonce spaces.</td></tr>
+<tr><td><code>invalid-token</code></td><td><code>invalid_token</code></td>
+    <td><strong>Refresh once</strong>, then retry.</td></tr>
+<tr><td><code>session-ended</code></td><td><code>invalid_token</code></td>
+    <td><strong>Re-authenticate, never refresh.</strong> Same header value &mdash; only the
+        body&rsquo;s <code>type</code> tells them apart.</td></tr>
+</tbody>
+</table>
+
+<p>A client that reads only the header is correct on three of these and loops forever on the
+fourth.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

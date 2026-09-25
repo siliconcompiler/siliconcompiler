@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>upload-too-large &middot; SiliconCompiler server errors</title>
+<meta name="description" content="Any request body over its endpoint’s cap, not only an upload.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / upload-too-large</p>
+  <h1>upload-too-large</h1>
+  <p class="title">Upload too large</p>
+  <p class="meta">
+    <span class="status">413 Content Too Large</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/upload-too-large</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>A request body was larger than its endpoint accepts &mdash; most often the job archive, over <code>limits.max_upload_bytes</code>. The name reads narrower than the rule: it covers any body over its cap.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Compare the size you sent with <code>limits.max_upload_bytes</code> in <code>GET /v1</code>.</li>
+  <li>Send less: a remote run uploads your design and anything local it needs, so a large local PDK or library is the usual cause.</li>
+  <li>Retrying the same body returns the same answer.</li>
+</ol>
+</div>
+
+<div class="warn">
+<p><strong>An untyped answer is expected here.</strong> This refusal is often produced below the
+request handler &mdash; by routing, the framework or a proxy &mdash; and then it arrives as the web
+server&rsquo;s own page, not as <code>application/problem+json</code>, and has no <code>type</code>
+at all. Treat a non-<code>problem+json</code> <code>413</code> exactly as you would this type.</p>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/upload-too-large",
+  "title":    "Upload too large",
+  "status":   413,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "limit":    "max_upload_bytes",  <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>limit</code></td><td><span class="req">REQUIRED</span></td>
+    <td>The published key that bound, usually <code>max_upload_bytes</code>.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs</code></td>
+    <td>The descriptor declares an upload larger than the ceiling.</td></tr>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
+    <td>The bytes storage holds are larger than the ceiling.</td></tr>
+</tbody>
+</table>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
+&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
+window.</p>
+<ul>
+  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
+      header, so it is in your logs even if the body is not.</li>
+  <li><code>instance</code> &mdash; the request this happened to.</li>
+</ul>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="archive-rejected.html"><code>archive-rejected</code></a> is an archive within the size limit that broke another rule once opened.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>entitlement-denied &middot; SiliconCompiler server errors</title>
+<meta name="description" content="Your account is not permitted to use a PDK, tool, library or project this job asks for.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / entitlement-denied</p>
+  <h1>entitlement-denied</h1>
+  <p class="title">Not entitled to this resource</p>
+  <p class="meta">
+    <span class="status">403 Forbidden</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/entitlement-denied</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>Your account is not permitted to use something the job asks for &mdash; a PDK, a tool, a library,
+or a project you are not a member of.</p>
+
+<p><strong>Retrying will not change this.</strong> It is a statement about what your account holds,
+not about how busy the server is, and the identical request returns the identical answer.</p>
+
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Read <code>resource_kind</code> and <code>resource</code> to see exactly what was refused.</li>
+  <li>Check <code>GET /v1/me</code>. The <code>authorized</code> block lists what your account does
+      hold, keyed by kind (<code>pdks</code>, <code>tools</code>, <code>libraries</code>), and
+      <code>projects</code> lists your memberships.</li>
+  <li>If you should have it, this is an access request to whoever administers your account.
+      <strong>There is no API call that grants it to you.</strong></li>
+</ol>
+<p>Do not retry on a timer. Nothing about this answer changes with time.</p>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":          "https://siliconcompiler.com/server-errors/entitlement-denied",
+  "title":         "Not entitled to this resource",
+  "status":        403,
+  "detail":        "The manifest names a PDK this account does not hold.",
+  "instance":      "/v1/jobs/01J9.../submit",
+
+  "resource_kind": "pdk",     <span class="c">// REQUIRED on this type</span>
+  "resource":      "gf22",    <span class="c">// REQUIRED on this type</span>
+
+  "trace_id":      "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>resource_kind</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Which kind of thing was refused: <code>pdk</code>, <code>tool</code>,
+        <code>library</code>, <code>fpga</code>. The kind is a value, never a prefix on the
+        type.</td></tr>
+<tr><td><code>resource</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Its name, as the catalogue spells it.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and
+read <code>resource_kind</code> and <code>resource</code> for the specifics &mdash; never parse
+<code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td><code>POST /v1/jobs</code></td>
+    <td>The descriptor names something you do not hold.</td></tr>
+<tr><td><code>POST /v1/jobs/{id}/submit</code></td>
+    <td><strong>The enforcing gate</strong> &mdash; checked against the manifest re-derived from
+        the archive, not against what the descriptor claimed.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
+    <td>The object&rsquo;s <code>fetchable</code> is false for you.</td></tr>
+</tbody>
+</table>
+
+<p>The submit check is the one that matters. A job can be created successfully and still be refused
+at submit, because create only saves an upload and submit is where the real manifest is read.</p>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
+&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
+window.</p>
+<ul>
+  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
+      header, so it is in your logs even if the body is not.</li>
+  <li><code>instance</code> &mdash; the request this happened to.</li>
+</ul>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="insufficient-scope.html"><code>insufficient-scope</code></a> is the same <code>403</code>
+and a different question. This page is <em>your account may not use that thing</em>. That one is
+<em>the credential you presented was not minted with permission to make this call</em> &mdash; a
+narrower token, not a narrower account.</p>
+
+<p><a href="unsatisfiable-request.html"><code>unsatisfiable-request</code></a> (<code>422</code>)
+means the deployment does not have the resource <strong>at all</strong>. The question of whether you may use it never arose, and nothing
+about your account will fix it.</p>
+
+<p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> (<code>422</code>)
+means the flow needs a PDK, library or FPGA device the server does not hold and your upload did not
+carry. Nothing was denied there either: it is simply not on the server.</p>
+
+<p><a href="resource-unresolved.html"><code>resource-unresolved</code></a> (<code>422</code>) means
+the server could not work out what the flow needs &mdash; for a PDK, whether a name or the literal <code>none</code> was intended. Again,
+nothing was denied; the question could not be asked.</p>
+
+<p><a href="terms-not-accepted.html"><code>terms-not-accepted</code></a> (<code>403</code>) means you
+hold the resource but have not accepted a document covering it. That one is fixable by you.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

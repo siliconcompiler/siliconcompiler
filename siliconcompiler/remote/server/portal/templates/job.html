@@ -50,7 +50,10 @@
         {% if job_log %}Read the <b>Job log</b> below.
         {% elif job_level %}Its log is under <b>The job itself</b> below.{% endif %}<br>
       {% endif %}
-      <span class="mono muted">{{ job.error.type }}</span>
+      {#- The type's own page, served by this host at the same path the public
+          one lives at. The URI itself is shown unchanged: it is what a client
+          compares against. -#}
+      <a class="mono muted" href="{{ url_for('errorpages.page', name=job.error.type.rsplit('/', 1)[-1]) }}">{{ job.error.type }}</a>
     </p>
   {% endif %}
 </div>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>insufficient-scope &middot; SiliconCompiler server errors</title>
+<meta name="description" content="Your access token is valid but was not minted with the scope this endpoint requires. The six scopes, and why a refresh will not help.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / insufficient-scope</p>
+  <h1>insufficient-scope</h1>
+  <p class="title">Insufficient scope</p>
+  <p class="meta">
+    <span class="status">403 Forbidden</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/insufficient-scope</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>Your access token is valid, unexpired and correctly bound to your key &mdash; and it was not
+minted with the scope this endpoint requires.</p>
+
+<h2>What to do</h2>
+
+<div class="do">
+<p><strong>Do not refresh.</strong> A refresh re-mints a token with the same scope ceiling, so it
+produces this answer again. This is the usual mistake: the status is <code>403</code> and the header
+looks like an auth failure, and a client that treats it as one loops.</p>
+<ol>
+  <li>Read the <code>scope</code> parameter of the <code>WWW-Authenticate</code> header. It names
+      the scope you needed.</li>
+  <li>Start a new authorization requesting that scope. <strong>The scope set is fixed at login and
+      cannot be widened afterwards.</strong></li>
+</ol>
+</div>
+
+<pre><code>HTTP/1.1 403 Forbidden
+WWW-Authenticate: DPoP error="insufficient_scope", scope="artifacts:read"
+Content-Type: application/problem+json</code></pre>
+
+<div class="warn">
+<p>This is the <strong>only</strong> <code>WWW-Authenticate</code> in the API that does not ride on a
+<code>401</code>. A client that inspects that header only on <code>401</code> responses will miss it
+entirely. <a href="https://www.rfc-editor.org/rfc/rfc6750">RFC&nbsp;6750</a> registers
+<code>insufficient_scope</code> as a <code>403</code>.</p>
+</div>
+
+<h2>The six scopes</h2>
+
+<table>
+<thead><tr><th>Scope</th><th>Covers</th></tr></thead>
+<tbody>
+<tr><td><code>jobs:read</code></td>
+    <td><code>GET /v1/jobs</code>, <code>GET /v1/jobs/{id}</code>,
+        <code>&hellip;/artifacts</code> &mdash; the artifact <strong>listing</strong> &mdash; and
+        <code>&hellip;/logs</code>, which redeems one node's log bytes</td></tr>
+<tr><td><code>jobs:write</code></td>
+    <td><code>POST /v1/jobs</code>, <code>&hellip;/upload-grant</code>,
+        <code>&hellip;/submit</code>, <code>&hellip;/cancel</code>,
+        <code>DELETE /v1/jobs/{id}</code>. Carries <code>jobs:read</code></td></tr>
+<tr><td><code>artifacts:read</code></td>
+    <td><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code> &mdash; <strong>the bytes</strong>,
+        every kind</td></tr>
+<tr><td><code>devices:read</code></td><td><code>GET /v1/devices</code>,
+        <code>GET /v1/devices/{id}</code></td></tr>
+<tr><td><code>devices:write</code></td><td><code>DELETE /v1/devices/{id}</code> &mdash; a revoke.
+        Carries <code>devices:read</code></td></tr>
+<tr><td><code>profile:read</code></td><td><code>GET /v1/me</code></td></tr>
+</tbody>
+</table>
+
+<p>Every value is <code>&lt;resource&gt;:read</code> or <code>&lt;resource&gt;:write</code>, and
+<strong><code>:write</code> carries <code>:read</code> for the same resource</strong> &mdash; never
+across resources. The expansion is applied when the token is minted, so the <code>scope</code> in
+your token response already lists both: ask for <code>jobs:write</code> and you are granted
+<code>jobs:read jobs:write</code>.</p>
+
+<p><strong><code>artifacts:read</code> is the one that surprises people.</strong> It is deliberately
+not part of <code>jobs:read</code>: a client that submits jobs and watches them finish does not need
+to pull the outputs, and artifact bytes are where restricted collateral lives. Listing artifacts
+needs <code>jobs:read</code>; fetching one needs <code>artifacts:read</code>.</p>
+
+<p><strong>Logs are the documented exception.</strong> An archived log is an artifact, so
+<code>&hellip;/artifacts/{artifact_id}</code> serves it under <code>artifacts:read</code> like any
+other kind &mdash; but <code>&hellip;/logs</code> serves the same bytes under <code>jobs:read</code>,
+because watching a run is what a submitting client is for. If you can submit and watch, you can read
+your logs; you still cannot pull your deliverables.</p>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/insufficient-scope",
+  "title":    "Insufficient scope",
+  "status":   403,
+  "detail":   "This endpoint requires the artifacts:read scope.",
+  "instance": "/v1/jobs/01J9.../artifacts/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p>No required extension members. The scope you need is in the header.</p>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
+&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
+window.</p>
+<ul>
+  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
+      header, so it is in your logs even if the body is not.</li>
+  <li><code>instance</code> &mdash; the request this happened to.</li>
+</ul>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> is the same status and a
+different question: <em>may this <strong>account</strong> consume this thing</em>, rather than
+<em>may this <strong>credential</strong> attempt this call</em>. Widening your token will never fix
+that one, and being entitled will never fix this one.</p>
+
+<p><code>invalid-token</code> (<code>401</code>) means the token itself is expired or unverifiable.
+<strong>That</strong> one you refresh. This one you cannot.</p>
+
+<p><code>session-ended</code> (<code>401</code>) means the session is over and you must log in again
+&mdash; which, as it happens, is also what fixes this, but for an unrelated reason.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,123 @@
+import re
+
+import pytest
+
+pytest.importorskip("flask", reason="the server extra is not installed")
+
+from siliconcompiler.remote.server.errors import ERRORS, TYPE_BASE   # noqa: E402
+from siliconcompiler.remote.server.routes.errorpages import PAGES     # noqa: E402
+
+
+# The error `type` pages. RFC 9457 says a `type` URI SHOULD dereference to
+# documentation for the type; these are those pages, and this server serves a
+# copy of them. What is asserted is that they agree with the registry -- where a
+# page and the registry disagree the registry is right and the page is the bug.
+
+
+def read(slug):
+    return (PAGES / f"{slug}.html").read_text()
+
+
+@pytest.mark.parametrize("slug", sorted(ERRORS))
+def test_every_type_has_a_page_that_agrees_with_the_registry(slug):
+    error = ERRORS[slug]
+    page = read(slug)
+
+    # 🔴 The title is quoted verbatim, never reworded: it is the same string on
+    # every occurrence, and a paraphrase makes the page and the response
+    # disagree.
+    title = re.search(r'<p class="title">(.*?)</p>', page).group(1)
+    assert title == error.title
+
+    assert f'<span class="uri">{TYPE_BASE}/{slug}</span>' in page
+
+    status = re.search(r'<span class="status">(.*?)</span>', page).group(1)
+    if error.status is None:
+        assert status == "Not an HTTP response"
+    else:
+        assert status.startswith(f"{error.status} ")
+
+    # Every member the registry makes REQUIRED is named on its page.
+    for member in error.members:
+        assert f"<code>{member}</code>" in page, member
+
+    # Every page leads with what to do, and names what it is not.
+    assert '<div class="do">' in page
+    assert "<h2>What this is not</h2>" in page
+
+
+def test_the_index_lists_every_type():
+    index = (PAGES / "index.html").read_text()
+
+    for slug in ERRORS:
+        assert f'href="{slug}.html"' in index, slug
+    assert f"All {len(ERRORS)}" in index
+
+
+def test_nothing_is_fetched_from_anywhere_else():
+    '''No script, no remote stylesheet, no remote image: a page is readable
+    from a host that reaches nothing.'''
+    for path in PAGES.glob("*.html"):
+        page = path.read_text()
+        assert "<script" not in page, path.name
+        assert not re.search(r'(src|href)="(https?:)?//[^"]*\.(css|js|png|svg|woff2?)"',
+                             page), path.name
+        assert '<link rel="stylesheet" href="style.css">' in page, path.name
+
+
+def test_the_renamed_types_name_what_they_replaced():
+    assert "quota-exhausted" in read("limit-exceeded")
+    assert "session-revoked" in read("session-ended")
+    assert "logs-not-ready" in read("not-ready")
+
+
+@pytest.mark.parametrize("slug", ["invalid-request", "method-not-allowed",
+                                  "unsupported-media-type", "not-acceptable"])
+def test_the_ones_answered_below_the_handler_say_so(slug):
+    '''A reader holding a bare HTML 415 needs that sentence on the page.'''
+    assert "An untyped answer is expected here" in read(slug)
+
+
+###########################
+# Served from this host
+###########################
+
+@pytest.mark.parametrize("path", ["/server-errors/entitlement-denied",
+                                  "/server-errors/entitlement-denied.html"])
+def test_a_page_is_served_by_its_slug_with_or_without_the_extension(server_client,
+                                                                    path):
+    '''🔴 The `type` URIs carry no `.html`, and the pages link to each other
+    with it. Both resolve.'''
+    response = server_client.get(path)
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/html"
+    assert b"Not entitled to this resource" in response.data
+    assert "max-age" in response.headers["Cache-Control"]
+
+
+def test_the_index_and_the_stylesheet(server_client):
+    assert server_client.get("/server-errors").status_code == 301
+    assert server_client.get("/server-errors").headers["Location"].endswith("/server-errors/")
+
+    index = server_client.get("/server-errors/")
+    assert index.status_code == 200
+    assert b"entitlement-denied" in index.data
+
+    css = server_client.get("/server-errors/style.css")
+    assert css.status_code == 200
+    assert css.mimetype == "text/css"
+
+
+@pytest.mark.parametrize("name", ["no-such-type", "..", "app.py", "entitlement-denied.txt",
+                                  "%2e%2e%2fapp.py"])
+def test_anything_else_is_not_found(server_client, name):
+    assert server_client.get(f"/server-errors/{name}").status_code == 404
+
+
+def test_the_type_in_a_body_is_still_the_public_one(server_client):
+    '''The pages are a copy, not a second namespace: a client compares `type`
+    against a constant, so it is byte-identical on every deployment.'''
+    body = server_client.get("/v1/me").get_json()
+
+    assert body["type"].startswith("https://siliconcompiler.com/server-errors/")
