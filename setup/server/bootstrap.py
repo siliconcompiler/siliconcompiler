@@ -240,8 +240,12 @@ def _post(path: str, headers=None):
 
 
 def _call(method: str, path: str, body=None, raw: bool = False,
-          binary: bool = False):
-    '''One request to the daemon. Returns parsed JSON, text, or raw bytes.'''
+          binary: bool = False, limit=None):
+    '''One request to the daemon. Returns parsed JSON, text, or raw bytes.
+
+    ``limit`` bounds what is read, and one byte over it is refused rather than
+    cut: it is for what an image printed, which the image decides.
+    '''
     payload = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"} if payload else {}
 
@@ -249,9 +253,12 @@ def _call(method: str, path: str, body=None, raw: bool = False,
     try:
         daemon.request(method, path, body=payload, headers=headers)
         response = daemon.getresponse()
-        data = response.read()
+        data = response.read() if limit is None else response.read(limit + 1)
     finally:
         daemon.close()
+
+    if limit is not None and len(data) > limit:
+        raise RuntimeError(f"{path} answered more than {limit} bytes")
 
     if response.status >= 400:
         raise RuntimeError(f"docker said {response.status} to {path}: "
@@ -280,6 +287,8 @@ def run_in(image: str, command) -> str:
     probe prints behind a marker: a tool that writes a banner while being asked
     its version lands in the same stream as the answer.
     '''
+    from siliconcompiler.remote.server import probe
+
     created = _call("POST", "/containers/create",
                     # 🔴 `Entrypoint: []` and not just `Cmd`. These images have
                     # an ENTRYPOINT, so a Cmd on its own becomes ARGUMENTS to
@@ -302,9 +311,12 @@ def run_in(image: str, command) -> str:
     try:
         _call("POST", f"/containers/{container}/start")
         _call("POST", f"/containers/{container}/wait")
+        # 🔴 Bounded: what an image prints is the image's to decide, and this
+        # is read on a host with the docker socket. Docker frames each write
+        # in eight bytes, so the frames get their share on top of the text's.
         return _demux(_call("GET",
                             f"/containers/{container}/logs?stdout=1&stderr=1",
-                            raw=True, binary=True))
+                            raw=True, binary=True, limit=2 * probe.MAX_OUTPUT))
     finally:
         _call("DELETE", f"/containers/{container}?force=1")
 

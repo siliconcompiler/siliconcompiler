@@ -45,9 +45,9 @@ import sys
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-__all__ = ["KINDS", "MARKER", "command_for", "exe_and_switch",
-           "executable_for", "probe", "read_answer", "read_output",
-           "script"]
+__all__ = ["ANSWER_BYTES", "KINDS", "MARKER", "MAX_OUTPUT", "command_for",
+           "exe_and_switch", "executable_for", "probe", "read_answer",
+           "read_output", "script"]
 
 
 # The closed set, and each half is a mechanism rather than a label.
@@ -88,6 +88,19 @@ _PYTHON_CHECK = (
     "print({here!r})\n"
     "print(v)\n"
 )
+
+# 🔴 How much of a probe's output is read, and it is bounded because it comes out
+# of somebody else's image and is read on the server. A version check RUNS the
+# tool; a tool can print anything on its way, and an image can print anything
+# at all. `ANSWER_BYTES` is one name's share -- the END of what it said, since
+# parsers read the last lines (bambu's takes `split('\n')[-3]`) -- and is cut
+# in the image, by the script, and again here. `MAX_OUTPUT` is the whole read:
+# more than that and the probe is not believed at all.
+ANSWER_BYTES = 16384
+MAX_OUTPUT = 1 << 20
+
+# What an operator is shown of an answer that did not parse.
+_UNPARSED_CHARS = 200
 
 # CSI and the rest of the escape sequences a colouring tool emits.
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
@@ -235,10 +248,10 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
             if command and wrapped:
                 lines.append(f"if command -v {shlex.quote(wrapped)} "
                              "> /dev/null 2>&1; then")
-                lines.append(f"  {shlex.join(command)} 2>&1 || true")
+                lines.append(f"  {_bounded(command)}")
                 lines.append("fi")
             elif command:
-                lines.append(f"{shlex.join(command)} 2>&1 || true")
+                lines.append(_bounded(command))
         elif exe:
             # 🔴 Guarded on the executable EXISTING, and this is not
             # belt-and-braces. Without it a missing tool leaves the shell's own
@@ -247,10 +260,6 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
             # absent tool was registered at version `0`, parsed out of the
             # error message saying it was absent. An empty frame is the honest
             # answer and the one that ends in `published_date`.
-            #
-            # `2>&1` because a tool is as likely to answer on stderr, and
-            # `|| true` because a non-zero exit is ordinary: several print
-            # their version and then complain about having nothing to do.
             lines.append(f"if command -v {shlex.quote(exe)} "
                          "> /dev/null 2>&1; then")
             lines.append(f"  echo {shlex.quote(_HERE + name)}")
@@ -259,10 +268,20 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
             # and no switch is present and mute, which is a row --
             # `published_date` -- and not an absence.
             if command:
-                lines.append(f"  {shlex.join(command)} 2>&1 || true")
+                lines.append(f"  {_bounded(command)}")
             lines.append("fi")
         lines.append(f"echo {shlex.quote(_END + name)}")
     return "\n".join(lines) + "\n"
+
+
+def _bounded(command: List[str]) -> str:
+    '''One command, its output cut to the last `ANSWER_BYTES` in the image.
+
+    `2>&1` because a tool is as likely to answer on stderr, and `|| true`
+    because a non-zero exit is ordinary: several print their version and then
+    complain about having nothing to do.
+    '''
+    return f"{{ {shlex.join(command)} 2>&1 || true; }} | tail -c {ANSWER_BYTES}"
 
 
 def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
@@ -272,7 +291,13 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
     ``version`` is None where nothing answered. Not an error: a tool this
     deployment lists and nobody drives, or one that is not in this image, has
     no version to read -- and saying so is what ``published_date`` is for.
+
+    Raises ValueError for more than `MAX_OUTPUT` characters: the probe is then
+    not believed at all, rather than read up to where it was cut -- a frame cut
+    off reads as a tool that is absent.
     '''
+    if output and len(output) > MAX_OUTPUT:
+        raise ValueError(f"the probe printed more than {MAX_OUTPUT} bytes")
     captured, present = _split(output or "")
 
     found: Dict[str, Dict[str, Any]] = {}
@@ -293,7 +318,7 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
         # for the operator; never coerce it into a version.
         unparsed = None
         if version is not None and not _is_version(version):
-            version, unparsed = None, reported or version
+            version, unparsed = None, (reported or version)[:_UNPARSED_CHARS]
 
         found[name] = {"kind": kind, "version": version, "reported": reported,
                        "unparsed": unparsed,
@@ -401,7 +426,10 @@ def _split(output: str):
                 # takes `stdout.split('\n')[-3]`, so dropping it reads the
                 # line above the version and returns nothing. Whatever this
                 # reconstructs has to be what a real run would have passed.
-                captured[name] = "\n".join(lines) + "\n"
+                #
+                # Cut here as well as in the image, for an image whose `tail`
+                # is missing or is not `tail`.
+                captured[name] = ("\n".join(lines) + "\n")[-ANSWER_BYTES:]
             name, lines = None, []
         elif name is not None:
             lines.append(line)

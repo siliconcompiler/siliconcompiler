@@ -60,22 +60,22 @@ production.</p>
     <td>More nodes in one flow than allowed. Send a smaller flow.</td></tr>
 <tr><td><a href="upload-too-large.html"><code>upload-too-large</code></a></td><td><code>413</code></td>
     <td>Any request body over its endpoint&rsquo;s cap, not only an upload.</td></tr>
+<tr><td><a href="download-too-large.html"><code>download-too-large</code></a></td><td><code>403</code></td>
+    <td>An object over the API&rsquo;s download ceiling. <strong>Does not refill</strong> &mdash; use the portal.</td></tr>
 <tr><td><a href="rate-limited.html"><code>rate-limited</code></a></td><td><code>429</code></td>
     <td>Calls per unit time. Honour <code>Retry-After</code>.</td></tr>
 <tr><td><a href="too-many-attempts.html"><code>too-many-attempts</code></a></td><td><code>429</code></td>
     <td>The device-verify cap. <strong>Does not refill</strong> &mdash; restart the login.</td></tr>
 <tr><td><a href="entitlement-denied.html"><code>entitlement-denied</code></a></td><td><code>403</code></td>
     <td>Your account may not use a PDK, tool, library, FPGA device or project this job needs.</td></tr>
-<tr><td><a href="unsatisfiable-request.html"><code>unsatisfiable-request</code></a></td><td><code>422</code></td>
-    <td>This deployment cannot provide the named resource at all.</td></tr>
 <tr><td><a href="resource-unresolved.html"><code>resource-unresolved</code></a></td><td><code>422</code></td>
     <td>The server could not decide what the flow needs.</td></tr>
 <tr><td><a href="software-unavailable.html"><code>software-unavailable</code></a></td><td><code>422</code></td>
     <td>No image satisfies the job&rsquo;s software. Names every requirement that failed and what is available.</td></tr>
 <tr><td><a href="resource-unavailable.html"><code>resource-unavailable</code></a></td><td><code>422</code></td>
-    <td>The flow needs a PDK, library or FPGA device the server does not hold, and it was not uploaded.</td></tr>
+    <td>The job needs a resource this deployment does not hold and cannot supply, and you could not send it either.</td></tr>
 <tr><td><a href="upload-forbidden.html"><code>upload-forbidden</code></a></td><td><code>422</code></td>
-    <td>The archive carries files of a controlled resource you may not upload.</td></tr>
+    <td>The archive carries restricted material you may not upload. The job is rejected.</td></tr>
 <tr><td><a href="terms-not-accepted.html"><code>terms-not-accepted</code></a></td><td><code>403</code></td>
     <td>An agreement is unaccepted. Carries where to go and accept it.</td></tr>
 <tr><td><a href="artifact-not-approved.html"><code>artifact-not-approved</code></a></td><td><code>403</code></td>

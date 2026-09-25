@@ -43,13 +43,19 @@ class Job:
         self.states = {node: "completed" for node in self.nodes}
         self.over = True
 
-    def events(self, start=None, deadline=None):
+    def index(self):
+        '''A reader's view of the job's one event index.'''
+        return logstream.EventIndex(self.root / "stream.idx", len(self.nodes))
+
+    def resume(self, given):
+        return logstream.resume_job(given, None, self.index())
+
+    def events(self, start=0, deadline=None):
         return logstream.job_events(
             self.nodes, self.path, node_states=lambda: dict(self.states),
-            job_over=lambda: self.over,
-            start=start or [0] * len(self.nodes),
+            job_over=lambda: self.over, start=start,
             deadline=deadline or time.monotonic() + 30,
-            artifact_id=lambda step, index: f"art-{step}")
+            artifact_id=lambda step, index: f"art-{step}", index=self.index())
 
 
 def parse(chunks):
@@ -90,26 +96,44 @@ def test_the_id_is_the_jobs_and_it_only_goes_up(tmp_path):
     job.states = {node: "completed" for node in job.nodes}
 
     ids = [i for e, i, _ in run_to_end(job) if e == "log"]
-    totals = [int(i.split("-")[0], 16) for i in ids]
+    positions = [int(i[1:], 16) for i in ids]
 
-    assert totals == sorted(totals) and len(set(totals)) == len(totals)
-    # Once both have spoken, the id names both positions, not just the one
-    # that spoke last.
-    assert len(ids[-1].split("-")[1].split(".")) == 2
+    assert positions == sorted(positions) and len(set(positions)) == len(positions)
 
 
-def test_the_id_names_only_the_nodes_that_have_spoken(tmp_path):
-    '''⚠️ Sparse (D108): `Last-Event-ID` is a request header, and a dense
-    vector over a thousand nodes passes what common proxies accept for one.'''
+def test_the_id_does_not_grow_with_the_node_count(tmp_path):
+    '''🔴 D121: `Last-Event-ID` is a request header, and a vector of per-node
+    positions -- even naming only the nodes that spoke -- can pass what
+    common proxies accept for one on a thousand-node flow. One offset into the
+    job's event index does not.'''
     job = Job(tmp_path, nodes=[(f"n{i}", "0") for i in range(1000)])
-    with open(job.path("n500", "0"), "a") as f:
-        f.write("hello\n")
+    for i in range(0, 1000, 3):
+        with open(job.path(f"n{i}", "0"), "a") as f:
+            f.write("hello\n")
     job.states = {node: "completed" for node in job.nodes}
 
     ids = [i for e, i, _ in run_to_end(job) if e == "log"]
 
-    assert ids == [f"{6:x}-{500:x}:{6:x}"]
-    assert logstream.resume_job(ids[0], None, 1000)[500] == 6
+    assert len(ids) == 334
+    assert max(len(i) for i in ids) <= 4
+    assert job.resume(ids[-1]) == 334
+
+
+def test_every_reader_is_sent_the_same_events_under_the_same_ids(tmp_path):
+    '''✅ The index is state about the JOB: two callers, one sequence -- so
+    an id means the same bytes whoever hands it back.'''
+    job = Job(tmp_path)
+    job.write("place", "p1\n")
+    job.write("route", "r1\n")
+    job.write("place", "p2\n")
+    job.states = {node: "completed" for node in job.nodes}
+
+    def logs(events):
+        return [(i, d["step"], d["text"]) for e, i, d in events if e == "log"]
+
+    first, second = logs(run_to_end(job)), logs(run_to_end(job))
+
+    assert first and first == second
 
 
 def test_resuming_from_a_job_id_has_no_gap_and_no_repeat(tmp_path):
@@ -134,8 +158,7 @@ def test_resuming_from_a_job_id_has_no_gap_and_no_repeat(tmp_path):
     job.write("route", "r2\n")
     job.states = {node: "completed" for node in job.nodes}
 
-    start = logstream.resume_job(last, None, len(job.nodes))
-    rest = run_to_end(job, start=start)
+    rest = run_to_end(job, start=job.resume(last))
 
     def text(events, step):
         return "".join(d["text"] for e, _, d in events
@@ -153,7 +176,7 @@ def test_a_resume_after_the_job_ended_is_also_an_immediate_end(tmp_path):
     job.write("place", "p1\n")
     job.finish()
 
-    events = run_to_end(job, start=logstream.resume_job("0-0.0", None, 2))
+    events = run_to_end(job, start=job.resume("e0"))
 
     assert [e for e, _, _ in events] == ["end"]
 
@@ -217,23 +240,50 @@ def test_a_node_that_never_ran_is_reported_and_ends_nothing(tmp_path):
     assert not any(e == "end" for e, _, _ in events)
 
 
+def test_a_line_longer_than_a_chunk_is_never_split_inside_a_character(tmp_path):
+    job = Job(tmp_path)
+    job.write("place", "é" * logstream.MAX_CHUNK + "\n")
+    job.states = {node: "completed" for node in job.nodes}
+
+    texts = [d["text"] for e, _, d in run_to_end(job)
+             if e == "log" and d["step"] == "place"]
+
+    assert len(texts) > 1
+    assert "\ufffd" not in "".join(texts)
+    assert "".join(texts) == job.path("place", "0").read_text()
+
+
+def indexed(tmp_path):
+    '''A job whose index holds three entries, one per node.'''
+    job = Job(tmp_path, nodes=[("a", "0"), ("b", "0"), ("c", "0")])
+    for step in ("a", "b", "c"):
+        job.write(step, f"{step}\n")
+    job.states = {node: "completed" for node in job.nodes}
+    run_to_end(job)
+    assert job.index().count() == 3
+    return job
+
+
 @pytest.mark.parametrize("given", [
-    None, "not-an-id", "1a",               # a per-node id: a byte offset, no vector
-    "5-0:2.2:3",                           # slot 2, and this job has two nodes
-    "9-0:2.1:3",                           # the total does not add up
-    "5-0:2.0:3",                           # one node named twice
-    "5-2.3",                               # the dense form this used to emit
+    None, "not-an-id",
+    "1a",                                  # a per-node id: a byte offset
+    "5-0:2.1:3",                           # the per-node vector this used to emit
+    "e4",                                  # past the end of this job's index
+    "e-1",
 ])
-def test_an_id_that_is_not_this_jobs_starts_from_the_beginning(given):
+def test_an_id_that_is_not_this_jobs_starts_from_the_beginning(tmp_path, given):
     '''A stream that replays is a nuisance; one that skips is a lost log.'''
-    assert logstream.resume_job(given, None, 2) == [0, 0]
+    assert indexed(tmp_path).resume(given) == 0
 
 
-def test_a_good_id_resumes_each_node_at_its_own_place():
-    assert logstream.resume_job("5-0:2.1:3", None, 2) == [2, 3]
-    assert logstream.resume_job(None, "5-0:2.1:3", 2) == [2, 3]
-    # A node that has not spoken is not named, and starts at the beginning.
-    assert logstream.resume_job("3-1:3", None, 2) == [0, 3]
+def test_a_good_id_is_a_seek_into_the_index(tmp_path):
+    job = indexed(tmp_path)
+
+    assert job.resume("e2") == 2
+    assert logstream.resume_job(None, "e3", job.index()) == 3
+
+    rest = [(i, d["text"]) for e, i, d in run_to_end(job, start=2) if e == "log"]
+    assert rest == [("e3", "c\n")]
 
 
 ###########################

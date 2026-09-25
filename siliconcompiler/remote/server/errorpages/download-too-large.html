@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>download-too-large &middot; SiliconCompiler server errors</title>
+<meta name="description" content="An object over the API’s download ceiling. Does not refill — use the portal.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / download-too-large</p>
+  <h1>download-too-large</h1>
+  <p class="title">Download too large</p>
+  <p class="meta">
+    <span class="status">403 Forbidden</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/download-too-large</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>The artifact you asked for is larger than this deployment serves over the API, <code>limits.max_download_bytes</code>. It is there and you may have it; it is refused for its size alone. The ceiling is static, so waiting and retrying return the same answer.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Compare the artifact&rsquo;s <code>size</code> in the listing with <code>limits.max_download_bytes</code> in <code>GET /v1</code>.</li>
+  <li>Download it from the web portal, which is the way past this ceiling. The API has none.</li>
+  <li>For a node&rsquo;s output, the smaller <code>logs</code> and <code>reports</code> artifacts may be under the ceiling where the whole <code>node</code> archive is not.</li>
+</ol>
+</div>
+
+<p><strong>Formerly</strong> <code>429 limit-exceeded</code> with <code>limit: "max_download_bytes"</code> and a <code>Retry-After</code>. That was a retry loop: a client obeying <code>Retry-After</code> on a ceiling that never refills retries for ever.</p>
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/download-too-large",
+  "title":    "Download too large",
+  "status":   403,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "limit":    "max_download_bytes",  <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>limit</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Always <code>max_download_bytes</code>.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
+    <td>The object is larger than the ceiling.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
+    <td>A finished node&rsquo;s log archive, where the redirect to it would hand you an object over the ceiling.</td></tr>
+</tbody>
+</table>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
+&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
+window.</p>
+<ul>
+  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
+      header, so it is in your logs even if the body is not.</li>
+  <li><code>instance</code> &mdash; the request this happened to.</li>
+</ul>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="limit-exceeded.html"><code>limit-exceeded</code></a> is a ceiling that refills, and carries <code>Retry-After</code>.</p>
+
+<p><a href="upload-too-large.html"><code>upload-too-large</code></a> is the same kind of ceiling on what you send. It is a <code>413</code> because it is the request&rsquo;s own size; here the request is small and the answer is not.</p>
+
+<p><a href="artifact-not-approved.html"><code>artifact-not-approved</code></a> is an object you may not download at all, whatever its size.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

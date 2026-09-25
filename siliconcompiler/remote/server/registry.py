@@ -183,7 +183,8 @@ def _cmd_add_software(store, args) -> int:
 
     try:
         images.register_software(store, args.name, args.display or args.name,
-                                 _operator(store), kind, driver=args.driver)
+                                 _operator(store), kind, driver=args.driver,
+                                 allowed_drivers=_allowed_drivers(args))
     except ValueError as e:
         raise SystemExit(str(e))
 
@@ -515,6 +516,14 @@ def _parser() -> argparse.ArgumentParser:
     limits.set_defaults(run=_cmd_limits)
 
     return parser
+
+
+def _allowed_drivers(args) -> List[str]:
+    '''The deployment's own out-of-tree drivers, from its config.'''
+    try:
+        return list(Config.load(Path(args.datadir).resolve())["software_drivers"] or [])
+    except Exception:                                            # noqa: BLE001
+        return []
 
 
 def main(argv: Optional[List[str]] = None) -> int:

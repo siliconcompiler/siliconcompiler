@@ -37,6 +37,7 @@ from siliconcompiler.remote.server import accounts, images
 from siliconcompiler.remote.server.artifacts import fetchable
 from siliconcompiler.remote.server.auth import SCOPES, Session
 from siliconcompiler.remote.server.errors import ProblemError
+from siliconcompiler.remote.server.jobs import MAX_REASON
 from siliconcompiler.remote.server.storage import DOWNLOAD_SECONDS
 
 __all__ = ["blueprint", "Sessions"]
@@ -665,8 +666,12 @@ def discard(session, job_id):
             "invalid-request",
             detail=f"type {expected} to confirm discarding what this run produced")
 
+    # Where nobody states a reason one is supplied, as a cancel does, so the
+    # attribution is in the text and never a published user id.
+    reason = " ".join((flask.request.form.get("reason") or "").split())
     _jobs().discard_artifacts(
-        session, job_id, f"discarded from {_jobs().whodunnit(session)}")
+        session, job_id,
+        reason[:MAX_REASON] or f"discarded from {_jobs().whodunnit(session)}")
     return flask.redirect(flask.url_for("portal.artifacts", job_id=job_id))
 
 
@@ -733,7 +738,7 @@ def artifacts(session, job_id):
     detail = _jobs().get(session, job_id)
     items = _all_artifacts(session, job_id, flask.request.args)
     return flask.render_template("artifacts.html", job=detail, artifacts=items,
-                                 groups=_by_node(items),
+                                 groups=_by_node(items), reason_chars=MAX_REASON,
                                  kind=flask.request.args.get("kind", ""),
                                  step=flask.request.args.get("step", ""))
 
@@ -1122,7 +1127,8 @@ def add_software(session):
             _store(), name, flask.request.form.get("display") or name,
             session.user_id, kind, driver=driver,
             version_package=(flask.request.form.get("version_package")
-                             or "").strip() or None)
+                             or "").strip() or None,
+            allowed_drivers=flask.current_app.config["SC_CONFIG"]["software_drivers"])
     except ValueError as e:
         raise ProblemError("invalid-request", detail=str(e)) from None
 
@@ -1174,7 +1180,7 @@ def register_image(session):
                 mounts=_jobs().container_mounts())
         except Exception as e:                                   # noqa: BLE001
             raise ProblemError(
-                "unsatisfiable-request", resource_kind="library", resource=ref,
+                "not-ready", status=503,
                 detail=f"registered, but the bundle could not be unpacked: {e}"
             ) from None
         logger.info(f"staged a bundle for {image_id}")

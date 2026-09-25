@@ -115,13 +115,9 @@ and a different question. This page is <em>your account may not use that thing</
 <em>the credential you presented was not minted with permission to make this call</em> &mdash; a
 narrower token, not a narrower account.</p>
 
-<p><a href="unsatisfiable-request.html"><code>unsatisfiable-request</code></a> (<code>422</code>)
-means the deployment does not have the resource <strong>at all</strong>. The question of whether you may use it never arose, and nothing
-about your account will fix it.</p>
-
 <p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> (<code>422</code>)
-means the flow needs a PDK, library or FPGA device the server does not hold and your upload did not
-carry. Nothing was denied there either: it is simply not on the server.</p>
+means the deployment does not hold the resource and cannot supply it <strong>at all</strong>. The
+question of whether you may use it never arose, and nothing about your account will fix it.</p>
 
 <p><a href="resource-unresolved.html"><code>resource-unresolved</code></a> (<code>422</code>) means
 the server could not work out what the flow needs &mdash; for a PDK, whether a name or the literal <code>none</code> was intended. Again,

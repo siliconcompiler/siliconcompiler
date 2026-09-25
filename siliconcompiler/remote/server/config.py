@@ -291,11 +291,20 @@ DEFAULTS: Dict[str, Any] = {
     # missing is asked of the client.
     "fetch_timeout_seconds": 300,
     "fetch_deadline_seconds": 1800,
+
+    # Task-driver modules outside `siliconcompiler.tools` that software may name
+    # (D95). The probe imports a driver on the server, so this is the list of
+    # what an operator allows it to import; SiliconCompiler has no entry-point
+    # group for tools, so an out-of-tree driver is named here or not at all.
+    "software_drivers": [],
 }
 
 # The resource kinds `denied_resources` is keyed by -- the contract's closed
 # `resource_kinds` set.
 RESOURCE_KINDS = ("pdk", "library", "fpga", "tool")
+
+# Limits this server enforces and does not publish.
+_NOT_PUBLISHED = ("max_detail_chars",)
 
 
 # Three presets for testing a client against deployments that serve less, from
@@ -501,7 +510,11 @@ class Config:
             "api_version": "v1",
             "software": software,
             "grant_types_supported": list(self._values["grant_types_supported"]),
-            "limits": dict(self._values["limits"]),
+            # Eleven (D118): `max_detail_chars` bounds this server's own output
+            # and no client acts on it -- the test `run_heartbeat_seconds`
+            # failed -- so it stays in config and off the wire.
+            "limits": {name: value for name, value in self._values["limits"].items()
+                       if name not in _NOT_PUBLISHED},
             "features": list(self._values["features"]),
             "identity_assurance": self._values["identity_assurance"],
             "notices": list(self._values["notices"]),

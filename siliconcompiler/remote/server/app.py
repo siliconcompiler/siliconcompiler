@@ -147,6 +147,13 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     # server whose refusals were longer than it advertises is worse than one
     # that truncates harder.
     errors.set_detail_max(config.limits["max_detail_chars"])
+    # What a published `detail` must never say about this deployment (D122).
+    import socket
+    errors.set_internals(
+        paths=[datadir] + list(config["container_mounts"] or []) + [
+            root for roots in (config["private_dataroots"] or {}).values()
+            for root in roots.values()],
+        names=[socket.gethostname(), socket.getfqdn()])
 
     reaper.sweep(store, storage, config, datadir)
 

@@ -521,14 +521,16 @@ CREATE TABLE images (                               -- a container this deployme
     resolved_at   text NOT NULL,                    -- when the tag was pinned to this digest
     built_at      text,                             -- when the IMAGE was built, from its own
                                                     -- manifest. NULL = the manifest said nothing.
-                                                    -- 🔴 Never resolved_at: that records when the
-                                                    -- operator pinned the tag, so registering a
-                                                    -- two-year-old image today would make it the
-                                                    -- newest -- and pinning an old image on
-                                                    -- purpose is a reproducibility case, not a
-                                                    -- mistake. Breaks the tie between two images
-                                                    -- carrying IDENTICAL versions, which
-                                                    -- preference cannot
+                                                    -- 🔴 Ranks before resolved_at: that records
+                                                    -- when the operator pinned the tag, so
+                                                    -- registering a two-year-old image today would
+                                                    -- make it the newest -- and pinning an old
+                                                    -- image on purpose is a reproducibility case,
+                                                    -- not a mistake. Breaks the tie between two
+                                                    -- images carrying IDENTICAL versions, which
+                                                    -- preference cannot; where it is equal or NULL
+                                                    -- (ko, Nix and Bazel stamp 1970 by design),
+                                                    -- the later resolved_at does
     registered_by text REFERENCES users(id),        -- a person, in the portal. Always set here:
     registered_via text,                            -- the CI registration path is crucible's, so
                                                     -- every image on this deployment has a person

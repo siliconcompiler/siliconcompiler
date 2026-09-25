@@ -346,3 +346,38 @@ def test_a_wrapper_that_declares_nothing_is_asked_as_before():
                           "pyslang")])
 
     assert "command -v" not in text
+
+
+###########################
+# 🔴 Bounded: the output is somebody else's image's
+###########################
+
+def test_each_answer_is_cut_to_its_share_in_the_image():
+    '''The END is kept, since parsers read the last lines.'''
+    import subprocess
+
+    text = probe.script([("x", "python", None)])
+    assert f"tail -c {probe.ANSWER_BYTES}" in text
+
+    fragment = probe._bounded(["sh", "-c", "yes noise | head -c 100000; echo 1.2.3"])
+    said = subprocess.run(["sh", "-c", fragment], stdout=subprocess.PIPE).stdout
+
+    assert len(said) <= probe.ANSWER_BYTES
+    assert said.endswith(b"1.2.3\n")
+
+
+def test_an_answer_is_cut_again_here():
+    '''For an image whose `tail` is missing or is not `tail`.'''
+    noise = "noise\n" * 10000
+    found = probe.read_output([("x", "python", None)],
+                              "--sc-probe-begin:x\n--sc-probe-here:x\n"
+                              f"{noise}1.2.3\n--sc-probe-end:x\n")
+
+    assert found["x"]["version"] == "1.2.3"
+
+
+def test_a_probe_that_printed_too_much_is_not_believed():
+    '''Refused rather than read up to where it was cut: a frame cut off
+    reads as a tool that is absent.'''
+    with pytest.raises(ValueError, match="more than"):
+        probe.read_output([("x", "python", None)], "x" * (probe.MAX_OUTPUT + 1))

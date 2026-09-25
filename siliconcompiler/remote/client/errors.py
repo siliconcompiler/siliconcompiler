@@ -59,7 +59,7 @@ class SessionEnded(ServerProblem):
 # A slug names a kind of failure; one of these names the instance.
 _DISCRIMINATORS = (
     "limit", "feature", "reason", "resource", "resource_kind",
-    "violation", "artifact_kind", "terms_scope", "blocked_by",
+    "detected", "member", "violation", "artifact_kind", "terms_scope", "blocked_by",
 )
 
 # What a person should do about it. Keyed on the slug, because the slug is the
@@ -70,13 +70,14 @@ _NEXT_STEP = {
     "upload-too-large": "Reduce what is collected.",
     "rate-limited": "Slow down and retry.",
     "entitlement-denied": "Ask an operator for access.",
-    "unsatisfiable-request": "This deployment cannot provide that at all.",
+    "download-too-large": "It is larger than this account may download over "
+                          "the API; the web portal is the way to it.",
     "software-unavailable": "Ask for a version this server has, or ask its "
                             "operator for the one you need.",
     "artifact-not-approved": "It is held back from download here; the web "
                              "portal may have it.",
-    "resource-unavailable": "This server does not have it: use one it holds, "
-                            "or keep a local or editable copy so it is uploaded.",
+    "resource-unavailable": "This server does not hold it and cannot be sent "
+                            "it: use one it holds, or ask its operator.",
     "upload-forbidden": "That resource may not be uploaded here; use this "
                         "server's copy.",
     "resource-unresolved": "Name the resource explicitly in your build script.",

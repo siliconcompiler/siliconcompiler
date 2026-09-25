@@ -56,13 +56,14 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _e("limit-exceeded", 429, "Limit exceeded", ("limit",)),
     _e("node-limit-exceeded", 403, "Too many nodes in this flow", ("limit",)),
     _e("upload-too-large", 413, "Upload too large", ("limit",)),
+    # 🆕 D117: `max_download_bytes`, which never refills -- so not
+    # `limit-exceeded`, whose `Retry-After` a client would obey for ever.
+    _e("download-too-large", 403, "Download too large", ("limit",)),
     _e("rate-limited", 429, "Too many requests"),
     _e("too-many-attempts", 429, "Too many attempts"),
 
     # -- entitlement and resolution -----------------------------------------
     _e("entitlement-denied", 403, "Not entitled to this resource",
-       ("resource_kind", "resource")),
-    _e("unsatisfiable-request", 422, "This server cannot provide that",
        ("resource_kind", "resource")),
     _e("resource-unresolved", 422, "Could not resolve what this flow needs",
        ("resource_kind",)),
@@ -71,17 +72,19 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # and what is available; `reason` is "unavailable" or "combination".
     _e("software-unavailable", 422, "No image provides that software",
        ("reason", "unresolved")),
-    # 🆕 D105: the flow needs a PDK, library or FPGA device this deployment
-    # does not hold, and its files did not arrive in the archive. Not
+    # 🆕 D105, widened by D116: the job needs a resource -- any kind, a tool
+    # included -- this deployment does not hold and cannot supply. It retired
+    # `unsatisfiable-request`, which meant the same with the same members. Not
     # `resource-unresolved`, which is not knowing WHICH.
     _e("resource-unavailable", 422, "This server does not hold that resource",
        ("resource_kind", "resource")),
-    # 🆕 D105: crucible's, raised during extraction for a controlled resource
-    # the caller may not upload. Registered because the registry is the
-    # contract's; this profile allows every upload (profile D26) and never
-    # raises it.
+    # 🆕 D105, D115: crucible's, raised during extraction for restricted
+    # material the caller may not upload. `detected` is "attribution" or
+    # "content"; `member` the archive entry; `resource` only for a holder, so
+    # it is not REQUIRED. Registered because the registry is the contract's;
+    # this profile allows every upload (profile D26) and never raises it.
     _e("upload-forbidden", 422, "Upload of that resource is not allowed",
-       ("resource_kind", "resource")),
+       ("resource_kind", "detected", "member")),
     _e("terms-not-accepted", 403, "Terms not accepted",
        ("terms_scope", "decision_url", "blocked_by")),
     _e("artifact-not-approved", 403, "Artifact not approved"),
@@ -190,9 +193,60 @@ DETAIL_MAX = 300
 
 
 def set_detail_max(characters: int) -> None:
-    """Adopt the deployment's published bound. Called once, at startup."""
+    """Adopt the deployment's bound. Called once, at startup."""
     global DETAIL_MAX
     DETAIL_MAX = int(characters)
+
+
+# This server's own internals, which a `detail` must never carry (D122): the
+# paths it keeps its data and mounts under, and its host names. Set once, at
+# startup.
+_INTERNAL_PATHS: list = []
+_INTERNAL_NAMES: list = []
+
+
+def set_internals(paths=(), names=()) -> None:
+    """What `scrub` takes out of every `detail`. Called once, at startup."""
+    # Stripped before the empty ones are dropped: `/` would otherwise become
+    # the empty string, which `replace` finds between every two characters.
+    _INTERNAL_PATHS[:] = sorted({str(path).rstrip("/") for path in paths if path}
+                                - {""}, key=len, reverse=True)
+    _INTERNAL_NAMES[:] = sorted({str(name) for name in names if name and len(name) > 2},
+                                key=len, reverse=True)
+
+
+# Credential-shaped: `token=...`, `password: ...`, a bearer header, a URL's
+# `user:secret@`, and the long opaque strings API keys are made of.
+_CREDENTIALS = (
+    # The header with its scheme, then a scheme on its own: `Authorization:
+    # Bearer x` must not stop at `Bearer` and leave `x`.
+    (re.compile(r"(?i)\b(authorization)\s*[:=]\s*(?:(?:bearer|dpop|basic)\s+)?\S+"),
+     r"\1 <redacted>"),
+    (re.compile(r"(?i)\b(bearer|dpop|basic)\s+(?!<redacted>)\S+"), r"\1 <redacted>"),
+    (re.compile(r"(?i)\b(pass(word)?|passwd|secret|token|api[_-]?key|key)\s*[:=]\s*\S+"),
+     r"\1=<redacted>"),
+    (re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^/\s:@]+:[^/\s@]+@"), r"\1<redacted>@"),
+    (re.compile(r"\b(gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{20,}"
+                r"\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\b"), "<redacted>"),
+)
+
+
+def scrub(detail: str) -> str:
+    '''Take this server's internals out of a `detail` (D122).
+
+    🔴 **A tool's exception text carries mount paths, hostnames and environment
+    dumps**, and `detail` is published to whoever can read the job. The
+    client's own input was already bounded; the server's is the half that
+    leaks how the deployment is laid out.
+    '''
+    text = detail
+    for path in _INTERNAL_PATHS:
+        text = text.replace(path, "<server>")
+    for name in _INTERNAL_NAMES:
+        text = re.sub(rf"\b{re.escape(name)}\b", "<host>", text)
+    for pattern, replacement in _CREDENTIALS:
+        text = pattern.sub(replacement, text)
+    return text
 
 
 # Everything that is not text: NUL, the escapes a terminal acts on, and the
@@ -214,7 +268,7 @@ def bound(detail: Optional[str]) -> Optional[str]:
         return detail
 
     text = _UNPRINTABLE.sub("", detail)
-    text = " ".join(text.split())
+    text = " ".join(scrub(text).split())
     if len(text) <= DETAIL_MAX:
         return text
 

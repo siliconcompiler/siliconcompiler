@@ -405,7 +405,8 @@ without submitting one, which is how to check a registry before a user does.
 the name or each node's image does: everything `python` shares the run's
 interpreter, and a tool is resolved per node. A tool also takes `-driver`, the
 module carrying its Task driver, which is what lets a probe read its version
-out of an image:
+out of an image. The probe imports it, so it is a module under
+`siliconcompiler.tools` or one named in `config.json`'s `software_drivers`:
 
 ```sh
 python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \

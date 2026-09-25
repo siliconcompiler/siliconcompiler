@@ -95,6 +95,44 @@ def test_a_detail_never_carries_more_than_a_line_of_borrowed_text(client):
     assert body["detail"].endswith("...")
 
 
+@pytest.fixture
+def internals(monkeypatch):
+    '''What this server would not say about itself, for one test.'''
+    from siliconcompiler.remote.server import errors
+
+    monkeypatch.setattr(errors, "_INTERNAL_PATHS", [])
+    monkeypatch.setattr(errors, "_INTERNAL_NAMES", [])
+    errors.set_internals(paths=["/srv/sc/datadir", "/opt/foundry", "/"],
+                         names=["compute-07.cluster.internal", "compute-07"])
+    return errors
+
+
+def test_a_detail_says_nothing_of_the_servers_own_layout(internals):
+    '''🔴 D122: a tool's exception carries mount paths and hostnames, and
+    `detail` reaches whoever can read the job.'''
+    body = internals.problem(
+        "invalid-request",
+        detail="cannot open /srv/sc/datadir/users/u1/builds/j/x.v on "
+               "compute-07.cluster.internal (compute-07): /opt/foundry/pdk missing")
+
+    assert body["detail"] == ("cannot open <server>/users/u1/builds/j/x.v on <host> "
+                              "(<host>): <server>/pdk missing")
+
+
+@pytest.mark.parametrize("said,kept", [
+    ("fetch failed: token=ghp_abc123", "token=<redacted>"),
+    ("Authorization: Bearer abc.def", "Authorization <redacted>"),
+    ("sent DPoP abc.def", "DPoP <redacted>"),
+    ("https://user:hunter2@git.example.com/x", "https://<redacted>@git.example.com/x"),
+    ("key ghp_" + "a" * 36 + " rejected", "key <redacted> rejected"),
+])
+def test_a_detail_says_nothing_credential_shaped(internals, said, kept):
+    detail = internals.problem("invalid-request", detail=said)["detail"]
+
+    assert kept in detail
+    assert not any(secret in detail for secret in ("hunter2", "ghp_", "abc"))
+
+
 def test_a_detail_is_one_line_and_holds_no_escapes(client):
     """A refusal is printed to a terminal and read back out of a log, and both
     of those are broken by text somebody else chose."""
@@ -109,11 +147,7 @@ def test_a_detail_is_one_line_and_holds_no_escapes(client):
 def test_every_limit_is_a_base_unit(client):
     """Bytes are never MB and a count is never a duration: the refusal that
     names a key back spells it identically, which is what makes the error
-    registry double as the enforcement trace.
-
-    ⚠️ `max_detail_chars` is the one exception and it is deliberate: bytes is
-    the WRONG unit for it, because truncating UTF-8 by byte count splits a
-    codepoint and what comes out is not text."""
+    registry double as the enforcement trace."""
     limits = client.get("/v1").get_json()["limits"]
 
     assert set(limits) == {
@@ -121,16 +155,13 @@ def test_every_limit_is_a_base_unit(client):
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_log_stream_seconds", "max_archive_members",
         "max_archive_expanded_bytes",
-        # The nine above are the contract's; these three are this profile's,
+        # The nine above are the contract's; these two are this profile's,
         # and `run_heartbeat_seconds` is deliberately NOT among them -- no
         # client sends a heartbeat or is told about one, so publishing its
         # period would be a promise about machinery on the far side of the
-        # API. It is deployment config.
-        #
-        # ⚠️ `max_detail_chars` is the one limit not named in a base unit,
-        # and deliberately: truncating UTF-8 by byte count splits a codepoint.
-        "max_download_bytes", "max_detail_chars",
-        "abandon_after_seconds"}
+        # API. It is deployment config. So is `max_detail_chars`, taken off
+        # the wire because no client acts on it -- the heartbeat's test.
+        "max_download_bytes", "abandon_after_seconds"}
     assert all(isinstance(value, int) for value in limits.values())
 
 
@@ -460,10 +491,11 @@ def test_a_broken_config_is_reported_and_exits_non_zero(caplog):
     assert entry.main(["-datadir", "datadir"]) == 1
 
 
-def test_the_published_bound_is_the_one_that_binds(tmp_path, monkeypatch):
-    """🔴 A server whose refusals are longer than it advertises is worse than
-    one that truncates harder: a client sizing a box from `limits` is entitled
-    to the number it was given."""
+def test_the_detail_bound_binds_and_is_not_published(tmp_path, monkeypatch):
+    """The bound stays in config and off the wire: no client acts on it, which
+    is the test `run_heartbeat_seconds` failed too. ⚠️ Characters and not
+    bytes, and deliberately: truncating UTF-8 by byte count splits a
+    codepoint."""
     import json
 
     from siliconcompiler.remote.server import errors
@@ -476,6 +508,5 @@ def test_the_published_bound_is_the_one_that_binds(tmp_path, monkeypatch):
 
     app = create_app(str(tmp_path / "datadir"), cluster="local")
 
-    assert app.test_client().get("/v1").get_json()["limits"][
-        "max_detail_chars"] == 40
+    assert "max_detail_chars" not in app.test_client().get("/v1").get_json()["limits"]
     assert len(errors.bound("x" * 500)) <= 43          # 40 plus the ellipsis

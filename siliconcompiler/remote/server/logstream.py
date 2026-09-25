@@ -20,14 +20,22 @@ the tail and the download are the same bytes. A client that tails to the end and
 then fetches the artifact sees no seam.
 '''
 
+import contextlib
 import json
 import logging
+import struct
+import threading
 import time
 
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Dict, Iterator, Optional
 
-__all__ = ["events", "job_events", "resume_from", "resume_job",
+try:
+    import fcntl
+except ImportError:                                 # Windows: one process only
+    fcntl = None
+
+__all__ = ["EventIndex", "events", "job_events", "resume_from", "resume_job",
            "TERMINAL_NODE_STATES", "POLL_SECONDS", "RETRY_MS"]
 
 
@@ -130,31 +138,32 @@ def events(path: Path, step: str, index: str, node_state, start: int,
 
 
 def job_events(nodes, path_of, node_states, job_over, start, deadline,
-               artifact_id) -> Iterator[bytes]:
+               artifact_id, index) -> Iterator[bytes]:
     '''Yield SSE frames for every node of a job, merged, until it ends.
 
     ``nodes`` is the job's node list in a fixed order -- the store's -- because
-    the event id is a vector over it. ``path_of(step, index)`` is where a node's
-    log is, ``node_states()`` what every node is doing now, ``job_over()``
-    whether the job is terminal, and ``artifact_id(step, index)`` a node's
-    archived log once there is one.
+    an index entry names a node by its place in it. ``path_of(step, index)`` is
+    where a node's log is, ``node_states()`` what every node is doing now,
+    ``job_over()`` whether the job is terminal, ``artifact_id(step, index)`` a
+    node's archived log once there is one, and ``index`` the job's
+    :class:`EventIndex`. ``start`` is what :func:`resume_job` read.
 
     🔴 **The id is job-wide, and that is the rule a merge gets wrong.** A
     per-node id is a byte offset in ONE file, and resuming a merged stream from
     one of those would start every other node at a position that is not its
-    own. So the id carries every node's position, led by the total delivered,
-    which strictly increases with every `log` event: it is a position in the
-    job, it is monotonic, and handing it back needs this server to remember
-    nothing about the caller.
+    own.
 
-    ⚠️ **Sparse** (D108): `<total>-<slot>:<offset>.<slot>:<offset>...` in hex,
-    naming only the nodes that have emitted something, by their place in the
-    job's fixed node order. `Last-Event-ID` travels as a request header, and a
-    dense vector over `max_job_nodes` of them can pass what common proxies
-    accept for one.
+    🔴 **And it is one number, whatever the node count** (D121): the count of
+    entries in the job's event index that this caller has been sent. The index
+    records every `log` event the job's stream has ever carried -- which node,
+    where in its log, how long -- so every reader of the job is sent the same
+    events under the same ids, and resuming is one seek. ⚠️ It replaces a
+    vector of per-node offsets, which even sparse could pass what common
+    proxies accept for one `Last-Event-ID` header on a thousand-node flow. The
+    index is state about the JOB; this host still keeps none about its callers.
 
-    Ordering is kept within a node and is arrival order across them: each pass
-    takes what every node has written since the last, node by node.
+    Ordering is kept within a node and is arrival order across them: an entry
+    is appended when a reader finds a node's log has grown, node by node.
 
     ⚠️ **A job already over when the stream opens gets `end` at once**, with
     nothing replayed. It is the same answer as a job that ends between the
@@ -163,10 +172,8 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline,
     job stream: there is no single archive, and each node's `node_state`
     already named its own.
     '''
-    count = len(nodes)
-    offsets = list(start) if len(start) == count else [0] * count
-    pending = [b""] * count
-    reported = [False] * count
+    position = start
+    reported = [False] * len(nodes)
     last_sent = time.monotonic()
 
     yield f"retry: {RETRY_MS}\n\n".encode()
@@ -177,40 +184,37 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline,
 
     while True:
         progressed = False
+
+        # What the index already holds, which another reader may have put
+        # there: the same events under the same ids for everyone.
+        for number, slot, offset, length in index.entries(position):
+            step, node_index = nodes[slot]
+            chunk, _ = _read(path_of(step, node_index), offset, length)
+            position = number + 1
+            yield _log(step, node_index, _decode(chunk), _job_id(position))
+            last_sent = time.monotonic()
+            progressed = True
+        if progressed:
+            continue
+
+        # Caught up: whatever the logs gained since becomes the next entries.
         states = node_states()
+        if index.extend(nodes, path_of, states):
+            continue
 
-        for slot, (step, index) in enumerate(nodes):
-            if reported[slot]:
+        # 🔴 A node is over only once everything it wrote has been sent, and
+        # another reader may have indexed more of it since the loop above.
+        if index.count() > position:
+            continue
+        for slot, (step, node_index) in enumerate(nodes):
+            state = states.get((step, node_index))
+            if reported[slot] or state not in TERMINAL_NODE_STATES:
                 continue
-
-            path = path_of(step, index)
-            size = _size(path)
-
-            if size < offsets[slot]:
-                logger.warning(f"{path} shrank under a reader; restarting its tail")
-                offsets[slot], pending[slot] = 0, b""
-
-            if size > offsets[slot]:
-                chunk, offsets[slot] = _read(path, offsets[slot], MAX_CHUNK)
-                pending[slot] += chunk
-                text, pending[slot] = _split(pending[slot], complete=False)
-                if text:
-                    yield _log(step, index, text, _job_id(offsets, pending))
-                    last_sent = time.monotonic()
-                progressed = True
-                continue
-
-            state = states.get((step, index))
-            if state in TERMINAL_NODE_STATES:
-                text, pending[slot] = _split(pending[slot], complete=True)
-                if text:
-                    yield _log(step, index, text, _job_id(offsets, pending))
-
-                yield _event("node_state", _with_artifact(
-                    {"step": step, "index": index, "state": state},
-                    artifact_id(step, index)))
-                reported[slot] = True
-                progressed = True
+            yield _event("node_state", _with_artifact(
+                {"step": step, "index": node_index, "state": state},
+                artifact_id(step, node_index)))
+            reported[slot] = True
+            progressed = True
 
         if all(reported) or (not progressed and job_over()):
             yield _event("end", {"reason": "terminal"})
@@ -238,43 +242,174 @@ def _log(step: str, index: str, text: str, identifier: str) -> bytes:
                           "ts": _now(), "text": text}, identifier=identifier)
 
 
-def _job_id(offsets, pending) -> str:
-    '''Where every node that has said anything has been delivered up to, led
-    by the total -- sparse, so the header stays short on a wide flow.'''
-    delivered = [offset - len(held) for offset, held in zip(offsets, pending)]
-    return f"{sum(delivered):x}-" + ".".join(
-        f"{slot:x}:{at:x}" for slot, at in enumerate(delivered) if at)
+# What marks a job stream's id, so a per-node one -- a bare hex offset -- is
+# never read as a position in the index.
+_JOB_ID_PREFIX = "e"
 
 
-def resume_job(header: Optional[str], fallback, count: int):
-    '''Every node's offset out of a job stream's id, or all zeros.
+def _job_id(position: int) -> str:
+    return f"{_JOB_ID_PREFIX}{position:x}"
 
-    ⚠️ An id with the wrong number of nodes, or a per-node id handed to the job
-    stream, starts from the beginning: it is not a position in THIS job, and a
-    stream that replays is a nuisance where one that skips is a lost log.
+
+def resume_job(header: Optional[str], fallback, index: "EventIndex") -> int:
+    '''How many of the index's entries the caller already has, or 0.
+
+    ⚠️ An id that does not fit the job -- a per-node id, the vector this used
+    to emit, or a position past the end of this job's index -- starts from the
+    beginning: a stream that replays is a nuisance, one that skips is a lost
+    log.
     '''
     for candidate in (header, fallback):
         if not candidate:
             continue
-        total, dash, vector = str(candidate).partition("-")
-        offsets = [0] * count
+        text = str(candidate)
         try:
-            if not dash:
-                raise ValueError("no position")
-            for pair in (vector.split(".") if vector else []):
-                slot, colon, at = pair.partition(":")
-                if not colon:
-                    raise ValueError("not a slot:offset pair")
-                slot, at = int(slot, 16), int(at, 16)
-                if not 0 <= slot < count or at < 0 or offsets[slot]:
-                    raise ValueError("not a slot of this job")
-                offsets[slot] = at
-            if sum(offsets) == int(total, 16):
-                return offsets
+            if not text.startswith(_JOB_ID_PREFIX):
+                raise ValueError("not a job stream's id")
+            position = int(text[len(_JOB_ID_PREFIX):], 16)
+            if 0 <= position <= index.count():
+                return position
         except ValueError:
             pass
         logger.debug(f"ignoring a Last-Event-ID that is not this job's: {candidate!r}")
-    return [0] * count
+    return 0
+
+
+class EventIndex:
+    '''Every `log` event a job's stream has carried: node, offset, length.
+
+    Appended as the job runs, by whichever reader finds a node's log has grown,
+    and never rewritten -- so an entry's number is an id that means the same
+    bytes to every reader, and resuming is a seek to it. Fixed-width entries,
+    so the seek is arithmetic.
+
+    One instance per reader. It remembers how far it has scanned and where each
+    node's indexed bytes end, which is state about the job read back from the
+    file, never about the caller.
+    '''
+
+    ENTRY = struct.Struct(">IQI")           # slot, byte offset, length
+    _BATCH = 4096
+
+    def __init__(self, path: Path, width: int):
+        self.path = Path(path)
+        self.width = width
+        self._scanned = 0
+        self._ends = [0] * width
+
+    def count(self) -> int:
+        return _size(self.path) // self.ENTRY.size
+
+    def entries(self, start: int):
+        '''Every entry from number ``start`` on, as (number, slot, offset,
+        length).'''
+        number = start
+        while True:
+            batch = self._read(number)
+            if not batch:
+                return
+            for slot, offset, length in batch:
+                # A node this job has not got: not an entry of this job's.
+                if slot < self.width:
+                    yield number, slot, offset, length
+                number += 1
+
+    def extend(self, nodes, path_of, states) -> bool:
+        '''Index what each node's log has gained. True if anything was.
+
+        Whole lines only while a node runs -- a reader that prints what it is
+        given would otherwise show a line in two pieces -- and everything once
+        it is over, since nothing more is coming to finish the last line.
+        '''
+        with _locked(self.path):
+            self._catch_up()
+            new = []
+            for slot, (step, index) in enumerate(nodes):
+                path = path_of(step, index)
+                size, end = _size(path), self._ends[slot]
+                if size < end:
+                    logger.warning(f"{path} shrank under a reader; restarting its tail")
+                    end = 0
+                if size <= end:
+                    continue
+
+                length = min(size - end, MAX_CHUNK)
+                if not (states.get((step, index)) in TERMINAL_NODE_STATES
+                        and end + length == size):
+                    chunk, _ = _read(path, end, length)
+                    length = _whole_lines(chunk, full=len(chunk) == MAX_CHUNK)
+                    if not length:
+                        continue
+                new.append((slot, end, length))
+                self._ends[slot] = end + length
+
+            if new:
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                with open(self.path, "ab") as f:
+                    f.write(b"".join(self.ENTRY.pack(*entry) for entry in new))
+                self._scanned += len(new)
+            return bool(new)
+
+    def _catch_up(self) -> None:
+        while True:
+            batch = self._read(self._scanned)
+            if not batch:
+                return
+            for slot, offset, length in batch:
+                if slot < self.width:
+                    self._ends[slot] = offset + length
+            self._scanned += len(batch)
+
+    def _read(self, start: int):
+        size = self.ENTRY.size
+        try:
+            with open(self.path, "rb") as f:
+                f.seek(start * size)
+                data = f.read(self._BATCH * size)
+        except OSError:
+            return []
+        return [self.ENTRY.unpack_from(data, at)
+                for at in range(0, len(data) - len(data) % size, size)]
+
+
+def _whole_lines(chunk: bytes, full: bool) -> int:
+    '''How much of ``chunk`` ends on a line, or -- where a line is longer
+    than a whole chunk -- on a character.'''
+    cut = chunk.rfind(b"\n") + 1
+    if cut or not full:
+        return cut
+
+    # A line longer than a chunk becomes several events; never split a UTF-8
+    # character across two of them.
+    at = len(chunk) - 1
+    while at > len(chunk) - 4 and at > 0 and chunk[at] & 0xC0 == 0x80:
+        at -= 1
+    lead = chunk[at]
+    need = 4 if lead >= 0xF0 else 3 if lead >= 0xE0 else 2 if lead >= 0xC0 else 1
+    return at if len(chunk) - at < need else len(chunk)
+
+
+_LOCKS: Dict[str, threading.Lock] = {}
+_LOCKS_LOCK = threading.Lock()
+
+
+@contextlib.contextmanager
+def _locked(path: Path):
+    '''One appender at a time: per path in this process, and by `flock`
+    across processes where there is one.'''
+    with _LOCKS_LOCK:
+        lock = _LOCKS.setdefault(str(path), threading.Lock())
+    with lock:
+        if fcntl is None:
+            yield
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(f"{path}.lock", "ab") as handle:
+            fcntl.flock(handle, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle, fcntl.LOCK_UN)
 
 
 def _with_artifact(body: dict, artifact) -> dict:

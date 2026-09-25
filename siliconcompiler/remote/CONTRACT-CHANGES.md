@@ -28,42 +28,43 @@ one, which needs a capability flag exactly as a response member does.
 
 The nine of the first review, the five of the software-buckets review, the
 fifteen of the third and the follow-ons after it — the `.*` spelling and the
-`reported` parse (2), the job log stream (3), what the archive carries (4), and
-the eleven this file then held (5: surface D107–D111, entitlements D28, profile
-D27) — were decided in `crucible/orchestration/api/contract-changes.md`, are
-implemented here, and have been removed rather than edited. Their home is the
-contract now.
+`reported` parse (2), the job log stream (3), what the archive carries (4), the
+eleven this file then held (5: surface D107–D111, entitlements D28, profile
+D27), and 6–8: the server never reads a path a job names, the fetch allowlist
+and its globs, create as a lookup and the fetch while `queued`, the follow-up
+archive, the upload grant's size, the registry changes (`download-too-large`,
+`unsatisfiable-request` retired, `upload-forbidden`'s members), and the smaller
+rows (surface D115–D128, profile D30) — were decided in
+`crucible/orchestration/api/contract-changes.md`, are implemented here, and have
+been removed rather than edited. Their home is the contract now.
+
+The one item this file held open — **the manifest did not record which copy a
+resource resolved to** (D111) — closed with them, by its second option: the
+server points every dataroot of the manifest it runs at the copy it resolves
+to, the job's upload or its own supplied root. A node's manifest now says so.
 
 ---
 
 ## Open — not yet in the contract docs
 
-### 1. The manifest does not record which copy a resource resolved to
+### 1. The contract's own error pages still name `unsatisfiable-request`
 
-D111 closed *where does a job record that it ran on an uploaded copy* with
-**"the manifest already records where each file resolved from"**, and asked
-that a node's manifest show it unambiguously. ⚠️ **It does not.** A
-SiliconCompiler manifest records each dataroot's **registered source** — its
-`path` and `tag` — and nothing about where a file was **resolved** at run time.
-The collected copy wins silently: `resolve_path` checks the collection
-directory before the original path, and no parameter anywhere says that it did.
+`server-errors/entitlement-denied.html` (*What this is not*) and
+`server-errors/index.html` (the documented types) both name the slug D116
+retired. This tree's copies say `resource-unavailable` instead.
 
-So the requirement cannot be met by recording into an existing field. What it
-needs is one of:
+**Where it goes:** `api/server-errors/`.
 
-- **a schema addition** — a per-node `record` of where each dataroot resolved,
-  or of which dataroots resolved to the upload — which is a SiliconCompiler
-  schema change with its own version bump; or
-- **the server rewriting an uploaded dataroot's `path`** in the manifest it runs,
-  to the job's collection directory. Collected files are found by the dataroot's
-  NAME, so resolution is unaffected, and the node manifests then say where the
-  resource came from — at the cost of no longer recording the submitter's
-  original source.
+### 2. A `node` archive over a DELETED member is not on the ladder
 
-This profile logs the use of an uploaded copy and records nothing else, pending
-that choice.
+D120's row answers a node archive with its worst member's refusal — withheld,
+missing resource, pending — and names no answer for a member that was
+**deleted** on its own. Here it cannot happen, since the node is the unit of
+deletion, and the ladder answers the member's `not-found`. That would tell a
+client the archive is gone when it is not; `artifact-not-approved` is probably
+the right row, since handing the archive over would undo the deletion.
 
-**Where it goes:** `surface.md` D111, and SiliconCompiler's schema if the first.
+**Where it goes:** `entitlements.md`, the ladder's row 4.
 
 ---
 

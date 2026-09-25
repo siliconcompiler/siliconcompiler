@@ -110,6 +110,15 @@
       <input type="text" name="confirm" autocomplete="off"
              placeholder="{{ job.design }}/{{ job.jobname }}" style="max-width:320px">
     </label>
+    {#
+      🔴 Said where it is typed: the reason is on every artifact row this
+      empties, and anyone who can list the job reads those rows.
+    #}
+    <label>
+      Reason, optional &mdash; <b>visible to everyone who can list this job</b>:
+      <input type="text" name="reason" autocomplete="off"
+             maxlength="{{ reason_chars }}" style="max-width:320px">
+    </label>
     <button class="danger">Discard the output</button>
   </form>
 

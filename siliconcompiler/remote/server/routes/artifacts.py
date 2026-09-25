@@ -195,9 +195,10 @@ def tail_job(job_id):
             headers={"Retry-After": str(config["poll_interval_seconds"])})
 
     nodes = jobs.job_nodes(job_id)
+    index = logstream.EventIndex(jobs.stream_index_path(job_id), len(nodes))
     start = logstream.resume_job(
         flask.request.headers.get("Last-Event-ID"), args.get("last_event_id"),
-        len(nodes))
+        index)
     deadline = time.monotonic() + config.limits["max_log_stream_seconds"]
 
     def frames():
@@ -208,7 +209,8 @@ def tail_job(job_id):
                 job_over=lambda: jobs.job_over(job_id),
                 start=start, deadline=deadline,
                 artifact_id=lambda step, index: jobs.node_log_artifact(
-                    job_id, step, index))
+                    job_id, step, index),
+                index=index)
         finally:
             limiter.release(owner)
             # The generator runs after the request's teardown, on its thread.

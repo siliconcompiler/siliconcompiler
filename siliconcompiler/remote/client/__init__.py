@@ -299,8 +299,8 @@ class Client:
         image must HOLD -- exact versions against PEP 440 specifiers. Both are
         keyed on ``python`` and ``tools``, and the split is structural: the
         whole ``python`` set shares an interpreter, so ONE image has to hold all
-        of it, while a tool is satisfied per node. A bucket with no
-        ``requires`` falls back to its ``versions`` as exact pins.
+        of it, while a tool is satisfied per node. A name ``requires`` does
+        not mention falls back to its ``versions`` entry as an exact pin.
 
         ``run_hash`` is the client's opaque hash of the work, for job reuse. The
         server looks it up owner-scoped and hands back the caller's own earlier

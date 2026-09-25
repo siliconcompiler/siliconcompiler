@@ -873,12 +873,16 @@ class JobService:
         manifest = self._normalize(session, job, root, derived, plan, entries)
 
         try:
+            bundle = self._framework_bundle(plan)
+        except ProblemError as problem:
+            raise self._refuse(session, job, problem) from None
+
+        try:
             # The job's own root, so the batch script and the run's stdout land
             # beside what the run produced and go away with it when the job is
             # deleted.
             scheduler_job_id = self._dispatcher.submit(
-                job["id"], root, manifest,
-                image=self._framework_bundle(plan),
+                job["id"], root, manifest, image=bundle,
                 queue=self._config["batch_queue"])
         except DispatchError as e:
             raise self._refuse(session, job, ProblemError(
@@ -982,8 +986,10 @@ class JobService:
             # silently would run the job against whatever SiliconCompiler this
             # cluster has, which is the thing the registry exists to stop --
             # and it would do it while the record said otherwise.
+            # The server's own failure, not the caller's request: `not-ready`,
+            # as a scheduler refusing the handoff is.
             raise ProblemError(
-                "unsatisfiable-request", resource_kind="library", resource=ref,
+                "not-ready", status=503,
                 detail=f"this server could not unpack the image its own job "
                        f"needs to run in: {e}") from None
 
@@ -1346,6 +1352,9 @@ class JobService:
                        "data' cannot mean 'hide it and keep spending'")
 
         shutil.rmtree(self.job_root(job["user_id"], job["id"]), ignore_errors=True)
+        for path in (self.stream_index_path(job["id"]),
+                     Path(f"{self.stream_index_path(job['id'])}.lock")):
+            path.unlink(missing_ok=True)
         self._storage.discard_upload(job["id"])
         self._storage.discard_artifacts(job["id"])
 
@@ -1940,24 +1949,25 @@ class JobService:
             raise ValueError(f"{surface} is not a surface")
         return surface == "portal" or self._config.api_fetchable(kind)
 
-    def _members_fetchable(self, row, surface: str) -> bool:
+    def _members_refusal(self, row, surface: str) -> Optional[str]:
         '''Row 4: a `node` archive is fetchable only when every artifact at its
         coordinates is -- other `node` rows and `issue` excepted -- because it
         holds them all, and handing it over would hand over any one that is
-        not.'''
+        not. Returns the WORST member's refusal (D120), or None.'''
         if row["kind"] != "node":
-            return True
+            return None
         members = self._store.all(
             'SELECT * FROM artifacts WHERE job_id = ? AND step = ? AND "index" = ? '
             "AND kind NOT IN ('node', 'issue')",
             (row["job_id"], row["step"], row["index"]))
-        return all(artifacts.fetchable(member, self._surface_allows(surface, member["kind"]))
-                   for member in members)
+        return artifacts.worst(
+            artifacts.ladder(member, self._surface_allows(surface, member["kind"]))
+            for member in members)
 
     def _refuse_by_ladder(self, row, surface: str) -> None:
         '''Raise the refusal the ladder's deciding row names, if any.'''
         refusal = artifacts.ladder(row, self._surface_allows(surface, row["kind"]),
-                                   self._members_fetchable(row, surface))
+                                   self._members_refusal(row, surface))
         if refusal is None:
             return
         if refusal == "not-found":
@@ -2015,7 +2025,7 @@ class JobService:
         rows = rows[:limit]
 
         items = [artifacts.wire(row, self._surface_allows(surface, row["kind"]),
-                                self._members_fetchable(row, surface))
+                                self._members_refusal(row, surface))
                  for row in rows]
         return items, (_encode_cursor(rows[-1]) if more and rows else None)
 
@@ -2066,9 +2076,10 @@ class JobService:
         deliberately lifted above. `None` is unlimited, which is the wire's
         meaning for it everywhere.
 
-        ⚠️ `limit-exceeded` is a 429 and this condition never clears on its
-        own, so no `Retry-After` is offered. Retrying is not the answer and
-        saying when to would be a lie; the detail says what is.
+        🔴 `403 download-too-large` (D117), not `429 limit-exceeded`: that one
+        means *refills*, and a client obeying its `Retry-After` on a ceiling
+        that never refills would retry for ever. The download side of
+        `upload-too-large`.
         '''
         from siliconcompiler.remote.server import accounts
 
@@ -2082,7 +2093,7 @@ class JobService:
             return
 
         raise ProblemError(
-            "limit-exceeded", limit="max_download_bytes",
+            "download-too-large", limit="max_download_bytes",
             detail=f"{units.size(stored)} is larger than the "
                    f"{units.size(allowed)} this account may download over the "
                    "API; open it from the web portal instead")
@@ -2262,6 +2273,15 @@ class JobService:
         found = sorted(workdir.glob("*.log"),
                        key=lambda path: (path.name != own, path.name))
         return [(path.name, path) for path in found]
+
+    def stream_index_path(self, job_id: str) -> Path:
+        '''The job stream's event index (D121).
+
+        Outside the job's build directory, which an uploaded archive fills: an
+        index is the server's record of what it streamed, and a member could
+        otherwise be one.
+        '''
+        return self._datadir / "streams" / f"{job_id}.idx"
 
     def node_log_path(self, job, step: str, index: str):
         '''Where the bytes a tail reads are.'''
@@ -2488,10 +2508,12 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     specifier, and what the resolution reads. They were one member carrying
     both meanings, and the second is the one the join needs.
 
-    ⚠️ **A bucket with no `requires` falls back to its `versions`, as exact
-    pins.** That is what the single member meant, so a client that sends only
-    what it has keeps the behaviour it had -- and *run it on exactly what I
-    have* is a reasonable thing to mean by it.
+    ⚠️ **A name `requires` does not mention falls back to its `versions`, as
+    an exact pin -- per NAME, not per bucket.** That is what the single member
+    meant, so a client that sends only what it has keeps the behaviour it had,
+    and *run it on exactly what I have* is a reasonable thing to mean by it.
+    🔴 Per bucket, a `requires.python` naming only `siliconcompiler` silently
+    dropped the pin `versions.python` carried for a site library beside it.
 
     🔴 **Both members are bucketed and a flat map is refused.** Flattened,
     nothing says which names have to land together: the whole `python` set
@@ -2537,10 +2559,10 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
                     "invalid-request",
                     detail=f"{member}.{bucket} must be an object of "
                            "name to version")
-            # `requires` wins where both name a bucket, because it is the one
-            # that says what the IMAGE must hold.
-            if member == "requires" or not found[bucket]:
-                found[bucket] = dict(inner)
+            # `requires` wins where both name a NAME, because it is the one
+            # that says what the IMAGE must hold; `versions` is read first, so
+            # every name it alone carries stays pinned.
+            found[bucket].update(inner)
 
     return found
 

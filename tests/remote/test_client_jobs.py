@@ -472,7 +472,7 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
      ["reason: combination", "za-sclib ==0.1.80 (available: 0.1.80)"]),
     ("artifact-not-approved", 403, {}, ["held back from download"]),
     ("resource-unavailable", 422, {"resource_kind": "pdk", "resource": "mypdk"},
-     ["resource: mypdk", "resource_kind: pdk", "keep a local or editable copy"]),
+     ["resource: mypdk", "resource_kind: pdk", "cannot be sent it"]),
     ("terms-not-accepted", 403, {"terms_scope": "service",
                                  "decision_url": "https://example.test/terms"},
      ["terms_scope: service", "Accept the agreement"]),

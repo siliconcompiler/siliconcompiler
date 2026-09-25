@@ -139,8 +139,9 @@ def test_a_tool_nobody_registered_is_refused_when_it_needs_a_program(
         images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                             {("lint", "0"): "verilator"})
 
-    assert raised.value.error.slug == "unsatisfiable-request"
-    assert raised.value.members["resource"] == "verilator"
+    # `unsatisfiable-request` was retired (D116): a tool is a resource too.
+    assert raised.value.error.slug == "resource-unavailable"
+    assert raised.value.members == {"resource_kind": "tool", "resource": "verilator"}
     assert "nowhere for it to run" in raised.value.detail
 
 
@@ -247,7 +248,8 @@ def test_an_empty_registry_is_a_refusal_and_not_a_bypass(store):
         images.plan_for_job(store, py("siliconcompiler", "0.39.1"),
                             {("import", "0"): None, ("place", "0"): "openroad"})
 
-    assert raised.value.error.slug == "unsatisfiable-request"
+    assert raised.value.error.slug == "software-unavailable"
+    assert raised.value.members["reason"] == "unavailable"
 
 
 def test_retiring_the_last_image_does_not_quietly_run_on_the_host(registry, store):
@@ -918,11 +920,47 @@ def test_the_buckets_are_a_closed_set_and_both_are_always_there(store):
     assert images.live_software(store)["tools"] == {}
 
 
+def test_a_name_requires_does_not_mention_keeps_its_versions_pin():
+    '''🔴 Per NAME, not per bucket: a `requires.python` naming only the
+    framework used to drop the site library's pin `versions.python` carried.'''
+    from siliconcompiler.remote.server.jobs import requirements
+
+    found = requirements({
+        "versions": {"python": {"siliconcompiler": "0.39.1", "za-sclib": "1.4.0"},
+                     "tools": {"openroad": "2.0"}},
+        "requires": {"python": {"siliconcompiler": ">=0.39"}, "tools": {}}})
+
+    assert found["python"] == {"siliconcompiler": ">=0.39", "za-sclib": "1.4.0"}
+    assert found["tools"] == {"openroad": "2.0"}
+
+
 def test_a_python_distribution_may_not_name_a_task_driver(store):
     '''A driver is what makes something a tool.'''
     with pytest.raises(ValueError, match="a driver is what makes"):
         images.register_software(store, "za-sclib", "ZA", store.actor, "python",
                                  driver="za_sclib.tools")
+
+
+@pytest.mark.parametrize("driver", ["os", "subprocess", "evil.module",
+                                    "siliconcompiler.toolsx", "a..b", ""])
+def test_a_driver_is_never_an_arbitrary_dotted_path(store, driver):
+    '''🔴 D95: the probe imports the driver on the server, and anyone can
+    register software here.'''
+    if not driver:
+        # No driver at all is a tool nothing here drives, and legitimate.
+        images.register_software(store, "x", "X", store.actor, "tool", driver=driver)
+        return
+    with pytest.raises(ValueError, match="not a driver this server imports"):
+        images.register_software(store, "x", "X", store.actor, "tool", driver=driver)
+
+
+def test_an_out_of_tree_driver_is_configuration(store):
+    '''A site library's driver is named in the deployment's
+    `software_drivers`, never typed into a form.'''
+    images.register_software(store, "acme", "Acme", store.actor, "tool",
+                             driver="acme_tools.acme", allowed_drivers=["acme_tools.acme"])
+
+    assert images.how_to_ask(store)["acme"]["driver"] == "acme_tools.acme"
 
 
 def test_a_driver_is_recorded_so_a_probe_can_be_handed_it(store):
@@ -970,6 +1008,26 @@ def test_an_image_whose_manifest_said_nothing_sorts_last(store):
     images.register_image(store, "ghcr.io/x/b:1", digest("b"),
                           [("siliconcompiler", "0.39.1")], store.actor,
                           built_at="2020-01-01T00:00:00.000Z")
+
+    plan = images.plan_for_job(store, py(), {("import", "0"): None})
+
+    assert plan.ref(plan.job).startswith("ghcr.io/x/b@")
+
+
+@pytest.mark.parametrize("built_at", [None, "1970-01-01T00:00:01.000Z"])
+def test_the_later_pin_breaks_a_tie_the_build_time_cannot(store, built_at):
+    '''Equal or NULL `built_at` -- ko, Nix and Bazel stamp 1970 by design --
+    falls to the later `resolved_at`, not to whichever reference sorts first.'''
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
+    images.register_version(store, "siliconcompiler", "0.39.1", store.actor)
+
+    # `b` sorts second by name, so only the pin can put it first.
+    for ref, name, pinned in (("ghcr.io/x/a:1", "a", "2026-01-01T00:00:00.000Z"),
+                              ("ghcr.io/x/b:1", "b", "2026-09-01T00:00:00.000Z")):
+        image_id = images.register_image(store, ref, digest(name),
+                                         [("siliconcompiler", "0.39.1")], store.actor,
+                                         built_at=built_at)
+        store.execute("UPDATE images SET resolved_at = ? WHERE id = ?", (pinned, image_id))
 
     plan = images.plan_for_job(store, py(), {("import", "0"): None})
 

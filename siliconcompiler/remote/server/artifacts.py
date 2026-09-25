@@ -361,8 +361,22 @@ def _retention(store, kind: str, floor_days: int) -> str:
     return when.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
+# A gated `node` archive answers with its worst member's refusal (D120), and
+# worst is this order: a permanent refusal over a transient one.
+_WORST = ("artifact-not-approved", "entitlement-denied", "not-ready")
+
+
+def worst(refusals) -> Optional[str]:
+    '''The worst of several ladder answers, or None when every one is.'''
+    found = [refusal for refusal in refusals if refusal]
+    for refusal in _WORST:
+        if refusal in found:
+            return refusal
+    return found[0] if found else None
+
+
 def ladder(row, surface_allows: bool = True,
-           members_fetchable: bool = True) -> Optional[str]:
+           members: Optional[str] = None) -> Optional[str]:
     '''The refusal an artifact gets, by the first row of the ladder that
     matches -- or None when the caller may have the bytes.
 
@@ -372,8 +386,9 @@ def ladder(row, surface_allows: bool = True,
     1    ``deleted_at`` set                          ``not-found``
     2    ``withheld_at`` set                         ``artifact-not-approved``
     3    ``kind = 'issue'``                          ``artifact-not-approved``
-    4    a ``node`` archive with a member that is    ``artifact-not-approved``
-         not fetchable
+    4    a ``node`` archive with a member that is    its WORST member's --
+         not fetchable                               ``artifact-not-approved``,
+                                                     then ``not-ready``
     --   this surface does not hand the kind over    ``artifact-not-approved``
          (``api_fetchable_kinds``)
     5    ``provenance = 'pending'``                  ``not-ready`` -- transient
@@ -401,8 +416,11 @@ def ladder(row, surface_allows: bool = True,
         return "not-found"
     if row["withheld_at"] or row["kind"] == "issue":
         return "artifact-not-approved"
-    if row["kind"] == "node" and not members_fetchable:
-        return "artifact-not-approved"
+    if row["kind"] == "node" and members:
+        # 🔴 Withholding a member withholds the archive, and an archive held
+        # back only by a PENDING member is `not-ready` -- the D107 mistake one
+        # level down answered it a permanent `artifact-not-approved`.
+        return members
     if not surface_allows:
         return "artifact-not-approved"
     if row["provenance"] == "pending":
@@ -411,9 +429,9 @@ def ladder(row, surface_allows: bool = True,
 
 
 def fetchable(row, surface_allows: bool = True,
-              members_fetchable: bool = True) -> bool:
+              members: Optional[str] = None) -> bool:
     '''Whether THIS caller may have the bytes: the ladder, with no refusal.'''
-    return ladder(row, surface_allows, members_fetchable) is None
+    return ladder(row, surface_allows, members) is None
 
 
 def cause(row) -> Optional[str]:
@@ -431,7 +449,7 @@ def cause(row) -> Optional[str]:
 
 
 def wire(row, surface_allows: bool = True,
-         members_fetchable: bool = True) -> Dict[str, Any]:
+         members: Optional[str] = None) -> Dict[str, Any]:
     '''One artifact, as §21 publishes it.'''
     return {
         "id": row["id"],
@@ -458,7 +476,7 @@ def wire(row, surface_allows: bool = True,
         # the column it comes from, because it is the same thing.
         "deleted_cause": cause(row),
         "delete_reason": row["delete_reason"],
-        "fetchable": fetchable(row, surface_allows, members_fetchable),
+        "fetchable": fetchable(row, surface_allows, members),
     }
     # No `blocked_by` and no `access_request_url`: both are about an agreement
     # standing in the way, and this deployment has no agreements. An

@@ -261,7 +261,7 @@ def live_images(store) -> List[Dict[str, Any]]:
     than the query plan.
     '''
     rows = store.all(
-        "SELECT id, registry_ref, digest, note, built_at FROM images "
+        "SELECT id, registry_ref, digest, note, built_at, resolved_at FROM images "
         "WHERE retired_at IS NULL ORDER BY registry_ref")
 
     contents: Dict[str, List[Held]] = {}
@@ -280,7 +280,7 @@ def live_images(store) -> List[Dict[str, Any]]:
 
     return [{"id": row["id"], "registry_ref": row["registry_ref"],
              "digest": row["digest"], "note": row["note"],
-             "built_at": row["built_at"],
+             "built_at": row["built_at"], "resolved_at": row["resolved_at"],
              "contents": contents.get(row["id"], [])}
             for row in rows]
 
@@ -430,7 +430,7 @@ def _satisfies(image, requirements: Sequence[Requirement]) -> bool:
 
 
 def _rank(image):
-    '''Lower sorts first: preference, specificity, build time, then the name.
+    '''Lower sorts first: preference, specificity, build time, pin time, then the name.
 
     🔴 **`preference` first, and NOT the newest version** -- the schema already
     refuses newest-wins, because a rebuilt image is newer and is not
@@ -448,11 +448,16 @@ def _rank(image):
 
     🆕 **Then `built_at`, newest first**, which is the tie two images carrying
     identical versions leave -- same preference, same contents, nothing left to
-    choose by. ⚠️ `built_at` and never `resolved_at`: the latter records when
+    choose by. ⚠️ `built_at` before `resolved_at`: the latter records when
     the operator pinned the tag, so registering a two-year-old image today
     would make it the newest, and pinning an old image on purpose is a
     reproducibility case rather than a mistake. An image whose manifest said
     nothing sorts last among its ties.
+
+    **Then `resolved_at`, latest first, where `built_at` cannot decide** --
+    equal, or NULL on both. It is builder-stamped, and ko, Nix and Bazel stamp
+    1970 by design, so two reproducible builds tie on it every time; without
+    this the reference sorting first would pick.
     '''
     preference = max((entry.preference for entry in image["contents"]
                       if entry.name == PRIMARY), default=None)
@@ -462,6 +467,7 @@ def _rank(image):
     return (-preference if preference is not None else 1,
             len(image["contents"]),
             _newest_first(image["built_at"]),
+            _newest_first(image["resolved_at"]),
             image["registry_ref"])
 
 
@@ -610,10 +616,8 @@ def declared_requirements(software, requires: Dict[str, Any]) -> List[Requiremen
 def resolve_declared(images, requirements: Sequence[Requirement]):
     '''The one image the declared versions resolve to. Raises if none fits.'''
     if not images:
-        raise ProblemError(
-            "unsatisfiable-request", resource_kind="library", resource=PRIMARY,
-            detail="this server runs jobs in containers and has no image "
-                   "registered")
+        raise _software_unavailable("unavailable", list(requirements) or
+                                    [Requirement(PRIMARY, (), "library")], images)
 
     found = resolve(images, requirements)
     if found is None:
@@ -687,8 +691,8 @@ def _unsatisfiable(requirements: Sequence[Requirement], images) -> ProblemError:
     image for each -- and a requirement is met if any of them is.
 
     ⚠️ Not `entitlement-denied` -- *this deployment does not have it*, not
-    *you may not use it* -- and not `unsatisfiable-request`, which is software
-    this server cannot provide in any version.
+    *you may not use it* -- and not `resource-unavailable`, which is software
+    this server has never heard of, in any version.
     '''
     alone = [want for want in requirements if resolve(images, [want]) is None]
     if alone:
@@ -765,7 +769,7 @@ def _unregistered(tool: str, node: Tuple[str, str], images) -> ProblemError:
     '''
     step, index = node
     return ProblemError(
-        "unsatisfiable-request", resource_kind="tool", resource=tool,
+        "resource-unavailable", resource_kind="tool", resource=tool,
         detail=f"{step}/{index} runs {tool}, and no image on this server holds "
                f"it -- this deployment runs every node in a container, so there "
                f"is nowhere for it to run. {len(images)} image(s) are "
@@ -1047,9 +1051,27 @@ def _repository(registry_ref: str) -> str:
 # Writing it
 ######################################################################
 
+def driver_allowed(driver: str, allowed: Sequence[str] = ()) -> bool:
+    '''Whether ``driver`` is a module this server will import (D95).
+
+    🔴 **The probe imports it on the server**, so an open field let whoever
+    registers software choose what the server imports -- on this profile,
+    anyone. A driver is a module under ``siliconcompiler.tools`` or one the
+    deployment's configuration names; SiliconCompiler has no tools
+    entry-point group, so an out-of-tree driver is configuration, never a form
+    field.
+    '''
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*", driver or ""):
+        return False
+    if driver == "siliconcompiler.tools" or driver.startswith("siliconcompiler.tools."):
+        return True
+    return driver in set(allowed or ())
+
+
 def register_software(store, name: str, display_name: str, actor: str,
                       kind: str, driver: Optional[str] = None,
-                      version_package: Optional[str] = None) -> str:
+                      version_package: Optional[str] = None,
+                      allowed_drivers: Sequence[str] = ()) -> str:
     '''Declare that this deployment curates images for a distribution.
 
     ⚠️ It is a claim with teeth: from here on, a job whose flow needs this tool
@@ -1094,6 +1116,11 @@ def register_software(store, name: str, display_name: str, actor: str,
         raise ValueError(
             f"{name} is {kind} and names a task driver; a driver is what makes "
             "something a tool")
+    if driver and not driver_allowed(driver, allowed_drivers):
+        raise ValueError(
+            f"{driver} is not a driver this server imports: a driver is a module "
+            "under siliconcompiler.tools, or one named in this deployment's "
+            "software_drivers")
     if version_package and kind != "tool":
         raise ValueError(
             f"{name} is {kind}, so its own name is where its version comes "

@@ -27,12 +27,11 @@
 <div class="do">
 <ol>
   <li>Read <code>limit</code>. It is the exact key the deployment publishes in <code>GET /v1</code>&rsquo;s <code>limits</code> (or your <code>usage</code>), so you can compare it with what you hold.</li>
-  <li>Where the response carries <code>Retry-After</code>, wait that long and send the same request again.</li>
-  <li>Where it does not, the limit will not clear by waiting &mdash; <code>max_download_bytes</code> is the one that behaves this way: the object is larger than you may download over the API, and the web portal is the way to it.</li>
+  <li>Wait for <code>Retry-After</code>, then send the same request again.</li>
 </ol>
 </div>
 
-<p><strong>Formerly</strong> four separate types, each of which a client may still have in its code: <code>quota-exhausted</code>, <code>pending-upload-limit</code>, <code>concurrent-job-limit</code> and <code>concurrent-stream-limit</code>. They are one type now, and <code>limit</code> says which.</p>
+<p><strong>Formerly</strong> four separate types, each of which a client may still have in its code: <code>quota-exhausted</code>, <code>pending-upload-limit</code>, <code>concurrent-job-limit</code> and <code>concurrent-stream-limit</code>. They are one type now, and <code>limit</code> says which. <code>max_download_bytes</code> was briefly answered here too, and moved to its own type because it does not refill.</p>
 <h2>The body</h2>
 
 <pre><code>{
@@ -49,7 +48,7 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>limit</code></td><td><span class="req">REQUIRED</span></td>
-    <td>The published key that bound: <code>concurrent_jobs</code>, <code>pending_uploads</code>, <code>concurrent_log_streams</code>, <code>devices</code>, <code>max_download_bytes</code>, or a <code>usage</code> key such as <code>compute_seconds</code>.</td></tr>
+    <td>The published key that bound: <code>concurrent_jobs</code>, <code>pending_uploads</code>, <code>concurrent_log_streams</code>, <code>devices</code>, or a <code>usage</code> key such as <code>compute_seconds</code>.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
 </tbody>
@@ -65,8 +64,6 @@
     <td><code>pending_uploads</code>: too many jobs created and not yet submitted.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
     <td><code>concurrent_jobs</code>: too many jobs queued or running.</td></tr>
-<tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
-    <td><code>max_download_bytes</code>: larger than you may download over the API.</td></tr>
 <tr><td class="wrap">the log stream</td>
     <td><code>concurrent_log_streams</code>: too many live logs open at once.</td></tr>
 </tbody>
@@ -89,7 +86,7 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 
 <h2>What this is not</h2>
 
-<p><a href="node-limit-exceeded.html"><code>node-limit-exceeded</code></a> and <a href="upload-too-large.html"><code>upload-too-large</code></a> are ceilings that do <strong>not</strong> refill: the request itself is too big, and waiting changes nothing.</p>
+<p><a href="node-limit-exceeded.html"><code>node-limit-exceeded</code></a>, <a href="upload-too-large.html"><code>upload-too-large</code></a> and <a href="download-too-large.html"><code>download-too-large</code></a> are ceilings that do <strong>not</strong> refill: the request itself is too big, and waiting changes nothing.</p>
 
 <p><a href="rate-limited.html"><code>rate-limited</code></a> is about how often you call, not what you hold; it names no <code>limit</code>.</p>
 </main>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>upload-forbidden &middot; SiliconCompiler server errors</title>
-<meta name="description" content="The archive carries files of a controlled resource you may not upload.">
+<meta name="description" content="The archive carries restricted material you may not upload. The job is rejected.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,12 +21,13 @@
 </header>
 
 <main>
-<p>Your upload carries files that belong to a controlled resource &mdash; a PDK or library under an agreement &mdash; which your account may not upload. The deployment supplies its own copy of controlled resources; it does not accept one from you.</p>
+<p>Your upload carries files of a controlled resource &mdash; a PDK or library under an agreement &mdash; which your account may not upload. The deployment supplies its own copy of controlled resources; it does not accept one from you. The job is rejected and the upload deleted.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Read <code>resource_kind</code> and <code>resource</code> to see which.</li>
+  <li>Read <code>detected</code>. <code>attribution</code>: your manifest attributes the file to a controlled resource. <code>content</code>: the file&rsquo;s bytes match one, whatever the manifest calls it.</li>
+  <li>Read <code>member</code>, the archive entry that was refused, and <code>resource_kind</code>.</li>
   <li>Use the deployment&rsquo;s copy: reference the resource from its released source instead of a local or editable one, so its files are not uploaded.</li>
   <li>If you need to run a modified copy, that is a permission for whoever administers your account.</li>
 </ol>
@@ -42,7 +43,8 @@
   "detail":   "...",
   "instance": "/v1/jobs/01J9...",
   "resource_kind": "pdk",  <span class="c">// REQUIRED on this type</span>
-  "resource": "gf22",  <span class="c">// REQUIRED on this type</span>
+  "detected": "content",  <span class="c">// REQUIRED on this type</span>
+  "member":   "sc_collected_files/3f9a1c.lef",  <span class="c">// REQUIRED on this type</span>
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
 
@@ -51,8 +53,12 @@
 <tbody>
 <tr><td><code>resource_kind</code></td><td><span class="req">REQUIRED</span></td>
     <td><code>pdk</code>, <code>library</code> or <code>fpga</code>.</td></tr>
-<tr><td><code>resource</code></td><td><span class="req">REQUIRED</span></td>
-    <td>Its name.</td></tr>
+<tr><td><code>detected</code></td><td><span class="req">REQUIRED</span></td>
+    <td><code>attribution</code> or <code>content</code>: how the member was found to be controlled.</td></tr>
+<tr><td><code>member</code></td><td><span class="req">REQUIRED</span></td>
+    <td>The archive entry, bounded. Named only once the archive has passed its safety checks.</td></tr>
+<tr><td><code>resource</code></td><td><span class="req">OPTIONAL</span></td>
+    <td>Its name &mdash; present only when you hold a grant on it. Otherwise naming it would confirm what the deployment&rsquo;s catalogue holds.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
 </tbody>
@@ -88,7 +94,7 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 
 <p><a href="archive-rejected.html"><code>archive-rejected</code></a> is also raised during extraction, and is a safety failure of the archive itself, not a policy about its contents. The fix differs.</p>
 
-<p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> is the opposite case: files the server needed and did not get.</p>
+<p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> is the opposite case: a resource the server needed and could not get.</p>
 </main>
 
 <footer>

@@ -616,7 +616,7 @@ def test_the_portal_is_the_way_past_the_download_ceiling(signed_in, finished,
     # The API refuses it, which is the half that makes this test mean anything.
     assert call(server_client, key, "GET",
                 f"/v1/jobs/{finished['id']}/artifacts/{row['id']}",
-                token).status_code == 429
+                token).status_code == 403
 
     response = signed_in.get(
         f"/portal/jobs/{finished['id']}/artifacts/{row['id']}")
@@ -858,6 +858,24 @@ def test_discarding_the_output_keeps_the_job(signed_in, finished, server):
     assert rows and all(r["deleted_at"] for r in rows)
     assert all(r["delete_reason"] == "discarded from the portal"
                for r in rows)
+
+
+def test_a_typed_discard_reason_is_labelled_visible_to_everyone(
+        signed_in, finished, server):
+    '''🔴 `delete_reason` is read by everyone who can list the job, so the
+    form says so where it is typed.'''
+    page = signed_in.get(f"/portal/jobs/{finished['id']}/artifacts").get_data(as_text=True)
+    assert "visible to everyone who can list this job" in page
+
+    token = csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
+    signed_in.post(f"/portal/jobs/{finished['id']}/discard",
+                   data={"csrf": token, "confirm": "gcd/job0",
+                         "reason": "  freeing space\nbefore the tapeout  "})
+
+    rows = server.config["SC_STORE"].all(
+        "SELECT delete_reason FROM artifacts WHERE job_id = ?", (finished["id"],))
+    assert rows and all(r["delete_reason"] == "freeing space before the tapeout"
+                        for r in rows)
 
 
 def test_the_node_is_the_unit_of_deletion(signed_in, finished, server):

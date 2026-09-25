@@ -449,6 +449,32 @@ def test_a_node_archive_holding_a_withheld_member_is_not_fetchable(
         "artifact-not-approved"
 
 
+def test_a_node_archive_held_back_only_by_a_pending_member_is_not_ready(
+        server, server_client, key, token, finished):
+    '''🔴 D120: the worst member's refusal, and a member still being
+    described is transient -- it was a blanket `artifact-not-approved`, the
+    `pending` mistake one level down.'''
+    items = listing(server_client, key, token, finished["id"])
+    log = next(i for i in items if i["kind"] == "logs" and i["step"] == "stepone")
+    node = next(i for i in items if i["kind"] == "node" and i["step"] == "stepone")
+    _mark(server, log, provenance="pending")
+
+    response = _fetch(server_client, key, token, finished["id"], node)
+
+    assert response.status_code == 409
+    assert slug(response) == "not-ready"
+    assert response.headers["Retry-After"]
+
+
+def test_a_withheld_member_is_worse_than_a_pending_one():
+    from siliconcompiler.remote.server import artifacts
+
+    assert artifacts.worst([None, "not-ready", "artifact-not-approved"]) == \
+        "artifact-not-approved"
+    assert artifacts.worst(["not-ready", "entitlement-denied"]) == "entitlement-denied"
+    assert artifacts.worst([None, None]) is None
+
+
 ###########################
 # max_download_bytes
 ###########################
@@ -469,8 +495,10 @@ def test_an_object_over_the_ceiling_is_refused_rather_than_redirected(
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
 
-    assert response.status_code == 429
-    assert slug(response) == "limit-exceeded"
+    # 🔴 D117: a 403 and its own type, not `429 limit-exceeded` -- a client
+    # obeying `Retry-After` on a ceiling that never refills retries for ever.
+    assert response.status_code == 403
+    assert slug(response) == "download-too-large"
     # The key it names is the key it is published under, which is what makes
     # the registry double as the enforcement trace.
     assert response.get_json()["limit"] == "max_download_bytes"
@@ -501,13 +529,13 @@ def test_no_query_parameter_or_header_lifts_the_ceiling(
     for attempt in (f"/v1/jobs/{finished['id']}/artifacts/{item['id']}?force=1",
                     f"/v1/jobs/{finished['id']}/artifacts/{item['id']}"
                     "?max_download_bytes=0"):
-        assert call(server_client, key, "GET", attempt, token).status_code == 429
+        assert call(server_client, key, "GET", attempt, token).status_code == 403
 
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token,
                     headers={"X-Max-Download-Bytes": "0",
                              "Range": "bytes=0-100"})
-    assert response.status_code == 429
+    assert response.status_code == 403
 
 
 def test_unlimited_is_null_and_serves_anything(
@@ -549,14 +577,15 @@ def test_a_log_is_the_same_bytes_and_therefore_the_same_ceiling(
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{finished['id']}/logs?step=stepone&index=0", token)
 
-    assert response.status_code == 429
+    assert response.status_code == 403
+    assert slug(response) == "download-too-large"
     assert response.get_json()["limit"] == "max_download_bytes"
 
 
 def test_retrying_is_not_the_answer_so_no_retry_after_is_offered(
         server, server_client, key, token, finished):
-    '''`limit-exceeded` is a 429 and a 429 usually says when to come back.
-    This one never clears on its own, and naming a moment would be a lie.'''
+    '''This ceiling never clears on its own, and naming a moment to come
+    back would be a lie -- which is why it is not `limit-exceeded`.'''
     item = listing(server_client, key, token, finished["id"])[0]
     _ceiling(server, 1)
 

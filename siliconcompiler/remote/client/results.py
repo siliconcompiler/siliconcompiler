@@ -101,7 +101,7 @@ class Results:
 
         🔴 **The server enforces it; reading it here is only so the refusal
         does not have to happen.** An over-ceiling fetch is answered
-        `limit-exceeded` naming `max_download_bytes`, so a client that ignores
+        `download-too-large` naming `max_download_bytes`, so a client that ignores
         this number does not get more -- it gets the same results plus a
         failed request per oversized object. Knowing the number in advance is
         what turns forty refusals into one sentence.

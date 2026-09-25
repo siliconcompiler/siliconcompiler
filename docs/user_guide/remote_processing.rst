@@ -389,7 +389,9 @@ whether **one** image has to hold the name or each node's image does. Everything
 library run in the same process -- so one container has to have all of it. A
 tool is resolved per node, against an image holding the python set and that
 tool. A tool also takes ``-driver``, the module carrying its Task driver, which
-is what lets the server read its version out of an image:
+is what lets the server read its version out of an image. The probe imports it,
+so a driver is a module under ``siliconcompiler.tools`` or one the deployment
+names in ``config.json``'s ``software_drivers`` -- never an arbitrary module:
 
 .. code-block:: bash
 
@@ -433,8 +435,8 @@ exact; only the wire carries ranges.
 
 **And the descriptor carries two members, keyed the same two ways.**
 ``versions`` is what the client HAS and ``requires`` is what the image must
-HOLD; a bucket with no ``requires`` falls back to its ``versions`` as exact
-pins. ``versions.tools`` is usually ``{}`` -- a client submitting remotely
+HOLD; a name ``requires`` does not mention falls back to its ``versions`` entry
+as an exact pin, name by name. ``versions.tools`` is usually ``{}`` -- a client submitting remotely
 generally has no tools installed, which is usually why it is submitting
 remotely.
 
