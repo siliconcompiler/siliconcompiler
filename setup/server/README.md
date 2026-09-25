@@ -155,7 +155,8 @@ features and the limits as it would anywhere.
 
 | | 1 | 2 | 3 |
 |---|---|---|---|
-| live log over the API | ✅ | ❌ `feature-unsupported` | ❌ |
+| one live stream for the whole job | ✅ | ❌ `feature-unsupported` &mdash; the client follows each node | ❌ |
+| each node's live log | ✅ | ✅ | ❌ `feature-unsupported` |
 | archived log over the API | ✅ | ✅ | ❌ `feature-unsupported` |
 | what the API hands over | every kind | manifests, logs, reports | manifests &mdash; the job's and each node's |
 | the portal | everything | everything | everything |

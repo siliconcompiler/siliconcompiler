@@ -220,6 +220,28 @@ class Storage:
         if when > deadline:
             raise SignatureError("this stream link has expired")
 
+    def sign_job_stream(self, job_id: str, expires_at: int) -> str:
+        '''The capability half of a whole job's live stream.
+
+        Its own prefix rather than the node form with empty coordinates, so a
+        job stream's signature can never be presented as a node's, nor the
+        other way round, however the URL is edited.
+        '''
+        return self._sign(f"stream-job\n{job_id}\n{expires_at}")
+
+    def verify_job_stream(self, job_id: str, expires_at: str, signature: str,
+                          when: float) -> None:
+        try:
+            deadline = int(expires_at)
+        except (TypeError, ValueError):
+            raise SignatureError("malformed link") from None
+
+        expected = self._sign(f"stream-job\n{job_id}\n{deadline}")
+        if not hmac.compare_digest(expected, signature or ""):
+            raise SignatureError("the signature does not match this URL")
+        if when > deadline:
+            raise SignatureError("this stream link has expired")
+
     def verify_download(self, artifact_id: str, expires_at: str,
                         signature: str, when: float) -> None:
         try:

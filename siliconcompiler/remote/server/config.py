@@ -107,11 +107,16 @@ DEFAULTS: Dict[str, Any] = {
     "grant_types_supported": ["client_credentials", "refresh_token"],
 
     # A registry, not free text: absent and unrecognised mean the same thing to
-    # a client, so a value is only listed once it is served. Both are, now:
-    # `logs` is the archived file and `logs.stream` is the live tail, and they
-    # are two strings because one could not say which of the two a deployment
-    # had.
-    "features": ["logs", "logs.stream"],
+    # a client, so a value is only listed once it is served. All three are,
+    # now: `logs` is the archived file, `logs.stream` is one node's live tail,
+    # and `logs.stream.job` is every node's, merged into one stream. Separate
+    # strings because a deployment can have one without the next, and each
+    # implies the one before it -- see `_check_policy`.
+    #
+    # ✅ `logs.stream.job` is advertised because the stream host IS this host,
+    # so the merge is N tails in one process -- and one connection per job is
+    # what lets a flow wider than `concurrent_log_streams` be watched in full.
+    "features": ["logs", "logs.stream", "logs.stream.job"],
 
     # The honesty half, pairing with the startup log. "verified" is the only
     # value that asserts anything; every other value, known or unknown, means
@@ -284,10 +289,11 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
     # What this server does by default.
     1: {},
 
-    # No live tail; the manifest, logs and reports come over the API and the
-    # node archives only through the portal.
+    # Each node's live log but not the job's merged one, so a client falls
+    # back to one stream per running node; the manifest, logs and reports come
+    # over the API and the node archives only through the portal.
     2: {
-        "features": ["logs"],
+        "features": ["logs", "logs.stream"],
         "api_fetchable_kinds": ["manifest", "logs", "reports"],
         "limits": {
             "concurrent_jobs": 2,
@@ -333,6 +339,17 @@ def _check_policy(values: Dict[str, Any]) -> None:
             raise ValueError(
                 f"api_fetchable_kinds names unknown kinds: "
                 f"{', '.join(sorted(unknown))}")
+
+    # 🔴 Each log feature implies the one before it and is never advertised
+    # without it: a client reading `logs.stream.job` opens a job stream and
+    # falls back to per-node streams, and one reading `logs.stream` expects the
+    # archive once the node ends.
+    features = values["features"]
+    for feature, needs in (("logs.stream", "logs"),
+                           ("logs.stream.job", "logs.stream")):
+        if feature in features and needs not in features:
+            raise ValueError(f"features lists {feature} without {needs}, "
+                             "which it implies")
 
     denied = values["denied_resources"] or {}
     unknown = set(denied) - set(RESOURCE_KINDS)

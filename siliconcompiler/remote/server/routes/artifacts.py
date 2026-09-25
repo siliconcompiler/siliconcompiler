@@ -87,17 +87,26 @@ def fetch(session, job_id, artifact_id):
 @blueprint.route("/v1/jobs/<job_id>/logs", methods=["GET"])
 @require("jobs:read")
 def logs(session, job_id):
-    '''Endpoint 20: one node's log, and it never carries bytes.
+    '''Endpoint 20: one node's log, or the whole job's while it runs. It
+    never carries bytes.
 
-    Both query parameters are REQUIRED, and they are two fields rather than one
-    string: `step=place, index=10` and `step=place1, index=0` both render
-    `place10` and are two different nodes.
+    Both query parameters or neither. Both is one node, and they are two
+    fields rather than one string: `step=place, index=10` and `step=place1,
+    index=0` both render `place10` and are two different nodes. Neither is the
+    whole job, as one live stream.
     '''
     step = flask.request.args.get("step")
     index = flask.request.args.get("index")
+
+    if not step and not index:
+        _jobs().job_log(session, job_id)
+        return _job_stream_redirect(job_id)
+
     if not step or not index:
         raise ProblemError(
-            "invalid-request", detail="both step and index are required")
+            "invalid-request",
+            detail="step and index go together: both for one node, neither "
+                   "for the whole job")
 
     target, payload = _jobs().node_log(session, job_id, step, index)
 
@@ -132,9 +141,89 @@ def _stream_redirect(job_id, step, index):
     return response
 
 
+def _job_stream_redirect(job_id):
+    '''The same capability URL as a node's, for the whole job.'''
+    config = flask.current_app.config["SC_CONFIG"]
+    storage = flask.current_app.config["SC_STORAGE"]
+
+    expires = int(time.time()) + config.limits["max_log_stream_seconds"]
+    signature = storage.sign_job_stream(job_id, expires)
+
+    target = (f"{flask.request.url_root.rstrip('/')}/stream/logs/"
+              f"{job_id}?expires={expires}&sig={signature}")
+
+    response = flask.make_response("", 303)
+    response.headers["Location"] = target
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 ######################################################################
 # Not an endpoint: where a 303 above points
 ######################################################################
+
+@blueprint.route("/stream/logs/<job_id>", methods=["GET"])
+def tail_job(job_id):
+    '''Every node's live log, merged, where a coordinate-less `303` points.
+
+    🔴 **One connection, so one slot of `concurrent_log_streams`** -- which is
+    the point of it: a flow wider than the ceiling could not be watched in full
+    one node at a time.
+    '''
+    config = flask.current_app.config["SC_CONFIG"]
+    storage = flask.current_app.config["SC_STORAGE"]
+    store = flask.current_app.config["SC_STORE"]
+    jobs = flask.current_app.config["SC_JOBS"]
+    limiter = flask.current_app.config["SC_STREAMS"]
+
+    args = flask.request.args
+    try:
+        storage.verify_job_stream(job_id, args.get("expires"), args.get("sig"),
+                                  time.time())
+    except SignatureError as e:
+        raise ProblemError("invalid-request", detail=str(e)) from None
+
+    job = store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
+    if job is None or job["deleted_at"]:
+        raise ProblemError("not-found", detail="no such job")
+
+    owner = job["user_id"]
+    if not limiter.acquire(owner):
+        raise ProblemError(
+            "limit-exceeded", limit="concurrent_log_streams",
+            detail=f"you already have {limiter.held(owner)} logs open",
+            headers={"Retry-After": str(config["poll_interval_seconds"])})
+
+    nodes = jobs.job_nodes(job_id)
+    start = logstream.resume_job(
+        flask.request.headers.get("Last-Event-ID"), args.get("last_event_id"),
+        len(nodes))
+    deadline = time.monotonic() + config.limits["max_log_stream_seconds"]
+
+    def frames():
+        try:
+            yield from logstream.job_events(
+                nodes, lambda step, index: jobs.node_log_path(job, step, index),
+                node_states=lambda: jobs.node_states(job_id),
+                job_over=lambda: jobs.job_over(job_id),
+                start=start, deadline=deadline,
+                artifact_id=lambda step, index: jobs.node_log_artifact(
+                    job_id, step, index))
+        finally:
+            limiter.release(owner)
+
+    return _event_stream(frames())
+
+
+def _event_stream(frames):
+    response = flask.Response(frames, mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-store"
+    # For whatever fronts this: an SSE response that is buffered is not a
+    # stream, and the exemption is owed by the proxy rather than by the client.
+    response.headers["X-Accel-Buffering"] = "no"
+    response.headers["Connection"] = "keep-alive"
+    return response
+
 
 @blueprint.route("/stream/logs/<job_id>/<step>/<index>", methods=["GET"])
 def tail(job_id, step, index):
@@ -187,13 +276,7 @@ def tail(job_id, step, index):
             # would otherwise leak the slot for the life of the process.
             limiter.release(owner)
 
-    response = flask.Response(frames(), mimetype="text/event-stream")
-    response.headers["Cache-Control"] = "no-store"
-    # For whatever fronts this: an SSE response that is buffered is not a
-    # stream, and the exemption is owed by the proxy rather than by the client.
-    response.headers["X-Accel-Buffering"] = "no"
-    response.headers["Connection"] = "keep-alive"
-    return response
+    return _event_stream(frames())
 
 
 @blueprint.route("/storage/artifact/<job_id>/<artifact_id>", methods=["GET"])

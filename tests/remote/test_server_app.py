@@ -61,7 +61,7 @@ def test_every_required_member_is_real(client):
     assert body["notices"] == []
     # Both are served: the archived file and the live tail. Two strings,
     # because one could not say which of the two a deployment had.
-    assert body["features"] == ["logs", "logs.stream"]
+    assert body["features"] == ["logs", "logs.stream", "logs.stream.job"]
 
 
 def test_the_device_grant_is_not_advertised(client):

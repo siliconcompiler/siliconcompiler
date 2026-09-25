@@ -225,20 +225,52 @@ def test_mode_two_keeps_the_archived_log(server_client, key, token, finished):
     assert response.status_code == 303
 
 
-@pytest.mark.parametrize("mode", [2])
-def test_mode_two_refuses_the_live_tail(server, server_client, key, token,
-                                        job_archive, dispatcher):
+def _running(server, server_client, key, token, job_archive):
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
     server.config["SC_STORE"].execute(
         "UPDATE job_nodes SET state = 'running' WHERE job_id = ?", (job["id"],))
+    return job
+
+
+@pytest.mark.parametrize("mode", [2])
+def test_mode_two_tails_each_node(server, server_client, key, token,
+                                  job_archive, dispatcher):
+    job = _running(server, server_client, key, token, job_archive)
 
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{job['id']}/logs?step=stepone&index=0", token)
 
+    assert response.status_code == 303
+    assert "/stream/logs/" in response.headers["Location"]
+
+
+@pytest.mark.parametrize("mode", [2])
+def test_mode_two_has_no_job_stream_and_says_so_permanently(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''So a client falls back to one stream per running node, which is the
+    whole reason `logs.stream.job` is its own string.'''
+    job = _running(server, server_client, key, token, job_archive)
+
+    response = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/logs", token)
+
     assert response.status_code == 501
-    assert response.get_json()["feature"] == "logs.stream"
+    assert response.get_json()["feature"] == "logs.stream.job"
+    assert "Retry-After" not in response.headers
+
+
+@pytest.mark.parametrize("mode", [3])
+def test_mode_three_names_the_broadest_missing_capability(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''🔴 `logs`, not `logs.stream.job`: told only that the job stream is
+    missing, a client falls back to per-node requests that fail too.'''
+    job = _running(server, server_client, key, token, job_archive)
+
+    response = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/logs", token)
+
+    assert response.status_code == 501
+    assert response.get_json()["feature"] == "logs"
 
 
 ###########################

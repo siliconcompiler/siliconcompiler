@@ -27,9 +27,10 @@ one, which needs a capability flag exactly as a response member does.
 ## Three lists have closed
 
 The nine of the first, the five of the software-buckets review, and the fifteen
-of the third — plus the two follow-on decisions after it, and the second
+of the third — plus the two follow-on decisions after it, the second
 follow-on (the `.*` prefix spelling, and a `reported` version that does not
-parse lands on `published_date`, never coerced) — were decided in
+parse lands on `published_date`, never coerced), and the third (the job-level
+log stream, `logs.stream.job`, D102–D103 / profile D25) — were decided in
 `crucible/orchestration/api/contract-changes.md`, are implemented here, and
 have been removed rather than edited. Their home is the contract now.
 
@@ -83,6 +84,68 @@ so the refusal is reachable on purpose rather than only through `withheld_at`.
   from — and a refusal gated on nothing catalogued uses `artifact_kind`.
 
 **Where it goes:** `surface.md` §22 and the registry row.
+
+### 3. A job stream's id has to carry every node's position
+
+Implementing D103's *`id` is job-wide and monotonic*: **a single counter
+satisfies the words and cannot be resumed** by a stream host that remembers
+nothing about its callers. A counter says how far the job got; it does not say
+how far each NODE got, and arrival order across nodes is not reproducible on
+reconnect, so a server handed `Last-Event-ID: 41` has no way to know where any
+file should restart.
+
+✅ **What this profile emits:** `<total>-<o1>.<o2>…` in hex — every node's
+delivered byte offset, in the job's fixed node order, led by their sum. The sum
+strictly increases with every `log` event, so it is monotonic; the vector is the
+position, so resuming needs no server-side state; and an id whose length or sum
+does not fit this job (a per-node id, another job's) starts from the beginning,
+because a replay is a nuisance and a skip is a lost log. The id stays opaque on
+the wire.
+
+**Proposed:** a sentence in D103 that the id must identify every node's
+position, not only the job's progress, where the stream host is stateless —
+with this encoding as the example, not as the rule.
+
+**Where it goes:** `surface.md`, the job-stream rules table.
+
+### 4. Two things a job stream cannot tell a client on reconnect
+
+Both follow from the contract as written; neither is stated, and a client
+written from the text alone gets each one wrong once.
+
+- **`end` at once applies to a RESUMED request too.** A client whose stream
+  expired mid-job, reconnecting with `Last-Event-ID` after the job ended, is
+  answered `end {"reason": "terminal"}` and nothing else — whatever it had not
+  read yet is not replayed. That is the D103 rule working as intended, and the
+  recovery is the same as for the late request: the node archives. **But the
+  text says "a finished job", which reads as a fresh request.**
+- **`node_state` carries no `id`, so a resumed stream repeats it.** The server
+  cannot know which `node_state` events a client saw before it hung up, so a
+  reconnect reports again every finished node whose log it has already
+  delivered. A client must treat `node_state` as idempotent — collecting
+  `artifact_id` into a map by node rather than a list.
+
+**Proposed:** both as ⚠️ notes under the job-stream rules.
+
+**Where it goes:** `surface.md` §20.
+
+### 5. `manifest` may be bound to a node, and a client must not assume one per job
+
+This profile now indexes each node's own manifest as a `manifest` artifact with
+that node's `step`/`index`, beside the job's (`step`/`index` null). It is what
+carries the node's record and metrics, and inside the node archive only, a
+deployment withholding archives withheld the record with them.
+
+The contract permits it — `step`/`index` are null *for job-level artifacts*,
+and nothing makes `manifest` job-level only — **but every sentence about the
+manifest reads as though there is one**, and a client written from them picks
+"the manifest" out of a listing and gets a node's. This profile's own client
+did.
+
+**Proposed:** the kinds table says `manifest` is job-level or node-bound, and
+that the job-level one is the run's final record.
+
+**Where it goes:** `surface.md` §21, the kinds table.
 
 ---
 

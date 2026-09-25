@@ -27,7 +27,8 @@ import time
 from pathlib import Path
 from typing import Iterator, Optional
 
-__all__ = ["events", "TERMINAL_NODE_STATES", "POLL_SECONDS", "RETRY_MS"]
+__all__ = ["events", "job_events", "resume_from", "resume_job",
+           "TERMINAL_NODE_STATES", "POLL_SECONDS", "RETRY_MS"]
 
 
 logger = logging.getLogger("sc-server")
@@ -126,6 +127,137 @@ def events(path: Path, step: str, index: str, node_state, start: int,
             last_sent = time.monotonic()
 
         time.sleep(POLL_SECONDS)
+
+
+def job_events(nodes, path_of, node_states, job_over, start, deadline,
+               artifact_id) -> Iterator[bytes]:
+    '''Yield SSE frames for every node of a job, merged, until it ends.
+
+    ``nodes`` is the job's node list in a fixed order -- the store's -- because
+    the event id is a vector over it. ``path_of(step, index)`` is where a node's
+    log is, ``node_states()`` what every node is doing now, ``job_over()``
+    whether the job is terminal, and ``artifact_id(step, index)`` a node's
+    archived log once there is one.
+
+    🔴 **The id is job-wide, and that is the rule a merge gets wrong.** A
+    per-node id is a byte offset in ONE file, and resuming a merged stream from
+    one of those would start every other node at a position that is not its
+    own. So the id carries every node's offset -- `<total>-<o1>.<o2>...` in hex
+    -- led by their sum, which strictly increases with every `log` event: it is
+    a position in the job, it is monotonic, and handing it back needs this
+    server to remember nothing about the caller.
+
+    Ordering is kept within a node and is arrival order across them: each pass
+    takes what every node has written since the last, node by node.
+
+    ⚠️ **A job already over when the stream opens gets `end` at once**, with
+    nothing replayed. It is the same answer as a job that ends between the
+    `303` and the connect, so the late request and the race are one path, and
+    the client reads the listing for `kind=logs`. `end` names no artifact on a
+    job stream: there is no single archive, and each node's `node_state`
+    already named its own.
+    '''
+    count = len(nodes)
+    offsets = list(start) if len(start) == count else [0] * count
+    pending = [b""] * count
+    reported = [False] * count
+    last_sent = time.monotonic()
+
+    yield f"retry: {RETRY_MS}\n\n".encode()
+
+    if job_over():
+        yield _event("end", {"reason": "terminal"})
+        return
+
+    while True:
+        progressed = False
+        states = node_states()
+
+        for slot, (step, index) in enumerate(nodes):
+            if reported[slot]:
+                continue
+
+            path = path_of(step, index)
+            size = _size(path)
+
+            if size < offsets[slot]:
+                logger.warning(f"{path} shrank under a reader; restarting its tail")
+                offsets[slot], pending[slot] = 0, b""
+
+            if size > offsets[slot]:
+                chunk, offsets[slot] = _read(path, offsets[slot], MAX_CHUNK)
+                pending[slot] += chunk
+                text, pending[slot] = _split(pending[slot], complete=False)
+                if text:
+                    yield _log(step, index, text, _job_id(offsets, pending))
+                    last_sent = time.monotonic()
+                progressed = True
+                continue
+
+            state = states.get((step, index))
+            if state in TERMINAL_NODE_STATES:
+                text, pending[slot] = _split(pending[slot], complete=True)
+                if text:
+                    yield _log(step, index, text, _job_id(offsets, pending))
+
+                yield _event("node_state", _with_artifact(
+                    {"step": step, "index": index, "state": state},
+                    artifact_id(step, index)))
+                reported[slot] = True
+                progressed = True
+
+        if all(reported) or (not progressed and job_over()):
+            yield _event("end", {"reason": "terminal"})
+            return
+
+        # Checked on a busy pass too: a job whose nodes never go quiet would
+        # otherwise hold a capability past its lifetime. The client resumes
+        # from the last id either way.
+        if time.monotonic() >= deadline:
+            yield _event("end", {"reason": "expired"})
+            return
+
+        if progressed:
+            continue
+
+        if time.monotonic() - last_sent >= HEARTBEAT_SECONDS:
+            yield b": keep-alive\n\n"
+            last_sent = time.monotonic()
+
+        time.sleep(POLL_SECONDS)
+
+
+def _log(step: str, index: str, text: str, identifier: str) -> bytes:
+    return _event("log", {"step": step, "index": index, "stream": "stdout",
+                          "ts": _now(), "text": text}, identifier=identifier)
+
+
+def _job_id(offsets, pending) -> str:
+    '''Where every node has been delivered up to, led by the total.'''
+    delivered = [offset - len(held) for offset, held in zip(offsets, pending)]
+    return f"{sum(delivered):x}-" + ".".join(f"{at:x}" for at in delivered)
+
+
+def resume_job(header: Optional[str], fallback, count: int):
+    '''Every node's offset out of a job stream's id, or all zeros.
+
+    ⚠️ An id with the wrong number of nodes, or a per-node id handed to the job
+    stream, starts from the beginning: it is not a position in THIS job, and a
+    stream that replays is a nuisance where one that skips is a lost log.
+    '''
+    for candidate in (header, fallback):
+        if not candidate:
+            continue
+        total, _, vector = str(candidate).partition("-")
+        try:
+            offsets = [int(part, 16) for part in vector.split(".")] if vector else []
+            if len(offsets) == count and sum(offsets) == int(total, 16) \
+                    and all(offset >= 0 for offset in offsets):
+                return offsets
+        except ValueError:
+            pass
+        logger.debug(f"ignoring a Last-Event-ID that is not this job's: {candidate!r}")
+    return [0] * count
 
 
 def _with_artifact(body: dict, artifact) -> dict:

@@ -606,14 +606,18 @@ class RemoteRun:
 class _Tails:
     '''The live logs of whatever is running, on this terminal.
 
-    🔴 One stream per running node, interleaved. SiliconCompiler's own log
-    lines already carry ``job | step | index``, so several at once read exactly
-    the way a local run does -- which is the point: a remote run should not
-    look like a different program.
+    🔴 **One stream for the whole job where the server offers it**
+    (`logs.stream.job`), and one per running node where it does not. Either way
+    the lines interleave, and SiliconCompiler's own log lines already carry
+    ``job | step | index``, so several at once read exactly the way a local run
+    does -- which is the point: a remote run should not look like a different
+    program.
 
-    Bounded by the server's published ``concurrent_log_streams``, because it is
-    the server's thread and file descriptor being held. Nodes past the ceiling
-    are named once and their logs arrive with the results like everything else.
+    The job stream is one connection however wide the flow, so it is also the
+    only way to watch every node of a flow wider than the server's
+    ``concurrent_log_streams``. Per node, that ceiling bounds how many are
+    followed; nodes past it are named once and their logs arrive with the
+    results like everything else.
     '''
 
     def __init__(self, run: "RemoteRun"):
@@ -627,10 +631,15 @@ class _Tails:
         self._lock = threading.Lock()
         self._stop = threading.Event()
 
-        self._enabled, self._ceiling = self._decide()
+        # Every archived log's id, as the job stream's `node_state` events name
+        # them.
+        self.artifact_ids: Dict[Tuple[str, str], str] = {}
 
-    def _decide(self) -> Tuple[bool, int]:
-        '''Whether to tail at all, and how many at once.
+        self._enabled, self._ceiling, self._whole_job = self._decide()
+
+    def _decide(self) -> Tuple[bool, int, bool]:
+        '''Whether to tail at all, how many at once, and whether as one
+        stream for the whole job.
 
         Three things can switch it off, and only one of them is an opinion:
         the deployment does not serve a live tail, or the caller asked for
@@ -638,26 +647,39 @@ class _Tails:
         put tool output on my terminal*.
         '''
         if self._run.project.option.get_quiet():
-            return False, 0
+            return False, 0, False
 
         try:
             capabilities = self._client.capabilities()
         except RemoteError as e:
             logger.debug(f"no capabilities, so no tailing: {e}")
-            return False, 0
+            return False, 0, False
 
-        if "logs.stream" not in (capabilities.get("features") or []):
+        features = capabilities.get("features") or []
+        if "logs.stream" not in features:
             # 🔴 Absent and unrecognised mean the same thing. The archived log
             # still arrives with the results, so this costs the live view and
             # not the log.
-            return False, 0
+            return False, 0, False
 
         ceiling = (capabilities.get("limits") or {}).get("concurrent_log_streams")
-        return True, max(1, int(ceiling or 1))
+        return True, max(1, int(ceiling or 1)), "logs.stream.job" in features
 
     def follow(self, job_id: str, job: Dict[str, Any]) -> None:
         '''Start a tail for anything newly running.'''
         if not self._enabled:
+            return
+
+        if self._whole_job:
+            # One stream, opened once something is running: asked before any
+            # node has started, the job form answers `not-ready`.
+            if JOB not in self._started and any(
+                    node.get("state") == "running" for node in job.get("nodes") or []):
+                self._started.add(JOB)
+                thread = threading.Thread(target=self._tail_job, args=(job_id,),
+                                          daemon=True)
+                self._threads[JOB] = thread
+                thread.start()
             return
 
         for node in job.get("nodes") or []:
@@ -681,6 +703,34 @@ class _Tails:
                 target=self._tail, args=(job_id, *key), daemon=True)
             self._threads[key] = thread
             thread.start()
+
+    def _tail_job(self, job_id: str) -> None:
+        from siliconcompiler.remote.client.logs import LogTail
+
+        tail = LogTail(self._client, job_id)
+        try:
+            tail.follow(write=self._write)
+        except ServerProblem as refusal:
+            if refusal.slug == "feature-unsupported" and \
+                    refusal.member("feature") == "logs.stream.job":
+                # 🔴 Permanent, so the job form is never asked for again: this
+                # deployment follows one node at a time, starting at the next
+                # poll.
+                logger.debug("no job stream here; following each node instead")
+                self._whole_job = False
+            elif refusal.slug == "not-ready":
+                # Nothing had started by the time it was asked. Transient:
+                # the next poll asks again.
+                self._started.discard(JOB)
+            else:
+                logger.debug(f"stopped following the job's log: {refusal}")
+        except Exception as e:                                   # noqa: BLE001
+            # The log is still fetched with the results.
+            logger.debug(f"stopped following the job's log: {e}")
+        finally:
+            self.artifact_ids.update(tail.artifact_ids)
+            with self._lock:
+                self._threads.pop(JOB, None)
 
     def _tail(self, job_id: str, step: str, index: str) -> None:
         try:
@@ -735,6 +785,11 @@ class _Tails:
         for thread in list(self._threads.values()):
             thread.join(timeout=timeout)
         self._stop.set()
+
+
+# The key the job stream's thread is held under, beside the per-node keys it
+# replaces. Not a (step, index) any flow can have.
+JOB = (None, None)
 
 
 def _starttimes(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:

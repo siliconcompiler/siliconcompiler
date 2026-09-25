@@ -768,6 +768,90 @@ def test_the_tail_count_is_the_servers_published_ceiling(fake_v1, run):
     assert tails._ceiling == 8
 
 
+def _running_nodes(*steps):
+    return {"nodes": [{"step": step, "index": "0", "state": "running",
+                       "terminal": False} for step in steps]}
+
+
+def test_with_a_job_stream_one_connection_follows_every_node(fake_v1, run,
+                                                             monkeypatch):
+    '''🔴 One stream however wide the flow -- which is what lets a flow wider
+    than `concurrent_log_streams` be watched in full.'''
+    from siliconcompiler.remote.client.run import _Tails
+
+    run.project.option.set_quiet(False)
+    opened = []
+    monkeypatch.setattr(_Tails, "_tail_job", lambda self, job_id: opened.append(job_id))
+    monkeypatch.setattr(_Tails, "_tail", lambda self, *node: opened.append(node))
+
+    tails = _Tails(run)
+    tails.follow("j1", _running_nodes("stepone", "steptwo"))
+    tails.follow("j1", _running_nodes("stepone", "steptwo", "stepthree"))
+    tails.finish()
+
+    assert opened == ["j1"]
+
+
+def test_without_one_each_running_node_is_followed(fake_v1, run, capabilities,
+                                                   monkeypatch):
+    from siliconcompiler.remote.client.run import _Tails
+
+    run.project.option.set_quiet(False)
+    fake_v1.replace(responses.GET, "",
+                    dict(capabilities, features=["logs", "logs.stream"]))
+    opened = []
+    monkeypatch.setattr(_Tails, "_tail", lambda self, *args: opened.append(args[1]))
+
+    tails = _Tails(run)
+    tails.follow("j1", _running_nodes("stepone", "steptwo"))
+    tails.finish()
+
+    assert sorted(opened) == ["stepone", "steptwo"]
+
+
+def test_a_refused_job_stream_falls_back_for_good(fake_v1, run, monkeypatch):
+    '''🔴 `feature-unsupported` naming `logs.stream.job` is permanent: follow
+    each node from the next poll, and never ask for the job form again.'''
+    from conftest import problem
+    from siliconcompiler.remote.client.run import _Tails
+
+    run.project.option.set_quiet(False)
+    fake_v1.route(responses.GET, "jobs/j1/logs",
+                  problem("feature-unsupported", 501, feature="logs.stream.job"),
+                  status=501, content_type="application/problem+json")
+
+    tails = _Tails(run)
+    tails._tail_job("j1")
+    assert tails._whole_job is False
+
+    opened = []
+    monkeypatch.setattr(_Tails, "_tail", lambda self, *args: opened.append(args[1]))
+    tails.follow("j1", _running_nodes("stepone"))
+    tails.finish()
+
+    assert opened == ["stepone"]
+    asked = [c.request.path_url for c in fake_v1.calls if "/logs" in c.request.path_url]
+    assert asked == ["/v1/jobs/j1/logs"]
+
+
+def test_a_job_stream_asked_too_early_is_asked_again(fake_v1, run, monkeypatch):
+    '''`not-ready` is transient: nothing had started when it was asked.'''
+    from conftest import problem
+    from siliconcompiler.remote.client.run import JOB, _Tails
+
+    run.project.option.set_quiet(False)
+    fake_v1.route(responses.GET, "jobs/j1/logs",
+                  problem("not-ready", 409, artifact_kind="logs"),
+                  status=409, content_type="application/problem+json")
+
+    tails = _Tails(run)
+    tails._started.add(JOB)
+    tails._tail_job("j1")
+
+    assert tails._whole_job is True
+    assert JOB not in tails._started
+
+
 ###########################
 # What the flow will reach for
 ###########################

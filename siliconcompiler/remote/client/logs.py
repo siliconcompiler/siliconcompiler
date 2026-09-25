@@ -17,7 +17,7 @@ import json
 import logging
 import time
 
-from typing import Optional
+from typing import Dict, Optional, Tuple
 
 from siliconcompiler.remote.client.errors import RemoteError, ServerProblem
 
@@ -38,15 +38,27 @@ MAX_EMPTY_RECONNECTS = 5
 
 
 class LogTail:
-    '''One node's log, followed to its end.'''
+    '''One node's log, or with no step and index the whole job's, followed to
+    its end.
 
-    def __init__(self, client, job_id: str, step: str, index: str):
+    ⚠️ **On a job stream the id is the job's, and is only ever handed back.**
+    It names a position in the whole job, so this client keeps the last one and
+    never reads meaning into it.
+    '''
+
+    def __init__(self, client, job_id: str, step: Optional[str] = None,
+                 index: Optional[str] = None):
         self.client = client
         self.job_id = job_id
         self.step = step
         self.index = index
         self.last_event_id: Optional[str] = None
         self.artifact_id: Optional[str] = None
+        # Every node's archived log, collected off `node_state` as each node
+        # completes. On a job stream `end` names none -- there is no single
+        # archive -- so by the time it arrives this already holds them all,
+        # and no listing call is needed to find them.
+        self.artifact_ids: Dict[Tuple[str, str], str] = {}
         # What the server asked us to wait before reconnecting, from the SSE
         # `retry` field. Per tail, not per class: two tails against different
         # servers must not set each other's pace.
@@ -70,7 +82,9 @@ class LogTail:
             from siliconcompiler.remote.client import _is_stream
 
             if not _is_stream(response):
-                # It finished while we were asking. The archived file is the
+                # A node that finished while we were asking. (A job stream is
+                # always a stream: a finished job answers with one that ends at
+                # once.) The archived file is the
                 # same bytes the tail was reading, so what is left is the part
                 # after the last id we saw -- but a file has no offset on the
                 # wire, so the whole of it is served and only the tail from here
@@ -87,9 +101,11 @@ class LogTail:
 
             empty = 0 if produced else empty + 1
             if empty >= MAX_EMPTY_RECONNECTS:
+                what = (f"the log for {self.step}/{self.index}" if self.step
+                        else "the job's log stream")
                 raise RemoteError(
-                    f"the log for {self.step}/{self.index} reconnected "
-                    f"{empty} times without producing anything")
+                    f"{what} reconnected {empty} times without producing "
+                    "anything")
 
             time.sleep(self.retry or RECONNECT_SECONDS)
 
@@ -114,12 +130,18 @@ class LogTail:
 
                 elif event == "node_state":
                     self.artifact_id = data.get("artifact_id") or self.artifact_id
+                    node = (data.get("step"), data.get("index"))
+                    if data.get("artifact_id") and None not in node:
+                        self.artifact_ids[node] = data["artifact_id"]
 
                 elif event == "end":
                     self.artifact_id = data.get("artifact_id") or self.artifact_id
-                    # `terminal` is the node being over; anything else -- an
-                    # expired capability, a restart -- is this connection being
-                    # over, which is a reconnect rather than an end.
+                    # `terminal` is the node -- or the job -- being over, and
+                    # ⚠️ it can be the first thing a stream says: a job that
+                    # was already finished answers with a stream that ends at
+                    # once. Anything else -- an expired capability, a restart
+                    # -- is this connection being over, which is a reconnect
+                    # rather than an end.
                     return produced, data.get("reason") == "terminal"
 
         except (OSError, ValueError) as e:

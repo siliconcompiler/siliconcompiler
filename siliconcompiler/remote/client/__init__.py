@@ -501,9 +501,12 @@ class Client:
 
         return self.transport.save(response, dest)
 
-    def follow_log(self, job_id: str, step: str, index: str,
-                   last_event_id=None):
+    def follow_log(self, job_id: str, step: Optional[str] = None,
+                   index: Optional[str] = None, last_event_id=None):
         '''``GET /v1/jobs/{id}/logs``, followed to whatever it points at.
+
+        With a step and an index, that node; with neither, the whole job as one
+        live stream (`logs.stream.job`).
 
         🔴 Re-requested on every reconnect and never reused. Authorization is
         evaluated here, at the endpoint that takes the token and the proof, and
@@ -513,8 +516,11 @@ class Client:
         '''
         self.ensure_session()
 
+        # Both or neither: one without the other is a 400, and sending
+        # `step=None` would be the string "None".
+        params = {"step": step, "index": index} if step is not None else {}
         response = self.transport.request(
-            "GET", f"jobs/{job_id}/logs", params={"step": step, "index": index},
+            "GET", f"jobs/{job_id}/logs", params=params,
             stream=True, allow_redirects=False)
 
         headers = {}
@@ -533,6 +539,18 @@ class Client:
         from siliconcompiler.remote.client.logs import LogTail
 
         return LogTail(self, job_id, step, index).follow(write=write)
+
+    def tail_job(self, job_id: str, write=None) -> str:
+        '''Read every node's log as it is written, merged, to the job's end.
+
+        One connection for the whole job, where the server advertises
+        `logs.stream.job`. Raises the server's refusal otherwise, and a
+        `feature-unsupported` naming `logs.stream.job` is permanent: follow each
+        running node instead.
+        '''
+        from siliconcompiler.remote.client.logs import LogTail
+
+        return LogTail(self, job_id).follow(write=write)
 
     ######################################################################
     # sc-remote -configure

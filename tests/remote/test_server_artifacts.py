@@ -518,11 +518,12 @@ def test_a_terminal_nodes_log_redirects_to_the_archive(server_client, key,
     assert bytes_response.headers["Content-Type"].startswith("text/plain")
 
 
-@pytest.mark.parametrize("missing", ["?step=stepone", "?index=0", ""])
+@pytest.mark.parametrize("missing", ["?step=stepone", "?index=0"])
 def test_both_step_and_index_are_required(server_client, key, token, finished,
                                           missing):
     '''Two fields rather than one string: step=place index=10 and step=place1
-    index=0 both render place10 and are two different nodes.'''
+    index=0 both render place10 and are two different nodes. Both or neither:
+    neither is the whole job, and one alone is neither.'''
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{finished['id']}/logs{missing}", token)
 

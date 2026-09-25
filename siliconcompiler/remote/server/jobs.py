@@ -60,6 +60,17 @@ SCHEDULER_QUERY_FLOOR = 5
 # `cancelled` and `abandoned` are somebody having stopped.
 REUSABLE_STATES = ("completed", "failed")
 
+# What a job-stream request is told for each capability the deployment lacks,
+# broadest first.
+_WITHOUT = {
+    "logs": "this deployment does not serve logs over the API; they are on "
+            "the web portal",
+    "logs.stream": "this deployment does not serve a live log; each node's "
+                   "archived log is available once it finishes",
+    "logs.stream.job": "this deployment does not merge a job's logs into one "
+                       "stream; follow each running node instead",
+}
+
 # The two surfaces a caller reaches a job through. They disagree about exactly
 # two things -- `max_download_bytes` and `api_fetchable_kinds` -- and both are
 # decided from this one value.
@@ -1806,6 +1817,66 @@ class JobService:
             self._check_download_ceiling(session, row)
 
         return "artifact", row
+
+    def job_log(self, session, job_id: str):
+        '''Endpoint 20 with no coordinates: the whole job's live stream.
+
+        Returns the job when the answer is a stream -- which it is for a job
+        that is running AND for one that is over, whose stream sends `end` at
+        once. Everything else is a refusal.
+
+        🔴 **A missing capability is named at its broadest**: `logs`, then
+        `logs.stream`, then `logs.stream.job`. A client told only that the job
+        stream is missing, on a deployment that serves no logs at all, would
+        fall back to per-node requests that fail too.
+
+        ⚠️ The terminal answer is deliberately not a refusal. A job can end
+        between the `303` and the connect, and the stream already answers that
+        with `end`; a request that arrives after the end is the same case
+        arriving late, and gets the same path.
+        '''
+        job = self.owned(session, job_id)
+        if job["deleted_at"]:
+            raise ProblemError("not-found", detail="this job's data was deleted")
+
+        features = self._config["features"]
+        for feature in ("logs", "logs.stream", "logs.stream.job"):
+            if feature not in features:
+                raise ProblemError(
+                    "feature-unsupported", feature=feature,
+                    detail=_WITHOUT[feature])
+
+        if job["state"] in TERMINAL_STATES:
+            return job
+
+        started = self._store.one(
+            "SELECT 1 FROM job_nodes WHERE job_id = ? "
+            "AND state NOT IN ('pending', 'queued', 'preparing') LIMIT 1",
+            (job["id"],))
+        if started is None:
+            # The same answer a node gives before it starts: transient.
+            raise ProblemError(
+                "not-ready", artifact_kind="logs",
+                detail="no node of this job has started",
+                headers={"Retry-After": str(self._config["poll_interval_seconds"])})
+
+        return job
+
+    def job_nodes(self, job_id: str) -> List[Tuple[str, str]]:
+        '''Every node of a job, in the one order a job stream's id relies on.'''
+        return [(row["step"], row["index"]) for row in self._store.all(
+            'SELECT step, "index" FROM job_nodes WHERE job_id = ? '
+            'ORDER BY step, "index"', (job_id,))]
+
+    def node_states(self, job_id: str) -> Dict[Tuple[str, str], str]:
+        '''What every node is doing NOW, read fresh for a stream that asks
+        over and over.'''
+        return {(row["step"], row["index"]): row["state"] for row in self._store.all(
+            'SELECT step, "index", state FROM job_nodes WHERE job_id = ?', (job_id,))}
+
+    def job_over(self, job_id: str) -> bool:
+        row = self._store.one("SELECT state FROM jobs WHERE id = ?", (job_id,))
+        return row is None or row["state"] in TERMINAL_STATES
 
     def node_logs(self, session, job_id: str, step: str, index: str):
         '''Every log one node left, as (name, path).

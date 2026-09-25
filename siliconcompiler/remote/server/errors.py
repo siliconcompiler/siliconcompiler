@@ -105,7 +105,7 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
 # published `features` list by exactly one: device_grant is advertised by
 # grant_types_supported rather than by features, and it is the value this
 # profile refuses POST /v1/auth/device with.
-FEATURES = ("logs", "logs.stream", "projects", "device_grant")
+FEATURES = ("logs", "logs.stream", "logs.stream.job", "projects", "device_grant")
 
 # Which archive rule was broken. Six conditions shared one slug and no
 # discriminator before this member existed; two of them are published limits.
