@@ -1,41 +1,51 @@
 '''
-What owns each file a job names, and where the file came from.
+What owns each file a job names, where it came from, and how it reaches a run.
 
-Both ends ask this. The client asks it to decide what goes in the archive; the
-server asks it to decide whether a PDK, library or FPGA device the flow needs is
-one it holds or one whose files had to arrive -- and refuses the job at
-re-derivation, rather than on its first node, when neither is true.
+Both ends ask this. The client asks it to decide what goes in the archive and
+which dataroots it expects the server to supply; the server asks it to decide,
+for every file the manifest names, whether it arrived or can be supplied -- and
+never by looking at the path the job names.
 
-🔴 **The line is drawn by what owns a file, and no flag is consulted.**
-`copy=True` is opt-in and per parameter, so a job whose sources had not been
-marked went up as references to somebody else's filesystem. Every file has an
-owner that SiliconCompiler already records: the design, every PDK, standard-cell
-library and FPGA device are objects under ``library.<name>``, and a tool's
-scripts sit under ``tool.<name>``.
+🔴 **Every file is uploaded or supplied by identity (D112).** The server used to
+look for a file the client left out at the same path on its own disk, expanding
+variables from its own environment. A manifest could root a library at `/etc` or
+`$HOME/.aws`, leave it out of the archive, and have the server supply it -- on an
+unauthenticated server, anyone reading the host's files into a job. It no longer
+reads any path a job names.
 
-=====================  ==========================================
-The file belongs to    It is uploaded
-=====================  ==========================================
-the user's design      always
-a PDK, library, FPGA   only when its source is local or editable
-a tool                 only when its source is local or editable
-=====================  ==========================================
+==============================  ===============  =================================
+Dataroot source                 Outcome          How the server finds its copy
+==============================  ===============  =================================
+a local path, or no dataroot    uploaded         --
+a ``$``-rooted path             uploaded         -- the CLIENT expands it
+an editable Python package      uploaded         --
+an installed Python package     supplied         by package name
+git / https / any remote        supplied         by source and ref, allowlist only
+marked private                  supplied, never  (object name, dataroot name) to a
+                                uploaded         root the operator configured
+==============================  ===============  =================================
+
+⚠️ **The design is uploaded whatever its source**, and a PDK's, library's, FPGA
+device's or tool's files are uploaded only when local or editable. **Private
+wins over both**: a private file is never uploaded, and a private design --
+which no server supplies -- is refused.
 
 🔴 **"Local" is the dataroot's registered SOURCE, never where the file is
 now.** Every resolved file is on local disk -- a lambdapdk PDK is fetched into
-the cache on first use -- so judging by location would upload every PDK in
-every job, which is the exact opposite of the rule, and it would do it
-silently.
+the cache on first use -- so judging by location would upload every PDK in every
+job, the exact opposite of the rule, and silently.
 '''
 
 import os
-import re
 
-from typing import List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple
+from urllib.parse import urlsplit, urlunsplit
 
-__all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE",
-           "INSTALLED", "REMOTE", "ENVIRONMENT", "owner", "source", "uploads",
-           "holding", "env_names"]
+__all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "SOURCE_KINDS",
+           "LOCAL", "EDITABLE", "INSTALLED", "REMOTE", "PRIVATE",
+           "UPLOADED", "SUPPLIED", "FETCH", "ASK", "UNAVAILABLE",
+           "is_private", "skipped", "owner", "source", "uploads", "sources",
+           "strip_userinfo", "account", "Entry", "confined", "upload_report"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -46,24 +56,41 @@ PROJECT = "project"
 # words the contract's `resource_kinds` uses.
 RESOURCE_KINDS = ("pdk", "library", "fpga")
 
+# What a `sources` / `upload_sources` entry's `kind` may be.
+SOURCE_KINDS = ("pdk", "library", "fpga", "tool", "design")
+
 # Where a dataroot's files come from.
-LOCAL = "local"            # a path on this machine, or no dataroot at all
+LOCAL = "local"            # a path on this machine, `$`-rooted included
 EDITABLE = "editable"      # a Python package installed editable
 INSTALLED = "installed"    # a Python package installed normally
 REMOTE = "remote"          # git, https, or anything fetched -- cached or not
-# 🔴 Rooted in an environment variable -- `$FOUNDRY_ROOT/...` -- which names a
-# location that differs by SITE. That is why SiliconCompiler documents it for
-# proprietary PDKs, and uploading one defeats the indirection: neither local
-# nor editable (D109). Told from the registered source, which keeps the
-# variable unexpanded; SiliconCompiler expands it only at resolution.
-ENVIRONMENT = "environment"
-
-_ENV_NAME = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)")
+PRIVATE = "private"        # never leaves the machine; supplied by name
 
 # Parameters that are paths and are never the run's input. The build and cache
 # directories are this machine's; the credentials file is this machine's KEY.
 _NEVER = {("option", "builddir"), ("option", "cachedir"),
           ("option", "credentials")}
+
+
+def is_private(resolver) -> bool:
+    '''Whether a dataroot is marked never to leave the machine.
+
+    🔴 **The one place the marker is tested.** Its spelling is not decided -- a
+    ``file+private://`` scheme, which this is, or a ``private`` field beside
+    ``path`` and ``tag`` -- so switching is an edit here and nowhere else.
+    '''
+    from siliconcompiler.package import PrivateFileResolver
+
+    return isinstance(resolver, PrivateFileResolver)
+
+
+def skipped(key) -> bool:
+    '''Parameters that are paths and are not the run's input -- the same set
+    `collect` leaves out.'''
+    if key[0] == "history" or tuple(key[:2]) in _NEVER:
+        return True
+    return (key[0] == "tool" and len(key) > 4 and key[2] == "task"
+            and key[4] in ("input", "report", "output"))
 
 
 def owner(project, key) -> Tuple[str, Optional[str]]:
@@ -93,16 +120,15 @@ def owner(project, key) -> Tuple[str, Optional[str]]:
     return PROJECT, None
 
 
-def env_names(path) -> List[str]:
-    '''The environment variables a registered path is rooted in.'''
-    return _ENV_NAME.findall(str(path or ""))
-
-
 def source(resolvers, dataroot: Optional[str], _seen=None,
            path: Optional[str] = None) -> str:
     '''Where files under ``dataroot`` come from, judged by how it was
     REGISTERED. ``resolvers`` is the owning schema's
     ``_find_files_dataroot_resolvers(True)``.
+
+    🔴 A ``$``-rooted path is LOCAL: the client expands it, with its own
+    environment and its `option,env`, and uploads what it finds. The server
+    never expands a variable.
 
     A dataroot that names another dataroot is judged by the one it names; a
     keypath dataroot, by nothing it can be traced to, is local -- the cautious
@@ -110,17 +136,17 @@ def source(resolvers, dataroot: Optional[str], _seen=None,
     has it.
     '''
     from siliconcompiler.package import (
-        DatarootResolver, FileResolver, KeyPathResolver, PythonPathResolver,
-        RemoteResolver)
+        DatarootResolver, PythonPathResolver, RemoteResolver)
 
     if not dataroot:
-        # A path with no dataroot is judged by itself.
-        return ENVIRONMENT if env_names(path) else LOCAL
+        return LOCAL
 
     resolver = resolvers.get(dataroot)
     if resolver is None:
         return LOCAL
 
+    if is_private(resolver):
+        return PRIVATE
     if isinstance(resolver, RemoteResolver):
         return REMOTE
     if isinstance(resolver, PythonPathResolver):
@@ -133,95 +159,208 @@ def source(resolvers, dataroot: Optional[str], _seen=None,
             return LOCAL
         seen.add(dataroot)
         return source(resolvers, resolver.urlpath, seen)
-    if isinstance(resolver, FileResolver):
-        # ⚠️ `source`, never `urlpath`: `urlpath` has already expanded the
-        # variable -- with the job's `option,env` laid over the environment.
-        return ENVIRONMENT if env_names(_registered(resolver)) else LOCAL
-    if isinstance(resolver, KeyPathResolver):
-        return LOCAL
-    # Something this client does not know. Sending it is the answer that
-    # cannot leave a job short of a file.
+    # A file path, a keypath, or something this client does not know. Sending
+    # it is the answer that cannot leave a job short of a file.
     return LOCAL
 
 
 def uploads(project, key, dataroot: Optional[str], resolvers,
             path: Optional[str] = None) -> bool:
     '''Whether one value of one parameter goes in the archive.'''
-    if tuple(key[:2]) in _NEVER:
+    if skipped(key):
         return False
 
-    kind, _ = owner(project, key)
-    if kind in (DESIGN, PROJECT):
+    kind = source(resolvers, dataroot, path=path)
+    if kind == PRIVATE:
+        return False
+
+    who, _ = owner(project, key)
+    if who in (DESIGN, PROJECT):
         return True
 
-    return source(resolvers, dataroot, path=path) in (LOCAL, EDITABLE)
+    return kind in (LOCAL, EDITABLE)
 
 
-def holding(project, name: str, collection_dir) -> Tuple[bool, bool]:
-    '''Whether this server can supply every file of ``library.<name>``, and
-    whether it will use an uploaded copy for any of them.
+def strip_userinfo(url: Optional[str]) -> Optional[str]:
+    '''A URL with any `user:secret@` removed. `https://user:token@...` is
+    common, and a token must never leave the client or be stored.'''
+    if not url or "@" not in url:
+        return url
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url
+    if not parts.netloc or "@" not in parts.netloc:
+        return url
+    host = parts.netloc.rsplit("@", 1)[1]
+    return urlunsplit((parts.scheme, host, parts.path, parts.query, parts.fragment))
 
-    Returns ``(held, uploaded)``. A file is supplied when:
 
-    - it arrived in the archive -- which SiliconCompiler resolves BEFORE the
-      original path, so an upload wins over a copy the server also has;
-    - its source is remote, which this server fetches on first use;
-    - its source is an installed package this server can import;
-    - its source is local and the path exists here too, as an env-var
-      dataroot pointing at the server's own copy does.
+class _Value(NamedTuple):
+    key: Tuple[str, ...]
+    value: Any                  # the PathNodeValue
+    resolvers: Dict[str, Any]
+    kind: str                   # the owner's kind, as a source kind
+    name: Optional[str]
+    dataroot: Optional[str]
+    origin: str                 # LOCAL, EDITABLE, INSTALLED, REMOTE or PRIVATE
 
-    🔴 **Refuses only what it is sure of.** A local file that is neither in
-    the archive nor on this machine is certainly missing; anything it cannot
-    trace -- a keypath dataroot, a chain it cannot follow -- counts as
-    supplied, because a false refusal stops a job that would have run, where
-    a false pass is only the failure this check exists to move earlier.
-    '''
-    import importlib.util
 
-    held, uploaded = True, False
+def _values(project) -> Iterator[_Value]:
+    '''Every value of every path parameter a run reads, with its owner and
+    where it comes from.'''
+    from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 
-    for key in sorted(project.allkeys("library", name, include_default=False)):
-        full = ("library", name, *key)
-        if len(full) > 4 and full[2] == "tool" and full[4] == "task":
+    for key in sorted(project.allkeys(include_default=False)):
+        if skipped(key):
             continue
-        param = project.get(*full, field=None)
+        param = project.get(*key, field=None)
         if not param.is_path:
             continue
 
-        resolvers = project.get(*full[:-1], field="schema") \
-            ._find_files_dataroot_resolvers(True)
-
-        for value, step, index in param.getvalues(return_values=False):
-            for one in _each(value):
+        resolvers = None
+        for held, _, _ in param.getvalues(return_values=False):
+            if not held.has_value:
+                continue
+            if resolvers is None:
+                resolvers = project.get(*key[:-1], field="schema") \
+                    ._find_files_dataroot_resolvers(True)
+            ones = held.values if isinstance(held, (NodeSetValue, NodeListValue)) \
+                else [held]
+            for one in ones:
                 if one.get() is None:
                     continue
-
                 dataroot = one.get(field="dataroot")
-                if _collected(one, collection_dir):
-                    uploaded = True
-                    continue
-
-                kind = source(resolvers, dataroot, path=one.get())
-                if kind == REMOTE:
-                    continue
-                if kind in (INSTALLED, EDITABLE):
-                    module = resolvers[dataroot].urlpath
-                    if importlib.util.find_spec(module) is None:
-                        held = False
-                    continue
-
-                if not _present_here(one.get(), resolvers.get(dataroot)):
-                    held = False
-
-    return held, uploaded
+                who, name = owner(project, key)
+                yield _Value(tuple(key), one, resolvers,
+                             DESIGN if who == PROJECT else who,
+                             project.name if who == PROJECT else name,
+                             dataroot, source(resolvers, dataroot, path=one.get()))
 
 
-def _each(value):
-    from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
+def sources(project) -> List[Dict[str, Any]]:
+    '''The dataroots this client expects the server to supply: the descriptor's
+    `sources`. One entry per (kind, name, dataroot) not uploaded.
 
-    if isinstance(value, (NodeSetValue, NodeListValue)):
-        return value.values
-    return [value]
+    🔴 Credentials are stripped from every URL, and a private dataroot's source
+    is ABSENT -- its path is never sent.
+    '''
+    found: Dict[Tuple[str, Optional[str], str], Dict[str, Any]] = {}
+    for one in _values(project):
+        if one.origin not in (INSTALLED, REMOTE, PRIVATE) or not one.dataroot:
+            continue
+        entry = (one.kind, one.name, one.dataroot)
+        if entry in found:
+            continue
+        resolver = one.resolvers.get(one.dataroot)
+        item = {"kind": one.kind, "name": one.name, "dataroot": one.dataroot,
+                "private": one.origin == PRIVATE}
+        if one.origin != PRIVATE:
+            item["source"] = strip_userinfo(getattr(resolver, "source", None))
+            ref = getattr(resolver, "reference", None)
+            if ref:
+                item["ref"] = ref
+        found[entry] = item
+    return list(found.values())
+
+
+# How the server accounts for a (kind, name, dataroot): worst first.
+UNAVAILABLE = "unavailable"   # private and not supplied, or a path that escapes
+ASK = "ask"                   # the client can send it, and has not
+FETCH = "fetch"               # allowlisted, not held: fetched after submit
+SUPPLIED = "supplied"         # held, private-mapped, or an installed package
+UPLOADED = "uploaded"         # every file of it is in the archive
+
+_WORST = (UNAVAILABLE, ASK, FETCH, SUPPLIED, UPLOADED)
+
+
+class Entry(NamedTuple):
+    '''One (kind, name, dataroot), and how its files reach the run.'''
+    kind: str
+    name: Optional[str]
+    dataroot: Optional[str]
+    status: str
+    root: Optional[str] = None      # the server's own copy, for SUPPLIED
+    source: Optional[str] = None    # what to fetch, for FETCH
+    ref: Optional[str] = None
+    why: Optional[str] = None       # for UNAVAILABLE
+
+    @property
+    def wire(self) -> Dict[str, Any]:
+        '''As `upload_sources` spells it.'''
+        return {"kind": self.kind, "name": self.name, "dataroot": self.dataroot}
+
+
+def account(project, collection_dir, supply) -> List[Entry]:
+    '''Every file the manifest names, as how it reaches the run.
+
+    ``supply`` answers for this server: ``package(module)``,
+    ``private_root(name, dataroot)``, ``held(source, ref)`` and
+    ``allowlisted(source, ref)``.
+
+    🔴 **No path the job names is read.** A file is in the archive, or it is
+    supplied by identity -- a package by name, a private dataroot by (object,
+    dataroot), a remote source by (source, ref) -- and a path under a supplied
+    root is confined to it. Anything else is `ASK` (the client can send it) or
+    `UNAVAILABLE` (it cannot).
+    '''
+    groups: Dict[Tuple[str, Optional[str], Optional[str]], Entry] = {}
+
+    for one in _values(project):
+        entry = _one(one, collection_dir, supply)
+        group = (one.kind, one.name, one.dataroot)
+        held = groups.get(group)
+        if held is None or _WORST.index(entry.status) < _WORST.index(held.status):
+            groups[group] = entry
+
+    return sorted(groups.values(),
+                  key=lambda e: (_WORST.index(e.status), e.kind, str(e.name),
+                                 str(e.dataroot)))
+
+
+def _one(one: _Value, collection_dir, supply) -> Entry:
+    base = dict(kind=one.kind, name=one.name, dataroot=one.dataroot)
+
+    # Private wins over everything, the archive included: it must never have
+    # been sent, and a copy that arrived anyway is not used.
+    if one.origin == PRIVATE:
+        if one.kind == DESIGN:
+            return Entry(**base, status=UNAVAILABLE,
+                         why="a private design cannot be supplied by a server")
+        root = supply.private_root(one.name, one.dataroot)
+        if not root:
+            return Entry(**base, status=UNAVAILABLE,
+                         why="a private dataroot this server has no copy of")
+        if confined(root, one.value.get()) is None:
+            return Entry(**base, status=UNAVAILABLE,
+                         why="a path that escapes its dataroot")
+        return Entry(**base, status=SUPPLIED, root=root)
+
+    if _collected(one.value, collection_dir):
+        return Entry(**base, status=UPLOADED)
+
+    if one.origin in (LOCAL, EDITABLE):
+        return Entry(**base, status=ASK)
+
+    resolver = one.resolvers.get(one.dataroot)
+    if one.origin == INSTALLED:
+        return Entry(**base, status=SUPPLIED) if supply.package(resolver.urlpath) \
+            else Entry(**base, status=ASK)
+
+    # REMOTE: by source and ref, and only from the allowlist.
+    remote = strip_userinfo(getattr(resolver, "source", None))
+    ref = getattr(resolver, "reference", None)
+    if not _relative_and_inside(one.value.get()):
+        return Entry(**base, status=UNAVAILABLE, why="a path that escapes its dataroot")
+    root = supply.held(remote, ref)
+    if root:
+        if confined(root, one.value.get()) is None:
+            return Entry(**base, status=UNAVAILABLE,
+                         why="a path that escapes its dataroot")
+        return Entry(**base, status=SUPPLIED, root=root)
+    if supply.allowlisted(remote, ref):
+        return Entry(**base, status=FETCH, source=remote, ref=ref)
+    return Entry(**base, status=ASK)
 
 
 def _collected(value, collection_dir) -> bool:
@@ -234,41 +373,62 @@ def _collected(value, collection_dir) -> bool:
     return bool(found) and str(found).startswith(str(collection_dir))
 
 
-def _present_here(path: str, resolver) -> bool:
-    '''Whether a local- or environment-sourced file is at its path on THIS
-    machine.
-
-    🔴 **Expanded with THIS process's environment and never the job's
-    `option,env`**, which carries the CLIENT's value -- honouring it would
-    expand to a path that exists only on the client's machine. See
-    `runspec.normalize`, which drops those names from the run too.
-
-    Unknowable is present: a dataroot that is not a plain path is traced no
-    further here, per the rule above.
-    '''
-    from siliconcompiler.package import FileResolver
-
-    if resolver is None:
-        full = os.path.expandvars(path)
-        # A relative path with no dataroot is relative to the caller's own
-        # working directory, which is not here.
-        return os.path.isabs(full) and os.path.exists(full)
-
-    if not isinstance(resolver, FileResolver):
-        return True
-
-    # From the REGISTERED source, expanded here with os.environ alone.
-    # `resolver.resolve()` would expand it with the job's `option,env`.
-    root = os.path.expandvars(_registered(resolver))
-    if "$" in root:
-        # An env var this server does not set: the path it names is not here.
+def _relative_and_inside(path) -> bool:
+    '''Lexically: relative, and not climbing out of wherever it is joined.'''
+    text = str(path or "")
+    if not text or os.path.isabs(text) or text.startswith("$") or "\x00" in text:
         return False
-    if not os.path.isabs(root):
-        return True
-    return os.path.exists(os.path.join(root, os.path.expandvars(path)))
+    return not os.path.normpath(text).startswith("..")
 
 
-def _registered(resolver) -> str:
-    '''A file resolver's source as registered, variables unexpanded.'''
-    registered = str(getattr(resolver, "source", "") or "")
-    return registered[7:] if registered.startswith("file://") else registered
+def confined(root, path) -> Optional[str]:
+    '''``root/path`` if it stays under ``root`` once symlinks are resolved,
+    else None.
+
+    🔴 **Canonicalised and checked, never trusted.** A supplied root is this
+    server's, and a job naming ``../../etc/passwd`` under it -- or a symlink
+    inside it pointing out -- must not reach past it.
+    '''
+    if not _relative_and_inside(path):
+        return None
+    base = os.path.realpath(str(root))
+    full = os.path.realpath(os.path.join(base, str(path)))
+    if full != base and os.path.commonpath([base, full]) != base:
+        return None
+    return full
+
+
+def upload_report(project, collection_dir) \
+        -> List[Tuple[str, Optional[str], Optional[str], int, int]]:
+    '''What is in an archive's collection, by (kind, name, dataroot): bytes and
+    files. What a user is shown before anything moves.'''
+    totals: Dict[Tuple[str, Optional[str], Optional[str]], Tuple[int, int]] = {}
+    counted: List[str] = []
+    for one in _values(project):
+        if not _collected(one.value, collection_dir):
+            continue
+        path = str(one.value.resolve_path(search=[], collection_dir=str(collection_dir)))
+        if any(path == seen or path.startswith(seen + os.sep) for seen in counted):
+            continue
+        counted.append(path)
+        size, files = _weigh(path)
+        group = (one.kind, one.name, one.dataroot)
+        have = totals.get(group, (0, 0))
+        totals[group] = (have[0] + size, have[1] + files)
+    return [(kind, name, dataroot, size, files)
+            for (kind, name, dataroot), (size, files)
+            in sorted(totals.items(), key=lambda item: str(item[0]))]
+
+
+def _weigh(path: str) -> Tuple[int, int]:
+    if os.path.isfile(path):
+        return os.path.getsize(path), 1
+    size = files = 0
+    for folder, _, names in os.walk(path):
+        for name in names:
+            try:
+                size += os.path.getsize(os.path.join(folder, name))
+                files += 1
+            except OSError:
+                pass
+    return size, files

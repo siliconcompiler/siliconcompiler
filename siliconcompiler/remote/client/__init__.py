@@ -8,7 +8,7 @@ CLI rename off the critical path.
 
 import logging
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from siliconcompiler.remote.client.credentials import Credentials
 from siliconcompiler.remote.client.errors import (
@@ -285,6 +285,7 @@ class Client:
                    resources: Optional[Dict[str, Any]] = None,
                    versions: Optional[Dict[str, Any]] = None,
                    requires: Optional[Dict[str, Any]] = None,
+                   sources: Optional[List[Dict[str, Any]]] = None,
                    run_hash: Optional[str] = None,
                    idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         '''``POST /v1/jobs``: the job exists, and nothing has moved yet.
@@ -312,7 +313,7 @@ class Client:
         body: Dict[str, Any] = {"design": design, "jobname": jobname}
         for name, value in (("flow", flow), ("resources", resources),
                             ("versions", versions), ("requires", requires),
-                            ("run_hash", run_hash)):
+                            ("sources", sources), ("run_hash", run_hash)):
             if value:
                 body[name] = value
 
@@ -323,15 +324,21 @@ class Client:
         return self.transport.request(
             "POST", "jobs", json_body=body, headers=headers).json()
 
-    def upload_grant(self, job_id: str) -> Dict[str, Any]:
+    def upload_grant(self, job_id: str, size: int) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/upload-grant``: where to put the bytes.
 
         Its own call rather than a member of the create response, which is what
         gives an expired grant a way back: re-issuing is this endpoint, where
         before it meant creating a second job and leaking the first.
+
+        🔴 ``size`` is the archive about to go up, and the first grant for it
+        fixes it: a re-issue must repeat it. Not `resources.upload_bytes`, which
+        is only the early refusal -- the server can answer create by asking for
+        more than was planned.
         '''
         self.ensure_session()
-        return self.transport.request("POST", f"jobs/{job_id}/upload-grant").json()
+        return self.transport.request("POST", f"jobs/{job_id}/upload-grant",
+                                      json_body={"bytes": size}).json()
 
     def upload(self, grant: Dict[str, Any], path) -> None:
         '''Send the archive to wherever the grant points.

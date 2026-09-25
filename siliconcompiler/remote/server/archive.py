@@ -25,8 +25,8 @@ __all__ = ["ArchiveRejected", "extract", "VIOLATIONS", "MAX_EXPANSION_RATIO"]
 # The vocabulary, and it is closed. `member_count` and `expanded_bytes` are the
 # two that name a published limit; the other four are structural and have no
 # number to publish.
-VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
-              "link_member", "device_member", "traversal")
+# The registry's own list, not a copy: two copies drift the moment one grows.
+from siliconcompiler.remote.server.errors import ARCHIVE_VIOLATIONS as VIOLATIONS  # noqa: E402
 
 # Expanded bytes per compressed byte. Deliberately generous: a build directory
 # of text -- manifests, netlists, reports -- compresses an order of magnitude,
@@ -52,8 +52,14 @@ class ArchiveRejected(Exception):
         super().__init__(detail)
 
 
-def extract(archive: Path, dest: Path, limits: Dict[str, int]) -> int:
+def extract(archive: Path, dest: Path, limits: Dict[str, int],
+            allowed=None) -> int:
     '''Unpack ``archive`` into ``dest``, or refuse.
+
+    ``allowed``, where given, is asked of every member's normalised name
+    before anything of it is written; a member it refuses rejects the archive
+    as ``unrequested_member``. A follow-up archive may carry only what the
+    server asked for.
 
     Streamed member by member and checked before each write, so the budget binds
     on what has been written rather than on what the headers promised. A tar
@@ -100,6 +106,11 @@ def extract(archive: Path, dest: Path, limits: Dict[str, int]) -> int:
                     "traversal", "the archive holds an unnamed member")
 
             _check_path(name, root, dest)
+
+            if allowed is not None and not allowed(name):
+                raise ArchiveRejected(
+                    "unrequested_member",
+                    "the archive holds a member that was not asked for")
 
             if member.issym() or member.islnk():
                 # Refused rather than resolved. A link is the one member whose

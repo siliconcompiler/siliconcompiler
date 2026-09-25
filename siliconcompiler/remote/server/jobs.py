@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler.schema.baseschema import SchemaVersionWarning
 
-from siliconcompiler.remote import units
+from siliconcompiler.remote import owners, units
 from siliconcompiler.remote.server import archive, artifacts, images, runspec
 from siliconcompiler.remote.server.dispatch import DispatchError
 from siliconcompiler.remote.server.errors import (
@@ -107,6 +107,23 @@ class JobService:
         # Per job, the last time this process asked the scheduler anything.
         self._asked = {}
 
+        # This server's own copies of remote sources, fetched only from the
+        # allowlist, and what answers "can you supply this" by identity.
+        import threading
+
+        from siliconcompiler.remote.server import allowlist
+        from siliconcompiler.remote.server.sources import SourceStore
+
+        self._sources = SourceStore(
+            self._datadir,
+            [allowlist.parse(entry) for entry in (config["fetch_allowlist"] or [])])
+        self._supply = _Supply(config, self._sources)
+
+        # The jobs whose sources are being fetched in this process, so a
+        # restart can tell one still in hand from one it has to pick up again.
+        self._preparing = set()
+        self._preparing_lock = threading.Lock()
+
     ######################################################################
     # Where a user's work lives
     ######################################################################
@@ -128,8 +145,16 @@ class JobService:
         slurm.conf on Slurm, since a framework image submits the nodes of the
         flow it is driving.
         '''
+        # 🔴 Supplied roots are READ-ONLY in the job: the held copies of remote
+        # sources, bound over their place inside the data directory, and every
+        # private root the operator maps. A job reads what it is supplied and
+        # can change none of it -- the next job gets the same copy.
+        supplied = [(str(self._datadir / "sources"), "ro")] + [
+            (str(root), "ro")
+            for roots in (self._config["private_dataroots"] or {}).values()
+            for root in roots.values()]
         return [str(self._datadir)] + [
-            str(path) for path in (self._config["container_mounts"] or [])]
+            str(path) for path in (self._config["container_mounts"] or [])] + supplied
 
     def bundles_root(self) -> Path:
         '''Where unpacked container images live.
@@ -175,6 +200,12 @@ class JobService:
         jobname = _name(body.get("jobname"), "jobname")
         run_hash = _opaque(body.get("run_hash"), "run_hash")
 
+        # 🔴 Credentials out of every source URL before anything is compared,
+        # stored or logged -- the descriptor is kept whole in `jobs.descriptor`.
+        declared = _declared_sources(body)
+        if declared is not None:
+            body = dict(body, sources=declared)
+
         if idempotency_key is not None:
             existing = self._store.one(
                 "SELECT * FROM jobs WHERE user_id = ? AND idempotency_key = ?",
@@ -207,6 +238,8 @@ class JobService:
         self._check_pending_uploads(session.user_id)
         self._check_descriptor(body)
 
+        asked = self._look_up(declared) if declared is not None else None
+
         job_id = str(uuid7())
         device_id = session.device_id
 
@@ -214,14 +247,57 @@ class JobService:
             self._store.execute(
                 "INSERT INTO jobs (id, user_id, device_id, state, design, jobname, "
                 "                  descriptor, idempotency_key, run_hash, "
-                "                  job_identity, retention_until) "
-                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?)",
+                "                  job_identity, retention_until, upload_sources) "
+                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?)",
                 (job_id, session.user_id, device_id, design, jobname,
                  json.dumps(body), idempotency_key, run_hash, identity,
-                 _retention(self._config.limits["job_retention_days"])))
+                 _retention(self._config.limits["job_retention_days"]),
+                 json.dumps(asked) if asked else None))
             self._transition(job_id, None, "created", actor=session.user_id)
 
-        return self.wire(self._row(job_id)), 201
+        created = self.wire(self._row(job_id))
+        if asked is not None:
+            # The create response's member: ABSENT with no `sources`, and `[]`
+            # when the lookup finds nothing missing.
+            created["upload_sources"] = asked
+        return created, 201
+
+    def _look_up(self, declared) -> List[Dict[str, Any]]:
+        '''What of the declared sources this server cannot supply: a LOOKUP,
+        never a fetch (D124).
+
+        =================================  =================================
+        A source that is                   Answer
+        =================================  =================================
+        private, and not in the map        `resource-unavailable`, refused
+        held, or in the private map        supplied -- not listed
+        an installed package held here     supplied -- not listed
+        on the allowlist, not held         assumed fetchable -- not listed
+        anything else                      listed in `upload_sources`
+        =================================  =================================
+
+        🔴 No network: probing hundreds of dataroots against a slow git host
+        put latency inside a request behind gateway timeouts, and turned one
+        `POST` into hundreds of outbound requests.
+        '''
+        asked = []
+        for item in declared:
+            kind, name, dataroot = item["kind"], item["name"], item["dataroot"]
+            if item["private"]:
+                if kind == "design" or not self._supply.private_root(name, dataroot):
+                    raise ProblemError(
+                        "resource-unavailable", resource_kind=kind, resource=name,
+                        detail=f"a private {kind} dataroot this server has no copy "
+                               "of; it is never uploaded, so it cannot be sent")
+                continue
+            source, ref = item.get("source"), item.get("ref")
+            if self._supply.held(source, ref) or self._supply.allowlisted(source, ref):
+                continue
+            if source and source.startswith("python://") and \
+                    self._supply.package(source[len("python://"):].split("/")[0]):
+                continue
+            asked.append({"kind": kind, "name": name, "dataroot": dataroot})
+        return asked
 
     def _identity(self, run_hash: Optional[str], requires) -> Optional[str]:
         '''``H(client hash || the digests it resolved to)``, or None.
@@ -420,7 +496,16 @@ class JobService:
     # 14. upload-grant
     ######################################################################
 
-    def grant(self, session, job_id: str, url_root: str) -> Dict[str, Any]:
+    def grant(self, session, job_id: str, url_root: str,
+              body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        '''Endpoint 14: a grant for the archive about to be uploaded.
+
+        🔴 **`bytes` is REQUIRED, and the first grant for each archive fixes
+        it** (D125); a re-issue must repeat it. The size used to come from
+        `resources.upload_bytes` at create, and the create response can then
+        ask for more -- `upload_sources` -- so the `PUT` failed its signature.
+        `max_upload_bytes` bounds a job's archives together.
+        '''
         job = self.owned(session, job_id)
 
         if job["state"] not in ("created", "awaiting_input"):
@@ -428,20 +513,34 @@ class JobService:
                 "job-state-conflict",
                 detail=f"a job in {job['state']} takes no upload")
 
-        descriptor = json.loads(job["descriptor"])
-        declared = (descriptor.get("resources") or {}).get("upload_bytes")
+        size = (body or {}).get("bytes") if isinstance(body, dict) else None
+        if not isinstance(size, int) or isinstance(size, bool) or size <= 0:
+            raise ProblemError("invalid-request",
+                               detail="bytes is required: the size of the archive to upload")
+
         ceiling = self._config.limits["max_upload_bytes"]
-        if isinstance(declared, int) and 0 < declared <= ceiling:
-            ceiling = declared
+        if job["archives_bytes"] + size > ceiling:
+            raise ProblemError(
+                "upload-too-large", limit="max_upload_bytes",
+                detail=f"{job['archives_bytes'] + size} bytes across this job's "
+                       f"uploads, and this server accepts at most {ceiling}")
+
+        if job["grant_bytes"] is not None and job["grant_bytes"] != size:
+            # A re-issue cannot widen -- or narrow -- what the first grant bound.
+            raise ProblemError(
+                "job-state-conflict",
+                detail=f"this archive's first grant fixed its size at "
+                       f"{job['grant_bytes']} bytes; a re-issue must repeat it")
 
         expires = int(_epoch()) + GRANT_SECONDS
-        signature = self._storage.sign_upload(job["id"], ceiling, expires)
+        signature = self._storage.sign_upload(job["id"], size, expires)
+        ceiling = size
 
         with self._store.transaction():
             self._store.execute(
-                "UPDATE jobs SET upload_key = ?, upload_location_id = ?, "
+                "UPDATE jobs SET upload_key = ?, upload_location_id = ?, grant_bytes = ?, "
                 "  upload_grant_expires_at = ?, upload_revoked_at = NULL WHERE id = ?",
-                (job["id"], self._config["storage_location_id"],
+                (job["id"], self._config["storage_location_id"], size,
                  _from_epoch(expires), job["id"]))
             if job["state"] == "created":
                 self._transition(job["id"], "created", "awaiting_input",
@@ -453,11 +552,9 @@ class JobService:
         return {
             "method": "PUT",
             "url": url,
-            # A ceiling rather than an exact length, and the signature carries
-            # the same number: the grant is re-issuable, so what must not change
-            # is that a second grant cannot widen the first. What the bytes
-            # actually are is settled by the digest at submit, which is the
-            # check that has to be right.
+            # The size the first grant of this archive fixed, and the
+            # signature carries the same number, so a re-issue cannot widen it.
+            # What the bytes actually are is settled by the digest at submit.
             "headers": {"content-length": str(ceiling)},
             "expires_at": _from_epoch(expires),
         }
@@ -507,11 +604,14 @@ class JobService:
                 "upload-digest-mismatch",
                 detail=f"storage holds {size} bytes, {reported_digest}"))
 
-        if size > self._config.limits["max_upload_bytes"]:
+        # Every archive of the job together (D125): a follow-up cannot carry
+        # what the first was refused for being too large.
+        ceiling = self._config.limits["max_upload_bytes"]
+        if job["archives_bytes"] + size > ceiling:
             raise self._refuse(session, job, ProblemError(
                 "upload-too-large", limit="max_upload_bytes",
-                detail=f"{size} bytes, and this server accepts at most "
-                       f"{self._config.limits['max_upload_bytes']}"))
+                detail=f"{job['archives_bytes'] + size} bytes across this job's "
+                       f"uploads, and this server accepts at most {ceiling}"))
 
         self._check_concurrent_jobs(session.user_id)
 
@@ -524,22 +624,253 @@ class JobService:
         # own copies are checked against them below, so an archive cannot name
         # its way into another job's tree.
         unpacked = root / job["design"] / job["jobname"]
+        follow_up = job["archives_bytes"] > 0
+
+        # 🔴 A follow-up archive may hold only the dataroots that were asked
+        # for (D124), so it cannot replace what the first archive carried after
+        # the server checked it.
+        allowed = self._requested_members(job, root) if follow_up else None
         try:
             archive.extract(self._storage.upload_path(job["id"]), unpacked,
-                            self._config.limits)
+                            self._config.limits, allowed=allowed)
         except archive.ArchiveRejected as rejected:
-            shutil.rmtree(root, ignore_errors=True)
+            if not follow_up:
+                shutil.rmtree(root, ignore_errors=True)
             raise self._refuse(session, job, ProblemError(
                 "archive-rejected", violation=rejected.violation,
                 detail=rejected.detail)) from None
 
         self._storage.discard_upload(job["id"])
+        with self._store.transaction():
+            self._store.execute(
+                "UPDATE jobs SET archives_bytes = archives_bytes + ?, grant_bytes = NULL, "
+                "  upload_digest = ?, upload_bytes = ? WHERE id = ?",
+                (size, digest, size, job["id"]))
+        job = self._row(job["id"])
 
+        # Re-derived over the union of every archive, never from `sources`.
         derived = self._derive(session, job, root)
         self._check_denied(session, job, derived)
-        self._check_held(session, job, derived, unpacked)
+        entries = self._account(session, job, derived, unpacked)
+
+        asked = [entry for entry in entries if entry.status == owners.ASK]
+        if asked:
+            # Something the client can send and has not. Not a refusal: the job
+            # stays where it is and says, in `upload_sources`, what to send.
+            with self._store.transaction():
+                self._store.execute(
+                    "UPDATE jobs SET upload_sources = ? WHERE id = ?",
+                    (json.dumps([entry.wire for entry in asked]), job["id"]))
+            logger.info(f"{job['id']} is asking for {len(asked)} source(s)")
+            return self.wire(self._row(job["id"]))
+
+        try:
+            with self._store.transaction():
+                # The PDK with it: an admitted job has a resolved one.
+                self._store.execute(
+                    "UPDATE jobs SET upload_sources = NULL, submit_idempotency_key = ?, "
+                    "  manifest_pdk = ? WHERE id = ?",
+                    (idempotency_key, derived["pdk"], job["id"]))
+                self._transition(job["id"], "awaiting_input", "queued",
+                                 actor=session.user_id)
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE" not in str(e):
+                raise
+            # The only thing here that can collide is the submit key, and the
+            # index that catches it is per user. Reusing one across two jobs is
+            # the caller having reused a key they should have rotated, not a
+            # fault in this server.
+            raise ProblemError(
+                "idempotency-key-reuse",
+                detail="this Idempotency-Key was used to submit a different "
+                       "job") from None
+        job = self._row(job["id"])
+
+        if any(entry.status == owners.FETCH for entry in entries):
+            # 🔴 Fetched after submit, while `queued` (D124): no request waits
+            # on a slow git host, and nothing dispatches until every source is
+            # in hand.
+            self._start_preparing(job["id"])
+            return self.wire(job)
+
+        self._dispatch(session, job, derived, entries)
+        return self.wire(self._row(job["id"]))
+
+    ######################################################################
+    # What a run's files are, and where the server's copies come from
+    ######################################################################
+
+    def _account(self, session, job, derived, unpacked: Path):
+        '''Every file the manifest names, as how it reaches the run; refuse
+        what nobody can supply.
+
+        🔴 **No path the job names is read** (D112) -- see `owners.account`.
+        `resource-unavailable` is raised only for what the caller could not
+        send either (D127): a private dataroot this server has no copy of, a
+        private design, or a path that escapes the root it is supplied under.
+        '''
+        entries = owners.account(derived["project"], unpacked / "sc_collected_files",
+                                 self._supply)
+        for entry in entries:
+            if entry.status != owners.UNAVAILABLE:
+                continue
+            raise self._refuse(session, job, ProblemError(
+                "resource-unavailable", resource_kind=entry.kind,
+                resource=entry.name or "",
+                detail=f"this flow needs a {entry.kind} this server cannot "
+                       f"supply: {entry.why}"))
+        for entry in entries:
+            if entry.status == owners.UPLOADED:
+                continue
+            if entry.status == owners.SUPPLIED and entry.root:
+                logger.info(f"{job['id']} is supplied {entry.kind} {entry.name} "
+                            f"({entry.dataroot}) from this server")
+        return entries
+
+    def _requested_members(self, job, root: Path):
+        '''What a follow-up archive may hold: the collected files of the
+        dataroots this job asked for, and nothing else.'''
+        asked = {(item["kind"], item["name"], item["dataroot"])
+                 for item in json.loads(job["upload_sources"] or "[]")}
+        derived = self._derive(None, job, root)
+        names = set()
+        for one in owners._values(derived["project"]):
+            if (one.kind, one.name, one.dataroot) in asked:
+                names.add(one.value.get_hashed_filename())
+
+        def allowed(member: str) -> bool:
+            parts = member.split("/")
+            if parts == ["sc_collected_files"]:
+                return True
+            return len(parts) >= 2 and parts[0] == "sc_collected_files" \
+                and parts[1] in names
+        return allowed
+
+    def _start_preparing(self, job_id: str) -> None:
+        import threading
+
+        with self._preparing_lock:
+            if job_id in self._preparing:
+                return
+            self._preparing.add(job_id)
+        threading.Thread(target=self._prepare, args=(job_id,), daemon=True,
+                         name=f"prepare-{job_id[:8]}").start()
+
+    def _prepare(self, job_id: str) -> None:
+        '''Fetch what the run needs and the server does not hold, then
+        dispatch -- or send the job back asking for what could not be had.
+
+        In parallel, a timeout per source and one deadline for the job. A
+        transient failure is retried until the deadline; a permanent one --
+        and whatever is still missing at the deadline -- goes back to the
+        client, which has the credentials the server does not.
+        '''
+        import time
+        from concurrent.futures import ThreadPoolExecutor
+
+        from siliconcompiler.remote.server.sources import Permanent, Transient
+
+        try:
+            job = self._row(job_id)
+            if job is None or job["state"] != "queued" or job["scheduler_job_id"]:
+                return
+            root = self.job_root(job["user_id"], job_id)
+            unpacked = root / job["design"] / job["jobname"]
+            derived = self._derive(None, job, root)
+            entries = self._account(None, job, derived, unpacked)
+
+            wanted = {}
+            for entry in entries:
+                if entry.status == owners.FETCH:
+                    wanted.setdefault((entry.source, entry.ref), []).append(entry)
+
+            timeout = self._config["fetch_timeout_seconds"]
+            deadline = time.monotonic() + self._config["fetch_deadline_seconds"]
+            failed = []
+            pause = 2
+            while wanted:
+                with ThreadPoolExecutor(max_workers=4) as pool:
+                    tried = {key: pool.submit(self._sources.fetch, key[0], key[1], timeout)
+                             for key in wanted}
+                last = {}
+                for key, future in tried.items():
+                    try:
+                        future.result()
+                        wanted.pop(key)
+                    except Permanent as e:
+                        logger.info(f"{job_id}: a source cannot be fetched: {e}")
+                        failed.extend((entry, str(e)) for entry in wanted.pop(key))
+                    except Transient as e:
+                        logger.info(f"{job_id}: a source did not answer, retrying: {e}")
+                        last[key] = str(e)
+                if wanted and time.monotonic() + pause >= deadline:
+                    for key, entries_of in wanted.items():
+                        why = f"no answer before the deadline ({last.get(key, 'timed out')})"
+                        failed.extend((entry, why) for entry in entries_of)
+                    wanted = {}
+                elif wanted:
+                    time.sleep(pause)
+                    pause = min(pause * 2, 60)
+
+            job = self._row(job_id)
+            if job["state"] != "queued":
+                # Cancelled while it waited.
+                return
+
+            if failed:
+                self._send_back(job, failed)
+                return
+
+            entries = self._account(None, job, derived, unpacked)
+            self._dispatch(None, job, derived, entries)
+        except ProblemError:
+            # Already recorded on the job by `_refuse`.
+            pass
+        except Exception as e:                                   # noqa: BLE001
+            logger.error(f"could not prepare {job_id}: {e}")
+            job = self._row(job_id)
+            if job is not None and job["state"] == "queued":
+                self._refuse(None, job, ProblemError(
+                    "not-ready", status=503,
+                    detail="this server could not prepare the job's sources"))
+        finally:
+            with self._preparing_lock:
+                self._preparing.discard(job_id)
+            self._store.release()
+
+    def _send_back(self, job, failed) -> None:
+        '''`queued` back to `awaiting_input` -- the one backwards edge (D124) --
+        naming what failed, and nothing else.
+
+        ``failed`` is ``(entry, why)`` pairs, and the transition says why for
+        each: a job going backwards is the one move a person watching it will
+        not expect, and "a source could not be fetched" tells them nothing
+        about which or what to do.
+
+        ⚠️ The job counts against `pending_uploads` again and frees its
+        `concurrent_jobs` slot, both because those count by state; and
+        `abandon_after_seconds` runs again from this transition.
+        '''
+        asked, reasons = [], []
+        for entry, why in failed:
+            if entry.wire not in asked:
+                asked.append(entry.wire)
+                reasons.append(f"{entry.kind} {entry.name} ({entry.dataroot}): {why}")
+        reason = (f"{len(asked)} source(s) could not be fetched, so the client "
+                  "is asked to send them -- " + "; ".join(reasons))
+        with self._store.transaction():
+            self._store.execute(
+                "UPDATE jobs SET upload_sources = ?, submit_idempotency_key = NULL "
+                "WHERE id = ?", (json.dumps(asked), job["id"]))
+            self._transition(job["id"], "queued", "awaiting_input",
+                             reason=_bounded(reason))
+
+    def _dispatch(self, session, job, derived, entries) -> None:
+        '''Resolve images, write the manifest the run will load, and hand
+        the job to the scheduler.'''
+        root = self.job_root(job["user_id"], job["id"])
         plan = self._resolve_images(session, job, derived)
-        manifest = self._normalize(session, job, root, derived, plan)
+        manifest = self._normalize(session, job, root, derived, plan, entries)
 
         try:
             # The job's own root, so the batch script and the run's stdout land
@@ -555,21 +886,8 @@ class JobService:
                 detail=f"this server could not hand the job to its "
                        f"scheduler: {e}")) from None
 
-        try:
-            self._record_submission(job, derived, digest, size, idempotency_key,
-                                    scheduler_job_id, plan)
-        except sqlite3.IntegrityError:
-            # The only thing here that can collide is the submit key, and the
-            # index that catches it is per user. Reusing one across two jobs is
-            # the caller having reused a key they should have rotated, not a
-            # fault in this server.
-            raise ProblemError(
-                "idempotency-key-reuse",
-                detail="this Idempotency-Key was used to submit a different "
-                       "job") from None
-
+        self._record_submission(job, derived, scheduler_job_id, plan)
         logger.info(f"submitted {job['id']} as {scheduler_job_id}")
-        return self.wire(self._row(job["id"]))
 
     def _check_denied(self, session, job, derived) -> None:
         '''Refuse a run that uses a PDK, library or tool nobody may use.
@@ -597,42 +915,6 @@ class JobService:
             "entitlement-denied", resource_kind=kind, resource=name,
             detail=f"this flow uses a {kind} this deployment does not allow"
                    + (f", and {more} more" if more else "")))
-
-    def _check_held(self, session, job, derived, unpacked: Path) -> None:
-        '''Refuse a flow that needs a PDK, library or FPGA device this server
-        does not hold and whose files did not arrive.
-
-        🔴 **At re-derivation, after extraction and before the run** -- not
-        dispatched to fail on its first node with the cluster already paid for.
-        The client uploads a resource's files only when their source is local
-        or editable and is never told in advance what this server holds, so
-        this is where a job built on a copy only its author has is caught.
-
-        ⚠️ **`resource-unavailable`, not `resource-unresolved`**: that one is
-        not knowing WHICH resource, and this one is knowing which and not
-        having it.
-
-        ✅ **An uploaded copy wins where this server also holds one** -- the
-        run resolves the archive's copy first -- and that is logged. ⚠️ How the
-        JOB records it is not decided: a member beside `resolved_versions` is
-        the likely home, and it is not invented here.
-        '''
-        from siliconcompiler.remote import owners
-
-        collection = unpacked / "sc_collected_files"
-        project = derived["project"]
-
-        for kind, name in _resources(derived):
-            if name not in (project.getkeys("library") or []):
-                continue
-            held, uploaded = owners.holding(project, name, collection)
-            if not held:
-                raise self._refuse(session, job, ProblemError(
-                    "resource-unavailable", resource_kind=kind, resource=name,
-                    detail=f"this flow needs a {kind} this server does not "
-                           "hold, and its files were not in the upload"))
-            if uploaded:
-                logger.info(f"{job['id']} uses the uploaded copy of {kind} {name}")
 
     def _resolve_images(self, session, job, derived):
         '''Which container every node of this job runs in.
@@ -705,18 +987,16 @@ class JobService:
                 detail=f"this server could not unpack the image its own job "
                        f"needs to run in: {e}") from None
 
-    def _record_submission(self, job, derived, digest, size, idempotency_key,
-                           scheduler_job_id, plan) -> None:
+    def _record_submission(self, job, derived, scheduler_job_id, plan) -> None:
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET manifest_flow = ?, manifest_nodes = ?, "
-                "  manifest_tools = ?, manifest_pdk = ?, upload_digest = ?, "
-                "  upload_bytes = ?, submit_idempotency_key = ?, "
+                "  manifest_tools = ?, manifest_pdk = ?, "
                 "  scheduler_job_id = ?, image_id = ?, submitted_at = ? "
                 "WHERE id = ?",
                 (derived["flow"], len(derived["nodes"]),
-                 json.dumps(derived["tools"]), derived["pdk"], digest, size,
-                 idempotency_key, scheduler_job_id, plan.job, now(), job["id"]))
+                 json.dumps(derived["tools"]), derived["pdk"],
+                 scheduler_job_id, plan.job, now(), job["id"]))
 
             for step, index in derived["nodes"]:
                 self._store.execute(
@@ -729,9 +1009,6 @@ class JobService:
                     "(job_id, from_step, from_index, to_step, to_index) "
                     "VALUES (?, ?, ?, ?, ?)",
                     (job["id"], from_step, from_index, to_step, to_index))
-
-            self._transition(job["id"], "awaiting_input", "queued",
-                             actor=job["user_id"])
 
     def _check_concurrent_jobs(self, user_id: str) -> None:
         active = self._store.one(
@@ -844,7 +1121,7 @@ class JobService:
             "fpga": _fpga(project),
         }
 
-    def _normalize(self, session, job, root: Path, derived, plan) -> Path:
+    def _normalize(self, session, job, root: Path, derived, plan, entries=()) -> Path:
         '''Apply the server's settings and write the manifest the run will load.
 
         One place, once, after the digest check and after the archive limits
@@ -853,7 +1130,7 @@ class JobService:
         '''
         project = derived["project"]
 
-        cache = self.cache_dir(session.user_id)
+        cache = self.cache_dir(job["user_id"])
         cache.mkdir(parents=True, exist_ok=True)
 
         # Where each node's image reaches it depends on what is scheduling: a
@@ -873,6 +1150,13 @@ class JobService:
 
         runspec.normalize(project, job["id"], root, cache, images=placements,
                           cluster=self._dispatcher.name)
+
+        # 🔴 Every dataroot points at the copy the run will actually read --
+        # this job's upload, or this server's own supplied copy -- so the
+        # manifest the run writes records which, and no dataroot is left
+        # naming a path on the submitter's machine (D111, D112).
+        runspec.point_dataroots(
+            project, entries, root / job["design"] / job["jobname"] / "sc_collected_files")
 
         # Only the bundles need a source: a digest the docker scheduler pulls
         # already says where it comes from.
@@ -910,7 +1194,7 @@ class JobService:
                 "UPDATE jobs SET error_type = ?, finished_at = ? WHERE id = ?",
                 (problem.error.uri, now(), job["id"]))
             self._transition(job["id"], job["state"], "rejected",
-                             actor=session.user_id,
+                             actor=session.user_id if session else None,
                              reason=problem.detail or problem.error.slug)
         self._storage.discard_upload(job["id"])
         return problem
@@ -1013,7 +1297,9 @@ class JobService:
         # A running job goes to `cancelling` and the scheduler writes the
         # terminal state; one that never started has nothing to wind down, so it
         # goes straight to `cancelled`.
-        target = "cancelling" if job["state"] in ("queued", "running") else "cancelled"
+        target = ("cancelling"
+                  if job["state"] in ("queued", "running") and job["scheduler_job_id"]
+                  else "cancelled")
 
         with self._store.transaction():
             self._store.execute(
@@ -1237,6 +1523,11 @@ class JobService:
             # Nothing written yet. Either it has not started, or it never will.
             if job["scheduler_job_id"] and not self._alive(job):
                 self._lost(job)
+            elif job["state"] == "queued" and not job["scheduler_job_id"]:
+                # Queued and never dispatched: its sources are being fetched --
+                # or were, by a process that has since restarted. Picked up
+                # again; a fetch that finished is held and costs nothing.
+                self._start_preparing(job["id"])
             return
 
         for key, node in (progress.get("nodes") or {}).items():
@@ -1361,8 +1652,10 @@ class JobService:
         # The later of the two: old enough by the operator's clock, AND not
         # holding a grant that is still good. A job whose upload is legitimately
         # in flight has a live grant and is never taken.
+        # ⚠️ From the latest transition, not from creation: a job sent back
+        # to `awaiting_input` (D124) gets the clock again.
         deadline = max(
-            _after(job["created_at"],
+            _after(job["state_changed_at"] or job["created_at"],
                    self._config.limits["abandon_after_seconds"]),
             job["upload_grant_expires_at"] or "")
         if deadline > now():
@@ -2125,6 +2418,14 @@ class JobService:
         if resolved:
             body["resolved_versions"] = resolved
 
+        # 🔴 Present only while the server is asking -- in `created` or
+        # `awaiting_input` -- and never `[]` (D127): what to send, and nothing
+        # else.
+        if job["state"] in ("created", "awaiting_input") and job["upload_sources"]:
+            asking = json.loads(job["upload_sources"])
+            if asking:
+                body["upload_sources"] = asking
+
         rows = self._store.all(
             'SELECT step, "index", state, started_at, finished_at, exit_code, error_type '
             'FROM job_nodes WHERE job_id = ? ORDER BY step, "index"', (job["id"],))
@@ -2147,6 +2448,31 @@ class JobService:
             "failed_count": sum(1 for row in rows if row["state"] == "failed"),
         }
         return body
+
+
+class _Supply:
+    '''What this server can supply by IDENTITY, never by a path a job names.'''
+
+    def __init__(self, config, sources):
+        self._config = config
+        self._sources = sources
+
+    def package(self, module: str) -> bool:
+        import importlib.util
+
+        try:
+            return importlib.util.find_spec(module) is not None
+        except (ImportError, ValueError):
+            return False
+
+    def private_root(self, name, dataroot) -> Optional[str]:
+        return ((self._config["private_dataroots"] or {}).get(name) or {}).get(dataroot)
+
+    def held(self, source, ref) -> Optional[str]:
+        return self._sources.held(source, ref)
+
+    def allowlisted(self, source, ref) -> bool:
+        return self._sources.allowlisted(source, ref)
 
 
 ######################################################################
@@ -2288,6 +2614,41 @@ def _libraries(project) -> List[str]:
             if name and name not in found:
                 found.append(name)
     return found
+
+
+def _declared_sources(body) -> Optional[List[Dict[str, Any]]]:
+    '''The descriptor's `sources`, checked, with credentials stripped -- or
+    None where there are none.'''
+    declared = body.get("sources")
+    if declared is None:
+        return None
+    if not isinstance(declared, list):
+        raise ProblemError("invalid-request", detail="sources is a list")
+    checked = []
+    for item in declared:
+        if not isinstance(item, dict) or item.get("kind") not in owners.SOURCE_KINDS \
+                or not isinstance(item.get("name"), str) \
+                or not isinstance(item.get("dataroot"), str) \
+                or not isinstance(item.get("private"), bool):
+            raise ProblemError(
+                "invalid-request",
+                detail="each source is {kind, name, dataroot, private} and "
+                       f"kind is one of {', '.join(owners.SOURCE_KINDS)}")
+        entry = {"kind": item["kind"], "name": item["name"],
+                 "dataroot": item["dataroot"], "private": item["private"]}
+        if not item["private"] and isinstance(item.get("source"), str):
+            # 🔴 Stripped again: a client that sent `user:token@` anyway has
+            # its secret neither stored nor logged here.
+            entry["source"] = owners.strip_userinfo(item["source"])
+        if isinstance(item.get("ref"), str):
+            entry["ref"] = item["ref"]
+        checked.append(entry)
+    return checked
+
+
+def _bounded(text: str, limit: int = 1000) -> str:
+    '''A transition reason, no longer than a page shows.'''
+    return text if len(text) <= limit else text[:limit - 3] + "..."
 
 
 def _after(when: str, seconds: int) -> str:

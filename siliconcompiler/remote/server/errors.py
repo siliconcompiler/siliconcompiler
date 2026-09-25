@@ -126,7 +126,11 @@ FEATURES = ("logs", "logs.stream", "logs.stream.job", "projects", "device_grant"
 # Which archive rule was broken. Six conditions shared one slug and no
 # discriminator before this member existed; two of them are published limits.
 ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
-                      "link_member", "device_member", "traversal")
+                      "link_member", "device_member", "traversal",
+                      # A follow-up archive carrying anything but what was
+                      # asked for (D124): it may not replace what the first
+                      # archive carried after the server checked it.
+                      "unrequested_member")
 
 # Why a session is over. All three are one client branch -- re-authenticate, and
 # do NOT refresh.

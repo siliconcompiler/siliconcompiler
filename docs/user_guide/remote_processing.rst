@@ -110,20 +110,28 @@ nothing to control it:
 * **a PDK's, standard-cell library's or FPGA device's files -- only when they
   come from a local path or a package installed editable.** One fetched from a
   release, like the PDKs in ``lambdapdk``, stays behind even though a copy is in
-  your cache: the server has its own. **So does one rooted in an environment
-  variable** -- ``$FOUNDRY_ROOT/...`` -- because the variable names a location
-  that differs by site: the server resolves it from *its own* environment, and
-  never from your ``option,env``. Such a PDK has to be installed on the server,
-  with the variable set there;
+  your cache: the server supplies its own. A path rooted in an environment
+  variable -- ``$FOUNDRY_ROOT/...`` -- is a local path: your machine expands
+  the variable and the files go up;
 * **a tool's scripts -- only when they come from a local path or a package
   installed editable**, such as a SiliconCompiler checkout you are working in;
 * **plus the manifest**, and, for a run that starts part-way through the flow,
   the results of the nodes it starts from.
 
-A flow that needs a PDK, library or FPGA device the server does not hold, and
-whose files were not uploaded, is refused as soon as the server has opened the
-archive (``resource-unavailable``) rather than failing on its first node. Where
-you uploaded a copy of something the server also has, yours is used.
+The client prints what goes up, per dataroot, with sizes, before anything
+moves.
+
+**What the server cannot supply, it asks for.** A source the server does not
+hold and will not fetch itself -- a private git repository behind your own key
+is the common case -- is named in the answer to the first call, and the client
+fetches it with your credentials and adds it to the upload. If it fails later
+-- the server's own fetch of a release was refused -- the job goes back to
+waiting for input, and the client sends only what was asked for. If your
+machine cannot reach it either, the run stops here, naming it, and nothing is
+uploaded.
+
+A server never reads a path your job names on its own disk: every file either
+arrives in the upload or is supplied by the server under its own name for it.
 
 While it runs, the client polls and reports each node as the server moves it:
 

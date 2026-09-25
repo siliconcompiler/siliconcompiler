@@ -144,8 +144,6 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     ``srun --partition``. Writing an image reference into it on a cluster would
     submit every node to a partition named after a container.
     '''
-    _server_resolves_env_dataroots(project)
-
     project.option.set_nodashboard(True)
     project.option.set_builddir(str(builddir))
     project.option.set_cachedir(str(cachedir))
@@ -209,37 +207,49 @@ def node_image(project, step: str, index: str) -> Optional[Tuple[str, str]]:
     return None
 
 
-def _server_resolves_env_dataroots(project) -> List[str]:
-    '''Drop from the job's `option,env` every variable a dataroot is rooted in.
+def point_dataroots(project, entries, collection) -> int:
+    '''Point every dataroot at the copy the run will actually read.
 
-    🔴 **A dataroot like `$FOUNDRY_ROOT/...` is resolved from THIS server's
-    configuration, never the job's (D109).** SiliconCompiler expands a
-    dataroot's variables with `option,env` laid over the process environment,
-    and the job's `option,env` carries the CLIENT's value -- so leaving it would
-    expand to a path that exists only on the client's machine, and the run
-    would fail on a file that the server has under its own name for it. Every
-    other `option,env` entry is left as the caller set it.
+    ``entries`` is `owners.account`'s answer. An uploaded dataroot points at
+    this job's upload, a supplied one at this server's own copy -- a held
+    source, or an operator's private root -- and an installed package is left
+    as it is, since it is found by name.
 
-    Returns the names dropped.
+    🔴 **Two things at once.** The manifest the run writes then records, for
+    each dataroot, which copy it resolved to -- the upload's or the server's
+    (D111) -- which is what a job's page shows. And no dataroot is left naming
+    a path on the submitter's machine, so nothing in the run can reach one:
+    the server never reads a path a job names (D112).
+
+    ⚠️ An uploaded file is found in the collection by its dataroot's NAME,
+    not its path, so pointing the path at the collection changes nothing about
+    how it resolves.
+
+    Returns how many dataroots were pointed.
     '''
-    from siliconcompiler.remote.owners import env_names
+    from siliconcompiler.remote import owners
 
-    if not project.valid("option", "env"):
-        return []
-    named = set(project.getkeys("option", "env") or [])
-    if not named:
-        return []
-
-    rooted = set()
-    for key in project.allkeys():
-        if key[0] != "history" and len(key) >= 3 and key[-1] == "path" \
-                and key[-3] == "dataroot":
-            rooted.update(env_names(project.get(*key)))
-
-    dropped = sorted(named & rooted)
-    for name in dropped:
-        project.remove("option", "env", name)
-    return dropped
+    by = {(entry.kind, entry.name, entry.dataroot): entry for entry in entries}
+    pointed = 0
+    for key in sorted(project.allkeys(include_default=False)):
+        if key[0] == "history" or len(key) < 3 or key[-1] != "path" \
+                or key[-3] != "dataroot":
+            continue
+        who, name = owners.owner(project, key)
+        kind = owners.DESIGN if who == owners.PROJECT else who
+        name = project.name if who == owners.PROJECT else name
+        entry = by.get((kind, name, key[-2]))
+        if entry is None:
+            continue
+        if entry.status == owners.SUPPLIED and entry.root:
+            target = str(entry.root)
+        elif entry.status == owners.UPLOADED:
+            target = str(collection)
+        else:
+            continue
+        project.set(*key, target)
+        pointed += 1
+    return pointed
 
 
 def runtime_flow(project):

@@ -1080,3 +1080,144 @@ def test_a_failed_jobs_reason_points_at_the_servers_page():
     said = _why_it_failed(job, "https://sc-server.test/server-errors/")
 
     assert "https://sc-server.test/server-errors/run-failed" in said
+
+
+###########################
+# What the server cannot supply, it asks for (D114, D124)
+###########################
+
+def _routes_for_a_submit(fake_v1, created=None):
+    fake_v1.route(responses.POST, "jobs", dict(
+        {"id": "01J9-job", "state": "created", "project": None,
+         "created_at": "2026-09-22T10:00:00.000Z"}, **(created or {})), status=201)
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {"content-length": "1"},
+                   "expires_at": "2026-09-22T10:15:00.000Z"})
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("queued"),
+                  status=202)
+
+
+def test_the_grant_asks_for_the_archives_size(fake_v1, run):
+    '''🔴 D125: the size is the grant's, and it is the archive's own.'''
+    _routes_for_a_submit(fake_v1)
+
+    run._start()
+
+    grant = next(c for c in fake_v1.calls if "upload-grant" in c.request.path_url)
+    put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
+    assert json.loads(grant.request.body)["bytes"] == len(put.request.body.read()
+                                                          if hasattr(put.request.body, "read")
+                                                          else put.request.body)
+
+
+def test_what_goes_up_is_said_per_dataroot_with_sizes(fake_v1, run, caplog):
+    _routes_for_a_submit(fake_v1)
+
+    with caplog.at_level("INFO"):
+        run._start()
+
+    assert "Uploading" in caplog.text
+    assert "design gcd (gcd-pytest-example):" in caplog.text
+
+
+def test_a_source_the_server_asked_for_at_create_goes_up_with_the_job(
+        fake_v1, run, nop_project, tmp_path, caplog):
+    '''The server answered create with what it cannot supply; this machine
+    resolves it with its own credentials and puts it in the archive.'''
+    from siliconcompiler import PDK
+
+    (tmp_path / "ip").mkdir()
+    (tmp_path / "ip" / "notes.txt").write_text("private repo contents\n")
+    pdk = PDK("acme")
+    # Remote, so it would not go up on its own; the server asks for it.
+    pdk.set_dataroot("acme", "https://gitlab.example/acme/pdk/archive/", tag="v1")
+    with pdk.active_dataroot("acme"):
+        pdk.set("package", "doc", "datasheet", "notes.txt")
+    nop_project.add_dep(pdk)
+
+    from siliconcompiler.package.https import HTTPResolver
+    real = HTTPResolver.resolve_remote
+
+    def resolve_remote(self):
+        # "With the user's own credentials": here, a copy only this machine has.
+        import shutil
+        shutil.copytree(tmp_path / "ip", self.cache_path, dirs_exist_ok=True)
+
+    HTTPResolver.resolve_remote = resolve_remote
+    try:
+        _routes_for_a_submit(fake_v1, created={"upload_sources": [
+            {"kind": "pdk", "name": "acme", "dataroot": "acme"}]})
+        with caplog.at_level("INFO"):
+            run._start()
+    finally:
+        HTTPResolver.resolve_remote = real
+
+    assert "The server asked for pdk acme (acme)" in caplog.text
+    assert "pdk acme (acme):" in caplog.text
+
+
+def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
+        fake_v1, run, nop_project, caplog):
+    '''🔴 Fail locally, naming it -- and upload nothing.'''
+    from siliconcompiler import PDK
+
+    pdk = PDK("acme")
+    # Its own ref: the path cache is process-wide, keyed by source and ref.
+    pdk.set_dataroot("acme", "https://gitlab.example/acme/pdk/archive/", tag="v9-unreachable")
+    with pdk.active_dataroot("acme"):
+        pdk.set("package", "doc", "datasheet", "notes.txt")
+    nop_project.add_dep(pdk)
+
+    from siliconcompiler.package.https import HTTPResolver
+    real = HTTPResolver.resolve_remote
+
+    def unreachable(self):
+        raise FileNotFoundError("404 from gitlab.example")
+
+    HTTPResolver.resolve_remote = unreachable
+    try:
+        _routes_for_a_submit(fake_v1, created={"upload_sources": [
+            {"kind": "pdk", "name": "acme", "dataroot": "acme"}]})
+        with pytest.raises(RemoteError, match="pdk acme .acme.*cannot reach it either"):
+            run._start()
+    finally:
+        HTTPResolver.resolve_remote = real
+
+    assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]
+
+
+def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run,
+                                                              nop_project, tmp_path):
+    '''A follow-up archive of the asked-for dataroots alone, its own grant, and
+    submit again.'''
+    import io
+    import tarfile
+
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {"content-length": "1"},
+                   "expires_at": "2026-09-22T10:15:00.000Z"})
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("queued"),
+                  status=202)
+
+    run._send_asked("01J9-job", [{"kind": "design", "name": "gcd",
+                                  "dataroot": "gcd-pytest-example"}])
+
+    put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
+    body = put.request.body.read() if hasattr(put.request.body, "read") else put.request.body
+    with tarfile.open(fileobj=io.BytesIO(body)) as tar:
+        names = tar.getnames()
+    assert names and all(name.startswith("sc_collected_files") for name in names)
+    assert any(name.endswith(".v") for name in names)
+    assert not any(name.endswith(".pkg.json") for name in names)
+
+
+def test_asked_again_for_what_was_sent_is_a_failure_not_a_loop(fake_v1, run):
+    run._sent.add((("design", "gcd", "gcd-pytest-example"),))
+
+    with pytest.raises(RemoteError, match="asked again"):
+        run._send_asked("01J9-job", [{"kind": "design", "name": "gcd",
+                                      "dataroot": "gcd-pytest-example"}])

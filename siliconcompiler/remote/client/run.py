@@ -107,6 +107,12 @@ class RemoteRun:
         # whose formatter gets swapped per line -- so they have to take turns.
         self.output_lock = threading.Lock()
 
+        # What went into the last archive, per dataroot, and the requests for
+        # sources already answered -- so a server asking again for the same
+        # ones is a failure, not a loop.
+        self._uploading = []
+        self._sent = set()
+
     ######################################################################
 
     def run(self) -> None:
@@ -141,6 +147,8 @@ class RemoteRun:
         design = self.project.name
         jobname = self.project.option.get_jobname()
 
+        from siliconcompiler.remote import owners
+
         with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
             upload = Path(tmpdir) / "upload.tar.gz"
             digest, size = self._pack(upload)
@@ -153,7 +161,19 @@ class RemoteRun:
                           "tools": {}},
                 requires={"python": {"siliconcompiler": _framework_requirement()},
                           "tools": self._tool_requirements()},
+                # What this machine expects the server to supply. A lookup at
+                # the other end, never a fetch, and credentials stripped.
+                sources=owners.sources(self.project) or None,
                 idempotency_key=_key())
+
+            asked = job.get("upload_sources") or []
+            if asked:
+                # 🔴 What the server cannot supply, it asks for (D114): this
+                # machine resolves those with its OWN credentials and puts them
+                # in the archive -- or fails here, before a byte moves.
+                self.logger.info(f"The server asked for {_named(asked)}")
+                self._collect(asked)
+                digest, size = self._pack(upload)
 
             job_id = job["id"]
             self.project.set('record', 'remoteid', job_id)
@@ -178,8 +198,8 @@ class RemoteRun:
 
             self._save_manifest()
 
-            grant = self.client.upload_grant(job_id)
-            self.logger.info(f"Uploading {_size(size)}")
+            grant = self.client.upload_grant(job_id, size)
+            self._report_upload(size)
             self.client.upload(grant, upload)
 
             self.client.submit_job(job_id, digest=digest, size=size,
@@ -224,6 +244,56 @@ class RemoteRun:
                 needed.append(os.path.relpath(node, root))
 
         return needed
+
+    def _report_upload(self, size: int, report=None) -> None:
+        '''What goes up, per dataroot, with sizes -- before it goes.
+
+        🔴 Said every time, because what is uploaded is decided by rule rather
+        than by the user, and a PDK uploaded by mistake is gigabytes and, for a
+        proprietary one, a disclosure.
+        '''
+        report = self._uploading if report is None else report
+        self.logger.info(f"Uploading {_size(size)}")
+        for kind, name, dataroot, weight, files in report:
+            where = f" ({dataroot})" if dataroot else ""
+            self.logger.info(f"  {kind} {name}{where}: {_size(weight)}, "
+                             f"{files} file{'s' if files != 1 else ''}")
+
+    def _send_asked(self, job_id: str, asked) -> None:
+        '''The follow-up for a job sent back to `awaiting_input` (D124): an
+        archive of ONLY what the server asked for, its own grant, and submit
+        again.'''
+        import hashlib
+
+        from siliconcompiler.remote import owners
+
+        seen = tuple(sorted((item.get("kind"), item.get("name"), item.get("dataroot"))
+                            for item in asked))
+        if seen in self._sent:
+            raise RemoteError(f"the server asked again for {_named(asked)}, which "
+                              "this client has already sent")
+        self._sent.add(seen)
+
+        self.logger.info(f"The server could not fetch {_named(asked)}; sending it")
+        with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
+            collection = Path(tmpdir) / "sc_collected_files"
+            self._collect(asked, directory=str(collection), only_asked=True)
+
+            upload = Path(tmpdir) / "follow-up.tar.gz"
+            with tarfile.open(upload, mode="w:gz") as tar:
+                tar.add(str(collection), arcname="sc_collected_files")
+
+            digest, size = hashlib.sha256(), 0
+            with open(upload, "rb") as f:
+                for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                    digest.update(chunk)
+                    size += len(chunk)
+
+            grant = self.client.upload_grant(job_id, size)
+            self._report_upload(size, owners.upload_report(self.project, collection))
+            self.client.upload(grant, upload)
+            self.client.submit_job(job_id, digest=f"sha256:{digest.hexdigest()}",
+                                   size=size, idempotency_key=_key())
 
     def _open_portal(self, job_id: str) -> None:
         '''Open the job's page, where a person is plainly watching.
@@ -293,12 +363,45 @@ class RemoteRun:
         manifest carries them; nothing here computes one, because hashing a PDK
         takes minutes.
         '''
+        self._collect()
+
+    def _collect(self, asked=(), directory=None, only_asked: bool = False) -> None:
+        '''Collect by owner -- plus, where the server asked, those sources too.
+
+        ``asked`` is an `upload_sources` list. A private dataroot is never
+        collected, asked or not: it must not leave this machine.
+        '''
         from siliconcompiler.remote import owners
 
-        collect(self.project,
-                whitelist=list(self.client.credentials.directory_whitelist),
-                select=lambda key, dataroot, resolvers, path: owners.uploads(
-                    self.project, key, dataroot, resolvers, path))
+        wanted = {(item.get("kind"), item.get("name"), item.get("dataroot"))
+                  for item in asked}
+
+        def select(key, dataroot, resolvers, path):
+            if owners.skipped(key):
+                return False
+            origin = owners.source(resolvers, dataroot, path=path)
+            if origin == owners.PRIVATE:
+                return False
+            if not only_asked and owners.uploads(self.project, key, dataroot,
+                                                 resolvers, path):
+                return True
+            who, name = owners.owner(self.project, key)
+            kind = owners.DESIGN if who == owners.PROJECT else who
+            name = self.project.name if who == owners.PROJECT else name
+            return (kind, name, dataroot) in wanted
+
+        try:
+            collect(self.project, directory=directory, verbose=directory is None,
+                    whitelist=list(self.client.credentials.directory_whitelist),
+                    select=select)
+        except (FileNotFoundError, RuntimeError, ValueError) as e:
+            if not asked:
+                raise
+            # 🔴 The user cannot reach it either: fail here, naming it, and
+            # upload nothing.
+            raise RemoteError(
+                f"the server asked for {_named(asked)}, and this machine cannot "
+                f"reach it either: {e}") from None
 
     def _pack(self, upload: Path) -> Tuple[str, int]:
         '''What the server needs of the job directory, as one archive, with
@@ -326,6 +429,9 @@ class RemoteRun:
                 tar.add(os.path.join(root, name), arcname=name)
 
         collected = collectiondir(self.project)
+        from siliconcompiler.remote import owners
+        self._uploading = owners.upload_report(self.project, collected) \
+            if collected and os.path.isdir(collected) else []
         if collected and os.path.isdir(collected):
             # It is in the archive now, and it is the largest thing in the build
             # directory. Keeping a second copy on this machine is what the old
@@ -494,6 +600,12 @@ class RemoteRun:
                         f"job {job_id} may still be running") from None
                 self.logger.warning(str(refusal))
                 time.sleep(DEFAULT_POLL_SECONDS)
+                continue
+
+            if job.get("state") == "awaiting_input" and job.get("upload_sources"):
+                # Sent back: a source the server could not fetch. The job is
+                # not terminal, so the wait goes on once it has been sent.
+                self._send_asked(job_id, job["upload_sources"])
                 continue
 
             changed = self._record(job, seen)
@@ -1041,6 +1153,12 @@ def _framework_requirement() -> str:
     if parsed.is_devrelease:
         return f"=={parsed.base_version}.*"
     return f"=={sc_version}"
+
+
+def _named(asked) -> str:
+    '''`upload_sources` as a person reads it.'''
+    return ", ".join(f"{item.get('kind')} {item.get('name')} ({item.get('dataroot')})"
+                     for item in asked)
 
 
 def _key() -> str:

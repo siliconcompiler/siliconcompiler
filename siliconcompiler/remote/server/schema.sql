@@ -194,6 +194,14 @@ CREATE TABLE jobs (
     upload_bytes            integer,
     upload_grant_expires_at text,                   -- also the reaper's trigger
     upload_revoked_at       text,
+    grant_bytes             integer,                -- the size the FIRST grant of the archive
+                                                    -- now being uploaded fixed; a re-issue
+                                                    -- must repeat it. NULL between archives
+    archives_bytes          integer NOT NULL DEFAULT 0,
+                                                    -- every archive this job has consumed,
+                                                    -- together: max_upload_bytes bounds the sum
+    upload_sources          text,                   -- JSON: what the server is ASKING for, in
+                                                    -- created or awaiting_input. NULL otherwise
 
     idempotency_key        text,
     submit_idempotency_key text,

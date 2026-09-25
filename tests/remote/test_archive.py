@@ -67,7 +67,9 @@ def test_every_violation_is_in_the_vocabulary():
     frozen at v1, and a member's value can be added after the freeze where a
     slug cannot.'''
     assert set(VIOLATIONS) == {"member_count", "expanded_bytes", "ratio",
-                               "link_member", "device_member", "traversal"}
+                               "link_member", "device_member", "traversal",
+                               # D124: a follow-up carrying what was not asked for.
+                               "unrequested_member"}
 
 
 def test_too_many_members(tmp_path):

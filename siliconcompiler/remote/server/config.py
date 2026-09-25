@@ -263,6 +263,34 @@ DEFAULTS: Dict[str, Any] = {
     # denial the way it would where `authorized` is too coarse to say -- at
     # submit, after the upload.
     "denied_resources": {},
+
+    # Where this server fetches a job's remote sources from (D113, D128). An
+    # entry may be a glob: scheme exact, a host wildcard only as the whole
+    # leftmost label, `*` within one path segment. See `allowlist`.
+    #
+    # 🔴 The list decides who fetches, never whether the data arrives: a source
+    # not on it is asked of the client, which sends it with its own
+    # credentials. The default is SiliconCompiler's GitHub organisation, which
+    # is what lambdapdk needs -- and codeload only under it, where GitHub's
+    # archive redirects land; the whole codeload host would admit every public
+    # repository's archive.
+    "fetch_allowlist": ["https://github.com/siliconcompiler/",
+                        "https://codeload.github.com/siliconcompiler/"],
+
+    # Private dataroots this server supplies, by the owning object's name and
+    # the dataroot's name: `{"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}}`.
+    #
+    # 🔴 A dataroot marked private never leaves the submitter's machine, so this
+    # is the only way its files reach a run -- and a path under a root is
+    # confined to it. Mounted read-only into every job; a change needs the
+    # bundles re-staged, as `container_mounts` does.
+    "private_dataroots": {},
+
+    # How long one source may take to fetch, and how long a job may wait for
+    # all of its sources, after submit. Past the deadline, what is still
+    # missing is asked of the client.
+    "fetch_timeout_seconds": 300,
+    "fetch_deadline_seconds": 1800,
 }
 
 # The resource kinds `denied_resources` is keyed by -- the contract's closed
@@ -350,6 +378,22 @@ def _check_policy(values: Dict[str, Any]) -> None:
         if feature in features and needs not in features:
             raise ValueError(f"features lists {feature} without {needs}, "
                              "which it implies")
+
+    from siliconcompiler.remote.server import allowlist
+
+    # Refused at LOAD, never trusted to a careful matcher: a bare `*` host, a
+    # wildcard anywhere but the leftmost label, a globbed scheme.
+    for warning in allowlist.check_entries(values["fetch_allowlist"] or []):
+        import logging
+        logging.getLogger("sc-server").warning(warning)
+
+    private = values["private_dataroots"] or {}
+    if not isinstance(private, dict) or not all(
+            isinstance(roots, dict) and all(
+                isinstance(root, str) and root.startswith("/") for root in roots.values())
+            for roots in private.values()):
+        raise ValueError("private_dataroots maps an object name to "
+                         "{dataroot name: absolute path}")
 
     denied = values["denied_resources"] or {}
     unknown = set(denied) - set(RESOURCE_KINDS)

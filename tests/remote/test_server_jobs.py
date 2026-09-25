@@ -98,7 +98,7 @@ def stage(client, key, token, archive, size, **body):
     body.setdefault("resources", {"upload_bytes": size})
     job = create(client, key, token, **body).get_json()
     grant = call(client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
     put(client, grant, open(archive, "rb").read())
     return job
 
@@ -358,9 +358,9 @@ def test_the_grant_is_200_because_re_issue_is_the_point(server_client, key, toke
     job = create(server_client, key, token).get_json()
 
     first = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token)
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": 4096})
     second = call(server_client, key, "POST",
-                  f"/v1/jobs/{job['id']}/upload-grant", token)
+                  f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": 4096})
 
     assert first.status_code == 200
     assert second.status_code == 200
@@ -374,23 +374,55 @@ def test_the_grant_is_200_because_re_issue_is_the_point(server_client, key, toke
 
 def test_the_grant_moves_the_job_to_awaiting_input(server_client, key, token):
     job = create(server_client, key, token).get_json()
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token)
+    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token,
+         json={"bytes": 4096})
 
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert read["state"] == "awaiting_input"
     assert read["terminal"] is False
 
 
-def test_the_size_comes_from_the_job_not_from_the_call(server_client, key, token):
-    '''Taking a size here would let a re-issue widen a signature the first grant
-    bound.'''
+def test_the_first_grant_fixes_the_size_and_a_re_issue_repeats_it(
+        server_client, key, token):
+    '''🔴 D125: the size is the call's, not `resources.upload_bytes` -- the
+    create response can ask for more than the client planned to send, so a
+    size fixed at create made the PUT fail its signature. A re-issue cannot
+    widen what the first grant bound.'''
     job = create(server_client, key, token,
-                 resources={"upload_bytes": 4096}).get_json()
+                 resources={"upload_bytes": 100}).get_json()
+    path = f"/v1/jobs/{job['id']}/upload-grant"
 
-    grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token).get_json()
-
+    grant = call(server_client, key, "POST", path, token, json={"bytes": 4096}).get_json()
     assert grant["headers"]["content-length"] == "4096"
+
+    again = call(server_client, key, "POST", path, token, json={"bytes": 4096})
+    assert again.status_code == 200
+
+    widened = call(server_client, key, "POST", path, token, json={"bytes": 8192})
+    assert widened.status_code == 409
+    assert slug(widened) == "job-state-conflict"
+
+
+def test_a_grant_without_its_size_is_refused(server_client, key, token):
+    job = create(server_client, key, token).get_json()
+
+    response = call(server_client, key, "POST",
+                    f"/v1/jobs/{job['id']}/upload-grant", token)
+
+    assert response.status_code == 400
+    assert slug(response) == "invalid-request"
+
+
+def test_the_uploads_of_one_job_are_bounded_together(
+        server, server_client, key, token):
+    server.config["SC_CONFIG"].limits["max_upload_bytes"] = 1000
+    job = create(server_client, key, token).get_json()
+
+    response = call(server_client, key, "POST",
+                    f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": 1001})
+
+    assert response.status_code == 413
+    assert response.get_json()["limit"] == "max_upload_bytes"
 
 
 def test_no_grant_for_a_job_that_is_past_it(server, server_client, key, token, me):
@@ -398,7 +430,7 @@ def test_no_grant_for_a_job_that_is_past_it(server, server_client, key, token, m
                          me, None, "completed")
 
     response = call(server_client, key, "POST",
-                    f"/v1/jobs/{existing}/upload-grant", token)
+                    f"/v1/jobs/{existing}/upload-grant", token, json={"bytes": 4096})
 
     assert response.status_code == 409
     assert slug(response) == "job-state-conflict"
@@ -414,7 +446,7 @@ def test_the_signature_is_the_credential(server_client, key, token, job_archive)
     job = create(server_client, key, token,
                  resources={"upload_bytes": size}).get_json()
     grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
 
     response = put(server_client, grant, open(archive, "rb").read())
 
@@ -427,7 +459,7 @@ def test_an_altered_url_is_refused(server_client, key, token, job_archive):
     job = create(server_client, key, token,
                  resources={"upload_bytes": size}).get_json()
     grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
 
     widened = grant["url"].replace(f"max_bytes={size}", "max_bytes=999999999")
     response = server_client.put(widened.split("http://localhost", 1)[1],
@@ -557,7 +589,8 @@ def test_a_manifest_that_is_not_where_it_was_declared(server_client, key, token,
 
 def test_submitting_with_nothing_uploaded(server_client, key, token):
     job = create(server_client, key, token).get_json()
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token)
+    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token,
+         json={"bytes": 4096})
 
     response = submit(server_client, key, token, job["id"], "sha256:" + "0" * 64, 1)
 
@@ -949,15 +982,14 @@ def test_a_submit_key_reused_across_jobs_is_refused(server_client, key, token,
 
 def test_a_descriptor_with_no_size_still_uploads(server_client, key, token,
                                                  job_archive, dispatcher):
-    '''A sparse descriptor is legal. The grant then carries the deployment's
-    ceiling, the upload is smaller than it, and the digest at submit is what
-    settles what the bytes actually are.'''
+    '''A sparse descriptor is legal: the size is the grant's (D125), and the
+    digest at submit is what settles what the bytes actually are.'''
     archive, digest, size = job_archive()
     job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
 
-    assert int(grant["headers"]["content-length"]) > size
+    assert int(grant["headers"]["content-length"]) == size
 
     assert put(server_client, grant, open(archive, "rb").read()).status_code == 200
     assert submit(server_client, key, token, job["id"], digest,
@@ -971,7 +1003,7 @@ def test_an_upload_past_the_ceiling_is_refused_as_it_arrives(
     job = create(server_client, key, token,
                  resources={"upload_bytes": 16}).get_json()
     grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": 16}).get_json()
 
     response = put(server_client, grant, b"x" * 4096)
 
@@ -2074,7 +2106,7 @@ def test_a_live_upload_grant_is_never_abandoned(server, server_client, key,
     created = call(server_client, key, "POST", "/v1/jobs", token, json={
         "design": "gcd", "jobname": "job0"}).get_json()
     call(server_client, key, "POST", f"/v1/jobs/{created['id']}/upload-grant",
-         token, json={})
+         token, json={"bytes": 4096})
 
     server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
 

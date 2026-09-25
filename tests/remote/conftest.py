@@ -289,11 +289,20 @@ def job_archive(nop_project):
 
     from siliconcompiler.utils.paths import jobdir
 
-    def build(project=None, extra=None):
+    def build(project=None, extra=None, collect_files=True):
         project = project or nop_project
 
         root = jobdir(project)
         os.makedirs(root, exist_ok=True)
+        if collect_files:
+            # What a real client sends: the files it uploads by owner, in the
+            # collection. The server accounts for every file a manifest names.
+            from siliconcompiler.remote import owners
+            from siliconcompiler.utils.curation import collect
+
+            collect(project, verbose=False,
+                    select=lambda key, dataroot, resolvers, path: owners.uploads(
+                        project, key, dataroot, resolvers, path))
         project.write_manifest(os.path.join(root, f"{project.name}.pkg.json"))
 
         path = os.path.abspath(f"upload-{project.name}-{project.option.get_jobname()}.tar.gz")

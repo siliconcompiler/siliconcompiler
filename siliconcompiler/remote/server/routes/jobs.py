@@ -94,6 +94,8 @@ def create(session):
     page = _jobs().web_url(body["id"])
     if page:
         created["web_url"] = page
+    if "upload_sources" in body:
+        created["upload_sources"] = body["upload_sources"]
 
     response = _private(created, status)
     if status == 201:
@@ -111,7 +113,8 @@ def upload_grant(session, job_id):
     happen. Without this call a grant that expired left the job in a state with
     no way back.
     '''
-    return _private(_jobs().grant(session, job_id, flask.request.url_root))
+    return _private(_jobs().grant(session, job_id, flask.request.url_root,
+                                  _body(required=False)))
 
 
 @blueprint.route("/v1/jobs/<job_id>/submit", methods=["POST"])

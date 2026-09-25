@@ -141,19 +141,35 @@ whole credential.
 Browser sessions live in the server process and in no table, so restarting it
 signs everyone out. Running `sc-remote -portal` again is the whole recovery.
 
-## A PDK behind an environment variable
+## How a job's files reach it
 
-A PDK, library or FPGA device whose dataroot is rooted in an environment
-variable &mdash; `$FOUNDRY_ROOT/...`, the usual way to reference a proprietary
-PDK without committing it &mdash; **is not uploaded**, and the server resolves
-the variable from **its own** environment. The job's `option,env` carries the
-submitter's value, a path on their machine, so the server drops that variable
-from it before the run.
+🔴 **Every file is uploaded or supplied by identity, and the server never reads
+a path a job names.** A manifest rooting a library at `/etc` and leaving it out
+of the upload is asked for, not supplied from this host.
 
-⚠️ **This changed.** Such a PDK used to be uploaded with every job. It now has
-to be installed on the server, with the variable set for the processes that run
-jobs &mdash; otherwise the job is refused at submit as `resource-unavailable`,
-naming the PDK.
+| A dataroot that is | Reaches the run |
+|---|---|
+| a local path, a `$`-rooted path, an editable package | uploaded by the client |
+| an installed package | from the job's image, by name |
+| a remote source on `fetch_allowlist` | fetched by this server after submit, held under `<datadir>/sources/`, and mounted read-only |
+| a remote source not on the list | asked of the client, which sends it with its own credentials |
+| marked private | from `private_dataroots` in `config.json`, by (object name, dataroot name) &mdash; or the job is refused |
+
+`fetch_allowlist` defaults to SiliconCompiler's GitHub organisation &mdash;
+`https://github.com/siliconcompiler/` and
+`https://codeload.github.com/siliconcompiler/`, where GitHub's archive
+redirects land &mdash; which is what lambdapdk needs. Entries may be globs: a
+host wildcard only as the whole leftmost label (`*.example.com`), `*` within
+one path segment. An unsafe entry stops the server at startup. Every redirect
+hop is checked again, and a name resolving to a private or link-local address
+is never connected to.
+
+A source that fails for good sends the job back from `queued` to
+`awaiting_input`, and the transition says which source and why.
+
+⚠️ **This changed.** An environment-variable PDK was, for a while, resolved from
+this server's own environment; it is uploaded again. To keep a proprietary PDK
+off the wire, the operator supplies it through `private_dataroots`.
 
 ## Error pages
 

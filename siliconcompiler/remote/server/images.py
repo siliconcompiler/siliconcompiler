@@ -1002,7 +1002,10 @@ def _prepare_spec(config, mounts) -> None:
             entry for entry in namespaces if entry.get("type") != "network"]
 
     existing = {entry.get("destination") for entry in spec.get("mounts", [])}
-    for path in mounts:
+    for mount in mounts:
+        # A path, bound read-write; or `(path, "ro")` -- a root this server
+        # SUPPLIES to jobs, which a job must be able to read and never change.
+        path, mode = (mount if isinstance(mount, (tuple, list)) else (mount, "rw"))
         path = str(path)
         if path in existing:
             continue
@@ -1010,7 +1013,7 @@ def _prepare_spec(config, mounts) -> None:
             "destination": path,
             "source": path,
             "type": "none",
-            "options": ["rbind", "rw"],
+            "options": ["rbind", "ro" if mode == "ro" else "rw"],
         })
 
     with open(config, "w") as f:

@@ -136,6 +136,7 @@ class Resolver:
 
             settings.set("resolvers", "", FileResolver)
             settings.set("resolvers", "file", FileResolver)
+            settings.set("resolvers", "file+private", PrivateFileResolver)
             settings.set("resolvers", "key", KeyPathResolver)
             settings.set("resolvers", "python", PythonPathResolver)
             settings.set("resolvers", "dataroot", DatarootResolver)
@@ -851,6 +852,28 @@ class FileResolver(Resolver):
         if path and path[0] == "$":
             return path
         return os.path.abspath(path)
+
+
+class PrivateFileResolver(FileResolver):
+    """
+    A local path marked as never to leave this machine.
+
+    Resolves exactly as a local path does. The difference is only in what a
+    remote run does with it: its files are never uploaded, and a server supplies
+    its own copy by the owning object's name and the dataroot's name, or refuses
+    the job.
+
+    ⚠️ Provisional. The marker's spelling -- this ``file+private://`` scheme, or
+    a ``private`` field beside ``path`` and ``tag`` -- is not decided, so nothing
+    outside :func:`siliconcompiler.remote.owners.is_private` should test for it.
+    """
+
+    SCHEME = "file+private://"
+
+    def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
+        if source.startswith(self.SCHEME):
+            source = source[len(self.SCHEME):]
+        super().__init__(name, schema, source, reference)
 
 
 class PythonPathResolver(Resolver):
