@@ -165,16 +165,21 @@ def _builds(store, storage, config, datadir) -> int:
     ⚠️ A job with no artifacts at all is left alone. That is a run whose
     indexing failed or has not happened, not a run whose results expired, and
     deleting the only copy of it is the one mistake here that cannot be undone.
+
+    ⚠️ **An upload is not something the job produced**, and is counted on
+    neither side: a job-level `input` is written at submit, before anything
+    runs, and is its own file rather than one read out of this tree.
     '''
+    produced = "NOT (a.kind = 'input' AND a.step IS NULL)"
     rows = store.all(
         "SELECT j.id, j.user_id FROM jobs j "
         f"WHERE j.state IN ({', '.join('?' * len(_TERMINAL))}) "
         "  AND j.deleted_at IS NULL "
-        "  AND EXISTS (SELECT 1 FROM artifacts a WHERE a.job_id = j.id) "
+        f"  AND EXISTS (SELECT 1 FROM artifacts a WHERE a.job_id = j.id AND {produced}) "
         # Nothing this job produced is still reachable: every artifact is
         # either past its retention or was deleted outright.
         "  AND NOT EXISTS (SELECT 1 FROM artifacts a WHERE a.job_id = j.id "
-        "                  AND a.deleted_at IS NULL "
+        f"                  AND {produced} AND a.deleted_at IS NULL "
         "                  AND (a.retention_until IS NULL "
         "                       OR a.retention_until > ?))",
         _TERMINAL + (now(),))

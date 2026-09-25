@@ -107,6 +107,11 @@ run. The server keeps its copy under `<datadir>/users/<user>/builds/`, indexed
 as artifacts with per-kind retention: manifests and logs for years, bulk outputs
 for the deployment's floor.
 
+What went in is kept too, as `input` artifacts: every upload the job accepted,
+separately and in order, and each node's `inputs/`. The portal opens them file
+by file and shows every artifact's hash. An upload is moved into the artifact
+store rather than deleted, so it costs its own size for the floor's retention.
+
 ### Watching, cancelling and reconnecting
 
 A run writes `sc_remote.pkg.json` into its job directory before it uploads
@@ -579,7 +584,8 @@ somebody's request.
 
 ⚠️ **A job with no artifacts at all keeps its tree.** That is a run whose
 indexing failed or has not happened, not one whose results expired, and its
-tree is the only copy.
+tree is the only copy. Its uploads do not count: they were written before
+anything ran.
 
 ## Credentials
 

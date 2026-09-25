@@ -103,6 +103,32 @@ the right row, since handing the archive over would undo the deletion.
 
 **Where it goes:** `entitlements.md`, the ladder's row 4.
 
+### 4. `input` is produced, and it is more than one thing
+
+The vocabulary says `input` is *"the uploaded archive. The owner has a copy"* —
+one per job, job-level. **Owner, 2026-09-25:** *"generate input artifact for each
+of the uploads (they should be separate) and show them on the UI and then we need
+the input for each node as well … and the UI shows the hash of the artifacts."*
+This profile now produces it, in two shapes:
+
+- **Job-level, one per upload.** The first archive and every follow-up a job
+  sent back for its sources carries (D124) is its own row, with the digest the
+  submit verified as `content_hash`. ⚠️ **That breaks one-per-(job, kind,
+  node)**, so `artifacts_one_per_node_idx` exempts a job-level `input` — safe,
+  because submit writes those once each rather than the racing indexer. Kept
+  even when the job is then refused, which is when it is wanted. The upload is
+  *moved* into the store, not copied.
+- **Bound to a node: that node's `inputs/`**, links followed. The node archive
+  leaves `inputs/` out, so a node's `input` is **not** one of its members for
+  entitlements row 4.
+
+Neither is counted by the reaper as something the job produced, and the
+reference client fetches neither.
+
+**Where it goes:** `database.md`'s `artifact_kinds` comment and the unique
+index; `surface.md` §21 — a listing may carry several job-level `input` rows,
+in arrival order; `entitlements.md` row 4's member set.
+
 ---
 
 ## Not ported, deliberately

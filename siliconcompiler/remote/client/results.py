@@ -53,6 +53,17 @@ logger = logging.getLogger(__name__)
 # server.
 _ARCHIVES = ("node", "outputs", "reports")
 
+# Kinds this client never takes, and never reports as left behind. `input` is
+# what went IN -- each upload, and a node's inputs -- and this machine has the
+# one and takes the other as its upstream's outputs. It is there to be looked
+# at, in the portal.
+_NOT_TAKEN = ("input",)
+
+
+def _takeable(items):
+    return [item for item in items or [] if item.get("kind") not in _NOT_TAKEN]
+
+
 # Where the run's own log lands. It belongs to no node, so it goes beside them
 # in the job directory.
 #
@@ -196,7 +207,7 @@ class Results:
             # Every kind, because what a node can be taken by is only known
             # from the listing -- at the endpoint's largest page, since a wide
             # flow lists four objects per node.
-            listed = self.client.artifacts(job_id, limit=200)
+            listed = _takeable(self.client.artifacts(job_id, limit=200))
         except Exception as e:                                   # noqa: BLE001
             # Nothing is lost by failing here: the sweep at the end asks again.
             logger.debug(f"could not list node results yet: {e}")
@@ -252,7 +263,7 @@ class Results:
     def fetch(self, job_id: str) -> int:
         '''Retrieve everything fetchable and say what was not. Returns the
         number of objects that landed.'''
-        items = self.client.artifacts(job_id)
+        items = _takeable(self.client.artifacts(job_id))
 
         if not items:
             # A legal answer, and three deployments reach it by different

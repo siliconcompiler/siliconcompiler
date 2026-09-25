@@ -350,7 +350,8 @@ INSERT INTO artifact_kinds (kind, retention_days) VALUES
     ('issue',    1825),      -- a failure is what you come back to
     ('final',    1825),      -- the deliverables. Re-making one is a re-run
     ('outputs',  NULL),      -- large, regenerable, and the most sensitive: the floor, no more
-    ('input',    NULL),      -- the uploaded archive. The owner has a copy
+    ('input',    NULL),      -- what went IN: each uploaded archive, job-level, and
+                             -- a node's inputs/ bound to the node
     ('node',     NULL);      -- one node's whole working directory, and it may never outlive
                              -- its contents. ALWAYS bound to a step and an index: there is no
                              -- job-level tarball, because the kind is named for what it is
@@ -421,8 +422,13 @@ CREATE INDEX artifacts_hash_idx ON artifacts (content_hash);
 -- coalesce because the job-level rows carry NULL for both, and SQLite counts
 -- NULLs as distinct in a unique index -- which would leave exactly the rows
 -- with no node unprotected.
+--
+-- ⚠️ Except a job-level `input`: one per upload, and a job sent back for its
+-- sources has more than one. Those are written by submit, once each, rather
+-- than by the indexer, so nothing races to write them.
 CREATE UNIQUE INDEX artifacts_one_per_node_idx
-    ON artifacts (job_id, kind, coalesce(step, ''), coalesce("index", ''));
+    ON artifacts (job_id, kind, coalesce(step, ''), coalesce("index", ''))
+    WHERE NOT (kind = 'input' AND step IS NULL);
 
 
 --------------------------------------------------------------------------

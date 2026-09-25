@@ -258,6 +258,24 @@ def _size(num_bytes) -> str:
     return units.size(num_bytes)
 
 
+@blueprint.app_template_filter("digest")
+def _digest(content_hash) -> markupsafe.Markup:
+    """A content hash, short enough for a table and whole on hover.
+
+    The prefix and twelve hex digits tell two objects apart at a glance; the
+    whole value is what a person compares against a file they hold, so it is
+    one hover away -- and on the page that looks inside the object, in full.
+    """
+    if not content_hash:
+        return markupsafe.Markup('<span class="muted">\u2014</span>')
+    text = str(content_hash)
+    algorithm, _, hexdigest = text.partition(":")
+    short = f"{algorithm}:{hexdigest[:12]}\u2026" if hexdigest else text
+    return markupsafe.Markup(
+        f'<code class="mono" title="{markupsafe.escape(text)}">'
+        f'{markupsafe.escape(short)}</code>')
+
+
 @blueprint.app_template_filter("duration")
 def _duration(seconds) -> str:
     return units.duration(seconds)
@@ -737,10 +755,26 @@ def delete(session, job_id):
 def artifacts(session, job_id):
     detail = _jobs().get(session, job_id)
     items = _all_artifacts(session, job_id, flask.request.args)
+    uploads = _uploads(items)
     return flask.render_template("artifacts.html", job=detail, artifacts=items,
-                                 groups=_by_node(items), reason_chars=MAX_REASON,
+                                 uploads=uploads,
+                                 groups=_by_node([item for item in items
+                                                  if item not in uploads]),
+                                 reason_chars=MAX_REASON,
                                  kind=flask.request.args.get("kind", ""),
                                  step=flask.request.args.get("step", ""))
+
+
+def _uploads(items):
+    """Every archive the job accepted, in the order they arrived.
+
+    Job-level `input` rows: the first upload, and one per follow-up a job sent
+    back for its sources carried. Shown apart from the run's own objects,
+    because they are what went IN.
+    """
+    return sorted((item for item in items
+                   if item.get("kind") == "input" and item.get("step") is None),
+                  key=lambda item: (item.get("created_at") or "", item.get("id") or ""))
 
 
 def _by_node(items):

@@ -209,15 +209,19 @@ def test_indexing_twice_does_not_duplicate_the_listing(server, server_client,
     assert len(listing(server_client, key, token, finished["id"])) == before
 
 
-def test_a_job_that_left_nothing_lists_nothing(server_client, key, token,
-                                               job_archive, dispatcher):
-    '''An empty listing is a legal answer, not an error.'''
+def test_a_job_that_ran_nothing_lists_only_what_was_sent(server_client, key, token,
+                                                         job_archive, dispatcher):
+    '''Nothing the run produced is a legal answer, not an error -- and what
+    went in is still there to look at.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
     call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
 
-    assert listing(server_client, key, token, job["id"]) == []
+    items = listing(server_client, key, token, job["id"])
+    assert [(item["kind"], item["step"]) for item in items] == [("input", None)]
+    # The digest the submit checked, as the hash of the bytes it kept.
+    assert items[0]["content_hash"] == digest and items[0]["size_bytes"] == size
 
 
 ###########################
@@ -265,9 +269,9 @@ def test_the_listing_pages(server_client, key, token, finished):
         response = call(server_client, key, "GET",
                         link.split(">", 1)[0].lstrip("<"), token)
 
-    # The job's manifest, plus a log, a manifest, a reports and a node archive
-    # for each of the two nodes.
-    assert len(seen) == len(set(seen)) == 9
+    # The job's manifest and its upload, plus a log, a manifest, a reports, a
+    # node archive and its inputs for each of the two nodes.
+    assert len(seen) == len(set(seen)) == 12
 
 
 def test_a_strangers_listing_is_a_404(server_client, key, token, finished):
@@ -762,8 +766,8 @@ def test_the_job_level_rows_are_protected_too(server, finished):
 
     store = server.config["SC_STORE"]
     existing = store.one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND step IS NULL LIMIT 1",
-        (finished["id"],))
+        "SELECT * FROM artifacts WHERE job_id = ? AND step IS NULL "
+        "AND kind <> 'input' LIMIT 1", (finished["id"],))
     assert existing is not None
 
     with pytest.raises(sqlite3.IntegrityError):
@@ -775,6 +779,72 @@ def test_the_job_level_rows_are_protected_too(server, finished):
             "        ?, 'declared')",
             (str(uuid7()), finished["id"], existing["location_id"],
              existing["kind"]))
+
+
+def test_every_upload_is_its_own_input(server, finished):
+    '''⚠️ The one exception to one-per-node: a job sent back for its sources
+    carries a second archive, and each is kept.'''
+    from siliconcompiler.remote.server.ids import uuid7
+
+    store = server.config["SC_STORE"]
+    first = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'input' "
+                      "AND step IS NULL", (finished["id"],))
+    store.execute(
+        'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+        "  location_id, storage_key, size_bytes, media_type, kind, provenance) "
+        "VALUES (?, ?, NULL, NULL, 'sha256:x', ?, 'k', 1, 'application/gzip', "
+        "        'input', 'declared')",
+        (str(uuid7()), finished["id"], first["location_id"]))
+
+    assert store.one("SELECT count(*) AS n FROM artifacts WHERE job_id = ? AND "
+                     "kind = 'input' AND step IS NULL", (finished["id"],))["n"] == 2
+
+
+def test_a_node_input_is_what_it_was_handed_and_no_member_of_its_archive(
+        server_client, key, token, finished):
+    '''The node archive leaves `inputs/` out, so a node's `input` decides
+    nothing about whether that archive may be fetched.'''
+    items = listing(server_client, key, token, finished["id"], "?kind=input&step=stepone")
+
+    assert [(item["step"], item["index"]) for item in items] == [("stepone", "0")]
+    assert items[0]["media_type"] == "application/gzip" and items[0]["fetchable"]
+
+
+def _node_with_inputs(server, finished, step, links):
+    job = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
+    root = server.config["SC_JOBS"].job_root(job["user_id"], job["id"])
+    node = root / job["design"] / job["jobname"] / step / "0"
+    (node / "inputs").mkdir(parents=True)
+    (node / f"sc_{step}_0.log").write_text("log\n")
+    for name, target in links.items():
+        (node / "inputs" / name).symlink_to(target)
+    from siliconcompiler.remote.server import artifacts
+    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
+                           server.config["SC_CONFIG"], job, root, step, "0")
+    return server.config["SC_STORE"].all(
+        "SELECT * FROM artifacts WHERE job_id = ? AND step = ?", (job["id"], step))
+
+
+def test_a_nodes_inputs_hold_the_bytes_it_read_not_the_links(server, finished, tmp_path):
+    import tarfile
+
+    (tmp_path / "upstream.vg").write_text("module gcd; endmodule\n")
+    rows = _node_with_inputs(server, finished, "linked",
+                             {"gcd.vg": tmp_path / "upstream.vg"})
+    row, = [row for row in rows if row["kind"] == "input"]
+
+    with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
+        member = tar.getmember("inputs/gcd.vg")
+        assert member.isfile()
+        assert tar.extractfile(member).read() == b"module gcd; endmodule\n"
+
+
+def test_a_dangling_input_costs_only_the_input(server, finished, tmp_path):
+    '''The node's own results are indexed; a view of what it was handed is not
+    worth losing them over.'''
+    rows = _node_with_inputs(server, finished, "dangling", {"gone.vg": tmp_path / "nothing"})
+
+    assert {row["kind"] for row in rows} == {"logs", "node"}
 
 
 ###########################

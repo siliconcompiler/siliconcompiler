@@ -1,6 +1,28 @@
 {% extends "base.html" %}
 {% set active = 'jobs' %}
 {% block title %}Artifacts · {{ job.design }} · sc-server{% endblock %}
+{% macro actions(item) -%}
+  {% if item.fetchable %}
+    {%- if item.media_type == 'application/gzip'
+           and (item.size_bytes or 0) <= browse_limit %}
+    <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
+       >look inside</a> &middot;
+    {% endif -%}
+    <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
+  {% elif item.deleted_at %}
+    {#
+      The reason, not just the date. Retention lapsing ends in a
+      deleted_at like everything else, so without it this line cannot
+      tell "the server did what it said" from "somebody removed this".
+    #}
+    <span class="muted">gone {{ item.deleted_at | when }}{%
+      if item.deleted_reason %} — {{ item.deleted_reason }}{% endif %}</span>
+  {% elif item.blocked_by %}
+    <span class="muted">held back ({{ item.blocked_by }})</span>
+  {% else %}
+    <span class="muted">not available</span>
+  {% endif %}
+{%- endmacro %}
 {% block body %}
 <h2>Artifacts</h2>
 <p class="lede">
@@ -24,6 +46,35 @@
   could be removed on its own. It cannot: doing that frees nothing and leaves a
   "deleted" that the disk disagrees with.
 #}
+{% if uploads %}
+<div class="panel">
+  <h3 style="margin-top:0">What was uploaded</h3>
+  <p class="muted">
+    {#
+      Each archive separately, and in order: a job sent back for a source the
+      server could not fetch carries a second one, holding only what it was
+      asked for -- and telling the two apart is the reason to look.
+    #}
+    Every archive this job accepted, as it arrived: the first, then any the
+    server asked for when it could not fetch a source itself. The hash is the
+    digest the client declared and the server checked.
+  </p>
+  <table>
+    <tr><th>Upload</th><th>Arrived</th><th>Size</th><th>Hash</th><th></th></tr>
+    {% for item in uploads %}
+    <tr>
+      <td>{{ loop.index }}
+        <span class="muted">&middot; {{ 'the first' if loop.first else 'a follow-up' }}</span></td>
+      <td class="mono muted">{{ item.created_at | when }}</td>
+      <td class="mono muted">{{ item.size_bytes | size }}</td>
+      <td>{{ item.content_hash | digest }}</td>
+      <td>{{ actions(item) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
 {% for group in groups %}
 <div class="panel">
   <h3 style="margin-top:0">
@@ -37,34 +88,15 @@
   </p>
   {% endif %}
   <table>
-    <tr><th>Kind</th><th>Size</th><th>Expires</th><th></th></tr>
+    <tr><th>Kind</th><th>Size</th><th>Hash</th><th>Expires</th><th></th></tr>
     {% for item in group['items'] %}
     <tr>
-      <td>{{ item.kind }}</td>
+      <td>{{ item.kind }}{% if item.kind == 'input' %}
+        <span class="muted">&middot; what it was handed</span>{% endif %}</td>
       <td class="mono muted">{{ item.size_bytes | size }}</td>
+      <td>{{ item.content_hash | digest }}</td>
       <td class="mono muted">{{ item.expires_at | when }}</td>
-      <td>
-        {% if item.fetchable %}
-          {%- if item.media_type == 'application/gzip'
-                 and (item.size_bytes or 0) <= browse_limit %}
-          <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
-             >look inside</a> &middot;
-          {% endif -%}
-          <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
-        {% elif item.deleted_at %}
-          {#
-            The reason, not just the date. Retention lapsing ends in a
-            deleted_at like everything else, so without it this line cannot
-            tell "the server did what it said" from "somebody removed this".
-          #}
-          <span class="muted">gone {{ item.deleted_at | when }}{%
-            if item.deleted_reason %} — {{ item.deleted_reason }}{% endif %}</span>
-        {% elif item.blocked_by %}
-          <span class="muted">held back ({{ item.blocked_by }})</span>
-        {% else %}
-          <span class="muted">not available</span>
-        {% endif %}
-      </td>
+      <td>{{ actions(item) }}</td>
     </tr>
     {% endfor %}
   </table>

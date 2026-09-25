@@ -7,7 +7,7 @@ per node and no record of it; a tarball is not a row, so it carries no kind, no
 retention and no per-object gate. Here every object is indexed, and the listing
 is the answer to *where did my results go* even when the bytes are gone.
 
-Four kinds are produced, and every byte is stored once:
+Five kinds are produced, and every byte is stored once:
 
 ``manifest``  the job's own ``<design>.pkg.json``. Job-level, so no step. **The
               kind most likely to be the only one there is**: it is small, and
@@ -51,9 +51,24 @@ reports.
 ⚠️ **`outputs` is still deliberately NOT produced.** THAT would be a second
 copy of the large half.
 
-``input`` is not produced either. It is the archive the client uploaded, the
-client still has it, and keeping a second copy costs the whole upload again for
-something nobody fetches.
+``input``     🆕 **what went IN, so it can be inspected.** Two shapes:
+
+              - **job-level, one per upload.** Every archive the server
+                accepted into the job -- the first, and each follow-up a job
+                sent back for its sources carries -- is its own row, in the
+                order they arrived, with the digest the submit verified as its
+                hash. Kept even when the job is then refused, which is when
+                somebody wants to see what was sent. **Not a copy**: the upload
+                is MOVED into the store rather than deleted, so the cost is the
+                upload itself, held for the kind's retention.
+              - **one node's ``inputs/``**, bound to the node: what its
+                upstream handed it. Links are followed, so the archive holds the
+                bytes the node read.
+
+              ⚠️ **Neither is a member of the node archive** -- that leaves
+              ``inputs/`` out -- so neither decides whether it may be fetched.
+              And the client fetches neither: it has its upload, and a node's
+              inputs are its upstream's outputs, which it already takes.
 
 ⚠️ **A `node` artifact IS grantable, and this deployment has nothing to grant
 with.** Where a server does, the way to hold one back is ``withheld_at``, which
@@ -68,6 +83,7 @@ is per row -- so the exclusion is a note for the deployment that does.
 
 import hashlib
 import logging
+import os
 import shutil
 import sqlite3
 import tarfile
@@ -147,7 +163,44 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
                             step, index, members, workdir,
                             exclude=_node_filter)
 
+    # What the node was handed, on its own: the node archive leaves it out, and
+    # it is what somebody debugging the node wants to read. Upstream outputs
+    # arrive as links, so they are followed.
+    inputs = workdir / "inputs"
+    if inputs.is_dir() and any(inputs.iterdir()):
+        try:
+            written += _archive(store, storage, job, location, floor, "input",
+                                step, index, [inputs], workdir, dereference=True)
+        except OSError as e:
+            # A link to nothing: the node's own results are indexed already,
+            # and a missing view of what it was handed is not worth losing them.
+            logger.warning(f"{job['id']}: could not keep {step}/{index}'s inputs: {e}")
+
     return written
+
+
+def record_upload(store, storage, config, job, upload: Path, digest: str,
+                  size: int) -> str:
+    '''One accepted upload, kept as a job-level `input`. Returns its id.
+
+    **Moved, not copied**: the upload was going to be deleted, and the bytes
+    are the artifact. The hash is the digest submit already checked against
+    them, so it is not computed again.
+    '''
+    artifact_id = str(uuid7())
+    target = storage.artifact_dir(job["id"]) / artifact_id
+    target.parent.mkdir(parents=True, exist_ok=True)
+    os.replace(upload, target)
+
+    store.execute(
+        'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+        "  location_id, storage_key, size_bytes, media_type, kind, "
+        "  retention_until, provenance) "
+        "VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, 'application/gzip', 'input', ?, 'declared')",
+        (artifact_id, job["id"], digest, config["storage_location_id"],
+         f"{job['id']}/{artifact_id}", size,
+         _retention(store, "input", config.limits["job_retention_days"])))
+    return artifact_id
 
 
 def collect(store, storage, config, job, build_root) -> int:
@@ -283,7 +336,8 @@ def _index(store, storage, job, location, floor, kind, step, index,
 
 
 def _archive(store, storage, job, location, floor, kind, step, index,
-             members: List[Path], base: Path, exclude=None) -> int:
+             members: List[Path], base: Path, exclude=None,
+             dereference: bool = False) -> int:
     '''Several paths, as one gzipped tar, recorded as one artifact.
 
     Stored relative to the node's working directory, so a client unpacks it
@@ -297,9 +351,13 @@ def _archive(store, storage, job, location, floor, kind, step, index,
     target = storage.artifact_dir(job["id"]) / artifact_id
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    with tarfile.open(target, "w:gz") as tar:
-        for member in members:
-            tar.add(member, arcname=str(member.relative_to(base)), filter=exclude)
+    try:
+        with tarfile.open(target, "w:gz", dereference=dereference) as tar:
+            for member in members:
+                tar.add(member, arcname=str(member.relative_to(base)), filter=exclude)
+    except BaseException:
+        target.unlink(missing_ok=True)
+        raise
 
     return _record(store, job, artifact_id, location, floor, kind, step, index,
                    target, "application/gzip")

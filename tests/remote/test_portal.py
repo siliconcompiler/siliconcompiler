@@ -231,6 +231,48 @@ def finished(server, server_client, key, token, job_archive, dispatcher, me):
     return job
 
 
+def test_the_uploads_are_shown_apart_with_their_hashes(server, signed_in, finished):
+    '''What went in, separately and inspectable, and every artifact's hash --
+    short in the table, whole on the page that looks inside it.'''
+    store = server.config["SC_STORE"]
+    upload = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'input' "
+                       "AND step IS NULL", (finished["id"],))
+    page = signed_in.get(f"/portal/jobs/{finished['id']}/artifacts").get_data(as_text=True)
+
+    assert "What was uploaded" in page and "the first" in page
+    short = upload["content_hash"][:len("sha256:") + 12]
+    assert short in page and f'title="{upload["content_hash"]}"' in page
+
+    inside = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts/{upload['id']}/inside")
+    text = inside.get_data(as_text=True)
+    assert inside.status_code == 200
+    assert upload["content_hash"] in text
+    assert "gcd.pkg.json" in text             # the manifest the client sent
+
+
+def test_a_nodes_inputs_are_its_own_row(server, signed_in, finished):
+    root = server.config["SC_JOBS"].job_root(
+        store_user(server, finished), finished["id"]) / "gcd" / "job0" / "steptwo" / "0"
+    (root / "inputs").mkdir(parents=True, exist_ok=True)
+    (root / "inputs" / "gcd.vg").write_text("module gcd; endmodule\n")
+    from siliconcompiler.remote.server import artifacts
+
+    job = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
+    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
+                           server.config["SC_CONFIG"], job,
+                           server.config["SC_JOBS"].job_root(job["user_id"], job["id"]),
+                           "steptwo", "0")
+
+    page = signed_in.get(f"/portal/jobs/{finished['id']}/artifacts").get_data(as_text=True)
+    assert "what it was handed" in page
+
+
+def store_user(server, job):
+    return server.config["SC_STORE"].one(
+        "SELECT user_id FROM jobs WHERE id = ?", (job["id"],))["user_id"]
+
+
 def test_the_artifacts_screen_lists_them(signed_in, finished):
     '''🔴 The listing returns (items, cursor). Handing the tuple straight to a
     template renders a page with nothing on it and no error, which is how this

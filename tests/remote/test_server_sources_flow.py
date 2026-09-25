@@ -241,6 +241,26 @@ def test_the_asked_for_sources_arrive_and_the_job_runs(
     assert wait_for(lambda: dispatcher.submitted)
 
 
+def test_each_upload_is_kept_as_its_own_input(
+        server, server_client, key, token, job_archive, remote_project, dispatcher):
+    '''The first archive and the follow-up, separately and in order, each
+    under the digest its submit checked -- so what was sent can be inspected.'''
+    job = sent_back(server, server_client, key, token, job_archive, remote_project)
+    hashed = first(remote_project, ("library", "lambda", *DATASHEET)).get_hashed_filename()
+    data, digest, size = follow_up({f"sc_collected_files/{hashed}": b"sent by the client\n"})
+
+    grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
+                 token, json={"bytes": size}).get_json()
+    put(server_client, grant, data)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    uploads = server.config["SC_STORE"].all(
+        "SELECT content_hash, size_bytes FROM artifacts WHERE job_id = ? "
+        "AND kind = 'input' AND step IS NULL ORDER BY created_at, id", (job["id"],))
+    assert len(uploads) == 2
+    assert (uploads[1]["content_hash"], uploads[1]["size_bytes"]) == (digest, size)
+
+
 ###########################
 # Nothing to wait for
 ###########################

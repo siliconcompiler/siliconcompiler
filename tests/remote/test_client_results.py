@@ -666,6 +666,27 @@ def test_an_object_over_the_servers_ceiling_is_listed_and_not_pulled(
     assert "1000 B" in caplog.text
 
 
+def test_what_went_in_is_neither_taken_nor_reported_left_behind(
+        fake_v1, capabilities, results, caplog):
+    '''`input` is the upload and a node's inputs: this machine has the one
+    and takes the other as its upstream's outputs. Over the ceiling, saying it
+    was left on the server would be a warning about nothing.'''
+    _ceiling(fake_v1, capabilities, 1000)
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("input", size_bytes=50_000_000, media_type="application/gzip"),
+        artifact("input", "stepone", "0", size_bytes=50_000_000,
+                 media_type="application/gzip"),
+        artifact("manifest")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-None-None",
+                  json.dumps({"schemaversion": "0.0.0"}))
+
+    with caplog.at_level("WARNING"):
+        assert results.fetch("j1") == 1
+
+    assert "left on the server" not in caplog.text
+    assert not any("art-input" in call.request.url for call in fake_v1.calls)
+
+
 def test_a_node_archive_left_behind_does_not_displace_its_nodes_log(
         fake_v1, capabilities, results, nop_project):
     '''🔴 A node archive displaces the objects inside it only because fetching it

@@ -177,7 +177,8 @@ def test_a_job_that_produced_nothing_keeps_its_tree(
 
     root = server.config["SC_JOBS"].job_root(me, job["id"])
     assert root.is_dir()
-    assert not artifact_rows(server, job["id"])
+    # Only what was sent, which is not something the job produced.
+    assert [row["kind"] for row in artifact_rows(server, job["id"])] == ["input"]
 
     sweep(server)
 

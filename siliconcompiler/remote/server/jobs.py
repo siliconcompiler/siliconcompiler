@@ -640,12 +640,18 @@ class JobService:
                 "archive-rejected", violation=rejected.violation,
                 detail=rejected.detail)) from None
 
-        self._storage.discard_upload(job["id"])
+        # 🔴 Kept, as its own `input`, rather than deleted: every upload the
+        # job accepted can be looked inside afterwards -- a refused one most of
+        # all. Moved, so nothing is stored twice.
         with self._store.transaction():
+            artifacts.record_upload(self._store, self._storage, self._config, job,
+                                    self._storage.upload_path(job["id"]), digest, size)
             self._store.execute(
                 "UPDATE jobs SET archives_bytes = archives_bytes + ?, grant_bytes = NULL, "
                 "  upload_digest = ?, upload_bytes = ? WHERE id = ?",
                 (size, digest, size, job["id"]))
+        # Only what is left of it: an interrupted PUT's partial file.
+        self._storage.discard_upload(job["id"])
         job = self._row(job["id"])
 
         # Re-derived over the union of every archive, never from `sources`.
@@ -1987,9 +1993,10 @@ class JobService:
         not. Returns the WORST member's refusal (D120), or None.'''
         if row["kind"] != "node":
             return None
+        # `input` is not a member either: the node archive leaves `inputs/` out.
         members = self._store.all(
             'SELECT * FROM artifacts WHERE job_id = ? AND step = ? AND "index" = ? '
-            "AND kind NOT IN ('node', 'issue')",
+            "AND kind NOT IN ('node', 'issue', 'input')",
             (row["job_id"], row["step"], row["index"]))
         return artifacts.worst(
             artifacts.ladder(member, self._surface_allows(surface, member["kind"]))

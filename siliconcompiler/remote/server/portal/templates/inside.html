@@ -12,6 +12,8 @@
   <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
      >all {{ item.kind }} files</a>{% endif %}
 </p>
+{# In full here, where somebody compares it against a file they hold. #}
+<p class="mono muted" style="word-break:break-all">{{ item.content_hash }}</p>
 
 {% if entries is not none %}
   {#

@@ -274,6 +274,14 @@ A server carries a portal: your jobs and their nodes, each node's log live or
 archived, the artifacts a run produced, the machines that may act as you, your
 account, and the images the deployment runs jobs in.
 
+**What went in is kept alongside what came out.** Every archive the job
+uploaded is its own artifact -- the first, and each follow-up the server asked
+for -- and so is each node's ``inputs`` directory, what its upstream handed it.
+All of them can be opened in the portal and read file by file, and every
+artifact shows its ``sha256`` hash, which for an upload is the digest your
+client declared and the server checked. The client never downloads them back:
+it has the uploads, and a node's inputs are its upstream's outputs.
+
 **There is no login.** Your machine's key is the credential, and a browser
 arriving cold holds none of it -- so the client proves possession of that key
 and passes a session across. The link it opens is **good for one use and lives
