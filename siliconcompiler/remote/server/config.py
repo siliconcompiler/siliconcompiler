@@ -292,6 +292,13 @@ DEFAULTS: Dict[str, Any] = {
     "fetch_timeout_seconds": 300,
     "fetch_deadline_seconds": 1800,
 
+    # Every fetch fails for good, and no copy this server already holds is
+    # used -- what a server with an empty cache and no route out looks like.
+    # An allowlisted source is still not asked for at create, so every job
+    # that needs one is sent back after submit and its client uploads it as a
+    # follow-up. For testing that path (test mode 4); nothing else wants it.
+    "fetch_fails": False,
+
     # Task-driver modules outside `siliconcompiler.tools` that software may name
     # (D95). The probe imports a driver on the server, so this is the list of
     # what an operator allows it to import; SiliconCompiler has no entry-point
@@ -307,8 +314,9 @@ RESOURCE_KINDS = ("pdk", "library", "fpga", "tool")
 _NOT_PUBLISHED = ("max_detail_chars",)
 
 
-# Three presets for testing a client against deployments that serve less, from
-# what this server does by default to the most it can withhold.
+# Presets for testing a client against deployments that serve less, from what
+# this server does by default to the most it can withhold -- and one, mode 4,
+# that can fetch nothing, so every job takes the follow-up path.
 #
 # 🔴 **Every one is a legal v1 deployment, and `GET /v1` says which.** Nothing
 # here is a flag a client is told about; a client that behaves correctly under
@@ -357,6 +365,14 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
             "max_upload_bytes": 104857600,              # 100 MiB
             "max_download_bytes": 20971520,             # 20 MiB
         },
+    },
+
+    # What mode 1 serves, from a server that can fetch nothing: every job on a
+    # remote PDK goes `queued -> awaiting_input` asking for it, and its client
+    # sends a second archive -- so a job carries two uploads, each its own
+    # `input`, to look at side by side.
+    4: {
+        "fetch_fails": True,
     },
 }
 

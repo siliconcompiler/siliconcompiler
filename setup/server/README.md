@@ -192,20 +192,21 @@ SC_SERVER_TEST_MODE=3 docker compose up
 python -m siliconcompiler.remote.server -datadir /tmp/x -test-mode 3
 ```
 
-Three presets for seeing how a client copes with a deployment that withholds
-more. **Every one is a legal `v1` deployment and `GET /v1` says what it
-serves**, so nothing tells the client which mode it is in; it has to read the
-features and the limits as it would anywhere.
+Presets for seeing how a client copes with a deployment that withholds more,
+and one that can fetch nothing. **Every one is a legal `v1` deployment and
+`GET /v1` says what it serves**, so nothing tells the client which mode it is
+in; it has to read the features and the limits as it would anywhere.
 
-| | 1 | 2 | 3 |
-|---|---|---|---|
-| one live stream for the whole job | ✅ | ❌ `feature-unsupported` &mdash; the client follows each node | ❌ |
-| each node's live log | ✅ | ✅ | ❌ `feature-unsupported` |
-| archived log over the API | ✅ | ✅ | ❌ `feature-unsupported` |
-| what the API hands over | every kind | manifests, logs, reports | manifests &mdash; the job's and each node's |
-| the portal | everything | everything | everything |
-| denied | nothing | nothing | PDK `GF180*`, library `nangate45`, tool `verilator` |
-| `concurrent_jobs` / `pending_uploads` | 4 / 8 | 2 / 4 | 1 / 2 |
+| | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| one live stream for the whole job | ✅ | ❌ `feature-unsupported` &mdash; the client follows each node | ❌ | ✅ |
+| each node's live log | ✅ | ✅ | ❌ `feature-unsupported` | ✅ |
+| archived log over the API | ✅ | ✅ | ❌ `feature-unsupported` | ✅ |
+| what the API hands over | every kind | manifests, logs, reports | manifests &mdash; the job's and each node's | every kind |
+| the portal | everything | everything | everything | everything |
+| denied | nothing | nothing | PDK `GF180*`, library `nangate45`, tool `verilator` | nothing |
+| `concurrent_jobs` / `pending_uploads` | 4 / 8 | 2 / 4 | 1 / 2 | 4 / 8 |
+| fetches a remote source | ✅ | ✅ | ✅ | ❌ every fetch fails, and nothing already held is used |
 
 Mode 3 still hands over **each node's manifest**, indexed on its own as the
 node finishes, so a client can show a finished node's time, warnings and
@@ -223,9 +224,21 @@ job is `rejected`. Mode 3's three are each tripped by a different demo target,
 while the skywater130 demo still runs: `gf180_demo` for the PDK,
 `freepdk45_demo` for its library, and any flow that runs verilator for the tool.
 
+Mode 4 is mode 1 on a server that can fetch nothing (`fetch_fails`), for the
+follow-up path on demand. A remote PDK &mdash; the `lambdapdk` ones every demo
+uses &mdash; is on the allowlist, so it is not asked for at create; after submit
+its fetch fails for good, the job goes back to `awaiting_input` saying so, and
+`sc-remote` sends it as a second archive. The portal's artifacts screen then
+shows both uploads under *What was uploaded*, each with its own hash:
+
+```sh
+SC_SERVER_TEST_MODE=4 docker compose up
+python3 -m siliconcompiler.demos.asic_demo -remote
+```
+
 `config.json` still applies on top of a mode, so one value can be moved
-without writing out the rest &mdash; including `api_fetchable_kinds` and
-`denied_resources` themselves, which work without a mode too.
+without writing out the rest &mdash; including `api_fetchable_kinds`,
+`denied_resources` and `fetch_fails` themselves, which work without a mode too.
 
 ## The base image
 

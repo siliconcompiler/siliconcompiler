@@ -824,7 +824,7 @@ class JobService:
             pause = 2
             while wanted:
                 with ThreadPoolExecutor(max_workers=4) as pool:
-                    tried = {key: pool.submit(self._sources.fetch, key[0], key[1], timeout)
+                    tried = {key: pool.submit(self._fetch, key[0], key[1], timeout)
                              for key in wanted}
                 last = {}
                 for key, future in tried.items():
@@ -871,6 +871,16 @@ class JobService:
             with self._preparing_lock:
                 self._preparing.discard(job_id)
             self._store.release()
+
+    def _fetch(self, source: str, ref: str, timeout: int) -> str:
+        '''One source into this server's copy -- or, where `fetch_fails` is
+        set, a permanent failure, so the job goes back to its client.'''
+        from siliconcompiler.remote.server.sources import Permanent
+
+        if self._config["fetch_fails"]:
+            raise Permanent("this server fetches nothing (fetch_fails is set, as in "
+                            "test mode 4)")
+        return self._sources.fetch(source, ref, timeout)
 
     def _send_back(self, job, failed) -> None:
         '''`queued` back to `awaiting_input` -- the one backwards edge (D124) --
@@ -2527,6 +2537,10 @@ class _Supply:
         return ((self._config["private_dataroots"] or {}).get(name) or {}).get(dataroot)
 
     def held(self, source, ref) -> Optional[str]:
+        # Nothing is held on a server that fetches nothing: a copy left from
+        # before would supply the job and skip the path it exists to test.
+        if self._config["fetch_fails"]:
+            return None
         return self._sources.held(source, ref)
 
     def allowlisted(self, source, ref) -> bool:

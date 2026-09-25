@@ -13,9 +13,10 @@ from siliconcompiler.remote.server.config import (                  # noqa: E402
     DEFAULT_LIMITS, DEFAULTS, TEST_MODES, Config)
 
 
-# The three test modes. Every one is a legal v1 deployment, so what is asserted
-# here is that each says what it serves on `GET /v1` and then does exactly
-# that -- to the API, while the portal keeps showing everything.
+# The test modes. Every one is a legal v1 deployment, so what is asserted here
+# is that each says what it serves on `GET /v1` and then does exactly that -- to
+# the API, while the portal keeps showing everything. Mode 4 serves what mode 1
+# does from a server that can fetch nothing.
 
 
 @pytest.fixture
@@ -64,8 +65,8 @@ def test_mode_one_is_the_defaults(tmp_path):
 
 
 def test_a_mode_that_does_not_exist_is_refused(tmp_path):
-    with pytest.raises(ValueError, match="test mode 4"):
-        Config.load(tmp_path, test_mode=4)
+    with pytest.raises(ValueError, match="test mode 5"):
+        Config.load(tmp_path, test_mode=5)
 
 
 def test_every_mode_names_only_keys_the_config_has():
@@ -367,3 +368,58 @@ def test_the_libraries_are_the_main_library_and_the_rest():
     assert _libraries(Manifest(mainlib="nangate45", asiclib=[])) == ["nangate45"]
     assert _libraries(Manifest(mainlib="a", asiclib=["a", "b"])) == ["a", "b"]
     assert _libraries(Manifest()) == []
+
+
+###########################
+# Mode 4: a server that fetches nothing
+###########################
+
+@pytest.mark.parametrize("mode", [4])
+def test_mode_four_publishes_what_mode_one_does(server_client, tmp_path):
+    '''Nothing on the wire says a server cannot fetch: that is found out
+    per job, by being asked for the source.'''
+    from siliconcompiler.remote.server.app import create_app
+
+    one = create_app(tmp_path / "one", cluster="local", test_mode=1).test_client()
+    assert server_client.get("/v1").get_json() == one.get("/v1").get_json()
+
+
+@pytest.mark.parametrize("mode", [4])
+def test_mode_four_sends_the_source_back_and_keeps_both_uploads(
+        server, server_client, key, token, job_archive, dispatcher, gcd_design,
+        tmp_path):
+    '''🔴 The follow-up path, on demand: the allowlisted PDK is not asked for
+    at create, every fetch fails for good, and a copy already held is not used
+    -- so the job goes back asking for it, and the second archive is kept as
+    its own `input` beside the first.'''
+    from siliconcompiler import PDK
+    from test_owners import DATASHEET, _nop_asic, first, resource
+    from test_server_sources_flow import LAMBDA, read, send, wait_for
+
+    # A copy from before would supply the job and skip the path under test.
+    server.config["SC_JOBS"]._sources.held = lambda source, ref: str(tmp_path)
+
+    project = _nop_asic(gcd_design, tmp_path, resource(PDK, "lambda", LAMBDA, create=False))
+    archive, digest, size = job_archive(project)
+    job = stage(server_client, key, token, archive, size)
+    assert "upload_sources" not in job or job["upload_sources"] == []
+
+    assert submit(server_client, key, token, job["id"], digest, size).status_code == 202
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
+                    == "awaiting_input")
+    back = read(server_client, key, token, job["id"])
+    assert back["upload_sources"] == [{"kind": "pdk", "name": "lambda", "dataroot": "lambda"}]
+    reason = server.config["SC_STORE"].one(
+        "SELECT reason FROM job_state_transitions WHERE job_id = ? "
+        "AND to_state = 'awaiting_input' AND from_state = 'queued'", (job["id"],))["reason"]
+    assert "fetches nothing" in reason
+
+    hashed = first(project, ("library", "lambda", *DATASHEET)).get_hashed_filename()
+    response = send(server_client, key, token, job["id"],
+                    {f"sc_collected_files/{hashed}": b"sent by the client\n"})
+    assert response.status_code == 202, response.get_json()
+    assert wait_for(lambda: dispatcher.submitted)
+
+    uploads = [item for item in listing(server_client, key, token, job["id"], "?kind=input")
+               if item["step"] is None]
+    assert len(uploads) == 2 and uploads[0]["content_hash"] == digest

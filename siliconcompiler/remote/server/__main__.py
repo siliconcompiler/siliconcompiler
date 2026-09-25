@@ -111,7 +111,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         logger.warning(f"TEST MODE {args.test_mode}: features "
                        f"{config['features'] or 'none'}, API hands over "
                        f"{config['api_fetchable_kinds'] or 'every kind'}, "
-                       f"denied {config['denied_resources'] or 'nothing'}")
+                       f"denied {config['denied_resources'] or 'nothing'}"
+                       + (", every fetch fails" if config["fetch_fails"] else ""))
     # The honesty half, pairing with what GET /v1 publishes. Nothing here
     # verifies who a caller is; the key bound on first contact is the only real
     # control this mode has, and an operator should know that at startup rather
