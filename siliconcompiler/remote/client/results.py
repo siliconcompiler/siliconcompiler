@@ -175,11 +175,13 @@ class Results:
         One listing per poll in which something finished rather than one
         request per node: a wide flow finishes many nodes between two polls.
 
-        🔴 **The node archive where it may be had, and the node's own
-        manifest where it may not.** A deployment that withholds archives can
-        still hand over the manifest, and the manifest is the half that keeps
-        the record current; the archive holds it too, so it is never fetched
-        twice.
+        🔴 **Everything of that node's that may be had, by the same rule as
+        the sweep at the end.** The node archive where it is fetchable, which
+        holds the node's log, reports and manifest, so none of them is fetched
+        twice; and where it is not, each of those on its own -- a deployment
+        that withholds archives can still hand over the log a person wants to
+        read and the manifest that keeps the record current, and waiting for the
+        end of the run to fetch them is waiting for no reason.
         '''
         done = {(node.get("step"), node.get("index"))
                 for node in job.get("nodes") or []
@@ -191,9 +193,9 @@ class Results:
             return 0
 
         try:
-            # Every kind, because which of the two a node can be taken by is
-            # only known from the listing -- at the endpoint's largest page,
-            # since a wide flow lists four objects per node.
+            # Every kind, because what a node can be taken by is only known
+            # from the listing -- at the endpoint's largest page, since a wide
+            # flow lists four objects per node.
             listed = self.client.artifacts(job_id, limit=200)
         except Exception as e:                                   # noqa: BLE001
             # Nothing is lost by failing here: the sweep at the end asks again.
@@ -201,13 +203,15 @@ class Results:
             return 0
 
         # 🔴 Oversized dropped BEFORE `_worth_fetching`, as the sweep does: an
-        # archive that will not be fetched must not displace the manifest
-        # that could be. Said once, by the sweep at the end -- here it would
+        # archive that will not be fetched must not displace the objects inside
+        # it that could be. Said once, by the sweep at the end -- here it would
         # be said again on every poll that found the node finished.
+        #
+        # ⚠️ Node-bound only: the job's own manifest and log are the run's, and
+        # are not final until it is.
         listed = [item for item in listed if not self._oversized(item)]
         items = [item for item in _worth_fetching(listed)
-                 if item.get("kind") in ("node", "manifest")
-                 and item.get("step") is not None]
+                 if item.get("step") is not None]
 
         landed = 0
         for item in items:

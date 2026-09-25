@@ -727,10 +727,40 @@ def test_a_nodes_manifest_is_taken_where_its_archive_is_withheld(
         workdir(nop_project, step="stepone", index="0"), "outputs", "gcd.pkg.json"))
 
 
-def test_a_nodes_manifest_is_not_fetched_beside_its_archive(fake_v1, results):
-    '''The archive holds it, so fetching both downloads it twice.'''
+def test_a_nodes_log_and_reports_are_taken_as_it_finishes_too(
+        fake_v1, results, nop_project):
+    '''Where the archive is withheld, everything else of the node's that may
+    be had comes as the node finishes -- not at the end of the run.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("node", "stepone", "0"), artifact("manifest", "stepone", "0")]})
+        artifact("node", "stepone", "0", fetchable=False),
+        artifact("manifest", "stepone", "0"),
+        artifact("logs", "stepone", "0"),
+        artifact("reports", "stepone", "0"),
+        # The run's own: not final until the run is.
+        artifact("logs"), artifact("manifest")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-stepone-0", "{}")
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-stepone-0", "ran\n")
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-reports-stepone-0",
+                  tarball(["reports/metrics.json"]), content_type="application/gzip")
+
+    assert results.take("j1", _finished()) == 3
+
+    from siliconcompiler.utils.paths import workdir
+    into = workdir(nop_project, step="stepone", index="0")
+    assert open(os.path.join(into, "sc_stepone_0.log")).read() == "ran\n"
+    assert os.path.isfile(os.path.join(into, "reports", "metrics.json"))
+
+    fetched = {c.request.path_url for c in fake_v1.calls
+               if "/artifacts/art-" in c.request.path_url}
+    assert "/v1/jobs/j1/artifacts/art-logs-None-None" not in fetched
+    assert "/v1/jobs/j1/artifacts/art-manifest-None-None" not in fetched
+
+
+def test_a_nodes_manifest_is_not_fetched_beside_its_archive(fake_v1, results):
+    '''The archive holds them, so fetching both downloads them twice.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("node", "stepone", "0"), artifact("manifest", "stepone", "0"),
+        artifact("logs", "stepone", "0"), artifact("reports", "stepone", "0")]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
                   tarball(["outputs/gcd.pkg.json"]),
                   content_type="application/gzip")
