@@ -2010,11 +2010,19 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         Adds a required keypath to the task driver. If the key is valid relative to the task object
             the key will be assumed as a task key.
 
+        A key already required is not added again, so a setup that runs twice
+        -- a second run in one process, or a manifest that arrives with its
+        requirements already worked out, as a remote run's does -- lists each
+        key once.
+
         Args:
             obj (:class:`BaseSchema` or str): if this is a string it will be considered
                 part of the key, otherwise the keypath to the obj will be prepended to
                 the key
             key (list of str): required key path
+
+        Returns:
+            The value added, or None where the key was already required.
         '''
 
         if isinstance(obj, BaseSchema):
@@ -2027,7 +2035,10 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         if any([not isinstance(k, str) for k in key]):
             raise ValueError("key can only contain strings")
 
-        return self.add("require", ",".join(key), step=step, index=index)
+        required = ",".join(key)
+        if required in (self.get("require", step=step, index=index) or []):
+            return None
+        return self.add("require", required, step=step, index=index)
 
     def get_digest_keys(self) -> Set[Tuple[str, ...]]:
         '''

@@ -654,6 +654,7 @@ class JobService:
         entries = self._account(session, job, derived, unpacked)
 
         asked = [entry for entry in entries if entry.status == owners.ASK]
+        self._check_owed(session, job, derived, asked)
         if asked:
             # Something the client can send and has not. Not a refusal: the job
             # stays where it is and says, in `upload_sources`, what to send.
@@ -710,7 +711,7 @@ class JobService:
         private design, or a path that escapes the root it is supplied under.
         '''
         entries = owners.account(derived["project"], unpacked / "sc_collected_files",
-                                 self._supply)
+                                 self._supply, derived["required"])
         for entry in entries:
             if entry.status != owners.UNAVAILABLE:
                 continue
@@ -727,15 +728,42 @@ class JobService:
                             f"({entry.dataroot}) from this server")
         return entries
 
+    def _check_owed(self, session, job, derived, asked) -> None:
+        '''Refuse a required value the client should have sent and did not.
+
+        🔴 **Before anything dispatches (D129)**, rather than a node failing
+        on a missing file. *Should have sent* is the design, anything local or
+        editable, and anything this job already asked for; the rest the server
+        can still ask for. Only a flow whose set is known is checked: without it
+        there is no telling a missing file from one nothing reads.
+        '''
+        if derived["required"] is None:
+            return
+        before = {(item["kind"], item["name"], item["dataroot"])
+                  for item in json.loads(job["upload_sources"] or "[]")}
+        for entry in asked:
+            if not (entry.kind == owners.DESIGN
+                    or entry.origin in (owners.LOCAL, owners.EDITABLE)
+                    or (entry.kind, entry.name, entry.dataroot) in before):
+                continue
+            where = f" ({entry.dataroot})" if entry.dataroot else ""
+            raise self._refuse(session, job, ProblemError(
+                "archive-rejected", violation="missing_member",
+                detail=f"the flow reads [{','.join(entry.key or ())}] of {entry.kind} "
+                       f"{entry.name}{where}, {entry.path}, and the archive does "
+                       "not carry it"))
+
     def _requested_members(self, job, root: Path):
         '''What a follow-up archive may hold: the collected files of the
-        dataroots this job asked for, and nothing else.'''
+        dataroots this job asked for that the flow reads, and nothing else --
+        a dataroot asked for selects its required values, never all of it.'''
         asked = {(item["kind"], item["name"], item["dataroot"])
                  for item in json.loads(job["upload_sources"] or "[]")}
         derived = self._derive(None, job, root)
         names = set()
         for one in owners._values(derived["project"]):
-            if (one.kind, one.name, one.dataroot) in asked:
+            if (one.kind, one.name, one.dataroot) in asked \
+                    and owners.needed(one.key, derived["required"]):
                 names.add(one.value.get_hashed_filename())
 
         def allowed(member: str) -> bool:
@@ -1125,6 +1153,9 @@ class JobService:
             "pdk": _pdk(project),
             "libraries": _libraries(project),
             "fpga": _fpga(project),
+            # What the flow reads (D129), from the `require` the client worked
+            # out and carried here; None where it could not.
+            "required": owners.required(project),
         }
 
     def _normalize(self, session, job, root: Path, derived, plan, entries=()) -> Path:

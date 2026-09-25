@@ -34,18 +34,27 @@ which no server supplies -- is refused.
 now.** Every resolved file is on local disk -- a lambdapdk PDK is fetched into
 the cache on first use -- so judging by location would upload every PDK in every
 job, the exact opposite of the rule, and silently.
+
+🔴 **The table says whether a value MAY go up; the flow says whether it is
+NEEDED (D129).** A value goes in the archive, is fetched, or is asked for only
+when its key is in :func:`required` -- the union of every running node's
+`require`. A local library with views for ten tools used to upload all ten for a
+flow that runs three. Both ends read the set from the same manifest; the client
+works it out by running each node's setup on a copy (:func:`work_out_required`)
+and carries it there.
 '''
 
 import os
 
-from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "SOURCE_KINDS",
            "LOCAL", "EDITABLE", "INSTALLED", "REMOTE", "PRIVATE",
            "UPLOADED", "SUPPLIED", "FETCH", "ASK", "UNAVAILABLE",
            "is_private", "skipped", "owner", "source", "uploads", "sources",
-           "strip_userinfo", "account", "Entry", "confined", "upload_report"]
+           "strip_userinfo", "account", "Entry", "confined", "upload_report",
+           "required", "needed", "work_out_required", "with_required"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -238,9 +247,10 @@ def _values(project) -> Iterator[_Value]:
                              dataroot, source(resolvers, dataroot, path=one.get()))
 
 
-def sources(project) -> List[Dict[str, Any]]:
+def sources(project, required=None) -> List[Dict[str, Any]]:
     '''The dataroots this client expects the server to supply: the descriptor's
-    `sources`. One entry per (kind, name, dataroot) not uploaded.
+    `sources`. One entry per (kind, name, dataroot) not uploaded -- and, given
+    the flow's ``required`` keys, only one holding a value the flow reads.
 
     🔴 Credentials are stripped from every URL, and a private dataroot's source
     is ABSENT -- its path is never sent.
@@ -248,6 +258,8 @@ def sources(project) -> List[Dict[str, Any]]:
     found: Dict[Tuple[str, Optional[str], str], Dict[str, Any]] = {}
     for one in _values(project):
         if one.origin not in (INSTALLED, REMOTE, PRIVATE) or not one.dataroot:
+            continue
+        if not needed(one.key, required):
             continue
         entry = (one.kind, one.name, one.dataroot)
         if entry in found:
@@ -284,6 +296,9 @@ class Entry(NamedTuple):
     source: Optional[str] = None    # what to fetch, for FETCH
     ref: Optional[str] = None
     why: Optional[str] = None       # for UNAVAILABLE
+    origin: Optional[str] = None    # LOCAL, EDITABLE, INSTALLED, REMOTE or PRIVATE
+    key: Optional[Tuple[str, ...]] = None   # the value that decided the status,
+    path: Optional[str] = None              # for a refusal to name
 
     @property
     def wire(self) -> Dict[str, Any]:
@@ -291,23 +306,31 @@ class Entry(NamedTuple):
         return {"kind": self.kind, "name": self.name, "dataroot": self.dataroot}
 
 
-def account(project, collection_dir, supply) -> List[Entry]:
-    '''Every file the manifest names, as how it reaches the run.
+def account(project, collection_dir, supply, required=None) -> List[Entry]:
+    '''Every file the flow reads, as how it reaches the run.
 
     ``supply`` answers for this server: ``package(module)``,
     ``private_root(name, dataroot)``, ``held(source, ref)`` and
-    ``allowlisted(source, ref)``.
+    ``allowlisted(source, ref)``. ``required`` is :func:`required`'s set; None
+    accounts for every file the manifest names, as before the set existed.
 
     🔴 **No path the job names is read.** A file is in the archive, or it is
     supplied by identity -- a package by name, a private dataroot by (object,
     dataroot), a remote source by (source, ref) -- and a path under a supplied
     root is confined to it. Anything else is `ASK` (the client can send it) or
     `UNAVAILABLE` (it cannot).
+
+    🔴 **Given the set, a supplied file must be THERE.** A required value
+    missing from the server's own copy is `UNAVAILABLE` -- the server should
+    have supplied it -- rather than a node failing on it later. Without the set
+    that check would refuse a job over a file it never reads.
     '''
     groups: Dict[Tuple[str, Optional[str], Optional[str]], Entry] = {}
 
     for one in _values(project):
-        entry = _one(one, collection_dir, supply)
+        if not needed(one.key, required):
+            continue
+        entry = _one(one, collection_dir, supply, present=required is not None)
         group = (one.kind, one.name, one.dataroot)
         held = groups.get(group)
         if held is None or _WORST.index(entry.status) < _WORST.index(held.status):
@@ -318,8 +341,9 @@ def account(project, collection_dir, supply) -> List[Entry]:
                                  str(e.dataroot)))
 
 
-def _one(one: _Value, collection_dir, supply) -> Entry:
-    base = dict(kind=one.kind, name=one.name, dataroot=one.dataroot)
+def _one(one: _Value, collection_dir, supply, present: bool = False) -> Entry:
+    base = dict(kind=one.kind, name=one.name, dataroot=one.dataroot,
+                origin=one.origin, key=one.key, path=one.value.get())
 
     # Private wins over everything, the archive included: it must never have
     # been sent, and a copy that arrived anyway is not used.
@@ -331,10 +355,7 @@ def _one(one: _Value, collection_dir, supply) -> Entry:
         if not root:
             return Entry(**base, status=UNAVAILABLE,
                          why="a private dataroot this server has no copy of")
-        if confined(root, one.value.get()) is None:
-            return Entry(**base, status=UNAVAILABLE,
-                         why="a path that escapes its dataroot")
-        return Entry(**base, status=SUPPLIED, root=root)
+        return _supplied(base, root, one.value.get(), present)
 
     if _collected(one.value, collection_dir):
         return Entry(**base, status=UPLOADED)
@@ -354,13 +375,22 @@ def _one(one: _Value, collection_dir, supply) -> Entry:
         return Entry(**base, status=UNAVAILABLE, why="a path that escapes its dataroot")
     root = supply.held(remote, ref)
     if root:
-        if confined(root, one.value.get()) is None:
-            return Entry(**base, status=UNAVAILABLE,
-                         why="a path that escapes its dataroot")
-        return Entry(**base, status=SUPPLIED, root=root)
+        return _supplied(base, root, one.value.get(), present)
     if supply.allowlisted(remote, ref):
         return Entry(**base, status=FETCH, source=remote, ref=ref)
     return Entry(**base, status=ASK)
+
+
+def _supplied(base, root, path, present: bool) -> Entry:
+    '''A file under one of this server's own roots: confined to it, and --
+    where the flow reads it -- there.'''
+    full = confined(root, path)
+    if full is None:
+        return Entry(**base, status=UNAVAILABLE, why="a path that escapes its dataroot")
+    if present and not os.path.exists(full):
+        return Entry(**base, status=UNAVAILABLE,
+                     why=f"{path} is not in this server's copy")
+    return Entry(**base, status=SUPPLIED, root=root)
 
 
 def _collected(value, collection_dir) -> bool:
@@ -432,3 +462,114 @@ def _weigh(path: str) -> Tuple[int, int]:
             except OSError:
                 pass
     return size, files
+
+
+###########################
+# What the flow reads (D129)
+###########################
+
+# The framework reads these of a node's task itself, whatever the task declares:
+# the rest of `SchedulerNode.get_required_keys`. `exe` is the other entry there,
+# and it is a name, never a path.
+_TASK_READS = ("prescript", "postscript", "refdir", "script")
+
+
+def required(project) -> Optional[Set[Tuple[str, ...]]]:
+    '''The keys the flow reads: every running node's `require`, and its
+    task's own scripts. None where no node declares any.
+
+    🔴 **The one definition, read by both ends from the same manifest.** The
+    client filters its archive and its `sources` by it; the server limits what
+    it fetches and asks for, and refuses at submit what should have arrived and
+    did not.
+
+    ⚠️ **None means the set was not worked out** -- the client could not run
+    setup, or a manifest written before it did -- and nothing is filtered. It is
+    never the empty set: a flow whose every node reads nothing has no files to
+    filter either.
+    '''
+    from siliconcompiler.remote.server.runspec import runtime_flow
+
+    flow = project.get_flow()
+    keys: Set[Tuple[str, ...]] = set()
+    declared = False
+    for step, index in runtime_flow(project).get_nodes():
+        prefix = ("tool", flow.get(step, index, "tool"), "task", flow.get(step, index, "task"))
+        for item in project.get(*prefix, "require", step=step, index=index) or []:
+            keys.add(tuple(item.split(",")))
+            declared = True
+        for name in _TASK_READS:
+            if project.get(*prefix, name, step=step, index=index):
+                keys.add((*prefix, name))
+    return keys if declared else None
+
+
+def needed(key, required) -> bool:
+    '''Whether the flow reads ``key``: always, where the set is unknown.'''
+    return required is None or tuple(key) in required
+
+
+def work_out_required(project) -> Dict[Tuple[str, str], List[str]]:
+    '''Every node's `require`, by running its setup on a throwaway copy.
+
+    🔴 **`require` is empty until setup runs**, and a remote run's setup runs
+    in the job's image. So the client runs it here first, on a copy -- the
+    caller's project is never touched -- and in the order a run does:
+
+    - ``_init_run()`` first. It is what fills `asic,asiclib` from the main
+      library, and without it no library's LEF, liberty or GDS is required.
+    - Every node in execution order, since a node's setup reads its
+      upstream's outputs to decide what it loads.
+
+    Returns ``(step, index)`` to that node's `require`, for every node that
+    set up and was not skipped. Raises whatever a setup raised: a task whose
+    setup needs what only its image has -- cocotb's needs cocotb -- cannot be
+    worked out here, and the caller uploads by owner alone.
+    '''
+    import copy
+    import logging
+
+    from siliconcompiler.scheduler.schedulernode import SchedulerNode
+
+    work = copy.deepcopy(project)
+    logger = work.logger
+    level = logger.level
+    # A run prints each node's setup, and prints it again on the server; here
+    # it is noise, and a failure is reported once by the caller.
+    logger.setLevel(logging.CRITICAL)
+    try:
+        work._init_run()
+        flow = work.get_flow()
+        declared: Dict[Tuple[str, str], List[str]] = {}
+        for layer in flow.get_execution_order():
+            for step, index in layer:
+                node = SchedulerNode(work, step, index)
+                with node.runtime():
+                    if not node.setup():
+                        continue
+                values = work.get("tool", flow.get(step, index, "tool"),
+                                  "task", flow.get(step, index, "task"), "require",
+                                  step=step, index=index) or []
+                declared[(step, index)] = list(dict.fromkeys(values))
+        return declared
+    finally:
+        logger.setLevel(level)
+
+
+def with_required(project, declared: Dict[Tuple[str, str], List[str]]):
+    '''A copy of ``project`` carrying ``declared`` as each node's `require`:
+    the manifest the client uploads, so the server reads the set from it.
+
+    ⚠️ Only `require` is carried. Setup's other effects are the run's to make
+    -- a second setup over them doubles every command-line option -- and
+    `add_required_key` lists a key once, so the run's own setup adds nothing
+    twice.
+    '''
+    import copy
+
+    carried = copy.deepcopy(project)
+    flow = carried.get_flow()
+    for (step, index), values in declared.items():
+        carried.set("tool", flow.get(step, index, "tool"), "task", flow.get(step, index, "task"),
+                    "require", values, step=step, index=index)
+    return carried

@@ -33,8 +33,9 @@ eleven this file then held (5: surface D107–D111, entitlements D28, profile
 D27), and 6–8: the server never reads a path a job names, the fetch allowlist
 and its globs, create as a lookup and the fetch while `queued`, the follow-up
 archive, the upload grant's size, the registry changes (`download-too-large`,
-`unsatisfiable-request` retired, `upload-forbidden`'s members), and the smaller
-rows (surface D115–D128, profile D30) — were decided in
+`unsatisfiable-request` retired, `upload-forbidden`'s members), the smaller
+rows (surface D115–D128, profile D30), and 9: only what the flow requires goes
+up (surface D129) — were decided in
 `crucible/orchestration/api/contract-changes.md`, are implemented here, and have
 been removed rather than edited. Their home is the contract now.
 
@@ -55,7 +56,43 @@ retired. This tree's copies say `resource-unavailable` instead.
 
 **Where it goes:** `api/server-errors/`.
 
-### 2. A `node` archive over a DELETED member is not on the ladder
+### 2. D129's set is not in a manifest until something runs setup
+
+D129 builds the set by *"walk the flow's nodes, take each task's `require`"*
+and has both ends *"read the same set from the same manifest."* ⚠️ **`require`
+is empty until a node's `setup()` runs**, and a remote run's setup runs in the
+job's image: heartbeat's 23 nodes carry 0 `require` entries before it. Read as
+written, the filter drops every file but the design's.
+
+What this profile does, with the owner's agreement:
+
+- **The client works it out**: `_init_run()` on a throwaway copy, then every
+  node's setup in execution order — 0.15 s for heartbeat, nothing run, nothing
+  downloaded — and carries each node's `require` in the manifest it uploads.
+  🔴 `_init_run()` is not optional: it fills `asic,asiclib` from the main
+  library, and without it no library's LEF, liberty or GDS is required.
+- **The server reads it from that manifest** and never runs setup: setup code
+  can call `find_files`, which on the API host would fetch a remote PDK during
+  submit, and the server's newer SiliconCompiler could require keys the job's
+  own version does not.
+- 🔴 **A set that could not be worked out is absent, not empty.** A task whose
+  setup needs what only its image has — cocotb's raises without cocotb — leaves
+  the client uploading by owner alone and the manifest carrying no `require`,
+  which the server reads as *unknown*: nothing filtered, no `missing_member`.
+- **Only `require` is carried.** A second setup over setup's other effects
+  doubles every command-line option, and `add_required_key` now lists a key
+  once, so the run's own setup adds nothing twice.
+
+**The framework-level list** — what a run reads that no task requires — is
+checked, and is `SchedulerNode.get_required_keys`' own additions: a task's
+`prescript`, `postscript`, `refdir` and `script` (`exe` too, which is a name).
+`check_manifest` reads no files, and the docker scheduler mounts every path
+key's directory but sends nothing.
+
+**Where it goes:** `surface.md` D129 — where the set comes from, and the
+unknown case.
+
+### 3. A `node` archive over a DELETED member is not on the ladder
 
 D120's row answers a node archive with its worst member's refusal — withheld,
 missing resource, pending — and names no answer for a member that was

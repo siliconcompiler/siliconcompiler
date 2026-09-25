@@ -104,6 +104,15 @@ _NEXT_STEP = {
     "scheduler-lost": "The run went away rather than failing; submit it again.",
 }
 
+# `archive-rejected` is one slug over two different mistakes: a limit the
+# archive broke, and one it did not break but left something out of. Keyed on
+# `violation`, which is the member that says which.
+_NEXT_STEP_BY_VIOLATION = {
+    "missing_member": "The upload left out a file the flow reads; that is a "
+                      "client bug, or a task whose requirements miss a file.",
+    "unrequested_member": "A follow-up may carry only what the server asked for.",
+}
+
 # 🔴 What to say instead when the run failed and no NODE did. Pointing at *the
 # failing node's log* when there is no failing node sends a person looking for
 # a file that does not exist -- and it is not the rare case: a flow that dies
@@ -169,7 +178,9 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
             lines.append("  " + _unresolved(entry))
 
     slug = _slug(problem)
-    step = next_step or (_NEXT_STEP.get(slug) if slug else None)
+    step = next_step or (
+        (slug == "archive-rejected" and _NEXT_STEP_BY_VIOLATION.get(problem.get("violation")))
+        or (_NEXT_STEP.get(slug) if slug else None))
     if step:
         lines.append(f"  {step}")
 

@@ -87,6 +87,16 @@ Next, you define what the specific task needs to run and what it will produce.
       # 6. For script-based tools (like TCL), define the entry script.
       self.set_script('run_my_tool.tcl')
 
+.. important::
+
+   **Require every file the task reads, not only the settings it cannot do
+   without.** The required keys are also what a node's rerun check hashes and
+   what a remote run uploads: a client sends only the files whose keys some
+   running node requires. A file the task reads without requiring it -- a view
+   reached through ``asic,asiclib`` and a fileset, say -- is not sent, and the
+   node fails on the server. Where the task reads a library's files, require
+   those filesets' files, as the OpenROAD and Yosys tasks do.
+
 Execution Lifecycle Methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

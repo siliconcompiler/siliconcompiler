@@ -113,6 +113,10 @@ class RemoteRun:
         self._uploading = []
         self._sent = set()
 
+        # What the flow reads (D129): the manifest to upload, carrying every
+        # node's `require`, and the keys it names. Worked out once per run.
+        self._needed = None
+
     ######################################################################
 
     def run(self) -> None:
@@ -162,8 +166,9 @@ class RemoteRun:
                 requires={"python": {"siliconcompiler": _framework_requirement()},
                           "tools": self._tool_requirements()},
                 # What this machine expects the server to supply. A lookup at
-                # the other end, never a fetch, and credentials stripped.
-                sources=owners.sources(self.project) or None,
+                # the other end, never a fetch, and credentials stripped -- and
+                # only what the flow reads.
+                sources=owners.sources(self.project, self._needs()[1]) or None,
                 idempotency_key=_key())
 
             asked = job.get("upload_sources") or []
@@ -365,19 +370,49 @@ class RemoteRun:
         '''
         self._collect()
 
-    def _collect(self, asked=(), directory=None, only_asked: bool = False) -> None:
-        '''Collect by owner -- plus, where the server asked, those sources too.
+    def _needs(self):
+        '''``(manifest project, required keys)``, worked out once per run.
 
-        ``asked`` is an `upload_sources` list. A private dataroot is never
-        collected, asked or not: it must not leave this machine.
+        🔴 **The owner table says whether a value MAY go up; this says whether
+        the flow NEEDS it (D129).** `require` is empty until setup runs, so
+        every node is set up here on a copy and the result carried in the
+        manifest -- which is where the server reads the same set from.
+
+        ⚠️ A setup that cannot run here -- a task needing what only its image
+        has -- leaves the set unknown: every file goes up by owner alone, as it
+        did before, and the manifest carries nothing for the server to check.
+        '''
+        from siliconcompiler.remote import owners
+
+        if self._needed is None:
+            try:
+                declared = owners.work_out_required(self.project)
+                carried = owners.with_required(self.project, declared)
+                self._needed = (carried, owners.required(carried))
+            except Exception as e:                               # noqa: BLE001
+                self.logger.warning(
+                    f"Could not work out which files the flow reads ({e}); "
+                    "uploading every file this machine may send")
+                self._needed = (self.project, None)
+        return self._needed
+
+    def _collect(self, asked=(), directory=None, only_asked: bool = False) -> None:
+        '''Collect by owner -- plus, where the server asked, those sources too
+        -- and of either, only what the flow reads.
+
+        ``asked`` is an `upload_sources` list, and an entry there selects the
+        required values under that dataroot, never all of it. A private
+        dataroot is never collected, asked or not: it must not leave this
+        machine.
         '''
         from siliconcompiler.remote import owners
 
         wanted = {(item.get("kind"), item.get("name"), item.get("dataroot"))
                   for item in asked}
+        required = self._needs()[1]
 
         def select(key, dataroot, resolvers, path):
-            if owners.skipped(key):
+            if owners.skipped(key) or not owners.needed(key, required):
                 return False
             origin = owners.source(resolvers, dataroot, path=path)
             if origin == owners.PRIVATE:
@@ -422,7 +457,9 @@ class RemoteRun:
         '''
         root = jobdir(self.project)
         manifest = f"{self.project.name}.pkg.json"
-        self.project.write_manifest(os.path.join(root, manifest))
+        # The copy carrying every node's `require`, so the server reads the
+        # set this archive was filtered by out of the manifest it came with.
+        self._needs()[0].write_manifest(os.path.join(root, manifest))
 
         with tarfile.open(upload, mode="w:gz") as tar:
             for name in [manifest, *self._needed_from(root)]:

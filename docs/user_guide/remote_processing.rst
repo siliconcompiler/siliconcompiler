@@ -118,6 +118,25 @@ nothing to control it:
 * **plus the manifest**, and, for a run that starts part-way through the flow,
   the results of the nodes it starts from.
 
+**And of those, only what the flow reads.** Each task declares the keys it
+reads, through :meth:`.Task.add_required_key`, and a file goes up only when its
+key is among them for a node that will run. A local library with views for ten
+tools uploads the three a synthesis-to-routing flow uses, and a PDK the flow
+reads nothing of is never fetched by the server either. Tasks declare what they
+read when they are set up, so the client sets up every node on a copy of your
+project first -- a fraction of a second, with nothing run and nothing downloaded
+-- and sends the declarations in the manifest, where the server reads the same
+list. If a task cannot be set up on your machine (one needing a Python package
+only the server has, say), the client says so and uploads by owner alone.
+
+.. note::
+
+   **A file a task reads without declaring it is left behind**, and the node
+   that reads it fails on the server. That is a bug in the task: its setup
+   should call :meth:`.Task.add_required_key` for it. A file the server expected
+   and did not get is refused at submit, naming its keypath, before anything
+   runs.
+
 The client prints what goes up, per dataroot, with sizes, before anything
 moves.
 

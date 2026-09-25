@@ -69,7 +69,9 @@ def test_every_violation_is_in_the_vocabulary():
     assert set(VIOLATIONS) == {"member_count", "expanded_bytes", "ratio",
                                "link_member", "device_member", "traversal",
                                # D124: a follow-up carrying what was not asked for.
-                               "unrequested_member"}
+                               "unrequested_member",
+                               # D129: a value the flow reads, left out.
+                               "missing_member"}
 
 
 def test_too_many_members(tmp_path):

@@ -133,7 +133,11 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       # A follow-up archive carrying anything but what was
                       # asked for (D124): it may not replace what the first
                       # archive carried after the server checked it.
-                      "unrequested_member")
+                      "unrequested_member",
+                      # A value the flow reads that the client should have
+                      # sent -- the design, anything local or editable, or
+                      # what was asked for -- and did not (D129).
+                      "missing_member")
 
 # Why a session is over. All three are one client branch -- re-authenticate, and
 # do NOT refresh.
