@@ -121,3 +121,58 @@ def test_the_type_in_a_body_is_still_the_public_one(server_client):
     body = server_client.get("/v1/me").get_json()
 
     assert body["type"].startswith("https://siliconcompiler.com/server-errors/")
+
+
+###########################
+# 🔴 Naming its own copy
+###########################
+
+def help_of(response):
+    found = re.fullmatch(r'<([^>]*)>;\s*rel="help"', response.headers.get("Link", ""))
+    return found.group(1) if found else None
+
+
+def test_a_refusal_names_this_hosts_page_for_it(server_client):
+    '''The body's `type` stays the public URI a client compares against; the
+    `Link` beside it is the copy that answers here.'''
+    response = server_client.get("/v1/me")
+
+    assert response.status_code == 401
+    assert help_of(response) == \
+        f"/server-errors/{response.get_json()['type'].rsplit('/', 1)[-1]}"
+    assert response.get_json()["type"].startswith("https://siliconcompiler.com/")
+
+
+def test_a_routing_refusal_names_it_too(server_client):
+    response = server_client.get("/v1/no-such-endpoint")
+
+    assert response.status_code == 404
+    assert help_of(response) == "/server-errors/not-found"
+
+
+def test_the_link_honours_where_the_server_is_mounted(server_client):
+    '''Relative to this host's own root -- never built from `Host`, so a
+    request cannot make the server name somewhere else.'''
+    response = server_client.get("/v1/me", environ_overrides={"SCRIPT_NAME": "/sc"},
+                                 headers={"Host": "attacker.test"})
+
+    assert help_of(response).startswith("/sc/server-errors/")
+    assert "attacker" not in response.headers["Link"]
+
+
+def test_a_failed_jobs_read_names_the_page_for_its_error(
+        server, server_client, key, token):
+    from conftest import call
+    from siliconcompiler.remote.server.ids import uuid7
+
+    me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
+    job_id = str(uuid7())
+    server.config["SC_STORE"].execute(
+        "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
+        "manifest_pdk, error_type) VALUES (?, ?, 'failed', 'gcd', 'job0', '{}', "
+        "'none', ?)", (job_id, me, f"{TYPE_BASE}/run-failed"))
+
+    response = call(server_client, key, "GET", f"/v1/jobs/{job_id}", token)
+
+    assert response.status_code == 200
+    assert help_of(response) == "/server-errors/run-failed"

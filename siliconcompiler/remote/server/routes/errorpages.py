@@ -23,7 +23,7 @@ import flask
 
 from siliconcompiler.remote.server.errors import ProblemError
 
-__all__ = ["blueprint", "PAGES"]
+__all__ = ["blueprint", "PAGES", "help_link"]
 
 
 blueprint = flask.Blueprint("errorpages", __name__)
@@ -39,10 +39,30 @@ _NAME = re.compile(r"(?P<stem>[a-z0-9-]+)(?P<ext>\.html|\.css)?")
 _CACHE = "public, max-age=3600"
 
 
+def help_link(type_uri) -> str:
+    '''The `Link` header value naming this host's page for a `type`, or ''.
+
+    ``Link: </server-errors/<slug>>; rel="help"`` (RFC 8288), sent beside a
+    refusal so a client can show the page that actually answers here, while the
+    body's `type` stays the public URI it compares against.
+
+    ⚠️ A reference relative to this host -- its mount point included -- and
+    never built from `Host` or `X-Forwarded-Host`. The client resolves it
+    against the URL it called, which is the one origin it already trusts.
+    '''
+    if not isinstance(type_uri, str) or "/server-errors/" not in type_uri:
+        return ""
+    slug = type_uri.rstrip("/").rsplit("/", 1)[-1]
+    if not _NAME.fullmatch(slug) or not (PAGES / f"{slug}.html").is_file():
+        return ""
+    root = flask.request.script_root if flask.has_request_context() else ""
+    return f'<{root}/server-errors/{slug}>; rel="help"'
+
+
 @blueprint.route("/server-errors", methods=["GET"])
 def root():
     # With the slash, so that the pages' relative links resolve under it.
-    return flask.redirect("/server-errors/", code=301)
+    return flask.redirect(flask.url_for("errorpages.page"), code=301)
 
 
 @blueprint.route("/server-errors/", methods=["GET"])

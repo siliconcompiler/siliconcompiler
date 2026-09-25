@@ -101,6 +101,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     logger.info(f"siliconcompiler {sc_version}, serving the v1 API on "
                 f"port {args.port}")
     logger.info(f"data directory: {datadir}")
+    logger.info(f"error type pages: http://localhost:{args.port}/server-errors/ "
+                "-- and each refusal names its page with a Link header")
     logger.info(f"cluster: {args.cluster}")
     if args.test_mode is not None:
         # Loud, because it changes what every client is told and a deployment

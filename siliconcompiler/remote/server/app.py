@@ -209,14 +209,25 @@ def _register_error_handlers(app) -> None:
     is in reach here is made to conform, and the client tolerates the rest.
     '''
 
+    from siliconcompiler.remote.server.routes.errorpages import help_link
+
+    def _with_help(response, body):
+        # The page for this type, on THIS host: the public one may not be
+        # reachable from where a person is reading the refusal.
+        link = help_link(body.get("type"))
+        if link:
+            response.headers["Link"] = link
+        return response
+
     @app.errorhandler(ProblemError)
     def _problem_error(exc: ProblemError):
-        response = flask.jsonify(exc.body())
+        body = exc.body()
+        response = flask.jsonify(body)
         response.status_code = exc.status
         response.mimetype = PROBLEM_JSON
         for name, value in exc.headers.items():
             response.headers[name] = value
-        return response
+        return _with_help(response, body)
 
     # Routing answers before any handler runs, so these four would otherwise
     # leave Flask's HTML. They carry nothing a client branches on beyond the
@@ -231,7 +242,8 @@ def _register_error_handlers(app) -> None:
 
     def _make(slug):
         def handler(exc):
-            response = flask.jsonify(problem(slug))
+            body = problem(slug)
+            response = _with_help(flask.jsonify(body), body)
             response.status_code = ERRORS[slug].status
             response.mimetype = PROBLEM_JSON
             if slug == "method-not-allowed":

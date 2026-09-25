@@ -619,7 +619,8 @@ class RemoteRun:
         if state == "completed":
             self.logger.info("Remote job completed")
         elif job.get("error"):
-            self.logger.error(f"Remote job {state}: {_why_it_failed(job)}")
+            self.logger.error(f"Remote job {state}: "
+                              f"{_why_it_failed(job, self.client.transport.help_pages)}")
         else:
             self.logger.error(f"Remote job {state}")
 
@@ -912,7 +913,7 @@ def _epoch(timestamp: str) -> Optional[float]:
     return moment.timestamp()
 
 
-def _why_it_failed(job: Dict[str, Any]) -> str:
+def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str:
     '''Three lines about the failure, without opening a URL.
 
     The `type` pages are static and identical on every deployment, so the server
@@ -935,8 +936,11 @@ def _why_it_failed(job: Dict[str, Any]) -> str:
     failed = (job.get("progress") or {}).get("failed_count")
     ran_out = str(error["type"]).rstrip("/").rsplit("/", 1)[-1] == "run-failed"
 
+    # The server's own page for it, where the server has said it serves them.
+    slug = str(error["type"]).rstrip("/").rsplit("/", 1)[-1]
     return describe(error,
-                    next_step=NO_NODE_FAILED if ran_out and failed == 0 else None)
+                    next_step=NO_NODE_FAILED if ran_out and failed == 0 else None,
+                    help_url=f"{help_pages}{slug}" if help_pages else None)
 
 
 def _is_refusal(problem: ServerProblem) -> bool:

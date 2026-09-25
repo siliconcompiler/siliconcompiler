@@ -1026,3 +1026,48 @@ def test_a_run_from_part_way_sends_the_results_it_starts_from(
 
     assert "stepone/0/outputs/gcd.pkg.json" in names
     assert not {n for n in names if n.startswith("steptwo")}
+
+
+###########################
+# The server's own page for an error
+###########################
+
+def test_a_refusal_prints_the_page_the_server_names(fake_v1, logged_in):
+    '''Where the server serves its own copy of the `type` pages it says so,
+    and that copy -- on the server this client called -- is what is printed.'''
+    fake_v1.route(responses.GET, "jobs/01J9-job",
+                  problem("not-found", 404), status=404,
+                  content_type="application/problem+json",
+                  headers={"Link": '</server-errors/not-found>; rel="help"'})
+
+    with pytest.raises(RemoteError) as raised:
+        logged_in.job("01J9-job")
+
+    message = str(raised.value)
+    assert "https://sc-server.test/server-errors/not-found" in message
+    assert "siliconcompiler.com/server-errors" not in message
+    # And remembered, so a job's own error can point there later.
+    assert logged_in.transport.help_pages == "https://sc-server.test/server-errors/"
+
+
+def test_without_one_the_public_type_is_printed(fake_v1, logged_in):
+    fake_v1.route(responses.GET, "jobs/01J9-job",
+                  problem("not-found", 404), status=404,
+                  content_type="application/problem+json")
+
+    with pytest.raises(RemoteError) as raised:
+        logged_in.job("01J9-job")
+
+    assert "https://siliconcompiler.com/server-errors/not-found" in str(raised.value)
+
+
+def test_a_failed_jobs_reason_points_at_the_servers_page():
+    from siliconcompiler.remote.client.run import _why_it_failed
+
+    job = {"state": "failed", "progress": {"failed_count": 1},
+           "error": {"type": "https://siliconcompiler.com/server-errors/run-failed",
+                     "title": "The run failed", "detail": "place/0 exited 1"}}
+
+    said = _why_it_failed(job, "https://sc-server.test/server-errors/")
+
+    assert "https://sc-server.test/server-errors/run-failed" in said

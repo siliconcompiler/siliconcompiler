@@ -240,6 +240,29 @@ lifting it into SC is mechanical — or the pages are copied back as they are.
 
 **Where it goes:** `api/server-errors/`.
 
+### 11. A deployment that serves the pages says where, with `Link` `rel="help"`
+
+The `type` URI cannot point at a deployment — D20 freezes it byte-identical so
+a client can compare it against a constant — and the public pages are not
+reachable from everywhere a refusal is read. So this profile sends, beside
+every `problem+json` body **and on a job read whose job carries an `error`**:
+
+```http
+Link: </server-errors/not-found>; rel="help"
+```
+
+RFC 8288, a reference relative to the server's own root and never built from
+`Host`. `sc-remote` resolves it against the URL it called and prints it in
+place of the `type` URI, and remembers where the pages are so a failed job's
+reason links there too. Nothing branches on it; the `type` is untouched.
+
+**Proposed:** *a deployment that serves the `type` pages itself MAY send
+`Link: <…>; rel="help"` on a refusal and on a read of a job with an `error`; a
+client MAY display it in place of the `type` URI and MUST still branch on
+`type`.* Additive — a client that ignores the header loses nothing.
+
+**Where it goes:** `surface.md`, beside *The body*.
+
 ---
 
 ## Not ported, deliberately

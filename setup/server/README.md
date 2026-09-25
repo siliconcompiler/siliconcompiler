@@ -141,6 +141,15 @@ whole credential.
 Browser sessions live in the server process and in no table, so restarting it
 signs everyone out. Running `sc-remote -portal` again is the whole recovery.
 
+## Error pages
+
+Every refusal's `type` is a page, and this server serves all of them at
+`http://localhost:8080/server-errors/`. The `type` in a body stays the public
+`https://siliconcompiler.com/server-errors/<slug>`, which is what a client
+compares against; beside it, every refusal &mdash; and every job read whose job
+carries an `error` &mdash; sends `Link: </server-errors/<slug>>; rel="help"`, and
+`sc-remote` prints that page on this server instead of the public one.
+
 ## Test modes: serving less, on purpose
 
 ```sh

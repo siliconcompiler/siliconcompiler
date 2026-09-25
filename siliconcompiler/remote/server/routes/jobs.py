@@ -19,6 +19,7 @@ import flask
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.routes.auth import require
 from siliconcompiler.remote.server.storage import SignatureError
+from siliconcompiler.remote.server.routes.errorpages import help_link
 
 __all__ = ["blueprint"]
 
@@ -160,6 +161,12 @@ def get(session, job_id):
     if not job["terminal"]:
         headers["Retry-After"] = str(
             flask.current_app.config["SC_CONFIG"]["poll_interval_seconds"])
+
+    # A failed or refused job carries its reason as an RFC 9457 object in the
+    # body, and its page is here, like a refusal's.
+    link = help_link((job.get("error") or {}).get("type"))
+    if link:
+        headers["Link"] = link
 
     return _private(job, headers=headers)
 

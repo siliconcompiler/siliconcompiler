@@ -95,6 +95,11 @@ class Transport:
         # Whether a refresh is in flight. See refresh().
         self._refreshing = False
 
+        # Where this server serves its own error `type` pages, once it has
+        # said so with a `Link: <...>; rel="help"`. None until then, and for a
+        # server that does not.
+        self.help_pages: Optional[str] = None
+
     ######################################################################
     # Tokens
     ######################################################################
@@ -182,6 +187,13 @@ class Transport:
         if offered:
             self._nonce = offered
 
+        # The same for the page this server serves for an error it is naming,
+        # here or in a job's `error`: kept, so a failure read later off a job
+        # can point at it too.
+        helped = help_url(response)
+        if helped:
+            self.help_pages = helped.rsplit("/", 1)[0] + "/"
+
         if response.status_code < 400:
             return response
 
@@ -225,9 +237,11 @@ class Transport:
                     return self.request(method, path, _attempt=attempt + 1, **kwargs)
 
         if slug == "session-ended":
-            raise SessionEnded(problem, response.status_code)
+            raise SessionEnded(problem, response.status_code,
+                               help_url=help_url(response))
 
-        raise ServerProblem(problem, response.status_code)
+        raise ServerProblem(problem, response.status_code,
+                            help_url=help_url(response))
 
     ######################################################################
     # Storage
@@ -383,6 +397,25 @@ def _why(exc: Exception) -> str:
     if ": " in text and text.startswith(("HTTP", "<urllib3")):
         text = text.split(": ", 1)[1]
     return text or exc.__class__.__name__
+
+
+def help_url(response) -> Optional[str]:
+    '''The page a server names for this response's error, as an absolute URL.
+
+    RFC 8288's `Link: <...>; rel="help"`. Resolved against the URL that was
+    called, so a relative reference lands on the server that sent it -- and a
+    page the server serves itself is one a person can actually open, where the
+    `type` URI's public page may not be reachable from here.
+    '''
+    from urllib.parse import urljoin
+
+    try:
+        target = (response.links.get("help") or {}).get("url")
+    except Exception:                                           # noqa: BLE001
+        return None
+    if not target:
+        return None
+    return urljoin(response.url or "", target)
 
 
 def _problem_body(response: requests.Response) -> Dict[str, Any]:

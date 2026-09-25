@@ -23,10 +23,12 @@ class RemoteError(Exception):
 class ServerProblem(RemoteError):
     '''The server refused, and said why in a way worth rendering.'''
 
-    def __init__(self, problem: Dict[str, Any], status: int):
+    def __init__(self, problem: Dict[str, Any], status: int,
+                 help_url: Optional[str] = None):
         self.problem = problem
         self.status = status
-        super().__init__(describe(problem, status))
+        self.help_url = help_url
+        super().__init__(describe(problem, status, help_url=help_url))
 
     @property
     def slug(self) -> Optional[str]:
@@ -119,7 +121,8 @@ def _member(value) -> str:
 
 
 def describe(problem: Dict[str, Any], status: Optional[int] = None,
-             next_step: Optional[str] = None) -> str:
+             next_step: Optional[str] = None,
+             help_url: Optional[str] = None) -> str:
     '''Three lines: what failed, which one, and where to look.
 
     Tolerant by construction, because the bodies this has to render include the
@@ -130,6 +133,11 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     advice keyed on it is right for the kind and can be wrong for the instance;
     a caller that knows more about this occurrence than the slug does says so
     here.
+
+    ``help_url`` is the page the SERVER named for this error (`Link`
+    `rel="help"`), and it is printed in place of the `type` URI: it is the copy
+    that answers from here, where the public page may not. The `type` is still
+    what every branch is taken on.
     '''
     lines = []
 
@@ -153,7 +161,9 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     trailer = []
     if problem.get("trace_id"):
         trailer.append(f"trace {problem['trace_id']}")
-    if isinstance(problem.get("type"), str):
+    if help_url:
+        trailer.append(help_url)
+    elif isinstance(problem.get("type"), str):
         trailer.append(problem["type"])
     if trailer:
         lines.append("  " + "  ".join(trailer))
