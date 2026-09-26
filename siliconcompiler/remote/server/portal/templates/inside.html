@@ -15,7 +15,20 @@
 {# In full here, where somebody compares it against a file they hold. #}
 <p class="mono muted" style="word-break:break-all">{{ item.content_hash }}</p>
 
-{% if entries is not none %}
+{% if refused is defined %}
+  {#
+    🔴 Refused before its archive passed the safety checks, so it is never
+    opened here: listing a gzipped tar decompresses all of it.
+  #}
+  <div class="panel warn">
+    <p><b>This upload was refused before it was opened, and is not opened here.</b></p>
+    <p class="muted">{{ refused.title or 'Refused' }}{% if refused.detail %} &mdash;
+      {{ refused.detail }}{% endif %}</p>
+    <p class="muted">The bytes are kept as they arrived, {{ item.size_bytes | size }}.
+      <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}"
+         >Download it</a> to look at it somewhere it cannot hurt.</p>
+  </div>
+{% elif entries is not none %}
   {#
     🔴 The whole archive, before the file list. Making the job page BROWSE an
     archive took away the only download there was -- clicking `reports` used to

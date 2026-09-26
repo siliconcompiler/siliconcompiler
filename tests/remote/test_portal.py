@@ -1,6 +1,6 @@
 import pytest
 
-from conftest import call, login
+from conftest import call, login, slug
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -249,6 +249,37 @@ def test_the_uploads_are_shown_apart_with_their_hashes(server, signed_in, finish
     assert inside.status_code == 200
     assert upload["content_hash"] in text
     assert "gcd.pkg.json" in text             # the manifest the client sent
+
+
+def test_an_upload_refused_as_unsafe_is_kept_and_never_opened(
+        server, server_client, key, token, job_archive, dispatcher, signed_in,
+        monkeypatch):
+    '''🔴 Look-inside decompresses the whole archive -- the bomb it was
+    refused for, on every click. The bytes are kept and the refusal is shown
+    instead of the contents.'''
+    import tarfile
+    from test_server_jobs import stage, submit
+
+    archive, digest, size = job_archive(extra={"../escape.txt": b"x"})
+    job = stage(server_client, key, token, archive, size)
+    assert slug(submit(server_client, key, token, job["id"], digest, size)) == \
+        "archive-rejected"
+
+    row = server.config["SC_STORE"].one(
+        "SELECT * FROM artifacts WHERE job_id = ? AND upload_seq = 1", (job["id"],))
+    assert row is not None                                   # kept
+
+    page = signed_in.get(f"/portal/jobs/{job['id']}/artifacts").get_data(as_text=True)
+    assert "never opened" in page
+    assert f"/artifacts/{row['id']}/inside" not in page
+
+    def opened(*args, **kwargs):
+        raise AssertionError("a refused upload was opened")
+
+    monkeypatch.setattr(tarfile, "open", opened)
+    inside = signed_in.get(f"/portal/jobs/{job['id']}/artifacts/{row['id']}/inside")
+    assert inside.status_code == 200
+    assert "refused before it was opened" in inside.get_data(as_text=True)
 
 
 def test_a_nodes_inputs_are_its_own_row(server, signed_in, finished):

@@ -34,7 +34,7 @@ import markupsafe
 
 from siliconcompiler.remote import units
 from siliconcompiler.remote.server import accounts, images
-from siliconcompiler.remote.server.artifacts import fetchable
+from siliconcompiler.remote.server.artifacts import UNOPENED, fetchable, unopened
 from siliconcompiler.remote.server.auth import SCOPES, Session
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs import MAX_REASON
@@ -755,26 +755,32 @@ def delete(session, job_id):
 def artifacts(session, job_id):
     detail = _jobs().get(session, job_id)
     items = _all_artifacts(session, job_id, flask.request.args)
-    uploads = _uploads(items)
+    uploads = _uploads(items, detail)
+    shown = {item["id"] for item in uploads}
     return flask.render_template("artifacts.html", job=detail, artifacts=items,
                                  uploads=uploads,
                                  groups=_by_node([item for item in items
-                                                  if item not in uploads]),
+                                                  if item["id"] not in shown]),
                                  reason_chars=MAX_REASON,
                                  kind=flask.request.args.get("kind", ""),
                                  step=flask.request.args.get("step", ""))
 
 
-def _uploads(items):
-    """Every archive the job accepted, in the order they arrived.
+def _uploads(items, job):
+    """Every archive the job took, in the order they arrived.
 
     Job-level `input` rows: the first upload, and one per follow-up a job sent
     back for its sources carried. Shown apart from the run's own objects,
-    because they are what went IN.
+    because they are what went IN. The last is marked `unopened` where the job
+    was refused before it passed its safety checks, and gets no look-inside.
     """
-    return sorted((item for item in items
-                   if item.get("kind") == "input" and item.get("step") is None),
-                  key=lambda item: (item.get("created_at") or "", item.get("id") or ""))
+    uploads = sorted((dict(item) for item in items
+                      if item.get("kind") == "input" and item.get("step") is None),
+                     key=lambda item: (item.get("created_at") or "", item.get("id") or ""))
+    refusal = ((job.get("error") or {}).get("type") or "").rsplit("/", 1)[-1]
+    if uploads and refusal in UNOPENED:
+        uploads[-1]["unopened"] = refusal
+    return uploads
 
 
 def _by_node(items):
@@ -908,6 +914,16 @@ def inside(session, job_id, artifact_id):
     # nothing leaves this server whole. What is served is one member, bounded
     # by MAX_INLINE_BYTES, out of an archive bounded by MAX_BROWSE_BYTES.
     row = _jobs().artifact(session, job_id, artifact_id, surface="portal")
+
+    # 🔴 Never opened: an upload refused before its archive passed the safety
+    # checks. Listing it decompresses all of it -- the bomb it was refused for,
+    # on every click. The bytes are kept and can be downloaded; the refusal is
+    # what is shown.
+    job = _jobs().owned(session, job_id)
+    if unopened(_store(), row, job["error_type"]):
+        return flask.render_template("inside.html", job=detail, item=row,
+                                     entries=None, refused=detail.get("error") or {})
+
     archive = _stored_at(row)
 
     # A log or a manifest is one file and has nothing to look inside. Showing
@@ -1013,10 +1029,11 @@ def log(session, job_id, step, index):
         picked = dict(available).get(chosen)
         if picked is not None:
             try:
-                with open(picked, errors="replace") as handle:
-                    text = handle.read()
-            except OSError as e:
-                text = f"(that log could not be read: {e})"
+                text = _jobs().read_node_file(session, job_id, picked)
+            except OSError:
+                # Named, never explained: the reason is about this server's
+                # tree, and a link planted in it is exactly what is refused.
+                text = "(that log could not be read)"
         else:
             # The working directory is gone; the archive is what is left.
             storage = flask.current_app.config["SC_STORAGE"]

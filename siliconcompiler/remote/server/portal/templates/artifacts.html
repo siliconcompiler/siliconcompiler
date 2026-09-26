@@ -68,7 +68,15 @@
       <td class="mono muted">{{ item.created_at | when }}</td>
       <td class="mono muted">{{ item.size_bytes | size }}</td>
       <td>{{ item.content_hash | digest }}</td>
-      <td>{{ actions(item) }}</td>
+      <td>{% if item.unopened %}
+        {#
+          🔴 No look-inside: this archive was refused before it passed its
+          safety checks, and listing it would unpack whatever it was refused
+          for. The bytes are kept.
+        #}
+        <span class="muted">refused ({{ item.unopened }}), never opened &middot;</span>
+        <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
+      {% else %}{{ actions(item) }}{% endif %}</td>
     </tr>
     {% endfor %}
   </table>

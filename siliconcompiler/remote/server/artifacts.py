@@ -88,9 +88,10 @@ import shutil
 import sqlite3
 import tarfile
 
-from pathlib import Path, PurePosixPath
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional
 
+from siliconcompiler.remote.server import confine
 from siliconcompiler.remote.server.dispatch import RUN_LOG
 from siliconcompiler.remote.server.ids import uuid7
 
@@ -128,10 +129,14 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     floor = config.limits["job_retention_days"]
     written = 0
 
+    # 🔴 Every read below is confined to the job's own tree (see `confine`):
+    # a node's code can leave a link anywhere in its working directory, and
+    # following one would index the host's files as the job's results.
+    root = Path(build_root)
+
     log = workdir / f"sc_{step}_{index}.log"
-    if log.is_file():
-        written += _index(store, storage, job, location, floor, "logs",
-                          step, index, log, "text/plain")
+    written += _index(store, storage, job, location, floor, "logs",
+                      step, index, log, "text/plain", root)
 
     # 🔴 The node's own manifest, on its own and bound to the node, beside the
     # job's. It is what carries that node's record and metrics -- with the
@@ -144,48 +149,41 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     # ⚠️ It is a second copy of a file the node archive holds, a few MB per
     # node. A client with the archive does not fetch it twice.
     manifest = workdir / "outputs" / f"{job['design']}.pkg.json"
-    if manifest.is_file():
-        written += _index(store, storage, job, location, floor, "manifest",
-                          step, index, manifest, "application/json")
+    written += _index(store, storage, job, location, floor, "manifest",
+                      step, index, manifest, "application/json", root)
 
     # 🔴 Indexed before the node archive, not after. If a node finishes and
     # something goes wrong partway through indexing it, the small object a
     # person actually reads is the one already written.
     reports = workdir / "reports"
-    if reports.is_dir() and any(reports.iterdir()):
+    if _real_dir(reports) and any(reports.iterdir()):
         written += _archive(store, storage, job, location, floor, "reports",
-                            step, index, [reports], workdir)
+                            step, index, reports, workdir, root)
 
-    members = [child for child in sorted(workdir.iterdir())
-               if child.name not in _NOT_IN_A_NODE]
-    if members:
+    if any(child.name not in _NOT_IN_A_NODE for child in workdir.iterdir()):
         written += _archive(store, storage, job, location, floor, "node",
-                            step, index, members, workdir,
-                            exclude=_node_filter)
+                            step, index, workdir, workdir, root, skip=_NOT_IN_A_NODE)
 
     # What the node was handed, on its own: the node archive leaves it out, and
-    # it is what somebody debugging the node wants to read. Upstream outputs
-    # arrive as links, so they are followed.
+    # it is what somebody debugging the node wants to read. 🔴 A link is
+    # followed only to a file inside this job's tree -- an upstream output --
+    # and stored as a link otherwise, never read.
     inputs = workdir / "inputs"
-    if inputs.is_dir() and any(inputs.iterdir()):
-        try:
-            written += _archive(store, storage, job, location, floor, "input",
-                                step, index, [inputs], workdir, dereference=True)
-        except OSError as e:
-            # A link to nothing: the node's own results are indexed already,
-            # and a missing view of what it was handed is not worth losing them.
-            logger.warning(f"{job['id']}: could not keep {step}/{index}'s inputs: {e}")
+    if _real_dir(inputs) and any(inputs.iterdir()):
+        written += _archive(store, storage, job, location, floor, "input",
+                            step, index, inputs, workdir, root, follow_inside=True)
 
     return written
 
 
 def record_upload(store, storage, config, job, upload: Path, digest: str,
                   size: int) -> str:
-    '''One accepted upload, kept as a job-level `input`. Returns its id.
+    '''One upload, kept as a job-level `input` numbered by `upload_seq`.
+    Returns its id.
 
     **Moved, not copied**: the upload was going to be deleted, and the bytes
-    are the artifact. The hash is the digest submit already checked against
-    them, so it is not computed again.
+    are the artifact. The hash is what storage reports for them, which submit
+    compares with the declared digest.
     '''
     artifact_id = str(uuid7())
     target = storage.artifact_dir(job["id"]) / artifact_id
@@ -194,13 +192,35 @@ def record_upload(store, storage, config, job, upload: Path, digest: str,
 
     store.execute(
         'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
-        "  location_id, storage_key, size_bytes, media_type, kind, "
+        "  location_id, storage_key, size_bytes, media_type, kind, upload_seq, "
         "  retention_until, provenance) "
-        "VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, 'application/gzip', 'input', ?, 'declared')",
+        "VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, 'application/gzip', 'input', "
+        "  (SELECT coalesce(max(upload_seq), 0) + 1 FROM artifacts WHERE job_id = ?), "
+        "  ?, 'declared')",
         (artifact_id, job["id"], digest, config["storage_location_id"],
-         f"{job['id']}/{artifact_id}", size,
+         f"{job['id']}/{artifact_id}", size, job["id"],
          _retention(store, "input", config.limits["job_retention_days"])))
     return artifact_id
+
+
+# Refusals that come before an upload's archive has passed its safety checks:
+# an upload refused with one of these was never opened, and is never opened
+# afterwards -- the portal's look-inside decompresses the whole archive, which
+# is the bomb `archive-rejected` refused (surface D133).
+UNOPENED = ("upload-digest-mismatch", "upload-too-large", "archive-rejected")
+
+
+def unopened(store, row, error_type: Optional[str]) -> bool:
+    '''Whether ``row`` is an upload that must not be opened: the job's last,
+    refused by one of `UNOPENED`. Every refused upload is the last one, since
+    a refusal ends the job.'''
+    if row["kind"] != "input" or row["upload_seq"] is None or not error_type:
+        return False
+    if error_type.rsplit("/", 1)[-1] not in UNOPENED:
+        return False
+    last = store.one("SELECT max(upload_seq) AS n FROM artifacts WHERE job_id = ?",
+                     (row["job_id"],))["n"]
+    return row["upload_seq"] == last
 
 
 def collect(store, storage, config, job, build_root) -> int:
@@ -223,16 +243,15 @@ def collect(store, storage, config, job, build_root) -> int:
     account = _the_run_itself(Path(build_root), root)
     if account is not None:
         written += _index(store, storage, job, location, floor, "logs",
-                          None, None, account, "text/plain")
+                          None, None, account, "text/plain", build_root)
 
     if not root.is_dir():
         logger.warning(f"{job['id']} left no build directory to index")
         return written
 
     manifest = root / f"{job['design']}.pkg.json"
-    if manifest.is_file():
-        written += _index(store, storage, job, location, floor, "manifest",
-                          None, None, manifest, "application/json")
+    written += _index(store, storage, job, location, floor, "manifest",
+                      None, None, manifest, "application/json", build_root)
 
     # Every node again, because a node whose archive was missed while the run
     # was going still has to be indexed -- the nodes that were caught cost one
@@ -301,12 +320,6 @@ def _the_run_itself(job_root: Path, build_dir: Path) -> Optional[Path]:
 _NOT_IN_A_NODE = ("inputs", "sc_collected_files")
 
 
-def _node_filter(info: "tarfile.TarInfo"):
-    '''Drop the excluded directories wherever they appear in the tree.'''
-    parts = PurePosixPath(info.name).parts
-    return None if any(part in _NOT_IN_A_NODE for part in parts) else info
-
-
 def _exists(store, job, kind, step, index) -> bool:
     '''Whether this kind is already indexed for this node.
 
@@ -321,28 +334,42 @@ def _exists(store, job, kind, step, index) -> bool:
 
 
 def _index(store, storage, job, location, floor, kind, step, index,
-           source: Path, media_type: str) -> int:
-    '''One file, copied into the artifact store and recorded.'''
+           source: Path, media_type: str, root) -> int:
+    '''One file, copied into the artifact store and recorded -- where it is a
+    regular file under ``root`` reached through no link.'''
     if _exists(store, job, kind, step, index):
+        return 0
+    try:
+        handle = confine.open_inside(root, source)
+    except OSError as e:
+        if not isinstance(e, FileNotFoundError):
+            logger.warning(f"{job['id']}: not indexing {source}: {e}")
         return 0
 
     artifact_id = str(uuid7())
     target = storage.artifact_dir(job["id"]) / artifact_id
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    shutil.copyfile(source, target)
+    with handle, open(target, "wb") as out:
+        shutil.copyfileobj(handle, out)
     return _record(store, job, artifact_id, location, floor, kind, step, index,
                    target, media_type)
 
 
+def _real_dir(path: Path) -> bool:
+    '''A directory, and not a link to one.'''
+    return path.is_dir() and not path.is_symlink()
+
+
 def _archive(store, storage, job, location, floor, kind, step, index,
-             members: List[Path], base: Path, exclude=None,
-             dereference: bool = False) -> int:
-    '''Several paths, as one gzipped tar, recorded as one artifact.
+             top: Path, base: Path, root, skip=(), follow_inside: bool = False) -> int:
+    '''A directory, as one gzipped tar, recorded as one artifact.
 
     Stored relative to the node's working directory, so a client unpacks it
     straight into the same place without knowing anything about this server's
-    layout -- which is the reason the contract has no per-artifact path.
+    layout -- which is the reason the contract has no per-artifact path. Read
+    through `confine`, so a link is stored as a link and never followed out of
+    ``root``; ``follow_inside`` follows one to a file inside it.
     '''
     if _exists(store, job, kind, step, index):
         return 0
@@ -352,9 +379,8 @@ def _archive(store, storage, job, location, floor, kind, step, index,
     target.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        with tarfile.open(target, "w:gz", dereference=dereference) as tar:
-            for member in members:
-                tar.add(member, arcname=str(member.relative_to(base)), filter=exclude)
+        with tarfile.open(target, "w:gz") as tar:
+            confine.add_tree(tar, root, top, base, skip=skip, follow_inside=follow_inside)
     except BaseException:
         target.unlink(missing_ok=True)
         raise

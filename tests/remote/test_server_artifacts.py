@@ -781,23 +781,37 @@ def test_the_job_level_rows_are_protected_too(server, finished):
              existing["kind"]))
 
 
-def test_every_upload_is_its_own_input(server, finished):
-    '''⚠️ The one exception to one-per-node: a job sent back for its sources
-    carries a second archive, and each is kept.'''
+def test_uploads_are_numbered_and_the_number_is_in_the_key(server, finished):
+    '''🔴 One per UPLOAD rather than exempt (database D101): an exemption
+    holds only while the code writes each row once, an ordinal in the key holds
+    anyway -- and a CHECK ties the ordinal to job-level `input` exactly.'''
+    import sqlite3
+
     from siliconcompiler.remote.server.ids import uuid7
 
     store = server.config["SC_STORE"]
     first = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'input' "
                       "AND step IS NULL", (finished["id"],))
-    store.execute(
-        'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
-        "  location_id, storage_key, size_bytes, media_type, kind, provenance) "
-        "VALUES (?, ?, NULL, NULL, 'sha256:x', ?, 'k', 1, 'application/gzip', "
-        "        'input', 'declared')",
-        (str(uuid7()), finished["id"], first["location_id"]))
+    assert first["upload_seq"] == 1
 
-    assert store.one("SELECT count(*) AS n FROM artifacts WHERE job_id = ? AND "
-                     "kind = 'input' AND step IS NULL", (finished["id"],))["n"] == 2
+    def insert(kind, seq, step=None):
+        store.execute(
+            'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+            "  location_id, storage_key, size_bytes, media_type, kind, upload_seq, "
+            "  provenance) VALUES (?, ?, ?, ?, 'sha256:x', ?, 'k', 1, "
+            "  'application/gzip', ?, ?, 'declared')",
+            (str(uuid7()), finished["id"], step, step and "0", first["location_id"],
+             kind, seq))
+
+    insert("input", 2)
+    with pytest.raises(sqlite3.IntegrityError):
+        insert("input", 2)                       # the same upload twice
+    with pytest.raises(sqlite3.IntegrityError):
+        insert("input", None)                    # a job-level input with no number
+    with pytest.raises(sqlite3.IntegrityError):
+        insert("logs", 3)                        # a number on anything else
+    with pytest.raises(sqlite3.IntegrityError):
+        insert("input", 3, step="stepone")       # or on a node's input
 
 
 def test_a_node_input_is_what_it_was_handed_and_no_member_of_its_archive(
@@ -825,12 +839,18 @@ def _node_with_inputs(server, finished, step, links):
         "SELECT * FROM artifacts WHERE job_id = ? AND step = ?", (job["id"], step))
 
 
-def test_a_nodes_inputs_hold_the_bytes_it_read_not_the_links(server, finished, tmp_path):
+def test_a_link_inside_the_job_is_followed_to_the_bytes(server, finished):
+    '''An upstream output, linked into a node's `inputs/`: the archive holds
+    the bytes the node read.'''
     import tarfile
 
-    (tmp_path / "upstream.vg").write_text("module gcd; endmodule\n")
-    rows = _node_with_inputs(server, finished, "linked",
-                             {"gcd.vg": tmp_path / "upstream.vg"})
+    job = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
+    upstream = (server.config["SC_JOBS"].job_root(job["user_id"], job["id"]) / "gcd" /
+                "job0" / "stepone" / "0" / "outputs")
+    upstream.mkdir(parents=True, exist_ok=True)
+    (upstream / "gcd.vg").write_text("module gcd; endmodule\n")
+
+    rows = _node_with_inputs(server, finished, "linked", {"gcd.vg": upstream / "gcd.vg"})
     row, = [row for row in rows if row["kind"] == "input"]
 
     with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
@@ -839,12 +859,120 @@ def test_a_nodes_inputs_hold_the_bytes_it_read_not_the_links(server, finished, t
         assert tar.extractfile(member).read() == b"module gcd; endmodule\n"
 
 
-def test_a_dangling_input_costs_only_the_input(server, finished, tmp_path):
-    '''The node's own results are indexed; a view of what it was handed is not
-    worth losing them over.'''
-    rows = _node_with_inputs(server, finished, "dangling", {"gone.vg": tmp_path / "nothing"})
+def test_a_link_out_of_the_job_is_stored_as_a_link_and_never_read(
+        server, finished, tmp_path):
+    '''🔴 The attack (surface D133): a node's own code leaves a link to a
+    host file in its inputs. Following it would pack the host's bytes as the
+    job's.'''
+    import tarfile
 
-    assert {row["kind"] for row in rows} == {"logs", "node"}
+    secret = tmp_path / "host-secret"
+    secret.write_text("the host's own file\n")
+    rows = _node_with_inputs(server, finished, "outward", {"stolen": secret})
+    row, = [row for row in rows if row["kind"] == "input"]
+
+    with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
+        member = tar.getmember("inputs/stolen")
+        assert member.issym() and member.linkname == str(secret)
+        assert not any(m.isfile() and m.name.endswith("stolen") for m in tar.getmembers())
+
+
+def test_a_log_that_is_a_link_out_is_not_indexed(server, finished, tmp_path):
+    '''The same attack on the files indexed one by one: a node that replaces
+    its log with a link does not get the host's file published as its log.'''
+    secret = tmp_path / "host-secret"
+    secret.write_text("the host's own file\n")
+    job = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
+    root = server.config["SC_JOBS"].job_root(job["user_id"], job["id"])
+    node = root / "gcd" / "job0" / "linklog" / "0"
+    (node / "outputs").mkdir(parents=True)
+    (node / "sc_linklog_0.log").symlink_to(secret)
+    (node / "outputs" / "gcd.pkg.json").symlink_to(secret)
+
+    from siliconcompiler.remote.server import artifacts
+    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
+                           server.config["SC_CONFIG"], job, root, "linklog", "0")
+
+    rows = server.config["SC_STORE"].all(
+        "SELECT kind, storage_key FROM artifacts WHERE job_id = ? AND step = 'linklog'",
+        (job["id"],))
+    assert {row["kind"] for row in rows} == {"node"}
+    import tarfile
+    with tarfile.open(server.config["SC_STORAGE"].artifact_path(rows[0]["storage_key"])) as tar:
+        # In the node archive as what it is -- a link -- and never as the bytes.
+        assert tar.getmember("sc_linklog_0.log").issym()
+        assert all(not member.isfile() for member in tar.getmembers())
+
+
+###########################
+# A refused upload: kept, except when it is restricted
+###########################
+
+def _uploads(server, job_id):
+    return server.config["SC_STORE"].all(
+        "SELECT * FROM artifacts WHERE job_id = ? AND upload_seq IS NOT NULL "
+        "ORDER BY upload_seq", (job_id,))
+
+
+def test_an_upload_refused_for_its_digest_is_kept_under_the_hash_it_has(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''Kept, which is when it is wanted -- and its hash is what storage holds,
+    not what the client claimed.'''
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    wrong = "sha256:" + "0" * 64
+
+    response = submit(server_client, key, token, job["id"], wrong, size)
+
+    assert slug(response) == "upload-digest-mismatch"
+    kept, = _uploads(server, job["id"])
+    assert kept["content_hash"] == digest and kept["upload_seq"] == 1
+
+
+def test_an_upload_refused_as_restricted_is_deleted_and_the_reason_kept(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''🔴 `upload-forbidden`, on either detection: the bytes are not kept
+    (surface D133). The job, its reason, and the member and hash the reason
+    names are what remains.'''
+    from siliconcompiler.remote.server.errors import ProblemError
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+    kept, = _uploads(server, job["id"])
+    stored = server.config["SC_STORAGE"].artifact_path(kept["storage_key"])
+    assert stored.is_file()
+
+    jobs = server.config["SC_JOBS"]
+    row = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (job["id"],))
+    jobs._refuse(None, row, ProblemError(
+        "upload-forbidden", resource_kind="pdk", detected="content",
+        member="sc_collected_files/cells.lef",
+        detail="sc_collected_files/cells.lef (sha256:abc) matches a controlled pdk"))
+
+    assert _uploads(server, job["id"]) == [] and not stored.exists()
+    reason = server.config["SC_STORE"].one(
+        "SELECT reason FROM job_state_transitions WHERE job_id = ? AND to_state = "
+        "'rejected'", (job["id"],))["reason"]
+    assert "cells.lef" in reason and "sha256:abc" in reason
+
+
+def test_a_node_over_a_member_deleted_on_its_own_is_not_approved_and_alerts(
+        server, server_client, key, token, finished, caplog):
+    '''🔴 Handing the archive over would undo the deletion (entitlements
+    D41). The state should not exist -- a node is reaped with its first member
+    -- so an operator is told, once.'''
+    items = listing(server_client, key, token, finished["id"])
+    log = next(i for i in items if i["kind"] == "logs" and i["step"] == "stepone")
+    node = next(i for i in items if i["kind"] == "node" and i["step"] == "stepone")
+    _mark(server, log, deleted_at="2026-09-26T00:00:00.000Z")
+
+    with caplog.at_level("ERROR", logger="sc-server"):
+        first = _fetch(server_client, key, token, finished["id"], node)
+        _fetch(server_client, key, token, finished["id"], node)
+
+    assert slug(first) == "artifact-not-approved"
+    assert sum("deleted on its own" in record.message for record in caplog.records) == 1
 
 
 ###########################

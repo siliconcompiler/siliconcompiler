@@ -97,6 +97,15 @@ Next, you define what the specific task needs to run and what it will produce.
    node fails on the server. Where the task reads a library's files, require
    those filesets' files, as the OpenROAD and Yosys tasks do.
 
+.. important::
+
+   **Do not call** ``find_files`` **(or anything else that resolves a
+   path) in** ``setup()``. A remote run sets up every node on the client, before
+   anything is uploaded, to learn what the flow reads -- and resolving a path
+   there fetches a remote PDK onto the user's machine just to answer that. Declare
+   keys in ``setup()``; resolve the files they name in
+   :meth:`.Task.runtime_options` or later, where the task actually runs.
+
 Execution Lifecycle Methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

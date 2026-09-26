@@ -22,12 +22,12 @@ import sqlite3
 import warnings
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from siliconcompiler.schema.baseschema import SchemaVersionWarning
 
 from siliconcompiler.remote import owners, units
-from siliconcompiler.remote.server import archive, artifacts, images, runspec
+from siliconcompiler.remote.server import archive, artifacts, confine, images, runspec
 from siliconcompiler.remote.server.dispatch import DispatchError
 from siliconcompiler.remote.server.errors import (
     bound, ERRORS, ProblemError, TYPE_BASE)
@@ -595,6 +595,22 @@ class JobService:
 
         size, reported_digest = reported
 
+        # Before anything is kept: `limit-exceeded` here is retried, and the
+        # retry needs the upload still where the grant put it.
+        self._check_concurrent_jobs(session.user_id)
+
+        # 🔴 Kept from here on, as its own `input`, whatever happens next: every
+        # upload the job took can be looked at afterwards -- a refused one most
+        # of all (surface D133). Moved, so nothing is stored twice, and under
+        # the hash storage reports for the bytes, which is what they are.
+        with self._store.transaction():
+            upload_id = artifacts.record_upload(
+                self._store, self._storage, self._config, job,
+                self._storage.upload_path(job["id"]), reported_digest, size)
+        # Only what is left of it: an interrupted PUT's partial file.
+        self._storage.discard_upload(job["id"])
+        kept = self._storage.artifact_path(f"{job['id']}/{upload_id}")
+
         # 🔴 The order below is normative. Nothing opens the archive until the
         # digest matches, so the bytes cannot change between the check and the
         # unpack -- which is what turns the re-derivation from a TOCTOU into a
@@ -613,8 +629,6 @@ class JobService:
                 detail=f"{job['archives_bytes'] + size} bytes across this job's "
                        f"uploads, and this server accepts at most {ceiling}"))
 
-        self._check_concurrent_jobs(session.user_id)
-
         root = self.job_root(session.user_id, job["id"])
 
         # The archive is the contents of one job directory, so it expands at
@@ -631,27 +645,20 @@ class JobService:
         # the server checked it.
         allowed = self._requested_members(job, root) if follow_up else None
         try:
-            archive.extract(self._storage.upload_path(job["id"]), unpacked,
-                            self._config.limits, allowed=allowed)
+            archive.extract(kept, unpacked, self._config.limits, allowed=allowed)
         except archive.ArchiveRejected as rejected:
             if not follow_up:
                 shutil.rmtree(root, ignore_errors=True)
+            # Kept, and never opened again: see `artifacts.UNOPENED`.
             raise self._refuse(session, job, ProblemError(
                 "archive-rejected", violation=rejected.violation,
                 detail=rejected.detail)) from None
 
-        # 🔴 Kept, as its own `input`, rather than deleted: every upload the
-        # job accepted can be looked inside afterwards -- a refused one most of
-        # all. Moved, so nothing is stored twice.
         with self._store.transaction():
-            artifacts.record_upload(self._store, self._storage, self._config, job,
-                                    self._storage.upload_path(job["id"]), digest, size)
             self._store.execute(
                 "UPDATE jobs SET archives_bytes = archives_bytes + ?, grant_bytes = NULL, "
                 "  upload_digest = ?, upload_bytes = ? WHERE id = ?",
                 (size, digest, size, job["id"]))
-        # Only what is left of it: an interrupted PUT's partial file.
-        self._storage.discard_upload(job["id"])
         job = self._row(job["id"])
 
         # Re-derived over the union of every archive, never from `sources`.
@@ -1250,7 +1257,26 @@ class JobService:
                              actor=session.user_id if session else None,
                              reason=problem.detail or problem.error.slug)
         self._storage.discard_upload(job["id"])
+        if problem.error.slug == "upload-forbidden":
+            self._forget_upload(job)
         return problem
+
+    def _forget_upload(self, job) -> None:
+        '''🔴 Delete the upload `upload-forbidden` refused, on either detection
+        -- restricted material is not kept (surface D133). The row goes too:
+        what remains is the job, its reason and the transition, which name the
+        member and its hash; the refusal's `detail` is where the raiser puts
+        both.'''
+        row = self._store.one(
+            "SELECT id, storage_key FROM artifacts WHERE job_id = ? AND upload_seq = "
+            "(SELECT max(upload_seq) FROM artifacts WHERE job_id = ?)",
+            (job["id"], job["id"]))
+        if row is None:
+            return
+        self._storage.artifact_path(row["storage_key"]).unlink(missing_ok=True)
+        with self._store.transaction():
+            self._store.execute("DELETE FROM artifacts WHERE id = ?", (row["id"],))
+        logger.warning(f"{job['id']}: deleted an upload refused as upload-forbidden")
 
     ######################################################################
     # 16, 17. list and get
@@ -1573,7 +1599,7 @@ class JobService:
 
         root = self.job_root(job["user_id"], job["id"])
         progress = runspec.read_progress(
-            root / job["design"] / job["jobname"] / runspec.PROGRESS_FILENAME)
+            root / job["design"] / job["jobname"] / runspec.PROGRESS_FILENAME, root)
 
         if progress is None:
             # Nothing written yet. Either it has not started, or it never will.
@@ -1648,9 +1674,10 @@ class JobService:
             #
             # A job that really is gone reads the same file twice and is still
             # `running`, which costs one stat to be sure of.
+            job_root = self.job_root(job["user_id"], job["id"])
             settled = runspec.read_progress(
-                self.job_root(job["user_id"], job["id"]) / job["design"] /
-                job["jobname"] / runspec.PROGRESS_FILENAME)
+                job_root / job["design"] / job["jobname"] / runspec.PROGRESS_FILENAME,
+                job_root)
 
             if settled and settled.get("state") in ("completed", "failed"):
                 self._finish(job, settled["state"], settled)
@@ -2008,9 +2035,22 @@ class JobService:
             'SELECT * FROM artifacts WHERE job_id = ? AND step = ? AND "index" = ? '
             "AND kind NOT IN ('node', 'issue', 'input')",
             (row["job_id"], row["step"], row["index"]))
-        return artifacts.worst(
-            artifacts.ladder(member, self._surface_allows(surface, member["kind"]))
-            for member in members)
+        refusals = [artifacts.ladder(member, self._surface_allows(surface, member["kind"]))
+                    for member in members]
+        if "not-found" in refusals and not row["deleted_at"]:
+            # 🔴 A member deleted on its own, under a live node archive
+            # (entitlements D41). Handing the archive over would undo the
+            # deletion, so it is `artifact-not-approved` -- and the state should
+            # not exist, since a node is reaped with its first member, so an
+            # operator is told: reaching it is a bug.
+            if row["id"] not in _ALERTED:
+                _ALERTED.add(row["id"])
+                logger.error(f"node archive {row['id']} of job {row['job_id']} "
+                             f"({row['step']}/{row['index']}) has a member deleted on "
+                             "its own; a node is reaped as a whole, so this is a bug")
+            refusals = ["artifact-not-approved" if refusal == "not-found" else refusal
+                        for refusal in refusals]
+        return artifacts.worst(refusals)
 
     def _refuse_by_ladder(self, row, surface: str) -> None:
         '''Raise the refusal the ladder's deciding row names, if any.'''
@@ -2331,6 +2371,16 @@ class JobService:
         '''
         return self._datadir / "streams" / f"{job_id}.idx"
 
+    def read_node_file(self, session, job_id: str, path) -> str:
+        '''A file out of one of this caller's job trees, as text -- a regular
+        file under the job's root reached through no link. Raises OSError
+        otherwise: a node's code can leave a link in its own tree, and reading
+        through it would show the caller the host's files.'''
+        job = self.owned(session, job_id)
+        with confine.open_inside(self.job_root(job["user_id"], job["id"]), path,
+                                 "r", errors="replace") as handle:
+            return handle.read()
+
     def node_log_path(self, job, step: str, index: str):
         '''Where the bytes a tail reads are.'''
         return (self.job_root(job["user_id"], job["id"]) / job["design"] /
@@ -2516,6 +2566,11 @@ class JobService:
             "failed_count": sum(1 for row in rows if row["state"] == "failed"),
         }
         return body
+
+
+# Node archives already reported as sitting over a member deleted on its own,
+# so a client polling the listing does not raise the same alert every second.
+_ALERTED: Set[str] = set()
 
 
 class _Supply:

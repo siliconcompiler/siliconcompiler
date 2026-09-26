@@ -370,7 +370,7 @@ def write_images(path, sources: Dict[str, str], mounts) -> None:
         json.dump({"sources": sources, "mounts": [str(m) for m in mounts]}, f)
 
 
-def read_progress(path) -> Optional[Dict[str, Any]]:
+def read_progress(path, root=None) -> Optional[Dict[str, Any]]:
     '''What the run last said, or None.
 
     Every failure to read is None rather than an exception: this is read on a
@@ -378,7 +378,14 @@ def read_progress(path) -> Optional[Dict[str, Any]]:
     would turn a millisecond of rename into a failed request.
     '''
     try:
-        with open(path) as f:
+        # 🔴 The run writes this file, inside the job's tree: given the job's
+        # ``root``, a link planted in its place is refused, not followed.
+        if root is not None:
+            from siliconcompiler.remote.server import confine
+            opened = confine.open_inside(root, path, "r")
+        else:
+            opened = open(path)
+        with opened as f:
             body = json.load(f)
     except (OSError, ValueError):
         return None

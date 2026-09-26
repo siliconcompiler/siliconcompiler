@@ -210,7 +210,7 @@ def tail_job(job_id):
                 start=start, deadline=deadline,
                 artifact_id=lambda step, index: jobs.node_log_artifact(
                     job_id, step, index),
-                index=index)
+                index=index, root=jobs.job_root(job["user_id"], job["id"]))
         finally:
             limiter.release(owner)
             # The generator runs after the request's teardown, on its thread.
@@ -273,7 +273,8 @@ def tail(job_id, step, index):
                 jobs.node_log_path(job, step, index), step, index,
                 node_state=lambda: jobs.node_state(job_id, step, index),
                 start=start, deadline=deadline,
-                artifact_id=lambda: jobs.node_log_artifact(job_id, step, index))
+                artifact_id=lambda: jobs.node_log_artifact(job_id, step, index),
+                root=jobs.job_root(job["user_id"], job["id"]))
         finally:
             # In a finally, because the commonest way a tail ends is the reader
             # hanging up -- which reaches this generator as GeneratorExit and

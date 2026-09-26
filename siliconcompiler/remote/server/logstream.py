@@ -30,6 +30,8 @@ import time
 from pathlib import Path
 from typing import Dict, Iterator, Optional
 
+from siliconcompiler.remote.server import confine
+
 try:
     import fcntl
 except ImportError:                                 # Windows: one process only
@@ -67,7 +69,7 @@ HEARTBEAT_SECONDS = 15
 
 
 def events(path: Path, step: str, index: str, node_state, start: int,
-           deadline: float, artifact_id=None) -> Iterator[bytes]:
+           deadline: float, artifact_id=None, root=None) -> Iterator[bytes]:
     '''Yield SSE frames for one node's log until it ends or time runs out.
 
     ``node_state`` is called to ask what the node is doing now -- a callable
@@ -83,7 +85,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
     yield f"retry: {RETRY_MS}\n\n".encode()
 
     while True:
-        size = _size(path)
+        size = _size(path, root)
 
         if size < offset:
             # The file got smaller, so the offset a client handed back points
@@ -93,7 +95,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
             offset, pending = 0, b""
 
         if size > offset:
-            chunk, offset = _read(path, offset, MAX_CHUNK)
+            chunk, offset = _read(path, offset, MAX_CHUNK, root)
             pending += chunk
 
             text, pending = _split(pending, complete=False)
@@ -138,7 +140,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
 
 
 def job_events(nodes, path_of, node_states, job_over, start, deadline,
-               artifact_id, index) -> Iterator[bytes]:
+               artifact_id, index, root=None) -> Iterator[bytes]:
     '''Yield SSE frames for every node of a job, merged, until it ends.
 
     ``nodes`` is the job's node list in a fixed order -- the store's -- because
@@ -189,7 +191,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline,
         # there: the same events under the same ids for everyone.
         for number, slot, offset, length in index.entries(position):
             step, node_index = nodes[slot]
-            chunk, _ = _read(path_of(step, node_index), offset, length)
+            chunk, _ = _read(path_of(step, node_index), offset, length, root)
             position = number + 1
             yield _log(step, node_index, _decode(chunk), _job_id(position))
             last_sent = time.monotonic()
@@ -199,7 +201,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline,
 
         # Caught up: whatever the logs gained since becomes the next entries.
         states = node_states()
-        if index.extend(nodes, path_of, states):
+        if index.extend(nodes, path_of, states, root):
             continue
 
         # 🔴 A node is over only once everything it wrote has been sent, and
@@ -314,7 +316,7 @@ class EventIndex:
                     yield number, slot, offset, length
                 number += 1
 
-    def extend(self, nodes, path_of, states) -> bool:
+    def extend(self, nodes, path_of, states, root=None) -> bool:
         '''Index what each node's log has gained. True if anything was.
 
         Whole lines only while a node runs -- a reader that prints what it is
@@ -326,7 +328,7 @@ class EventIndex:
             new = []
             for slot, (step, index) in enumerate(nodes):
                 path = path_of(step, index)
-                size, end = _size(path), self._ends[slot]
+                size, end = _size(path, root), self._ends[slot]
                 if size < end:
                     logger.warning(f"{path} shrank under a reader; restarting its tail")
                     end = 0
@@ -336,7 +338,7 @@ class EventIndex:
                 length = min(size - end, MAX_CHUNK)
                 if not (states.get((step, index)) in TERMINAL_NODE_STATES
                         and end + length == size):
-                    chunk, _ = _read(path, end, length)
+                    chunk, _ = _read(path, end, length, root)
                     length = _whole_lines(chunk, full=len(chunk) == MAX_CHUNK)
                     if not length:
                         continue
@@ -434,18 +436,27 @@ def _event(name: str, body: dict, identifier: Optional[str] = None) -> bytes:
     return frame.encode()
 
 
-def _size(path: Path) -> int:
+def _size(path: Path, root=None) -> int:
+    '''How much of the file there is: 0 where it is not written yet -- a node
+    can be dispatched before it opens its log, and waiting is the right answer
+    rather than ending the stream.
+
+    🔴 Given the job's ``root``, only a regular file reached through no link
+    counts: a node's code can replace its own log with a link to anything, and
+    a tail that followed it would stream the host's files to the caller.
+    '''
+    if root is not None:
+        return confine.size_inside(root, path)
     try:
         return path.stat().st_size
     except OSError:
-        # Not written yet. A node can be dispatched before it opens its log,
-        # and waiting is the right answer rather than ending the stream.
         return 0
 
 
-def _read(path: Path, offset: int, limit: int):
+def _read(path: Path, offset: int, limit: int, root=None):
     try:
-        with open(path, "rb") as f:
+        opened = confine.open_inside(root, path) if root is not None else open(path, "rb")
+        with opened as f:
             f.seek(offset)
             data = f.read(limit)
     except OSError as e:

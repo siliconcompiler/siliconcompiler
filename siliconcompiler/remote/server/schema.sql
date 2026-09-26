@@ -381,6 +381,8 @@ CREATE TABLE artifacts (
     size_bytes    integer NOT NULL,
     media_type    text,
     kind          text NOT NULL REFERENCES artifact_kinds(kind),
+    upload_seq    integer,                          -- 1, 2, ... for a job-level 'input': which
+                                                    -- upload it was. NULL on every other row
     created_at    text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     retention_until text,
     provenance    text NOT NULL DEFAULT 'unknown'
@@ -400,6 +402,8 @@ CREATE TABLE artifacts (
                                                     -- reason
     CHECK (("index" IS NULL) = (step IS NULL)),     -- both, or neither. Deliberately NOT a
                                                     -- foreign key into job_nodes
+    CHECK ((upload_seq IS NOT NULL) = (kind = 'input' AND step IS NULL)),
+    CHECK (upload_seq IS NULL OR upload_seq >= 1),
     CHECK (legal_hold_at IS NULL
         OR (legal_hold_by IS NOT NULL AND legal_hold_reason IS NOT NULL)),
     CHECK ((withheld_at IS NULL) = (withheld_by IS NULL)),
@@ -423,12 +427,12 @@ CREATE INDEX artifacts_hash_idx ON artifacts (content_hash);
 -- NULLs as distinct in a unique index -- which would leave exactly the rows
 -- with no node unprotected.
 --
--- ⚠️ Except a job-level `input`: one per upload, and a job sent back for its
--- sources has more than one. Those are written by submit, once each, rather
--- than by the indexer, so nothing races to write them.
+-- `upload_seq` is in the key, so a job-level `input` -- one per upload -- is
+-- one per UPLOAD rather than exempt (database D101): an exemption holds only
+-- while the code writes each row once, and an ordinal in the key holds anyway.
 CREATE UNIQUE INDEX artifacts_one_per_node_idx
-    ON artifacts (job_id, kind, coalesce(step, ''), coalesce("index", ''))
-    WHERE NOT (kind = 'input' AND step IS NULL);
+    ON artifacts (job_id, kind, coalesce(step, ''), coalesce("index", ''),
+                  coalesce(upload_seq, 0));
 
 
 --------------------------------------------------------------------------

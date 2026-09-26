@@ -30,104 +30,30 @@ The nine of the first review, the five of the software-buckets review, the
 fifteen of the third and the follow-ons after it — the `.*` spelling and the
 `reported` parse (2), the job log stream (3), what the archive carries (4), the
 eleven this file then held (5: surface D107–D111, entitlements D28, profile
-D27), and 6–8: the server never reads a path a job names, the fetch allowlist
-and its globs, create as a lookup and the fetch while `queued`, the follow-up
-archive, the upload grant's size, the registry changes (`download-too-large`,
-`unsatisfiable-request` retired, `upload-forbidden`'s members), the smaller
-rows (surface D115–D128, profile D30), and 9: only what the flow requires goes
-up (surface D129) — were decided in
-`crucible/orchestration/api/contract-changes.md`, are implemented here, and have
-been removed rather than edited. Their home is the contract now.
-
-The one item this file held open — **the manifest did not record which copy a
-resource resolved to** (D111) — closed with them, by its second option: the
-server points every dataroot of the manifest it runs at the copy it resolves
-to, the job's upload or its own supplied root. A node's manifest now says so.
+D27), 6–8 (surface D115–D128, profile D30), 9 (surface D129), and the five this
+file then held — D129's set, the deleted member, `input`, and `copy` (surface
+D130–D140, entitlements D41, database D100–D102, profile D31–D32) — were decided
+in `crucible/orchestration/api/contract-changes.md`, are implemented here or
+being implemented by follow-on 10, and have been removed rather than edited.
+Their home is the contract now.
 
 ---
 
 ## Open — not yet in the contract docs
 
-### 1. The contract's own error pages still name `unsatisfiable-request`
+### 1. Links are confined on every read of a job's tree, not only `input`
 
-`server-errors/entitlement-denied.html` (*What this is not*) and
-`server-errors/index.html` (the documented types) both name the slug D116
-retired. This tree's copies say `resource-unavailable` instead.
+D133 confines a node-bound `input` to the job's build directory. ⚠️ **The same
+attack reaches every other read the server makes of that tree**, because the
+job writes all of it: a node's code can replace its own log, its manifest or
+the run's progress file with a link, and the indexer copying the log, the live
+tail streaming it, the portal showing it and the reconciler reading progress
+all followed it. This profile now reads a job's tree only through one module
+that opens each component relative to the last and refuses a link (race-free
+with `dir_fd`), refuses a FIFO, and stores a link in an archive as a link.
 
-**Where it goes:** `api/server-errors/`.
-
-### 2. D129's set is not in a manifest until something runs setup
-
-D129 builds the set by *"walk the flow's nodes, take each task's `require`"*
-and has both ends *"read the same set from the same manifest."* ⚠️ **`require`
-is empty until a node's `setup()` runs**, and a remote run's setup runs in the
-job's image: heartbeat's 23 nodes carry 0 `require` entries before it. Read as
-written, the filter drops every file but the design's.
-
-What this profile does, with the owner's agreement:
-
-- **The client works it out**: `_init_run()` on a throwaway copy, then every
-  node's setup in execution order — 0.15 s for heartbeat, nothing run, nothing
-  downloaded — and carries each node's `require` in the manifest it uploads.
-  🔴 `_init_run()` is not optional: it fills `asic,asiclib` from the main
-  library, and without it no library's LEF, liberty or GDS is required.
-- **The server reads it from that manifest** and never runs setup: setup code
-  can call `find_files`, which on the API host would fetch a remote PDK during
-  submit, and the server's newer SiliconCompiler could require keys the job's
-  own version does not.
-- 🔴 **A set that could not be worked out is absent, not empty.** A task whose
-  setup needs what only its image has — cocotb's raises without cocotb — leaves
-  the client uploading by owner alone and the manifest carrying no `require`,
-  which the server reads as *unknown*: nothing filtered, no `missing_member`.
-- **Only `require` is carried.** A second setup over setup's other effects
-  doubles every command-line option, and `add_required_key` now lists a key
-  once, so the run's own setup adds nothing twice.
-
-**The framework-level list** — what a run reads that no task requires — is
-checked, and is `SchedulerNode.get_required_keys`' own additions: a task's
-`prescript`, `postscript`, `refdir` and `script` (`exe` too, which is a name).
-`check_manifest` reads no files, and the docker scheduler mounts every path
-key's directory but sends nothing.
-
-**Where it goes:** `surface.md` D129 — where the set comes from, and the
-unknown case.
-
-### 3. A `node` archive over a DELETED member is not on the ladder
-
-D120's row answers a node archive with its worst member's refusal — withheld,
-missing resource, pending — and names no answer for a member that was
-**deleted** on its own. Here it cannot happen, since the node is the unit of
-deletion, and the ladder answers the member's `not-found`. That would tell a
-client the archive is gone when it is not; `artifact-not-approved` is probably
-the right row, since handing the archive over would undo the deletion.
-
-**Where it goes:** `entitlements.md`, the ladder's row 4.
-
-### 4. `input` is produced, and it is more than one thing
-
-The vocabulary says `input` is *"the uploaded archive. The owner has a copy"* —
-one per job, job-level. **Owner, 2026-09-25:** *"generate input artifact for each
-of the uploads (they should be separate) and show them on the UI and then we need
-the input for each node as well … and the UI shows the hash of the artifacts."*
-This profile now produces it, in two shapes:
-
-- **Job-level, one per upload.** The first archive and every follow-up a job
-  sent back for its sources carries (D124) is its own row, with the digest the
-  submit verified as `content_hash`. ⚠️ **That breaks one-per-(job, kind,
-  node)**, so `artifacts_one_per_node_idx` exempts a job-level `input` — safe,
-  because submit writes those once each rather than the racing indexer. Kept
-  even when the job is then refused, which is when it is wanted. The upload is
-  *moved* into the store, not copied.
-- **Bound to a node: that node's `inputs/`**, links followed. The node archive
-  leaves `inputs/` out, so a node's `input` is **not** one of its members for
-  entitlements row 4.
-
-Neither is counted by the reaper as something the job produced, and the
-reference client fetches neither.
-
-**Where it goes:** `database.md`'s `artifact_kinds` comment and the unique
-index; `surface.md` §21 — a listing may carry several job-level `input` rows,
-in arrival order; `entitlements.md` row 4's member set.
+**Where it goes:** `surface.md` D133 — *every* read of a job's build
+directory, with node-bound `input`'s follow-inside as the one relaxation.
 
 ---
 
