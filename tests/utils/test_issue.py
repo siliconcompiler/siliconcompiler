@@ -108,22 +108,28 @@ def project(sources):
 
 
 def make_testcase(proj, **kwargs):
-    '''Generates a testcase and returns (archive path, copy flag map).
+    '''Generates a testcase and returns (archive path, selection map).
 
-    The copy flags are snapshotted at collect time, which is after
-    generate_testcase() has rewritten every path parameter's copy field.
+    The selection is what generate_testcase() hands `collect` to decide by:
+    each path parameter, and whether the bundle takes it. 🔴 It never writes
+    the project's `copy` fields to say so, and this asserts that too.
     '''
     flags = {}
 
     def record_and_collect(project, **collect_kwargs):
+        select = collect_kwargs["select"]
         for keypath in project.allkeys():
             if 'default' in keypath:
                 continue
             param = project.get(*keypath, field=None)
             if not param.is_path:
                 continue
-            flags[','.join(keypath)] = param.get(field='copy')
+            flags[','.join(keypath)] = select(keypath, None, {}, None)
         return collect(project, **collect_kwargs)
+
+    before = {','.join(keypath): proj.get(*keypath, field='copy')
+              for keypath in proj.allkeys()
+              if 'default' not in keypath and proj.get(*keypath, field=None).is_path}
 
     with patch("siliconcompiler.utils.issue.collect", side_effect=record_and_collect):
         generate_testcase(proj, "stepone", "0",
@@ -132,6 +138,8 @@ def make_testcase(proj, **kwargs):
                           verbose_collect=False,
                           **kwargs)
 
+    after = {key: proj.get(*key.split(','), field='copy') for key in before}
+    assert after == before, "generate_testcase wrote the project's copy fields"
     return os.path.abspath("testcase.tar.gz"), flags
 
 

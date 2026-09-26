@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 import threading
+import warnings
 
 import os.path
 
@@ -340,9 +341,13 @@ class Scheduler:
             if not self.__check_flowgraph_io():
                 raise SCRuntimeError("Flowgraph file IO constrains errors")
 
-            # Collect files for remote runs
-            if self.__check_collect_files():
-                collect(self.project)
+            # Collect what the nodes that run elsewhere cannot reach
+            keys, legacy = self.__collect_keys()
+            if keys or legacy:
+                project = self.__project
+                collect(project, select=lambda key, dataroot, resolvers, path: (
+                    tuple(key) in keys
+                    or (legacy and bool(project.get(*key, field='copy')))))
 
             try:
                 self.run_core()
@@ -1326,20 +1331,28 @@ class Scheduler:
 
         return not error
 
-    def __check_collect_files(self) -> bool:
-        """
-        Iterates through all tasks in the scheduler, and checks if the there
-        are files or directories that need to be collected
+    def __collect_keys(self) -> Tuple[Set[Tuple[str, ...]], bool]:
+        """The keys every node needs collected, and whether an out-of-tree
+        node marked its own through the old ``mark_copy`` hook.
 
-        Returns:
-            bool: True if there is something to be collected, False otherwise.
+        🔴 **Nothing reads ``copy`` for an in-tree node**: each says which
+        required keys it needs through :meth:`.SchedulerNode.collect_keys`,
+        and exactly those are collected. A node class that overrides only
+        ``mark_copy`` is still honoured -- it sets ``copy`` itself -- so a
+        scheduler written against the old hook keeps working.
         """
-        do_collect = False
+        keys: Set[Tuple[str, ...]] = set()
+        legacy = False
         for task in self.__tasks.values():
-            if task.mark_copy():
-                do_collect = True
-
-        return do_collect
+            node_class = type(task)
+            if node_class.mark_copy is not SchedulerNode.mark_copy \
+                    and node_class.collect_keys is SchedulerNode.collect_keys:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", DeprecationWarning)
+                    legacy = task.mark_copy() or legacy
+            else:
+                keys |= task.collect_keys()
+        return keys, legacy
 
     def __init_schedulers(self) -> None:
         """

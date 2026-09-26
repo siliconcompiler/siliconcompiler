@@ -121,18 +121,11 @@ def generate_testcase(project: "Project",
 
         return copy
 
-    for keypath in project.allkeys():
-        if 'default' in keypath:
-            continue
-
-        if not project.get(*keypath, field=None).is_path:
-            continue
-
-        project.set(
-            *keypath,
-            determine_copy(*keypath,
-                           in_require=','.join(keypath) in task_requires),
-            field='copy')
+    def select(key, dataroot, resolvers, path) -> bool:
+        # What the failing node requires, under this bundle's own rule for
+        # libraries and tools -- decided here and handed to `collect`, rather
+        # than written into the project's `copy` fields for it to read back.
+        return determine_copy(*key, in_require=','.join(key) in task_requires)
 
     # Collect files
     work_dir = workdir(project, step=step, index=index)
@@ -157,7 +150,7 @@ def generate_testcase(project: "Project",
     # Copy in issue run files
     shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
     # Copy in source files
-    collect(project, directory=collection_dir, verbose=verbose_collect)
+    collect(project, directory=collection_dir, verbose=verbose_collect, select=select)
 
     # Set relative path to generate runnable files
     project._Project__cwd = issue_dir.name

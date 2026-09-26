@@ -8,6 +8,7 @@ import sys
 import tarfile
 import threading
 import time
+import warnings
 
 import os.path
 
@@ -1620,9 +1621,32 @@ class SchedulerNode:
 
         return path_keys
 
+    def collect_keys(self) -> Set[Tuple[str, ...]]:
+        """The required path keys whose files this node needs collected before
+        it runs, where it runs -- none by default: a node that runs where the
+        files are needs nothing moved.
+
+        A scheduler that runs a node somewhere else overrides this with the
+        keys that somewhere cannot reach. The scheduler collects exactly those,
+        and nothing is written into the project to say so.
+
+        Returns:
+            set of tuple of str: keypaths to collect.
+        """
+        return set()
+
     def mark_copy(self) -> bool:
-        """Marks files from the 'require' path keys for copying."""
-        return False
+        """Deprecated: use :meth:`collect_keys`.
+
+        Sets the ``copy`` field on every key :meth:`collect_keys` names, which
+        nothing reads any more, and says whether there were any.
+        """
+        warnings.warn("mark_copy is deprecated, use collect_keys",
+                      DeprecationWarning, stacklevel=2)
+        keys = self.collect_keys()
+        for key in keys:
+            self.__project.set(*key, True, field='copy')
+        return bool(keys)
 
     def check_required_values(self) -> bool:
         requires = self.get_required_keys()

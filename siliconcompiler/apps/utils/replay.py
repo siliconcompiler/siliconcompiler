@@ -140,8 +140,18 @@ def main():
         fd.flush()
         requirements_file = fd.getvalue()
 
+    # 🔴 What another machine needs to run this job: the files its nodes
+    # required, of those this machine must send -- the rule a remote run
+    # uploads by. Not the `copy` fields, which nothing reads any more.
+    from siliconcompiler.remote import owners
+    required = owners.required(job)
+
+    def select(key, dataroot, resolvers, path) -> bool:
+        return owners.needed(key, required) and \
+            owners.uploads(job, key, dataroot, resolvers, path)
+
     with tempfile.TemporaryDirectory() as collectdir:
-        collect(job, directory=collectdir, verbose=True)
+        collect(job, directory=collectdir, verbose=True, select=select)
 
         with io.BytesIO() as fd:
             with tarfile.open(fileobj=fd, mode='w:gz') as tar:

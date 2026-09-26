@@ -3175,3 +3175,53 @@ def test_a_builtin_join_still_dies_on_an_unexcused_arm(continue_join):
     with pytest.raises(RuntimeError,
                        match=r"Could not run final steps \(join\) due to errors in: A/0"):
         project.run()
+
+
+###########################
+# What is collected for nodes that run elsewhere
+###########################
+
+RTL = ("library", "gcd", "fileset", "rtl", "file", "verilog")
+SDC = ("library", "gcd", "fileset", "sdc", "file", "sdc")
+
+
+def test_a_node_names_what_it_needs_collected_and_nothing_else_is(gcd_nop_project):
+    '''🔴 Collected by the keys a node names, never by `copy`: nothing is
+    written into the project to say so, and a key nobody names is left out
+    whatever its `copy` field says.'''
+    gcd_nop_project.set(*SDC, True, field="copy")
+    before = gcd_nop_project.get(*RTL, field="copy")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.collect_keys",
+               autospec=True, return_value={RTL}), \
+            patch("siliconcompiler.scheduler.scheduler.collect") as collect:
+        Scheduler(gcd_nop_project).run()
+
+    select = collect.call_args.kwargs["select"]
+    assert select(RTL, None, {}, None) is True
+    assert select(SDC, None, {}, None) is False
+    assert gcd_nop_project.get(*RTL, field="copy") == before
+
+
+def test_nothing_is_collected_where_no_node_asks(gcd_nop_project):
+    with patch("siliconcompiler.scheduler.scheduler.collect") as collect:
+        Scheduler(gcd_nop_project).run()
+
+    collect.assert_not_called()
+
+
+def test_a_node_on_the_old_hook_is_still_collected_for(gcd_nop_project):
+    '''An out-of-tree node that overrides only `mark_copy` sets `copy`
+    itself, and the scheduler still honours it.'''
+    class Legacy(SchedulerNode):
+        def mark_copy(self):
+            self.project.set(*SDC, True, field="copy")
+            return True
+
+    scheduler = Scheduler(gcd_nop_project)
+    tasks = scheduler._Scheduler__tasks
+    tasks[("stepone", "0")] = Legacy(gcd_nop_project, "stepone", "0")
+
+    keys, legacy = scheduler._Scheduler__collect_keys()
+
+    assert keys == set() and legacy is True
