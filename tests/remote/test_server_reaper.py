@@ -110,6 +110,43 @@ def test_the_reaper_runs_twice_and_takes_nothing_the_second_time(
     assert sweep(server)["artifacts"] == 0
 
 
+def _second_row_for(store, row, location=None):
+    '''Another live row naming ``row``'s bytes -- the next upload's slot, so
+    the one-per-node index allows it -- in ``location`` or the same one.'''
+    from siliconcompiler.remote.server.ids import uuid7
+
+    values = dict(row)
+    values.update(id=str(uuid7()), upload_seq=2, retention_until=None,
+                  location_id=location or row["location_id"])
+    columns = ", ".join(f'"{name}"' for name in values)
+    store.execute(f"INSERT INTO artifacts ({columns}) VALUES "
+                  f"({', '.join('?' * len(values))})", tuple(values.values()))
+
+
+@pytest.mark.parametrize("elsewhere,kept", [(False, True), (True, False)])
+def test_bytes_go_only_when_no_live_row_names_the_object(
+        server, server_client, key, token, job_archive, dispatcher, elsewhere, kept):
+    '''🔴 An object is its location AND its key: another live row naming the
+    pair keeps the bytes, and the same key in another location is another
+    object, which keeps nothing.'''
+    job = ran(server, server_client, key, token, job_archive)
+    store, storage = server.config["SC_STORE"], server.config["SC_STORAGE"]
+    upload = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'input' "
+                       "AND step IS NULL", (job["id"],))
+    if elsewhere:
+        store.execute("INSERT INTO storage_locations (id, uri_base, writable) "
+                      "VALUES ('archive-2026', 'file:///elsewhere/', 0)")
+    _second_row_for(store, upload, "archive-2026" if elsewhere else None)
+    store.execute("UPDATE artifacts SET retention_until = '2020-01-01T00:00:00.000Z' "
+                  "WHERE id = ?", (upload["id"],))
+
+    sweep(server)
+
+    reaped = store.one("SELECT * FROM artifacts WHERE id = ?", (upload["id"],))
+    assert reaped["delete_reason"] == RETENTION_LAPSED        # the row goes either way
+    assert storage.artifact_path(upload["storage_key"]).exists() is kept
+
+
 def test_an_artifact_on_legal_hold_is_never_reaped(
         server, server_client, key, token, job_archive, dispatcher):
     '''The table would not even accept the write: an artifact cannot be both

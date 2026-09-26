@@ -95,7 +95,8 @@ from siliconcompiler.remote.server import confine
 from siliconcompiler.remote.server.dispatch import RUN_LOG
 from siliconcompiler.remote.server.ids import uuid7
 
-__all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS"]
+__all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS",
+           "referenced_elsewhere"]
 
 
 logger = logging.getLogger("sc-server")
@@ -208,6 +209,22 @@ def record_upload(store, storage, config, job, upload: Path, digest: str,
 # afterwards -- the portal's look-inside decompresses the whole archive, which
 # is the bomb `archive-rejected` refused (surface D133).
 UNOPENED = ("upload-digest-mismatch", "upload-too-large", "archive-rejected")
+
+
+def referenced_elsewhere(store, row, excluding=()) -> bool:
+    '''Whether a live artifact other than ``row`` -- and those ``excluding``
+    names -- still points at its bytes.
+
+    🔴 **An object is ``(location_id, storage_key)``**, never the key alone: the
+    same key in two locations is two objects, and counting across them would
+    keep one forever or reap the other from under its row. Reclaiming bytes
+    is refcounted on the pair.
+    '''
+    skip = {row["id"], *excluding}
+    return store.one(
+        f"SELECT 1 FROM artifacts WHERE location_id = ? AND storage_key = ? "
+        f"AND deleted_at IS NULL AND id NOT IN ({', '.join('?' * len(skip))})",
+        (row["location_id"], row["storage_key"], *skip)) is not None
 
 
 def unopened(store, row, error_type: Optional[str]) -> bool:

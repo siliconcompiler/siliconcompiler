@@ -18,8 +18,16 @@ without closing it.
 
 Only the ROOT may be reached through a link: it is the server's own directory,
 and a datadir mounted through one is ordinary.
+
+🔴 **An archive keeps only the links that resolve inside it** (surface D159).
+A link is data the job wrote, and its target names a path: one pointing out --
+absolute, or climbing past the top -- tells whoever downloads the archive where
+this server keeps things (a private PDK's mount, another user's tree), and
+lands outside a naive extractor's directory. Those are dropped and logged,
+never stored.
 '''
 
+import logging
 import os
 import stat
 import tarfile
@@ -27,7 +35,11 @@ import tarfile
 from pathlib import Path
 from typing import Iterable
 
-__all__ = ["open_inside", "size_inside", "inside", "add_tree", "add_file"]
+__all__ = ["open_inside", "size_inside", "inside", "add_tree", "add_file",
+           "link_stays_inside"]
+
+
+logger = logging.getLogger("sc-server")
 
 
 _SAFE = (hasattr(os, "O_NOFOLLOW") and hasattr(os, "O_DIRECTORY")
@@ -90,25 +102,50 @@ def add_tree(tar: tarfile.TarFile, root, top, base, skip: Iterable[str] = (),
     '''``top`` and everything under it into ``tar``, named relative to
     ``base``, never reading through a link out of ``root``.
 
-    A link is stored AS a link -- its target named, never read -- unless
-    ``follow_inside`` is set and it resolves to a regular file under ``root``,
-    which is then stored as that file's bytes. That is what a node's `inputs/`
-    wants: its upstream's outputs, which are inside the job. A name in
-    ``skip`` is left out wherever it appears.
+    A link is stored AS a link -- its target named, never read -- where that
+    target resolves inside ``top``, and dropped where it does not. With
+    ``follow_inside``, one that resolves to a regular file under ``root`` is
+    stored as that file's bytes instead: what a node's `inputs/` wants, its
+    upstream's outputs, which are inside the job. A name in ``skip`` is left
+    out wherever it appears.
     '''
     skip = frozenset(skip)
     top, base = Path(top), Path(base)
     arcname = os.path.relpath(str(top), str(base))
     if not _SAFE:
-        return _add_tree_by_path(tar, root, top, arcname, skip, follow_inside)
+        return _add_tree_by_path(tar, root, top, top, arcname, skip, follow_inside)
 
     fd = _open_dir(root, top)
     try:
         if arcname != os.curdir:
             tar.addfile(_dir_info(tar, arcname, os.fstat(fd)))
-        _walk(tar, root, fd, top, arcname, skip, follow_inside)
+        _walk(tar, root, top, fd, top, arcname, skip, follow_inside)
     finally:
         os.close(fd)
+
+
+def link_stays_inside(tree, link_dir, target: str) -> bool:
+    '''Whether a link in ``link_dir`` naming ``target`` resolves inside
+    ``tree``, lexically -- as an extractor would see it, which is what matters
+    for what an archive carries. An absolute target never does: it names this
+    server's paths whatever it points at.'''
+    if not target or os.path.isabs(target) or target.startswith(("/", "\\")):
+        return False
+    here = os.path.relpath(str(link_dir), str(tree))
+    resolved = os.path.normpath(os.path.join(here, target))
+    return resolved != os.pardir and not resolved.startswith(os.pardir + os.sep) \
+        and not os.path.isabs(resolved)
+
+
+def _add_link(tar, tree, link_dir, target: str, arcname: str, mtime=None) -> None:
+    if not link_stays_inside(tree, link_dir, target):
+        logger.info(f"left out of an archive: {arcname}, a link out of it ({target})")
+        return
+    link = tar.tarinfo(arcname)
+    link.type, link.linkname = tarfile.SYMTYPE, target
+    if mtime is not None:
+        link.mtime = mtime
+    tar.addfile(link)
 
 
 ######################################################################
@@ -162,7 +199,7 @@ def _regular(fd: int, path) -> int:
     return fd
 
 
-def _walk(tar, root, dir_fd, dir_path: Path, arcdir: str, skip, follow_inside) -> None:
+def _walk(tar, root, tree, dir_fd, dir_path: Path, arcdir: str, skip, follow_inside) -> None:
     with os.scandir(dir_fd) as entries:
         names = sorted(entry.name for entry in entries)
     for name in names:
@@ -175,9 +212,7 @@ def _walk(tar, root, dir_fd, dir_path: Path, arcdir: str, skip, follow_inside) -
             target = os.readlink(name, dir_fd=dir_fd)
             if follow_inside and _add_link_target(tar, root, dir_path, target, arcname):
                 continue
-            link = tar.tarinfo(arcname)
-            link.type, link.linkname, link.mtime = tarfile.SYMTYPE, target, info.st_mtime
-            tar.addfile(link)
+            _add_link(tar, tree, dir_path, target, arcname, info.st_mtime)
         elif stat.S_ISDIR(info.st_mode):
             try:
                 sub = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
@@ -186,7 +221,7 @@ def _walk(tar, root, dir_fd, dir_path: Path, arcdir: str, skip, follow_inside) -
                 continue            # swapped for a link or removed underneath
             try:
                 tar.addfile(_dir_info(tar, arcname, os.fstat(sub)))
-                _walk(tar, root, sub, dir_path / name, arcname, skip, follow_inside)
+                _walk(tar, root, tree, sub, dir_path / name, arcname, skip, follow_inside)
             finally:
                 os.close(sub)
         elif stat.S_ISREG(info.st_mode):
@@ -243,7 +278,7 @@ def _open_file_by_path(root, path) -> int:
                     path)
 
 
-def _add_tree_by_path(tar, root, top: Path, arcname: str, skip, follow_inside) -> None:
+def _add_tree_by_path(tar, root, tree, top: Path, arcname: str, skip, follow_inside) -> None:
     if not inside(root, top) or top.is_symlink():
         raise PermissionError(f"{top} is not under {root}")
     if arcname != os.curdir:
@@ -257,10 +292,8 @@ def _add_tree_by_path(tar, root, top: Path, arcname: str, skip, follow_inside) -
             if follow_inside and inside(root, child) and child.is_file():
                 add_file(tar, root, child, name)
                 continue
-            link = tar.tarinfo(name)
-            link.type, link.linkname = tarfile.SYMTYPE, target
-            tar.addfile(link)
+            _add_link(tar, tree, top, target, name)
         elif child.is_dir():
-            _add_tree_by_path(tar, root, child, name, skip, follow_inside)
+            _add_tree_by_path(tar, root, tree, child, name, skip, follow_inside)
         elif child.is_file():
             add_file(tar, root, child, name)

@@ -295,7 +295,21 @@ def test_login_asserts_a_derived_subject(fake_v1, tmp_credentials, client_creden
     assert sent["grant_type"] == "client_credentials"
     assert sent["client_id"].startswith("local:")
     assert sent["machine_id_source"] in (
-        "linux_machine_id", "macos_platform_uuid", "windows_machine_guid", "none")
+        "linux_machine_id", "macos_platform_uuid", "windows_machine_guid")
+
+
+def test_no_fingerprint_no_access(fake_v1, tmp_credentials, client_credentials):
+    '''🔴 With no machine id every such host would derive one subject -- one
+    principal for all of them -- so the client refuses before it asks.'''
+    from siliconcompiler.remote.client import identity
+
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+
+    with mock.patch.object(identity, "machine_fingerprint", return_value=(None, "none")):
+        with pytest.raises(RemoteError, match="no id to sign in with"):
+            Client(tmp_credentials).login()
+
+    assert not [call for call in fake_v1.calls if "auth/token" in call.request.url]
 
 
 def test_the_derivation_includes_the_uid(tmp_credentials):

@@ -421,6 +421,10 @@ CREATE INDEX artifacts_live_hash_idx ON artifacts (content_hash) WHERE deleted_a
 CREATE INDEX artifacts_job_idx ON artifacts (job_id);
 CREATE INDEX artifacts_node_idx ON artifacts (job_id, step, "index");
 CREATE INDEX artifacts_hash_idx ON artifacts (content_hash);
+-- What reclaiming bytes counts: an object is its location and its key, and it
+-- is only unlinked when no live row names the pair.
+CREATE INDEX artifacts_live_object_idx ON artifacts (location_id, storage_key)
+    WHERE deleted_at IS NULL;
 
 -- 🔴 One row per kind per node, and it has to be the DATABASE that says so.
 -- Indexing is driven from reconcile, which runs on whichever request thread

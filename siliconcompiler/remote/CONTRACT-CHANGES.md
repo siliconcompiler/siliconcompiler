@@ -186,6 +186,30 @@ build*:
 - ⚠️ **Index credentials are not supported.** An allowlisted index that needs
   authentication fails the build as `uninstallable`.
 
+### 9. The portal's session cookie is a bearer secret rule 3 does not name
+
+Follow-on 11 asked for a check that nothing but the storage URLs is a bearer
+secret on the wire in plaintext. The handover token passes -- single-use (spent
+before it is checked), 60 seconds, opened by the CLI on its own machine -- and
+the log stream's capability URL is the `303` target. ⚠️ **The session cookie the
+handover mints does not**: possession is the whole of it, it lives twelve
+hours, and it travels on every portal request. On loopback, which is how the
+compose stack publishes the portal, it never leaves the host; on a lab network
+in plaintext it is exactly what rule 3 says this profile MUST NOT issue.
+contract.md settles the handover token and says nothing about what it becomes.
+Two readings, and the owner's to pick:
+
+- **the portal is loopback-only where the deployment is plaintext** -- the
+  server refuses a portal request from a non-loopback peer unless it arrived
+  over HTTPS -- which keeps the cookie on the host, like the token;
+- **or rule 3 names the cookie**, as a secret it accepts beside the storage
+  URLs, with its lifetime.
+
+This profile changes nothing until it is decided.
+
+**Where it goes:** `contract.md` §5 rule 3, and the portal-session bullet of
+`sc-server-profile.md`.
+
 ---
 
 ## Not ported, deliberately

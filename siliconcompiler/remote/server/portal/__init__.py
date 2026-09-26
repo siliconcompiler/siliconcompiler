@@ -889,6 +889,11 @@ def _member(archive, wanted: str):
     tar can hold `../` in a member name whatever this server does -- so nothing
     here builds a path out of what the caller sent. It is compared, and a name
     the archive does not contain simply is not found.
+
+    🔴 **A regular member only, and never a link followed** (surface D159).
+    `extractfile` resolves a symbolic or hard link to the member it names, so
+    serving one would make a link a second name for any file in the archive;
+    `isfile()` is false for both, and that is the whole check.
     """
     with tarfile.open(archive, "r:*") as tar:
         for entry in tar.getmembers():

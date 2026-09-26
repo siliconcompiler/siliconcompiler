@@ -187,8 +187,19 @@ class Client:
         ``client_credentials`` against a fixed local client: no browser, no
         issuer, no prompt. The key is generated on first use and bound by the
         server on first contact.
+
+        🔴 **No fingerprint, no access.** The subject is derived from this
+        machine's id and the uid; with no id there is nothing to derive it
+        from, and every such machine would be the same principal -- so this
+        refuses before asking, rather than falling back to a shared subject.
         '''
         subject, machine_hash, source = local_subject()
+        if source == "none":
+            raise RemoteError(
+                "this machine has no id to sign in with (no /etc/machine-id on "
+                "Linux, no IOPlatformUUID on macOS, no MachineGuid on Windows), and "
+                "the server identifies you by this machine and your user. Create one "
+                "-- `systemd-machine-id-setup` on Linux -- and try again")
 
         form = {
             "grant_type": "client_credentials",
@@ -305,23 +316,27 @@ class Client:
         ``needs`` is the feature strings the job relies on; a server lacking
         one refuses here rather than after the upload.
 
-        ``run_hash`` is the client's opaque hash of the work, for job reuse. The
-        server looks it up owner-scoped and hands back the caller's own earlier
-        result instead of running it again. 🔴 **Nothing in this client computes
-        one yet** -- what SiliconCompiler should hash is its own decision, and a
-        hash that is wrong in the direction of *the same* is a wrong answer.
+        ``run_hash`` is the client's opaque hash of the work, for job reuse --
+        top level, beside ``design``: the descriptor is what submit re-derives,
+        and nothing recomputes this. A server advertising ``jobs.reuse`` looks
+        it up owner-scoped and hands back the caller's own earlier result, with
+        a ``200``. 🔴 **Nothing in this client computes one yet** -- what
+        SiliconCompiler should hash is its own decision, and a hash that is
+        wrong in the direction of *the same* is a wrong answer.
         '''
         self.ensure_session()
 
         descriptor: Dict[str, Any] = {}
         for name, value in (("flow", flow), ("needs", needs), ("requires", requires),
-                            ("sources", sources), ("run_hash", run_hash)):
+                            ("sources", sources)):
             if value:
                 descriptor[name] = value
 
         body: Dict[str, Any] = {"design": design, "jobname": jobname}
         if descriptor:
             body["descriptor"] = descriptor
+        if run_hash:
+            body["run_hash"] = run_hash
 
         headers = {}
         if idempotency_key:

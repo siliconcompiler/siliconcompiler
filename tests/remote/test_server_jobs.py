@@ -85,7 +85,7 @@ def wants(sc=None, tools=None):
 
 
 # What goes under `descriptor`; anything else is a top-level member.
-DESCRIPTOR = ("flow", "needs", "requires", "sources", "run_hash")
+DESCRIPTOR = ("flow", "needs", "requires", "sources")
 
 
 def create(client, key, token, **body):
@@ -222,16 +222,42 @@ def test_an_unknown_member_is_refused_never_ignored(server_client, key, token, m
     assert slug(response) == "invalid-request"
 
 
-def test_run_hash_is_a_descriptor_member_and_not_a_top_level_one(
+def test_run_hash_is_a_top_level_member_and_not_a_descriptor_one(
         server_client, key, token):
-    '''Job reuse's hash goes where job-reuse.md puts it, in the descriptor.'''
+    '''Beside `design` and `jobname` (surface D160, job-reuse D15): the
+    descriptor holds what submit re-derives, and nothing recomputes this.'''
     top = call(server_client, key, "POST", "/v1/jobs", token,
                json={"design": "gcd", "jobname": "job0", "run_hash": "abc"})
     inside = call(server_client, key, "POST", "/v1/jobs", token,
                   json={"design": "gcd", "jobname": "job1",
                         "descriptor": {"run_hash": "abc"}})
 
-    assert top.status_code == 400 and inside.status_code == 201
+    assert top.status_code == 201 and inside.status_code == 400
+
+
+@pytest.mark.parametrize("value", ["", "x" * 129, "ok\u2713", "tab\there", 7])
+def test_run_hash_is_1_to_128_printable_ascii(server_client, key, token, value):
+    response = create(server_client, key, token, run_hash=value)
+
+    assert response.status_code == 400
+    assert slug(response) == "invalid-request"
+
+
+def test_without_jobs_reuse_a_hash_is_validated_and_ignored(
+        server, server_client, key, token, me):
+    '''This deployment does not advertise `jobs.reuse`, so create is always a
+    201 -- even for the hash of a job it has finished.'''
+    assert "jobs.reuse" not in server.config["SC_CONFIG"]["features"]
+    existing = reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"],
+                         me, "hash-1", "completed")
+
+    response = create(server_client, key, token, run_hash="hash-1")
+
+    assert response.status_code == 201
+    assert response.get_json()["id"] != existing
+    stored = server.config["SC_STORE"].one(
+        "SELECT run_hash, job_identity FROM jobs WHERE id = ?", (response.get_json()["id"],))
+    assert (stored["run_hash"], stored["job_identity"]) == ("hash-1", None)
 
 
 def test_a_requirement_is_always_a_list(server_client, key, token):
@@ -350,6 +376,20 @@ def test_one_users_key_does_not_collide_with_anothers(server_client, key, token)
 # Job reuse
 ###########################
 
+@pytest.fixture
+def reuses(server):
+    '''A deployment advertising `jobs.reuse`, which this one does not by
+    default: reuse's server half, proven here rather than left as dead code.'''
+    config = server.config["SC_CONFIG"]
+    config._values["features"] = list(config["features"]) + ["jobs.reuse"]
+
+
+@pytest.fixture
+def container_reuses(container_server):
+    config = container_server.config["SC_CONFIG"]
+    config._values["features"] = list(config["features"]) + ["jobs.reuse"]
+
+
 def reuse_job(jobs, store, user_id, run_hash, state, declared=None, **columns):
     '''A finished job with a hash, written straight into the store.
 
@@ -391,7 +431,7 @@ def me(server, server_client, key, token):
     ("running", False),       # nothing to return yet
 ])
 def test_which_states_job_reuse_returns(server, server_client, key, token, me,
-                                        state, returned):
+                                        state, returned, reuses):
     store = server.config["SC_STORE"]
     jobs = server.config["SC_JOBS"]
     existing = reuse_job(jobs, store, me, "hash-1", state)
@@ -408,7 +448,7 @@ def test_which_states_job_reuse_returns(server, server_client, key, token, me,
         assert response.get_json()["id"] != existing
 
 
-def test_an_archived_job_is_never_returned(server, server_client, key, token, me):
+def test_an_archived_job_is_never_returned(server, server_client, key, token, me, reuses):
     '''The one thing ever added to archived_at's "and NOTHING else". It is how a
     person says stop handing me that result, with no endpoint for it.'''
     store = server.config["SC_STORE"]
@@ -421,7 +461,7 @@ def test_an_archived_job_is_never_returned(server, server_client, key, token, me
     assert response.get_json()["id"] != existing
 
 
-def test_the_lookup_is_owner_scoped(server, server_client, key, token):
+def test_the_lookup_is_owner_scoped(server, server_client, key, token, reuses):
     '''🔴 The whole safety argument. A global cache would hand anyone who can
     present a derivation whatever anyone else had run.'''
     from siliconcompiler.remote import dpop
@@ -1434,7 +1474,7 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
 
 
 def test_the_job_identity_folds_in_what_the_server_chose(
-        container_server, container_client, key, container_token):
+        container_server, container_client, key, container_token, container_reuses):
     """🔴 The client's hash alone is not the job's identity. It hashes the
     work; this server chooses what runs it -- so re-registering an image
     invalidates reuse exactly when it should, because a new digest is
@@ -1464,7 +1504,7 @@ def test_the_job_identity_folds_in_what_the_server_chose(
 
 
 def test_a_candidate_whose_images_were_superseded_is_not_returned(
-        container_server, container_client, key, container_token):
+        container_server, container_client, key, container_token, container_reuses):
     """🔴 What the identity cannot catch. It folds in the digests the DECLARED
     versions resolve to, because that is all there is at create -- the per-node
     tool images need the flow, which needs the manifest, which needs the upload
@@ -1510,7 +1550,7 @@ def test_a_candidate_whose_images_were_superseded_is_not_returned(
 
 
 def test_a_job_that_ran_in_no_image_stays_reusable(server, server_client, key,
-                                                   token, me):
+                                                   token, me, reuses):
     """A deployment that runs jobs on the host has nothing to check."""
     existing = reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"],
                          me, "h-1", "completed")
@@ -1522,7 +1562,7 @@ def test_a_job_that_ran_in_no_image_stays_reusable(server, server_client, key,
 
 
 def test_the_stored_identity_is_not_the_clients_own_hash(
-        container_server, container_client, key, container_token):
+        container_server, container_client, key, container_token, container_reuses):
     """The client keeps computing its own hash and tracks nothing extra, and
     the server records both halves: what was sent, and what it is keyed on."""
     create(container_client, key, container_token, run_hash="h-1")

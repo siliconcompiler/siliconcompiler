@@ -178,12 +178,42 @@ def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
     pins = descriptor["requires"]["python"]["siliconcompiler"]
     assert isinstance(pins, list) and pins[0].startswith("==")
     assert descriptor["flow"]["nodes"] == 2
-    # Nothing computes a run hash yet, so nothing claims one.
-    assert "run_hash" not in descriptor
+    # Nothing computes a run hash yet, so nothing claims one -- at the top,
+    # where it would go, or in the descriptor.
+    assert "run_hash" not in body and "run_hash" not in descriptor
 
     submitted = [call for call in fake_v1.calls
                  if call.request.path_url.endswith("/submit")][0]
     assert set(json.loads(submitted.request.body)) == {"digest"}
+
+
+@pytest.mark.parametrize("advertised", [True, False])
+def test_a_hash_goes_only_to_a_server_that_reuses_jobs(fake_v1, run, capabilities,
+                                                       monkeypatch, advertised):
+    '''Top level, and only where `GET /v1` advertises `jobs.reuse`: anywhere
+    else the member is validated and ignored. A hit is the job already there,
+    so nothing is granted or uploaded.'''
+    import copy
+
+    published = copy.deepcopy(capabilities)
+    if advertised:
+        published["features"] = list(published.get("features") or []) + ["jobs.reuse"]
+    fake_v1.replace(responses.GET, "", published)
+    monkeypatch.setattr(type(run), "_run_hash", lambda self: "the-hash")
+    fake_v1.route(responses.POST, "jobs", job_body("completed"),
+                  status=200 if advertised else 201)
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {"content-length": "1"},
+                   "expires_at": "2026-09-22T10:15:00.000Z"})
+
+    run._start()
+
+    created = [call for call in fake_v1.calls if call.request.path_url == "/v1/jobs"][0]
+    body = json.loads(created.request.body)
+    assert body.get("run_hash") == ("the-hash" if advertised else None)
+    assert "run_hash" not in body.get("descriptor", {})
+    assert not [call for call in fake_v1.calls if "upload-grant" in call.request.path_url]
 
 
 def test_every_distribution_the_job_imports_is_pinned(gcd_design):

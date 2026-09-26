@@ -107,14 +107,44 @@ def archived(root, top, base, **kwargs):
     return {member.name: member for member in tar.getmembers()}, tar
 
 
-def test_a_tree_stores_a_link_as_a_link(tree, mode):
-    root, secret = tree
-    (root / "node" / "stolen").symlink_to(secret)
+def test_a_tree_stores_a_link_inside_it_as_a_link(tree, mode):
+    root, _ = tree
+    (root / "node" / "outputs" / "alias.vg").symlink_to("gcd.vg")
+    (root / "node" / "outputs" / "up.vg").symlink_to("../outputs/gcd.vg")
 
     members, _ = archived(root, root / "node", root / "node")
 
-    assert members["stolen"].issym() and members["stolen"].linkname == str(secret)
+    assert members["outputs/alias.vg"].issym()
+    assert members["outputs/alias.vg"].linkname == "gcd.vg"
+    assert members["outputs/up.vg"].issym()
     assert members["outputs/gcd.vg"].isfile()
+
+
+@pytest.mark.parametrize("target", ["secret", "../../elsewhere", "inside-but-absolute"])
+def test_a_link_out_of_the_tree_is_left_out(tree, mode, target):
+    '''🔴 Its target names this server's paths -- where a private PDK is
+    mounted, another user's tree -- and lands outside a naive extractor's
+    directory. Absolute, even pointing inside: the path itself is the leak.'''
+    root, secret = tree
+    linked = {"secret": str(secret), "../../elsewhere": "../../elsewhere",
+              "inside-but-absolute": str(root / "node" / "outputs" / "gcd.vg")}[target]
+    (root / "node" / "outputs" / "stolen").symlink_to(linked)
+
+    members, _ = archived(root, root / "node", root / "node")
+
+    assert "outputs/stolen" not in members
+    assert members["outputs/gcd.vg"].isfile()
+
+
+def test_a_link_climbing_out_of_the_archived_tree_is_left_out_though_in_the_root(tree, mode):
+    '''Inside the job, outside what is being archived: the archive is what
+    travels, so it is the archive's own tree that bounds a link.'''
+    root, _ = tree
+    (root / "node" / "outputs" / "sibling").symlink_to("../../other/file")
+
+    members, _ = archived(root, root / "node" / "outputs", root / "node")
+
+    assert "outputs/sibling" not in members
 
 
 def test_a_tree_follows_a_link_inside_only_when_asked(tree, mode):
@@ -128,7 +158,7 @@ def test_a_tree_follows_a_link_inside_only_when_asked(tree, mode):
 
     assert members["inputs/gcd.vg"].isfile()
     assert tar.extractfile(members["inputs/gcd.vg"]).read() == b"module gcd; endmodule\n"
-    assert members["inputs/stolen"].issym()
+    assert "inputs/stolen" not in members
 
 
 def test_a_tree_leaves_out_what_it_is_told_to_wherever_it_is(tree, mode):

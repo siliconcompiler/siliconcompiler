@@ -859,11 +859,11 @@ def test_a_link_inside_the_job_is_followed_to_the_bytes(server, finished):
         assert tar.extractfile(member).read() == b"module gcd; endmodule\n"
 
 
-def test_a_link_out_of_the_job_is_stored_as_a_link_and_never_read(
+def test_a_link_out_of_the_job_is_never_read_nor_stored(
         server, finished, tmp_path):
     '''🔴 The attack (surface D133): a node's own code leaves a link to a
     host file in its inputs. Following it would pack the host's bytes as the
-    job's.'''
+    job's; storing it would hand out the host's path (D159).'''
     import tarfile
 
     secret = tmp_path / "host-secret"
@@ -872,9 +872,8 @@ def test_a_link_out_of_the_job_is_stored_as_a_link_and_never_read(
     row, = [row for row in rows if row["kind"] == "input"]
 
     with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
-        member = tar.getmember("inputs/stolen")
-        assert member.issym() and member.linkname == str(secret)
-        assert not any(m.isfile() and m.name.endswith("stolen") for m in tar.getmembers())
+        assert not any(m.name.endswith("stolen") for m in tar.getmembers())
+        assert not any(str(secret) in (m.linkname or "") for m in tar.getmembers())
 
 
 def test_a_log_that_is_a_link_out_is_not_indexed(server, finished, tmp_path):
@@ -899,8 +898,9 @@ def test_a_log_that_is_a_link_out_is_not_indexed(server, finished, tmp_path):
     assert {row["kind"] for row in rows} == {"node"}
     import tarfile
     with tarfile.open(server.config["SC_STORAGE"].artifact_path(rows[0]["storage_key"])) as tar:
-        # In the node archive as what it is -- a link -- and never as the bytes.
-        assert tar.getmember("sc_linklog_0.log").issym()
+        # Not in the node archive at all: never as the bytes, and not as a link
+        # naming the host's path either.
+        assert "sc_linklog_0.log" not in tar.getnames()
         assert all(not member.isfile() for member in tar.getmembers())
 
 

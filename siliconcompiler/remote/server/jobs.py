@@ -219,7 +219,13 @@ class JobService:
         if not isinstance(descriptor, dict):
             raise ProblemError("invalid-request", detail="descriptor must be an object")
         _only(descriptor, DESCRIPTOR_MEMBERS, "descriptor")
-        run_hash = _opaque(descriptor.get("run_hash"), "descriptor.run_hash")
+        # 🔴 Top level, beside `design` and `jobname` (surface D160, job-reuse
+        # D15): `descriptor` holds what submit re-derives, and nothing
+        # recomputes this. Validated always; USED only where this deployment
+        # advertises `jobs.reuse` -- elsewhere it is recorded and ignored, and
+        # create is always a 201.
+        run_hash = _run_hash(body.get("run_hash"))
+        reuses = "jobs.reuse" in (self._config["features"] or ())
 
         # 🔴 Credentials out of every source URL before anything is compared,
         # stored or logged -- the descriptor is kept whole in `jobs.descriptor`.
@@ -237,8 +243,9 @@ class JobService:
                 # The same key with a different body is the caller having reused
                 # a key they should have rotated. Returning the first job would
                 # answer a question they did not ask.
-                if (existing["design"], existing["jobname"],
-                        json.loads(existing["descriptor"])) != (design, jobname, descriptor):
+                if (existing["design"], existing["jobname"], existing["run_hash"],
+                        json.loads(existing["descriptor"])) != (design, jobname, run_hash,
+                                                                descriptor):
                     raise ProblemError(
                         "idempotency-key-reuse",
                         detail="this Idempotency-Key was used for a different request")
@@ -247,7 +254,7 @@ class JobService:
         # 🔴 Before the reuse lookup, because the answer is part of what the
         # lookup is keyed on -- and before the upload, which is the whole point
         # of resolving here at all.
-        identity = self._identity(run_hash, requires)
+        identity = self._identity(run_hash, requires) if reuses else None
 
         if identity:
             hit = self._reuse(session.user_id, identity)
@@ -1768,7 +1775,7 @@ class JobService:
                 "not-found", detail=f"no node {step}/{index} in this job")
 
         rows = self._store.all(
-            'SELECT id, storage_key FROM artifacts WHERE job_id = ? '
+            'SELECT id, location_id, storage_key FROM artifacts WHERE job_id = ? '
             'AND step = ? AND "index" = ? AND deleted_at IS NULL '
             "AND legal_hold_at IS NULL", (job_id, step, index))
 
@@ -1792,8 +1799,12 @@ class JobService:
         return len(rows)
 
     def _unlink(self, rows) -> None:
-        '''Drop the bytes of some artifact rows. The rows are the caller's.'''
+        '''Drop the bytes of some artifact rows. The rows are the caller's; an
+        object another live row still names is left where it is.'''
+        going = [row["id"] for row in rows]
         for row in rows:
+            if artifacts.referenced_elsewhere(self._store, row, going):
+                continue
             try:
                 path = self._storage.artifact_path(row["storage_key"])
                 if path.is_file():
@@ -1826,7 +1837,7 @@ class JobService:
                 "not-found", detail="this job's data was already deleted")
 
         rows = self._store.all(
-            "SELECT id, storage_key FROM artifacts "
+            "SELECT id, location_id, storage_key FROM artifacts "
             "WHERE job_id = ? AND deleted_at IS NULL AND legal_hold_at IS NULL",
             (job_id,))
 
@@ -2957,10 +2968,10 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     return found
 
 
-# 🔴 Strict on requests (contract.md): what each body may carry.
-CREATE_MEMBERS = ("design", "jobname", "project", "descriptor")
-# `run_hash` is job reuse's, a member of the descriptor (job-reuse.md D1).
-DESCRIPTOR_MEMBERS = ("flow", "needs", "requires", "sources", "run_hash")
+# 🔴 Strict on requests (contract.md): what each body may carry. `run_hash` is
+# job reuse's, and top level: the descriptor is what submit re-derives.
+CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash")
+DESCRIPTOR_MEMBERS = ("flow", "needs", "requires", "sources")
 SOURCE_MEMBERS = ("kind", "name", "dataroot", "source", "ref", "private")
 
 
@@ -2986,6 +2997,20 @@ def _name(value, field: str) -> str:
             "invalid-request",
             detail=f"{field} must be at most {MAX_NAME} characters of "
                    "letters, digits, '.', '_' and '-'")
+    return value
+
+
+_RUN_HASH = re.compile(r"^[\x20-\x7e]{1,128}$")
+
+
+def _run_hash(value) -> Optional[str]:
+    '''An opaque string of 1 to 128 printable ASCII characters, or absent.'''
+    if value is None:
+        return None
+    if not isinstance(value, str) or not _RUN_HASH.match(value):
+        raise ProblemError("invalid-request",
+                           detail="run_hash is an opaque string of 1 to 128 printable "
+                                  "ASCII characters")
     return value
 
 

@@ -26,6 +26,20 @@ def gcd_nop_project(gcd_design):
     return project
 
 
+@pytest.fixture(autouse=True)
+def machine_fingerprint(monkeypatch):
+    '''A machine id where the test host has none -- a container often has no
+    /etc/machine-id -- since the client refuses to sign in without one. A
+    host that has one keeps its own.'''
+    from siliconcompiler.remote.client import identity
+
+    real = identity.machine_fingerprint
+    if real()[1] == "none":
+        monkeypatch.setattr(identity, "machine_fingerprint",
+                            lambda: ("a-test-host", "linux_machine_id"))
+    return real
+
+
 ###########################
 # The conformance rig
 ###########################

@@ -163,6 +163,7 @@ class RemoteRun:
 
             job = self.client.create_job(
                 design=design, jobname=jobname,
+                run_hash=self._reuse_hash(),
                 flow=self._flow_descriptor(),
                 # A node's environment file is the declaration; this says the
                 # same at create, for the refusal before the upload.
@@ -556,6 +557,32 @@ class RemoteRun:
                     tar.add(path, filter=_forwardable(self.logger, pin),
                             arcname=f"{environment.packages_path(step, index)}/"
                                     f"{os.path.basename(path)}")
+
+    def _run_hash(self) -> Optional[str]:
+        '''This run's hash for job reuse, or None -- which it always is today.
+
+        🔴 **Nothing computes one yet.** What SiliconCompiler should hash is
+        its own decision (run-hash.md), and a hash wrong in the direction of
+        *the same* hands back a result produced by different work.
+        '''
+        return None
+
+    def _reuse_hash(self) -> Optional[str]:
+        '''The hash to send, where there is one and the server reuses jobs.
+
+        Only to a deployment advertising `jobs.reuse`: elsewhere the member is
+        validated and ignored, and sending it would claim a reuse nobody does.
+        A hit comes back as the job already there, which `_start` returns
+        without a grant or an upload.
+        '''
+        run_hash = self._run_hash()
+        if not run_hash:
+            return None
+        try:
+            features = self.client.capabilities().get("features") or []
+        except RemoteError:
+            return None
+        return run_hash if "jobs.reuse" in features else None
 
     def _flow_descriptor(self) -> Optional[Dict[str, Any]]:
         '''What the server can refuse us on before the upload moves.

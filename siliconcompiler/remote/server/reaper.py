@@ -123,8 +123,10 @@ def _artifacts(store, storage, config, datadir) -> int:
     A legal hold is skipped. It is not only policy -- the table would refuse
     the write, since an artifact cannot be both held and deleted.
     '''
+    from siliconcompiler.remote.server.artifacts import referenced_elsewhere
+
     rows = store.all(
-        "SELECT id, storage_key, size_bytes FROM artifacts "
+        "SELECT id, location_id, storage_key, size_bytes FROM artifacts "
         "WHERE deleted_at IS NULL AND legal_hold_at IS NULL "
         "  AND retention_until IS NOT NULL AND retention_until <= ?", (now(),))
 
@@ -133,7 +135,10 @@ def _artifacts(store, storage, config, datadir) -> int:
     for row in rows:
         try:
             path = storage.artifact_path(row["storage_key"])
-            if path.is_file():
+            # Another live row's bytes too: its row goes, the object stays.
+            if referenced_elsewhere(store, row):
+                pass
+            elif path.is_file():
                 freed += path.stat().st_size
                 path.unlink()
         except OSError as e:

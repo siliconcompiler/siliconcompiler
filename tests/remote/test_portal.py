@@ -571,6 +571,35 @@ def test_a_name_the_archive_does_not_hold_is_not_found(signed_in, finished,
     assert response.status_code == 404
 
 
+def test_a_link_in_an_archive_is_never_followed(signed_in, finished, server, me):
+    '''🔴 Only a regular member is served. A link the archive kept -- one
+    resolving inside it -- names another member; following it would make the
+    link a second name for any file, and the portal serves none by alias.'''
+    store = server.config["SC_STORE"]
+    root = server.config["SC_JOBS"].job_root(me, finished["id"]) / "gcd" / "job0"
+    (root / "stepone" / "0" / "alias.log").symlink_to("sc_stepone_0.log")
+
+    store.execute("DELETE FROM artifacts WHERE job_id = ? AND kind = 'node'",
+                  (finished["id"],))
+    from siliconcompiler.remote.server import artifacts as indexer
+    job = store.one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
+    indexer.collect_node(store, server.config["SC_STORAGE"],
+                         server.config["SC_CONFIG"], job,
+                         server.config["SC_JOBS"].job_root(me, finished["id"]),
+                         "stepone", "0")
+    row = store.one(
+        'SELECT id, storage_key FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
+        (finished["id"], "node", "stepone"))
+    import tarfile
+    with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
+        assert tar.getmember("alias.log").issym()          # kept: it stays inside
+
+    inside = f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
+    assert "alias.log" not in signed_in.get(inside).get_data(as_text=True)
+    assert signed_in.get(f"{inside}?file=alias.log").status_code == 404
+    assert signed_in.get(f"{inside}?file=alias.log&raw=1").status_code == 404
+
+
 def test_the_raw_route_never_serves_html(signed_in, finished, server, me):
     '''🔴 An artifact is bytes a JOB produced. Served as text/html from this
     origin, a design that writes one would be running its own script on the
