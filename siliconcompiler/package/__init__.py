@@ -24,7 +24,8 @@ import threading
 
 import os.path
 
-from typing import Optional, List, Dict, Tuple, Type, Union, TYPE_CHECKING
+from typing import Callable, NamedTuple, Optional, List, Dict, Tuple, Type, Union, \
+    TYPE_CHECKING
 
 from fasteners import InterProcessLock
 from pathlib import Path, PureWindowsPath
@@ -69,6 +70,59 @@ _TAR_FILTER_ERRORS: Tuple[Type[BaseException], ...] = \
 #: :func:`urllib.parse.urlparse` only recognises a scheme that starts with a
 #: letter, so no source URI can ever resolve to this key.
 _RESOLVERS_POPULATED: str = "__populated__"
+
+
+class FetchPolicy(NamedTuple):
+    """
+    How a remote resolver may reach the network, for a caller fetching on
+    somebody else's behalf -- a server resolving a job's sources.
+
+    Attributes:
+        check_url: called with every URL a resolver is about to contact, and
+            raises :class:`FetchRefused` to refuse it.
+        home: an empty directory, used as ``HOME`` for the tools a resolver
+            runs, so no user configuration or credential file is read.
+        proxy: an HTTP proxy every subprocess connects through, which applies
+            the same rules to what the resolver cannot see -- a git redirect,
+            an LFS object's storage URL.
+        timeout: seconds one request or command may take.
+        max_bytes: the most one download may weigh.
+    """
+    check_url: Callable[[str], None]
+    home: str
+    proxy: Optional[str] = None
+    timeout: Optional[float] = None
+    max_bytes: Optional[int] = None
+
+
+class FetchRefused(PermanentResolutionError):
+    """A URL the active :class:`FetchPolicy` does not let a resolver contact."""
+
+
+_FETCH_POLICY = threading.local()
+
+
+@contextlib.contextmanager
+def fetch_policy(policy: FetchPolicy):
+    """
+    Resolve remote sources on this thread under ``policy``.
+
+    Inside it a remote resolver sends no credential of any kind -- no token
+    from the environment, no credential in the URL, no credential helper, no
+    SSH agent or key -- reaches only ``https``, and passes every URL it
+    contacts to ``policy.check_url`` first. Per thread, and nestable.
+    """
+    previous = getattr(_FETCH_POLICY, "policy", None)
+    _FETCH_POLICY.policy = policy
+    try:
+        yield policy
+    finally:
+        _FETCH_POLICY.policy = previous
+
+
+def current_fetch_policy() -> Optional[FetchPolicy]:
+    """The :class:`FetchPolicy` active on this thread, or None."""
+    return getattr(_FETCH_POLICY, "policy", None)
 
 
 class Resolver:
@@ -803,8 +857,12 @@ class RemoteResolver(Resolver):
             str: The found token.
 
         Raises:
-            ValueError: If no token can be found in the environment.
+            ValueError: If no token can be found in the environment, or a
+                :class:`FetchPolicy` is active: under one nothing is sent.
         """
+        if current_fetch_policy() is not None:
+            raise ValueError("no credential is sent under a fetch policy")
+
         token_name = self.name.upper()
         # Sanitize package name for environment variable compatibility
         for char in ('#', '$', '&', '-', '=', '!', '/', '.'):

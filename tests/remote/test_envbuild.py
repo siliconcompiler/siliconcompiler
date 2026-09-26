@@ -584,7 +584,7 @@ def test_an_allowlisted_name_that_is_not_public_is_never_connected(proxy):
 
 def test_an_admitted_tunnel_carries_both_ways(proxy, monkeypatch):
     here, there = socket.socketpair()
-    monkeypatch.setattr(envbuild, "_open_public", lambda host, port: there)
+    monkeypatch.setattr(envbuild, "_open_public", lambda host, port, **kwargs: there)
 
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     client.settimeout(5)
@@ -936,3 +936,43 @@ def test_a_job_cancelled_while_it_builds_stays_cancelled(
     assert until(lambda: not builder_server.config["SC_JOBS"]._preparing)
 
     assert row(builder_server, job["id"])["state"] == "cancelled"
+
+
+@pytest.mark.parametrize("private_exact,target,public_only", [
+    (True, "mirror.corp.example.com:443", False),     # an exact host: the operator's choice
+    (True, "a.pkgs.example.org:443", True),           # a wildcard never is
+    (False, "mirror.corp.example.com:443", True),     # nor any entry of a source list
+])
+def test_only_an_exact_index_host_may_be_a_private_address(
+        monkeypatch, private_exact, target, public_only):
+    '''Surface D172: an index entry naming one exact host is a mirror on the
+    operator's own network; a wildcard, and every source-allowlist entry, keep
+    the address rule.'''
+    sockets = tempfile.mkdtemp(prefix="sc-t-")
+    asked = []
+
+    def opened(host, port, public_only=True):
+        asked.append(public_only)
+        return None
+
+    monkeypatch.setattr(envbuild, "_open_public", opened)
+    running = envbuild.Proxy(os.path.join(sockets, "proxy.sock"),
+                             ["https://mirror.corp.example.com/simple/",
+                              "https://*.pkgs.example.org/"],
+                             private_exact_hosts=private_exact)
+    running.start()
+    running.path = os.path.join(sockets, "proxy.sock")
+    try:
+        ask(running, f"CONNECT {target} HTTP/1.1\r\n\r\n".encode())
+    finally:
+        running.close()
+
+    assert asked == [public_only]
+
+
+def test_a_source_fetch_proxy_listens_on_loopback():
+    running = envbuild.Proxy(("127.0.0.1", 0), ["https://github.com/siliconcompiler/"])
+    try:
+        assert running.url.startswith("http://127.0.0.1:")
+    finally:
+        running.close()

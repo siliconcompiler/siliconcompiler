@@ -7,13 +7,20 @@ by (source, ref), never by a path the job names. This module holds those
 copies under ``<datadir>/sources/`` and fetches the ones it does not hold.
 
 🔴 **The run never fetches.** The server's normalised manifest points a supplied
-dataroot at the held copy, so SiliconCompiler's own resolver -- which follows
-any redirect to any host -- is never what reaches the network on a job's
-behalf. Everything that does goes through here:
+dataroot at the held copy, so nothing in the run reaches the network on a job's
+behalf. What does is here, and it is SiliconCompiler's own resolver -- so the
+server's copy is the user's, submodules and LFS objects included (surface
+D164) -- under a fetch policy:
 
-- the URL is on the allowlist, and so is **every redirect hop**;
-- the host resolves only to public addresses, at every hop;
-- nothing is sent with it: no credentials, no prompt, no credential helper.
+- no credentials at all: no token, no credential helper, no SSH agent or key,
+  an empty ``HOME``, https only;
+- every URL it contacts on the allowlist and to a public address: each
+  redirect hop, each submodule's URL, the LFS endpoint -- and everything git
+  and git-lfs connect to through a proxy that applies the same rules, for what
+  cannot be seen from here, such as an LFS object's storage host.
+
+A submodule or LFS store off the allowlist fails the fetch for good, which
+sends the source to the ask loop like any other the server cannot fetch.
 
 ⚠️ **Failures are two kinds, and the difference decides what the job does.** A
 transient one -- ``429``, a ``5xx``, a timeout -- is retried until the job's
@@ -27,12 +34,11 @@ import hashlib
 import logging
 import os
 import shutil
-import subprocess
 import tempfile
 
 from pathlib import Path
 from typing import Optional, Sequence
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urlsplit
 
 from siliconcompiler.remote.server import allowlist
 
@@ -40,9 +46,6 @@ __all__ = ["SourceStore", "Transient", "Permanent", "download_url"]
 
 
 logger = logging.getLogger("sc-server")
-
-# How many redirects one fetch may follow. GitHub's archive takes one.
-MAX_HOPS = 5
 
 # The most one source may weigh, downloaded. A PDK is gigabytes; this is a
 # ceiling on a mistake, not a budget.
@@ -98,8 +101,7 @@ class SourceStore:
         return allowlist.allows(self.rules, download_url(source, ref)
                                 if not scheme.startswith("git+") else source)
 
-    def fetch(self, source: str, ref: Optional[str], timeout: float,
-              session=None) -> str:
+    def fetch(self, source: str, ref: Optional[str], timeout: float) -> str:
         '''Fetch and hold one source; return its root. Raises `Transient` or
         `Permanent`.'''
         found = self.held(source, ref)
@@ -114,10 +116,7 @@ class SourceStore:
         try:
             data = staging / "data"
             data.mkdir()
-            if urlsplit(source).scheme.lower().startswith("git+"):
-                self._git(source, ref, data, timeout)
-            else:
-                self._archive(download_url(source, ref), data, timeout, session)
+            self._resolve(source, ref, data, timeout)
             (staging / ".complete").write_text(f"{source}\n{ref or ''}\n")
 
             # Atomic, and first one wins: two jobs fetching the same source at
@@ -125,107 +124,100 @@ class SourceStore:
             try:
                 os.rename(staging, where)
             except OSError:
-                shutil.rmtree(staging, ignore_errors=True)
+                _remove(staging)
             return str(where / "data")
         except BaseException:
-            shutil.rmtree(staging, ignore_errors=True)
+            _remove(staging)
             raise
 
     ######################################################################
 
-    def _archive(self, url: str, into: Path, timeout: float, session) -> None:
-        import requests
+    def _resolve(self, source: str, ref: Optional[str], into: Path, timeout: float) -> None:
+        '''SiliconCompiler's resolver for ``source``, run under the fetch
+        policy, its result moved into ``into``.'''
+        from siliconcompiler import Project
+        from siliconcompiler.package import FetchPolicy, RemoteResolver, Resolver, fetch_policy
+        from siliconcompiler.remote.server.envbuild import Proxy
 
-        from siliconcompiler.package.https import _extract_archive
+        work = into.parent
+        home = work / "home"
+        home.mkdir()
+        project = Project("sc-server-source")
+        project.option.set_cachedir(str(work / "cache"))
+        resolver = Resolver.find_resolver(source)("source", project, source, ref or "HEAD")
 
-        session = session or requests.Session()
-        # SiliconCompiler flattens GitHub's archives only, by the URL it asked.
-        github = "github" in url
-        for _ in range(MAX_HOPS + 1):
-            self._check(url)
-            try:
-                response = session.get(url, stream=True, timeout=timeout,
-                                       allow_redirects=False)
-            except requests.RequestException as e:
-                raise Transient(f"could not reach the source: {type(e).__name__}") from None
+        proxy = Proxy(("127.0.0.1", 0), [rule.text for rule in self.rules])
+        proxy.start()
+        try:
+            policy = FetchPolicy(check_url=self._check, home=str(home), proxy=proxy.url,
+                                 timeout=timeout, max_bytes=MAX_SOURCE_BYTES)
+            with fetch_policy(policy):
+                resolved = Path(resolver.resolve())
+        except BaseException as e:
+            raise _classified(e, proxy.refused) from None
+        finally:
+            proxy.close()
 
-            if response.status_code in (301, 302, 303, 307, 308):
-                target = response.headers.get("Location")
-                response.close()
-                if not target:
-                    raise Permanent("redirected without saying where")
-                url = urljoin(url, target)
-                continue
-
-            if response.status_code in _PERMANENT:
-                raise Permanent(f"the source answered {response.status_code}")
-            if response.status_code == 429 or response.status_code >= 500:
-                raise Transient(f"the source answered {response.status_code}")
-            if response.status_code != 200:
-                raise Permanent(f"the source answered {response.status_code}")
-
-            with tempfile.TemporaryFile(dir=self.root) as body:
-                size = 0
-                for chunk in response.iter_content(1024 * 1024):
-                    size += len(chunk)
-                    if size > MAX_SOURCE_BYTES:
-                        raise Permanent("the source is larger than this server fetches")
-                    body.write(chunk)
-                body.seek(0)
-                try:
-                    _extract_archive(body, str(into), url)
-                except Exception as e:                           # noqa: BLE001
-                    raise Permanent(f"the source is not an archive this server "
-                                    f"can unpack: {type(e).__name__}") from None
-            if github:
-                _flatten(into)
-            return
-
-        raise Permanent("too many redirects")
-
-    def _git(self, source: str, ref: Optional[str], into: Path, timeout: float) -> None:
-        url = source[4:]            # git+https://... -> https://...
-        self._check(url)
-        env = {"PATH": os.environ.get("PATH", ""), "HOME": str(self.root),
-               "GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "/bin/false",
-               "GIT_CONFIG_NOSYSTEM": "1"}
-        base = ["git", "-c", "http.followRedirects=false", "-c", "credential.helper=",
-                "-c", "protocol.allow=never", "-c", "protocol.https.allow=always"]
-        steps = [base + ["init", "-q", str(into)],
-                 base + ["-C", str(into), "fetch", "-q", "--depth", "1", url, ref or "HEAD"],
-                 base + ["-C", str(into), "checkout", "-q", "FETCH_HEAD"]]
-        for step in steps:
-            try:
-                done = subprocess.run(step, env=env, capture_output=True, text=True,
-                                      timeout=timeout, check=False)
-            except subprocess.TimeoutExpired:
-                raise Transient("the git source timed out") from None
-            if done.returncode:
-                said = (done.stderr or "").lower()
-                if any(word in said for word in ("not found", "authentication",
-                                                 "could not read username",
-                                                 "couldn't find remote ref", "403", "401")):
-                    raise Permanent("the git source refused or has no such ref")
-                raise Transient("the git source failed")
-        shutil.rmtree(into / ".git", ignore_errors=True)
+        # The resolver leaves its cache read-only; this copy is moved out of it.
+        _remove(resolved / ".git")
+        RemoteResolver._make_writable(resolved)
+        for child in list(resolved.iterdir()):
+            shutil.move(str(child), str(into / child.name))
 
     def _check(self, url: str) -> None:
-        '''Every hop: on the allowlist, and to a public address.'''
+        '''Every URL the resolver contacts: on the allowlist, and to a public
+        address.'''
+        from siliconcompiler.package import FetchRefused
+
         if not allowlist.allows(self.rules, url):
-            raise Permanent("a redirect left this server's allowlist")
+            raise FetchRefused(f"{url} is off this server's allowlist")
         parts = urlsplit(url)
         if not allowlist.public_host(parts.hostname or "", parts.port):
-            raise Permanent("the source's host is not a public address")
+            raise FetchRefused(f"{parts.hostname} is not a public address")
 
 
-def _flatten(into: Path) -> None:
-    '''GitHub's archives carry one top-level directory; SiliconCompiler's
-    resolver moves its contents up, and so does this, so a held copy is laid
-    out as the run expects. Only for GitHub, as the resolver does.'''
-    entries = list(into.iterdir())
-    if len(entries) != 1 or not entries[0].is_dir():
+def _classified(error: BaseException, refused) -> BaseException:
+    '''A resolver's failure, as what the job does about it: `Permanent` goes
+    back to the client, `Transient` is retried until the job's deadline.'''
+    import requests
+
+    from siliconcompiler.package import FetchRefused
+    from siliconcompiler.package.cache import PermanentResolutionError
+
+    if isinstance(error, (Permanent, Transient, KeyboardInterrupt, SystemExit)):
+        return error
+    if refused:
+        return Permanent(f"it reaches {', '.join(refused)}, which this server's "
+                         "allowlist does not name")
+    if isinstance(error, (FetchRefused, PermanentResolutionError)):
+        return Permanent(str(error))
+    status = getattr(error, "status", None)
+    if status is not None:
+        if status in _PERMANENT:
+            return Permanent(f"the source answered {status}")
+        if status == 429 or status >= 500:
+            return Transient(f"the source answered {status}")
+        return Permanent(f"the source answered {status}")
+    if isinstance(error, requests.RequestException):
+        return Transient(f"could not reach the source: {type(error).__name__}")
+    said = str(error).lower()
+    if any(word in said for word in ("not found", "authentication", "could not read username",
+                                     "couldn't find remote ref", "did not match any",
+                                     "403", "401", "not a plain https", "only https")):
+        return Permanent("the git source refused, or has no such ref")
+    if isinstance(error, TypeError):
+        return Permanent(f"the source is not an archive this server can unpack: {error}")
+    return Transient(f"the source failed: {type(error).__name__}")
+
+
+def _remove(path: Path) -> None:
+    '''A tree the resolver may have made read-only.'''
+    from siliconcompiler.package import RemoteResolver
+
+    if not path.exists():
         return
-    top = entries[0]
-    for child in list(top.iterdir()):
-        shutil.move(str(child), str(into / child.name))
-    top.rmdir()
+    try:
+        RemoteResolver._make_writable(path)
+    except OSError:
+        pass
+    shutil.rmtree(path, ignore_errors=True)

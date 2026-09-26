@@ -43,12 +43,12 @@ def fake_fetch(server, fail=None):
     '''Fetching writes the PDK's file into the held copy -- or raises.'''
     store = server.config["SC_JOBS"]._sources
 
-    def archive(url, into, timeout, session):
+    def resolve(source, ref, into, timeout):
         if fail:
             raise fail
         (into / "datasheet.pdf").write_text("from the release\n")
 
-    store._archive = archive
+    store._resolve = resolve
     return store
 
 
@@ -224,11 +224,11 @@ def test_a_staging_job_counts_against_concurrent_jobs(
     gate = threading.Event()
     store = server.config["SC_JOBS"]._sources
 
-    def slow(url, into, timeout, session):
+    def slow(source, ref, into, timeout):
         gate.wait(5)
         (into / "datasheet.pdf").write_text("x")
 
-    store._archive = slow
+    store._resolve = slow
     server.config["SC_CONFIG"].limits["concurrent_jobs"] = 1
     try:
         archive, digest, size = job_archive(remote_project)
@@ -251,7 +251,7 @@ def test_a_fetched_copy_missing_a_required_file_is_refused_from_staging(
     from test_required import carried, reading
 
     store = server.config["SC_JOBS"]._sources
-    store._archive = lambda url, into, timeout, session: (into / "other.pdf").write_text("x")
+    store._resolve = lambda source, ref, into, timeout: (into / "other.pdf").write_text("x")
     project = carried(reading(gcd_design, tmp_path, ("library", "lambda", *DATASHEET),
                               pdk=resource(PDK, "lambda", LAMBDA, create=False)))
     archive, digest, size = job_archive(project)
@@ -369,11 +369,11 @@ def test_cancelling_a_job_still_fetching_cancels_it_at_once(
     gate = threading.Event()
     store = server.config["SC_JOBS"]._sources
 
-    def slow(url, into, timeout, session):
+    def slow(source, ref, into, timeout):
         gate.wait(5)
         (into / "datasheet.pdf").write_text("x")
 
-    store._archive = slow
+    store._resolve = slow
     archive, digest, size = job_archive(remote_project)
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)

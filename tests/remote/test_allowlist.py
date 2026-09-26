@@ -150,8 +150,10 @@ def tarball(files, top="lambdapdk-0.2.22"):
 class Response:
     def __init__(self, status, body=b"", location=None):
         self.status_code = status
+        self.ok = status < 400
         self.headers = {"Location": location} if location else {}
         self._body = body
+        self.content = body
 
     def iter_content(self, size):
         yield self._body
@@ -161,16 +163,31 @@ class Response:
 
 
 class Session:
-    '''Answers by URL, and records every URL asked.'''
+    '''Answers by URL, and records every URL asked -- and what was sent.'''
 
     def __init__(self, answers):
         self.answers = answers
         self.asked = []
+        self.headers_sent = []
+        self.trust_env = True
 
     def get(self, url, **kwargs):
         assert kwargs.get("allow_redirects") is False, "every hop must be checked"
+        assert self.trust_env is False, "nothing of the environment is sent"
         self.asked.append(url)
+        self.headers_sent.append(kwargs.get("headers") or {})
         return self.answers[url]
+
+
+@pytest.fixture
+def through(monkeypatch):
+    '''The session SiliconCompiler's https resolver fetches with, faked.'''
+    from siliconcompiler.package import https
+
+    def use(session):
+        monkeypatch.setattr(https.requests, "Session", lambda: session)
+        return session
+    return use
 
 
 SOURCE = "https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/"
@@ -183,12 +200,19 @@ def public(monkeypatch):
     monkeypatch.setattr(allowlist, "public_host", lambda host, port=None: True)
 
 
-def test_a_source_is_fetched_through_its_redirect_and_held(tmp_path, public):
+def test_a_source_is_fetched_through_its_redirect_and_held(
+        tmp_path, public, through, monkeypatch):
+    '''By SiliconCompiler's own resolver, so the copy is the user's -- and with
+    nothing of this process's sent, however the environment is set up.'''
+    monkeypatch.setenv("GITHUB_TOKEN", "a-token-of-this-servers")
     store = SourceStore(tmp_path, DEFAULT)
-    session = Session({ARCHIVE: Response(302, location=CODELOAD),
-                       CODELOAD: Response(200, tarball({"sky130/lef/a.lef": b"LEF"}))})
+    session = through(Session({
+        ARCHIVE: Response(302, location=CODELOAD),
+        CODELOAD: Response(200, tarball({"sky130/lef/a.lef": b"LEF"}))}))
 
-    root = store.fetch(SOURCE, "v0.2.22", timeout=5, session=session)
+    root = store.fetch(SOURCE, "v0.2.22", timeout=5)
+
+    assert not any("Authorization" in sent for sent in session.headers_sent)
 
     assert session.asked == [ARCHIVE, CODELOAD]
     # Laid out as SiliconCompiler's resolver lays it out: GitHub's top-level
@@ -199,23 +223,23 @@ def test_a_source_is_fetched_through_its_redirect_and_held(tmp_path, public):
     assert store.held(SOURCE, "v0.2.22") == root
 
 
-def test_a_redirect_off_the_list_is_refused(tmp_path, public):
+def test_a_redirect_off_the_list_is_refused(tmp_path, public, through):
     store = SourceStore(tmp_path, DEFAULT)
-    session = Session({ARCHIVE: Response(302, location="https://evil.example/x.tar.gz")})
+    through(Session({ARCHIVE: Response(302, location="https://evil.example/x.tar.gz")}))
 
     with pytest.raises(Permanent, match="allowlist"):
-        store.fetch(SOURCE, "v0.2.22", timeout=5, session=session)
+        store.fetch(SOURCE, "v0.2.22", timeout=5)
     assert store.held(SOURCE, "v0.2.22") is None
 
 
 def test_a_host_resolving_to_a_private_address_is_never_connected_to(
-        tmp_path, monkeypatch):
+        tmp_path, monkeypatch, through):
     monkeypatch.setattr(allowlist, "public_host", lambda host, port=None: False)
     store = SourceStore(tmp_path, DEFAULT)
-    session = Session({})
+    session = through(Session({}))
 
     with pytest.raises(Permanent, match="public address"):
-        store.fetch(SOURCE, "v0.2.22", timeout=5, session=session)
+        store.fetch(SOURCE, "v0.2.22", timeout=5)
     assert session.asked == []
 
 
@@ -223,15 +247,15 @@ def test_a_host_resolving_to_a_private_address_is_never_connected_to(
     (404, Permanent), (401, Permanent), (403, Permanent),
     (429, Transient), (503, Transient),
 ])
-def test_a_failure_is_permanent_or_transient_by_what_it_means(tmp_path, public,
+def test_a_failure_is_permanent_or_transient_by_what_it_means(tmp_path, public, through,
                                                               status, kind):
     '''⚠️ GitHub answers 404 for a private repository a caller cannot see, so
     *not found* is the client's to send; a 429 or a 5xx is retried.'''
     store = SourceStore(tmp_path, DEFAULT)
-    session = Session({ARCHIVE: Response(status)})
+    through(Session({ARCHIVE: Response(status)}))
 
     with pytest.raises(kind):
-        store.fetch(SOURCE, "v0.2.22", timeout=5, session=session)
+        store.fetch(SOURCE, "v0.2.22", timeout=5)
 
 
 def test_only_what_the_server_can_fetch_without_a_key_is_allowlisted(tmp_path):

@@ -114,7 +114,8 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
         with open(bundle / "config.json", "w") as f:
             json.dump(config, f, indent=1)
 
-        proxy = Proxy(str(sockets / "proxy.sock"), spec.get("index_allowlist") or [])
+        proxy = Proxy(str(sockets / "proxy.sock"), spec.get("index_allowlist") or [],
+                      private_exact_hosts=True)
         proxy.start()
         try:
             output = (run or _run_container)(bundle, command, _image_path(base_spec),
@@ -259,26 +260,41 @@ def _write_result(workspace: Path, result: Dict[str, Any]) -> None:
 ######################################################################
 
 class Proxy:
-    '''An HTTP proxy on a unix socket that admits the index allowlist.
+    '''An HTTP proxy that admits an allowlist, and nothing else.
 
+    On a unix socket (``address`` a path) for the build container, or on
+    loopback (``address`` a ``(host, port)``) for the git a source fetch runs.
     ``CONNECT host:port`` for HTTPS, admitted when an https entry names that
     host and port; a plain ``GET``/``HEAD`` for an ``http://`` URL, admitted
-    when the whole URL is under an entry. 🔴 Neither is ever connected to a
-    private, loopback or link-local address, whatever resolves to one -- the
-    rule `allowlist.public_host` applies to every fetch this server makes.
+    when the whole URL is under an entry.
+
+    🔴 **Never to a private, loopback or link-local address**, whatever
+    resolves to one -- `allowlist.public_host`'s rule, for every fetch this
+    server makes -- with one exception, for the builder only
+    (``private_exact_hosts``, surface D172): an index entry naming one exact
+    host is the operator's choice of a machine, a mirror on their own network,
+    and may resolve to a private address. A wildcard entry never may, and no
+    source-allowlist entry does.
 
     ``refused`` lists every host it said no to, for the result to name.
     '''
 
-    def __init__(self, path: str, entries):
+    def __init__(self, address, entries, private_exact_hosts: bool = False):
         from siliconcompiler.remote.server import allowlist
 
         self._rules = [allowlist.parse(entry) for entry in entries]
         self._hosts = [rule._replace(segments=()) for rule in self._rules
                        if rule.scheme == "https"]
+        self._private_exact = private_exact_hosts
         self.refused: List[str] = []
-        self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self._socket.bind(path)
+        if isinstance(address, tuple):
+            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._socket.bind(address)
+            self.url = "http://%s:%d" % self._socket.getsockname()[:2]
+        else:
+            self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self._socket.bind(address)
+            self.url = None
         self._socket.listen(64)
         self._closed = False
 
@@ -293,14 +309,27 @@ class Proxy:
             pass
 
     def admits_connect(self, host: str, port: int) -> bool:
-        from siliconcompiler.remote.server import allowlist
-
-        return allowlist.allows(self._hosts, f"https://{host}:{port}/")
+        return self._matching(self._hosts, f"https://{host}:{port}/") is not None
 
     def admits_get(self, url: str) -> bool:
+        return urlsplit(url).scheme == "http" and \
+            self._matching(self._rules, url) is not None
+
+    @staticmethod
+    def _matching(rules, url: str):
         from siliconcompiler.remote.server import allowlist
 
-        return urlsplit(url).scheme == "http" and allowlist.allows(self._rules, url)
+        for rule in rules:
+            if allowlist.allows([rule], url):
+                return rule
+        return None
+
+    def _public_only(self, rules, url: str) -> bool:
+        '''Whether the address rule binds this connection: always, but for
+        an exact-host entry where the exception is on.'''
+        rule = self._matching(rules, url)
+        return not (self._private_exact and rule is not None
+                    and not rule.host.startswith("*."))
 
     def _serve(self) -> None:
         while not self._closed:
@@ -327,7 +356,8 @@ class Proxy:
                 host = host.strip("[]").lower()
                 if not port.isdigit() or not self.admits_connect(host, int(port)):
                     return self._refuse(client, host)
-                upstream = _open_public(host, int(port))
+                upstream = _open_public(host, int(port), public_only=self._public_only(
+                    self._hosts, f"https://{host}:{port}/"))
                 if upstream is None:
                     return self._refuse(client, host, "resolves to a non-public address")
                 client.sendall(b"HTTP/1.1 200 Connection established\r\n\r\n")
@@ -337,7 +367,8 @@ class Proxy:
                 parts = urlsplit(target)
                 if not self.admits_get(target):
                     return self._refuse(client, (parts.hostname or "").lower())
-                upstream = _open_public(parts.hostname, parts.port or 80)
+                upstream = _open_public(parts.hostname, parts.port or 80,
+                                        public_only=self._public_only(self._rules, target))
                 if upstream is None:
                     return self._refuse(client, parts.hostname,
                                         "resolves to a non-public address")
@@ -361,7 +392,7 @@ class Proxy:
                     except OSError:                             # pragma: no cover
                         pass
 
-    def _refuse(self, client, host: str, why: str = "is not on the index allowlist"):
+    def _refuse(self, client, host: str, why: str = "is not on the allowlist"):
         if host and host not in self.refused:
             self.refused.append(host)
         print(f"proxy: refused {host}: it {why}", flush=True)
@@ -391,22 +422,24 @@ def _answer(client, status: int, why: str) -> None:
         pass
 
 
-def _open_public(host: str, port: int):
-    '''A connection to ``host``, only where every address it resolves to is
-    public -- and to one of the addresses checked, never a second lookup.'''
+def _open_public(host: str, port: int, public_only: bool = True):
+    '''A connection to ``host`` -- where every address it resolves to is
+    public, unless ``public_only`` is off -- and to one of the addresses
+    checked, never a second lookup.'''
     import ipaddress
 
     try:
         infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
     except (socket.gaierror, UnicodeError):
         return None
-    for info in infos:
-        try:
-            address = ipaddress.ip_address(info[4][0])
-        except ValueError:
-            return None
-        if not address.is_global or address.is_multicast:
-            return None
+    if public_only:
+        for info in infos:
+            try:
+                address = ipaddress.ip_address(info[4][0])
+            except ValueError:
+                return None
+            if not address.is_global or address.is_multicast:
+                return None
     for family, kind, proto, _, where in infos:
         connection = socket.socket(family, kind, proto)
         connection.settimeout(_CONNECT_TIMEOUT)

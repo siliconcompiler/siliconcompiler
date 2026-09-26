@@ -14,7 +14,7 @@ from typing import Dict, Type, Optional, TYPE_CHECKING
 from git import Repo, GitCommandError
 from urllib import parse as url_parse
 
-from siliconcompiler.package import RemoteResolver
+from siliconcompiler.package import FetchRefused, RemoteResolver, current_fetch_policy
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
@@ -415,6 +415,10 @@ class GitResolver(RemoteResolver):
             RuntimeError: If LFS is required but git-lfs is not installed.
             GitCommandError: For other Git-related errors.
         """
+        policy = current_fetch_policy()
+        if policy is not None:
+            return self._resolve_under_policy(policy)
+
         env = self._git_env()
         try:
             path = self.git_path
@@ -467,3 +471,117 @@ class GitResolver(RemoteResolver):
             else:
                 # Re-raise other Git errors
                 raise
+
+    ##################################################################
+    # Under a fetch policy
+    ##################################################################
+
+    # How deep submodules of submodules are followed under a policy.
+    _MAX_SUBMODULE_DEPTH = 8
+
+    def _resolve_under_policy(self, policy) -> None:
+        """
+        Clone, check out, and fetch submodules and LFS objects under a
+        :class:`~siliconcompiler.package.FetchPolicy`: https only, nothing
+        sent with any request, git's own redirects off, every URL -- the
+        repository, each submodule's at every depth, the LFS endpoint --
+        checked before it is contacted, and everything git and git-lfs
+        connect to through the policy's proxy.
+        """
+        if self.urlscheme != "git+https":
+            raise FetchRefused(f"{self.display_name}: only https is fetched here")
+        url = self.urlparse._replace(scheme="https", query="", fragment="").geturl()
+        if self.urlparse.username or self.urlparse.password:
+            raise FetchRefused(f"{self.display_name}: the source URL carries a credential")
+        policy.check_url(url)
+
+        env = self._policy_env(policy)
+        timeout = {"kill_after_timeout": policy.timeout} if policy.timeout else {}
+        self.logger.info(f'Cloning {self.display_name} data from {url}')
+        repo = Repo.clone_from(url, self.cache_path, env=env, **timeout)
+        repo.git.update_environment(**env)
+        repo.git.checkout(self.reference, **timeout)
+
+        if self.include_submodules:
+            self._submodules_under_policy(policy, repo, url, env, timeout, 0)
+        if self.include_lfs:
+            self._lfs_under_policy(policy, repo, url, timeout)
+
+    @staticmethod
+    def _policy_env(policy) -> Dict[str, str]:
+        """The environment git runs in under a policy: no configuration but
+        this, no credential helper, no prompt, no SSH, no redirects."""
+        settings = {"protocol.allow": "never", "protocol.https.allow": "always",
+                    "http.followRedirects": "false", "credential.helper": "",
+                    "core.askPass": "", "core.sshCommand": "false"}
+        if policy.proxy:
+            settings["http.proxy"] = policy.proxy
+        env = {"HOME": policy.home, "XDG_CONFIG_HOME": policy.home,
+               "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+               "GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "", "SSH_ASKPASS": "",
+               "SSH_AUTH_SOCK": "", "GIT_SSH_COMMAND": "false",
+               "GIT_CONFIG_COUNT": str(len(settings))}
+        for number, (key, value) in enumerate(settings.items()):
+            env[f"GIT_CONFIG_KEY_{number}"] = key
+            env[f"GIT_CONFIG_VALUE_{number}"] = value
+        if policy.proxy:
+            for name in ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"):
+                env[name] = policy.proxy
+            env["NO_PROXY"] = env["no_proxy"] = ""
+        return env
+
+    def _submodules_under_policy(self, policy, repo, parent_url: str, env, timeout,
+                                 depth: int) -> None:
+        """Each submodule, its URL checked before git fetches it, one level at
+        a time so a nested one is checked too."""
+        if not self._repo_uses_submodules(repo.working_dir):
+            return
+        if depth >= self._MAX_SUBMODULE_DEPTH:
+            raise FetchRefused(f"{self.display_name}: submodules nested deeper than "
+                               f"{self._MAX_SUBMODULE_DEPTH}")
+        for submodule in repo.submodules:
+            url = _submodule_url(parent_url, submodule.url)
+            parsed = url_parse.urlparse(url)
+            if parsed.scheme != "https" or parsed.username or parsed.password:
+                raise FetchRefused(f"{self.display_name}: submodule {submodule.path} is "
+                                   f"{url}, which is not a plain https URL")
+            policy.check_url(url)
+            repo.git.submodule("update", "--init", "--force", "--", submodule.path,
+                               **timeout)
+            child = submodule.module()
+            child.git.update_environment(**env)
+            self._submodules_under_policy(policy, child, url, env, timeout, depth + 1)
+
+    def _lfs_under_policy(self, policy, repo, url: str, timeout) -> None:
+        """LFS objects, where the repository has any, after its endpoint is
+        checked -- and each object's storage URL through the policy's proxy,
+        since git-lfs is what fetches it."""
+        repos = [(repo, url)]
+        if self.include_submodules and self._repo_uses_submodules(repo.working_dir):
+            repos += [(submodule.module(), _submodule_url(url, submodule.url))
+                      for submodule in repo.submodules]
+        for each, each_url in repos:
+            if not self._repo_uses_lfs(each.working_dir):
+                continue
+            try:
+                endpoint = each.git.config("-f", ".lfsconfig", "--get", "lfs.url")
+            except GitCommandError:
+                endpoint = None
+            policy.check_url(endpoint or _lfs_endpoint(each_url))
+            self._pull_lfs(each)
+
+
+def _submodule_url(parent_url: str, url: str) -> str:
+    """A submodule's URL as git reads it: relative ones against the
+    superproject's, as a directory."""
+    if url.startswith(("./", "../")):
+        return url_parse.urljoin(parent_url.rstrip("/") + "/", url)
+    return url
+
+
+def _lfs_endpoint(url: str) -> str:
+    """git-lfs's default endpoint for an https remote."""
+    url = url.rstrip("/")
+    if not url.endswith(".git"):
+        url += ".git"
+    return f"{url}/info/lfs"
