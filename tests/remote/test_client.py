@@ -487,6 +487,33 @@ def test_an_invalid_proof_fails_rather_than_refreshing(fake_v1, tmp_credentials,
     assert raised.value.slug == "invalid-dpop-proof"
 
 
+@pytest.mark.parametrize("offset,said", [(300, "5 minutes behind"), (-7200, "2 hours ahead"),
+                                         (20, None)])
+def test_a_refused_proof_says_when_the_clock_is_off(fake_v1, tmp_credentials,
+                                                    client_credentials, offset, said):
+    '''🔴 Surface D167: a clock further than a minute from the server's is
+    refused every time, and "did not accept this machine's key" sends a person
+    looking at the key. The server's `Date` says how far out it is.'''
+    import email.utils
+    import time as clock
+
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    client = Client(tmp_credentials)
+    client.login()
+
+    fake_v1.route(responses.GET, "me", problem("invalid-dpop-proof", 401), status=401,
+                  content_type="application/problem+json",
+                  headers={"Date": email.utils.formatdate(clock.time() + offset, usegmt=True)})
+
+    with pytest.raises(ServerProblem) as raised:
+        client.me()
+
+    if said:
+        assert said in str(raised.value) and "clock" in str(raised.value)
+    else:
+        assert "clock is" not in str(raised.value)
+
+
 ###########################
 # Identity continuity
 ###########################

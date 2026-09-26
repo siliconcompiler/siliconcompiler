@@ -1270,3 +1270,42 @@ def test_asked_again_for_what_was_sent_is_a_failure_not_a_loop(fake_v1, run):
     with pytest.raises(RemoteError, match="asked again"):
         run._send_asked("01J9-job", [{"kind": "design", "name": "gcd",
                                       "dataroot": "gcd-pytest-example"}])
+
+
+def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog):
+    '''🔴 Surface D166: the server may still ask this machine for a source, and
+    with nobody to send it the job waits until it is abandoned. A second
+    interrupt leaves.'''
+    import logging
+
+    polls = []
+
+    def poll(job_id):
+        polls.append(job_id)
+        run._last_state = "staging"
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(run, "_poll", poll)
+    run.logger.propagate = True
+
+    with caplog.at_level(logging.WARNING), pytest.raises(KeyboardInterrupt):
+        run._watch("01J9-job")
+
+    assert len(polls) == 2
+    assert "not fully submitted" in caplog.text and "Ctrl-C again" in caplog.text
+
+
+def test_leaving_a_queued_job_does_not_ask_twice(run, monkeypatch):
+    polls = []
+
+    def poll(job_id):
+        polls.append(job_id)
+        run._last_state = "queued"
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(run, "_poll", poll)
+
+    with pytest.raises(KeyboardInterrupt):
+        run._watch("01J9-job")
+
+    assert len(polls) == 1

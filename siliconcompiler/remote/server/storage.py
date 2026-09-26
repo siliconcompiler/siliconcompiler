@@ -29,6 +29,18 @@ __all__ = ["Storage", "SignatureError"]
 # was interrupted asks for another rather than holding one open.
 GRANT_SECONDS = 900
 
+# 🔴 What a grant must outlast (surface §14): the upload is one PUT, with no
+# resume, and a re-issued grant for the same bytes starts it over -- so its
+# lifetime is what moving the largest upload takes over a slow link. About
+# fifteen minutes a GiB; never less than GRANT_SECONDS.
+GRANT_BITS_PER_SECOND = 10_000_000
+
+
+def grant_seconds(max_upload_bytes: int) -> int:
+    '''How long an upload grant lives, for a deployment accepting this much.'''
+    return max(GRANT_SECONDS, -(-int(max_upload_bytes) * 8 // GRANT_BITS_PER_SECOND))
+
+
 # How long an artifact link stands up. Much shorter than an upload grant,
 # because nothing has to be prepared before it is used: the client is redirected
 # to it and follows it in the same breath.

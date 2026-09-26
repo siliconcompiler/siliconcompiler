@@ -76,7 +76,9 @@ def test_every_violation_is_in_the_vocabulary():
                                "environment_file",
                                # contract D40: an extension off an allowlist this
                                # profile does not have -- listed, never raised.
-                               "extension"}
+                               "extension",
+                               # D165: a job that would wait for a person.
+                               "breakpoint", "interactive_task"}
 
 
 def test_too_many_members(tmp_path):

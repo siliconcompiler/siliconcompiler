@@ -119,6 +119,8 @@ class RemoteRun:
         self._needed = None
         self._environments = {}
         self._env_files = None
+        # What the job last said it was, for what an interrupt tells the user.
+        self._last_state: Optional[str] = None
         self._forwarded: List[Tuple[str, str, str]] = []       # (name, pin, path)
         self._python_pins = None
 
@@ -711,14 +713,30 @@ class RemoteRun:
         self._watch(job_id)
 
     def _watch(self, job_id: str) -> None:
-        try:
-            self._poll(job_id)
-        except KeyboardInterrupt:
-            manifest = os.path.join(jobdir(self.project), REMOTE_MANIFEST)
-            self.logger.info("Disconnecting from remote job")
-            self.logger.info(f"To reconnect to this job use: sc-remote -cfg {manifest} -reconnect")
-            self.logger.info(f"To cancel this job use: sc-remote -cfg {manifest} -cancel")
-            raise
+        warned = False
+        while True:
+            try:
+                self._poll(job_id)
+                return
+            except KeyboardInterrupt:
+                # 🔴 Not yet `queued` (surface D166): the server may still ask
+                # this machine for a source, and with nobody here to send it the
+                # job waits until it is abandoned. Said once; a second
+                # interrupt leaves.
+                if not warned and self._last_state in _NOT_YET_SUBMITTED:
+                    warned = True
+                    self.logger.warning(
+                        f"Job {job_id} is not fully submitted yet (it is "
+                        f"{self._last_state}): if the server asks this machine for a "
+                        "source and nobody is here to send it, the job waits until it "
+                        "is abandoned. Press Ctrl-C again to leave anyway.")
+                    continue
+                manifest = os.path.join(jobdir(self.project), REMOTE_MANIFEST)
+                self.logger.info("Disconnecting from remote job")
+                self.logger.info(
+                    f"To reconnect to this job use: sc-remote -cfg {manifest} -reconnect")
+                self.logger.info(f"To cancel this job use: sc-remote -cfg {manifest} -cancel")
+                raise
 
     def _poll(self, job_id: str) -> None:
         transient = 0
@@ -730,6 +748,7 @@ class RemoteRun:
             try:
                 job, retry_after = self.client.job(job_id)
                 transient = 0
+                self._last_state = job.get("state")
             except ServerProblem as refusal:
                 if _is_refusal(refusal):
                     # 🔴 A refusal ends the wait AS A FAILURE. Falling through
@@ -1288,6 +1307,10 @@ def _pip_indexes() -> Tuple[Optional[str], List[str]]:
         index = None
     return (owners.strip_userinfo(index) if index else None,
             [owners.strip_userinfo(url) for url in extras])
+
+
+# A job the server may still need this machine for.
+_NOT_YET_SUBMITTED = ("created", "awaiting_input", "staging")
 
 
 def _forward_once(forwarded: Dict[str, Tuple[str, str]], name: str, pin: str,

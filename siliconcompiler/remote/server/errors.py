@@ -145,7 +145,11 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       # not admit (contract D40). This profile has no such
                       # allowlist and never raises it; listed so the set is
                       # the contract's.
-                      "extension")
+                      "extension",
+                      # A job that would wait for a person nobody is at
+                      # (surface D165): a node with a breakpoint, and one whose
+                      # task opens a window.
+                      "breakpoint", "interactive_task")
 
 # Why a session is over. All three are one client branch -- re-authenticate, and
 # do NOT refresh.

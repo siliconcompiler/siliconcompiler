@@ -241,7 +241,9 @@ class Transport:
                                help_url=help_url(response))
 
         raise ServerProblem(problem, response.status_code,
-                            help_url=help_url(response))
+                            help_url=help_url(response),
+                            next_step=_clock_advice(response) if slug == "invalid-dpop-proof"
+                            else None)
 
     ######################################################################
     # Storage
@@ -416,6 +418,47 @@ def help_url(response) -> Optional[str]:
     if not target:
         return None
     return urljoin(response.url or "", target)
+
+
+# How far a proof's `iat` may be from the server's clock (surface §6).
+PROOF_WINDOW_SECONDS = 60
+
+
+def _clock_advice(response: requests.Response) -> Optional[str]:
+    '''Where a refused proof is this machine's clock, say so (surface D167).
+
+    A proof carries the time it was made and the server accepts it within a
+    minute of its own; a clock further out than that is refused every time,
+    and "the server did not accept this machine's key" sends a person looking
+    at the key. The server's `Date` says how far out this one is.
+    '''
+    import email.utils
+    from datetime import datetime, timezone
+
+    try:
+        theirs = email.utils.parsedate_to_datetime(response.headers.get("Date") or "")
+    except (TypeError, ValueError):
+        return None
+    if theirs is None:
+        return None
+    if theirs.tzinfo is None:
+        theirs = theirs.replace(tzinfo=timezone.utc)
+    skew = (datetime.now(timezone.utc) - theirs).total_seconds()
+    if abs(skew) <= PROOF_WINDOW_SECONDS:
+        return None
+    return (f"This machine's clock is {_duration(abs(skew))} "
+            f"{'ahead of' if skew > 0 else 'behind'} the server's, and a proof is "
+            f"accepted only within {PROOF_WINDOW_SECONDS} seconds of it. Correct the "
+            "clock -- turn on time synchronization -- and try again.")
+
+
+def _duration(seconds: float) -> str:
+    seconds = int(round(seconds))
+    if seconds < 120:
+        return f"{seconds} seconds"
+    if seconds < 7200:
+        return f"{seconds // 60} minutes"
+    return f"{seconds // 3600} hours"
 
 
 def _problem_body(response: requests.Response) -> Dict[str, Any]:

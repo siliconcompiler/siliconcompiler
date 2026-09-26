@@ -24,11 +24,11 @@ class ServerProblem(RemoteError):
     '''The server refused, and said why in a way worth rendering.'''
 
     def __init__(self, problem: Dict[str, Any], status: int,
-                 help_url: Optional[str] = None):
+                 help_url: Optional[str] = None, next_step: Optional[str] = None):
         self.problem = problem
         self.status = status
         self.help_url = help_url
-        super().__init__(describe(problem, status, help_url=help_url))
+        super().__init__(describe(problem, status, next_step=next_step, help_url=help_url))
 
     @property
     def slug(self) -> Optional[str]:

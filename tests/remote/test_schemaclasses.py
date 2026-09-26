@@ -109,3 +109,67 @@ def test_a_python_source_is_answered_without_importing_its_parent(tmp_path, monk
     assert not supply.package("sc_uploaded_pkg.sub")    # parent not loaded here
     assert not supply.package("not an identifier")
     assert not marker.exists()
+
+
+###########################
+# A job nobody is at (surface D165)
+###########################
+
+def _with_node(project, task, name):
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    flow = Flowgraph(name)
+    flow.node("stepone", NOPTask())
+    flow.node("look", task)
+    flow.edge("stepone", "look")
+    project.set_flow(flow)
+    return project
+
+
+def test_a_breakpoint_is_refused_naming_the_node(
+        server_client, key, token, job_archive, nop_project, dispatcher):
+    nop_project.option.set_breakpoint(True, step="steptwo", index="0")
+
+    response = submitted(server_client, key, token, job_archive(nop_project))
+
+    assert response.status_code == 422
+    assert (slug(response), response.get_json()["violation"]) == \
+        ("archive-rejected", "breakpoint")
+    assert "steptwo/0" in response.get_json()["detail"]
+    assert not dispatcher.submitted
+
+
+def test_a_task_that_opens_a_window_is_refused_and_a_screenshot_is_not(
+        server_client, key, token, job_archive, nop_project, dispatcher):
+    from siliconcompiler.tools.klayout.screenshot import ScreenshotTask
+    from siliconcompiler.tools.klayout.show import ShowTask
+
+    shown = submitted(server_client, key, token,
+                      job_archive(_with_node(nop_project, ShowTask(), "shown")))
+
+    assert shown.status_code == 422
+    assert shown.get_json()["violation"] == "interactive_task"
+    assert "look/0" in shown.get_json()["detail"]
+
+    headless = submitted(server_client, key, token,
+                         job_archive(_with_node(nop_project, ScreenshotTask(), "headless")))
+    assert headless.status_code == 202, headless.get_json()
+
+
+def test_the_runner_fails_a_node_whose_task_class_is_not_installed(nop_project):
+    '''🔴 Never run as its base class, which would skip the task's own setup:
+    the node fails, named, and nothing starts.'''
+    from siliconcompiler.remote.server import runner
+
+    nop_project.get_flow().get_graph_node("steptwo", "0").set(
+        "taskmodule", "sc_not_installed_anywhere/Task")
+    runner._progress_path = None
+    runner._progress = {"nodes": {"stepone/0": {"state": "pending"},
+                                  "steptwo/0": {"state": "pending"}}}
+
+    with pytest.raises(RuntimeError, match="steptwo/0 runs sc_not_installed_anywhere/Task"):
+        runner._check_task_classes(nop_project)
+
+    assert runner._progress["nodes"]["steptwo/0"]["state"] == "failed"
+    assert runner._progress["nodes"]["stepone/0"]["state"] == "pending"

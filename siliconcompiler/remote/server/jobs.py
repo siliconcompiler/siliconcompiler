@@ -33,7 +33,7 @@ from siliconcompiler.remote.server.errors import (
     bound, ERRORS, ProblemError, TYPE_BASE)
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
-from siliconcompiler.remote.server.storage import GRANT_SECONDS
+from siliconcompiler.remote.server.storage import grant_seconds
 
 __all__ = ["JobService", "TERMINAL_STATES", "REUSABLE_STATES"]
 
@@ -615,7 +615,7 @@ class JobService:
                 detail=f"this archive's first grant fixed its size at "
                        f"{job['grant_bytes']} bytes; a re-issue must repeat it")
 
-        expires = int(_epoch()) + GRANT_SECONDS
+        expires = int(_epoch()) + grant_seconds(self._config.limits["max_upload_bytes"])
         signature = self._storage.sign_upload(job["id"], size, expires)
         ceiling = size
 
@@ -1492,6 +1492,7 @@ class JobService:
         # server never calls, and SiliconCompiler's own examples define theirs
         # in the script. Looked up, never imported: see `_as_data`.
         self._check_task_classes(session, job, project, nodes)
+        self._check_unattended(session, job, project, nodes)
 
         # 🔴 The software version is NOT re-derived here, and that is a
         # limitation worth stating rather than a check that was forgotten. A
@@ -1523,6 +1524,34 @@ class JobService:
             # out and carried here; None where it could not.
             "required": owners.required(project),
         }
+
+    def _check_unattended(self, session, job, project, nodes) -> None:
+        '''🔴 A job nobody is at (surface D165): a node that would wait for a
+        person is refused rather than left to hang its allocation until the
+        deadline. A breakpoint, or a task that opens a window -- every
+        `ShowTask`, OpenROAD's `WebTask` -- but not a `ScreenshotTask`, which
+        renders headless.'''
+        from siliconcompiler import OpenTask, ScreenshotTask
+
+        flow = project.get_flow()
+        for step, index in nodes:
+            if project.option.get_breakpoint(step=step, index=index):
+                raise self._refuse(session, job, ProblemError(
+                    "archive-rejected", violation="breakpoint",
+                    detail=f"{step}/{index} has a breakpoint set, which stops the run "
+                           "for a person to look -- and nobody is at a remote run. "
+                           "Clear option,breakpoint for it"))
+            try:
+                task = flow.get_task_module(step, index)
+            except ImportError:
+                continue                    # `_check_task_classes` said so first
+            if issubclass(task, OpenTask) and not issubclass(task, ScreenshotTask):
+                raise self._refuse(session, job, ProblemError(
+                    "archive-rejected", violation="interactive_task",
+                    detail=f"{step}/{index} runs {task.__module__}/{task.__name__}, "
+                           "which opens a window for a person -- and nobody is at a "
+                           "remote run. A screenshot task renders the same view "
+                           "without one"))
 
     def _check_task_classes(self, session, job, project, nodes) -> None:
         from siliconcompiler.schema.baseschema import BaseSchema

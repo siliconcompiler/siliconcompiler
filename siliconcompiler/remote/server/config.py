@@ -419,6 +419,10 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
 }
 
 
+# The largest object S3 takes in one PUT.
+S3_ONE_PUT_BYTES = 5 * 1024 ** 3
+
+
 def _check_policy(values: Dict[str, Any]) -> None:
     '''Refuse a policy value that would silently mean nothing.
 
@@ -551,6 +555,14 @@ class Config:
 
         if values["env_builder"] and "python.env" not in values["features"]:
             values["features"] = list(values["features"]) + ["python.env"]
+
+        # S3 takes one PUT of at most 5 GiB, and the upload is one PUT
+        # (surface §14): a larger limit is a promise that store cannot keep.
+        base = values["storage_uri_base"] or ""
+        if base.startswith("s3://") and values["limits"]["max_upload_bytes"] > S3_ONE_PUT_BYTES:
+            raise ValueError(
+                f"max_upload_bytes is {values['limits']['max_upload_bytes']}, and an S3 "
+                f"store takes at most {S3_ONE_PUT_BYTES} bytes in one PUT")
 
         if values["storage_uri_base"] is None:
             artifacts = (Path(datadir) / "artifacts").resolve()

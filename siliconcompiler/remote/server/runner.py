@@ -159,6 +159,7 @@ def run(manifest: Path) -> int:
     TaskScheduler.register_callback("post_run", _settle)
 
     try:
+        _check_task_classes(project)
         if not _image_sources:
             # Nodes run on this host, so a node's own Python environment is
             # installed here, into the user's cache, before the flow starts. In
@@ -193,6 +194,33 @@ def run(manifest: Path) -> int:
         # reaching them.
         _sweep()
         _publish()
+
+
+def _check_task_classes(project) -> None:
+    '''🔴 Fail a node whose task class is not installed where it runs, naming
+    it (surface D163), rather than let the flow run it as its base class: a
+    task's own setup and pre- and post-processing would silently not happen.
+    The server refuses such a job at submit; this is the node's own answer,
+    for an image that differs from the server.'''
+    flow = project.get_flow()
+    missing = {}
+    for key in _progress["nodes"]:
+        step, _, index = key.partition("/")
+        try:
+            flow.get_task_module(step, index)
+        except (ImportError, AttributeError, ValueError):
+            missing[key] = flow.get_graph_node(step, index).get_taskmodule()
+    if not missing:
+        return
+
+    for key in missing:
+        _progress["nodes"][key]["state"] = "failed"
+        _progress["nodes"][key]["finished_at"] = now()
+    _publish()
+    raise RuntimeError(
+        "; ".join(f"{key} runs {name}, which is not installed here"
+                  for key, name in sorted(missing.items()))
+        + " -- so it is not run as its base class instead")
 
 
 def _leave_the_allocation() -> None:
