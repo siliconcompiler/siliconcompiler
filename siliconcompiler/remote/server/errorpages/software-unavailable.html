@@ -26,7 +26,7 @@
 
 <div class="do">
 <ol>
-  <li>Read <code>reason</code>. <code>unavailable</code>: the requirements listed are held by no image at all. <code>combination</code>: each is held by some image, and no single image holds them together.</li>
+  <li>Read <code>reason</code>. <code>unavailable</code>: the requirements listed are held by no image at all. <code>combination</code>: each is held by some image, and no single image holds them together. <code>index-not-allowed</code>: a node&rsquo;s Python environment names a package index this deployment does not let a build reach, and <code>detail</code> names it. <code>uninstallable</code>: a pin in a node&rsquo;s Python environment will not install for the node&rsquo;s Python and platform, and <code>detail</code> names each package and the target; it is never asked for as an upload.</li>
   <li>Read <code>unresolved</code>: one entry per failed requirement, with <code>requirement</code> &mdash; your alternatives, exactly as sent &mdash; and <code>available</code>, the versions this deployment&rsquo;s images hold. An empty <code>available</code> means none holds it.</li>
   <li>For <code>unavailable</code>, ask for a version in <code>available</code>. For <code>combination</code>, choose versions that exist in one image together.</li>
   <li><code>GET /v1</code>&rsquo;s <code>software</code> lists what is on offer before you submit, name by name. It cannot show which names share an image, which is why <code>combination</code> exists.</li>
@@ -51,7 +51,7 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>reason</code></td><td><span class="req">REQUIRED</span></td>
-    <td><code>unavailable</code> or <code>combination</code>.</td></tr>
+    <td><code>unavailable</code>, <code>combination</code>, <code>index-not-allowed</code> or <code>uninstallable</code>.</td></tr>
 <tr><td><code>unresolved</code></td><td><span class="req">REQUIRED</span></td>
     <td>A list of <code>{name, requirement, available}</code>, one per requirement that failed. <code>requirement</code> is the list of alternatives as sent &mdash; a requirement is met if any one resolves &mdash; and <code>available</code> what the live images hold; <code>[]</code> if none.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>

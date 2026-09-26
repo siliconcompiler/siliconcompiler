@@ -706,6 +706,7 @@ class JobService:
 
         # Re-derived over the union of every archive, never from `sources`.
         derived = self._derive(session, job, root)
+        self._check_environments(session, job, derived, unpacked)
         self._check_denied(session, job, derived)
         entries = self._account(session, job, derived, unpacked)
 
@@ -788,6 +789,55 @@ class JobService:
                 logger.info(f"{job['id']} is supplied {entry.kind} {entry.name} "
                             f"({entry.dataroot}) from this server")
         return entries
+
+    def _check_environments(self, session, job, derived, unpacked: Path) -> None:
+        '''A node's environment files, at submit (surface D131).
+
+        Its presence is the declaration, so a job carrying one relies on
+        `python.env` whether or not it said so at create -- and this deployment
+        advertises it only where it can build one. Then every file is held to
+        its path and its format, and every index it names to the index
+        allowlist. A follow-up carrying one never gets here: it is
+        `unrequested_member`, since only what was asked for may arrive.
+        '''
+        from siliconcompiler.remote import environment
+        from siliconcompiler.remote.server import allowlist
+
+        top = unpacked / environment.ROOT
+        if not top.exists():
+            return
+
+        if "python.env" not in (self._config["features"] or ()):
+            raise self._refuse(session, job, ProblemError(
+                "feature-unsupported", feature="python.env",
+                detail="this job carries a Python environment for a node, and this "
+                       "deployment does not build one"))
+
+        def refuse(detail):
+            return self._refuse(session, job, ProblemError(
+                "archive-rejected", violation="environment_file", detail=detail))
+
+        nodes = set(derived["nodes"])
+        rules = [allowlist.parse(entry) for entry in self._config["index_allowlist"] or []]
+        for path in sorted(top.rglob("*")):
+            if path.is_dir():
+                continue
+            name = path.relative_to(unpacked).as_posix()
+            parts = name.split("/")
+            if len(parts) != 4 or parts[3] != environment.FILENAME \
+                    or (parts[1], parts[2]) not in nodes:
+                raise refuse(f"{name} is not {environment.path_for('<step>', '<index>')} "
+                             "for a node of this flow")
+            try:
+                parsed = environment.parse(path.read_bytes())
+            except environment.EnvironmentFileError as e:
+                raise refuse(f"{name}: {e}") from None
+            for url in parsed.indexes:
+                if not allowlist.allows(rules, url):
+                    raise self._refuse(session, job, ProblemError(
+                        "software-unavailable", reason="index-not-allowed", unresolved=[],
+                        detail=f"{name} names the index {url}, which this server does "
+                               "not let a build reach"))
 
     def _check_owed(self, session, job, derived, asked) -> None:
         '''Refuse a required value the client should have sent and did not.

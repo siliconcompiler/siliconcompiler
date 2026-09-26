@@ -311,6 +311,20 @@ def test_a_follow_up_may_hold_only_what_was_asked_for(
     assert response.get_json()["violation"] == "unrequested_member"
 
 
+def test_a_follow_up_carrying_an_environment_file_is_unrequested(
+        server, server_client, key, token, job_archive, remote_project, dispatcher):
+    '''The file is the client's and the first archive's, never a source the
+    server asked for (surface D131).'''
+    from siliconcompiler.remote import environment
+
+    job = sent_back(server, server_client, key, token, job_archive, remote_project)
+
+    response = send(server_client, key, token, job["id"], {
+        environment.path_for("stepone", "0"): b"numpy==2.0.1\n"})
+
+    assert response.get_json()["violation"] == "unrequested_member"
+
+
 def test_the_asked_for_sources_arrive_and_the_job_runs(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
     job = sent_back(server, server_client, key, token, job_archive, remote_project)

@@ -111,6 +111,8 @@ _NEXT_STEP_BY_VIOLATION = {
     "missing_member": "The upload left out a file the flow reads; that is a "
                       "client bug, or a task whose requirements miss a file.",
     "unrequested_member": "A follow-up may carry only what the server asked for.",
+    "environment_file": "A node's Python environment file broke its format; the "
+                        "client writes it, so that is a client bug.",
 }
 
 # 🔴 What to say instead when the run failed and no NODE did. Pointing at *the

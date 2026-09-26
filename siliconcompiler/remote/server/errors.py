@@ -137,7 +137,10 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       # A value the flow reads that the client should have
                       # sent -- the design, anything local or editable, or
                       # what was asked for -- and did not (D129).
-                      "missing_member")
+                      "missing_member",
+                      # A node's environment file outside its format, or for
+                      # no node of the flow (D131).
+                      "environment_file")
 
 # Why a session is over. All three are one client branch -- re-authenticate, and
 # do NOT refresh.

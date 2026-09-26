@@ -71,7 +71,9 @@ def test_every_violation_is_in_the_vocabulary():
                                # D124: a follow-up carrying what was not asked for.
                                "unrequested_member",
                                # D129: a value the flow reads, left out.
-                               "missing_member"}
+                               "missing_member",
+                               # D131: a node's environment file outside its format.
+                               "environment_file"}
 
 
 def test_too_many_members(tmp_path):

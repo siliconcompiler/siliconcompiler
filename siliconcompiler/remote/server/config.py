@@ -277,6 +277,13 @@ DEFAULTS: Dict[str, Any] = {
     "fetch_allowlist": ["https://github.com/siliconcompiler/",
                         "https://codeload.github.com/siliconcompiler/"],
 
+    # Where a node's environment file may send pip: every `--index-url` and
+    # `--extra-index-url` it names must match, by the same rules as
+    # `fetch_allowlist` -- and a separate list, because letting a builder reach
+    # an index is not letting the server fetch a source. PyPI by default.
+    "index_allowlist": ["https://pypi.org/simple/",
+                        "https://files.pythonhosted.org/"],
+
     # Private dataroots this server supplies, by the owning object's name and
     # the dataroot's name: `{"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}}`.
     #
@@ -408,9 +415,17 @@ def _check_policy(values: Dict[str, Any]) -> None:
 
     # Refused at LOAD, never trusted to a careful matcher: a bare `*` host, a
     # wildcard anywhere but the leftmost label, a globbed scheme.
-    for warning in allowlist.check_entries(values["fetch_allowlist"] or []):
-        import logging
-        logging.getLogger("sc-server").warning(warning)
+    for entries in (values["fetch_allowlist"], values["index_allowlist"]):
+        for warning in allowlist.check_entries(entries or []):
+            import logging
+            logging.getLogger("sc-server").warning(warning)
+
+    # 🔴 Advertised only where this server can serve it -- a builder, or nodes
+    # that install on the host -- and it can do neither yet. A job relying on
+    # it would be accepted and then have nothing to build its environment.
+    if "python.env" in features:
+        raise ValueError("features lists python.env, and this server has no way to "
+                         "build a node's Python environment yet")
 
     private = values["private_dataroots"] or {}
     if not isinstance(private, dict) or not all(

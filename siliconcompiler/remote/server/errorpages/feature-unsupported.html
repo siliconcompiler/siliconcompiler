@@ -48,7 +48,7 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>feature</code></td><td><span class="req">REQUIRED</span></td>
-    <td>The capability: <code>logs</code>, <code>logs.stream</code>, <code>logs.stream.job</code>, <code>projects</code> or <code>device_grant</code>. Where several are missing, the broadest is named.</td></tr>
+    <td>The capability: <code>logs</code>, <code>logs.stream</code>, <code>logs.stream.job</code>, <code>projects</code>, <code>device_grant</code> or <code>python.env</code>. Where several are missing, the broadest is named.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
 </tbody>
@@ -65,7 +65,9 @@
 <tr><td class="wrap"><code>POST /v1/auth/device</code></td>
     <td><code>device_grant</code>.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
-    <td><code>projects</code>.</td></tr>
+    <td><code>projects</code>, or the first string in <code>descriptor.needs</code> this deployment does not offer.</td></tr>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
+    <td><code>python.env</code>, for a job carrying a Python environment file it did not declare.</td></tr>
 </tbody>
 </table>
 
