@@ -145,7 +145,10 @@ CREATE TABLE job_states (                           -- the closed set, as a tabl
     terminal integer NOT NULL CHECK (terminal IN (0, 1))
 );
 INSERT INTO job_states VALUES
-    ('created', 0), ('awaiting_input', 0), ('queued', 0), ('running', 0),
+    ('created', 0), ('awaiting_input', 0),
+    ('staging', 0),             -- fetching the sources it does not hold, before it
+                                -- queues. The one edge back leaves from here
+    ('queued', 0), ('running', 0),
     ('cancelling', 0),          -- cancel accepted, run not yet stopped
     ('completed', 1), ('failed', 1), ('cancelled', 1),
     ('rejected', 1),            -- refused at submit; it never ran
@@ -245,9 +248,11 @@ CREATE TABLE jobs (
     deleted_by        text REFERENCES users(id),
 
     -- A job that was admitted has a resolved PDK. 'cancelling' joins the named
-    -- side because it is post-admission.
+    -- side because it is post-admission, and so does 'staging': submit
+    -- re-derived the manifest before a job stages (database D100).
     CONSTRAINT jobs_admitted_pdk_resolved
-        CHECK (state NOT IN ('queued', 'running', 'cancelling', 'completed', 'failed')
+        CHECK (state NOT IN ('staging', 'queued', 'running', 'cancelling',
+                             'completed', 'failed')
                OR (manifest_pdk IS NOT NULL AND manifest_pdk <> '')),
     -- Only a job that has stopped may be archived. The terminal five are spelled
     -- out because a CHECK cannot read job_states.terminal.
@@ -277,7 +282,8 @@ CREATE INDEX jobs_design_idx ON jobs (user_id, design, created_at DESC)
 CREATE INDEX jobs_jobname_idx ON jobs (user_id, jobname, created_at DESC)
     WHERE deleted_at IS NULL AND archived_at IS NULL;
 CREATE INDEX jobs_active_idx ON jobs (user_id)
-    WHERE state IN ('queued', 'running', 'cancelling');
+    WHERE state IN ('staging', 'queued', 'running', 'cancelling');   -- staging too:
+                                                    -- fetches are work
 CREATE INDEX jobs_pending_idx ON jobs (user_id) WHERE state IN ('created', 'awaiting_input');
 -- Owner-scoped, per the reuse rule, and partial because almost no row has one.
 -- On job_identity and not run_hash: two runs asking for the same work but

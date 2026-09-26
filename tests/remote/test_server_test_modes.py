@@ -411,7 +411,7 @@ def test_mode_four_sends_the_source_back_and_keeps_both_uploads(
     assert back["upload_sources"] == [{"kind": "pdk", "name": "lambda", "dataroot": "lambda"}]
     reason = server.config["SC_STORE"].one(
         "SELECT reason FROM job_state_transitions WHERE job_id = ? "
-        "AND to_state = 'awaiting_input' AND from_state = 'queued'", (job["id"],))["reason"]
+        "AND to_state = 'awaiting_input' AND from_state = 'staging'", (job["id"],))["reason"]
     assert "fetches nothing" in reason
 
     hashed = first(project, ("library", "lambda", *DATASHEET)).get_hashed_filename()

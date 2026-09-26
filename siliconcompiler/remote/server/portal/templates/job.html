@@ -35,6 +35,14 @@
   #}
   {% set stopped = history | selectattr('to_state', 'equalto', job.state)
                            | list | last %}
+  {% if job.state == 'staging' %}
+    {#
+      Between submit and queued, and the one state a job can come BACK from:
+      a source that cannot be fetched sends it to awaiting_input, asking for it.
+    #}
+    <p class="panel" style="margin-top:14px">Getting ready to queue: this server is
+      fetching the sources the run needs and does not hold yet.</p>
+  {% endif %}
   {% if job.state in ('cancelled', 'cancelling') and stopped and stopped.reason %}
     <p class="panel" style="margin-top:14px">{{ stopped.reason }}</p>
   {% endif %}

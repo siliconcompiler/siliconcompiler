@@ -678,6 +678,11 @@ class JobService:
             logger.info(f"{job['id']} is asking for {len(asked)} source(s)")
             return self.wire(self._row(job["id"]))
 
+        # 🔴 A job with something to get ready stages first (surface D130):
+        # fetching its sources is where it can still be sent back or refused,
+        # so it happens BEFORE `queued`, which then only moves forward. One
+        # with nothing to stage queues at once.
+        stages = any(entry.status == owners.FETCH for entry in entries)
         try:
             with self._store.transaction():
                 # The PDK with it: an admitted job has a resolved one.
@@ -685,7 +690,8 @@ class JobService:
                     "UPDATE jobs SET upload_sources = NULL, submit_idempotency_key = ?, "
                     "  manifest_pdk = ? WHERE id = ?",
                     (idempotency_key, derived["pdk"], job["id"]))
-                self._transition(job["id"], "awaiting_input", "queued",
+                self._transition(job["id"], "awaiting_input",
+                                 "staging" if stages else "queued",
                                  actor=session.user_id)
         except sqlite3.IntegrityError as e:
             if "UNIQUE" not in str(e):
@@ -700,10 +706,9 @@ class JobService:
                        "job") from None
         job = self._row(job["id"])
 
-        if any(entry.status == owners.FETCH for entry in entries):
-            # 🔴 Fetched after submit, while `queued` (D124): no request waits
-            # on a slow git host, and nothing dispatches until every source is
-            # in hand.
+        if stages:
+            # 🔴 Fetched after submit, while `staging`: no request waits on a
+            # slow git host, and nothing queues until every source is in hand.
             self._start_preparing(job["id"])
             return self.wire(job)
 
@@ -813,7 +818,7 @@ class JobService:
 
         try:
             job = self._row(job_id)
-            if job is None or job["state"] != "queued" or job["scheduler_job_id"]:
+            if job is None or job["state"] != "staging":
                 return
             root = self.job_root(job["user_id"], job_id)
             unpacked = root / job["design"] / job["jobname"]
@@ -854,7 +859,7 @@ class JobService:
                     pause = min(pause * 2, 60)
 
             job = self._row(job_id)
-            if job["state"] != "queued":
+            if job["state"] != "staging":
                 # Cancelled while it waited.
                 return
 
@@ -862,15 +867,20 @@ class JobService:
                 self._send_back(job, failed)
                 return
 
+            # Everything in hand: a missing file in a fetched copy is refused
+            # here, from `staging` -- and then it queues, and only moves on.
             entries = self._account(None, job, derived, unpacked)
-            self._dispatch(None, job, derived, entries)
+            with self._store.transaction():
+                self._transition(job_id, "staging", "queued")
+            self._dispatch(None, self._row(job_id), derived, entries)
         except ProblemError:
             # Already recorded on the job by `_refuse`.
             pass
         except Exception as e:                                   # noqa: BLE001
             logger.error(f"could not prepare {job_id}: {e}")
             job = self._row(job_id)
-            if job is not None and job["state"] == "queued":
+            if job is not None and job["state"] in ("staging", "queued") \
+                    and not job["scheduler_job_id"]:
                 self._refuse(None, job, ProblemError(
                     "not-ready", status=503,
                     detail="this server could not prepare the job's sources"))
@@ -890,8 +900,8 @@ class JobService:
         return self._sources.fetch(source, ref, timeout)
 
     def _send_back(self, job, failed) -> None:
-        '''`queued` back to `awaiting_input` -- the one backwards edge (D124) --
-        naming what failed, and nothing else.
+        '''`staging` back to `awaiting_input` -- the one backwards edge
+        (surface D130) -- naming what failed, and nothing else.
 
         ``failed`` is ``(entry, why)`` pairs, and the transition says why for
         each: a job going backwards is the one move a person watching it will
@@ -913,7 +923,7 @@ class JobService:
             self._store.execute(
                 "UPDATE jobs SET upload_sources = ?, submit_idempotency_key = NULL "
                 "WHERE id = ?", (json.dumps(asked), job["id"]))
-            self._transition(job["id"], "queued", "awaiting_input",
+            self._transition(job["id"], "staging", "awaiting_input",
                              reason=_bounded(reason))
 
     def _dispatch(self, session, job, derived, entries) -> None:
@@ -1070,7 +1080,7 @@ class JobService:
     def _check_concurrent_jobs(self, user_id: str) -> None:
         active = self._store.one(
             "SELECT count(*) AS n FROM jobs WHERE user_id = ? "
-            "AND state IN ('queued', 'running', 'cancelling')", (user_id,))["n"]
+            "AND state IN ('staging', 'queued', 'running', 'cancelling')", (user_id,))["n"]
         ceiling = self._config.limits["concurrent_jobs"]
         if active >= ceiling:
             raise ProblemError(
@@ -1605,10 +1615,10 @@ class JobService:
             # Nothing written yet. Either it has not started, or it never will.
             if job["scheduler_job_id"] and not self._alive(job):
                 self._lost(job)
-            elif job["state"] == "queued" and not job["scheduler_job_id"]:
-                # Queued and never dispatched: its sources are being fetched --
-                # or were, by a process that has since restarted. Picked up
-                # again; a fetch that finished is held and costs nothing.
+            elif job["state"] == "staging":
+                # Its sources are being fetched -- or were, by a process that
+                # has since restarted. Picked up again; a fetch that finished is
+                # held and costs nothing.
                 self._start_preparing(job["id"])
             return
 

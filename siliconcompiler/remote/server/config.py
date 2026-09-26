@@ -30,7 +30,7 @@ DEFAULT_LIMITS: Dict[str, int] = {
     "max_upload_bytes": 1073741824,         # bytes
     "job_retention_days": 30,               # days
     "pending_uploads": 8,                   # jobs held in created or awaiting_input
-    "concurrent_jobs": 4,                   # jobs in queued, running or cancelling
+    "concurrent_jobs": 4,                   # jobs staging, queued, running or cancelling
     # Open /logs streams per caller, and the number is chosen rather than
     # inherited. What one costs, now that there is something to measure: a
     # worker thread and an open file for as long as it lives, which is up to
@@ -368,7 +368,7 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
     },
 
     # What mode 1 serves, from a server that can fetch nothing: every job on a
-    # remote PDK goes `queued -> awaiting_input` asking for it, and its client
+    # remote PDK goes `staging -> awaiting_input` asking for it, and its client
     # sends a second archive -- so a job carries two uploads, each its own
     # `input`, to look at side by side.
     4: {

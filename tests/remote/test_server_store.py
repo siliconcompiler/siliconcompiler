@@ -104,9 +104,9 @@ def test_dropped_tables_are_absent():
 
 
 def test_job_states_are_the_closed_set():
-    '''Ten states, and `terminal` is what a client reads.
+    '''Eleven states, and `terminal` is what a client reads.
 
-    The sets grew twice while the contract was being written, which is why
+    The sets grew three times while the contract was being written, which is why
     terminal is published rather than derived from the names.
     '''
     with Store("server.db") as store:
@@ -114,7 +114,7 @@ def test_job_states_are_the_closed_set():
                   store.all("SELECT state, terminal FROM job_states")}
 
     assert states == {
-        "created": 0, "awaiting_input": 0, "queued": 0, "running": 0,
+        "created": 0, "awaiting_input": 0, "staging": 0, "queued": 0, "running": 0,
         "cancelling": 0,
         "completed": 1, "failed": 1, "cancelled": 1, "rejected": 1,
         "abandoned": 1,

@@ -169,8 +169,11 @@ one path segment. An unsafe entry stops the server at startup. Every redirect
 hop is checked again, and a name resolving to a private or link-local address
 is never connected to.
 
-A source that fails for good sends the job back from `queued` to
-`awaiting_input`, and the transition says which source and why.
+The fetch runs while the job is `staging`, between `awaiting_input` and
+`queued`; a job with nothing to fetch goes straight to `queued`. A source that
+fails for good sends the job back from `staging` to `awaiting_input`, and the
+transition says which source and why &mdash; so `queued` only ever moves
+forward.
 
 ⚠️ **This changed.** An environment-variable PDK was, for a while, resolved from
 this server's own environment; it is uploaded again. To keep a proprietary PDK

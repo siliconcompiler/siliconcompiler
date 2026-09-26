@@ -118,7 +118,7 @@ def usage(store, user_id: str) -> Dict[str, Any]:
     '''
     active = store.one(
         "SELECT count(*) AS n FROM jobs WHERE user_id = ? "
-        "AND state IN ('queued', 'running', 'cancelling')", (user_id,))["n"]
+        "AND state IN ('staging', 'queued', 'running', 'cancelling')", (user_id,))["n"]
 
     stored = store.one(
         "SELECT coalesce(sum(a.size_bytes), 0) AS n FROM artifacts a "

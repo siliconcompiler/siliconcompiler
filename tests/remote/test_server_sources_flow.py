@@ -18,7 +18,7 @@ from siliconcompiler.remote.server.sources import Permanent            # noqa: E
 
 
 # What the server cannot supply, it asks for (D114); create looks up and never
-# fetches, and the fetch runs after submit while `queued` (D124). A source that
+# fetches, and the fetch runs after submit while `staging` (D130). A source that
 # fails for good sends the job back -- the one backwards edge -- asking for that
 # source and nothing else.
 
@@ -114,7 +114,7 @@ def test_credentials_in_a_source_are_never_stored(server, server_client, key, to
 
 
 ###########################
-# After submit: fetched while queued
+# After submit: fetched while staging
 ###########################
 
 def test_an_allowlisted_source_is_fetched_after_submit_then_dispatched(
@@ -127,7 +127,9 @@ def test_an_allowlisted_source_is_fetched_after_submit_then_dispatched(
 
     # No request waits on the fetch.
     assert response.status_code == 202
-    assert response.get_json()["state"] == "queued"
+    # 🔴 Staging, not queued: `queued` only moves forward, and this job can
+    # still be sent back or refused.
+    assert response.get_json()["state"] == "staging"
     assert wait_for(lambda: dispatcher.submitted)
 
     # The run reads the server's held copy, and its manifest says so.
@@ -139,7 +141,7 @@ def test_an_allowlisted_source_is_fetched_after_submit_then_dispatched(
 
 def test_a_source_that_fails_for_good_sends_the_job_back_saying_why(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
-    '''🔴 The one backwards edge: `queued -> awaiting_input`, naming what
+    '''🔴 The one backwards edge: `staging -> awaiting_input`, naming what
     failed and nothing else -- and the transition says why.'''
     fake_fetch(server, fail=Permanent("the source answered 404"))
     archive, digest, size = job_archive(remote_project)
@@ -155,7 +157,7 @@ def test_a_source_that_fails_for_good_sends_the_job_back_saying_why(
 
     reason = server.config["SC_STORE"].one(
         "SELECT reason FROM job_state_transitions WHERE job_id = ? "
-        "AND from_state = 'queued' AND to_state = 'awaiting_input'",
+        "AND from_state = 'staging' AND to_state = 'awaiting_input'",
         (job["id"],))["reason"]
     assert "pdk lambda (lambda): the source answered 404" in reason
 
@@ -175,10 +177,88 @@ def test_a_job_sent_back_counts_as_waiting_again(server, server_client, key, tok
     store = server.config["SC_STORE"]
     user = store.one("SELECT user_id FROM jobs WHERE id = ?", (job["id"],))["user_id"]
     assert store.one("SELECT count(*) AS n FROM jobs WHERE user_id = ? AND state IN "
-                     "('queued','running','cancelling')", (user,))["n"] == 0
+                     "('staging','queued','running','cancelling')", (user,))["n"] == 0
     row = store.one("SELECT created_at, state_changed_at FROM jobs WHERE id = ?",
                     (job["id"],))
     assert row["state_changed_at"] >= row["created_at"]
+
+
+def transitions(server, job_id):
+    return [(row["from_state"], row["to_state"]) for row in server.config["SC_STORE"].all(
+        "SELECT from_state, to_state FROM job_state_transitions WHERE job_id = ? "
+        "ORDER BY id", (job_id,))]
+
+
+def test_a_job_stages_then_queues_and_queued_only_moves_forward(
+        server, server_client, key, token, job_archive, remote_project, dispatcher):
+    '''🔴 Surface D130: the fetch is where a job can still be sent back or
+    refused, so it happens BEFORE `queued`.'''
+    fake_fetch(server)
+    archive, digest, size = job_archive(remote_project)
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+    assert wait_for(lambda: dispatcher.submitted)
+
+    assert transitions(server, job["id"])[-2:] == [("awaiting_input", "staging"),
+                                                   ("staging", "queued")]
+
+
+def test_a_job_with_nothing_to_fetch_queues_at_once(
+        server, server_client, key, token, job_archive, dispatcher):
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    assert ("awaiting_input", "queued") in transitions(server, job["id"])
+    assert not any("staging" in pair for pair in transitions(server, job["id"]))
+
+
+def test_a_staging_job_counts_against_concurrent_jobs(
+        server, server_client, key, token, job_archive, remote_project, dispatcher):
+    '''🔴 Fetches are work: a state no limit counted would let one account
+    stage any number of jobs at once.'''
+    import threading
+
+    gate = threading.Event()
+    store = server.config["SC_JOBS"]._sources
+
+    def slow(url, into, timeout, session):
+        gate.wait(5)
+        (into / "datasheet.pdf").write_text("x")
+
+    store._archive = slow
+    server.config["SC_CONFIG"].limits["concurrent_jobs"] = 1
+    try:
+        archive, digest, size = job_archive(remote_project)
+        first_job = stage(server_client, key, token, archive, size)
+        submit(server_client, key, token, first_job["id"], digest, size)
+        assert read(server_client, key, token, first_job["id"])["state"] == "staging"
+
+        archive, digest, size = job_archive(remote_project)
+        second = stage(server_client, key, token, archive, size)
+        refused = submit(server_client, key, token, second["id"], digest, size)
+        assert refused.status_code == 429
+        assert refused.get_json()["limit"] == "concurrent_jobs"
+    finally:
+        gate.set()
+
+
+def test_a_fetched_copy_missing_a_required_file_is_refused_from_staging(
+        server, server_client, key, token, job_archive, gcd_design, tmp_path, dispatcher):
+    '''`rejected` means refused before it ran -- at submit, or while staging.'''
+    from test_required import carried, reading
+
+    store = server.config["SC_JOBS"]._sources
+    store._archive = lambda url, into, timeout, session: (into / "other.pdf").write_text("x")
+    project = carried(reading(gcd_design, tmp_path, ("library", "lambda", *DATASHEET),
+                              pdk=resource(PDK, "lambda", LAMBDA, create=False)))
+    archive, digest, size = job_archive(project)
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"] == "rejected")
+    assert transitions(server, job["id"])[-1] == ("staging", "rejected")
+    assert not dispatcher.submitted
 
 
 ###########################
@@ -289,6 +369,8 @@ def test_cancelling_a_job_still_fetching_cancels_it_at_once(
     assert cancelled["state"] == "cancelled"
     time.sleep(0.3)
     assert not dispatcher.submitted
+    # Straight from staging: nothing is running, so there is no `cancelling`.
+    assert transitions(server, job["id"])[-1] == ("staging", "cancelled")
 
 
 def test_a_private_source_mapped_here_is_supplied_at_create(server, server_client,
