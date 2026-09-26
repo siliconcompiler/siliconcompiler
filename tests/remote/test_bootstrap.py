@@ -555,3 +555,17 @@ def test_the_classic_store_pushes_the_whole_image(bootstrap, monkeypatch):
     bootstrap.push(bootstrap.RUNTIME_IMAGE, "sc-runtime", "0.38.9")
 
     assert not any("platform=" in path for path in posted)
+
+
+def test_the_portal_answers_the_networks_gateway_and_nothing_wider(bootstrap, tmp_path):
+    '''Compose publishes the portal on the host's loopback, which the container
+    sees as its gateway -- one address, never the network the compute nodes
+    share.'''
+    routes = tmp_path / "route"
+    routes.write_text(
+        "Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\n"
+        "eth0\t00000000\t010012AC\t0003\t0\t0\t0\t00000000\n"
+        "eth0\t000012AC\t00000000\t0001\t0\t0\t0\t0000FFFF\n")
+
+    assert bootstrap._gateway(str(routes)) == ["172.18.0.1"]
+    assert bootstrap._gateway(str(tmp_path / "missing")) == []

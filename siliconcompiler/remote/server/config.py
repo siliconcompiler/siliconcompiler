@@ -186,6 +186,19 @@ DEFAULTS: Dict[str, Any] = {
     # and that this job has no page on it, which is never true.
     "web_url_base": None,
 
+    # Which peers the portal answers over plaintext, as addresses or networks.
+    #
+    # 🔴 **The portal's session cookie is a bearer secret** -- possession is
+    # the whole of it, and it lives twelve hours -- and contract rule 3 accepts
+    # none on a plaintext wire but the storage URLs. So in plaintext the portal
+    # answers only a peer on this machine; over HTTPS it answers anywhere. A lab
+    # deployment reaches it through an SSH port-forward, or serves HTTPS.
+    #
+    # ⚠️ A container sees a connection published on its host's loopback as
+    # coming from its network's gateway, so a compose stack lists that one
+    # address here -- never the network, which the compute nodes are on too.
+    "portal_plaintext_peers": ["127.0.0.0/8", "::1/128"],
+
     # Whether the compute nodes run each job's work inside a container this
     # deployment registered.
     #
@@ -452,6 +465,14 @@ def _check_policy(values: Dict[str, Any]) -> None:
     if "python.env" in features and values["containers"] and not values["env_builder"]:
         raise ValueError("features lists python.env, and nodes here run in "
                          "containers with no env_builder to build them an image")
+
+    import ipaddress
+
+    try:
+        for peer in values["portal_plaintext_peers"] or []:
+            ipaddress.ip_network(peer, strict=False)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"portal_plaintext_peers holds addresses or networks: {e}") from None
 
     private = values["private_dataroots"] or {}
     if not isinstance(private, dict) or not all(

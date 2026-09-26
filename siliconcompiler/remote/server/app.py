@@ -54,6 +54,17 @@ def require_server_dependency() -> None:
             name=missing_server_dependency)
 
 
+def _keep_off_path(datadir: Path) -> None:
+    '''Take the data directory, and anything under it, off `sys.path`.'''
+    import os
+    import sys
+
+    root = str(datadir)
+    sys.path[:] = [entry for entry in sys.path
+                   if not (os.path.realpath(entry or os.curdir) == root
+                           or os.path.realpath(entry or os.curdir).startswith(root + os.sep))]
+
+
 def create_app(datadir: Union[str, Path], cluster: str = "local",
                bind_keys: bool = True, test_mode: Optional[int] = None):
     '''Build the application for one deployment.
@@ -73,6 +84,13 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     datadir = Path(datadir).resolve()
     datadir.mkdir(parents=True, exist_ok=True)
+
+    # 🔴 Nothing under the data directory is importable here: every job's
+    # extracted archive is under it (contract §1). And what a manifest may name
+    # is loaded now, once -- see schemaclasses.
+    _keep_off_path(datadir)
+    from siliconcompiler.remote.server import schemaclasses
+    schemaclasses.load()
 
     config = Config.load(datadir, test_mode=test_mode)
     store = Store(datadir / "server.db")

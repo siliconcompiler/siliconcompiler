@@ -67,6 +67,17 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    # 🔴 `python -m` puts the working directory first on sys.path, and the
+    # server is usually started in its data directory -- where every job's
+    # extracted archive is. Nothing there may be importable in this process
+    # (contract §1), so the working directory comes off before anything else.
+    import os
+    import sys
+
+    here = os.path.realpath(os.getcwd())
+    sys.path[:] = [entry for entry in sys.path
+                   if entry and os.path.realpath(entry) != here]
+
     args = _parser().parse_args(argv)
 
     logging.basicConfig(

@@ -90,6 +90,22 @@ MAX_REASON = 500
 _NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
+def _as_data(method):
+    '''🔴 Every manifest ``method`` reads, it reads as data (contract §1): a
+    class or task module the manifest names is looked up among what this
+    installation provides, and never imported -- for the whole call, since the
+    project it derives is used throughout.'''
+    import functools
+
+    from siliconcompiler.remote.server import schemaclasses
+
+    @functools.wraps(method)
+    def wrapped(*args, **kwargs):
+        with schemaclasses.reading():
+            return method(*args, **kwargs)
+    return wrapped
+
+
 class JobService:
     '''One deployment's jobs.
 
@@ -630,6 +646,7 @@ class JobService:
     # 15. submit
     ######################################################################
 
+    @_as_data
     def submit(self, session, job_id: str, body: Dict[str, Any],
                idempotency_key: Optional[str]) -> Dict[str, Any]:
         job = self.owned(session, job_id)
@@ -934,6 +951,7 @@ class JobService:
         threading.Thread(target=self._prepare, args=(job_id,), daemon=True,
                          name=f"prepare-{job_id[:8]}").start()
 
+    @_as_data
     def _prepare(self, job_id: str) -> None:
         '''Fetch what the run needs and the server does not hold, then
         dispatch -- or send the job back asking for what could not be had.
@@ -1424,7 +1442,9 @@ class JobService:
         with warnings.catch_warnings(record=True) as raised:
             warnings.simplefilter("always", SchemaVersionWarning)
             try:
-                project = Project.from_manifest(filepath=str(manifest))
+                # Whole, not lazily: every class it names is resolved here,
+                # inside `_as_data`, and none is left to a later access.
+                project = Project.from_manifest(filepath=str(manifest), lazyload=False)
             except Exception as e:
                 raise self._refuse(session, job, ProblemError(
                     "declared-mismatch",
@@ -1465,6 +1485,14 @@ class JobService:
                 detail=f"{len(nodes)} nodes, and this server runs at most "
                        f"{self._config.limits['max_job_nodes']}"))
 
+        # 🔴 A node's task class this installation does not provide is refused
+        # (surface D163): its own setup and pre- and post-processing run on the
+        # node, so running it as its base class would silently lose them. Only
+        # task classes -- a Design, flow or library subclass is data this
+        # server never calls, and SiliconCompiler's own examples define theirs
+        # in the script. Looked up, never imported: see `_as_data`.
+        self._check_task_classes(session, job, project, nodes)
+
         # 🔴 The software version is NOT re-derived here, and that is a
         # limitation worth stating rather than a check that was forgotten. A
         # manifest records `record,scversion` per node as each node runs, so a
@@ -1495,6 +1523,34 @@ class JobService:
             # out and carried here; None where it could not.
             "required": owners.required(project),
         }
+
+    def _check_task_classes(self, session, job, project, nodes) -> None:
+        from siliconcompiler.schema.baseschema import BaseSchema
+
+        known = BaseSchema._known_classes()
+        if known is None:
+            # Outside `_as_data`, where nothing is refused because nothing is
+            # looked up -- which no caller that reads an upload is.
+            return
+
+        flow = project.get_flow()
+        unknown: Dict[str, List[str]] = {}
+        for step, index in nodes:
+            name = flow.get_graph_node(step, index).get_taskmodule()
+            if name not in known:
+                unknown.setdefault(name, []).append(f"{step}/{index}")
+        if not unknown:
+            return
+
+        named = "; ".join(f"{', '.join(where)} runs {name}"
+                          for name, where in sorted(unknown.items()))
+        raise self._refuse(session, job, ProblemError(
+            "software-unavailable", reason="unknown_class",
+            unresolved=[{"name": name, "requirement": [], "available": []}
+                        for name in sorted(unknown)],
+            detail=_bounded(f"this server does not have the task class each of these "
+                            f"nodes runs: {named}. A task's own setup runs on the node, "
+                            "so it is not run as its base class instead")))
 
     def _normalize(self, session, job, root: Path, derived, plan, entries=()) -> Path:
         '''Apply the server's settings and write the manifest the run will load.
@@ -2912,8 +2968,19 @@ class _Supply:
         self._sources = sources
 
     def package(self, module: str) -> bool:
-        import importlib.util
+        '''Whether this installation has ``module``, asked without importing
+        anything a job named (contract §1).
 
+        ⚠️ `find_spec` on a dotted name imports its parent first, so only a
+        top-level name is looked up -- which runs nothing -- and a submodule is
+        answered only once its parent is already loaded here.
+        '''
+        import importlib.util
+        import sys
+
+        top, _, rest = module.partition(".")
+        if not top.isidentifier() or (rest and top not in sys.modules):
+            return False
         try:
             return importlib.util.find_spec(module) is not None
         except (ImportError, ValueError):

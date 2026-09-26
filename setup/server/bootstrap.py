@@ -583,6 +583,11 @@ def write_config() -> None:
     # its own; turning the builder on is what advertises `python.env`.
     config["env_builder"] = True
     config["build_queue"] = BUILD_QUEUE
+    # 🔴 The portal answers plaintext only from this machine. Compose publishes
+    # it on the host's loopback, and the container sees those connections from
+    # the network's gateway -- that one address, never the network, which the
+    # compute nodes running user jobs are on too.
+    config["portal_plaintext_peers"] = ["127.0.0.0/8", "::1/128", *_gateway()]
     # Where a person reads about a job. Deployment config rather than anything
     # derived from a request header -- see config.py for why that distinction
     # is a security one and not a tidiness one.
@@ -590,6 +595,22 @@ def write_config() -> None:
 
     path.write_text(json.dumps(config, indent=2) + "\n")
     say(f"wrote {path}")
+
+
+def _gateway(routes: str = "/proc/net/route") -> list:
+    '''This container's default gateway, as a one-element list, or [].'''
+    import socket
+    import struct
+
+    try:
+        lines = open(routes).read().splitlines()[1:]
+    except OSError:
+        return []
+    for line in lines:
+        fields = line.split()
+        if len(fields) > 2 and fields[1] == "00000000":
+            return [socket.inet_ntoa(struct.pack("<L", int(fields[2], 16)))]
+    return []
 
 
 def registry(*args: str) -> None:

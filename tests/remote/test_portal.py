@@ -40,6 +40,34 @@ def signed_in(server, server_client, key, token):
     return server_client
 
 
+def test_in_plaintext_the_portal_answers_this_machine_only(server, signed_in):
+    '''🔴 Its session cookie is a bearer secret, and a plaintext wire may carry
+    none but the storage URLs (surface D170).'''
+    remote = {"REMOTE_ADDR": "10.1.2.3"}
+
+    refused = signed_in.get("/portal/", environ_base=remote)
+    assert refused.status_code == 403
+    assert "this machine only" in refused.get_data(as_text=True)
+
+    assert signed_in.get("/portal/").status_code == 200                  # loopback
+    assert signed_in.get("/portal/", base_url="https://localhost",
+                         environ_base=remote).status_code == 200         # HTTPS
+
+    config = server.config["SC_CONFIG"]
+    config._values["portal_plaintext_peers"] = ["10.1.2.3"]              # a gateway
+    assert signed_in.get("/portal/", environ_base=remote).status_code == 200
+
+
+def test_a_peer_list_that_is_not_addresses_is_refused(tmp_path):
+    import json
+
+    from siliconcompiler.remote.server.config import Config
+
+    (tmp_path / "config.json").write_text(json.dumps({"portal_plaintext_peers": ["lab"]}))
+    with pytest.raises(ValueError, match="portal_plaintext_peers"):
+        Config.load(tmp_path)
+
+
 def csrf(client, path="/portal/"):
     page = client.get(path).get_data(as_text=True)
     marker = 'name="csrf" value="'

@@ -47,6 +47,34 @@ logger = logging.getLogger("sc-server")
 
 blueprint = flask.Blueprint("portal", __name__, template_folder="templates")
 
+
+@blueprint.before_request
+def _plaintext_only_here():
+    '''🔴 In plaintext, only a peer on this machine (surface D170, contract
+    rule 3): the session cookie is a bearer secret, and a plaintext wire may
+    carry none but the storage URLs. Over HTTPS, anywhere.'''
+    import ipaddress
+
+    # The CLI's mint is an API call with a proof, and what it returns is only
+    # redeemable here -- by a peer this lets through.
+    if flask.request.is_secure or flask.request.endpoint == "portal.offer_session":
+        return None
+    config = flask.current_app.config["SC_CONFIG"]
+    try:
+        peer = ipaddress.ip_address((flask.request.remote_addr or "").split("%")[0])
+    except ValueError:
+        peer = None
+    allowed = [ipaddress.ip_network(entry, strict=False)
+               for entry in config["portal_plaintext_peers"] or []]
+    if peer is not None and any(peer in network for network in allowed):
+        return None
+    return flask.render_template(
+        "problem.html", title="The portal answers this machine only",
+        detail="This server speaks plaintext, and the portal's session is a secret "
+               "that must not cross a network in the clear. Reach it through an SSH "
+               "port-forward to this machine, or ask the operator to serve HTTPS."), 403
+
+
 COOKIE = "sc_portal"
 
 # Seconds to a minute, because the URL is handed to a browser on the same

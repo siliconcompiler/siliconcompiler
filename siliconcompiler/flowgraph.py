@@ -810,6 +810,14 @@ class Flowgraph(NamedSchema, DocsSchema):
         except (ValueError, AttributeError):
             raise ValueError("Task module name is not correctly formatted as "
                              f"<full.module.path>/<ClassName>: {name}")
+
+        known = BaseSchema._known_classes()
+        if known is not None:
+            # Restricted: looked up among the loaded classes, never imported.
+            if name not in known:
+                raise ImportError(f"{name} is not a task class this installation provides")
+            return known[name]
+
         module = importlib.import_module(module_name)
 
         self.__cache_tasks[name] = getattr(module, cls)
