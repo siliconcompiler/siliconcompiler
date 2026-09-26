@@ -176,6 +176,12 @@ MOUNTS = ["/run/munge", "/sc_tools/etc", "/etc/resolv.conf"]
 # nodes on. See the two partitions in slurm.conf.
 BATCH_QUEUE = os.environ.get("SC_BATCH_QUEUE", "coordinate")
 
+# The partition a node's Python environment is built in (`build_queue`). A
+# queue of its own, so a burst of builds -- the first jobs after a new tool
+# image, each asking for its own set -- waits there and not in the slots flows
+# are waiting on.
+BUILD_QUEUE = os.environ.get("SC_BUILD_QUEUE", "build")
+
 # The origin this stack publishes to a person. Loopback, because that is where
 # the compose file publishes the API and the portal and nowhere else is
 # reachable anyway.
@@ -510,6 +516,10 @@ def write_config() -> None:
     config["containers"] = True
     config["container_mounts"] = MOUNTS
     config["batch_queue"] = BATCH_QUEUE
+    # Nodes run in containers, so a node's Python is built into an image of
+    # its own; turning the builder on is what advertises `python.env`.
+    config["env_builder"] = True
+    config["build_queue"] = BUILD_QUEUE
     # Where a person reads about a job. Deployment config rather than anything
     # derived from a request header -- see config.py for why that distinction
     # is a security one and not a tidiness one.

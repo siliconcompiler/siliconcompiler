@@ -1054,7 +1054,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         # A remote run's Python for this node, ahead of everything else on the
         # tool's path: the user's own editable, local and VCS installs sent
-        # beside its environment file, then what the server installed from it.
+        # beside its environment file, then what the server installed from it
+        # -- on the host, or in the layer of the image the node runs in.
         # Never on this process's: SiliconCompiler does not import from them.
         carried = self.__remote_python()
         if carried:
@@ -1065,7 +1066,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         return envvars
 
     def __remote_python(self) -> List[str]:
-        from siliconcompiler.remote.environment import packages_path, site_path
+        from siliconcompiler.remote.environment import IMAGE_SITE, packages_path, site_path
         from siliconcompiler.utils.paths import jobdir
 
         try:
@@ -1074,6 +1075,9 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                      os.path.join(root, site_path(self.step, self.index))]
         except Exception:                                       # noqa: BLE001
             return []
+        # Only a node whose file the server built an image for runs in one
+        # with this directory: every other node's image has none.
+        paths.append(IMAGE_SITE)
         return [path for path in paths if os.path.isdir(path)]
 
     def get_python_environment(self) -> Optional["PythonEnvironment"]:

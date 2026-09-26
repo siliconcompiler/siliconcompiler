@@ -39,6 +39,7 @@ COMMAND_TIMEOUT = 20
 
 RUN_SCRIPT = "sc-server-run.sh"
 RUN_LOG = "sc-server-run.log"
+BUILD_SCRIPT = "sc-server-build.sh"
 
 
 class DispatchError(RuntimeError):
@@ -64,6 +65,12 @@ class Dispatcher:
         raise NotImplementedError
 
     def cancel(self, scheduler_job_id: str, node_job_ids=()) -> None:
+        raise NotImplementedError
+
+    def submit_build(self, name: str, workspace: Path, spec: Path,
+                     queue: Optional[str] = None) -> str:
+        '''Start one environment build (`envbuild`), which writes its result
+        into ``workspace``. Returns an id `is_alive` answers for.'''
         raise NotImplementedError
 
     def node_jobs(self, job_id: str, nodes) -> Dict[Tuple[str, str], str]:
@@ -115,6 +122,22 @@ class LocalDispatcher(Dispatcher):
         self._children[process.pid] = process
         return f"local:{process.pid}"
 
+    def submit_build(self, name: str, workspace: Path, spec: Path,
+                     queue: Optional[str] = None) -> str:
+        from siliconcompiler.remote.server.envbuild import LOG
+
+        log = open(workspace / LOG, "ab")
+        try:
+            process = subprocess.Popen(
+                [sys.executable, "-m", "siliconcompiler.remote.server.envbuild", str(spec)],
+                cwd=str(workspace), stdin=subprocess.DEVNULL,
+                stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        finally:
+            log.close()
+
+        self._children[process.pid] = process
+        return f"local:{process.pid}"
+
     def is_alive(self, scheduler_job_id: str) -> bool:
         pid = _local_pid(scheduler_job_id)
         if pid is None:
@@ -131,7 +154,10 @@ class LocalDispatcher(Dispatcher):
         # bare kill(pid, 0) does not.
         try:
             with open(f"/proc/{pid}/cmdline", "rb") as f:
-                return b"siliconcompiler.remote.server.runner" in f.read()
+                command = f.read()
+            return any(module in command for module in (
+                b"siliconcompiler.remote.server.runner",
+                b"siliconcompiler.remote.server.envbuild"))
         except OSError:
             return False
 
@@ -214,6 +240,43 @@ class SlurmDispatcher(Dispatcher):
                 f"sbatch refused this job: {completed.stderr.strip() or completed.stdout.strip()}")
 
         # --parsable prints "<jobid>" or "<jobid>;<cluster>".
+        return completed.stdout.strip().split(";")[0]
+
+    def submit_build(self, name: str, workspace: Path, spec: Path,
+                     queue: Optional[str] = None) -> str:
+        '''``sbatch`` one environment build onto a compute node.
+
+        🔴 **On the host, not in a container**: the build starts a container of
+        its own -- a step in this allocation, network-isolated -- and has to
+        run the proxy that container reaches out through. So no
+        ``--container`` here, and the host needs the Slurm client, the
+        container runtime and skopeo and umoci, which a compute node has.
+        '''
+        from siliconcompiler.remote.server.envbuild import LOG
+
+        script = workspace / BUILD_SCRIPT
+        script.write_text(
+            "#!/bin/sh\n"
+            "# Written by sc-server: one node's Python environment, built into\n"
+            "# an image. It writes result.json beside this file.\n"
+            f"exec {shlex.quote(sys.executable)} "
+            "-m siliconcompiler.remote.server.envbuild "
+            f"{shlex.quote(str(spec))}\n")
+        script.chmod(0o755)
+
+        command = ["sbatch", "--parsable", "--no-requeue", "--ntasks=1",
+                   f"--job-name=sc-envbuild-{name}", f"--chdir={workspace}",
+                   f"--output={workspace / LOG}"]
+        if queue:
+            # The builder queue: a burst of builds after a new tool image is
+            # registered waits here, not in the node slots flows run in.
+            command.append(f"--partition={queue}")
+        command.append(str(script))
+
+        completed = _run(command)
+        if completed.returncode != 0:
+            raise DispatchError(
+                f"sbatch refused the build: {completed.stderr.strip() or completed.stdout.strip()}")
         return completed.stdout.strip().split(";")[0]
 
     def is_alive(self, scheduler_job_id: str) -> bool:

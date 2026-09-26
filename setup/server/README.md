@@ -341,11 +341,12 @@ gone has its survivors reaped.
 error for one that has already finished, and a warning per finished node is how
 an operator learns to ignore warnings.
 
-### Two partitions, and which work goes where
+### Three partitions, and which work goes where
 
 ```
 compute*     a node's task -- EDA tools, real cores, real memory
 coordinate   the run's own orchestrating process
+build        a node's Python environment, built into an image while staging
 ```
 
 The orchestrator loads the manifest, drives the flow, and submits every node as
@@ -363,6 +364,31 @@ living in it.
 `compute` is `Default=YES`, which is what a node's task gets when nothing names
 a partition, and what `get_slurm_partition()` finds via the `*` that `sinfo`
 appends.
+
+### The environment builder
+
+A cocotb testbench imports what its author had installed, so a job carries a
+Python environment file per node, and this stack builds each one into an image
+of its own while the job is `staging`: the node's image with the packages in
+one more layer, pushed to `registry` beside it and staged as a bundle that
+borrows the base's root filesystem. `bootstrap` turns it on with
+`"env_builder": true` and `"build_queue": "build"`, which is also what makes
+`GET /v1` advertise `python.env`. Set `env_builder` to false in the volume's
+`config.json` to switch it off.
+
+A build is a batch job of its own in `build`, on a compute node, and pip runs
+inside the node's own image in a container that reaches nothing: a read-only
+root, a private `/tmp`, none of the image's mounts, and a network namespace
+holding only a loopback. Its one way out is a unix socket to a proxy the build
+job runs, which admits the hosts of `index_allowlist` -- PyPI by default -- and
+never a private address. Wheels only, so no package's own code runs while it
+builds. `scrunner` has `NET_ADMIN` for that loopback and nothing else.
+
+The same file and image are built once: every later job asking for the same
+set reuses the image, which the portal's images page lists under *Built
+environments*. A pin that will not install rejects the job,
+`software-unavailable` with `reason: "uninstallable"`, naming the package and
+the image's Python and platform.
 
 This stack can run it. The image carries `crun` (the OCI runtime Slurm invokes
 — a binary it execs, so no socket and no daemon), plus `skopeo` and `umoci` to

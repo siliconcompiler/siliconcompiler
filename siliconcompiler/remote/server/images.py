@@ -21,11 +21,13 @@ job runs in a container without what it asked for and fails at run time rather
 than at submit. Saying so is what keeps the row from being read as a guarantee.
 '''
 
+import json
 import logging
 import re
 
 from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple
 
+from siliconcompiler.remote.environment import IMAGE_SITE
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import now
@@ -33,6 +35,8 @@ from siliconcompiler.remote.server.store import now
 __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
            "catalogue", "contents_of", "declared_requirements", "digests_for",
            "sweep_bundles", "matches", "normalize", "specifiers",
+           "LAYER_PATH", "derivation", "derived_image", "register_derived",
+           "stage_derived_bundle",
            "is_staged", "live_images", "live_software", "pinned_ref",
            "plan_for_job", "register_image", "register_software",
            "register_version", "how_to_ask", "resolve",
@@ -260,9 +264,11 @@ def live_images(store) -> List[Dict[str, Any]]:
     most dangerous data in the schema; being able to read the rule matters more
     than the query plan.
     '''
+    # 🔴 A derived image is never a candidate: it is reached only by its
+    # derivation key, or one user's packages would place another user's node.
     rows = store.all(
         "SELECT id, registry_ref, digest, note, built_at, resolved_at FROM images "
-        "WHERE retired_at IS NULL ORDER BY registry_ref")
+        "WHERE retired_at IS NULL AND derived_from IS NULL ORDER BY registry_ref")
 
     contents: Dict[str, List[Held]] = {}
     for row in store.all(
@@ -300,7 +306,7 @@ def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
         "ORDER BY software_name, "
         "         CASE version_source WHEN 'reported' THEN 0 ELSE 1 END, "
         "         preference DESC, version")]
-    images = [dict(row) for row in store.all(
+    rows = [dict(row) for row in store.all(
         f"SELECT * FROM images{where} ORDER BY registry_ref")]
 
     holds: Dict[str, List[str]] = {}
@@ -308,10 +314,22 @@ def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
                          "ORDER BY software_name, version"):
         holds.setdefault(row["image_id"], []).append(
             f"{row['software_name']}=={row['version']}")
-    for image in images:
+    for image in rows:
         image["contents"] = holds.get(image["id"], [])
 
-    return {"software": software, "versions": versions, "images": images}
+    # The server's own, apart from what an operator registered: a derived image
+    # is a node's Python layered on one of those, and is no one's to resolve to.
+    images = [row for row in rows if not row.get("derived_from")]
+    derived = [row for row in rows if row.get("derived_from")]
+    bases = {row["id"]: row["registry_ref"] for row in store.all(
+        "SELECT id, registry_ref FROM images WHERE id IN (SELECT derived_from FROM images)")}
+    for image in derived:
+        image["installed"] = [f"{name}=={version}"
+                              for name, version in json.loads(image["installed"] or "[]")]
+        image["base"] = bases.get(image["derived_from"])
+
+    return {"software": software, "versions": versions, "images": images,
+            "derived": derived}
 
 
 def how_to_ask(store) -> Dict[str, Dict[str, Optional[str]]]:
@@ -661,13 +679,26 @@ def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str
         return {}
 
     found: Dict[str, List[str]] = {}
+
+    def add(name, version):
+        versions = found.setdefault(name, [])
+        if version not in versions:
+            versions.append(version)
+
+    # A derived image is its base plus what its layer installed (surface
+    # D131: `resolved_versions` lists what was installed).
+    for row in store.all(
+            f"SELECT id, derived_from, installed FROM images WHERE derived_from IS NOT NULL "
+            f"AND id IN ({', '.join('?' * len(wanted))})", tuple(wanted)):
+        wanted.add(row["derived_from"])
+        for name, version in json.loads(row["installed"] or "[]"):
+            add(name, version)
+
     for image in live_images(store):
         if image["id"] not in wanted:
             continue
         for entry in image["contents"]:
-            versions = found.setdefault(entry.name, [])
-            if entry.version not in versions:
-                versions.append(entry.version)
+            add(entry.name, entry.version)
 
     return {name: sorted(versions) for name, versions in sorted(found.items())}
 
@@ -928,20 +959,30 @@ def sweep_bundles(root, store) -> int:
     if not root.is_dir():
         return 0
 
-    keep = {row["digest"].replace("sha256:", "")
-            for row in store.all("SELECT digest FROM images WHERE retired_at IS NULL")}
+    # A derived bundle is its base's root filesystem with a layer bound in, so
+    # it is only as runnable as its base: kept while the base is live, and the
+    # base kept whatever became of it while a job might start in the derived.
+    keep = {row["digest"].replace("sha256:", "") for row in store.all(
+        "SELECT i.digest FROM images i LEFT JOIN images b ON b.id = i.derived_from "
+        "WHERE i.retired_at IS NULL AND (i.derived_from IS NULL OR b.retired_at IS NULL)")}
 
-    # A retired image whose bytes something might still start in. Both columns,
-    # because a job records the framework image and each node records its own.
-    busy = {row["digest"].replace("sha256:", "") for row in store.all(
-        "SELECT i.digest FROM images i WHERE i.retired_at IS NOT NULL AND ("
-        "  EXISTS (SELECT 1 FROM jobs j WHERE j.image_id = i.id"
-        "          AND j.state NOT IN ('completed', 'failed', 'cancelled',"
-        "                              'rejected', 'abandoned'))"
-        "  OR EXISTS (SELECT 1 FROM job_nodes n JOIN jobs j ON j.id = n.job_id"
-        "             WHERE n.image_id = i.id"
-        "             AND j.state NOT IN ('completed', 'failed', 'cancelled',"
-        "                                 'rejected', 'abandoned')))")}
+    # An image whose bytes something might still start in, retired or not, and
+    # the base under it. Both columns, because a job records the framework
+    # image and each node records its own.
+    busy = set()
+    for row in store.all(
+            "SELECT i.digest, b.digest AS base FROM images i "
+            "LEFT JOIN images b ON b.id = i.derived_from WHERE ("
+            "  EXISTS (SELECT 1 FROM jobs j WHERE j.image_id = i.id"
+            "          AND j.state NOT IN ('completed', 'failed', 'cancelled',"
+            "                              'rejected', 'abandoned'))"
+            "  OR EXISTS (SELECT 1 FROM job_nodes n JOIN jobs j ON j.id = n.job_id"
+            "             WHERE n.image_id = i.id"
+            "             AND j.state NOT IN ('completed', 'failed', 'cancelled',"
+            "                                 'rejected', 'abandoned')))"):
+        busy.add(row["digest"].replace("sha256:", ""))
+        if row["base"]:
+            busy.add(row["base"].replace("sha256:", ""))
 
     freed = 0
     for entry in sorted(root.iterdir()):
@@ -1022,6 +1063,111 @@ def _prepare_spec(config, mounts) -> None:
 
     with open(config, "w") as f:
         json.dump(spec, f)
+
+
+######################################################################
+# Derived images: a node's Python, layered on its image (surface D131)
+######################################################################
+
+# Where a derived image's layer puts a node's Python packages. On the tool's
+# PYTHONPATH only -- see `Task.get_runtime_environmental_variables`.
+LAYER_PATH = IMAGE_SITE
+
+
+def derivation(base_digest: str, environment_file: str, constrain=()) -> str:
+    '''The cache key of a derived image: its base, the file the server wrote,
+    and what the install was constrained by -- the job's `requires.python`
+    names, at the versions the base holds.
+
+    The base's Python tag, and the versions of those names, are functions of
+    its digest, so neither is asked for separately: each could only be learned
+    by running the image.'''
+    import hashlib
+
+    return hashlib.sha256(json.dumps(
+        {"base": base_digest, "file": environment_file,
+         "constrain": sorted(set(constrain))}, sort_keys=True).encode()).hexdigest()
+
+
+def derived_image(store, base_id: str, key: str) -> Optional[Dict[str, Any]]:
+    '''The live derived image for this base and key, or None.'''
+    row = store.one("SELECT * FROM images WHERE derived_from = ? AND derivation = ? "
+                    "AND retired_at IS NULL", (base_id, key))
+    return dict(row) if row else None
+
+
+def register_derived(store, base_id: str, registry_ref: str, digest: str, key: str,
+                     installed: Sequence[Tuple[str, str]], note: str) -> str:
+    '''Record an image the server built. Returns its id.
+
+    🔴 `registered_via = 'derived'` and no person: nobody registered it, the
+    builder produced it. It holds no `image_contents` -- it is its base's plus
+    `installed` -- so no requirement resolves to it and `GET /v1` never lists
+    it.
+    '''
+    if not _DIGEST.match(digest or ""):
+        raise ValueError(f"{digest!r} is not a sha256 digest")
+    # Two builds of one key -- a restart, two processes -- are the same
+    # environment: the first registered is the one every later job reuses.
+    existing = store.one("SELECT id FROM images WHERE digest = ? OR "
+                         "(derived_from = ? AND derivation = ? AND retired_at IS NULL)",
+                         (digest, base_id, key))
+    if existing is not None:
+        return existing["id"]
+
+    image_id = str(uuid7())
+    with store.transaction():
+        store.execute(
+            "INSERT INTO images (id, registry_ref, digest, resolved_at, built_at, "
+            "  registered_via, derived_from, derivation, installed, note) "
+            "VALUES (?, ?, ?, ?, ?, 'derived', ?, ?, ?, ?)",
+            (image_id, registry_ref, digest, now(), now(), base_id, key,
+             json.dumps([list(pair) for pair in installed]), note))
+    return image_id
+
+
+def stage_derived_bundle(root, base_digest: str, digest: str, layer):
+    '''The bundle a derived image runs as, from its base's and its layer.
+
+    🔴 **Not a second unpack of the base.** A derived image is its base plus
+    one layer, so its bundle is the base's configuration -- its mounts, its
+    environment -- with the base's root filesystem and the layer bound in at
+    `LAYER_PATH`. The same files the image would unpack to, without a copy of a
+    tool image per environment. The base bundle has to be staged first.
+
+    Built through a `.part` directory and renamed, as `stage_bundle` is.
+    '''
+    import shutil
+
+    base = bundle_path(root, base_digest)
+    if not is_staged(base):
+        raise RuntimeError(f"the base bundle {base} is not staged")
+    target = bundle_path(root, digest)
+    if is_staged(target):
+        return target
+
+    staging = target.with_name(target.name + ".part")
+    shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True)
+    shutil.copytree(layer, staging / "layer", symlinks=True)
+
+    with open(base / "config.json") as f:
+        spec = json.load(f)
+    spec["root"] = {"path": str((base / "rootfs").resolve()),
+                    "readonly": bool((spec.get("root") or {}).get("readonly", False))}
+    spec.setdefault("mounts", []).append({
+        "destination": LAYER_PATH, "type": "bind", "source": str(target / "layer"),
+        "options": ["rbind", "ro", "nosuid", "nodev"]})
+    with open(staging / "config.json", "w") as f:
+        json.dump(spec, f, indent=1)
+
+    try:
+        staging.rename(target)
+    except OSError:
+        if not is_staged(target):
+            raise
+        shutil.rmtree(staging, ignore_errors=True)
+    return target
 
 
 def is_staged(bundle) -> bool:

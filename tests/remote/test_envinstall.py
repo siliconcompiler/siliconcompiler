@@ -25,13 +25,18 @@ def pip(monkeypatch):
     calls = []
 
     def fake(command, **kwargs):
-        target = command[command.index("--target") + 1]
+        import glob
+
         handed = open(command[command.index("-r") + 1]).read()
-        calls.append((command, handed))
+        constraints = open(command[command.index("-c") + 1]).read()
+        calls.append((command, handed, constraints))
         if fake.fail:
             return subprocess.CompletedProcess(command, 1, stdout="ERROR: no wheel for x")
-        os.makedirs(target)
-        open(os.path.join(target, "installed.txt"), "w").write(handed)
+        # Into the environment whose Python ran it.
+        environment = os.path.dirname(os.path.dirname(command[0]))
+        site, = {os.path.realpath(path) for path in glob.glob(
+            os.path.join(environment, "lib*", "python*", "site-packages"))}
+        open(os.path.join(site, "installed.txt"), "w").write(handed)
         return subprocess.CompletedProcess(command, 0, stdout="")
 
     fake.fail = False
@@ -52,12 +57,29 @@ def test_the_uploaded_file_is_never_handed_to_pip(pip, tmp_path):
 
     target = envinstall.install(user, tmp_path / "cache", LOG, "sim/0")
 
-    (command, handed), = pip.calls
-    assert command[:4] == [sys.executable, "-m", "pip", "install"]
+    (command, handed, _), = pip.calls
+    assert command[1:4] == ["-m", "pip", "install"]
     assert "--only-binary" in command and command[command.index("--only-binary") + 1] == ":all:"
     assert "the user's own comment" not in handed and "trailing" not in handed
     assert environment.parse(handed.encode()).pins == user.pins
-    assert os.path.isdir(target)
+    assert os.path.isfile(os.path.join(target, "installed.txt"))
+
+
+def test_what_requires_python_names_is_pinned_to_what_this_host_holds(pip, tmp_path):
+    '''🔴 A venv that sees this Python's packages, with the job's
+    `requires.python` pinned -- never `--target`, which ignores what is
+    installed. The constraints are part of the key.'''
+    from importlib import metadata
+
+    first = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, "sim/0",
+                               constrain=["PyTest", "not-installed-anywhere"])
+    other = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, "sim/0")
+
+    (command, _, constraints), _ = pip.calls
+    assert "--target" not in command
+    assert f"pytest=={metadata.version('pytest')}" in constraints.splitlines()
+    assert "not-installed-anywhere" not in constraints
+    assert first != other
 
 
 def test_the_same_set_is_built_once_and_shared(pip, tmp_path):

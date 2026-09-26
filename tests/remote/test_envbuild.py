@@ -1,0 +1,917 @@
+import ast
+import gzip
+import hashlib
+import io
+import json
+import os
+import re
+import socket
+import subprocess
+import sys
+import tarfile
+import tempfile
+
+import pytest
+
+from siliconcompiler.remote import environment
+from siliconcompiler.remote.server import envbuild, images, oci, pipbuild
+
+
+# A node's Python environment, built into an image while the job is `staging`
+# (surface D131's container mode). Nothing here runs a container, reaches an
+# index or pushes to a registry: each of those is faked at its edge, and what
+# is asserted is what crosses it.
+
+
+def digest(letter):
+    return "sha256:" + letter * 64
+
+
+###########################
+# The layer, and the registry
+###########################
+
+def test_a_layer_puts_the_tree_where_it_is_asked_and_is_reproducible(tmp_path):
+    site = tmp_path / "site"
+    (site / "pkg").mkdir(parents=True)
+    (site / "pkg" / "__init__.py").write_text("VALUE = 1\n")
+    (site / "link").symlink_to("pkg")
+
+    first = oci.layer_from(site, "/opt/sc/python-env/site")
+    os.utime(site / "pkg" / "__init__.py", (1, 1))
+    again = oci.layer_from(site, "/opt/sc/python-env/site")
+
+    assert first == again                       # no times of this machine's
+    data, layer_digest, diff_id = first
+    assert layer_digest == "sha256:" + hashlib.sha256(data).hexdigest()
+    assert diff_id == "sha256:" + hashlib.sha256(gzip.decompress(data)).hexdigest()
+
+    with tarfile.open(fileobj=io.BytesIO(data)) as tar:
+        members = {member.name: member for member in tar.getmembers()}
+    assert {"opt", "opt/sc", "opt/sc/python-env", "opt/sc/python-env/site",
+            "opt/sc/python-env/site/pkg/__init__.py"} <= set(members)
+    assert members["opt/sc/python-env/site/link"].issym()     # a link stays a link
+    assert {member.mtime for member in members.values()} == {0}
+
+
+@pytest.fixture
+def registry(monkeypatch, tmp_path):
+    '''A registry at registry:5000, marked insecure as the rig marks it, with
+    one base image of two layers in `sc-tools`. Records every upload.'''
+    responses = pytest.importorskip("responses")
+
+    conf = tmp_path / "registries.conf"
+    conf.write_text('[[registry]]\nlocation = "registry:5000"\ninsecure = true\n')
+    monkeypatch.setenv("CONTAINERS_REGISTRIES_CONF", str(conf))
+
+    config = {"architecture": "amd64", "os": "linux",
+              "rootfs": {"type": "layers", "diff_ids": [digest("1"), digest("2")]},
+              "history": [{"created_by": "base"}]}
+    config_bytes = json.dumps(config).encode()
+    manifest = {
+        "schemaVersion": 2, "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "config": {"mediaType": "application/vnd.oci.image.config.v1+json",
+                   "digest": "sha256:" + hashlib.sha256(config_bytes).hexdigest(),
+                   "size": len(config_bytes)},
+        "layers": [{"mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+                    "digest": digest("3"), "size": 10},
+                   {"mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+                    "digest": digest("4"), "size": 20}]}
+    root = "http://registry:5000/v2/sc-tools"
+    uploaded = {}
+
+    with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
+        mock.get(f"{root}/manifests/{digest('b')}", json=manifest)
+        mock.get(f"{root}/blobs/{manifest['config']['digest']}", body=config_bytes)
+        mock.head(re.compile(rf"{root}/blobs/.*"), status=404)
+        mock.post(f"{root}/blobs/uploads/", status=202,
+                  headers={"Location": "/v2/sc-tools/blobs/uploads/u1?state=s"})
+
+        def take(request):
+            from urllib.parse import parse_qs, urlsplit
+
+            uploaded[parse_qs(urlsplit(request.url).query)["digest"][0]] = request.body
+            return (201, {}, "")
+        mock.add_callback("PUT", re.compile(rf"{root}/blobs/uploads/u1.*"), callback=take)
+
+        def put_manifest(request):
+            uploaded["manifest"] = json.loads(request.body)
+            return (201, {"Docker-Content-Digest": digest("d")}, "")
+        mock.add_callback("PUT", f"{root}/manifests/sc-env-test", callback=put_manifest)
+        mock.uploaded = uploaded
+        mock.manifest = manifest
+        yield mock
+
+
+def test_a_derived_image_is_the_base_with_one_layer_more(registry, tmp_path):
+    '''🔴 In the base's own repository, so every layer it names is one the
+    registry already holds there -- and only three small blobs move.'''
+    (tmp_path / "site").mkdir()
+    (tmp_path / "site" / "x.py").write_text("")
+    layer = oci.layer_from(tmp_path / "site", images.LAYER_PATH)
+
+    ref, derived = oci.derive(f"registry:5000/sc-tools@{digest('b')}", layer,
+                              tag="sc-env-test", comment="a node's Python")
+
+    assert (ref, derived) == ("registry:5000/sc-tools:sc-env-test", digest("d"))
+    uploaded = registry.uploaded
+    manifest = uploaded["manifest"]
+    assert manifest["layers"][:2] == registry.manifest["layers"]
+    assert manifest["layers"][2]["digest"] == layer[1]
+    assert uploaded[layer[1]] == layer[0]
+
+    config = json.loads(uploaded[manifest["config"]["digest"]])
+    assert config["rootfs"]["diff_ids"] == [digest("1"), digest("2"), layer[2]]
+    assert config["history"][-1]["comment"] == "a node's Python"
+
+
+def test_an_index_cannot_take_a_layer(registry, tmp_path):
+    registry.replace("GET", f"http://registry:5000/v2/sc-tools/manifests/{digest('b')}",
+                     json={"schemaVersion": 2, "manifests": [],
+                           "mediaType": "application/vnd.oci.image.index.v1+json"})
+
+    with pytest.raises(RuntimeError, match="multi-platform index"):
+        oci.derive(f"registry:5000/sc-tools@{digest('b')}", (b"", digest("0"), digest("0")),
+                   tag="sc-env-test", comment="")
+
+
+###########################
+# The install: pipbuild
+###########################
+
+def test_the_install_imports_nothing_but_the_standard_library():
+    '''🔴 It runs under the base image's Python, whose SiliconCompiler may be a
+    release without this module -- or without any of this server.'''
+    tree = ast.parse(open(pipbuild.__file__).read())
+    imported = {alias.name.split(".")[0] for node in ast.walk(tree)
+                if isinstance(node, ast.Import) for alias in node.names} | \
+        {node.module.split(".")[0] for node in ast.walk(tree)
+         if isinstance(node, ast.ImportFrom) and node.module}
+
+    assert imported <= set(sys.stdlib_module_names)
+
+
+@pytest.fixture
+def pip(monkeypatch):
+    '''pip, faked: what it was run with, and an install into the environment
+    whose Python ran it.'''
+    import glob
+
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append((command, kwargs["env"], open(command[command.index("-c") + 1]).read()))
+        if fake.output:
+            return subprocess.CompletedProcess(command, 1, stdout=fake.output)
+        environment = os.path.dirname(os.path.dirname(command[0]))
+        site, = {os.path.realpath(path) for path in glob.glob(
+            os.path.join(environment, "lib*", "python*", "site-packages"))}
+        for name in ("a_pkg", "b_ext"):
+            os.makedirs(os.path.join(site, name))
+            write_dist(site, name, "1.0")
+        return subprocess.CompletedProcess(command, 0, stdout="installed")
+
+    fake.output = None
+    monkeypatch.setattr(subprocess, "run", fake)
+    fake.calls = calls
+    return fake
+
+
+def write_dist(site, name, version, requires=()):
+    dist = os.path.join(site, f"{name}-{version}.dist-info")
+    os.makedirs(dist)
+    with open(os.path.join(dist, "METADATA"), "w") as f:
+        f.write(f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n")
+        for requirement in requires:
+            f.write(f"Requires-Dist: {requirement}\n")
+
+
+def test_the_layer_is_the_environments_own_site_packages(pip, tmp_path):
+    '''🔴 A venv that sees this Python's packages, pip run from it: never
+    `--target`, which ignores what is installed.'''
+    (tmp_path / "req.txt").write_text("a_pkg==1.0\n")
+
+    result = pipbuild.install(str(tmp_path / "req.txt"), str(tmp_path / "out" / "site"),
+                              constrain=["pytest", "PyTest"])
+
+    (command, _, constraints), = pip.calls
+    assert command[1:4] == ["-m", "pip", "install"]
+    assert command[0] != sys.executable
+    assert command[command.index("--only-binary") + 1] == ":all:"
+    assert "--target" not in command
+    from importlib import metadata
+    assert constraints.splitlines()[1:] == [f"pytest=={metadata.version('pytest')}"]
+    assert result["installed"] == [["a-pkg", "1.0"], ["b-ext", "1.0"]]
+    # Only what was added: not the .pth that let it see this Python's.
+    assert sorted(os.listdir(tmp_path / "out" / "site")) == [
+        "a_pkg", "a_pkg-1.0.dist-info", "b_ext", "b_ext-1.0.dist-info"]
+    assert sorted(os.listdir(tmp_path / "out")) == ["site"]     # the work dir is gone
+
+
+def test_behind_the_proxy_pip_sees_no_configuration_but_the_proxy(pip, tmp_path,
+                                                                  monkeypatch):
+    monkeypatch.setenv("PIP_INDEX_URL", "https://pkgs.example.com/simple/")
+    monkeypatch.setenv("HTTPS_PROXY", "http://somewhere-else:3128")
+    (tmp_path / "req.txt").write_text("a_pkg==1.0\n")
+    sockets = tempfile.mkdtemp(prefix="sc-t-")
+
+    pipbuild.install(str(tmp_path / "req.txt"), str(tmp_path / "site"),
+                     proxy_socket=os.path.join(sockets, "proxy.sock"))
+
+    (_, env, _), = pip.calls
+    assert "PIP_INDEX_URL" not in env
+    assert env["PIP_CONFIG_FILE"] == os.devnull
+    assert env["HTTPS_PROXY"].startswith("http://127.0.0.1:")
+
+
+###########################
+# The install, for real: pip against a Python that holds cocotb
+###########################
+
+def wheel(where, name, version, requires=()):
+    '''A pure wheel, as small as pip will take.'''
+    import zipfile
+
+    path = os.path.join(where, f"{name}-{version}-py3-none-any.whl")
+    info = f"{name}-{version}.dist-info"
+    metadata = f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n" + \
+        "".join(f"Requires-Dist: {requirement}\n" for requirement in requires)
+    files = {f"{name}/__init__.py": "",
+             f"{info}/METADATA": metadata,
+             f"{info}/WHEEL": "Wheel-Version: 1.0\nGenerator: test\n"
+                              "Root-Is-Purelib: true\nTag: py3-none-any\n"}
+    files[f"{info}/RECORD"] = "".join(f"{name},,\n" for name in [*files, f"{info}/RECORD"])
+    with zipfile.ZipFile(path, "w") as archive:
+        for member, body in files.items():
+            archive.writestr(member, body)
+
+
+@pytest.fixture
+def image_python(tmp_path):
+    '''A Python that holds cocotb 2.0 -- in a venv of its own, as
+    SiliconCompiler's images hold it -- and an index of wheels on disk: a
+    cocotb 1.9, and two testbench packages depending on cocotb.'''
+    import glob
+    import venv
+
+    pytest.importorskip("pip")
+    image = tmp_path / "image"
+    venv.EnvBuilder(with_pip=False, symlinks=True).create(image)
+    site, = {os.path.realpath(path) for path in glob.glob(
+        str(image / "lib*" / "python*" / "site-packages"))}
+    os.makedirs(os.path.join(site, "cocotb"))
+    write_dist(site, "cocotb", "2.0")
+
+    index = tmp_path / "index"
+    index.mkdir()
+    wheel(index, "cocotb", "1.9")
+    wheel(index, "cocotb_bus", "0.3.0", ["cocotb>=1.6"])
+    wheel(index, "pyuvm", "3.0.0", ["cocotb<2.0,>=1.6"])
+    return image / "bin" / "python", index
+
+
+def build_in(image_python, tmp_path, text):
+    python, index = image_python
+    (tmp_path / "req.txt").write_text(text)
+    env = {key: value for key, value in os.environ.items() if not key.startswith("PIP_")}
+    # Offline: the index above, and pip from wherever this Python finds it.
+    env.update(PIP_NO_INDEX="1", PIP_FIND_LINKS=str(index), PIP_CONFIG_FILE=os.devnull,
+               PYTHONPATH=os.path.dirname(os.path.dirname(pytest.importorskip("pip").__file__)))
+    subprocess.run([str(python), pipbuild.__file__, "--requirements", str(tmp_path / "req.txt"),
+                    "--site", str(tmp_path / "out" / "site"), "--result",
+                    str(tmp_path / "result.json"), "--constrain", "cocotb"],
+                   env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return json.loads((tmp_path / "result.json").read_text())
+
+
+def test_a_package_depending_on_cocotb_does_not_bring_a_second_one(image_python, tmp_path):
+    '''🔴 The failure this exists to prevent: the simulator loading one cocotb
+    and SiliconCompiler's process another.'''
+    result = build_in(image_python, tmp_path, "cocotb-bus==0.3.0\n")
+
+    assert result["returncode"] == 0, result.get("tail")
+    assert result["installed"] == [["cocotb-bus", "0.3.0"]]
+    assert not (tmp_path / "out" / "site" / "cocotb").exists()
+
+
+def test_a_pin_needing_another_cocotb_is_uninstallable(image_python, tmp_path):
+    result = build_in(image_python, tmp_path, "pyuvm==3.0.0\n")
+
+    assert result["returncode"] != 0
+    assert "cocotb==2.0" in result["unresolved"] or any(
+        "cocotb" in name for name in result["unresolved"]), result
+    assert not (tmp_path / "out").joinpath("site").exists()
+
+
+@pytest.mark.parametrize("output,named,network", [
+    ("ERROR: Could not find a version that satisfies the requirement numpy==9.9 "
+     "(from versions: 1.0)\nERROR: No matching distribution found for numpy==9.9",
+     ["numpy==9.9"], False),
+    ("ERROR: Cannot install pyuvm==3.0.0 because these package versions have "
+     "conflicting dependencies.\nThe conflict is caused by:\n    The user requested "
+     "(constraint) cocotb==2.1.0\n", ["cocotb==2.1.0"], False),
+    ("WARNING: Retrying (Retry(total=4...)) after connection broken by "
+     "'ProxyError('Cannot connect to proxy.')'\nERROR: No matching distribution "
+     "found for numpy==2.0.1", ["numpy==2.0.1"], True),
+])
+def test_a_failed_install_says_which_and_whether_it_was_the_network(
+        pip, tmp_path, output, named, network):
+    pip.output = output
+    (tmp_path / "req.txt").write_text("numpy==9.9\n")
+
+    result = pipbuild.install(str(tmp_path / "req.txt"), str(tmp_path / "site"))
+
+    assert result["returncode"] == 1
+    assert (result["unresolved"], result["network"]) == (named, network)
+    assert not (tmp_path / "site").exists()
+
+
+###########################
+# The build container
+###########################
+
+BASE = {
+    "ociVersion": "1.0.2",
+    "process": {"terminal": False, "cwd": "/", "args": ["sh"],
+                "env": ["PATH=/venv/bin:/usr/bin:/bin", "SECRET=from-the-image-config"]},
+    "root": {"path": "rootfs"},
+    "mounts": [
+        {"destination": "/proc", "type": "proc", "source": "proc"},
+        {"destination": "/sys/fs/cgroup", "type": "cgroup", "source": "cgroup"},
+        # What `_prepare_spec` writes for the data directory and the cluster.
+        {"destination": "/sc_server", "type": "none", "source": "/sc_server",
+         "options": ["rbind", "rw"]},
+        {"destination": "/run/munge", "type": "bind", "source": "/run/munge"},
+    ],
+    "linux": {"namespaces": [{"type": "pid"}, {"type": "mount"}, {"type": "ipc"}]},
+}
+
+
+def test_the_build_container_reaches_nothing_but_its_three_directories(tmp_path):
+    config = envbuild.build_config(BASE, tmp_path / "rootfs", tmp_path / "req",
+                                   tmp_path / "out", tmp_path / "sock", ["python3", "x"])
+
+    assert config["root"] == {"path": str((tmp_path / "rootfs").resolve()), "readonly": True}
+    binds = {mount["destination"]: mount for mount in config["mounts"]
+             if "rbind" in (mount.get("options") or [])}
+    assert set(binds) == {"/tmp/sc-req", "/tmp/sc-out", "/tmp/sc-proxy"}   # no /sc_server
+    assert "ro" in binds["/tmp/sc-req"]["options"]
+    destinations = [mount["destination"] for mount in config["mounts"]]
+    assert "/run/munge" not in destinations and "/sys/fs/cgroup" not in destinations
+    assert destinations.index("/tmp") < destinations.index("/tmp/sc-out")
+    # 🔴 A network of its own: nothing in it but a loopback.
+    assert [ns["type"] for ns in config["linux"]["namespaces"]].count("network") == 1
+    assert config["process"]["args"] == ["python3", "x"]
+    assert "SECRET=from-the-image-config" not in config["process"]["env"]
+    assert "PATH=/venv/bin:/usr/bin:/bin" in config["process"]["env"]
+    assert BASE["mounts"][2]["destination"] == "/sc_server"        # the base untouched
+
+
+@pytest.fixture
+def base_bundle(monkeypatch, tmp_path):
+    '''The base's bundle, as staging it would leave it -- without skopeo.'''
+    root = tmp_path / "images"
+    staged = []
+
+    def stage(where, ref, image_digest, mounts=()):
+        bundle = images.bundle_path(where, image_digest)
+        (bundle / "rootfs").mkdir(parents=True, exist_ok=True)
+        (bundle / "config.json").write_text(json.dumps(BASE))
+        staged.append((ref, image_digest, list(mounts)))
+        return bundle
+
+    monkeypatch.setattr(images, "stage_bundle", stage)
+    stage.root = root
+    stage.staged = staged
+    return stage
+
+
+@pytest.fixture
+def pushed(monkeypatch):
+    calls = []
+
+    def derive(base_ref, layer, tag, comment):
+        calls.append((base_ref, layer, tag))
+        return f"registry:5000/sc-tools:{tag}", digest("d")
+
+    monkeypatch.setattr(oci, "derive", derive)
+    return calls
+
+
+def workspace_for(tmp_path, root, text="numpy==2.0.1\n"):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    (workspace / envbuild.REQUIREMENTS).write_text(text)
+    return workspace, {"key": "k" * 64, "base_ref": f"registry:5000/sc-tools@{digest('b')}",
+                       "base_digest": digest("b"), "bundles_root": str(root),
+                       "mounts": ["/sc_server"], "tag": "sc-env-kkkk",
+                       "index_allowlist": ["https://pypi.org/simple/"], "timeout": 60}
+
+
+def container(pip_result, files=None):
+    '''A build container that writes what pip would have.'''
+    seen = {}
+
+    def run(bundle, command, path, timeout):
+        config = json.loads((bundle / "config.json").read_text())
+        seen.update(config=config, command=command, path=path,
+                    req=sorted(os.listdir(next(m["source"] for m in config["mounts"]
+                                               if m["destination"] == "/tmp/sc-req"))))
+        out = next(m["source"] for m in config["mounts"] if m["destination"] == "/tmp/sc-out")
+        for name, body in (files or {}).items():
+            os.makedirs(os.path.dirname(os.path.join(out, "site", name)), exist_ok=True)
+            open(os.path.join(out, "site", name), "w").write(body)
+        if pip_result is not None:
+            open(os.path.join(out, "pip.json"), "w").write(json.dumps(pip_result))
+        return "the container's output"
+
+    run.seen = seen
+    return run
+
+
+def test_a_build_pushes_one_layer_and_stages_a_bundle_on_the_base(
+        tmp_path, base_bundle, pushed):
+    run = container({"returncode": 0, "python": "cpython-312", "version": "3.12.3",
+                     "platform": "linux-x86_64", "installed": [["numpy", "2.0.1"]]},
+                    files={"numpy/__init__.py": "x = 1\n"})
+    workspace, spec = workspace_for(tmp_path, base_bundle.root)
+
+    result = envbuild.build(spec, workspace, run=run)
+
+    assert result == {"ok": True, "ref": "registry:5000/sc-tools:sc-env-kkkk",
+                      "digest": digest("d"), "installed": [["numpy", "2.0.1"]],
+                      "python": "cpython-312", "version": "3.12.3",
+                      "platform": "linux-x86_64"}
+    assert base_bundle.staged == [(spec["base_ref"], digest("b"), ["/sc_server"])]
+    assert run.seen["req"] == ["pipbuild.py", "requirements.txt"]
+    assert run.seen["path"] == "/venv/bin:/usr/bin:/bin"
+
+    # 🔴 Its bundle is the base's root with the layer bound in -- no second
+    # unpack of a tool image per environment.
+    bundle = images.bundle_path(base_bundle.root, digest("d"))
+    config = json.loads((bundle / "config.json").read_text())
+    assert config["root"]["path"] == str((images.bundle_path(base_bundle.root, digest("b"))
+                                          / "rootfs").resolve())
+    layer = next(m for m in config["mounts"] if m["destination"] == images.LAYER_PATH)
+    assert "ro" in layer["options"]
+    assert (bundle / "layer" / "numpy" / "__init__.py").is_file()
+    assert {mount["destination"] for mount in config["mounts"]} >= {"/sc_server"}
+    assert not (workspace / "bundle").exists() and not (workspace / "out").exists()
+
+
+@pytest.mark.parametrize("pip_result,reason", [
+    ({"returncode": 1, "unresolved": ["numpy==9.9"], "network": False,
+      "python": "cpython-312", "platform": "linux-x86_64", "tail": "no wheel"},
+     "uninstallable"),
+    # The index did not answer: nothing about the pins, so the server's failure.
+    ({"returncode": 1, "unresolved": ["numpy==9.9"], "network": True,
+      "python": "cpython-312", "platform": "linux-x86_64", "tail": "Retrying"}, "error"),
+    (None, "error"),                        # the container never ran to the end
+])
+def test_a_build_that_fails_pushes_nothing(tmp_path, base_bundle, pushed, pip_result, reason):
+    workspace, spec = workspace_for(tmp_path, base_bundle.root)
+
+    result = envbuild.build(spec, workspace, run=container(pip_result))
+
+    assert (result["ok"], result["reason"]) == (False, reason)
+    assert pushed == []
+
+
+def test_a_build_gone_without_a_result_is_given_up_on_after_a_grace(tmp_path):
+    asked = []
+
+    def alive():
+        asked.append(1)
+        return False
+
+    assert envbuild.wait_for(tmp_path, 60, alive=alive, pause=0.01, grace=0.05) is None
+    assert len(asked) == 1                    # the scheduler is asked once, not per look
+
+
+def test_a_result_that_lands_after_its_job_ended_is_still_read(tmp_path):
+    def alive():
+        (tmp_path / envbuild.RESULT).write_text(json.dumps({"ok": True}))
+        return False
+
+    assert envbuild.wait_for(tmp_path, 60, alive=alive, pause=0.01, grace=5) == {"ok": True}
+
+
+def test_the_result_is_written_whatever_happens(tmp_path):
+    (tmp_path / envbuild.SPEC).write_text("not json")
+
+    assert envbuild.main([str(tmp_path / envbuild.SPEC)]) == 0
+
+    result = json.loads((tmp_path / envbuild.RESULT).read_text())
+    assert (result["ok"], result["reason"]) == (False, "error")
+
+
+###########################
+# The proxy: the build's only way out
+###########################
+
+@pytest.fixture
+def proxy():
+    sockets = tempfile.mkdtemp(prefix="sc-t-")
+    path = os.path.join(sockets, "proxy.sock")
+    running = envbuild.Proxy(path, ["https://pypi.org/simple/",
+                                    "https://files.pythonhosted.org/",
+                                    "https://localhost/", "http://mirror.example.com/pypi/"])
+    running.start()
+    running.path = path
+    yield running
+    running.close()
+
+
+def ask(proxy, request: bytes) -> bytes:
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client.settimeout(5)
+    client.connect(proxy.path)
+    client.sendall(request)
+    answer = b""
+    while b"\r\n\r\n" not in answer:
+        chunk = client.recv(4096)
+        if not chunk:
+            break
+        answer += chunk
+    client.close()
+    return answer
+
+
+def test_what_the_proxy_admits(proxy):
+    assert proxy.admits_connect("pypi.org", 443)
+    assert proxy.admits_connect("files.pythonhosted.org", 443)
+    assert not proxy.admits_connect("pypi.org", 8443)
+    assert not proxy.admits_connect("evil.example.com", 443)
+    assert proxy.admits_get("http://mirror.example.com/pypi/simple/numpy/")
+    assert not proxy.admits_get("http://mirror.example.com/other/")
+    assert not proxy.admits_get("https://pypi.org/simple/")      # that is CONNECT's
+
+
+def test_a_host_off_the_allowlist_is_refused_and_named(proxy):
+    answer = ask(proxy, b"CONNECT evil.example.com:443 HTTP/1.1\r\n\r\n")
+
+    assert answer.startswith(b"HTTP/1.1 403")
+    assert proxy.refused == ["evil.example.com"]
+
+
+def test_an_allowlisted_name_that_is_not_public_is_never_connected(proxy):
+    '''🔴 Whatever the list says: a name is whatever its owner's DNS answers.'''
+    answer = ask(proxy, b"CONNECT localhost:443 HTTP/1.1\r\n\r\n")
+
+    assert answer.startswith(b"HTTP/1.1 403") and b"non-public" in answer
+
+
+def test_an_admitted_tunnel_carries_both_ways(proxy, monkeypatch):
+    here, there = socket.socketpair()
+    monkeypatch.setattr(envbuild, "_open_public", lambda host, port: there)
+
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client.settimeout(5)
+    client.connect(proxy.path)
+    client.sendall(b"CONNECT pypi.org:443 HTTP/1.1\r\nHost: pypi.org\r\n\r\nhello")
+
+    assert client.recv(4096).startswith(b"HTTP/1.1 200")
+    here.settimeout(5)
+    assert here.recv(5) == b"hello"
+    here.sendall(b"world")
+    assert client.recv(5) == b"world"
+    client.close()
+    here.close()
+
+
+def test_anything_but_a_tunnel_or_a_plain_get_is_refused(proxy):
+    assert ask(proxy, b"POST http://mirror.example.com/pypi/ HTTP/1.1\r\n\r\n") \
+        .startswith(b"HTTP/1.1 405")
+
+
+###########################
+# The registry: derived images
+###########################
+
+@pytest.fixture
+def store():
+    from siliconcompiler.remote.server.store import Store
+
+    with Store("server.db") as db:
+        user = db.upsert_user("operator", "someone@host")
+        db.actor = user["id"]
+        images.register_software(db, "siliconcompiler", "SiliconCompiler", db.actor, "python")
+        images.register_version(db, "siliconcompiler", "0.38.0", db.actor)
+        db.base = images.register_image(db, "ghcr.io/x/sc:0.38.0", digest("a"),
+                                        [("siliconcompiler", "0.38.0")], db.actor)
+        yield db
+
+
+def test_a_derived_image_is_never_resolved_to(store):
+    '''🔴 Reached only by its derivation key, or one user's packages would
+    place another user's node.'''
+    images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1", digest("e"),
+                            "k1", [("numpy", "2.0.1")], note="")
+
+    assert [image["id"] for image in images.live_images(store)] == [store.base]
+    assert "numpy" not in json.dumps(store.advertised_software(containers=True))
+
+
+def test_a_derived_image_holds_its_base_and_what_it_installed(store):
+    derived = images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1",
+                                      digest("e"), "k1", [("numpy", "2.0.1")], note="")
+
+    assert images.contents_of(store, [derived]) == {
+        "numpy": ["2.0.1"], "siliconcompiler": ["0.38.0"]}
+    assert images.derived_image(store, store.base, "k1")["id"] == derived
+
+
+def test_a_second_build_of_the_same_key_is_the_first(store):
+    '''A restart, or a second process: the first registered is what every
+    later job reuses, whatever digest the second push got.'''
+    first = images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1",
+                                    digest("e"), "k1", [], note="")
+    second = images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1",
+                                     digest("f"), "k1", [], note="")
+
+    assert first == second
+
+
+def test_the_key_is_the_base_and_the_file(store):
+    assert images.derivation(digest("a"), "numpy==2.0.1\n") != \
+        images.derivation(digest("b"), "numpy==2.0.1\n") != \
+        images.derivation(digest("a"), "numpy==2.0.2\n")
+
+
+def test_the_catalogue_keeps_what_the_server_built_apart(store):
+    images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1", digest("e"),
+                            "k1", [("numpy", "2.0.1")], note="")
+
+    catalogue = images.catalogue(store)
+
+    assert [image["id"] for image in catalogue["images"]] == [store.base]
+    (built,) = catalogue["derived"]
+    assert (built["base"], built["installed"]) == ("ghcr.io/x/sc:0.38.0", ["numpy==2.0.1"])
+
+
+def test_a_bundle_lives_as_long_as_its_base(store, tmp_path):
+    '''A derived bundle runs on its base's root filesystem: kept while the
+    base is live, and both go when the base is retired and nothing runs.'''
+    images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1", digest("e"),
+                            "k1", [], note="")
+    root = tmp_path / "images"
+    for letter in "ae":
+        (images.bundle_path(root, digest(letter)) / "rootfs").mkdir(parents=True)
+
+    images.sweep_bundles(root, store)
+    assert sorted(path.name[:1] for path in root.iterdir()) == ["a", "e"]
+
+    images.retire_image(store, store.base, store.actor)
+    images.sweep_bundles(root, store)
+    assert list(root.iterdir()) == []
+
+
+###########################
+# The tool's path
+###########################
+
+def test_a_node_in_a_derived_image_finds_its_layer(monkeypatch, tmp_path, gcd_design):
+    from siliconcompiler import Flowgraph, Project
+    from siliconcompiler.scheduler import SchedulerNode
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    flow = Flowgraph("tbflow")
+    flow.node("sim", NOPTask())
+    project.set_flow(flow)
+
+    def path():
+        node = SchedulerNode(project, "sim", "0")
+        with node.runtime():
+            return node.task.get_runtime_environmental_variables().get("PYTHONPATH", "")
+
+    layer = tmp_path / "layer"
+    monkeypatch.setattr(environment, "IMAGE_SITE", str(layer))
+    assert str(layer) not in path().split(os.pathsep)          # every other image
+
+    layer.mkdir()
+    assert str(layer) in path().split(os.pathsep)
+
+
+###########################
+# Configuration
+###########################
+
+def config_with(tmp_path, values):
+    from siliconcompiler.remote.server.config import Config
+
+    (tmp_path / "config.json").write_text(json.dumps(values))
+    return Config.load(tmp_path)
+
+
+def test_the_builder_is_what_offers_python_env_where_nodes_run_in_containers(tmp_path):
+    assert "python.env" in config_with(
+        tmp_path, {"containers": True, "env_builder": True})["features"]
+    assert "python.env" not in config_with(tmp_path, {"containers": True})["features"]
+
+
+def test_a_builder_needs_containers(tmp_path):
+    with pytest.raises(ValueError, match="env_builder"):
+        config_with(tmp_path, {"env_builder": True})
+
+
+###########################
+# While staging
+###########################
+
+flask = pytest.importorskip("flask", reason="the server extra is not installed")
+
+from test_server_jobs import FakeDispatcher, login, stage, submit, wants  # noqa: E402
+from test_server_sources_flow import wait_for as until                     # noqa: E402
+
+
+class Builder(FakeDispatcher):
+    '''A dispatcher whose builds answer at once, as ``answer`` says.'''
+
+    def __init__(self, answer):
+        super().__init__()
+        self.answer = answer
+        self.builds = []
+
+    def submit_build(self, name, workspace, spec, queue=None):
+        spec = json.loads(open(spec).read())
+        self.builds.append({"queue": queue, "spec": spec,
+                            "file": (workspace / envbuild.REQUIREMENTS).read_text()})
+        result = self.answer(spec)
+        if result is not None:
+            (workspace / envbuild.RESULT).write_text(json.dumps(result))
+        return f"build:{len(self.builds)}"
+
+
+BUILT = {"ok": True, "ref": "ghcr.io/x/sc:sc-env-test", "digest": digest("e"),
+         "installed": [["numpy", "2.0.1"]], "python": "cpython-312",
+         "version": "3.12.3", "platform": "linux-x86_64"}
+
+
+@pytest.fixture
+def builder_server():
+    from siliconcompiler.remote.server.app import create_app
+    from siliconcompiler.remote.server.store import Store
+
+    os.makedirs("builder-datadir", exist_ok=True)
+    with open("builder-datadir/config.json", "w") as f:
+        json.dump({"containers": True, "env_builder": True, "build_queue": "build"}, f)
+    with Store("builder-datadir/server.db") as store:
+        with store.transaction():
+            actor = store.upsert_user("operator", "someone@host")["id"]
+        images.register_software(store, "siliconcompiler", "SiliconCompiler", actor, "python")
+        images.register_version(store, "siliconcompiler", "0.38.0", actor, preference=10)
+        images.register_image(store, "ghcr.io/x/sc:0.38.0", digest("a"),
+                              [("siliconcompiler", "0.38.0")], actor)
+
+    return create_app("builder-datadir", cluster="local")
+
+
+@pytest.fixture
+def client(builder_server):
+    return builder_server.test_client()
+
+
+@pytest.fixture
+def token(client, key):
+    return login(client, key).get_json()["access_token"]
+
+
+def builder(server, answer):
+    fake = Builder(answer)
+    server.config["SC_JOBS"]._dispatcher = fake
+    server.config["SC_JOBS"]._build_wait = {"pause": 0.02, "ask_every": 0.02, "grace": 0.1}
+    return fake
+
+
+def submitted(client, key, token, job_archive, text="# mine\nnumpy==2.0.1   # pinned\n",
+              jobname=None):
+    archive, upload_digest, size = job_archive(
+        extra={environment.path_for("stepone", "0"): text.encode()})
+    job = stage(client, key, token, archive, size, requires=wants("0.38.0"),
+                **({"jobname": jobname} if jobname else {}))
+    response = submit(client, key, token, job["id"], upload_digest, size)
+    assert response.status_code == 202, response.get_json()
+    return response.get_json()
+
+
+def row(server, job_id):
+    return server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (job_id,))
+
+
+def placed(server, job_id):
+    return {(node["step"], node["index"]): node["image_id"]
+            for node in server.config["SC_STORE"].all(
+                "SELECT * FROM job_nodes WHERE job_id = ?", (job_id,))}
+
+
+def test_a_node_with_an_environment_runs_in_the_image_built_for_it(
+        builder_server, client, key, token, job_archive):
+    fake = builder(builder_server, lambda spec: BUILT)
+
+    job = submitted(client, key, token, job_archive)
+
+    assert job["state"] == "staging"              # nothing waits on a build
+    assert until(lambda: fake.submitted)
+
+    (build,) = fake.builds
+    assert build["queue"] == "build"
+    assert build["spec"]["base_ref"] == f"ghcr.io/x/sc@{digest('a')}"
+    # 🔴 The server's own rendering, never the uploaded file.
+    assert "# mine" not in build["file"] and "# pinned" not in build["file"]
+    assert environment.parse(build["file"].encode()).pins[0].name == "numpy"
+
+    store = builder_server.config["SC_STORE"]
+    derived = images.derived_image(store, placed(builder_server, job["id"])[("steptwo", "0")],
+                                   build["spec"]["key"])
+    assert placed(builder_server, job["id"]) == {
+        ("stepone", "0"): derived["id"],
+        ("steptwo", "0"): row(builder_server, job["id"])["image_id"]}
+
+    from siliconcompiler import Project
+    project = Project.from_manifest(filepath=str(fake.submitted[0][2]))
+    assert project.option.scheduler.get_queue(step="stepone", index="0") == \
+        f"ghcr.io/x/sc@{digest('e')}"
+
+    # What ran, including what was installed.
+    from test_server_sources_flow import read
+    assert read(client, key, token, job["id"])["resolved_versions"] == {
+        "numpy": ["2.0.1"], "siliconcompiler": ["0.38.0"]}
+
+
+def test_the_same_file_on_the_same_image_is_built_once(
+        builder_server, client, key, token, job_archive):
+    fake = builder(builder_server, lambda spec: BUILT)
+
+    first = submitted(client, key, token, job_archive)
+    assert until(lambda: len(fake.submitted) == 1)
+    second = submitted(client, key, token, job_archive)
+    assert until(lambda: len(fake.submitted) == 2)
+
+    assert len(fake.builds) == 1
+    assert placed(builder_server, first["id"])[("stepone", "0")] == \
+        placed(builder_server, second["id"])[("stepone", "0")]
+
+
+def test_an_environment_that_will_not_install_rejects_the_job(
+        builder_server, client, key, token, job_archive):
+    '''🔴 Never asked for as an upload: the package could carry binaries this
+    server cannot run.'''
+    fake = builder(builder_server, lambda spec: {
+        "ok": False, "reason": "uninstallable", "unresolved": ["numpy==2.0.1"],
+        "python": "cpython-312", "version": "3.12.3", "platform": "linux-x86_64",
+        "refused": [], "tail": "ERROR: No matching distribution found for numpy==2.0.1"})
+
+    job = submitted(client, key, token, job_archive)
+    assert until(lambda: row(builder_server, job["id"])["state"] == "rejected")
+
+    stored = row(builder_server, job["id"])
+    assert stored["error_type"].endswith("/software-unavailable")
+    reason = builder_server.config["SC_STORE"].one(
+        "SELECT reason FROM job_state_transitions WHERE job_id = ? AND to_state = 'rejected'",
+        (job["id"],))["reason"]
+    assert "stepone/0" in reason and "numpy==2.0.1" in reason
+    assert "cpython-312" in reason and "linux-x86_64" in reason
+    assert fake.submitted == []
+    assert stored["upload_sources"] is None       # nothing asked of the client
+
+
+def test_a_build_the_server_could_not_run_is_its_own_failure(
+        builder_server, client, key, token, job_archive):
+    builder(builder_server, lambda spec: {"ok": False, "reason": "error",
+                                          "detail": "the registry did not answer"})
+
+    job = submitted(client, key, token, job_archive)
+    assert until(lambda: row(builder_server, job["id"])["state"] == "rejected")
+
+    assert row(builder_server, job["id"])["error_type"].endswith("/not-ready")
+
+
+def test_a_build_job_that_vanishes_is_not_waited_on(
+        builder_server, client, key, token, job_archive):
+    fake = builder(builder_server, lambda spec: None)
+    fake.alive = False
+
+    job = submitted(client, key, token, job_archive)
+
+    assert until(lambda: row(builder_server, job["id"])["state"] == "rejected")
+    assert row(builder_server, job["id"])["error_type"].endswith("/not-ready")
+    assert fake.cancelled == ["build:1"]
+
+
+def test_a_job_cancelled_while_it_builds_stays_cancelled(
+        builder_server, client, key, token, job_archive):
+    '''🔴 Refusing it afterwards would rewrite what its owner did as something
+    the server decided.'''
+    from conftest import call
+
+    fake = builder(builder_server, lambda spec: None)
+    job = submitted(client, key, token, job_archive)
+    assert until(lambda: fake.builds)
+
+    call(client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token, json={})
+    fake.alive = False
+    assert until(lambda: not builder_server.config["SC_JOBS"]._preparing)
+
+    assert row(builder_server, job["id"])["state"] == "cancelled"

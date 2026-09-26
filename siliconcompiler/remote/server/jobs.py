@@ -124,6 +124,13 @@ class JobService:
         self._preparing = set()
         self._preparing_lock = threading.Lock()
 
+        # One environment build per key at a time in this process: two jobs
+        # asking for the same set wait for one build, and the second reuses it.
+        self._building: Dict[str, Any] = {}
+        self._building_lock = threading.Lock()
+        # How a build is waited on -- `envbuild.wait_for`'s pacing.
+        self._build_wait: Dict[str, float] = {}
+
     ######################################################################
     # Where a user's work lives
     ######################################################################
@@ -723,10 +730,12 @@ class JobService:
             return self.wire(self._row(job["id"]))
 
         # 🔴 A job with something to get ready stages first (surface D130):
-        # fetching its sources is where it can still be sent back or refused,
-        # so it happens BEFORE `queued`, which then only moves forward. One
-        # with nothing to stage queues at once.
-        stages = any(entry.status == owners.FETCH for entry in entries)
+        # fetching its sources, and building its nodes' Python environments,
+        # are where it can still be sent back or refused, so they happen
+        # BEFORE `queued`, which then only moves forward. One with nothing to
+        # stage queues at once.
+        stages = any(entry.status == owners.FETCH for entry in entries) \
+            or bool(self._environments(job, derived))
         try:
             with self._store.transaction():
                 # The PDK with it: an admitted job has a resolved one.
@@ -976,11 +985,22 @@ class JobService:
             # Everything in hand: a missing file in a fetched copy is refused
             # here, from `staging` -- and then it queues, and only moves on.
             entries = self._account(None, job, derived, unpacked)
+
+            # Then each node's Python, built into an image on the one it
+            # resolved to -- which needs the images resolved first.
+            plan = self._build_environments(
+                job, derived, self._resolve_images(None, job, derived))
+            if self._row(job_id)["state"] != "staging":
+                return
+
             with self._store.transaction():
                 self._transition(job_id, "staging", "queued")
-            self._dispatch(None, self._row(job_id), derived, entries)
+            self._dispatch(None, self._row(job_id), derived, entries, plan=plan)
         except ProblemError:
             # Already recorded on the job by `_refuse`.
+            pass
+        except _NoLongerStaging:
+            # Cancelled while it waited: nothing to record.
             pass
         except Exception as e:                                   # noqa: BLE001
             logger.error(f"could not prepare {job_id}: {e}")
@@ -1032,11 +1052,13 @@ class JobService:
             self._transition(job["id"], "staging", "awaiting_input",
                              reason=_bounded(reason))
 
-    def _dispatch(self, session, job, derived, entries) -> None:
+    def _dispatch(self, session, job, derived, entries, plan=None) -> None:
         '''Resolve images, write the manifest the run will load, and hand
-        the job to the scheduler.'''
+        the job to the scheduler. ``plan`` is the images already resolved
+        while staging, with any a node's environment was built into.'''
         root = self.job_root(job["user_id"], job["id"])
-        plan = self._resolve_images(session, job, derived)
+        if plan is None:
+            plan = self._resolve_images(session, job, derived)
         manifest = self._normalize(session, job, root, derived, plan, entries)
 
         try:
@@ -1059,6 +1081,163 @@ class JobService:
 
         self._record_submission(job, derived, scheduler_job_id, plan)
         logger.info(f"submitted {job['id']} as {scheduler_job_id}")
+
+    ######################################################################
+    # A node's Python environment, built into an image (surface D131)
+    ######################################################################
+
+    def _environments(self, job, derived) -> Dict[Tuple[str, str], str]:
+        '''The file this server writes for each node whose environment it
+        builds: none, unless nodes run in containers and the builder is on.
+
+        🔴 **Written from what parsed, never the uploaded file** -- the same
+        rendering host mode installs from. The file was held to the format at
+        submit; this is the only form of it that goes further.
+        '''
+        from siliconcompiler.remote import environment
+
+        if not (self._config["containers"] and self._config["env_builder"]):
+            return {}
+
+        unpacked = self.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
+        found = {}
+        for node in derived["nodes"]:
+            path = unpacked / environment.path_for(*node)
+            if not path.is_file():
+                continue
+            parsed = environment.parse(path.read_bytes())
+            if parsed.pins:
+                found[node] = environment.render(
+                    parsed.pins, parsed.index_url, parsed.extra_index_urls,
+                    header="Written by sc-server from what the job's file declared; "
+                           "the file itself is never installed.")
+        return found
+
+    def _build_environments(self, job, derived, plan):
+        '''``plan`` with every node that has an environment moved onto the
+        image built for it -- reused where one exists for its base and file,
+        built otherwise. Nodes whose files are identical share one build.
+
+        🔴 **An environment that will not install rejects the job** from
+        `staging`: `software-unavailable`, `reason: "uninstallable"`, naming
+        each package and the target Python and platform. Never asked for as an
+        upload -- the package could carry binaries this server cannot run.
+        '''
+        wanted = self._environments(job, derived)
+        if not wanted:
+            return plan
+
+        nodes, refs = dict(plan.nodes), dict(plan.refs)
+        done: Dict[str, Tuple[str, str]] = {}
+        for node, text in sorted(wanted.items()):
+            base_id = nodes.get(node)
+            base_ref = refs.get(base_id) if base_id else None
+            if not base_ref:
+                raise self._refuse_staging(job, ProblemError(
+                    "not-ready", status=503,
+                    detail=f"{node[0]}/{node[1]} has no image to build its Python "
+                           "environment on"))
+            key = images.derivation(base_ref.split("@", 1)[1], text, _python_names(job))
+            if key not in done:
+                done[key] = self._derived_for(job, node, base_id, base_ref, key, text)
+            image_id, ref = done[key]
+            nodes[node] = image_id
+            refs[image_id] = ref
+        return images.Plan(plan.job, nodes, refs)
+
+    def _derived_for(self, job, node, base_id, base_ref, key, text) -> Tuple[str, str]:
+        '''The derived image for one base and file, as (id, pinned ref).'''
+        import threading
+
+        def found():
+            row = images.derived_image(self._store, base_id, key)
+            return (row["id"], images.pinned_ref(row["registry_ref"], row["digest"])) \
+                if row else None
+
+        existing = found()
+        if existing:
+            return existing
+
+        with self._building_lock:
+            lock = self._building.setdefault(key, threading.Lock())
+        with lock:
+            existing = found()
+            if existing:
+                return existing
+            result = self._run_build(job, node, base_ref, key, text)
+            image_id = images.register_derived(
+                self._store, base_id, result["ref"], result["digest"], key,
+                [tuple(pair) for pair in result.get("installed") or []],
+                note=f"{node[0]}/{node[1]}'s Python environment, first built for "
+                     f"job {job['id']}, on {result.get('python')} "
+                     f"({result.get('platform')})")
+            logger.info(f"{job['id']}: built {node[0]}/{node[1]}'s environment as "
+                        f"{result['ref']}")
+            return image_id, images.pinned_ref(result["ref"], result["digest"])
+
+    def _refuse_staging(self, job, problem: ProblemError) -> ProblemError:
+        '''`_refuse`, for a job that may have moved on while it waited.
+
+        🔴 A build can take minutes, and a job cancelled meanwhile is
+        `cancelled`: refusing it afterwards would rewrite what its owner did as
+        something the server decided.
+        '''
+        current = self._row(job["id"])
+        if current is None or current["state"] != "staging":
+            raise _NoLongerStaging(job["id"])
+        return self._refuse(None, current, problem)
+
+    def _run_build(self, job, node, base_ref, key, text) -> Dict[str, Any]:
+        '''One build, as a job of its own in the builder queue; its result, or
+        the job refused with why.'''
+        import uuid
+
+        from siliconcompiler.remote.server import envbuild
+
+        workspace = self._datadir / "envbuilds" / f"{key[:16]}-{uuid.uuid4().hex[:8]}"
+        workspace.mkdir(parents=True)
+        try:
+            (workspace / envbuild.REQUIREMENTS).write_text(text)
+            timeout = int(self._config["env_build_timeout_seconds"])
+            (workspace / envbuild.SPEC).write_text(json.dumps({
+                "key": key, "base_ref": base_ref, "base_digest": base_ref.split("@", 1)[1],
+                "bundles_root": str(self.bundles_root()), "mounts": self.container_mounts(),
+                "index_allowlist": list(self._config["index_allowlist"] or []),
+                "tag": f"sc-env-{key[:32]}", "timeout": timeout,
+                "constrain": _python_names(job),
+                "comment": f"sc-server: a node's Python environment ({key[:12]})",
+            }, indent=1))
+
+            try:
+                build_id = self._dispatcher.submit_build(
+                    key[:12], workspace, workspace / envbuild.SPEC,
+                    queue=self._config["build_queue"])
+            except DispatchError as e:
+                raise self._refuse_staging(job, ProblemError(
+                    "not-ready", status=503,
+                    detail=f"this server could not start the build of "
+                           f"{node[0]}/{node[1]}'s Python environment: {e}")) from None
+            logger.info(f"{job['id']}: building {node[0]}/{node[1]}'s environment "
+                        f"as {build_id}")
+
+            result = envbuild.wait_for(
+                workspace, timeout, alive=lambda: self._dispatcher.is_alive(build_id),
+                **self._build_wait)
+            if result is None:
+                self._dispatcher.cancel(build_id)
+                log = workspace / envbuild.LOG
+                tail = "\n".join(log.read_text(errors="replace").strip().splitlines()[-10:]) \
+                    if log.is_file() else ""
+                raise self._refuse_staging(job, ProblemError(
+                    "not-ready", status=503,
+                    detail=_bounded(f"the build of {node[0]}/{node[1]}'s Python environment "
+                                    f"did not finish within {timeout}s" +
+                                    (f":\n{tail}" if tail else ""))))
+            if not result.get("ok"):
+                raise self._refuse_staging(job, _build_refusal(node, text, result))
+            return result
+        finally:
+            shutil.rmtree(workspace, ignore_errors=True)
 
     def _check_denied(self, session, job, derived) -> None:
         '''Refuse a run that uses a PDK, library or tool nobody may use.
@@ -1338,7 +1517,8 @@ class JobService:
         # already says where it comes from.
         runspec.write_images(
             root / job["design"] / job["jobname"] / runspec.IMAGES_FILENAME,
-            sources, self.container_mounts() if sources else [])
+            sources, self.container_mounts() if sources else [],
+            python=_python_names(job))
 
         manifest = root / job["design"] / job["jobname"] / f"{job['design']}.pkg.json"
         project.write_manifest(str(manifest))
@@ -2906,6 +3086,53 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
             entry["ref"] = item["ref"]
         checked.append(entry)
     return checked
+
+
+def _python_names(job) -> List[str]:
+    '''What the job's `requires.python` names: an environment is installed
+    with each pinned to the version its image -- or host -- already holds.'''
+    from siliconcompiler.remote.server.images import BUCKETS
+
+    return sorted(requirements(json.loads(job["descriptor"] or "{}") or {})
+                  [BUCKETS["python"]])
+
+
+class _NoLongerStaging(Exception):
+    '''The job left `staging` while it was being prepared.'''
+
+
+def _build_refusal(node, text: str, result: Dict[str, Any]) -> ProblemError:
+    '''What a failed environment build tells the job's owner.'''
+    from siliconcompiler.remote import environment
+
+    where = f"{node[0]}/{node[1]}"
+    target = f"{result.get('python') or 'its Python'} ({result.get('version') or '?'}) " \
+             f"on {result.get('platform') or 'its platform'}"
+    if result.get("reason") != "uninstallable":
+        return ProblemError(
+            "not-ready", status=503,
+            detail=_bounded(f"this server could not build {where}'s Python environment: "
+                            f"{result.get('detail') or 'the build failed'}"))
+
+    named = list(result.get("unresolved") or []) or \
+        [str(pin) for pin in environment.parse(text.encode()).pins]
+    unresolved = []
+    for requirement in named:
+        match = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)(\[[^\]]*\])?(.*)$", requirement)
+        name, spec = (match.group(1), match.group(3).strip()) if match else (requirement, "")
+        unresolved.append({"name": re.sub(r"[-_.]+", "-", name).lower(),
+                           "requirement": [spec] if spec else [], "available": []})
+
+    refused = result.get("refused") or []
+    tail = "\n".join((result.get("tail") or "").splitlines()[-5:])
+    return ProblemError(
+        "software-unavailable", reason="uninstallable", unresolved=unresolved,
+        detail=_bounded(
+            f"{where}'s Python environment will not install for {target}: "
+            f"{', '.join(named)}"
+            + (f"; the build was refused {', '.join(refused)}, which the index "
+               "allowlist does not name" if refused else "")
+            + (f"\n{tail}" if tail else "")))
 
 
 def _bounded(text: str, limit: int = 1000) -> str:

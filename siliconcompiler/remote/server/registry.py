@@ -167,6 +167,16 @@ def _cmd_list(store, args) -> int:
     if not catalogue["images"]:
         print("  (none)")
 
+    if catalogue["derived"]:
+        # The server's own: a node's Python on one of the images above.
+        print("built environments")
+        for row in catalogue["derived"]:
+            retired = " (retired)" if row["retired_at"] else ""
+            print(f"  {row['registry_ref']}{retired}")
+            print(f"    {row['digest']}")
+            print(f"    on {row['base']}")
+            print(f"    installed {', '.join(row['installed']) or '(nothing)'}")
+
     return 0
 
 

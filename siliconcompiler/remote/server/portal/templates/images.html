@@ -185,6 +185,35 @@
   the row and stops it being dispatched into.
 </p>
 
+{% if catalogue.derived %}
+<h3>Built environments</h3>
+<p class="muted">
+  {#
+    Apart from the table above, because nobody registered these: the builder
+    made each one from a node's environment file, and a job reaches one only
+    through the file it was built from -- no requirement resolves to it.
+  #}
+  A node's Python packages, installed by this server on one of the images
+  above. Built once for each image and file, and shared by every job asking for
+  the same set.
+</p>
+<table>
+  <tr><th>Reference</th><th>Digest</th><th>Built on</th><th>Installed</th></tr>
+  {% for image in catalogue.derived %}
+  <tr>
+    <td>
+      {{ image.registry_ref }}
+      {% if image.retired_at %}<span class="tag">retired</span>{% endif %}
+      {% if image.note %}<br><span class="muted">{{ image.note }}</span>{% endif %}
+    </td>
+    <td class="mono muted">{{ image.digest[:19] }}…</td>
+    <td class="mono muted">{{ image.base or '—' }}</td>
+    <td class="mono muted">{{ image.installed | join(', ') or '—' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
 <form method="post" action="{{ url_for('portal.register_image') }}" class="panel">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <label>Registry reference

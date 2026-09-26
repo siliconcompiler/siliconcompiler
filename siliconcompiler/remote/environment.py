@@ -23,7 +23,7 @@ from typing import List, NamedTuple, Optional, Sequence
 from urllib.parse import urlsplit
 
 __all__ = ["ROOT", "FILENAME", "PACKAGES", "MAX_BYTES", "MAX_LINES",
-           "SITE", "EnvironmentFileError", "Pin", "Environment", "path_for",
+           "SITE", "IMAGE_SITE", "EnvironmentFileError", "Pin", "Environment", "path_for",
            "packages_path", "site_path", "parse", "render"]
 
 
@@ -95,6 +95,12 @@ SITE = "site"
 def site_path(step: str, index: str) -> str:
     '''Where what was installed for a node is reached, relative to the job.'''
     return f"{ROOT}/{step}/{index}/{SITE}"
+
+
+# Where a derived image puts what was installed for a node -- the container
+# mode's `site`. Absolute, inside the image; its own layer, never the image's
+# own site-packages, so it reaches the tool's PYTHONPATH and nothing else.
+IMAGE_SITE = "/opt/sc/python-env/site"
 
 
 def parse(data: bytes) -> Environment:

@@ -25,7 +25,8 @@ logger = logging.getLogger("sc-server")
 __all__ = ["inheriting_nodes", "normalize", "node_image", "node_tools",
            "runtime_flow", "runtime_nodes",
            "node_state", "PROGRESS_FILENAME", "IMAGES_FILENAME",
-           "read_images", "write_images", "read_progress", "write_progress"]
+           "read_images", "read_python", "write_images", "read_progress",
+           "write_progress"]
 
 
 # Written by the run, read by the API process, and the only channel between
@@ -363,11 +364,25 @@ def read_images(path) -> Tuple[Dict[str, str], List[str]]:
     return body.get("sources") or {}, body.get("mounts") or []
 
 
-def write_images(path, sources: Dict[str, str], mounts) -> None:
+def write_images(path, sources: Dict[str, str], mounts, python=()) -> None:
+    '''``python`` is what the job's `requires.python` names: a node's
+    environment is installed with each pinned to the version already there.'''
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
-        json.dump({"sources": sources, "mounts": [str(m) for m in mounts]}, f)
+        json.dump({"sources": sources, "mounts": [str(m) for m in mounts],
+                   "python": sorted(python)}, f)
+
+
+def read_python(path) -> List[str]:
+    '''What the job's `requires.python` names, as `write_images` wrote it.'''
+    try:
+        with open(path) as f:
+            body = json.load(f)
+    except (OSError, ValueError):
+        return []
+    names = body.get("python") if isinstance(body, dict) else None
+    return [name for name in names or [] if isinstance(name, str)]
 
 
 def read_progress(path, root=None) -> Optional[Dict[str, Any]]:

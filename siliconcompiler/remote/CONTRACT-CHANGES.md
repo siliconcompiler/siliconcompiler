@@ -30,69 +30,161 @@ The nine of the first review, the five of the software-buckets review, the
 fifteen of the third and the follow-ons after it — the `.*` spelling and the
 `reported` parse (2), the job log stream (3), what the archive carries (4), the
 eleven this file then held (5: surface D107–D111, entitlements D28, profile
-D27), 6–8 (surface D115–D128, profile D30), 9 (surface D129), and the five this
+D27), 6–8 (surface D115–D128, profile D30), 9 (surface D129), the five this
 file then held — D129's set, the deleted member, `input`, and `copy` (surface
-D130–D140, entitlements D41, database D100–D102, profile D31–D32) — were decided
-in `crucible/orchestration/api/contract-changes.md`, are implemented here or
-being implemented by follow-on 10, and have been removed rather than edited.
-Their home is the contract now.
+D130–D140, entitlements D41, database D100–D102, profile D31–D32) — and the
+four after them — links on every read of a job's tree, `run_hash`, forwarded
+packages and framework distributions from the image (surface D159–D162,
+job-reuse D15) — were decided in the contract docs, and have been removed
+rather than edited. Their home is the contract now; follow-on 11 brings the
+code up to the last four.
 
 ---
 
 ## Open — not yet in the contract docs
 
-### 1. Links are confined on every read of a job's tree, not only `input`
+All from building a node's Python environment into a derived image (surface
+D131's container mode, follow-on 10 part 5 step 4).
 
-D133 confines a node-bound `input` to the job's build directory. ⚠️ **The same
-attack reaches every other read the server makes of that tree**, because the
-job writes all of it: a node's code can replace its own log, its manifest or
-the run's progress file with a link, and the indexer copying the log, the live
-tail streaming it, the portal showing it and the reconciler reading progress
-all followed it. This profile now reads a job's tree only through one module
-that opens each component relative to the last and refuses a link (race-free
-with `dir_fd`), refuses a FIFO, and stores a link in an archive as a link.
+### 1. `--system-site-packages` does not see a virtual environment's packages
 
-**Where it goes:** `surface.md` D133 — *every* read of a job's build
-directory, with node-bound `input`'s follow-inside as the one relaxation.
+Build rule 5 has the build run *"in a virtual environment created from the
+base image's Python with its installed packages visible
+(`--system-site-packages`)"*. ⚠️ **Where that Python is itself a virtual
+environment -- SiliconCompiler's images, with everything in `/venv` -- the new
+environment sees the base installation's packages and not its parent's.**
+Measured: from `/venv/bin/python`, `--system-site-packages` found the system
+`numpy` in `/usr/lib/python3/dist-packages` and not the one in `/venv`, and
+could not import SiliconCompiler's own dependencies. So pip would count the
+image's cocotb as absent and install a second one: the failure rule 5 exists to
+prevent, reached by following it. This profile also writes a `.pth` into the
+build environment that runs `site.addsitedir` on each of the interpreter's own
+site directories (their `.pth` files processed), and removes it from the
+result. With it, cocotb-bus and cocotbext-axi install without cocotb and a pin
+needing another cocotb is `uninstallable`, against an image holding cocotb in a
+venv.
 
-### 2. §13's descriptor has no `run_hash`, and job reuse needs one
+**Where it goes:** `surface.md` build rule 5 and D161 -- *its installed
+packages visible: the interpreter's own site directories, which
+`--system-site-packages` alone does not give when that interpreter is a virtual
+environment*. And implementation-notes §L's *What it runs*.
 
-The restructured create body lists `flow`, `needs`, `requires` and `sources`
-under `descriptor`, and requests are strict. ⚠️ **Job reuse's hash is in
-none of them** — `job-reuse.md` D1: *"The hash is a member of the create
-descriptor"* — so a client sending one is refused `400` by the letter of §13.
-This profile accepts it as **`descriptor.run_hash`** and refuses it at the top
-level. Nothing in the reference client sends one yet.
+### 2. The cache key is the base, the file and the constraints -- not the Python tag
 
-**Where it goes:** `surface.md` §13's descriptor and its members table.
+Rule 7 keys the layer *"by base digest, Python tag and the file's content
+hash"*, and database's `images.derivation` says the same. Two corrections:
 
-### 3. Forwarded packages travel beside the environment file
+- ⚠️ **The constraints are missing.** What an install means depends on what it
+  was constrained by, and that is the job's `requires.python` names -- two jobs
+  with one file and one base but different names can build differently. The
+  versions they are pinned to are the base's, so the names are enough.
+- **The Python tag is redundant, and cannot be known in time.** It is a
+  function of the base digest, and only running the image says what it is --
+  which the API process never does. Keying on it would mean starting a
+  container to compute a cache key.
 
-D131 says the user's own packages -- editable, local, VCS -- are *"their
-directories, uploaded under the ownership rules and put on the node's
-`PYTHONPATH`"*, and names no path for them. **Owner, 2026-09-26: beside the
-file.** This profile sends them at
-`python-env/<step>/<index>/packages/<name>/`, in the first archive with the
-file; the node's task puts that directory first on the tool's `PYTHONPATH`. The
-server accepts the subtree only for a node that has a file, and never parses
-it. ⚠️ So they are outside the manifest and the owner table: the file's
-presence is what brings them, not a keypath.
+This profile keys on `(base digest, the file the server wrote, the sorted
+requires.python names)`.
 
-**Where it goes:** `surface.md` D131's *Where the file is* table.
+**Where it goes:** `surface.md` rule 7, `database.md`'s `images.derivation`
+comment, implementation-notes §L's *What it caches*.
 
-### 4. What the image holds is left out of the file, not only SiliconCompiler
+### 3. What a derived image installed has no column
 
-D131 builds the file *"less SiliconCompiler's own dependencies"*. ⚠️ **A cocotb
-node needs cocotb in SiliconCompiler's own process** -- it sets the GPI up from
-it -- and that process never imports from the environment layer, so cocotb has
-to be in the image. **Owner, 2026-09-26: the image.** The task reports it as
-`framework`; the client pins it in `requires.python`, so the job resolves to an
-image holding the client's version, and the file leaves out everything
-`requires.python` pins. Otherwise the simulator and SiliconCompiler would each
-load their own cocotb.
+*"`resolved_versions` lists what was installed"*, and a derived image holds no
+`image_contents` of its own -- nothing an operator declared, and it must never
+be a resolution candidate. ⚠️ **So the list has nowhere to be read from.** This
+profile adds `images.installed`, JSON `[[name, version], ...]` as the build
+found them in the layer, NULL exactly when `derived_from` is
+(`CHECK ((derived_from IS NULL) = (installed IS NULL))`). A derived image's
+contents are its base's plus these. It is excluded from resolution, from
+`GET /v1`'s `software` and from the operator's image list (the portal shows it
+apart, as *Built environments*), and reached only by `(derived_from,
+derivation)`.
 
-**Where it goes:** `surface.md` D131 -- *less what the job's `requires.python`
-pins*.
+**Where it goes:** `database.md`'s `images` table, and the `resolved_versions`
+paragraph of `surface.md` §17.
+
+### 4. A build that fails for the server's reasons is `not-ready`, not `uninstallable`
+
+The table names one answer for a build: `uninstallable`, *"a pin that will not
+install for the target"*, and its fix is *the environment*. ⚠️ **A build can
+also fail with nothing wrong in the pins** -- the index or the registry does not
+answer, the build job is lost, it runs past its time -- and telling the owner to
+change their environment would be false. This profile answers those `503
+not-ready`, the job rejected, and tells them apart: pip reporting that it could
+not reach an index is the server's failure, unless the builder's proxy refused a
+host -- a wheel hosted somewhere the allowlist does not name -- which is
+`uninstallable` and names the host.
+
+**Where it goes:** `surface.md` D131's *When / What is wrong / Answer* table,
+one row: *while `staging` -- the build could not run -- `503 not-ready`, the job
+rejected*.
+
+### 5. Over HTTPS the builder reaches a host, not a path
+
+Rule 3: the builder *"reaches only allowlisted indexes"*, matched by the
+allowlist's rules, paths included. ⚠️ **A proxy that does not break TLS sees
+`CONNECT host:port` and nothing more**, so while the build runs an https entry
+admits its whole host. The path rules still bind every index URL a file names,
+at submit. Enforcing them during the build needs a TLS-intercepting proxy, with
+its CA installed in every base image -- which this profile does not do.
+
+**Where it goes:** `surface.md` rule 3, as a stated limit; implementation-notes
+§L's *What it reaches*.
+
+### 6. A question: may an index be a private address?
+
+This profile's builder never connects to a non-public address, whatever the
+allowlist says -- the rule every fetch this server makes follows. ⚠️ **That rules
+out the shape the contract recommends against dependency confusion**:
+*"allowlist one index that proxies PyPI"* is, in practice, a mirror on the
+operator's own network. Either the address rule is lifted for `index_allowlist`
+entries that name a host exactly (an operator's choice of one machine, which no
+job can widen), or the recommendation says the proxy must be public.
+**Recommended: lift it for exact hosts**, keep it for wildcards. This profile
+keeps the rule until it is decided.
+
+**Where it goes:** `surface.md` D131's dependency-confusion bullet, and the
+address rule's statement of scope.
+
+### 7. Where the layer is, and who puts it on the path
+
+Rule 6 puts the layer *"on the tool's `PYTHONPATH` only"* and says nothing of
+where it is or what does it. This profile installs it at
+`/opt/sc/python-env/site` in the derived image, and the node's task adds that
+directory to the tool's `PYTHONPATH` when it exists. ⚠️ **The task doing that is
+the SiliconCompiler in the image, not the client's**, so the path is an
+agreement between the builder and that code -- and the exact `siliconcompiler`
+pin in `requires.python` becomes load-bearing: an image whose SiliconCompiler
+predates the path would run the node without its packages and say nothing.
+Also stated: a `.pth` file an installed package ships does not run from
+`PYTHONPATH`, so a package relying on one (old-style namespace packages) is not
+supported in the layer.
+
+**Where it goes:** `surface.md` rule 6.
+
+### 8. The builder, in this profile
+
+For `sc-server-profile.md`'s *`python.env` only where there is somewhere safe to
+build*:
+
+- **`env_builder`** turns it on, needs `containers`, and is what advertises
+  `python.env` where nodes run in containers; false is the switch.
+- **A batch job of its own, in its own queue** (`build_queue`), on a compute
+  node: the API submits it while the job is `staging` and waits for its result
+  (`env_build_timeout_seconds`, 1800 by default). A queue of its own keeps a
+  burst of builds from taking the slots flows are waiting on.
+- **pip runs inside the node's image** in a container with a read-only root, a
+  private `/tmp`, none of the image's mounts and a network namespace holding
+  only a loopback, whose one way out is a unix socket to a proxy the build job
+  runs. On a cluster that is itself containers, the compute node needs
+  `NET_ADMIN` to bring that loopback up.
+- **Pushed to the base's own repository**, under `sc-env-<key>`, so the registry
+  must accept pushes from the compute nodes; staged as a bundle that borrows the
+  base's root filesystem, so no tool image is unpacked twice.
+- ⚠️ **Index credentials are not supported.** An allowlisted index that needs
+  authentication fails the build as `uninstallable`.
 
 ---
 

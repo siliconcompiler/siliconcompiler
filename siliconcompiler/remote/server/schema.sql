@@ -547,16 +547,30 @@ CREATE TABLE images (                               -- a container this deployme
                                                     -- preference cannot; where it is equal or NULL
                                                     -- (ko, Nix and Bazel stamp 1970 by design),
                                                     -- the later resolved_at does
-    registered_by text REFERENCES users(id),        -- a person, in the portal. Always set here:
-    registered_via text,                            -- the CI registration path is crucible's, so
-                                                    -- every image on this deployment has a person
-                                                    -- on it
+    registered_by text REFERENCES users(id),        -- a person, in the portal...
+    registered_via text,                            -- ...or 'derived': the server built it. The
+                                                    -- CI registration path is crucible's, so
+                                                    -- here it is only ever 'derived'
+    derived_from  text REFERENCES images(id),       -- the image a node's Python layer was built
+                                                    -- on. NULL for a registered image
+    derivation    text,                             -- hash of (base digest, the environment
+                                                    -- file the server wrote): the cache key
+    installed     text,                             -- what the layer holds, as JSON
+                                                    -- [[name, version]]: what `resolved_versions`
+                                                    -- adds for a node that ran in it. A derived
+                                                    -- image has no image_contents of its own --
+                                                    -- it is its base's, plus this -- so it can
+                                                    -- never satisfy a requirement nor be advertised
     note          text,
     retired_at    text,
     retired_by    text REFERENCES users(id),
     CHECK (digest LIKE 'sha256:%'),
     CHECK ((retired_at IS NULL) = (retired_by IS NULL)),
-    CHECK ((registered_by IS NULL) <> (registered_via IS NULL))   -- exactly one
+    CHECK ((registered_by IS NULL) <> (registered_via IS NULL)),  -- exactly one
+    CHECK ((derived_from IS NULL) = (derivation IS NULL)),
+    CHECK ((derived_from IS NULL) = (registered_via IS NOT 'derived')),
+    CHECK ((derived_from IS NULL) = (installed IS NULL)),
+    UNIQUE (derived_from, derivation)
 );
 
 CREATE TABLE image_contents (                       -- what is INSIDE it -- declared, not derived,

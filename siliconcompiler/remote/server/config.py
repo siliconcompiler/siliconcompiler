@@ -284,6 +284,28 @@ DEFAULTS: Dict[str, Any] = {
     "index_allowlist": ["https://pypi.org/simple/",
                         "https://files.pythonhosted.org/"],
 
+    # Whether this server builds an image for a node's Python environment
+    # (surface D131's container mode): the node's image with what its file
+    # names installed in a layer of its own, built once per base and file and
+    # shared by every job asking for the same.
+    #
+    # 🔴 Needs `containers`, and turning it on is what advertises `python.env`
+    # there -- false is the kill switch. The build runs as a job of its own on
+    # a compute node (`build_queue`), in a container whose only way out is a
+    # proxy that admits `index_allowlist` and nothing else; nothing the user
+    # wrote runs, because pip installs wheels only.
+    "env_builder": False,
+
+    # Which Slurm partition an environment build runs in, or None for the
+    # cluster's default. A queue of its own keeps a burst of builds -- the
+    # first jobs after a new tool image, each asking for its own set -- from
+    # holding the node slots flows are waiting on.
+    "build_queue": None,
+
+    # How long one environment build may take, queueing included, before the
+    # job waiting on it is refused.
+    "env_build_timeout_seconds": 1800,
+
     # Private dataroots this server supplies, by the owning object's name and
     # the dataroot's name: `{"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}}`.
     #
@@ -420,13 +442,16 @@ def _check_policy(values: Dict[str, Any]) -> None:
             import logging
             logging.getLogger("sc-server").warning(warning)
 
-    # 🔴 Advertised only where this server can serve it: a builder, or nodes
-    # that install on the host. It has no builder yet, so only where nodes run
-    # on the host -- an operator's choice, since a node then reaches an index.
-    if "python.env" in features and values["containers"]:
-        raise ValueError("features lists python.env, and this server builds no "
-                         "images for a node's Python environment yet; only a "
-                         "deployment whose nodes run on the host can offer it")
+    # 🔴 Advertised only where this server can serve it: nodes that install on
+    # the host -- an operator's choice, since a node then reaches an index --
+    # or, where nodes run in containers, the builder.
+    if values["env_builder"] and not values["containers"]:
+        raise ValueError("env_builder builds images, and this deployment runs no "
+                         "containers; where nodes run on the host, list python.env "
+                         "in features and each node installs its own")
+    if "python.env" in features and values["containers"] and not values["env_builder"]:
+        raise ValueError("features lists python.env, and nodes here run in "
+                         "containers with no env_builder to build them an image")
 
     private = values["private_dataroots"] or {}
     if not isinstance(private, dict) or not all(
@@ -502,6 +527,9 @@ class Config:
             values.update(overlay)
 
         _check_policy(values)
+
+        if values["env_builder"] and "python.env" not in values["features"]:
+            values["features"] = list(values["features"]) + ["python.env"]
 
         if values["storage_uri_base"] is None:
             artifacts = (Path(datadir) / "artifacts").resolve()

@@ -26,7 +26,7 @@ from pathlib import Path
 
 from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.runspec import (
-    IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_images,
+    IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_images, read_python,
     runtime_nodes, write_progress)
 from siliconcompiler.remote.server.store import now
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
@@ -164,7 +164,9 @@ def run(manifest: Path) -> int:
             # installed here, into the user's cache, before the flow starts. In
             # containers it is built into a derived image instead.
             from siliconcompiler.remote.server import envinstall
-            envinstall.install_all(project, Path(manifest).parent, project.logger)
+            envinstall.install_all(project, Path(manifest).parent, project.logger,
+                                   constrain=read_python(
+                                       Path(manifest).parent / IMAGES_FILENAME))
         project.run()
     except Exception as e:
         # The run failing is an outcome this reports, not an error in reporting.
