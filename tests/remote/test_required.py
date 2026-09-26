@@ -171,7 +171,7 @@ def test_a_setup_that_cannot_run_here_uploads_by_owner_alone(
     def cannot(project):
         raise RuntimeError("Cocotb is not installed; cannot run test.")
 
-    monkeypatch.setattr(owners, "work_out_required", cannot)
+    monkeypatch.setattr(owners, "work_out", cannot)
     lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
     project = reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET), libs=[lib])
 

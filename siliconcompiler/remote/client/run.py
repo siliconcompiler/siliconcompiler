@@ -114,8 +114,12 @@ class RemoteRun:
         self._sent = set()
 
         # What the flow reads (D129): the manifest to upload, carrying every
-        # node's `require`, and the keys it names. Worked out once per run.
+        # node's `require`, and the keys it names. Worked out once per run --
+        # with each node's own Python environment, from the same setup pass.
         self._needed = None
+        self._environments = {}
+        self._env_files = None
+        self._python_pins = None
 
     ######################################################################
 
@@ -160,7 +164,10 @@ class RemoteRun:
             job = self.client.create_job(
                 design=design, jobname=jobname,
                 flow=self._flow_descriptor(),
-                requires={"python": _python_requirements(self._needs()[0]),
+                # A node's environment file is the declaration; this says the
+                # same at create, for the refusal before the upload.
+                needs=["python.env"] if self._python_env_files() else None,
+                requires={"python": self._requires_python(),
                           "tools": self._tool_requirements()},
                 # What this machine expects the server to supply. A lookup at
                 # the other end, never a fetch, and credentials stripped -- and
@@ -382,15 +389,61 @@ class RemoteRun:
 
         if self._needed is None:
             try:
-                declared = owners.work_out_required(self.project)
-                carried = owners.with_required(self.project, declared)
+                worked = owners.work_out(self.project)
+                carried = owners.with_required(self.project, worked.required)
                 self._needed = (carried, owners.required(carried))
+                self._environments = worked.environments
             except Exception as e:                               # noqa: BLE001
                 self.logger.warning(
                     f"Could not work out which files the flow reads ({e}); "
                     "uploading every file this machine may send")
                 self._needed = (self.project, None)
         return self._needed
+
+    def _requires_python(self) -> Dict[str, List[str]]:
+        '''`requires.python`: every distribution the job imports, and what
+        SiliconCompiler's own process needs for its nodes -- cocotb, for a
+        cocotb task -- so the image holds the same version.'''
+        if self._python_pins is None:
+            framework = sorted({name for env in self._environments.values()
+                                for name in env.framework})
+            self._python_pins = _python_requirements(self._needs()[0], framework)
+        return self._python_pins
+
+    def _python_env_files(self):
+        '''Each node's environment file and the packages forwarded beside it,
+        worked out once: ``(step, index) -> (text, [(name==version, dirs)])``.
+
+        🔴 The client always writes it and the user never does (surface D131):
+        the distributions the node's sources import, and those its task loads
+        by name, as installed here -- less what the image holds, which is
+        everything `requires.python` pins.
+        '''
+        if self._env_files is None:
+            self._needs()
+            files = {}
+            if self._environments:
+                from siliconcompiler.remote import environment
+                from siliconcompiler.remote.client import capture
+
+                provided = list(self._requires_python())
+                index_url, extra_index_urls = _pip_indexes()
+                for (step, index), wanted in sorted(self._environments.items()):
+                    found = capture.capture(capture.imported_modules(wanted.sources),
+                                            wanted.requirements, provided)
+                    for warning in found.warnings:
+                        self.logger.warning(f"{step}/{index}: {warning}")
+                    text = environment.render(
+                        [environment.Pin(name, (), version, None)
+                         for name, version in found.pins],
+                        index_url, extra_index_urls,
+                        header=_ENV_HEADER.format(version=sc_version, node=f"{step}/{index}"))
+                    files[(step, index)] = (text, found.forwarded)
+                    self.logger.info(
+                        f"Python environment for {step}/{index}: {len(found.pins)} "
+                        f"pinned, {len(found.forwarded)} sent as your own code")
+            self._env_files = files
+        return self._env_files
 
     def _collect(self, asked=(), directory=None, only_asked: bool = False) -> None:
         '''Collect by owner -- plus, where the server asked, those sources too
@@ -460,6 +513,7 @@ class RemoteRun:
         with tarfile.open(upload, mode="w:gz") as tar:
             for name in [manifest, *self._needed_from(root)]:
                 tar.add(os.path.join(root, name), arcname=name)
+            self._add_environments(tar)
 
         collected = collectiondir(self.project)
         from siliconcompiler.remote import owners
@@ -482,6 +536,26 @@ class RemoteRun:
                 digest.update(chunk)
 
         return f"sha256:{digest.hexdigest()}", size
+
+    def _add_environments(self, tar) -> None:
+        '''Each node's environment file, and its forwarded packages beside it
+        -- in the first archive only, which is the only one this builds.'''
+        import io
+        import time
+
+        from siliconcompiler.remote import environment
+
+        for (step, index), (text, forwarded) in self._python_env_files().items():
+            data = text.encode()
+            info = tarfile.TarInfo(environment.path_for(step, index))
+            info.size, info.mtime = len(data), time.time()
+            tar.addfile(info, io.BytesIO(data))
+
+            for pin, paths in forwarded:
+                for path in paths:
+                    tar.add(path, filter=_forwardable(self.logger, pin),
+                            arcname=f"{environment.packages_path(step, index)}/"
+                                    f"{os.path.basename(path)}")
 
     def _flow_descriptor(self) -> Optional[Dict[str, Any]]:
         '''What the server can refuse us on before the upload moves.
@@ -1132,8 +1206,69 @@ def _normalize_spec(task, declared: str) -> Optional[str]:
     return ",".join(parts) if parts else None
 
 
-def _python_requirements(project) -> Dict[str, List[str]]:
-    """Every Python distribution the job imports, pinned (surface §13).
+# What every environment file says of itself. Comment lines, so the format
+# ignores them.
+_ENV_HEADER = ("Generated by SiliconCompiler {version} for {node}: the Python\n"
+               "packages this node's own code imports, as installed where the job\n"
+               "was submitted. sc-remote writes it on every run; do not edit it.")
+
+_DEFAULT_INDEX = "https://pypi.org/simple"
+
+
+def _pip_indexes() -> Tuple[Optional[str], List[str]]:
+    """The index this machine's pip uses where it is not PyPI's, and its
+    extra ones -- credentials stripped, as for sources.
+
+    Written into the file only where the user's own pip configuration names
+    one: a job submitted from a machine on PyPI says nothing, and the server
+    uses its own default.
+    """
+    import subprocess
+
+    from siliconcompiler.remote import owners
+
+    index = os.environ.get("PIP_INDEX_URL")
+    extras = os.environ.get("PIP_EXTRA_INDEX_URL", "").split()
+    if index is None and not extras:
+        try:
+            listed = subprocess.run(
+                [sys.executable, "-m", "pip", "config", "list"],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL, text=True, timeout=60).stdout
+        except (OSError, subprocess.SubprocessError):
+            listed = ""
+        for line in listed.splitlines():
+            key, _, value = line.partition("=")
+            value = value.strip().strip("'\"")
+            if key.endswith(".index-url"):
+                index = value
+            elif key.endswith(".extra-index-url"):
+                extras = value.split()
+
+    if index and index.rstrip("/") == _DEFAULT_INDEX:
+        index = None
+    return (owners.strip_userinfo(index) if index else None,
+            [owners.strip_userinfo(url) for url in extras])
+
+
+def _forwardable(logger, pin: str):
+    """A tar filter for a forwarded package: no bytecode, and no links -- an
+    archive holding one is refused, and a link out of the package would send
+    whatever it points at."""
+    def keep(info):
+        name = os.path.basename(info.name)
+        if name == "__pycache__" or name.endswith((".pyc", ".pyo")):
+            return None
+        if info.issym() or info.islnk():
+            logger.warning(f"{pin}: {info.name} is a link, and is not sent")
+            return None
+        return info
+    return keep
+
+
+def _python_requirements(project, framework=()) -> Dict[str, List[str]]:
+    """Every Python distribution the job imports, pinned (surface §13) -- and
+    ``framework``: what SiliconCompiler's own process needs for its nodes.
 
     🔴 **Named whole, or the job may land in an image without one**: a name
     left out of `requires` is not required. What a job imports is what its
@@ -1163,15 +1298,16 @@ def _python_requirements(project) -> Dict[str, List[str]]:
 
     pins = {"siliconcompiler": [_framework_requirement()]}
     installed = metadata.packages_distributions()
-    for module in sorted(modules):
-        for distribution in installed.get(module, ()):
-            name = canonicalize_name(distribution)
-            if name in pins:
-                continue
-            try:
-                pins[name] = [_pin(metadata.version(distribution))]
-            except metadata.PackageNotFoundError:
-                continue
+    named = [distribution for module in sorted(modules)
+             for distribution in installed.get(module, ())] + list(framework)
+    for distribution in named:
+        name = canonicalize_name(distribution)
+        if name in pins:
+            continue
+        try:
+            pins[name] = [_pin(metadata.version(distribution))]
+        except metadata.PackageNotFoundError:
+            continue
     return pins
 
 

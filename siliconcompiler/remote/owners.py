@@ -54,7 +54,8 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "SOURCE_KINDS",
            "UPLOADED", "SUPPLIED", "FETCH", "ASK", "UNAVAILABLE",
            "is_private", "skipped", "owner", "source", "uploads", "sources",
            "strip_userinfo", "account", "Entry", "confined", "upload_report",
-           "required", "needed", "work_out_required", "with_required"]
+           "required", "needed", "work_out", "work_out_required", "with_required",
+           "WorkedOut"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -509,8 +510,22 @@ def needed(key, required) -> bool:
     return required is None or tuple(key) in required
 
 
+class WorkedOut(NamedTuple):
+    '''What one setup pass on a copy learns: every node's `require`, and the
+    Python environment of each node whose task reports one.'''
+    required: Dict[Tuple[str, str], List[str]]
+    environments: Dict[Tuple[str, str], Any]
+
+
 def work_out_required(project) -> Dict[Tuple[str, str], List[str]]:
-    '''Every node's `require`, by running its setup on a throwaway copy.
+    '''Every node's `require` -- see :func:`work_out`.'''
+    return work_out(project).required
+
+
+def work_out(project) -> WorkedOut:
+    '''Every node's `require`, by running its setup on a throwaway copy --
+    and, from the same pass, each node's own Python environment
+    (`Task.get_python_environment`).
 
     🔴 **`require` is empty until setup runs**, and a remote run's setup runs
     in the job's image. So the client runs it here first, on a copy -- the
@@ -521,10 +536,10 @@ def work_out_required(project) -> Dict[Tuple[str, str], List[str]]:
     - Every node in execution order, since a node's setup reads its
       upstream's outputs to decide what it loads.
 
-    Returns ``(step, index)`` to that node's `require`, for every node that
-    set up and was not skipped. Raises whatever a setup raised: a task whose
-    setup needs what only its image has -- cocotb's needs cocotb -- cannot be
-    worked out here, and the caller uploads by owner alone.
+    Keyed by ``(step, index)``, for every node that set up and was not
+    skipped. Raises whatever a setup raised: a task whose setup needs what only
+    its image has -- cocotb's needs cocotb -- cannot be worked out here, and
+    the caller uploads by owner alone.
     '''
     import copy
     import logging
@@ -541,17 +556,21 @@ def work_out_required(project) -> Dict[Tuple[str, str], List[str]]:
         work._init_run()
         flow = work.get_flow()
         declared: Dict[Tuple[str, str], List[str]] = {}
+        environments: Dict[Tuple[str, str], Any] = {}
         for layer in flow.get_execution_order():
             for step, index in layer:
                 node = SchedulerNode(work, step, index)
                 with node.runtime():
                     if not node.setup():
                         continue
+                    environment = node.task.get_python_environment()
+                if environment is not None:
+                    environments[(step, index)] = environment
                 values = work.get("tool", flow.get(step, index, "tool"),
                                   "task", flow.get(step, index, "task"), "require",
                                   step=step, index=index) or []
                 declared[(step, index)] = list(dict.fromkeys(values))
-        return declared
+        return WorkedOut(declared, environments)
     finally:
         logger.setLevel(level)
 

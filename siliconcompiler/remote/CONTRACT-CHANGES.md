@@ -66,6 +66,34 @@ level. Nothing in the reference client sends one yet.
 
 **Where it goes:** `surface.md` §13's descriptor and its members table.
 
+### 3. Forwarded packages travel beside the environment file
+
+D131 says the user's own packages -- editable, local, VCS -- are *"their
+directories, uploaded under the ownership rules and put on the node's
+`PYTHONPATH`"*, and names no path for them. **Owner, 2026-09-26: beside the
+file.** This profile sends them at
+`python-env/<step>/<index>/packages/<name>/`, in the first archive with the
+file; the node's task puts that directory first on the tool's `PYTHONPATH`. The
+server accepts the subtree only for a node that has a file, and never parses
+it. ⚠️ So they are outside the manifest and the owner table: the file's
+presence is what brings them, not a keypath.
+
+**Where it goes:** `surface.md` D131's *Where the file is* table.
+
+### 4. What the image holds is left out of the file, not only SiliconCompiler
+
+D131 builds the file *"less SiliconCompiler's own dependencies"*. ⚠️ **A cocotb
+node needs cocotb in SiliconCompiler's own process** -- it sets the GPI up from
+it -- and that process never imports from the environment layer, so cocotb has
+to be in the image. **Owner, 2026-09-26: the image.** The task reports it as
+`framework`; the client pins it in `requires.python`, so the job resolves to an
+image holding the client's version, and the file leaves out everything
+`requires.python` pins. Otherwise the simulator and SiliconCompiler would each
+load their own cocotb.
+
+**Where it goes:** `surface.md` D131 -- *less what the job's `requires.python`
+pins*.
+
 ---
 
 ## Not ported, deliberately

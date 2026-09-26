@@ -97,6 +97,14 @@ Next, you define what the specific task needs to run and what it will produce.
    node fails on the server. Where the task reads a library's files, require
    those filesets' files, as the OpenROAD and Yosys tasks do.
 
+.. note::
+
+   **A task whose tool runs the user's own Python** -- a testbench, a plugin
+   -- says so by overriding :meth:`.Task.get_python_environment`, returning the
+   source files the tool loads, any distributions it loads by name, and what
+   SiliconCompiler's own process needs for it. A remote run turns that into the
+   node's environment file; the cocotb tasks are the example.
+
 .. important::
 
    **Do not call** ``find_files`` **(or anything else that resolves a

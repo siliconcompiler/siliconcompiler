@@ -5,6 +5,7 @@ from typing import Optional, Union, Dict
 import xml.etree.ElementTree as ET
 
 from siliconcompiler import Task
+from siliconcompiler.tool import PythonEnvironment
 
 try:
     import cocotb_tools.config
@@ -142,6 +143,22 @@ class CocotbTask(Task):
                     module_dirs.append(dir_path)
 
         return ",".join(module_names), module_dirs
+
+    def get_python_environment(self) -> PythonEnvironment:
+        """
+        The testbench's own Python, for a remote run to carry.
+
+        The test modules are the sources whose imports the environment is
+        read from. cocotb itself is SiliconCompiler's: this process configures
+        the GPI from its own copy, so the image has to hold the same version,
+        and the testbench's environment leaves it out.
+
+        Returns:
+            PythonEnvironment: the test modules, and cocotb as the framework's.
+        """
+        sources = tuple(str(pyfile) for lib, fileset in self.project.get_filesets()
+                        for pyfile in lib.get_file(fileset=fileset, filetype="python"))
+        return PythonEnvironment(sources=sources, framework=("cocotb",))
 
     def _get_libdirs(self):
         """

@@ -137,6 +137,17 @@ only the server has, say), the client says so and uploads by owner alone.
    and did not get is refused at submit, naming its keypath, before anything
    runs.
 
+**A testbench's own Python packages travel as a list, not as files.** A node
+whose tool runs Python of yours -- a cocotb testbench -- gets an environment
+file the client writes, ``python-env/<step>/<index>/requirements.txt``: every
+package the testbench imports, pinned to the version installed on your machine,
+less what the server's image already holds (SiliconCompiler, and cocotb
+itself). Packages you installed editable, from a local path or from version
+control, which no index can reproduce, go up beside it as your own code and are
+put on the tool's path; none of it is installed or run on the way. The server
+builds the rest into the node's environment -- where it offers ``python.env``;
+one that does not says so before anything is uploaded.
+
 The client prints what goes up, per dataroot, with sizes, before anything
 moves.
 

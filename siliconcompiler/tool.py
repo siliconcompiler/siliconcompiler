@@ -25,8 +25,8 @@ except ModuleNotFoundError:
 
 import os.path
 
-from typing import Any, List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, \
-    TYPE_CHECKING
+from typing import Any, List, Dict, NamedTuple, Tuple, Union, Optional, Set, TextIO, \
+    Type, TypeVar, TYPE_CHECKING
 from pathlib import Path
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
@@ -457,6 +457,26 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     if status is None:
         return 1
     return os.waitstatus_to_exitcode(status)
+
+
+class PythonEnvironment(NamedTuple):
+    """
+    What a node's own Python needs, as :meth:`Task.get_python_environment`
+    reports it.
+
+    Attributes:
+        sources: Python files the tool's Python loads -- a testbench -- whose
+            imports are read to find what it needs.
+        requirements: distributions, or PEP 508 requirements, it loads by name
+            rather than by import: a plugin.
+        framework: distributions SiliconCompiler's own process needs for this
+            task -- cocotb, for a cocotb task. A remote run pins them in the
+            job's ``requires`` so the image holds them, and leaves them out of
+            the environment file, so the tool and SiliconCompiler load one copy.
+    """
+    sources: Tuple[str, ...] = ()
+    requirements: Tuple[str, ...] = ()
+    framework: Tuple[str, ...] = ()
 
 
 class Task(NamedSchema, PathSchema, DocsSchema):
@@ -1032,7 +1052,44 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if value is not None:
                 envvars[env] = value
 
+        # A remote run's forwarded Python packages for this node -- the user's
+        # own editable, local and VCS installs, sent beside its environment
+        # file -- ahead of everything else on the tool's path. Never on this
+        # process's: SiliconCompiler does not import from them.
+        forwarded = self.__forwarded_python()
+        if forwarded:
+            existing = envvars.get("PYTHONPATH", os.getenv("PYTHONPATH", ""))
+            envvars["PYTHONPATH"] = os.pathsep.join(
+                [forwarded] + [part for part in existing.split(os.pathsep) if part])
+
         return envvars
+
+    def __forwarded_python(self) -> Optional[str]:
+        from siliconcompiler.remote.environment import packages_path
+        from siliconcompiler.utils.paths import jobdir
+
+        try:
+            path = os.path.join(jobdir(self.project), packages_path(self.step, self.index))
+        except Exception:                                       # noqa: BLE001
+            return None
+        return path if os.path.isdir(path) else None
+
+    def get_python_environment(self) -> Optional["PythonEnvironment"]:
+        """
+        What this node's tool runs of the user's Python, for a remote run to
+        carry.
+
+        A remote run writes each such node an environment file -- the
+        distributions its sources import and those it loads by name, pinned as
+        installed on the submitting machine -- and sends the user's own
+        editable, local and VCS installs beside it. Called on the submitting
+        machine, after :meth:`setup`.
+
+        Returns:
+            :class:`PythonEnvironment`, or None where the tool runs none of the
+            user's Python -- the default.
+        """
+        return None
 
     def get_runtime_arguments(self) -> List[str]:
         """
