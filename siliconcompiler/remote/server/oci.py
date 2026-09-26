@@ -100,11 +100,14 @@ def layer_from(directory: Path, inside: str) -> Tuple[bytes, str, str]:
     return zipped, _digest(zipped), _digest(raw)
 
 
-def derive(base_ref: str, layer: Tuple[bytes, str, str], tag: str,
-           comment: str) -> Tuple[str, str]:
-    '''Push the base with ``layer`` on top, under ``tag`` in the base's own
-    repository. Returns (``host/repository:tag``, digest) of the derived
-    image: the tag for a person to read, the digest for what runs.'''
+def derive(base_ref: str, layer: Tuple[bytes, str, str], comment: str) -> Tuple[str, str]:
+    '''Push the base with ``layer`` on top into the base's own repository, by
+    digest. Returns (``host/repository@digest``, digest).
+
+    🔴 **By digest, with no tag** (profile D39): nothing names a derived image
+    but its content, so nothing can be pointed at other content later. ⚠️ A
+    registry garbage collection that deletes untagged manifests would take
+    them; this stack's registry runs none.'''
     import requests
 
     host, repository, reference = split_ref(base_ref)
@@ -141,11 +144,11 @@ def derive(base_ref: str, layer: Tuple[bytes, str, str], tag: str,
         {"mediaType": _LAYER_TYPES[kind], "digest": digest, "size": len(data)}]
     manifest["mediaType"] = kind
     body = json.dumps(manifest, separators=(",", ":")).encode()
-    put = session.put(f"{root}/manifests/{tag}", data=body,
+    derived = _digest(body)
+    put = session.put(f"{root}/manifests/{derived}", data=body,
                       headers={"Content-Type": kind}, timeout=_TIMEOUT)
     put.raise_for_status()
-    derived = put.headers.get("Docker-Content-Digest") or _digest(body)
-    return f"{host}/{repository}:{tag}", derived
+    return f"{host}/{repository}@{derived}", derived
 
 
 def _upload(session, root: str, data: bytes, digest: str) -> None:

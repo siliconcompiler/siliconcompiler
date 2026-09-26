@@ -1013,6 +1013,20 @@ def _weigh(path) -> int:
     return total
 
 
+# Never held by a container's process on this cluster (profile D39). A compute
+# node that is itself a container needs NET_ADMIN, for crun to bring up the
+# build container's loopback; the processes inside get none of it.
+WITHHELD_CAPABILITIES = ("CAP_NET_ADMIN",)
+
+
+def drop_capabilities(spec) -> None:
+    '''Take `WITHHELD_CAPABILITIES` out of every set an OCI spec grants.'''
+    capabilities = (spec.get("process") or {}).get("capabilities") or {}
+    for name, held in list(capabilities.items()):
+        if isinstance(held, list):
+            capabilities[name] = [cap for cap in held if cap not in WITHHELD_CAPABILITIES]
+
+
 def _prepare_spec(config, mounts) -> None:
     '''Make the unpacked bundle runnable for a job on this cluster.
 
@@ -1034,6 +1048,8 @@ def _prepare_spec(config, mounts) -> None:
 
     with open(config) as f:
         spec = json.load(f)
+
+    drop_capabilities(spec)
 
     # ⚠️ An image's config asks for a terminal because a person usually runs
     # it. Slurm does not give one: it captures stdout to a file, and crun then

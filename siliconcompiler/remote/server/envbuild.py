@@ -147,7 +147,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
     site = out / "site"
     site.mkdir(exist_ok=True)
     layer = oci.layer_from(site, images.LAYER_PATH)
-    ref, digest = oci.derive(spec["base_ref"], layer, tag=spec["tag"],
+    ref, digest = oci.derive(spec["base_ref"], layer,
                              comment=spec.get("comment") or "sc-server environment")
     images.stage_derived_bundle(root, spec["base_digest"], digest, site)
     shutil.rmtree(out, ignore_errors=True)
@@ -168,6 +168,9 @@ def build_config(base: Dict[str, Any], rootfs: Path, req: Path, out: Path,
     spec["root"] = {"path": str(Path(rootfs).resolve()), "readonly": True}
     spec["hostname"] = "sc-envbuild"
 
+    from siliconcompiler.remote.server.images import drop_capabilities
+
+    drop_capabilities(spec)
     process = spec.setdefault("process", {})
     process["terminal"] = False
     process["cwd"] = "/tmp"

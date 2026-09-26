@@ -1241,7 +1241,7 @@ class JobService:
                 "key": key, "base_ref": base_ref, "base_digest": base_ref.split("@", 1)[1],
                 "bundles_root": str(self.bundles_root()), "mounts": self.container_mounts(),
                 "index_allowlist": list(self._config["index_allowlist"] or []),
-                "tag": f"sc-env-{key[:32]}", "timeout": timeout,
+                "timeout": timeout,
                 "constrain": _python_names(job),
                 "comment": f"sc-server: a node's Python environment ({key[:12]})",
             }, indent=1))

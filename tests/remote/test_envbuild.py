@@ -96,8 +96,11 @@ def registry(monkeypatch, tmp_path):
 
         def put_manifest(request):
             uploaded["manifest"] = json.loads(request.body)
-            return (201, {"Docker-Content-Digest": digest("d")}, "")
-        mock.add_callback("PUT", f"{root}/manifests/sc-env-test", callback=put_manifest)
+            uploaded["manifest-at"] = request.url.rsplit("/", 1)[1]
+            uploaded["manifest-digest"] = \
+                "sha256:" + hashlib.sha256(request.body).hexdigest()
+            return (201, {}, "")
+        mock.add_callback("PUT", re.compile(rf"{root}/manifests/.*"), callback=put_manifest)
         mock.uploaded = uploaded
         mock.manifest = manifest
         yield mock
@@ -111,10 +114,12 @@ def test_a_derived_image_is_the_base_with_one_layer_more(registry, tmp_path):
     layer = oci.layer_from(tmp_path / "site", images.LAYER_PATH)
 
     ref, derived = oci.derive(f"registry:5000/sc-tools@{digest('b')}", layer,
-                              tag="sc-env-test", comment="a node's Python")
+                              comment="a node's Python")
 
-    assert (ref, derived) == ("registry:5000/sc-tools:sc-env-test", digest("d"))
     uploaded = registry.uploaded
+    # 🔴 By digest, with no tag: nothing can be pointed at other content later.
+    assert derived == uploaded["manifest-digest"] == uploaded["manifest-at"]
+    assert ref == f"registry:5000/sc-tools@{derived}"
     manifest = uploaded["manifest"]
     assert manifest["layers"][:2] == registry.manifest["layers"]
     assert manifest["layers"][2]["digest"] == layer[1]
@@ -132,7 +137,7 @@ def test_an_index_cannot_take_a_layer(registry, tmp_path):
 
     with pytest.raises(RuntimeError, match="multi-platform index"):
         oci.derive(f"registry:5000/sc-tools@{digest('b')}", (b"", digest("0"), digest("0")),
-                   tag="sc-env-test", comment="")
+                   comment="")
 
 
 ###########################
@@ -333,7 +338,9 @@ def test_a_failed_install_says_which_and_whether_it_was_the_network(
 BASE = {
     "ociVersion": "1.0.2",
     "process": {"terminal": False, "cwd": "/", "args": ["sh"],
-                "env": ["PATH=/venv/bin:/usr/bin:/bin", "SECRET=from-the-image-config"]},
+                "env": ["PATH=/venv/bin:/usr/bin:/bin", "SECRET=from-the-image-config"],
+                "capabilities": {"bounding": ["CAP_CHOWN", "CAP_NET_ADMIN"],
+                                 "effective": ["CAP_NET_ADMIN"]}},
     "root": {"path": "rootfs"},
     "mounts": [
         {"destination": "/proc", "type": "proc", "source": "proc"},
@@ -364,6 +371,8 @@ def test_the_build_container_reaches_nothing_but_its_three_directories(tmp_path)
     assert config["process"]["args"] == ["python3", "x"]
     assert "SECRET=from-the-image-config" not in config["process"]["env"]
     assert "PATH=/venv/bin:/usr/bin:/bin" in config["process"]["env"]
+    # 🔴 crun's, on the node; no container's process holds it (profile D39).
+    assert config["process"]["capabilities"] == {"bounding": ["CAP_CHOWN"], "effective": []}
     assert BASE["mounts"][2]["destination"] == "/sc_server"        # the base untouched
 
 
@@ -390,9 +399,9 @@ def base_bundle(monkeypatch, tmp_path):
 def pushed(monkeypatch):
     calls = []
 
-    def derive(base_ref, layer, tag, comment):
-        calls.append((base_ref, layer, tag))
-        return f"registry:5000/sc-tools:{tag}", digest("d")
+    def derive(base_ref, layer, comment):
+        calls.append((base_ref, layer))
+        return f"registry:5000/sc-tools@{digest('d')}", digest("d")
 
     monkeypatch.setattr(oci, "derive", derive)
     return calls
@@ -404,7 +413,7 @@ def workspace_for(tmp_path, root, text="numpy==2.0.1\n"):
     (workspace / envbuild.REQUIREMENTS).write_text(text)
     return workspace, {"key": "k" * 64, "base_ref": f"registry:5000/sc-tools@{digest('b')}",
                        "base_digest": digest("b"), "bundles_root": str(root),
-                       "mounts": ["/sc_server"], "tag": "sc-env-kkkk",
+                       "mounts": ["/sc_server"],
                        "index_allowlist": ["https://pypi.org/simple/"], "timeout": 60}
 
 
@@ -429,6 +438,18 @@ def container(pip_result, files=None):
     return run
 
 
+def test_no_node_bundle_grants_net_admin(tmp_path):
+    '''The node's own bundle, as staging writes it: whatever the image asked
+    for, its process holds no NET_ADMIN.'''
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps(BASE))
+
+    images._prepare_spec(config, mounts=["/sc_server"])
+
+    held = json.loads(config.read_text())["process"]["capabilities"]
+    assert not any("CAP_NET_ADMIN" in caps for caps in held.values())
+
+
 def test_a_build_pushes_one_layer_and_stages_a_bundle_on_the_base(
         tmp_path, base_bundle, pushed):
     run = container({"returncode": 0, "python": "cpython-312", "version": "3.12.3",
@@ -438,7 +459,7 @@ def test_a_build_pushes_one_layer_and_stages_a_bundle_on_the_base(
 
     result = envbuild.build(spec, workspace, run=run)
 
-    assert result == {"ok": True, "ref": "registry:5000/sc-tools:sc-env-kkkk",
+    assert result == {"ok": True, "ref": f"registry:5000/sc-tools@{digest('d')}",
                       "digest": digest("d"), "installed": [["numpy", "2.0.1"]],
                       "python": "cpython-312", "version": "3.12.3",
                       "platform": "linux-x86_64"}
@@ -605,7 +626,7 @@ def store():
 def test_a_derived_image_is_never_resolved_to(store):
     '''🔴 Reached only by its derivation key, or one user's packages would
     place another user's node.'''
-    images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1", digest("e"),
+    images.register_derived(store, store.base, f"ghcr.io/x/sc@{digest('e')}", digest("e"),
                             "k1", [("numpy", "2.0.1")], note="")
 
     assert [image["id"] for image in images.live_images(store)] == [store.base]
@@ -613,7 +634,7 @@ def test_a_derived_image_is_never_resolved_to(store):
 
 
 def test_a_derived_image_holds_its_base_and_what_it_installed(store):
-    derived = images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1",
+    derived = images.register_derived(store, store.base, f"ghcr.io/x/sc@{digest('e')}",
                                       digest("e"), "k1", [("numpy", "2.0.1")], note="")
 
     assert images.contents_of(store, [derived]) == {
@@ -624,9 +645,9 @@ def test_a_derived_image_holds_its_base_and_what_it_installed(store):
 def test_a_second_build_of_the_same_key_is_the_first(store):
     '''A restart, or a second process: the first registered is what every
     later job reuses, whatever digest the second push got.'''
-    first = images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1",
+    first = images.register_derived(store, store.base, f"ghcr.io/x/sc@{digest('e')}",
                                     digest("e"), "k1", [], note="")
-    second = images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1",
+    second = images.register_derived(store, store.base, f"ghcr.io/x/sc@{digest('e')}",
                                      digest("f"), "k1", [], note="")
 
     assert first == second
@@ -639,7 +660,7 @@ def test_the_key_is_the_base_and_the_file(store):
 
 
 def test_the_catalogue_keeps_what_the_server_built_apart(store):
-    images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1", digest("e"),
+    images.register_derived(store, store.base, f"ghcr.io/x/sc@{digest('e')}", digest("e"),
                             "k1", [("numpy", "2.0.1")], note="")
 
     catalogue = images.catalogue(store)
@@ -652,7 +673,7 @@ def test_the_catalogue_keeps_what_the_server_built_apart(store):
 def test_a_bundle_lives_as_long_as_its_base(store, tmp_path):
     '''A derived bundle runs on its base's root filesystem: kept while the
     base is live, and both go when the base is retired and nothing runs.'''
-    images.register_derived(store, store.base, "ghcr.io/x/sc:sc-env-1", digest("e"),
+    images.register_derived(store, store.base, f"ghcr.io/x/sc@{digest('e')}", digest("e"),
                             "k1", [], note="")
     root = tmp_path / "images"
     for letter in "ae":
@@ -744,7 +765,7 @@ class Builder(FakeDispatcher):
         return f"build:{len(self.builds)}"
 
 
-BUILT = {"ok": True, "ref": "ghcr.io/x/sc:sc-env-test", "digest": digest("e"),
+BUILT = {"ok": True, "ref": f"ghcr.io/x/sc@{digest('e')}", "digest": digest("e"),
          "installed": [["numpy", "2.0.1"]], "python": "cpython-312",
          "version": "3.12.3", "platform": "linux-x86_64"}
 

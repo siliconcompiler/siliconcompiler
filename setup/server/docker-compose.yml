@@ -119,8 +119,10 @@ x-scrunner: &scrunner
   # NET_ADMIN is for the environment builder: it runs pip in a container with
   # a network namespace of its own, holding only a loopback, and bringing that
   # loopback up is an ioctl crun cannot make without it ("ioctl(SIOCSIFFLAGS):
-  # Operation not permitted"). A compute node on real hardware runs crun as
-  # root and needs nothing here.
+  # Operation not permitted"). It is crun's, on this node: sc-server takes it
+  # out of every bundle it writes, so no container's process -- a job's or the
+  # build's -- holds it. A compute node on real hardware runs crun as root and
+  # needs nothing here.
   cgroup: private
   cap_add:
     - SYS_ADMIN
