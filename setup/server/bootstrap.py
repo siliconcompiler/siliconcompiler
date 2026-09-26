@@ -41,6 +41,7 @@ import socket
 import subprocess
 import sys
 import time
+import urllib.parse
 
 from http.client import HTTPConnection
 from pathlib import Path
@@ -48,8 +49,8 @@ from pathlib import Path
 
 # What the daemon calls the images compose just built, and what they are called
 # once they are in the registry.
-STACK_IMAGE = os.environ.get("SC_STACK_IMAGE", "sc-server-slurm:local")
-RUNTIME_IMAGE = os.environ.get("SC_RUNTIME_IMAGE", "sc-runtime:local")
+STACK_IMAGE = os.environ.get("SC_STACK_IMAGE", "sc-server-slurm-sctools")
+RUNTIME_IMAGE = os.environ.get("SC_RUNTIME_IMAGE", "sc-server-slurm-scruntime")
 
 # Where the DAEMON pushes, and where the CLUSTER pulls. See the module note.
 PUSH_TO = os.environ.get("SC_PUSH_REGISTRY", "localhost:5000")
@@ -435,6 +436,31 @@ def built_at(local: str) -> str:
     return _get(f"/images/{local}/json").get("Created") or ""
 
 
+def content_of(local: str):
+    '''The image's own manifest digest and platform, or ``(None, None)``.
+
+    🔴 **Stable across a rebuild that changed nothing, which the image's ID is
+    not.** On the containerd image store the ID is the digest of an INDEX, and
+    BuildKit puts a provenance attestation in it that carries the time of the
+    build -- so an unchanged tree, every layer a cache hit, came out as a new ID
+    each time, was pushed as a new digest, and was registered all over again.
+    The manifest the index points at for this platform is the image itself, and
+    it only changes when the image does.
+
+    ⚠️ Compose's `provenance: false` would remove the attestation and is not
+    passed through by the compose this was written against, so this does not
+    rely on it.
+
+    None on the classic image store, which has no index and reports no
+    manifests; there the ID and the pushed digest are stable already.
+    '''
+    for manifest in _get(f"/images/{local}/json?manifests=1").get("Manifests") or []:
+        if manifest.get("Kind") == "image":
+            return (manifest["Descriptor"]["digest"],
+                    (manifest.get("ImageData") or {}).get("Platform"))
+    return None, None
+
+
 def push(local: str, repository: str, tag: str) -> str:
     '''Put one locally built image in the registry. Returns its digest.
 
@@ -453,9 +479,18 @@ def push(local: str, repository: str, tag: str) -> str:
     say(f"pushing {local} to {target}:{tag}")
     _post(f"/images/{local}/tag?repo={target}&tag={tag}")
 
+    # 🔴 Only this platform's manifest, where the store can say which: the
+    # digest the registry then reports is the image's own, which a rebuild that
+    # changed nothing leaves alone -- not the index around it, which changes on
+    # every build. See `content_of`.
+    query = f"tag={tag}"
+    _, platform = content_of(local)
+    if platform:
+        query += "&platform=" + urllib.parse.quote(json.dumps(platform))
+
     # An empty credential, which the daemon requires the header for even where
     # the registry wants no authentication at all.
-    events = _post(f"/images/{target}/push?tag={tag}",
+    events = _post(f"/images/{target}/push?{query}",
                    headers={"X-Registry-Auth": base64.urlsafe_b64encode(b"{}").decode()})
 
     digest = None
@@ -478,6 +513,34 @@ def push(local: str, repository: str, tag: str) -> str:
             f"the daemon pushed {target} and reported no digest: "
             f"{events[-3:]}")
     return digest
+
+
+def digest_of(local: str, repository: str):
+    '''The digest this image is registered as when it is pushed, or None.
+
+    The image's own manifest where the store has one -- known before any push,
+    and the same for as long as the image is -- and otherwise what it was last
+    pushed as.
+    '''
+    digest, _ = content_of(local)
+    return digest or pushed_as(local, repository)
+
+
+def pushed_as(local: str, repository: str):
+    '''The digest this exact image was pushed to the registry as, or None.
+
+    ⚠️ Read from `RepoDigests` and not from the image's `Id`. On the containerd
+    image store the two happen to be the same; on the classic one `Id` is the
+    config's digest and never matches what a push reports. The daemon records
+    `localhost:5000/sc-tools@sha256:...` against the image after a push on
+    both, and a rebuild that changed anything is a new image with no such
+    entry.
+    '''
+    prefix = f"{PUSH_TO}/{repository}@"
+    for ref in _get(f"/images/{local}/json").get("RepoDigests") or []:
+        if ref.startswith(prefix):
+            return ref[len(prefix):]
+    return None
 
 
 ######################################################################
@@ -698,13 +761,65 @@ def register(version: str, tools_digest: str, runtime_digest: str,
              "-contains", f"siliconcompiler=={version}", *contains, "-stage")
 
 
+def already_registered(version: str) -> bool:
+    '''Whether both images are live in the store, at this version and at the
+    digests they were pushed as, and staged.
+
+    🔴 **Asked of the store, not of a marker this script leaves behind.** A
+    marker is a second record of what is registered, and the two disagree the
+    moment the store is reset without it. The store is what the server reads.
+
+    ⚠️ The digest is the whole test, because it is what changes: a rebuild
+    that changed nothing is the cached image under the same digest, and any
+    edit to the build context -- this script included -- is a new one. It is
+    the image's own manifest digest (`content_of`), because the ID changes on
+    every build even when nothing else does. A
+    registry volume wiped on its own still counts as registered, harmlessly:
+    jobs run from the staged bundle, and staging an image that is already
+    staged does nothing.
+    '''
+    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.store import Store, StoreVersionError
+
+    wanted = {
+        f"{PULL_FROM}/sc-runtime:{version}": digest_of(RUNTIME_IMAGE, "sc-runtime"),
+        f"{PULL_FROM}/sc-tools:{version}": digest_of(STACK_IMAGE, "sc-tools")}
+    database = DATADIR / "server.db"
+    if not all(wanted.values()) or not database.is_file():
+        return False
+
+    try:
+        with Store(database) as store:
+            live = {row["registry_ref"]: row["digest"]
+                    for row in images.live_images(store)}
+    except StoreVersionError:
+        # Registering is what says what to do about a store this server cannot
+        # read, so let it.
+        return False
+
+    return all(
+        live.get(ref) == digest
+        and images.is_staged(images.bundle_path(DATADIR / "images", digest))
+        for ref, digest in wanted.items())
+
+
 def main() -> int:
     import siliconcompiler
 
     version = siliconcompiler.__version__
 
     wait_for_registry()
+    # ⚠️ Written every time, ahead of the check below: the deployment's
+    # settings can change without either image changing.
     write_config()
+
+    # 🔴 Without this, every `docker compose up` probed both images, pushed
+    # both, and re-registered both through several dozen registry commands --
+    # a minute or more, to write rows that were already there.
+    if already_registered(version):
+        say(f"siliconcompiler {version} is already registered at these "
+            "digests; nothing to do")
+        return 0
 
     # ⚠️ A rebuild at the SAME version supersedes the earlier one, because the
     # reference is identical and the digest is not -- which is what should

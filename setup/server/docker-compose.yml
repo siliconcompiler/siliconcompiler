@@ -1,7 +1,7 @@
 # A local SiliconCompiler server backed by a real slurm cluster.
 #
-#   docker compose up              # http://localhost:8080
-#   docker compose up --build      # after you change the source
+#   docker compose up              # http://localhost:8080, rebuilding only
+#                                  # what a source change touched
 #
 # 🔴 **That is the whole procedure.** There is no second command to remember
 # and no order to get right: a one-shot `bootstrap` service pushes the images
@@ -50,25 +50,31 @@ x-build: &build
 # do not run EDA tools, so they get an image that does not carry any. Only the
 # compute node runs the full one -- and that image still has to be built,
 # because it is what a node's task runs INSIDE.
+#
+# 🔴 No `image:` on anything built here, and that is what keeps compose from
+# trying to fetch it. A named image is a registry reference -- `sc-server:local`
+# means `docker.io/library/sc-server:local` -- so compose asks Docker Hub for it
+# first and reports
+#
+#   pull access denied for sc-server, repository does not exist
+#
+# before falling back to building. Unnamed, each service's image is
+# `<project>-<service>`. `bootstrap` finds the two it pushes under those names.
+#
+# 🔴 `pull_policy: build` on each of them, so `docker compose up` alone picks up
+# a source change. Without it compose builds an image only when it is MISSING,
+# and after the first `up` it never is -- so an edit ran against the old image
+# until somebody remembered `--build`.
+#
+# ⚠️ It consults the build graph on every `up`, and that is cheap only because
+# the context is stable: Dockerfile.dockerignore is an allow-list, and the one
+# step that reads `.git` is a stage of its own. An unchanged tree is then a
+# cache hit at every layer -- seconds, not a rebuild -- and an edit to the
+# package or to setup/server/ rebuilds from the first layer it touches.
 x-sc-server: &sc-server
   build:
     <<: *build
     target: server
-  image: sc-server:local
-  # 🔴 Build it; never try to fetch it. A service with both `image:` and
-  # `build:` gets compose's default `pull_policy: missing`, which means "pull
-  # if it is not here" -- so on any machine that has not built yet, compose
-  # asks Docker Hub for `sc-server:local` and reports
-  #
-  #   pull access denied for sc-server, repository does not exist
-  #
-  # before falling back to building. The tag only ever exists locally, so the
-  # request was never going to succeed and the message points at
-  # authentication, which is not the problem.
-  #
-  # ⚠️ It also means `docker compose up` alone picks up a source change. The
-  # build graph is consulted every time, which costs seconds when nothing moved
-  # and removes the one thing the single command did not do for you.
   pull_policy: build
   environment:
     SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
@@ -97,7 +103,6 @@ x-scrunner: &scrunner
   build:
     <<: *build
     target: cluster
-  image: sc-server-slurm:local
   pull_policy: build
   environment:
     SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
@@ -187,7 +192,6 @@ services:
     build:
       <<: *build
       target: runtime
-    image: sc-runtime:local
     pull_policy: build
     entrypoint: ["/bin/true"]
     restart: "no"
@@ -199,7 +203,6 @@ services:
     build:
       <<: *build
       target: cluster
-    image: sc-server-slurm:local
     pull_policy: build
     entrypoint: ["/bin/true"]
     restart: "no"
@@ -210,11 +213,13 @@ services:
     <<: *sc-server
     command: ["bootstrap"]
     restart: "no"
-    # What to push. The `scruntime` and `sctools` services are what make
-    # compose BUILD these two; the dependencies below are what make it wait.
+    # What to push: the images compose builds for the `sctools` and
+    # `scruntime` services, by the names compose gives them. Those services are
+    # what make compose BUILD these two; the dependencies below are what make
+    # it wait.
     environment:
-      SC_STACK_IMAGE: sc-server-slurm:local
-      SC_RUNTIME_IMAGE: sc-runtime:local
+      SC_STACK_IMAGE: ${COMPOSE_PROJECT_NAME}-sctools
+      SC_RUNTIME_IMAGE: ${COMPOSE_PROJECT_NAME}-scruntime
     volumes:
       - sc-server-data:/sc_server
       # 🔴 The two images have to get from the daemon that just built them into
