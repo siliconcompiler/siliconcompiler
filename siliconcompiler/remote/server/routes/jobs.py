@@ -82,22 +82,10 @@ def create(session):
     '''
     body, status = _jobs().create(session, _body(), _idempotency_key())
 
-    created = {
-        "id": body["id"],
-        "state": body["state"],
-        "project": None,
-        "created_at": body["created_at"],
-    }
-    # OPTIONAL and absent where this deployment serves no web UI. It is here as
-    # well as on the job object because this is the response a CLI has in hand
-    # at submit time, and the id on its own is useless to paste into a browser.
-    page = _jobs().web_url(body["id"])
-    if page:
-        created["web_url"] = page
-    if "upload_sources" in body:
-        created["upload_sources"] = body["upload_sources"]
-
-    response = _private(created, status)
+    # 🔴 The job object itself, in `created` -- the separate create shape is
+    # gone, so the create-time `upload_sources` and the later one are the same
+    # member in the same place, and absent means nothing to send either way.
+    response = _private(body, status)
     if status == 201:
         response.headers["Location"] = f"/v1/jobs/{body['id']}"
     return response

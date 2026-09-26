@@ -282,25 +282,28 @@ class Client:
 
     def create_job(self, design: str, jobname: str, *,
                    flow: Optional[Dict[str, Any]] = None,
-                   resources: Optional[Dict[str, Any]] = None,
-                   versions: Optional[Dict[str, Any]] = None,
+                   needs: Optional[List[str]] = None,
                    requires: Optional[Dict[str, Any]] = None,
                    sources: Optional[List[Dict[str, Any]]] = None,
                    run_hash: Optional[str] = None,
                    idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         '''``POST /v1/jobs``: the job exists, and nothing has moved yet.
+        Returns the job object, in `created`.
 
         ``design`` and ``jobname`` are authoritative -- nothing in a manifest
-        names either, so the server cannot re-derive them. Everything else is
-        the descriptor: advisory, re-derived at submit, and present only to let
-        the server refuse before the archive uploads.
+        names either, so the server cannot re-derive them. Everything else goes
+        in the ``descriptor``: advisory, re-derived at submit, and present only
+        to let the server refuse before the archive uploads.
 
-        ``versions`` is what this machine HAS and ``requires`` is what the
-        image must HOLD -- exact versions against PEP 440 specifiers. Both are
-        keyed on ``python`` and ``tools``, and the split is structural: the
-        whole ``python`` set shares an interpreter, so ONE image has to hold all
-        of it, while a tool is satisfied per node. A name ``requires`` does
-        not mention falls back to its ``versions`` entry as an exact pin.
+        ``requires`` is what the image must HOLD, keyed on ``python`` and
+        ``tools``, every value a list of PEP 440 specifier sets. 🔴 It names
+        every Python distribution the job imports, pinned exactly: a name left
+        out is not required, and the job may land in an image without it. The
+        split is structural -- the whole ``python`` set shares an interpreter,
+        so ONE image has to hold all of it, while a tool is satisfied per node.
+
+        ``needs`` is the feature strings the job relies on; a server lacking
+        one refuses here rather than after the upload.
 
         ``run_hash`` is the client's opaque hash of the work, for job reuse. The
         server looks it up owner-scoped and hands back the caller's own earlier
@@ -310,12 +313,15 @@ class Client:
         '''
         self.ensure_session()
 
-        body: Dict[str, Any] = {"design": design, "jobname": jobname}
-        for name, value in (("flow", flow), ("resources", resources),
-                            ("versions", versions), ("requires", requires),
+        descriptor: Dict[str, Any] = {}
+        for name, value in (("flow", flow), ("needs", needs), ("requires", requires),
                             ("sources", sources), ("run_hash", run_hash)):
             if value:
-                body[name] = value
+                descriptor[name] = value
+
+        body: Dict[str, Any] = {"design": design, "jobname": jobname}
+        if descriptor:
+            body["descriptor"] = descriptor
 
         headers = {}
         if idempotency_key:
@@ -332,9 +338,9 @@ class Client:
         before it meant creating a second job and leaking the first.
 
         🔴 ``size`` is the archive about to go up, and the first grant for it
-        fixes it: a re-issue must repeat it. Not `resources.upload_bytes`, which
-        is only the early refusal -- the server can answer create by asking for
-        more than was planned.
+        fixes it: a re-issue must repeat it. It is the one place the size is
+        sent -- the server can answer create by asking for more than was
+        planned, and over the ceiling this is where `upload-too-large` comes.
         '''
         self.ensure_session()
         return self.transport.request("POST", f"jobs/{job_id}/upload-grant",
@@ -355,9 +361,10 @@ class Client:
                    if name.lower() != "content-length"}
         self.transport.put_object(grant["url"], headers, path)
 
-    def submit_job(self, job_id: str, digest: str, size: int,
+    def submit_job(self, job_id: str, digest: str,
                    idempotency_key: Optional[str] = None) -> Dict[str, Any]:
-        '''``POST /v1/jobs/{id}/submit``: carrying the digest of what was PUT.
+        '''``POST /v1/jobs/{id}/submit``: carrying the digest of what was PUT,
+        and nothing else -- the grant fixed the size.
 
         The digest describes the bytes that moved, not a freshly built archive:
         a re-tar of the same directory is a different digest, and the server
@@ -371,7 +378,7 @@ class Client:
 
         return self.transport.request(
             "POST", f"jobs/{job_id}/submit",
-            json_body={"digest": digest, "bytes": size}, headers=headers).json()
+            json_body={"digest": digest}, headers=headers).json()
 
     def job(self, job_id: str) -> tuple:
         '''``GET /v1/jobs/{id}``, and the interval the server asked for.

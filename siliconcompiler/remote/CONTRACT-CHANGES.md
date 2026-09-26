@@ -55,6 +55,17 @@ with `dir_fd`), refuses a FIFO, and stores a link in an archive as a link.
 **Where it goes:** `surface.md` D133 — *every* read of a job's build
 directory, with node-bound `input`'s follow-inside as the one relaxation.
 
+### 2. §13's descriptor has no `run_hash`, and job reuse needs one
+
+The restructured create body lists `flow`, `needs`, `requires` and `sources`
+under `descriptor`, and requests are strict. ⚠️ **Job reuse's hash is in
+none of them** — `job-reuse.md` D1: *"The hash is a member of the create
+descriptor"* — so a client sending one is refused `400` by the letter of §13.
+This profile accepts it as **`descriptor.run_hash`** and refuses it at the top
+level. Nothing in the reference client sends one yet.
+
+**Where it goes:** `surface.md` §13's descriptor and its members table.
+
 ---
 
 ## Not ported, deliberately

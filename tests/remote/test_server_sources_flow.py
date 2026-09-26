@@ -84,10 +84,12 @@ def test_create_asks_only_for_what_it_cannot_supply(server_client, key, token):
         {"kind": "library", "name": "acme_ip", "dataroot": "acme_ip"}]
 
 
-def test_no_sources_means_no_upload_sources(server_client, key, token):
-    '''ABSENT when no `sources` were sent; `[]` when nothing is missing.'''
+def test_nothing_to_send_means_no_upload_sources(server_client, key, token):
+    '''🔴 Absent means *nothing to send*, whichever moment it is -- create
+    answers with the job object, where the member is never `[]`.'''
     assert "upload_sources" not in create(server_client, key, token).get_json()
-    assert create(server_client, key, token, sources=[]).get_json()["upload_sources"] == []
+    assert "upload_sources" not in create(server_client, key, token, jobname="job1",
+                                          sources=[]).get_json()
 
 
 def test_a_private_source_with_no_copy_here_is_refused_at_create(
@@ -382,7 +384,7 @@ def test_a_private_source_mapped_here_is_supplied_at_create(server, server_clien
         {"kind": "pdk", "name": "secret", "dataroot": "secret", "private": True}])
 
     assert job.status_code == 201
-    assert job.get_json()["upload_sources"] == []
+    assert "upload_sources" not in job.get_json()
 
 
 def test_private_and_local_resources_are_told_apart_at_create(server_client, key,

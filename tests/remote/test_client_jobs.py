@@ -153,12 +153,11 @@ def test_both_posts_carry_an_idempotency_key(fake_v1, run):
         posts["/v1/jobs/01J9-job/submit"].headers["Idempotency-Key"]
 
 
-def test_the_descriptor_declares_the_size_before_the_upload(fake_v1, run):
-    '''The one descriptor field where sending it costs nothing and omitting it
-    costs the whole upload.'''
-    fake_v1.route(responses.POST, "jobs",
-                  {"id": "01J9-job", "state": "created", "project": None,
-                   "created_at": "2026-09-22T10:00:00.000Z"}, status=201)
+def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
+    '''🔴 Authoritative at the top, advisory under `descriptor` -- and no
+    `versions` and no `resources`: `requires` pins what this machine runs, and
+    the grant carries the size.'''
+    fake_v1.route(responses.POST, "jobs", job_body("created"), status=201)
     fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
                   {"method": "PUT", "url": "https://storage.test/put",
                    "headers": {"content-length": "1"},
@@ -172,20 +171,38 @@ def test_the_descriptor_declares_the_size_before_the_upload(fake_v1, run):
     created = [call for call in fake_v1.calls
                if call.request.path_url == "/v1/jobs"][0]
     body = json.loads(created.request.body)
-    assert body["resources"]["upload_bytes"] > 0
-    # 🔴 Two members and two statements: `versions` is what this machine HAS,
-    # `requires` is what the image must HOLD. Both are bucketed, because the
-    # whole python set has to be held by ONE image and a tool is satisfied per
-    # node -- flattened, nothing says which names have to land together.
-    assert body["versions"]["python"]["siliconcompiler"]
-    assert body["requires"]["python"]["siliconcompiler"].startswith("==")
-    # ⚠️ Sent and empty: a client submitting remotely generally has no tools
-    # installed, which is usually why it is submitting remotely. An absent
-    # bucket would be a client that did not know about it.
-    assert body["versions"]["tools"] == {}
-    assert body["flow"]["nodes"] == 2
+    assert set(body) == {"design", "jobname", "descriptor"}
+    descriptor = body["descriptor"]
+    assert "versions" not in descriptor and "resources" not in descriptor
+    # Every value a list, and the framework pinned exactly.
+    pins = descriptor["requires"]["python"]["siliconcompiler"]
+    assert isinstance(pins, list) and pins[0].startswith("==")
+    assert descriptor["flow"]["nodes"] == 2
     # Nothing computes a run hash yet, so nothing claims one.
-    assert "run_hash" not in body
+    assert "run_hash" not in descriptor
+
+    submitted = [call for call in fake_v1.calls
+                 if call.request.path_url.endswith("/submit")][0]
+    assert set(json.loads(submitted.request.body)) == {"digest"}
+
+
+def test_every_distribution_the_job_imports_is_pinned(gcd_design):
+    '''🔴 A name left out of `requires` is not required, and the job may land
+    in an image without it -- so the client names every one the manifest's
+    classes come from: here the PDK and libraries' own distribution.'''
+    from importlib.metadata import version
+
+    from siliconcompiler import ASIC
+    from siliconcompiler.remote.client.run import _python_requirements
+    from siliconcompiler.targets import skywater130_demo
+
+    project = ASIC(gcd_design)
+    skywater130_demo(project)
+
+    pins = _python_requirements(project)
+
+    assert pins["lambdapdk"] == [f"=={version('lambdapdk')}"]
+    assert list(pins)[0] == "siliconcompiler"
 
 
 def test_a_reused_job_skips_the_upload(fake_v1, run):
@@ -541,7 +558,7 @@ def test_an_archive_refusal_names_the_rule_that_was_broken(fake_v1, logged_in):
                   status=422, content_type="application/problem+json")
 
     with pytest.raises(ServerProblem) as raised:
-        logged_in.submit_job("01J9-job", "sha256:" + "0" * 64, 10)
+        logged_in.submit_job("01J9-job", "sha256:" + "0" * 64)
 
     assert "violation: link_member" in str(raised.value)
 

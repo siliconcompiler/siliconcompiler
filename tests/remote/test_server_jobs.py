@@ -71,13 +71,21 @@ def jobs(server):
 
 
 def wants(sc=None, tools=None):
-    """A bucketed `versions`, which is what the descriptor carries.
+    """A bucketed `requires`, as the descriptor carries it: every value a list.
 
     🔴 Two buckets because they resolve differently: the whole python set has
     to be held by ONE image, and a tool is satisfied per node.
     """
-    return {"python": {"siliconcompiler": sc} if sc else {},
-            "tools": tools or {}}
+    def listed(value):
+        return value if isinstance(value, list) else [value]
+
+    return {"python": {"siliconcompiler": listed(f"=={sc}" if sc[0].isdigit() else sc)}
+            if sc else {},
+            "tools": {name: listed(value) for name, value in (tools or {}).items()}}
+
+
+# What goes under `descriptor`; anything else is a top-level member.
+DESCRIPTOR = ("flow", "needs", "requires", "sources", "run_hash")
 
 
 def create(client, key, token, **body):
@@ -86,6 +94,9 @@ def create(client, key, token, **body):
     headers = {}
     if "idempotency_key" in body:
         headers["Idempotency-Key"] = body.pop("idempotency_key")
+    descriptor = {name: body.pop(name) for name in DESCRIPTOR if name in body}
+    if descriptor:
+        body["descriptor"] = descriptor
     return call(client, key, "POST", "/v1/jobs", token, json=body, headers=headers)
 
 
@@ -95,7 +106,6 @@ def put(client, grant, data):
 
 def stage(client, key, token, archive, size, **body):
     '''A job with its bytes uploaded, ready to submit.'''
-    body.setdefault("resources", {"upload_bytes": size})
     job = create(client, key, token, **body).get_json()
     grant = call(client, key, "POST",
                  f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
@@ -103,12 +113,14 @@ def stage(client, key, token, archive, size, **body):
     return job
 
 
-def submit(client, key, token, job_id, digest, size, **extra):
+def submit(client, key, token, job_id, digest, size=None, **extra):
+    '''``size`` is taken for the callers' symmetry with `stage` and never
+    sent: the grant fixed it, and a `bytes` member is refused.'''
     headers = {}
     if "idempotency_key" in extra:
         headers["Idempotency-Key"] = extra.pop("idempotency_key")
     return call(client, key, "POST", f"/v1/jobs/{job_id}/submit", token,
-                json={"digest": digest, "bytes": size, **extra}, headers=headers)
+                json={"digest": digest, **extra}, headers=headers)
 
 
 ###########################
@@ -181,13 +193,101 @@ def test_the_descriptor_refuses_before_the_bytes_move(server_client, key, token)
     assert response.get_json()["limit"] == "max_job_nodes"
 
 
-def test_a_declared_upload_larger_than_the_ceiling(server_client, key, token):
-    response = create(server_client, key, token,
-                      resources={"upload_bytes": 1 << 40})
+def test_an_upload_larger_than_the_ceiling_is_refused_at_the_grant(
+        server_client, key, token):
+    '''🔴 At the grant, which fixes the size -- `resources.upload_bytes` is
+    gone from create, and this call still comes before any byte moves.'''
+    job = create(server_client, key, token).get_json()
+    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
+                    token, json={"bytes": 1 << 40})
 
     assert response.status_code == 413
     assert slug(response) == "upload-too-large"
     assert response.get_json()["limit"] == "max_upload_bytes"
+
+
+@pytest.mark.parametrize("member", [
+    {"versions": {"python": {}}},                      # gone: `requires` pins instead
+    {"resources": {"upload_bytes": 10}},               # gone: the grant's `bytes`
+    {"descriptor": {"resources": {"upload_bytes": 10}}},
+    {"descriptor": {"flow": {"name": "f", "tools": ["yosys"]}}},   # gone: requires.tools
+    {"extra": 1},
+])
+def test_an_unknown_member_is_refused_never_ignored(server_client, key, token, member):
+    '''🔴 Strict on requests: a misspelled optional member would otherwise be
+    a check the caller believes they asked for.'''
+    response = create(server_client, key, token, **member)
+
+    assert response.status_code == 400
+    assert slug(response) == "invalid-request"
+
+
+def test_run_hash_is_a_descriptor_member_and_not_a_top_level_one(
+        server_client, key, token):
+    '''Job reuse's hash goes where job-reuse.md puts it, in the descriptor.'''
+    top = call(server_client, key, "POST", "/v1/jobs", token,
+               json={"design": "gcd", "jobname": "job0", "run_hash": "abc"})
+    inside = call(server_client, key, "POST", "/v1/jobs", token,
+                  json={"design": "gcd", "jobname": "job1",
+                        "descriptor": {"run_hash": "abc"}})
+
+    assert top.status_code == 400 and inside.status_code == 201
+
+
+def test_a_requirement_is_always_a_list(server_client, key, token):
+    '''A bare string is refused: SiliconCompiler's own requirement is a list
+    of alternatives, one per task.'''
+    bare = create(server_client, key, token,
+                  requires={"python": {"siliconcompiler": "==0.38.0"}, "tools": {}})
+    listed = create(server_client, key, token, jobname="job1",
+                    requires={"python": {}, "tools": {"yosys": []}})
+
+    assert bare.status_code == 400 and "list" in bare.get_json()["detail"]
+    assert listed.status_code == 201
+
+
+def test_a_private_source_carries_no_source_and_no_ref(server_client, key, token):
+    '''`private` defaults to false; when true, its path never leaves the
+    client, so a `source` or `ref` beside it is refused rather than trusted.'''
+    defaulted = create(server_client, key, token, sources=[
+        {"kind": "library", "name": "ip", "dataroot": "ip",
+         "source": "git+ssh://git@example.com/ip.git", "ref": "v1"}])
+    leaked = create(server_client, key, token, jobname="job1", sources=[
+        {"kind": "pdk", "name": "gf180", "dataroot": "gf180", "private": True,
+         "source": "file:///opt/pdks/gf180"}])
+
+    assert defaulted.status_code == 201
+    assert leaked.status_code == 400
+
+
+def test_a_need_the_server_lacks_is_refused_at_create_naming_it(server_client, key, token):
+    '''Before the upload, rather than at submit after it -- and a string the
+    server does not know is refused the same way.'''
+    lacking = create(server_client, key, token, needs=["python.env"])
+    known = create(server_client, key, token, jobname="job1", needs=["logs"])
+
+    assert lacking.status_code == 501
+    assert (slug(lacking), lacking.get_json()["feature"]) == \
+        ("feature-unsupported", "python.env")
+    assert known.status_code == 201
+
+
+def test_create_answers_with_the_job_object(server_client, key, token):
+    '''🔴 The separate create shape is gone: `upload_sources` is the job
+    object's own member, absent where there is nothing to send.'''
+    body = create(server_client, key, token, sources=[]).get_json()
+
+    assert body["terminal"] is False and body["state"] == "created"
+    assert "upload_sources" not in body
+
+
+def test_submit_takes_the_digest_and_nothing_else(server_client, key, token, job_archive):
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+
+    response = submit(server_client, key, token, job["id"], digest, bytes=size)
+
+    assert response.status_code == 400 and slug(response) == "invalid-request"
 
 
 def test_a_sparse_descriptor_is_never_refused_for_being_sparse(server_client, key, token):
@@ -384,12 +484,11 @@ def test_the_grant_moves_the_job_to_awaiting_input(server_client, key, token):
 
 def test_the_first_grant_fixes_the_size_and_a_re_issue_repeats_it(
         server_client, key, token):
-    '''🔴 D125: the size is the call's, not `resources.upload_bytes` -- the
+    '''🔴 D125: the size is the grant's -- the
     create response can ask for more than the client planned to send, so a
     size fixed at create made the PUT fail its signature. A re-issue cannot
     widen what the first grant bound.'''
-    job = create(server_client, key, token,
-                 resources={"upload_bytes": 100}).get_json()
+    job = create(server_client, key, token).get_json()
     path = f"/v1/jobs/{job['id']}/upload-grant"
 
     grant = call(server_client, key, "POST", path, token, json={"bytes": 4096}).get_json()
@@ -443,8 +542,7 @@ def test_no_grant_for_a_job_that_is_past_it(server, server_client, key, token, m
 def test_the_signature_is_the_credential(server_client, key, token, job_archive):
     '''No Authorization header and no proof: that is what a presigned URL is.'''
     archive, digest, size = job_archive()
-    job = create(server_client, key, token,
-                 resources={"upload_bytes": size}).get_json()
+    job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST",
                  f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
 
@@ -456,8 +554,7 @@ def test_the_signature_is_the_credential(server_client, key, token, job_archive)
 
 def test_an_altered_url_is_refused(server_client, key, token, job_archive):
     archive, digest, size = job_archive()
-    job = create(server_client, key, token,
-                 resources={"upload_bytes": size}).get_json()
+    job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST",
                  f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
 
@@ -537,12 +634,17 @@ def test_a_digest_mismatch_refuses_before_anything_is_extracted(
     assert read["error"]["type"].endswith("upload-digest-mismatch")
 
 
-def test_a_byte_count_that_disagrees_is_a_mismatch(server_client, key, token,
-                                                   job_archive, dispatcher):
+def test_bytes_short_of_the_grant_are_a_digest_mismatch(server_client, key, token,
+                                                        job_archive, dispatcher):
+    '''No `bytes` at submit: the digest is what says the bytes are the ones
+    the client meant, and a short upload has a different one.'''
     archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
+    job = create(server_client, key, token).get_json()
+    grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
+                 token, json={"bytes": size}).get_json()
+    put(server_client, grant, open(archive, "rb").read()[: size // 2])
 
-    response = submit(server_client, key, token, job["id"], digest, size + 1)
+    response = submit(server_client, key, token, job["id"], digest)
 
     assert response.status_code == 422
     assert slug(response) == "upload-digest-mismatch"
@@ -1000,8 +1102,7 @@ def test_an_upload_past_the_ceiling_is_refused_as_it_arrives(
         server_client, key, token):
     '''Enforced on what has been written rather than on Content-Length, which is
     a claim the sender makes about a body it is still sending.'''
-    job = create(server_client, key, token,
-                 resources={"upload_bytes": 16}).get_json()
+    job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST",
                  f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": 16}).get_json()
 
@@ -1176,7 +1277,7 @@ def test_submit_records_the_image_each_node_ran_in(
         job_archive, container_dispatcher):
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions=wants("0.38.0"))
+                requires=wants("0.38.0"))
 
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
@@ -1197,7 +1298,7 @@ def test_the_node_is_told_a_digest_and_never_a_tag(
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions=wants("0.38.0"))
+                requires=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = container_dispatcher.submitted[0][2]
@@ -1257,7 +1358,7 @@ def test_the_job_publishes_the_versions_the_server_resolved(
     server chose."""
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions=wants(">=0.38,<0.39"))
+                requires=wants(">=0.38,<0.39"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
@@ -1286,7 +1387,7 @@ def test_a_range_no_image_satisfies_is_refused_at_create(
     """✅ Resolution needs the declared versions and the registry, not the
     uploaded bytes -- so it happens before the upload, where it is free."""
     response = create(container_client, key, container_token,
-                      versions=wants(">=0.40"))
+                      requires=wants(">=0.40"))
 
     assert response.status_code == 422
     assert slug(response) == "version-skew"
@@ -1295,7 +1396,7 @@ def test_a_range_no_image_satisfies_is_refused_at_create(
 def test_a_range_the_registry_can_serve_is_accepted_at_create(
         container_server, container_client, key, container_token):
     assert create(container_client, key, container_token,
-                  versions=wants(">=0.38,<0.39")).status_code == 201
+                  requires=wants(">=0.38,<0.39")).status_code == 201
 
 
 def test_a_bare_version_is_still_an_exact_pin(container_server,
@@ -1303,9 +1404,9 @@ def test_a_bare_version_is_still_an_exact_pin(container_server,
                                               container_token):
     """⚠️ It is what every client sent before the wire carried ranges."""
     assert create(container_client, key, container_token,
-                  versions=wants("0.38.0")).status_code == 201
+                  requires=wants("0.38.0")).status_code == 201
     assert create(container_client, key, container_token,
-                  versions=wants("0.38.1")).status_code == 422
+                  requires=wants("0.38.1")).status_code == 422
 
 
 def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
@@ -1325,7 +1426,7 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
                           operator(store))
 
     response = create(container_client, key, container_token,
-                      versions=wants(tools={"magic": ">=8.0"}))
+                      requires=wants(tools={"magic": ">=8.0"}))
 
     assert response.status_code == 422
     assert slug(response) == "version-skew"
@@ -1488,7 +1589,7 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                versions=wants("0.38.0"))
+                requires=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = fake.submitted[0][2]

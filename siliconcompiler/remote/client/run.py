@@ -160,10 +160,7 @@ class RemoteRun:
             job = self.client.create_job(
                 design=design, jobname=jobname,
                 flow=self._flow_descriptor(),
-                resources={"upload_bytes": size},
-                versions={"python": {"siliconcompiler": sc_version},
-                          "tools": {}},
-                requires={"python": {"siliconcompiler": _framework_requirement()},
+                requires={"python": _python_requirements(self._needs()[0]),
                           "tools": self._tool_requirements()},
                 # What this machine expects the server to supply. A lookup at
                 # the other end, never a fetch, and credentials stripped -- and
@@ -207,8 +204,7 @@ class RemoteRun:
             self._report_upload(size)
             self.client.upload(grant, upload)
 
-            self.client.submit_job(job_id, digest=digest, size=size,
-                                   idempotency_key=_key())
+            self.client.submit_job(job_id, digest=digest, idempotency_key=_key())
 
         self.logger.info("Job submitted")
         return job_id
@@ -298,7 +294,7 @@ class RemoteRun:
             self._report_upload(size, owners.upload_report(self.project, collection))
             self.client.upload(grant, upload)
             self.client.submit_job(job_id, digest=f"sha256:{digest.hexdigest()}",
-                                   size=size, idempotency_key=_key())
+                                   idempotency_key=_key())
 
     def _open_portal(self, job_id: str) -> None:
         '''Open the job's page, where a person is plainly watching.
@@ -1136,18 +1132,56 @@ def _normalize_spec(task, declared: str) -> Optional[str]:
     return ",".join(parts) if parts else None
 
 
+def _python_requirements(project) -> Dict[str, List[str]]:
+    """Every Python distribution the job imports, pinned (surface §13).
+
+    🔴 **Named whole, or the job may land in an image without one**: a name
+    left out of `requires` is not required. What a job imports is what its
+    manifest names -- every schema object in it records its class, and the run
+    imports each one to load it back: the PDK and libraries (lambdapdk), the
+    flow's task drivers, a site library carrying its own. A class the user's own
+    script defines belongs to no distribution and is left out.
+
+    Each is pinned the way the framework is: exactly, or by prefix for a
+    development build -- see `_framework_requirement`.
+    """
+    import importlib.metadata as metadata
+
+    from packaging.utils import canonicalize_name
+
+    modules = set()
+
+    def walk(node):
+        if isinstance(node, dict):
+            meta = node.get("__meta__")
+            if isinstance(meta, dict) and isinstance(meta.get("class"), str):
+                modules.add(meta["class"].split("/", 1)[0].split(".", 1)[0])
+            for value in node.values():
+                walk(value)
+
+    walk(project.getdict())
+
+    pins = {"siliconcompiler": [_framework_requirement()]}
+    installed = metadata.packages_distributions()
+    for module in sorted(modules):
+        for distribution in installed.get(module, ()):
+            name = canonicalize_name(distribution)
+            if name in pins:
+                continue
+            try:
+                pins[name] = [_pin(metadata.version(distribution))]
+            except metadata.PackageNotFoundError:
+                continue
+    return pins
+
+
 def _framework_requirement() -> str:
     """What this client needs the server's framework image to hold.
 
-    ⚠️ **`requires`, beside `versions`, and they are not the same statement.**
-    `versions` is what this machine HAS -- exact, and what a reproducibility
-    record wants. `requires` is what the image must HOLD, as a specifier. They
-    happen to agree here, and the reason they agree is below.
-
-    ⚠️ **`tools` is `{}`, and that is the ordinary case.** A client submitting
-    remotely generally has no tools installed -- which is usually why it is
-    submitting remotely. The bucket is still sent, because it is a closed set
-    and an absent one would be a client that did not know about it.
+    ⚠️ **`tools` beside it is often `{}`, and that is the ordinary case.** A
+    client submitting remotely generally has no tools installed -- which is
+    usually why it is submitting remotely -- and a tool's requirement comes
+    from its task's declared version, which is set in setup.
 
     The SERVER resolves the specifier, which is what lets a deployment answer
     *which image has all of these* -- a question a client cannot answer,
@@ -1180,16 +1214,22 @@ def _framework_requirement() -> str:
     ⚠️ A dev job's resolution is therefore not stable between two dev builds,
     which is correct: they are not the same code.
     """
+    return _pin(sc_version)
+
+
+def _pin(version: str) -> str:
+    """One installed version as the specifier a server resolves: exact, or
+    the release line's prefix for a development build."""
     from packaging.version import InvalidVersion, Version
 
     try:
-        parsed = Version(sc_version)
+        parsed = Version(version)
     except InvalidVersion:
-        return f"=={sc_version}"
+        return f"=={version}"
 
     if parsed.is_devrelease:
         return f"=={parsed.base_version}.*"
-    return f"=={sc_version}"
+    return f"=={version}"
 
 
 def _named(asked) -> str:

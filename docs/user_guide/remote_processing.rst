@@ -460,14 +460,14 @@ own can name a set no single image contains, with every version published,
 every one satisfiable, and nothing to run them in. What is stored is still
 exact; only the wire carries ranges.
 
-**And the descriptor carries two members, keyed the same two ways.**
-``versions`` is what the client HAS and ``requires`` is what the image must
-HOLD; a name ``requires`` does not mention falls back to its ``versions`` entry
-as an exact pin, name by name. ``versions.tools`` is usually ``{}`` -- a client submitting remotely
-generally has no tools installed, which is usually why it is submitting
-remotely.
+**The job's ``requires`` is keyed the same two ways, and names every Python
+distribution the job imports.** ``sc-remote`` pins each exactly, as installed
+on your machine -- SiliconCompiler itself, and the distribution every class in
+the manifest comes from, such as ``lambdapdk`` for its PDKs -- because a name
+left out is not required, and the job could land in an image without it. A
+development build pins its release line instead (``==0.39.1.*``).
 
-**A requirement may be a list, and that is how two tasks disagree.** A version
+**A requirement is always a list, and that is how two tasks disagree.** A version
 requirement in SiliconCompiler is already a list of alternative specifier sets
 -- :meth:`~siliconcompiler.Task.check_exe_version` accepts a tool matching any
 of them -- and it is declared per task, so a flow can hold two tasks of one

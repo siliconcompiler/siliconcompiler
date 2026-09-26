@@ -183,9 +183,16 @@ class JobService:
 
     def create(self, session, body: Dict[str, Any],
                idempotency_key: Optional[str]) -> Tuple[Dict[str, Any], int]:
-        '''Returns the job object and the status it should be served with.'''
+        '''Returns the job object and the status it should be served with.
+
+        The top-level members are authoritative; everything under `descriptor`
+        is advisory, re-derived at submit, and stored as `jobs.descriptor`.
+        🔴 Strict, like every request body: an unknown member is refused, never
+        ignored.
+        '''
         if not isinstance(body, dict):
             raise ProblemError("invalid-request", detail="the body must be a JSON object")
+        _only(body, CREATE_MEMBERS, "the create body")
 
         if body.get("project") is not None:
             # Refused rather than ignored: silently dropping it creates a job
@@ -198,13 +205,22 @@ class JobService:
 
         design = _name(body.get("design"), "design")
         jobname = _name(body.get("jobname"), "jobname")
-        run_hash = _opaque(body.get("run_hash"), "run_hash")
+
+        descriptor = body.get("descriptor")
+        if descriptor is None:
+            descriptor = {}
+        if not isinstance(descriptor, dict):
+            raise ProblemError("invalid-request", detail="descriptor must be an object")
+        _only(descriptor, DESCRIPTOR_MEMBERS, "descriptor")
+        run_hash = _opaque(descriptor.get("run_hash"), "descriptor.run_hash")
 
         # 🔴 Credentials out of every source URL before anything is compared,
         # stored or logged -- the descriptor is kept whole in `jobs.descriptor`.
-        declared = _declared_sources(body)
+        declared = _declared_sources(descriptor)
         if declared is not None:
-            body = dict(body, sources=declared)
+            descriptor = dict(descriptor, sources=declared)
+        requires = requirements(descriptor)
+        self._check_needs(descriptor)
 
         if idempotency_key is not None:
             existing = self._store.one(
@@ -214,7 +230,8 @@ class JobService:
                 # The same key with a different body is the caller having reused
                 # a key they should have rotated. Returning the first job would
                 # answer a question they did not ask.
-                if json.loads(existing["descriptor"]) != body:
+                if (existing["design"], existing["jobname"],
+                        json.loads(existing["descriptor"])) != (design, jobname, descriptor):
                     raise ProblemError(
                         "idempotency-key-reuse",
                         detail="this Idempotency-Key was used for a different request")
@@ -223,7 +240,7 @@ class JobService:
         # 🔴 Before the reuse lookup, because the answer is part of what the
         # lookup is keyed on -- and before the upload, which is the whole point
         # of resolving here at all.
-        identity = self._identity(run_hash, requirements(body))
+        identity = self._identity(run_hash, requires)
 
         if identity:
             hit = self._reuse(session.user_id, identity)
@@ -236,7 +253,7 @@ class JobService:
                 return self.wire(hit), 200
 
         self._check_pending_uploads(session.user_id)
-        self._check_descriptor(body)
+        self._check_descriptor(descriptor, requires)
 
         asked = self._look_up(declared) if declared is not None else None
 
@@ -250,17 +267,32 @@ class JobService:
                 "                  job_identity, retention_until, upload_sources) "
                 "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?)",
                 (job_id, session.user_id, device_id, design, jobname,
-                 json.dumps(body), idempotency_key, run_hash, identity,
+                 json.dumps(descriptor), idempotency_key, run_hash, identity,
                  _retention(self._config.limits["job_retention_days"]),
                  json.dumps(asked) if asked else None))
             self._transition(job_id, None, "created", actor=session.user_id)
 
-        created = self.wire(self._row(job_id))
-        if asked is not None:
-            # The create response's member: ABSENT with no `sources`, and `[]`
-            # when the lookup finds nothing missing.
-            created["upload_sources"] = asked
-        return created, 201
+        # The job object, in `created`: `upload_sources` is on it where the
+        # server is asking, and absent where there is nothing to send.
+        return self.wire(self._row(job_id)), 201
+
+    def _check_needs(self, descriptor) -> None:
+        '''🔴 `needs`: every feature the job relies on must be one this server
+        advertises -- refused at create, naming the first it lacks, rather than
+        at submit after the upload. A string it does not know is refused the
+        same way.'''
+        needs = descriptor.get("needs")
+        if needs is None:
+            return
+        if not isinstance(needs, list) or not all(isinstance(n, str) for n in needs):
+            raise ProblemError("invalid-request", detail="needs is a list of feature strings")
+        advertised = set(self._config["features"] or ())
+        for feature in needs:
+            if feature not in advertised:
+                raise ProblemError(
+                    "feature-unsupported", feature=feature,
+                    detail=f"this job needs {feature}, which this deployment does "
+                           "not offer")
 
     def _look_up(self, declared) -> List[Dict[str, Any]]:
         '''What of the declared sources this server cannot supply: a LOOKUP,
@@ -405,7 +437,7 @@ class JobService:
                 detail=f"{held} jobs are already waiting for their upload",
                 headers={"Retry-After": str(self._config["poll_interval_seconds"])})
 
-    def _check_descriptor(self, body: Dict[str, Any]) -> None:
+    def _check_descriptor(self, descriptor: Dict[str, Any], requires) -> None:
         '''The early reject, on whatever is present.
 
         Client-asserted, so this is a hint and not a boundary -- every value is
@@ -415,23 +447,32 @@ class JobService:
         '''
         limits = self._config.limits
 
-        flow = body.get("flow") or {}
-        if isinstance(flow, dict) and isinstance(flow.get("nodes"), int):
+        flow = descriptor.get("flow")
+        if flow is not None:
+            if not isinstance(flow, dict):
+                raise ProblemError("invalid-request", detail="descriptor.flow must be an object")
+            _only(flow, ("name", "nodes"), "descriptor.flow")
+        flow = flow or {}
+        if isinstance(flow.get("nodes"), int):
             if flow["nodes"] > limits["max_job_nodes"]:
                 raise ProblemError(
                     "node-limit-exceeded", limit="max_job_nodes",
                     detail=f"{flow['nodes']} nodes, and this server runs at most "
                            f"{limits['max_job_nodes']}")
 
-        resources = body.get("resources") or {}
-        if isinstance(resources, dict) and isinstance(resources.get("upload_bytes"), int):
-            if resources["upload_bytes"] > limits["max_upload_bytes"]:
+        # The early entitlement check: the tools `requires` names and the
+        # resources `sources` names, against what nobody here may use.
+        # Re-derived at submit, where the manifest is the answer.
+        wanted = [(item["kind"], item["name"]) for item in descriptor.get("sources") or []
+                  if item["kind"] in owners.RESOURCE_KINDS]
+        wanted += [("tool", name) for name in sorted(requires["tools"])]
+        for kind, name in wanted:
+            if self._config.denied(kind, name):
                 raise ProblemError(
-                    "upload-too-large", limit="max_upload_bytes",
-                    detail=f"{resources['upload_bytes']} bytes, and this server "
-                           f"accepts at most {limits['max_upload_bytes']}")
+                    "entitlement-denied", resource_kind=kind, resource=name,
+                    detail=f"this job names a {kind} this deployment does not allow")
 
-        self._check_versions(requirements(body))
+        self._check_versions(requires)
 
     def _check_versions(self, requires: Dict[str, Dict[str, Any]]) -> None:
         '''Refuse a client this deployment cannot run.
@@ -513,6 +554,7 @@ class JobService:
                 "job-state-conflict",
                 detail=f"a job in {job['state']} takes no upload")
 
+        _only(body or {}, ("bytes",), "the grant request")
         size = (body or {}).get("bytes") if isinstance(body, dict) else None
         if not isinstance(size, int) or isinstance(size, bool) or size <= 0:
             raise ProblemError("invalid-request",
@@ -578,14 +620,15 @@ class JobService:
                 "job-state-conflict",
                 detail=f"a job in {job['state']} cannot be submitted")
 
+        # 🔴 The digest and nothing else: the grant fixed the size and storage
+        # enforced it on the PUT, so a `bytes` here would be a second copy --
+        # and strict validation refuses it.
+        _only(body if isinstance(body, dict) else {}, ("digest",), "the submit request")
         digest = body.get("digest") if isinstance(body, dict) else None
-        declared_bytes = body.get("bytes") if isinstance(body, dict) else None
         if not isinstance(digest, str) or not digest.startswith("sha256:"):
             raise ProblemError(
                 "invalid-request",
                 detail="digest is required and is 'sha256:<hex>'")
-        if not isinstance(declared_bytes, int):
-            raise ProblemError("invalid-request", detail="bytes is required")
 
         reported = self._storage.stat_upload(job["id"])
         if reported is None:
@@ -615,7 +658,7 @@ class JobService:
         # digest matches, so the bytes cannot change between the check and the
         # unpack -- which is what turns the re-derivation from a TOCTOU into a
         # check.
-        if reported_digest != digest or size != declared_bytes:
+        if reported_digest != digest:
             raise self._refuse(session, job, ProblemError(
                 "upload-digest-mismatch",
                 detail=f"storage holds {size} bytes, {reported_digest}"))
@@ -2617,71 +2660,76 @@ class _Supply:
 ######################################################################
 
 def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-    """What a job needs from its image, as specifiers, in the two buckets.
+    """What a job needs from its image, in the two buckets: `descriptor.requires`.
 
-    🔴 **Two descriptor members, and they answer different questions.**
-    ``versions`` is what the client HAS -- exact, and what a reproducibility
-    record wants. ``requires`` is what the image must HOLD -- a PEP 440
-    specifier, and what the resolution reads. They were one member carrying
-    both meanings, and the second is the one the join needs.
+    🔴 **The one member, and it names every Python distribution the job
+    imports**, pinned exactly -- a name not in `requires` is not required, and
+    the job may land in an image without it. `versions` is gone; so is the
+    fallback to it (D126, superseded).
 
-    ⚠️ **A name `requires` does not mention falls back to its `versions`, as
-    an exact pin -- per NAME, not per bucket.** That is what the single member
-    meant, so a client that sends only what it has keeps the behaviour it had,
-    and *run it on exactly what I have* is a reasonable thing to mean by it.
-    🔴 Per bucket, a `requires.python` naming only `siliconcompiler` silently
-    dropped the pin `versions.python` carried for a site library beside it.
+    🔴 **Each value is a LIST of PEP 440 specifier sets, any one of which
+    satisfies**, and a bare string is refused: that is what SiliconCompiler
+    means by a version requirement -- `Task.get('version')` is a list, and two
+    tasks of one tool contribute two entries. `[]` is *any version*, which is
+    not the same as leaving the name out.
 
-    🔴 **Both members are bucketed and a flat map is refused.** Flattened,
-    nothing says which names have to land together: the whole `python` set
+    🔴 **Both buckets, and a flat map is refused.** The whole `python` set
     shares an interpreter and must be held by ONE image, while a tool is
-    satisfied per node. Accepting a flat map would mean guessing which, and
-    guessing wrong resolves a node against the wrong image while looking like
-    it worked.
-
-    ⚠️ **A requirement's value may be a LIST**, and that is how two tasks of
-    the same tool wanting different versions is expressed:
-    `{"openroad": [">=24Q3-2011", "==2.0"]}` means any one of them will do.
-    It is what SiliconCompiler already means by a version requirement --
-    `Task.get('version')` is a list and `check_exe_version` accepts a match
-    against any entry -- and it says once what naming every node would say
-    forty-two times.
+    satisfied per node; accepting a flat map would mean guessing which.
     """
     from siliconcompiler.remote.server.images import BUCKETS
 
     buckets = tuple(BUCKETS.values())
     found: Dict[str, Dict[str, Any]] = {bucket: {} for bucket in buckets}
 
-    for member in ("versions", "requires"):
-        given = descriptor.get(member)
-        if given is None:
-            continue
-        if not isinstance(given, dict):
-            raise ProblemError(
-                "invalid-request", detail=f"{member} must be an object")
+    given = descriptor.get("requires")
+    if given is None:
+        return found
+    if not isinstance(given, dict):
+        raise ProblemError("invalid-request", detail="requires must be an object")
 
-        unknown = set(given) - set(buckets)
-        if unknown:
+    unknown = set(given) - set(buckets)
+    if unknown:
+        raise ProblemError(
+            "invalid-request",
+            detail=f"requires is keyed on {' and '.join(buckets)}; "
+                   f"{', '.join(sorted(unknown))} is neither")
+
+    for bucket in buckets:
+        inner = given.get(bucket)
+        if inner is None:
+            continue
+        if not isinstance(inner, dict):
             raise ProblemError(
                 "invalid-request",
-                detail=f"{member} is keyed on {' and '.join(buckets)}; "
-                       f"{', '.join(sorted(unknown))} is neither")
-
-        for bucket in buckets:
-            inner = given.get(bucket)
-            if inner is None:
-                continue
-            if not isinstance(inner, dict):
+                detail=f"requires.{bucket} must be an object of name to requirement")
+        for name, wanted in inner.items():
+            if not isinstance(wanted, list) or not all(isinstance(one, str) for one in wanted):
                 raise ProblemError(
                     "invalid-request",
-                    detail=f"{member}.{bucket} must be an object of "
-                           "name to version")
-            # `requires` wins where both name a NAME, because it is the one
-            # that says what the IMAGE must hold; `versions` is read first, so
-            # every name it alone carries stays pinned.
-            found[bucket].update(inner)
+                    detail=f"requires.{bucket}.{name} is a list of specifier sets, "
+                           "even with one entry; a bare string is not")
+        found[bucket] = dict(inner)
 
     return found
+
+
+# 🔴 Strict on requests (contract.md): what each body may carry.
+CREATE_MEMBERS = ("design", "jobname", "project", "descriptor")
+# `run_hash` is job reuse's, a member of the descriptor (job-reuse.md D1).
+DESCRIPTOR_MEMBERS = ("flow", "needs", "requires", "sources", "run_hash")
+SOURCE_MEMBERS = ("kind", "name", "dataroot", "source", "ref", "private")
+
+
+def _only(body: Dict[str, Any], allowed, where: str) -> None:
+    '''An unknown member is refused, never ignored: a misspelled optional
+    member would otherwise be a check the caller believes they asked for.'''
+    unknown = sorted(set(body) - set(allowed))
+    if unknown:
+        raise ProblemError(
+            "invalid-request",
+            detail=f"{where} has no member {unknown[0]!r}; it takes "
+                   f"{', '.join(allowed)}")
 
 
 def _name(value, field: str) -> str:
@@ -2755,10 +2803,15 @@ def _libraries(project) -> List[str]:
     return found
 
 
-def _declared_sources(body) -> Optional[List[Dict[str, Any]]]:
+def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
     '''The descriptor's `sources`, checked, with credentials stripped -- or
-    None where there are none.'''
-    declared = body.get("sources")
+    None where there are none.
+
+    `private` is OPTIONAL and defaults to false; 🔴 when true, `source` and
+    `ref` are forbidden -- a private dataroot's path is never sent, and a
+    client that sends one anyway is refused rather than trusted to be harmless.
+    '''
+    declared = descriptor.get("sources")
     if declared is None:
         return None
     if not isinstance(declared, list):
@@ -2768,14 +2821,21 @@ def _declared_sources(body) -> Optional[List[Dict[str, Any]]]:
         if not isinstance(item, dict) or item.get("kind") not in owners.SOURCE_KINDS \
                 or not isinstance(item.get("name"), str) \
                 or not isinstance(item.get("dataroot"), str) \
-                or not isinstance(item.get("private"), bool):
+                or not isinstance(item.get("private", False), bool):
             raise ProblemError(
                 "invalid-request",
-                detail="each source is {kind, name, dataroot, private} and "
-                       f"kind is one of {', '.join(owners.SOURCE_KINDS)}")
+                detail="each source is {kind, name, dataroot} with an optional source, "
+                       f"ref and private, and kind is one of {', '.join(owners.SOURCE_KINDS)}")
+        _only(item, SOURCE_MEMBERS, "a source")
+        private = item.get("private", False)
+        if private and ("source" in item or "ref" in item):
+            raise ProblemError(
+                "invalid-request",
+                detail=f"{item['kind']} {item['name']} is private, so it carries no "
+                       "source and no ref: its path never leaves the client")
         entry = {"kind": item["kind"], "name": item["name"],
-                 "dataroot": item["dataroot"], "private": item["private"]}
-        if not item["private"] and isinstance(item.get("source"), str):
+                 "dataroot": item["dataroot"], "private": private}
+        if isinstance(item.get("source"), str):
             # 🔴 Stripped again: a client that sent `user:token@` anyway has
             # its secret neither stored nor logged here.
             entry["source"] = owners.strip_userinfo(item["source"])

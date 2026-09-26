@@ -920,18 +920,24 @@ def test_the_buckets_are_a_closed_set_and_both_are_always_there(store):
     assert images.live_software(store)["tools"] == {}
 
 
-def test_a_name_requires_does_not_mention_keeps_its_versions_pin():
-    '''🔴 Per NAME, not per bucket: a `requires.python` naming only the
-    framework used to drop the site library's pin `versions.python` carried.'''
+def test_requires_is_the_one_member_and_every_value_is_a_list():
+    '''🔴 `versions` is gone, and its per-name fallback with it (D126,
+    superseded): the client names every distribution the job imports in
+    `requires`, exactly pinned. A bare string is refused.'''
+    from siliconcompiler.remote.server.errors import ProblemError
     from siliconcompiler.remote.server.jobs import requirements
 
     found = requirements({
-        "versions": {"python": {"siliconcompiler": "0.39.1", "za-sclib": "1.4.0"},
-                     "tools": {"openroad": "2.0"}},
-        "requires": {"python": {"siliconcompiler": ">=0.39"}, "tools": {}}})
+        "versions": {"python": {"za-sclib": "1.4.0"}},        # ignored
+        "requires": {"python": {"siliconcompiler": ["==0.39.1"],
+                                "za-sclib": ["==1.4.0"]},
+                     "tools": {"openroad": [">=24.3.2011", "==2.0"], "yosys": []}}})
 
-    assert found["python"] == {"siliconcompiler": ">=0.39", "za-sclib": "1.4.0"}
-    assert found["tools"] == {"openroad": "2.0"}
+    assert found["python"] == {"siliconcompiler": ["==0.39.1"], "za-sclib": ["==1.4.0"]}
+    assert found["tools"] == {"openroad": [">=24.3.2011", "==2.0"], "yosys": []}
+
+    with pytest.raises(ProblemError, match="bare string"):
+        requirements({"requires": {"python": {"siliconcompiler": "==0.39.1"}}})
 
 
 def test_a_python_distribution_may_not_name_a_task_driver(store):
