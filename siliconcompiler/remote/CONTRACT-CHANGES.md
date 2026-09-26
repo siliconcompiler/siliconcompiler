@@ -41,27 +41,6 @@ code up to the last ten.
 
 ---
 
-## Open — not yet in the contract docs
-
-### 1. The builder's repository and credential, on a registry with no authentication
-
-Profile D39 puts derived images in a repository of their own, pushed with a
-credential scoped to it and held by the build job alone, so a build can never
-write to an image an operator registered. ⚠️ **That protection exists only
-where the registry authenticates.** This profile's registry -- the compose
-stack's, on the cluster's own network -- takes anonymous pushes, so anything on
-that network can already write to any repository, and a second repository and
-a credential would buy nothing. **Owner, 2026-09-27:** keep the same registry
-and the base's repository here. What this profile does keep of D39: derived
-images are pushed and referenced by digest, never by a tag, and no container's
-process holds `NET_ADMIN` -- it is crun's, on the compute node, for the build
-container's loopback.
-
-**Where it goes:** `sc-server-profile.md` D39 -- *the repository and credential
-apply to a registry that authenticates; this profile's does not*.
-
----
-
 ## Not ported, deliberately
 
 - **A second database backend.** Asked about — MySQL in the compose stack,
