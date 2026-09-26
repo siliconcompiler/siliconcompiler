@@ -117,9 +117,17 @@ not reach an index is the server's failure, unless the builder's proxy refused a
 host -- a wheel hosted somewhere the allowlist does not name -- which is
 `uninstallable` and names the host.
 
+⚠️ **Which slug is itself a question.** The registry defines `not-ready` as
+`409` + `Retry-After`, for an output on its way; this profile uses it at `503`
+for the server's own failure to prepare a job -- a build, a fetch that errored,
+a framework bundle it could not unpack -- and did so before the builder. Either
+the row widens to cover it, or the registry gains a slug for *the server could
+not*; **recommended: widen the row**, since the client's answer is the same
+(try again later) and a new slug is a freeze-time cost.
+
 **Where it goes:** `surface.md` D131's *When / What is wrong / Answer* table,
 one row: *while `staging` -- the build could not run -- `503 not-ready`, the job
-rejected*.
+rejected* -- and §7's `not-ready` row.
 
 ### 5. Over HTTPS the builder reaches a host, not a path
 
@@ -209,6 +217,34 @@ This profile changes nothing until it is decided.
 
 **Where it goes:** `contract.md` §5 rule 3, and the portal-session bullet of
 `sc-server-profile.md`.
+
+### 10. Where the code and the registry disagree, from follow-on 11's review
+
+Found bringing the code and the error pages up to the review; each is a raise
+site the registry's row does not list, and the code is unchanged until it is
+decided:
+
+- **submit with no upload** answers `409 job-state-conflict`, which is not one
+  of the row's three cases. **Recommended: the row lists it** -- the job's
+  state, holding no bytes, is what does not allow the call.
+- **submit re-checks `upload-too-large`** over every archive of the job, where
+  §15 says submit raises no `413`. It cannot fire unless the grant's own check
+  was bypassed. **Recommended: keep it as a backstop and say so in §15.**
+- **create raises `node-limit-exceeded`** from `descriptor.flow.nodes`, which
+  the create table does not list. It is the same early refusal as the others
+  there, re-derived at submit. **Recommended: the table lists it.**
+- **D38's reach.** The probe has no presence override: presence is `command
+  -v` on the driver's `PATH`, and `bootstrap` declares only what the probe saw.
+  But `registry add-image -contains` and the portal's registration form still
+  declare an image's contents unverified, which `images.py` has always said
+  outright. If *no operator override* covers manual registration too, both
+  must probe before they write -- the portal cannot, since the API host runs
+  no containers. **The owner's call.**
+- **surface D124's decision row** still says *while `queued`* and *`queued →
+  awaiting_input`*, where the endpoint text says `staging`.
+
+**Where it goes:** §7's rows for `job-state-conflict`; §13's and §15's
+refusal tables; profile D38.
 
 ---
 

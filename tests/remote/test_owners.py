@@ -425,10 +425,17 @@ def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
     job = stage(server_client, key, token, archive, size)
     response = submit(server_client, key, token, job["id"], digest, size)
 
+    # 🔴 The 202 says `staging`, never `awaiting_input` (surface D151): the
+    # ask goes back through the one backwards edge, from `staging`.
     assert response.status_code == 202
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "awaiting_input"
-    assert read["upload_sources"] == [{"kind": "pdk", "name": "mine", "dataroot": "mine"}]
+    assert response.get_json()["state"] == "staging"
+
+    from test_server_sources_flow import wait_for
+
+    def read():
+        return call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert wait_for(lambda: read()["state"] == "awaiting_input")
+    assert read()["upload_sources"] == [{"kind": "pdk", "name": "mine", "dataroot": "mine"}]
     assert not dispatcher.submitted
 
 

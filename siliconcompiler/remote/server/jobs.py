@@ -488,6 +488,12 @@ class JobService:
 
         self._check_versions(requires)
 
+        # And whether ONE image holds the python set together, which only the
+        # join can say -- where nodes run in containers, and only for a
+        # descriptor that names any: a sparse one skips the check.
+        if self._config["containers"] and requires.get("python"):
+            images.digests_for(self._store, requires)
+
     def _check_versions(self, requires: Dict[str, Dict[str, Any]]) -> None:
         '''Refuse a client this deployment cannot run.
 
@@ -535,17 +541,22 @@ class JobService:
                        for version in said.get(name, ())):
                     continue
 
+                # 🔴 `version-skew` is the client's SiliconCompiler, which
+                # cannot run here; any other name is software no image holds
+                # (surface §7), whose answer names what is available.
                 if here[name] and not said.get(name):
-                    raise ProblemError(
-                        "version-skew",
-                        detail=f"this server has {name}, and reports no version "
-                               "for it -- so nothing here can be matched against "
-                               f"a version requirement. Ask for {name} without one")
-
+                    detail = (f"this server has {name}, and reports no version for "
+                              "it -- so nothing here can be matched against a "
+                              f"version requirement. Ask for {name} without one")
+                else:
+                    detail = (f"this server runs {name} {', '.join(here[name])}, "
+                              f"and you asked for {asked}")
+                if name == images.PRIMARY:
+                    raise ProblemError("version-skew", detail=detail)
                 raise ProblemError(
-                    "version-skew",
-                    detail=f"this server runs {name} "
-                           f"{', '.join(here[name])}, and you asked for {asked}")
+                    "software-unavailable", reason="unavailable", detail=detail,
+                    unresolved=[{"name": name, "requirement": list(asked or ()),
+                                 "available": sorted(said.get(name, ()))}])
 
     ######################################################################
     # 14. upload-grant
@@ -726,22 +737,18 @@ class JobService:
 
         asked = [entry for entry in entries if entry.status == owners.ASK]
         self._check_owed(session, job, derived, asked)
-        if asked:
-            # Something the client can send and has not. Not a refusal: the job
-            # stays where it is and says, in `upload_sources`, what to send.
-            with self._store.transaction():
-                self._store.execute(
-                    "UPDATE jobs SET upload_sources = ? WHERE id = ?",
-                    (json.dumps([entry.wire for entry in asked]), job["id"]))
-            logger.info(f"{job['id']} is asking for {len(asked)} source(s)")
-            return self.wire(self._row(job["id"]))
 
         # 🔴 A job with something to get ready stages first (surface D130):
-        # fetching its sources, and building its nodes' Python environments,
-        # are where it can still be sent back or refused, so they happen
-        # BEFORE `queued`, which then only moves forward. One with nothing to
-        # stage queues at once.
-        stages = any(entry.status == owners.FETCH for entry in entries) \
+        # fetching its sources, asking for what it cannot fetch, and building
+        # its nodes' Python environments are where it can still be sent back or
+        # refused, so they happen BEFORE `queued`, which then only moves
+        # forward. One with nothing to stage queues at once.
+        #
+        # 🔴 **The `202` says `staging` or `queued`, never `awaiting_input`**
+        # (surface D151): something the client can send and has not goes back
+        # through the one backwards edge, from `staging`, like a source that
+        # could not be fetched.
+        stages = any(entry.status in (owners.FETCH, owners.ASK) for entry in entries) \
             or bool(self._environments(job, derived))
         try:
             with self._store.transaction():
@@ -957,7 +964,10 @@ class JobService:
 
             timeout = self._config["fetch_timeout_seconds"]
             deadline = time.monotonic() + self._config["fetch_deadline_seconds"]
-            failed = []
+            # What only the client can send goes back with whatever fails to
+            # fetch: one trip to `awaiting_input`, asking for all of it.
+            failed = [(entry, "this server does not hold it and cannot fetch it")
+                      for entry in entries if entry.status == owners.ASK]
             pause = 2
             while wanted:
                 with ThreadPoolExecutor(max_workers=4) as pool:
@@ -1718,6 +1728,18 @@ class JobService:
         where = (device["name"] if device else "").strip()
         return f"sc-remote on {where}" if where else "sc-remote"
 
+    def _deleted_from(self, session) -> str:
+        '''`delete_reason` for a job's delete, which carries no body (surface
+        D150): *deleted through the API from <device>*, or *deleted from the
+        portal*.'''
+        if not getattr(session, "device_id", None):
+            return "deleted from the portal"
+        device = self._store.one("SELECT name FROM devices WHERE id = ?",
+                                 (session.device_id,))
+        label = (device["name"] if device else "").strip()
+        return f"deleted through the API from {label}" if label else \
+            "deleted through the API"
+
     def delete(self, session, job_id: str) -> None:
         job = self.owned(session, job_id)
 
@@ -1747,8 +1769,7 @@ class JobService:
         self._store.execute(
             "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
             "  delete_reason = ? WHERE job_id = ? AND deleted_at IS NULL",
-            (now(), session.user_id,
-             f"the job was deleted from {self.whodunnit(session)}", job["id"]))
+            (now(), session.user_id, self._deleted_from(session), job["id"]))
 
     def discard_node(self, session, job_id: str, step: str, index: str,
                      reason: str) -> int:

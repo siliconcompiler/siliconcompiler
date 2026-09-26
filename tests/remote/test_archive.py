@@ -73,7 +73,10 @@ def test_every_violation_is_in_the_vocabulary():
                                # D129: a value the flow reads, left out.
                                "missing_member",
                                # D131: a node's environment file outside its format.
-                               "environment_file"}
+                               "environment_file",
+                               # contract D40: an extension off an allowlist this
+                               # profile does not have -- listed, never raised.
+                               "extension"}
 
 
 def test_too_many_members(tmp_path):

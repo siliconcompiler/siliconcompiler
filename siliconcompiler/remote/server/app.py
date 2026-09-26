@@ -9,6 +9,8 @@ the stream host be a separate origin -- so if SSE under WSGI proves awkward it
 moves out without a client change.
 '''
 
+import logging
+
 from typing import Optional, Union
 
 from pathlib import Path
@@ -226,9 +228,22 @@ def _register_error_handlers(app) -> None:
             response.headers["Link"] = link
         return response
 
+    def _occurrence(body, status):
+        '''🔴 Which request this was (surface D152): `instance` and a
+        correlation id, so a support ticket names one request instead of a
+        five-minute window -- and the server's log carries the same id.'''
+        body.setdefault("instance", flask.request.path)
+        body.setdefault("trace_id", errors.trace_id(flask.request.headers))
+        if status >= 500:
+            logging.getLogger("sc-server").warning(
+                f"{body['trace_id']} {flask.request.method} {flask.request.path} -> "
+                f"{status} {body.get('type', '').rsplit('/', 1)[-1]}: "
+                f"{body.get('detail', '')}")
+        return body
+
     @app.errorhandler(ProblemError)
     def _problem_error(exc: ProblemError):
-        body = exc.body()
+        body = _occurrence(exc.body(), exc.status)
         response = flask.jsonify(body)
         response.status_code = exc.status
         response.mimetype = PROBLEM_JSON
@@ -249,7 +264,7 @@ def _register_error_handlers(app) -> None:
 
     def _make(slug):
         def handler(exc):
-            body = problem(slug)
+            body = _occurrence(problem(slug), ERRORS[slug].status)
             response = _with_help(flask.jsonify(body), body)
             response.status_code = ERRORS[slug].status
             response.mimetype = PROBLEM_JSON

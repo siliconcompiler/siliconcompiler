@@ -686,6 +686,14 @@ def test_a_range_nothing_satisfies_is_refused_before_anything_runs(registry,
     assert raised.value.members["unresolved"][0]["requirement"] == [">=0.40"]
 
 
+@pytest.mark.parametrize("version,admitted", [
+    ("0.38.10.dev7", True), ("0.38.10", True), ("0.38.10rc1", True), ("0.38.11.dev1", False)])
+def test_a_prefix_admits_pre_releases(version, admitted):
+    '''🔴 Surface D154: `packaging` before 26.0 leaves `0.38.10.dev7` out of
+    `==0.38.10.*` by default, so the match passes `prereleases=True`.'''
+    assert images.matches(version, "reported", ("==0.38.10.*",)) is admitted
+
+
 def test_a_bare_version_still_means_exactly_that(registry, store):
     '''⚠️ It is what every client sent before the wire carried ranges, and it
     is what a person writes.'''

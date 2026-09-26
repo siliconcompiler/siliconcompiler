@@ -1092,7 +1092,9 @@ def test_a_deletion_nobody_gave_a_reason_for_says_where_it_came_from(
 
     assert len(reasons) == 1
     said = reasons.pop()
-    assert said.startswith("the job was deleted from sc-remote")
+    # Surface D150: DELETE carries no body, so the server writes where it came
+    # from -- the device's name, as the person named it.
+    assert said.startswith("deleted through the API")
     # And never the account it acted as.
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
     assert me not in said

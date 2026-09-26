@@ -1468,9 +1468,13 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
     response = create(container_client, key, container_token,
                       requires=wants(tools={"magic": ">=8.0"}))
 
+    # 🔴 Software no image holds, not skew: `version-skew` is the client's own
+    # SiliconCompiler, which cannot run here (surface §7).
     assert response.status_code == 422
-    assert slug(response) == "version-skew"
+    assert slug(response) == "software-unavailable"
     assert "reports no version" in response.get_json()["detail"]
+    assert response.get_json()["unresolved"] == [
+        {"name": "magic", "requirement": [">=8.0"], "available": []}]
 
 
 def test_the_job_identity_folds_in_what_the_server_chose(

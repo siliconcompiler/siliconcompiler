@@ -216,10 +216,11 @@ def test_a_hash_goes_only_to_a_server_that_reuses_jobs(fake_v1, run, capabilitie
     assert not [call for call in fake_v1.calls if "upload-grant" in call.request.path_url]
 
 
-def test_every_distribution_the_job_imports_is_pinned(gcd_design):
-    '''🔴 A name left out of `requires` is not required, and the job may land
-    in an image without it -- so the client names every one the manifest's
-    classes come from: here the PDK and libraries' own distribution.'''
+def test_a_distribution_that_only_supplies_data_is_not_pinned(gcd_design):
+    '''🔴 A name left out of `requires` is not required, so the client names
+    every one the manifest's classes come from -- except one that only supplies
+    data (surface D155): lambdapdk's PDK and libraries are files the job
+    carries, and pinning them would refuse a job over a data release.'''
     from importlib.metadata import version
 
     from siliconcompiler import ASIC
@@ -231,8 +232,9 @@ def test_every_distribution_the_job_imports_is_pinned(gcd_design):
 
     pins = _python_requirements(project)
 
-    assert pins["lambdapdk"] == [f"=={version('lambdapdk')}"]
+    assert "lambdapdk" not in pins
     assert list(pins)[0] == "siliconcompiler"
+    assert version("lambdapdk")          # there to be left out
 
 
 def test_a_reused_job_skips_the_upload(fake_v1, run):

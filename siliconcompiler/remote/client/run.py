@@ -1324,6 +1324,14 @@ def _forwardable(logger, pin: str):
     return keep
 
 
+# Distributions that only supply data: the PDK and library files a job
+# uploads or the server supplies. Not a distribution the job imports in the
+# sense `requires` means, so never pinned (surface D155) -- owner: *"the user
+# submits the PDK from lambdapdk, which contains all the dataroots needed, no
+# pinning needed."* The image has one, since SiliconCompiler depends on it.
+_DATA_ONLY = frozenset({"lambdapdk"})
+
+
 def _python_requirements(project, framework=()) -> Dict[str, List[str]]:
     """Every Python distribution the job imports, pinned (surface §13) -- and
     ``framework``: what SiliconCompiler's own process needs for its nodes.
@@ -1331,9 +1339,10 @@ def _python_requirements(project, framework=()) -> Dict[str, List[str]]:
     🔴 **Named whole, or the job may land in an image without one**: a name
     left out of `requires` is not required. What a job imports is what its
     manifest names -- every schema object in it records its class, and the run
-    imports each one to load it back: the PDK and libraries (lambdapdk), the
-    flow's task drivers, a site library carrying its own. A class the user's own
-    script defines belongs to no distribution and is left out.
+    imports each one to load it back: the flow's task drivers, a site library
+    carrying its own. A class the user's own script defines belongs to no
+    distribution and is left out, and so does one that only supplies data --
+    lambdapdk's PDKs and libraries, see `_DATA_ONLY`.
 
     Each is pinned the way the framework is: exactly, or by prefix for a
     development build -- see `_framework_requirement`.
@@ -1360,7 +1369,7 @@ def _python_requirements(project, framework=()) -> Dict[str, List[str]]:
              for distribution in installed.get(module, ())] + list(framework)
     for distribution in named:
         name = canonicalize_name(distribution)
-        if name in pins:
+        if name in pins or name in _DATA_ONLY:
             continue
         try:
             pins[name] = [_pin(metadata.version(distribution))]

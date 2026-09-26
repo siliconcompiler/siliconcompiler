@@ -424,14 +424,36 @@ def test_a_raised_problem_renders_with_its_members(server):
 
     assert resp.status_code == 501
     assert resp.mimetype == "application/problem+json"
-    assert resp.get_json() == {
+    body = resp.get_json()
+    trace_id = body.pop("trace_id")
+    assert body == {
         "type": f"{TYPE_BASE}/feature-unsupported",
         "title": "This deployment does not support that",
         "status": 501,
         "detail": "this deployment does not do device grants",
         "feature": "device_grant",
+        "instance": "/v1/_boom",
     }
+    assert len(trace_id) == 32 and int(trace_id, 16) >= 0
     assert flask is not None
+
+
+def test_every_refusal_names_its_request(server):
+    '''🔴 `instance` and a correlation id on every problem body (surface
+    D152), the routing ones too -- and the caller's own `traceparent` is the
+    id where it sent one, so a ticket and a trace name the same request.'''
+    client = server.test_client()
+
+    routed = client.get("/v1/no/such/path").get_json()
+    assert routed["instance"] == "/v1/no/such/path" and len(routed["trace_id"]) == 32
+
+    traced = client.get("/v1/no/such/path", headers={
+        "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}).get_json()
+    assert traced["trace_id"] == "4bf92f3577b34da6a3ce929d0e0e4736"
+
+    # A malformed one is not trusted, and two requests are two ids.
+    assert client.get("/v1/no/such/path", headers={"traceparent": "garbage"}) \
+        .get_json()["trace_id"] != routed["trace_id"]
 
 
 ###########################

@@ -140,7 +140,12 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       "missing_member",
                       # A node's environment file outside its format, or for
                       # no node of the flow (D131).
-                      "environment_file")
+                      "environment_file",
+                      # A member whose extension a deployment's allowlist does
+                      # not admit (contract D40). This profile has no such
+                      # allowlist and never raises it; listed so the set is
+                      # the contract's.
+                      "extension")
 
 # Why a session is over. All three are one client branch -- re-authenticate, and
 # do NOT refresh.
@@ -285,6 +290,26 @@ def bound(detail: Optional[str]) -> Optional[str]:
     if space > DETAIL_MAX - 40:
         cut = cut[:space]
     return cut + "..."
+
+
+_TRACEPARENT = re.compile(r"^[0-9a-f]{2}-([0-9a-f]{32})-[0-9a-f]{16}-[0-9a-f]{2}$")
+
+
+def trace_id(headers) -> str:
+    '''This request's correlation id: the trace id of a W3C `traceparent`
+    where one arrived and is valid, else a fresh one -- once per request.'''
+    import uuid
+
+    import flask
+
+    held = getattr(flask.g, "sc_trace_id", None) if flask.has_request_context() else None
+    if held:
+        return held
+    found = _TRACEPARENT.match((headers.get("traceparent") or "").strip().lower())
+    value = found.group(1) if found and found.group(1) != "0" * 32 else uuid.uuid4().hex
+    if flask.has_request_context():
+        flask.g.sc_trace_id = value
+    return value
 
 
 def problem(slug: str, detail: Optional[str] = None,
