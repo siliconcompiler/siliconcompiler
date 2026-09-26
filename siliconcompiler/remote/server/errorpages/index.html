@@ -49,7 +49,7 @@ production.</p>
 
 <h2>Every type</h2>
 
-<p>All 34, in the order of the registry. Each links to its page.</p>
+<p>All 34, grouped by kind. Each links to its page.</p>
 
 <table>
 <thead><tr><th>Type</th><th>Status</th><th></th></tr></thead>
@@ -67,7 +67,7 @@ production.</p>
 <tr><td><a href="too-many-attempts.html"><code>too-many-attempts</code></a></td><td><code>429</code></td>
     <td>The device-verify cap. <strong>Does not refill</strong> &mdash; restart the login.</td></tr>
 <tr><td><a href="entitlement-denied.html"><code>entitlement-denied</code></a></td><td><code>403</code></td>
-    <td>Your account may not use a PDK, tool, library, FPGA device or project this job needs.</td></tr>
+    <td>Your account may not use a PDK, tool or library this job needs.</td></tr>
 <tr><td><a href="resource-unresolved.html"><code>resource-unresolved</code></a></td><td><code>422</code></td>
     <td>The server could not decide what the flow needs.</td></tr>
 <tr><td><a href="software-unavailable.html"><code>software-unavailable</code></a></td><td><code>422</code></td>
@@ -101,7 +101,7 @@ production.</p>
 <tr><td><a href="not-acceptable.html"><code>not-acceptable</code></a></td><td><code>406</code></td>
     <td>No representation satisfies your <code>Accept</code>. <em>Often answered below the handler, untyped.</em></td></tr>
 <tr><td><a href="job-state-conflict.html"><code>job-state-conflict</code></a></td><td><code>409</code></td>
-    <td>The job is past, or not yet at, the point where that call is possible.</td></tr>
+    <td>The job&rsquo;s state does not allow that call: past <code>awaiting_input</code>, a grant re-issue with a different <code>bytes</code>, or deleting a job that is not terminal.</td></tr>
 <tr><td><a href="not-found.html"><code>not-found</code></a></td><td><code>404</code></td>
     <td>It does not exist, or it is not yours &mdash; deliberately indistinguishable.</td></tr>
 <tr><td><a href="not-ready.html"><code>not-ready</code></a></td><td><code>409</code></td>

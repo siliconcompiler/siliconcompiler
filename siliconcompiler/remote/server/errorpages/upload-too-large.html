@@ -21,12 +21,12 @@
 </header>
 
 <main>
-<p>A request body was larger than its endpoint accepts &mdash; most often the job archive, over <code>limits.max_upload_bytes</code>. The name reads narrower than the rule: it covers any body over its cap.</p>
+<p>Too much was sent &mdash; most often a job&rsquo;s archives, which together may not exceed <code>limits.max_upload_bytes</code>, refused at the upload grant before any bytes move. The name reads narrower than the rule: it also covers any request body over its endpoint&rsquo;s cap.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Compare the size you sent with <code>limits.max_upload_bytes</code> in <code>GET /v1</code>.</li>
+  <li>Compare the job&rsquo;s archives together &mdash; this one&rsquo;s <code>bytes</code> and any sent before it &mdash; with <code>limits.max_upload_bytes</code> in <code>GET /v1</code>.</li>
   <li>Send less: a remote run uploads your design and anything local it needs, so a large local PDK or library is the usual cause.</li>
   <li>Retrying the same body returns the same answer.</li>
 </ol>
@@ -67,10 +67,10 @@ at all. Treat a non-<code>problem+json</code> <code>413</code> exactly as you wo
 
 <table>
 <tbody>
-<tr><td class="wrap"><code>POST /v1/jobs</code></td>
-    <td>The descriptor declares an upload larger than the ceiling.</td></tr>
-<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>The bytes storage holds are larger than the ceiling.</td></tr>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/upload-grant</code></td>
+    <td><code>bytes</code> takes the job&rsquo;s archives together over <code>limits.max_upload_bytes</code>. The grant fixes the size, so an oversized archive is refused before it is sent.</td></tr>
+<tr><td class="wrap">any endpoint</td>
+    <td>A request body over that endpoint&rsquo;s cap.</td></tr>
 </tbody>
 </table>
 

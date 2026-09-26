@@ -21,7 +21,7 @@
 </header>
 
 <main>
-<p>A credential &mdash; an access token, a refresh token or a device code &mdash; was sent over plaintext to a deployment that authenticates.</p>
+<p>A credential &mdash; an access token, a refresh token, a <code>device_code</code> or a <code>user_code</code> &mdash; was sent over plaintext to a deployment that authenticates.</p>
 <h2>What to do</h2>
 
 <div class="do">
@@ -48,8 +48,8 @@
 
 <table>
 <tbody>
-<tr><td class="wrap">any authenticated endpoint</td>
-    <td></td></tr>
+<tr><td class="wrap">any endpoint that takes a credential</td>
+    <td>Including the token endpoint and the device-login approval leg.</td></tr>
 </tbody>
 </table>
 

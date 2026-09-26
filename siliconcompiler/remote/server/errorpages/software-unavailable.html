@@ -68,7 +68,9 @@
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
     <td>The descriptor&rsquo;s <code>requires</code> cannot be met.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>The flow re-derived from the manifest cannot be placed. A job missing two tools lists both.</td></tr>
+    <td>The flow re-derived from the manifest cannot be placed. A job missing two tools lists both. <code>index-not-allowed</code> is raised here too.</td></tr>
+<tr><td class="wrap">while <code>staging</code></td>
+    <td><code>uninstallable</code>, when a node&rsquo;s Python environment is built. The job is rejected, and this is the <code>type</code> of its <code>error</code> on <code>GET /v1/jobs/{id}</code>.</td></tr>
 </tbody>
 </table>
 

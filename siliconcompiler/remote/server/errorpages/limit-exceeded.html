@@ -21,12 +21,12 @@
 </header>
 
 <main>
-<p>You have reached a published ceiling on how much you may have going at once &mdash; jobs, uploads, open log streams, devices &mdash; or a consumption limit. <strong>Most of these refill</strong> as what you already have finishes.</p>
+<p>You have reached a published ceiling on how much you may have going at once &mdash; jobs, uploads, open log streams, devices. <strong>Each of these refills</strong> as what you already have finishes, or, for a device, when you revoke one.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Read <code>limit</code>. It is the exact key the deployment publishes in <code>GET /v1</code>&rsquo;s <code>limits</code> (or your <code>usage</code>), so you can compare it with what you hold.</li>
+  <li>Read <code>limit</code>. It is the exact key published in <code>limits</code> &mdash; <code>GET /v1</code>&rsquo;s, or your account&rsquo;s in <code>GET /v1/me</code> &mdash; so you can compare it with what you hold.</li>
   <li>Wait for <code>Retry-After</code>, then send the same request again.</li>
 </ol>
 </div>
@@ -48,7 +48,7 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>limit</code></td><td><span class="req">REQUIRED</span></td>
-    <td>The published key that bound: <code>concurrent_jobs</code>, <code>pending_uploads</code>, <code>concurrent_log_streams</code>, <code>devices</code>, or a <code>usage</code> key such as <code>compute_seconds</code>.</td></tr>
+    <td>The published key that bound: <code>concurrent_jobs</code>, <code>pending_uploads</code>, <code>concurrent_log_streams</code> or <code>devices</code>. The <code>usage</code> keys &mdash; <code>compute_seconds</code>, <code>storage_bytes</code>, <code>licence_seconds</code> &mdash; are registered and not raised today: nothing checks the compute quota at create or at submit.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
 </tbody>
@@ -66,6 +66,8 @@
     <td><code>concurrent_jobs</code>: too many jobs queued or running.</td></tr>
 <tr><td class="wrap">the log stream</td>
     <td><code>concurrent_log_streams</code>: too many live logs open at once.</td></tr>
+<tr><td class="wrap">enrolling a device</td>
+    <td><code>devices</code>: more machines enrolled than your account allows. Revoking one with <code>DELETE /v1/devices/{id}</code> frees its place.</td></tr>
 </tbody>
 </table>
 

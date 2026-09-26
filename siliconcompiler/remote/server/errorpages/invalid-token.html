@@ -70,7 +70,7 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 
 <h2>What this is not</h2>
 
-<p><a href="session-ended.html"><code>session-ended</code></a> carries the same <code>WWW-Authenticate</code> and must <strong>not</strong> be refreshed. Branch on <code>type</code>, not on the header.</p>
+<p><a href="session-ended.html"><code>session-ended</code></a> carries the same <code>WWW-Authenticate</code> and must <strong>not</strong> be refreshed. The header cannot tell them apart: branch on it and the body&rsquo;s <code>type</code> together.</p>
 
 <p><a href="invalid-dpop-proof.html"><code>invalid-dpop-proof</code></a> is the proof, not the token.</p>
 </main>

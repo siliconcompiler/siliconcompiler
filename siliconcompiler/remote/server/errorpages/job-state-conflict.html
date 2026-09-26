@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>job-state-conflict &middot; SiliconCompiler server errors</title>
-<meta name="description" content="The job is past, or not yet at, the point where that call is possible.">
+<meta name="description" content="The job’s current state does not allow this call: a submit or upload grant past awaiting_input, a grant re-issue with a different bytes, or deleting a job that is not terminal.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,13 +21,15 @@
 </header>
 
 <main>
-<p>The call you made does not fit the state the job is in &mdash; submitting a job that is already running, or asking for an upload grant for one that is past it.</p>
+<p>The job&rsquo;s current state does not allow the call you made. That is one of three things: a submit that is not a replay of the original, or an upload grant, for a job past <code>awaiting_input</code>; an upload-grant re-issue naming a different <code>bytes</code> from the one the archive&rsquo;s first grant fixed; or <code>DELETE</code> of a job that is not terminal.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
   <li>Read the job with <code>GET /v1/jobs/{id}</code> to see its state.</li>
-  <li>A retried submit that already succeeded is not this: replay it with the same <code>Idempotency-Key</code> and you get the job back.</li>
+  <li>A retried submit that already succeeded is not this: replay it with the same <code>Idempotency-Key</code> and the same body, and you get the original response back.</li>
+  <li>Re-issue a grant with the <code>bytes</code> the archive&rsquo;s first grant fixed. A re-issue cannot change the size.</li>
+  <li>To delete a job that is still going, cancel it with <code>POST /v1/jobs/{id}/cancel</code> and delete it once the job object says it is <code>terminal</code>.</li>
 </ol>
 </div>
 
@@ -49,9 +51,11 @@
 <table>
 <tbody>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/upload-grant</code></td>
-    <td></td></tr>
+    <td>The job is not in <code>created</code> or <code>awaiting_input</code>, or a re-issue names a different <code>bytes</code> from the grant already fixed.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td></td></tr>
+    <td>The job is past <code>awaiting_input</code>, and this is not a replay of the original submit.</td></tr>
+<tr><td class="wrap"><code>DELETE /v1/jobs/{id}</code></td>
+    <td>The job is not terminal. Cancel a running job first; an administrator is held to this too.</td></tr>
 </tbody>
 </table>
 
@@ -72,7 +76,11 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 
 <h2>What this is not</h2>
 
-<p><a href="not-ready.html"><code>not-ready</code></a> is transient: something promised that does not exist yet. This is the job&rsquo;s state, and it will not come back.</p>
+<p><a href="not-ready.html"><code>not-ready</code></a> is also a <code>409</code>, and transient: an output that is on its way, with a <code>Retry-After</code> to wait for. This one carries no <code>Retry-After</code>: the identical call gets the identical answer, unless something else has moved the job on &mdash; a cancel finishing, for a <code>DELETE</code>.</p>
+
+<p><a href="not-found.html"><code>not-found</code></a> (<code>404</code>) is a job that does not exist or is not yours. A <code>409</code> means the job is established and its state is the problem.</p>
+
+<p><a href="idempotency-key-reuse.html"><code>idempotency-key-reuse</code></a> (<code>422</code>) is a key sent again with a different request. A true replay of the original submit is answered with the original response, not with either.</p>
 </main>
 
 <footer>

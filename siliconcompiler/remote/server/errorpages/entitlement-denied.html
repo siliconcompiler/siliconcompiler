@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>entitlement-denied &middot; SiliconCompiler server errors</title>
-<meta name="description" content="Your account is not permitted to use a PDK, tool, library or project this job asks for.">
+<meta name="description" content="Your account is not permitted to use a PDK, tool or library this job asks for.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,8 +21,8 @@
 </header>
 
 <main>
-<p>Your account is not permitted to use something the job asks for &mdash; a PDK, a tool, a library,
-or a project you are not a member of.</p>
+<p>Your account is not permitted to use something the job asks for &mdash; a PDK, a tool or a
+library.</p>
 
 <p><strong>Retrying will not change this.</strong> It is a statement about what your account holds,
 not about how busy the server is, and the identical request returns the identical answer.</p>
@@ -33,8 +33,7 @@ not about how busy the server is, and the identical request returns the identica
 <ol>
   <li>Read <code>resource_kind</code> and <code>resource</code> to see exactly what was refused.</li>
   <li>Check <code>GET /v1/me</code>. The <code>authorized</code> block lists what your account does
-      hold, keyed by kind (<code>pdks</code>, <code>tools</code>, <code>libraries</code>), and
-      <code>projects</code> lists your memberships.</li>
+      hold, keyed by kind (<code>pdks</code>, <code>tools</code>, <code>libraries</code>).</li>
   <li>If you should have it, this is an access request to whoever administers your account.
       <strong>There is no API call that grants it to you.</strong></li>
 </ol>
@@ -87,6 +86,9 @@ read <code>resource_kind</code> and <code>resource</code> for the specifics &mda
     <td>You do not hold a resource the artifact derives from &mdash; and
         <code>resource</code> names that resource. A refusal about the object itself is
         <a href="artifact-not-approved.html"><code>artifact-not-approved</code></a>.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
+    <td>A running node&rsquo;s live log, when you lack a resource in the job&rsquo;s set: a live
+        stream is gated like the archive, and <code>resource</code> names it.</td></tr>
 </tbody>
 </table>
 
@@ -125,6 +127,10 @@ nothing was denied; the question could not be asked.</p>
 
 <p><a href="terms-not-accepted.html"><code>terms-not-accepted</code></a> (<code>403</code>) means you
 hold the resource but have not accepted a document covering it. That one is fixable by you.</p>
+
+<p><a href="not-found.html"><code>not-found</code></a> (<code>404</code>) is what a job naming a
+<code>project</code> you are not a member of gets &mdash; never this, because a <code>403</code>
+would confirm the project exists.</p>
 </main>
 
 <footer>

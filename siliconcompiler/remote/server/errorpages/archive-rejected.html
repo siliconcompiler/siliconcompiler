@@ -32,6 +32,7 @@
   <li><code>unrequested_member</code> is a follow-up archive &mdash; one sent after the server asked for sources in <code>upload_sources</code> &mdash; carrying something it did not ask for. A second upload may not replace what the first carried after the server checked it: send only what was asked.</li>
   <li><code>missing_member</code> is the opposite: the flow reads a file the client should have sent &mdash; the design, anything local or editable, or something the server asked for &mdash; and the archive does not carry it. <code>detail</code> names the keypath. A client sends what the flow&rsquo;s tasks require, so this is a client bug, or a task whose requirements leave out a file it reads.</li>
   <li><code>environment_file</code> is a node&rsquo;s Python environment file &mdash; <code>python-env/&lt;step&gt;/&lt;index&gt;/requirements.txt</code> &mdash; outside its format, or for no node of the flow. <code>detail</code> names the file and the line. The client writes that file and the user never edits it, so this is a client bug.</li>
+  <li><code>extension</code> is a member whose file extension the deployment&rsquo;s allowlist does not admit. <code>detail</code> names the member. That is deployment policy, not a safety rule: only a deployment with a member-extension allowlist raises it. The reference <code>sc-server</code> has none &mdash; it admits every extension &mdash; and never raises it.</li>
 </ol>
 </div>
 
@@ -51,7 +52,7 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>violation</code></td><td><span class="req">REQUIRED</span></td>
-    <td><code>member_count</code>, <code>expanded_bytes</code>, <code>ratio</code>, <code>link_member</code>, <code>device_member</code>, <code>traversal</code>, <code>unrequested_member</code>, <code>missing_member</code> or <code>environment_file</code>.</td></tr>
+    <td><code>member_count</code>, <code>expanded_bytes</code>, <code>ratio</code>, <code>link_member</code>, <code>device_member</code>, <code>traversal</code>, <code>unrequested_member</code>, <code>missing_member</code>, <code>environment_file</code> or <code>extension</code>.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
 </tbody>
@@ -87,7 +88,7 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 
 <p><a href="upload-too-large.html"><code>upload-too-large</code></a> is the archive being too large to accept at all.</p>
 
-<p><a href="upload-forbidden.html"><code>upload-forbidden</code></a> is a policy about what the archive may carry, not a safety failure.</p>
+<p><a href="upload-forbidden.html"><code>upload-forbidden</code></a> is a policy about the restricted material an archive carries &mdash; whose it is, not what shape the archive takes &mdash; and not a safety failure.</p>
 </main>
 
 <footer>

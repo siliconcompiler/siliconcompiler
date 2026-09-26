@@ -51,7 +51,7 @@
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
     <td>The same key with a different body.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>The same key on a different job or upload.</td></tr>
+    <td>The same key on a different job, or with a body that differs from the recorded submit body. The replay is scoped to the caller, the job and the request: it replays only when the path&rsquo;s job id and the recorded submit body both match.</td></tr>
 </tbody>
 </table>
 

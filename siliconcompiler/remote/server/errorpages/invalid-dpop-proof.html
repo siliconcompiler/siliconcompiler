@@ -63,8 +63,8 @@ it, and a retry loop here reads from the server as a brute-force attempt against
 <h2>Also at the token endpoint</h2>
 
 <div class="warn">
-<p>This is raised at <code>POST /v1/auth/token</code> too, on
-<code>grant_type=refresh_token</code>. The refresh requires its own proof, and its thumbprint must
+<p>This is raised at <code>POST /v1/auth/token</code> too, which takes a proof on every grant.
+On <code>grant_type=refresh_token</code> the refresh carries its own proof, and its thumbprint must
 match the one the token family was bound to at login.</p>
 </div>
 
