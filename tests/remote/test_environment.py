@@ -179,9 +179,12 @@ def test_a_well_formed_environment_passes(builds, server_client, key, token, job
 
 
 def test_the_deployment_does_not_advertise_what_it_cannot_build(tmp_path):
+    '''No builder yet: where nodes run in containers there is nothing to
+    build an environment with.'''
     from siliconcompiler.remote.server.config import Config
 
-    (tmp_path / "config.json").write_text(json.dumps({"features": ["python.env"]}))
+    (tmp_path / "config.json").write_text(json.dumps(
+        {"features": ["python.env"], "containers": True}))
     with pytest.raises(ValueError, match="python.env"):
         Config.load(tmp_path)
 

@@ -23,8 +23,8 @@ from typing import List, NamedTuple, Optional, Sequence
 from urllib.parse import urlsplit
 
 __all__ = ["ROOT", "FILENAME", "PACKAGES", "MAX_BYTES", "MAX_LINES",
-           "EnvironmentFileError", "Pin", "Environment", "path_for", "packages_path",
-           "parse", "render"]
+           "SITE", "EnvironmentFileError", "Pin", "Environment", "path_for",
+           "packages_path", "site_path", "parse", "render"]
 
 
 ROOT = "python-env"
@@ -86,6 +86,15 @@ def path_for(step: str, index: str) -> str:
 def packages_path(step: str, index: str) -> str:
     '''Where a node's forwarded packages sit, relative to the archive root.'''
     return f"{ROOT}/{step}/{index}/{PACKAGES}"
+
+
+# Beside a node's file, on the node: what the server installed from it.
+SITE = "site"
+
+
+def site_path(step: str, index: str) -> str:
+    '''Where what was installed for a node is reached, relative to the job.'''
+    return f"{ROOT}/{step}/{index}/{SITE}"
 
 
 def parse(data: bytes) -> Environment:

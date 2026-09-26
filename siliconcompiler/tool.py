@@ -1052,27 +1052,29 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if value is not None:
                 envvars[env] = value
 
-        # A remote run's forwarded Python packages for this node -- the user's
-        # own editable, local and VCS installs, sent beside its environment
-        # file -- ahead of everything else on the tool's path. Never on this
-        # process's: SiliconCompiler does not import from them.
-        forwarded = self.__forwarded_python()
-        if forwarded:
+        # A remote run's Python for this node, ahead of everything else on the
+        # tool's path: the user's own editable, local and VCS installs sent
+        # beside its environment file, then what the server installed from it.
+        # Never on this process's: SiliconCompiler does not import from them.
+        carried = self.__remote_python()
+        if carried:
             existing = envvars.get("PYTHONPATH", os.getenv("PYTHONPATH", ""))
             envvars["PYTHONPATH"] = os.pathsep.join(
-                [forwarded] + [part for part in existing.split(os.pathsep) if part])
+                carried + [part for part in existing.split(os.pathsep) if part])
 
         return envvars
 
-    def __forwarded_python(self) -> Optional[str]:
-        from siliconcompiler.remote.environment import packages_path
+    def __remote_python(self) -> List[str]:
+        from siliconcompiler.remote.environment import packages_path, site_path
         from siliconcompiler.utils.paths import jobdir
 
         try:
-            path = os.path.join(jobdir(self.project), packages_path(self.step, self.index))
+            root = jobdir(self.project)
+            paths = [os.path.join(root, packages_path(self.step, self.index)),
+                     os.path.join(root, site_path(self.step, self.index))]
         except Exception:                                       # noqa: BLE001
-            return None
-        return path if os.path.isdir(path) else None
+            return []
+        return [path for path in paths if os.path.isdir(path)]
 
     def get_python_environment(self) -> Optional["PythonEnvironment"]:
         """

@@ -179,6 +179,31 @@ forward.
 this server's own environment; it is uploaded again. To keep a proprietary PDK
 off the wire, the operator supplies it through `private_dataroots`.
 
+### A node's own Python packages
+
+A node whose tool runs Python of the user's -- a cocotb testbench -- arrives
+with an environment file, `python-env/<step>/<index>/requirements.txt`, which
+the client writes: exact pins, and the user's own editable or local packages
+beside it in `packages/`. The server parses it at submit against a closed
+format and refuses anything else, and every index it names has to be on
+`index_allowlist` (PyPI by default).
+
+To build it, a deployment advertises `python.env`. **This server can only where
+nodes run on the host** (`containers` off, the default): the runner installs
+each node's file before the flow starts, wheels only, into the user's own cache,
+and links it onto the tool's `PYTHONPATH` -- never SiliconCompiler's own. It is
+off by default because a node then reaches an index; turn it on in
+`config.json`:
+
+```json
+{"features": ["logs", "logs.stream", "logs.stream.job", "python.env"]}
+```
+
+With containers on, the environment has to be built into a derived image, which
+this server does not do yet, so the feature is refused at startup there. Without
+the feature, a job carrying an environment is refused at create, before its
+upload.
+
 ## Error pages
 
 Every refusal's `type` is a page, and this server serves all of them at

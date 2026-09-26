@@ -159,6 +159,12 @@ def run(manifest: Path) -> int:
     TaskScheduler.register_callback("post_run", _settle)
 
     try:
+        if not _image_sources:
+            # Nodes run on this host, so a node's own Python environment is
+            # installed here, into the user's cache, before the flow starts. In
+            # containers it is built into a derived image instead.
+            from siliconcompiler.remote.server import envinstall
+            envinstall.install_all(project, Path(manifest).parent, project.logger)
         project.run()
     except Exception as e:
         # The run failing is an outcome this reports, not an error in reporting.

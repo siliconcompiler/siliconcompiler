@@ -420,12 +420,13 @@ def _check_policy(values: Dict[str, Any]) -> None:
             import logging
             logging.getLogger("sc-server").warning(warning)
 
-    # 🔴 Advertised only where this server can serve it -- a builder, or nodes
-    # that install on the host -- and it can do neither yet. A job relying on
-    # it would be accepted and then have nothing to build its environment.
-    if "python.env" in features:
-        raise ValueError("features lists python.env, and this server has no way to "
-                         "build a node's Python environment yet")
+    # 🔴 Advertised only where this server can serve it: a builder, or nodes
+    # that install on the host. It has no builder yet, so only where nodes run
+    # on the host -- an operator's choice, since a node then reaches an index.
+    if "python.env" in features and values["containers"]:
+        raise ValueError("features lists python.env, and this server builds no "
+                         "images for a node's Python environment yet; only a "
+                         "deployment whose nodes run on the host can offer it")
 
     private = values["private_dataroots"] or {}
     if not isinstance(private, dict) or not all(
