@@ -48,7 +48,7 @@ def _e(slug, status, title, members=()):
     return _Error(slug, status, title, members)
 
 
-# The 34 slugs, in the contract's order. `title` is the part of the body that
+# The 35 slugs, grouped by kind. `title` is the part of the body that
 # must be identical on every occurrence, so it is fixed here rather than written
 # per raise site.
 ERRORS: Dict[str, _Error] = {err.slug: err for err in (
@@ -116,6 +116,9 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
 
     # -- never HTTP responses: these are `type` values on an error object -----
     _e("scheduler-lost", None, "The scheduler lost this job"),
+    # 🔴 A job-level type like scheduler-lost (surface D169): a staging the
+    # server could not complete for its own reasons, after retrying.
+    _e("staging-failed", None, "The server could not get this job ready"),
     _e("run-failed", None, "The run failed"),
 )}
 

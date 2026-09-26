@@ -487,7 +487,8 @@ def test_an_invalid_proof_fails_rather_than_refreshing(fake_v1, tmp_credentials,
     assert raised.value.slug == "invalid-dpop-proof"
 
 
-@pytest.mark.parametrize("offset,said", [(300, "5 minutes behind"), (-7200, "2 hours ahead"),
+# Clear of each unit's boundary: `Date` has one-second resolution.
+@pytest.mark.parametrize("offset,said", [(330, "5 minutes behind"), (-7500, "2 hours ahead"),
                                          (20, None)])
 def test_a_refused_proof_says_when_the_clock_is_off(fake_v1, tmp_credentials,
                                                     client_credentials, offset, said):

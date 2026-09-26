@@ -35,7 +35,7 @@ Content-Type: application/problem+json</code></pre>
 it, and a retry loop here reads from the server as a brute-force attempt against the key binding.</p>
 </div>
 
-<p>This is nearly always a client bug. Work through the proof in this order.</p>
+<p>This is nearly always a client bug &mdash; or <strong>a clock</strong>: a proof carries the time it was made, and one more than a minute from the server&rsquo;s own is refused every time. Compare this machine&rsquo;s clock with the response&rsquo;s <code>Date</code> header first; the reference client says so when they are that far apart. Then work through the proof in this order.</p>
 
 <table>
 <thead><tr><th>Check</th><th></th></tr></thead>

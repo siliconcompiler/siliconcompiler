@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>staging-failed &middot; SiliconCompiler server errors</title>
+<meta name="description" content="Never an HTTP response. A type on a job’s error object.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / staging-failed</p>
+  <h1>staging-failed</h1>
+  <p class="title">The server could not get this job ready</p>
+  <p class="meta">
+    <span class="status">Not an HTTP response</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/staging-failed</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>The server could not get the job ready to queue, for its own reasons, after retrying: an index or a registry that did not answer, a build of a node&rsquo;s Python environment that was lost or ran out of time, or an index that needs a credential the server cannot supply. Nothing you sent caused it. <code>detail</code> says which.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Submit the job again later: the server already retried for as long as it waits.</li>
+  <li>If <code>detail</code> names an index that needs a credential, that is for the operator to set up, not for you to change.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "id":    "01J9...",
+  "state": "failed",
+  "error": {
+    "type":   "https://siliconcompiler.com/server-errors/staging-failed",
+    "title":  "The server could not get this job ready",
+    "detail": "..."
+  }
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
+    <td>As the job&rsquo;s <code>error.type</code>, and the <code>reason</code> on its <code>staging &rarr; failed</code> transition. Never an HTTP response: staging runs after the submit&rsquo;s <code>202</code>, so there is no request left to answer.</td></tr>
+</tbody>
+</table>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>This type arrives inside a job, not on a request, so there is no <code>trace_id</code> on it.
+<strong>Quote the job&rsquo;s <code>id</code></strong> when you escalate &mdash; it is the one
+identifier that finds the run on the server and what it tried.</p>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your job &mdash; the job id is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="software-unavailable.html"><code>software-unavailable</code></a> with <code>reason: "uninstallable"</code> is a pin that will not install for the node&rsquo;s image: the job is <code>rejected</code>, and the fix is yours. This one is the server&rsquo;s, and the job is <code>failed</code>.</p>
+
+<p><a href="scheduler-lost.html"><code>scheduler-lost</code></a> is a job that was handed to the scheduler and went away. This one never reached it.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

@@ -21,7 +21,7 @@
 </header>
 
 <main>
-<p>The job&rsquo;s current state does not allow the call you made. That is one of three things: a submit that is not a replay of the original, or an upload grant, for a job past <code>awaiting_input</code>; an upload-grant re-issue naming a different <code>bytes</code> from the one the archive&rsquo;s first grant fixed; or <code>DELETE</code> of a job that is not terminal.</p>
+<p>The job&rsquo;s current state does not allow the call you made. That is one of four things: a submit that is not a replay of the original, or an upload grant, for a job past <code>awaiting_input</code>; a submit for a job holding no upload; an upload-grant re-issue naming a different <code>bytes</code> from the one the archive&rsquo;s first grant fixed; or <code>DELETE</code> of a job that is not terminal.</p>
 <h2>What to do</h2>
 
 <div class="do">
@@ -53,7 +53,7 @@
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/upload-grant</code></td>
     <td>The job is not in <code>created</code> or <code>awaiting_input</code>, or a re-issue names a different <code>bytes</code> from the grant already fixed.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>The job is past <code>awaiting_input</code>, and this is not a replay of the original submit.</td></tr>
+    <td>The job is past <code>awaiting_input</code>, and this is not a replay of the original submit &mdash; or no upload has arrived for it: ask for a grant and <code>PUT</code> first.</td></tr>
 <tr><td class="wrap"><code>DELETE /v1/jobs/{id}</code></td>
     <td>The job is not terminal. Cancel a running job first; an administrator is held to this too.</td></tr>
 </tbody>
