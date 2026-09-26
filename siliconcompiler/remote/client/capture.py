@@ -32,13 +32,18 @@ import sys
 from importlib import metadata
 from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
 
-__all__ = ["Captured", "imported_modules", "capture"]
+__all__ = ["Captured", "CannotForward", "imported_modules", "capture"]
+
+
+class CannotForward(ValueError):
+    '''A package that cannot be sent as the user's own code.'''
 
 
 class Captured(NamedTuple):
     '''What one node needs: pins from an index, and what is forwarded.'''
     pins: List[Tuple[str, str]]                  # (name, version)
-    forwarded: List[Tuple[str, List[str]]]       # (name==version, directories)
+    forwarded: List[Tuple[str, List[Tuple[str, str]]]]   # (name==version,
+    #                                                       [(import name, directory)])
     warnings: List[str]
 
 
@@ -92,10 +97,16 @@ def capture(modules: Iterable[str], requirements: Iterable[str],
         for module in skipped:
             warnings.append(f"{name}: module {module} is not a package directory, "
                             "so it is not sent")
-        for path in paths:
-            if not path.endswith(".dist-info") and _has_compiled_files(path):
-                warnings.append(f"{name}: {path} holds compiled extensions, so the node "
-                                "must match this machine's platform and Python")
+        for _, path in paths:
+            compiled = None if path.endswith(".dist-info") else _compiled_file(path)
+            if compiled:
+                # 🔴 Refused, not warned about (surface D160): one built for this
+                # machine will not import on the node.
+                raise CannotForward(
+                    f"{name} {version} is your own code -- editable, local or VCS -- "
+                    f"and holds a compiled extension, {compiled}, built for this "
+                    "machine; it will not import on the server. Publish it to an "
+                    "index the server allows, as a wheel for the server's platform")
         forwarded.append((f"{name}=={version}", paths))
 
     return Captured(pins, forwarded, warnings)
@@ -161,13 +172,15 @@ def _direct_url(dist: metadata.Distribution) -> Optional[dict]:
         return None
 
 
-def _package_paths(dist: metadata.Distribution) -> Tuple[List[str], List[str]]:
+def _package_paths(dist: metadata.Distribution) -> Tuple[List[Tuple[str, str]], List[str]]:
     '''What to send for a distribution to import elsewhere: its package
     directories, found through the import system -- an editable install
     records only the hook pointing at its source -- and its metadata.
-    Returns (paths, top-level modules that are not a directory).'''
+    Returns ([(the name it is sent as, directory)], top-level modules that are
+    not a directory). A package is sent as its IMPORT name, which an editable
+    install's directory need not share.'''
     key = _canonical(dist.metadata["Name"])
-    paths: List[str] = []
+    paths: List[Tuple[str, str]] = []
     skipped: List[str] = []
     for module, owners in sorted(_module_distributions().items()):
         if key not in [_canonical(owner) for owner in owners]:
@@ -180,17 +193,19 @@ def _package_paths(dist: metadata.Distribution) -> Tuple[List[str], List[str]]:
             skipped.append(module)
             continue
         location = os.path.abspath(list(spec.submodule_search_locations)[0])
-        if location not in paths:
-            paths.append(location)
+        if (module, location) not in paths:
+            paths.append((module, location))
 
     dist_info = getattr(dist, "_path", None)
     if dist_info and os.path.isdir(dist_info):
-        paths.append(os.path.abspath(str(dist_info)))
+        paths.append((os.path.basename(str(dist_info)), os.path.abspath(str(dist_info))))
     return paths, skipped
 
 
-def _has_compiled_files(path: str) -> bool:
-    for _, _, files in os.walk(path):
-        if any(name.endswith((".so", ".pyd", ".dylib")) for name in files):
-            return True
-    return False
+def _compiled_file(path: str) -> Optional[str]:
+    '''The first compiled extension under ``path``, or None.'''
+    for root, _, files in sorted(os.walk(path)):
+        for name in sorted(files):
+            if name.endswith((".so", ".pyd", ".dylib")):
+                return os.path.join(root, name)
+    return None

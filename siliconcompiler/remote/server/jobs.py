@@ -835,21 +835,23 @@ class JobService:
 
         nodes = set(derived["nodes"])
         rules = [allowlist.parse(entry) for entry in self._config["index_allowlist"] or []]
-        declared, forwarded = set(), set()
+        declared, forwarded = set(), []
         for path in sorted(top.rglob("*")):
             if path.is_dir():
                 continue
             name = path.relative_to(unpacked).as_posix()
             parts = name.split("/")
             node = tuple(parts[1:3])
-            if len(parts) >= 5 and parts[3] == environment.PACKAGES and node in nodes:
-                # The user's own code, forwarded beside the file: put on the
+            is_file = len(parts) == 4 and parts[3] == environment.FILENAME and node in nodes
+            if not is_file and len(parts) >= 3 and parts[1] == environment.PACKAGES:
+                # The job's own code, forwarded once beside the files: put on the
                 # tool's PYTHONPATH, never installed, so nothing here parses it.
-                forwarded.add(node)
+                forwarded.append(name)
                 continue
-            if len(parts) != 4 or parts[3] != environment.FILENAME or node not in nodes:
-                raise refuse(f"{name} is not {environment.path_for('<step>', '<index>')} "
-                             "for a node of this flow")
+            if not is_file:
+                raise refuse(f"{name} is neither {environment.path_for('<step>', '<index>')} "
+                             f"for a node of this flow nor under "
+                             f"{environment.packages_path()}/")
             declared.add(node)
             try:
                 parsed = environment.parse(path.read_bytes())
@@ -862,11 +864,12 @@ class JobService:
                         detail=f"{name} names the index {url}, which this server does "
                                "not let a build reach"))
 
-        # The file is the declaration: packages for a node with none are not
-        # an environment anyone asked for.
-        for step, index in sorted(forwarded - declared):
-            raise refuse(f"{environment.packages_path(step, index)} is for a node with "
-                         f"no {environment.FILENAME}")
+        # The file is the declaration: forwarded packages with no node that has
+        # one are not an environment anyone asked for.
+        if forwarded and not declared:
+            raise refuse(f"{forwarded[0]} is under {environment.packages_path()}/, and "
+                         f"no node of this job has a {environment.FILENAME} to put it on "
+                         "the path of")
 
     def _check_owed(self, session, job, derived, asked) -> None:
         '''Refuse a required value the client should have sent and did not.

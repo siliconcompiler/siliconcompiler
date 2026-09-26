@@ -72,9 +72,12 @@ class Environment(NamedTuple):
         return ([self.index_url] if self.index_url else []) + list(self.extra_index_urls)
 
 
-# Where a node's forwarded packages -- editable, local and VCS installs, which
-# no index reproduces -- sit beside its file. The user's own code: uploaded, put
-# on the tool's PYTHONPATH, never installed.
+# Where the job's forwarded packages -- editable, local and VCS installs, which
+# no index reproduces -- sit, once per job beside the files (surface D160): they
+# come from one Python installation, so every node would get the same copy. The
+# user's own code: uploaded, put first on the tool's PYTHONPATH of every node
+# that has a file, never installed. Each entry is a top-level module or package,
+# by its import name.
 PACKAGES = "packages"
 
 
@@ -83,9 +86,9 @@ def path_for(step: str, index: str) -> str:
     return f"{ROOT}/{step}/{index}/{FILENAME}"
 
 
-def packages_path(step: str, index: str) -> str:
-    '''Where a node's forwarded packages sit, relative to the archive root.'''
-    return f"{ROOT}/{step}/{index}/{PACKAGES}"
+def packages_path() -> str:
+    '''Where the job's forwarded packages sit, relative to the archive root.'''
+    return f"{ROOT}/{PACKAGES}"
 
 
 # Beside a node's file, on the node: what the server installed from it.

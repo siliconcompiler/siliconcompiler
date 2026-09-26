@@ -119,6 +119,7 @@ class RemoteRun:
         self._needed = None
         self._environments = {}
         self._env_files = None
+        self._forwarded: List[Tuple[str, str, str]] = []       # (name, pin, path)
         self._python_pins = None
 
     ######################################################################
@@ -412,17 +413,21 @@ class RemoteRun:
         return self._python_pins
 
     def _python_env_files(self):
-        '''Each node's environment file and the packages forwarded beside it,
-        worked out once: ``(step, index) -> (text, [(name==version, dirs)])``.
+        '''Each node's environment file, worked out once: ``(step, index) ->
+        text``. The job's forwarded packages, found at the same time, are
+        `_forwarded`.
 
         🔴 The client always writes it and the user never does (surface D131):
         the distributions the node's sources import, and those its task loads
         by name, as installed here -- less what the image holds, which is
-        everything `requires.python` pins.
+        everything `requires.python` pins. A node whose only additions are
+        forwarded packages still gets one: it lists nothing, and it is what
+        puts them on that node's path.
         '''
         if self._env_files is None:
             self._needs()
             files = {}
+            forwarded: Dict[str, Tuple[str, str]] = {}
             if self._environments:
                 from siliconcompiler.remote import environment
                 from siliconcompiler.remote.client import capture
@@ -430,8 +435,14 @@ class RemoteRun:
                 provided = list(self._requires_python())
                 index_url, extra_index_urls = _pip_indexes()
                 for (step, index), wanted in sorted(self._environments.items()):
-                    found = capture.capture(capture.imported_modules(wanted.sources),
-                                            wanted.requirements, provided)
+                    try:
+                        found = capture.capture(capture.imported_modules(wanted.sources),
+                                                wanted.requirements, provided)
+                    except capture.CannotForward as e:
+                        raise RemoteError(f"{step}/{index}: {e}") from None
+                    for pin, paths in found.forwarded:
+                        for name, path in paths:
+                            _forward_once(forwarded, name, pin, path)
                     for warning in found.warnings:
                         self.logger.warning(f"{step}/{index}: {warning}")
                     text = environment.render(
@@ -439,11 +450,13 @@ class RemoteRun:
                          for name, version in found.pins],
                         index_url, extra_index_urls,
                         header=_ENV_HEADER.format(version=sc_version, node=f"{step}/{index}"))
-                    files[(step, index)] = (text, found.forwarded)
+                    files[(step, index)] = text
                     self.logger.info(
                         f"Python environment for {step}/{index}: {len(found.pins)} "
                         f"pinned, {len(found.forwarded)} sent as your own code")
             self._env_files = files
+            self._forwarded = sorted((name, pin, path)
+                                     for name, (pin, path) in forwarded.items())
         return self._env_files
 
     def _collect(self, asked=(), directory=None, only_asked: bool = False) -> None:
@@ -539,24 +552,23 @@ class RemoteRun:
         return f"sha256:{digest.hexdigest()}", size
 
     def _add_environments(self, tar) -> None:
-        '''Each node's environment file, and its forwarded packages beside it
-        -- in the first archive only, which is the only one this builds.'''
+        '''Each node's environment file, and the job's forwarded packages
+        once beside them -- in the first archive only, which is the only one
+        this builds.'''
         import io
         import time
 
         from siliconcompiler.remote import environment
 
-        for (step, index), (text, forwarded) in self._python_env_files().items():
+        for (step, index), text in self._python_env_files().items():
             data = text.encode()
             info = tarfile.TarInfo(environment.path_for(step, index))
             info.size, info.mtime = len(data), time.time()
             tar.addfile(info, io.BytesIO(data))
 
-            for pin, paths in forwarded:
-                for path in paths:
-                    tar.add(path, filter=_forwardable(self.logger, pin),
-                            arcname=f"{environment.packages_path(step, index)}/"
-                                    f"{os.path.basename(path)}")
+        for name, pin, path in self._forwarded:
+            tar.add(path, filter=_forwardable(self.logger, pin),
+                    arcname=f"{environment.packages_path()}/{name}")
 
     def _run_hash(self) -> Optional[str]:
         '''This run's hash for job reuse, or None -- which it always is today.
@@ -1276,6 +1288,25 @@ def _pip_indexes() -> Tuple[Optional[str], List[str]]:
         index = None
     return (owners.strip_userinfo(index) if index else None,
             [owners.strip_userinfo(url) for url in extras])
+
+
+def _forward_once(forwarded: Dict[str, Tuple[str, str]], name: str, pin: str,
+                  path: str) -> None:
+    '''``path`` into the job's forwarded packages, as the top-level ``name``
+    it is imported by.
+
+    🔴 **Two packages with one name are refused** (surface D160), rather than
+    one overwriting the other in `python-env/packages/`: which of them a node
+    imported would depend on the order they were written. The same package
+    wanted by two nodes is one entry.
+    '''
+    held = forwarded.get(name)
+    if held is not None and held != (pin, path):
+        raise RemoteError(
+            f"two of your own packages would both be sent as {name}: {held[0]} from "
+            f"{held[1]}, and {pin} from {path}. Rename one, or install one from an "
+            "index")
+    forwarded[name] = (pin, path)
 
 
 def _forwardable(logger, pin: str):

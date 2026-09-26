@@ -1053,9 +1053,10 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 envvars[env] = value
 
         # A remote run's Python for this node, ahead of everything else on the
-        # tool's path: the user's own editable, local and VCS installs sent
-        # beside its environment file, then what the server installed from it
-        # -- on the host, or in the layer of the image the node runs in.
+        # tool's path: the user's own editable, local and VCS installs sent once
+        # per job, where this node has an environment file, then what the server
+        # installed from it -- on the host, or in the layer of the image the
+        # node runs in.
         # Never on this process's: SiliconCompiler does not import from them.
         carried = self.__remote_python()
         if carried:
@@ -1066,13 +1067,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         return envvars
 
     def __remote_python(self) -> List[str]:
-        from siliconcompiler.remote.environment import IMAGE_SITE, packages_path, site_path
+        from siliconcompiler.remote.environment import (
+            IMAGE_SITE, packages_path, path_for, site_path)
         from siliconcompiler.utils.paths import jobdir
 
         try:
             root = jobdir(self.project)
-            paths = [os.path.join(root, packages_path(self.step, self.index)),
-                     os.path.join(root, site_path(self.step, self.index))]
+            paths = [os.path.join(root, site_path(self.step, self.index))]
+            # The file is what puts the job's forwarded packages on a node's
+            # path, even one that lists nothing else.
+            if os.path.isfile(os.path.join(root, path_for(self.step, self.index))):
+                paths.insert(0, os.path.join(root, packages_path()))
         except Exception:                                       # noqa: BLE001
             return []
         # Only a node whose file the server built an image for runs in one
