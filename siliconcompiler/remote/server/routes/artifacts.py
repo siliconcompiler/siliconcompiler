@@ -64,6 +64,10 @@ def listing(session, job_id):
     along -- three deployments reach an empty listing by different routes, and
     none of them is an error.
     '''
+    from siliconcompiler.remote.server.errors import only_query
+
+    only_query(flask.request.args, ("kind", "step", "index", "limit", "cursor"),
+               "GET /v1/jobs/{id}/artifacts")
     items, cursor = _jobs().artifacts(session, job_id, flask.request.args)
 
     response = flask.jsonify({"items": items})

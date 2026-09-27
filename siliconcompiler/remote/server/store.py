@@ -332,6 +332,7 @@ class Store:
             "JOIN image_contents ic "
             "  ON ic.software_name = sv.software_name AND ic.version = sv.version "
             "JOIN images i ON i.id = ic.image_id AND i.retired_at IS NULL "
+            "  AND i.derived_from IS NULL "
         ) if containers else ""
 
         reported = "  AND sv.version_source = 'reported' " if reported_only else ""

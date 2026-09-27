@@ -68,6 +68,10 @@ def require(scope: str):
     return decorator
 
 
+MACHINE_ID_SOURCES = ("linux_machine_id", "macos_platform_uuid", "windows_machine_guid",
+                      "none")
+
+
 @blueprint.route("/v1/auth/token", methods=["POST"])
 def token():
     '''Endpoint 4: the only token endpoint.
@@ -101,12 +105,21 @@ def token():
                 "invalid-request",
                 detail="client_id must be local:<derivation> on this deployment")
 
+        # 🔴 One of four, and nothing else (identity D59): the weak-path flag a
+        # device carries for ever, and a value outside the set is a 400 rather
+        # than a store constraint answering 500.
+        source = form.get("machine_id_source") or "none"
+        if source not in MACHINE_ID_SOURCES:
+            raise ProblemError(
+                "invalid-request",
+                detail=f"machine_id_source is one of {', '.join(MACHINE_ID_SOURCES)}")
+
         body = _issuer().client_credentials(
             subject=client_id[len("local:"):],
             jkt=jkt,
             requested_scope=form.get("scope"),
             machine_id_hash=form.get("machine_id_hash") or None,
-            machine_id_source=form.get("machine_id_source") or "none",
+            machine_id_source=source,
             display_name=form.get("display_name") or None)
 
     elif grant_type == GRANT_REFRESH_TOKEN:

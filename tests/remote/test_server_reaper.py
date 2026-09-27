@@ -12,8 +12,6 @@ from conftest import call
 from test_server_jobs import FakeDispatcher, stage, submit
 from test_server_artifacts import ran
 
-from siliconcompiler.remote.server.reaper import RETENTION_LAPSED
-
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
@@ -78,7 +76,8 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
         # NULL deleted_by is how the table says *the reaper*, and it is the
         # half that never reaches a client: it names a user.
         assert row["deleted_by"] is None
-        assert row["delete_reason"] == RETENTION_LAPSED
+        # Prose, and only where a person deleted it: the cause says expired.
+        assert row["delete_reason"] is None
         assert not storage.artifact_path(row["storage_key"]).exists()
 
     # And the endpoint still answers, with fetchable false rather than a 404.
@@ -88,7 +87,7 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
     # 🔴 What a client BRANCHES on is the enum; the prose is what a person
     # reads. NULL deleted_by is the reaper, which is `expired`.
     assert all(item["deleted_cause"] == "expired" for item in listing)
-    assert all(item["delete_reason"] == RETENTION_LAPSED for item in listing)
+    assert all(item["delete_reason"] is None for item in listing)
     assert all(item["expires_at"] < "2021" for item in listing)
 
 
@@ -143,7 +142,7 @@ def test_bytes_go_only_when_no_live_row_names_the_object(
     sweep(server)
 
     reaped = store.one("SELECT * FROM artifacts WHERE id = ?", (upload["id"],))
-    assert reaped["delete_reason"] == RETENTION_LAPSED        # the row goes either way
+    assert reaped["deleted_at"] is not None                  # the row goes either way
     assert storage.artifact_path(upload["storage_key"]).exists() is kept
 
 

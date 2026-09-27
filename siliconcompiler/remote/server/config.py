@@ -431,6 +431,15 @@ def _check_policy(values: Dict[str, Any]) -> None:
     '''
     from siliconcompiler.remote.server.artifacts import KINDS
 
+    # 🔴 A limit is a count or a size, or null for none; nothing negative is
+    # ever published (surface D177). `-1` is the store's spelling of unlimited
+    # in `user_limits`, never the wire's or this file's.
+    for name, value in (values["limits"] or {}).items():
+        if value is not None and (isinstance(value, bool) or not isinstance(value, int)
+                                  or value < 0):
+            raise ValueError(f"limits.{name} is a whole number of zero or more, or null "
+                             f"for unlimited; not {value!r}")
+
     kinds = values["api_fetchable_kinds"]
     if kinds is not None:
         unknown = set(kinds) - set(KINDS)

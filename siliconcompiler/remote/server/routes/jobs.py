@@ -125,6 +125,10 @@ def listing(session):
     `items` may be `[]`, and the `Link` header is absent on the last page rather
     than present and empty.
     '''
+    from siliconcompiler.remote.server.errors import only_query
+
+    only_query(flask.request.args, ("state", "flow", "design", "jobname", "project",
+                                    "mine", "archived", "limit", "cursor"), "GET /v1/jobs")
     items, cursor = _jobs().listing(session, flask.request.args)
 
     headers = {}

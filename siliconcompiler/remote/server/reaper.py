@@ -94,14 +94,6 @@ def _bundles(store, storage, config, datadir) -> int:
     return images.sweep_bundles(datadir / "images", store)
 
 
-# What the reaper writes into `delete_reason`, and it is a constant because a
-# client compares against it. `deleted_by` distinguishes the reaper from a
-# person in the table -- NULL is the reaper -- but `deleted_by` is not on the
-# wire and cannot be: it names a user to callers who may not know that user
-# exists.
-RETENTION_LAPSED = "retention lapsed"
-
-
 def _artifacts(store, storage, config, datadir) -> int:
     '''Bytes past their retention. The row stays; only the bytes go.
 
@@ -116,9 +108,10 @@ def _artifacts(store, storage, config, datadir) -> int:
 
     ✅ **The real defect the alternative was aimed at is that a client could
     not tell an expiry from a deletion, and the fix is to say which.**
-    `delete_reason` is written here and published as `deleted_reason`, so
-    *aged out on 24 Sep* and *deleted on 24 Sep* are two different sentences
-    again -- without `fetchable` having to lie for it.
+    `deleted_by` stays NULL, which the listing publishes as `deleted_cause:
+    "expired"`, so *aged out on 24 Sep* and *deleted on 24 Sep* are two
+    different answers -- without `fetchable` having to lie for it. No
+    `delete_reason`: that is prose, and only where a person deleted it.
 
     A legal hold is skipped. It is not only policy -- the table would refuse
     the write, since an artifact cannot be both held and deleted.
@@ -148,10 +141,11 @@ def _artifacts(store, storage, config, datadir) -> int:
         # 🔴 Recorded whether or not a file was there to unlink. The row is the
         # claim that these bytes are unavailable, and an artifact whose file
         # had already vanished is the case where that claim matters most.
-        # `deleted_by` stays NULL, which is how the table says *the reaper*.
+        # `deleted_by` stays NULL, which is how the table says *the reaper*,
+        # and so does `delete_reason`: it is prose, and only where a person
+        # deleted it (surface §21). `deleted_cause` says `expired`.
         store.execute(
-            "UPDATE artifacts SET deleted_at = ?, delete_reason = ? WHERE id = ?",
-            (now(), RETENTION_LAPSED, row["id"]))
+            "UPDATE artifacts SET deleted_at = ? WHERE id = ?", (now(), row["id"]))
         gone += 1
 
     if gone:

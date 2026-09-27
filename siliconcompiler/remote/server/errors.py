@@ -325,6 +325,18 @@ def trace_id(headers) -> str:
     return value
 
 
+def only_query(args, allowed, where: str) -> None:
+    '''🔴 A query parameter a collection does not define is refused, never
+    ignored (surface D177): a misspelled filter would otherwise return
+    everything, and read as an answer to the question asked.'''
+    unknown = sorted(set(args) - set(allowed))
+    if unknown:
+        raise ProblemError(
+            "invalid-request",
+            detail=f"{where} takes no {', '.join(unknown)}"
+                   + (f"; it takes {', '.join(allowed)}" if allowed else ""))
+
+
 def problem(slug: str, detail: Optional[str] = None,
             status: Optional[int] = None, **members) -> Dict[str, Any]:
     '''An RFC 9457 body.

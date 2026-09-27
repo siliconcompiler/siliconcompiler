@@ -280,7 +280,7 @@ class Client:
     def devices(self) -> list:
         '''The machines that can act as me.'''
         self.ensure_session()
-        return self.transport.request("GET", "devices").json()["devices"]
+        return self.transport.request("GET", "devices").json()["items"]
 
     def revoke_device(self, device_id: str) -> None:
         '''Revoke a machine, ending every session it holds.'''

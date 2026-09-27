@@ -434,7 +434,7 @@ def resolve(store_or_images, requirements: Sequence[Requirement]):
     if not fits:
         return None
 
-    return min(fits, key=_rank)
+    return min(fits, key=lambda image: _rank(image, requirements))
 
 
 def _satisfies(image, requirements: Sequence[Requirement]) -> bool:
@@ -447,7 +447,7 @@ def _satisfies(image, requirements: Sequence[Requirement]) -> bool:
     return True
 
 
-def _rank(image):
+def _rank(image, requirements: Sequence[Requirement] = ()):
     '''Lower sorts first: preference, specificity, build time, pin time, then the name.
 
     🔴 **`preference` first, and NOT the newest version** -- the schema already
@@ -479,10 +479,23 @@ def _rank(image):
     '''
     preference = max((entry.preference for entry in image["contents"]
                       if entry.name == PRIMARY), default=None)
+    # 🔴 And every other name asked for, the same way (surface D177): where
+    # two images hold a tool at different versions, the operator's
+    # preference chooses, a reported version before a publish date -- never
+    # whichever image was built last.
+    chosen = []
+    for want in requirements:
+        if want.name == PRIMARY:
+            continue
+        held = [entry for entry in image["contents"] if entry.name == want.name
+                and matches(entry.version, entry.source, want.wanted)]
+        chosen.append(min(((entry.source != "reported", -entry.preference)
+                           for entry in held), default=(True, 0)))
     # An image holding no framework at all ranks below every one that does,
     # rather than being excluded: it can still be the only thing that fits a
     # requirement set which never mentioned the framework.
     return (-preference if preference is not None else 1,
+            tuple(chosen),
             len(image["contents"]),
             _newest_first(image["built_at"]),
             _newest_first(image["resolved_at"]),

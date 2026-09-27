@@ -648,7 +648,7 @@ def test_devices_are_listed_and_revoked(fake_v1, tmp_credentials,
     client.login()
 
     fake_v1.route(responses.GET, "devices",
-                  {"devices": [{"id": "d1", "name": "laptop"}]})
+                  {"items": [{"id": "d1", "name": "laptop", "current": True}]})
     assert client.devices()[0]["id"] == "d1"
 
     fake_v1.route(responses.DELETE, "devices/d1", "", status=204)

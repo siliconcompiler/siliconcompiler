@@ -146,6 +146,14 @@ whole credential.
 Browser sessions live in the server process and in no table, so restarting it
 signs everyone out. Running `sc-remote -portal` again is the whole recovery.
 
+🔴 **In plaintext the portal answers this machine only.** Its session cookie is
+a secret, and a plaintext wire may carry none but the storage URLs, so over
+plain HTTP the portal answers a peer in `portal_plaintext_peers` and nobody
+else; over HTTPS it answers anywhere. This stack publishes it on the host's
+loopback, which the container sees as its network's gateway -- `bootstrap`
+adds that one address. A lab deployment in plaintext reaches its portal
+through an SSH port-forward, or serves HTTPS.
+
 ## How a job's files reach it
 
 🔴 **Every file is uploaded or supplied by identity, and the server never reads
@@ -383,6 +391,9 @@ holding only a loopback. Its one way out is a unix socket to a proxy the build
 job runs, which admits the hosts of `index_allowlist` -- PyPI by default -- and
 never a private address. Wheels only, so no package's own code runs while it
 builds. `scrunner` has `NET_ADMIN` for that loopback and nothing else.
+
+A build may take `env_build_timeout_seconds` (1800 by default) before the job
+waiting on it is refused.
 
 The same file and image are built once: every later job asking for the same
 set reuses the image, which the portal's images page lists under *Built
@@ -653,6 +664,29 @@ somebody's request.
 indexing failed or has not happened, not one whose results expired, and its
 tree is the only copy. Its uploads do not count: they were written before
 anything ran.
+
+## The server's own settings, in one place
+
+What `config.json` in the data directory holds for this stack, beyond the
+contract's `limits`, `features` and `notices` -- every key has a working
+default in `siliconcompiler/remote/server/config.py`, which says what each is
+for:
+
+- **Start-up refuses a deployment that could dispatch nothing**: with
+  `containers` on, a live image must hold `siliconcompiler`, or the server does
+  not start. It is a check, not a column.
+- `containers`, `container_mounts`, `batch_queue`: where jobs run, what their
+  containers see, and the orchestrator's own partition.
+- `env_builder` (needs `containers`; what advertises `python.env`, and false is
+  the switch), `build_queue` (its own partition), `env_build_timeout_seconds`.
+- `fetch_allowlist`, `index_allowlist`, `private_dataroots`, `fetch_timeout_seconds`,
+  `fetch_deadline_seconds`: what the server fetches, and supplies.
+- `portal_plaintext_peers`, `web_url_base`: who the portal answers over
+  plaintext, and the origin a job's page is published under.
+- A per-user limit override lives in the store's `user_limits`, written by
+  `python3 -m siliconcompiler.remote.server.registry`, not by the portal. `-1`
+  there is unlimited, and it is `null` on the wire: nothing negative reaches a
+  client.
 
 ## Credentials
 

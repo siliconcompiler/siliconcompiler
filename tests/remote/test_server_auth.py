@@ -340,6 +340,29 @@ def test_replaying_a_refresh_inside_the_grace_window_is_not_an_attack(client, ke
     assert refresh().status_code == 200
 
 
+def test_an_old_refresh_with_another_keys_proof_revokes_nothing(client, key):
+    '''🔴 Identity D56: reuse is judged only after the refresh's proof
+    verifies. Otherwise anyone holding a leaked, long-rotated token could end
+    the owner's session without the key.'''
+    def refresh(token, signer):
+        return client.post(
+            "/v1/auth/token",
+            data={"grant_type": "refresh_token", "refresh_token": token},
+            headers={"DPoP": dpop.sign_proof(signer, "POST", f"{BASE}/auth/token")},
+            content_type="application/x-www-form-urlencoded")
+
+    first = login(client, key).get_json()["refresh_token"]
+    second = refresh(first, key).get_json()["refresh_token"]
+    third = refresh(second, key).get_json()["refresh_token"]
+
+    stolen = refresh(first, dpop.generate_key())
+
+    assert stolen.status_code == 401
+    assert slug(stolen) == "invalid-dpop-proof"
+    # And the family lives: the owner's current token still refreshes.
+    assert refresh(third, key).status_code == 200
+
+
 ###########################
 # Ending a session
 ###########################
@@ -371,7 +394,7 @@ def test_a_revoked_session_says_so_in_the_wire_vocabulary(client, key, server):
 
 def test_revoking_a_device_ends_its_sessions(client, key):
     token = login(client, key).get_json()["access_token"]
-    device = call(client, key, "GET", "/v1/devices", token).get_json()["devices"][0]
+    device = call(client, key, "GET", "/v1/devices", token).get_json()["items"][0]
 
     assert call(client, key, "DELETE", f"/v1/devices/{device['id']}",
                 token).status_code == 204
@@ -385,7 +408,7 @@ def test_a_device_belonging_to_someone_else_is_not_found(client):
     b = login(client, bob, subject="machine:1001").get_json()
 
     hers = call(client, alice, "GET", "/v1/devices",
-                a["access_token"]).get_json()["devices"][0]["id"]
+                a["access_token"]).get_json()["items"][0]["id"]
 
     response = call(client, bob, "GET", f"/v1/devices/{hers}", b["access_token"])
 
@@ -566,7 +589,7 @@ def test_a_refresh_counts_as_the_device_being_seen(client, key):
 
     def devices(token):
         return call(client, key, "GET", "/v1/devices",
-                    token).get_json()["devices"][0]
+                    token).get_json()["items"][0]
 
     first = devices(granted["access_token"])["last_seen_at"]
     assert first is not None

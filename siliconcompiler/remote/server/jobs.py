@@ -1994,19 +1994,29 @@ class JobService:
                      Path(f"{self.stream_index_path(job['id'])}.lock")):
             path.unlink(missing_ok=True)
         self._storage.discard_upload(job["id"])
-        self._storage.discard_artifacts(job["id"])
+
+        # 🔴 **An artifact under legal hold is never deleted** (entitlements
+        # D54), by its owner or anybody: its row and its bytes stay, and the
+        # rest go -- through `_unlink`, never a sweep of the job's directory,
+        # which would take the held bytes with it.
+        going = self._store.all(
+            "SELECT id, location_id, storage_key FROM artifacts WHERE job_id = ? "
+            "AND deleted_at IS NULL AND legal_hold_at IS NULL", (job["id"],))
+        self._unlink(going)
 
         # The row stays, with `deleted_at` set: a `deleted` state was refused
         # because it would erase whether the job had completed, failed or been
         # rejected, which is the one fact you want when somebody asks where
         # their results went.
-        self._store.execute(
-            "UPDATE jobs SET deleted_at = ?, deleted_by = ? WHERE id = ?",
-            (now(), session.user_id, job["id"]))
-        self._store.execute(
-            "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
-            "  delete_reason = ? WHERE job_id = ? AND deleted_at IS NULL",
-            (now(), session.user_id, self._deleted_from(session), job["id"]))
+        with self._store.transaction():
+            self._store.execute(
+                "UPDATE jobs SET deleted_at = ?, deleted_by = ? WHERE id = ?",
+                (now(), session.user_id, job["id"]))
+            self._store.execute(
+                "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
+                "  delete_reason = ? WHERE job_id = ? AND deleted_at IS NULL "
+                "  AND legal_hold_at IS NULL",
+                (now(), session.user_id, self._deleted_from(session), job["id"]))
 
     def discard_node(self, session, job_id: str, step: str, index: str,
                      reason: str) -> int:

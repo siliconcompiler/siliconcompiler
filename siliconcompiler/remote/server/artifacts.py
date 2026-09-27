@@ -584,6 +584,9 @@ def wire(row, surface_allows: bool = True,
         "deleted_cause": cause(row),
         "delete_reason": row["delete_reason"],
         "fetchable": fetchable(row, surface_allows, members),
+        # This profile takes no access requests, so there is never an
+        # undecided one to name -- but the member is REQUIRED (surface D177).
+        "access_requested_at": None,
     }
     # No `blocked_by` and no `access_request_url`: both are about an agreement
     # standing in the way, and this deployment has no agreements. An

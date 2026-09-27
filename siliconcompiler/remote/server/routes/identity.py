@@ -74,15 +74,18 @@ def list_devices(session):
     first contact is the only real control the mode has, and this list plus the
     revoke button is its visible half.
     '''
-    return _private({"devices": [_device(row)
-                                 for row in accounts.devices_for(_store(), session)]})
+    from siliconcompiler.remote.server.errors import only_query
+
+    only_query(flask.request.args, (), "GET /v1/devices")
+    return _private({"items": [_device(row, session)
+                               for row in accounts.devices_for(_store(), session)]})
 
 
 @blueprint.route("/v1/devices/<device_id>", methods=["GET"])
 @require("devices:read")
 def get_device(session, device_id):
     '''Endpoint 11.'''
-    return _private(_device(accounts.owned_device(_store(), session, device_id)))
+    return _private(_device(accounts.owned_device(_store(), session, device_id), session))
 
 
 @blueprint.route("/v1/devices/<device_id>", methods=["DELETE"])
@@ -104,15 +107,14 @@ def revoke_device(session, device_id):
     return response
 
 
-def _device(row) -> dict:
+def _device(row, session) -> dict:
+    '''One device, as the list and endpoint 11 both publish it -- byte for
+    byte the same object, `current` included (surface §10, §11).'''
     return {
         "id": row["id"],
         "name": row["name"],
-        # The pin itself, so a user can compare what the server holds against
-        # what their client says it has.
-        "dpop_jkt": row["dpop_jkt"],
+        "current": row["id"] == getattr(session, "device_id", None),
         "machine_id_source": row["machine_id_source"],
         "enrolled_at": row["enrolled_at"],
         "last_seen_at": row["last_seen_at"],
-        "revoked_at": row["revoked_at"],
     }
