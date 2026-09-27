@@ -73,6 +73,9 @@ def test_eighteen_tables():
         # per-user `max_download_bytes`: a limit that can differ per account
         # has to be stored per account.
         "user_limits",
+        # The twentieth: for a run that starts part-way through its flow, the
+        # earlier job each copied node came from (surface D175).
+        "job_continuations",
     }
 
 

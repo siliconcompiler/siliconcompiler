@@ -502,9 +502,16 @@ class Results:
         global value in it is this server's setting for the run -- its build
         directory, its scheduler -- and folding those in would rewrite the
         caller's own.
+
+        🔴 **And only for the nodes the job ran.** A run that starts part-way
+        through its flow marks every node it did not load as pending, with its
+        metrics cleared, so folding the record in whole would make a node that
+        finished before look unrun on this machine.
         '''
         from siliconcompiler import Project
+        from siliconcompiler.remote.server.runspec import runtime_nodes
 
+        ran = set(runtime_nodes(self.project))
         final = Project.from_manifest(filepath=path)
         for group in ("record", "metric"):
             for key in final.getkeys(group):
@@ -512,7 +519,25 @@ class Results:
                 for value, step, index in param.getvalues(return_defvalue=False):
                     if step is None or index is None or value is None:
                         continue
+                    if (step, index) not in ran:
+                        continue
                     self.project.set(group, key, value, step=step, index=index)
+
+    def fetch_node(self, job_id: str, step: str, index: str) -> int:
+        '''What is fetchable now of one node of another job -- the job a run
+        continued from, which ran it. Returns the number of objects that
+        landed.'''
+        items = [item for item in _takeable(self.client.artifacts(job_id))
+                 if item.get("step") == step and item.get("index") == index]
+        landed = 0
+        for item in _worth_fetching([item for item in items if not self._oversized(item)]):
+            if not item.get("fetchable"):
+                continue
+            try:
+                landed += self._retrieve(job_id, item)
+            except Exception as e:                               # noqa: BLE001
+                self.logger.error(f"{self._name(item)}: {e}")
+        return landed
 
     def _manifests(self) -> List[str]:
         '''Every node manifest on disk, whichever object brought it.'''

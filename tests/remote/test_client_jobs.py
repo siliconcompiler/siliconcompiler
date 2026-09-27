@@ -1073,17 +1073,88 @@ def test_only_the_manifest_and_the_sources_are_uploaded(run, nop_project, tmp_pa
     assert not {n for n in names if n.startswith(("stepone", "steptwo"))}
 
 
+def _upstream_node(project, step, *, output=None, remoteid=None):
+    from siliconcompiler.utils.paths import workdir
+
+    outputs = os.path.join(workdir(project, step=step, index="0"), "outputs")
+    os.makedirs(outputs, exist_ok=True)
+    manifest = {}
+    if remoteid:
+        manifest = {"record": {"remoteid": {"node": {"*": {"*": {"value": remoteid}}}}}}
+    with open(os.path.join(outputs, "gcd.pkg.json"), "w") as f:
+        json.dump(manifest, f)
+    if output:
+        with open(os.path.join(outputs, output), "w") as f:
+            f.write("module gcd; endmodule\n")
+    return outputs
+
+
 def test_a_run_from_part_way_sends_the_results_it_starts_from(
         run, nop_project, tmp_path):
-    '''`-from steptwo`: stepone's results exist on this machine and nowhere
-    else, and steptwo reads them. steptwo's own are replaced by the run.'''
+    '''`-from steptwo`: stepone's results are on this machine, and steptwo
+    reads them -- its outputs and nothing else of the node. steptwo's own are
+    replaced by the run.'''
     _leftovers(nop_project)
+    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
+    os.makedirs(os.path.join(os.path.dirname(outputs), "inputs"), exist_ok=True)
     nop_project.option.add_from("steptwo")
 
     names = _packed(run, tmp_path)
 
-    assert "stepone/0/outputs/gcd.pkg.json" in names
+    assert {"stepone/0/outputs/gcd.pkg.json", "stepone/0/outputs/gcd.vg"} <= names
+    assert not {n for n in names if n.startswith("stepone/0/inputs")}
     assert not {n for n in names if n.startswith("steptwo")}
+    assert run._upstream()[1] == []                  # nothing to continue from
+
+
+def test_linked_outputs_are_sent_as_real_files(run, nop_project, tmp_path):
+    '''🔴 SiliconCompiler links a task's pass-through files -- a hard link, then a
+    symlink -- and the server refuses any link member.'''
+    import tarfile
+
+    _leftovers(nop_project)
+    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
+    os.link(os.path.join(outputs, "gcd.vg"), os.path.join(outputs, "hard.vg"))
+    os.symlink("gcd.vg", os.path.join(outputs, "soft.vg"))
+    os.symlink("nothing-there", os.path.join(outputs, "dangling.vg"))
+    nop_project.option.add_from("steptwo")
+
+    upload = tmp_path / "upload.tar.gz"
+    run._pack(upload)
+
+    with tarfile.open(upload) as tar:
+        members = {member.name: member for member in tar.getmembers()}
+        assert not any(member.issym() or member.islnk() for member in members.values())
+        for name in ("gcd.vg", "hard.vg", "soft.vg"):
+            member = members[f"stepone/0/outputs/{name}"]
+            assert member.isfile()
+            assert tar.extractfile(member).read() == b"module gcd; endmodule\n"
+    assert "stepone/0/outputs/dangling.vg" not in members
+
+
+def test_a_node_whose_outputs_never_came_back_is_continued_from_its_job(
+        run, nop_project, tmp_path):
+    '''Only its manifest is here: the job that ran it is named, read out of the
+    manifest as JSON, and nothing of the node is packed.'''
+    _leftovers(nop_project)
+    _upstream_node(nop_project, "stepone", remoteid="01a0e000-0000-7000-8000-000000000001")
+    nop_project.option.add_from("steptwo")
+
+    names = _packed(run, tmp_path)
+
+    assert run._upstream()[1] == [{"step": "stepone", "index": "0",
+                                   "job": "01a0e000-0000-7000-8000-000000000001"}]
+    assert not {n for n in names if n.startswith("stepone")}
+
+
+def test_a_node_with_neither_is_refused_before_anything_moves(run, nop_project, tmp_path):
+    '''A node from a local run has no job id, so its results must be here.'''
+    _leftovers(nop_project)
+    _upstream_node(nop_project, "stepone")
+    nop_project.option.add_from("steptwo")
+
+    with pytest.raises(RemoteError, match="stepone/0"):
+        _packed(run, tmp_path)
 
 
 ###########################

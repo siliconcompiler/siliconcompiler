@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>account-not-provisioned &middot; SiliconCompiler server errors</title>
+<meta name="description" content="The caller has no account on the machines that run jobs.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / account-not-provisioned</p>
+  <h1>account-not-provisioned</h1>
+  <p class="title">Your account is not set up on this deployment</p>
+  <p class="meta">
+    <span class="status">403 Forbidden</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/account-not-provisioned</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>You are signed in, and this deployment has no account for you on the machines that run jobs &mdash; a POSIX account, where a job runs as its owner. Nothing about the job is wrong.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Ask the deployment&rsquo;s operator to set up your account, then submit again. Retrying before then gets the same answer.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/account-not-provisioned",
+  "title":    "Your account is not set up on this deployment",
+  "status":   403,
+  "detail":   "...",
+  "instance": "/v1/jobs",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs</code></td>
+    <td>At create.</td></tr>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
+    <td>At submit.</td></tr>
+</tbody>
+</table>
+
+<p class="aside">The reference <code>sc-server</code> never raises it: it sets an account up on first contact.</p>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
+&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
+window.</p>
+<ul>
+  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
+      header, so it is in your logs even if the body is not.</li>
+  <li><code>instance</code> &mdash; the request this happened to.</li>
+</ul>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> is a resource you may not use. This one is you having nowhere to run, whatever the job uses.</p>
+
+<p><a href="insufficient-scope.html"><code>insufficient-scope</code></a> is a token whose scope does not cover the call.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

@@ -242,6 +242,9 @@ class JobService:
         # create is always a 201.
         run_hash = _run_hash(body.get("run_hash"))
         reuses = "jobs.reuse" in (self._config["features"] or ())
+        # Authoritative, like run_hash: the server never reads a job id out of
+        # the upload (surface D175).
+        continuations = _continuations(body.get("continues_from"))
 
         # 🔴 Credentials out of every source URL before anything is compared,
         # stored or logged -- the descriptor is kept whole in `jobs.descriptor`.
@@ -260,8 +263,9 @@ class JobService:
                 # a key they should have rotated. Returning the first job would
                 # answer a question they did not ask.
                 if (existing["design"], existing["jobname"], existing["run_hash"],
-                        json.loads(existing["descriptor"])) != (design, jobname, run_hash,
-                                                                descriptor):
+                        json.loads(existing["descriptor"]),
+                        self._continuations_of(existing["id"])) != \
+                        (design, jobname, run_hash, descriptor, sorted(continuations)):
                     raise ProblemError(
                         "idempotency-key-reuse",
                         detail="this Idempotency-Key was used for a different request")
@@ -284,6 +288,9 @@ class JobService:
 
         self._check_pending_uploads(session.user_id)
         self._check_descriptor(descriptor, requires)
+        # Before anything is uploaded: every earlier result this run would
+        # take, and what those results were built from.
+        self._check_continuations(session.user_id, continuations)
 
         asked = self._look_up(declared) if declared is not None else None
 
@@ -300,11 +307,148 @@ class JobService:
                  json.dumps(descriptor), idempotency_key, run_hash, identity,
                  _retention(self._config.limits["job_retention_days"]),
                  json.dumps(asked) if asked else None))
+            for step, index, from_job in continuations:
+                self._store.execute(
+                    'INSERT INTO job_continuations (job_id, step, "index", from_job_id) '
+                    "VALUES (?, ?, ?, ?)", (job_id, step, index, from_job))
             self._transition(job_id, None, "created", actor=session.user_id)
 
         # The job object, in `created`: `upload_sources` is on it where the
         # server is asking, and absent where there is nothing to send.
         return self.wire(self._row(job_id)), 201
+
+    ######################################################################
+    # A run that starts part-way through its flow (surface D175)
+    ######################################################################
+
+    def _account_upstream(self, session, job, derived, unpacked: Path):
+        '''Every node the run reads and does not run: in the archive, or
+        copied from the job `continues_from` names -- and none in neither.
+        Returns the nodes to copy, as ``((step, index), from_job)``.
+
+        A node in both is taken from the archive, and an entry for a node the
+        run does not read is not copied. What is copied is checked again, and
+        so is what it was built from.
+        '''
+        continued = {(step, index): from_job
+                     for step, index, from_job in self._continuations_of(job["id"])}
+        copies = []
+        for step, index in runspec.upstream_nodes(derived["project"]):
+            if runspec.outputs_present(unpacked / step / index, job["design"]):
+                continue
+            if (step, index) not in continued:
+                raise self._refuse(session, job, ProblemError(
+                    "archive-rejected", violation="missing_member",
+                    detail=f"the run reads the results of {step}/{index}, which it does "
+                           "not run, and they are neither in the archive nor named in "
+                           "continues_from"))
+            copies.append(((step, index), continued[(step, index)]))
+        try:
+            self._check_continuations(
+                job["user_id"], [(step, index, from_job) for (step, index), from_job in copies])
+        except ProblemError as problem:
+            raise self._refuse(session, job, problem) from None
+        return copies
+
+    def _copy_results(self, job, unpacked: Path, copies) -> None:
+        '''Each node's outputs and manifest from the job that ran it, into
+        ``<step>/<index>/outputs/`` -- where uploaded results land, so the run
+        needs no change. The copied node gets no row and no artifacts here.
+
+        🔴 **The archive is read as untrusted**, like every read of a job's
+        tree: the `data` filter, regular files and directories only -- no
+        link, no FIFO, socket or device -- and only under ``outputs/``.
+        '''
+        for (step, index), from_job in copies:
+            held = {row["kind"]: row for row in self._store.all(
+                'SELECT kind, storage_key FROM artifacts WHERE job_id = ? AND step = ? '
+                "AND \"index\" = ? AND kind IN ('node', 'manifest') AND deleted_at IS NULL",
+                (from_job, step, index))}
+            target = unpacked / step / index
+            try:
+                _extract_outputs(self._storage.artifact_path(held["node"]["storage_key"]),
+                                 target)
+                shutil.copyfile(self._storage.artifact_path(held["manifest"]["storage_key"]),
+                                target / "outputs" / f"{job['design']}.pkg.json")
+            except (KeyError, FileNotFoundError):
+                raise self._refuse_staging(job, ProblemError(
+                    "prior-results-unavailable", step=step, index=index, job=from_job,
+                    reason="expired",
+                    detail=f"the results of {step}/{index} in job {from_job} went before "
+                           "they could be copied")) from None
+            logger.info(f"{job['id']}: copied {step}/{index} from {from_job}")
+
+    def _continuations_of(self, job_id: str) -> List[Tuple[str, str, str]]:
+        return [(row["step"], row["index"], row["from_job_id"]) for row in self._store.all(
+            'SELECT step, "index", from_job_id FROM job_continuations WHERE job_id = ? '
+            'ORDER BY step, "index"', (job_id,))]
+
+    def _check_continuations(self, user_id: str, continuations) -> None:
+        '''Every entry's results are usable, and none was built from something
+        nobody here may use -- at create before the upload, and again at
+        submit.'''
+        for step, index, from_job in continuations:
+            refused = self._continuation_refused(user_id, step, index, from_job)
+            if refused:
+                reason, detail = refused
+                raise ProblemError("prior-results-unavailable", step=step, index=index,
+                                   job=from_job, reason=reason, detail=detail)
+
+        # 🔴 The job's resource set includes what it copies: without this a
+        # job could name a PDK the caller may use and continue from results
+        # built on one they may not. This profile's gate is `denied_resources`.
+        for step, index, from_job in continuations:
+            for kind, name in self._resources_of(from_job):
+                if self._config.denied(kind, name):
+                    raise ProblemError(
+                        "entitlement-denied", resource_kind=kind, resource=name,
+                        detail=f"the results of {step}/{index} this job would continue "
+                               f"from were built from a {kind} this deployment does not "
+                               "allow")
+
+    def _continuation_refused(self, user_id, step, index, from_job):
+        '''Why one entry's results cannot be used, as (reason, detail), or None.'''
+        row = self._store.one("SELECT deleted_at, archived_at FROM jobs "
+                              "WHERE id = ? AND user_id = ?", (from_job, user_id))
+        where = f"{step}/{index} of job {from_job}"
+        if row is None:
+            # 🔴 One answer for none and for somebody else's: it confirms nothing.
+            return "not_found", f"no job of yours has that id, for {step}/{index}"
+        if row["deleted_at"]:
+            return "deleted", f"job {from_job} is deleted"
+        if row["archived_at"]:
+            return "archived", f"job {from_job} is archived; unarchiving it fixes this"
+        node = self._store.one('SELECT state FROM job_nodes WHERE job_id = ? AND step = ? '
+                               'AND "index" = ?', (from_job, step, index))
+        if node is None or node["state"] != "completed":
+            return "not_completed", (f"job {from_job} did not complete {step}/{index}: a job "
+                                     "that only copied a node in did not run it")
+        held = {row["kind"]: row for row in self._store.all(
+            'SELECT kind, deleted_at, withheld_at FROM artifacts WHERE job_id = ? '
+            "AND step = ? AND \"index\" = ? AND kind IN ('node', 'manifest')",
+            (from_job, step, index))}
+        # On this profile the artifact holding a node's outputs is its `node`
+        # archive: it keeps no `outputs` kind.
+        for kind in ("node", "manifest"):
+            if kind not in held or held[kind]["deleted_at"]:
+                return "expired", f"the {kind} artifact of {where} is gone"
+        for kind in ("node", "manifest"):
+            if held[kind]["withheld_at"]:
+                return "withheld", f"the {kind} artifact of {where} is withheld"
+        return None
+
+    def _resources_of(self, job_id: str) -> List[Tuple[str, str]]:
+        '''What one job's results were built from: its PDK and libraries as
+        its submit re-derived them, and its tools.'''
+        row = self._store.one("SELECT manifest_resources, manifest_pdk, manifest_tools "
+                              "FROM jobs WHERE id = ?", (job_id,))
+        if row is None:
+            return []
+        found = [tuple(pair) for pair in json.loads(row["manifest_resources"] or "[]")]
+        if not found and row["manifest_pdk"] and row["manifest_pdk"] != "none":
+            found.append(("pdk", row["manifest_pdk"]))
+        found += [("tool", name) for name in json.loads(row["manifest_tools"] or "[]")]
+        return found
 
     def _check_needs(self, descriptor) -> None:
         '''🔴 `needs`: every feature the job relies on must be one this server
@@ -751,6 +895,7 @@ class JobService:
         self._check_environments(session, job, derived, unpacked)
         self._check_denied(session, job, derived)
         entries = self._account(session, job, derived, unpacked)
+        copies = self._account_upstream(session, job, derived, unpacked)
 
         asked = [entry for entry in entries if entry.status == owners.ASK]
         self._check_owed(session, job, derived, asked)
@@ -766,14 +911,16 @@ class JobService:
         # through the one backwards edge, from `staging`, like a source that
         # could not be fetched.
         stages = any(entry.status in (owners.FETCH, owners.ASK) for entry in entries) \
-            or bool(self._environments(job, derived))
+            or bool(self._environments(job, derived)) or bool(copies)
         try:
             with self._store.transaction():
-                # The PDK with it: an admitted job has a resolved one.
+                # The PDK with it: an admitted job has a resolved one. And what
+                # its run derives from, for a job that continues from it.
                 self._store.execute(
                     "UPDATE jobs SET upload_sources = NULL, submit_idempotency_key = ?, "
-                    "  manifest_pdk = ? WHERE id = ?",
-                    (idempotency_key, derived["pdk"], job["id"]))
+                    "  manifest_pdk = ?, manifest_resources = ? WHERE id = ?",
+                    (idempotency_key, derived["pdk"],
+                     json.dumps([list(pair) for pair in _resources(derived)]), job["id"]))
                 self._transition(job["id"], "awaiting_input",
                                  "staging" if stages else "queued",
                                  actor=session.user_id)
@@ -1023,6 +1170,11 @@ class JobService:
             # Everything in hand: a missing file in a fetched copy is refused
             # here, from `staging` -- and then it queues, and only moves on.
             entries = self._account(None, job, derived, unpacked)
+
+            # The results of each node this run reads and does not run, from
+            # the earlier job that ran it (surface D175).
+            self._copy_results(job, unpacked,
+                               self._account_upstream(None, job, derived, unpacked))
 
             # Then each node's Python, built into an image on the one it
             # resolved to -- which needs the images resolved first.
@@ -2952,6 +3104,12 @@ class JobService:
         if resolved:
             body["resolved_versions"] = resolved
 
+        # Echoed, and absent where the run continues from nothing.
+        continued = self._continuations_of(job["id"])
+        if continued:
+            body["continues_from"] = [{"step": step, "index": index, "job": from_job}
+                                      for step, index, from_job in continued]
+
         # 🔴 Present only while the server is asking -- in `created` or
         # `awaiting_input` -- and never `[]` (D127): what to send, and nothing
         # else.
@@ -3090,7 +3248,7 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 
 # 🔴 Strict on requests (contract.md): what each body may carry. `run_hash` is
 # job reuse's, and top level: the descriptor is what submit re-derives.
-CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash")
+CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash", "continues_from")
 DESCRIPTOR_MEMBERS = ("flow", "needs", "requires", "sources")
 SOURCE_MEMBERS = ("kind", "name", "dataroot", "source", "ref", "private")
 
@@ -3121,6 +3279,58 @@ def _name(value, field: str) -> str:
 
 
 _RUN_HASH = re.compile(r"^[\x20-\x7e]{1,128}$")
+
+
+def _extract_outputs(archive_path: Path, target: Path) -> None:
+    '''The ``outputs/`` of a node archive into ``target``: regular files and
+    directories only, through the `data` filter.'''
+    import tarfile
+
+    from siliconcompiler.utils import tar_extract_kwargs
+
+    target.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(archive_path, "r:*") as tar:
+        for member in tar:
+            name = member.name.lstrip("./")
+            if not (name == "outputs" or name.startswith("outputs/")):
+                continue
+            if not (member.isfile() or member.isdir()):
+                continue
+            tar.extract(member, target, **tar_extract_kwargs())
+
+
+def _continuations(value) -> List[Tuple[str, str, str]]:
+    '''`continues_from`: a list of `{step, index, job}`, one per node.'''
+    import uuid
+
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ProblemError("invalid-request",
+                           detail="continues_from is a list of {step, index, job}")
+    found, seen = [], set()
+    for entry in value:
+        if not isinstance(entry, dict):
+            raise ProblemError("invalid-request",
+                               detail="each continues_from entry is {step, index, job}")
+        _only(entry, ("step", "index", "job"), "a continues_from entry")
+        step, index, job = entry.get("step"), entry.get("index"), entry.get("job")
+        if not all(isinstance(value, str) and value for value in (step, index, job)):
+            raise ProblemError("invalid-request",
+                               detail="each continues_from entry names a step, an index "
+                                      "and a job")
+        try:
+            uuid.UUID(job)
+        except ValueError:
+            raise ProblemError("invalid-request",
+                               detail=f"continues_from names {job!r}, which is not a job "
+                                      "id") from None
+        if (step, index) in seen:
+            raise ProblemError("invalid-request",
+                               detail=f"two continues_from entries name {step}/{index}")
+        seen.add((step, index))
+        found.append((step, index, job))
+    return found
 
 
 def _run_hash(value) -> Optional[str]:

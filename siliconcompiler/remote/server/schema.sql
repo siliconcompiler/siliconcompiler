@@ -189,6 +189,10 @@ CREATE TABLE jobs (
     manifest_tools    text,                         -- JSON, re-derived at submit
     manifest_pdk      text,                         -- re-derived at submit: a PDK name, or the
                                                     -- literal 'none' = this flow requires no PDK
+    manifest_resources text,                        -- JSON [[kind, name], ...]: the PDKs and
+                                                    -- libraries the run derives from, re-derived at
+                                                    -- submit. What a job continuing from this one
+                                                    -- takes on with its results (surface D175)
 
     upload_key              text,                   -- the object key the grant was issued for
     upload_location_id      text REFERENCES storage_locations(id),
@@ -337,6 +341,18 @@ CREATE TABLE job_node_edges (                       -- the flow's shape, as rows
     PRIMARY KEY (job_id, from_step, from_index, to_step, to_index),
     FOREIGN KEY (job_id, from_step, from_index) REFERENCES job_nodes (job_id, step, "index"),
     FOREIGN KEY (job_id, to_step,   to_index)   REFERENCES job_nodes (job_id, step, "index")
+);
+
+CREATE TABLE job_continuations (                    -- a run that starts part-way through its
+    job_id      text NOT NULL REFERENCES jobs(id),  -- flow (surface D175): for each node it reads
+    step        text NOT NULL,                      -- and does not run, the job whose results
+    "index"     text NOT NULL,                      -- were copied in. Written at create, from
+    from_job_id text NOT NULL,                      -- `continues_from`. The job that RAN the node:
+                                                    -- the key refuses one that never had it or
+                                                    -- only copied it. Completed is the handler's
+    PRIMARY KEY (job_id, step, "index"),
+    FOREIGN KEY (from_job_id, step, "index") REFERENCES job_nodes (job_id, step, "index"),
+    CHECK (from_job_id <> job_id)
 );
 
 

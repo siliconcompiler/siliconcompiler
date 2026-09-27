@@ -26,7 +26,7 @@ __all__ = ["inheriting_nodes", "normalize", "node_image", "node_tools",
            "runtime_flow", "runtime_nodes",
            "node_state", "PROGRESS_FILENAME", "IMAGES_FILENAME",
            "read_images", "read_python", "write_images", "read_progress",
-           "write_progress"]
+           "write_progress", "upstream_nodes", "outputs_present"]
 
 
 # Written by the run, read by the API process, and the only channel between
@@ -279,6 +279,36 @@ def runtime_nodes(project) -> List[Tuple[str, str]]:
     matching what actually ran.
     '''
     return list(runtime_flow(project).get_nodes())
+
+
+def upstream_nodes(project) -> List[Tuple[str, str]]:
+    '''The nodes a run reads and does not run: every node outside the run
+    that a node in it takes inputs from (surface D175).
+
+    🔴 **One derivation for both ends.** The client decides from it what to
+    upload or name in `continues_from`, and the server what must be in the
+    upload or copied in; two copies of it would be two answers to which
+    results a `-from` run needs.
+    '''
+    runtime = runtime_flow(project)
+    running = set(runtime.get_nodes())
+    return sorted({source for node in running for source in runtime.get_node_inputs(*node)
+                   if source not in running})
+
+
+def outputs_present(node_dir, design: str) -> bool:
+    '''Whether a node's results are there: a file under its ``outputs/`` other
+    than its own manifest. The same test on both ends.'''
+    import os
+
+    outputs = os.path.join(str(node_dir), "outputs")
+    manifest = f"{design}.pkg.json"
+    for root, _, files in os.walk(outputs):
+        for name in files:
+            if root == outputs and name == manifest:
+                continue
+            return True
+    return False
 
 
 def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:

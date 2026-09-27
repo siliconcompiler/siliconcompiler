@@ -297,6 +297,7 @@ class Client:
                    requires: Optional[Dict[str, Any]] = None,
                    sources: Optional[List[Dict[str, Any]]] = None,
                    run_hash: Optional[str] = None,
+                   continues_from: Optional[List[Dict[str, str]]] = None,
                    idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         '''``POST /v1/jobs``: the job exists, and nothing has moved yet.
         Returns the job object, in `created`.
@@ -337,6 +338,10 @@ class Client:
             body["descriptor"] = descriptor
         if run_hash:
             body["run_hash"] = run_hash
+        if continues_from:
+            # For a run that starts part-way through its flow: each node whose
+            # results this run takes from the job that ran it (surface D175).
+            body["continues_from"] = continues_from
 
         headers = {}
         if idempotency_key:

@@ -601,11 +601,12 @@ def test_a_name_the_archive_does_not_hold_is_not_found(signed_in, finished,
 
 def test_a_link_in_an_archive_is_never_followed(signed_in, finished, server, me):
     '''🔴 Only a regular member is served. A link the archive kept -- one
-    resolving inside it -- names another member; following it would make the
-    link a second name for any file, and the portal serves none by alias.'''
+    resolving inside it, to something that is not a file -- names another
+    member; following it would make the link a second name for anything in
+    the archive, and the portal serves nothing by alias.'''
     store = server.config["SC_STORE"]
     root = server.config["SC_JOBS"].job_root(me, finished["id"]) / "gcd" / "job0"
-    (root / "stepone" / "0" / "alias.log").symlink_to("sc_stepone_0.log")
+    (root / "stepone" / "0" / "alias.log").symlink_to("outputs")
 
     store.execute("DELETE FROM artifacts WHERE job_id = ? AND kind = 'node'",
                   (finished["id"],))

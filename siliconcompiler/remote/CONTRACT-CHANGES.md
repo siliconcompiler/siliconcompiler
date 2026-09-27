@@ -41,6 +41,26 @@ code up to the last ten.
 
 ---
 
+## Open — not yet in the contract docs
+
+### 1. A node archive carries a pass-through output as the file, not the link
+
+Surface D159 has a produced archive keep a link that resolves inside it. ⚠️
+**A node archive leaves out the node's `inputs/`, and a task's pass-through
+output is a link into `inputs/`** -- SiliconCompiler links it with
+`link_symlink_copy` -- so kept as a link it arrives dangling: for a user
+downloading the node, and for a run continuing from it (surface D175), whose
+copy of the node's outputs would be missing exactly the files passed through.
+This profile stores a link that resolves to a regular file inside the job as
+that file's bytes in the node archive, as it already did for `input`. A link
+to anything else inside is kept as a link; one out of the archive is dropped,
+as D159 says.
+
+**Where it goes:** surface D159's produced-archive rule, and D175's *what
+arrives* -- the node's outputs as files.
+
+---
+
 ## Not ported, deliberately
 
 - **A second database backend.** Asked about — MySQL in the compose stack,

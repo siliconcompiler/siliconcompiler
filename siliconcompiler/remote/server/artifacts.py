@@ -161,9 +161,15 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
         written += _archive(store, storage, job, location, floor, "reports",
                             step, index, reports, workdir, root)
 
+    # 🔴 A link to a file inside the job is stored as that file's bytes. A
+    # task's pass-through output is a link into its `inputs/`, which this
+    # archive leaves out, so stored as a link it would arrive dangling -- for
+    # a user downloading the node, and for a run continuing from it
+    # (surface D175).
     if any(child.name not in _NOT_IN_A_NODE for child in workdir.iterdir()):
         written += _archive(store, storage, job, location, floor, "node",
-                            step, index, workdir, workdir, root, skip=_NOT_IN_A_NODE)
+                            step, index, workdir, workdir, root, skip=_NOT_IN_A_NODE,
+                            follow_inside=True)
 
     # What the node was handed, on its own: the node archive leaves it out, and
     # it is what somebody debugging the node wants to read. 🔴 A link is

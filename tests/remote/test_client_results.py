@@ -840,6 +840,46 @@ def test_the_job_manifest_fills_in_what_every_node_did(fake_v1, results,
     assert nop_project.option.get_jobname() == "job0"
 
 
+def test_a_run_from_part_way_folds_in_only_the_nodes_it_ran(results, nop_project):
+    '''🔴 The run marks every node it did not load as pending, with its metrics
+    cleared: folded in whole, a node that finished before would look unrun
+    here.'''
+    from siliconcompiler import Project
+
+    nop_project.set("record", "status", "success", step="stepone", index="0")
+    nop_project.set("metric", "tasktime", 3.0, step="stepone", index="0")
+    nop_project.option.add_from("steptwo")
+
+    nop_project.write_manifest("final.pkg.json")
+    final = Project.from_manifest(filepath="final.pkg.json")
+    final.set("record", "status", "pending", step="stepone", index="0")
+    final.unset("metric", "tasktime", step="stepone", index="0")
+    final.set("record", "status", "success", step="steptwo", index="0")
+    final.set("metric", "tasktime", 9.0, step="steptwo", index="0")
+    final.write_manifest("final.pkg.json")
+
+    results._fold_in_final("final.pkg.json")
+
+    assert nop_project.get("record", "status", step="stepone", index="0") == "success"
+    assert nop_project.get("metric", "tasktime", step="stepone", index="0") == 3.0
+    assert nop_project.get("record", "status", step="steptwo", index="0") == "success"
+    assert nop_project.get("metric", "tasktime", step="steptwo", index="0") == 9.0
+
+
+def test_a_continued_nodes_results_come_from_the_job_that_ran_it(fake_v1, results):
+    '''What is fetchable now of that one node of the other job: a caller
+    approved since then gets the files.'''
+    fake_v1.route(responses.GET, "jobs/earlier/artifacts", {"items": [
+        artifact("manifest", "stepone", "0"),
+        artifact("manifest", "steptwo", "0")]})
+    fake_v1.route(responses.GET, "jobs/earlier/artifacts/art-manifest-stepone-0", "{}")
+
+    assert results.fetch_node("earlier", "stepone", "0") == 1
+
+    fetched = [c.request.path_url for c in fake_v1.calls if "/artifacts/art-" in c.request.path_url]
+    assert fetched == ["/v1/jobs/earlier/artifacts/art-manifest-stepone-0"]
+
+
 def test_the_upload_manifest_is_never_folded_back_in(results, nop_project):
     '''Until the server's copy arrives, the file at that path is the one this
     client wrote to upload -- the pre-run record -- and folding it in would

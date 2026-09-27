@@ -16,6 +16,7 @@ omitted.
 '''
 
 import hashlib
+import json
 import logging
 import os
 import re
@@ -119,6 +120,7 @@ class RemoteRun:
         self._needed = None
         self._environments = {}
         self._env_files = None
+        self._upstream_sources = None
         # What the job last said it was, for what an interrupt tells the user.
         self._last_state: Optional[str] = None
         self._forwarded: List[Tuple[str, str, str]] = []       # (name, pin, path)
@@ -167,6 +169,9 @@ class RemoteRun:
             job = self.client.create_job(
                 design=design, jobname=jobname,
                 run_hash=self._reuse_hash(),
+                # Every node this run reads and does not run, whose results
+                # are not here and are held by the job that ran it.
+                continues_from=self._upstream()[1] or None,
                 flow=self._flow_descriptor(),
                 # A node's environment file is the declaration; this says the
                 # same at create, for the refusal before the upload.
@@ -221,41 +226,65 @@ class RemoteRun:
         return job_id
 
     def _needed_from(self, root: str) -> List[str]:
-        '''What else of the job directory the run reads, relative to it.
-
-        The collected sources -- whatever `collect` copied, which is the whole
-        point of collecting -- and, for a run that starts part-way through the
-        flow (`option,from`), the results of the nodes it starts FROM: they
-        exist on this machine and nowhere else, and the first node to run reads
-        their outputs as its inputs. Nothing a node this run will execute left
-        behind is sent, because the run replaces it.
-        '''
-        from siliconcompiler.remote.server.runspec import runtime_flow
-
+        '''What else of the job directory the run reads, relative to it: the
+        collected sources, and the ``outputs/`` of each node a `-from` run
+        reads and does not run whose results are on this machine (see
+        `_upstream`).'''
         needed = []
 
         collected = collectiondir(self.project)
         if collected and os.path.isdir(collected):
             needed.append(os.path.relpath(collected, root))
 
+        return needed + self._upstream()[0]
+
+    def _upstream(self) -> Tuple[List[str], List[Dict[str, str]]]:
+        '''Where each node a `-from` run reads and does not run gets its
+        results from, worked out once (surface D175): ``(packed, continues_from)``.
+
+        - **Its outputs are here** -- a file under ``outputs/`` other than its
+          manifest: its ``outputs/`` is packed, so a file changed by hand is
+          the one used. A local run switched to remote takes this path.
+        - **Only its manifest is here**: the job that ran it is read out of the
+          manifest's ``record,remoteid`` -- the server wrote it, and every
+          node's manifest comes back even where its outputs do not -- and
+          named in ``continues_from``.
+        - **Neither**: refused before anything moves. A node from a local run
+          has no job id, so its results must be here.
+
+        The derivation is the server's too (`runspec.upstream_nodes`).
+        '''
+        if self._upstream_sources is not None:
+            return self._upstream_sources
+
+        from siliconcompiler.remote.server.runspec import outputs_present, upstream_nodes
+
         try:
-            runtime = runtime_flow(self.project)
-            running = set(runtime.get_nodes())
-            upstream = sorted({source for node in running
-                               for source in runtime.get_node_inputs(*node)
-                               if source not in running})
+            upstream = upstream_nodes(self.project)
         except Exception as e:                                   # noqa: BLE001
             # A flow that will not resolve fails at the server with a reason;
             # this is only deciding what to send.
             logger.debug(f"could not tell which upstream results to send: {e}")
             upstream = []
 
+        root = jobdir(self.project)
+        packed, continued = [], []
         for step, index in upstream:
             node = workdir(self.project, step=step, index=index)
-            if os.path.isdir(node):
-                needed.append(os.path.relpath(node, root))
-
-        return needed
+            if outputs_present(node, self.project.name):
+                packed.append(os.path.relpath(os.path.join(node, "outputs"), root))
+                continue
+            ran_in = _remote_id(os.path.join(node, "outputs", f"{self.project.name}.pkg.json"))
+            if ran_in:
+                continued.append({"step": step, "index": index, "job": ran_in})
+                continue
+            raise RemoteError(
+                f"this run starts part-way through its flow and reads the results of "
+                f"{step}/{index}, which are not on this machine -- neither its outputs "
+                "nor a manifest naming the remote job that ran it. Run it first, or "
+                "run from an earlier step")
+        self._upstream_sources = (packed, continued)
+        return self._upstream_sources
 
     def _report_upload(self, size: int, report=None) -> None:
         '''What goes up, per dataroot, with sizes -- before it goes.
@@ -526,9 +555,13 @@ class RemoteRun:
         # set this archive was filtered by out of the manifest it came with.
         self._needs()[0].write_manifest(os.path.join(root, manifest))
 
+        packed = set(self._upstream()[0])
         with tarfile.open(upload, mode="w:gz") as tar:
             for name in [manifest, *self._needed_from(root)]:
-                tar.add(os.path.join(root, name), arcname=name)
+                if name in packed:
+                    _add_real_files(tar, os.path.join(root, name), name, self.logger)
+                else:
+                    tar.add(os.path.join(root, name), arcname=name)
             self._add_environments(tar)
 
         collected = collectiondir(self.project)
@@ -905,8 +938,15 @@ class RemoteRun:
         # run is the one whose log and manifest a user most wants, and a client
         # that fetches nothing when a job fails has hidden the evidence at the
         # moment it became useful.
+        results = results or Results(self.project, self.client)
         try:
-            (results or Results(self.project, self.client)).fetch(job["id"])
+            results.fetch(job["id"])
+            # 🔴 The local job directory is the whole job: a node this run
+            # continued from, whose outputs are not here, from the job that ran
+            # it -- what is fetchable now, so a caller approved since then gets
+            # the files.
+            for entry in self._upstream()[1]:
+                results.fetch_node(entry["job"], entry["step"], entry["index"])
         except ServerProblem as e:
             self.logger.error(str(e))
         except RemoteError as e:
@@ -1307,6 +1347,69 @@ def _pip_indexes() -> Tuple[Optional[str], List[str]]:
         index = None
     return (owners.strip_userinfo(index) if index else None,
             [owners.strip_userinfo(url) for url in extras])
+
+
+def _remote_id(manifest: str) -> Optional[str]:
+    '''``record,remoteid`` out of a node's manifest, read as JSON -- no need
+    to load it as a project -- or None.'''
+    try:
+        with open(manifest) as f:
+            node = json.load(f)["record"]["remoteid"]["node"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    for per_step in node.values():
+        for held in (per_step or {}).values():
+            value = (held or {}).get("value")
+            if isinstance(value, str) and value:
+                return value
+    return None
+
+
+def _add_real_files(tar, path: str, arcname: str, logger) -> None:
+    '''A directory into ``tar`` as regular files and directories only.
+
+    🔴 SiliconCompiler links a node's inputs, and the files a task passes
+    through unchanged, with a hard link and then a symlink -- and the server
+    refuses any link member. So each member is the file it names, read through
+    the link: a hard link twice over is two regular files, never a link
+    member. A link to nothing is left out, and said.
+    '''
+    import stat
+    import time
+
+    def add_dir(name):
+        info = tarfile.TarInfo(name)
+        info.type, info.mode, info.mtime = tarfile.DIRTYPE, 0o755, time.time()
+        tar.addfile(info)
+
+    add_dir(arcname)
+    for here, dirs, files in os.walk(path, followlinks=False):
+        dirs.sort()
+        rel = os.path.relpath(here, path)
+        base = arcname if rel == os.curdir else f"{arcname}/{rel}"
+        for name in list(dirs):
+            full = os.path.join(here, name)
+            if os.path.islink(full):
+                # A link to a directory: its files, read through it.
+                dirs.remove(name)
+                if os.path.isdir(full):
+                    _add_real_files(tar, os.path.realpath(full), f"{base}/{name}", logger)
+                continue
+            add_dir(f"{base}/{name}")
+        for name in sorted(files):
+            full = os.path.join(here, name)
+            try:
+                held = os.stat(full)
+            except OSError:
+                logger.warning(f"{base}/{name} is a link to nothing, and is not sent")
+                continue
+            if not stat.S_ISREG(held.st_mode):
+                continue
+            info = tarfile.TarInfo(f"{base}/{name}")
+            info.size, info.mtime = held.st_size, held.st_mtime
+            info.mode = stat.S_IMODE(held.st_mode)
+            with open(full, "rb") as handle:
+                tar.addfile(info, handle)
 
 
 # A job the server may still need this machine for.

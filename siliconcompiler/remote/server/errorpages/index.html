@@ -49,7 +49,7 @@ production.</p>
 
 <h2>Every type</h2>
 
-<p>All 35, grouped by kind. Each links to its page.</p>
+<p>All 37, grouped by kind. Each links to its page.</p>
 
 <table>
 <thead><tr><th>Type</th><th>Status</th><th></th></tr></thead>
@@ -66,6 +66,10 @@ production.</p>
     <td>Calls per unit time. Honour <code>Retry-After</code>.</td></tr>
 <tr><td><a href="too-many-attempts.html"><code>too-many-attempts</code></a></td><td><code>429</code></td>
     <td>The device-verify cap. <strong>Does not refill</strong> &mdash; restart the login.</td></tr>
+<tr><td><a href="account-not-provisioned.html"><code>account-not-provisioned</code></a></td><td><code>403</code></td>
+    <td>No account for you where jobs run. <strong>The operator sets one up.</strong></td></tr>
+<tr><td><a href="prior-results-unavailable.html"><code>prior-results-unavailable</code></a></td><td><code>422</code></td>
+    <td>A <code>continues_from</code> entry names results that cannot be used. <code>reason</code> says why.</td></tr>
 <tr><td><a href="entitlement-denied.html"><code>entitlement-denied</code></a></td><td><code>403</code></td>
     <td>Your account may not use a PDK, tool or library this job needs.</td></tr>
 <tr><td><a href="resource-unresolved.html"><code>resource-unresolved</code></a></td><td><code>422</code></td>
