@@ -6,7 +6,6 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import Design, Flowgraph, PDK, Project
-from siliconcompiler.schema.parametervalue import PathNodeValue
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.yosys import YosysStdCellLibrary
 from siliconcompiler.utils.curation import collect
