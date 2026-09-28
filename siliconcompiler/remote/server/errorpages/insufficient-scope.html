@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>insufficient-scope &middot; SiliconCompiler server errors</title>
-<meta name="description" content="Your access token is valid but was not minted with the scope this endpoint requires. The six scopes, and why a refresh will not help.">
+<meta name="description" content="Your access token is valid but was not minted with the scope this endpoint requires. The registered scopes, and why a refresh will not help.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -49,7 +49,7 @@ entirely. <a href="https://www.rfc-editor.org/rfc/rfc6750">RFC&nbsp;6750</a> reg
 <code>insufficient_scope</code> as a <code>403</code>.</p>
 </div>
 
-<h2>The six scopes</h2>
+<h2>The registered scopes</h2>
 
 <table>
 <thead><tr><th>Scope</th><th>Covers</th></tr></thead>
@@ -57,11 +57,12 @@ entirely. <a href="https://www.rfc-editor.org/rfc/rfc6750">RFC&nbsp;6750</a> reg
 <tr><td><code>jobs:read</code></td>
     <td><code>GET /v1/jobs</code>, <code>GET /v1/jobs/{id}</code>,
         <code>&hellip;/artifacts</code> &mdash; the artifact <strong>listing</strong> &mdash; and
-        <code>&hellip;/logs</code>, which redeems one node's log bytes</td></tr>
+        <code>&hellip;/logs</code>, a node's live log</td></tr>
 <tr><td><code>jobs:write</code></td>
     <td><code>POST /v1/jobs</code>, <code>&hellip;/upload-grant</code>,
-        <code>&hellip;/submit</code>, <code>&hellip;/cancel</code>,
-        <code>DELETE /v1/jobs/{id}</code>. Carries <code>jobs:read</code></td></tr>
+        <code>&hellip;/submit</code>, <code>&hellip;/cancel</code>. Carries <code>jobs:read</code></td></tr>
+<tr><td><code>jobs:delete</code></td>
+    <td><code>DELETE /v1/jobs/{id}</code>. Carries <code>jobs:read</code></td></tr>
 <tr><td><code>artifacts:read</code></td>
     <td><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code> &mdash; <strong>the bytes</strong>,
         every kind</td></tr>
@@ -73,11 +74,11 @@ entirely. <a href="https://www.rfc-editor.org/rfc/rfc6750">RFC&nbsp;6750</a> reg
 </tbody>
 </table>
 
-<p>Every value is <code>&lt;resource&gt;:read</code> or <code>&lt;resource&gt;:write</code>, and
-<strong><code>:write</code> carries <code>:read</code> for the same resource</strong> &mdash; never
-across resources. The expansion is applied when the token is minted, so the <code>scope</code> in
-your token response already lists both: ask for <code>jobs:write</code> and you are granted
-<code>jobs:read jobs:write</code>.</p>
+<p><code>:write</code> carries <code>:read</code> for the same resource, and <code>jobs:delete</code>
+carries <code>jobs:read</code> &mdash; never across resources. The expansion is applied when the
+token is minted, so the <code>scope</code> in your token response already lists both: ask for
+<code>jobs:write</code> and you are granted <code>jobs:read jobs:write</code>. Only registered
+scopes are granted, <code>v1</code> may register more, and none is ever administrative.</p>
 
 <p><strong><code>artifacts:read</code> is the one that surprises people.</strong> It is deliberately
 not part of <code>jobs:read</code>: a client that submits jobs and watches them finish does not need
@@ -110,8 +111,8 @@ your logs; you still cannot pull your deliverables.</p>
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

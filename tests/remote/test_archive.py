@@ -68,6 +68,7 @@ def test_every_violation_is_in_the_vocabulary():
     slug cannot.'''
     assert set(VIOLATIONS) == {"member_count", "expanded_bytes", "ratio",
                                "link_member", "device_member", "traversal",
+                               "manifest_missing", "manifest_invalid",
                                # D124: a follow-up carrying what was not asked for.
                                "unrequested_member",
                                # D129: a value the flow reads, left out.
@@ -88,7 +89,7 @@ def test_too_many_members(tmp_path):
     with pytest.raises(ArchiveRejected) as rejected:
         extract(archive, tmp_path / "dest", LIMITS)
 
-    assert rejected.value.violation == "member_count"
+    assert rejected.value.reason == "member_count"
 
 
 def test_too_many_expanded_bytes(tmp_path):
@@ -98,7 +99,7 @@ def test_too_many_expanded_bytes(tmp_path):
     with pytest.raises(ArchiveRejected) as rejected:
         extract(archive, tmp_path / "dest", LIMITS)
 
-    assert rejected.value.violation == "expanded_bytes"
+    assert rejected.value.reason == "expanded_bytes"
 
 
 def test_an_expansion_bomb(tmp_path):
@@ -113,7 +114,7 @@ def test_an_expansion_bomb(tmp_path):
     with pytest.raises(ArchiveRejected) as rejected:
         extract(archive, tmp_path / "dest", wide)
 
-    assert rejected.value.violation == "ratio"
+    assert rejected.value.reason == "ratio"
 
 
 def test_a_symlink_is_refused_not_resolved(tmp_path):
@@ -128,7 +129,7 @@ def test_a_symlink_is_refused_not_resolved(tmp_path):
     with pytest.raises(ArchiveRejected) as rejected:
         extract(archive, tmp_path / "dest", LIMITS)
 
-    assert rejected.value.violation == "link_member"
+    assert rejected.value.reason == "link_member"
     assert not (tmp_path / "dest" / "shadow").exists()
 
 
@@ -142,7 +143,7 @@ def test_a_hard_link_is_refused_too(tmp_path):
     with pytest.raises(ArchiveRejected) as rejected:
         extract(archive, tmp_path / "dest", LIMITS)
 
-    assert rejected.value.violation == "link_member"
+    assert rejected.value.reason == "link_member"
 
 
 @pytest.mark.parametrize("kind", [tarfile.CHRTYPE, tarfile.BLKTYPE, tarfile.FIFOTYPE])
@@ -155,7 +156,7 @@ def test_a_device_node(tmp_path, kind):
     with pytest.raises(ArchiveRejected) as rejected:
         extract(archive, tmp_path / "dest", LIMITS)
 
-    assert rejected.value.violation == "device_member"
+    assert rejected.value.reason == "device_member"
 
 
 @pytest.mark.parametrize("name", ["../escape", "a/../../escape", "/etc/passwd"])
@@ -166,7 +167,7 @@ def test_traversal(tmp_path, name):
     with pytest.raises(ArchiveRejected) as rejected:
         extract(archive, tmp_path / "dest", LIMITS)
 
-    assert rejected.value.violation == "traversal"
+    assert rejected.value.reason == "traversal"
     assert not (tmp_path / "escape").exists()
 
 
@@ -185,7 +186,7 @@ def test_traversal_through_a_directory_the_archive_made(tmp_path):
     with pytest.raises(ArchiveRejected) as rejected:
         extract(archive, dest, LIMITS)
 
-    assert rejected.value.violation == "traversal"
+    assert rejected.value.reason == "traversal"
     assert not (outside / "landed").exists()
 
 

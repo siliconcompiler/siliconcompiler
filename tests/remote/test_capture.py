@@ -353,7 +353,7 @@ def test_packages_with_no_file_are_refused(
     response = _submitted(server_client, key, token, job_archive, {
         f"{environment.packages_path()}/mine/__init__.py": b"VALUE = 1\n"})
 
-    assert response.get_json()["violation"] == "environment_file"
+    assert response.get_json()["reason"] == "environment_file"
 
 
 def test_packages_beside_one_node_are_not_where_they_go(
@@ -364,4 +364,4 @@ def test_packages_beside_one_node_are_not_where_they_go(
         environment.path_for("stepone", "0"): b"numpy==2.0.1\n",
         "python-env/stepone/0/packages/mine/__init__.py": b"VALUE = 1\n"})
 
-    assert response.get_json()["violation"] == "environment_file"
+    assert response.get_json()["reason"] == "environment_file"

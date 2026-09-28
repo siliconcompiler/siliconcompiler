@@ -21,13 +21,14 @@
 </header>
 
 <main>
-<p>You have reached a published ceiling on how much you may have going at once &mdash; jobs, uploads, open log streams, devices. <strong>Each of these refills</strong> as what you already have finishes, or, for a device, when you revoke one.</p>
+<p>You have reached a published ceiling on how much you may have going at once &mdash; jobs, uploads, open log streams. <strong>Each of these refills</strong> as what you already have finishes.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
   <li>Read <code>limit</code>. It is the exact key published in <code>limits</code> &mdash; <code>GET /v1</code>&rsquo;s, or your account&rsquo;s in <code>GET /v1/me</code> &mdash; so you can compare it with what you hold.</li>
   <li>Wait for <code>Retry-After</code>, then send the same request again.</li>
+  <li>On <code>pending_uploads</code>, <code>job_ids</code> names the jobs holding the slots: cancel one you will not submit instead of waiting.</li>
 </ol>
 </div>
 
@@ -48,9 +49,11 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>limit</code></td><td><span class="req">REQUIRED</span></td>
-    <td>The published key that bound: <code>concurrent_jobs</code>, <code>pending_uploads</code>, <code>concurrent_log_streams</code> or <code>devices</code>. The <code>usage</code> keys &mdash; <code>compute_seconds</code>, <code>storage_bytes</code>, <code>licence_seconds</code> &mdash; are registered and not raised today: nothing checks the compute quota at create or at submit.</td></tr>
+    <td>The published key that bound: <code>concurrent_jobs</code>, <code>pending_uploads</code> or <code>concurrent_log_streams</code>. The <code>usage</code> keys &mdash; <code>compute_seconds</code>, <code>storage_bytes</code>, <code>license_seconds</code> &mdash; are registered and not raised today: nothing checks the compute quota at create or at submit.</td></tr>
+<tr><td><code>job_ids</code></td><td>on <code>pending_uploads</code></td>
+    <td>The jobs holding the slots, in <code>created</code> or <code>awaiting_input</code>.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
-    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
@@ -61,15 +64,15 @@
 <table>
 <tbody>
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
-    <td><code>pending_uploads</code>: too many jobs created and not yet submitted.</td></tr>
+    <td><code>pending_uploads</code>: too many jobs created and not yet submitted, with <code>job_ids</code>. <code>concurrent_jobs</code>: too many jobs staging, queued, running or cancelling.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td><code>concurrent_jobs</code>: too many jobs queued or running.</td></tr>
-<tr><td class="wrap">the log stream</td>
-    <td><code>concurrent_log_streams</code>: too many live logs open at once.</td></tr>
-<tr><td class="wrap">enrolling a device</td>
-    <td><code>devices</code>: more machines enrolled than your account allows. Revoking one with <code>DELETE /v1/devices/{id}</code> frees its place.</td></tr>
+    <td><code>concurrent_jobs</code>, checked again.</td></tr>
+<tr><td class="wrap">the stream host</td>
+    <td><code>concurrent_log_streams</code>: too many live logs open at once, after <code>&hellip;/logs</code> redirected. A slot is held only while a connection is open.</td></tr>
 </tbody>
 </table>
+
+<p>A <code>null</code> <code>pending_uploads</code> or <code>concurrent_jobs</code> has no enforced ceiling and does not refuse. The device cap is not this type: a login over it is refused <code>access_denied</code>, <code>reason: "devices"</code>, at the token endpoint, and a slot frees only when you revoke a device.</p>
 
 <h2>Getting help with your specific failure</h2>
 
@@ -78,8 +81,8 @@
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

@@ -21,7 +21,7 @@
 </header>
 
 <main>
-<p>Something the contract promises is not in storage yet &mdash; the log of a node that has not started, or of a whole job none of whose nodes has; an artifact whose provenance is still <code>pending</code>; or a <code>node</code> archive with a member that is. It is transient.</p>
+<p>An output the contract promises is not available yet, and is still expected &mdash; the log of a node that has not started, or of a whole job none of whose nodes has; an artifact whose provenance is still <code>pending</code>; or a <code>node</code> archive with a member that is. It is transient. It is never a staging failure: a job the server could not get ready ends <code>failed</code>, <a href="staging-failed.html"><code>staging-failed</code></a>.</p>
 <h2>What to do</h2>
 
 <div class="do">
@@ -49,7 +49,7 @@
 <tr><td><code>artifact_kind</code></td><td><span class="req">REQUIRED</span></td>
     <td>The kind of output that is not ready yet: <code>logs</code> on <code>&hellip;/logs</code>, the artifact&rsquo;s own kind on <code>&hellip;/artifacts/{artifact_id}</code>.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
-    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
@@ -73,8 +73,8 @@
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

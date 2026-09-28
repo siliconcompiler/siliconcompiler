@@ -8,7 +8,7 @@ what storage reports, refuse before any extraction, and only then unpack. Doing
 it the other way round is how an archive bomb gets opened -- the bytes would be
 examined before anything had established they are the bytes that were declared.
 
-Every refusal is ``archive-rejected`` with a ``violation`` naming which rule was
+Every refusal is ``archive-rejected`` with a ``reason`` naming which rule was
 broken. One slug and six discriminators rather than six slugs: the registry is
 frozen at v1 and a member's value can be added after the freeze where a slug
 cannot.
@@ -44,10 +44,10 @@ _RATIO_FLOOR = 65536
 class ArchiveRejected(Exception):
     '''One archive rule was broken, and this says which.'''
 
-    def __init__(self, violation: str, detail: str):
-        if violation not in VIOLATIONS:
-            raise KeyError(f"{violation} is not an archive violation")
-        self.violation = violation
+    def __init__(self, reason: str, detail: str):
+        if reason not in VIOLATIONS:
+            raise KeyError(f"{reason} is not an archive-rejected reason")
+        self.reason = reason
         self.detail = detail
         super().__init__(detail)
 

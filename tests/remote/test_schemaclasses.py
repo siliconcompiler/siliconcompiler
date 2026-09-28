@@ -134,7 +134,7 @@ def test_a_breakpoint_is_refused_naming_the_node(
     response = submitted(server_client, key, token, job_archive(nop_project))
 
     assert response.status_code == 422
-    assert (slug(response), response.get_json()["violation"]) == \
+    assert (slug(response), response.get_json()["reason"]) == \
         ("archive-rejected", "breakpoint")
     assert "steptwo/0" in response.get_json()["detail"]
     assert not dispatcher.submitted
@@ -149,7 +149,7 @@ def test_a_task_that_opens_a_window_is_refused_and_a_screenshot_is_not(
                       job_archive(_with_node(nop_project, ShowTask(), "shown")))
 
     assert shown.status_code == 422
-    assert shown.get_json()["violation"] == "interactive_task"
+    assert shown.get_json()["reason"] == "interactive_task"
     assert "look/0" in shown.get_json()["detail"]
 
     headless = submitted(server_client, key, token,

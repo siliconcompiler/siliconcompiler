@@ -141,9 +141,9 @@ def usage(store, user_id: str) -> Dict[str, Any]:
             "window": "calendar_month",
             "resets_at": _next_month(month_start),
         },
-        # An empty map rather than null: no licence is metered here, and there
+        # An empty map rather than null: no license is metered here, and there
         # is no per-tool row to report.
-        "licence_seconds": {},
+        "license_seconds": {},
         "storage_bytes": {"used": int(stored), "limit": None},
         "jobs_active": active,
     }

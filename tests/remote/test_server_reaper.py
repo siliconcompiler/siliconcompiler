@@ -88,7 +88,7 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
     # reads. NULL deleted_by is the reaper, which is `expired`.
     assert all(item["deleted_cause"] == "expired" for item in listing)
     assert all(item["delete_reason"] is None for item in listing)
-    assert all(item["expires_at"] < "2021" for item in listing)
+    assert all(item["retained_until"] < "2021" for item in listing)
 
 
 def test_the_reaper_runs_twice_and_takes_nothing_the_second_time(

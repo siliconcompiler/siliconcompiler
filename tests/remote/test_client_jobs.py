@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 
@@ -498,13 +499,11 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
     ("node-limit-exceeded", 403, {"limit": "max_job_nodes"},
      ["limit: max_job_nodes", "smaller flow"]),
     ("upload-too-large", 413, {"limit": "max_upload_bytes"},
-     ["limit: max_upload_bytes", "Reduce what is collected"]),
+     ["limit: max_upload_bytes", "waiting will not help"]),
     ("feature-unsupported", 501, {"feature": "projects"},
      ["feature: projects", "does not offer that"]),
-    ("version-skew", 422, {},
-     ["Install a version this server accepts"]),
     ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf12"},
-     ["resource: gf12", "resource_kind: pdk", "Ask an operator"]),
+     ["resource: gf12", "resource_kind: pdk", "Ask for a grant"]),
     ("software-unavailable", 422,
      {"reason": "unavailable", "unresolved": [
          {"name": "openroad", "requirement": [">=24.3.2011", "==2.0"],
@@ -522,9 +521,13 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
     ("artifact-not-approved", 403, {}, ["held back from download"]),
     ("resource-unavailable", 422, {"resource_kind": "pdk", "resource": "mypdk"},
      ["resource: mypdk", "resource_kind: pdk", "cannot be sent it"]),
-    ("terms-not-accepted", 403, {"terms_scope": "service",
-                                 "decision_url": "https://example.test/terms"},
-     ["terms_scope: service", "Accept the agreement"]),
+    ("terms-not-accepted", 403, {"blocked_by": {
+        "tos": {"url": "https://example.test/terms/tos"}, "export": {}}},
+     ["sign tos: https://example.test/terms/tos", "sign export (no link",
+      "Sign each document"]),
+    ("not-permitted", 403, {}, ["You cannot do that to this job"]),
+    ("limit-exceeded", 429, {"limit": "pending_uploads", "job_ids": ["a", "b"]},
+     ["job_ids: a b"]),
     ("idempotency-key-reuse", 422, {},
      ["A retry changed the request"]),
     ("invalid-request", 400, {}, ["Invalid request"]),
@@ -586,13 +589,13 @@ def test_an_archive_refusal_names_the_rule_that_was_broken(fake_v1, logged_in):
     from siliconcompiler.remote import ServerProblem
 
     fake_v1.route(responses.POST, "jobs/01J9-job/submit",
-                  problem("archive-rejected", 422, violation="link_member"),
+                  problem("archive-rejected", 422, reason="link_member"),
                   status=422, content_type="application/problem+json")
 
     with pytest.raises(ServerProblem) as raised:
         logged_in.submit_job("01J9-job", "sha256:" + "0" * 64)
 
-    assert "violation: link_member" in str(raised.value)
+    assert "reason: link_member" in str(raised.value)
 
 
 ###########################
@@ -657,20 +660,22 @@ def test_a_run_that_failed_with_no_failed_node_says_so(fake_v1, run, caplog):
     assert "git is required" in caplog.text
 
 
-def test_a_lost_run_is_told_apart_from_a_failed_one(fake_v1, run, caplog):
-    '''The hash did not determine it and re-running would succeed: different
-    words, and a different next step.'''
+def test_an_interrupted_run_is_told_apart_from_a_failed_one(fake_v1, run, caplog):
+    '''The environment ended it and re-running may succeed: different words,
+    and a different next step.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
         "failed",
-        error={"type": "https://siliconcompiler.com/server-errors/scheduler-lost",
-               "title": "The scheduler lost this job"}))
+        error={"type": "https://siliconcompiler.com/server-errors/run-interrupted",
+               "title": "The run was interrupted"}))
     fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
 
     with caplog.at_level("INFO"):
         with pytest.raises(RemoteError):
             run._poll("01J9-job")
 
-    assert "submit it again" in caplog.text
+    assert "resubmitting unchanged may work" in caplog.text
+    # The support reference for a job's failure is the job id.
+    assert "job 01J9-job" in caplog.text
 
 
 def test_the_failure_render_needs_no_url(fake_v1, run, caplog):
@@ -1143,7 +1148,7 @@ def test_a_node_whose_outputs_never_came_back_is_continued_from_its_job(
     names = _packed(run, tmp_path)
 
     assert run._upstream()[1] == [{"step": "stepone", "index": "0",
-                                   "job": "01a0e000-0000-7000-8000-000000000001"}]
+                                   "job_id": "01a0e000-0000-7000-8000-000000000001"}]
     assert not {n for n in names if n.startswith("stepone")}
 
 
@@ -1227,9 +1232,12 @@ def test_the_grant_asks_for_the_archives_size(fake_v1, run):
 
     grant = next(c for c in fake_v1.calls if "upload-grant" in c.request.path_url)
     put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
-    assert json.loads(grant.request.body)["bytes"] == len(put.request.body.read()
-                                                          if hasattr(put.request.body, "read")
-                                                          else put.request.body)
+    body = json.loads(grant.request.body)
+    sent = put.request.body.read() if hasattr(put.request.body, "read") \
+        else put.request.body
+    assert body["size_bytes"] == len(sent)
+    assert body["digest"] == f"sha256:{hashlib.sha256(sent).hexdigest()}"
+    assert set(body) == {"size_bytes", "digest"}
 
 
 def test_what_goes_up_is_said_per_dataroot_with_sizes(fake_v1, run, caplog):

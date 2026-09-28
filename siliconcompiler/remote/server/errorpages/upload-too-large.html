@@ -26,7 +26,7 @@
 
 <div class="do">
 <ol>
-  <li>Compare the job&rsquo;s archives together &mdash; this one&rsquo;s <code>bytes</code> and any sent before it &mdash; with <code>limits.max_upload_bytes</code> in <code>GET /v1</code>.</li>
+  <li>Compare the job&rsquo;s archives together &mdash; this one&rsquo;s <code>size_bytes</code> and any sent before it &mdash; with <code>limits.max_upload_bytes</code> in <code>GET /v1</code>. <code>limit</code> is present only for that case; a body over its endpoint&rsquo;s cap carries none.</li>
   <li>Send less: a remote run uploads your design and anything local it needs, so a large local PDK or library is the usual cause.</li>
   <li>Retrying the same body returns the same answer.</li>
 </ol>
@@ -47,17 +47,17 @@ at all. Treat a non-<code>problem+json</code> <code>413</code> exactly as you wo
   "status":   413,
   "detail":   "...",
   "instance": "/v1/jobs/01J9...",
-  "limit":    "max_upload_bytes",  <span class="c">// REQUIRED on this type</span>
+  "limit":    "max_upload_bytes",  <span class="c">// only over max_upload_bytes</span>
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
 
 <table>
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
-<tr><td><code>limit</code></td><td><span class="req">REQUIRED</span></td>
-    <td>The published key that bound, usually <code>max_upload_bytes</code>.</td></tr>
+<tr><td><code>limit</code></td><td>optional</td>
+    <td><code>max_upload_bytes</code>, where the job&rsquo;s archives together went over it, and absent where a request body went over its endpoint&rsquo;s cap.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
-    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
@@ -68,9 +68,9 @@ at all. Treat a non-<code>problem+json</code> <code>413</code> exactly as you wo
 <table>
 <tbody>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/upload-grant</code></td>
-    <td><code>bytes</code> takes the job&rsquo;s archives together over <code>limits.max_upload_bytes</code>. The grant fixes the size, so an oversized archive is refused before it is sent.</td></tr>
+    <td><code>size_bytes</code> takes the job&rsquo;s archives together over <code>limits.max_upload_bytes</code>, with <code>limit</code>. The grant fixes the size, so an oversized archive is refused before it is sent.</td></tr>
 <tr><td class="wrap">any endpoint</td>
-    <td>A request body over that endpoint&rsquo;s cap.</td></tr>
+    <td>A request body over that endpoint&rsquo;s cap, with no <code>limit</code>.</td></tr>
 </tbody>
 </table>
 
@@ -81,8 +81,8 @@ at all. Treat a non-<code>problem+json</code> <code>413</code> exactly as you wo
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

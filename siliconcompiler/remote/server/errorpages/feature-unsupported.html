@@ -21,14 +21,18 @@
 </header>
 
 <main>
-<p>This deployment does not offer the capability you asked for. It is permanent &mdash; a statement about the deployment, not its current state.</p>
+<p>This deployment does not have the capability you asked for <strong>now</strong>. A client that
+read a stale <code>GET /v1</code> may meet it; so may one that did not read it at all.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Read <code>feature</code>.</li>
-  <li>Check <code>GET /v1</code>&rsquo;s <code>features</code> before calling: a capability is only offered where it is listed.</li>
-  <li>Do the thing another way &mdash; for <code>logs.stream.job</code>, follow each running node instead; for <code>logs.stream</code>, read the archived log once the node finishes.</li>
+  <li>Read <code>feature</code>. Do not retry the request.</li>
+  <li>Re-read <code>GET /v1</code>&rsquo;s <code>features</code> before offering the capability
+      again: it is offered only where it is listed.</li>
+  <li>Do the thing another way &mdash; for <code>logs.stream.job</code>, follow each running node
+      instead; for <code>logs.stream</code>, read the node&rsquo;s <code>logs</code> artifact once
+      the node finishes.</li>
 </ol>
 </div>
 
@@ -48,9 +52,9 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>feature</code></td><td><span class="req">REQUIRED</span></td>
-    <td>The capability: <code>logs</code>, <code>logs.stream</code>, <code>logs.stream.job</code>, <code>projects</code>, <code>device_grant</code> or <code>python.env</code>. Where several are missing, the broadest is named.</td></tr>
+    <td>A registered <code>features</code> string: <code>logs.stream</code>, <code>logs.stream.job</code>, <code>projects</code>, <code>python.env</code> or <code>jobs.reuse</code>. <code>v1</code> may register more, and a client that does not know one treats it as a refusal of this request. Where several are missing, the broadest is named.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
-    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
@@ -61,15 +65,16 @@
 <table>
 <tbody>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
-    <td><code>logs</code>, <code>logs.stream</code>, <code>logs.stream.job</code>.</td></tr>
-<tr><td class="wrap"><code>POST /v1/auth/device</code></td>
-    <td><code>device_grant</code>.</td></tr>
+    <td><code>logs.stream</code>, <code>logs.stream.job</code>.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
     <td><code>projects</code>, or the first string in <code>descriptor.needs</code> this deployment does not offer.</td></tr>
-<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td><code>python.env</code>, for a job carrying a Python environment file it did not declare.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
+    <td>As a <code>rejected</code> job&rsquo;s <code>error</code>: <code>python.env</code>, raised while staging for a job carrying a Python environment file it did not declare.</td></tr>
 </tbody>
 </table>
+
+<p>A login this deployment does not offer, the device grant included, is not this type: it is
+<code>unsupported_grant_type</code>, in the OAuth shape, at the two OAuth endpoints.</p>
 
 <h2>Getting help with your specific failure</h2>
 
@@ -78,8 +83,11 @@
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
+  <li>Where this arrived on a job&rsquo;s <code>error</code> rather than on a request, there is no
+      <code>trace_id</code>: <strong>quote the job&rsquo;s <code>id</code></strong>, the one identifier
+      that finds the run.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

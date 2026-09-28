@@ -60,7 +60,7 @@
 <tr><td><code>resource</code></td><td><span class="req">OPTIONAL</span></td>
     <td>Its name &mdash; present only when you hold a grant on it. Otherwise naming it would confirm what the deployment&rsquo;s catalogue holds.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
-    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
@@ -82,8 +82,11 @@
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
+  <li>Where this arrived on a job&rsquo;s <code>error</code> rather than on a request, there is no
+      <code>trace_id</code>: <strong>quote the job&rsquo;s <code>id</code></strong>, the one identifier
+      that finds the run.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

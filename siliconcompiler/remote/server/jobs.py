@@ -47,6 +47,9 @@ TERMINAL_STATES = frozenset(
     ("completed", "failed", "cancelled", "rejected", "abandoned"))
 TERMINAL_NODE_STATES = frozenset(("completed", "failed", "skipped", "cancelled"))
 
+# `sha256` is the only algorithm v1 accepts, and the prefix is always written.
+_SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
+
 # 🔴 How often ONE process will ask the scheduler about ONE job, at most.
 # Deliberately decoupled from `poll_interval_seconds`: reading a job is a local
 # SQLite read and a stat, and can be answered as fast as anybody asks, while
@@ -338,7 +341,7 @@ class JobService:
                 continue
             if (step, index) not in continued:
                 raise self._refuse(session, job, ProblemError(
-                    "archive-rejected", violation="missing_member",
+                    "archive-rejected", reason="missing_member",
                     detail=f"the run reads the results of {step}/{index}, which it does "
                            "not run, and they are neither in the archive nor named in "
                            "continues_from"))
@@ -361,9 +364,16 @@ class JobService:
         '''
         for (step, index), from_job in copies:
             held = {row["kind"]: row for row in self._store.all(
-                'SELECT kind, storage_key FROM artifacts WHERE job_id = ? AND step = ? '
-                "AND \"index\" = ? AND kind IN ('node', 'manifest') AND deleted_at IS NULL",
-                (from_job, step, index))}
+                'SELECT kind, storage_key, withheld_at FROM artifacts WHERE job_id = ? '
+                "AND step = ? AND \"index\" = ? AND kind IN ('node', 'manifest') "
+                "AND deleted_at IS NULL", (from_job, step, index))}
+            withheld = [kind for kind, row in held.items() if row["withheld_at"]]
+            if withheld:
+                raise self._refuse_staging(job, ProblemError(
+                    "prior-results-unavailable", step=step, index=index,
+                    job_id=from_job, reason="withheld",
+                    detail=f"the {withheld[0]} artifact of {step}/{index} in job "
+                           f"{from_job} was withheld before it could be copied"))
             target = unpacked / step / index
             try:
                 _extract_outputs(self._storage.artifact_path(held["node"]["storage_key"]),
@@ -372,7 +382,7 @@ class JobService:
                                 target / "outputs" / f"{job['design']}.pkg.json")
             except (KeyError, FileNotFoundError):
                 raise self._refuse_staging(job, ProblemError(
-                    "prior-results-unavailable", step=step, index=index, job=from_job,
+                    "prior-results-unavailable", step=step, index=index, job_id=from_job,
                     reason="expired",
                     detail=f"the results of {step}/{index} in job {from_job} went before "
                            "they could be copied")) from None
@@ -392,7 +402,7 @@ class JobService:
             if refused:
                 reason, detail = refused
                 raise ProblemError("prior-results-unavailable", step=step, index=index,
-                                   job=from_job, reason=reason, detail=detail)
+                                   job_id=from_job, reason=reason, detail=detail)
 
         # 🔴 The job's resource set includes what it copies: without this a
         # job could name a PDK the caller may use and continue from results
@@ -408,7 +418,7 @@ class JobService:
 
     def _continuation_refused(self, user_id, step, index, from_job):
         '''Why one entry's results cannot be used, as (reason, detail), or None.'''
-        row = self._store.one("SELECT deleted_at, archived_at FROM jobs "
+        row = self._store.one("SELECT deleted_at FROM jobs "
                               "WHERE id = ? AND user_id = ?", (from_job, user_id))
         where = f"{step}/{index} of job {from_job}"
         if row is None:
@@ -416,8 +426,7 @@ class JobService:
             return "not_found", f"no job of yours has that id, for {step}/{index}"
         if row["deleted_at"]:
             return "deleted", f"job {from_job} is deleted"
-        if row["archived_at"]:
-            return "archived", f"job {from_job} is archived; unarchiving it fixes this"
+        # An archived job may be continued from: `archived` is never raised.
         node = self._store.one('SELECT state FROM job_nodes WHERE job_id = ? AND step = ? '
                                'AND "index" = ?', (from_job, step, index))
         if node is None or node["state"] != "completed":
@@ -673,7 +682,8 @@ class JobService:
         *does this server have anything matching* for each name on its own;
         *does ONE image hold all of them* is `digests_for`, which runs beside
         it at create. Both are needed: this one gives a name-specific
-        `version-skew` where the join could only say the combination failed.
+        `software-unavailable` where the join could only say the combination
+        failed.
 
         🔴 **A name that is present and reports no version gets its own
         answer.** A tool recorded from its image's publish date is in
@@ -701,9 +711,8 @@ class JobService:
                        for version in said.get(name, ())):
                     continue
 
-                # 🔴 `version-skew` is the client's SiliconCompiler, which
-                # cannot run here; any other name is software no image holds
-                # (surface §7), whose answer names what is available.
+                # Software no image holds, SiliconCompiler's own version
+                # included (surface §7), whose answer names what is available.
                 if here[name] and not said.get(name):
                     detail = (f"this server has {name}, and reports no version for "
                               "it -- so nothing here can be matched against a "
@@ -711,8 +720,6 @@ class JobService:
                 else:
                     detail = (f"this server runs {name} {', '.join(here[name])}, "
                               f"and you asked for {asked}")
-                if name == images.PRIMARY:
-                    raise ProblemError("version-skew", detail=detail)
                 raise ProblemError(
                     "software-unavailable", reason="unavailable", detail=detail,
                     unresolved=[{"name": name, "requirement": list(asked or ()),
@@ -726,11 +733,11 @@ class JobService:
               body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         '''Endpoint 14: a grant for the archive about to be uploaded.
 
-        🔴 **`bytes` is REQUIRED, and the first grant for each archive fixes
-        it** (D125); a re-issue must repeat it. The size used to come from
-        `resources.upload_bytes` at create, and the create response can then
-        ask for more -- `upload_sources` -- so the `PUT` failed its signature.
-        `max_upload_bytes` bounds a job's archives together.
+        🔴 **`size_bytes` and `digest` are REQUIRED, and the first grant for
+        each archive fixes both** (D125); a re-issue must repeat them. Submit
+        runs only bytes matching the bound digest, so nothing written to the
+        upload location afterwards changes what runs. `max_upload_bytes`
+        bounds a job's archives together.
         '''
         job = self.owned(session, job_id)
 
@@ -739,11 +746,17 @@ class JobService:
                 "job-state-conflict",
                 detail=f"a job in {job['state']} takes no upload")
 
-        _only(body or {}, ("bytes",), "the grant request")
-        size = (body or {}).get("bytes") if isinstance(body, dict) else None
+        body = body if isinstance(body, dict) else {}
+        _only(body, ("size_bytes", "digest"), "the grant request")
+        size = body.get("size_bytes")
         if not isinstance(size, int) or isinstance(size, bool) or size <= 0:
             raise ProblemError("invalid-request",
-                               detail="bytes is required: the size of the archive to upload")
+                               detail="size_bytes is required: the size of the archive "
+                                      "to upload")
+        digest = body.get("digest")
+        if not isinstance(digest, str) or not _SHA256.match(digest):
+            raise ProblemError("invalid-request",
+                               detail="digest is required and is 'sha256:<hex>'")
 
         ceiling = self._config.limits["max_upload_bytes"]
         if job["archives_bytes"] + size > ceiling:
@@ -752,12 +765,13 @@ class JobService:
                 detail=f"{job['archives_bytes'] + size} bytes across this job's "
                        f"uploads, and this server accepts at most {ceiling}")
 
-        if job["grant_bytes"] is not None and job["grant_bytes"] != size:
+        if job["grant_bytes"] is not None and (
+                job["grant_bytes"] != size or job["grant_digest"] != digest):
             # A re-issue cannot widen -- or narrow -- what the first grant bound.
             raise ProblemError(
                 "job-state-conflict",
-                detail=f"this archive's first grant fixed its size at "
-                       f"{job['grant_bytes']} bytes; a re-issue must repeat it")
+                detail="this archive's first grant fixed its size and digest; a "
+                       "re-issue must repeat both")
 
         expires = int(_epoch()) + grant_seconds(self._config.limits["max_upload_bytes"])
         signature = self._storage.sign_upload(job["id"], size, expires)
@@ -766,8 +780,9 @@ class JobService:
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET upload_key = ?, upload_location_id = ?, grant_bytes = ?, "
-                "  upload_grant_expires_at = ?, upload_revoked_at = NULL WHERE id = ?",
-                (job["id"], self._config["storage_location_id"], size,
+                "  grant_digest = ?, upload_grant_expires_at = ?, upload_revoked_at = NULL "
+                "WHERE id = ?",
+                (job["id"], self._config["storage_location_id"], size, digest,
                  _from_epoch(expires), job["id"]))
             if job["state"] == "created":
                 self._transition(job["id"], "created", "awaiting_input",
@@ -811,7 +826,7 @@ class JobService:
         # and strict validation refuses it.
         _only(body if isinstance(body, dict) else {}, ("digest",), "the submit request")
         digest = body.get("digest") if isinstance(body, dict) else None
-        if not isinstance(digest, str) or not digest.startswith("sha256:"):
+        if not isinstance(digest, str) or not _SHA256.match(digest):
             raise ProblemError(
                 "invalid-request",
                 detail="digest is required and is 'sha256:<hex>'")
@@ -844,7 +859,7 @@ class JobService:
         # digest matches, so the bytes cannot change between the check and the
         # unpack -- which is what turns the re-derivation from a TOCTOU into a
         # check.
-        if reported_digest != digest:
+        if reported_digest != digest or (job["grant_digest"] and job["grant_digest"] != digest):
             raise self._refuse(session, job, ProblemError(
                 "upload-digest-mismatch",
                 detail=f"storage holds {size} bytes, {reported_digest}"))
@@ -880,13 +895,13 @@ class JobService:
                 shutil.rmtree(root, ignore_errors=True)
             # Kept, and never opened again: see `artifacts.UNOPENED`.
             raise self._refuse(session, job, ProblemError(
-                "archive-rejected", violation=rejected.violation,
+                "archive-rejected", reason=rejected.reason,
                 detail=rejected.detail)) from None
 
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET archives_bytes = archives_bytes + ?, grant_bytes = NULL, "
-                "  upload_digest = ?, upload_bytes = ? WHERE id = ?",
+                "  grant_digest = NULL, upload_digest = ?, upload_bytes = ? WHERE id = ?",
                 (size, digest, size, job["id"]))
         job = self._row(job["id"])
 
@@ -1002,7 +1017,7 @@ class JobService:
 
         def refuse(detail):
             return self._refuse(session, job, ProblemError(
-                "archive-rejected", violation="environment_file", detail=detail))
+                "archive-rejected", reason="environment_file", detail=detail))
 
         nodes = set(derived["nodes"])
         rules = [allowlist.parse(entry) for entry in self._config["index_allowlist"] or []]
@@ -1062,7 +1077,7 @@ class JobService:
                 continue
             where = f" ({entry.dataroot})" if entry.dataroot else ""
             raise self._refuse(session, job, ProblemError(
-                "archive-rejected", violation="missing_member",
+                "archive-rejected", reason="missing_member",
                 detail=f"the flow reads [{','.join(entry.key or ())}] of {entry.kind} "
                        f"{entry.name}{where}, {entry.path}, and the archive does "
                        "not carry it"))
@@ -1574,9 +1589,8 @@ class JobService:
         manifest = root / job["design"] / job["jobname"] / f"{job['design']}.pkg.json"
         if not manifest.is_file():
             raise self._refuse(session, job, ProblemError(
-                "declared-mismatch",
-                detail=f"the archive holds no {job['design']}/{job['jobname']}/"
-                       f"{job['design']}.pkg.json"))
+                "archive-rejected", reason="manifest_missing",
+                detail=f"the archive holds no {job['design']}.pkg.json at its root"))
 
         # 🔴 Reading a manifest is only BACKWARDS compatible, and the failure
         # in the other direction is silent. SiliconCompiler migrates an older
@@ -1599,14 +1613,16 @@ class JobService:
                 project = Project.from_manifest(filepath=str(manifest), lazyload=False)
             except Exception as e:
                 raise self._refuse(session, job, ProblemError(
-                    "declared-mismatch",
+                    "archive-rejected", reason="manifest_invalid",
                     detail=f"the uploaded manifest could not be read: {e}")) from None
 
         newer = [str(warning.message) for warning in raised
                  if issubclass(warning.category, SchemaVersionWarning)]
         if newer:
+            # Written by a SiliconCompiler newer than the one the job resolved
+            # to, so it does not satisfy requires.python.siliconcompiler.
             raise self._refuse(session, job, ProblemError(
-                "version-skew",
+                "declared-mismatch",
                 detail=f"this server cannot read that manifest: {newer[0]}. "
                        "It was written by a newer SiliconCompiler than this "
                        "deployment runs, and reading one is only backwards "
@@ -1623,12 +1639,12 @@ class JobService:
             nodes = list(runtime.get_nodes())
         except Exception as e:
             raise self._refuse(session, job, ProblemError(
-                "declared-mismatch",
+                "archive-rejected", reason="manifest_invalid",
                 detail=f"the manifest names no runnable flow: {e}")) from None
 
         if not nodes:
             raise self._refuse(session, job, ProblemError(
-                "declared-mismatch",
+                "archive-rejected", reason="manifest_invalid",
                 detail="the manifest's flow has no nodes to run"))
 
         if len(nodes) > self._config.limits["max_job_nodes"]:
@@ -1650,7 +1666,8 @@ class JobService:
         # limitation worth stating rather than a check that was forgotten. A
         # manifest records `record,scversion` per node as each node runs, so a
         # manifest that has never run carries none -- there is nothing on this
-        # side to compare against. `version-skew` is therefore decided at create
+        # side to compare against. The SiliconCompiler version is therefore
+        # decided at create, `software-unavailable` naming `siliconcompiler`,
         # from the descriptor's `versions`, which is exactly the field whose
         # absence the contract says costs the whole upload.
 
@@ -1689,7 +1706,7 @@ class JobService:
         for step, index in nodes:
             if project.option.get_breakpoint(step=step, index=index):
                 raise self._refuse(session, job, ProblemError(
-                    "archive-rejected", violation="breakpoint",
+                    "archive-rejected", reason="breakpoint",
                     detail=f"{step}/{index} has a breakpoint set, which stops the run "
                            "for a person to look -- and nobody is at a remote run. "
                            "Clear option,breakpoint for it"))
@@ -1699,7 +1716,7 @@ class JobService:
                 continue                    # `_check_task_classes` said so first
             if issubclass(task, OpenTask) and not issubclass(task, ScreenshotTask):
                 raise self._refuse(session, job, ProblemError(
-                    "archive-rejected", violation="interactive_task",
+                    "archive-rejected", reason="interactive_task",
                     detail=f"{step}/{index} runs {task.__module__}/{task.__name__}, "
                            "which opens a window for a person -- and nobody is at a "
                            "remote run. A screenshot task renders the same view "
@@ -1804,8 +1821,9 @@ class JobService:
         '''
         with self._store.transaction():
             self._store.execute(
-                "UPDATE jobs SET error_type = ?, finished_at = ? WHERE id = ?",
-                (problem.error.uri, now(), job["id"]))
+                "UPDATE jobs SET error_type = ?, error_members = ?, finished_at = ? "
+                "WHERE id = ?",
+                (problem.error.uri, _members_json(problem.members), now(), job["id"]))
             self._transition(job["id"], job["state"], "rejected",
                              actor=session.user_id if session else None,
                              reason=problem.detail or problem.error.slug)
@@ -2497,18 +2515,18 @@ class JobService:
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, finished_at = ? WHERE id = ?",
-                (f"{TYPE_BASE}/scheduler-lost", now(), job["id"]))
+                (f"{TYPE_BASE}/run-interrupted", now(), job["id"]))
 
             # 🔴 A node that had STARTED did not get cancelled, it died. The
             # contract glosses `cancelled` as *the job ended before this node
             # started*, so using it for a node that was running says something
             # false about the one node somebody will look at first -- it is
             # where the work stopped. `failed` is what *started and did not
-            # finish* means.
+            # finish* means, and the environment ended it: `run-interrupted`.
             self._store.execute(
                 "UPDATE job_nodes SET state = 'failed', error_type = ? "
                 "WHERE job_id = ? AND state = 'running'",
-                (f"{TYPE_BASE}/run-failed", job["id"]))
+                (f"{TYPE_BASE}/run-interrupted", job["id"]))
 
             # Everything the run never reached. These really did end before
             # they started.
@@ -3078,11 +3096,9 @@ class JobService:
             "design": job["design"],
             "jobname": job["jobname"],
             "flow": job["manifest_flow"],
-            # The user id rather than a display name: it is what GET /v1/me
-            # returns, so a client can compare the two. Nothing here verifies
-            # who anybody is, and a name that looked like an email would suggest
-            # otherwise.
-            "owner": job["user_id"],
+            # The user id is what GET /v1/me returns, so a client compares it;
+            # the name is display only. Nothing here verifies who anybody is.
+            "owner": {"id": job["user_id"], "name": self._display_name(job["user_id"])},
             "project": None,
             "created_at": job["created_at"],
             "submitted_at": job["submitted_at"],
@@ -3090,8 +3106,14 @@ class JobService:
             "finished_at": job["finished_at"],
             "archived_at": job["archived_at"],
             "deleted_at": job["deleted_at"],
-            "error": _error(job["error_type"], self._why(job)),
+            # Nothing deletes a job for retention, so a deleted job was removed.
+            "deleted_cause": "removed" if job["deleted_at"] else None,
+            "delete_reason": job["delete_reason"] if job["deleted_at"] else None,
+            "error": _error(job["error_type"], self._why(job), job["error_members"])
+            if job["state"] in ("failed", "rejected") else None,
         }
+        if job["state_reason"] and body["error"] is None:
+            body["state_reason"] = bound(job["state_reason"])
 
         # 🔴 Followed, never constructed. The portal's route shape may change
         # without a version bump, so a client that builds this itself breaks
@@ -3117,7 +3139,7 @@ class JobService:
         # Echoed, and absent where the run continues from nothing.
         continued = self._continuations_of(job["id"])
         if continued:
-            body["continues_from"] = [{"step": step, "index": index, "job": from_job}
+            body["continues_from"] = [{"step": step, "index": index, "job_id": from_job}
                                       for step, index, from_job in continued]
 
         # 🔴 Present only while the server is asking -- in `created` or
@@ -3129,27 +3151,42 @@ class JobService:
                 body["upload_sources"] = asking
 
         rows = self._store.all(
-            'SELECT step, "index", state, started_at, finished_at, exit_code, error_type '
-            'FROM job_nodes WHERE job_id = ? ORDER BY step, "index"', (job["id"],))
+            'SELECT step, "index", state, started_at, finished_at, exit_code, error_type, '
+            'state_reason FROM job_nodes WHERE job_id = ? ORDER BY step, "index"',
+            (job["id"],))
 
         if nodes:
-            body["nodes"] = [{
-                "step": row["step"],
-                "index": row["index"],
-                "state": row["state"],
-                "terminal": row["state"] in TERMINAL_NODE_STATES,
-                "started_at": row["started_at"],
-                "finished_at": row["finished_at"],
-                "exit_code": row["exit_code"],
-                "error_type": row["error_type"],
-            } for row in rows]
+            body["nodes"] = []
+            for row in rows:
+                node = {
+                    "step": row["step"],
+                    "index": row["index"],
+                    "state": row["state"],
+                    "terminal": row["state"] in TERMINAL_NODE_STATES,
+                    "started_at": row["started_at"],
+                    "finished_at": row["finished_at"],
+                    "exit_code": row["exit_code"],
+                    "error_type": row["error_type"],
+                }
+                if row["state_reason"] and not row["error_type"]:
+                    node["state_reason"] = bound(row["state_reason"])
+                body["nodes"].append(node)
+
+        def count(state):
+            return sum(1 for row in rows if row["state"] == state)
 
         body["progress"] = {
             "total_count": len(rows),
-            "completed_count": sum(1 for row in rows if row["state"] == "completed"),
-            "failed_count": sum(1 for row in rows if row["state"] == "failed"),
+            "completed_count": count("completed"),
+            "failed_count": count("failed"),
+            "skipped_count": count("skipped"),
+            "cancelled_count": count("cancelled"),
         }
         return body
+
+    def _display_name(self, user_id: str) -> str:
+        row = self._store.one("SELECT display_name FROM users WHERE id = ?", (user_id,))
+        return (row["display_name"] if row else None) or user_id
 
 
 # Node archives already reported as sitting over a member deleted on its own,
@@ -3310,25 +3347,25 @@ def _extract_outputs(archive_path: Path, target: Path) -> None:
 
 
 def _continuations(value) -> List[Tuple[str, str, str]]:
-    '''`continues_from`: a list of `{step, index, job}`, one per node.'''
+    '''`continues_from`: a list of `{step, index, job_id}`, one per node.'''
     import uuid
 
     if value is None:
         return []
     if not isinstance(value, list):
         raise ProblemError("invalid-request",
-                           detail="continues_from is a list of {step, index, job}")
+                           detail="continues_from is a list of {step, index, job_id}")
     found, seen = [], set()
     for entry in value:
         if not isinstance(entry, dict):
             raise ProblemError("invalid-request",
-                               detail="each continues_from entry is {step, index, job}")
-        _only(entry, ("step", "index", "job"), "a continues_from entry")
-        step, index, job = entry.get("step"), entry.get("index"), entry.get("job")
+                               detail="each continues_from entry is {step, index, job_id}")
+        _only(entry, ("step", "index", "job_id"), "a continues_from entry")
+        step, index, job = entry.get("step"), entry.get("index"), entry.get("job_id")
         if not all(isinstance(value, str) and value for value in (step, index, job)):
             raise ProblemError("invalid-request",
                                detail="each continues_from entry names a step, an index "
-                                      "and a job")
+                                      "and a job_id")
         try:
             uuid.UUID(job)
         except ValueError:
@@ -3542,7 +3579,8 @@ def _ago(seconds: int) -> str:
 
 
 def _error(error_type: Optional[str],
-           detail: Optional[str] = None) -> Optional[Dict[str, Any]]:
+           detail: Optional[str] = None,
+           members: Optional[str] = None) -> Optional[Dict[str, Any]]:
     '''A job's error, as an RFC 9457 object.
 
     🔴 `detail` is what makes it worth reading. `type` and `title` are frozen
@@ -3560,14 +3598,26 @@ def _error(error_type: Optional[str],
     if not error_type:
         return None
     slug = error_type.rsplit("/", 1)[-1]
-    title = ERRORS[slug].title if slug in ERRORS else "The job failed"
+    registered = ERRORS.get(slug)
+    title = registered.title if registered else "The job failed"
 
     body = {"type": error_type, "title": title}
+    # The registry's status, and none for a type that is never a response.
+    if registered is not None and registered.status is not None:
+        body["status"] = registered.status
     # Prose that only repeats the slug is not prose: the slug is already the
     # `type`, and a client branches on that.
     if detail and detail != slug:
         body["detail"] = bound(detail)
+    if members:
+        for name, value in json.loads(members).items():
+            body.setdefault(name, value)
     return body
+
+
+def _members_json(members: Dict[str, Any]) -> Optional[str]:
+    '''A refusal's extension members, for the job's `error` to carry.'''
+    return json.dumps(members, sort_keys=True) if members else None
 
 
 def _flag(value) -> bool:

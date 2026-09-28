@@ -37,6 +37,7 @@ import tempfile
 from typing import Any, Dict, List
 
 from siliconcompiler import utils
+from siliconcompiler.remote.client.errors import RemoteError, clean
 from siliconcompiler.remote.units import size
 from siliconcompiler.schema import Journal
 from siliconcompiler.utils.paths import jobdir, workdir
@@ -101,6 +102,10 @@ class Results:
         # The server's download ceiling, read once and remembered. `False`
         # means not looked up yet; `None` means this server publishes none.
         self._ceiling: Any = False
+
+        # Each terms document's title by id, for a `blocked_by` entry with no
+        # link; None until something needs one.
+        self._titles = None
 
     ######################################################################
     # What not to pull
@@ -370,20 +375,38 @@ class Results:
                 return f"deleted on {day} -- {reason}."
             return f"deleted on {day}."
 
+        # 🔴 *Sign*: every grant is held and agreements stand in the way. Each
+        # document is named with its own link; one with no link is named by its
+        # title in GET /v1/me's `terms`.
         blocked = item.get("blocked_by")
-        if blocked:
-            where = item.get("access_request_url")
-            ask = f" Ask for access at {where}" if where else ""
-            return (f"held back by an agreement you have not accepted "
-                    f"({blocked}).{ask}")
+        if isinstance(blocked, dict) and blocked:
+            from siliconcompiler.remote.client.errors import blocked_lines
 
-        expires = item.get("expires_at")
-        if expires and expires <= _now():
-            return (f"aged out on {_day(expires)}. Retention on this "
-                    "server has passed for that kind.")
+            return ("held back by agreements you have not signed: "
+                    + "; ".join(blocked_lines(blocked, self._terms_titles())) + ".")
 
-        return (f"you may not have {this}. No agreement is named, so it is "
-                "not something asking would change.")
+        # *Ask*: an approval is all that is missing.
+        where = item.get("access_request_url")
+        if where:
+            asked = item.get("access_requested_at")
+            if asked:
+                return f"access requested on {_day(asked)}; it has not been decided yet."
+            return f"it needs an approval. Ask for access at {clean(where)}"
+
+        return (f"you may not have {this}. Neither an agreement nor an approval "
+                "is named, so it is not something asking would change.")
+
+    def _terms_titles(self) -> Dict[str, str]:
+        '''Each terms document's title, by id, from GET /v1/me -- read once.'''
+        if self._titles is None:
+            try:
+                terms = self.client.me().get("terms") or []
+            except RemoteError:
+                terms = []
+            self._titles = {entry.get("id"): entry.get("title")
+                            for entry in terms if isinstance(entry, dict)
+                            and entry.get("id") and entry.get("title")}
+        return self._titles
 
     def _report_absent(self, items: List[Dict[str, Any]]) -> None:
         '''A kind that is not in the listing was never indexed here.
@@ -597,12 +620,6 @@ def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             or item.get("step") is None
             or not item.get("fetchable")
             or (item.get("step"), item.get("index")) not in covered]
-
-
-def _now() -> str:
-    from datetime import datetime, timezone
-
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 def _day(timestamp: str) -> str:

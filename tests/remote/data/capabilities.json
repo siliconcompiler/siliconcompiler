@@ -19,6 +19,6 @@
     "abandon_after_seconds": 900
   },
   "features": ["logs", "logs.stream", "logs.stream.job"],
-  "identity_assurance": "self-asserted",
+  "identity_assurance": "self_asserted",
   "notices": []
 }

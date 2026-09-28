@@ -60,13 +60,19 @@
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
 hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
 </div>
+
+<h2>At the two OAuth endpoints</h2>
+
+<p>Raised at <code>POST /v1/auth/token</code> and <code>POST /v1/auth/device</code> too, before any
+OAuth processing, and in <code>problem+json</code> there as everywhere &mdash; never as an OAuth
+<code>error</code>. A client handles it by its status and <code>type</code>.</p>
 
 <h2>What this is not</h2>
 

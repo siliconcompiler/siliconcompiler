@@ -21,14 +21,15 @@
 </header>
 
 <main>
-<p>The job&rsquo;s current state does not allow the call you made. That is one of four things: a submit that is not a replay of the original, or an upload grant, for a job past <code>awaiting_input</code>; a submit for a job holding no upload; an upload-grant re-issue naming a different <code>bytes</code> from the one the archive&rsquo;s first grant fixed; or <code>DELETE</code> of a job that is not terminal.</p>
+<p>The job&rsquo;s current state does not allow the call you made: a submit that is not a replay of the original, or an upload grant, for a job past <code>awaiting_input</code>; a submit for a job holding no upload; an upload-grant re-issue naming a different <code>size_bytes</code> or <code>digest</code> from the ones the archive&rsquo;s first grant fixed; or <code>DELETE</code> of a job that is not terminal. With <code>reason: "in_progress"</code> and <code>Retry-After</code>, it is a create or a submit repeating an <code>Idempotency-Key</code> whose original request the server is still handling.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Read the job with <code>GET /v1/jobs/{id}</code> to see its state.</li>
+  <li>On <code>reason: "in_progress"</code>, wait <code>Retry-After</code> and retry with the same key and the same body.</li>
+  <li>Otherwise read the job with <code>GET /v1/jobs/{id}</code> to see its state, and act on it.</li>
   <li>A retried submit that already succeeded is not this: replay it with the same <code>Idempotency-Key</code> and the same body, and you get the original response back.</li>
-  <li>Re-issue a grant with the <code>bytes</code> the archive&rsquo;s first grant fixed. A re-issue cannot change the size.</li>
+  <li>Re-issue a grant with the <code>size_bytes</code> and <code>digest</code> the archive&rsquo;s first grant fixed. A re-issue cannot change either.</li>
   <li>To delete a job that is still going, cancel it with <code>POST /v1/jobs/{id}/cancel</code> and delete it once the job object says it is <code>terminal</code>.</li>
 </ol>
 </div>
@@ -40,20 +41,23 @@
   "title":    "The job is not in a state that allows this",
   "status":   409,
   "detail":   "...",
-  "instance": "/v1/jobs/01J9...",
+  "instance": "/v1/jobs/01J9.../submit",
+  "reason":   "in_progress",   <span class="c">// only on a retry the server is still handling</span>
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
 
-<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, then on <code>reason</code> &mdash; never parse <code>detail</code>.</p>
 
 <h2>Where it comes from</h2>
 
 <table>
 <tbody>
+<tr><td class="wrap"><code>POST /v1/jobs</code></td>
+    <td><code>reason: "in_progress"</code>: a create repeating an <code>Idempotency-Key</code> whose original is still being handled.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/upload-grant</code></td>
-    <td>The job is not in <code>created</code> or <code>awaiting_input</code>, or a re-issue names a different <code>bytes</code> from the grant already fixed.</td></tr>
+    <td>The job is not in <code>created</code> or <code>awaiting_input</code>, or a re-issue names a different <code>size_bytes</code> or <code>digest</code> from the grant already fixed.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>The job is past <code>awaiting_input</code>, and this is not a replay of the original submit &mdash; or no upload has arrived for it: ask for a grant and <code>PUT</code> first.</td></tr>
+    <td>The job is past <code>awaiting_input</code>, and this is not a replay of the original submit &mdash; or no upload has arrived for it: ask for a grant and <code>PUT</code> first. <code>reason: "in_progress"</code>, as at create.</td></tr>
 <tr><td class="wrap"><code>DELETE /v1/jobs/{id}</code></td>
     <td>The job is not terminal. Cancel a running job first; an administrator is held to this too.</td></tr>
 </tbody>
@@ -66,8 +70,8 @@
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

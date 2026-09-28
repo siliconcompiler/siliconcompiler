@@ -291,7 +291,7 @@ def sent_back(server, server_client, key, token, job_archive, remote_project):
 def send(server_client, key, token, job_id, members):
     data, digest, size = follow_up(members)
     grant = call(server_client, key, "POST", f"/v1/jobs/{job_id}/upload-grant",
-                 token, json={"bytes": size}).get_json()
+                 token, json={"size_bytes": size, "digest": digest}).get_json()
     put(server_client, grant, data)
     return submit(server_client, key, token, job_id, digest, size)
 
@@ -308,7 +308,7 @@ def test_a_follow_up_may_hold_only_what_was_asked_for(
 
     assert response.status_code == 422
     assert slug(response) == "archive-rejected"
-    assert response.get_json()["violation"] == "unrequested_member"
+    assert response.get_json()["reason"] == "unrequested_member"
 
 
 def test_a_follow_up_carrying_an_environment_file_is_unrequested(
@@ -322,7 +322,7 @@ def test_a_follow_up_carrying_an_environment_file_is_unrequested(
     response = send(server_client, key, token, job["id"], {
         environment.path_for("stepone", "0"): b"numpy==2.0.1\n"})
 
-    assert response.get_json()["violation"] == "unrequested_member"
+    assert response.get_json()["reason"] == "unrequested_member"
 
 
 def test_the_asked_for_sources_arrive_and_the_job_runs(
@@ -346,7 +346,7 @@ def test_each_upload_is_kept_as_its_own_input(
     data, digest, size = follow_up({f"sc_collected_files/{hashed}": b"sent by the client\n"})
 
     grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
-                 token, json={"bytes": size}).get_json()
+                 token, json={"size_bytes": size, "digest": digest}).get_json()
     put(server_client, grant, data)
     submit(server_client, key, token, job["id"], digest, size)
 

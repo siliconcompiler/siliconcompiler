@@ -54,7 +54,7 @@ def ran(server, user_id, nodes=(("stepone", "0"),), resources=()):
 
 
 def entry(job_id, step="stepone"):
-    return {"step": step, "index": "0", "job": job_id}
+    return {"step": step, "index": "0", "job_id": job_id}
 
 
 def from_steptwo(project):
@@ -84,9 +84,11 @@ def test_an_entry_is_recorded_and_echoed(server, server_client, key, token, me):
 @pytest.mark.parametrize("value", [
     {"step": "stepone"},                                   # not a list
     [{"step": "stepone", "index": "0"}],                   # a member missing
-    [{"step": "stepone", "index": "0", "job": "not-a-job-id"}],
-    [{"step": "stepone", "index": "0", "job": "01a0e000-0000-7000-8000-000000000001",
+    [{"step": "stepone", "index": "0", "job_id": "not-a-job-id"}],
+    [{"step": "stepone", "index": "0", "job_id": "01a0e000-0000-7000-8000-000000000001",
       "extra": 1}],
+    # The old spelling of the member is an unknown member now.
+    [{"step": "stepone", "index": "0", "job": "01a0e000-0000-7000-8000-000000000001"}],
 ])
 def test_a_malformed_list_is_invalid(server_client, key, token, value):
     response = create(server_client, key, token, continues_from=value)
@@ -128,7 +130,9 @@ def test_anothers_job_and_no_job_are_the_same_answer(server, server_client, key,
         second.get_json()["detail"].replace("01a0e000-0000-7000-8000-000000000001", "")
 
 
-def test_an_archived_job_says_unarchiving_fixes_it(server, server_client, key, token, me):
+def test_an_archived_job_may_be_continued_from(server, server_client, key, token, me):
+    '''🔴 An explicit `-from` may name an archived job: `archived` is registered
+    and never raised.'''
     earlier = ran(server, me)
     server.config["SC_STORE"].execute(
         "UPDATE jobs SET archived_at = '2026-09-01T00:00:00.000Z', archived_by = ? "
@@ -136,8 +140,7 @@ def test_an_archived_job_says_unarchiving_fixes_it(server, server_client, key, t
 
     response = create(server_client, key, token, continues_from=[entry(earlier)])
 
-    assert refused(response) == "archived"
-    assert "unarchiving" in response.get_json()["detail"]
+    assert response.status_code == 201, response.get_json()
 
 
 def test_a_node_the_job_did_not_run_is_not_completed(server, server_client, key, token, me):
@@ -232,7 +235,7 @@ def test_a_node_in_neither_is_a_missing_member(server_client, key, token, job_ar
                               job_archive(from_steptwo(nop_project)))
 
     assert response.status_code == 422
-    assert (slug(response), response.get_json()["violation"]) == \
+    assert (slug(response), response.get_json()["reason"]) == \
         ("archive-rejected", "missing_member")
     assert "stepone/0" in response.get_json()["detail"]
     assert not dispatcher.submitted
@@ -277,12 +280,12 @@ def test_results_gone_before_the_copy_reject_the_job(server, server_client, key,
 
 def test_a_submit_rechecks_what_create_accepted(server, server_client, key, token, me,
                                                 job_archive, nop_project, dispatcher):
-    '''The job can be archived, or its artifacts reaped, between the two.'''
+    '''Its artifacts can be deleted between the two.'''
     earlier = ran(server, me)
     archive, digest, size = job_archive(from_steptwo(nop_project))
     job = stage(server_client, key, token, archive, size, continues_from=[entry(earlier)])
     server.config["SC_STORE"].execute(
-        "UPDATE jobs SET archived_at = '2026-09-01T00:00:00.000Z', archived_by = ? "
+        "UPDATE jobs SET deleted_at = '2026-09-01T00:00:00.000Z', deleted_by = ? "
         "WHERE id = ?", (me, earlier))
 
-    assert refused(submit(server_client, key, token, job["id"], digest, size)) == "archived"
+    assert refused(submit(server_client, key, token, job["id"], digest, size)) == "deleted"

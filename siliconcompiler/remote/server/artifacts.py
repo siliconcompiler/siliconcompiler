@@ -565,10 +565,11 @@ def wire(row, surface_allows: bool = True,
         "kind": row["kind"],
         "media_type": row["media_type"],
         "size_bytes": row["size_bytes"],
-        "content_hash": row["content_hash"],
+        "digest": row["content_hash"],
         "created_at": row["created_at"],
-        # null means held indefinitely -- a legal hold has no expiry to state.
-        "expires_at": None if row["legal_hold_at"] else row["retention_until"],
+        # Kept at least until then; null means no scheduled expiry, which is
+        # what a legal hold is.
+        "retained_until": None if row["legal_hold_at"] else row["retention_until"],
         # non-null means the bytes are gone and the row is not.
         "deleted_at": row["deleted_at"],
         # 🔴 **Two members, because they are two kinds of thing.** Without

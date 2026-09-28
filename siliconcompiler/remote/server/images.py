@@ -612,10 +612,8 @@ def plan_for_job(store, requires: Dict[str, Any],
 def declared_requirements(software, requires: Dict[str, Any]) -> List[Requirement]:
     '''What the run's own Python process needs: the `python` bucket.
 
-    The framework, plus any library the client asked for. A name this
-    deployment does not track is not a requirement -- it is a version of
-    something nobody here curates, and `version-skew` is where that is answered
-    if it is answered at all.
+    The framework, plus any library the client asked for. A name no live image
+    holds was refused at create, `software-unavailable`, before this is asked.
 
     🔴 **One image has to satisfy all of it**, because these names share a
     process: `siliconcompiler` and a site library run in the same interpreter,
@@ -691,10 +689,10 @@ def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str
     if not wanted:
         return {}
 
-    found: Dict[str, List[str]] = {}
+    found: Dict[str, Dict[str, List[str]]] = {"python": {}, "tools": {}}
 
-    def add(name, version):
-        versions = found.setdefault(name, [])
+    def add(bucket, name, version):
+        versions = found[bucket].setdefault(name, [])
         if version not in versions:
             versions.append(version)
 
@@ -705,15 +703,25 @@ def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str
             f"AND id IN ({', '.join('?' * len(wanted))})", tuple(wanted)):
         wanted.add(row["derived_from"])
         for name, version in json.loads(row["installed"] or "[]"):
-            add(name, version)
+            add("python", canonical_python(name), version)
 
     for image in live_images(store):
         if image["id"] not in wanted:
             continue
         for entry in image["contents"]:
-            add(entry.name, entry.version)
+            bucket = BUCKETS.get(entry.kind, "tools")
+            add(bucket, canonical_python(entry.name) if bucket == "python"
+                else entry.name.lower(), entry.version)
 
-    return {name: sorted(versions) for name, versions in sorted(found.items())}
+    if not any(found.values()):
+        return {}
+    return {bucket: {name: sorted(versions) for name, versions in sorted(held.items())}
+            for bucket, held in found.items()}
+
+
+def canonical_python(name: str) -> str:
+    '''A Python distribution name normalised under PEP 503.'''
+    return re.sub(r"[-_.]+", "-", str(name)).lower()
 
 
 def _unsatisfiable(requirements: Sequence[Requirement], images) -> ProblemError:

@@ -21,12 +21,12 @@
 </header>
 
 <main>
-<p>No live image on this deployment satisfies the job&rsquo;s software requirements &mdash; a SiliconCompiler version, a Python library, or a tool version. The body lists every requirement that failed, each with what the images do hold, so you can ask for something that exists.</p>
+<p>No live image on this deployment satisfies the job&rsquo;s software requirements &mdash; a SiliconCompiler version, a Python library, or a tool version. The body lists every requirement that failed, each with what the images do hold, so you can ask for something that exists. A SiliconCompiler version no image offers is this type too, naming <code>siliconcompiler</code>: it covers what <code>version-skew</code> meant at create, which is retired.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Read <code>reason</code>. <code>unavailable</code>: the requirements listed are held by no image at all. <code>combination</code>: each is held by some image, and no single image holds them together. <code>index-not-allowed</code>: a node&rsquo;s Python environment names a package index this deployment does not let a build reach, and <code>detail</code> names it. <code>uninstallable</code>: a pin in a node&rsquo;s Python environment will not install for the node&rsquo;s Python and platform, or a wheel it needs is hosted somewhere the index allowlist does not name; <code>detail</code> names each package and the target, or the host. It is never asked for as an upload. <code>unknown_class</code>: a node runs a task class this deployment does not have; <code>unresolved</code> names each as <code>&lt;module&gt;/&lt;Class&gt;</code> and <code>detail</code> names the node. A task&rsquo;s own setup runs on the node, so it is never run as its base class instead.</li>
+  <li>Read <code>reason</code>. <code>unavailable</code>: the requirements listed are held by no image at all, SiliconCompiler&rsquo;s own version included. <code>combination</code>: each is held by some image, and no single image holds them together. <code>uninstallable</code>: while staging, a line in a node&rsquo;s Python environment will not install into its image; <code>available</code> is <code>[]</code> and <code>detail</code> names the package, its release line and the target Python and platform, or the host. It is never asked for as an upload. <code>unknown_class</code>: while staging, a node runs a task class the job&rsquo;s resolved environment does not provide; <code>unresolved</code> names each as <code>&lt;module&gt;/&lt;Class&gt;</code> and <code>detail</code> names the node. A task&rsquo;s own setup runs on the node, so it is never run as its base class instead. An unrecognised value means act on the type alone.</li>
   <li>Read <code>unresolved</code>: one entry per failed requirement, with <code>requirement</code> &mdash; your alternatives, exactly as sent &mdash; and <code>available</code>, the versions this deployment&rsquo;s images hold. An empty <code>available</code> means none holds it.</li>
   <li>For <code>unavailable</code>, ask for a version in <code>available</code>. For <code>combination</code>, choose versions that exist in one image together.</li>
   <li><code>GET /v1</code>&rsquo;s <code>software</code> lists what is on offer before you submit, name by name. It cannot show which names share an image, which is why <code>combination</code> exists.</li>
@@ -51,11 +51,11 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>reason</code></td><td><span class="req">REQUIRED</span></td>
-    <td><code>unavailable</code>, <code>combination</code>, <code>index-not-allowed</code>, <code>uninstallable</code> or <code>unknown_class</code>.</td></tr>
+    <td><code>unavailable</code>, <code>combination</code>, <code>uninstallable</code> or <code>unknown_class</code>.</td></tr>
 <tr><td><code>unresolved</code></td><td><span class="req">REQUIRED</span></td>
     <td>A list of <code>{name, requirement, available}</code>, one per requirement that failed. <code>requirement</code> is the list of alternatives as sent &mdash; a requirement is met if any one resolves &mdash; and <code>available</code> what the live images hold; <code>[]</code> if none.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
-    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
@@ -66,11 +66,9 @@
 <table>
 <tbody>
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
-    <td>The descriptor&rsquo;s <code>requires</code> cannot be met.</td></tr>
-<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>The flow re-derived from the manifest cannot be placed. A job missing two tools lists both. <code>index-not-allowed</code> and <code>unknown_class</code> are raised here too.</td></tr>
+    <td>The descriptor&rsquo;s <code>requires</code> cannot be met, a <code>requires.python</code> name no live image holds included.</td></tr>
 <tr><td class="wrap">while <code>staging</code></td>
-    <td><code>uninstallable</code>, when a node&rsquo;s Python environment is built. The job is rejected, and this is the <code>type</code> of its <code>error</code> on <code>GET /v1/jobs/{id}</code>.</td></tr>
+    <td>The flow re-derived from the manifest cannot be placed &mdash; a job missing two tools lists both &mdash; <code>unknown_class</code>, and <code>uninstallable</code> when a node&rsquo;s Python environment is built. The job is rejected, and this is the <code>type</code> of its <code>error</code> on <code>GET /v1/jobs/{id}</code>.</td></tr>
 </tbody>
 </table>
 
@@ -81,8 +79,11 @@
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
+  <li>Where this arrived on a job&rsquo;s <code>error</code> rather than on a request, there is no
+      <code>trace_id</code>: <strong>quote the job&rsquo;s <code>id</code></strong>, the one identifier
+      that finds the run.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
@@ -93,7 +94,7 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 
 <p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> is the same answer for data rather than images: a PDK, library or FPGA device this deployment does not hold and cannot supply.</p>
 
-<p><a href="version-skew.html"><code>version-skew</code></a> is your client&rsquo;s own version being refused.</p>
+<p><a href="declared-mismatch.html"><code>declared-mismatch</code></a> is a manifest whose SiliconCompiler version does not satisfy the job&rsquo;s own <code>requires.python.siliconcompiler</code>: the job asked for one version and sent another.</p>
 </main>
 
 <footer>

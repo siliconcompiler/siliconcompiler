@@ -157,7 +157,7 @@ def test_the_account_screen_says_the_identity_is_not_verified(signed_in):
     page = signed_in.get("/portal/account").get_data(as_text=True)
 
     assert "does not verify who you are" in page
-    assert "self-asserted" in page
+    assert "self_asserted" in page
 
 
 def test_the_images_screen_says_what_registering_one_means(signed_in):

@@ -37,14 +37,21 @@ URIs do not change. A file is never renamed without retiring a published URI.
 5. A slug that replaced older names says which: `limit-exceeded`
    (`quota-exhausted`, `pending-upload-limit`, `concurrent-job-limit`,
    `concurrent-stream-limit`), `session-ended` (`session-revoked`,
-   `session-expired`), `not-ready` (`logs-not-ready`).
+   `session-expired`), `not-ready` (`logs-not-ready`), `run-interrupted`
+   (`scheduler-lost`), `software-unavailable` and `declared-mismatch`
+   (`version-skew`, at create and while staging).
+6. A retired slug loses its page and keeps an unlinked row in `index.html`'s
+   retired table: `unsatisfiable-request`, `version-skew`,
+   `too-many-attempts` and `scheduler-lost`. It is never raised again and
+   never reused.
 
 ## No JavaScript, and a page cannot show the reader's own error
 
 RFC 9457 gives the occurrence to `instance`, not `type`, and the `type` URI is
 identical on every deployment and occurrence. A page documents the type and
-tells the reader to quote `trace_id` and `instance`; rendering the specific
-failure is the client's job. One stylesheet, no build step, no external
+tells the reader to quote `trace_id` and `instance` for a refused request, and
+the job's `id` for a type that arrives on a job's `error`; rendering the
+specific failure is the client's job. One stylesheet, no build step, no external
 requests, light and dark.
 
 ⚠️ The plans docs link to this folder on GitHub's `server-v1` branch, so those

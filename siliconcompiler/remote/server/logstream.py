@@ -102,7 +102,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
             if text:
                 yield _event("log", {
                     "step": step, "index": index, "stream": "stdout",
-                    "ts": _now(), "text": text,
+                    "logged_at": _now(), "text": text,
                 }, identifier=format(offset - len(pending), "x"))
                 last_sent = time.monotonic()
             continue
@@ -117,7 +117,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
             if text:
                 yield _event("log", {
                     "step": step, "index": index, "stream": "stdout",
-                    "ts": _now(), "text": text,
+                    "logged_at": _now(), "text": text,
                 }, identifier=format(offset, "x"))
 
             yield _event("node_state", _with_artifact(
@@ -241,7 +241,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline,
 
 def _log(step: str, index: str, text: str, identifier: str) -> bytes:
     return _event("log", {"step": step, "index": index, "stream": "stdout",
-                          "ts": _now(), "text": text}, identifier=identifier)
+                          "logged_at": _now(), "text": text}, identifier=identifier)
 
 
 # What marks a job stream's id, so a per-node one -- a bare hex offset -- is

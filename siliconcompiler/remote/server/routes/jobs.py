@@ -229,13 +229,10 @@ def upload(job_id):
     try:
         size, digest = storage.receive(job_id, flask.request.stream, ceiling)
     except ValueError as e:
-        raise ProblemError("upload-too-large", limit="max_upload_bytes",
-                           detail=str(e)) from None
+        raise ProblemError("upload-too-large", detail=str(e)) from None
 
-    # The digest is returned as a courtesy, not as a credential: the client
-    # asserts its own at submit and the server compares against what it reads
-    # back off the object, so a client that trusted this one would be comparing
-    # the server's answer with the server's answer.
-    response = flask.jsonify({"bytes": size, "digest": digest})
+    # The digest is returned as a courtesy, not as a credential: submit runs
+    # only bytes matching the digest the grant bound.
+    response = flask.jsonify({"size_bytes": size, "digest": digest})
     response.headers["Cache-Control"] = "no-store"
     return response

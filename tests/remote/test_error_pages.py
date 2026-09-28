@@ -4,7 +4,7 @@ import pytest
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
-from siliconcompiler.remote.server.errors import ERRORS, TYPE_BASE   # noqa: E402
+from siliconcompiler.remote.server.errors import ERRORS, RETIRED, TYPE_BASE   # noqa: E402
 from siliconcompiler.remote.server.routes.errorpages import PAGES     # noqa: E402
 
 
@@ -52,6 +52,21 @@ def test_the_index_lists_every_type():
     for slug in ERRORS:
         assert f'href="{slug}.html"' in index, slug
     assert f"All {len(ERRORS)}" in index
+    assert len(ERRORS) == 37
+
+
+@pytest.mark.parametrize("slug", RETIRED)
+def test_a_retired_type_has_a_row_and_no_page(slug):
+    '''Retired, never raised, and not to be reused: listed, unlinked, and with
+    no page to land on.'''
+    index = (PAGES / "index.html").read_text()
+
+    assert slug not in ERRORS
+    assert f"<code>{slug}</code>" in index
+    assert f'href="{slug}.html"' not in index
+    assert not (PAGES / f"{slug}.html").exists()
+    for path in PAGES.glob("*.html"):
+        assert f'href="{slug}.html"' not in path.read_text(), path.name
 
 
 def test_nothing_is_fetched_from_anywhere_else():
@@ -69,6 +84,9 @@ def test_the_renamed_types_name_what_they_replaced():
     assert "quota-exhausted" in read("limit-exceeded")
     assert "session-revoked" in read("session-ended")
     assert "logs-not-ready" in read("not-ready")
+    assert "scheduler-lost" in read("run-interrupted")
+    assert "version-skew" in read("software-unavailable")
+    assert "version-skew" in read("declared-mismatch")
 
 
 @pytest.mark.parametrize("slug", ["invalid-request", "method-not-allowed",

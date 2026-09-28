@@ -5,7 +5,7 @@ The ``type`` registry is frozen at v1 and the namespace belongs to
 SiliconCompiler rather than to any one deployment: both implementations must
 return the same URI or a client cannot branch across them. A slug names a *kind*
 of failure and never one instance of it, which is why the discriminator lives in
-an extension member -- ``limit``, ``feature``, ``violation`` -- rather than in
+an extension member -- ``limit``, ``feature``, ``reason`` -- rather than in
 the slug. A member's value can be added after the freeze; a slug cannot.
 
 Rows are registered here even where nothing raises them yet. An unraised row
@@ -54,13 +54,13 @@ def _e(slug, status, title, members=()):
 ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # -- ceilings ------------------------------------------------------------
     _e("limit-exceeded", 429, "Limit exceeded", ("limit",)),
+    # `limit` only over max_upload_bytes; a body over its endpoint's cap has none.
+    _e("upload-too-large", 413, "Upload too large"),
     _e("node-limit-exceeded", 403, "Too many nodes in this flow", ("limit",)),
-    _e("upload-too-large", 413, "Upload too large", ("limit",)),
     # 🆕 D117: `max_download_bytes`, which never refills -- so not
     # `limit-exceeded`, whose `Retry-After` a client would obey for ever.
     _e("download-too-large", 403, "Download too large", ("limit",)),
     _e("rate-limited", 429, "Too many requests"),
-    _e("too-many-attempts", 429, "Too many attempts"),
 
     # -- entitlement and resolution -----------------------------------------
     _e("entitlement-denied", 403, "Not entitled to this resource",
@@ -85,15 +85,13 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # this profile allows every upload (profile D26) and never raises it.
     _e("upload-forbidden", 422, "Upload of that resource is not allowed",
        ("resource_kind", "detected", "member")),
-    _e("terms-not-accepted", 403, "Terms not accepted",
-       ("terms_scope", "decision_url", "blocked_by")),
+    _e("terms-not-accepted", 403, "Terms not accepted", ("blocked_by",)),
     _e("artifact-not-approved", 403, "Artifact not approved"),
 
     # -- the request itself --------------------------------------------------
-    _e("version-skew", 422, "Unsupported client or software version"),
     _e("declared-mismatch", 422, "The manifest contradicts the descriptor"),
     _e("upload-digest-mismatch", 422, "Upload digest does not match"),
-    _e("archive-rejected", 422, "Archive rejected", ("violation",)),
+    _e("archive-rejected", 422, "Archive rejected", ("reason",)),
     _e("idempotency-key-reuse", 422, "Idempotency key reused with a different request"),
     _e("invalid-cursor", 400, "Invalid cursor"),
     _e("invalid-request", 400, "Invalid request"),
@@ -103,6 +101,9 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
 
     # -- state ---------------------------------------------------------------
     _e("job-state-conflict", 409, "The job is not in a state that allows this"),
+    # A write on a job the caller can read and may not act on, and a create
+    # naming an archived project.
+    _e("not-permitted", 403, "Not permitted on this job"),
     _e("not-found", 404, "Not found"),
     _e("not-ready", 409, "Not ready yet", ("artifact_kind",)),
     _e("feature-unsupported", 501, "This deployment does not support that", ("feature",)),
@@ -110,35 +111,41 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # -- credentials ---------------------------------------------------------
     _e("invalid-token", 401, "Invalid access token"),
     _e("invalid-dpop-proof", 401, "Invalid DPoP proof"),
+    _e("dpop-nonce-required", 401, "DPoP nonce required"),
     _e("insufficient-scope", 403, "Insufficient scope"),
     _e("session-ended", 401, "Session ended", ("reason",)),
     _e("insecure-transport", 426, "Upgrade required"),
 
     # -- never HTTP responses: these are `type` values on an error object -----
-    _e("scheduler-lost", None, "The scheduler lost this job"),
+    # The environment ended the run: the scheduler lost it, preemption, a
+    # failed compute node, an image that could not be pulled.
+    _e("run-interrupted", None, "The run was interrupted"),
     # A `continues_from` entry whose results cannot be used (surface D175).
     _e("prior-results-unavailable", 422, "Those earlier results cannot be used",
-       ("step", "index", "job", "reason")),
+       ("step", "index", "job_id", "reason")),
     # Registered for a caller with no POSIX account (identity D58). This
     # profile provisions on first contact and never raises it.
     _e("account-not-provisioned", 403, "Your account is not set up on this deployment"),
-    # 🔴 A job-level type like scheduler-lost (surface D169): a staging the
+    # 🔴 A job-level type like run-interrupted (surface D169): a staging the
     # server could not complete for its own reasons, after retrying.
     _e("staging-failed", None, "The server could not get this job ready"),
     _e("run-failed", None, "The run failed"),
 )}
 
 
-# A `feature` value is itself a closed vocabulary, and it is wider than the
-# published `features` list by exactly one: device_grant is advertised by
-# grant_types_supported rather than by features, and it is the value this
-# profile refuses POST /v1/auth/device with.
-FEATURES = ("logs", "logs.stream", "logs.stream.job", "projects", "device_grant")
+# Retired, never raised, and not to be reused. Each has an index row and no page.
+RETIRED = ("unsatisfiable-request", "version-skew", "too-many-attempts",
+           "scheduler-lost")
 
-# Which archive rule was broken. Six conditions shared one slug and no
-# discriminator before this member existed; two of them are published limits.
+# A `feature` value holds only registered `features` strings.
+FEATURES = ("logs.stream", "logs.stream.job", "projects", "python.env",
+            "jobs.reuse")
+
+# Which archive rule was broken: `archive-rejected`'s `reason`.
 ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       "link_member", "device_member", "traversal",
+                      # No manifest at the root, or one that cannot be read.
+                      "manifest_missing", "manifest_invalid",
                       # A follow-up archive carrying anything but what was
                       # asked for (D124): it may not replace what the first
                       # archive carried after the server checked it.
@@ -160,9 +167,9 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       # task opens a window.
                       "breakpoint", "interactive_task")
 
-# Why a session is over. All three are one client branch -- re-authenticate, and
+# Why a session is over. All four are one client branch -- re-authenticate, and
 # do NOT refresh.
-SESSION_END_REASONS = ("revoked", "deactivated", "expired")
+SESSION_END_REASONS = ("revoked", "reused", "deactivated", "expired")
 
 
 class ProblemError(Exception):

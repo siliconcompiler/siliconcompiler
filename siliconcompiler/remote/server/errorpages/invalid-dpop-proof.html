@@ -32,7 +32,13 @@ Content-Type: application/problem+json</code></pre>
 
 <div class="do">
 <p><strong>Fail and surface it.</strong> Do not refresh, and do not retry &mdash; retrying reproduces
-it, and a retry loop here reads from the server as a brute-force attempt against the key binding.</p>
+it, and a retry loop here reads from the server as a brute-force attempt against the key binding.
+The one exception is a proof refused for its time: correct later proofs by the offset between this
+machine&rsquo;s clock and the response&rsquo;s <code>Date</code>, retry once, and tell the user
+their clock is off.</p>
+<p>A missing or stale nonce is never this: it is
+<a href="dpop-nonce-required.html"><code>dpop-nonce-required</code></a>, retried once with the
+nonce.</p>
 </div>
 
 <p>This is nearly always a client bug &mdash; or <strong>a clock</strong>: a proof carries the time it was made, and one more than a minute from the server&rsquo;s own is refused every time. Compare this machine&rsquo;s clock with the response&rsquo;s <code>Date</code> header first; the reference client says so when they are that far apart. Then work through the proof in this order.</p>
@@ -63,9 +69,11 @@ it, and a retry loop here reads from the server as a brute-force attempt against
 <h2>Also at the token endpoint</h2>
 
 <div class="warn">
-<p>This is raised at <code>POST /v1/auth/token</code> too, which takes a proof on every grant.
-On <code>grant_type=refresh_token</code> the refresh carries its own proof, and its thumbprint must
-match the one the token family was bound to at login.</p>
+<p>At <code>POST /v1/auth/token</code> and <code>POST /v1/auth/device</code> the same condition is
+answered in the OAuth shape, <code>invalid_dpop_proof</code>, not with this type. A refresh refused
+<code>invalid_dpop_proof</code> ends no session: a refresh token presented without its key revokes
+nothing. On <code>grant_type=refresh_token</code> the refresh carries its own proof, and its
+thumbprint must match the one the token family was bound to at login.</p>
 </div>
 
 <p>That is deliberate and worth understanding: without it, every ordinary request would be key-bound
@@ -92,8 +100,8 @@ useful while debugging, and not something to branch on.</p>
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

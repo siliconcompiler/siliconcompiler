@@ -216,7 +216,7 @@ class RemoteRun:
 
             self._save_manifest()
 
-            grant = self.client.upload_grant(job_id, size)
+            grant = self.client.upload_grant(job_id, size, digest)
             self._report_upload(size)
             self.client.upload(grant, upload)
 
@@ -276,7 +276,7 @@ class RemoteRun:
                 continue
             ran_in = _remote_id(os.path.join(node, "outputs", f"{self.project.name}.pkg.json"))
             if ran_in:
-                continued.append({"step": step, "index": index, "job": ran_in})
+                continued.append({"step": step, "index": index, "job_id": ran_in})
                 continue
             raise RemoteError(
                 f"this run starts part-way through its flow and reads the results of "
@@ -330,7 +330,7 @@ class RemoteRun:
                     digest.update(chunk)
                     size += len(chunk)
 
-            grant = self.client.upload_grant(job_id, size)
+            grant = self.client.upload_grant(job_id, size, f"sha256:{digest.hexdigest()}")
             self._report_upload(size, owners.upload_report(self.project, collection))
             self.client.upload(grant, upload)
             self.client.submit_job(job_id, digest=f"sha256:{digest.hexdigest()}",
@@ -946,7 +946,7 @@ class RemoteRun:
             # it -- what is fetchable now, so a caller approved since then gets
             # the files.
             for entry in self._upstream()[1]:
-                results.fetch_node(entry["job"], entry["step"], entry["index"])
+                results.fetch_node(entry["job_id"], entry["step"], entry["index"])
         except ServerProblem as e:
             self.logger.error(str(e))
         except RemoteError as e:
@@ -1248,8 +1248,8 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str
 
     # Only `run-failed` -- it is the one whose advice names a node. Every other
     # slug's advice is about the job and stays right however the nodes ended:
-    # `scheduler-lost` says submit it again, and it would be no less true for a
-    # run that got halfway.
+    # `run-interrupted` says resubmitting may work, and it would be no less
+    # true for a run that got halfway.
     failed = (job.get("progress") or {}).get("failed_count")
     ran_out = str(error["type"]).rstrip("/").rsplit("/", 1)[-1] == "run-failed"
 
@@ -1257,7 +1257,8 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str
     slug = str(error["type"]).rstrip("/").rsplit("/", 1)[-1]
     return describe(error,
                     next_step=NO_NODE_FAILED if ran_out and failed == 0 else None,
-                    help_url=f"{help_pages}{slug}" if help_pages else None)
+                    help_url=f"{help_pages}{slug}" if help_pages else None,
+                    job_id=job.get("id"))
 
 
 def _is_refusal(problem: ServerProblem) -> bool:

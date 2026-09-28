@@ -16,9 +16,9 @@
       tell "the server did what it said" from "somebody removed this".
     #}
     <span class="muted">gone {{ item.deleted_at | when }}{%
-      if item.deleted_reason %} — {{ item.deleted_reason }}{% endif %}</span>
+      if item.delete_reason %} — {{ item.delete_reason }}{% endif %}</span>
   {% elif item.blocked_by %}
-    <span class="muted">held back ({{ item.blocked_by }})</span>
+    <span class="muted">held back ({{ item.blocked_by | join(', ') }})</span>
   {% else %}
     <span class="muted">not available</span>
   {% endif %}
@@ -67,7 +67,7 @@
         <span class="muted">&middot; {{ 'the first' if loop.first else 'a follow-up' }}</span></td>
       <td class="mono muted">{{ item.created_at | when }}</td>
       <td class="mono muted">{{ item.size_bytes | size }}</td>
-      <td>{{ item.content_hash | digest }}</td>
+      <td>{{ item.digest | digest }}</td>
       <td>{% if item.unopened %}
         {#
           🔴 No look-inside: this archive was refused before it passed its
@@ -102,8 +102,8 @@
       <td>{{ item.kind }}{% if item.kind == 'input' %}
         <span class="muted">&middot; what it was handed</span>{% endif %}</td>
       <td class="mono muted">{{ item.size_bytes | size }}</td>
-      <td>{{ item.content_hash | digest }}</td>
-      <td class="mono muted">{{ item.expires_at | when }}</td>
+      <td>{{ item.digest | digest }}</td>
+      <td class="mono muted">{{ item.retained_until | when }}</td>
       <td>{{ actions(item) }}</td>
     </tr>
     {% endfor %}

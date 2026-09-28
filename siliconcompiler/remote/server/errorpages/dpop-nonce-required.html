@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dpop-nonce-required &middot; SiliconCompiler server errors</title>
+<meta name="description" content="The server requires a DPoP nonce and has just supplied one. Retry once with it.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="page">
+  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / dpop-nonce-required</p>
+  <h1>dpop-nonce-required</h1>
+  <p class="title">DPoP nonce required</p>
+  <p class="meta">
+    <span class="status">401 Unauthorized</span>
+    <span class="uri">https://siliconcompiler.com/server-errors/dpop-nonce-required</span>
+  </p>
+  <hr>
+</header>
+
+<main>
+<p>The server requires a nonce in the DPoP proof and has just supplied one. The response carries
+<code>WWW-Authenticate: DPoP error="use_dpop_nonce"</code> and the nonce in a
+<code>DPoP-Nonce</code> header. A missing or stale nonce is always this, never
+<code>invalid-dpop-proof</code>.</p>
+
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Sign a fresh proof carrying the nonce from <code>DPoP-Nonce</code>, and retry the request
+      once.</li>
+  <li>Keep one nonce per origin: the stream host&rsquo;s nonce is not the API&rsquo;s.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>HTTP/1.1 401 Unauthorized
+WWW-Authenticate: DPoP error="use_dpop_nonce"
+DPoP-Nonce: eyJ7S_zG.eyJH0-Z.HX4w-7v
+
+{
+  "type":     "https://siliconcompiler.com/server-errors/dpop-nonce-required",
+  "title":    "DPoP nonce required",
+  "status":   401,
+  "instance": "/v1/jobs",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<h2>At the two OAuth endpoints</h2>
+
+<p>At <code>POST /v1/auth/token</code> and <code>POST /v1/auth/device</code> the same condition is
+answered in the OAuth shape: <code>400</code>, <code>{"error": "use_dpop_nonce"}</code>, with the
+nonce in <code>DPoP-Nonce</code>. The client does the same thing.</p>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>.</p>
+<ul>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
+  <li><code>instance</code> &mdash; the request this happened to.</li>
+</ul>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="invalid-dpop-proof.html"><code>invalid-dpop-proof</code></a> is a proof that failed a
+check: malformed, replayed, or signed by the wrong key. That one fails and is not retried, except
+once after correcting the clock for a proof refused for its time. This one is always retried once.</p>
+</main>
+
+<footer>
+  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
+  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
+  registry is right.</p>
+  <p><a href="index.html">All error types</a></p>
+</footer>
+
+</body>
+</html>

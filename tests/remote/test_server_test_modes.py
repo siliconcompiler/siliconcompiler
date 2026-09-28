@@ -422,4 +422,4 @@ def test_mode_four_sends_the_source_back_and_keeps_both_uploads(
 
     uploads = [item for item in listing(server_client, key, token, job["id"], "?kind=input")
                if item["step"] is None]
-    assert len(uploads) == 2 and uploads[0]["content_hash"] == digest
+    assert len(uploads) == 2 and uploads[0]["digest"] == digest

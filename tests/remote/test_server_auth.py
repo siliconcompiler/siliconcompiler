@@ -485,7 +485,7 @@ def test_me_usage_is_derived_and_reported_only(client, key):
     token = login(client, key).get_json()["access_token"]
     usage = call(client, key, "GET", "/v1/me", token).get_json()["usage"]
 
-    assert set(usage) == {"compute_seconds", "licence_seconds",
+    assert set(usage) == {"compute_seconds", "license_seconds",
                           "storage_bytes", "jobs_active"}
     assert usage["jobs_active"] == 0
     assert usage["compute_seconds"]["limit"] is None

@@ -239,7 +239,7 @@ def test_a_required_file_the_client_should_have_sent_is_refused_before_dispatch(
 
     assert response.status_code == 422
     assert slug(response) == "archive-rejected"
-    assert response.get_json()["violation"] == "missing_member"
+    assert response.get_json()["reason"] == "missing_member"
     assert "library,mylib,package,doc,datasheet" in response.get_json()["detail"]
     assert not dispatcher.submitted
 
@@ -320,4 +320,4 @@ def test_a_follow_up_carries_only_the_required_values_of_what_was_asked(
     unread = first(project, ("library", "lambda", *QUICKSTART)).get_hashed_filename()
     refused = send(server_client, key, token, job["id"],
                    {f"sc_collected_files/{unread}": b"not asked for\n"})
-    assert refused.get_json()["violation"] == "unrequested_member"
+    assert refused.get_json()["reason"] == "unrequested_member"

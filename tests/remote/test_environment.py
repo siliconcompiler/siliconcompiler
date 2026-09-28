@@ -155,7 +155,7 @@ def test_a_line_outside_the_format_is_an_archive_refusal(
 
     assert response.status_code == 422
     assert slug(response) == "archive-rejected"
-    assert response.get_json()["violation"] == "environment_file"
+    assert response.get_json()["reason"] == "environment_file"
     assert "line 1" in response.get_json()["detail"]
 
 
@@ -163,7 +163,7 @@ def test_a_file_for_no_node_is_refused(builds, server_client, key, token, job_ar
     response = submitted(server_client, key, token,
                          carrying(job_archive, "numpy==2.0.1\n", node=("nosuch", "0")))
 
-    assert response.get_json()["violation"] == "environment_file"
+    assert response.get_json()["reason"] == "environment_file"
 
 
 def test_an_index_off_the_allowlist_is_refused_naming_it(

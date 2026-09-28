@@ -204,6 +204,8 @@ CREATE TABLE jobs (
     grant_bytes             integer,                -- the size the FIRST grant of the archive
                                                     -- now being uploaded fixed; a re-issue
                                                     -- must repeat it. NULL between archives
+    grant_digest            text,                   -- the digest that grant bound beside it;
+                                                    -- submit runs only bytes matching it
     archives_bytes          integer NOT NULL DEFAULT 0,
                                                     -- every archive this job has consumed,
                                                     -- together: max_upload_bytes bounds the sum
@@ -235,6 +237,10 @@ CREATE TABLE jobs (
                                                     -- job_nodes instead. At most one level
     submit_trace_id   text CHECK (submit_trace_id IS NULL OR length(submit_trace_id) = 32),
     error_type        text,                         -- the RFC 9457 `type` URI
+    error_members     text,                         -- JSON: the type's extension members, as
+                                                    -- the refusal carried them
+    state_reason      text,                         -- display only: the staging phase, or a
+                                                    -- cancel's reason. Bounded and scrubbed
 
     created_at        text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     submitted_at      text,
@@ -250,6 +256,7 @@ CREATE TABLE jobs (
                                                     -- refused because it would erase whether the
                                                     -- job had completed, failed or been rejected
     deleted_by        text REFERENCES users(id),
+    delete_reason     text,                         -- prose naming who acted, never the device
 
     -- A job that was admitted has a resolved PDK. 'cancelling' joins the named
     -- side because it is post-admission, and so does 'staging': submit
@@ -327,6 +334,7 @@ CREATE TABLE job_nodes (
     finished_at text,
     exit_code   integer,
     error_type  text,                               -- the same taxonomy as jobs.error_type
+    state_reason text,                              -- display only: a cancel's reason
     PRIMARY KEY (job_id, step, "index")
 );
 CREATE INDEX job_nodes_scheduler_idx                -- the sweep's direction is id -> node

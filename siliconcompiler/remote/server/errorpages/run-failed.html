@@ -21,13 +21,14 @@
 </header>
 
 <main>
-<p>The run itself failed. The job was accepted and ran, and a node &mdash; or the run around the nodes &mdash; ended in failure.</p>
+<p>The run itself failed, in a way resubmitting unchanged repeats. The job was accepted and ran, and a node &mdash; or the run around the nodes &mdash; ended in failure: a tool or flow failure, or a deployment time or memory limit, with <code>detail</code> naming the limit.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Look at the nodes: the one whose <code>error_type</code> is this, and whose <code>exit_code</code> is non-zero, is where it happened.</li>
-  <li>Read that node&rsquo;s log. Where no node failed, the job&rsquo;s own log says why the run stopped.</li>
+  <li>It will fail the same way: change something before you resubmit.</li>
+  <li>Where <code>detail</code> names a time or memory limit, the fix is a smaller run or a larger limit.</li>
+  <li>Otherwise look at the nodes: the one whose <code>error_type</code> is this, and whose <code>exit_code</code> is non-zero, is where it happened. Read that node&rsquo;s log. Where no node failed, the job&rsquo;s own log says why the run stopped.</li>
 </ol>
 </div>
 
@@ -66,7 +67,7 @@ hits it and it cannot see your job &mdash; the job id is what connects the two.<
 
 <h2>What this is not</h2>
 
-<p><a href="scheduler-lost.html"><code>scheduler-lost</code></a> is a run that went away without ending.</p>
+<p><a href="run-interrupted.html"><code>run-interrupted</code></a> is the environment ending the run &mdash; preemption, a failed compute node, a lost job, an image that could not be pulled &mdash; and resubmitting unchanged may work.</p>
 </main>
 
 <footer>

@@ -217,7 +217,7 @@ def test_the_deployment_report_is_what_the_server_says_it_is(
 
     assert "Health: pass" in caplog.text
     assert "API: v1" in caplog.text
-    assert "Identity assurance: self-asserted" in caplog.text
+    assert "Identity assurance: self_asserted" in caplog.text
     assert "siliconcompiler: 0.38.9" in caplog.text
     assert "client_credentials" in caplog.text
     assert "logs.stream" in caplog.text
@@ -561,8 +561,8 @@ def test_the_discriminator_is_rendered_not_just_the_slug():
     '''A slug names a kind of failure; the member names the instance.'''
     assert "feature: device_grant" in describe(
         problem("feature-unsupported", 501, feature="device_grant"))
-    assert "violation: expanded_bytes" in describe(
-        problem("archive-rejected", 422, violation="expanded_bytes"))
+    assert "reason: expanded_bytes" in describe(
+        problem("archive-rejected", 422, reason="expanded_bytes"))
 
 
 def test_a_proxy_html_error_renders_rather_than_throwing(fake_v1, tmp_credentials,
@@ -607,10 +607,10 @@ def test_an_empty_error_body_still_renders(fake_v1, tmp_credentials,
 ###########################
 
 @pytest.mark.parametrize("slug,status,members", [
-    ("limit-exceeded", 429, {"limit": "devices"}),
+    ("limit-exceeded", 429, {"limit": "concurrent_jobs"}),
     ("feature-unsupported", 501, {"feature": "projects"}),
     ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf12"}),
-    ("terms-not-accepted", 403, {"terms_scope": "service", "blocked_by": "tos"}),
+    ("terms-not-accepted", 403, {"blocked_by": {"tos": {}}}),
     ("rate-limited", 429, {}),
     ("insecure-transport", 426, {}),
     ("not-ready", 409, {"artifact_kind": "logs"}),

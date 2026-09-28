@@ -21,12 +21,12 @@
 </header>
 
 <main>
-<p>What the uploaded manifest says disagrees with what the job was created with &mdash; a different design or job name, or a flow the descriptor did not describe. The server trusts the manifest and refuses the contradiction.</p>
+<p>What the uploaded manifest says disagrees with the job it was sent for &mdash; its design or job name is not the job&rsquo;s <code>design</code> or <code>jobname</code>, or its SiliconCompiler version does not satisfy <code>requires.python.siliconcompiler</code>. The server trusts neither over the other and rejects the job. The version case covers what <code>version-skew</code> meant while staging, which is retired.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>This is usually a client bug: the client builds both from the same project. Report it with the <code>trace_id</code>.</li>
+  <li>This is usually a client bug: the client builds both from the same project. Report it with the job&rsquo;s <code>id</code>. Resubmitting unchanged fails the same way.</li>
   <li>If you built the upload by hand, make the archive&rsquo;s manifest match the job you created.</li>
 </ol>
 </div>
@@ -48,8 +48,8 @@
 
 <table>
 <tbody>
-<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>At re-derivation, after the archive is opened.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
+    <td>As a <code>rejected</code> job&rsquo;s <code>error</code>: found at re-derivation, while the job stages, after the archive is opened.</td></tr>
 </tbody>
 </table>
 
@@ -60,8 +60,11 @@
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
+  <li>Where this arrived on a job&rsquo;s <code>error</code> rather than on a request, there is no
+      <code>trace_id</code>: <strong>quote the job&rsquo;s <code>id</code></strong>, the one identifier
+      that finds the run.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

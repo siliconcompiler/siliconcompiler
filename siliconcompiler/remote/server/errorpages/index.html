@@ -31,10 +31,11 @@ are probably here because you dereferenced one.</p>
 }</code></pre>
 
 <div class="do">
-<p><strong>Clients branch on <code>type</code> and nothing else.</strong> <code>title</code> and
-<code>detail</code> are prose and may be reworded in any release &mdash; a client that string-matches
-them is broken by a typo fix. The <code>type</code> URI is frozen for the life of
-<code>v1</code>.</p>
+<p><strong>Clients branch on <code>type</code>, then on <code>reason</code> where the type defines
+one.</strong> <code>title</code> and <code>detail</code> are prose and may be reworded in any
+release &mdash; a client that string-matches them is broken by a typo fix. An unrecognised
+<code>reason</code> means act on the <code>type</code> alone. The <code>type</code> URI is frozen for
+the life of <code>v1</code>.</p>
 </div>
 
 <div class="warn">
@@ -42,98 +43,159 @@ them is broken by a typo fix. The <code>type</code> URI is frozen for the life o
 <code>/v1</code> request handler produced. A stopped process, a proxy refusing an oversized body, or
 a routing-level rejection can answer first, with the web server&rsquo;s own HTML. Inspect
 <code>Content-Type</code>, treat a non-<code>problem+json</code> non-2xx as an untyped failure of its
-status class, and never assume <code>type</code> exists. A client doing
-<code>resp.json()["type"]</code> on any non-2xx throws on the errors it is most likely to meet in
-production.</p>
+status class, and never assume <code>type</code> exists. A <code>5xx</code> is handled by its status,
+honouring <code>Retry-After</code>.</p>
+<p><strong>Two endpoints answer in another shape.</strong> <code>POST /v1/auth/token</code> and
+<code>POST /v1/auth/device</code> answer what OAuth processing refuses in the OAuth shape &mdash;
+<code>error</code>, <code>error_description</code> and <code>reason</code> &mdash; and only the
+transport-level refusals there, raised before any OAuth processing, are <code>problem+json</code>:
+<a href="insecure-transport.html"><code>insecure-transport</code></a>,
+<a href="rate-limited.html"><code>rate-limited</code></a>,
+<a href="unsupported-media-type.html"><code>unsupported-media-type</code></a> and
+<a href="method-not-allowed.html"><code>method-not-allowed</code></a>.</p>
 </div>
 
 <h2>Every type</h2>
 
-<p>All 37, grouped by kind. Each links to its page.</p>
+<p>All 37, grouped by kind. Each links to its page. A refusal is retryable by waiting if and only
+if it carries <code>Retry-After</code>.</p>
 
 <table>
-<thead><tr><th>Type</th><th>Status</th><th></th></tr></thead>
+<thead><tr><th>Type</th><th>Status</th><th>What it is</th><th>What the client does</th></tr></thead>
 <tbody>
 <tr><td><a href="limit-exceeded.html"><code>limit-exceeded</code></a></td><td><code>429</code></td>
-    <td>A ceiling that refills. <code>limit</code> names which; honour <code>Retry-After</code>.</td></tr>
-<tr><td><a href="node-limit-exceeded.html"><code>node-limit-exceeded</code></a></td><td><code>403</code></td>
-    <td>More nodes in one flow than allowed. Send a smaller flow.</td></tr>
-<tr><td><a href="upload-too-large.html"><code>upload-too-large</code></a></td><td><code>413</code></td>
-    <td>Any request body over its endpoint&rsquo;s cap, not only an upload.</td></tr>
-<tr><td><a href="download-too-large.html"><code>download-too-large</code></a></td><td><code>403</code></td>
-    <td>An object over the API&rsquo;s download ceiling. <strong>Does not refill</strong> &mdash; use the portal.</td></tr>
-<tr><td><a href="rate-limited.html"><code>rate-limited</code></a></td><td><code>429</code></td>
-    <td>Calls per unit time. Honour <code>Retry-After</code>.</td></tr>
-<tr><td><a href="too-many-attempts.html"><code>too-many-attempts</code></a></td><td><code>429</code></td>
-    <td>The device-verify cap. <strong>Does not refill</strong> &mdash; restart the login.</td></tr>
-<tr><td><a href="account-not-provisioned.html"><code>account-not-provisioned</code></a></td><td><code>403</code></td>
-    <td>No account for you where jobs run. <strong>The operator sets one up.</strong></td></tr>
-<tr><td><a href="prior-results-unavailable.html"><code>prior-results-unavailable</code></a></td><td><code>422</code></td>
-    <td>A <code>continues_from</code> entry names results that cannot be used. <code>reason</code> says why.</td></tr>
+    <td>A ceiling that refills. <code>limit</code> names which; <code>pending_uploads</code> also carries <code>job_ids</code>.</td>
+    <td>Waits <code>Retry-After</code>, then retries. On <code>pending_uploads</code> it may cancel a job in <code>job_ids</code> it will not submit.</td></tr>
 <tr><td><a href="entitlement-denied.html"><code>entitlement-denied</code></a></td><td><code>403</code></td>
-    <td>Your account may not use a PDK, tool or library this job needs.</td></tr>
-<tr><td><a href="resource-unresolved.html"><code>resource-unresolved</code></a></td><td><code>422</code></td>
-    <td>The server could not decide what the flow needs.</td></tr>
+    <td>No grant for a PDK, tool, library or FPGA device the job names or an artifact derives from.</td>
+    <td>Stops; the person asks for a grant.</td></tr>
+<tr><td><a href="account-not-provisioned.html"><code>account-not-provisioned</code></a></td><td><code>403</code></td>
+    <td>Your account is not yet provisioned to run jobs here.</td>
+    <td>Stops until an administrator provisions it.</td></tr>
+<tr><td><a href="not-permitted.html"><code>not-permitted</code></a></td><td><code>403</code></td>
+    <td>A write on a job you can read and may not act on, or a create naming an archived project.</td>
+    <td>Stops, and does not offer that action on that job again.</td></tr>
 <tr><td><a href="software-unavailable.html"><code>software-unavailable</code></a></td><td><code>422</code></td>
-    <td>No image satisfies the job&rsquo;s software. Names every requirement that failed and what is available.</td></tr>
-<tr><td><a href="resource-unavailable.html"><code>resource-unavailable</code></a></td><td><code>422</code></td>
-    <td>The job needs a resource this deployment does not hold and cannot supply, and you could not send it either.</td></tr>
-<tr><td><a href="upload-forbidden.html"><code>upload-forbidden</code></a></td><td><code>422</code></td>
-    <td>The archive carries restricted material you may not upload. The job is rejected.</td></tr>
-<tr><td><a href="terms-not-accepted.html"><code>terms-not-accepted</code></a></td><td><code>403</code></td>
-    <td>An agreement is unaccepted. Carries where to go and accept it.</td></tr>
-<tr><td><a href="artifact-not-approved.html"><code>artifact-not-approved</code></a></td><td><code>403</code></td>
-    <td>The per-object gate said no: withheld, an issue, or a node archive holding something that is.</td></tr>
-<tr><td><a href="version-skew.html"><code>version-skew</code></a></td><td><code>422</code></td>
-    <td>Client or software versions this deployment will not accept.</td></tr>
+    <td>No image satisfies the job&rsquo;s software, SiliconCompiler&rsquo;s own version included. Names every requirement that failed.</td>
+    <td>Asks for a version in <code>available</code>, or asks the operator.</td></tr>
+<tr><td><a href="node-limit-exceeded.html"><code>node-limit-exceeded</code></a></td><td><code>403</code></td>
+    <td>More nodes in one flow than allowed.</td>
+    <td>Sends a smaller flow; waiting does not help.</td></tr>
+<tr><td><a href="upload-too-large.html"><code>upload-too-large</code></a></td><td><code>413</code></td>
+    <td>Over <code>max_upload_bytes</code>, or any request body over its endpoint&rsquo;s cap.</td>
+    <td>Sends something smaller; waiting does not help.</td></tr>
+<tr><td><a href="download-too-large.html"><code>download-too-large</code></a></td><td><code>403</code></td>
+    <td>An object over the caller&rsquo;s download ceiling. <strong>Does not refill.</strong></td>
+    <td>Fetches it through the portal.</td></tr>
 <tr><td><a href="declared-mismatch.html"><code>declared-mismatch</code></a></td><td><code>422</code></td>
-    <td>The manifest contradicts the descriptor.</td></tr>
-<tr><td><a href="upload-digest-mismatch.html"><code>upload-digest-mismatch</code></a></td><td><code>422</code></td>
-    <td>The digest you submitted is not what storage holds.</td></tr>
-<tr><td><a href="archive-rejected.html"><code>archive-rejected</code></a></td><td><code>422</code></td>
-    <td>The archive broke a normative limit. <code>violation</code> names which.</td></tr>
-<tr><td><a href="idempotency-key-reuse.html"><code>idempotency-key-reuse</code></a></td><td><code>422</code></td>
-    <td>The same <code>Idempotency-Key</code> with a different request.</td></tr>
-<tr><td><a href="invalid-cursor.html"><code>invalid-cursor</code></a></td><td><code>400</code></td>
-    <td>A stale or malformed <code>?cursor=</code>. Restart the pagination.</td></tr>
-<tr><td><a href="invalid-request.html"><code>invalid-request</code></a></td><td><code>400</code></td>
-    <td>A malformed request. <em>Often answered below the handler, untyped.</em></td></tr>
-<tr><td><a href="method-not-allowed.html"><code>method-not-allowed</code></a></td><td><code>405</code></td>
-    <td>Wrong method for this path. <em>Often answered below the handler, untyped.</em></td></tr>
-<tr><td><a href="unsupported-media-type.html"><code>unsupported-media-type</code></a></td><td><code>415</code></td>
-    <td>A <code>Content-Type</code> this endpoint does not accept. <em>Often answered below the handler, untyped.</em></td></tr>
-<tr><td><a href="not-acceptable.html"><code>not-acceptable</code></a></td><td><code>406</code></td>
-    <td>No representation satisfies your <code>Accept</code>. <em>Often answered below the handler, untyped.</em></td></tr>
+    <td>The manifest&rsquo;s design, job name or SiliconCompiler version disagrees with the job.</td>
+    <td>Reports a client bug; resubmitting unchanged fails the same way.</td></tr>
 <tr><td><a href="job-state-conflict.html"><code>job-state-conflict</code></a></td><td><code>409</code></td>
-    <td>The job&rsquo;s state does not allow that call: past <code>awaiting_input</code>, a grant re-issue with a different <code>bytes</code>, or deleting a job that is not terminal.</td></tr>
+    <td>The job&rsquo;s state does not allow that call; <code>reason: "in_progress"</code> for a retry the server is still handling.</td>
+    <td>Re-reads the job. On <code>in_progress</code>, waits <code>Retry-After</code> and retries with the same key.</td></tr>
+<tr><td><a href="terms-not-accepted.html"><code>terms-not-accepted</code></a></td><td><code>403</code></td>
+    <td>An unaccepted terms document. <code>blocked_by</code> maps each one to where to sign it.</td>
+    <td>Sends the person to each <code>url</code>, names any document without one, then retries.</td></tr>
+<tr><td><a href="artifact-not-approved.html"><code>artifact-not-approved</code></a></td><td><code>403</code></td>
+    <td>The per-object gate withholds the artifact.</td>
+    <td>Asks through <code>access_request_url</code> where there is one; otherwise stops.</td></tr>
 <tr><td><a href="not-found.html"><code>not-found</code></a></td><td><code>404</code></td>
-    <td>It does not exist, or it is not yours &mdash; deliberately indistinguishable.</td></tr>
-<tr><td><a href="not-ready.html"><code>not-ready</code></a></td><td><code>409</code></td>
-    <td>The output exists in the contract but not yet in storage. Retry.</td></tr>
-<tr><td><a href="feature-unsupported.html"><code>feature-unsupported</code></a></td><td><code>501</code></td>
-    <td>This deployment does not have the named capability. Permanent: do not retry.</td></tr>
+    <td>It does not exist, or it is not yours &mdash; deliberately indistinguishable.</td>
+    <td>Stops.</td></tr>
+<tr><td><a href="upload-digest-mismatch.html"><code>upload-digest-mismatch</code></a></td><td><code>422</code></td>
+    <td>The digest is not the one the grant bound, or the upload does not match it.</td>
+    <td>Uploads the archive whose digest the grant bound, then submits again.</td></tr>
+<tr><td><a href="archive-rejected.html"><code>archive-rejected</code></a></td><td><code>422</code></td>
+    <td>The archive broke a limit or cannot be run as sent. <code>reason</code> names which.</td>
+    <td>Fixes what <code>reason</code> names, in a new job.</td></tr>
 <tr><td><a href="invalid-token.html"><code>invalid-token</code></a></td><td><code>401</code></td>
-    <td>Expired or unverifiable access token. <strong>Refresh once</strong>, then retry.</td></tr>
+    <td>Expired or unverifiable access token.</td>
+    <td>Refreshes, then retries once.</td></tr>
 <tr><td><a href="invalid-dpop-proof.html"><code>invalid-dpop-proof</code></a></td><td><code>401</code></td>
-    <td>The request&rsquo;s DPoP proof was missing, malformed, replayed or wrongly keyed.</td></tr>
+    <td>The DPoP proof was malformed, replayed or wrongly keyed.</td>
+    <td>Fails, and does not refresh; refused for its time, corrects its clock and retries once.</td></tr>
+<tr><td><a href="dpop-nonce-required.html"><code>dpop-nonce-required</code></a></td><td><code>401</code></td>
+    <td>The server requires a DPoP nonce and has just supplied one.</td>
+    <td>Retries once with the nonce, and keeps one nonce per origin.</td></tr>
 <tr><td><a href="insufficient-scope.html"><code>insufficient-scope</code></a></td><td><code>403</code></td>
-    <td>The token is valid; its scope does not cover this call. <strong>Refreshing will not help.</strong></td></tr>
-<tr><td><a href="session-ended.html"><code>session-ended</code></a></td><td><code>401</code></td>
-    <td>The session is over. <code>reason</code> says why. <strong>Re-authenticate; never refresh.</strong></td></tr>
+    <td>The token is valid; its scope does not cover this call.</td>
+    <td>Fails, and never refreshes.</td></tr>
+<tr><td><a href="invalid-request.html"><code>invalid-request</code></a></td><td><code>400</code></td>
+    <td>A malformed request. <em>Often answered below the handler, untyped.</em></td>
+    <td>Fixes the request.</td></tr>
 <tr><td><a href="insecure-transport.html"><code>insecure-transport</code></a></td><td><code>426</code></td>
-    <td>A credential was offered over plaintext. Re-send over <code>https</code>.</td></tr>
-<tr><td><a href="scheduler-lost.html"><code>scheduler-lost</code></a></td><td>&mdash;</td>
-    <td><strong>Never an HTTP response.</strong> A <code>type</code> on a job&rsquo;s <code>error</code> object.</td></tr>
+    <td>A credential was offered over plaintext.</td>
+    <td>Re-sends over <code>https</code>, and never downgrades.</td></tr>
+<tr><td><a href="rate-limited.html"><code>rate-limited</code></a></td><td><code>429</code></td>
+    <td>Calls per unit time.</td>
+    <td>Waits <code>Retry-After</code>; that is the whole answer.</td></tr>
+<tr><td><a href="session-ended.html"><code>session-ended</code></a></td><td><code>401</code></td>
+    <td>The session is over. <code>reason</code> says why.</td>
+    <td>Re-authenticates and never refreshes. On <code>reused</code>, says the credentials were used elsewhere.</td></tr>
+<tr><td><a href="run-interrupted.html"><code>run-interrupted</code></a></td><td>&mdash;</td>
+    <td><strong>Never an HTTP response.</strong> The environment ended the run.</td>
+    <td>May resubmit unchanged, and it may work.</td></tr>
 <tr><td><a href="staging-failed.html"><code>staging-failed</code></a></td><td>&mdash;</td>
-    <td><strong>Never an HTTP response.</strong> A <code>type</code> on a job&rsquo;s <code>error</code> object: the server could not get the job ready, for its own reasons.</td></tr>
+    <td><strong>Never an HTTP response.</strong> The server could not get the job ready, for its own reasons.</td>
+    <td>Submits again later.</td></tr>
 <tr><td><a href="run-failed.html"><code>run-failed</code></a></td><td>&mdash;</td>
-    <td><strong>Never an HTTP response.</strong> A <code>type</code> on a job&rsquo;s or node&rsquo;s <code>error</code> object.</td></tr>
+    <td><strong>Never an HTTP response.</strong> The run failed in a way resubmitting unchanged repeats.</td>
+    <td>Changes something before it resubmits.</td></tr>
+<tr><td><a href="feature-unsupported.html"><code>feature-unsupported</code></a></td><td><code>501</code></td>
+    <td>This deployment does not have the named capability now.</td>
+    <td>Does not retry, and re-reads <code>GET /v1</code> before offering it again.</td></tr>
+<tr><td><a href="not-ready.html"><code>not-ready</code></a></td><td><code>409</code></td>
+    <td>An output the contract promises is not available yet.</td>
+    <td>Waits <code>Retry-After</code>, then asks again.</td></tr>
+<tr><td><a href="invalid-cursor.html"><code>invalid-cursor</code></a></td><td><code>400</code></td>
+    <td>A stale or malformed <code>?cursor=</code>.</td>
+    <td>Restarts the pagination.</td></tr>
+<tr><td><a href="idempotency-key-reuse.html"><code>idempotency-key-reuse</code></a></td><td><code>422</code></td>
+    <td>The same <code>Idempotency-Key</code> with a different request.</td>
+    <td>Sends a fresh key.</td></tr>
+<tr><td><a href="resource-unavailable.html"><code>resource-unavailable</code></a></td><td><code>422</code></td>
+    <td>The job needs a resource this deployment does not hold and cannot supply.</td>
+    <td>Stops: this deployment cannot run the job.</td></tr>
+<tr><td><a href="upload-forbidden.html"><code>upload-forbidden</code></a></td><td><code>422</code></td>
+    <td>The archive carries restricted material you may not upload.</td>
+    <td>Removes the file, or references the resource, in a new job.</td></tr>
+<tr><td><a href="resource-unresolved.html"><code>resource-unresolved</code></a></td><td><code>422</code></td>
+    <td>The server could not decide what the flow needs: an ASIC project with no PDK set.</td>
+    <td>Sets the PDK, in a new job.</td></tr>
+<tr><td><a href="prior-results-unavailable.html"><code>prior-results-unavailable</code></a></td><td><code>422</code></td>
+    <td>A <code>continues_from</code> entry names results that cannot be used. <code>reason</code> says why.</td>
+    <td>Runs from an earlier step, or names a job of its own whose results can be used.</td></tr>
+<tr><td><a href="method-not-allowed.html"><code>method-not-allowed</code></a></td><td><code>405</code></td>
+    <td>Wrong method for this path. <em>Often answered below the handler, untyped.</em></td>
+    <td>Fixes the request.</td></tr>
+<tr><td><a href="unsupported-media-type.html"><code>unsupported-media-type</code></a></td><td><code>415</code></td>
+    <td>A <code>Content-Type</code> this endpoint does not accept. <em>Often answered below the handler, untyped.</em></td>
+    <td>Fixes the request.</td></tr>
+<tr><td><a href="not-acceptable.html"><code>not-acceptable</code></a></td><td><code>406</code></td>
+    <td>No representation satisfies your <code>Accept</code>. <em>Often answered below the handler, untyped.</em></td>
+    <td>Fixes the request.</td></tr>
+</tbody>
+</table>
+
+<h2>Retired</h2>
+
+<p>Retired, never raised, and not to be reused. They have no page.</p>
+
+<table>
+<thead><tr><th>Type</th><th>Covered now by</th></tr></thead>
+<tbody>
+<tr><td><code>unsatisfiable-request</code>, <code>version-skew</code>, <code>too-many-attempts</code>, <code>scheduler-lost</code></td>
+    <td><a href="resource-unavailable.html"><code>resource-unavailable</code></a> covers every resource kind;
+    <a href="software-unavailable.html"><code>software-unavailable</code></a> covers images and SiliconCompiler&rsquo;s own version, and
+    <a href="declared-mismatch.html"><code>declared-mismatch</code></a> a manifest that disagrees with it;
+    the approval page caps wrong guesses per approver;
+    <a href="run-interrupted.html"><code>run-interrupted</code></a> is a run the environment ended.</td></tr>
 </tbody>
 </table>
 
 <h2>Stability</h2>
 
-<p>The registry is <strong>frozen at <code>v1</code></strong>. A type may gain extension members
+<p>The registry is complete at the <code>v1</code> freeze. A type may gain extension members
 &mdash; that is additive, and an unrecognised member is ignored, never an error. Changing what a
 member means, or retiring a URI, costs a major version.</p>
 

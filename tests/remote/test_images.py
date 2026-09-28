@@ -831,7 +831,8 @@ def test_what_a_job_ran_is_the_union_of_its_images(registry, store):
 
     held = images.contents_of(store, [plan.job, *plan.nodes.values()])
 
-    assert held == {"openroad": ["2.0"], "siliconcompiler": ["0.39.1"]}
+    assert held == {"python": {"siliconcompiler": ["0.39.1"]},
+                    "tools": {"openroad": ["2.0"]}}
     assert images.contents_of(store, [None, None]) == {}
 
 

@@ -350,21 +350,21 @@ class Client:
         return self.transport.request(
             "POST", "jobs", json_body=body, headers=headers).json()
 
-    def upload_grant(self, job_id: str, size: int) -> Dict[str, Any]:
+    def upload_grant(self, job_id: str, size: int, digest: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/upload-grant``: where to put the bytes.
 
         Its own call rather than a member of the create response, which is what
         gives an expired grant a way back: re-issuing is this endpoint, where
         before it meant creating a second job and leaking the first.
 
-        🔴 ``size`` is the archive about to go up, and the first grant for it
-        fixes it: a re-issue must repeat it. It is the one place the size is
-        sent -- the server can answer create by asking for more than was
-        planned, and over the ceiling this is where `upload-too-large` comes.
+        🔴 ``size`` and ``digest`` are the exact bytes about to go up, and the
+        first grant for them fixes both: a re-issue must repeat them, and the
+        server runs only bytes matching the digest.
         '''
         self.ensure_session()
         return self.transport.request("POST", f"jobs/{job_id}/upload-grant",
-                                      json_body={"bytes": size}).json()
+                                      json_body={"size_bytes": size,
+                                                 "digest": digest}).json()
 
     def upload(self, grant: Dict[str, Any], path) -> None:
         '''Send the archive to wherever the grant points.
@@ -668,7 +668,7 @@ class Client:
 
         🔴 The check is the client's and the decision is the server's, and the
         asymmetry is deliberate: a client that skips this is not broken -- it
-        gets a `version-skew` a moment later -- and a server that trusted it
+        gets a `software-unavailable` a moment later -- and a server that trusted it
         would be. What it buys is that the mismatch is visible while somebody is
         watching, rather than at the first submit of the first job.
 

@@ -119,7 +119,7 @@ def test_a_finished_run_is_indexed(server_client, key, token, finished):
 def test_every_required_member_is_published(server_client, key, token, finished):
     for item in listing(server_client, key, token, finished["id"]):
         for member in ("id", "step", "index", "kind", "media_type", "size_bytes",
-                       "content_hash", "created_at", "expires_at", "deleted_at",
+                       "digest", "created_at", "retained_until", "deleted_at",
                        # 🔴 Two members, and without them `deleted_at` cannot
                        # be read: retention lapsing ends in one too, so the
                        # column alone cannot say whether the system or a
@@ -128,7 +128,8 @@ def test_every_required_member_is_published(server_client, key, token, finished)
                        "deleted_cause", "delete_reason",
                        "fetchable"):
             assert member in item, member
-        assert item["content_hash"].startswith("sha256:")
+        assert item["digest"].startswith("sha256:")
+        assert "content_hash" not in item and "expires_at" not in item
         # An unauthenticated deployment never emits these: nothing here is
         # approval-gated, and an endpoint that always refuses is worse than an
         # absent one.
@@ -141,7 +142,7 @@ def test_retention_is_per_kind_and_the_job_floor_is_only_a_floor(
     '''A manifest and the outputs beside it go at different times, so one
     number cannot answer for a job.'''
     items = listing(server_client, key, token, finished["id"])
-    by_kind = {item["kind"]: item["expires_at"] for item in items}
+    by_kind = {item["kind"]: item["retained_until"] for item in items}
 
     assert by_kind["manifest"] > by_kind["node"]
     # `node archive` has no number of its own, so it gets the deployment's floor --
@@ -221,7 +222,7 @@ def test_a_job_that_ran_nothing_lists_only_what_was_sent(server_client, key, tok
     items = listing(server_client, key, token, job["id"])
     assert [(item["kind"], item["step"]) for item in items] == [("input", None)]
     # The digest the submit checked, as the hash of the bytes it kept.
-    assert items[0]["content_hash"] == digest and items[0]["size_bytes"] == size
+    assert items[0]["digest"] == digest and items[0]["size_bytes"] == size
 
 
 ###########################

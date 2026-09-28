@@ -21,7 +21,13 @@
 </header>
 
 <main>
-<p>The request was malformed: a body that does not validate, a missing or contradictory parameter.</p>
+<p>The request was malformed: a body that does not validate, a missing or contradictory parameter,
+or a request member or query parameter this contract does not define &mdash; which is refused, never
+ignored, so a misspelled filter cannot read as an answer.</p>
+<p>At <code>POST /v1/auth/token</code> and <code>POST /v1/auth/device</code> a malformed request is
+<code>invalid_request</code>, in the OAuth shape, and an unknown parameter is ignored &mdash; except
+<code>actor_token</code>, <code>audience</code> and <code>resource</code>, which are refused
+<code>invalid_request</code>.</p>
 <h2>What to do</h2>
 
 <div class="do">
@@ -67,8 +73,8 @@ at all. Treat a non-<code>problem+json</code> <code>400</code> exactly as you wo
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who

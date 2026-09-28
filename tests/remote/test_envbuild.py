@@ -638,7 +638,7 @@ def test_a_derived_image_holds_its_base_and_what_it_installed(store):
                                       digest("e"), "k1", [("numpy", "2.0.1")], note="")
 
     assert images.contents_of(store, [derived]) == {
-        "numpy": ["2.0.1"], "siliconcompiler": ["0.38.0"]}
+        "python": {"numpy": ["2.0.1"], "siliconcompiler": ["0.38.0"]}, "tools": {}}
     assert images.derived_image(store, store.base, "k1")["id"] == derived
 
 
@@ -858,7 +858,7 @@ def test_a_node_with_an_environment_runs_in_the_image_built_for_it(
     # What ran, including what was installed.
     from test_server_sources_flow import read
     assert read(client, key, token, job["id"])["resolved_versions"] == {
-        "numpy": ["2.0.1"], "siliconcompiler": ["0.38.0"]}
+        "python": {"numpy": ["2.0.1"], "siliconcompiler": ["0.38.0"]}, "tools": {}}
 
 
 def test_the_same_file_on_the_same_image_is_built_once(

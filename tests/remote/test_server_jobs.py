@@ -104,11 +104,28 @@ def put(client, grant, data):
     return client.put(grant["url"].split("http://localhost", 1)[1], data=data)
 
 
+# A digest for a grant whose bytes the test never submits.
+ANY_DIGEST = "sha256:" + "0" * 64
+
+
+def sized(size, digest=ANY_DIGEST):
+    return {"size_bytes": size, "digest": digest}
+
+
+def grant_for(archive):
+    '''The grant request for an archive: its size and its digest.'''
+    import hashlib
+
+    data = open(archive, "rb").read()
+    return {"size_bytes": len(data), "digest": f"sha256:{hashlib.sha256(data).hexdigest()}"}
+
+
 def stage(client, key, token, archive, size, **body):
     '''A job with its bytes uploaded, ready to submit.'''
     job = create(client, key, token, **body).get_json()
     grant = call(client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token,
+                 json=dict(grant_for(archive), size_bytes=size)).get_json()
     put(client, grant, open(archive, "rb").read())
     return job
 
@@ -199,7 +216,7 @@ def test_an_upload_larger_than_the_ceiling_is_refused_at_the_grant(
     gone from create, and this call still comes before any byte moves.'''
     job = create(server_client, key, token).get_json()
     response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
-                    token, json={"bytes": 1 << 40})
+                    token, json=sized(1 << 40))
 
     assert response.status_code == 413
     assert slug(response) == "upload-too-large"
@@ -498,9 +515,9 @@ def test_the_grant_is_200_because_re_issue_is_the_point(server_client, key, toke
     job = create(server_client, key, token).get_json()
 
     first = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": 4096})
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(4096))
     second = call(server_client, key, "POST",
-                  f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": 4096})
+                  f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(4096))
 
     assert first.status_code == 200
     assert second.status_code == 200
@@ -515,7 +532,7 @@ def test_the_grant_is_200_because_re_issue_is_the_point(server_client, key, toke
 def test_the_grant_moves_the_job_to_awaiting_input(server_client, key, token):
     job = create(server_client, key, token).get_json()
     call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token,
-         json={"bytes": 4096})
+         json=sized(4096))
 
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert read["state"] == "awaiting_input"
@@ -531,13 +548,13 @@ def test_the_first_grant_fixes_the_size_and_a_re_issue_repeats_it(
     job = create(server_client, key, token).get_json()
     path = f"/v1/jobs/{job['id']}/upload-grant"
 
-    grant = call(server_client, key, "POST", path, token, json={"bytes": 4096}).get_json()
+    grant = call(server_client, key, "POST", path, token, json=sized(4096)).get_json()
     assert grant["headers"]["content-length"] == "4096"
 
-    again = call(server_client, key, "POST", path, token, json={"bytes": 4096})
+    again = call(server_client, key, "POST", path, token, json=sized(4096))
     assert again.status_code == 200
 
-    widened = call(server_client, key, "POST", path, token, json={"bytes": 8192})
+    widened = call(server_client, key, "POST", path, token, json=sized(8192))
     assert widened.status_code == 409
     assert slug(widened) == "job-state-conflict"
 
@@ -558,7 +575,7 @@ def test_the_uploads_of_one_job_are_bounded_together(
     job = create(server_client, key, token).get_json()
 
     response = call(server_client, key, "POST",
-                    f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": 1001})
+                    f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(1001))
 
     assert response.status_code == 413
     assert response.get_json()["limit"] == "max_upload_bytes"
@@ -569,7 +586,7 @@ def test_no_grant_for_a_job_that_is_past_it(server, server_client, key, token, m
                          me, None, "completed")
 
     response = call(server_client, key, "POST",
-                    f"/v1/jobs/{existing}/upload-grant", token, json={"bytes": 4096})
+                    f"/v1/jobs/{existing}/upload-grant", token, json=sized(4096))
 
     assert response.status_code == 409
     assert slug(response) == "job-state-conflict"
@@ -584,19 +601,19 @@ def test_the_signature_is_the_credential(server_client, key, token, job_archive)
     archive, digest, size = job_archive()
     job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(size, digest)).get_json()
 
     response = put(server_client, grant, open(archive, "rb").read())
 
     assert response.status_code == 200
-    assert response.get_json()["bytes"] == size
+    assert response.get_json()["size_bytes"] == size
 
 
 def test_an_altered_url_is_refused(server_client, key, token, job_archive):
     archive, digest, size = job_archive()
     job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(size, digest)).get_json()
 
     widened = grant["url"].replace(f"max_bytes={size}", "max_bytes=999999999")
     response = server_client.put(widened.split("http://localhost", 1)[1],
@@ -681,7 +698,7 @@ def test_bytes_short_of_the_grant_are_a_digest_mismatch(server_client, key, toke
     archive, digest, size = job_archive()
     job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
-                 token, json={"bytes": size}).get_json()
+                 token, json=sized(size, digest)).get_json()
     put(server_client, grant, open(archive, "rb").read()[: size // 2])
 
     response = submit(server_client, key, token, job["id"], digest)
@@ -714,7 +731,7 @@ def test_an_archive_violation_names_which_rule(server_client, key, token,
 
     assert response.status_code == 422
     assert slug(response) == "archive-rejected"
-    assert response.get_json()["violation"] == "traversal"
+    assert response.get_json()["reason"] == "traversal"
 
 
 def test_a_manifest_that_is_not_where_it_was_declared(server_client, key, token,
@@ -732,7 +749,7 @@ def test_a_manifest_that_is_not_where_it_was_declared(server_client, key, token,
 def test_submitting_with_nothing_uploaded(server_client, key, token):
     job = create(server_client, key, token).get_json()
     call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token,
-         json={"bytes": 4096})
+         json=sized(4096))
 
     response = submit(server_client, key, token, job["id"], "sha256:" + "0" * 64, 1)
 
@@ -1082,7 +1099,8 @@ def test_a_job_the_scheduler_lost(server, server_client, key, token,
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
 
     assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("scheduler-lost")
+    assert read["error"]["type"].endswith("run-interrupted")
+    assert "status" not in read["error"]
     assert all(node["state"] == "cancelled" for node in read["nodes"])
 
 
@@ -1129,7 +1147,7 @@ def test_a_descriptor_with_no_size_still_uploads(server_client, key, token,
     archive, digest, size = job_archive()
     job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": size}).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(size, digest)).get_json()
 
     assert int(grant["headers"]["content-length"]) == size
 
@@ -1144,7 +1162,7 @@ def test_an_upload_past_the_ceiling_is_refused_as_it_arrives(
     a claim the sender makes about a body it is still sending.'''
     job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json={"bytes": 16}).get_json()
+                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(16)).get_json()
 
     response = put(server_client, grant, b"x" * 4096)
 
@@ -1214,7 +1232,7 @@ def test_a_job_that_really_is_gone_is_still_reported_lost(
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
 
     assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("scheduler-lost")
+    assert read["error"]["type"].endswith("run-interrupted")
 
 
 ###########################
@@ -1404,7 +1422,8 @@ def test_the_job_publishes_the_versions_the_server_resolved(
     read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
                 container_token).get_json()
 
-    assert read["resolved_versions"] == {"siliconcompiler": ["0.38.0"]}
+    assert read["resolved_versions"] == {"python": {"siliconcompiler": ["0.38.0"]},
+                                         "tools": {}}
 
 
 def test_a_job_that_resolved_nothing_says_nothing(server, server_client, key,
@@ -1430,7 +1449,8 @@ def test_a_range_no_image_satisfies_is_refused_at_create(
                       requires=wants(">=0.40"))
 
     assert response.status_code == 422
-    assert slug(response) == "version-skew"
+    assert slug(response) == "software-unavailable"
+    assert response.get_json()["unresolved"][0]["name"] == "siliconcompiler"
 
 
 def test_a_range_the_registry_can_serve_is_accepted_at_create(
@@ -1744,7 +1764,7 @@ def test_a_manifest_from_a_newer_schema_is_refused(
     response = submit(server_client, key, token, job["id"], upload_digest, size)
 
     assert response.status_code == 422
-    assert slug(response) == "version-skew"
+    assert slug(response) == "declared-mismatch"
     assert "only backwards compatible" in response.get_json()["detail"]
     assert not dispatcher.submitted
 
@@ -1905,7 +1925,7 @@ def test_a_run_that_went_away_does_not_leave_its_nodes_running(
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
 
     assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("scheduler-lost")
+    assert read["error"]["type"].endswith("run-interrupted")
     assert dispatcher.cancelled_nodes == [f"{job['id']}_stepone_0"]
     # 🔴 And the orchestrator is NOT scancelled: it is already gone, and
     # scancel answers an error for a job that has finished.
@@ -2111,7 +2131,7 @@ def test_a_silent_run_is_lost_even_while_the_scheduler_says_running(
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
 
     assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("scheduler-lost")
+    assert read["error"]["type"].endswith("run-interrupted")
 
 
 def test_a_beating_run_is_left_alone(server, server_client, key, token,
@@ -2251,7 +2271,7 @@ def test_a_live_upload_grant_is_never_abandoned(server, server_client, key,
     created = call(server_client, key, "POST", "/v1/jobs", token, json={
         "design": "gcd", "jobname": "job0"}).get_json()
     call(server_client, key, "POST", f"/v1/jobs/{created['id']}/upload-grant",
-         token, json={"bytes": 4096})
+         token, json=sized(4096))
 
     server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
 

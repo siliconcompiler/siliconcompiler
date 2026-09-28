@@ -106,7 +106,8 @@ def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, live_serve
 
     detail, _ = client.job(job["id"])
     assert detail["progress"] == {"total_count": 2, "completed_count": 2,
-                                  "failed_count": 0}
+                                  "failed_count": 0, "skipped_count": 0,
+                                  "cancelled_count": 0}
     assert all(node["state"] == "completed" for node in detail["nodes"])
     assert all(node["terminal"] for node in detail["nodes"])
     assert detail["submitted_at"] and detail["started_at"] and detail["finished_at"]

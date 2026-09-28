@@ -24,9 +24,9 @@ def artifact(kind="manifest", step=None, index=None, fetchable=True, **extra):
         "step": step, "index": index, "kind": kind,
         "media_type": "application/json" if kind == "manifest" else "text/plain",
         "size_bytes": 12,
-        "content_hash": "sha256:" + "0" * 64,
+        "digest": "sha256:" + "0" * 64,
         "created_at": "2026-09-22T10:00:00.000Z",
-        "expires_at": "2031-09-22T10:00:00.000Z",
+        "retained_until": "2031-09-22T10:00:00.000Z",
         "deleted_at": None,
         "deleted_cause": None,
         "delete_reason": None,
@@ -194,7 +194,8 @@ def test_a_server_that_gives_no_reason_still_gets_a_sentence(fake_v1, results,
 def test_expired_says_when_it_aged_out(fake_v1, results, caplog):
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("outputs", "stepone", "0", fetchable=False,
-                 expires_at="2026-01-05T00:00:00.000Z")]})
+                 deleted_at="2026-01-05T00:00:00.000Z", deleted_cause="expired",
+                 retained_until="2026-01-05T00:00:00.000Z")]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
@@ -203,31 +204,48 @@ def test_expired_says_when_it_aged_out(fake_v1, results, caplog):
     assert "deleted" not in caplog.text
 
 
-def test_blocked_by_an_agreement_names_it_and_where_to_ask(fake_v1, results,
-                                                           caplog):
+def test_blocked_by_names_each_document_with_its_own_link(fake_v1, results, caplog):
+    '''*Sign*: each document in the map, with the link its entry carries.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("final", "place", "0", fetchable=False, blocked_by="gf22-nda",
-                 access_request_url="https://portal.test/request/1")]})
+        artifact("final", "place", "0", fetchable=False, blocked_by={
+            "gf22-nda": {"url": "https://portal.test/terms/gf22-nda"},
+            "gf22-export": {"url": "https://portal.test/terms/gf22-export"}})]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
 
-    assert "gf22-nda" in caplog.text
-    assert "https://portal.test/request/1" in caplog.text
+    assert "sign gf22-nda: https://portal.test/terms/gf22-nda" in caplog.text
+    assert "sign gf22-export: https://portal.test/terms/gf22-export" in caplog.text
 
 
-def test_blocked_with_no_path_to_yes_does_not_invent_one(fake_v1, results,
-                                                         caplog):
-    '''An absent access_request_url is the honest answer, and the client must
-    not offer a URL that was not given.'''
+def test_a_document_with_no_link_is_named_by_its_title(fake_v1, results, caplog):
+    '''An entry that is `{}` has no link, and the client names the document by
+    its title in GET /v1/me's `terms` -- without inventing one.'''
+    fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [
+        {"id": "gf22-nda", "title": "GF22 non-disclosure agreement"}]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("final", "place", "0", fetchable=False, blocked_by="gf22-nda")]})
+        artifact("final", "place", "0", fetchable=False, blocked_by={"gf22-nda": {}})]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
 
-    assert "gf22-nda" in caplog.text
+    assert "GF22 non-disclosure agreement" in caplog.text
     assert "http" not in caplog.text
+
+
+def test_an_approval_is_asked_for_and_a_request_shows_when(fake_v1, results, caplog):
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("final", "place", "0", fetchable=False,
+                 access_request_url="https://portal.test/request/1"),
+        artifact("final", "place", "1", fetchable=False,
+                 access_request_url="https://portal.test/request/2",
+                 access_requested_at="2026-09-21T10:00:00.000Z")]})
+
+    with caplog.at_level("WARNING"):
+        results.fetch("j1")
+
+    assert "Ask for access at https://portal.test/request/1" in caplog.text
+    assert "requested on 2026-09-21" in caplog.text
 
 
 def test_ungranted_with_no_agreement_says_asking_will_not_help(fake_v1, results,
@@ -243,20 +261,22 @@ def test_ungranted_with_no_agreement_says_asking_will_not_help(fake_v1, results,
     assert "not something asking would change" in caplog.text
 
 
-def test_the_five_are_five_different_sentences(results):
+def test_the_cases_are_different_sentences(results):
     '''Collapsing them answers "where did my results go" with the one sentence
     that fits none of the cases.'''
     said = {
-        results._explain(artifact(fetchable=False,
+        results._explain(artifact(fetchable=False, deleted_cause="removed",
                                   deleted_at="2026-09-20T00:00:00.000Z")),
+        results._explain(artifact(fetchable=False, deleted_cause="expired",
+                                  deleted_at="2020-01-01T00:00:00.000Z")),
         results._explain(artifact(fetchable=False,
-                                  expires_at="2020-01-01T00:00:00.000Z")),
-        results._explain(artifact(fetchable=False, blocked_by="nda")),
-        results._explain(artifact(fetchable=False, blocked_by="nda",
-                                  access_request_url="https://x.test")),
+                                  blocked_by={"nda": {"url": "https://x.test/nda"}})),
+        results._explain(artifact(fetchable=False, access_request_url="https://x.test")),
+        results._explain(artifact(fetchable=False, access_request_url="https://x.test",
+                                  access_requested_at="2026-09-20T00:00:00.000Z")),
         results._explain(artifact(fetchable=False)),
     }
-    assert len(said) == 5
+    assert len(said) == 6
 
 
 ###########################

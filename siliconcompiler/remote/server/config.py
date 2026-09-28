@@ -121,7 +121,7 @@ DEFAULTS: Dict[str, Any] = {
     # The honesty half, pairing with the startup log. "verified" is the only
     # value that asserts anything; every other value, known or unknown, means
     # do not rely on this identity.
-    "identity_assurance": "self-asserted",
+    "identity_assurance": "self_asserted",
 
     # REQUIRED, and [] is the answer here. An operator with something to say
     # puts it in config.json.

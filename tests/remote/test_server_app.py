@@ -57,7 +57,7 @@ def test_every_required_member_is_real(client):
     assert set(body) == {"api_version", "software", "grant_types_supported",
                          "limits", "features", "identity_assurance", "notices"}
 
-    assert body["identity_assurance"] == "self-asserted"
+    assert body["identity_assurance"] == "self_asserted"
     assert body["notices"] == []
     # Both are served: the archived file and the live tail. Two strings,
     # because one could not say which of the two a deployment had.
@@ -368,7 +368,7 @@ def test_the_registry_is_the_contracts_thirty_seven():
 def test_the_three_that_are_never_http_responses():
     '''These are `type` values on a job's or a node's error object.'''
     assert {slug for slug, err in ERRORS.items() if err.status is None} == {
-        "scheduler-lost", "run-failed", "staging-failed"}
+        "run-interrupted", "run-failed", "staging-failed"}
 
     with pytest.raises(ValueError, match="never an HTTP response"):
         ProblemError("run-failed")

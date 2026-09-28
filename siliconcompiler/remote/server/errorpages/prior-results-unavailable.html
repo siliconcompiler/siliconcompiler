@@ -21,13 +21,14 @@
 </header>
 
 <main>
-<p>A run that starts part-way through its flow takes the results of a node it does not run from an earlier job, named in create&rsquo;s <code>continues_from</code>. One of those entries names results that cannot be used: <code>step</code>, <code>index</code> and <code>job</code> say which, and <code>reason</code> says why.</p>
+<p>A run that starts part-way through its flow takes the results of a node it does not run from an earlier job, named in create&rsquo;s <code>continues_from</code>. One of those entries names results that cannot be used: <code>step</code>, <code>index</code> and <code>job_id</code> say which, and <code>reason</code> says why.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Read <code>reason</code>. <code>archived</code>: unarchive the job and submit again. <code>not_found</code>, <code>deleted</code>, <code>not_completed</code>, <code>expired</code> or <code>withheld</code>: those results are not available, so run from an earlier step &mdash; one whose results you have, or can take from a job that still holds them.</li>
+  <li>Read <code>reason</code>. <code>not_found</code>, <code>not_owner</code>, <code>deleted</code>, <code>not_completed</code>, <code>expired</code> or <code>withheld</code>: those results are not available, so run from an earlier step &mdash; one whose results you have &mdash; or name a job of your own whose results can be used.</li>
   <li>For <code>not_completed</code>, name the job that ran the node: a job that only copied a node&rsquo;s results in did not run it.</li>
+  <li>An archived job may be continued from: <code>archived</code> is registered and never raised.</li>
 </ol>
 </div>
 
@@ -41,7 +42,7 @@
   "instance": "/v1/jobs",
   "step":     "cts",        <span class="c">// REQUIRED on this type</span>
   "index":    "0",          <span class="c">// REQUIRED on this type</span>
-  "job":      "01J9...",    <span class="c">// REQUIRED on this type</span>
+  "job_id":   "01J9...",    <span class="c">// REQUIRED on this type</span>
   "reason":   "expired",    <span class="c">// REQUIRED on this type</span>
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
@@ -51,12 +52,12 @@
 <tbody>
 <tr><td><code>step</code>, <code>index</code></td><td><span class="req">REQUIRED</span></td>
     <td>The node whose results were to be copied.</td></tr>
-<tr><td><code>job</code></td><td><span class="req">REQUIRED</span></td>
+<tr><td><code>job_id</code></td><td><span class="req">REQUIRED</span></td>
     <td>The job the entry named.</td></tr>
 <tr><td><code>reason</code></td><td><span class="req">REQUIRED</span></td>
-    <td><code>not_found</code> &mdash; no such job, or not yours: one answer for both, so it confirms nothing. <code>deleted</code> &mdash; the job is deleted. <code>archived</code> &mdash; the job is archived; unarchiving it fixes this. <code>not_completed</code> &mdash; that job did not complete that node, or only copied it in. <code>expired</code> &mdash; the artifact holding the node&rsquo;s outputs, or its manifest, is gone. <code>withheld</code> &mdash; an administrator withheld one of them.</td></tr>
+    <td><code>not_found</code> &mdash; no such job, or one you cannot read: one answer for both, so it confirms nothing. <code>not_owner</code> &mdash; a job you can read and do not own. <code>deleted</code> &mdash; the job is deleted. <code>not_completed</code> &mdash; that job did not complete that node, or only copied it in. <code>expired</code> &mdash; the artifact holding the node&rsquo;s outputs, or its manifest, has been deleted. <code>withheld</code> &mdash; an administrator withheld one of them. <code>archived</code> is registered and never raised. An unrecognised value means act on the type alone.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
-    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
@@ -68,10 +69,8 @@
 <tbody>
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
     <td>Every entry is checked before anything is uploaded.</td></tr>
-<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>Checked again: the job can be archived, or its artifacts reaped, in between.</td></tr>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
-    <td>As the job&rsquo;s <code>error.type</code>, <code>reason: "expired"</code>, when the results went before <code>staging</code> could copy them. The job is rejected.</td></tr>
+    <td>As a <code>rejected</code> job&rsquo;s <code>error</code>: every entry is checked again while the job stages, and its results can go, or be withheld, in between.</td></tr>
 </tbody>
 </table>
 
@@ -82,8 +81,11 @@
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
+  <li>Where this arrived on a job&rsquo;s <code>error</code> rather than on a request, there is no
+      <code>trace_id</code>: <strong>quote the job&rsquo;s <code>id</code></strong>, the one identifier
+      that finds the run.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
@@ -92,7 +94,7 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 
 <h2>What this is not</h2>
 
-<p><a href="archive-rejected.html"><code>archive-rejected</code></a> with <code>violation: "missing_member"</code> is a node the run reads whose results the client sent neither in the archive nor as a job in <code>continues_from</code>.</p>
+<p><a href="archive-rejected.html"><code>archive-rejected</code></a> with <code>reason: "missing_member"</code> is a node the run reads whose results the client sent neither in the archive nor as a job in <code>continues_from</code>.</p>
 </main>
 
 <footer>

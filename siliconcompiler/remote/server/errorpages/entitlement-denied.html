@@ -21,8 +21,7 @@
 </header>
 
 <main>
-<p>Your account is not permitted to use something the job asks for &mdash; a PDK, a tool or a
-library.</p>
+<p>Your account holds no grant for something the job asks for, or an artifact derives from &mdash; a PDK, a tool, a library or an FPGA device. Only a missing grant is this: an unaccepted agreement is <a href="terms-not-accepted.html"><code>terms-not-accepted</code></a>. Where a grant through a project lapsed, <code>detail</code> says so.</p>
 
 <p><strong>Retrying will not change this.</strong> It is a statement about what your account holds,
 not about how busy the server is, and the identical request returns the identical answer.</p>
@@ -65,7 +64,7 @@ not about how busy the server is, and the identical request returns the identica
 <tr><td><code>resource</code></td><td><span class="req">REQUIRED</span></td>
     <td>Its name, as the catalogue spells it.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
-    <td>The same W3C trace id as the response header. Quote it in a support request.</td></tr>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
@@ -79,8 +78,8 @@ read <code>resource_kind</code> and <code>resource</code> for the specifics &mda
 <tbody>
 <tr><td><code>POST /v1/jobs</code></td>
     <td>The descriptor names something you do not hold.</td></tr>
-<tr><td><code>POST /v1/jobs/{id}/submit</code></td>
-    <td><strong>The enforcing gate</strong> &mdash; checked against the manifest re-derived from
+<tr><td><code>GET /v1/jobs/{id}</code></td>
+    <td><strong>The enforcing gate</strong>, as a <code>rejected</code> job&rsquo;s <code>error</code> &mdash; checked while the job stages, against the manifest re-derived from
         the archive, not against what the descriptor claimed.</td></tr>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
     <td>You do not hold a resource the artifact derives from &mdash; and
@@ -102,8 +101,11 @@ at submit, because create only saves an upload and submit is where the real mani
 &mdash; with them, whoever helps you finds the one request instead of searching a five-minute
 window.</p>
 <ul>
-  <li><code>trace_id</code> &mdash; the correlation id. The same value is on the response as a
-      header, so it is in your logs even if the body is not.</li>
+  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
+      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
+  <li>Where this arrived on a job&rsquo;s <code>error</code> rather than on a request, there is no
+      <code>trace_id</code>: <strong>quote the job&rsquo;s <code>id</code></strong>, the one identifier
+      that finds the run.</li>
   <li><code>instance</code> &mdash; the request this happened to.</li>
 </ul>
 <p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
