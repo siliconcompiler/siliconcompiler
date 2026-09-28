@@ -531,9 +531,10 @@ class Client:
 
         The secret is read from the environment. On GitHub Actions the store
         goes in the job's own temporary directory, which the runner empties
-        between jobs, and SC_AUTH_DIR is exported to the job's later steps. A
-        Cloudflare Access service token, where CF_ACCESS_CLIENT_ID and
-        CF_ACCESS_CLIENT_SECRET are set, becomes this server's operator headers.
+        between jobs, and SC_AUTH_DIR is exported to the job's later steps. On a
+        terminal it then asks for any headers the server's access layer needs;
+        a pipeline sets each with `sc-remote -header <name>`, the value on
+        standard input.
         '''
         from siliconcompiler.remote.client.credentials import (
             AUTH_DIR_VARIABLE, CI_SECRET_VARIABLE)
@@ -560,14 +561,21 @@ class Client:
             self._transport = self._make_transport(normalize_server(address, port))
 
         self.credentials.save_ci_secret(secret)
-        client_id = os.environ.get("CF_ACCESS_CLIENT_ID")
-        client_secret = os.environ.get("CF_ACCESS_CLIENT_SECRET")
-        if client_id and client_secret:
-            origin = self.transport.api_origin
-            self.credentials.set_header(origin, "CF-Access-Client-Id", client_id)
-            self.credentials.set_header(origin, "CF-Access-Client-Secret", client_secret)
-            self.logger.info(f"Cloudflare Access service token set for {origin}")
         self.logger.info(f"CI credential stored in {self.credentials.auth_dir}")
+        self.ask_headers()
+
+    def ask_headers(self) -> None:
+        '''Ask for the headers the server's access layer requires, name then
+        hidden value, until a blank name. Nothing is asked without a terminal.'''
+        if not sys.stdin.isatty():
+            self.logger.info("Set any header the server's access layer requires with "
+                             "`sc-remote -header <name>`, the value on standard input.")
+            return
+        while True:
+            name = input("Header the server's access layer requires (blank when done): ")
+            if not name.strip():
+                return
+            self.set_header(name.strip(), read_secret(name.strip()))
 
     def set_header(self, name: str, value: Optional[str], origin: Optional[str] = None) -> None:
         '''An operator-configured header for an origin, the API's by default.
@@ -1129,6 +1137,19 @@ def _ask(question: str) -> str:
         raise RemoteError(
             "no answer available and no default to fall back on: "
             "choose a server address with -server") from None
+
+
+def read_secret(name: str) -> str:
+    '''A header value: hidden on a terminal, one line of standard input
+    otherwise, and never an argument, where shell history would keep it.'''
+    if sys.stdin.isatty():
+        import getpass
+        value = getpass.getpass(f"Value for {name}: ")
+    else:
+        value = sys.stdin.readline().rstrip("\r\n")
+    if not value:
+        raise RemoteError(f"no value was given for {name}")
+    return value
 
 
 def _split_address(server: str):

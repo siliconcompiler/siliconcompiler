@@ -4,6 +4,7 @@ import sys
 
 from siliconcompiler import Project, Design
 from siliconcompiler.remote import Client, Credentials, RemoteError
+from siliconcompiler.remote.client import read_secret
 from siliconcompiler.scheduler.error import SCRuntimeError
 
 
@@ -45,10 +46,11 @@ To replace this machine's key, use:
 
 To set up a CI job from the SC_CI_CREDENTIAL secret, use:
     sc-remote -ci_setup -server https://example.com
+    (on a terminal it then asks for any access headers)
 
 To set a header the operator's access layer requires, use:
     sc-remote -header CF-Access-Client-Id
-    (the value is read from standard input and never printed)
+    (the value is asked for, or read from standard input, and never printed)
 -----------------------------------------------------------
 """
 
@@ -174,18 +176,8 @@ def _dispatch(remote):
         return 0
 
     if remote.get("cmdarg", 'header'):
-        # 🔴 The value is a secret: never an argument, where it would land in
-        # shell history and the process table, and never echoed.
         name = remote.get("cmdarg", 'header')
-        if sys.stdin.isatty():
-            import getpass
-            value = getpass.getpass(f"Value for {name}: ")
-        else:
-            value = sys.stdin.readline().rstrip("\r\n")
-        if not value:
-            remote.logger.error(f"No value was given for {name}")
-            return 1
-        client.set_header(name, value)
+        client.set_header(name, read_secret(name))
         return 0
 
     if remote.get("cmdarg", 'remove_header'):

@@ -516,14 +516,21 @@ def test_the_ci_secret_parses_with_underscores_in_the_key(ci_secret):
     assert key.curve.name == "secp256r1"
 
 
-def test_ci_setup_writes_the_store_and_the_access_headers(tmp_path, monkeypatch,
-                                                          ci_secret):
+def test_ci_setup_writes_the_store_and_asks_for_the_access_headers(
+        tmp_path, monkeypatch, ci_secret):
+    '''The headers are typed in, never read from an environment variable of
+    the client's choosing.'''
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
     monkeypatch.setenv("GITHUB_ENV", str(tmp_path / "github_env"))
-    monkeypatch.setenv("CF_ACCESS_CLIENT_ID", "cf-id")
-    monkeypatch.setenv("CF_ACCESS_CLIENT_SECRET", "cf-secret")
+    monkeypatch.setenv("CF_ACCESS_CLIENT_ID", "ignored")
     monkeypatch.delenv("SC_AUTH_DIR", raising=False)
+
+    answers = iter(["CF-Access-Client-Id", "CF-Access-Client-Secret", ""])
+    values = iter(["cf-id", "cf-secret"])
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda _: next(answers))
+    monkeypatch.setattr("getpass.getpass", lambda _: next(values))
 
     creds = Credentials(tmp_path / "home" / "credentials")
     Client(creds).ci_setup(server="https://sc-server.test")
@@ -539,3 +546,26 @@ def test_ci_setup_writes_the_store_and_the_access_headers(tmp_path, monkeypatch,
     assert reopened.headers_for("https://sc-server.test") == {
         "CF-Access-Client-Id": "cf-id", "CF-Access-Client-Secret": "cf-secret"}
     assert json.loads(reopened.path.read_text())["address"].startswith("https://")
+
+
+def test_ci_setup_without_a_terminal_asks_nothing(tmp_path, monkeypatch, ci_secret):
+    monkeypatch.delenv("RUNNER_TEMP", raising=False)
+    monkeypatch.setenv("CF_ACCESS_CLIENT_ID", "ignored")
+    monkeypatch.setenv("CF_ACCESS_CLIENT_SECRET", "ignored")
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    creds = Credentials(tmp_path / "home" / "credentials")
+    Client(creds).ci_setup(server="https://sc-server.test")
+
+    assert creds.headers_for("https://sc-server.test") == {}
+
+
+def test_a_header_value_is_read_from_a_pipe(tmp_credentials, monkeypatch):
+    '''How a pipeline sets one: `echo "$SECRET" | sc-remote -header NAME`.'''
+    import io
+
+    from siliconcompiler.remote.client import read_secret
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("piped-value\n"))
+
+    assert read_secret("CF-Access-Client-Secret") == "piped-value"

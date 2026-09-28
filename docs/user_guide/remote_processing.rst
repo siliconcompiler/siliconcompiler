@@ -360,10 +360,16 @@ as the pipeline secret ``SC_CI_CREDENTIAL``. Then, before the build:
   sc-remote -ci_setup -server https://your-server.example.com
 
 On GitHub Actions the session store goes in the job's own temporary directory
-and ``SC_AUTH_DIR`` is exported to later steps. Where the server sits behind
-Cloudflare Access, set ``CF_ACCESS_CLIENT_ID`` and ``CF_ACCESS_CLIENT_SECRET``
-from the operator's service token, and ``-ci_setup`` stores them as headers for
-the server. A credential bound to one project needs that project named on every
+and ``SC_AUTH_DIR`` is exported to later steps. Where the server sits behind an
+access layer such as Cloudflare Access, ``-ci_setup`` asks for the headers it
+requires when run at a terminal. A pipeline sets each in a later step, the value
+on standard input so it never appears on a command line:
+
+.. code-block:: bash
+
+  echo "$CF_CLIENT_SECRET" | sc-remote -header CF-Access-Client-Secret
+
+A credential bound to one project needs that project named on every
 job: set ``SC_REMOTE_PROJECT``. The client warns, as a GitHub annotation, when
 the credential has a week left.
 
