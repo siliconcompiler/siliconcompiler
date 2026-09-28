@@ -906,7 +906,8 @@ def test_directory_resolve_path_collected_found():
 
     value.set("one/two/three/four/testdir")
 
-    assert value.resolve_path(collection_dir=coll_dir) == abspath
+    assert pathlib.PureWindowsPath(value.resolve_path(collection_dir=coll_dir)) == \
+        pathlib.PureWindowsPath(abspath)
 
 
 def test_directory_resolve_path_collected_root():
