@@ -738,6 +738,26 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         """
         return self.__io_runtime_flow
 
+    @property
+    def _remote_toolname(self) -> Optional[str]:
+        """
+        Returns information about the remote source of the tool.
+
+        Returns:
+            Optional[str]: The remote tool name if available, otherwise None.
+        """
+        return self.tool()
+
+    @property
+    def _remote_inherits_env(self) -> bool:
+        """
+        Indicates whether the remote tool needs to inherit the previous node's environment.
+
+        Returns:
+            bool: True if the remote tool inherits the previous node's environment, False otherwise.
+        """
+        return False
+
     def get_logpath(self, log: str) -> str:
         """
         Returns the relative path to a specified log file.
@@ -3386,7 +3406,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         schema.insert(
             'require',
             Parameter(
-                '[str]',
+                '{str}',
                 scope=Scope.JOB,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Task: parameter requirements",

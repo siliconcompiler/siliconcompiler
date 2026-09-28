@@ -79,6 +79,10 @@ class ImportFilesTask(Task):
     def task(self) -> str:
         return "importfiles"
 
+    @property
+    def _remote_toolname(self) -> Optional[str]:
+        return None
+
     def setup(self) -> None:
         """Prepares the task for execution by setting up dependencies and requirements.
 

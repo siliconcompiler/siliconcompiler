@@ -14,6 +14,12 @@ from the code diffs, not the commit messages). Dates are the git commit dates of
 the version bump. Version numbering was not strictly linear during early
 development, so a few dates are non-monotonic relative to the semver ordering.
 
+0.57.2 — 2026-09-28
+===================
+- Changed ``tool,<tool>,task,<task>,require`` from ``[str]`` to ``{str}`` so
+  duplicate keypaths added via ``Task.add_required_key()`` are deduplicated by
+  the schema itself rather than accumulating as repeated list entries.
+
 0.57.1 — 2026-08-10
 ===================
 - Added ``csv`` to the accepted values of ``tool,<tool>,task,<task>,format``

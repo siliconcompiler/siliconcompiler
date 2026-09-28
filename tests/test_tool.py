@@ -206,6 +206,17 @@ def test_task_name():
     assert task.name == "thistask"
 
 
+def test_remote_toolname_defaults_to_tool():
+    class RemoteTask(Task):
+        def tool(self):
+            return "thistool"
+    assert RemoteTask()._remote_toolname == "thistool"
+
+
+def test_remote_inherits_env_defaults_to_false():
+    assert Task()._remote_inherits_env is False
+
+
 def test_task_cachedir_no_project():
     """A task outside a run still names a cache, the default one."""
     class CacheTask(Task):
