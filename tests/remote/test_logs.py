@@ -486,6 +486,47 @@ def test_a_reader_that_hangs_up_resumes_without_a_gap(live):
     assert rest.count("line 1") == 0
 
 
+def test_a_reader_that_hangs_up_frees_its_slot(live):
+    '''🔴 A `concurrent_log_streams` slot is held only while a connection is
+    open. The commonest way a tail ends is the reader hanging up, and a slot
+    that outlived it would lock its owner out for the life of the process.'''
+    client, app, job_id, log = live
+    limiter = app.config["SC_STREAMS"]
+    limiter._ceiling = 1
+    me = client.me()["id"]
+    log.write_text("first\n")
+
+    response = client.follow_log(job_id, "place", "0")
+    assert response.headers["Content-Type"].startswith("text/event-stream")
+    # Held, not a generator expression: dropping the iterator would close the
+    # connection before the test means to.
+    lines = response.iter_lines(decode_unicode=True)
+    assert next(lines)
+    assert limiter.held(me) == 1
+
+    # While it is open, it is the one slot.
+    refused = client.follow_log(job_id, "place", "0")
+    assert refused.status_code == 429
+    refused.close()
+
+    del lines
+    response.close()
+    # The server learns of the hang-up on its next write, so give it lines to
+    # write until it has.
+    deadline = time.monotonic() + 20
+    while limiter.held(me) and time.monotonic() < deadline:
+        with open(log, "a") as f:
+            f.write("more\n")
+        time.sleep(0.1)
+    assert limiter.held(me) == 0
+
+    second = client.follow_log(job_id, "place", "0")
+    try:
+        assert second.headers["Content-Type"].startswith("text/event-stream")
+    finally:
+        second.close()
+
+
 def test_a_tail_that_starts_after_the_node_finished_gets_the_archive(live):
     '''The same bytes, reached by the other branch of the 303 -- and the client
     tells them apart by the Content-Type it was served, never by the redirect.'''
