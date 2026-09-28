@@ -157,7 +157,9 @@ def collect(project: "Project",
 
                 collected_dirs.add(abs_path)
 
-                import_path = os.path.join(directory, value.get_hashed_filename())
+                import_path = os.path.join(
+                    directory,
+                    value.generate_hashed_collection_path(value.get(), value.get('dataroot')))
                 if os.path.exists(import_path):
                     continue
 
@@ -167,6 +169,7 @@ def collect(project: "Project",
                 if verbose:
                     project.logger.info(f"  Collecting directory: {abs_path}")
                 path_filter.abspath = abs_path
+                os.makedirs(os.path.dirname(import_path), exist_ok=True)
                 shutil.copytree(abs_path, import_path, ignore=path_filter.filter)
                 path_filter.abspath = None
 
@@ -197,12 +200,15 @@ def collect(project: "Project",
                 if contained:
                     continue
 
-                import_path = os.path.join(directory, value.get_hashed_filename())
+                import_path = os.path.join(
+                    directory,
+                    value.generate_hashed_collection_path(value.get(), value.get('dataroot')))
                 if os.path.exists(import_path):
                     continue
 
                 if verbose:
                     project.logger.info(f"  Collecting file: {abs_path}")
+                os.makedirs(os.path.dirname(import_path), exist_ok=True)
                 shutil.copy2(abs_path, import_path)
     finally:
         if prev_dir:
