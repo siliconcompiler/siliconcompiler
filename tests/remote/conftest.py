@@ -254,6 +254,55 @@ def call(client, key, method, path, token, **kwargs):
         **kwargs)
 
 
+@pytest.fixture(autouse=True)
+def staging_inline(request, monkeypatch):
+    '''Staging runs in the submitting request's thread, after the `202` body
+    is computed, so a test reads the job's outcome with one GET. A test
+    marked `threaded_staging` keeps the real background thread.'''
+    if request.node.get_closest_marker("threaded_staging"):
+        return
+    try:
+        from siliconcompiler.remote.server.jobs import JobService
+    except ImportError:
+        return
+
+    def inline(self, job_id):
+        with self._preparing_lock:
+            if job_id in self._preparing:
+                return
+            self._preparing.add(job_id)
+        self._prepare(job_id)
+
+    monkeypatch.setattr(JobService, "_start_preparing", inline)
+
+
+def job_after(client, key, token, response):
+    '''The job a `202` submit answered for, as it stands once staging ran.'''
+    return call(client, key, "GET", f"/v1/jobs/{response.get_json()['id']}",
+                token).get_json()
+
+
+class _JobError:
+    '''A job's `error`, read the way a refusal of the request is: its
+    registry `status`, and the body with its type's members.'''
+
+    def __init__(self, error):
+        self._error = error
+        self.status_code = error.get("status")
+
+    def get_json(self):
+        return self._error
+
+
+def outcome(client, key, token, response):
+    '''What a submit came to: a refusal of the request as it was answered,
+    or -- after a `202` -- the error staging put on the job, where it has one.'''
+    if response.status_code != 202:
+        return response
+    error = job_after(client, key, token, response).get("error")
+    return _JobError(error) if error else response
+
+
 @pytest.fixture
 def server():
     '''A server on its own datadir, dispatching locally.'''

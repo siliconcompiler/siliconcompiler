@@ -1679,6 +1679,20 @@ def test_upstream_rebuilt_when_recorded_failed(side_arm_project, error):
     assert Scheduler(side_arm_project)._Scheduler__upstreams_to_rebuild() == {("armtwo", "0")}
 
 
+def test_a_fixed_window_fails_rather_than_widening(side_arm_project, monkeypatch):
+    """With widening off -- a server running exactly the window it admitted --
+    an upstream that cannot supply its consumer fails the run, named, and
+    [option,from] is left as it was."""
+    monkeypatch.setattr(Scheduler, "widen_from", False)
+    scheduler = Scheduler(side_arm_project)
+    before = side_arm_project.option.get_from()
+
+    with pytest.raises(SCRuntimeError, match="missing a file"):
+        scheduler._Scheduler__configure_expand_for_missing_inputs()
+
+    assert side_arm_project.option.get_from() == before
+
+
 def test_upstream_rebuild_respects_option_continue(side_arm_project):
     """A failure the user excused supplies nothing on purpose; re-running it is
     exactly what [option,continue] says not to insist on."""

@@ -1,6 +1,6 @@
 import pytest
 
-from conftest import call, login, slug
+from conftest import call, login, outcome, slug
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -249,7 +249,7 @@ def finished(server, server_client, key, token, job_archive, dispatcher, me):
         (node / f"sc_{step}_0.log").write_text(f"siliconcompiler says {step}\n")
         (node / f"{step}.log").write_text(f"the tool says {step}\n")
 
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:05.000Z",
         "nodes": {"stepone/0": {"state": "completed"},
@@ -290,7 +290,8 @@ def test_an_upload_refused_as_unsafe_is_kept_and_never_opened(
 
     archive, digest, size = job_archive(extra={"../escape.txt": b"x"})
     job = stage(server_client, key, token, archive, size)
-    assert slug(submit(server_client, key, token, job["id"], digest, size)) == \
+    assert slug(outcome(server_client, key, token,
+                        submit(server_client, key, token, job["id"], digest, size))) == \
         "archive-rejected"
 
     row = server.config["SC_STORE"].one(
@@ -480,7 +481,7 @@ def died(server, server_client, key, token, job_archive, dispatcher, me):
         "Traceback (most recent call last):\n"
         "RuntimeError: git is required to import GitPython\n")
 
-    runspec.write_progress(jobroot / "gcd" / "job0" / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(jobroot / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:02.000Z",
         "error": "RuntimeError: git is required to import GitPython",
@@ -533,7 +534,7 @@ def test_a_cancelled_job_is_not_told_nobody_cancelled_it(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-23T10:00:00.000Z",
         "nodes": {"stepone/0": {"state": "running"},
                   "steptwo/0": {"state": "pending"}}})

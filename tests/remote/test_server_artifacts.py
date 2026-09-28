@@ -67,7 +67,7 @@ def ran(server, server_client, key, token, job_archive, prepare=None,
     }
     if error is not None:
         progress["error"] = error
-    runspec.write_progress(node_root / runspec.PROGRESS_FILENAME, progress)
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, progress)
 
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert read["state"] == state
@@ -915,10 +915,11 @@ def _uploads(server, job_id):
         "ORDER BY upload_seq", (job_id,))
 
 
-def test_an_upload_refused_for_its_digest_is_kept_under_the_hash_it_has(
+def test_an_upload_refused_for_its_digest_stays_where_the_grant_put_it(
         server, server_client, key, token, job_archive, dispatcher):
-    '''Kept, which is when it is wanted -- and its hash is what storage holds,
-    not what the client claimed.'''
+    '''A refusal of the request, so the job still waits and its upload is
+    kept for the submit that names the right digest -- and only then is it
+    recorded, under the hash storage holds.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     wrong = "sha256:" + "0" * 64
@@ -926,6 +927,10 @@ def test_an_upload_refused_for_its_digest_is_kept_under_the_hash_it_has(
     response = submit(server_client, key, token, job["id"], wrong, size)
 
     assert slug(response) == "upload-digest-mismatch"
+    assert not _uploads(server, job["id"])
+    assert server.config["SC_STORAGE"].stat_upload(job["id"]) == (size, digest)
+
+    submit(server_client, key, token, job["id"], digest, size)
     kept, = _uploads(server, job["id"])
     assert kept["content_hash"] == digest and kept["upload_seq"] == 1
 

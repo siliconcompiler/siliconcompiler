@@ -904,9 +904,10 @@ def test_a_build_the_server_could_not_run_is_its_own_failure(
                                           "detail": "the registry did not answer"})
 
     job = submitted(client, key, token, job_archive)
-    assert until(lambda: row(builder_server, job["id"])["state"] == "rejected")
+    # This server's own failure: `failed`, never `rejected`.
+    assert until(lambda: row(builder_server, job["id"])["state"] == "failed")
 
-    assert row(builder_server, job["id"])["error_type"].endswith("/not-ready")
+    assert row(builder_server, job["id"])["error_type"].endswith("/staging-failed")
 
 
 def test_a_build_job_that_vanishes_is_not_waited_on(
@@ -916,11 +917,12 @@ def test_a_build_job_that_vanishes_is_not_waited_on(
 
     job = submitted(client, key, token, job_archive)
 
-    assert until(lambda: row(builder_server, job["id"])["state"] == "rejected")
-    assert row(builder_server, job["id"])["error_type"].endswith("/not-ready")
+    assert until(lambda: row(builder_server, job["id"])["state"] == "failed")
+    assert row(builder_server, job["id"])["error_type"].endswith("/staging-failed")
     assert fake.cancelled == ["build:1"]
 
 
+@pytest.mark.threaded_staging
 def test_a_job_cancelled_while_it_builds_stays_cancelled(
         builder_server, client, key, token, job_archive):
     '''🔴 Refusing it afterwards would rewrite what its owner did as something

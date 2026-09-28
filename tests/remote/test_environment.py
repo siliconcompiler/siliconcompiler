@@ -2,6 +2,8 @@ import json
 
 import pytest
 
+from conftest import outcome
+
 from siliconcompiler.remote import environment
 from siliconcompiler.remote.environment import EnvironmentFileError
 
@@ -120,7 +122,8 @@ def submitted(server_client, key, token, archive):
 
     path, digest, size = archive
     job = stage(server_client, key, token, path, size)
-    return submit(server_client, key, token, job["id"], digest, size)
+    return outcome(server_client, key, token,
+                   submit(server_client, key, token, job["id"], digest, size))
 
 
 def slug(response):

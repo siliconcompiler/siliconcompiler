@@ -289,6 +289,18 @@ def collect(store, storage, config, job, build_root) -> int:
     return written
 
 
+def collect_run_log(store, storage, config, job, build_root) -> int:
+    '''Index the job-level `logs` alone: for a job that ends before it runs,
+    such as one whose staging failed.'''
+    account = _the_run_itself(Path(build_root),
+                              Path(build_root) / job["design"] / job["jobname"])
+    if account is None:
+        return 0
+    return _index(store, storage, job, config["storage_location_id"],
+                  config.limits["job_retention_days"], "logs", None, None, account,
+                  "text/plain", build_root)
+
+
 def _the_run_itself(job_root: Path, build_dir: Path) -> Optional[Path]:
     '''The one log that belongs to the run rather than to any node.
 

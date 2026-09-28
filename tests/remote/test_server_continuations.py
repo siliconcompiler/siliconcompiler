@@ -5,7 +5,7 @@ import pytest
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
-from conftest import call, login, slug                                  # noqa: E402
+from conftest import call, login, outcome, slug                         # noqa: E402
 from test_server_jobs import FakeDispatcher, create, stage, submit      # noqa: E402
 from test_server_sources_flow import wait_for                          # noqa: E402
 
@@ -185,7 +185,8 @@ def test_results_built_on_what_nobody_may_use_are_refused(server, server_client,
 def submitted(server_client, key, token, archive, **body):
     path, digest, size = archive
     job = stage(server_client, key, token, path, size, **body)
-    return job, submit(server_client, key, token, job["id"], digest, size)
+    return job, outcome(server_client, key, token,
+                        submit(server_client, key, token, job["id"], digest, size))
 
 
 def test_the_results_are_copied_in_while_staging(server, server_client, key, token, me,
@@ -226,7 +227,8 @@ def test_a_node_in_the_upload_is_taken_from_it(server, server_client, key, token
                               continues_from=[entry(earlier)])
 
     assert response.status_code == 202, response.get_json()
-    assert response.get_json()["state"] == "queued"
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == "queued"
 
 
 def test_a_node_in_neither_is_a_missing_member(server_client, key, token, job_archive,
@@ -268,13 +270,12 @@ def test_results_gone_before_the_copy_reject_the_job(server, server_client, key,
     job, response = submitted(server_client, key, token,
                               job_archive(from_steptwo(nop_project)),
                               continues_from=[entry(earlier)])
-    assert response.status_code == 202
 
+    # Found while staging, so it arrives on the job.
+    assert refused(response) == "expired"
     store = server.config["SC_STORE"]
-    assert wait_for(lambda: store.one("SELECT state FROM jobs WHERE id = ?",
-                                      (job["id"],))["state"] == "rejected")
-    row = store.one("SELECT error_type FROM jobs WHERE id = ?", (job["id"],))
-    assert row["error_type"].endswith("/prior-results-unavailable")
+    assert store.one("SELECT state FROM jobs WHERE id = ?",
+                     (job["id"],))["state"] == "rejected"
     assert not dispatcher.submitted
 
 
@@ -288,4 +289,23 @@ def test_a_submit_rechecks_what_create_accepted(server, server_client, key, toke
         "UPDATE jobs SET deleted_at = '2026-09-01T00:00:00.000Z', deleted_by = ? "
         "WHERE id = ?", (me, earlier))
 
-    assert refused(submit(server_client, key, token, job["id"], digest, size)) == "deleted"
+    assert refused(outcome(server_client, key, token,
+                           submit(server_client, key, token, job["id"], digest, size))) \
+        == "deleted"
+
+
+def test_a_skipped_upstream_node_is_looked_through(server, server_client, key, token, me,
+                                                   job_archive, nop_project, dispatcher):
+    '''A node the earlier job skipped has no results and is not
+    `not_completed`: the run reads what fed it -- here nothing.'''
+    earlier = ran(server, me)
+    server.config["SC_STORE"].execute(
+        "UPDATE job_nodes SET state = 'skipped' WHERE job_id = ?", (earlier,))
+
+    job, response = submitted(server_client, key, token,
+                              job_archive(from_steptwo(nop_project)),
+                              continues_from=[entry(earlier)])
+
+    assert response.status_code == 202, response.get_json()
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == "queued"

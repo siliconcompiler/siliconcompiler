@@ -5,11 +5,11 @@ Everything above this module is HTTP and everything below it is a filesystem or
 a scheduler. The ordering rules that matter are here, and one of them is a
 security property rather than a preference:
 
-🔴 **submit checks the digest against what storage reports, refuses before any
-extraction, and only then re-derives the manifest and re-runs every check
-against what was re-derived.** Getting that order wrong is how an archive bomb
-gets opened. Nothing in this file may be reordered without reading that sentence
-again.
+🔴 **submit checks the digest against what storage reports and answers `202`;
+only then, while staging, is the archive extracted, the manifest re-derived and
+every check re-run against what was re-derived.** Getting that order wrong is
+how an archive bomb gets opened. Nothing in this file may be reordered without
+reading that sentence again.
 '''
 
 import base64
@@ -18,7 +18,6 @@ import json
 import logging
 import re
 import shutil
-import sqlite3
 import warnings
 
 from pathlib import Path
@@ -92,6 +91,9 @@ MAX_REASON = 500
 # at submit against the same rule -- an upload is the other end of this.
 _NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
+# How long an `Idempotency-Key` is honoured (surface §6).
+IDEMPOTENCY_SECONDS = 24 * 3600
+
 
 def _as_data(method):
     '''🔴 Every manifest ``method`` reads, it reads as data (contract §1): a
@@ -149,6 +151,35 @@ class JobService:
         self._building_lock = threading.Lock()
         # How a build is waited on -- `envbuild.wait_for`'s pacing.
         self._build_wait: Dict[str, float] = {}
+
+        # Keyed requests being handled now, so a retry of one gets `in_progress`.
+        self._in_flight: Set[Tuple[str, str, str]] = set()
+        self._in_flight_lock = threading.Lock()
+
+    def _keyed(self, user_id: str, what: str, key: Optional[str]):
+        '''While a keyed request is handled; a retry meanwhile is refused
+        `in_progress`, with `Retry-After`, and binds nothing.'''
+        import contextlib
+
+        if key is None:
+            return contextlib.nullcontext()
+
+        @contextlib.contextmanager
+        def held():
+            token = (user_id, what, key)
+            with self._in_flight_lock:
+                if token in self._in_flight:
+                    raise ProblemError(
+                        "job-state-conflict", reason="in_progress",
+                        detail="a request with this Idempotency-Key is still being handled",
+                        headers={"Retry-After": "1"})
+                self._in_flight.add(token)
+            try:
+                yield
+            finally:
+                with self._in_flight_lock:
+                    self._in_flight.discard(token)
+        return held()
 
     ######################################################################
     # Where a user's work lives
@@ -216,6 +247,10 @@ class JobService:
         🔴 Strict, like every request body: an unknown member is refused, never
         ignored.
         '''
+        with self._keyed(session.user_id, "create", idempotency_key):
+            return self._create(session, body, idempotency_key)
+
+    def _create(self, session, body, idempotency_key):
         if not isinstance(body, dict):
             raise ProblemError("invalid-request", detail="the body must be a JSON object")
         _only(body, CREATE_MEMBERS, "the create body")
@@ -261,6 +296,12 @@ class JobService:
             existing = self._store.one(
                 "SELECT * FROM jobs WHERE user_id = ? AND idempotency_key = ?",
                 (session.user_id, idempotency_key))
+            if existing is not None and _expired_key(existing["created_at"]):
+                # Forgetting a key clears its column, so the index accepts it again.
+                with self._store.transaction():
+                    self._store.execute("UPDATE jobs SET idempotency_key = NULL "
+                                        "WHERE id = ?", (existing["id"],))
+                existing = None
             if existing is not None:
                 # The same key with a different body is the caller having reused
                 # a key they should have rotated. Returning the first job would
@@ -272,7 +313,9 @@ class JobService:
                     raise ProblemError(
                         "idempotency-key-reuse",
                         detail="this Idempotency-Key was used for a different request")
-                return self.wire(existing), 200
+                # The original answer, status and body.
+                return (json.loads(existing["create_reply"]) if existing["create_reply"]
+                        else self.wire(existing)), 201
 
         # 🔴 Before the reuse lookup, because the answer is part of what the
         # lookup is keyed on -- and before the upload, which is the whole point
@@ -289,6 +332,7 @@ class JobService:
                 logger.info(f"run_hash hit for {session.user_id}: {hit['id']}")
                 return self.wire(hit), 200
 
+        self._check_concurrent_jobs(session.user_id)
         self._check_pending_uploads(session.user_id)
         self._check_descriptor(descriptor, requires)
         # Before anything is uploaded: every earlier result this run would
@@ -318,7 +362,12 @@ class JobService:
 
         # The job object, in `created`: `upload_sources` is on it where the
         # server is asking, and absent where there is nothing to send.
-        return self.wire(self._row(job_id)), 201
+        reply = self.wire(self._row(job_id))
+        if idempotency_key is not None:
+            with self._store.transaction():
+                self._store.execute("UPDATE jobs SET create_reply = ? WHERE id = ?",
+                                    (json.dumps(reply), job_id))
+        return reply, 201
 
     ######################################################################
     # A run that starts part-way through its flow (surface D175)
@@ -336,7 +385,8 @@ class JobService:
         continued = {(step, index): from_job
                      for step, index, from_job in self._continuations_of(job["id"])}
         copies = []
-        for step, index in runspec.upstream_nodes(derived["project"]):
+        for step, index in runspec.upstream_nodes(derived["project"],
+                                                  self._skipped_upstream(job)):
             if runspec.outputs_present(unpacked / step / index, job["design"]):
                 continue
             if (step, index) not in continued:
@@ -386,7 +436,18 @@ class JobService:
                     reason="expired",
                     detail=f"the results of {step}/{index} in job {from_job} went before "
                            "they could be copied")) from None
+            except OSError as e:
+                raise _ServerFailure(f"this server's store did not answer the copy of "
+                                     f"{step}/{index} from job {from_job}: {e}") from None
             logger.info(f"{job['id']}: copied {step}/{index} from {from_job}")
+
+    def _skipped_upstream(self, job) -> Set[Tuple[str, str]]:
+        '''The nodes skipped in the jobs this one continues from, by those jobs'
+        own recorded states -- never the upload's say-so.'''
+        return {(row["step"], row["index"]) for row in self._store.all(
+            'SELECT n.step, n."index" FROM job_nodes n JOIN job_continuations c '
+            "ON n.job_id = c.from_job_id WHERE c.job_id = ? AND n.state = 'skipped'",
+            (job["id"],))}
 
     def _continuations_of(self, job_id: str) -> List[Tuple[str, str, str]]:
         return [(row["step"], row["index"], row["from_job_id"]) for row in self._store.all(
@@ -429,6 +490,9 @@ class JobService:
         # An archived job may be continued from: `archived` is never raised.
         node = self._store.one('SELECT state FROM job_nodes WHERE job_id = ? AND step = ? '
                                'AND "index" = ?', (from_job, step, index))
+        if node is not None and node["state"] == "skipped":
+            # Nothing to copy: the run looks through it to what fed it.
+            return None
         if node is None or node["state"] != "completed":
             return "not_completed", (f"job {from_job} did not complete {step}/{index}: a job "
                                      "that only copied a node in did not run it")
@@ -610,14 +674,15 @@ class JobService:
         return ran_in <= live
 
     def _check_pending_uploads(self, user_id: str) -> None:
-        held = self._store.one(
-            "SELECT count(*) AS n FROM jobs WHERE user_id = ? "
-            "AND state IN ('created', 'awaiting_input')", (user_id,))["n"]
+        held = [row["id"] for row in self._store.all(
+            "SELECT id FROM jobs WHERE user_id = ? "
+            "AND state IN ('created', 'awaiting_input') ORDER BY created_at", (user_id,))]
         ceiling = self._config.limits["pending_uploads"]
-        if held >= ceiling:
+        if len(held) >= ceiling:
+            # Which jobs hold the slots, so the client can cancel one it abandoned.
             raise ProblemError(
-                "limit-exceeded", limit="pending_uploads",
-                detail=f"{held} jobs are already waiting for their upload",
+                "limit-exceeded", limit="pending_uploads", job_ids=held,
+                detail=f"{len(held)} jobs are already waiting for their upload",
                 headers={"Retry-After": str(self._config["poll_interval_seconds"])})
 
     def _check_descriptor(self, descriptor: Dict[str, Any], requires) -> None:
@@ -805,16 +870,26 @@ class JobService:
     # 15. submit
     ######################################################################
 
-    @_as_data
     def submit(self, session, job_id: str, body: Dict[str, Any],
                idempotency_key: Optional[str]) -> Dict[str, Any]:
+        '''Endpoint 15: `202` in `staging`, once the upload matches the digest.
+
+        🔴 **Nothing here opens the archive** (surface §15). It is kept, the job
+        stages, and extraction, re-derivation and every check run there. A
+        refusal of the request itself -- the digest, the job's state,
+        `concurrent_jobs` -- leaves the job `awaiting_input` with its upload
+        where the grant put it, so the client may submit again.
+        '''
+        with self._keyed(session.user_id, "submit", idempotency_key):
+            return self._submit(session, job_id, body, idempotency_key)
+
+    def _submit(self, session, job_id, body, idempotency_key):
         job = self.owned(session, job_id)
 
-        if idempotency_key is not None and job["submit_idempotency_key"] == idempotency_key:
-            # Already submitted under this key. The contract's answer to a
-            # retried submit is the job object, which is what a fresh submit
-            # returns too.
-            return self.wire(job)
+        if idempotency_key is not None and job["submit_idempotency_key"] == idempotency_key \
+                and not _expired_key(job["submit_key_at"]):
+            # The original answer, whatever the job has done since.
+            return json.loads(job["submit_reply"]) if job["submit_reply"] else self.wire(job)
 
         if job["state"] != "awaiting_input":
             raise ProblemError(
@@ -822,8 +897,7 @@ class JobService:
                 detail=f"a job in {job['state']} cannot be submitted")
 
         # 🔴 The digest and nothing else: the grant fixed the size and storage
-        # enforced it on the PUT, so a `bytes` here would be a second copy --
-        # and strict validation refuses it.
+        # enforced it on the PUT.
         _only(body if isinstance(body, dict) else {}, ("digest",), "the submit request")
         digest = body.get("digest") if isinstance(body, dict) else None
         if not isinstance(digest, str) or not _SHA256.match(digest):
@@ -836,130 +910,156 @@ class JobService:
             raise ProblemError(
                 "job-state-conflict",
                 detail="no upload has arrived for this job; ask for a grant and PUT to it")
-
         size, reported_digest = reported
 
-        # Before anything is kept: `limit-exceeded` here is retried, and the
-        # retry needs the upload still where the grant put it.
-        self._check_concurrent_jobs(session.user_id)
-
-        # 🔴 Kept from here on, as its own `input`, whatever happens next: every
-        # upload the job took can be looked at afterwards -- a refused one most
-        # of all (surface D133). Moved, so nothing is stored twice, and under
-        # the hash storage reports for the bytes, which is what they are.
-        with self._store.transaction():
-            upload_id = artifacts.record_upload(
-                self._store, self._storage, self._config, job,
-                self._storage.upload_path(job["id"]), reported_digest, size)
-        # Only what is left of it: an interrupted PUT's partial file.
-        self._storage.discard_upload(job["id"])
-        kept = self._storage.artifact_path(f"{job['id']}/{upload_id}")
-
-        # 🔴 The order below is normative. Nothing opens the archive until the
-        # digest matches, so the bytes cannot change between the check and the
-        # unpack -- which is what turns the re-derivation from a TOCTOU into a
-        # check.
+        # Only bytes matching the digest the grant bound are ever extracted, so
+        # nothing written to the upload location after this changes what runs.
         if reported_digest != digest or (job["grant_digest"] and job["grant_digest"] != digest):
-            raise self._refuse(session, job, ProblemError(
+            raise ProblemError(
                 "upload-digest-mismatch",
-                detail=f"storage holds {size} bytes, {reported_digest}"))
+                detail=f"storage holds {size} bytes, {reported_digest}, and this "
+                       f"submit names {digest}")
 
         # Every archive of the job together (D125): a follow-up cannot carry
         # what the first was refused for being too large.
         ceiling = self._config.limits["max_upload_bytes"]
         if job["archives_bytes"] + size > ceiling:
-            raise self._refuse(session, job, ProblemError(
+            raise ProblemError(
                 "upload-too-large", limit="max_upload_bytes",
                 detail=f"{job['archives_bytes'] + size} bytes across this job's "
-                       f"uploads, and this server accepts at most {ceiling}"))
+                       f"uploads, and this server accepts at most {ceiling}")
 
-        root = self.job_root(session.user_id, job["id"])
+        self._check_concurrent_jobs(session.user_id)
+
+        if idempotency_key is not None:
+            other = self._store.one(
+                "SELECT id, submit_key_at FROM jobs WHERE user_id = ? "
+                "AND submit_idempotency_key = ? AND id <> ?",
+                (session.user_id, idempotency_key, job["id"]))
+            if other is not None and not _expired_key(other["submit_key_at"]):
+                raise ProblemError(
+                    "idempotency-key-reuse",
+                    detail="this Idempotency-Key was used to submit a different job")
+            if other is not None:
+                with self._store.transaction():
+                    self._store.execute(
+                        "UPDATE jobs SET submit_idempotency_key = NULL, submit_reply = NULL "
+                        "WHERE id = ?", (other["id"],))
+
+        # 🔴 Kept from here on, as its own `input`, whatever staging finds:
+        # every upload the job took can be looked at afterwards -- a refused one
+        # most of all (surface D133).
+        with self._store.transaction():
+            artifacts.record_upload(
+                self._store, self._storage, self._config, job,
+                self._storage.upload_path(job["id"]), reported_digest, size)
+            self._store.execute(
+                "UPDATE jobs SET archives_bytes = archives_bytes + ?, grant_bytes = NULL, "
+                "  grant_digest = NULL, upload_digest = ?, upload_bytes = ?, "
+                "  unpack_pending = 1, submit_idempotency_key = ?, submit_key_at = ?, "
+                "  submit_reply = NULL WHERE id = ?",
+                (size, digest, size, idempotency_key,
+                 now() if idempotency_key is not None else None, job["id"]))
+            self._transition(job["id"], "awaiting_input", "staging",
+                             actor=session.user_id, state_reason="unpacking the upload")
+        # Only what is left of it: an interrupted PUT's partial file.
+        self._storage.discard_upload(job["id"])
+
+        reply = self.wire(self._row(job["id"]))
+        if idempotency_key is not None:
+            with self._store.transaction():
+                self._store.execute("UPDATE jobs SET submit_reply = ? WHERE id = ?",
+                                    (json.dumps(reply), job["id"]))
+        self._start_preparing(job["id"])
+        return reply
+
+    def _unpack(self, job):
+        '''Staging's first phase: the newest upload extracted, the manifest
+        re-derived over every archive, and every check re-run against it.
+        Returns ``(derived, entries)``.'''
+        root = self.job_root(job["user_id"], job["id"])
 
         # The archive is the contents of one job directory, so it expands at
-        # `<build root>/<design>/<jobname>/` -- which is where SiliconCompiler
-        # will look for it once `option,builddir` is the job root. Both segments
-        # are the DECLARED names, which were checked at create; the manifest's
-        # own copies are checked against them below, so an archive cannot name
-        # its way into another job's tree.
+        # `<build root>/<design>/<jobname>/` -- where SiliconCompiler will look
+        # for it once `option,builddir` is the job root. Both segments are the
+        # DECLARED names, checked at create; the manifest's own copies are
+        # checked against them, so an archive cannot name its way into another
+        # job's tree.
         unpacked = root / job["design"] / job["jobname"]
-        follow_up = job["archives_bytes"] > 0
+        latest = self._store.one(
+            "SELECT storage_key, upload_seq FROM artifacts WHERE job_id = ? "
+            "AND kind = 'input' ORDER BY upload_seq DESC LIMIT 1", (job["id"],))
+        follow_up = latest["upload_seq"] > 1
 
         # 🔴 A follow-up archive may hold only the dataroots that were asked
         # for (D124), so it cannot replace what the first archive carried after
         # the server checked it.
         allowed = self._requested_members(job, root) if follow_up else None
         try:
-            archive.extract(kept, unpacked, self._config.limits, allowed=allowed)
+            archive.extract(self._storage.artifact_path(latest["storage_key"]),
+                            unpacked, self._config.limits, allowed=allowed)
         except archive.ArchiveRejected as rejected:
             if not follow_up:
                 shutil.rmtree(root, ignore_errors=True)
             # Kept, and never opened again: see `artifacts.UNOPENED`.
-            raise self._refuse(session, job, ProblemError(
+            raise self._refuse_staging(job, ProblemError(
                 "archive-rejected", reason=rejected.reason,
                 detail=rejected.detail)) from None
 
         with self._store.transaction():
             self._store.execute(
-                "UPDATE jobs SET archives_bytes = archives_bytes + ?, grant_bytes = NULL, "
-                "  grant_digest = NULL, upload_digest = ?, upload_bytes = ? WHERE id = ?",
-                (size, digest, size, job["id"]))
+                "UPDATE jobs SET unpack_pending = 0, upload_sources = NULL WHERE id = ?",
+                (job["id"],))
+        self._phase(job["id"], "checking the manifest")
         job = self._row(job["id"])
 
         # Re-derived over the union of every archive, never from `sources`.
-        derived = self._derive(session, job, root)
-        self._check_environments(session, job, derived, unpacked)
-        self._check_denied(session, job, derived)
-        entries = self._account(session, job, derived, unpacked)
-        copies = self._account_upstream(session, job, derived, unpacked)
-
+        derived = self._derive(None, job, root)
+        if not follow_up:
+            self._check_members(job, derived, unpacked)
+        self._check_environments(None, job, derived, unpacked)
+        self._check_denied(None, job, derived)
+        entries = self._account(None, job, derived, unpacked)
         asked = [entry for entry in entries if entry.status == owners.ASK]
-        self._check_owed(session, job, derived, asked)
+        self._check_owed(None, job, derived, asked)
 
-        # 🔴 A job with something to get ready stages first (surface D130):
-        # fetching its sources, asking for what it cannot fetch, and building
-        # its nodes' Python environments are where it can still be sent back or
-        # refused, so they happen BEFORE `queued`, which then only moves
-        # forward. One with nothing to stage queues at once.
-        #
-        # 🔴 **The `202` says `staging` or `queued`, never `awaiting_input`**
-        # (surface D151): something the client can send and has not goes back
-        # through the one backwards edge, from `staging`, like a source that
-        # could not be fetched.
-        stages = any(entry.status in (owners.FETCH, owners.ASK) for entry in entries) \
-            or bool(self._environments(job, derived)) or bool(copies)
-        try:
-            with self._store.transaction():
-                # The PDK with it: an admitted job has a resolved one. And what
-                # its run derives from, for a job that continues from it.
-                self._store.execute(
-                    "UPDATE jobs SET upload_sources = NULL, submit_idempotency_key = ?, "
-                    "  manifest_pdk = ?, manifest_resources = ? WHERE id = ?",
-                    (idempotency_key, derived["pdk"],
-                     json.dumps([list(pair) for pair in _resources(derived)]), job["id"]))
-                self._transition(job["id"], "awaiting_input",
-                                 "staging" if stages else "queued",
-                                 actor=session.user_id)
-        except sqlite3.IntegrityError as e:
-            if "UNIQUE" not in str(e):
-                raise
-            # The only thing here that can collide is the submit key, and the
-            # index that catches it is per user. Reusing one across two jobs is
-            # the caller having reused a key they should have rotated, not a
-            # fault in this server.
-            raise ProblemError(
-                "idempotency-key-reuse",
-                detail="this Idempotency-Key was used to submit a different "
-                       "job") from None
-        job = self._row(job["id"])
+        with self._store.transaction():
+            self._store.execute(
+                "UPDATE jobs SET manifest_pdk = ?, manifest_resources = ? WHERE id = ?",
+                (derived["pdk"], json.dumps([list(pair) for pair in _resources(derived)]),
+                 job["id"]))
+        return derived, entries
 
-        if stages:
-            # 🔴 Fetched after submit, while `staging`: no request waits on a
-            # slow git host, and nothing queues until every source is in hand.
-            self._start_preparing(job["id"])
-            return self.wire(job)
+    def _check_members(self, job, derived, unpacked: Path) -> None:
+        '''🔴 The first archive holds only the manifest at its root,
+        `sc_collected_files/`, the Python environment, and
+        `<step>/<index>/outputs/` for each node the run reads and does not
+        run; anything else is `unrequested_member` (surface *What the archive
+        carries, and who decides*).'''
+        from siliconcompiler.remote import environment
 
-        self._dispatch(session, job, derived, entries)
-        return self.wire(self._row(job["id"]))
+        upstream = set(runspec.upstream_nodes(derived["project"],
+                                              self._skipped_upstream(job)))
+        allowed = {f"{job['design']}.pkg.json", "sc_collected_files", environment.ROOT}
+
+        def refuse(member):
+            return self._refuse_staging(job, ProblemError(
+                "archive-rejected", reason="unrequested_member",
+                detail=f"{member} is not something a first archive carries: the "
+                       "manifest, sc_collected_files/, the Python environment and "
+                       "the outputs of each node the run reads and does not run"))
+
+        for top in sorted(unpacked.iterdir()):
+            if top.name in allowed:
+                continue
+            if not top.is_dir() or not any(step == top.name for step, _ in upstream):
+                raise refuse(top.name)
+            for node in sorted(top.iterdir()):
+                if (top.name, node.name) not in upstream or not node.is_dir():
+                    raise refuse(f"{top.name}/{node.name}")
+                for member in sorted(node.iterdir()):
+                    if member.name != "outputs":
+                        raise refuse(f"{top.name}/{node.name}/{member.name}")
 
     ######################################################################
     # What a run's files are, and where the server's copies come from
@@ -1115,13 +1215,18 @@ class JobService:
 
     @_as_data
     def _prepare(self, job_id: str) -> None:
-        '''Fetch what the run needs and the server does not hold, then
-        dispatch -- or send the job back asking for what could not be had.
+        '''Everything between submit and `queued`: unpack and check the
+        upload, fetch what the run needs and the server does not hold, copy
+        earlier results, build environments, then dispatch -- or send the job
+        back asking for what could not be had.
 
         In parallel, a timeout per source and one deadline for the job. A
         transient failure is retried until the deadline; a permanent one --
         and whatever is still missing at the deadline -- goes back to the
         client, which has the credentials the server does not.
+
+        🔴 A refusal found in the upload ends the job `rejected`; this server's
+        own failure ends it `failed`, `staging-failed`, never `rejected`.
         '''
         import time
         from concurrent.futures import ThreadPoolExecutor
@@ -1134,13 +1239,18 @@ class JobService:
                 return
             root = self.job_root(job["user_id"], job_id)
             unpacked = root / job["design"] / job["jobname"]
-            derived = self._derive(None, job, root)
-            entries = self._account(None, job, derived, unpacked)
+            if job["unpack_pending"]:
+                derived, entries = self._unpack(job)
+            else:
+                derived = self._derive(None, job, root)
+                entries = self._account(None, job, derived, unpacked)
 
             wanted = {}
             for entry in entries:
                 if entry.status == owners.FETCH:
                     wanted.setdefault((entry.source, entry.ref), []).append(entry)
+            if wanted:
+                self._phase(job_id, "fetching sources")
 
             timeout = self._config["fetch_timeout_seconds"]
             deadline = time.monotonic() + self._config["fetch_deadline_seconds"]
@@ -1188,8 +1298,10 @@ class JobService:
 
             # The results of each node this run reads and does not run, from
             # the earlier job that ran it (surface D175).
-            self._copy_results(job, unpacked,
-                               self._account_upstream(None, job, derived, unpacked))
+            copies = self._account_upstream(None, job, derived, unpacked)
+            if copies:
+                self._phase(job_id, "copying earlier results")
+            self._copy_results(job, unpacked, copies)
 
             # Then each node's Python, built into an image on the one it
             # resolved to -- which needs the images resolved first.
@@ -1198,8 +1310,8 @@ class JobService:
             if self._row(job_id)["state"] != "staging":
                 return
 
-            with self._store.transaction():
-                self._transition(job_id, "staging", "queued")
+            # `queued` only once the scheduler holds it.
+            self._phase(job_id, "handing the job to the scheduler")
             self._dispatch(None, self._row(job_id), derived, entries, plan=plan)
         except ProblemError:
             # Already recorded on the job by `_refuse`.
@@ -1207,18 +1319,47 @@ class JobService:
         except _NoLongerStaging:
             # Cancelled while it waited: nothing to record.
             pass
+        except _ServerFailure as e:
+            self._fail_staging(job_id, str(e))
         except Exception as e:                                   # noqa: BLE001
-            logger.error(f"could not prepare {job_id}: {e}")
-            job = self._row(job_id)
-            if job is not None and job["state"] in ("staging", "queued") \
-                    and not job["scheduler_job_id"]:
-                self._refuse(None, job, ProblemError(
-                    "not-ready", status=503,
-                    detail="this server could not prepare the job's sources"))
+            logger.exception(f"could not stage {job_id}")
+            self._fail_staging(job_id, f"this server could not get the job ready: "
+                                       f"{type(e).__name__}")
         finally:
             with self._preparing_lock:
                 self._preparing.discard(job_id)
             self._store.release()
+
+    def _fail_staging(self, job_id: str, detail: str) -> None:
+        '''This server's own failure while staging: `failed`, `staging-failed`,
+        with `detail` naming what failed -- and in the job-level `logs`.'''
+        with self._store.transaction():
+            job = self._row(job_id)
+            if job is None or job["state"] != "staging":
+                return
+            self._store.execute(
+                "UPDATE jobs SET error_type = ?, error_members = NULL, finished_at = ? "
+                "WHERE id = ?", (ERRORS["staging-failed"].uri, now(), job_id))
+            self._transition(job_id, "staging", "failed", reason=_bounded(detail))
+        logger.warning(f"{job_id}: staging failed: {detail}")
+        self._log_staging(self._row(job_id), detail)
+
+    def _log_staging(self, job, detail: str) -> None:
+        '''What went wrong while staging, in the job-level `logs`, scrubbed
+        like `detail`: the only account a person can reach of a job that never
+        ran.'''
+        from siliconcompiler.remote.server.dispatch import RUN_LOG
+
+        root = self.job_root(job["user_id"], job["id"])
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with open(root / RUN_LOG, "a") as f:
+                f.write(f"{now()} staging failed: {bound(detail)}\n")
+            with self._store.transaction():
+                artifacts.collect_run_log(self._store, self._storage, self._config,
+                                          job, root)
+        except OSError as e:
+            logger.warning(f"{job['id']}: could not keep the staging log: {e}")
 
     def _fetch(self, source: str, ref: str, timeout: int) -> str:
         '''One source into this server's copy -- or, where `fetch_fails` is
@@ -1252,7 +1393,8 @@ class JobService:
                   "is asked to send them -- " + "; ".join(reasons))
         with self._store.transaction():
             self._store.execute(
-                "UPDATE jobs SET upload_sources = ?, submit_idempotency_key = NULL "
+                "UPDATE jobs SET upload_sources = ?, submit_idempotency_key = NULL, "
+                "  submit_reply = NULL, submit_key_at = NULL "
                 "WHERE id = ?", (json.dumps(asked), job["id"]))
             self._transition(job["id"], "staging", "awaiting_input",
                              reason=_bounded(reason))
@@ -1279,12 +1421,12 @@ class JobService:
                 job["id"], root, manifest, image=bundle,
                 queue=self._config["batch_queue"])
         except DispatchError as e:
-            raise self._refuse(session, job, ProblemError(
-                "not-ready",
-                detail=f"this server could not hand the job to its "
-                       f"scheduler: {e}")) from None
+            raise _ServerFailure(f"this server's scheduler refused the job: {e}") from None
 
-        self._record_submission(job, derived, scheduler_job_id, plan)
+        if not self._record_submission(job, derived, scheduler_job_id, plan):
+            # Cancelled while it was handed over: the scheduler lets it go.
+            self._dispatcher.cancel(scheduler_job_id)
+            return
         logger.info(f"submitted {job['id']} as {scheduler_job_id}")
 
     ######################################################################
@@ -1338,10 +1480,8 @@ class JobService:
             base_id = nodes.get(node)
             base_ref = refs.get(base_id) if base_id else None
             if not base_ref:
-                raise self._refuse_staging(job, ProblemError(
-                    "not-ready", status=503,
-                    detail=f"{node[0]}/{node[1]} has no image to build its Python "
-                           "environment on"))
+                raise _ServerFailure(f"{node[0]}/{node[1]} has no image to build its "
+                                     "Python environment on")
             key = images.derivation(base_ref.split("@", 1)[1], text, _python_names(job))
             if key not in done:
                 done[key] = self._derived_for(job, node, base_id, base_ref, key, text)
@@ -1418,10 +1558,9 @@ class JobService:
                     key[:12], workspace, workspace / envbuild.SPEC,
                     queue=self._config["build_queue"])
             except DispatchError as e:
-                raise self._refuse_staging(job, ProblemError(
-                    "not-ready", status=503,
-                    detail=f"this server could not start the build of "
-                           f"{node[0]}/{node[1]}'s Python environment: {e}")) from None
+                raise _ServerFailure(f"this server could not start the build of "
+                                     f"{node[0]}/{node[1]}'s Python environment: {e}") \
+                    from None
             logger.info(f"{job['id']}: building {node[0]}/{node[1]}'s environment "
                         f"as {build_id}")
 
@@ -1433,11 +1572,13 @@ class JobService:
                 log = workspace / envbuild.LOG
                 tail = "\n".join(log.read_text(errors="replace").strip().splitlines()[-10:]) \
                     if log.is_file() else ""
-                raise self._refuse_staging(job, ProblemError(
-                    "not-ready", status=503,
-                    detail=_bounded(f"the build of {node[0]}/{node[1]}'s Python environment "
-                                    f"did not finish within {timeout}s" +
-                                    (f":\n{tail}" if tail else ""))))
+                raise _ServerFailure(_bounded(
+                    f"the build of {node[0]}/{node[1]}'s Python environment "
+                    f"did not finish within {timeout}s" + (f":\n{tail}" if tail else "")))
+            if not result.get("ok") and result.get("reason") != "uninstallable":
+                raise _ServerFailure(_bounded(
+                    f"this server could not build {node[0]}/{node[1]}'s Python "
+                    f"environment: {result.get('detail') or 'the build failed'}"))
             if not result.get("ok"):
                 raise self._refuse_staging(job, _build_refusal(node, text, result))
             return result
@@ -1537,15 +1678,15 @@ class JobService:
             # silently would run the job against whatever SiliconCompiler this
             # cluster has, which is the thing the registry exists to stop --
             # and it would do it while the record said otherwise.
-            # The server's own failure, not the caller's request: `not-ready`,
-            # as a scheduler refusing the handoff is.
-            raise ProblemError(
-                "not-ready", status=503,
-                detail=f"this server could not unpack the image its own job "
-                       f"needs to run in: {e}") from None
+            raise _ServerFailure(f"this server could not unpack the image the job's "
+                                 f"own process runs in: {e}") from None
 
-    def _record_submission(self, job, derived, scheduler_job_id, plan) -> None:
+    def _record_submission(self, job, derived, scheduler_job_id, plan) -> bool:
+        '''`staging` to `queued`, now the scheduler holds it; False where the
+        job left `staging` meanwhile, and stays as it is.'''
         with self._store.transaction():
+            if self._row(job["id"])["state"] != "staging":
+                return False
             self._store.execute(
                 "UPDATE jobs SET manifest_flow = ?, manifest_nodes = ?, "
                 "  manifest_tools = ?, manifest_pdk = ?, "
@@ -1554,6 +1695,7 @@ class JobService:
                 (derived["flow"], len(derived["nodes"]),
                  json.dumps(derived["tools"]), derived["pdk"],
                  scheduler_job_id, plan.job, now(), job["id"]))
+            self._transition(job["id"], "staging", "queued")
 
             for step, index in derived["nodes"]:
                 self._store.execute(
@@ -1566,6 +1708,7 @@ class JobService:
                     "(job_id, from_step, from_index, to_step, to_index) "
                     "VALUES (?, ?, ?, ?, ?)",
                     (job["id"], from_step, from_index, to_step, to_index))
+        return True
 
     def _check_concurrent_jobs(self, user_id: str) -> None:
         active = self._store.one(
@@ -1679,6 +1822,15 @@ class JobService:
 
         node_tools = runspec.node_tools(project.get_flow(), nodes)
 
+        # 🔴 The PDK fails closed only where the class has a PDK setting: one
+        # left unset there is not knowing which, and a class without one
+        # resolves to 'none'.
+        if project.valid("asic", "pdk") and not project.get("asic", "pdk"):
+            raise self._refuse(session, job, ProblemError(
+                "resource-unresolved", resource_kind="pdk",
+                detail=f"this {type(project).__name__} project sets no PDK: set one "
+                       "with set_pdk() before it is submitted"))
+
         return {
             "project": project,
             "flow": project.get_flow().name,
@@ -1790,7 +1942,7 @@ class JobService:
         # Only the bundles need a source: a digest the docker scheduler pulls
         # already says where it comes from.
         runspec.write_images(
-            root / job["design"] / job["jobname"] / runspec.IMAGES_FILENAME,
+            root / runspec.IMAGES_FILENAME,
             sources, self.container_mounts() if sources else [],
             python=_python_names(job))
 
@@ -1820,6 +1972,10 @@ class JobService:
         computed one line later and thrown away.
         '''
         with self._store.transaction():
+            current = self._row(job["id"])
+            if current["state"] != job["state"]:
+                # Cancelled while staging checked it: what the owner did stands.
+                raise _NoLongerStaging(job["id"])
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, error_members = ?, finished_at = ? "
                 "WHERE id = ?",
@@ -2195,7 +2351,7 @@ class JobService:
 
         root = self.job_root(job["user_id"], job["id"])
         progress = runspec.read_progress(
-            root / job["design"] / job["jobname"] / runspec.PROGRESS_FILENAME, root)
+            root / runspec.PROGRESS_FILENAME, root)
 
         if progress is None:
             # Nothing written yet. Either it has not started, or it never will.
@@ -2272,7 +2428,7 @@ class JobService:
             # `running`, which costs one stat to be sure of.
             job_root = self.job_root(job["user_id"], job["id"])
             settled = runspec.read_progress(
-                job_root / job["design"] / job["jobname"] / runspec.PROGRESS_FILENAME,
+                job_root / runspec.PROGRESS_FILENAME,
                 job_root)
 
             if settled and settled.get("state") in ("completed", "failed"):
@@ -3074,14 +3230,24 @@ class JobService:
         return row["reason"] if row else None
 
     def _transition(self, job_id: str, from_state: Optional[str], to_state: str,
-                    actor: Optional[str] = None, reason: Optional[str] = None) -> None:
+                    actor: Optional[str] = None, reason: Optional[str] = None,
+                    state_reason: Optional[str] = None) -> None:
+        # `state_reason` describes the state being entered, so every move resets it.
         self._store.execute(
-            "UPDATE jobs SET state = ?, state_changed_at = ? WHERE id = ?",
-            (to_state, now(), job_id))
+            "UPDATE jobs SET state = ?, state_changed_at = ?, state_reason = ? WHERE id = ?",
+            (to_state, now(), _bounded(state_reason, MAX_REASON) if state_reason else None,
+             job_id))
         self._store.execute(
             "INSERT INTO job_state_transitions "
             "(job_id, from_state, to_state, actor_user_id, reason) VALUES (?, ?, ?, ?, ?)",
             (job_id, from_state, to_state, actor, reason))
+
+    def _phase(self, job_id: str, what: str) -> None:
+        '''The staging phase, as the job's `state_reason`.'''
+        with self._store.transaction():
+            self._store.execute(
+                "UPDATE jobs SET state_reason = ? WHERE id = ? AND state = 'staging'",
+                (what, job_id))
 
     def wire(self, job, nodes: bool = True) -> Dict[str, Any]:
         '''The job object, as §17 publishes it.'''
@@ -3503,6 +3669,11 @@ class _NoLongerStaging(Exception):
     '''The job left `staging` while it was being prepared.'''
 
 
+class _ServerFailure(Exception):
+    '''This server's own failure while staging: `staging-failed`, its message
+    the `detail`.'''
+
+
 def _build_refusal(node, text: str, result: Dict[str, Any]) -> ProblemError:
     '''What a failed environment build tells the job's owner.'''
     from siliconcompiler.remote import environment
@@ -3510,11 +3681,6 @@ def _build_refusal(node, text: str, result: Dict[str, Any]) -> ProblemError:
     where = f"{node[0]}/{node[1]}"
     target = f"{result.get('python') or 'its Python'} ({result.get('version') or '?'}) " \
              f"on {result.get('platform') or 'its platform'}"
-    if result.get("reason") != "uninstallable":
-        return ProblemError(
-            "not-ready", status=503,
-            detail=_bounded(f"this server could not build {where}'s Python environment: "
-                            f"{result.get('detail') or 'the build failed'}"))
 
     named = list(result.get("unresolved") or []) or \
         [str(pin) for pin in environment.parse(text.encode()).pins]
@@ -3576,6 +3742,11 @@ def _ago(seconds: int) -> str:
 
     when = datetime.now(timezone.utc) - timedelta(seconds=seconds)
     return when.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+def _expired_key(bound_at: Optional[str]) -> bool:
+    '''Whether a key bound at ``bound_at`` is past the time it is honoured.'''
+    return bool(bound_at) and bound_at < _ago(IDEMPOTENCY_SECONDS)
 
 
 def _error(error_type: Optional[str],

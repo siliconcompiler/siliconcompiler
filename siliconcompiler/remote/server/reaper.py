@@ -206,17 +206,16 @@ def _builds(store, storage, config, datadir) -> int:
 
 
 def _uploads(store, storage, config, datadir) -> int:
-    '''An archive uploaded for a job that was never submitted.
+    '''An upload left behind by a job that ended without submitting it.
 
-    `upload_grant_expires_at` is the trigger the schema names it for. A job
-    still in `created` or `awaiting_input` past it will not be submitted --
-    submit re-issues a grant rather than honouring a lapsed one -- so the bytes
-    are only holding a slot against `limits.pending_uploads`.
+    🔴 **Bytes that arrived are kept until the job is abandoned**, never reaped
+    at the grant's expiry: the grant bounds when an upload may start, and a
+    job still waiting may yet be submitted. Cancel, abandon and delete discard
+    the upload themselves; this is the sweep behind them.
     '''
     rows = store.all(
-        "SELECT id FROM jobs WHERE state IN ('created', 'awaiting_input') "
-        "  AND upload_grant_expires_at IS NOT NULL "
-        "  AND upload_grant_expires_at <= ?", (now(),))
+        "SELECT id FROM jobs WHERE state NOT IN ('created', 'awaiting_input') "
+        "  AND upload_grant_expires_at IS NOT NULL")
 
     freed = 0
     for row in rows:

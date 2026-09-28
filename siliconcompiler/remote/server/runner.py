@@ -27,6 +27,7 @@ from pathlib import Path
 from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.runspec import (
     IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_images, read_python,
+    state_dir,
     runtime_nodes, write_progress)
 from siliconcompiler.remote.server.store import now
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
@@ -115,20 +116,23 @@ def run(manifest: Path) -> int:
     global _progress_path, _progress
 
     from siliconcompiler import Project
+    from siliconcompiler.scheduler.scheduler import Scheduler
     from siliconcompiler.scheduler.taskscheduler import TaskScheduler
 
     _leave_the_allocation()
+    # 🔴 The window the server admitted is the window that runs: a node whose
+    # upstream results lack a file fails, never widening `-from` to rebuild it.
+    Scheduler.widen_from = False
 
     project = Project.from_manifest(filepath=str(manifest))
     _silence_console(project)
 
-    # Beside the manifest, which is the job's own directory. The server put the
-    # manifest there and knows where to look without being told a second path.
-    _progress_path = Path(manifest).parent / PROGRESS_FILENAME
+    # In the job root, above the tree the upload expanded into, where the
+    # server looks without being told a second path.
+    _progress_path = state_dir(manifest) / PROGRESS_FILENAME
     global _image_sources
     global _image_mounts
-    _image_sources, _image_mounts = read_images(
-        Path(manifest).parent / IMAGES_FILENAME)
+    _image_sources, _image_mounts = read_images(state_dir(manifest) / IMAGES_FILENAME)
 
     _progress = {
         "state": "running",
@@ -167,7 +171,7 @@ def run(manifest: Path) -> int:
             from siliconcompiler.remote.server import envinstall
             envinstall.install_all(project, Path(manifest).parent, project.logger,
                                    constrain=read_python(
-                                       Path(manifest).parent / IMAGES_FILENAME))
+                                       state_dir(manifest) / IMAGES_FILENAME))
         project.run()
     except Exception as e:
         # The run failing is an outcome this reports, not an error in reporting.

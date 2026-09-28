@@ -4,6 +4,8 @@ import tarfile
 
 import pytest
 
+from conftest import outcome
+
 from siliconcompiler import Flowgraph, Project
 from siliconcompiler.remote import environment
 from siliconcompiler.remote.client import capture
@@ -333,7 +335,8 @@ def _submitted(server_client, key, token, job_archive, extra):
 
     path, digest, size = job_archive(extra=extra)
     job = stage(server_client, key, token, path, size)
-    return submit(server_client, key, token, job["id"], digest, size)
+    return outcome(server_client, key, token,
+                   submit(server_client, key, token, job["id"], digest, size))
 
 
 def test_forwarded_packages_beside_a_file_are_the_users_code(

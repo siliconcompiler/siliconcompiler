@@ -441,13 +441,14 @@ def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
 
 def test_a_private_pdk_the_server_has_no_copy_of_is_refused(
         server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    from conftest import call, slug
+    from conftest import call, outcome, slug
     from test_server_jobs import stage, submit
 
     project = _nop_asic(gcd_design, tmp_path, private(PDK, "secret", tmp_path))
     archive, digest, size = job_archive(project)
     job = stage(server_client, key, token, archive, size)
-    response = submit(server_client, key, token, job["id"], digest, size)
+    response = outcome(server_client, key, token,
+                       submit(server_client, key, token, job["id"], digest, size))
 
     assert response.status_code == 422
     assert slug(response) == "resource-unavailable"

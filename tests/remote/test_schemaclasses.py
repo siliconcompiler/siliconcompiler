@@ -5,7 +5,7 @@ import pytest
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
-from conftest import slug                                               # noqa: E402
+from conftest import outcome, slug                                      # noqa: E402
 from test_server_jobs import FakeDispatcher, stage, submit              # noqa: E402
 
 
@@ -38,7 +38,8 @@ def dispatcher(server):
 def submitted(server_client, key, token, archive):
     path, digest, size = archive
     job = stage(server_client, key, token, path, size)
-    return submit(server_client, key, token, job["id"], digest, size)
+    return outcome(server_client, key, token,
+                   submit(server_client, key, token, job["id"], digest, size))
 
 
 def test_a_task_class_this_server_does_not_have_is_refused_and_never_imported(

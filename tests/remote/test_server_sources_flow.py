@@ -1,12 +1,13 @@
 import hashlib
 import io
 import json
+import os
 import tarfile
 import time
 
 import pytest
 
-from conftest import call, slug
+from conftest import call, outcome, slug
 from test_owners import DATASHEET, _nop_asic, first, private, resource
 from test_server_jobs import FakeDispatcher, create, put, stage, submit
 
@@ -205,16 +206,19 @@ def test_a_job_stages_then_queues_and_queued_only_moves_forward(
                                                    ("staging", "queued")]
 
 
-def test_a_job_with_nothing_to_fetch_queues_at_once(
+def test_every_job_stages_even_with_nothing_to_fetch(
         server, server_client, key, token, job_archive, dispatcher):
+    '''🔴 Submit only matches the digest; the archive is opened while
+    staging, so every admitted job passes through it.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
 
-    assert ("awaiting_input", "queued") in transitions(server, job["id"])
-    assert not any("staging" in pair for pair in transitions(server, job["id"]))
+    assert transitions(server, job["id"])[-2:] == [("awaiting_input", "staging"),
+                                                   ("staging", "queued")]
 
 
+@pytest.mark.threaded_staging
 def test_a_staging_job_counts_against_concurrent_jobs(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
     '''🔴 Fetches are work: a state no limit counted would let one account
@@ -236,11 +240,11 @@ def test_a_staging_job_counts_against_concurrent_jobs(
         submit(server_client, key, token, first_job["id"], digest, size)
         assert read(server_client, key, token, first_job["id"])["state"] == "staging"
 
-        archive, digest, size = job_archive(remote_project)
-        second = stage(server_client, key, token, archive, size)
-        refused = submit(server_client, key, token, second["id"], digest, size)
+        # Refused at create, before any upload.
+        refused = create(server_client, key, token, jobname="job1")
         assert refused.status_code == 429
         assert refused.get_json()["limit"] == "concurrent_jobs"
+        assert int(refused.headers["Retry-After"]) >= 1
     finally:
         gate.set()
 
@@ -293,7 +297,8 @@ def send(server_client, key, token, job_id, members):
     grant = call(server_client, key, "POST", f"/v1/jobs/{job_id}/upload-grant",
                  token, json={"size_bytes": size, "digest": digest}).get_json()
     put(server_client, grant, data)
-    return submit(server_client, key, token, job_id, digest, size)
+    return outcome(server_client, key, token,
+                   submit(server_client, key, token, job_id, digest, size))
 
 
 def test_a_follow_up_may_hold_only_what_was_asked_for(
@@ -361,6 +366,7 @@ def test_each_upload_is_kept_as_its_own_input(
 # Nothing to wait for
 ###########################
 
+@pytest.mark.threaded_staging
 def test_cancelling_a_job_still_fetching_cancels_it_at_once(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
     '''Nothing was dispatched, so there is nothing to wind down.'''
@@ -410,3 +416,33 @@ def test_private_and_local_resources_are_told_apart_at_create(server_client, key
     assert response.status_code == 400
     assert slug(response) == "invalid-request"
     _ = private  # the shared helper, for completeness of the imports
+
+
+def test_a_held_copy_records_its_commit_and_holds_no_moving_ref(tmp_path, monkeypatch):
+    '''🔴 The commit is recorded before `.git` goes, and a branch is held for
+    one job's staging, never across jobs.'''
+    from siliconcompiler.remote.server import sources
+
+    store = sources.SourceStore(tmp_path, [])
+    monkeypatch.setattr(store, "allowlisted", lambda source, ref: True)
+
+    def resolve(moving):
+        def into(source, ref, data, timeout):
+            (data / "f").write_text(ref)
+            return "a" * 40, moving
+        return into
+
+    store._resolve = resolve(True)
+    fetched = store.fetch("https://example.com/ip.git", "main", 10)
+    assert store.held("https://example.com/ip.git", "main") == fetched
+    assert store.commit("https://example.com/ip.git", "main") == "a" * 40
+
+    monkeypatch.setattr(sources, "MOVING_HOLD_SECONDS", -1)
+    assert store.held("https://example.com/ip.git", "main") is None
+    # Fetched again, beside -- never over -- the copy a job may be reading.
+    again = store.fetch("https://example.com/ip.git", "main", 10)
+    assert again != fetched and os.path.isdir(fetched)
+
+    store._resolve = resolve(False)
+    pinned = store.fetch("https://example.com/ip.git", "v1.0", 10)
+    assert store.held("https://example.com/ip.git", "v1.0") == pinned

@@ -268,3 +268,24 @@ def test_a_superseded_bundle_is_reclaimed_and_a_live_one_is_not(server):
     assert images.is_staged(images.bundle_path(root, new_digest))
     assert not list(root.glob("*.part"))
     assert not list(root.glob("*.oci"))
+
+
+def test_bytes_that_arrived_are_kept_past_the_grants_expiry(
+        server, server_client, key, token, job_archive):
+    '''🔴 The grant bounds when an upload may start; the bytes are kept until
+    the job is abandoned, and go with it.'''
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    store, storage = server.config["SC_STORE"], server.config["SC_STORAGE"]
+    store.execute("UPDATE jobs SET upload_grant_expires_at = '2020-01-01T00:00:00.000Z' "
+                  "WHERE id = ?", (job["id"],))
+
+    sweep(server)
+    assert storage.stat_upload(job["id"]) is not None
+
+    store.execute("UPDATE jobs SET state_changed_at = '2020-01-01T00:00:00.000Z' "
+                  "WHERE id = ?", (job["id"],))
+    sweep(server)
+    assert store.one("SELECT state FROM jobs WHERE id = ?", (job["id"],))["state"] \
+        == "abandoned"
+    assert storage.stat_upload(job["id"]) is None

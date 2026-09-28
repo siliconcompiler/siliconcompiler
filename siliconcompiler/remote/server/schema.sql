@@ -214,6 +214,11 @@ CREATE TABLE jobs (
 
     idempotency_key        text,
     submit_idempotency_key text,
+    create_reply      text,                         -- JSON: the create's original body, replayed
+    submit_reply      text,                         -- JSON: the submit's original body, replayed
+    submit_key_at     text,                         -- when submit_idempotency_key was bound
+    unpack_pending    integer NOT NULL DEFAULT 0,   -- 1 from submit until staging unpacks
+                                                    -- the newest upload
     run_hash          text,                         -- the client's opaque hash of the work, for
                                                     -- job reuse. The server never recomputes or
                                                     -- normalises it, and the lookup is
@@ -258,12 +263,11 @@ CREATE TABLE jobs (
     deleted_by        text REFERENCES users(id),
     delete_reason     text,                         -- prose naming who acted, never the device
 
-    -- A job that was admitted has a resolved PDK. 'cancelling' joins the named
-    -- side because it is post-admission, and so does 'staging': submit
-    -- re-derived the manifest before a job stages (database D100).
+    -- A job that was queued has a resolved PDK. Staging re-derives the
+    -- manifest, so a staging, cancelling or failed job can lack one (database
+    -- D129, reversing D100).
     CONSTRAINT jobs_admitted_pdk_resolved
-        CHECK (state NOT IN ('staging', 'queued', 'running', 'cancelling',
-                             'completed', 'failed')
+        CHECK (state NOT IN ('queued', 'running', 'completed')
                OR (manifest_pdk IS NOT NULL AND manifest_pdk <> '')),
     -- Only a job that has stopped may be archived. The terminal five are spelled
     -- out because a CHECK cannot read job_states.terminal.

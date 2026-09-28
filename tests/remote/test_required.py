@@ -6,7 +6,7 @@ from siliconcompiler import ASIC, Flowgraph, PDK, StdCellLibrary
 from siliconcompiler.remote import owners
 from siliconcompiler.tools.builtin.nop import NOPTask
 
-from conftest import slug
+from conftest import outcome, slug
 from test_owners import DATASHEET, _upload_without, first, private
 
 
@@ -222,7 +222,8 @@ def submitted(server_client, key, token, job_archive, project, tmp_path, left_ou
     if left_out:
         archive, digest, size = _upload_without(project, archive, tmp_path, left_out)
     job = stage(server_client, key, token, archive, size)
-    return job, submit(server_client, key, token, job["id"], digest, size)
+    return job, outcome(server_client, key, token,
+                        submit(server_client, key, token, job["id"], digest, size))
 
 
 def test_a_required_file_the_client_should_have_sent_is_refused_before_dispatch(
@@ -231,7 +232,7 @@ def test_a_required_file_the_client_should_have_sent_is_refused_before_dispatch(
     before anything runs -- instead of a node failing on it.'''
     lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
     project = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
-                              libs=[lib]))
+                              pdk=PDK("lambda"), libs=[lib]))
     hashed = first(project, ("library", "mylib", *DATASHEET)).get_hashed_filename()
 
     job, response = submitted(server_client, key, token, job_archive, project, tmp_path,
@@ -248,7 +249,7 @@ def test_a_file_the_flow_does_not_read_may_be_left_out(
         server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
     lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
     project = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
-                              libs=[lib]))
+                              pdk=PDK("lambda"), libs=[lib]))
     hashed = first(project, ("library", "mylib", *QUICKSTART)).get_hashed_filename()
 
     job, response = submitted(server_client, key, token, job_archive, project, tmp_path,

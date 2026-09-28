@@ -1,7 +1,7 @@
 
 import pytest
 
-from conftest import call, login, slug
+from conftest import call, job_after, login, slug
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -362,8 +362,9 @@ def test_the_same_key_and_the_same_body_is_the_same_job(server_client, key, toke
     second = create(server_client, key, token, idempotency_key="k1")
 
     assert first.status_code == 201
-    assert second.status_code == 200
-    assert first.get_json()["id"] == second.get_json()["id"]
+    # A replayed create is `201`, with the original body.
+    assert second.status_code == 201
+    assert first.get_json() == second.get_json()
 
 
 def test_the_same_key_with_a_different_body_is_refused(server_client, key, token):
@@ -641,8 +642,13 @@ def test_submit_runs_the_job(server_client, key, token, job_archive, dispatcher)
     response = submit(server_client, key, token, job["id"], digest, size)
 
     assert response.status_code == 202
-    body = response.get_json()
+    # 🔴 `staging`, always: the request only matched the digest.
+    assert response.get_json()["state"] == "staging"
+    assert response.get_json()["state_reason"] == "unpacking the upload"
+
+    body = job_after(server_client, key, token, response)
     assert body["state"] == "queued"
+    assert "state_reason" not in body
     assert body["submitted_at"]
     assert body["flow"] == "nopflow"
     assert body["progress"]["total_count"] == 2
@@ -678,17 +684,22 @@ def test_a_digest_mismatch_refuses_before_anything_is_extracted(
 
     assert response.status_code == 422
     assert slug(response) == "upload-digest-mismatch"
+    assert "storage holds" in response.get_json()["detail"]
 
     root = server.config["SC_JOBS"].job_root(
         call(server_client, key, "GET", "/v1/me", token).get_json()["id"], job["id"])
     assert not root.exists()
 
-    # A refused job never ran, and keeping it out of `failed` is what stops an
-    # entitlement-denial spike reading as a spike in broken designs.
+    # 🔴 A refusal of the request, not of the archive: the job still waits,
+    # its upload where the grant put it, and the right digest submits it.
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "rejected"
-    assert read["terminal"] is True
-    assert read["error"]["type"].endswith("upload-digest-mismatch")
+    assert read["state"] == "awaiting_input"
+    assert read["error"] is None
+    assert server.config["SC_STORAGE"].stat_upload(job["id"]) is not None
+
+    again = submit(server_client, key, token, job["id"], digest, size)
+    assert again.status_code == 202
+    assert job_after(server_client, key, token, again)["state"] == "queued"
 
 
 def test_bytes_short_of_the_grant_are_a_digest_mismatch(server_client, key, token,
@@ -729,9 +740,12 @@ def test_an_archive_violation_names_which_rule(server_client, key, token,
 
     response = submit(server_client, key, token, job["id"], digest, size)
 
-    assert response.status_code == 422
-    assert slug(response) == "archive-rejected"
-    assert response.get_json()["reason"] == "traversal"
+    assert response.status_code == 202
+    read = job_after(server_client, key, token, response)
+    assert read["state"] == "rejected"
+    assert read["error"]["type"].endswith("archive-rejected")
+    assert read["error"]["status"] == 422
+    assert read["error"]["reason"] == "traversal"
 
 
 def test_a_manifest_that_is_not_where_it_was_declared(server_client, key, token,
@@ -742,8 +756,9 @@ def test_a_manifest_that_is_not_where_it_was_declared(server_client, key, token,
 
     response = submit(server_client, key, token, job["id"], digest, size)
 
-    assert response.status_code == 422
-    assert slug(response) == "declared-mismatch"
+    assert response.status_code == 202
+    read = job_after(server_client, key, token, response)
+    assert read["error"]["type"].endswith("declared-mismatch")
 
 
 def test_submitting_with_nothing_uploaded(server_client, key, token):
@@ -1188,7 +1203,7 @@ def test_a_job_that_finished_while_we_looked_is_not_lost(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
-    progress = root / runspec.PROGRESS_FILENAME
+    progress = root.parents[1] / runspec.PROGRESS_FILENAME
 
     # What the poll reads first: still going.
     runspec.write_progress(progress, {
@@ -1223,7 +1238,7 @@ def test_a_job_that_really_is_gone_is_still_reported_lost(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-22T10:00:00.000Z",
         "nodes": {"stepone/0": {"state": "running"}}})
 
@@ -1396,16 +1411,16 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
     response = submit(container_client, key, container_token, job["id"],
                       upload_digest, size)
 
-    assert response.status_code == 422
-    assert slug(response) == "software-unavailable"
-    assert response.get_json()["reason"] == "unavailable"
-    assert response.get_json()["unresolved"] == [
-        {"name": "openroad", "requirement": [], "available": []}]
+    assert response.status_code == 202
     assert not container_dispatcher.submitted
 
     read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
                 container_token).get_json()
     assert read["state"] == "rejected"
+    assert read["error"]["type"].endswith("software-unavailable")
+    assert read["error"]["reason"] == "unavailable"
+    assert read["error"]["unresolved"] == [
+        {"name": "openroad", "requirement": [], "available": []}]
 
 
 def test_the_job_publishes_the_versions_the_server_resolved(
@@ -1674,7 +1689,7 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
     # And the run is told where to get the bytes, which the bundle path alone
     # cannot say.
     sources, mounts = runspec.read_images(
-        manifest.parent / runspec.IMAGES_FILENAME)
+        runspec.state_dir(manifest) / runspec.IMAGES_FILENAME)
     assert sources[bundle] == f"ghcr.io/x/sc@{digest('a')}"
     # The data directory is always mounted: every path in a job's manifest is
     # under it, and a container's root filesystem is the image's.
@@ -1763,14 +1778,14 @@ def test_a_manifest_from_a_newer_schema_is_refused(
 
     response = submit(server_client, key, token, job["id"], upload_digest, size)
 
-    assert response.status_code == 422
-    assert slug(response) == "declared-mismatch"
-    assert "only backwards compatible" in response.get_json()["detail"]
+    assert response.status_code == 202
     assert not dispatcher.submitted
 
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}",
                 token).get_json()
     assert read["state"] == "rejected"
+    assert read["error"]["type"].endswith("declared-mismatch")
+    assert "only backwards compatible" in read["error"]["detail"]
 
 
 def test_a_server_may_not_advertise_what_it_cannot_read(registry):
@@ -1810,7 +1825,7 @@ def running(server, server_client, key, token, job_archive, me):
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-23T10:00:00.000Z",
         "nodes": {"stepone/0": {"state": "running"},
                   "steptwo/0": {"state": "pending"}}})
@@ -1994,7 +2009,7 @@ def test_a_failed_run_publishes_the_reason_the_run_gave(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "failed",
         "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:10.000Z",
@@ -2017,14 +2032,15 @@ def test_a_refusal_publishes_which_one_on_the_job(server_client, key, token,
     '''The detail was computed one line from where the job was recorded and
     thrown away: the submitter saw it in the response and nobody who read the
     job afterwards ever could.'''
-    archive, digest, size = job_archive()
+    archive, digest, size = job_archive(extra={"../escape": b"owned"})
     job = stage(server_client, key, token, archive, size)
 
-    submit(server_client, key, token, job["id"], "sha256:" + "0" * 64, size)
+    submit(server_client, key, token, job["id"], digest, size)
 
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["error"]["type"].endswith("upload-digest-mismatch")
-    assert "storage holds" in read["error"]["detail"]
+    assert read["error"]["type"].endswith("archive-rejected")
+    assert read["error"]["reason"] == "traversal"
+    assert read["error"]["detail"]
 
 
 def test_a_reason_that_only_repeats_the_slug_is_not_published(
@@ -2038,7 +2054,7 @@ def test_a_reason_that_only_repeats_the_slug_is_not_published(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:10.000Z",
         "nodes": {"stepone/0": {"state": "failed"},
@@ -2051,10 +2067,9 @@ def test_a_reason_that_only_repeats_the_slug_is_not_published(
 
 def test_a_job_the_scheduler_would_not_take_records_what_the_caller_was_told(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 The two used to be written separately and drifted: the job was
-    recorded as `run-failed` while its submitter was told `not-ready`, so the
-    person and the page they were looking at disagreed about a job neither of
-    them could re-read.'''
+    '''🔴 This server's own failure while staging is `failed`,
+    `staging-failed`, with the detail -- never `rejected`, and never `queued`
+    before the scheduler holds the job.'''
     from siliconcompiler.remote.server.dispatch import DispatchError
 
     def refuse(*args, **kwargs):
@@ -2066,12 +2081,18 @@ def test_a_job_the_scheduler_would_not_take_records_what_the_caller_was_told(
     job = stage(server_client, key, token, archive, size)
     response = submit(server_client, key, token, job["id"], digest, size)
 
-    assert slug(response) == "not-ready"
+    assert response.status_code == 202
 
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "rejected"
-    assert read["error"]["type"].endswith("not-ready")
+    assert read["state"] == "failed"
+    assert read["error"]["type"].endswith("staging-failed")
+    assert "status" not in read["error"]
     assert "slurmctld is not answering" in read["error"]["detail"]
+
+    # And the job-level `logs` says so, for a job that never ran.
+    listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
+                  token).get_json()["items"]
+    assert any(item["kind"] == "logs" and item["step"] is None for item in listed)
 
 
 def test_a_failed_node_carries_the_type_that_says_so(
@@ -2087,7 +2108,7 @@ def test_a_failed_node_carries_the_type_that_says_so(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:10.000Z",
         "nodes": {"stepone/0": {"state": "failed", "exit_code": 1},
@@ -2120,7 +2141,7 @@ def test_a_silent_run_is_lost_even_while_the_scheduler_says_running(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
         "heartbeat": "2026-09-24T10:00:00.000Z",     # long ago
         "nodes": {"stepone/0": {"state": "running"},
@@ -2146,7 +2167,7 @@ def test_a_beating_run_is_left_alone(server, server_client, key, token,
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
         "heartbeat": now(),
         "nodes": {"stepone/0": {"state": "running"},
@@ -2169,7 +2190,7 @@ def test_no_heartbeat_means_no_opinion(server, server_client, key, token,
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
         "nodes": {"stepone/0": {"state": "running"},
                   "steptwo/0": {"state": "pending"}}})
@@ -2326,7 +2347,7 @@ def test_a_fast_poll_does_not_become_a_fast_squeue(server, server_client, key,
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
         "heartbeat": now(), "nodes": {"stepone/0": {"state": "running"},
                                       "steptwo/0": {"state": "pending"}}})
@@ -2352,7 +2373,7 @@ def test_a_cancel_never_takes_a_stale_answer(server, server_client, key, token,
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
         "heartbeat": now(), "nodes": {"stepone/0": {"state": "running"},
                                       "steptwo/0": {"state": "pending"}}})
@@ -2366,3 +2387,148 @@ def test_a_cancel_never_takes_a_stale_answer(server, server_client, key, token,
          json={"reason": "changed my mind"})
 
     assert dispatcher.cancelled_nodes, "a cancel reached no node jobs"
+
+
+###########################
+# Submit answers early, and staging checks the upload
+###########################
+
+def test_a_replayed_submit_answers_the_original_202(server_client, key, token,
+                                                    job_archive, dispatcher):
+    '''The original body, `staging` and all, whatever the job has done since:
+    a replay returns the original response (surface §6).'''
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+
+    first = submit(server_client, key, token, job["id"], digest, idempotency_key="s1")
+    again = submit(server_client, key, token, job["id"], digest, idempotency_key="s1")
+
+    assert (first.status_code, again.status_code) == (202, 202)
+    assert again.get_json() == first.get_json()
+    assert again.get_json()["state"] == "staging"
+    assert len(dispatcher.submitted) == 1
+
+
+@pytest.mark.parametrize("what", ["create", "submit"])
+def test_a_retry_while_the_original_is_handled_is_in_progress(
+        server, server_client, key, token, job_archive, dispatcher, what):
+    '''Only a final answer binds a key: a retry meanwhile is `409`,
+    `in_progress`, with `Retry-After`, and binds nothing.'''
+    jobs = server.config["SC_JOBS"]
+    me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
+    jobs._in_flight.add((me, what, "k-busy"))
+
+    if what == "create":
+        response = create(server_client, key, token, idempotency_key="k-busy")
+    else:
+        archive, digest, size = job_archive()
+        job = stage(server_client, key, token, archive, size)
+        response = submit(server_client, key, token, job["id"], digest,
+                          idempotency_key="k-busy")
+
+    assert response.status_code == 409
+    assert slug(response) == "job-state-conflict"
+    assert response.get_json()["reason"] == "in_progress"
+    assert int(response.headers["Retry-After"]) >= 1
+
+
+def test_a_key_older_than_a_day_is_forgotten(server, server_client, key, token):
+    first = create(server_client, key, token, idempotency_key="old").get_json()
+    server.config["SC_STORE"].execute(
+        "UPDATE jobs SET created_at = '2020-01-01T00:00:00.000Z' WHERE id = ?",
+        (first["id"],))
+
+    again = create(server_client, key, token, idempotency_key="old")
+
+    assert again.status_code == 201
+    assert again.get_json()["id"] != first["id"]
+
+
+def test_a_member_the_first_archive_does_not_carry_is_unrequested(
+        server_client, key, token, job_archive, dispatcher):
+    '''🔴 And a planted `sc-server-progress.json` is one: the server's own
+    files live above the tree an upload expands into.'''
+    archive, digest, size = job_archive(extra={
+        "sc-server-progress.json": b'{"state": "completed", "nodes": {}}'})
+    job = stage(server_client, key, token, archive, size)
+
+    read = job_after(server_client, key, token,
+                     submit(server_client, key, token, job["id"], digest, size))
+
+    assert read["state"] == "rejected"
+    assert read["error"]["reason"] == "unrequested_member"
+    assert "sc-server-progress.json" in read["error"]["detail"]
+    assert not dispatcher.submitted
+
+
+def test_the_pending_uploads_refusal_names_the_jobs_holding_the_slots(
+        server, server_client, key, token):
+    server.config["SC_CONFIG"].limits["pending_uploads"] = 1
+    held = create(server_client, key, token).get_json()
+
+    refused = create(server_client, key, token, jobname="job1")
+
+    assert refused.status_code == 429
+    assert refused.get_json()["limit"] == "pending_uploads"
+    assert refused.get_json()["job_ids"] == [held["id"]]
+
+
+def test_the_run_overrides_placement_and_never_refuses_it():
+    '''The job's name and the deployment's placement: every scheduler setting
+    and the job-increment flag are overridden, and the list is a set.'''
+    from siliconcompiler.remote.server import runspec
+
+    assert runspec.OVERRIDDEN == {
+        ("option", "nodashboard"), ("option", "builddir"), ("option", "cachedir"),
+        ("option", "remote"), ("option", "nodisplay"), ("option", "jobincr"),
+        ("record", "remoteid"),
+        ("option", "scheduler", "cores"), ("option", "scheduler", "defer"),
+        ("option", "scheduler", "maxnodes"), ("option", "scheduler", "maxthreads"),
+        ("option", "scheduler", "memory"), ("option", "scheduler", "msgcontact"),
+        ("option", "scheduler", "msgevent"), ("option", "scheduler", "name"),
+        ("option", "scheduler", "options"), ("option", "scheduler", "queue"),
+    }
+
+
+def test_a_manifests_scheduler_settings_are_overridden(nop_project, tmp_path):
+    from siliconcompiler.remote.server import runspec
+
+    nop_project.option.set_jobincr(True)
+    nop_project.option.scheduler.set_name("slurm")
+    nop_project.option.scheduler.set_queue("gpu-partition")
+    nop_project.option.scheduler.add_options(["--exclusive"], step="stepone", index="0")
+
+    runspec.normalize(nop_project, "job-1", tmp_path / "b", tmp_path / "c")
+
+    assert nop_project.option.get_jobincr() is False
+    assert nop_project.option.scheduler.get_name() is None
+    assert nop_project.option.scheduler.get_queue() is None
+    assert not nop_project.option.scheduler.get_options(step="stepone", index="0")
+
+
+def test_an_asic_project_with_no_pdk_is_unresolved(server_client, key, token,
+                                                   job_archive, dispatcher, gcd_design):
+    '''The PDK fails closed where the class has a PDK setting; a class with
+    none resolves to 'none' (every nopflow job here is one).'''
+    import os
+
+    from siliconcompiler import ASIC, Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    project = ASIC(gcd_design)
+    project.add_fileset("rtl")
+    flow = Flowgraph("nopflow")
+    flow.node("stepone", NOPTask())
+    project.set_flow(flow)
+    project.option.set_nodashboard(True)
+    project.option.set_jobname("job0")
+    project.option.set_builddir(os.path.abspath("build"))
+    archive, digest, size = job_archive(project)
+    job = stage(server_client, key, token, archive, size)
+
+    read = job_after(server_client, key, token,
+                     submit(server_client, key, token, job["id"], digest, size))
+
+    assert read["state"] == "rejected"
+    assert read["error"]["type"].endswith("resource-unresolved")
+    assert read["error"]["resource_kind"] == "pdk"

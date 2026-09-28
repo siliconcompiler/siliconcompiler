@@ -31,10 +31,12 @@ repository it will not show.
 '''
 
 import hashlib
+import json
 import logging
 import os
 import shutil
 import tempfile
+import time
 
 from pathlib import Path
 from typing import Optional, Sequence
@@ -50,6 +52,13 @@ logger = logging.getLogger("sc-server")
 # The most one source may weigh, downloaded. A PDK is gigabytes; this is a
 # ceiling on a mistake, not a budget.
 MAX_SOURCE_BYTES = 16 * 1024 ** 3
+
+# How long a copy of a moving ref -- a branch -- stands for that ref: one
+# job's staging, never the next job's.
+MOVING_HOLD_SECONDS = 3600
+
+_COMPLETE = ".complete"
+_CURRENT = "current"
 
 _PERMANENT = (401, 403, 404, 410)
 
@@ -82,13 +91,33 @@ class SourceStore:
         return self.root / digest[:32]
 
     def held(self, source: Optional[str], ref: Optional[str]) -> Optional[str]:
-        '''The held copy's root, or None where this server has not got it.'''
+        '''The held copy's root, or None where this server has not got it --
+        or holds it for a moving ref, fetched longer ago than one job stages.'''
         if not source:
             return None
         where = self._key(source, ref)
-        if (where / ".complete").is_file():
-            return str(where / "data")
-        return None
+        try:
+            copy = where / (where / _CURRENT).read_text().strip()
+        except OSError:
+            return None
+        try:
+            marker = json.loads((copy / _COMPLETE).read_text())
+        except (OSError, ValueError):
+            return None
+        if marker.get("moving") and \
+                time.time() - marker.get("fetched_at", 0) > MOVING_HOLD_SECONDS:
+            return None
+        return str(copy / "data")
+
+    def commit(self, source: Optional[str], ref: Optional[str]) -> Optional[str]:
+        '''The commit the held copy resolved to, where it came from git.'''
+        found = self.held(source, ref)
+        if not found:
+            return None
+        try:
+            return json.loads((Path(found).parent / _COMPLETE).read_text()).get("commit")
+        except (OSError, ValueError):
+            return None
 
     def allowlisted(self, source: Optional[str], ref: Optional[str]) -> bool:
         '''Whether this server would fetch the source itself.'''
@@ -111,30 +140,41 @@ class SourceStore:
             raise Permanent("not on this server's allowlist")
 
         where = self._key(source, ref)
-        self.root.mkdir(parents=True, exist_ok=True)
-        staging = Path(tempfile.mkdtemp(prefix=".fetch-", dir=self.root))
+        where.mkdir(parents=True, exist_ok=True)
+        staging = Path(tempfile.mkdtemp(prefix=".fetch-", dir=where))
         try:
             data = staging / "data"
             data.mkdir()
-            self._resolve(source, ref, data, timeout)
-            (staging / ".complete").write_text(f"{source}\n{ref or ''}\n")
+            pinned = self._resolve(source, ref, data, timeout)
+            commit, moving = pinned if isinstance(pinned, tuple) else (None, False)
+            # 🔴 The commit, recorded before `.git` went: what a job ran is
+            # answerable after the fact. A moving ref -- a branch, or no ref --
+            # is held for one job's staging and fetched again after it.
+            (staging / _COMPLETE).write_text(json.dumps({
+                "source": source, "ref": ref, "commit": commit, "moving": moving,
+                "fetched_at": time.time()}))
 
-            # Atomic, and first one wins: two jobs fetching the same source at
-            # once both end up with one copy.
+            # A copy per fetch, never replaced under a job reading it; which
+            # one is current moves atomically.
+            copy = where / (commit if commit and not moving else staging.name[1:])
             try:
-                os.rename(staging, where)
+                os.rename(staging, copy)
             except OSError:
                 _remove(staging)
-            return str(where / "data")
+            pointer = where / f".{_CURRENT}.{os.getpid()}"
+            pointer.write_text(copy.name)
+            os.replace(pointer, where / _CURRENT)
+            return str(copy / "data")
         except BaseException:
             _remove(staging)
             raise
 
     ######################################################################
 
-    def _resolve(self, source: str, ref: Optional[str], into: Path, timeout: float) -> None:
+    def _resolve(self, source: str, ref: Optional[str], into: Path, timeout: float):
         '''SiliconCompiler's resolver for ``source``, run under the fetch
-        policy, its result moved into ``into``.'''
+        policy, its result moved into ``into``. Returns ``(commit, moving)``:
+        the commit a git source resolved to, and whether its ref moves.'''
         from siliconcompiler import Project
         from siliconcompiler.package import FetchPolicy, RemoteResolver, Resolver, fetch_policy
         from siliconcompiler.remote.server.envbuild import Proxy
@@ -158,11 +198,13 @@ class SourceStore:
         finally:
             proxy.close()
 
+        commit, moving = _pin(resolved, ref)
         # The resolver leaves its cache read-only; this copy is moved out of it.
         _remove(resolved / ".git")
         RemoteResolver._make_writable(resolved)
         for child in list(resolved.iterdir()):
             shutil.move(str(child), str(into / child.name))
+        return commit, moving
 
     def _check(self, url: str) -> None:
         '''Every URL the resolver contacts: on the allowlist, and to a public
@@ -208,6 +250,31 @@ def _classified(error: BaseException, refused) -> BaseException:
     if isinstance(error, TypeError):
         return Permanent(f"the source is not an archive this server can unpack: {error}")
     return Transient(f"the source failed: {type(error).__name__}")
+
+
+def _pin(resolved: Path, ref: Optional[str]):
+    '''``(commit, moving)`` for a git checkout; ``(None, False)`` for an
+    archive, whose URL names its version.'''
+    import re
+    import subprocess
+
+    if not (resolved / ".git").exists():
+        return None, False
+
+    def git(*args):
+        try:
+            return subprocess.run(["git", "-C", str(resolved), *args], capture_output=True,
+                                  text=True, timeout=30, check=True).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+    commit = git("rev-parse", "HEAD")
+    if not ref or ref == "HEAD":
+        return commit, True
+    if re.fullmatch(r"[0-9a-f]{40}", ref) or git("rev-parse", "--verify", "--quiet",
+                                                 f"refs/tags/{ref}") is not None:
+        return commit, False
+    return commit, True
 
 
 def _remove(path: Path) -> None:

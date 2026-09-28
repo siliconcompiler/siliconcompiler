@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from conftest import call, slug
+from conftest import call, outcome, slug
 from test_server_artifacts import listing, ran
 from test_server_jobs import FakeDispatcher, stage, submit
 
@@ -301,7 +301,8 @@ def test_a_denied_tool_is_refused_at_submit(server_client, key, token,
     archive, digest, size = job_archive(lint_project)
     job = stage(server_client, key, token, archive, size)
 
-    response = submit(server_client, key, token, job["id"], digest, size)
+    response = outcome(server_client, key, token,
+                       submit(server_client, key, token, job["id"], digest, size))
 
     assert response.status_code == 403
     assert slug(response) == "entitlement-denied"
@@ -343,7 +344,8 @@ def test_the_pdk_is_named_first_and_the_rest_are_counted(
 
     archive, digest, size = job_archive(lint_project)
     job = stage(server_client, key, token, archive, size)
-    response = submit(server_client, key, token, job["id"], digest, size)
+    response = outcome(server_client, key, token,
+                       submit(server_client, key, token, job["id"], digest, size))
 
     assert response.status_code == 403
     body = response.get_json()

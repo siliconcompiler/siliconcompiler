@@ -45,6 +45,26 @@ PROGRESS_FILENAME = "sc-server-progress.json"
 # consumers, two different facts.
 IMAGES_FILENAME = "sc-server-images.json"
 
+# Every `option,scheduler` key: placement is the deployment's, so each is reset
+# before the server writes its own.
+SCHEDULER_KEYS = ("cores", "defer", "maxnodes", "maxthreads", "memory",
+                  "msgcontact", "msgevent", "name", "options", "queue")
+
+# What `normalize` overrides whatever the manifest says -- never refuses.
+OVERRIDDEN = frozenset({
+    ("option", "nodashboard"), ("option", "builddir"), ("option", "cachedir"),
+    ("option", "remote"), ("option", "nodisplay"), ("option", "jobincr"),
+    ("record", "remoteid"),
+    *(("option", "scheduler", key) for key in SCHEDULER_KEYS),
+})
+
+
+def state_dir(manifest) -> Path:
+    '''Where the server's own files for a run live: the job root, above the
+    `<design>/<jobname>/` an upload expands into, so no upload can write them.
+    The run's manifest is `<job root>/<design>/<jobname>/<design>.pkg.json`.'''
+    return Path(os.path.abspath(manifest)).parents[2]
+
 
 # SiliconCompiler's runner has its own node vocabulary and it is not the
 # contract's. The mapping happens here, at the boundary, which is what keeps the
@@ -150,7 +170,11 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     project.option.set_cachedir(str(cachedir))
     project.option.set_remote(False)
     project.option.set_nodisplay(True)
+    # The run is this job: incrementing would run it under another name.
+    project.option.set_jobincr(False)
     project.set('record', 'remoteid', job_id)
+    for key in SCHEDULER_KEYS:
+        project.get('option', 'scheduler', key, field=None).reset()
 
     if cluster == "slurm":
         # 🔴 EVERY node is its own Slurm job, image or no image. The cluster is
@@ -281,9 +305,11 @@ def runtime_nodes(project) -> List[Tuple[str, str]]:
     return list(runtime_flow(project).get_nodes())
 
 
-def upstream_nodes(project) -> List[Tuple[str, str]]:
+def upstream_nodes(project, skipped=()) -> List[Tuple[str, str]]:
     '''The nodes a run reads and does not run: every node outside the run
-    that a node in it takes inputs from (surface D175).
+    that a node in it takes inputs from (surface D175). A node in ``skipped``
+    -- skipped in the job that ran it -- is looked through to its own inputs,
+    since it has no results to read.
 
     🔴 **One derivation for both ends.** The client decides from it what to
     upload or name in `continues_from`, and the server what must be in the
@@ -291,9 +317,24 @@ def upstream_nodes(project) -> List[Tuple[str, str]]:
     results a `-from` run needs.
     '''
     runtime = runtime_flow(project)
+    flow = project.get_flow()
+    pruned = set(project.option.get_prune() or [])
     running = set(runtime.get_nodes())
-    return sorted({source for node in running for source in runtime.get_node_inputs(*node)
-                   if source not in running})
+    skipped = set(skipped)
+
+    found = set()
+    seen = set()
+    pending = [source for node in running for source in runtime.get_node_inputs(*node)]
+    while pending:
+        node = tuple(pending.pop())
+        if node in running or node in seen or node in pruned:
+            continue
+        seen.add(node)
+        if node in skipped:
+            pending.extend(flow.get(*node, "input"))
+        else:
+            found.add(node)
+    return sorted(found)
 
 
 def outputs_present(node_dir, design: str) -> bool:
