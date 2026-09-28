@@ -2532,3 +2532,140 @@ def test_an_asic_project_with_no_pdk_is_unresolved(server_client, key, token,
     assert read["state"] == "rejected"
     assert read["error"]["type"].endswith("resource-unresolved")
     assert read["error"]["resource_kind"] == "pdk"
+
+
+###########################
+# The edges, the nodes, and why it is where it is
+###########################
+
+def test_a_cancel_of_a_job_the_scheduler_already_ended_leaves_it(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 Conditional on the state it moves from: the `202` carries the job as
+    the scheduler left it.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    jobs = server.config["SC_JOBS"]
+    original = jobs._transition_if
+
+    def ended_first(job_id, from_state, to_state, **kwargs):
+        # The scheduler side got there between the read and the write.
+        jobs._transition(job_id, from_state, "completed")
+        return original(job_id, from_state, to_state, **kwargs)
+
+    jobs._transition_if = ended_first
+    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
+                    json={})
+
+    assert response.status_code == 202
+    assert response.get_json()["state"] == "completed"
+    assert not dispatcher.cancelled
+
+
+def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    from siliconcompiler.remote.server import runspec
+
+    job = running(server, server_client, key, token, job_archive, me)
+    cancelled = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
+                     json={"reason": "wrong corner"}).get_json()
+    assert cancelled["state"] == "cancelling"
+    assert cancelled["state_reason"] == "wrong corner"
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"])
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:01:00.000Z",
+        "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
+                  "steptwo/0": {"state": "running"}}})
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == "cancelled"
+    assert read["state_reason"] == "wrong corner"
+    nodes = {node["step"]: node for node in read["nodes"]}
+    # A terminal job has only terminal nodes, and one a cancel stopped has no
+    # exit code and says why.
+    assert all(node["terminal"] for node in read["nodes"])
+    assert nodes["steptwo"]["state"] == "cancelled"
+    assert nodes["steptwo"]["exit_code"] is None
+    assert nodes["steptwo"]["state_reason"] == "wrong corner"
+
+
+@pytest.mark.parametrize("reported,published", [(0, 0), (1, 1), (-9, 137), (-15, 143),
+                                                (137, 137), (None, None)])
+def test_an_exit_code_is_0_to_255_and_a_signal_is_128_plus_n(reported, published):
+    from siliconcompiler.remote.server import runspec
+
+    assert runspec.exit_code(reported) == published
+
+
+def test_a_time_limit_is_run_failed_naming_it(server, server_client, key, token,
+                                              job_archive, dispatcher, me):
+    from siliconcompiler.remote.server import runspec
+
+    job = running(server, server_client, key, token, job_archive, me)
+    root = server.config["SC_JOBS"].job_root(me, job["id"])
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:01:00.000Z",
+        "nodes": {"stepone/0": {"state": "failed", "exit_code": -9, "limit": "time"},
+                  "steptwo/0": {"state": "pending"}}})
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["error"]["type"].endswith("/run-failed")
+    assert "stepone/0 exceeded its time limit" in read["error"]["detail"]
+    nodes = {node["step"]: node for node in read["nodes"]}
+    assert nodes["stepone"]["exit_code"] == 137
+    assert nodes["stepone"]["error_type"].startswith("https://")
+    assert nodes["steptwo"]["state"] == "cancelled"
+
+
+def test_repeated_filters_or_within_a_key_and_terminal_filters(
+        server, server_client, key, token):
+    '''`?archived=true&archived=false` is both views; `?terminal=` is the
+    published flag.'''
+    kept = create(server_client, key, token).get_json()
+    gone = create(server_client, key, token, jobname="job1").get_json()
+    call(server_client, key, "POST", f"/v1/jobs/{gone['id']}/cancel", token, json={})
+    call(server_client, key, "POST", f"/v1/jobs/{gone['id']}/archive", token, json={})
+    server.config["SC_STORE"].execute(
+        "UPDATE jobs SET archived_at = ?, archived_by = user_id WHERE id = ?",
+        (now(), gone["id"]))
+
+    def ids(query):
+        return {item["id"] for item in call(server_client, key, "GET", f"/v1/jobs?{query}",
+                                            token).get_json()["items"]}
+
+    assert ids("") == {kept["id"]}
+    assert ids("archived=true&archived=false") == {kept["id"], gone["id"]}
+    assert ids("archived=true&archived=false&terminal=true") == {gone["id"]}
+    assert ids("terminal=false") == {kept["id"]}
+    assert ids("jobname=job0&jobname=job1&archived=true&archived=false") == \
+        {kept["id"], gone["id"]}
+
+
+def test_the_next_page_keeps_every_repeat(server_client, key, token):
+    for n in range(3):
+        create(server_client, key, token, jobname=f"job{n}")
+
+    first = call(server_client, key, "GET",
+                 "/v1/jobs?limit=1&jobname=job0&jobname=job1&jobname=job2", token)
+
+    link = first.headers["Link"]
+    assert link.count("jobname=") == 3
+    target = link.split(">", 1)[0].lstrip("<")
+    assert len(call(server_client, key, "GET", target, token).get_json()["items"]) == 1
+
+
+@pytest.mark.parametrize("value", [0, 0.5, "1"])
+def test_a_poll_interval_below_one_whole_second_is_refused(value):
+    from siliconcompiler.remote.server.config import DEFAULTS, _check_policy
+
+    with pytest.raises(ValueError, match="poll_interval_seconds"):
+        _check_policy(dict(DEFAULTS, poll_interval_seconds=value))
+
+
+def test_a_job_still_going_says_when_to_ask_again(server_client, key, token):
+    job = create(server_client, key, token).get_json()
+
+    response = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+
+    assert int(response.headers["Retry-After"]) >= 1

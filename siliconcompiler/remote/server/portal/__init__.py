@@ -718,7 +718,7 @@ def discard(session, job_id):
     reason = " ".join((flask.request.form.get("reason") or "").split())
     _jobs().discard_artifacts(
         session, job_id,
-        reason[:MAX_REASON] or f"discarded from {_jobs().whodunnit(session)}")
+        reason[:MAX_REASON] or f"discarded by {_jobs().whodunnit(session)}")
     return flask.redirect(flask.url_for("portal.artifacts", job_id=job_id))
 
 
@@ -744,7 +744,7 @@ def discard_node(session, job_id):
         raise ProblemError("invalid-request", detail="step and index are required")
 
     _jobs().discard_node(session, job_id, step, index,
-                         f"discarded from {_jobs().whodunnit(session)}")
+                         f"discarded by {_jobs().whodunnit(session)}")
     return flask.redirect(flask.url_for("portal.artifacts", job_id=job_id))
 
 

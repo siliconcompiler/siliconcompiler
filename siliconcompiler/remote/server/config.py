@@ -517,6 +517,11 @@ def _check_policy(values: Dict[str, Any]) -> None:
                 not all(isinstance(name, str) for name in names):
             raise ValueError(f"denied_resources.{kind} must be a list of names")
 
+    # Served as `Retry-After`, which is whole seconds and never below 1.
+    interval = values["poll_interval_seconds"]
+    if not isinstance(interval, int) or isinstance(interval, bool) or interval < 1:
+        raise ValueError("poll_interval_seconds is a whole number of seconds, at least 1")
+
 
 class Config:
     '''One deployment's policy.

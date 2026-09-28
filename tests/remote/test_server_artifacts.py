@@ -1087,9 +1087,8 @@ def test_the_two_ways_bytes_go_are_told_apart_by_an_enum(
 
 def test_a_deletion_nobody_gave_a_reason_for_says_where_it_came_from(
         server, server_client, key, token, finished):
-    '''✅ Synthesized rather than left null, and the DEVICE rather than a user
-    id: somebody reading *who took my results* wants the machine, and an id is
-    a lookup they cannot do.'''
+    '''✅ Synthesized rather than left null, naming who acted -- the owner
+    here -- and never the device or an id (surface §17, §19).'''
     call(server_client, key, "DELETE", f"/v1/jobs/{finished['id']}", token)
 
     reasons = {row["delete_reason"] for row in server.config["SC_STORE"].all(
@@ -1098,9 +1097,9 @@ def test_a_deletion_nobody_gave_a_reason_for_says_where_it_came_from(
 
     assert len(reasons) == 1
     said = reasons.pop()
-    # Surface D150: DELETE carries no body, so the server writes where it came
-    # from -- the device's name, as the person named it.
-    assert said.startswith("deleted through the API")
+    assert said == "deleted by its owner"
+    read = call(server_client, key, "GET", f"/v1/jobs/{finished['id']}", token).get_json()
+    assert read["delete_reason"] == said and read["deleted_cause"] == "removed"
     # And never the account it acted as.
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
     assert me not in said

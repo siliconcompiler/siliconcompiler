@@ -27,7 +27,7 @@ from pathlib import Path
 from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.runspec import (
     IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_images, read_python,
-    state_dir,
+    state_dir, exit_code as published_exit_code,
     runtime_nodes, write_progress)
 from siliconcompiler.remote.server.store import now
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
@@ -107,7 +107,10 @@ def _node_finished(project, step, index) -> None:
     node = _progress["nodes"].setdefault(_key(step, index), {})
     node["state"] = node_state(status)
     node["finished_at"] = now()
-    node["exit_code"] = exit_code
+    node["exit_code"] = published_exit_code(exit_code)
+    if status == "timeout":
+        # A limit, named, so the job's error can say which.
+        node["limit"] = "time"
     _publish()
 
 

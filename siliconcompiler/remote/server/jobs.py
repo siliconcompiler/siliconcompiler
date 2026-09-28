@@ -1229,14 +1229,14 @@ class JobService:
         own failure ends it `failed`, `staging-failed`, never `rejected`.
         '''
         import time
-        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
 
         from siliconcompiler.remote.server.sources import Permanent, Transient
 
         try:
             job = self._row(job_id)
             if job is None or job["state"] != "staging":
-                return
+                raise _NoLongerStaging(job_id)
             root = self.job_root(job["user_id"], job_id)
             unpacked = root / job["design"] / job["jobname"]
             if job["unpack_pending"]:
@@ -1260,9 +1260,16 @@ class JobService:
                       for entry in entries if entry.status == owners.ASK]
             pause = 2
             while wanted:
-                with ThreadPoolExecutor(max_workers=4) as pool:
-                    tried = {key: pool.submit(self._fetch, key[0], key[1], timeout)
-                             for key in wanted}
+                # 🔴 Watched rather than waited on: a cancel stops the fetch.
+                pool = ThreadPoolExecutor(max_workers=4)
+                tried = {key: pool.submit(self._fetch, key[0], key[1], timeout)
+                         for key in wanted}
+                while not all(future.done() for future in tried.values()):
+                    futures_wait(list(tried.values()), timeout=1)
+                    if self._row(job_id)["state"] != "staging":
+                        pool.shutdown(wait=False, cancel_futures=True)
+                        raise _NoLongerStaging(job_id)
+                pool.shutdown(wait=False)
                 last = {}
                 for key, future in tried.items():
                     try:
@@ -1282,11 +1289,12 @@ class JobService:
                 elif wanted:
                     time.sleep(pause)
                     pause = min(pause * 2, 60)
+                    if self._row(job_id)["state"] != "staging":
+                        raise _NoLongerStaging(job_id)
 
             job = self._row(job_id)
             if job["state"] != "staging":
-                # Cancelled while it waited.
-                return
+                raise _NoLongerStaging(job_id)
 
             if failed:
                 self._send_back(job, failed)
@@ -1308,7 +1316,7 @@ class JobService:
             plan = self._build_environments(
                 job, derived, self._resolve_images(None, job, derived))
             if self._row(job_id)["state"] != "staging":
-                return
+                raise _NoLongerStaging(job_id)
 
             # `queued` only once the scheduler holds it.
             self._phase(job_id, "handing the job to the scheduler")
@@ -1317,8 +1325,11 @@ class JobService:
             # Already recorded on the job by `_refuse`.
             pass
         except _NoLongerStaging:
-            # Cancelled while it waited: nothing to record.
-            pass
+            # Cancelled while it staged: nothing holds it, so this is where its
+            # `cancelled` is written.
+            job = self._row(job_id)
+            if job is not None and not job["scheduler_job_id"]:
+                self._settle_cancelled(job)
         except _ServerFailure as e:
             self._fail_staging(job_id, str(e))
         except Exception as e:                                   # noqa: BLE001
@@ -1333,6 +1344,11 @@ class JobService:
     def _fail_staging(self, job_id: str, detail: str) -> None:
         '''This server's own failure while staging: `failed`, `staging-failed`,
         with `detail` naming what failed -- and in the job-level `logs`.'''
+        job = self._row(job_id)
+        if job is not None and job["state"] == "cancelling" and not job["scheduler_job_id"]:
+            # Cancelled while it failed: what the owner did stands.
+            self._settle_cancelled(job)
+            return
         with self._store.transaction():
             job = self._row(job_id)
             if job is None or job["state"] != "staging":
@@ -1426,7 +1442,7 @@ class JobService:
         if not self._record_submission(job, derived, scheduler_job_id, plan):
             # Cancelled while it was handed over: the scheduler lets it go.
             self._dispatcher.cancel(scheduler_job_id)
-            return
+            raise _NoLongerStaging(job["id"])
         logger.info(f"submitted {job['id']} as {scheduler_job_id}")
 
     ######################################################################
@@ -1564,9 +1580,16 @@ class JobService:
             logger.info(f"{job['id']}: building {node[0]}/{node[1]}'s environment "
                         f"as {build_id}")
 
+            # 🔴 A cancel stops the build: the job leaving `staging` is a build
+            # nobody is waiting for.
             result = envbuild.wait_for(
-                workspace, timeout, alive=lambda: self._dispatcher.is_alive(build_id),
+                workspace, timeout,
+                alive=lambda: self._dispatcher.is_alive(build_id)
+                and self._row(job["id"])["state"] == "staging",
                 **self._build_wait)
+            if self._row(job["id"])["state"] != "staging":
+                self._dispatcher.cancel(build_id)
+                raise _NoLongerStaging(job["id"])
             if result is None:
                 self._dispatcher.cancel(build_id)
                 log = workspace / envbuild.LOG
@@ -2020,30 +2043,48 @@ class JobService:
         where = ["user_id = ?", "deleted_at IS NULL"]
         params: List[Any] = [session.user_id]
 
-        if _flag(args.get("archived")):
+        # 🔴 A filter repeats to OR within its key; keys AND together
+        # (surface §16) -- so `?archived=true&archived=false` is both views.
+        def values(name):
+            if hasattr(args, "getlist"):
+                given = args.getlist(name)
+            else:
+                given = args.get(name)
+                given = given if isinstance(given, list) else [] if given is None else [given]
+            return [value for value in given if value != ""]
+
+        def any_of(sql_for, choices):
+            if not choices:
+                return
+            where.append("(" + " OR ".join(sql_for for _ in choices) + ")")
+            params.extend(choices)
+
+        archived = {_flag(value) for value in values("archived")} or {False}
+        if archived == {True}:
             where.append("archived_at IS NOT NULL")
-        else:
+        elif archived == {False}:
             where.append("archived_at IS NULL")
 
-        state = args.get("state")
-        if state:
-            if self._store.one("SELECT 1 FROM job_states WHERE state = ?", (state,)) is None:
+        states = values("state")
+        known = {row["state"] for row in self._store.all("SELECT state FROM job_states")}
+        for state in states:
+            if state not in known:
                 raise ProblemError("invalid-request", detail=f"no such job state: {state}")
-            where.append("state = ?")
-            params.append(state)
+        any_of("state = ?", states)
+
+        terminal = {_flag(value) for value in values("terminal")}
+        if terminal == {True}:
+            where.append(f"state IN ({', '.join('?' * len(TERMINAL_STATES))})")
+            params.extend(sorted(TERMINAL_STATES))
+        elif terminal == {False}:
+            where.append(f"state NOT IN ({', '.join('?' * len(TERMINAL_STATES))})")
+            params.extend(sorted(TERMINAL_STATES))
 
         for column in ("design", "jobname"):
-            value = args.get(column)
-            if value:
-                where.append(f"{column} = ?")
-                params.append(value)
+            any_of(f"{column} = ?", values(column))
+        any_of("manifest_flow = ?", values("flow"))
 
-        flow = args.get("flow")
-        if flow:
-            where.append("manifest_flow = ?")
-            params.append(flow)
-
-        if args.get("project"):
+        if values("project"):
             raise ProblemError(
                 "feature-unsupported", feature="projects",
                 detail="this deployment has no projects")
@@ -2084,6 +2125,15 @@ class JobService:
     ######################################################################
 
     def cancel(self, session, job_id: str, reason: Optional[str]) -> Dict[str, Any]:
+        '''Endpoint 18. `cancelling` where work is in flight -- `staging`,
+        `queued` or `running` -- and `cancelled` where there is none.
+
+        🔴 **The write is conditional on the state it moves from**, so a job the
+        scheduler has already ended stays as it is, and the `202` carries it.
+        The scheduler side then writes `cancelled` once the work stops; a job
+        still staging has no scheduler id, and its `cancelled` is written here,
+        by the staging thread, when it stops.
+        '''
         job = self.owned(session, job_id)
 
         if reason is not None:
@@ -2096,60 +2146,46 @@ class JobService:
             # Idempotent: the caller's intent is already satisfied.
             return self.wire(job)
 
-        if job["scheduler_job_id"]:
+        in_flight = job["state"] in ("staging", "queued", "running")
+        target = "cancelling" if in_flight else "cancelled"
+        said = reason or "cancelled"
+
+        with self._store.transaction():
+            moved = self._transition_if(job["id"], job["state"], target,
+                                        actor=session.user_id, reason=reason,
+                                        state_reason=said)
+            if moved:
+                self._store.execute(
+                    "UPDATE jobs SET cancel_requested_at = ? WHERE id = ?",
+                    (now(), job["id"]))
+                if target == "cancelled":
+                    self._store.execute(
+                        "UPDATE jobs SET finished_at = ? WHERE id = ?", (now(), job["id"]))
+                    self._storage.discard_upload(job["id"])
+
+        if moved and job["scheduler_job_id"]:
             self._dispatcher.cancel(job["scheduler_job_id"],
                                     node_job_ids=self._node_job_ids(job))
 
-        # A running job goes to `cancelling` and the scheduler writes the
-        # terminal state; one that never started has nothing to wind down, so it
-        # goes straight to `cancelled`.
-        target = ("cancelling"
-                  if job["state"] in ("queued", "running") and job["scheduler_job_id"]
-                  else "cancelled")
-
-        with self._store.transaction():
-            self._store.execute(
-                "UPDATE jobs SET cancel_requested_at = ? WHERE id = ?",
-                (now(), job["id"]))
-            if target == "cancelled":
-                self._store.execute(
-                    "UPDATE jobs SET finished_at = ? WHERE id = ?", (now(), job["id"]))
-            self._transition(job["id"], job["state"], target,
-                             actor=session.user_id, reason=reason)
-
         return self.wire(self._row(job["id"]))
 
-    def whodunnit(self, session) -> str:
-        """Where an action came from, in words, for a reason nobody supplied.
+    def _transition_if(self, job_id: str, from_state: str, to_state: str, **kwargs) -> bool:
+        '''`_transition`, only where the job is still in ``from_state``.'''
+        current = self._row(job_id)
+        if current is None or current["state"] != from_state:
+            return False
+        self._transition(job_id, from_state, to_state, **kwargs)
+        return True
 
-        🔴 **Prose and never a published user id.** Somebody reading *who took
-        my results* wants the machine, and an id is a lookup they cannot do --
-        while publishing one tells every reader of the job which account acted.
-        The device's own name is what a person recognises, because it is what
-        they named it.
-
-        ⚠️ A portal session carries no device, and says so rather than
-        inventing one: the browser is the surface, not a machine.
-        """
-        if not getattr(session, "device_id", None):
-            return "the portal"
-
-        device = self._store.one("SELECT name FROM devices WHERE id = ?",
-                                 (session.device_id,))
-        where = (device["name"] if device else "").strip()
-        return f"sc-remote on {where}" if where else "sc-remote"
-
-    def _deleted_from(self, session) -> str:
-        '''`delete_reason` for a job's delete, which carries no body (surface
-        D150): *deleted through the API from <device>*, or *deleted from the
-        portal*.'''
-        if not getattr(session, "device_id", None):
-            return "deleted from the portal"
-        device = self._store.one("SELECT name FROM devices WHERE id = ?",
-                                 (session.device_id,))
-        label = (device["name"] if device else "").strip()
-        return f"deleted through the API from {label}" if label else \
-            "deleted through the API"
+    def whodunnit(self, session, job=None) -> str:
+        """Who acted, in words: the person, by display name, and -- where it is
+        their job -- that they own it. Never the device, and never an id."""
+        row = self._store.one("SELECT display_name FROM users WHERE id = ?",
+                              (session.user_id,))
+        name = ((row["display_name"] if row else None) or "").strip()
+        if job is not None and job["user_id"] == session.user_id:
+            return f"{name}, its owner" if name else "its owner"
+        return name or "another user"
 
     def delete(self, session, job_id: str) -> None:
         job = self.owned(session, job_id)
@@ -2183,14 +2219,15 @@ class JobService:
         # rejected, which is the one fact you want when somebody asks where
         # their results went.
         with self._store.transaction():
+            who = f"deleted by {self.whodunnit(session, job)}"
             self._store.execute(
-                "UPDATE jobs SET deleted_at = ?, deleted_by = ? WHERE id = ?",
-                (now(), session.user_id, job["id"]))
+                "UPDATE jobs SET deleted_at = ?, deleted_by = ?, delete_reason = ? "
+                "WHERE id = ?", (now(), session.user_id, who, job["id"]))
             self._store.execute(
                 "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
                 "  delete_reason = ? WHERE job_id = ? AND deleted_at IS NULL "
                 "  AND legal_hold_at IS NULL",
-                (now(), session.user_id, self._deleted_from(session), job["id"]))
+                (now(), session.user_id, who, job["id"]))
 
     def discard_node(self, session, job_id: str, step: str, index: str,
                      reason: str) -> int:
@@ -2349,6 +2386,15 @@ class JobService:
         if self.abandon_if_expired(job):
             return
 
+        if job["state"] == "cancelling" and not job["scheduler_job_id"]:
+            # Cancelled while staging, and no staging thread is left to write
+            # its `cancelled` -- a restart in between.
+            with self._preparing_lock:
+                busy = job["id"] in self._preparing
+            if not busy:
+                self._settle_cancelled(job)
+            return
+
         root = self.job_root(job["user_id"], job["id"])
         progress = runspec.read_progress(
             root / runspec.PROGRESS_FILENAME, root)
@@ -2367,6 +2413,10 @@ class JobService:
         for key, node in (progress.get("nodes") or {}).items():
             step, _, index = key.partition("/")
             state = node.get("state", "pending")
+            if state == "completed":
+                # 🔴 `completed` only once its artifacts are listed: a client
+                # that sees it fetches them.
+                self._index_node(job, step, index)
 
             # 🔴 A published field with no writer is a published field that
             # lies. `error_type` was null on every node this server has ever
@@ -2380,11 +2430,13 @@ class JobService:
             self._store.execute(
                 'UPDATE job_nodes SET state = ?, started_at = ?, finished_at = ?, '
                 '  exit_code = ?, error_type = ? '
-                'WHERE job_id = ? AND step = ? AND "index" = ?',
+                'WHERE job_id = ? AND step = ? AND "index" = ? '
+                "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')",
                 (state, node.get("started_at"), node.get("finished_at"),
-                 node.get("exit_code"), error_type, job["id"], step, index))
+                 None if state == "cancelled" else runspec.exit_code(node.get("exit_code")),
+                 error_type, job["id"], step, index))
 
-            if state in TERMINAL_NODE_STATES:
+            if state in TERMINAL_NODE_STATES and state != "completed":
                 # Indexed as the node finishes rather than as the job does, so
                 # a node that is done answers /logs with its archive while the
                 # rest of the flow is still running -- which is precisely the
@@ -2687,22 +2739,31 @@ class JobService:
             # Everything the run never reached. These really did end before
             # they started.
             self._store.execute(
-                "UPDATE job_nodes SET state = 'cancelled' WHERE job_id = ? "
-                "AND state NOT IN ('completed', 'failed', 'skipped')", (job["id"],))
+                "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL WHERE job_id = ? "
+                "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')", (job["id"],))
             self._transition(
                 job["id"], job["state"], "failed",
                 reason="the scheduler no longer has this job and the run never "
                        "recorded how it ended")
 
     def _settle_cancelled(self, job) -> None:
-        '''A cancel that has taken effect. No error: nothing went wrong.'''
+        '''A cancel that has taken effect: `cancelling` to `cancelled`, and
+        every node it stopped `cancelled`, with no exit code and the cancel's
+        reason. No error: nothing went wrong.'''
         with self._store.transaction():
+            current = self._row(job["id"])
+            if current is None or current["state"] != "cancelling":
+                return
+            said = current["state_reason"] or "cancelled"
             self._store.execute(
                 "UPDATE jobs SET finished_at = ? WHERE id = ?", (now(), job["id"]))
             self._store.execute(
-                "UPDATE job_nodes SET state = 'cancelled' WHERE job_id = ? "
-                "AND state NOT IN ('completed', 'failed', 'skipped')", (job["id"],))
-            self._transition(job["id"], "cancelling", "cancelled", reason="cancelled")
+                "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL, "
+                "  state_reason = ? WHERE job_id = ? "
+                "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')",
+                (said, job["id"]))
+            self._transition(job["id"], "cancelling", "cancelled", reason="cancelled",
+                             state_reason=said)
 
     def _finish(self, job, state: str, progress) -> None:
         # Belt and braces, and cheap: a run that ended by crashing rather than
@@ -2726,6 +2787,14 @@ class JobService:
         # `terminal` is ask what the run produced.
         self._index(job)
 
+        reason = progress.get("error")
+        limited = [f"{key} exceeded its {node['limit']} limit"
+                   for key, node in sorted((progress.get("nodes") or {}).items())
+                   if isinstance(node, dict) and node.get("limit")]
+        if state == "failed" and limited:
+            # A limit is `run-failed` with `detail` naming it.
+            reason = "; ".join(limited + ([reason] if reason else []))
+
         with self._store.transaction():
             if state == "failed":
                 self._store.execute(
@@ -2734,8 +2803,16 @@ class JobService:
             self._store.execute(
                 "UPDATE jobs SET finished_at = ? WHERE id = ?",
                 (progress.get("finished_at") or now(), job["id"]))
-            self._transition(job["id"], job["state"], state,
-                             reason=progress.get("error"))
+            # 🔴 A terminal job has only terminal nodes: whatever the run never
+            # finished ended with it.
+            said = job["state_reason"] if state == "cancelled" else None
+            self._store.execute(
+                "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL, "
+                "  state_reason = ? WHERE job_id = ? "
+                "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')",
+                (said, job["id"]))
+            self._transition(job["id"], job["state"], state, reason=reason,
+                             state_reason=said)
 
     def _index(self, job) -> None:
         '''Turn what the run left on disk into rows.

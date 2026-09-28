@@ -367,7 +367,7 @@ def test_each_upload_is_kept_as_its_own_input(
 ###########################
 
 @pytest.mark.threaded_staging
-def test_cancelling_a_job_still_fetching_cancels_it_at_once(
+def test_cancelling_a_job_still_fetching_stops_the_fetch(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
     '''Nothing was dispatched, so there is nothing to wind down.'''
     import threading
@@ -388,11 +388,16 @@ def test_cancelling_a_job_still_fetching_cancels_it_at_once(
                      json={}).get_json()
     gate.set()
 
-    assert cancelled["state"] == "cancelled"
-    time.sleep(0.3)
+    # 🔴 `cancelling`, with the cancel's reason: work was in flight. The
+    # staging thread stops the fetch and writes `cancelled` -- the API's, as a
+    # staging job has no scheduler id.
+    assert cancelled["state"] == "cancelling"
+    assert cancelled["state_reason"] == "cancelled"
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
+                    == "cancelled")
     assert not dispatcher.submitted
-    # Straight from staging: nothing is running, so there is no `cancelling`.
-    assert transitions(server, job["id"])[-1] == ("staging", "cancelled")
+    assert transitions(server, job["id"])[-2:] == [("staging", "cancelling"),
+                                                   ("cancelling", "cancelled")]
 
 
 def test_a_private_source_mapped_here_is_supplied_at_create(server, server_client,

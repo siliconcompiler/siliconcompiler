@@ -24,7 +24,7 @@ logger = logging.getLogger("sc-server")
 
 __all__ = ["inheriting_nodes", "normalize", "node_image", "node_tools",
            "runtime_flow", "runtime_nodes",
-           "node_state", "PROGRESS_FILENAME", "IMAGES_FILENAME",
+           "node_state", "exit_code", "PROGRESS_FILENAME", "IMAGES_FILENAME",
            "read_images", "read_python", "write_images", "read_progress",
            "write_progress", "upstream_nodes", "outputs_present"]
 
@@ -78,6 +78,20 @@ _NODE_STATES = {
     "timeout": "failed",
     "skipped": "skipped",
 }
+
+
+def exit_code(value) -> Optional[int]:
+    '''A node's exit code as published: 0-255, a signal N as 128+N -- a
+    Python return code of -N included -- and None where the tool never exited.'''
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        code = int(value)
+    except (TypeError, ValueError):
+        return None
+    if code < 0:
+        code = 128 - code
+    return code & 0xFF
 
 
 def node_state(status: Optional[str]) -> str:
@@ -190,6 +204,8 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
         # IGNORED, so per-node placement would look configured and do nothing.
         for step, index in runtime_nodes(project):
             project.option.scheduler.set_name('slurm', step=step, index=index)
+            # A node's terminal state is final: Slurm never runs it twice.
+            project.option.scheduler.add_options(['--no-requeue'], step=step, index=index)
 
             where = (images or {}).get((step, index))
             if where:

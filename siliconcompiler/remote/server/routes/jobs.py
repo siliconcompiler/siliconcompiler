@@ -128,15 +128,19 @@ def listing(session):
     from siliconcompiler.remote.server.errors import only_query
 
     only_query(flask.request.args, ("state", "flow", "design", "jobname", "project",
-                                    "mine", "archived", "limit", "cursor"), "GET /v1/jobs")
+                                    "mine", "archived", "terminal", "limit", "cursor"),
+               "GET /v1/jobs")
     items, cursor = _jobs().listing(session, flask.request.args)
 
     headers = {}
     if cursor:
-        query = flask.request.args.to_dict()
-        query["cursor"] = cursor
-        query_string = "&".join(f"{k}={v}" for k, v in query.items())
-        headers["Link"] = f'</v1/jobs?{query_string}>; rel="next"'
+        from urllib.parse import urlencode
+
+        # Every repeat kept, and every value encoded: the next page is the
+        # same query one page on.
+        query = [(name, value) for name, value in flask.request.args.items(multi=True)
+                 if name != "cursor"] + [("cursor", cursor)]
+        headers["Link"] = f'</v1/jobs?{urlencode(query)}>; rel="next"'
 
     return _private({"items": items}, headers=headers)
 
