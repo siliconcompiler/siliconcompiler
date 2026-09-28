@@ -1478,6 +1478,23 @@ def test_file_resolver_with_relpath():
     assert resolver.resolve() == os.path.abspath("test")
 
 
+def test_file_resolver_with_private():
+    resolver = FileResolver("thisname", Project("testproj"), "file+private://test")
+    assert resolver.is_private is True
+    assert resolver.resolve() == os.path.abspath("test")
+
+
+@pytest.mark.parametrize("scheme", ["file", "file+private"])
+def test_file_resolver_windows_safe_source(monkeypatch, scheme):
+    path = r"D:\a\siliconcompiler\siliconcompiler\examples\heartbeat"
+    monkeypatch.setenv("WINDOWS_SOURCE_PATH", path)
+    resolver = FileResolver("thisname", Project("testproj"),
+                            f"{scheme}://$WINDOWS_SOURCE_PATH")
+
+    assert resolver.safe_source == f"file://{path}"
+    assert resolver.cache_id
+
+
 def test_python_path_resolver():
     resolver = PythonPathResolver("thisname", Project("testproj"), "python://siliconcompiler")
     assert resolver.resolve() == os.path.dirname(siliconcompiler.__file__)
