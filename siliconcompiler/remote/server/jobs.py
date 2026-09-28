@@ -195,23 +195,43 @@ class JobService:
         return self.user_root(user_id) / "cache"
 
     def container_mounts(self):
-        '''What every container this deployment runs must be able to see.
+        '''What every container this deployment runs must be able to see,
+        whoever's job it is: whatever the cluster needs named -- the munge
+        socket and slurm.conf on Slurm, since a framework image submits the
+        nodes of the flow it is driving. Baked into each shared bundle.
 
-        The data directory always, because every path in a job's manifest is
-        under it, plus whatever the cluster needs named -- the munge socket and
-        slurm.conf on Slurm, since a framework image submits the nodes of the
-        flow it is driving.
+        🔴 **Never the data directory.** It holds the token signing key and the
+        store, and every user's tree (profile §0). What one job sees is
+        :meth:`job_mounts`, in a bundle of its own.
+        '''
+        return [str(path) for path in (self._config["container_mounts"] or [])]
+
+    def job_mounts(self, job):
+        '''What one job's node containers see: the job's own tree and its
+        user's cache read-write, and the roots this server supplies read-only.
         '''
         # 🔴 Supplied roots are READ-ONLY in the job: the held copies of remote
-        # sources, bound over their place inside the data directory, and every
-        # private root the operator maps. A job reads what it is supplied and
-        # can change none of it -- the next job gets the same copy.
+        # sources and every private root the operator maps. A job reads what it
+        # is supplied and can change none of it -- the next job gets the same
+        # copy.
         supplied = [(str(self._datadir / "sources"), "ro")] + [
             (str(root), "ro")
             for roots in (self._config["private_dataroots"] or {}).values()
             for root in roots.values()]
-        return [str(self._datadir)] + [
-            str(path) for path in (self._config["container_mounts"] or [])] + supplied
+        return [(str(self.job_root(job["user_id"], job["id"])), "rw"),
+                (str(self.cache_dir(job["user_id"])), "rw")] + supplied
+
+    def framework_mounts(self, job):
+        '''What the job's own process sees, beside :meth:`job_mounts`: where
+        it unpacks the images its nodes run in, and where it writes their
+        bundles, which no node sees.'''
+        return self.job_mounts(job) + [(str(self.bundles_root()), "rw"),
+                                       (str(self.job_bundles(job["id"])), "rw")]
+
+    def job_bundles(self, job_id: str) -> Path:
+        '''Where one job's bundles are: outside its tree, so that no node of
+        it can rewrite what the next is started with.'''
+        return self._datadir / "jobbundles" / job_id
 
     def bundles_root(self) -> Path:
         '''Where unpacked container images live.
@@ -1427,7 +1447,7 @@ class JobService:
         manifest = self._normalize(session, job, root, derived, plan, entries)
 
         try:
-            bundle = self._framework_bundle(plan)
+            bundle = self._framework_bundle(job, plan)
         except ProblemError as problem:
             raise self._refuse(session, job, problem) from None
 
@@ -1670,7 +1690,7 @@ class JobService:
             # given.
             raise self._refuse(session, job, problem) from None
 
-    def _framework_bundle(self, plan) -> Optional[str]:
+    def _framework_bundle(self, job, plan) -> Optional[str]:
         '''The container the job's own orchestrating process runs in.
 
         🔴 This is what makes version matching real rather than half-done. The
@@ -1695,9 +1715,12 @@ class JobService:
             return None
 
         try:
-            return str(images.stage_bundle(self.bundles_root(), ref,
-                                           ref.split("@", 1)[1],
-                                           mounts=self.container_mounts()))
+            common = images.stage_bundle(self.bundles_root(), ref, ref.split("@", 1)[1],
+                                         mounts=self.container_mounts())
+            # This job's own view of it, beside its nodes' bundles.
+            return str(images.job_bundle(
+                common, self.job_bundles(job["id"]) / Path(common).name,
+                self.framework_mounts(job), drop=[str(self._datadir)]))
         except Exception as e:                                   # noqa: BLE001
             # Refused rather than dispatched without it. Dropping the image
             # silently would run the job against whatever SiliconCompiler this
@@ -1954,14 +1977,18 @@ class JobService:
         placements = plan.placements()
         sources = {}
 
+        shared = {}
         if self._dispatcher.name == "slurm":
             refs = placements
             placements = {}
             for node, ref in refs.items():
-                bundle = str(images.bundle_path(self.bundles_root(),
-                                                ref.split("@", 1)[1]))
+                # 🔴 The job's own bundle over the shared one: what a node sees
+                # is its job's, never the data directory.
+                common = images.bundle_path(self.bundles_root(), ref.split("@", 1)[1])
+                bundle = str(self.job_bundles(job["id"]) / common.name)
                 placements[node] = bundle
                 sources[bundle] = ref
+                shared[bundle] = str(common)
 
         runspec.normalize(project, job["id"], root, cache, images=placements,
                           cluster=self._dispatcher.name)
@@ -1978,7 +2005,9 @@ class JobService:
         runspec.write_images(
             root / runspec.IMAGES_FILENAME,
             sources, self.container_mounts() if sources else [],
-            python=_python_names(job))
+            python=_python_names(job), shared=shared,
+            job_mounts=self.job_mounts(job) if sources else [],
+            drop=[str(self._datadir)] if sources else [])
 
         manifest = root / job["design"] / job["jobname"] / f"{job['design']}.pkg.json"
         project.write_manifest(str(manifest))
@@ -2211,6 +2240,7 @@ class JobService:
                        "data' cannot mean 'hide it and keep spending'")
 
         shutil.rmtree(self.job_root(job["user_id"], job["id"]), ignore_errors=True)
+        shutil.rmtree(self.job_bundles(job["id"]), ignore_errors=True)
         for path in (self.stream_index_path(job["id"]),
                      Path(f"{self.stream_index_path(job['id'])}.lock")):
             path.unlink(missing_ok=True)

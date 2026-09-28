@@ -451,14 +451,44 @@ def read_images(path) -> Tuple[Dict[str, str], List[str]]:
     return body.get("sources") or {}, body.get("mounts") or []
 
 
-def write_images(path, sources: Dict[str, str], mounts, python=()) -> None:
+def read_bundles(path) -> Tuple[Dict[str, str], List[Any], List[str]]:
+    '''Each job bundle's shared bundle, what the job's own bundles mount,
+    and the bind sources they leave out of the shared configuration.'''
+    try:
+        with open(path) as f:
+            body = json.load(f)
+    except (OSError, ValueError):
+        return {}, [], []
+
+    if not isinstance(body, dict):
+        return {}, [], []
+
+    return (body.get("shared") or {}, body.get("job_mounts") or [],
+            body.get("drop") or [])
+
+
+def _mount(mount):
+    '''A mount as JSON: a path, or ``[path, mode]``.'''
+    if isinstance(mount, (tuple, list)):
+        return [str(mount[0]), str(mount[1])]
+    return str(mount)
+
+
+def write_images(path, sources: Dict[str, str], mounts, python=(), shared=None,
+                 job_mounts=(), drop=()) -> None:
     '''``python`` is what the job's `requires.python` names: a node's
-    environment is installed with each pinned to the version already there.'''
+    environment is installed with each pinned to the version already there.
+
+    ``mounts`` are baked into a shared bundle when the run unpacks it;
+    ``shared`` maps each job bundle to its shared one, and ``job_mounts`` are
+    what the job's own bundles add over it.'''
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
-        json.dump({"sources": sources, "mounts": [str(m) for m in mounts],
-                   "python": sorted(python)}, f)
+        json.dump({"sources": sources, "mounts": [_mount(m) for m in mounts],
+                   "python": sorted(python), "shared": dict(shared or {}),
+                   "job_mounts": [_mount(m) for m in job_mounts],
+                   "drop": [str(m) for m in drop]}, f)
 
 
 def read_python(path) -> List[str]:

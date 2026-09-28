@@ -26,7 +26,8 @@ from pathlib import Path
 
 from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.runspec import (
-    IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_images, read_python,
+    IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_bundles, read_images,
+    read_python,
     state_dir, exit_code as published_exit_code,
     runtime_nodes, write_progress)
 from siliconcompiler.remote.server.store import now
@@ -46,6 +47,10 @@ _progress = None
 # it, as the server wrote them beside the manifest.
 _image_sources = {}
 _image_mounts = []
+# Each job bundle's shared bundle, and what the job's own bundles mount over it.
+_image_shared = {}
+_job_mounts = []
+_image_drop = []
 
 # Often enough that a stall is noticed in minutes, rarely enough that it is one
 # small write a minute on a filesystem every compute node shares. The server's
@@ -133,9 +138,10 @@ def run(manifest: Path) -> int:
     # In the job root, above the tree the upload expanded into, where the
     # server looks without being told a second path.
     _progress_path = state_dir(manifest) / PROGRESS_FILENAME
-    global _image_sources
-    global _image_mounts
+    global _image_sources, _image_mounts, _image_shared, _job_mounts, _image_drop
     _image_sources, _image_mounts = read_images(state_dir(manifest) / IMAGES_FILENAME)
+    _image_shared, _job_mounts, _image_drop = read_bundles(
+        state_dir(manifest) / IMAGES_FILENAME)
 
     _progress = {
         "state": "running",
@@ -381,8 +387,12 @@ def _unpack_bundle(bundle: str) -> None:
     if not source:
         raise RuntimeError(f"nothing recorded to unpack into {bundle}")
 
-    images.stage_bundle(Path(bundle).parent, source, Path(bundle).name,
-                        mounts=_image_mounts)
+    # The shared bundle for the digest, and this job's own over it, which is
+    # what the node is started with: its mounts are this job's alone.
+    common = Path(_image_shared.get(bundle) or bundle)
+    images.stage_bundle(common.parent, source, common.name, mounts=_image_mounts)
+    if common != Path(bundle):
+        images.job_bundle(common, bundle, _job_mounts, drop=_image_drop)
 
 
 def _silence_console(project) -> None:

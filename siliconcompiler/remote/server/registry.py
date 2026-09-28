@@ -266,9 +266,9 @@ def _stage(args, ref: str, digest: str):
     # 🔴 The deployment's own mount list, read from the same config the server
     # reads. Staging with a different one produces a bundle that looks right
     # and is missing whatever the cluster needed -- and the failure lands far
-    # away, as a node that cannot contact the controller.
-    mounts = [datadir] + [
-        str(path) for path in (Config.load(datadir)["container_mounts"] or [])]
+    # away, as a node that cannot contact the controller. Never the data
+    # directory: what one job sees goes in that job's own bundle.
+    mounts = [str(path) for path in (Config.load(datadir)["container_mounts"] or [])]
 
     try:
         return images.stage_bundle(datadir / "images", ref, digest,

@@ -1,4 +1,6 @@
 
+from pathlib import Path
+
 import pytest
 
 from conftest import call, job_after, login, slug
@@ -1644,6 +1646,45 @@ def test_a_deployment_that_runs_no_containers_places_nothing(
         "SELECT image_id FROM job_nodes WHERE job_id = ?", (job["id"],)))
 
 
+def fake_unpack(root, ref, digest, mounts=()):
+    '''What `images.stage_bundle` leaves, without skopeo and umoci: a
+    shared bundle whose configuration binds what it was staged with -- and,
+    as one staged before per-job bundles did, the whole data directory.'''
+    import json
+
+    from siliconcompiler.remote.server import images
+
+    bundle = images.bundle_path(root, digest)
+    (bundle / "rootfs").mkdir(parents=True, exist_ok=True)
+    datadir = str(Path(root).resolve().parent)
+    spec = {"root": {"path": "rootfs"}, "process": {"args": ["sh"]}, "mounts": [
+        {"destination": "/proc", "type": "proc", "source": "proc"},
+        {"destination": datadir, "source": datadir, "type": "none",
+         "options": ["rbind", "rw"]}]}
+    images._add_mounts(spec, mounts)
+    (bundle / "config.json").write_text(json.dumps(spec))
+    return bundle
+
+
+def visible(bundle, path):
+    '''How a container started from ``bundle`` sees ``path``: `rw`, `ro`,
+    or None where no bind mount reaches it.'''
+    import json
+    import os
+
+    spec = json.loads((Path(bundle) / "config.json").read_text())
+    path = os.path.realpath(str(path))
+    seen = None
+    for entry in spec.get("mounts") or []:
+        source = os.path.realpath(entry.get("source") or "")
+        options = entry.get("options") or []
+        if entry.get("type") != "bind" and "rbind" not in options and "bind" not in options:
+            continue
+        if path == source or path.startswith(source + os.sep):
+            seen = "ro" if "ro" in options else "rw"
+    return seen
+
+
 def test_a_cluster_gets_a_bundle_and_never_a_partition(
         container_server, container_client, key, container_token, job_archive,
         monkeypatch):
@@ -1662,9 +1703,7 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
     # The unpack itself needs skopeo and umoci, which are the cluster's
     # business and not this test's: what is under test is where the bundle is
     # and what the dispatcher is handed.
-    monkeypatch.setattr(
-        images, "stage_bundle",
-        lambda root, ref, digest, mounts=(): images.bundle_path(root, digest))
+    monkeypatch.setattr(images, "stage_bundle", fake_unpack)
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
@@ -1680,25 +1719,36 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
 
     options = scheduler.get_options(step="stepone", index="0")
     bundle = options[options.index("--container") + 1]
-    # Content-addressed and outside any user's tree: the same digest is the
-    # same read-only root filesystem for everybody who runs it.
+    # The job's own bundle, outside any user's tree so that no node can
+    # rewrite it, over a shared one: the same digest is the same root
+    # filesystem for everybody who runs it.
     assert bundle.endswith(digest("a").replace("sha256:", ""))
-    assert "/images/" in bundle
+    assert f"/jobbundles/{job['id']}/" in bundle
     assert "/users/" not in bundle
 
     # And the run is told where to get the bytes, which the bundle path alone
-    # cannot say.
-    sources, mounts = runspec.read_images(
-        runspec.state_dir(manifest) / runspec.IMAGES_FILENAME)
+    # cannot say, and what the job's own bundle mounts.
+    state = runspec.state_dir(manifest) / runspec.IMAGES_FILENAME
+    sources, mounts = runspec.read_images(state)
+    shared, job_mounts, drop = runspec.read_bundles(state)
     assert sources[bundle] == f"ghcr.io/x/sc@{digest('a')}"
-    # The data directory is always mounted: every path in a job's manifest is
-    # under it, and a container's root filesystem is the image's.
-    assert any(path.endswith("container-datadir") for path in mounts)
+    assert "/images/" in shared[bundle]
+    # 🔴 Never the data directory, in the shared bundle or the job's: it holds
+    # the signing key, the store and every user's tree.
+    datadir = str(Path("container-datadir").resolve())
+    assert datadir not in [str(m) for m in mounts]
+    assert [str(runspec.state_dir(manifest)), "rw"] in job_mounts
+    assert drop == [datadir]
 
     # 🔴 And the batch job itself runs in the framework image, which is what
     # makes version matching real: the process that INTERPRETS the manifest is
     # the SiliconCompiler the job asked for rather than the cluster's own.
-    assert fake.handed["image"] == bundle
+    # Its bundle is this job's too.
+    framework = Path(fake.handed["image"])
+    assert framework.parent == Path(bundle).parent
+    assert visible(framework, f"{datadir}/server.db") is None
+    assert visible(framework, f"{datadir}/token-signing-key") is None
+    assert visible(framework, runspec.state_dir(manifest)) == "rw"
 
 
 def test_the_orchestrator_goes_to_its_own_queue(
@@ -1716,15 +1766,62 @@ def test_the_orchestrator_goes_to_its_own_queue(
     fake.name = "slurm"
     container_server.config["SC_JOBS"]._dispatcher = fake
     container_server.config["SC_CONFIG"]._values["batch_queue"] = "coordinator"
-    monkeypatch.setattr(
-        images, "stage_bundle",
-        lambda root, ref, digest, mounts=(): images.bundle_path(root, digest))
+    monkeypatch.setattr(images, "stage_bundle", fake_unpack)
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size)
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     assert fake.handed["queue"] == "coordinator"
+
+
+def test_a_container_job_cannot_read_the_signing_key_or_the_store(
+        container_server, container_client, key, container_token, job_archive,
+        monkeypatch):
+    '''🔴 A node's container sees its own job's tree and its user's cache
+    read-write, the supplied roots read-only, and nothing else of the data
+    directory: not the token signing key, not `server.db`, and not another
+    user's work (profile §0). The node's bundle is what the run writes when it
+    unpacks the image, from what the server recorded beside the manifest.'''
+    from siliconcompiler.remote.server import images, runner, runspec
+
+    fake = FakeDispatcher()
+    fake.name = "slurm"
+    container_server.config["SC_JOBS"]._dispatcher = fake
+    monkeypatch.setattr(images, "stage_bundle", fake_unpack)
+
+    archive, upload_digest, size = job_archive()
+    job = stage(container_client, key, container_token, archive, size,
+                requires=wants("0.38.0"))
+    submit(container_client, key, container_token, job["id"], upload_digest, size)
+
+    manifest = fake.submitted[0][2]
+    state = runspec.state_dir(manifest) / runspec.IMAGES_FILENAME
+    monkeypatch.setattr(runner, "_image_sources", runspec.read_images(state)[0])
+    monkeypatch.setattr(runner, "_image_mounts", runspec.read_images(state)[1])
+    shared, job_mounts, drop = runspec.read_bundles(state)
+    monkeypatch.setattr(runner, "_image_shared", shared)
+    monkeypatch.setattr(runner, "_job_mounts", job_mounts)
+    monkeypatch.setattr(runner, "_image_drop", drop)
+
+    bundle, = set(runner._image_sources)
+    runner._unpack_bundle(bundle)
+
+    datadir = Path("container-datadir").resolve()
+    jobs = container_server.config["SC_JOBS"]
+    assert visible(bundle, datadir / "server.db") is None
+    assert visible(bundle, datadir / "token-signing-key") is None
+    assert visible(bundle, datadir / "users" / "somebody-else" / "builds") is None
+    assert visible(bundle, datadir / "jobbundles" / job["id"]) is None
+    assert visible(bundle, datadir / "images") is None
+    assert visible(bundle, runspec.state_dir(manifest)) == "rw"
+    assert visible(bundle, jobs.cache_dir(job["owner"]["id"])) == "rw"
+    assert visible(bundle, datadir / "sources") == "ro"
+
+    # Over the shared root filesystem, which it does not copy.
+    import json
+    spec = json.loads((Path(bundle) / "config.json").read_text())
+    assert spec["root"]["path"] == str(Path(shared[bundle]).resolve() / "rootfs")
 
 
 def test_no_queue_leaves_it_to_the_cluster(

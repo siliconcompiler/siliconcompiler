@@ -433,9 +433,22 @@ two cannot drift, against ~6 GB of tools left behind.
 ### What a container has to be able to see
 
 A bundle is a root filesystem, so anything outside the image has to be bind
-mounted in. `container_mounts` in `/sc_server/config.json` is that list, and the
-data directory is always added because every path in a job's manifest is under
-it. This stack names three more:
+mounted in. Two lists, and they are kept apart on purpose.
+
+🔴 **What one job sees is that job's alone.** Every job runs in a bundle of its
+own, under `/sc_server/jobbundles/<job>/`: the shared bundle's configuration
+over its root filesystem, which it borrows rather than copies, with that job's
+tree and its user's cache bound read-write and the roots this server supplies
+(`/sc_server/sources`, the private dataroots) read-only. The data directory is
+never mounted, because it holds the token signing key, `server.db` and every
+other user's work. The job's own process also sees `/sc_server/images`, where
+it unpacks the images its nodes run in, and its own `jobbundles` directory,
+where it writes their bundles. No node sees either, so no node can change what
+the next one is started with.
+
+`container_mounts` in `/sc_server/config.json` is the other list: what every
+container needs whoever's job it is, baked into each shared bundle when it is
+unpacked. This stack names three:
 
 | | |
 |---|---|
@@ -451,7 +464,9 @@ which reads like the controller being down.
 
 ⚠️ **Changing the list does not restage bundles that already exist**: the mounts
 are written into each `config.json` when it is unpacked. `rm -rf
-/sc_server/images` and re-stage.
+/sc_server/images` and re-stage. A bundle staged before jobs had bundles of
+their own has the data directory in its configuration, and each job's bundle
+leaves that mount out.
 
 Until then this is the deployment the switch defaults to: SiliconCompiler is
 advertised from the version the server process was installed with, both

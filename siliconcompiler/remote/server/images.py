@@ -36,7 +36,7 @@ __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
            "catalogue", "contents_of", "declared_requirements", "digests_for",
            "sweep_bundles", "matches", "normalize", "specifiers",
            "LAYER_PATH", "derivation", "derived_image", "register_derived",
-           "stage_derived_bundle",
+           "stage_derived_bundle", "job_bundle",
            "is_staged", "live_images", "live_software", "pinned_ref",
            "plan_for_job", "register_image", "register_software",
            "register_version", "how_to_ask", "resolve",
@@ -1083,6 +1083,14 @@ def _prepare_spec(config, mounts) -> None:
         spec["linux"]["namespaces"] = [
             entry for entry in namespaces if entry.get("type") != "network"]
 
+    _add_mounts(spec, mounts)
+
+    with open(config, "w") as f:
+        json.dump(spec, f)
+
+
+def _add_mounts(spec, mounts) -> None:
+    '''Bind each host path at the same path inside, once.'''
     existing = {entry.get("destination") for entry in spec.get("mounts", [])}
     for mount in mounts:
         # A path, bound read-write; or `(path, "ro")` -- a root this server
@@ -1091,6 +1099,7 @@ def _prepare_spec(config, mounts) -> None:
         path = str(path)
         if path in existing:
             continue
+        existing.add(path)
         spec.setdefault("mounts", []).append({
             "destination": path,
             "source": path,
@@ -1098,8 +1107,54 @@ def _prepare_spec(config, mounts) -> None:
             "options": ["rbind", "ro" if mode == "ro" else "rw"],
         })
 
-    with open(config, "w") as f:
+
+def job_bundle(shared, target, mounts, drop=()):
+    '''One job's bundle: a shared one's configuration over its root
+    filesystem, with this job's own mounts. Returns ``target``.
+
+    🔴 **What keeps the signing key and the store out of a job's view.** A
+    shared bundle is unpacked once per digest and run by every job, so a mount
+    baked into it is every job's. What a job may see -- its own tree and cache
+    read-write, the roots this server supplies read-only -- goes here, in a
+    configuration of its own that borrows the shared root filesystem, as a
+    derived image's does. ``drop`` names bind sources to leave out of the
+    shared configuration: the whole data directory, which a bundle staged
+    before this rule had baked in.
+
+    ⚠️ ``target`` must be somewhere no job can write, or a node could rewrite
+    what the next one is started with. It is rewritten whole each time, through
+    a temporary file.
+    '''
+    import os
+    from pathlib import Path
+
+    shared, target = Path(shared), Path(target)
+    with open(shared / "config.json") as f:
+        spec = json.load(f)
+
+    root = spec.get("root") or {}
+    where = Path(root.get("path") or "rootfs")
+    spec["root"] = {"path": str((where if where.is_absolute() else shared / where).resolve()),
+                    "readonly": bool(root.get("readonly", False))}
+
+    dropped = {os.path.realpath(str(path)) for path in drop}
+    spec["mounts"] = [
+        entry for entry in spec.get("mounts", [])
+        if not (_is_bind(entry) and entry.get("source")
+                and os.path.realpath(entry["source"]) in dropped)]
+    _add_mounts(spec, mounts)
+
+    target.mkdir(parents=True, exist_ok=True)
+    partial = target / "config.json.part"
+    with open(partial, "w") as f:
         json.dump(spec, f)
+    os.replace(partial, target / "config.json")
+    return target
+
+
+def _is_bind(entry) -> bool:
+    options = entry.get("options") or []
+    return entry.get("type") == "bind" or "bind" in options or "rbind" in options
 
 
 ######################################################################

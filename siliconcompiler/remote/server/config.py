@@ -247,9 +247,10 @@ DEFAULTS: Dict[str, Any] = {
     # deployment that has not made a partition for it.
     "batch_queue": None,
 
-    # Host paths every container must be able to see, on top of the data
-    # directory, which is always mounted because every path in a job's manifest
-    # is under it.
+    # Host paths every container must be able to see, whoever's job it is.
+    # Never the data directory, which holds the signing key and the store: what
+    # one job sees -- its own tree and cache, and the supplied roots read-only
+    # -- goes in a bundle of that job's own (`JobService.job_mounts`).
     #
     # 🔴 Deployment config rather than something derived, because what a
     # container needs is a fact about the cluster. A framework image submits

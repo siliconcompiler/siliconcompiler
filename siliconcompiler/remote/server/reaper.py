@@ -200,6 +200,9 @@ def _builds(store, storage, config, datadir) -> int:
 
         freed += _weigh(root)
         shutil.rmtree(root, ignore_errors=True)
+        # Its bundles' configurations, which borrow shared root filesystems and
+        # are a few kilobytes: nothing of this job runs again.
+        shutil.rmtree(datadir / "jobbundles" / row["id"], ignore_errors=True)
         logger.info(f"reclaimed the build directory of {row['id'][:8]}")
 
     return freed
