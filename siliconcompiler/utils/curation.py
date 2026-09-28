@@ -3,7 +3,7 @@ import tarfile
 
 import os.path
 
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Tuple
 
 from siliconcompiler.schema import BaseSchema, Parameter
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
@@ -16,16 +16,36 @@ if TYPE_CHECKING:
     from siliconcompiler.project import Project
 
 
+CollectionKey = Tuple[Tuple[str, ...], Optional[str], Optional[str]]
+
+
+def filter_collection_keys(keys: List[CollectionKey]) -> List[CollectionKey]:
+    """Remove schema entries that must never be included in a collection."""
+    filtered_keys = []
+    for key, step, index in keys:
+        if 'default' in key or key[0] == 'history':
+            continue
+        if key in (('option', 'builddir'), ('option', 'cachedir'),
+                   ('option', 'credentials')):
+            continue
+        if (len(key) >= 5 and key[0] == 'tool' and key[2] == 'task'
+                and key[4] in ('input', 'report', 'output')):
+            continue
+        filtered_keys.append((key, step, index))
+    return filtered_keys
+
+
 def collect(project: "Project",
+            keys: List[CollectionKey],
             directory: Optional[str] = None,
             verbose: bool = True,
             whitelist: Optional[List[str]] = None) -> None:
     '''
-    Collects files and directories specified in the schema and places
-    them in a collection directory. The function only copies items that have
-    the 'copy' field set to True in their schema definition.
+    Collects the specified files and directories into a collection directory.
 
     Args:
+        keys (List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]):
+            Path parameter keypaths and their flowgraph step and index to collect.
         directory (str, optional): The output directory for collected files.
             Defaults to the path from :meth:`.collectiondir`.
         verbose (bool): If True, logs information about each collected file/directory.
@@ -83,46 +103,29 @@ def collect(project: "Project",
     dirs = {}
     files = {}
 
-    for key in project.allkeys():
-        if key[0] == 'history':
-            # skip history
-            continue
-
-        # Skip runtime directories
-        if key == ('option', 'builddir'):
-            # skip builddir
-            continue
-        if key == ('option', 'cachedir'):
-            # skip cache
-            continue
-
-        if key[0] == 'tool' and key[2] == 'task' and key[4] in ('input',
-                                                                'report',
-                                                                'output'):
-            # skip flow files files from builds
-            continue
-
+    for key, step, index in keys:
         param: Parameter = project.get(*key, field=None)
 
         if not param.is_path:
             continue
 
-        if not param.get(field='copy'):
+        values = None
+        for candidate, candidate_step, candidate_index in param.getvalues(return_values=False):
+            if candidate_step == step and candidate_index == index:
+                values = candidate
+                break
+        if values is None or not values.has_value:
             continue
 
-        for values, step, index in param.getvalues(return_values=False):
-            if not values.has_value:
-                continue
+        if isinstance(values, (NodeSetValue, NodeListValue)):
+            values = values.values
+        else:
+            values = [values]
 
-            if isinstance(values, (NodeSetValue, NodeListValue)):
-                values = values.values
-            else:
-                values = [values]
-
-            if param.is_directory:
-                dirs[(key, step, index)] = values
-            else:
-                files[(key, step, index)] = values
+        if param.is_directory:
+            dirs[(key, step, index)] = values
+        else:
+            files[(key, step, index)] = values
 
     try:
         path_filter = FilterDirectories(project)

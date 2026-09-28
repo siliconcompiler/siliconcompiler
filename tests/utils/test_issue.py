@@ -116,13 +116,14 @@ def make_testcase(proj, **kwargs):
     flags = {}
 
     def record_and_collect(project, **collect_kwargs):
+        selected_keys = {','.join(key) for key, _, _ in collect_kwargs['keys']}
         for keypath in project.allkeys():
             if 'default' in keypath:
                 continue
             param = project.get(*keypath, field=None)
             if not param.is_path:
                 continue
-            flags[','.join(keypath)] = param.get(field='copy')
+            flags[','.join(keypath)] = ','.join(keypath) in selected_keys
         return collect(project, **collect_kwargs)
 
     with patch("siliconcompiler.utils.issue.collect", side_effect=record_and_collect):

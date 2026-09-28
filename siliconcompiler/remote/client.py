@@ -24,7 +24,7 @@ from siliconcompiler.package import PythonPathResolver, FileResolver, KeyPathRes
 
 from siliconcompiler.utils.logging import get_console_formatter
 from siliconcompiler.utils.multiprocessing import forking
-from siliconcompiler.utils.curation import collect
+from siliconcompiler.utils.curation import collect, filter_collection_keys
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 from siliconcompiler.remote import JobStatus, NodeStatus
@@ -644,6 +644,8 @@ class Client():
         Helper method to run a local import stage for remote jobs.
         '''
 
+        collect_keys = []
+
         # Ensure dataroots with python sources are copied
         for key in self.__project.allkeys():
             if key[0] == "history":
@@ -658,10 +660,10 @@ class Client():
                 for value, step, index in param.getvalues():
                     if not value:
                         continue
+                    force_copy = False
                     dataroots = param.get(field='dataroot', step=step, index=index)
                     if not isinstance(dataroots, list):
                         dataroots = [dataroots]
-                    force_copy = False
                     for dataroot in dataroots:
                         if not dataroot:
                             continue
@@ -669,12 +671,14 @@ class Client():
                         if isinstance(dataroot_resolver,
                                       (PythonPathResolver, FileResolver, KeyPathResolver)):
                             force_copy = True
-                    if force_copy:
-                        self.__project.set(*key, True, field='copy', step=step, index=index)
+                    if force_copy or param.get(field='copy'):
+                        collect_keys.append((key, step, index))
 
         # Collect inputs into a collection directory only for remote runs, since
         # we need to send inputs up to the server.
-        collect(self.__project, whitelist=self.__config.setdefault('directory_whitelist', []))
+        collect(self.__project,
+            keys=filter_collection_keys(collect_keys),
+            whitelist=self.__config.setdefault('directory_whitelist', []))
 
     def _run_loop(self):
         # Wrapper to allow for capturing of Ctrl+C
