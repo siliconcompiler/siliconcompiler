@@ -3,6 +3,7 @@ import stat
 
 import os.path
 
+from typing import Optional
 from siliconcompiler import Task
 from siliconcompiler.tool import TaskExecutableNotReceived
 
@@ -20,6 +21,14 @@ class ExecInputTask(Task):
 
     def task(self):
         return "exec_input"
+
+    @property
+    def _remote_toolname(self) -> Optional[str]:
+        return None
+
+    @property
+    def _remote_inherits_env(self) -> bool:
+        return True
 
     def setup(self):
         super().setup()

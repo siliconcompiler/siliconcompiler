@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.57.2",
               "signature": null
             }
           }
@@ -1810,7 +1810,7 @@
                 }
               },
               "require": {
-                "type": "[str]",
+                "type": "{str}",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.57.2",
               "signature": null
             }
           }
@@ -5470,7 +5470,7 @@
                 }
               },
               "require": {
-                "type": "[str]",
+                "type": "{str}",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -6759,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.57.2",
               "signature": null
             }
           }
@@ -9472,7 +9472,7 @@
                 }
               },
               "require": {
-                "type": "[str]",
+                "type": "{str}",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -11415,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.57.2",
               "signature": null
             }
           }
@@ -13208,7 +13208,7 @@
                 }
               },
               "require": {
-                "type": "[str]",
+                "type": "{str}",
                 "require": false,
                 "scope": "job",
                 "lock": false,
@@ -14387,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.57.2",
               "signature": null
             }
           }
@@ -16180,7 +16180,7 @@
                 }
               },
               "require": {
-                "type": "[str]",
+                "type": "{str}",
                 "require": false,
                 "scope": "job",
                 "lock": false,

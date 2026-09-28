@@ -2,6 +2,7 @@
 Builtin tools for SiliconCompiler
 '''
 import shutil
+from typing import Optional
 
 from siliconcompiler import NodeStatus
 
@@ -15,6 +16,10 @@ class BuiltinTask(Task):
 
     def tool(self):
         return "builtin"
+
+    @property
+    def _remote_toolname(self) -> Optional[str]:
+        return None
 
     def setup(self):
         super().setup()
