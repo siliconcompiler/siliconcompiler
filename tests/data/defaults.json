@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -1644,19 +1644,19 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -1675,19 +1675,19 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -5304,19 +5304,19 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -5335,19 +5335,19 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -6759,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -9306,19 +9306,19 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -9337,19 +9337,19 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -11415,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -13042,19 +13042,19 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -13073,19 +13073,19 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -14387,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.57.1",
+              "value": "0.58.0",
               "signature": null
             }
           }
@@ -16014,19 +16014,19 @@
                 }
               },
               "input": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_input 'tool task <file>'"
+                  "-tool_task_input 'tool task <path>'"
                 ],
                 "shorthelp": "Task: input files",
                 "example": [
                   "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                "help": "List of data files and directories to be copied from previous flowgraph\nsteps 'output' directory. The list of steps to copy from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll entries must be available for flow to continue. If one\nis missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -16045,19 +16045,19 @@
                 "copy": false
               },
               "output": {
-                "type": "[file]",
+                "type": "[path]",
                 "require": false,
                 "scope": "job",
                 "lock": false,
                 "switch": [
-                  "-tool_task_output 'tool task <file>'"
+                  "-tool_task_output 'tool task <path>'"
                 ],
                 "shorthelp": "Task: output files",
                 "example": [
                   "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                   "api: task.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                 ],
-                "help": "List of data files written to the 'output' directory of the\ntool/task/step/index used in the keypath. All files must be available\nfor flow to continue. If a file is missing, the program exists on an error.",
+                "help": "List of data files and directories written to the 'output' directory of\nthe tool/task/step/index used in the keypath. All entries must be available\nfor flow to continue. If one is missing, the program exits on an error.",
                 "notes": null,
                 "pernode": "required",
                 "node": {
@@ -17719,19 +17719,19 @@
         },
         "doc": {
           "datasheet": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_datasheet <file>"
+              "-package_doc_datasheet <path>"
             ],
             "shorthelp": "Package: datasheet document",
             "example": [
               "cli: -package_doc_datasheet datasheet.pdf",
               "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
             ],
-            "help": "Package list of datasheet documents.",
+            "help": "Package list of datasheet documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17750,19 +17750,19 @@
             "copy": false
           },
           "reference": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_reference <file>"
+              "-package_doc_reference <path>"
             ],
             "shorthelp": "Package: reference document",
             "example": [
               "cli: -package_doc_reference reference.pdf",
               "api: schema.set('doc', 'reference', 'reference.pdf')"
             ],
-            "help": "Package list of reference documents.",
+            "help": "Package list of reference documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17781,19 +17781,19 @@
             "copy": false
           },
           "userguide": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_userguide <file>"
+              "-package_doc_userguide <path>"
             ],
             "shorthelp": "Package: userguide document",
             "example": [
               "cli: -package_doc_userguide userguide.pdf",
               "api: schema.set('doc', 'userguide', 'userguide.pdf')"
             ],
-            "help": "Package list of userguide documents.",
+            "help": "Package list of userguide documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17812,19 +17812,19 @@
             "copy": false
           },
           "quickstart": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_quickstart <file>"
+              "-package_doc_quickstart <path>"
             ],
             "shorthelp": "Package: quickstart document",
             "example": [
               "cli: -package_doc_quickstart quickstart.pdf",
               "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
             ],
-            "help": "Package list of quickstart documents.",
+            "help": "Package list of quickstart documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17843,19 +17843,19 @@
             "copy": false
           },
           "releasenotes": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_releasenotes <file>"
+              "-package_doc_releasenotes <path>"
             ],
             "shorthelp": "Package: releasenotes document",
             "example": [
               "cli: -package_doc_releasenotes releasenotes.pdf",
               "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
             ],
-            "help": "Package list of releasenotes documents.",
+            "help": "Package list of releasenotes documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17874,19 +17874,19 @@
             "copy": false
           },
           "testplan": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_testplan <file>"
+              "-package_doc_testplan <path>"
             ],
             "shorthelp": "Package: testplan document",
             "example": [
               "cli: -package_doc_testplan testplan.pdf",
               "api: schema.set('doc', 'testplan', 'testplan.pdf')"
             ],
-            "help": "Package list of testplan documents.",
+            "help": "Package list of testplan documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17905,19 +17905,19 @@
             "copy": false
           },
           "signoff": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_signoff <file>"
+              "-package_doc_signoff <path>"
             ],
             "shorthelp": "Package: signoff document",
             "example": [
               "cli: -package_doc_signoff signoff.pdf",
               "api: schema.set('doc', 'signoff', 'signoff.pdf')"
             ],
-            "help": "Package list of signoff documents.",
+            "help": "Package list of signoff documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -17936,19 +17936,19 @@
             "copy": false
           },
           "tutorial": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_tutorial <file>"
+              "-package_doc_tutorial <path>"
             ],
             "shorthelp": "Package: tutorial document",
             "example": [
               "cli: -package_doc_tutorial tutorial.pdf",
               "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
             ],
-            "help": "Package list of tutorial documents.",
+            "help": "Package list of tutorial documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18488,19 +18488,19 @@
         },
         "doc": {
           "datasheet": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_datasheet <file>"
+              "-package_doc_datasheet <path>"
             ],
             "shorthelp": "Package: datasheet document",
             "example": [
               "cli: -package_doc_datasheet datasheet.pdf",
               "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
             ],
-            "help": "Package list of datasheet documents.",
+            "help": "Package list of datasheet documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18519,19 +18519,19 @@
             "copy": false
           },
           "reference": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_reference <file>"
+              "-package_doc_reference <path>"
             ],
             "shorthelp": "Package: reference document",
             "example": [
               "cli: -package_doc_reference reference.pdf",
               "api: schema.set('doc', 'reference', 'reference.pdf')"
             ],
-            "help": "Package list of reference documents.",
+            "help": "Package list of reference documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18550,19 +18550,19 @@
             "copy": false
           },
           "userguide": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_userguide <file>"
+              "-package_doc_userguide <path>"
             ],
             "shorthelp": "Package: userguide document",
             "example": [
               "cli: -package_doc_userguide userguide.pdf",
               "api: schema.set('doc', 'userguide', 'userguide.pdf')"
             ],
-            "help": "Package list of userguide documents.",
+            "help": "Package list of userguide documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18581,19 +18581,19 @@
             "copy": false
           },
           "quickstart": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_quickstart <file>"
+              "-package_doc_quickstart <path>"
             ],
             "shorthelp": "Package: quickstart document",
             "example": [
               "cli: -package_doc_quickstart quickstart.pdf",
               "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
             ],
-            "help": "Package list of quickstart documents.",
+            "help": "Package list of quickstart documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18612,19 +18612,19 @@
             "copy": false
           },
           "releasenotes": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_releasenotes <file>"
+              "-package_doc_releasenotes <path>"
             ],
             "shorthelp": "Package: releasenotes document",
             "example": [
               "cli: -package_doc_releasenotes releasenotes.pdf",
               "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
             ],
-            "help": "Package list of releasenotes documents.",
+            "help": "Package list of releasenotes documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18643,19 +18643,19 @@
             "copy": false
           },
           "testplan": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_testplan <file>"
+              "-package_doc_testplan <path>"
             ],
             "shorthelp": "Package: testplan document",
             "example": [
               "cli: -package_doc_testplan testplan.pdf",
               "api: schema.set('doc', 'testplan', 'testplan.pdf')"
             ],
-            "help": "Package list of testplan documents.",
+            "help": "Package list of testplan documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18674,19 +18674,19 @@
             "copy": false
           },
           "signoff": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_signoff <file>"
+              "-package_doc_signoff <path>"
             ],
             "shorthelp": "Package: signoff document",
             "example": [
               "cli: -package_doc_signoff signoff.pdf",
               "api: schema.set('doc', 'signoff', 'signoff.pdf')"
             ],
-            "help": "Package list of signoff documents.",
+            "help": "Package list of signoff documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -18705,19 +18705,19 @@
             "copy": false
           },
           "tutorial": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_tutorial <file>"
+              "-package_doc_tutorial <path>"
             ],
             "shorthelp": "Package: tutorial document",
             "example": [
               "cli: -package_doc_tutorial tutorial.pdf",
               "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
             ],
-            "help": "Package list of tutorial documents.",
+            "help": "Package list of tutorial documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -19897,19 +19897,19 @@
         },
         "doc": {
           "datasheet": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_datasheet <file>"
+              "-package_doc_datasheet <path>"
             ],
             "shorthelp": "Package: datasheet document",
             "example": [
               "cli: -package_doc_datasheet datasheet.pdf",
               "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
             ],
-            "help": "Package list of datasheet documents.",
+            "help": "Package list of datasheet documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -19928,19 +19928,19 @@
             "copy": false
           },
           "reference": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_reference <file>"
+              "-package_doc_reference <path>"
             ],
             "shorthelp": "Package: reference document",
             "example": [
               "cli: -package_doc_reference reference.pdf",
               "api: schema.set('doc', 'reference', 'reference.pdf')"
             ],
-            "help": "Package list of reference documents.",
+            "help": "Package list of reference documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -19959,19 +19959,19 @@
             "copy": false
           },
           "userguide": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_userguide <file>"
+              "-package_doc_userguide <path>"
             ],
             "shorthelp": "Package: userguide document",
             "example": [
               "cli: -package_doc_userguide userguide.pdf",
               "api: schema.set('doc', 'userguide', 'userguide.pdf')"
             ],
-            "help": "Package list of userguide documents.",
+            "help": "Package list of userguide documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -19990,19 +19990,19 @@
             "copy": false
           },
           "quickstart": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_quickstart <file>"
+              "-package_doc_quickstart <path>"
             ],
             "shorthelp": "Package: quickstart document",
             "example": [
               "cli: -package_doc_quickstart quickstart.pdf",
               "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
             ],
-            "help": "Package list of quickstart documents.",
+            "help": "Package list of quickstart documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20021,19 +20021,19 @@
             "copy": false
           },
           "releasenotes": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_releasenotes <file>"
+              "-package_doc_releasenotes <path>"
             ],
             "shorthelp": "Package: releasenotes document",
             "example": [
               "cli: -package_doc_releasenotes releasenotes.pdf",
               "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
             ],
-            "help": "Package list of releasenotes documents.",
+            "help": "Package list of releasenotes documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20052,19 +20052,19 @@
             "copy": false
           },
           "testplan": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_testplan <file>"
+              "-package_doc_testplan <path>"
             ],
             "shorthelp": "Package: testplan document",
             "example": [
               "cli: -package_doc_testplan testplan.pdf",
               "api: schema.set('doc', 'testplan', 'testplan.pdf')"
             ],
-            "help": "Package list of testplan documents.",
+            "help": "Package list of testplan documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20083,19 +20083,19 @@
             "copy": false
           },
           "signoff": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_signoff <file>"
+              "-package_doc_signoff <path>"
             ],
             "shorthelp": "Package: signoff document",
             "example": [
               "cli: -package_doc_signoff signoff.pdf",
               "api: schema.set('doc', 'signoff', 'signoff.pdf')"
             ],
-            "help": "Package list of signoff documents.",
+            "help": "Package list of signoff documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20114,19 +20114,19 @@
             "copy": false
           },
           "tutorial": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_tutorial <file>"
+              "-package_doc_tutorial <path>"
             ],
             "shorthelp": "Package: tutorial document",
             "example": [
               "cli: -package_doc_tutorial tutorial.pdf",
               "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
             ],
-            "help": "Package list of tutorial documents.",
+            "help": "Package list of tutorial documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20718,19 +20718,19 @@
         },
         "doc": {
           "datasheet": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_datasheet <file>"
+              "-package_doc_datasheet <path>"
             ],
             "shorthelp": "Package: datasheet document",
             "example": [
               "cli: -package_doc_datasheet datasheet.pdf",
               "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
             ],
-            "help": "Package list of datasheet documents.",
+            "help": "Package list of datasheet documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20749,19 +20749,19 @@
             "copy": false
           },
           "reference": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_reference <file>"
+              "-package_doc_reference <path>"
             ],
             "shorthelp": "Package: reference document",
             "example": [
               "cli: -package_doc_reference reference.pdf",
               "api: schema.set('doc', 'reference', 'reference.pdf')"
             ],
-            "help": "Package list of reference documents.",
+            "help": "Package list of reference documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20780,19 +20780,19 @@
             "copy": false
           },
           "userguide": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_userguide <file>"
+              "-package_doc_userguide <path>"
             ],
             "shorthelp": "Package: userguide document",
             "example": [
               "cli: -package_doc_userguide userguide.pdf",
               "api: schema.set('doc', 'userguide', 'userguide.pdf')"
             ],
-            "help": "Package list of userguide documents.",
+            "help": "Package list of userguide documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20811,19 +20811,19 @@
             "copy": false
           },
           "quickstart": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_quickstart <file>"
+              "-package_doc_quickstart <path>"
             ],
             "shorthelp": "Package: quickstart document",
             "example": [
               "cli: -package_doc_quickstart quickstart.pdf",
               "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
             ],
-            "help": "Package list of quickstart documents.",
+            "help": "Package list of quickstart documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20842,19 +20842,19 @@
             "copy": false
           },
           "releasenotes": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_releasenotes <file>"
+              "-package_doc_releasenotes <path>"
             ],
             "shorthelp": "Package: releasenotes document",
             "example": [
               "cli: -package_doc_releasenotes releasenotes.pdf",
               "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
             ],
-            "help": "Package list of releasenotes documents.",
+            "help": "Package list of releasenotes documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20873,19 +20873,19 @@
             "copy": false
           },
           "testplan": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_testplan <file>"
+              "-package_doc_testplan <path>"
             ],
             "shorthelp": "Package: testplan document",
             "example": [
               "cli: -package_doc_testplan testplan.pdf",
               "api: schema.set('doc', 'testplan', 'testplan.pdf')"
             ],
-            "help": "Package list of testplan documents.",
+            "help": "Package list of testplan documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20904,19 +20904,19 @@
             "copy": false
           },
           "signoff": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_signoff <file>"
+              "-package_doc_signoff <path>"
             ],
             "shorthelp": "Package: signoff document",
             "example": [
               "cli: -package_doc_signoff signoff.pdf",
               "api: schema.set('doc', 'signoff', 'signoff.pdf')"
             ],
-            "help": "Package list of signoff documents.",
+            "help": "Package list of signoff documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {
@@ -20935,19 +20935,19 @@
             "copy": false
           },
           "tutorial": {
-            "type": "[file]",
+            "type": "[path]",
             "require": false,
             "scope": "global",
             "lock": false,
             "switch": [
-              "-package_doc_tutorial <file>"
+              "-package_doc_tutorial <path>"
             ],
             "shorthelp": "Package: tutorial document",
             "example": [
               "cli: -package_doc_tutorial tutorial.pdf",
               "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
             ],
-            "help": "Package list of tutorial documents.",
+            "help": "Package list of tutorial documents. Each entry can be a\nsingle document or a directory holding one, such as a rendered\nHTML tree.",
             "notes": null,
             "pernode": "never",
             "node": {

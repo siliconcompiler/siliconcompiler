@@ -274,14 +274,16 @@ def schema_package(schema):
         schema.insert(
             'doc', item,
             Parameter(
-                '[file]',
+                '[path]',
                 scope=Scope.GLOBAL,
                 shorthelp=f"Package: {item} document",
-                switch=f"-package_doc_{item} <file>",
+                switch=f"-package_doc_{item} <path>",
                 example=[
                     f"cli: -package_doc_{item} {item}.pdf",
                     f"api: schema.set('doc', '{item}', '{item}.pdf')"],
-                help=trim(f"""Package list of {item} documents.""")))
+                help=trim(f"""Package list of {item} documents. Each entry can be a
+                single document or a directory holding one, such as a rendered
+                HTML tree.""")))
 
     schema.insert(
         'license',

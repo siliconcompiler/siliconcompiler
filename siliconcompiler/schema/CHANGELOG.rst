@@ -14,6 +14,25 @@ from the code diffs, not the commit messages). Dates are the git commit dates of
 the version bump. Version numbering was not strictly linear during early
 development, so a few dates are non-monotonic relative to the semver ordering.
 
+0.58.0 — 2026-09-21
+===================
+- Added a new ``path`` parameter type that accepts either a file or a directory, for
+  parameters where the distinction is not known up front. It carries the same fields as
+  ``file`` (``filehash``, ``dataroot``, ``date``, ``author``) and hashes as a file or a
+  directory depending on what the value resolves to. Available as a scalar and in the
+  list and set containers (``[path]``, ``{path}``); like ``file`` and ``dir`` it cannot
+  be a member of a tuple, which is rejected when the parameter is built.
+- Changed ``tool,<tool>,task,<task>,input`` and ``tool,<tool>,task,<task>,output`` from
+  ``[file]`` to ``[path]`` so tasks can declare directories as inputs and outputs.
+  ``tool,<tool>,task,<task>,report,<metric>`` remains ``[file]``.
+- Changed ``package,doc,<type>`` from ``[file]`` to ``[path]``, so a document can be a
+  directory such as a rendered HTML tree.
+- Path resolution now validates the resolved path against the parameter type: ``file``
+  rejects a directory and ``dir`` rejects a file, both raising ``PathTypeError`` (a
+  ``ValueError`` subclass), while ``path`` accepts either. Manifests that pointed a
+  ``file`` parameter at a directory (or the reverse) previously resolved silently and
+  now fail.
+
 0.57.1 — 2026-08-10
 ===================
 - Added ``csv`` to the accepted values of ``tool,<tool>,task,<task>,format``

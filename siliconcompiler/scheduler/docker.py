@@ -86,14 +86,12 @@ def get_volumes_directories(project, cache_dir, workdir, step, index):
                 for path in files:
                     if path is None:
                         continue
-                    if param.is_file:
-                        all_dirs.add(os.path.dirname(path))
-                    else:
+                    # A 'path' parameter can hold either kind, so mount what the
+                    # value actually resolved to, not what the type allows.
+                    if os.path.isdir(path):
                         all_dirs.add(path)
-
-    # Collect caches
-    # for resolver in project.get('package', field="schema").get_resolvers().values():
-    #     all_dirs.add(resolver())
+                    else:
+                        all_dirs.add(os.path.dirname(path))
 
     all_dirs = [
         Path(cache_dir),

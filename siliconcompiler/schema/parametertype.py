@@ -26,7 +26,8 @@ class NodeType:
     __rangetype = re.compile(r"^(int|float|str)<(.*)>$")
     __rangenumber = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
     __rangevalues = re.compile(rf"^({__rangenumber})?\.\.({__rangenumber})?$")
-    __basetypes = re.compile(r"^(<(.*)>|int(<(.*)>)?|float(<(.*)>)?|str(<(.*)>)?|bool|file|dir)$")
+    __basetypes = re.compile(
+        r"^(<(.*)>|int(<(.*)>)?|float(<(.*)>)?|str(<(.*)>)?|bool|file|dir|path)$")
 
     def __init__(self, sctype):
         if isinstance(sctype, NodeType):
@@ -138,7 +139,7 @@ class NodeType:
         - ``'list'``, ``'set'``, ``'tuple'`` resolve to the container classes
 
         Scalar type names (``'int'``, ``'float'``, ``'str'``, ``'bool'``,
-        ``'file'``, ``'dir'``) and anything already resolved (a class, or a
+        ``'file'``, ``'dir'``, ``'path'``) and anything already resolved (a class, or a
         ``NodeEnumType`` / ``NodeRangeType`` instance) are returned unchanged.
 
         Args:
@@ -185,8 +186,8 @@ class NodeType:
     @staticmethod
     def check_path_containers(sctype: SchemaType) -> None:
         """
-        Raise a :class:`ValueError` if a ``file`` or ``dir`` type is nested in a
-        container which does not support it.
+        Raise a :class:`ValueError` if a ``file``, ``dir`` or ``path`` type is
+        nested in a container which does not support it.
 
         These are not ordinary scalars, they carry resolution, hashing and
         collection behavior, so they are only supported on their own or as the
@@ -208,10 +209,11 @@ class NodeType:
                 NodeType.check_path_containers(subtype)
         elif isinstance(sctype, tuple):
             for subtype in sctype:
-                if NodeType.contains(subtype, 'file') or NodeType.contains(subtype, 'dir'):
+                if any(NodeType.contains(subtype, pathtype)
+                       for pathtype in ('file', 'dir', 'path')):
                     raise ValueError(
                         f"{NodeType.encode(sctype)} is not a supported type: "
-                        "file and dir cannot be members of a tuple")
+                        "file, dir, and path cannot be members of a tuple")
 
     @staticmethod
     def istype(sctype: SchemaType, *types: TypeCheck) -> bool:
@@ -224,7 +226,7 @@ class NodeType:
         parameter a scalar ``int``" without matching ``[int]``/``(int,int)``.
 
         Accepted checks are the scalar type names (``'int'``, ``'float'``,
-        ``'str'``, ``'bool'``, ``'file'``, ``'dir'``), plus any token accepted
+        ``'str'``, ``'bool'``, ``'file'``, ``'dir'``, ``'path'``), plus any token accepted
         by :meth:`astype` for containers, enums and ranges (``'list'``,
         ``'set'``, ``'tuple'``, ``'enum'``, ``'range'``, or the equivalent
         classes). Range types match their numeric base (``'int'``/``'float'``)
@@ -385,7 +387,7 @@ class NodeType:
         if sctype == 'float':
             return f"{value:.9g}"
 
-        if sctype in ('file', 'dir'):
+        if sctype in ('file', 'dir', 'path'):
             # Replace $VAR with $env(VAR) for tcl
             value = re.sub(r'\${?(\w+)}?', r'$env(\1)', value)
             # Same escapes as applied to string, minus $ (since we want to resolve env vars).
@@ -496,7 +498,7 @@ class NodeType:
             else:
                 return str(value)
 
-        if sctype in ('file', 'dir'):
+        if sctype in ('file', 'dir', 'path'):
             if isinstance(value, (str, Path)):
                 # Cast everything to a windows path and convert to posix.
                 # https://stackoverflow.com/questions/73682260
