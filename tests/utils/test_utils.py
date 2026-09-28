@@ -1319,3 +1319,57 @@ def test_is_zstd_recognizes_what_it_cannot_read(monkeypatch):
     monkeypatch.setattr(utils, "_zstd", None)
 
     assert utils.is_zstd(blob) is True
+
+
+def _tar_with(tmp_path, *members):
+    import io
+    import tarfile
+
+    path = tmp_path / "t.tar"
+    with tarfile.open(path, "w") as tar:
+        for info in members:
+            data = b"x" if info.isfile() else None
+            if data is not None:
+                info.size = len(data)
+            tar.addfile(info, io.BytesIO(data) if data is not None else None)
+    return path
+
+
+@pytest.mark.parametrize("make", [
+    lambda t: t("../escape"),
+    lambda t: t("/abs"),
+    lambda t: t("link", type=__import__("tarfile").SYMTYPE, linkname="../../etc"),
+    lambda t: t("fifo", type=__import__("tarfile").FIFOTYPE),
+])
+def test_extract_safely_without_the_data_filter(tmp_path, monkeypatch, make):
+    '''Where tarfile has no data filter, SC's own check refuses the same.'''
+    import tarfile
+
+    from siliconcompiler import utils
+
+    def info(name, **fields):
+        member = tarfile.TarInfo(name)
+        for key, value in fields.items():
+            setattr(member, key, value)
+        return member
+
+    monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
+    archive = _tar_with(tmp_path, make(info))
+    (tmp_path / "out").mkdir()
+    with tarfile.open(archive) as tar, pytest.raises(ValueError):
+        utils.extract_safely(tar, str(tmp_path / "out"))
+
+
+def test_extract_safely_strips_setuid_without_the_data_filter(tmp_path, monkeypatch):
+    import os
+    import tarfile
+
+    from siliconcompiler import utils
+
+    member = tarfile.TarInfo("tool")
+    member.mode = 0o4777
+    monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
+    archive = _tar_with(tmp_path, member)
+    with tarfile.open(archive) as tar:
+        utils.extract_safely(tar, str(tmp_path / "out"))
+    assert os.stat(tmp_path / "out" / "tool").st_mode & 0o7777 == 0o755

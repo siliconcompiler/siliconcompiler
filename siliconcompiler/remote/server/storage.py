@@ -211,44 +211,46 @@ class Storage:
         return self._sign(f"download\n{artifact_id}\n{expires_at}")
 
     def sign_stream(self, job_id: str, step: str, index: str,
-                    expires_at: int) -> str:
+                    expires_at: int, nonce: str = "") -> str:
         '''The capability half of a live tail.
 
         A third prefix, so none of the three grants this server issues can be
         presented as either of the others.
         '''
-        return self._sign(f"stream\n{job_id}\n{step}\n{index}\n{expires_at}")
+        # The nonce makes every URL distinct, so each serves one connection.
+        return self._sign(f"stream\n{job_id}\n{step}\n{index}\n{expires_at}\n{nonce}")
 
     def verify_stream(self, job_id: str, step: str, index: str,
-                      expires_at: str, signature: str, when: float) -> None:
+                      expires_at: str, signature: str, when: float,
+                      nonce: Optional[str] = "") -> None:
         try:
             deadline = int(expires_at)
         except (TypeError, ValueError):
             raise SignatureError("malformed link") from None
 
-        expected = self._sign(f"stream\n{job_id}\n{step}\n{index}\n{deadline}")
+        expected = self._sign(f"stream\n{job_id}\n{step}\n{index}\n{deadline}\n{nonce or ''}")
         if not hmac.compare_digest(expected, signature or ""):
             raise SignatureError("the signature does not match this URL")
         if when > deadline:
             raise SignatureError("this stream link has expired")
 
-    def sign_job_stream(self, job_id: str, expires_at: int) -> str:
+    def sign_job_stream(self, job_id: str, expires_at: int, nonce: str = "") -> str:
         '''The capability half of a whole job's live stream.
 
         Its own prefix rather than the node form with empty coordinates, so a
         job stream's signature can never be presented as a node's, nor the
         other way round, however the URL is edited.
         '''
-        return self._sign(f"stream-job\n{job_id}\n{expires_at}")
+        return self._sign(f"stream-job\n{job_id}\n{expires_at}\n{nonce}")
 
     def verify_job_stream(self, job_id: str, expires_at: str, signature: str,
-                          when: float) -> None:
+                          when: float, nonce: Optional[str] = "") -> None:
         try:
             deadline = int(expires_at)
         except (TypeError, ValueError):
             raise SignatureError("malformed link") from None
 
-        expected = self._sign(f"stream-job\n{job_id}\n{deadline}")
+        expected = self._sign(f"stream-job\n{job_id}\n{deadline}\n{nonce or ''}")
         if not hmac.compare_digest(expected, signature or ""):
             raise SignatureError("the signature does not match this URL")
         if when > deadline:

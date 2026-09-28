@@ -9,13 +9,14 @@ is the answer to *where did my results go* even when the bytes are gone.
 
 Five kinds are produced, and every byte is stored once:
 
-``manifest``  the job's own ``<design>.pkg.json``. Job-level, so no step. **The
+Every artifact is stored and served gzipped (surface §21).
+
+``manifest``  the job's own ``<design>.pkg.json``, gzipped. Job-level, so no step. **The
               kind most likely to be the only one there is**: it is small, and
               it carries the record -- node states, metrics, tool versions --
               so *what happened* is answerable with no outputs on disk at all
-``logs``      one node's ``sc_<step>_<index>.log``, as text. This is what
-              ``GET /v1/jobs/{id}/logs`` redirects to, which is why it stays a
-              readable file rather than only living inside the node archive.
+``logs``      one node's log files, as a gzip tar with paths relative to
+              the node's directory. A finished node's stream names it.
               **One more is job-level**: the run's own account of itself, which
               is ``job.log`` where the flow got far enough to write one and the
               server's ``sc-server-run.log`` where it did not -- see
@@ -81,6 +82,7 @@ file that is not inside it. Nothing here derives that ladder -- ``fetchable``
 is per row -- so the exclusion is a note for the deployment that does.
 '''
 
+import gzip
 import hashlib
 import logging
 import os
@@ -95,7 +97,7 @@ from siliconcompiler.remote.server import confine
 from siliconcompiler.remote.server.dispatch import RUN_LOG
 from siliconcompiler.remote.server.ids import uuid7
 
-__all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS",
+__all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS", "log_text",
            "referenced_elsewhere"]
 
 
@@ -135,9 +137,8 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     # following one would index the host's files as the job's results.
     root = Path(build_root)
 
-    log = workdir / f"sc_{step}_{index}.log"
-    written += _index(store, storage, job, location, floor, "logs",
-                      step, index, log, "text/plain", root)
+    written += _log_archive(store, storage, job, location, floor, step, index,
+                            workdir, root)
 
     # 🔴 The node's own manifest, on its own and bound to the node, beside the
     # job's. It is what carries that node's record and metrics -- with the
@@ -385,10 +386,57 @@ def _index(store, storage, job, location, floor, kind, step, index,
     target = storage.artifact_dir(job["id"]) / artifact_id
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    with handle, open(target, "wb") as out:
+    # 🔴 Every artifact is stored and served gzipped (surface §21).
+    with handle, gzip.open(target, "wb") as out:
         shutil.copyfileobj(handle, out)
     return _record(store, job, artifact_id, location, floor, kind, step, index,
-                   target, media_type)
+                   target, "application/gzip")
+
+
+def _log_archive(store, storage, job, location, floor, step, index, workdir: Path,
+                 root) -> int:
+    '''A node's `logs`: a gzip tar of its log files, by name relative to the
+    node's directory. None where the node left no log.'''
+    if _exists(store, job, "logs", step, index):
+        return 0
+    try:
+        names = sorted(child.name for child in workdir.iterdir()
+                       if child.name.endswith(".log"))
+    except OSError:
+        return 0
+
+    artifact_id = str(uuid7())
+    target = storage.artifact_dir(job["id"]) / artifact_id
+    target.parent.mkdir(parents=True, exist_ok=True)
+    added = 0
+    try:
+        with tarfile.open(target, "w:gz") as tar:
+            for name in names:
+                added += confine.add_file(tar, root, workdir / name, name)
+    except BaseException:
+        target.unlink(missing_ok=True)
+        raise
+    if not added:
+        target.unlink(missing_ok=True)
+        return 0
+    return _record(store, job, artifact_id, location, floor, "logs", step, index,
+                   target, "application/gzip")
+
+
+def log_text(storage, row) -> str:
+    '''A `logs` artifact as text: the node's SiliconCompiler log out of its
+    tar, or a job-level log out of its gzip.'''
+    path = storage.artifact_path(row["storage_key"])
+    if row["step"] is None:
+        with gzip.open(path, "rt", errors="replace") as handle:
+            return handle.read()
+    with tarfile.open(path, "r:gz") as tar:
+        members = [member for member in tar.getmembers() if member.isfile()]
+        own = f"sc_{row['step']}_{row['index']}.log"
+        member = next((m for m in members if m.name == own), members[0] if members else None)
+        if member is None:
+            return ""
+        return tar.extractfile(member).read().decode(errors="replace")
 
 
 def _real_dir(path: Path) -> bool:

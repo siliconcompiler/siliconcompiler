@@ -34,7 +34,7 @@ DEFAULT_LIMITS: Dict[str, int] = {
     # Open /logs streams per caller, and the number is chosen rather than
     # inherited. What one costs, now that there is something to measure: a
     # worker thread and an open file for as long as it lives, which is up to
-    # max_log_stream_seconds, plus a stat twice a second while the log is quiet.
+    # the token that opened it, plus a stat twice a second while the log is quiet.
     # Under a threaded WSGI server there is no fixed pool to exhaust, so what
     # runs out is memory and descriptors rather than capacity.
     #
@@ -43,8 +43,6 @@ DEFAULT_LIMITS: Dict[str, int] = {
     # of a wide flow. That client should poll the job, which is one request for
     # the whole run, and tail only the nodes somebody is actually watching.
     "concurrent_log_streams": 8,
-    "max_log_stream_seconds": 14400,        # 4h; the client sets its reconnect timer from it,
-                                            # and jobs routinely outlast it
     "max_archive_members": 100000,          # members in the upload archive
     "max_archive_expanded_bytes": 10737418240,   # bytes, after expansion
 
@@ -107,16 +105,18 @@ DEFAULTS: Dict[str, Any] = {
     "grant_types_supported": ["client_credentials", "refresh_token"],
 
     # A registry, not free text: absent and unrecognised mean the same thing to
-    # a client, so a value is only listed once it is served. All three are,
-    # now: `logs` is the archived file, `logs.stream` is one node's live tail,
-    # and `logs.stream.job` is every node's, merged into one stream. Separate
-    # strings because a deployment can have one without the next, and each
-    # implies the one before it -- see `_check_policy`.
+    # a client, so a value is only listed once it is served. `logs.stream` is
+    # one node's live tail and `logs.stream.job` every node's, merged; the old
+    # `logs` is folded into the first. A finished node's log is an artifact.
     #
     # ✅ `logs.stream.job` is advertised because the stream host IS this host,
     # so the merge is N tails in one process -- and one connection per job is
     # what lets a flow wider than `concurrent_log_streams` be watched in full.
-    "features": ["logs", "logs.stream", "logs.stream.job"],
+    "features": ["logs.stream", "logs.stream.job"],
+
+    # How often a quiet log stream says it is alive: below every intermediary's
+    # idle timeout, Cloudflare's 100 seconds included.
+    "stream_keepalive_seconds": 15,
 
     # The honesty half, pairing with the startup log. "verified" is the only
     # value that asserts anything; every other value, known or unknown, means
@@ -390,7 +390,7 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
     # back to one stream per running node; the manifest, logs and reports come
     # over the API and the node archives only through the portal.
     2: {
-        "features": ["logs", "logs.stream"],
+        "features": ["logs.stream"],
         "api_fetchable_kinds": ["manifest", "logs", "reports"],
         "limits": {
             "concurrent_jobs": 2,
@@ -458,16 +458,19 @@ def _check_policy(values: Dict[str, Any]) -> None:
                 f"api_fetchable_kinds names unknown kinds: "
                 f"{', '.join(sorted(unknown))}")
 
-    # 🔴 Each log feature implies the one before it and is never advertised
-    # without it: a client reading `logs.stream.job` opens a job stream and
-    # falls back to per-node streams, and one reading `logs.stream` expects the
-    # archive once the node ends.
+    # A client reading `logs.stream.job` falls back to per-node streams.
     features = values["features"]
-    for feature, needs in (("logs.stream", "logs"),
-                           ("logs.stream.job", "logs.stream")):
-        if feature in features and needs not in features:
-            raise ValueError(f"features lists {feature} without {needs}, "
-                             "which it implies")
+    if "logs" in features:
+        raise ValueError("features lists logs, which is folded into logs.stream")
+    if "logs.stream.job" in features and "logs.stream" not in features:
+        raise ValueError("features lists logs.stream.job without logs.stream, "
+                         "which it implies")
+
+    keepalive = values["stream_keepalive_seconds"]
+    if not isinstance(keepalive, int) or isinstance(keepalive, bool) \
+            or not 1 <= keepalive < 100:
+        raise ValueError("stream_keepalive_seconds is whole seconds, 1 to 99: below "
+                         "an intermediary's idle timeout")
 
     from siliconcompiler.remote.server import allowlist
 

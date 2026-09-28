@@ -13,6 +13,7 @@ reading that sentence again.
 '''
 
 import base64
+import gzip
 import hashlib
 import json
 import logging
@@ -23,6 +24,7 @@ import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from siliconcompiler.flowgraph import Flowgraph
 from siliconcompiler.schema.baseschema import SchemaVersionWarning
 
 from siliconcompiler.remote import owners, units
@@ -65,10 +67,8 @@ REUSABLE_STATES = ("completed", "failed")
 # What a job-stream request is told for each capability the deployment lacks,
 # broadest first.
 _WITHOUT = {
-    "logs": "this deployment does not serve logs over the API; they are on "
-            "the web portal",
     "logs.stream": "this deployment does not serve a live log; each node's "
-                   "archived log is available once it finishes",
+                   "log is an artifact once it finishes",
     "logs.stream.job": "this deployment does not merge a job's logs into one "
                        "stream; follow each running node instead",
 }
@@ -428,8 +428,10 @@ class JobService:
             try:
                 _extract_outputs(self._storage.artifact_path(held["node"]["storage_key"]),
                                  target)
-                shutil.copyfile(self._storage.artifact_path(held["manifest"]["storage_key"]),
-                                target / "outputs" / f"{job['design']}.pkg.json")
+                with gzip.open(self._storage.artifact_path(
+                        held["manifest"]["storage_key"])) as source, \
+                        open(target / "outputs" / f"{job['design']}.pkg.json", "wb") as out:
+                    shutil.copyfileobj(source, out)
             except (KeyError, FileNotFoundError):
                 raise self._refuse_staging(job, ProblemError(
                     "prior-results-unavailable", step=step, index=index, job_id=from_job,
@@ -1837,6 +1839,15 @@ class JobService:
         # from the descriptor's `versions`, which is exactly the field whose
         # absence the contract says costs the whole upload.
 
+        for step, index in nodes:
+            try:
+                Flowgraph.check_node_name(step, index)
+            except ValueError as e:
+                raise self._refuse(session, job, ProblemError(
+                    "archive-rejected", reason="manifest_invalid",
+                    detail=f"the manifest's flow names a node that is not one: {e}")) \
+                    from None
+
         edges = []
         for step, index in nodes:
             for in_step, in_index in runtime.get_node_inputs(step, index):
@@ -3017,32 +3028,22 @@ class JobService:
 
     def node_log(self, session, job_id: str, step: str, index: str,
                  surface: str = "api"):
-        '''Endpoint 20's target: the archived log for one terminal node.
+        '''Endpoint 20 for one node: whether its live stream may be opened.
 
-        Returns ``("stream", node)`` or ``("artifact", row)`` -- the two things
-        a 303 can point at. Everything else this endpoint can answer is a
-        refusal, and which one depends on the node's state rather than on the
-        artifact: a node that has not run has no log, and saying `not-found`
-        would tell a client to stop asking.
-
-        ⚠️ ``features`` is what the API publishes, so it gates the API and not
-        the portal -- which shows a node's log however the deployment answers
-        a client. That is the same split ``surface`` makes for the artifacts.
+        🔴 **`/logs` is live output only** (surface §20). A running node
+        streams; a finished one streams too, and its stream ends at once
+        naming its `logs` artifact, which is fetched through endpoint 22. A
+        node not started is `409 not-ready`, and a finished node that kept no
+        log is `404`. Returns the node.
         '''
         job = self.owned(session, job_id)
         if job["deleted_at"]:
             raise ProblemError("not-found", detail="this job's data was deleted")
 
-        api = surface == "api"
-        features = self._config["features"]
-        if api and "logs" not in features and "logs.stream" not in features:
-            # 🔴 Refused before the node is looked at, because it does not
-            # depend on the node: this deployment serves no logs over the API,
-            # so there is nothing to wait for and a client must not retry.
+        if surface == "api" and "logs.stream" not in self._config["features"]:
             raise ProblemError(
-                "feature-unsupported", feature="logs",
-                detail="this deployment does not serve logs over the API; "
-                       "they are on the web portal")
+                "feature-unsupported", feature="logs.stream",
+                detail=_WITHOUT["logs.stream"])
 
         node = self._store.one(
             'SELECT * FROM job_nodes WHERE job_id = ? AND step = ? AND "index" = ?',
@@ -3056,52 +3057,19 @@ class JobService:
                 detail=f"{step}/{index} has not started",
                 headers={"Retry-After": str(self._config["poll_interval_seconds"])})
 
-        if node["state"] == "running":
-            if api and "logs.stream" not in features:
-                # Permanent for the tail and not for the log: the archive still
-                # arrives when the node finishes. A client must not retry this.
-                raise ProblemError(
-                    "feature-unsupported", feature="logs.stream",
-                    detail="this deployment does not serve a live log; the "
-                           "archived log is available once the node finishes")
-            return "stream", node
+        if node["state"] in TERMINAL_NODE_STATES:
+            self._index_node(job, step, index)
+            row = self._store.one(
+                "SELECT * FROM artifacts WHERE job_id = ? AND step = ? "
+                'AND "index" = ? AND kind = \'logs\' AND deleted_at IS NULL '
+                "ORDER BY created_at LIMIT 1", (job["id"], step, index))
+            if row is None:
+                raise ProblemError("not-found", detail=f"no log was kept for {step}/{index}")
+            # The stream names this artifact: a caller who could not fetch it
+            # is not handed it by asking for the log.
+            self._refuse_by_ladder(row, surface)
 
-        self._index_node(job, step, index)
-
-        row = self._store.one(
-            "SELECT * FROM artifacts WHERE job_id = ? AND step = ? "
-            'AND "index" = ? AND kind = \'logs\' AND deleted_at IS NULL '
-            "ORDER BY created_at LIMIT 1", (job["id"], step, index))
-
-        if row is None:
-            if job["state"] not in TERMINAL_STATES:
-                # The node is over and the job is not, so the archive may still
-                # be on its way. 🔴 Transient rather than `not-found`: a 404
-                # tells a client to stop asking about a log that is about to
-                # exist.
-                raise ProblemError(
-                    "not-ready", artifact_kind="logs",
-                    detail=f"the log for {step}/{index} has not been archived yet",
-                    headers={"Retry-After":
-                             str(self._config["poll_interval_seconds"])})
-            raise ProblemError(
-                "not-found", detail=f"no log was kept for {step}/{index}")
-
-        if api and "logs" not in features:
-            # Only the live tail is served, and this node is over.
-            raise ProblemError(
-                "feature-unsupported", feature="logs",
-                detail="this deployment serves a live log while a node runs "
-                       "and does not keep one afterwards")
-
-        # The same bytes as endpoint 22 and the same signed URL, so the same
-        # refusals: a caller that cannot fetch a log as an artifact must not be
-        # handed it by asking for it as a log.
-        self._refuse_by_ladder(row, surface)
-        if api:
-            self._check_download_ceiling(session, row)
-
-        return "artifact", row
+        return node
 
     def job_log(self, session, job_id: str):
         '''Endpoint 20 with no coordinates: the whole job's live stream.
@@ -3125,7 +3093,7 @@ class JobService:
             raise ProblemError("not-found", detail="this job's data was deleted")
 
         features = self._config["features"]
-        for feature in ("logs", "logs.stream", "logs.stream.job"):
+        for feature in ("logs.stream", "logs.stream.job"):
             if feature not in features:
                 raise ProblemError(
                     "feature-unsupported", feature=feature,
@@ -3615,6 +3583,11 @@ def _continuations(value) -> List[Tuple[str, str, str]]:
             raise ProblemError("invalid-request",
                                detail=f"continues_from names {job!r}, which is not a job "
                                       "id") from None
+        try:
+            # The same node-name check SiliconCompiler applies to a flow.
+            Flowgraph.check_node_name(step, index)
+        except ValueError as e:
+            raise ProblemError("invalid-request", detail=f"continues_from: {e}") from None
         if (step, index) in seen:
             raise ProblemError("invalid-request",
                                detail=f"two continues_from entries name {step}/{index}")

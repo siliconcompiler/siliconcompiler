@@ -80,8 +80,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         if step in (Parameter.GLOBAL_KEY, 'default') or step.startswith("sc_"):
             raise ValueError(f"{step} is a reserved name")
-        if '/' in step:
-            raise ValueError(f"{step} is not a valid step, it cannot contain '/'")
+        Flowgraph._assert_path_segment(step, "step")
 
     @staticmethod
     def _assert_valid_index(index: str) -> None:
@@ -96,8 +95,29 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         if index in (Parameter.GLOBAL_KEY, 'default'):
             raise ValueError(f"{index} is a reserved name")
-        if '/' in index:
-            raise ValueError(f"{index} is not a valid index, it cannot contain '/'")
+        Flowgraph._assert_path_segment(index, "index")
+
+    @staticmethod
+    def _assert_path_segment(name: str, what: str) -> None:
+        # A step and an index are directories of the build: one segment each.
+        if not isinstance(name, str) or name in ("", ".", ".."):
+            raise ValueError(f"{name!r} is not a valid {what}")
+        for bad in ("/", "\\", "\0"):
+            if bad in name:
+                raise ValueError(f"{name} is not a valid {what}, it cannot contain {bad!r}")
+
+    @staticmethod
+    def check_node_name(step: str, index: str) -> None:
+        '''
+        Validates that ``step`` and ``index`` form a node name: the one check a
+        flow and a remote server both apply, so a flow SiliconCompiler accepts
+        is one the server accepts.
+
+        Raises:
+            ValueError: If either is reserved or not a single path segment.
+        '''
+        Flowgraph._assert_valid_step(step)
+        Flowgraph._assert_valid_index(str(index))
 
     def node(self, step: str, task: "Task", index: Optional[Union[str, int]] = 0) -> None:
         '''

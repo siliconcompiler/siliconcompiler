@@ -19,7 +19,7 @@ import time
 
 from typing import Dict, Optional, Tuple
 
-from siliconcompiler.remote.client.errors import RemoteError, ServerProblem
+from siliconcompiler.remote.client.errors import ServerProblem, clean
 
 __all__ = ["LogTail"]
 
@@ -31,10 +31,6 @@ logger = logging.getLogger(__name__)
 # The server states its own preference in the SSE `retry` field and that wins;
 # this is the floor for when it says nothing.
 RECONNECT_SECONDS = 2
-
-# A tail that reconnects this many times in a row without receiving a single
-# byte has found something that is not going to start working.
-MAX_EMPTY_RECONNECTS = 5
 
 
 class LogTail:
@@ -65,11 +61,18 @@ class LogTail:
         self.retry: Optional[float] = None
 
     def follow(self, write=None) -> str:
-        '''Read until the node is done. Returns everything it emitted.'''
+        '''Read until the node -- or the job -- is done. Returns everything it
+        emitted.
+
+        🔴 Reconnects on `expired` and on any `end` it does not know, for as
+        long as it takes: a quiet node is not a broken one. A node already
+        over answers with a stream that ends at once naming its archived log,
+        which is then fetched as an artifact.
+        '''
         collected = []
-        empty = 0
 
         def emit(text):
+            text = clean(text)
             collected.append(text)
             if write:
                 write(text)
@@ -82,30 +85,21 @@ class LogTail:
             from siliconcompiler.remote.client import _is_stream
 
             if not _is_stream(response):
-                # A node that finished while we were asking. (A job stream is
-                # always a stream: a finished job answers with one that ends at
-                # once.) The archived file is the
-                # same bytes the tail was reading, so what is left is the part
-                # after the last id we saw -- but a file has no offset on the
-                # wire, so the whole of it is served and only the tail from here
-                # is new.
+                # 🔴 After the `303` only an event stream is the log: anything
+                # else is a refusal, such as the stream host's
+                # `concurrent_log_streams`, and is never printed as log text.
                 with response:
-                    emit(_text_from(response))
-                return "".join(collected)
+                    raise _refusal(response)
 
             with response:
                 produced, finished = self._consume(response, emit)
 
             if finished:
+                if not produced and self.step and self.artifact_id \
+                        and self.last_event_id is None:
+                    emit(self.client.archived_log(self.job_id, self.artifact_id,
+                                                  self.step, self.index))
                 return "".join(collected)
-
-            empty = 0 if produced else empty + 1
-            if empty >= MAX_EMPTY_RECONNECTS:
-                what = (f"the log for {self.step}/{self.index}" if self.step
-                        else "the job's log stream")
-                raise RemoteError(
-                    f"{what} reconnected {empty} times without producing "
-                    "anything")
 
             time.sleep(self.retry or RECONNECT_SECONDS)
 
@@ -129,10 +123,12 @@ class LogTail:
                         produced = True
 
                 elif event == "node_state":
-                    self.artifact_id = data.get("artifact_id") or self.artifact_id
+                    # Keyed by node: a job stream names every node's archive.
                     node = (data.get("step"), data.get("index"))
                     if data.get("artifact_id") and None not in node:
                         self.artifact_ids[node] = data["artifact_id"]
+                        if node == (self.step, self.index):
+                            self.artifact_id = data["artifact_id"]
 
                 elif event == "end":
                     self.artifact_id = data.get("artifact_id") or self.artifact_id
@@ -206,11 +202,9 @@ def _data(raw: str) -> dict:
     return body if isinstance(body, dict) else {}
 
 
-def _text_from(response) -> str:
-    try:
-        return response.text
-    except ServerProblem:                                       # pragma: no cover
-        raise
-    except Exception as e:                                      # noqa: BLE001
-        logger.debug(f"could not read the archived log: {e}")
-        return ""
+def _refusal(response) -> ServerProblem:
+    '''What a non-stream answer after the `303` says, as a refusal.'''
+    from siliconcompiler.remote.client.transport import _problem_body
+
+    status = response.status_code if response.status_code >= 400 else 502
+    return ServerProblem(_problem_body(response), status)

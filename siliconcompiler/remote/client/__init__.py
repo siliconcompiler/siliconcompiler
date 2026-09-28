@@ -895,23 +895,34 @@ class Client:
         return self.transport.save(self.transport.follow(response), dest)
 
     def node_log(self, job_id: str, step: str, index: str, dest) -> str:
-        '''``GET /v1/jobs/{id}/logs``: one node's log, followed to its bytes.
+        '''A finished node's log, from its `logs` artifact -- `/logs` is live
+        output only.'''
+        items = [item for item in self.artifacts(job_id, kind="logs", step=step, index=index)
+                 if item.get("fetchable")]
+        if not items:
+            raise RemoteError(f"no log of {step}/{index} can be fetched")
+        text = self.archived_log(job_id, items[0]["id"], step, index)
+        with open(dest, "w") as f:
+            f.write(text)
+        return str(dest)
 
-        🔴 Branch on the `Content-Type` that comes back, never on the `303`. A
-        node can finish between the redirect and the fetch, so what the server
-        decided at the endpoint can already be stale; what was actually served
-        cannot be. `text/event-stream` is a live tail, anything else is the
-        archived file.
-        '''
-        response = self.follow_log(job_id, step, index)
+    def archived_log(self, job_id: str, artifact_id: str, step: str, index: str) -> str:
+        '''A node's `logs` artifact -- a gzip tar of its log files -- as the
+        text of its SiliconCompiler log.'''
+        import tarfile
+        import tempfile
 
-        if _is_stream(response):
-            response.close()
-            raise RemoteError(
-                f"{step}/{index} is still running; use tail_log() to read it "
-                "as it is written")
-
-        return self.transport.save(response, dest)
+        with tempfile.TemporaryDirectory(prefix="sc-log-") as tmpdir:
+            path = os.path.join(tmpdir, "logs.tar.gz")
+            self.fetch_artifact(job_id, artifact_id, path)
+            with tarfile.open(path, "r:*") as tar:
+                members = [member for member in tar.getmembers() if member.isfile()]
+                own = f"sc_{step}_{index}.log"
+                member = next((m for m in members if m.name == own),
+                              members[0] if members else None)
+                if member is None:
+                    return ""
+                return clean(tar.extractfile(member).read().decode(errors="replace"))
 
     def follow_log(self, job_id: str, step: Optional[str] = None,
                    index: Optional[str] = None, last_event_id=None):

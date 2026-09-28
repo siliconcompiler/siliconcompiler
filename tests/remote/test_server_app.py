@@ -61,7 +61,7 @@ def test_every_required_member_is_real(client):
     assert body["notices"] == []
     # Both are served: the archived file and the live tail. Two strings,
     # because one could not say which of the two a deployment had.
-    assert body["features"] == ["logs", "logs.stream", "logs.stream.job"]
+    assert body["features"] == ["logs.stream", "logs.stream.job"]
 
 
 def test_the_device_grant_is_not_advertised(client):
@@ -153,14 +153,7 @@ def test_every_limit_is_a_base_unit(client):
     assert set(limits) == {
         "max_job_nodes", "max_upload_bytes", "job_retention_days",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
-        "max_log_stream_seconds", "max_archive_members",
-        "max_archive_expanded_bytes",
-        # The nine above are the contract's; these two are this profile's,
-        # and `run_heartbeat_seconds` is deliberately NOT among them -- no
-        # client sends a heartbeat or is told about one, so publishing its
-        # period would be a promise about machinery on the far side of the
-        # API. It is deployment config. So is `max_detail_chars`, taken off
-        # the wire because no client acts on it -- the heartbeat's test.
+        "max_archive_members", "max_archive_expanded_bytes",
         "max_download_bytes", "abandon_after_seconds"}
     assert all(isinstance(value, int) for value in limits.values())
 

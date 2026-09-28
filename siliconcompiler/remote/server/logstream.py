@@ -69,7 +69,8 @@ HEARTBEAT_SECONDS = 15
 
 
 def events(path: Path, step: str, index: str, node_state, start: int,
-           deadline: float, artifact_id=None, root=None) -> Iterator[bytes]:
+           deadline: float, artifact_id=None, root=None,
+           keepalive: float = HEARTBEAT_SECONDS, ended: bool = False) -> Iterator[bytes]:
     '''Yield SSE frames for one node's log until it ends or time runs out.
 
     ``node_state`` is called to ask what the node is doing now -- a callable
@@ -83,6 +84,17 @@ def events(path: Path, step: str, index: str, node_state, start: int,
     last_sent = time.monotonic()
 
     yield f"retry: {RETRY_MS}\n\n".encode()
+
+    # 🔴 `/logs` is live output only: a node already over when `/logs` was
+    # asked gets a stream that ends at once, naming its archived log. One that
+    # finished between the `303` and the connect is drained below as before.
+    state = node_state()
+    if ended and state in TERMINAL_NODE_STATES:
+        yield _event("node_state", _with_artifact(
+            {"step": step, "index": index, "state": state, "terminal": True},
+            artifact_id()))
+        yield _event("end", _with_artifact({"reason": "terminal"}, artifact_id()))
+        return
 
     while True:
         size = _size(path, root)
@@ -121,7 +133,8 @@ def events(path: Path, step: str, index: str, node_state, start: int,
                 }, identifier=format(offset, "x"))
 
             yield _event("node_state", _with_artifact(
-                {"step": step, "index": index, "state": state}, artifact_id()))
+                {"step": step, "index": index, "state": state, "terminal": True},
+                artifact_id()))
             yield _event("end", _with_artifact(
                 {"reason": "terminal"}, artifact_id()))
             return
@@ -132,7 +145,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
             yield _event("end", {"reason": "expired"})
             return
 
-        if time.monotonic() - last_sent >= HEARTBEAT_SECONDS:
+        if time.monotonic() - last_sent >= keepalive:
             yield b": keep-alive\n\n"
             last_sent = time.monotonic()
 
@@ -140,7 +153,8 @@ def events(path: Path, step: str, index: str, node_state, start: int,
 
 
 def job_events(nodes, path_of, node_states, job_over, start, deadline,
-               artifact_id, index, root=None) -> Iterator[bytes]:
+               artifact_id, index, root=None,
+               keepalive: float = HEARTBEAT_SECONDS) -> Iterator[bytes]:
     '''Yield SSE frames for every node of a job, merged, until it ends.
 
     ``nodes`` is the job's node list in a fixed order -- the store's -- because
@@ -213,7 +227,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline,
             if reported[slot] or state not in TERMINAL_NODE_STATES:
                 continue
             yield _event("node_state", _with_artifact(
-                {"step": step, "index": node_index, "state": state},
+                {"step": step, "index": node_index, "state": state, "terminal": True},
                 artifact_id(step, node_index)))
             reported[slot] = True
             progressed = True
@@ -232,7 +246,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline,
         if progressed:
             continue
 
-        if time.monotonic() - last_sent >= HEARTBEAT_SECONDS:
+        if time.monotonic() - last_sent >= keepalive:
             yield b": keep-alive\n\n"
             last_sent = time.monotonic()
 
@@ -519,7 +533,7 @@ class StreamLimiter:
     This is what makes it real.
 
     The cost it bounds is a worker thread and an open file for as long as the
-    stream lives, which here is up to `max_log_stream_seconds`. Under a threaded
+    stream lives, which is no longer than the token that obtained it. Under a threaded
     WSGI server there is no fixed pool to exhaust, so what runs out is memory
     and file descriptors rather than capacity -- which is why the number is
     generous for a person (nobody reads eight logs at once) and deliberately not

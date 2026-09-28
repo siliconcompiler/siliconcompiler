@@ -158,6 +158,12 @@ class Sessions:
                 return None
             return user_id, csrf
 
+    def expires(self, cookie: Optional[str]) -> Optional[float]:
+        '''When a live session ends, or None.'''
+        with self._lock:
+            held = self._sessions.get(cookie or "")
+            return held[1] if held else None
+
     def end(self, cookie: Optional[str]) -> None:
         with self._lock:
             self._sessions.pop(cookie or "", None)
@@ -206,7 +212,8 @@ def caller():
 
     user_id, _csrf = held
     return Session(user_id=user_id, scope=" ".join(SCOPES),
-                   family_id=None, device_id=None, jkt=None)
+                   family_id=None, device_id=None, jkt=None,
+                   expires_at=_sessions().expires(flask.request.cookies.get(COOKIE)))
 
 
 def screen(handler):
@@ -963,7 +970,7 @@ def inside(session, job_id, artifact_id):
     # A log or a manifest is one file and has nothing to look inside. Showing
     # it is still what somebody clicked, so this is the viewer for both rather
     # than a refusal and a second screen.
-    if row["media_type"] != "application/gzip":
+    if row["kind"] == "manifest" or (row["kind"] == "logs" and row["step"] is None):
         return _show_one(detail, row, archive)
 
     if (row["size_bytes"] or 0) > MAX_BROWSE_BYTES:
@@ -993,9 +1000,16 @@ def inside(session, job_id, artifact_id):
 
 def _show_one(detail, row, path):
     """An artifact that is a single file: the run's log, or a manifest."""
+    import gzip
+
     try:
-        with open(path, "rb") as handle:
-            data = handle.read(MAX_INLINE_BYTES + 1)
+        # Gzipped, like every artifact; a row from before that is plain.
+        try:
+            with gzip.open(path, "rb") as handle:
+                data = handle.read(MAX_INLINE_BYTES + 1)
+        except gzip.BadGzipFile:
+            with open(path, "rb") as handle:
+                data = handle.read(MAX_INLINE_BYTES + 1)
     except OSError as e:
         raise ProblemError(
             "not-found", detail=f"those bytes could not be read: {e}") from None
@@ -1055,40 +1069,40 @@ def log(session, job_id, step, index):
     chosen = next((name for name, _ in available if name == wanted),
                   available[0][0] if available else None)
 
-    kind, target = _jobs().node_log(session, job_id, step, index,
-                                    surface="portal")
+    node = _jobs().node_log(session, job_id, step, index, surface="portal")
+    finished = node["state"] in ("completed", "failed", "skipped", "cancelled")
 
     text, stream = "", None
-    if kind == "artifact" or (chosen and available):
-        picked = dict(available).get(chosen)
-        if picked is not None:
-            try:
-                text = _jobs().read_node_file(session, job_id, picked)
-            except OSError:
-                # Named, never explained: the reason is about this server's
-                # tree, and a link planted in it is exactly what is refused.
-                text = "(that log could not be read)"
-        else:
-            # The working directory is gone; the archive is what is left.
-            storage = flask.current_app.config["SC_STORAGE"]
-            try:
-                with open(storage.artifact_path(target["storage_key"]),
-                          errors="replace") as handle:
-                    text = handle.read()
-            except OSError as e:
-                text = f"(the archived log could not be read: {e})"
+    picked = dict(available).get(chosen)
+    if picked is not None:
+        try:
+            text = _jobs().read_node_file(session, job_id, picked)
+        except OSError:
+            # Named, never explained: the reason is about this server's
+            # tree, and a link planted in it is exactly what is refused.
+            text = "(that log could not be read)"
+    elif finished:
+        # The working directory is gone; the archive is what is left.
+        from siliconcompiler.remote.server import artifacts
 
-    if kind == "stream" and not text:
+        row = flask.current_app.config["SC_STORE"].one(
+            "SELECT * FROM artifacts WHERE job_id = ? AND step = ? AND \"index\" = ? "
+            "AND kind = 'logs' AND deleted_at IS NULL", (job_id, step, index))
+        try:
+            text = artifacts.log_text(flask.current_app.config["SC_STORAGE"], row)
+        except (OSError, TypeError, ValueError) as e:
+            text = f"(the archived log could not be read: {e})"
+
+    if not finished and not text:
         # Running. The browser follows the same signed stream URL the CLI does,
-        # which is what makes this a viewer for the API rather than a second
-        # implementation of tailing.
+        # bounded by the portal session as an API stream is by its token.
         storage = flask.current_app.config["SC_STORAGE"]
-        expires = int(time.time()) + flask.current_app.config[
-            "SC_CONFIG"].limits["max_log_stream_seconds"]
+        expires = int(session.expires_at or time.time())
+        nonce = secrets.token_urlsafe(8)
         stream = flask.url_for(
             "artifacts.tail", job_id=job_id, step=step, index=index,
-            expires=expires,
-            sig=storage.sign_stream(job_id, step, index, expires))
+            expires=expires, n=nonce,
+            sig=storage.sign_stream(job_id, step, index, expires, nonce))
 
     return flask.render_template(
         "log.html", job=detail, step=step, index=index, text=text,

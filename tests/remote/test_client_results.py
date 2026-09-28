@@ -6,7 +6,6 @@ import tarfile
 import pytest
 import responses
 
-from siliconcompiler.remote import RemoteError
 from siliconcompiler.remote.client.results import Results
 
 from conftest import problem
@@ -23,8 +22,6 @@ def artifact(kind="manifest", step=None, index=None, fetchable=True, **extra):
         "id": f"art-{kind}-{step}-{index}",
         "step": step, "index": index, "kind": kind,
         "media_type": "application/json" if kind == "manifest" else "text/plain",
-        "size_bytes": 12,
-        "digest": "sha256:" + "0" * 64,
         "created_at": "2026-09-22T10:00:00.000Z",
         "retained_until": "2031-09-22T10:00:00.000Z",
         "deleted_at": None,
@@ -33,6 +30,39 @@ def artifact(kind="manifest", step=None, index=None, fetchable=True, **extra):
         "fetchable": fetchable,
         **extra,
     }
+
+
+@pytest.fixture
+def fake_v1(fake_v1):
+    '''The fake server, serving each artifact the way the contract stores
+    it: gzipped, and a node's `logs` as a gzip tar of its log files. A test
+    routes the plain bytes it means. Its listings name no digest unless a test
+    is about the check.'''
+    import gzip
+    import re
+
+    route = fake_v1.route
+
+    def served(method, path, body, *args, **kwargs):
+        found = re.search(r"/artifacts/art-(\w+)-(\w+)-(\w+)$", path)
+        if found and isinstance(body, (str, bytes)) and kwargs.get("status", 200) < 300:
+            kind, step, index = found.groups()
+            data = body.encode() if isinstance(body, str) else body
+            if kind == "logs" and step != "None":
+                buffer = io.BytesIO()
+                with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
+                    info = tarfile.TarInfo(f"sc_{step}_{index}.log")
+                    info.size = len(data)
+                    tar.addfile(info, io.BytesIO(data))
+                data = buffer.getvalue()
+            elif kind in ("manifest", "logs"):
+                data = gzip.compress(data)
+            body = data
+            kwargs.setdefault("content_type", "application/gzip")
+        return route(method, path, body, *args, **kwargs)
+
+    fake_v1.route = served
+    return fake_v1
 
 
 @pytest.fixture
@@ -207,7 +237,7 @@ def test_expired_says_when_it_aged_out(fake_v1, results, caplog):
 def test_blocked_by_names_each_document_with_its_own_link(fake_v1, results, caplog):
     '''*Sign*: each document in the map, with the link its entry carries.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("final", "place", "0", fetchable=False, blocked_by={
+        artifact("final", "stepone", "0", fetchable=False, blocked_by={
             "gf22-nda": {"url": "https://portal.test/terms/gf22-nda"},
             "gf22-export": {"url": "https://portal.test/terms/gf22-export"}})]})
 
@@ -224,7 +254,7 @@ def test_a_document_with_no_link_is_named_by_its_title(fake_v1, results, caplog)
     fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [
         {"id": "gf22-nda", "title": "GF22 non-disclosure agreement"}]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("final", "place", "0", fetchable=False, blocked_by={"gf22-nda": {}})]})
+        artifact("final", "stepone", "0", fetchable=False, blocked_by={"gf22-nda": {}})]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
@@ -235,9 +265,9 @@ def test_a_document_with_no_link_is_named_by_its_title(fake_v1, results, caplog)
 
 def test_an_approval_is_asked_for_and_a_request_shows_when(fake_v1, results, caplog):
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("final", "place", "0", fetchable=False,
+        artifact("final", "stepone", "0", fetchable=False,
                  access_request_url="https://portal.test/request/1"),
-        artifact("final", "place", "1", fetchable=False,
+        artifact("final", "steptwo", "0", fetchable=False,
                  access_request_url="https://portal.test/request/2",
                  access_requested_at="2026-09-21T10:00:00.000Z")]})
 
@@ -252,7 +282,7 @@ def test_ungranted_with_no_agreement_says_asking_will_not_help(fake_v1, results,
                                                                caplog):
     '''The caller lacks the grant, or it is not grantable at all.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("issue", "place", "0", fetchable=False)]})
+        artifact("issue", "stepone", "0", fetchable=False)]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
@@ -368,20 +398,17 @@ def test_a_half_written_download_is_never_left_behind(fake_v1, logged_in,
     assert not (tmp_path / "thing.json.part").exists()
 
 
-def test_asking_for_a_file_and_being_served_a_stream_says_where_to_go(
-        fake_v1, logged_in, tmp_path):
-    '''🔴 Branch on the Content-Type that was served, never on the 303: a node
-    can finish between the redirect and the fetch, so `node_log` can be asked
-    for a file and handed a tail. It names the call that reads one rather than
-    writing event frames into a .log.'''
-    fake_v1.route(responses.GET, "jobs/j1/logs", "event: log\n\n",
-                  content_type="text/event-stream")
+def test_a_finished_nodes_log_comes_from_its_logs_artifact(fake_v1, logged_in, tmp_path):
+    '''🔴 `/logs` is live output only: a finished node's log is its `logs`
+    artifact, a gzip tar of its log files.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts",
+                  {"items": [artifact("logs", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-stepone-0", "ran\n")
 
-    with pytest.raises(RemoteError) as raised:
-        logged_in.node_log("j1", "stepone", "0", tmp_path / "node.log")
+    logged_in.node_log("j1", "stepone", "0", tmp_path / "node.log")
 
-    assert "tail_log" in str(raised.value)
-    assert not (tmp_path / "node.log").exists()
+    assert (tmp_path / "node.log").read_text() == "ran\n"
+    assert not any("/logs" in call.request.path_url for call in fake_v1.calls)
 
 
 ###########################
@@ -716,7 +743,7 @@ def test_a_node_archive_left_behind_does_not_displace_its_nodes_log(
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("node", "stepone", "0", size_bytes=50_000_000,
                  media_type="application/gzip"),
-        artifact("logs", "stepone", "0", size_bytes=120)]})
+        artifact("logs", "stepone", "0")]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-stepone-0",
                   body="stepone ran\n", content_type="text/plain")
 
@@ -734,7 +761,7 @@ def test_a_server_that_publishes_no_ceiling_fetches_everything(
     behaves exactly as before.'''
     _ceiling(fake_v1, capabilities, None)
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("logs", "stepone", "0", size_bytes=50_000_000)]})
+        artifact("logs", "stepone", "0")]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts/art-logs-stepone-0",
                   body="big\n", content_type="text/plain")
 
@@ -820,7 +847,7 @@ def test_an_archive_too_large_to_fetch_does_not_displace_the_manifest(
     results._ceiling = 10
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("node", "stepone", "0", size_bytes=1000),
-        artifact("manifest", "stepone", "0", size_bytes=5)]})
+        artifact("manifest", "stepone", "0")]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-stepone-0", "{}")
 
     assert results.take("j1", _finished()) == 1
@@ -938,3 +965,56 @@ def test_what_is_withheld_for_one_reason_is_said_once(fake_v1, results, caplog):
     assert "6 objects (logs x2, reports x2, node x2): you may not have these" in lines[0]
     # The one that differs keeps its own line and its own name.
     assert lines[1] == "outputs for stepone/0: deleted on 2026-09-20."
+
+
+def test_a_row_for_a_node_the_flow_does_not_have_writes_nothing(fake_v1, results, tmp_path):
+    '''🔴 `step: ".."` included: writes stay in the job's local directory.'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("outputs", "..", "0"), artifact("outputs", "elsewhere", "0")]})
+
+    assert results.fetch("j1") == 0
+    assert not any("/artifacts/art-" in call.request.path_url for call in fake_v1.calls)
+
+
+def test_bytes_that_do_not_match_the_listing_are_discarded(fake_v1, results, nop_project,
+                                                           caplog):
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("manifest", "stepone", "0", size_bytes=3, digest="sha256:" + "0" * 64)]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-stepone-0", "{}")
+
+    assert results.fetch("j1") == 0
+
+    from siliconcompiler.utils.paths import workdir
+    assert not os.path.exists(os.path.join(workdir(nop_project, step="stepone", index="0"),
+                                           "outputs", "gcd.pkg.json"))
+    assert "did not match" in caplog.text
+
+
+def test_a_returned_manifest_imports_nothing_and_sets_no_job_id(results, nop_project):
+    '''🔴 Read as data: a class it names that is not loaded here resolves to
+    its base type, and its `record,remoteid` is never the job id.'''
+    import sys
+
+    nop_project.set("record", "remoteid", "the-real-job")
+    nop_project.write_manifest("final.pkg.json")
+    with open("final.pkg.json") as f:
+        body = json.load(f)
+    body["__meta__"]["class"] = "planted_module_never_imported/Evil"
+    body["record"]["remoteid"]["node"]["stepone"] = {"0": {"value": "planted", "signature": None}}
+    with open("final.pkg.json", "w") as f:
+        json.dump(body, f)
+
+    results._fold_in_final("final.pkg.json")
+
+    assert "planted_module_never_imported" not in sys.modules
+    assert nop_project.get("record", "remoteid") == "the-real-job"
+
+
+def test_final_is_fetched(fake_v1, results):
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("final", "stepone", "0"), artifact("node", "stepone", "0")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-final-stepone-0",
+                  tarball(["outputs/gcd.v"]))
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0", tarball(["x.json"]))
+
+    assert results.fetch("j1") == 2

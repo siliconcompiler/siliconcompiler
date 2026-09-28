@@ -201,15 +201,14 @@ def test_the_portal_still_lists_and_serves_every_kind(
 
 @pytest.mark.parametrize("mode", [3])
 def test_no_logs_over_the_api_is_permanent(server_client, key, token, finished):
-    '''🔴 `logs` absent from the features is now a refusal and not only a
-    word missing from a list: before it, a deployment could advertise no logs
-    and still serve them.'''
+    '''🔴 `logs.stream` absent from the features is a refusal and not only a
+    word missing from a list.'''
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{finished['id']}/logs?step=stepone&index=0", token)
 
     assert response.status_code == 501
     assert slug(response) == "feature-unsupported"
-    assert response.get_json()["feature"] == "logs"
+    assert response.get_json()["feature"] == "logs.stream"
 
 
 @pytest.mark.parametrize("mode", [3])
@@ -266,14 +265,14 @@ def test_mode_two_has_no_job_stream_and_says_so_permanently(
 @pytest.mark.parametrize("mode", [3])
 def test_mode_three_names_the_broadest_missing_capability(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 `logs`, not `logs.stream.job`: told only that the job stream is
+    '''🔴 `logs.stream`, not `logs.stream.job`: told only that the job stream is
     missing, a client falls back to per-node requests that fail too.'''
     job = _running(server, server_client, key, token, job_archive)
 
     response = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/logs", token)
 
     assert response.status_code == 501
-    assert response.get_json()["feature"] == "logs"
+    assert response.get_json()["feature"] == "logs.stream"
 
 
 ###########################

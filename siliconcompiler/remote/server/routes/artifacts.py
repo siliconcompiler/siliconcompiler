@@ -12,6 +12,8 @@ CI caller that watches runs and never pulls deliverables still reaches its own
 log -- watching a run is what such a caller exists to do.
 '''
 
+import secrets
+import threading
 import time
 
 import flask
@@ -104,7 +106,7 @@ def logs(session, job_id):
 
     if not step and not index:
         _jobs().job_log(session, job_id)
-        return _job_stream_redirect(job_id)
+        return _job_stream_redirect(job_id, _until(session))
 
     if not step or not index:
         raise ProblemError(
@@ -112,14 +114,17 @@ def logs(session, job_id):
             detail="step and index go together: both for one node, neither "
                    "for the whole job")
 
-    target, payload = _jobs().node_log(session, job_id, step, index)
-
-    if target == "artifact":
-        return _redirect(payload)
-    return _stream_redirect(job_id, step, index)
+    node = _jobs().node_log(session, job_id, step, index)
+    ended = node["state"] in ("completed", "failed", "skipped", "cancelled")
+    return _stream_redirect(job_id, step, index, _until(session), ended)
 
 
-def _stream_redirect(job_id, step, index):
+def _until(session) -> int:
+    '''🔴 A stream ends no later than the credential that obtained it.'''
+    return int(session.expires_at or time.time())
+
+
+def _stream_redirect(job_id, step, index, expires, ended=False):
     '''A capability URL on this host, with its own lifetime.
 
     The contract sends a live tail to a stream host on its own origin and this
@@ -130,14 +135,15 @@ def _stream_redirect(job_id, step, index):
     access token's, which is what lets a six-hour log outlive a 900-second
     token.
     '''
-    config = flask.current_app.config["SC_CONFIG"]
     storage = flask.current_app.config["SC_STORAGE"]
 
-    expires = int(time.time()) + config.limits["max_log_stream_seconds"]
-    signature = storage.sign_stream(job_id, step, index, expires)
+    nonce = secrets.token_urlsafe(8)
+    signature = storage.sign_stream(job_id, step, index, expires, nonce)
 
+    # `ended` is unsigned and grants nothing: it only ends the stream at once.
     target = public_url(f"stream/logs/{job_id}/{step}/{index}"
-                        f"?expires={expires}&sig={signature}")
+                        f"?expires={expires}&n={nonce}&sig={signature}"
+                        + ("&ended=1" if ended else ""))
 
     response = flask.make_response("", 303)
     response.headers["Location"] = target
@@ -145,15 +151,14 @@ def _stream_redirect(job_id, step, index):
     return response
 
 
-def _job_stream_redirect(job_id):
+def _job_stream_redirect(job_id, expires):
     '''The same capability URL as a node's, for the whole job.'''
-    config = flask.current_app.config["SC_CONFIG"]
     storage = flask.current_app.config["SC_STORAGE"]
 
-    expires = int(time.time()) + config.limits["max_log_stream_seconds"]
-    signature = storage.sign_job_stream(job_id, expires)
+    nonce = secrets.token_urlsafe(8)
+    signature = storage.sign_job_stream(job_id, expires, nonce)
 
-    target = public_url(f"stream/logs/{job_id}?expires={expires}&sig={signature}")
+    target = public_url(f"stream/logs/{job_id}?expires={expires}&n={nonce}&sig={signature}")
 
     response = flask.make_response("", 303)
     response.headers["Location"] = target
@@ -182,7 +187,7 @@ def tail_job(job_id):
     args = flask.request.args
     try:
         storage.verify_job_stream(job_id, args.get("expires"), args.get("sig"),
-                                  time.time())
+                                  time.time(), args.get("n"))
     except SignatureError as e:
         raise ProblemError("invalid-request", detail=str(e)) from None
 
@@ -190,6 +195,7 @@ def tail_job(job_id):
     if job is None or job["deleted_at"]:
         raise ProblemError("not-found", detail="no such job")
 
+    _first_connection(args.get("sig"), args.get("expires"))
     owner = job["user_id"]
     if not limiter.acquire(owner):
         raise ProblemError(
@@ -202,7 +208,7 @@ def tail_job(job_id):
     start = logstream.resume_job(
         flask.request.headers.get("Last-Event-ID"), args.get("last_event_id"),
         index)
-    deadline = time.monotonic() + config.limits["max_log_stream_seconds"]
+    deadline = _deadline(args.get("expires"))
 
     def frames():
         try:
@@ -213,13 +219,37 @@ def tail_job(job_id):
                 start=start, deadline=deadline,
                 artifact_id=lambda step, index: jobs.node_log_artifact(
                     job_id, step, index),
-                index=index, root=jobs.job_root(job["user_id"], job["id"]))
+                index=index, root=jobs.job_root(job["user_id"], job["id"]),
+                keepalive=config["stream_keepalive_seconds"])
         finally:
             limiter.release(owner)
             # The generator runs after the request's teardown, on its thread.
             store.release()
 
     return _event_stream(frames())
+
+
+def _deadline(expires) -> float:
+    '''The URL's own expiry, on the monotonic clock: a reconnect with the
+    same URL cannot restart it.'''
+    return time.monotonic() + max(0.0, int(expires) - time.time())
+
+
+def _first_connection(signature, expires) -> None:
+    '''🔴 A stream URL serves one connection. A client reconnects by asking
+    `/logs` again, where authorization is evaluated.'''
+    seen = flask.current_app.config.setdefault("SC_STREAMS_SEEN", {})
+    lock = flask.current_app.config.setdefault("SC_STREAMS_SEEN_LOCK", threading.Lock())
+    now_at = time.time()
+    with lock:
+        for used, until in list(seen.items()):
+            if until < now_at:
+                del seen[used]
+        if signature in seen:
+            raise ProblemError(
+                "invalid-request",
+                detail="this stream URL has been used; ask /logs again for another")
+        seen[signature] = int(expires)
 
 
 def _event_stream(frames):
@@ -251,7 +281,7 @@ def tail(job_id, step, index):
     args = flask.request.args
     try:
         storage.verify_stream(job_id, step, index, args.get("expires"),
-                              args.get("sig"), time.time())
+                              args.get("sig"), time.time(), args.get("n"))
     except SignatureError as e:
         raise ProblemError("invalid-request", detail=str(e)) from None
 
@@ -259,6 +289,7 @@ def tail(job_id, step, index):
     if job is None or job["deleted_at"]:
         raise ProblemError("not-found", detail="no such job")
 
+    _first_connection(args.get("sig"), args.get("expires"))
     owner = job["user_id"]
     if not limiter.acquire(owner):
         raise ProblemError(
@@ -268,7 +299,7 @@ def tail(job_id, step, index):
 
     start = logstream.resume_from(
         flask.request.headers.get("Last-Event-ID"), args.get("last_event_id"))
-    deadline = time.monotonic() + config.limits["max_log_stream_seconds"]
+    deadline = _deadline(args.get("expires"))
 
     def frames():
         try:
@@ -277,7 +308,9 @@ def tail(job_id, step, index):
                 node_state=lambda: jobs.node_state(job_id, step, index),
                 start=start, deadline=deadline,
                 artifact_id=lambda: jobs.node_log_artifact(job_id, step, index),
-                root=jobs.job_root(job["user_id"], job["id"]))
+                root=jobs.job_root(job["user_id"], job["id"]),
+                keepalive=config["stream_keepalive_seconds"],
+                ended=args.get("ended") == "1")
         finally:
             # In a finally, because the commonest way a tail ends is the reader
             # hanging up -- which reaches this generator as GeneratorExit and
@@ -328,22 +361,20 @@ def download(job_id, artifact_id):
 
     # 🔴 Named after what it IS. Without this every download lands in somebody's
     # downloads folder as a bare uuid, and a person who fetched the logs of six
-    # nodes has six files they cannot tell apart.
-    inline = row["media_type"] in ("text/plain", "application/json")
-
+    # nodes has six files they cannot tell apart. And always an attachment,
+    # never sniffed and never active: these are a job's bytes, on this host.
     response = flask.send_file(
         path, mimetype=row["media_type"], conditional=True,
-        as_attachment=not inline, download_name=_download_name(store, row))
+        as_attachment=True, download_name=_download_name(store, row))
     response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Security-Policy"] = "sandbox; default-src 'none'"
     return response
 
 
-# What a browser should call each kind once it is on disk.
-_SUFFIX = {
-    "application/gzip": ".tar.gz",
-    "application/json": ".pkg.json",
-    "text/plain": ".log",
-}
+# What a browser should call each kind once it is on disk: every artifact is
+# gzipped, and a manifest or a job-level log is one file rather than a tar.
+_SUFFIX = {"manifest": ".pkg.json.gz", "job-logs": ".log.gz"}
 
 
 def _download_name(store, row) -> str:
@@ -364,4 +395,5 @@ def _download_name(store, row) -> str:
     parts.append(row["kind"])
 
     stem = "-".join(part for part in parts if part)
-    return f"{stem}{_SUFFIX.get(row['media_type'], '')}"
+    kind = "job-logs" if row["kind"] == "logs" and not row["step"] else row["kind"]
+    return f"{stem}{_SUFFIX.get(kind, '.tar.gz')}"

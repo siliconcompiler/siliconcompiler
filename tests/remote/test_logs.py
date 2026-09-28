@@ -123,18 +123,21 @@ def test_a_download_link_cannot_be_presented_as_a_stream(server, server_client,
     assert response.status_code == 400
 
 
-def test_the_capability_carries_its_own_lifetime(server, server_client, key,
-                                                 token, running):
-    '''Independent of the 900-second access token, which is what lets a
-    six-hour log outlive the credential that opened it.'''
+def test_a_stream_ends_no_later_than_the_token_that_obtained_it(
+        server, server_client, key, token, running):
+    '''🔴 Its lifetime is the access token's, and one URL serves one
+    connection: a reconnect asks `/logs` again.'''
+    import jwt
+
     job_id, _ = running
     target = stream_url(server_client, key, token, job_id)
 
     expires = int(target.split("expires=")[1].split("&")[0])
-    ceiling = server.config["SC_CONFIG"].limits["max_log_stream_seconds"]
+    assert expires <= jwt.decode(token, options={"verify_signature": False})["exp"]
 
-    assert expires - time.time() > 900
-    assert expires - time.time() <= ceiling + 5
+    finish(server, job_id)
+    assert server_client.get(target).status_code == 200
+    assert server_client.get(target).status_code == 400
 
 
 ###########################
@@ -490,9 +493,14 @@ def test_a_tail_that_starts_after_the_node_finished_gets_the_archive(live):
     log.write_text("all done\n")
     app.config["SC_STORE"].execute(
         "UPDATE job_nodes SET state = 'completed' WHERE job_id = ?", (job_id,))
+    jobs = app.config["SC_JOBS"]
+    jobs._index_node(jobs._row(job_id), "place", "0")
 
+    # 🔴 `/logs` is live only: a finished node's stream ends at once, naming
+    # its `logs` artifact, which the client then fetches.
     response = client.follow_log(job_id, "place", "0")
-    assert not response.headers["Content-Type"].startswith("text/event-stream")
+    assert response.headers["Content-Type"].startswith("text/event-stream")
+    response.close()
 
     assert client.tail_log(job_id, "place", "0") == "all done\n"
 

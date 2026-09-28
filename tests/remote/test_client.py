@@ -225,7 +225,7 @@ def test_the_deployment_report_is_what_the_server_says_it_is(
     # Base units, rendered. The wire is bytes and seconds; a person reads
     # neither at this size.
     assert "max_upload_bytes: 1.0 GiB" in caplog.text
-    assert "max_log_stream_seconds: 4h" in caplog.text
+    assert "max_download_bytes: 100 MiB" in caplog.text
     assert "max_job_nodes: 1000" in caplog.text
 
     for call in fake_v1.calls:

@@ -169,6 +169,57 @@ def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:
     return {"filter": filter}
 
 
+def extract_safely(tar: tarfile.TarFile, path: str, members=None) -> None:
+    """Extracts ``tar`` into ``path`` with nothing landing outside it.
+
+    Uses the ``data`` filter where the interpreter has one. Where it does not
+    (3.10.0-3.10.11, 3.11.0-3.11.3), the same rules are checked here first:
+    nothing outside the destination, no link resolving outside it, no device
+    node or FIFO, and no ownership, setuid or setgid bits.
+
+    Args:
+        tar (tarfile.TarFile): The open archive.
+        path (str): The destination directory.
+        members (list, optional): The members to extract; all by default.
+
+    Raises:
+        ValueError: If a member would break one of those rules.
+    """
+    kwargs = tar_extract_kwargs()
+    if kwargs:
+        tar.extractall(path=path, members=members, **kwargs)
+        return
+    checked = [_checked_member(member, path)
+               for member in (members if members is not None else tar.getmembers())]
+    tar.extractall(path=path, members=checked)
+
+
+def _checked_member(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo:
+    """One member, refused where it would leave ``path``, and stripped of what
+    it should not carry."""
+    root = os.path.realpath(path)
+
+    def inside(target: str) -> bool:
+        return os.path.commonpath([root, os.path.realpath(target)]) == root
+
+    name = member.name
+    if os.path.isabs(name) or not inside(os.path.join(root, name)):
+        raise ValueError(f"{name} would extract outside {path}")
+    if member.isdev() or member.isfifo():
+        raise ValueError(f"{name} is a device node or a FIFO")
+    if member.issym() and (os.path.isabs(member.linkname) or not inside(
+            os.path.join(root, os.path.dirname(name), member.linkname))):
+        raise ValueError(f"{name} links outside {path}")
+    if member.islnk() and (os.path.isabs(member.linkname) or not inside(
+            os.path.join(root, member.linkname))):
+        raise ValueError(f"{name} links outside {path}")
+
+    # No ownership: whoever extracts owns what lands.
+    member.uid, member.gid, member.uname, member.gname = os.getuid(), os.getgid(), "", ""
+    member.mode &= 0o755
+    return member
+
+
 def zstd_available() -> bool:
     """Reports whether this interpreter can read Zstandard streams.
 

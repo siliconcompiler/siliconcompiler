@@ -9,7 +9,7 @@ from typing import Optional
 
 from siliconcompiler import Project
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.utils import tar_extract_kwargs
+from siliconcompiler.utils import extract_safely
 from siliconcompiler.utils.issue import generate_testcase
 
 
@@ -146,7 +146,7 @@ To run a testcase, use:
 
         test_dir = os.path.basename(file)[0:-7]
         with tarfile.open(file, 'r:gz') as f:
-            f.extractall(path='.', **tar_extract_kwargs())
+            extract_safely(f, '.')
 
         manifest_path = f'{test_dir}/orig_manifest.json'
         try:

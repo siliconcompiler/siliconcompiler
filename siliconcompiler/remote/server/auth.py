@@ -120,12 +120,15 @@ class Session:
     '''A verified caller, for the duration of one request.'''
 
     def __init__(self, user_id: str, scope: str, family_id: str,
-                 device_id: Optional[str], jkt: str):
+                 device_id: Optional[str], jkt: str, expires_at: Optional[float] = None):
         self.user_id = user_id
         self.scope = frozenset(scope.split())
         self.family_id = family_id
         self.device_id = device_id
         self.jkt = jkt
+        # When the credential this request presented stops being good: a
+        # stream it obtains ends no later.
+        self.expires_at = expires_at
 
     def require(self, scope: str) -> None:
         '''Refuse unless the token covers this endpoint.
@@ -523,7 +526,7 @@ class TokenIssuer:
                 headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
 
         return Session(claims["sub"], claims["scope"], claims["family"],
-                       claims.get("device"), jkt)
+                       claims.get("device"), jkt, expires_at=claims.get("exp"))
 
     def _check_replay(self, proof: str, oauth: bool = False) -> None:
         '''One proof, one request.

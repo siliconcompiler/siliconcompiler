@@ -244,7 +244,11 @@ def _act_on_job(remote, client, project_cfg):
         return 1
 
     try:
-        project = Project.from_manifest(filepath=project_cfg)
+        from siliconcompiler.schema.baseschema import known_classes_only
+
+        # It may be one a job returned: read as data, importing nothing it names.
+        with known_classes_only():
+            project = Project.from_manifest(filepath=project_cfg)
     except Exception as e:
         remote.logger.error(f"Unable to read {project_cfg}: {e}")
         return 1

@@ -579,8 +579,9 @@ def test_a_log_is_the_same_bytes_and_therefore_the_same_ceiling(
     a log.'''
     _ceiling(server, 1)
 
+    artifact_id = _ended_stream(server_client, key, token, finished["id"])
     response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/logs?step=stepone&index=0", token)
+                    f"/v1/jobs/{finished['id']}/artifacts/{artifact_id}", token)
 
     assert response.status_code == 403
     assert slug(response) == "download-too-large"
@@ -604,16 +605,42 @@ def test_retrying_is_not_the_answer_so_no_retry_after_is_offered(
 # 20. one node's log
 ###########################
 
-def test_a_terminal_nodes_log_redirects_to_the_archive(server_client, key,
-                                                       token, finished):
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/logs?step=stepone&index=0", token)
+def _ended_stream(server_client, key, token, job_id):
+    import json as _json
 
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{job_id}/logs?step=stepone&index=0", token)
     assert response.status_code == 303
-    bytes_response = server_client.get(
-        response.headers["Location"].split("http://localhost", 1)[1])
-    assert bytes_response.data == b"stepone ran\n"
-    assert bytes_response.headers["Content-Type"].startswith("text/plain")
+    body = server_client.get(
+        response.headers["Location"].split("http://localhost", 1)[1]).data.decode()
+    events = [block for block in body.split("\n\n") if "event: node_state" in block]
+    data = next(line for line in events[0].splitlines() if line.startswith("data:"))
+    state = _json.loads(data[5:])
+    assert state["terminal"] is True
+    assert "event: end" in body
+    return state["artifact_id"]
+
+
+def test_a_terminal_nodes_stream_ends_at_once_naming_its_archive(
+        server_client, key, token, finished):
+    '''🔴 `/logs` is live only; a finished node's log is its gzipped
+    `logs` artifact, which carries nothing but the node's logs.'''
+    import io
+    import tarfile
+
+    artifact_id = _ended_stream(server_client, key, token, finished["id"])
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{finished['id']}/artifacts/{artifact_id}", token)
+    if response.status_code in (302, 303):
+        response = server_client.get(
+            response.headers["Location"].split("http://localhost", 1)[1])
+
+    assert response.headers["Content-Type"].startswith("application/gzip")
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["Content-Disposition"].startswith("attachment")
+    with tarfile.open(fileobj=io.BytesIO(response.data), mode="r:gz") as tar:
+        texts = [tar.extractfile(m).read() for m in tar.getmembers() if m.isfile()]
+    assert b"stepone ran\n" in texts
 
 
 @pytest.mark.parametrize("missing", ["?step=stepone", "?index=0"])
@@ -674,14 +701,14 @@ def test_a_deployment_without_the_tail_refuses_it_permanently(tmp_path, monkeypa
 
     datadir = tmp_path / "quiet"
     datadir.mkdir()
-    (datadir / "config.json").write_text(_json.dumps({"features": ["logs"]}))
+    (datadir / "config.json").write_text(_json.dumps({"features": []}))
 
     app = create_app(datadir)
     client = app.test_client()
     quiet_key = dpop.generate_key()
     quiet_token = login(client, quiet_key).get_json()["access_token"]
 
-    assert client.get("/v1").get_json()["features"] == ["logs"]
+    assert client.get("/v1").get_json()["features"] == []
 
     store = app.config["SC_STORE"]
     me = call(client, quiet_key, "GET", "/v1/me", quiet_token).get_json()["id"]
@@ -701,11 +728,10 @@ def test_a_deployment_without_the_tail_refuses_it_permanently(tmp_path, monkeypa
     assert response.get_json()["feature"] == "logs.stream"
 
 
-def test_a_finished_node_whose_log_is_not_archived_yet_is_not_ready(
+def test_a_finished_node_with_no_log_is_not_found(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 Transient, not 404. The node is over and the job is not, so the
-    archive may still be on its way -- and a 404 tells a client to stop asking
-    about a log that is about to exist.'''
+    '''🔴 `/logs` is live only, and a node is completed only after it is
+    indexed: a terminal node with no `logs` artifact never will have one.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
@@ -715,9 +741,7 @@ def test_a_finished_node_whose_log_is_not_archived_yet_is_not_ready(
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{job['id']}/logs?step=stepone&index=0", token)
 
-    assert response.status_code == 409
-    assert slug(response) == "not-ready"
-    assert response.headers["Retry-After"]
+    assert response.status_code == 404
 
 
 def test_a_node_this_job_does_not_have(server_client, key, token, finished):
@@ -1003,7 +1027,7 @@ def test_the_runs_own_job_log_is_indexed(server, server_client, key, token,
     items = listing(server_client, key, token, job["id"])
 
     assert len(_only(items, "logs")) == 1
-    assert _only(items, "logs")[0]["media_type"] == "text/plain"
+    assert _only(items, "logs")[0]["media_type"] == "application/gzip"
 
 
 def test_a_stale_backup_log_is_not_mistaken_for_this_run(

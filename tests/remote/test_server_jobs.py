@@ -307,7 +307,7 @@ def test_a_need_the_server_lacks_is_refused_at_create_naming_it(server_client, k
     '''Before the upload, rather than at submit after it -- and a string the
     server does not know is refused the same way.'''
     lacking = create(server_client, key, token, needs=["python.env"])
-    known = create(server_client, key, token, jobname="job1", needs=["logs"])
+    known = create(server_client, key, token, jobname="job1", needs=["logs.stream"])
 
     assert lacking.status_code == 501
     assert (slug(lacking), lacking.get_json()["feature"]) == \

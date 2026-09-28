@@ -236,7 +236,8 @@ def test_a_node_that_never_ran_is_reported_and_ends_nothing(tmp_path):
 
     events = parse(got)
     assert ("node_state", {"step": "place", "index": "0", "state": "skipped",
-                           "artifact_id": "art-place"}) in [(e, d) for e, _, d in events]
+                           "terminal": True, "artifact_id": "art-place"}) \
+        in [(e, d) for e, _, d in events]
     assert not any(e == "end" for e, _, _ in events)
 
 
@@ -378,9 +379,8 @@ def test_a_finished_job_is_a_stream_that_ends_at_once(server, server_client, key
 
 
 @pytest.mark.parametrize("features,missing", [
-    ([], "logs"),
-    (["logs"], "logs.stream"),
-    (["logs", "logs.stream"], "logs.stream.job"),
+    ([], "logs.stream"),
+    (["logs.stream"], "logs.stream.job"),
 ])
 def test_the_refusal_names_the_broadest_missing_capability(
         server, server_client, key, token, job, features, missing):

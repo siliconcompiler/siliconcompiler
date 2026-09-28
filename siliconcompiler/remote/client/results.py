@@ -40,7 +40,6 @@ from typing import Any, Dict, List, Optional
 from siliconcompiler import utils
 from siliconcompiler.remote.client.errors import RemoteError, clean
 from siliconcompiler.remote.units import size
-from siliconcompiler.schema import Journal
 from siliconcompiler.utils.paths import jobdir, workdir
 
 __all__ = ["Results", "REMOTE_JOB_LOG", "JOB_FILE", "record_job", "recorded_job"]
@@ -79,7 +78,7 @@ def recorded_job(directory: str) -> Optional[str]:
 # does not recognise is listed and left alone rather than refused: the set is
 # closed and published, so an unknown one means this client is older than the
 # server.
-_ARCHIVES = ("node", "outputs", "reports")
+_ARCHIVES = ("node", "outputs", "reports", "final", "logs")
 
 # Kinds this client never takes, and never reports as left behind. `input` is
 # what went IN -- each upload, and a node's inputs -- and this machine has the
@@ -137,6 +136,34 @@ class Results:
     ######################################################################
     # What not to pull
     ######################################################################
+
+    def _ours(self, items) -> List[Dict[str, Any]]:
+        '''🔴 The rows this job's flow has. A node-bound row naming a node the
+        flow does not -- `..` included -- is ignored, so nothing a listing says
+        writes outside the job's local directory.'''
+        from siliconcompiler.flowgraph import Flowgraph
+
+        try:
+            nodes = set(self.project.get_flow().get_nodes())
+        except Exception:                                        # noqa: BLE001
+            nodes = set()
+        kept = []
+        for item in _takeable(items):
+            step, index = item.get("step"), item.get("index")
+            if step is None and index is None:
+                kept.append(item)
+                continue
+            try:
+                Flowgraph.check_node_name(step, index)
+            except (ValueError, TypeError):
+                logger.warning(f"ignoring a listed {clean(str(item.get('kind')))} for a "
+                               "node name that is not one")
+                continue
+            if (step, index) in nodes:
+                kept.append(item)
+            else:
+                logger.debug(f"ignoring a listed object for {step}/{index}, not in this flow")
+        return kept
 
     @property
     def ceiling(self):
@@ -239,7 +266,7 @@ class Results:
             # Every kind, because what a node can be taken by is only known
             # from the listing -- at the endpoint's largest page, since a wide
             # flow lists four objects per node.
-            listed = _takeable(self.client.artifacts(job_id, limit=200))
+            listed = self._ours(self.client.artifacts(job_id, limit=200))
         except Exception as e:                                   # noqa: BLE001
             # Nothing is lost by failing here: the sweep at the end asks again.
             logger.debug(f"could not list node results yet: {e}")
@@ -295,7 +322,7 @@ class Results:
     def fetch(self, job_id: str) -> int:
         '''Retrieve everything fetchable and say what was not. Returns the
         number of objects that landed.'''
-        items = _takeable(self.client.artifacts(job_id))
+        items = self._ours(self.client.artifacts(job_id))
 
         if not items:
             # A legal answer, and three deployments reach it by different
@@ -454,128 +481,149 @@ class Results:
 
     def _retrieve(self, job_id: str, item: Dict[str, Any]) -> int:
         kind = item.get("kind")
-
         step, index = item.get("step"), item.get("index")
 
-        if kind == "manifest":
-            if step is None or index is None:
-                target = os.path.join(jobdir(self.project),
-                                      f"{self.project.name}.pkg.json")
-                self.client.fetch_artifact(job_id, item["id"], target)
+        if step is None or index is None:
+            if kind == "manifest":
+                target = os.path.join(jobdir(self.project), f"{self.project.name}.pkg.json")
+                self._gunzip(job_id, item, target)
                 self._job_manifest = target
                 return 1
-
-            # A node's own manifest goes where the node wrote it, which is
-            # where the replay looks and where a node archive would have put
-            # it.
-            node = workdir(self.project, step=step, index=index)
-            outputs = os.path.join(node, "outputs")
-            os.makedirs(outputs, exist_ok=True)
-            self.client.fetch_artifact(
-                job_id, item["id"],
-                os.path.join(outputs, f"{self.project.name}.pkg.json"))
-            record_job(node, job_id)
-            return 1
-
-        if step is None or index is None:
             if kind == "logs":
-                self.client.fetch_artifact(
-                    job_id, item["id"],
-                    os.path.join(jobdir(self.project), REMOTE_JOB_LOG))
+                self._gunzip(job_id, item, os.path.join(jobdir(self.project), REMOTE_JOB_LOG))
                 return 1
             logger.debug(f"nothing to do with a job-level {kind}")
             return 0
 
         into = workdir(self.project, step=step, index=index)
         os.makedirs(into, exist_ok=True)
-        landed = self._retrieve_node(job_id, item, kind, step, index, into)
-        if landed:
-            record_job(into, job_id)
-        return landed
 
-    def _retrieve_node(self, job_id, item, kind, step, index, into) -> int:
-        if kind == "logs":
-            self.client.fetch_artifact(
-                job_id, item["id"], os.path.join(into, f"sc_{step}_{index}.log"))
-            return 1
-
-        if kind in _ARCHIVES:
+        if kind == "manifest":
+            # A node's own manifest goes where the node wrote it, which is
+            # where the replay looks and where a node archive would have put it.
+            outputs = os.path.join(into, "outputs")
+            os.makedirs(outputs, exist_ok=True)
+            self._gunzip(job_id, item, os.path.join(outputs, f"{self.project.name}.pkg.json"))
+        elif kind in _ARCHIVES:
             self._unpack(job_id, item, into)
-            return 1
+        else:
+            logger.debug(f"no local home for a {kind} artifact")
+            return 0
 
-        logger.debug(f"no local home for a {kind} artifact")
-        return 0
+        record_job(into, job_id)
+        return 1
+
+    def _download(self, job_id: str, item: Dict[str, Any], tmpdir: str) -> str:
+        '''The bytes, checked against the listing's `size_bytes` and `digest`
+        before anything uses them; a mismatch is discarded.'''
+        import hashlib
+
+        path = os.path.join(tmpdir, "artifact")
+        self.client.fetch_artifact(job_id, item["id"], path)
+
+        digest, size = hashlib.sha256(), 0
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                digest.update(chunk)
+                size += len(chunk)
+        expected = item.get("digest")
+        if (item.get("size_bytes") is not None and size != item["size_bytes"]) or \
+                (expected and f"sha256:{digest.hexdigest()}" != expected):
+            os.remove(path)
+            raise RemoteError(f"{self._name(item)} did not match its listed size and "
+                              "digest, and was discarded")
+        return path
+
+    def _gunzip(self, job_id: str, item: Dict[str, Any], dest: str) -> None:
+        '''A single-file artifact -- a manifest, the run's log -- gzipped, as
+        every artifact is.'''
+        import gzip
+        import shutil
+
+        with tempfile.TemporaryDirectory(prefix="sc-artifact-") as tmpdir:
+            path = self._download(job_id, item, tmpdir)
+            os.makedirs(os.path.dirname(dest) or ".", exist_ok=True)
+            partial = f"{dest}.part"
+            with gzip.open(path, "rb") as source, open(partial, "wb") as out:
+                shutil.copyfileobj(source, out)
+            os.replace(partial, dest)
 
     def _unpack(self, job_id: str, item: Dict[str, Any], into: str) -> None:
-        '''Expand one archive into the node's working directory.
-
-        Relative to that directory, which is why the contract has no
-        per-artifact path: the client knows the step, the index and the kind,
-        and that is enough to put it back where it came from.
-        '''
+        '''Expand one archive into the node's working directory: paths in a
+        node-bound tar are relative to it, and nothing lands outside it.'''
         with tempfile.TemporaryDirectory(prefix="sc-artifact-") as tmpdir:
-            downloaded = os.path.join(tmpdir, "artifact.tar.gz")
-            self.client.fetch_artifact(job_id, item["id"], downloaded)
-
-            with tarfile.open(downloaded, "r:*") as tar:
-                # The same extraction filter the rest of SiliconCompiler uses.
-                # These bytes came from a server this machine chose to trust,
-                # which is a reason to check them rather than a reason not to.
-                tar.extractall(path=into, **utils.tar_extract_kwargs())
+            path = self._download(job_id, item, tmpdir)
+            with tarfile.open(path, "r:*") as tar:
+                utils.extract_safely(tar, into)
 
     def _replay(self) -> None:
         '''Fold the retrieved manifests back into this project.
 
-        What makes `summary()` work after a remote run: the record, the metrics
-        and the tool versions are in the manifests, not in anything the poll
-        loop saw.
+        What makes `summary()` work after a remote run: the record and the
+        metrics are in the manifests, not in anything the poll loop saw.
+
+        🔴 **Nothing a job returns is imported or executed** (surface §6): a
+        node's journal is replayed only through the record-and-metric filter
+        the job manifest goes through, and only for the nodes the job ran.
         '''
+        from siliconcompiler.remote.server.runspec import runtime_nodes
+
+        try:
+            ran = set(runtime_nodes(self.project))
+        except Exception:                                        # noqa: BLE001
+            return
+
         for path in self._manifests():
             try:
-                Journal.replay_file(self.project, path)
+                self._fold_in_journal(path, ran)
             except Exception as e:                               # noqa: BLE001
-                # A manifest this client cannot read is one node's detail, not
-                # the run. It has already been reported as a state.
                 logger.debug(f"could not replay {path}: {e}")
 
         if self._job_manifest and os.path.isfile(self._job_manifest):
             try:
-                self._fold_in_final(self._job_manifest)
+                self._fold_in_final(self._job_manifest, ran)
             except Exception as e:                               # noqa: BLE001
                 logger.debug(f"could not read {self._job_manifest}: {e}")
 
-    def _fold_in_final(self, path: str) -> None:
+    def _fold_in_journal(self, path: str, ran) -> None:
+        '''A node manifest's journal, read as data, through `_folded`.'''
+        with open(path, encoding="utf-8") as f:
+            journal = json.load(f).get("__journal__") or []
+        for action in journal:
+            if not isinstance(action, dict) or action.get("type") not in ("set", "add"):
+                continue
+            if action.get("field") not in (None, "value"):
+                continue
+            key = tuple(action.get("key") or ())
+            step, index = action.get("step"), action.get("index")
+            if not _folded(key, step, index, ran):
+                continue
+            write = self.project.set if action["type"] == "set" else self.project.add
+            write(*key, action.get("value"), step=step, index=index)
+
+    def _fold_in_final(self, path: str, ran=None) -> None:
         '''Copy the run's per-node record and metrics out of the job manifest.
 
         🔴 **Not a journal replay, because the job manifest has no journal.**
-        It is the run's final state, written whole when the flow ended, so
-        `replay_file` found nothing in it and returned -- and a listing holding
-        only that manifest, which is a successful run, came back with every
-        node's time, warnings and errors blank. The node manifests carry
-        journals; this one carries values.
-
-        Only values bound to a node, and only in `record` and `metric`. A
-        global value in it is this server's setting for the run -- its build
-        directory, its scheduler -- and folding those in would rewrite the
-        caller's own.
-
-        🔴 **And only for the nodes the job ran.** A run that starts part-way
-        through its flow marks every node it did not load as pending, with its
-        metrics cleared, so folding the record in whole would make a node that
-        finished before look unrun on this machine.
+        It is the run's final state, written whole when the flow ended. Only
+        values bound to a node the job ran, and only in `record` and `metric`:
+        a global value in it is this server's setting for the run, and a run
+        that starts part-way through marks every node it did not load pending.
+        Loaded with the classes already here, importing nothing it names.
         '''
         from siliconcompiler import Project
         from siliconcompiler.remote.server.runspec import runtime_nodes
+        from siliconcompiler.schema.baseschema import known_classes_only
 
-        ran = set(runtime_nodes(self.project))
-        final = Project.from_manifest(filepath=path)
+        if ran is None:
+            ran = set(runtime_nodes(self.project))
+        with known_classes_only():
+            final = Project.from_manifest(filepath=path)
         for group in ("record", "metric"):
             for key in final.getkeys(group):
                 param = final.get(group, key, field=None)
                 for value, step, index in param.getvalues(return_defvalue=False):
-                    if step is None or index is None or value is None:
-                        continue
-                    if (step, index) not in ran:
+                    if value is None or not _folded((group, key), step, index, ran):
                         continue
                     self.project.set(group, key, value, step=step, index=index)
 
@@ -583,7 +631,7 @@ class Results:
         '''What is fetchable now of one node of another job -- the job a run
         continued from, which ran it. Returns the number of objects that
         landed.'''
-        items = [item for item in _takeable(self.client.artifacts(job_id))
+        items = [item for item in self._ours(self.client.artifacts(job_id))
                  if item.get("step") == step and item.get("index") == index]
         landed = 0
         for item in _worth_fetching([item for item in items if not self._oversized(item)]):
@@ -649,10 +697,19 @@ def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         return items
 
     return [item for item in items
-            if item.get("kind") == "node"
+            if item.get("kind") in ("node", "final")
             or item.get("step") is None
             or not item.get("fetchable")
             or (item.get("step"), item.get("index")) not in covered]
+
+
+def _folded(key, step, index, ran) -> bool:
+    '''Whether one value from a returned manifest is folded in: a record or a
+    metric, bound to a node the job ran -- and never the job id, which comes
+    from the fetch.'''
+    return (len(key) >= 2 and key[0] in ("record", "metric")
+            and key != ("record", "remoteid")
+            and step is not None and index is not None and (step, index) in ran)
 
 
 def _day(timestamp: str) -> str:

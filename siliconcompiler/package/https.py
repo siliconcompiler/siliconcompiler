@@ -18,7 +18,7 @@ from urllib.parse import urljoin, urlparse
 
 from siliconcompiler.package import FetchRefused, RemoteResolver, current_fetch_policy
 from siliconcompiler.package.cache import DataSourceUnavailableError, PermanentResolutionError
-from siliconcompiler.utils import is_zstd, open_zstd_stream, tar_extract_kwargs, \
+from siliconcompiler.utils import extract_safely, is_zstd, open_zstd_stream, \
     zstd_available, zstd_errors, zstd_unavailable_message
 
 #: HTTP statuses that answer the request completely enough that asking again can
@@ -56,7 +56,7 @@ _ARCHIVE_SUFFIXES = (".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst",
 def _extract_tar(fileobj: IO[bytes], path: str, mode: str) -> None:
     """Extracts a tar archive, applying the PEP 706 extraction filter."""
     with tarfile.open(fileobj=fileobj, mode=mode) as tar_ref:
-        tar_ref.extractall(path=path, **tar_extract_kwargs())
+        extract_safely(tar_ref, path)
 
 
 def _extract_zstd_tar(fileobj: IO[bytes], path: str) -> None:
