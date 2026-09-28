@@ -148,7 +148,8 @@ def main():
                 collect_keys.extend((key, step, index)
                                     for _, step, index in
                                     param.getvalues(return_values=False))
-        collect(job,
+        collect(
+            job,
             keys=filter_collection_keys(collect_keys),
             directory=collectdir,
             verbose=True)

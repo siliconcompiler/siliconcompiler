@@ -676,7 +676,8 @@ class Client():
 
         # Collect inputs into a collection directory only for remote runs, since
         # we need to send inputs up to the server.
-        collect(self.__project,
+        collect(
+            self.__project,
             keys=filter_collection_keys(collect_keys),
             whitelist=self.__config.setdefault('directory_whitelist', []))
 
