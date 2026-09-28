@@ -85,10 +85,11 @@ def test_collect_file_update():
     proj = Project(design)
     collect(proj)
 
-    filename = design.get_file(fileset="rtl", filetype="verilog")[0]
+    import_path = os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path("fake.v", None))
 
     assert len(os.listdir(collectiondir(proj))) == 1
-    with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
+    with open(import_path, 'r') as f:
         assert f.readline() == 'fake'
 
     # Edit file
@@ -102,7 +103,7 @@ def test_collect_file_update():
                                                     "sc_previous_collection"))
 
     assert len(os.listdir(collectiondir(proj))) == 1
-    with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
+    with open(import_path, 'r') as f:
         assert f.readline() == 'newfake'
 
 
@@ -122,10 +123,11 @@ def test_collect_file_incremental():
     proj = Project(design)
     collect(proj)
 
-    filename = design.get_file(fileset="rtl", filetype="verilog")[0]
+    import_path = os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path("fake.v", None))
 
     assert len(os.listdir(collectiondir(proj))) == 1
-    with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
+    with open(import_path, 'r') as f:
         assert f.readline() == 'fake'
 
     # Remove file, should still be findable in previous collection
@@ -134,8 +136,33 @@ def test_collect_file_incremental():
     # Rerun collect
     collect(proj)
     assert len(os.listdir(collectiondir(proj))) == 1
-    with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
+    with open(import_path, 'r') as f:
         assert f.readline() == 'fake'
+
+
+def test_collect_same_filename_from_different_directories():
+    os.makedirs('first', exist_ok=True)
+    os.makedirs('second', exist_ok=True)
+    with open('first/top.v', 'w') as f:
+        f.write('first')
+    with open('second/top.v', 'w') as f:
+        f.write('second')
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_file('first/top.v')
+            design.add_file('second/top.v')
+
+    proj = Project(design)
+    collect(proj)
+
+    for source_dir, expected in (('first', 'first'), ('second', 'second')):
+        import_path = os.path.join(
+            collectiondir(proj),
+            PathNodeValue.generate_hashed_collection_path(f'{source_dir}/top.v', None))
+        with open(import_path, 'r') as f:
+            assert f.readline() == expected
 
 
 def test_collect_directory():
@@ -226,18 +253,15 @@ def test_collect_script_inside_refdir_not_duplicated():
     custom_collect_dir = os.path.abspath("issue_collect")
     collect(proj, directory=custom_collect_dir)
 
-    collected = os.listdir(custom_collect_dir)
-    # Only the refdir should land in the collection — the script lives inside it.
-    assert len(collected) == 1, \
-        f"Expected only refdir to be collected, got: {collected}"
-
-    refdir_collected = os.path.join(custom_collect_dir, collected[0])
+    new_refdir = PathNodeValue.generate_hashed_collection_path("scripts", None)
+    assert os.listdir(custom_collect_dir) == [new_refdir.split('/')[0]]
+    refdir_collected = os.path.join(custom_collect_dir, new_refdir)
     assert os.path.isdir(refdir_collected)
     assert os.path.isfile(os.path.join(refdir_collected, "apr", "sc_test.tcl"))
 
     # The script's standalone hashed name must NOT have been copied separately.
-    script_hashed = PathNodeValue.generate_hashed_path("apr/sc_test.tcl", None)
-    assert not os.path.exists(os.path.join(custom_collect_dir, script_hashed)), \
+    script_collected = PathNodeValue.generate_hashed_collection_path("apr/sc_test.tcl", None)
+    assert not os.path.exists(os.path.join(custom_collect_dir, script_collected)), \
         "Script was copied separately even though it lives inside the collected refdir"
 
 
@@ -268,13 +292,11 @@ def test_collect_overlapping_refdirs_dedup_across_keys():
 
     collect(proj)
 
-    # Only the parent dir should be present in the collection
-    collected = os.listdir(collectiondir(proj))
-    assert len(collected) == 1, \
-        f"Expected only parent refdir, got: {collected}"
+    new_parent = PathNodeValue.generate_hashed_collection_path("parent", None)
+    assert os.listdir(collectiondir(proj)) == [new_parent.split('/')[0]]
 
-    child_hashed = PathNodeValue.generate_hashed_path("parent/child", None)
-    assert not os.path.exists(os.path.join(collectiondir(proj), child_hashed)), \
+    child_collected = PathNodeValue.generate_hashed_collection_path("parent/child", None)
+    assert not os.path.exists(os.path.join(collectiondir(proj), child_collected)), \
         "Child refdir was copied separately even though parent already covers it"
 
 
@@ -317,9 +339,8 @@ def test_collect_file_home(monkeypatch):
     collect(proj)
 
     # No files should have been collected
-    assert len(os.listdir(collectiondir(proj))) == 1
-    subdir = os.path.join(collectiondir(proj), os.listdir(collectiondir(proj))[0])
-    assert len(os.listdir(subdir)) == 0
+    path = design.get_idir(fileset="rtl")[0]
+    assert os.listdir(path) == []
 
 
 def test_collect_file_build():
@@ -338,9 +359,8 @@ def test_collect_file_build():
     collect(proj)
 
     # No files should have been collected
-    assert len(os.listdir(collectiondir(proj))) == 1
-    subdir = os.path.join(collectiondir(proj), os.listdir(collectiondir(proj))[0])
-    assert len(os.listdir(subdir)) == 0
+    path = design.get_idir(fileset="rtl")[0]
+    assert os.listdir(path) == []
 
 
 def test_collect_file_hidden_dir():
@@ -359,9 +379,8 @@ def test_collect_file_hidden_dir():
     collect(proj)
 
     # No files should have been collected
-    assert len(os.listdir(collectiondir(proj))) == 1
-    subdir = os.path.join(collectiondir(proj), os.listdir(collectiondir(proj))[0])
-    assert len(os.listdir(subdir)) == 0
+    path = design.get_idir(fileset="rtl")[0]
+    assert os.listdir(path) == []
 
 
 def test_collect_file_hidden_file():
@@ -380,9 +399,8 @@ def test_collect_file_hidden_file():
     collect(proj)
 
     # No files should have been collected
-    assert len(os.listdir(collectiondir(proj))) == 1
-    subdir = os.path.join(collectiondir(proj), os.listdir(collectiondir(proj))[0])
-    assert len(os.listdir(subdir)) == 0
+    path = design.get_idir(fileset="rtl")[0]
+    assert os.listdir(path) == []
 
 
 def test_collect_file_whitelist_error():

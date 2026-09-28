@@ -805,55 +805,50 @@ def test_incomplete_path_implementation():
         TestClass("dir").type()
 
 
-@pytest.mark.parametrize("path,expect", [
-    (pathlib.PureWindowsPath("one/one.txt"), "one_fe05bcdcdc4928012781a5f1a2a77cbb5398e106.txt"),
-    (pathlib.PurePosixPath("one/one.txt"), "one_fe05bcdcdc4928012781a5f1a2a77cbb5398e106.txt"),
-    ("one.txt", "one_3a52ce780950d4d969792a2559cd519d7ee8c727.txt"),
-    ("two", "two_3a52ce780950d4d969792a2559cd519d7ee8c727"),
-    ("two.txt", "two_3a52ce780950d4d969792a2559cd519d7ee8c727.txt"),
-    ("two.txt.gz", "two_3a52ce780950d4d969792a2559cd519d7ee8c727.txt.gz"),
-    ("one/two/three.txt.gz", "three_c57b135d0dbf255cfc057a5d103d4c2611e90434.txt.gz"),
-    ("one/two/three/four.txt.gz", "four_7873f09de6cc3aad0b0c61923390fb8d980084b8.txt.gz"),
-    ("one/two/three/four.here.txt.gz", "four_7873f09de6cc3aad0b0c61923390fb8d980084b8.here.txt.gz")
+@pytest.mark.parametrize("path,dataroot,expect", [
+    ("library.lib", None, "root_665f66b0cf05eb7f77f25184c26dc1a2a387d2ad/library.lib"),
+    ("lib1/lib2/lib3/library.lib", None,
+     "lib3_f62d193776b4ac9de55b86fbb1433c3a34e52d0d/library.lib"),
+    ("lib1/lib2/lib3/library.tar.gz", None,
+     "lib3_f62d193776b4ac9de55b86fbb1433c3a34e52d0d/library.tar.gz"),
+    (".", None, "root_665f66b0cf05eb7f77f25184c26dc1a2a387d2ad"),
+    ("subdir", None, "root_665f66b0cf05eb7f77f25184c26dc1a2a387d2ad/subdir"),
+    ("./sub1/sub2/sub3/dir", None, "sub3_7965b8466d419346aa2a4ba56c6dd40a2b427c4d/dir"),
+    ("sub1/sub2/sub3/dir", None, "sub3_7965b8466d419346aa2a4ba56c6dd40a2b427c4d/dir"),
+    ("one/two/three/file.v", None,
+     "three_4fa5a4620f8e45bd9643c3aa2986794caaeba14a/file.v"),
+    ("one/two/three/file.v", "package",
+     "three_6d45d58fac0029e7a04b3fbd09b7bfec2c8798f9/file.v")
 ])
-def test_generate_hashed_path(path, expect):
-    assert PathNodeValue.generate_hashed_path(path, None) == expect
+def test_generate_hashed_collection_path(path, dataroot, expect):
+    assert PathNodeValue.generate_hashed_collection_path(path, dataroot) == expect
 
 
-@pytest.mark.parametrize("package,expect", [
-    ("package1", "test_a84e1c570f06fb3d8beb36d9d7cde275897cc511.txt"),
-    ("package2", "test_efab8031f948801817e91dae17ab2316d3e4e6de.txt"),
-    ("lambdalib", "test_144cc5ae35460780b93e5378564377c3ad133ab4.txt"),
-    ("siliconcompiler", "test_4425a0a042d35d7b351b9e56ee42e103d3ab00f0.txt")
-])
-def test_generate_hashed_path_package(package, expect):
-    assert PathNodeValue.generate_hashed_path("one/two/three/test.txt", package) == expect
+def test_generate_hashed_collection_path_normalizes_separators():
+    windows_path = pathlib.PureWindowsPath(r"sub1\sub2\sub3\dir")
+    posix_path = pathlib.PurePosixPath("sub1/sub2/sub3/dir")
+
+    assert PathNodeValue.generate_hashed_collection_path(windows_path, None) == \
+        PathNodeValue.generate_hashed_collection_path(posix_path, None)
+
+    assert PathNodeValue.generate_hashed_collection_path("./sub1/sub2/sub3/dir", None) == \
+        PathNodeValue.generate_hashed_collection_path("sub1/sub2/sub3/dir", None)
 
 
-@pytest.mark.parametrize("package,expect", [
-    (None, "path_2e2bd7a437b8a37df3fe9059379554dcb0ce9ec6.txt.gz"),
-    ("package2", "path_acb5418557fc4e1357cea0e23074f6da22b11301.txt.gz"),
-    ("lambdalib", "path_def2bd1b2f67084569047b6d0f96ec271cbb0e83.txt.gz"),
-    ("siliconcompiler", "path_cee105df8e258b3cc09ed3c4b4d7a5463595a373.txt.gz")
-])
-def test_get_hashed_filename_file(package, expect):
-    value = FileNodeValue()
-    value.set("this/is/the/path.txt.gz")
-    value.set(package, field="dataroot")
-    assert value.get_hashed_filename() == expect
+def test_generate_hashed_collection_path_hashes_parts_in_order():
+    first = PathNodeValue.generate_hashed_collection_path("a/b/c/file", None)
+    second = PathNodeValue.generate_hashed_collection_path("b/a/c/file", None)
+
+    assert first != second
 
 
-@pytest.mark.parametrize("package,expect", [
-    (None, "path_2e2bd7a437b8a37df3fe9059379554dcb0ce9ec6"),
-    ("package2", "path_acb5418557fc4e1357cea0e23074f6da22b11301"),
-    ("lambdalib", "path_def2bd1b2f67084569047b6d0f96ec271cbb0e83"),
-    ("siliconcompiler", "path_cee105df8e258b3cc09ed3c4b4d7a5463595a373")
-])
-def test_get_hashed_filename_dir(package, expect):
-    value = DirectoryNodeValue()
-    value.set("this/is/the/path")
-    value.set(package, field="dataroot")
-    assert value.get_hashed_filename() == expect
+def test_generate_hashed_collection_path_hashes_dataroot():
+    without_dataroot = PathNodeValue.generate_hashed_collection_path(
+        "one/two/three/file.v", None)
+    with_dataroot = PathNodeValue.generate_hashed_collection_path(
+        "one/two/three/file.v", "package")
+
+    assert without_dataroot != with_dataroot
 
 
 def test_directory_resolve_path_collected_empty():
@@ -880,11 +875,23 @@ def test_directory_resolve_path_collected_found():
     os.makedirs(coll_dir, exist_ok=True)
     coll_dir = os.path.abspath(coll_dir)
 
-    import_dir = "four_7873f09de6cc3aad0b0c61923390fb8d980084b8"
+    import_dir = PathNodeValue.generate_hashed_collection_path("one/two/three/four", None)
     abspath = os.path.join(coll_dir, import_dir, "testdir")
     os.makedirs(abspath, exist_ok=True)
 
     value.set("one/two/three/four/testdir")
+
+    assert value.resolve_path(collection_dir=coll_dir) == abspath
+
+
+def test_directory_resolve_path_collected_root():
+    value = DirectoryNodeValue()
+    coll_dir = os.path.abspath("collections")
+    import_dir = PathNodeValue.generate_hashed_collection_path(".", None)
+    abspath = os.path.join(coll_dir, import_dir)
+    os.makedirs(abspath, exist_ok=True)
+
+    value.set(".")
 
     assert value.resolve_path(collection_dir=coll_dir) == abspath
 
@@ -899,8 +906,8 @@ def test_directory_resolve_path_collected_found_from_abs():
     coll_dir = os.path.abspath(coll_dir)
 
     test_abs = os.path.abspath('./four/testdir')
-    import_dir = PathNodeValue.generate_hashed_path(
-        pathlib.PureWindowsPath(test_abs[0:-8]).as_posix(), None)
+    source_dir = os.path.dirname(test_abs)
+    import_dir = PathNodeValue.generate_hashed_collection_path(source_dir, None)
     abspath = os.path.join(coll_dir, import_dir, "testdir")
     os.makedirs(test_abs, exist_ok=True)
     os.makedirs(abspath, exist_ok=True)
@@ -934,7 +941,7 @@ def test_directory_resolve_path_collected_not_found():
     os.makedirs(coll_dir, exist_ok=True)
     coll_dir = os.path.abspath(coll_dir)
 
-    import_dir = "four_7873f09de6cc3aad0b0c61923390fb8d980084b8"
+    import_dir = PathNodeValue.generate_hashed_collection_path("one/two/three/four", None)
     abspath = os.path.join(coll_dir, import_dir, "testdir")
     os.makedirs(abspath, exist_ok=True)
 
@@ -983,28 +990,18 @@ def test_windows_path_relative():
     assert os.path.isfile(check_file)
 
 
-def test_windows_path_imported_file():
-    '''
-    Test that SC can resolve a windows path on any OS
-    '''
-
-    # Create a test file using Windows file paths.
+def test_windows_path_imported_file_new_layout():
     path = r'C:\sc-test\testpath\testfile.v'
+    value = FileNodeValue()
+    value.set(path)
 
-    path_hash = 'ed19a25d5702e8b39dcd72d51bcc8ea787cedeb1'
-    import_path = os.path.join("collections", f'testfile_{path_hash}.v')
-
+    import_path = os.path.join(
+        "collections",
+        PathNodeValue.generate_hashed_collection_path(value.get(), value.get('dataroot')))
     os.makedirs(os.path.dirname(import_path), exist_ok=True)
     with open(import_path, 'w') as wf:
         wf.write('// Test file')
 
-    # Create a file value
-    value = FileNodeValue()
-    value.set(path)
-
-    assert value.get() == "C:/sc-test/testpath/testfile.v"
-
-    # Verify that SC can find the file
     check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
     assert check_file == os.path.abspath(import_path)
     assert os.path.isfile(check_file)
@@ -1018,15 +1015,16 @@ def test_windows_path_imported_directory():
     # Create a test file using Windows file paths.
     path = r'C:\sc-test\testpath\testfile.v'
 
-    path_hash = 'a27ee18aa302a2e707b0712d6ddb0571f2acc3e8'
-    import_path = os.path.join("collections", f'testpath_{path_hash}', 'testfile.v')
+    value = FileNodeValue()
+    value.set(path)
+    source_dir = str(pathlib.PurePosixPath(value.get()).parent)
+    import_path = os.path.join(
+        "collections",
+        PathNodeValue.generate_hashed_collection_path(source_dir, value.get('dataroot')),
+        'testfile.v')
     os.makedirs(os.path.dirname(import_path), exist_ok=True)
     with open(import_path, 'w') as wf:
         wf.write('// Test file')
-
-    # Create a file value
-    value = FileNodeValue()
-    value.set(path)
 
     assert value.get() == "C:/sc-test/testpath/testfile.v"
 
