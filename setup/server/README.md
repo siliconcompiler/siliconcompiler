@@ -146,13 +146,11 @@ whole credential.
 Browser sessions live in the server process and in no table, so restarting it
 signs everyone out. Running `sc-remote -portal` again is the whole recovery.
 
-🔴 **In plaintext the portal answers this machine only.** Its session cookie is
-a secret, and a plaintext wire may carry none but the storage URLs, so over
-plain HTTP the portal answers a peer in `portal_plaintext_peers` and nobody
-else; over HTTPS it answers anywhere. This stack publishes it on the host's
-loopback, which the container sees as its network's gateway -- `bootstrap`
-adds that one address. A lab deployment in plaintext reaches its portal
-through an SSH port-forward, or serves HTTPS.
+The portal is served wherever the API is. Its session cookie is a bearer
+secret, so where that is plain http beyond this machine the server warns at
+startup, naming the origins. This stack publishes both on the host's loopback
+only. A lab deployment that serves other machines should put https in front
+through a reverse proxy, or reach the portal through an SSH port-forward.
 
 ## How a job's files reach it
 
@@ -704,9 +702,9 @@ for. Nothing in it is required.
   install runs while the job is `staging`, into the user's own cache.
 - `fetch_allowlist`, `private_dataroots`, `fetch_timeout_seconds`,
   `fetch_deadline_seconds`: what the server fetches, and supplies.
-- `public_origins`, `web_url_base`, `portal_plaintext_peers`: where this server
-  is reached, the origin a job's page is published under, and who the portal
-  answers over plaintext.
+- `public_origins`, `web_url_base`: where this server is reached, and the
+  origin a job's page is published under. `portal_plaintext_peers` is no longer
+  read, and a `config.json` that still sets it starts with a warning.
 - `notices`: each `{"level", "message", "starts_at", "ends_at"}`, published from
   when the server starts until its `ends_at` passes. `level` is `info` or
   `warning` and `message` is 1 to 500 characters, with no customer name,
@@ -720,9 +718,10 @@ for. Nothing in it is required.
 Over plain http, two things this server hands out are bearer secrets on the
 wire: the signed storage route an artifact's `303` leads to, and the stream URL
 a log's `303` leads to. Holding either is enough to read what it names until it
-expires. The contract's transport rule permits both, because no other secret
-crosses a plaintext wire. Serve the API through a reverse proxy with https
-wherever it is reached from beyond the machine it runs on.
+expires, and the contract's transport rule permits both. The portal's session
+cookie is a third, for twelve hours. The server warns at startup where any
+origin it is reached at is plain http beyond this machine. Serve it through a
+reverse proxy with https wherever it is reached from elsewhere.
 
 ### What it checks at startup
 

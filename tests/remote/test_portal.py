@@ -40,32 +40,49 @@ def signed_in(server, server_client, key, token):
     return server_client
 
 
-def test_in_plaintext_the_portal_answers_this_machine_only(server, signed_in):
-    '''🔴 Its session cookie is a bearer secret, and a plaintext wire may carry
-    none but the storage URLs (surface D170).'''
+def test_the_portal_is_served_wherever_the_api_is(signed_in):
+    '''Over plain http to a peer beyond this machine too (implementation-notes
+    §O): the server warns at startup instead, and https through a reverse
+    proxy is what its docs recommend.'''
     remote = {"REMOTE_ADDR": "10.1.2.3"}
 
-    refused = signed_in.get("/portal/", environ_base=remote)
-    assert refused.status_code == 403
-    assert "this machine only" in refused.get_data(as_text=True)
-
-    assert signed_in.get("/portal/").status_code == 200                  # loopback
-    assert signed_in.get("/portal/", base_url="https://localhost",
-                         environ_base=remote).status_code == 200         # HTTPS
-
-    config = server.config["SC_CONFIG"]
-    config._values["portal_plaintext_peers"] = ["10.1.2.3"]              # a gateway
     assert signed_in.get("/portal/", environ_base=remote).status_code == 200
+    assert signed_in.get("/portal/", base_url="https://localhost",
+                         environ_base=remote).status_code == 200
 
 
-def test_a_peer_list_that_is_not_addresses_is_refused(tmp_path):
+@pytest.mark.parametrize("origins,warned", [
+    (["http://lab.example:8080"], True),
+    (["http://10.1.2.3:8080", "http://localhost:8080"], True),
+    (["http://localhost:8080", "http://127.0.0.1:8080", "http://[::1]:8080"], False),
+    (["https://lab.example"], False),
+])
+def test_plain_http_beyond_this_machine_is_warned_at_startup(tmp_path, caplog, origins,
+                                                             warned):
+    from siliconcompiler.remote.server.app import create_app
+
+    with caplog.at_level("WARNING", logger="sc-server"):
+        create_app(tmp_path / "datadir", public_origins=origins)
+
+    said = [record.message for record in caplog.records if "plain http" in record.message]
+    assert bool(said) == warned
+    if warned:
+        assert "https through a reverse proxy" in said[0]
+
+
+def test_a_retired_peer_list_is_ignored_with_a_warning(tmp_path, caplog):
+    '''An operator who set it did so on purpose, so it is named, and the
+    server still starts.'''
     import json
 
     from siliconcompiler.remote.server.config import Config
 
     (tmp_path / "config.json").write_text(json.dumps({"portal_plaintext_peers": ["lab"]}))
-    with pytest.raises(ValueError, match="portal_plaintext_peers"):
-        Config.load(tmp_path)
+    with caplog.at_level("WARNING", logger="sc-server"):
+        config = Config.load(tmp_path)
+
+    assert config.get("portal_plaintext_peers") is None
+    assert "portal_plaintext_peers, which is no longer read" in caplog.text
 
 
 def csrf(client, path="/portal/"):

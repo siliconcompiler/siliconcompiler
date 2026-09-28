@@ -201,19 +201,6 @@ DEFAULTS: Dict[str, Any] = {
     # host's names on its own port.
     "public_origins": None,
 
-    # Which peers the portal answers over plaintext, as addresses or networks.
-    #
-    # 🔴 **The portal's session cookie is a bearer secret** -- possession is
-    # the whole of it, and it lives twelve hours -- and contract rule 3 accepts
-    # none on a plaintext wire but the storage URLs. So in plaintext the portal
-    # answers only a peer on this machine; over HTTPS it answers anywhere. A lab
-    # deployment reaches it through an SSH port-forward, or serves HTTPS.
-    #
-    # ⚠️ A container sees a connection published on its host's loopback as
-    # coming from its network's gateway, so a compose stack lists that one
-    # address here -- never the network, which the compute nodes are on too.
-    "portal_plaintext_peers": ["127.0.0.0/8", "::1/128"],
-
     # Whether the compute nodes run each job's work inside a container this
     # deployment registered.
     #
@@ -364,6 +351,15 @@ DEFAULTS: Dict[str, Any] = {
     "software_drivers": [],
 }
 
+# Keys this server once read and no longer does, and why. A config.json that
+# still sets one starts, with a warning, rather than refusing as it would an
+# unknown key: the operator set it on purpose, and it now means nothing.
+RETIRED_KEYS = {
+    "portal_plaintext_peers": "the portal is served wherever the API is, and this "
+                              "server warns at startup where that is plain http "
+                              "beyond this machine",
+}
+
 # A notice's shape (surface §1). `starts_at` and `ends_at` are REQUIRED on the
 # wire and nullable, so where config leaves one out it is null.
 NOTICE_LEVELS = ("info", "warning")
@@ -504,14 +500,6 @@ def _check_policy(values: Dict[str, Any]) -> None:
         raise ValueError("features lists python.env, and nodes here run in "
                          "containers with no env_builder to build them an image")
 
-    import ipaddress
-
-    try:
-        for peer in values["portal_plaintext_peers"] or []:
-            ipaddress.ip_network(peer, strict=False)
-    except (TypeError, ValueError) as e:
-        raise ValueError(f"portal_plaintext_peers holds addresses or networks: {e}") from None
-
     private = values["private_dataroots"] or {}
     if not isinstance(private, dict) or not all(
             isinstance(roots, dict) and all(
@@ -615,6 +603,12 @@ class Config:
             overlay = json.loads(path.read_text())
             if not isinstance(overlay, dict):
                 raise ValueError(f"{path} must hold a JSON object")
+
+            for key in set(overlay) & set(RETIRED_KEYS):
+                import logging
+                logging.getLogger("sc-server").warning(
+                    f"{path} sets {key}, which is no longer read: {RETIRED_KEYS[key]}")
+                overlay.pop(key)
 
             unknown = set(overlay) - set(DEFAULTS)
             if unknown:

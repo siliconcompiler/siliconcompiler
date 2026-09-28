@@ -123,6 +123,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
                           config.limits["concurrent_log_streams"]))
 
     _register_error_handlers(app)
+    _warn_of_plaintext(app.config["SC_PUBLIC_ORIGINS"])
 
     @app.teardown_request
     def _release_connection(_error=None):
@@ -186,6 +187,42 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     reaper.sweep(store, storage, config, datadir)
 
     return app
+
+
+def plaintext_origins(origins) -> List[str]:
+    '''The origins this server is reached at over plain http from beyond
+    this machine.'''
+    import ipaddress
+    from urllib.parse import urlsplit
+
+    beyond = []
+    for origin in origins:
+        parts = urlsplit(origin)
+        if parts.scheme != "http":
+            continue
+        host = parts.hostname or ""
+        try:
+            local = host == "localhost" or ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            local = False
+        if not local:
+            beyond.append(origin)
+    return beyond
+
+
+def _warn_of_plaintext(origins) -> None:
+    '''🔴 The portal is served wherever the API is (implementation-notes
+    §O). Where that is plain http beyond this machine, its session cookie is
+    a bearer secret on the wire, beside the signed storage route and the
+    stream URL that contract rule 3 permits there -- so say so, once, at
+    startup.'''
+    beyond = plaintext_origins(origins)
+    if beyond:
+        logging.getLogger("sc-server").warning(
+            f"serving plain http at {', '.join(beyond)}: the portal's session cookie, "
+            "the signed storage route and the stream URL cross the network in the "
+            "clear there. Serve https through a reverse proxy, and set public_origins "
+            "to its https origin")
 
 
 def _origins(values) -> List[str]:
