@@ -101,6 +101,13 @@ class Resolver:
         self.__reference = reference
         self.__changed = False
         self.__cacheid = None
+        self.__private = False
+
+        scheme = self.urlscheme
+        if scheme.endswith("+private"):
+            self.__private = True
+            _, separator, remainder = self.__source.partition(":")
+            self.__source = f"{scheme.removesuffix('+private')}{separator}{remainder}"
 
         if self.__root and hasattr(self.__root, "logger"):
             rootlogger = self.__root.logger
@@ -139,6 +146,8 @@ class Resolver:
             settings.set("resolvers", "key", KeyPathResolver)
             settings.set("resolvers", "python", PythonPathResolver)
             settings.set("resolvers", "dataroot", DatarootResolver)
+
+            settings.set("resolvers", "file+private", FileResolver)
 
             builtins = (https.get_resolver, git.get_resolver, github.get_resolver,
                         scp.get_resolver)
@@ -206,6 +215,14 @@ class Resolver:
         instantly and identically every time, so a retry cannot help.
         """
         return False
+
+    @property
+    def is_private(self) -> bool:
+        """
+        True if the source requires private access
+        (e.g., private repository or private network location).
+        """
+        return self.__private
 
     def is_permanent_failure(self, error: BaseException) -> bool:
         """
@@ -283,6 +300,37 @@ class Resolver:
         """The URI or path specifying the data source."""
         return self.__source
 
+    @staticmethod
+    def _masked_uri(url: str) -> str:
+        from urllib import parse as url_parse
+        parsed = url_parse.urlparse(url)
+        if not parsed.username and not parsed.password and not parsed.query:
+            return url
+        user = "***" if parsed.username else ""
+        pwd = ":***" if parsed.password else ""
+        auth = f"{user}{pwd}@" if (user or pwd) else ""
+        host = parsed.netloc.rpartition("@")[2]
+        netloc = f"{auth}{host}"
+        query = url_parse.urlencode([(key, "***") for key, _ in
+                                     url_parse.parse_qsl(parsed.query, keep_blank_values=True)])
+        return parsed._replace(netloc=netloc, query=query).geturl()
+
+    @property
+    def source_print(self) -> str:
+        """The source URI with sensitive information masked (e.g., tokens)."""
+        return Resolver._masked_uri(self.source)
+
+    @property
+    def safe_source(self) -> str:
+        """The source URI with sensitive information removed (e.g., tokens)."""
+        url = self.urlparse
+        netloc = url.hostname
+        if netloc and ":" in netloc:
+            netloc = f"[{netloc}]"
+        if url.port:
+            netloc = f"{netloc}:{url.port}"
+        return url._replace(netloc=netloc).geturl()
+
     @property
     def reference(self) -> Union[None, str]:
         """A version, commit hash, or tag for the source."""
@@ -326,7 +374,7 @@ class Resolver:
             import hashlib
 
             hash_obj = hashlib.sha1()
-            hash_obj.update(self.__source.encode())
+            hash_obj.update(self.safe_source.encode())
             if self.__reference:
                 hash_obj.update(self.__reference.encode())
             else:
@@ -358,7 +406,7 @@ class Resolver:
 
     def __abandoned_message(self, cache: PathCache) -> str:
         """Builds the error text used when a data source is given up on."""
-        source = self.source
+        source = self.source_print
         if self.reference:
             source = f"{source} ({self.reference})"
         if cache.is_permanent(self.cache_id):
@@ -832,18 +880,26 @@ class FileResolver(Resolver):
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
+        is_private = False
         if source.startswith("file://"):
             source = source[7:]
+        elif source.startswith("file+private://"):
+            is_private = True
+            source = source[15:]
         if source[0] != "$" and not os.path.isabs(source):
             source = os.path.join(cwdirsafe(schema._parent(root=True)), source)
 
-        super().__init__(name, schema, f"file://{source}", None)
+        super().__init__(name, schema, f"file{'+private' if is_private else ''}://{source}", None)
 
     @property
     def urlpath(self) -> str:
         """The absolute file path, stripped of the 'file://' prefix."""
         # Rebuild URL and remove scheme prefix
         return self.urlparse.geturl()[7:]
+
+    @property
+    def safe_source(self) -> str:
+        return self.urlparse.geturl()
 
     def resolve(self) -> str:
         """Returns the absolute path to the file."""

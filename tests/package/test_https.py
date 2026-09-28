@@ -212,6 +212,8 @@ def test_http_resolver_get_resolver():
     assert "https" in resolvers
     assert resolvers["http"] is HTTPResolver
     assert resolvers["https"] is HTTPResolver
+    assert resolvers["http+private"] is HTTPResolver
+    assert resolvers["https+private"] is HTTPResolver
 
 
 def test_http_resolver_check_cache_not_exists():
@@ -349,6 +351,41 @@ def test_http_resolver_resolve_remote_download_failed():
 
         with pytest.raises(FileNotFoundError, match="Failed to download"):
             resolver.resolve_remote()
+
+
+def test_http_resolver_signed_url_not_logged():
+    source = "https://example.com/archive.tar.gz?X-Amz-Signature=secret&token=another"
+    resolver = HTTPResolver("test", Project("testproj"), source, "v1.0")
+
+    with patch("siliconcompiler.package.https.requests.get") as get, \
+         patch.object(resolver.logger, "info") as info:
+        get.return_value.ok = False
+        get.return_value.status_code = 404
+
+        with pytest.raises(DataSourceUnavailableError) as error:
+            resolver.resolve_remote()
+
+    get.assert_called_once()
+    assert get.call_args.args[0] == source
+    logged = info.call_args.args[0]
+    assert "X-Amz-Signature=%2A%2A%2A&token=%2A%2A%2A" in logged
+    assert "secret" not in logged + str(error.value)
+    assert "another" not in logged + str(error.value)
+
+
+@pytest.mark.parametrize("zstd_header,error_type", [
+    (False, TypeError),
+    (True, PermanentResolutionError),
+])
+def test_extract_archive_masks_signed_url(zstd_header, error_type):
+    source = "https://example.com/archive?X-Amz-Signature=secret"
+    with patch("siliconcompiler.package.https.zstd_available", return_value=False), \
+         patch("siliconcompiler.package.https.is_zstd", return_value=zstd_header):
+        with pytest.raises(error_type) as error:
+            _extract_archive(BytesIO(b"invalid archive"), ".", source)
+
+    assert "X-Amz-Signature=%2A%2A%2A" in str(error.value)
+    assert "secret" not in str(error.value)
 
 
 def test_http_resolver_resolve_remote_invalid_archive():
