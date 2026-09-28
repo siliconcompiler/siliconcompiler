@@ -101,6 +101,11 @@ class Resolver:
         self.__reference = reference
         self.__changed = False
         self.__cacheid = None
+        self.__private = False
+
+        if self.urlscheme.endswith("+private"):
+            self.__private = True
+            self.__source = self.urlparse._replace(scheme=self.urlscheme.replace("+private", "")).geturl()
 
         if self.__root and hasattr(self.__root, "logger"):
             rootlogger = self.__root.logger
@@ -139,6 +144,8 @@ class Resolver:
             settings.set("resolvers", "key", KeyPathResolver)
             settings.set("resolvers", "python", PythonPathResolver)
             settings.set("resolvers", "dataroot", DatarootResolver)
+
+            settings.set("resolvers", "file+private", FileResolver)
 
             builtins = (https.get_resolver, git.get_resolver, github.get_resolver,
                         scp.get_resolver)
@@ -206,6 +213,13 @@ class Resolver:
         instantly and identically every time, so a retry cannot help.
         """
         return False
+
+    @property
+    def is_private(self) -> bool:
+        """
+        True if the source requires private access (e.g., private repository or private network location).
+        """
+        return self.__private
 
     def is_permanent_failure(self, error: BaseException) -> bool:
         """
@@ -284,6 +298,30 @@ class Resolver:
         return self.__source
 
     @property
+    def source_print(self) -> str:
+        """The source URI with sensitive information masked (e.g., tokens)."""
+        url = self.urlparse
+        # If there are no credentials in the URL, return as-is
+        if not url.username and not url.password:
+            return self.source
+        user = "***" if url.username else ""
+        pwd = f":***" if url.password else ""
+        auth = f"{user}{pwd}@" if (user or pwd) else ""
+        netloc = f"{auth}{url.hostname}" if url.hostname else ""
+        if url.port:
+            netloc = f"{netloc}:{url.port}"
+        return url._replace(netloc=netloc).geturl()
+
+    @property
+    def safe_source(self) -> str:
+        """The source URI with sensitive information removed (e.g., tokens)."""
+        url = self.urlparse
+        netloc = url.hostname
+        if url.port:
+            netloc = f"{netloc}:{url.port}"
+        return url._replace(netloc=netloc).geturl()
+
+    @property
     def reference(self) -> Union[None, str]:
         """A version, commit hash, or tag for the source."""
         return self.__reference
@@ -326,7 +364,7 @@ class Resolver:
             import hashlib
 
             hash_obj = hashlib.sha1()
-            hash_obj.update(self.__source.encode())
+            hash_obj.update(self.safe_source.encode())
             if self.__reference:
                 hash_obj.update(self.__reference.encode())
             else:
@@ -358,7 +396,7 @@ class Resolver:
 
     def __abandoned_message(self, cache: PathCache) -> str:
         """Builds the error text used when a data source is given up on."""
-        source = self.source
+        source = self.source_print
         if self.reference:
             source = f"{source} ({self.reference})"
         if cache.is_permanent(self.cache_id):

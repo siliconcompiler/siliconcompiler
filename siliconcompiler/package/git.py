@@ -52,7 +52,11 @@ def get_resolver() -> Dict[str, Type["GitResolver"]]:
         "git": GitResolver,
         "git+https": GitResolver,
         "git+ssh": GitResolver,
-        "ssh": GitResolver
+        "ssh": GitResolver,
+        "git+private": GitResolver,
+        "git+https+private": GitResolver,
+        "git+ssh+private": GitResolver,
+        "ssh+private": GitResolver
     }
 
 

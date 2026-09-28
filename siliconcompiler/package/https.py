@@ -152,7 +152,9 @@ def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
     """
     return {
         "http": HTTPResolver,
-        "https": HTTPResolver
+        "https": HTTPResolver,
+        "http+private": HTTPResolver,
+        "https+private": HTTPResolver
     }
 
 

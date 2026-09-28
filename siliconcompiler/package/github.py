@@ -90,7 +90,7 @@ class GithubResolver(HTTPResolver):
         release = url_parts[2]
         artifact = url_parts[3]
 
-        if self.urlscheme == "github+private":
+        if self.is_private:
             return self.__get_release_url(repository, release, artifact, private=True)
 
         try:

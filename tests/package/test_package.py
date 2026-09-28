@@ -39,6 +39,22 @@ def test_init():
 
     assert resolver.name == "testpath"
     assert resolver.source == "source://this"
+    assert resolver.safe_source == "source://this"
+    assert resolver.source_print == "source://this"
+    assert resolver.is_private is False
+    assert resolver.reference is None
+    assert resolver.urlscheme == "source"
+    assert resolver.urlpath == "this"
+    assert isinstance(resolver.logger, logging.Logger)
+    assert resolver.cache_id == "2e7ef7cca5512780f587a0f30afe2ff574bc1448"
+
+
+def test_init_private():
+    resolver = Resolver("testpath", Project("testproj"), "source+private://this")
+
+    assert resolver.name == "testpath"
+    assert resolver.source == "source://this"
+    assert resolver.is_private is True
     assert resolver.reference is None
     assert resolver.urlscheme == "source"
     assert resolver.urlpath == "this"
@@ -81,7 +97,27 @@ def test_init_with_env(monkeypatch):
     assert resolver.urlscheme == "source"
     assert resolver.urlpath == "this"
     assert isinstance(resolver.logger, logging.Logger)
-    assert resolver.cache_id == "44aae5e357af88c30de3ad29ee77f70bb8aa9b9d"
+    assert resolver.cache_id == "0b0f5cbd0aba45a46024a52b4dd543d56b09f5df"
+
+
+@pytest.mark.parametrize("unsafe_data,masked", [
+    ("username", "***"),
+    ("username:", "***"),
+    (":password", ":***"),
+    ("username:password", "***:***"),
+])
+def test_safe_uris(unsafe_data, masked):
+    resolver = Resolver("testpath", Project("testproj"), f"source://{unsafe_data}@this")
+
+    assert resolver.name == "testpath"
+    assert resolver.source == f"source://{unsafe_data}@this"
+    assert resolver.safe_source == "source://this"
+    assert resolver.source_print == f"source://{masked}@this"
+    assert resolver.is_private is False
+    assert resolver.reference is None
+    assert resolver.urlscheme == "source"
+    assert isinstance(resolver.logger, logging.Logger)
+    assert resolver.cache_id == "2e7ef7cca5512780f587a0f30afe2ff574bc1448"
 
 
 def test_init_with_env_project():
@@ -203,7 +239,14 @@ def test_find_resolver_python():
     ("ssh://host/repo", "GitResolver"),
     ("github://owner/repo/ref/file", "GithubResolver"),
     ("github+private://owner/repo/ref/file", "GithubResolver"),
-    ("scp://host/file", "SCPResolver")
+    ("scp://host/file", "SCPResolver"),
+    ("http+private://host/file", "HTTPResolver"),
+    ("https+private://host/file", "HTTPResolver"),
+    ("git+private://host/repo", "GitResolver"),
+    ("git+https+private://host/repo", "GitResolver"),
+    ("git+ssh+private://host/repo", "GitResolver"),
+    ("ssh+private://host/repo", "GitResolver"),
+    ("scp+private://host/file", "SCPResolver")
 ])
 def test_find_resolver_builtin_without_plugins(source, resolver, fake_plugins):
     """The remote resolvers are registered in code, so they work with no plugins at all."""
