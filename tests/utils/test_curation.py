@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from siliconcompiler import Project, Design, Flowgraph, Task
-from siliconcompiler.utils.curation import collect, archive
+from siliconcompiler.utils.curation import collect, archive, filter_collection_keys
 from siliconcompiler.utils.paths import collectiondir
 from siliconcompiler.schema.parametervalue import PathNodeValue
 
@@ -28,13 +28,26 @@ class FauxTask1(Task):
         return "task1"
 
 
+@pytest.fixture
+def path_keys():
+    def _run(project):
+        keys = []
+        for key in project.allkeys():
+            param = project.get(*key, field=None)
+            if param.is_path:
+                keys.extend((key, step, index)
+                            for _, step, index in param.getvalues(return_values=False))
+        return filter_collection_keys(keys)
+    return _run
+
+
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
 def test_collect_notproject(arg):
     with pytest.raises(TypeError, match=r"^project must be a Project$"):
-        collect(arg)
+        collect(arg, keys=[])
 
 
-def test_collect_file_verbose(project_logger, caplog):
+def test_collect_file_verbose(project_logger, caplog, path_keys):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         with design._active(copy=True):
@@ -46,13 +59,13 @@ def test_collect_file_verbose(project_logger, caplog):
     project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     assert f"Collecting files to: {collectiondir(proj)}" in caplog.text
     assert f"  Collecting file: {os.path.abspath('top.v')}" in caplog.text
 
 
-def test_collect_file_not_verbose(project_logger, caplog):
+def test_collect_file_not_verbose(project_logger, caplog, path_keys):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         with design._active(copy=True):
@@ -64,12 +77,12 @@ def test_collect_file_not_verbose(project_logger, caplog):
     project_logger(proj)
     proj.logger.setLevel(logging.INFO)
 
-    collect(proj, verbose=False)
+    collect(proj, keys=path_keys(proj), verbose=False)
 
     assert caplog.text == ""
 
 
-def test_collect_file_update():
+def test_collect_file_update(path_keys):
     # Checks if collected files are properly updated after editing
 
     # Create instance of design
@@ -83,7 +96,7 @@ def test_collect_file_update():
         f.write('fake')
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     import_path = os.path.join(
         collectiondir(proj), PathNodeValue.generate_hashed_collection_path("fake.v", None))
@@ -98,7 +111,7 @@ def test_collect_file_update():
 
     # Rerun collect
     with patch("shutil.rmtree") as rmtree:
-        collect(proj)
+        collect(proj, keys=path_keys(proj))
         rmtree.assert_called_once_with(os.path.join(os.path.dirname(collectiondir(proj)),
                                                     "sc_previous_collection"))
 
@@ -107,7 +120,7 @@ def test_collect_file_update():
         assert f.readline() == 'newfake'
 
 
-def test_collect_file_incremental():
+def test_collect_file_incremental(path_keys):
     # Checks if collected files are properly updated after editing
 
     # Create instance of design
@@ -121,7 +134,7 @@ def test_collect_file_incremental():
         f.write('fake')
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     import_path = os.path.join(
         collectiondir(proj), PathNodeValue.generate_hashed_collection_path("fake.v", None))
@@ -134,13 +147,13 @@ def test_collect_file_incremental():
     os.remove('fake.v')
 
     # Rerun collect
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
     assert len(os.listdir(collectiondir(proj))) == 1
     with open(import_path, 'r') as f:
         assert f.readline() == 'fake'
 
 
-def test_collect_same_filename_from_different_directories():
+def test_collect_same_filename_from_different_directories(path_keys):
     os.makedirs('first', exist_ok=True)
     os.makedirs('second', exist_ok=True)
     with open('first/top.v', 'w') as f:
@@ -155,7 +168,7 @@ def test_collect_same_filename_from_different_directories():
             design.add_file('second/top.v')
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     for source_dir, expected in (('first', 'first'), ('second', 'second')):
         import_path = os.path.join(
@@ -165,7 +178,28 @@ def test_collect_same_filename_from_different_directories():
             assert f.readline() == expected
 
 
-def test_collect_directory():
+def test_collect_selects_exact_pernode_value():
+    with open('first.tcl', 'w') as f:
+        f.write('first')
+    with open('second.tcl', 'w') as f:
+        f.write('second')
+
+    proj = Project(Design("testdesign"))
+    key = ('tool', 'tool0', 'task', 'task0', 'prescript')
+    proj.set(*key, 'first.tcl', step='stepone', index='0')
+    proj.set(*key, 'second.tcl', step='steptwo', index='0')
+
+    collect(proj, keys=[(key, 'stepone', '0')])
+
+    first_path = os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path('first.tcl', None))
+    second_path = os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path('second.tcl', None))
+    assert os.path.isfile(first_path)
+    assert not os.path.exists(second_path)
+
+
+def test_collect_directory(path_keys):
     # Create instance of design
     design = Design("testdesign")
     with design.active_fileset("rtl"):
@@ -179,7 +213,7 @@ def test_collect_directory():
         f.write('test')
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     assert len(os.listdir(collectiondir(proj))) == 1
 
@@ -190,7 +224,7 @@ def test_collect_directory():
                            filetype="verilog")[0].startswith(collectiondir(proj))
 
 
-def test_collect_subdirectory():
+def test_collect_subdirectory(path_keys):
     # Create instance of design
     design = Design("testdesign")
     with design.active_fileset("rtl"):
@@ -204,7 +238,7 @@ def test_collect_subdirectory():
         f.write('test')
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     assert len(os.listdir(collectiondir(proj))) == 1
 
@@ -216,7 +250,7 @@ def test_collect_subdirectory():
                            filetype="verilog")[0].startswith(collectiondir(proj))
 
 
-def test_collect_script_inside_refdir_not_duplicated():
+def test_collect_script_inside_refdir_not_duplicated(path_keys):
     """A script that lives inside a refdir should be collected only via the refdir,
     not also as a separate hashed file. Regression test for sc-issue duplicating
     OpenROAD scripts that are already part of the collected refdir.
@@ -251,7 +285,7 @@ def test_collect_script_inside_refdir_not_duplicated():
     # Collect into a directory that is NOT the project's normal collectiondir,
     # to match how sc-issue redirects collection into a temporary issue dir.
     custom_collect_dir = os.path.abspath("issue_collect")
-    collect(proj, directory=custom_collect_dir)
+    collect(proj, keys=path_keys(proj), directory=custom_collect_dir)
 
     new_refdir = PathNodeValue.generate_hashed_collection_path("scripts", None)
     assert os.listdir(custom_collect_dir) == [new_refdir.split('/')[0]]
@@ -265,7 +299,7 @@ def test_collect_script_inside_refdir_not_duplicated():
         "Script was copied separately even though it lives inside the collected refdir"
 
 
-def test_collect_overlapping_refdirs_dedup_across_keys():
+def test_collect_overlapping_refdirs_dedup_across_keys(path_keys):
     """If two refdir entries point to a parent and child directory, only the parent
     should be copied. Verifies the dedup set is shared across keys."""
 
@@ -290,7 +324,7 @@ def test_collect_overlapping_refdirs_dedup_across_keys():
 
     proj.set("tool", "tool0", "task", "task0", "refdir", True, field="copy")
 
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     new_parent = PathNodeValue.generate_hashed_collection_path("parent", None)
     assert os.listdir(collectiondir(proj)) == [new_parent.split('/')[0]]
@@ -312,13 +346,13 @@ def test_collect_file_with_false():
         f.write('fake')
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=[])
 
     # No files should have been collected
     assert len(os.listdir(collectiondir(proj))) == 0
 
 
-def test_collect_file_home(monkeypatch):
+def test_collect_file_home(monkeypatch, path_keys):
     def _mock_home():
         return Path(os.getcwd()) / "home"
 
@@ -336,14 +370,14 @@ def test_collect_file_home(monkeypatch):
         f.write("test")
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     # No files should have been collected
     path = design.get_idir(fileset="rtl")[0]
     assert os.listdir(path) == []
 
 
-def test_collect_file_build():
+def test_collect_file_build(path_keys):
     os.makedirs('build', exist_ok=True)
 
     # Create instance of design
@@ -356,14 +390,14 @@ def test_collect_file_build():
         f.write("test")
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     # No files should have been collected
     path = design.get_idir(fileset="rtl")[0]
     assert os.listdir(path) == []
 
 
-def test_collect_file_hidden_dir():
+def test_collect_file_hidden_dir(path_keys):
     os.makedirs('test/.test', exist_ok=True)
 
     # Create instance of design
@@ -376,14 +410,14 @@ def test_collect_file_hidden_dir():
         f.write("test")
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     # No files should have been collected
     path = design.get_idir(fileset="rtl")[0]
     assert os.listdir(path) == []
 
 
-def test_collect_file_hidden_file():
+def test_collect_file_hidden_file(path_keys):
     os.makedirs('test', exist_ok=True)
 
     # Create instance of design
@@ -396,14 +430,14 @@ def test_collect_file_hidden_file():
         f.write("test")
 
     proj = Project(design)
-    collect(proj)
+    collect(proj, keys=path_keys(proj))
 
     # No files should have been collected
     path = design.get_idir(fileset="rtl")[0]
     assert os.listdir(path) == []
 
 
-def test_collect_file_whitelist_error():
+def test_collect_file_whitelist_error(path_keys):
     os.makedirs('test/testing', exist_ok=True)
 
     # Create instance of design
@@ -419,12 +453,12 @@ def test_collect_file_whitelist_error():
 
     with pytest.raises(RuntimeError,
                        match=r"^.* is not on the approved collection list\.$"):
-        collect(proj, whitelist=[os.path.abspath('not_test_folder')])
+        collect(proj, keys=path_keys(proj), whitelist=[os.path.abspath('not_test_folder')])
 
     assert len(os.listdir(collectiondir(proj))) == 0
 
 
-def test_collect_file_whitelist_pass():
+def test_collect_file_whitelist_pass(path_keys):
     os.makedirs('test/testing', exist_ok=True)
 
     # Create instance of design
@@ -437,7 +471,7 @@ def test_collect_file_whitelist_pass():
         f.write('test')
 
     proj = Project(design)
-    collect(proj, whitelist=[os.path.abspath('test')])
+    collect(proj, keys=path_keys(proj), whitelist=[os.path.abspath('test')])
 
     assert len(os.listdir(collectiondir(proj))) == 1
 

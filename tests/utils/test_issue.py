@@ -108,21 +108,18 @@ def project(sources):
 
 
 def make_testcase(proj, **kwargs):
-    '''Generates a testcase and returns (archive path, copy flag map).
-
-    The copy flags are snapshotted at collect time, which is after
-    generate_testcase() has rewritten every path parameter's copy field.
-    '''
+    '''Generates a testcase and returns (archive path, collection selection map).'''
     flags = {}
 
     def record_and_collect(project, **collect_kwargs):
+        selected_keys = {','.join(key) for key, _, _ in collect_kwargs['keys']}
         for keypath in project.allkeys():
             if 'default' in keypath:
                 continue
             param = project.get(*keypath, field=None)
             if not param.is_path:
                 continue
-            flags[','.join(keypath)] = param.get(field='copy')
+            flags[','.join(keypath)] = ','.join(keypath) in selected_keys
         return collect(project, **collect_kwargs)
 
     with patch("siliconcompiler.utils.issue.collect", side_effect=record_and_collect):
